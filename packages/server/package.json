@@ -26,11 +26,11 @@
     "@workspace/db": "workspace:*",
     "@workspace/shared": "workspace:*",
     "ai": "catalog:",
+    "aws4fetch": "catalog:",
     "drizzle-orm": "catalog:",
     "hono": "catalog:",
     "pg-boss": "catalog:",
     "postgres": "catalog:",
-    "aws4fetch": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
