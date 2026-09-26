@@ -3,7 +3,7 @@ id: "006"
 title: "i18n and icon packages"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: ["002"]
 ---
 

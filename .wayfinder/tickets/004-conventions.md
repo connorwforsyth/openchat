@@ -3,7 +3,7 @@ id: "004"
 title: "AGENTS.md conventions and CI guards"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: ["002"]
 ---
 

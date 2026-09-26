@@ -3,7 +3,7 @@ id: "003"
 title: "Phase 0 risk checks"
 labels: [wayfinder:research]
 status: open
-assignee:
+assignee: loop
 blockedBy: ["002"]
 ---
 
