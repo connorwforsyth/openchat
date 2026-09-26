@@ -67,6 +67,8 @@ brief, and their findings land in `.context/research/`.
 
 <!-- one line per closed build ticket: what, where, how verified -->
 
+- [Scaffold the monorepo](tickets/002-scaffold.md): bun + Turbo + shadcn (Base UI) monorepo, Ultracite, Vitest, Playwright config, CI, compose ([PR #1](https://github.com/connorwforsyth/openchat/pull/1))
+
 ## Not yet specified
 
 These waves are in scope. Each one graduates into tickets when the gate before it
