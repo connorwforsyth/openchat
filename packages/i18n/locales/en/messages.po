@@ -11,6 +11,18 @@ msgstr ""
 msgid "(Press <0>d</0> to toggle dark mode)"
 msgstr "(Press <0>d</0> to toggle dark mode)"
 
+#: ../code-ui/src/diff-view.tsx
+msgid "{accepted} accepted, {rejected} rejected, {pending, plural, one {# to review} other {# to review}}"
+msgstr "{accepted} accepted, {rejected} rejected, {pending, plural, one {# to review} other {# to review}}"
+
+#: ../code-ui/src/diff-view.tsx
+msgid "{additions, plural, one {# line added} other {# lines added}}"
+msgstr "{additions, plural, one {# line added} other {# lines added}}"
+
+#: ../code-ui/src/diff-view.tsx
+msgid "{deletions, plural, one {# line removed} other {# lines removed}}"
+msgstr "{deletions, plural, one {# line removed} other {# lines removed}}"
+
 #: ../ui/src/components/ai-elements/reasoning.tsx
 msgid "{duration, plural, one {Thought for # second} other {Thought for # seconds}}"
 msgstr "{duration, plural, one {Thought for # second} other {Thought for # seconds}}"
@@ -18,6 +30,18 @@ msgstr "{duration, plural, one {Thought for # second} other {Thought for # secon
 #: ../ui/src/components/ai-elements/message.tsx
 msgid "{page} of {totalBranches}"
 msgstr "{page} of {totalBranches}"
+
+#: ../code-ui/src/diff-view.tsx
+msgid "Accept"
+msgstr "Accept"
+
+#: ../code-ui/src/diff-view.tsx
+msgid "Accept change {number}"
+msgstr "Accept change {number}"
+
+#: ../code-ui/src/diff-view.tsx
+msgid "Accept the rest"
+msgstr "Accept the rest"
 
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Add photos or files"
@@ -44,9 +68,29 @@ msgstr "Awaiting approval"
 msgid "Button"
 msgstr "Button"
 
+#: ../code-ui/src/diff-view.tsx
+msgid "Change {number}"
+msgstr "Change {number}"
+
+#: ../code-ui/src/diff-view.tsx
+msgid "Change {number} accepted"
+msgstr "Change {number} accepted"
+
+#: ../code-ui/src/diff-view.tsx
+msgid "Change {number} rejected"
+msgstr "Change {number} rejected"
+
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Close"
 msgstr "Close"
+
+#: ../../apps/web/app/dev/code/page.tsx
+msgid "Code views"
+msgstr "Code views"
+
+#: ../code-ui/src/diff-view.tsx
+msgid "Comment for the agent on change {number}"
+msgstr "Comment for the agent on change {number}"
 
 #: ../ui/src/components/ai-elements/tool.tsx
 msgid "Completed"
@@ -92,9 +136,17 @@ msgstr "Copy table as TSV"
 msgid "CSV"
 msgstr "CSV"
 
+#: ../../apps/web/app/dev/code/demo.tsx
+msgid "Decision sent to the agent"
+msgstr "Decision sent to the agent"
+
 #: ../ui/src/components/ai-elements/tool.tsx
 msgid "Denied"
 msgstr "Denied"
+
+#: ../code-ui/src/diff-view.tsx
+msgid "Diff layout"
+msgstr "Diff layout"
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Download diagram"
@@ -144,6 +196,22 @@ msgstr "Every migrated component with static sample data. Nothing here calls a m
 msgid "Exit fullscreen"
 msgstr "Exit fullscreen"
 
+#: ../../apps/web/app/dev/code/demo.tsx
+msgid "File"
+msgstr "File"
+
+#: ../../apps/web/app/dev/code/demo.tsx
+msgid "File after applying accepted changes"
+msgstr "File after applying accepted changes"
+
+#: ../../apps/web/app/dev/code/demo.tsx
+msgid "File tree"
+msgstr "File tree"
+
+#: ../code-ui/src/file-tree.tsx
+msgid "Files"
+msgstr "Files"
+
 #: ../ui/src/components/ai-elements/message.tsx
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Image"
@@ -185,6 +253,10 @@ msgstr "Open external link?"
 msgid "Open link"
 msgstr "Open link"
 
+#: ../code-ui/src/diff-view.tsx
+msgid "Optional: tell the agent why"
+msgstr "Optional: tell the agent why"
+
 #: ../ui/src/components/ai-elements/tool.tsx
 msgid "Parameters"
 msgstr "Parameters"
@@ -208,6 +280,22 @@ msgstr "Project ready!"
 #: ../../apps/web/app/dev/ai-elements/demo.tsx
 msgid "Prompt input"
 msgstr "Prompt input"
+
+#: ../../apps/web/app/dev/code/demo.tsx
+msgid "Proposed edit"
+msgstr "Proposed edit"
+
+#: ../code-ui/src/diff-view.tsx
+msgid "Reject"
+msgstr "Reject"
+
+#: ../code-ui/src/diff-view.tsx
+msgid "Reject change {number}"
+msgstr "Reject change {number}"
+
+#: ../code-ui/src/diff-view.tsx
+msgid "Reject the rest"
+msgstr "Reject the rest"
 
 #: ../ui/src/components/ai-elements/message.tsx
 #: ../ui/src/components/ai-elements/prompt-input.tsx
@@ -247,6 +335,14 @@ msgstr "Scroll to end"
 msgid "Scroll to start"
 msgstr "Scroll to start"
 
+#: ../code-ui/src/file-tree.tsx
+msgid "Search files"
+msgstr "Search files"
+
+#: ../code-ui/src/diff-view.tsx
+msgid "Split"
+msgstr "Split"
+
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Start dictation"
 msgstr "Start dictation"
@@ -263,13 +359,29 @@ msgstr "Stop dictation"
 msgid "Submit"
 msgstr "Submit"
 
+#: ../code-ui/src/diff-view.tsx
+msgid "Submit review"
+msgstr "Submit review"
+
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "SVG"
 msgstr "SVG"
 
+#: ../../apps/web/app/dev/code/demo.tsx
+msgid "The accepted changes couldn't be applied."
+msgstr "The accepted changes couldn't be applied."
+
+#: ../../apps/web/app/dev/code/page.tsx
+msgid "The file tree, a highlighted file and a reviewable diff, themed from the design tokens. Sample data only; nothing is written anywhere."
+msgstr "The file tree, a highlighted file and a reviewable diff, themed from the design tokens. Sample data only; nothing is written anywhere."
+
 #: ../ui/src/components/ai-elements/reasoning.tsx
 msgid "Thinking…"
 msgstr "Thinking…"
+
+#: ../code-ui/src/diff-view.tsx
+msgid "This change couldn't be displayed as a diff."
+msgstr "This change couldn't be displayed as a diff."
 
 #: ../ui/src/components/ai-elements/reasoning.tsx
 msgid "Thought for a few seconds"
@@ -282,6 +394,10 @@ msgstr "Too many files. Some were not added."
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "TSV"
 msgstr "TSV"
+
+#: ../code-ui/src/diff-view.tsx
+msgid "Unified"
+msgstr "Unified"
 
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Upload files"
