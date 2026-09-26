@@ -3,7 +3,7 @@ id: "016"
 title: "WS-composer: the prompt composer"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: ["008"]
 ---
 

@@ -3,7 +3,7 @@ id: "011"
 title: "WS-db: schema, migrations and queries"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: ["008"]
 ---
 

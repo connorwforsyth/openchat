@@ -4,7 +4,7 @@ title: "WS-ai: providers, keys, agent runner and Decider"
 labels: [wayfinder:build]
 status: open
 assignee:
-blockedBy: ["008"]
+blockedBy: ["008", "027"]
 ---
 
 ## Question
