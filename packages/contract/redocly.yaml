@@ -1,0 +1,7 @@
+# Redocly lint for the generated openapi.json (`bun run lint:openapi`).
+extends:
+  - recommended
+rules:
+  # The licence is chosen in the open-source wave (PLAN.md §1); until then
+  # the document has none on purpose.
+  info-license: off

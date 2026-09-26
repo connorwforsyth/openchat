@@ -1,0 +1,38 @@
+import { describe, expect, it } from "vitest";
+
+// Cross-package relative import on purpose: packages/icons doesn't export its
+// set ids, and the config enum has to stay equal to them.
+import { iconSetIds } from "../../icons/src/set-ids";
+import { appConfigSchema } from "./schema";
+
+describe("appConfigSchema", () => {
+  it("offers exactly the icon sets packages/icons knows", () => {
+    const set = appConfigSchema.shape.icons.unwrap().shape.set.unwrap();
+    expect([...set.options]).toEqual([...iconSetIds]);
+  });
+
+  it("round-trips its own output", () => {
+    const parsed = appConfigSchema.parse({});
+    expect(appConfigSchema.parse(JSON.parse(JSON.stringify(parsed)))).toEqual(
+      parsed
+    );
+  });
+
+  it("accepts s3 storage and rejects an unknown driver", () => {
+    expect(
+      appConfigSchema.parse({ storage: { bucket: "files", driver: "s3" } })
+        .storage
+    ).toMatchObject({ driver: "s3", forcePathStyle: false, region: "auto" });
+    expect(
+      appConfigSchema.safeParse({ storage: { driver: "ftp" } }).success
+    ).toBe(false);
+  });
+
+  it("orders the risk thresholds", () => {
+    expect(
+      appConfigSchema.safeParse({
+        decider: { thresholds: { riskAsk: 0.9, riskBlock: 0.5 } },
+      }).success
+    ).toBe(false);
+  });
+});

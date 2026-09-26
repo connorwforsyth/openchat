@@ -1,0 +1,27 @@
+{
+  "name": "@workspace/server",
+  "version": "0.0.0",
+  "private": true,
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    "./ports/*": "./src/ports/*.ts"
+  },
+  "scripts": {
+    "lint": "ultracite check",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@workspace/ai": "workspace:*",
+    "@workspace/contract": "workspace:*",
+    "@workspace/shared": "workspace:*",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@workspace/typescript-config": "workspace:*",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "name": "@workspace/contract",
+  "version": "0.0.0",
+  "private": true,
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    "./contract": "./src/contract.ts",
+    "./errors": "./src/errors.ts",
+    "./fixtures": "./src/fixtures.ts",
+    "./openapi": "./src/openapi.ts",
+    "./openapi.json": "./openapi.json",
+    "./schemas/*": "./src/schemas/*.ts"
+  },
+  "scripts": {
+    "lint": "ultracite check && bun run lint:openapi",
+    "lint:openapi": "REDOCLY_TELEMETRY=off REDOCLY_SUPPRESS_UPDATE_NOTICE=true redocly lint openapi.json --config redocly.yaml",
+    "openapi:generate": "bun scripts/generate-openapi.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@orpc/contract": "catalog:",
+    "@orpc/openapi": "catalog:",
+    "@orpc/zod": "catalog:",
+    "@workspace/shared": "workspace:*",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@redocly/cli": "^2.54.3",
+    "@types/node": "catalog:",
+    "@workspace/typescript-config": "workspace:*",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
