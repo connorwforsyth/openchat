@@ -5,7 +5,32 @@
   "sideEffects": false,
   "type": "module",
   "exports": {
-    "./ports/*": "./src/ports/*.ts"
+    "./agent/call-settings": "./src/agent/call-settings.ts",
+    "./agent/run-agent": "./src/agent/run-agent.ts",
+    "./decider/auto-route": "./src/decider/auto-route.ts",
+    "./decider/evaluation-decider": "./src/decider/evaluation-decider.ts",
+    "./decider/from-config": "./src/decider/from-config.ts",
+    "./decider/language-model-evaluator": "./src/decider/language-model-evaluator.ts",
+    "./decider/questions": "./src/decider/questions.ts",
+    "./decider/retrieval-gate": "./src/decider/retrieval-gate.ts",
+    "./decider/risk": "./src/decider/risk.ts",
+    "./errors/run-error": "./src/errors/run-error.ts",
+    "./keys/key-store": "./src/keys/key-store.ts",
+    "./keys/key-store.memory": "./src/keys/key-store.memory.ts",
+    "./keys/resolve": "./src/keys/resolve.ts",
+    "./llm-proxy/errors": "./src/llm-proxy/errors.ts",
+    "./llm-proxy/handle": "./src/llm-proxy/handle.ts",
+    "./llm-proxy/prompt": "./src/llm-proxy/prompt.ts",
+    "./messages/approval": "./src/messages/approval.ts",
+    "./messages/from-ui": "./src/messages/from-ui.ts",
+    "./messages/to-ui": "./src/messages/to-ui.ts",
+    "./ports/*": "./src/ports/*.ts",
+    "./providers/factory": "./src/providers/factory.ts",
+    "./providers/registry": "./src/providers/registry.ts",
+    "./testing/mock-models": "./src/testing/mock-models.ts",
+    "./title/generate-title": "./src/title/generate-title.ts",
+    "./tools/resolve": "./src/tools/resolve.ts",
+    "./tools/tool-set": "./src/tools/tool-set.ts"
   },
   "scripts": {
     "lint": "ultracite check",
@@ -13,15 +38,22 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@ai-sdk/amazon-bedrock": "catalog:",
+    "@ai-sdk/anthropic": "catalog:",
+    "@ai-sdk/azure": "catalog:",
+    "@ai-sdk/google": "catalog:",
+    "@ai-sdk/openai": "catalog:",
+    "@ai-sdk/openai-compatible": "catalog:",
     "@ai-sdk/provider": "catalog:",
+    "@workspace/config": "workspace:*",
     "@workspace/contract": "workspace:*",
     "@workspace/shared": "workspace:*",
+    "ai": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",
     "@workspace/typescript-config": "workspace:*",
-    "ai": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }
