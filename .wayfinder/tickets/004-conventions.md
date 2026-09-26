@@ -2,8 +2,8 @@
 id: "004"
 title: "AGENTS.md conventions and CI guards"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: ["002"]
 ---
 
@@ -30,3 +30,9 @@ Write down the rules every later agent follows, and enforce the mechanical ones 
 
 - Each guard has a failing-fixture test proving it catches a violation.
 - CI green.
+
+## Resolution (2026-09-26, loop)
+
+Built in [PR #2](https://github.com/connorwforsyth/openchat/pull/2): root `AGENTS.md` (+ `CLAUDE.md` importing it) and four CI guards in `scripts/ci/` (tokens, icon imports, brand, Lingui), wired into turbo `lint`/`test`/`typecheck` and CI, with 21 fixture tests. The loop added: research notes and decision records are exempt from the brand guard, and `build` waits for `typecheck` (they raced on `.next`).
+
+Verified: `bun run check`; `bun turbo typecheck lint test build --force` 9/9 after rebasing on main; bad fixtures fail with `path:line:col`; CI `ci` passed.
