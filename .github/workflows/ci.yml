@@ -46,3 +46,59 @@ jobs:
 
       - name: Typecheck, lint, test, build
         run: bun turbo typecheck lint test build
+
+  # PGlite (what `ci` tests on) is Postgres 18; production and compose run 17.
+  # This job applies the migrations to a real Postgres 17 with pgvector and
+  # runs the db tests there, each in a database of its own.
+  db:
+    name: db (postgres 17)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: app
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d app"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # CI-only throwaway credentials for the service container above.
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/app
+      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/app
+      TURBO_TELEMETRY_DISABLED: 1
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.0
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Migrations are up to date with the schema
+        working-directory: packages/db
+        run: |
+          bunx drizzle-kit generate --output json | tee /tmp/generate.json
+          grep -q '"status":"no_changes"' /tmp/generate.json
+
+      - name: Migrate
+        run: bun turbo db:migrate --filter=@workspace/db
+
+      - name: Migrate again (idempotent)
+        run: bun turbo db:migrate --filter=@workspace/db
+
+      - name: Test against Postgres 17
+        working-directory: packages/db
+        run: bunx vitest run
