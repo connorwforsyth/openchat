@@ -18,7 +18,8 @@ passes its `PLAN.md` §11 checks at a demo gate that Connor runs.
 effort overrides that. `PLAN.md` is the spec; the map indexes it and never
 restates it. Build tickets are worked by the loop in [`LOOP.md`](LOOP.md), with
 up to 3 agents in parallel, each in its own git worktree, one PR per ticket,
-auto-merged when CI passes.
+merged by the loop once CI passes. The repo is private on GitHub's free plan, so
+there's no branch protection or auto-merge.
 
 **Skills each session should consult:** `grilling` for every HITL ticket;
 `prototype` for the UI prototype tickets; `shadcn` and `migrate-radix-to-base`

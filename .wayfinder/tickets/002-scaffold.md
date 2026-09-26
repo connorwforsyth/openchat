@@ -33,9 +33,5 @@ Repo-root config (`package.json`, `turbo.json`, `biome.json`, `lefthook.yml`,
 
 - A clean clone runs `bun install && bun turbo typecheck lint test build` green.
 - `apps/web` boots with an empty `.env`.
-- The PR's CI job `ci` passes. The loop then makes `ci` a required status check on `main`
-  (`gh api -X PUT repos/connorwforsyth/openchat/branches/main/protection …`) with
-  `enforce_admins: false`, so tracker-only commits can still go straight to `main`.
-  If the account's plan doesn't support branch protection on private repos, record that
-  in `QUESTIONS-FOR-CONNOR.md` and fall back to: merge a PR only after `gh pr checks`
-  reports `ci` green, read once per iteration.
+- The PR's CI job `ci` passes. (Branch protection and auto-merge aren't available on this
+  private repo's free plan, checked 2026-09-26, so the loop itself is the merge gate: see `LOOP.md` step 1.)

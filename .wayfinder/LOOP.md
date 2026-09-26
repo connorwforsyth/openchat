@@ -16,10 +16,13 @@ Read `.wayfinder/map.md` (Notes and the ownership register), then the parts of
 
 ## One iteration
 
-1. **Housekeeping first.**
-   - Any ticket with `assignee: loop` whose PR has merged: record it (step 6).
-   - Any ticket with `assignee: loop` whose PR failed CI: fix it before taking new work.
-     Check with `gh pr list --state all --search "head:t/"`, reading status once, never polling.
+1. **Housekeeping first: merge what's green.** The repo is private on GitHub's free plan,
+   so there's no branch protection and no auto-merge. The loop is the merge gate. For each
+   open PR on a `t/*` branch (`gh pr list --search "head:t/"`), read `gh pr checks <n>` **once**:
+   - **`ci` passed:** merge with `gh pr merge <n> --squash --delete-branch`, then record it (step 7).
+   - **`ci` failed:** fix it on the same branch before taking new work.
+   - **Still running:** leave it for the next iteration. Never wait or poll inside an iteration.
+   - Never merge a PR that touches `packages/contract` after 008 closes (see Constraints).
    - Act on any answers Connor has written into `QUESTIONS-FOR-CONNOR.md` or into a ticket.
 2. **Frontier.** Run `bun .wayfinder/frontier.ts`. Pick up to **3** tickets labelled
    `wayfinder:build`, `wayfinder:task` or `wayfinder:research`, in frontier order,
@@ -56,9 +59,9 @@ Read `.wayfinder/map.md` (Notes and the ownership register), then the parts of
       ticket link, what was built, how it was verified, and the Claude Code attribution
       line (from the session's attribution reminder).
    2. Bind the PR with the ccd_pr tools (`get_status`, then `bind_pr` if needed).
-   3. Run `gh pr merge --auto --squash --delete-branch`. Connor asked for merge-on-green,
-      so auto-merge waits for CI. **Don't poll CI.**
-7. **Record it.** When a PR has merged (usually noticed in the next iteration's housekeeping):
+   3. Don't merge yet. Connor asked for merge-on-green, and the next iteration's
+      housekeeping merges it once `ci` has passed. **Don't poll CI.**
+7. **Record it.** When a PR has merged (in housekeeping):
    - **In the ticket:** append `## Resolution (date, loop)`: what was built, where, how it
      was verified, the PR link, and what's left. Set `status: closed` and clear `assignee`.
    - **In the map:** add one line under *Built*.
@@ -72,8 +75,7 @@ Read `.wayfinder/map.md` (Notes and the ownership register), then the parts of
 - **Never close a `grilling` or `prototype` ticket, and never answer an owner question.**
   Those are Connor's. Act on the answers once they appear.
 - **Contracts are frozen after 008.** A change to `packages/contract` goes in its own PR,
-  and gets a line in `QUESTIONS-FOR-CONNOR.md`. It isn't auto-merged: leave auto-merge off
-  on that PR.
+  and gets a line in `QUESTIONS-FOR-CONNOR.md`. The loop never merges it; Connor does.
 - **Never spend money or create paid accounts or resources.** Never print secrets.
 - **The app boots with an empty `.env`.** Agent features work with no keys:
   - tests use `MockLanguageModelV4`;

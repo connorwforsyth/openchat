@@ -954,7 +954,7 @@ The wave table is in §2.
 | Q39 | Conversation privacy for scoring | Scores only; content by user opt-in or audit policy |
 | Q40 | Defaults | Node 24 runtime, local/S3 storage, AES-GCM secrets, separate artifact origin, in-process parsing, config limits, documented backups, notifications in the Collaboration wave |
 | — | Importers | ChatGPT, Claude and LibreChat importers in M1 (assumed; move later if preferred) |
-| — | Execution (2026-09-26) | A Wayfinder map in `.wayfinder/` carries execution: destination = the whole plan, with gates; private GitHub repo; one PR per ticket, auto-merged when CI passes; up to 3 agents in parallel |
+| — | Execution (2026-09-26) | A Wayfinder map in `.wayfinder/` carries execution: destination = the whole plan, with gates; private GitHub repo; one PR per ticket, merged by the loop once CI passes (no branch protection on the free plan); up to 3 agents in parallel |
 | — | Config filename (2026-09-26) | `app.config.yaml` (brand-neutral), not `openchat.yaml` |
 | — | Audit fixes (2026-09-26) | pg-boss in-process in `web` from M1; `resource_grant` is the only chat-access authority; per-type permission enums; `lingui extract` gate in M1; 20 dropped details restored from v1 |
 
