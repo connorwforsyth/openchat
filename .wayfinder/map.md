@@ -76,6 +76,7 @@ brief, and their findings land in `.context/research/`.
 - [AI Elements on Base UI](tickets/007-ai-elements.md): message, reasoning, tool, prompt-input migrated; no Radix left ([PR #5](https://github.com/connorwforsyth/openchat/pull/5))
 - [Contracts and ports](tickets/005-contracts.md): zod + oRPC contract, OpenAPI, config schema, ports with fakes ([PR #6](https://github.com/connorwforsyth/openchat/pull/6))
 - [Contract: the /api/llm proxy](tickets/027-contract-llm-proxy.md): model proxy for the desktop loop in the AI SDK's gateway shape ([PR #7](https://github.com/connorwforsyth/openchat/pull/7))
+- [WS-db](tickets/011-ws-db.md): Drizzle schema for all M1 tables, query modules, PGlite harness, Postgres 17 CI job ([PR #8](https://github.com/connorwforsyth/openchat/pull/8))
 
 ## Not yet specified
 
