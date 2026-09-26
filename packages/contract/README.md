@@ -10,7 +10,7 @@ end of this file.
 | Import | What |
 |---|---|
 | `@workspace/contract/contract` | `contract`: every procedure, grouped by domain. Handlers implement it (`implement(contract)` in `@workspace/server`); `@workspace/client` types its client from it. |
-| `@workspace/contract/errors` | Typed error maps and `errorCodeSchema`. |
+| `@workspace/contract/errors` | Typed error maps (including `llmProxyErrors`) and `errorCodeSchema`. |
 | `@workspace/contract/schemas/<domain>` | The zod schemas and `z.infer` types, below. |
 | `@workspace/contract/fixtures` | Valid sample data for every major type, with fixed ids, for tests and UI work before the server exists. |
 | `@workspace/contract/openapi` | `generateOpenApi()`. |
@@ -30,6 +30,7 @@ Schemas, by file:
 | `library` | Agents, prompts, skills, MCP servers and presets: definitions per kind, items, versions (draft and published), listing tabs, share-vs-publish inputs, import/export, MCP connection status. |
 | `files` | Files and ingestion status, file search, artifacts and their versions. |
 | `memory` | The memory document, versions, `MemoryPatch` and the `update_memory` tool input. |
+| `llm` | The model proxy: `LlmProxyRequest` (AI SDK call options plus model, chat context and `stream`), `LlmProxyResponse`, stream parts and the stream's `error` part. |
 | `feedback`, `keys`, `usage` | Thumbs feedback; provider keys (write-only secrets, scopes); transactions, summaries and budgets. |
 | `decider` | Decider questions, answers, state and the `decision_log` entry. The port itself is in `@workspace/ai`. |
 | `sandbox`, `search`, `meta`, `models` | Sandbox records and exec shapes; chat search and web search results; `me`, public config, model refs and picker options. |
@@ -77,6 +78,40 @@ so it's added to `openapi.json` by hand (`openapi.ts`) as a
 - Chunks are opaque JSON in this contract (`jsonValueSchema`) so it doesn't pin
   an AI SDK version. When a run finishes, its output is stored as our own
   `MessagePart`s, versioned by `partsVersion`.
+
+## The model proxy (not a procedure)
+
+`POST /api/llm` makes one language-model call with the server's keys, for a
+client that runs its own agent loop (desktop cowork, PLAN.md D7). Like the run
+stream it's plain HTTP, added to `openapi.json` by hand as `llm.proxy`.
+
+- **The wire is the AI SDK's own.** The body is `LanguageModelV4CallOptions`
+  plus `model` (a ref or an alias), `context` (the `ChatContext`: whose keys
+  pay and where usage goes, D17) and `stream`. The replies are a
+  `LanguageModelV4GenerateResult` (JSON, plus `resolvedModel`) or, with
+  `stream: true`, SSE whose `data` is one `LanguageModelV4StreamPart` per
+  event, ending with `data: [DONE]`. That's the shape the AI SDK's gateway
+  provider sends, so a client wraps the proxy as a custom `LanguageModel`:
+  `doGenerate` and `doStream` post their options with the three fields added
+  and hand back what comes back.
+- Call options the proxy doesn't take (`headers`, `abortSignal`,
+  `includeRawChunks`) are dropped when parsed. Only function tools are
+  accepted: provider-executed tools would run on the server's keys, and the
+  server grants those itself. Binary file data is sent base64-encoded.
+- Prompt content, result content, warnings and stream parts are opaque JSON
+  typed only by `type`, so the contract doesn't pin an AI SDK version. Call
+  settings share the bounds presets use (`ModelParameters`).
+- Before anything is sent the proxy answers with the usual error bodies
+  (`llmProxyErrors`): `UNAUTHORIZED`, `FORBIDDEN` (a context the caller isn't
+  in or the instance disallows), `VALIDATION` (a model that doesn't resolve or
+  can't take the request), `RATE_LIMITED`, `BUDGET_EXCEEDED` (checked first)
+  and `PROVIDER_UNAVAILABLE` (no key for this context). A failure after a
+  stream starts is a final `error` part whose `error` is a `RunError`, safe to
+  show.
+- The resolved model ref is in the `x-resolved-model` header. Usage is
+  recorded against the caller and the context when the call ends, including
+  a call the client cancels by closing the request. There's no resume: a
+  dropped stream is a failed call, and the client retries the step.
 
 Streaming routes set `runtime = "nodejs"`, `dynamic = "force-dynamic"` and
 `X-Accel-Buffering: no` (docs/decisions/0004).

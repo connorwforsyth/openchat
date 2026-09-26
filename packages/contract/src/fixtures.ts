@@ -8,6 +8,11 @@ import type {
   LibraryItemDetail,
   LibraryVersion,
 } from "./schemas/library";
+import type {
+  LlmProxyRequest,
+  LlmProxyResponse,
+  LlmStreamPart,
+} from "./schemas/llm";
 import type { MessagePart } from "./schemas/message-parts";
 import type { BranchPath, Message } from "./schemas/messages";
 import type { Me, PublicConfig } from "./schemas/meta";
@@ -398,3 +403,82 @@ export const publicConfig: PublicConfig = {
   policies: { chatContexts: ["personal", "team", "org"] },
   sandbox: { default: "just-bash", providers: ["just-bash", "docker"] },
 };
+
+/**
+ * A desktop agent-loop step through the model proxy: the tools are the
+ * client's own, and the answer is a tool call it runs locally.
+ */
+export const llmProxyRequest: LlmProxyRequest = {
+  context: { id: teamPlatform.id, type: "team" },
+  maxOutputTokens: 4096,
+  model: "strong",
+  prompt: [
+    {
+      content: "You are a coding agent in the user's workspace.",
+      role: "system",
+    },
+    {
+      content: [{ text: "What's in package.json?", type: "text" }],
+      role: "user",
+    },
+  ],
+  stream: true,
+  temperature: 0.2,
+  toolChoice: { type: "auto" },
+  tools: [
+    {
+      description: "Read a file in the workspace.",
+      inputSchema: {
+        properties: { path: { type: "string" } },
+        required: ["path"],
+        type: "object",
+      },
+      name: "read",
+      type: "function",
+    },
+  ],
+};
+
+/** The same step with `stream: false`, answered as JSON. */
+export const llmProxyResponse: LlmProxyResponse = {
+  content: [
+    {
+      input: '{"path":"package.json"}',
+      toolCallId: "call_1",
+      toolName: "read",
+      type: "tool-call",
+    },
+  ],
+  finishReason: { raw: "tool_use", unified: "tool-calls" },
+  resolvedModel: "anthropic:claude-opus-5-5",
+  response: {
+    id: "msg_1",
+    modelId: "claude-opus-5-5",
+    timestamp: fixtureTime(2),
+  },
+  usage: {
+    inputTokens: { cacheRead: 0, noCache: 120, total: 120 },
+    outputTokens: { text: 18, total: 18 },
+  },
+  warnings: [],
+};
+
+/** The same step streamed: each is one SSE `data:` event before `[DONE]`. */
+export const llmStreamParts: LlmStreamPart[] = [
+  { type: "stream-start", warnings: [] },
+  {
+    id: "msg_1",
+    modelId: "claude-opus-5-5",
+    timestamp: fixtureTime(2),
+    type: "response-metadata",
+  },
+  { id: "call_1", toolName: "read", type: "tool-input-start" },
+  { delta: '{"path":"package.json"}', id: "call_1", type: "tool-input-delta" },
+  { id: "call_1", type: "tool-input-end" },
+  ...llmProxyResponse.content,
+  {
+    finishReason: llmProxyResponse.finishReason,
+    type: "finish",
+    usage: llmProxyResponse.usage,
+  },
+];

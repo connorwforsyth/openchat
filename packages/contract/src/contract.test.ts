@@ -12,6 +12,7 @@ import {
   conflictError,
   errorCodeSchema,
   featureError,
+  llmProxyErrors,
   providerError,
 } from "./errors";
 import { generateOpenApi, serializeOpenApi } from "./openapi";
@@ -115,6 +116,20 @@ describe("openapi.json", () => {
     expect(stream?.operationId).toBe("runs.stream");
     expect(Object.keys(stream?.responses?.["200"] ?? {})).toContain("content");
     expect(JSON.stringify(stream?.responses)).toContain("text/event-stream");
+  });
+
+  it("documents the model proxy as JSON or server-sent events", async () => {
+    const document = await generateOpenApi();
+    const proxy = document.paths?.["/llm"]?.post;
+    expect(proxy?.operationId).toBe("llm.proxy");
+    const ok = proxy?.responses?.["200"];
+    const types = ok && "content" in ok ? Object.keys(ok.content ?? {}) : [];
+    expect(types.sort()).toEqual(["application/json", "text/event-stream"]);
+    for (const [code, { status }] of Object.entries(llmProxyErrors)) {
+      expect(JSON.stringify(proxy?.responses?.[String(status)])).toContain(
+        `#/components/schemas/${code}Error`
+      );
+    }
   });
 
   it("marks only public procedures as needing no session", async () => {

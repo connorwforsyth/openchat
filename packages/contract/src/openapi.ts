@@ -2,6 +2,7 @@ import { type OpenAPI, OpenAPIGenerator } from "@orpc/openapi";
 import { ZodToJsonSchemaConverter } from "@orpc/zod/zod4";
 
 import { contract } from "./contract";
+import { llmProxyErrors } from "./errors";
 import { jsonValueSchema, providerMetadataSchema } from "./schemas/common";
 import {
   conversationSchema,
@@ -22,6 +23,7 @@ import {
   libraryItemSchema,
   libraryVersionSchema,
 } from "./schemas/library";
+import { llmProxyRequestSchema, llmProxyResponseSchema } from "./schemas/llm";
 import { memoryDocumentSchema, memoryVersionSchema } from "./schemas/memory";
 import {
   approvalDecisionSchema,
@@ -42,8 +44,9 @@ import {
 import { budgetSchema, transactionSchema } from "./schemas/usage";
 
 // OpenAPI 3.1 from the contract (D26), for the Swift client, Scalar and the
-// docs site. Everything comes from the oRPC contract except the run stream,
-// which is SSE and added by hand below so non-TypeScript clients can find it.
+// docs site. Everything comes from the oRPC contract except the run stream and
+// the model proxy, which are plain HTTP (SSE) routes added by hand below so
+// non-TypeScript clients can find them.
 
 /** The API version: bump the major on a breaking contract change. */
 export const API_VERSION = "0.1.0";
@@ -61,6 +64,8 @@ const tags = Object.entries({
   Memory: "The user's Markdown memory file and its versions.",
   Messages: "The message tree and branches.",
   Meta: "Public instance config and the model picker.",
+  Models:
+    "Model calls with the server's keys, for clients that run their own agent loop.",
   Orgs: "Orgs, members, invitations and org policy.",
   Runs: "Chat turns: create, stream, approve, cancel.",
   Sandbox: "Per-conversation sandboxes.",
@@ -147,6 +152,74 @@ const runStreamPath: OpenAPI.PathItemObject = {
   },
 };
 
+/** `POST /llm`: the model proxy (D7), not an oRPC procedure, documented here for OpenAPI clients. */
+const llmProxyPath: OpenAPI.PathItemObject = {
+  post: {
+    description: [
+      "Makes one language-model call with the server's keys, for clients that run",
+      "their own agent loop (desktop cowork). The body mirrors the AI SDK's",
+      "`LanguageModelV4CallOptions` plus `model`, `context` and `stream`. Keys are",
+      "resolved for the chat context, the budget is checked first (402), and usage",
+      "is recorded against the caller and the context. With `stream: false` the",
+      "reply is JSON (a `LanguageModelV4GenerateResult`); with `stream: true` it is",
+      "Server-Sent Events whose `data` is one JSON `LanguageModelV4StreamPart`,",
+      "ending with `data: [DONE]`. A failure after the stream starts is a final",
+      "`error` part whose `error` is a `RunError`. There is no resume: a dropped",
+      "stream is a failed call, and closing the request cancels it.",
+    ].join(" "),
+    operationId: "llm.proxy",
+    requestBody: {
+      content: {
+        "application/json": {
+          schema: { $ref: "#/components/schemas/LlmProxyRequest" },
+        },
+      },
+      required: true,
+    },
+    responses: {
+      "200": {
+        content: {
+          "application/json": {
+            schema: { $ref: "#/components/schemas/LlmProxyResponse" },
+          },
+          "text/event-stream": {
+            schema: {
+              description:
+                "`data: <LanguageModelV4StreamPart JSON>` events, then `data: [DONE]`.",
+              type: "string",
+            },
+          },
+        },
+        description:
+          "The result as JSON (`stream: false`) or an event stream (`stream: true`).",
+        headers: {
+          "x-resolved-model": {
+            description: "The model ref the selector resolved to.",
+            schema: { type: "string" },
+          },
+        },
+      },
+      "400": {
+        content: {
+          "application/json": {
+            schema: { $ref: "#/components/schemas/UndefinedError" },
+          },
+        },
+        description:
+          "The body doesn't match `LlmProxyRequest` (`BAD_REQUEST`).",
+      },
+      ...Object.fromEntries(
+        Object.entries(llmProxyErrors).map(([code, { message, status }]) => [
+          String(status),
+          errorResponse(message, code),
+        ])
+      ),
+    },
+    summary: "Call a model (JSON or SSE)",
+    tags: ["Models"],
+  },
+};
+
 /**
  * Shared shapes become `components.schemas` entries and are referenced by
  * `$ref`, which keeps the document small and gives generated clients (Swift)
@@ -167,6 +240,9 @@ const commonSchemas = {
   LibraryItem: { schema: libraryItemSchema },
   LibraryItemDetail: { schema: libraryItemDetailSchema },
   LibraryVersion: { schema: libraryVersionSchema },
+  // Only the hand-added `/llm` path references these two.
+  LlmProxyRequest: { schema: llmProxyRequestSchema },
+  LlmProxyResponse: { schema: llmProxyResponseSchema },
   MemoryDocument: { schema: memoryDocumentSchema },
   MemoryVersion: { schema: memoryVersionSchema },
   Message: { schema: messageSchema },
@@ -321,6 +397,7 @@ export const generateOpenApi = async (): Promise<OpenAPI.Document> => {
     },
     paths: {
       ...withoutNoContentBodies(document.paths ?? {}),
+      "/llm": llmProxyPath,
       "/runs/{id}/stream": runStreamPath,
     },
   };
