@@ -25,6 +25,7 @@ import {
 } from "@workspace/shared/result";
 import {
   and,
+  asc,
   desc,
   eq,
   getColumns,
@@ -44,6 +45,7 @@ import {
   notFound,
 } from "../errors";
 import { resourceGrant } from "../schema/access";
+import { user } from "../schema/auth";
 import { conversation, conversationParticipant, message } from "../schema/chat";
 import { TEXT_SEARCH_CONFIG } from "../schema/columns";
 import { deleteGrantsForResource, hasLiveShareLink, heldBy } from "./grants";
@@ -523,4 +525,50 @@ export const searchConversations = async (
         ? Buffer.from(String(offset.value + input.limit)).toString("base64url")
         : null,
   });
+};
+
+// --- Added for the participants route (ticket 014) ---
+
+export interface ParticipantRow {
+  readonly activeLeafId: MessageId | null;
+  readonly email: string;
+  readonly followingUserId: UserId | null;
+  readonly image: string | null;
+  readonly lastReadAt: Date | null;
+  readonly name: string;
+  /** From ownership and grants held by the user directly; team and org grants are 012's to fold in. */
+  readonly permission: ConversationPermission;
+  readonly userId: UserId;
+}
+
+/** Everyone with per-user state in a conversation, oldest first. */
+export const listParticipants = async (
+  db: Db,
+  conversationId: ConversationId
+): Promise<ParticipantRow[]> => {
+  const userGrant = (level: string) =>
+    sql`exists (select 1 from ${resourceGrant} where ${resourceGrant.resourceType} = 'conversation' and ${resourceGrant.resourceId} = ${conversation.id} and ${resourceGrant.principalType} = 'user' and ${resourceGrant.principalId} = ${user.id} and ${resourceGrant.permission} = ${level})`;
+  return await db
+    .select({
+      activeLeafId: conversationParticipant.activeLeafId,
+      email: user.email,
+      followingUserId: conversationParticipant.followingUserId,
+      image: user.image,
+      lastReadAt: conversationParticipant.lastReadAt,
+      name: user.name,
+      permission: sql<ConversationPermission>`case
+        when ${conversation.ownerId} = ${user.id} then 'owner'
+        when ${userGrant("editor")} then 'editor'
+        else 'viewer'
+      end`,
+      userId: user.id,
+    })
+    .from(conversationParticipant)
+    .innerJoin(
+      conversation,
+      eq(conversation.id, conversationParticipant.conversationId)
+    )
+    .innerJoin(user, eq(user.id, conversationParticipant.userId))
+    .where(eq(conversationParticipant.conversationId, conversationId))
+    .orderBy(asc(conversationParticipant.createdAt));
 };

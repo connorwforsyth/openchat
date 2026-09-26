@@ -1,9 +1,9 @@
-import type { TeamId, UserId } from "@workspace/contract/schemas/common";
+import type { OrgId, TeamId, UserId } from "@workspace/contract/schemas/common";
 import type { Principal } from "@workspace/contract/schemas/tenancy";
-import { eq, sql } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 
 import type { Db } from "../client";
-import { member } from "../schema/auth";
+import { member, organization } from "../schema/auth";
 import { team, teamMember } from "../schema/tenancy";
 import { rowsOf } from "./page";
 
@@ -85,4 +85,52 @@ export const loadPrincipals = async (
     ...orgs.map((row): Principal => ({ id: row.id, type: "org" })),
     ...teamIds.map((id): Principal => ({ id, type: "team" })),
   ];
+};
+
+// --- Added for chat contexts (ticket 014) ---
+
+/**
+ * A user's personal org: where the Personal context keeps its usage and keys
+ * (D17). `null` until one exists (sign-up creates it, ticket 012).
+ */
+export const personalOrgOf = async (
+  db: Db,
+  userId: UserId
+): Promise<OrgId | null> => {
+  const [row] = await db
+    .select({ id: organization.id })
+    .from(organization)
+    .innerJoin(member, eq(member.organizationId, organization.id))
+    .where(and(eq(member.userId, userId), eq(organization.isPersonal, true)))
+    .orderBy(asc(organization.createdAt))
+    .limit(1);
+  return row?.id ?? null;
+};
+
+/**
+ * A team's org and its path to the top: the team first, then its parent, up
+ * to the top-level team (the order key resolution walks, D17).
+ */
+export const teamLineage = async (
+  db: Db,
+  teamId: TeamId
+): Promise<{ readonly orgId: OrgId; readonly path: TeamId[] } | null> => {
+  const rows = rowsOf<{ depth: number; id: TeamId; org_id: OrgId }>(
+    await db.execute(sql`
+      with recursive up as (
+        select ${team.id} as id, ${team.parentId} as parent_id, ${team.orgId} as org_id, 0 as depth
+        from ${team}
+        where ${team.id} = ${teamId}
+        union all
+        select t.id, t.parent_id, t.org_id, up.depth + 1
+        from ${team} t
+        join up on t.id = up.parent_id
+      )
+      select id, org_id, depth from up order by depth
+    `)
+  );
+  const [first] = rows;
+  return first
+    ? { orgId: first.org_id, path: rows.map((row) => row.id) }
+    : null;
 };
