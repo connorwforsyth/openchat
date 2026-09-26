@@ -3,7 +3,7 @@ id: "022"
 title: "WS-memory-evals: memory, feedback, traces and dev evals"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: ["014"]
 ---
 

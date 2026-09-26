@@ -3,7 +3,7 @@ id: "019"
 title: "WS-sandbox: just-bash, sandbox-runner and panel"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: ["013"]
 ---
 
