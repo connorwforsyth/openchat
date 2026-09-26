@@ -101,6 +101,9 @@ closes (the M1 demo gate first). Their contents are in `PLAN.md` §2.
   per-agent memory, the Jev adapter.
 - **Annotate:** the annotate-to-agent loop on artifacts and previews.
 - **Mobile and Swift:** the Expo app and the Swift spike.
+- **Sandbox follow-ups (from 019):** remote provider adapters (E2B, Vercel
+  Sandbox, Microsandbox), an egress-proxy service for allowlist egress, WebSocket
+  support in the preview proxy (hot reload), disk quotas on sandbox volumes.
 - **Open-source readiness:** licence, brand, docs site, landing page,
   pseudo-locale and RTL gates, SAML, Helm.
 
