@@ -75,6 +75,7 @@ brief, and their findings land in `.context/research/`.
 - [i18n and icon packages](tickets/006-i18n-icons.md): Lingui 6 with macros on Next 16, swappable icon registry with codemod ([PR #3](https://github.com/connorwforsyth/openchat/pull/3))
 - [AI Elements on Base UI](tickets/007-ai-elements.md): message, reasoning, tool, prompt-input migrated; no Radix left ([PR #5](https://github.com/connorwforsyth/openchat/pull/5))
 - [Contracts and ports](tickets/005-contracts.md): zod + oRPC contract, OpenAPI, config schema, ports with fakes ([PR #6](https://github.com/connorwforsyth/openchat/pull/6))
+- [Contract: the /api/llm proxy](tickets/027-contract-llm-proxy.md): model proxy for the desktop loop in the AI SDK's gateway shape ([PR #7](https://github.com/connorwforsyth/openchat/pull/7))
 
 ## Not yet specified
 

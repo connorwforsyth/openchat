@@ -11,3 +11,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-09-26 · 007 closed · PR #5 · AI Elements on Base UI · 17/17 tasks, /dev/ai-elements 200, CI pass
 - 2026-09-26 · 005 closed · PR #6 · contracts + ports · 35/35 tasks, ~1,400 tests, Redocly valid, CI pass
 - 2026-09-26 · 008 closed by Connor · all seven contract recommendations accepted
+- 2026-09-27 · 027 closed · PR #7 · /api/llm contract · 35/35 tasks, Redocly valid, CI pass

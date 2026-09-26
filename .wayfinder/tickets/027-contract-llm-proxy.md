@@ -2,8 +2,8 @@
 id: "027"
 title: "Contract: add the /api/llm proxy"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: ["008"]
 ---
 
@@ -28,3 +28,7 @@ process in `packages/contract/README.md`.
 
 Schemas with round-trip cases; `openapi.json` regenerated and Redocly-valid; README
 updated; CI green. Accepted in the 008 review, so the loop may merge it once CI passes.
+
+## Resolution (2026-09-27, loop)
+
+Merged in [PR #7](https://github.com/connorwforsyth/openchat/pull/7): `LlmProxyRequest` mirrors the AI SDK's `LanguageModelV4CallOptions` (the `@ai-sdk/gateway` proxy shape) plus `model`, required `context` and `stream`; JSON or SSE replies (one SDK stream part per event, `[DONE]`), `x-resolved-model`; opaque content/stream parts; `llmProxyErrors`; hand-added `POST /llm` in OpenAPI. Verified: 35/35 turbo tasks, Redocly valid, CI passed. Follow-ups noted on 013 (refuse file URLs; `auto` model) and question 13.
