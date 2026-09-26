@@ -3,7 +3,7 @@ id: "007"
 title: "Install and migrate AI Elements; pierre skills"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: ["002"]
 ---
 
