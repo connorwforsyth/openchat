@@ -1,6 +1,11 @@
 {
   "extends": "@workspace/typescript-config/react-library.json",
   "compilerOptions": {
+    // Source is consumed as-is by Next (transpilePackages), Vitest and bun, all
+    // of which resolve like a bundler; NodeNext would demand file extensions
+    // that @workspace/icons and apps type-checking this source reject.
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
     "paths": {
       "@workspace/ui/*": ["./src/*"]
     },

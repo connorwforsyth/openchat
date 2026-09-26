@@ -81,4 +81,10 @@ declare module "lucide-react-native" {
   export const Upload: LucideIcon;
   export const User: LucideIcon;
   export const X: LucideIcon;
+  export const Wrench: LucideIcon;
+  export const Clock: LucideIcon;
+  export const ZoomOut: LucideIcon;
+  export const ZoomIn: LucideIcon;
+  export const Maximize2: LucideIcon;
+  export const CornerDownLeft: LucideIcon;
 }

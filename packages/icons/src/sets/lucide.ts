@@ -18,7 +18,9 @@ import {
   CircleAlert,
   CircleCheck,
   CircleX,
+  Clock,
   Copy,
+  CornerDownLeft,
   Download,
   Ellipsis,
   EllipsisVertical,
@@ -38,6 +40,7 @@ import {
   LoaderCircle,
   Lock,
   LogOut,
+  Maximize2,
   Menu,
   MessageSquare,
   Mic,
@@ -67,7 +70,10 @@ import {
   TriangleAlert,
   Upload,
   User,
+  Wrench,
   X,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 
 import type { Icon } from "../types";
@@ -110,6 +116,10 @@ export const ThumbsUpIcon: Icon = ThumbsUp;
 export const Trash2Icon: Icon = Trash2;
 export const UploadIcon: Icon = Upload;
 export const XIcon: Icon = X;
+export const CornerDownLeftIcon: Icon = CornerDownLeft;
+export const Maximize2Icon: Icon = Maximize2;
+export const ZoomInIcon: Icon = ZoomIn;
+export const ZoomOutIcon: Icon = ZoomOut;
 export const CircleAlertIcon: Icon = CircleAlert;
 export const CircleCheckIcon: Icon = CircleCheck;
 export const CircleIcon: Icon = Circle;
@@ -120,6 +130,7 @@ export const LoaderCircleIcon: Icon = LoaderCircle;
 export const LoaderIcon: Icon = Loader;
 export const OctagonXIcon: Icon = OctagonX;
 export const TriangleAlertIcon: Icon = TriangleAlert;
+export const ClockIcon: Icon = Clock;
 export const BotIcon: Icon = Bot;
 export const BrainIcon: Icon = Brain;
 export const CalendarIcon: Icon = Calendar;
@@ -139,6 +150,7 @@ export const SparklesIcon: Icon = Sparkles;
 export const StarIcon: Icon = Star;
 export const SunIcon: Icon = Sun;
 export const UserIcon: Icon = User;
+export const WrenchIcon: Icon = Wrench;
 export const AgentIcon: Icon = Bot;
 export const AttachIcon: Icon = Paperclip;
 export const BranchIcon: Icon = GitBranch;
@@ -146,3 +158,4 @@ export const ContextIcon: Icon = Layers;
 export const NewChatIcon: Icon = SquarePen;
 export const ReasoningIcon: Icon = Brain;
 export const StopIcon: Icon = Square;
+export const ToolIcon: Icon = Wrench;

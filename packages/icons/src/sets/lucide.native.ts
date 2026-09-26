@@ -17,7 +17,9 @@ import {
   CircleAlert,
   CircleCheck,
   CircleX,
+  Clock,
   Copy,
+  CornerDownLeft,
   Download,
   Ellipsis,
   EllipsisVertical,
@@ -37,6 +39,7 @@ import {
   LoaderCircle,
   Lock,
   LogOut,
+  Maximize2,
   Menu,
   MessageSquare,
   Mic,
@@ -66,7 +69,10 @@ import {
   TriangleAlert,
   Upload,
   User,
+  Wrench,
   X,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react-native";
 
 import type { NativeIcon } from "../types.native";
@@ -109,6 +115,10 @@ export const ThumbsUpIcon: NativeIcon = ThumbsUp;
 export const Trash2Icon: NativeIcon = Trash2;
 export const UploadIcon: NativeIcon = Upload;
 export const XIcon: NativeIcon = X;
+export const CornerDownLeftIcon: NativeIcon = CornerDownLeft;
+export const Maximize2Icon: NativeIcon = Maximize2;
+export const ZoomInIcon: NativeIcon = ZoomIn;
+export const ZoomOutIcon: NativeIcon = ZoomOut;
 export const CircleAlertIcon: NativeIcon = CircleAlert;
 export const CircleCheckIcon: NativeIcon = CircleCheck;
 export const CircleIcon: NativeIcon = Circle;
@@ -119,6 +129,7 @@ export const LoaderCircleIcon: NativeIcon = LoaderCircle;
 export const LoaderIcon: NativeIcon = Loader;
 export const OctagonXIcon: NativeIcon = OctagonX;
 export const TriangleAlertIcon: NativeIcon = TriangleAlert;
+export const ClockIcon: NativeIcon = Clock;
 export const BotIcon: NativeIcon = Bot;
 export const BrainIcon: NativeIcon = Brain;
 export const CalendarIcon: NativeIcon = Calendar;
@@ -138,6 +149,7 @@ export const SparklesIcon: NativeIcon = Sparkles;
 export const StarIcon: NativeIcon = Star;
 export const SunIcon: NativeIcon = Sun;
 export const UserIcon: NativeIcon = User;
+export const WrenchIcon: NativeIcon = Wrench;
 export const AgentIcon: NativeIcon = Bot;
 export const AttachIcon: NativeIcon = Paperclip;
 export const BranchIcon: NativeIcon = GitBranch;
@@ -145,3 +157,4 @@ export const ContextIcon: NativeIcon = Layers;
 export const NewChatIcon: NativeIcon = SquarePen;
 export const ReasoningIcon: NativeIcon = Brain;
 export const StopIcon: NativeIcon = Square;
+export const ToolIcon: NativeIcon = Wrench;

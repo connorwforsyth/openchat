@@ -25,11 +25,13 @@ export const iconNames = [
   // Actions
   "CheckIcon",
   "CopyIcon",
+  "CornerDownLeftIcon",
   "DownloadIcon",
   "EllipsisIcon",
   "EllipsisVerticalIcon",
   "GripVerticalIcon",
   "LogOutIcon",
+  "Maximize2Icon",
   "MicIcon",
   "MinusIcon",
   "MoreHorizontalIcon",
@@ -49,11 +51,14 @@ export const iconNames = [
   "Trash2Icon",
   "UploadIcon",
   "XIcon",
+  "ZoomInIcon",
+  "ZoomOutIcon",
   // Status
   "CircleAlertIcon",
   "CircleCheckIcon",
   "CircleIcon",
   "CircleXIcon",
+  "ClockIcon",
   "InfoIcon",
   "Loader2Icon",
   "LoaderCircleIcon",
@@ -80,6 +85,7 @@ export const iconNames = [
   "StarIcon",
   "SunIcon",
   "UserIcon",
+  "WrenchIcon",
   // Semantic aliases: what the icon means in this app, not what it draws
   "AgentIcon",
   "AttachIcon",
@@ -88,6 +94,7 @@ export const iconNames = [
   "NewChatIcon",
   "ReasoningIcon",
   "StopIcon",
+  "ToolIcon",
 ] as const;
 
 export type IconName = (typeof iconNames)[number];

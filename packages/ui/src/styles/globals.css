@@ -6,6 +6,8 @@
 @source "../../../apps/**/*.{ts,tsx}";
 @source "../../../components/**/*.{ts,tsx}";
 @source "../**/*.{ts,tsx}";
+/* Streamdown renders markdown with Tailwind classes from its own bundle. */
+@source "../../node_modules/streamdown/dist/*.js";
 
 @theme inline {
   --font-heading: var(--font-sans);
