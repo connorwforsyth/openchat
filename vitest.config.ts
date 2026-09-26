@@ -5,11 +5,11 @@ import { defineConfig } from "vitest/config";
 // Turbo still runs each package's `test` script separately so results cache
 // per package.
 //
-// `ai`, `sandbox` and `server` only hold port interfaces and their fakes so
+// `sandbox` and `server` only hold port interfaces and their fakes so
 // far (ticket 005), and may not carry config of their own yet. The
 // workstream that fills each one adds its vitest.config.ts and drops its
 // entry here.
-const portShells = ["ai", "sandbox", "server"].map((name) => ({
+const portShells = ["sandbox", "server"].map((name) => ({
   test: { include: ["src/**/*.test.ts"], name, root: `packages/${name}` },
 }));
 
