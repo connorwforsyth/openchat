@@ -1,0 +1,195 @@
+[
+  {
+    "uuid": "claude-linear",
+    "name": "Grocery notes",
+    "summary": "",
+    "created_at": "2025-01-15T10:00:00.000000Z",
+    "updated_at": "2025-01-15T10:05:00.000000Z",
+    "account": {
+      "uuid": "account-1"
+    },
+    "chat_messages": [
+      {
+        "uuid": "cm-1",
+        "text": "Summarise my notes",
+        "content": [
+          {
+            "start_timestamp": "2025-01-15T10:00:01.000000Z",
+            "stop_timestamp": "2025-01-15T10:00:01.000000Z",
+            "type": "text",
+            "text": "Summarise my notes",
+            "citations": []
+          }
+        ],
+        "sender": "human",
+        "created_at": "2025-01-15T10:00:01.000000Z",
+        "updated_at": "2025-01-15T10:00:01.000000Z",
+        "attachments": [
+          {
+            "file_name": "notes.txt",
+            "file_size": 42,
+            "file_type": "txt",
+            "extracted_content": "Buy milk. Buy bread."
+          }
+        ],
+        "files": [
+          {
+            "file_name": "shelf.png",
+            "file_uuid": "file-uuid-1"
+          }
+        ]
+      },
+      {
+        "uuid": "cm-2",
+        "text": "",
+        "content": [
+          {
+            "type": "thinking",
+            "thinking": "Two items, both groceries.",
+            "summaries": [
+              {
+                "summary": "Counting items"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "text": "You need milk and bread.",
+            "citations": [
+              {
+                "uuid": "cit-1",
+                "start_index": 0,
+                "end_index": 10,
+                "details": {
+                  "type": "web_search_citation",
+                  "url": "https://example.com/groceries"
+                }
+              }
+            ]
+          },
+          {
+            "type": "tool_use",
+            "name": "artifacts",
+            "input": {
+              "id": "list",
+              "type": "text/markdown",
+              "title": "Shopping list",
+              "command": "create",
+              "content": "- milk\n- bread"
+            }
+          },
+          {
+            "type": "tool_result",
+            "name": "artifacts",
+            "content": [
+              {
+                "type": "text",
+                "text": "OK"
+              }
+            ],
+            "is_error": false
+          },
+          {
+            "type": "token_budget"
+          }
+        ],
+        "sender": "assistant",
+        "created_at": "2025-01-15T10:00:05.000000Z",
+        "updated_at": "2025-01-15T10:00:05.000000Z",
+        "attachments": [],
+        "files": []
+      },
+      {
+        "uuid": "cm-3",
+        "text": "Thanks",
+        "content": [],
+        "sender": "human",
+        "created_at": "2025-01-15T10:01:00.000000Z",
+        "attachments": [],
+        "files": []
+      },
+      {
+        "uuid": "cm-4",
+        "text": "You're welcome.",
+        "sender": "assistant",
+        "created_at": "2025-01-15T10:00:59.000000Z",
+        "attachments": [],
+        "files": []
+      }
+    ]
+  },
+  {
+    "uuid": "claude-tree",
+    "name": "Edited question",
+    "created_at": "2025-02-01T09:00:00Z",
+    "current_leaf_message_uuid": "ct-a2",
+    "model": "claude-sonnet-4-5",
+    "chat_messages": [
+      {
+        "uuid": "ct-h1",
+        "parent_message_uuid": "00000000-0000-4000-8000-000000000000",
+        "sender": "human",
+        "text": "Name a colour",
+        "content": [
+          {
+            "type": "text",
+            "text": "Name a colour"
+          }
+        ],
+        "created_at": "2025-02-01T09:00:01Z"
+      },
+      {
+        "uuid": "ct-a1",
+        "parent_message_uuid": "ct-h1",
+        "sender": "assistant",
+        "text": "Blue",
+        "content": [
+          {
+            "type": "text",
+            "text": "Blue"
+          }
+        ],
+        "created_at": "2025-02-01T09:00:02Z"
+      },
+      {
+        "uuid": "ct-h2",
+        "parent_message_uuid": "ct-a1",
+        "sender": "human",
+        "text": "Another",
+        "content": [
+          {
+            "type": "text",
+            "text": "Another"
+          }
+        ],
+        "created_at": "2025-02-01T09:00:03Z"
+      },
+      {
+        "uuid": "ct-h2b",
+        "parent_message_uuid": "ct-a1",
+        "sender": "human",
+        "text": "A warmer one",
+        "content": [
+          {
+            "type": "text",
+            "text": "A warmer one"
+          }
+        ],
+        "created_at": "2025-02-01T09:00:04Z"
+      },
+      {
+        "uuid": "ct-a2",
+        "parent_message_uuid": "ct-h2b",
+        "sender": "assistant",
+        "text": "Orange",
+        "content": [
+          {
+            "type": "text",
+            "text": "Orange"
+          }
+        ],
+        "created_at": "2025-02-01T09:00:05Z"
+      }
+    ]
+  }
+]

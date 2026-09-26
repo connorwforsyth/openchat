@@ -1,0 +1,544 @@
+[
+  {
+    "title": "Weekend in Lisbon",
+    "create_time": 1714585000.0,
+    "update_time": 1714585011.0,
+    "mapping": {
+      "root": {
+        "id": "root",
+        "message": null,
+        "parent": null,
+        "children": ["system"]
+      },
+      "system": {
+        "id": "system",
+        "message": {
+          "id": "system",
+          "author": {
+            "role": "system",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": null,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": [""]
+          },
+          "status": "finished_successfully",
+          "end_turn": null,
+          "weight": 1.0,
+          "metadata": {
+            "is_visually_hidden_from_conversation": true
+          },
+          "recipient": "all"
+        },
+        "parent": "root",
+        "children": ["context"]
+      },
+      "context": {
+        "id": "context",
+        "message": {
+          "id": "context",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": null,
+          "update_time": null,
+          "content": {
+            "content_type": "user_editable_context",
+            "user_profile": "Prefers trains",
+            "user_instructions": ""
+          },
+          "status": "finished_successfully",
+          "end_turn": null,
+          "weight": 1.0,
+          "metadata": {
+            "is_visually_hidden_from_conversation": true
+          },
+          "recipient": "all"
+        },
+        "parent": "system",
+        "children": ["u1"]
+      },
+      "u1": {
+        "id": "u1",
+        "message": {
+          "id": "u1",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1714585001.0,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": ["Plan a weekend in Lisbon"]
+          },
+          "status": "finished_successfully",
+          "end_turn": null,
+          "weight": 1.0,
+          "metadata": {
+            "attachments": [
+              {
+                "id": "file-abc",
+                "name": "itinerary.pdf",
+                "size": 2048,
+                "mime_type": "application/pdf"
+              }
+            ]
+          },
+          "recipient": "all"
+        },
+        "parent": "context",
+        "children": ["a1", "a1b"]
+      },
+      "a1": {
+        "id": "a1",
+        "message": {
+          "id": "a1",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1714585002.0,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": ["Day one: Alfama. Day two: Belem."]
+          },
+          "status": "finished_successfully",
+          "end_turn": null,
+          "weight": 1.0,
+          "metadata": {
+            "model_slug": "gpt-4o"
+          },
+          "recipient": "all"
+        },
+        "parent": "u1",
+        "children": ["u2", "u2b"]
+      },
+      "a1b": {
+        "id": "a1b",
+        "message": {
+          "id": "a1b",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1714585003.0,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": ["Alternative: a day trip to Sintra."]
+          },
+          "status": "finished_successfully",
+          "end_turn": null,
+          "weight": 1.0,
+          "metadata": {
+            "model_slug": "gpt-4o"
+          },
+          "recipient": "all"
+        },
+        "parent": "u1",
+        "children": []
+      },
+      "u2": {
+        "id": "u2",
+        "message": {
+          "id": "u2",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1714585004.0,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": ["Make it cheaper"]
+          },
+          "status": "finished_successfully",
+          "end_turn": null,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "a1",
+        "children": ["thoughts"]
+      },
+      "thoughts": {
+        "id": "thoughts",
+        "message": {
+          "id": "thoughts",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1714585005.0,
+          "update_time": null,
+          "content": {
+            "content_type": "thoughts",
+            "thoughts": [
+              {
+                "summary": "Budget",
+                "content": "Public transport is cheap."
+              }
+            ],
+            "source_analysis_msg_id": "x"
+          },
+          "status": "finished_successfully",
+          "end_turn": null,
+          "weight": 1.0,
+          "metadata": {
+            "model_slug": "o3"
+          },
+          "recipient": "all"
+        },
+        "parent": "u2",
+        "children": ["recap"]
+      },
+      "recap": {
+        "id": "recap",
+        "message": {
+          "id": "recap",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1714585006.0,
+          "update_time": null,
+          "content": {
+            "content_type": "reasoning_recap",
+            "content": "Thought for 3s"
+          },
+          "status": "finished_successfully",
+          "end_turn": null,
+          "weight": 1.0,
+          "metadata": {
+            "model_slug": "o3"
+          },
+          "recipient": "all"
+        },
+        "parent": "thoughts",
+        "children": ["a2"]
+      },
+      "a2": {
+        "id": "a2",
+        "message": {
+          "id": "a2",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1714585007.0,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": ["Try the tram and free museums on Sunday.【11†source】"]
+          },
+          "status": "finished_successfully",
+          "end_turn": null,
+          "weight": 1.0,
+          "metadata": {
+            "model_slug": "o3",
+            "citations": [
+              {
+                "start_ix": 40,
+                "end_ix": 51,
+                "citation_format_type": "tether_og",
+                "metadata": {
+                  "type": "webpage",
+                  "title": "Lisbon transport",
+                  "url": "https://example.com/lisbon-transport",
+                  "text": "",
+                  "pub_date": null,
+                  "extra": null
+                }
+              }
+            ]
+          },
+          "recipient": "all"
+        },
+        "parent": "recap",
+        "children": []
+      },
+      "u2b": {
+        "id": "u2b",
+        "message": {
+          "id": "u2b",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1714585008.0,
+          "update_time": null,
+          "content": {
+            "content_type": "multimodal_text",
+            "parts": [
+              {
+                "content_type": "image_asset_pointer",
+                "asset_pointer": "file-service://file-img1",
+                "size_bytes": 1000,
+                "width": 64,
+                "height": 48,
+                "fovea": null,
+                "metadata": null
+              },
+              "What does 1 + 1 cost here?"
+            ]
+          },
+          "status": "finished_successfully",
+          "end_turn": null,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "a1",
+        "children": ["a3"]
+      },
+      "a3": {
+        "id": "a3",
+        "message": {
+          "id": "a3",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1714585009.0,
+          "update_time": null,
+          "content": {
+            "content_type": "code",
+            "language": "python",
+            "text": "print(1 + 1)"
+          },
+          "status": "finished_successfully",
+          "end_turn": null,
+          "weight": 1.0,
+          "metadata": {
+            "model_slug": "gpt-4o"
+          },
+          "recipient": "python"
+        },
+        "parent": "u2b",
+        "children": ["tool1"]
+      },
+      "tool1": {
+        "id": "tool1",
+        "message": {
+          "id": "tool1",
+          "author": {
+            "role": "tool",
+            "name": "python",
+            "metadata": {}
+          },
+          "create_time": 1714585010.0,
+          "update_time": null,
+          "content": {
+            "content_type": "execution_output",
+            "text": "2"
+          },
+          "status": "finished_successfully",
+          "end_turn": null,
+          "weight": 1.0,
+          "metadata": {
+            "aggregate_result": {
+              "status": "success"
+            }
+          },
+          "recipient": "all"
+        },
+        "parent": "a3",
+        "children": ["a4"]
+      },
+      "a4": {
+        "id": "a4",
+        "message": {
+          "id": "a4",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1714585011.0,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": ["It comes to 2 euros."]
+          },
+          "status": "finished_successfully",
+          "end_turn": null,
+          "weight": 1.0,
+          "metadata": {
+            "model_slug": "gpt-4o"
+          },
+          "recipient": "all"
+        },
+        "parent": "tool1",
+        "children": []
+      }
+    },
+    "moderation_results": [],
+    "current_node": "a2",
+    "conversation_id": "conv-branches",
+    "id": "conv-branches",
+    "default_model_slug": "gpt-4o"
+  },
+  {
+    "title": "Museum hours",
+    "create_time": 1714585100.0,
+    "update_time": 1714585102.0,
+    "mapping": {
+      "b-root": {
+        "id": "b-root",
+        "message": null,
+        "parent": null,
+        "children": ["b-u1"]
+      },
+      "b-u1": {
+        "id": "b-u1",
+        "message": {
+          "id": "b-u1",
+          "author": {
+            "role": "user",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": null,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": ["When does the museum open?"]
+          },
+          "status": "finished_successfully",
+          "end_turn": null,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "b-root",
+        "children": ["b-a1"]
+      },
+      "b-a1": {
+        "id": "b-a1",
+        "message": {
+          "id": "b-a1",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1714585101.0,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": ["The museum opens at ten.citeturn0search0"]
+          },
+          "status": "finished_successfully",
+          "end_turn": null,
+          "weight": 1.0,
+          "metadata": {
+            "model_slug": "gpt-4o",
+            "content_references": [
+              {
+                "matched_text": "citeturn0search0",
+                "start_idx": 24,
+                "end_idx": 43,
+                "alt": " ([example.com](https://example.com/museum))",
+                "type": "grouped_webpages",
+                "items": [
+                  {
+                    "title": "Museum hours",
+                    "url": "https://example.com/museum"
+                  }
+                ]
+              }
+            ]
+          },
+          "recipient": "all"
+        },
+        "parent": "b-u1",
+        "children": ["b-a2"]
+      },
+      "b-a2": {
+        "id": "b-a2",
+        "message": {
+          "id": "b-a2",
+          "author": {
+            "role": "assistant",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": 1714585102.0,
+          "update_time": null,
+          "content": {
+            "content_type": "super_widget",
+            "widget": {
+              "kind": "map"
+            }
+          },
+          "status": "in_progress",
+          "end_turn": null,
+          "weight": 1.0,
+          "metadata": {
+            "model_slug": "gpt-4o"
+          },
+          "recipient": "all"
+        },
+        "parent": "b-a1",
+        "children": []
+      }
+    },
+    "current_node": "b-a2",
+    "conversation_id": "conv-citations",
+    "default_model_slug": null
+  },
+  {
+    "title": "Only a system prompt",
+    "create_time": 1714585200.0,
+    "mapping": {
+      "c-root": {
+        "id": "c-root",
+        "message": null,
+        "parent": null,
+        "children": ["c-system"]
+      },
+      "c-system": {
+        "id": "c-system",
+        "message": {
+          "id": "c-system",
+          "author": {
+            "role": "system",
+            "name": null,
+            "metadata": {}
+          },
+          "create_time": null,
+          "update_time": null,
+          "content": {
+            "content_type": "text",
+            "parts": ["You are helpful."]
+          },
+          "status": "finished_successfully",
+          "end_turn": null,
+          "weight": 1.0,
+          "metadata": {},
+          "recipient": "all"
+        },
+        "parent": "c-root",
+        "children": []
+      }
+    },
+    "current_node": "c-system",
+    "conversation_id": "conv-empty"
+  }
+]

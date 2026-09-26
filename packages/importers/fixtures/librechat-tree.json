@@ -1,0 +1,120 @@
+{
+  "conversationId": "lc-tree",
+  "endpoint": "openAI",
+  "title": "Python venv",
+  "exportAt": "16:40:00 GMT+0000",
+  "branches": true,
+  "recursive": true,
+  "options": {
+    "endpoint": "openAI",
+    "model": "gpt-4o"
+  },
+  "messages": [
+    {
+      "messageId": "lc-u1",
+      "conversationId": "lc-tree",
+      "parentMessageId": "00000000-0000-0000-0000-000000000000",
+      "isCreatedByUser": true,
+      "sender": "User",
+      "text": "How do I make a venv?",
+      "createdAt": "2024-05-01T16:35:11.530Z",
+      "endpoint": "openAI",
+      "model": null,
+      "error": false,
+      "unfinished": false,
+      "files": [
+        {
+          "file_id": "lc-file-1",
+          "filename": "requirements.txt",
+          "type": "text/plain",
+          "bytes": 120,
+          "filepath": "/uploads/u/lc-file-1"
+        }
+      ],
+      "children": [
+        {
+          "messageId": "lc-a1",
+          "conversationId": "lc-tree",
+          "parentMessageId": "lc-u1",
+          "isCreatedByUser": false,
+          "sender": "GPT-4o",
+          "text": "Run python -m venv .venv",
+          "createdAt": "2024-05-01T16:35:12.604Z",
+          "endpoint": "openAI",
+          "model": "gpt-4o",
+          "error": false,
+          "unfinished": false,
+          "children": [
+            {
+              "messageId": "lc-u2",
+              "conversationId": "lc-tree",
+              "parentMessageId": "lc-a1",
+              "isCreatedByUser": true,
+              "sender": "User",
+              "text": "And activate it?",
+              "createdAt": "2024-05-01T16:36:00.000Z",
+              "endpoint": "openAI",
+              "model": null,
+              "error": false,
+              "unfinished": false,
+              "children": [
+                {
+                  "messageId": "lc-a2",
+                  "conversationId": "lc-tree",
+                  "parentMessageId": "lc-u2",
+                  "isCreatedByUser": false,
+                  "sender": "GPT-4o",
+                  "text": "",
+                  "createdAt": "2024-05-01T16:36:05.000Z",
+                  "endpoint": "agents",
+                  "model": "gpt-4o-mini",
+                  "error": false,
+                  "unfinished": false,
+                  "content": [
+                    {
+                      "type": "think",
+                      "think": "They are on macOS."
+                    },
+                    {
+                      "type": "tool_call",
+                      "tool_call": {
+                        "id": "call_1",
+                        "name": "shell",
+                        "args": "{\"cmd\":\"source .venv/bin/activate\"}",
+                        "output": "ok",
+                        "type": "tool_call"
+                      }
+                    },
+                    {
+                      "type": "text",
+                      "text": "Run source .venv/bin/activate"
+                    },
+                    {
+                      "type": "activity_label",
+                      "activity_label": "Ran a command"
+                    }
+                  ],
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "messageId": "lc-a1b",
+          "conversationId": "lc-tree",
+          "parentMessageId": "lc-u1",
+          "isCreatedByUser": false,
+          "sender": "GPT-4o",
+          "text": "Use virtualenv instead.",
+          "createdAt": "2024-05-01T16:35:20.000Z",
+          "endpoint": "openAI",
+          "model": "gpt-4o",
+          "error": false,
+          "unfinished": true,
+          "children": []
+        }
+      ]
+    }
+  ]
+}

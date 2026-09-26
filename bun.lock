@@ -192,6 +192,23 @@
         "react-native-svg",
       ],
     },
+    "packages/importers": {
+      "name": "@workspace/importers",
+      "version": "0.0.0",
+      "dependencies": {
+        "@workspace/contract": "workspace:*",
+        "@workspace/db": "workspace:*",
+        "@workspace/shared": "workspace:*",
+        "drizzle-orm": "catalog:",
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@types/node": "catalog:",
+        "@workspace/typescript-config": "workspace:*",
+        "typescript": "catalog:",
+        "vitest": "catalog:",
+      },
+    },
     "packages/sandbox": {
       "name": "@workspace/sandbox",
       "version": "0.0.0",
@@ -828,6 +845,8 @@
     "@workspace/i18n": ["@workspace/i18n@workspace:packages/i18n"],
 
     "@workspace/icons": ["@workspace/icons@workspace:packages/icons"],
+
+    "@workspace/importers": ["@workspace/importers@workspace:packages/importers"],
 
     "@workspace/sandbox": ["@workspace/sandbox@workspace:packages/sandbox"],
 
