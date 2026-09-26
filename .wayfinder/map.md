@@ -62,6 +62,7 @@ brief, and their findings land in `.context/research/`.
 - [Design review of plan v1](tickets/001-design-review.md): 40 answers
   settling audience, scope (an ambitious web M1, then waves), runs, tenancy, sharing,
   config, icons, memory, evals and safety. The detail lives in `PLAN.md` §13.
+- [Contract review](tickets/008-contract-review.md): contracts accepted as built; UUIDv7 ids, separate tool parts, `/api/llm` added now, events SSE in its wave.
 
 ## Built
 
@@ -73,6 +74,7 @@ brief, and their findings land in `.context/research/`.
 - [AGENTS.md conventions and CI guards](tickets/004-conventions.md): agent conventions + token, icon-import, brand and Lingui guards in CI ([PR #2](https://github.com/connorwforsyth/openchat/pull/2))
 - [i18n and icon packages](tickets/006-i18n-icons.md): Lingui 6 with macros on Next 16, swappable icon registry with codemod ([PR #3](https://github.com/connorwforsyth/openchat/pull/3))
 - [AI Elements on Base UI](tickets/007-ai-elements.md): message, reasoning, tool, prompt-input migrated; no Radix left ([PR #5](https://github.com/connorwforsyth/openchat/pull/5))
+- [Contracts and ports](tickets/005-contracts.md): zod + oRPC contract, OpenAPI, config schema, ports with fakes ([PR #6](https://github.com/connorwforsyth/openchat/pull/6))
 
 ## Not yet specified
 

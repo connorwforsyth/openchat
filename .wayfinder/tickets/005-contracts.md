@@ -2,8 +2,8 @@
 id: "005"
 title: "Contracts and ports"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: ["002","003"]
 ---
 
@@ -35,3 +35,9 @@ Use the risk-check findings from 003 (for example Drizzle RC vs 0.45) where they
 - Each port has an in-memory fake with tests.
 - A short `packages/contract/README.md` lists what's in the contract.
 - Then 008 (contract review) is ready for Connor.
+
+## Resolution (2026-09-26, loop)
+
+Built in [PR #6](https://github.com/connorwforsyth/openchat/pull/6): `packages/shared` (`Result`, branded UUIDv7 ids), `packages/contract` (zod 4 schemas per domain, oRPC contract with 20 procedure groups and typed errors, fixtures, committed Redocly-valid `openapi.json` with 110 operations including the `runs.stream` SSE path), `packages/config` (`app.config.yaml` schema, `parseConfig`/`loadConfig`, `clampOrgPolicy`, `toPublicConfig`, `app.config.example.yaml`), and ports with in-memory fakes (`RunExecutor`, `ProviderRegistry`, `Decider`, `Embedder`, `SearchBackend` in ai; `StreamChannel`, `JobQueue`, `Storage` in server; `Sandbox` in sandbox).
+
+Verified: 35/35 turbo tasks after rebasing (the loop fixed a duplicate catalog key from the rebase); about 1,400 tests; CI passed. Reviewed and accepted by Connor in [Contract review](008-contract-review.md).
