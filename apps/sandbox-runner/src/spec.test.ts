@@ -66,7 +66,13 @@ describe("buildContainerSpec", () => {
   it("mounts nothing from the host", () => {
     expect(host.Binds).toBeUndefined();
     expect(host.Mounts).toEqual([
-      { ReadOnly: false, Source: `sbx-${id}`, Target: "/work", Type: "volume" },
+      {
+        ReadOnly: false,
+        Source: `sbx-${id}`,
+        Target: "/work",
+        Type: "volume",
+        VolumeOptions: { NoCopy: true },
+      },
     ]);
     expect(host.Mounts?.every((mount) => mount.Type === "volume")).toBe(true);
     expect(host.Devices).toBeUndefined();
