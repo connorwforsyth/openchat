@@ -65,6 +65,8 @@ brief, and their findings land in `.context/research/`.
 
 ## Built
 
+- [Phase 0 risk checks](tickets/003-risk-checks.md): all six usable; gVisor is Linux-only, so macOS sandboxes fall back to hardened runc ([PR #4](https://github.com/connorwforsyth/openchat/pull/4))
+
 <!-- one line per closed build ticket: what, where, how verified -->
 
 - [Scaffold the monorepo](tickets/002-scaffold.md): bun + Turbo + shadcn (Base UI) monorepo, Ultracite, Vitest, Playwright config, CI, compose ([PR #1](https://github.com/connorwforsyth/openchat/pull/1))
