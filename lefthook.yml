@@ -1,0 +1,9 @@
+# Installed by the root `prepare` script on `bun install`.
+pre-commit:
+  jobs:
+    - name: ultracite
+      # Check only what is being committed; `bun run fix` applies the safe fixes.
+      run: bun x ultracite check {staged_files}
+      glob:
+        - "*.{js,jsx,ts,tsx,mjs,cjs,mts,cts}"
+        - "*.{json,jsonc,css}"
