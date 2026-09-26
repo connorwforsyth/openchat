@@ -27,6 +27,8 @@
     "./ports/*": "./src/ports/*.ts",
     "./providers/factory": "./src/providers/factory.ts",
     "./providers/registry": "./src/providers/registry.ts",
+    "./rag/*": "./src/rag/*.ts",
+    "./search/*": "./src/search/*.ts",
     "./testing/mock-models": "./src/testing/mock-models.ts",
     "./title/generate-title": "./src/title/generate-title.ts",
     "./tools/resolve": "./src/tools/resolve.ts",
@@ -49,11 +51,14 @@
     "@workspace/contract": "workspace:*",
     "@workspace/shared": "workspace:*",
     "ai": "catalog:",
+    "mammoth": "catalog:",
+    "unpdf": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",
     "@workspace/typescript-config": "workspace:*",
+    "msw": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

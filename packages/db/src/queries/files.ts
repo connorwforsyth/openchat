@@ -11,10 +11,22 @@ import type {
 } from "@workspace/contract/schemas/files";
 import type { ModelRef } from "@workspace/contract/schemas/models";
 import { type AsyncResult, err, ok } from "@workspace/shared/result";
-import { and, asc, eq, inArray, type SQL, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gt,
+  inArray,
+  isNotNull,
+  type SQL,
+  sql,
+} from "drizzle-orm";
 
 import type { Db } from "../client";
 import { type NotFoundError, notFound } from "../errors";
+import { resourceGrant } from "../schema/access";
+import { conversation } from "../schema/chat";
 import {
   type FileState,
   file,
@@ -22,7 +34,15 @@ import {
   INDEXED_EMBEDDINGS,
   type STORAGE_DRIVERS,
 } from "../schema/files";
-import { rowsOf } from "./page";
+import type { Viewer } from "./conversations";
+import { heldBy } from "./grants";
+import {
+  decodeCursor,
+  type InvalidCursorError,
+  type Page,
+  rowsOf,
+  toPage,
+} from "./page";
 
 // Files and RAG chunks (PLAN.md §8 RAG). The ingestion job writes chunks
 // with their embeddings; `searchChunks` is the `file_search` tool's read.
@@ -275,4 +295,159 @@ export const toFileRecord = (row: FileRow): FileRecord => {
     default:
       return row.state satisfies never;
   }
+};
+
+// --- Access and listing (ticket 021) ---
+
+/**
+ * Files `viewer` may read: their own, and attachments of chats they can
+ * read (owner or a `viewer`/`editor` grant, as for the chat itself). Agent
+ * knowledge files are reached through the agent's own grant, not here.
+ */
+export const fileReadableBy = (viewer: Viewer): SQL =>
+  sql`(${file.ownerId} = ${viewer.userId} or exists (
+    select 1 from ${conversation}
+    where ${conversation.id} = ${file.conversationId}
+      and (${conversation.ownerId} = ${viewer.userId} or exists (
+        select 1 from ${resourceGrant}
+        where ${resourceGrant.resourceType} = 'conversation'
+          and ${resourceGrant.resourceId} = ${conversation.id}
+          and ${resourceGrant.permission} in ('viewer', 'editor')
+          and ${heldBy(viewer.principals)}
+      ))
+  ))`;
+
+/** One file, if `viewer` may read it (`not_found` otherwise, so ids don't leak). */
+export const getReadableFile = async (
+  db: Db,
+  viewer: Viewer,
+  id: FileId
+): AsyncResult<FileRow, NotFoundError> => {
+  const [row] = await db
+    .select()
+    .from(file)
+    .where(and(eq(file.id, id), fileReadableBy(viewer)));
+  return row ? ok(row) : err(notFound("file", id));
+};
+
+export interface ListFilesInput {
+  /** A chat's attachments (the caller checked the viewer can read it); otherwise the viewer's own files. */
+  readonly conversationId?: ConversationId;
+  readonly cursor?: string;
+  readonly limit: number;
+  readonly purpose?: FilePurpose;
+}
+
+/** Newest first, keyset-paged. */
+export const listFiles = async (
+  db: Db,
+  viewer: Viewer,
+  input: ListFilesInput
+): AsyncResult<Page<FileRow>, InvalidCursorError> => {
+  const cursor = input.cursor ? decodeCursor(input.cursor) : undefined;
+  if (cursor && !cursor.ok) {
+    return cursor;
+  }
+  const rows = await db
+    .select()
+    .from(file)
+    .where(
+      and(
+        input.conversationId === undefined
+          ? eq(file.ownerId, viewer.userId)
+          : and(
+              eq(file.conversationId, input.conversationId),
+              fileReadableBy(viewer)
+            ),
+        input.purpose === undefined
+          ? undefined
+          : eq(file.purpose, input.purpose),
+        cursor?.ok
+          ? sql`(${file.createdAt}, ${file.id}) < (${String(cursor.value.key)}::timestamptz, ${cursor.value.id}::uuid)`
+          : undefined
+      )
+    )
+    .orderBy(desc(file.createdAt), desc(file.id))
+    .limit(input.limit + 1);
+  return ok(
+    toPage(rows, input.limit, (row) => ({
+      id: row.id,
+      key: row.createdAt.toISOString(),
+    }))
+  );
+};
+
+/** Deletes a file and (by cascade) its chunks; returns the row so storage can drop the bytes. */
+export const deleteFile = async (
+  db: Db,
+  id: FileId
+): AsyncResult<FileRow, NotFoundError> => {
+  const [row] = await db.delete(file).where(eq(file.id, id)).returning();
+  return row ? ok(row) : err(notFound("file", id));
+};
+
+export interface ReadableIndexedFilesInput {
+  /** Only this chat's attachments. */
+  readonly conversationId?: ConversationId;
+  /** Only these files. */
+  readonly fileIds?: readonly FileId[];
+  readonly limit: number;
+}
+
+/**
+ * Ids of files `viewer` may read that are indexed (ready, with embeddings):
+ * what `file_search` and `files.search` may look in.
+ */
+export const listReadableIndexedFileIds = async (
+  db: Db,
+  viewer: Viewer,
+  input: ReadableIndexedFilesInput
+): Promise<FileId[]> => {
+  if (input.fileIds?.length === 0) {
+    return [];
+  }
+  const rows = await db
+    .select({ id: file.id })
+    .from(file)
+    .where(
+      and(
+        eq(file.state, "ready"),
+        isNotNull(file.embeddingModel),
+        fileReadableBy(viewer),
+        input.conversationId === undefined
+          ? undefined
+          : eq(file.conversationId, input.conversationId),
+        input.fileIds === undefined
+          ? undefined
+          : inArray(file.id, [...input.fileIds])
+      )
+    )
+    .orderBy(desc(file.createdAt))
+    .limit(input.limit);
+  return rows.map((row) => row.id);
+};
+
+/**
+ * `listFilesToReindex`, keyset-paged by id, so a re-index job can walk
+ * every file once even while it changes the rows it's walking.
+ */
+export const listFileIdsToReindex = async (
+  db: Db,
+  model: ModelRef,
+  { after, limit }: { readonly after: FileId | null; readonly limit: number }
+): Promise<FileId[]> => {
+  const rows = await db
+    .select({ id: file.id })
+    .from(file)
+    .where(
+      and(
+        eq(file.state, "ready"),
+        sql`${file.embeddingModel} is distinct from ${model}`,
+        inArray(file.purpose, ["knowledge", "attachment"]),
+        after === null ? undefined : gt(file.id, after)
+      )
+    )
+    .orderBy(asc(file.id))
+    .limit(limit);
+  return rows.map((row) => row.id);
 };
