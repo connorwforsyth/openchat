@@ -77,6 +77,7 @@ brief, and their findings land in `.context/research/`.
 - [Contracts and ports](tickets/005-contracts.md): zod + oRPC contract, OpenAPI, config schema, ports with fakes ([PR #6](https://github.com/connorwforsyth/openchat/pull/6))
 - [Contract: the /api/llm proxy](tickets/027-contract-llm-proxy.md): model proxy for the desktop loop in the AI SDK's gateway shape ([PR #7](https://github.com/connorwforsyth/openchat/pull/7))
 - [WS-db](tickets/011-ws-db.md): Drizzle schema for all M1 tables, query modules, PGlite harness, Postgres 17 CI job ([PR #8](https://github.com/connorwforsyth/openchat/pull/8))
+- [WS-code-ui](tickets/020-ws-code-ui.md): file tree, code and diff views on @pierre, token-themed, per-hunk review ([PR #10](https://github.com/connorwforsyth/openchat/pull/10))
 
 ## Not yet specified
 

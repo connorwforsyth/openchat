@@ -13,3 +13,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-09-26 · 008 closed by Connor · all seven contract recommendations accepted
 - 2026-09-27 · 027 closed · PR #7 · /api/llm contract · 35/35 tasks, Redocly valid, CI pass
 - 2026-09-27 · 011 closed · PR #8 · database package · 38/38 tasks, CI ci + db (Postgres 17) pass
+- 2026-09-27 · 020 closed · PR #10 · code-ui · 41/41 tasks, /dev/code 200, CI pass
