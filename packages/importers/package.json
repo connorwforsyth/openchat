@@ -1,0 +1,36 @@
+{
+  "name": "@workspace/importers",
+  "version": "0.0.0",
+  "private": true,
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    "./chatgpt": "./src/chatgpt.ts",
+    "./claude": "./src/claude.ts",
+    "./fork": "./src/fork.ts",
+    "./librechat": "./src/librechat.ts",
+    "./parse": "./src/parse.ts",
+    "./persist": "./src/persist.ts",
+    "./schema": "./src/schema.ts",
+    "./stream": "./src/stream.ts",
+    "./tree": "./src/tree.ts"
+  },
+  "scripts": {
+    "lint": "ultracite check",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@workspace/contract": "workspace:*",
+    "@workspace/db": "workspace:*",
+    "@workspace/shared": "workspace:*",
+    "drizzle-orm": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@workspace/typescript-config": "workspace:*",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
