@@ -1,0 +1,12 @@
+{
+  "extends": "@workspace/typescript-config/base.json",
+  "compilerOptions": {
+    // Workspace packages are TypeScript source; bun bundles them into
+    // dist/main.js, so resolve like a bundler.
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "types": ["node"]
+  },
+  "include": ["."],
+  "exclude": ["node_modules", "dist"]
+}

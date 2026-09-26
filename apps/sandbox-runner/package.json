@@ -1,0 +1,31 @@
+{
+  "name": "sandbox-runner",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bun build src/main.ts --target=node --outdir=dist",
+    "dev": "bun --watch src/main.ts",
+    "lint": "ultracite check",
+    "start": "node dist/main.js",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hono/node-server": "catalog:",
+    "@workspace/contract": "workspace:*",
+    "@workspace/sandbox": "workspace:*",
+    "@workspace/shared": "workspace:*",
+    "dockerode": "catalog:",
+    "hono": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/dockerode": "catalog:",
+    "@types/node": "catalog:",
+    "@workspace/typescript-config": "workspace:*",
+    "just-bash": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

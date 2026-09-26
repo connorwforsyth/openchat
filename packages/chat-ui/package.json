@@ -1,0 +1,36 @@
+{
+  "name": "@workspace/chat-ui",
+  "version": "0.0.0",
+  "private": true,
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    "./sandbox/*": "./src/sandbox/*.tsx",
+    "./sandbox/model/*": "./src/sandbox/model/*.ts"
+  },
+  "scripts": {
+    "lint": "ultracite check",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lingui/core": "catalog:",
+    "@lingui/react": "catalog:",
+    "@workspace/code-ui": "workspace:*",
+    "@workspace/contract": "workspace:*",
+    "@workspace/icons": "workspace:*",
+    "@workspace/shared": "workspace:*",
+    "@workspace/ui": "workspace:*",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@workspace/typescript-config": "workspace:*",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
