@@ -3,7 +3,7 @@ id: "020"
 title: "WS-code-ui: file tree, code and diff views"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: ["007","008"]
 ---
 
