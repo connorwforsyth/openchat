@@ -1,5 +1,6 @@
 import type { AnyRouter } from "@orpc/server";
 import { buildRegistry } from "@workspace/ai/providers/registry";
+import { startTelemetry } from "@workspace/ai/telemetry/otel";
 import type { AppConfig } from "@workspace/config/schema";
 import { connectFromEnv } from "@workspace/db/client";
 import postgres from "postgres";
@@ -43,6 +44,8 @@ export const createServerFromEnv = async (
 ): Promise<Server> => {
   const env = options.env ?? process.env;
   const report = options.report ?? (() => undefined);
+  // AI SDK traces over OTLP when `observability.otlp` is set (D21); a no-op otherwise.
+  const telemetry = startTelemetry(options.config.observability, { report });
   const connection = connectFromEnv(env);
   if (!connection.ok) {
     if (connection.error.type === "invalid_url") {
@@ -56,7 +59,7 @@ export const createServerFromEnv = async (
       }),
       jobs: null,
       services: null,
-      stop: () => Promise.resolve(),
+      stop: telemetry.shutdown,
     };
   }
   const url = env.DATABASE_URL?.trim() ?? "";
@@ -93,6 +96,7 @@ export const createServerFromEnv = async (
       await jobs?.stop();
       await listener.end();
       await connection.value.close();
+      await telemetry.shutdown();
     },
   };
 };

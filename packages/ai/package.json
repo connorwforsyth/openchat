@@ -21,6 +21,7 @@
     "./llm-proxy/errors": "./src/llm-proxy/errors.ts",
     "./llm-proxy/handle": "./src/llm-proxy/handle.ts",
     "./llm-proxy/prompt": "./src/llm-proxy/prompt.ts",
+    "./memory/*": "./src/memory/*.ts",
     "./messages/approval": "./src/messages/approval.ts",
     "./messages/from-ui": "./src/messages/from-ui.ts",
     "./messages/to-ui": "./src/messages/to-ui.ts",
@@ -29,12 +30,14 @@
     "./providers/registry": "./src/providers/registry.ts",
     "./rag/*": "./src/rag/*.ts",
     "./search/*": "./src/search/*.ts",
+    "./telemetry/*": "./src/telemetry/*.ts",
     "./testing/mock-models": "./src/testing/mock-models.ts",
     "./title/generate-title": "./src/title/generate-title.ts",
     "./tools/resolve": "./src/tools/resolve.ts",
     "./tools/tool-set": "./src/tools/tool-set.ts"
   },
   "scripts": {
+    "eval": "evalite run",
     "lint": "ultracite check",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
@@ -46,7 +49,12 @@
     "@ai-sdk/google": "catalog:",
     "@ai-sdk/openai": "catalog:",
     "@ai-sdk/openai-compatible": "catalog:",
+    "@ai-sdk/otel": "catalog:",
     "@ai-sdk/provider": "catalog:",
+    "@opentelemetry/api": "catalog:",
+    "@opentelemetry/exporter-trace-otlp-http": "catalog:",
+    "@opentelemetry/resources": "catalog:",
+    "@opentelemetry/sdk-trace-base": "catalog:",
     "@workspace/config": "workspace:*",
     "@workspace/contract": "workspace:*",
     "@workspace/shared": "workspace:*",
@@ -58,6 +66,7 @@
   "devDependencies": {
     "@types/node": "catalog:",
     "@workspace/typescript-config": "workspace:*",
+    "evalite": "catalog:",
     "msw": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

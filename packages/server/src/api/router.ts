@@ -45,13 +45,16 @@ import {
 import type { StreamChannel } from "../ports/stream-channel";
 import { type BudgetCheck, storeContext } from "../runs/chat-context";
 import { type CreateRunError, createRun } from "../runs/create-run";
+import type { MemorySettings } from "../runs/memory";
 import { queuePosition, toRun } from "../runs/state";
+import { createFeedbackRouter } from "./feedback";
 import {
   toConversation,
   toMessages,
   toParticipant,
   toParticipantState,
 } from "./mappers";
+import { createMemoryRouter } from "./memory";
 
 // The `conversations`, `messages` and `runs` procedure groups (D26), over
 // `@workspace/db`. Handlers are the imperative shell: they check access,
@@ -65,6 +68,8 @@ export interface ApiServices {
   /** `models.default`: the target when neither the run nor the chat names one. */
   readonly defaultModel: ModelSelector | null;
   readonly executor: RunExecutor;
+  /** The memory feature's switch and size cap (022). */
+  readonly memory: MemorySettings;
   readonly streams: StreamChannel;
 }
 
@@ -535,5 +540,11 @@ export const createChatRouter = (services: ApiServices) => {
     ),
   };
 
-  return { conversations, messages, runs };
+  return {
+    conversations,
+    messages,
+    runs,
+    ...createFeedbackRouter(db, access),
+    ...createMemoryRouter(db, services.memory),
+  };
 };
