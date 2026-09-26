@@ -35,6 +35,8 @@ export interface DockerPort {
     name: string,
     labels: Readonly<Record<string, string>>
   ) => Promise<void>;
+  /** Detaches a container from a network; not attached is fine. */
+  disconnectNetwork: (network: string, container: string) => Promise<void>;
   /** Pulls the image unless it's already present. */
   ensureImage: (image: string) => Promise<void>;
   /** Runs a command in a running container, streaming output; resolves with the exit code. */
@@ -56,6 +58,7 @@ export interface DockerPort {
   networkExists: (name: string) => Promise<boolean>;
   /** Removes (force) a container; missing is fine. */
   removeContainer: (nameOrId: string) => Promise<void>;
+  /** Fails while any container is still attached, as Docker does. */
   removeNetwork: (name: string) => Promise<void>;
   removeVolume: (name: string) => Promise<void>;
   startContainer: (nameOrId: string) => Promise<void>;

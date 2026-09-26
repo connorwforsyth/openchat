@@ -229,18 +229,22 @@ export const createRunner = ({
       }
     });
 
-  /** Hands a fresh (root-owned) volume to the sandbox user, then fills it from a snapshot. */
-  const prepareVolume = async (
-    id: SandboxId,
-    snapshotRef: string | undefined
-  ): AsyncResult<void, SandboxError> => {
-    const owned = await runHelper(id, {
+  /** Hands a fresh (root-owned) volume to the sandbox user. */
+  const chownVolume = (id: SandboxId, volume: string) =>
+    runHelper(id, {
       asRoot: true,
       cmd: ["chown", config.defaults.user, WORKDIR],
       defaults: config.defaults,
       id,
-      mounts: [{ readOnly: false, source: volumeName(id), target: WORKDIR }],
+      mounts: [{ readOnly: false, source: volume, target: WORKDIR }],
     });
+
+  /** Prepares the sandbox's volume, then fills it from a snapshot. */
+  const prepareVolume = async (
+    id: SandboxId,
+    snapshotRef: string | undefined
+  ): AsyncResult<void, SandboxError> => {
+    const owned = await chownVolume(id, volumeName(id));
     if (!(owned.ok && snapshotRef)) {
       return owned;
     }
@@ -584,6 +588,11 @@ export const createRunner = ({
     if (!made.ok) {
       return made;
     }
+    // The copy runs as the sandbox user, so it needs the new volume first.
+    const owned = await chownVolume(id, ref);
+    if (!owned.ok) {
+      return owned;
+    }
     const copied = await runHelper(id, {
       cmd: ["cp", "-a", `${WORKDIR}/.`, "/to/"],
       defaults: config.defaults,
@@ -599,6 +608,10 @@ export const createRunner = ({
   const destroy = async (id: SandboxId): AsyncResult<void, SandboxError> => {
     const removed = await guarded("remove the sandbox", async () => {
       await docker.removeContainer(containerName(id));
+      // Docker won't remove a network the runner is still attached to.
+      if (config.runnerContainer) {
+        await docker.disconnectNetwork(networkName(id), config.runnerContainer);
+      }
       await docker.removeNetwork(networkName(id));
       await docker.removeVolume(volumeName(id));
     });

@@ -66,6 +66,16 @@ export const createDockerodePort = (url: string): DockerPort => {
       await docker.createVolume({ Labels: { ...labels }, Name: name });
     },
 
+    disconnectNetwork: (network, container) =>
+      // 403: not attached; 404: no such network or container.
+      tolerate(
+        () =>
+          docker
+            .getNetwork(network)
+            .disconnect({ Container: container, Force: true }),
+        [403, 404]
+      ),
+
     ensureImage: async (image) => {
       try {
         await docker.getImage(image).inspect();
