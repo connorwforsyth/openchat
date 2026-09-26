@@ -11,18 +11,302 @@ msgstr ""
 msgid "(Press <0>d</0> to toggle dark mode)"
 msgstr "(Press <0>d</0> to toggle dark mode)"
 
+#: ../ui/src/components/ai-elements/reasoning.tsx
+msgid "{duration, plural, one {Thought for # second} other {Thought for # seconds}}"
+msgstr "{duration, plural, one {Thought for # second} other {Thought for # seconds}}"
+
+#: ../ui/src/components/ai-elements/message.tsx
+msgid "{page} of {totalBranches}"
+msgstr "{page} of {totalBranches}"
+
+#: ../ui/src/components/ai-elements/prompt-input.tsx
+msgid "Add photos or files"
+msgstr "Add photos or files"
+
+#: ../../apps/web/app/dev/ai-elements/page.tsx
+msgid "AI Elements"
+msgstr "AI Elements"
+
+#: ../ui/src/components/ai-elements/prompt-input.tsx
+msgid "All files exceed the maximum size."
+msgstr "All files exceed the maximum size."
+
+#: ../ui/src/components/ai-elements/message.tsx
+#: ../ui/src/components/ai-elements/prompt-input.tsx
+msgid "Attachment"
+msgstr "Attachment"
+
+#: ../ui/src/components/ai-elements/tool.tsx
+msgid "Awaiting approval"
+msgstr "Awaiting approval"
+
 #: ../../apps/web/app/page.tsx
 msgid "Button"
 msgstr "Button"
+
+#: ../ui/src/components/ai-elements/streamdown.tsx
+msgid "Close"
+msgstr "Close"
+
+#: ../ui/src/components/ai-elements/tool.tsx
+msgid "Completed"
+msgstr "Completed"
+
+#: ../../apps/web/app/dev/ai-elements/demo.tsx
+msgid "Conversation, message, reasoning and tool"
+msgstr "Conversation, message, reasoning and tool"
+
+#: ../ui/src/components/ai-elements/streamdown.tsx
+msgid "Copied"
+msgstr "Copied"
+
+#: ../../apps/web/app/dev/ai-elements/demo.tsx
+msgid "Copy"
+msgstr "Copy"
+
+#: ../ui/src/components/ai-elements/streamdown.tsx
+msgid "Copy code"
+msgstr "Copy code"
+
+#: ../ui/src/components/ai-elements/streamdown.tsx
+msgid "Copy link"
+msgstr "Copy link"
+
+#: ../ui/src/components/ai-elements/streamdown.tsx
+msgid "Copy table"
+msgstr "Copy table"
+
+#: ../ui/src/components/ai-elements/streamdown.tsx
+msgid "Copy table as CSV"
+msgstr "Copy table as CSV"
+
+#: ../ui/src/components/ai-elements/streamdown.tsx
+msgid "Copy table as Markdown"
+msgstr "Copy table as Markdown"
+
+#: ../ui/src/components/ai-elements/streamdown.tsx
+msgid "Copy table as TSV"
+msgstr "Copy table as TSV"
+
+#: ../ui/src/components/ai-elements/streamdown.tsx
+msgid "CSV"
+msgstr "CSV"
+
+#: ../ui/src/components/ai-elements/tool.tsx
+msgid "Denied"
+msgstr "Denied"
+
+#: ../ui/src/components/ai-elements/streamdown.tsx
+msgid "Download diagram"
+msgstr "Download diagram"
+
+#: ../ui/src/components/ai-elements/streamdown.tsx
+msgid "Download diagram as MMD"
+msgstr "Download diagram as MMD"
+
+#: ../ui/src/components/ai-elements/streamdown.tsx
+msgid "Download diagram as PNG"
+msgstr "Download diagram as PNG"
+
+#: ../ui/src/components/ai-elements/streamdown.tsx
+msgid "Download diagram as SVG"
+msgstr "Download diagram as SVG"
+
+#: ../ui/src/components/ai-elements/streamdown.tsx
+msgid "Download file"
+msgstr "Download file"
+
+#: ../ui/src/components/ai-elements/streamdown.tsx
+msgid "Download image"
+msgstr "Download image"
+
+#: ../ui/src/components/ai-elements/streamdown.tsx
+msgid "Download table"
+msgstr "Download table"
+
+#: ../ui/src/components/ai-elements/streamdown.tsx
+msgid "Download table as CSV"
+msgstr "Download table as CSV"
+
+#: ../ui/src/components/ai-elements/streamdown.tsx
+msgid "Download table as Markdown"
+msgstr "Download table as Markdown"
+
+#: ../ui/src/components/ai-elements/tool.tsx
+msgid "Error"
+msgstr "Error"
+
+#: ../../apps/web/app/dev/ai-elements/page.tsx
+msgid "Every migrated component with static sample data. Nothing here calls a model."
+msgstr "Every migrated component with static sample data. Nothing here calls a model."
+
+#: ../ui/src/components/ai-elements/streamdown.tsx
+msgid "Exit fullscreen"
+msgstr "Exit fullscreen"
+
+#: ../ui/src/components/ai-elements/message.tsx
+#: ../ui/src/components/ai-elements/prompt-input.tsx
+msgid "Image"
+msgstr "Image"
+
+#: ../ui/src/components/ai-elements/streamdown.tsx
+msgid "Image not available"
+msgstr "Image not available"
+
+#: ../ui/src/components/ai-elements/streamdown.tsx
+msgid "Markdown"
+msgstr "Markdown"
+
+#: ../ui/src/components/ai-elements/streamdown.tsx
+msgid "MMD"
+msgstr "MMD"
+
+#: ../ui/src/components/ai-elements/message.tsx
+msgid "Next branch"
+msgstr "Next branch"
+
+#: ../ui/src/components/ai-elements/prompt-input.tsx
+msgid "No files match the accepted types."
+msgstr "No files match the accepted types."
+
+#: ../ui/src/components/ai-elements/streamdown.tsx
+msgid "Open external link?"
+msgstr "Open external link?"
+
+#: ../ui/src/components/ai-elements/streamdown.tsx
+msgid "Open link"
+msgstr "Open link"
+
+#: ../ui/src/components/ai-elements/tool.tsx
+msgid "Parameters"
+msgstr "Parameters"
+
+#: ../ui/src/components/ai-elements/tool.tsx
+msgid "Pending"
+msgstr "Pending"
+
+#: ../ui/src/components/ai-elements/streamdown.tsx
+msgid "PNG"
+msgstr "PNG"
+
+#: ../ui/src/components/ai-elements/message.tsx
+msgid "Previous branch"
+msgstr "Previous branch"
 
 #: ../../apps/web/app/page.tsx
 msgid "Project ready!"
 msgstr "Project ready!"
 
+#: ../../apps/web/app/dev/ai-elements/demo.tsx
+msgid "Prompt input"
+msgstr "Prompt input"
+
+#: ../ui/src/components/ai-elements/message.tsx
+#: ../ui/src/components/ai-elements/prompt-input.tsx
+msgid "Remove"
+msgstr "Remove"
+
+#: ../ui/src/components/ai-elements/message.tsx
+#: ../ui/src/components/ai-elements/prompt-input.tsx
+msgid "Remove attachment"
+msgstr "Remove attachment"
+
+#: ../ui/src/components/ai-elements/streamdown.tsx
+msgid "Reset zoom and pan"
+msgstr "Reset zoom and pan"
+
+#: ../ui/src/components/ai-elements/tool.tsx
+msgid "Responded"
+msgstr "Responded"
+
+#: ../ui/src/components/ai-elements/tool.tsx
+msgid "Result"
+msgstr "Result"
+
+#: ../../apps/web/app/dev/ai-elements/demo.tsx
+msgid "Retry"
+msgstr "Retry"
+
+#: ../ui/src/components/ai-elements/tool.tsx
+msgid "Running"
+msgstr "Running"
+
+#: ../ui/src/components/message-scroller.tsx
+msgid "Scroll to end"
+msgstr "Scroll to end"
+
+#: ../ui/src/components/message-scroller.tsx
+msgid "Scroll to start"
+msgstr "Scroll to start"
+
+#: ../ui/src/components/ai-elements/prompt-input.tsx
+msgid "Start dictation"
+msgstr "Start dictation"
+
+#: ../ui/src/components/ai-elements/prompt-input.tsx
+msgid "Stop"
+msgstr "Stop"
+
+#: ../ui/src/components/ai-elements/prompt-input.tsx
+msgid "Stop dictation"
+msgstr "Stop dictation"
+
+#: ../ui/src/components/ai-elements/prompt-input.tsx
+msgid "Submit"
+msgstr "Submit"
+
+#: ../ui/src/components/ai-elements/streamdown.tsx
+msgid "SVG"
+msgstr "SVG"
+
+#: ../ui/src/components/ai-elements/reasoning.tsx
+msgid "Thinking…"
+msgstr "Thinking…"
+
+#: ../ui/src/components/ai-elements/reasoning.tsx
+msgid "Thought for a few seconds"
+msgstr "Thought for a few seconds"
+
+#: ../ui/src/components/ai-elements/prompt-input.tsx
+msgid "Too many files. Some were not added."
+msgstr "Too many files. Some were not added."
+
+#: ../ui/src/components/ai-elements/streamdown.tsx
+msgid "TSV"
+msgstr "TSV"
+
+#: ../ui/src/components/ai-elements/prompt-input.tsx
+msgid "Upload files"
+msgstr "Upload files"
+
+#: ../ui/src/components/ai-elements/streamdown.tsx
+msgid "View fullscreen"
+msgstr "View fullscreen"
+
 #: ../../apps/web/app/page.tsx
 msgid "We've already added the button component for you."
 msgstr "We've already added the button component for you."
 
+#: ../ui/src/components/ai-elements/prompt-input.tsx
+msgid "What would you like to know?"
+msgstr "What would you like to know?"
+
+#: ../../apps/web/app/dev/ai-elements/demo.tsx
+msgid "Would send “{text}” with {fileCount, plural, one {# attachment} other {# attachments}}."
+msgstr "Would send “{text}” with {fileCount, plural, one {# attachment} other {# attachments}}."
+
 #: ../../apps/web/app/page.tsx
 msgid "You may now add components and start building."
 msgstr "You may now add components and start building."
+
+#: ../ui/src/components/ai-elements/streamdown.tsx
+msgid "You're about to visit an external website."
+msgstr "You're about to visit an external website."
+
+#: ../ui/src/components/ai-elements/streamdown.tsx
+msgid "Zoom in"
+msgstr "Zoom in"
+
+#: ../ui/src/components/ai-elements/streamdown.tsx
+msgid "Zoom out"
+msgstr "Zoom out"
