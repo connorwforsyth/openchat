@@ -1,34 +1,36 @@
-import { Geist, Geist_Mono } from "next/font/google";
+import { getMessages } from "@workspace/i18n/catalog";
+import { LinguiClientProvider } from "@workspace/i18n/client";
+import { initLingui } from "@workspace/i18n/server";
 
 import "@workspace/ui/globals.css";
 import { cn } from "@workspace/ui/lib/utils";
 import { ThemeProvider } from "@/components/theme-provider";
+import { fontMono, fontSans } from "@/lib/fonts";
+import { requestLocale } from "@/lib/i18n";
 
-const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
-
-const fontMono = Geist_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono",
-});
-
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await requestLocale();
+  initLingui(locale);
+
   return (
     <html
       className={cn(
         "antialiased",
         fontMono.variable,
         "font-sans",
-        geist.variable
+        fontSans.variable
       )}
-      lang="en"
+      lang={locale}
       suppressHydrationWarning
     >
       <body>
-        <ThemeProvider>{children}</ThemeProvider>
+        <LinguiClientProvider locale={locale} messages={getMessages(locale)}>
+          <ThemeProvider>{children}</ThemeProvider>
+        </LinguiClientProvider>
       </body>
     </html>
   );

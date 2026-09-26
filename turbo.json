@@ -5,19 +5,28 @@
   "globalDependencies": ["tsconfig.json", "biome.jsonc"],
   "tasks": {
     "build": {
-      "dependsOn": ["^build", "typecheck"],
+      "dependsOn": ["^build", "typecheck", "^i18n:compile", "^icons:select"],
+      "env": ["ICON_SET"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
     "dev": {
       "cache": false,
+      "dependsOn": ["^i18n:compile", "^icons:select"],
       "persistent": true
     },
     "lint": {
       "dependsOn": ["//#check:guards"]
     },
     "typecheck": {
-      "dependsOn": ["^typecheck", "//#typecheck:guards"]
+      "dependsOn": [
+        "^typecheck",
+        "//#typecheck:guards",
+        "i18n:compile",
+        "^i18n:compile",
+        "icons:select",
+        "^icons:select"
+      ]
     },
     "test": {
       "dependsOn": ["//#test:guards"],
@@ -45,6 +54,16 @@
     },
     "db:migrate": {
       "cache": false
+    },
+    "i18n:compile": {
+      "outputs": ["locales/*/messages.ts"]
+    },
+    "i18n:extract": {
+      "cache": false
+    },
+    "icons:select": {
+      "env": ["ICON_SET"],
+      "outputs": ["src/selected.ts", "src/selected.native.ts"]
     }
   }
 }

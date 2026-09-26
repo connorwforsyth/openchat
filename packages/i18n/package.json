@@ -1,0 +1,39 @@
+{
+  "name": "@workspace/i18n",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./catalog": "./src/catalog.ts",
+    "./client": "./src/react/client-provider.tsx",
+    "./format": "./src/format.ts",
+    "./lingui.config": "./lingui.config.ts",
+    "./locales": "./src/locales.ts",
+    "./negotiate": "./src/negotiate.ts",
+    "./server": "./src/react/server.ts"
+  },
+  "scripts": {
+    "i18n:check": "lingui check sync",
+    "i18n:compile": "lingui compile",
+    "i18n:extract": "lingui extract --clean",
+    "postinstall": "lingui compile",
+    "lint": "ultracite check",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lingui/core": "catalog:",
+    "@lingui/react": "catalog:",
+    "react": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@lingui/cli": "catalog:",
+    "@lingui/format-po": "^6.8.0",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@workspace/typescript-config": "workspace:*",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

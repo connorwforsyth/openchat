@@ -1,0 +1,45 @@
+{
+  "name": "@workspace/icons",
+  "version": "0.0.0",
+  "private": true,
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": "./src/selected.ts",
+    "./names": "./src/names.ts",
+    "./native": "./src/selected.native.ts"
+  },
+  "scripts": {
+    "icons:gaps": "bun scripts/gaps.ts",
+    "icons:select": "bun scripts/select.ts",
+    "postinstall": "bun scripts/select.ts",
+    "lint": "ultracite check",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
+    "lucide-react": "catalog:",
+    "react": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@workspace/typescript-config": "workspace:*",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "lucide-react-native": "^1.48.0",
+    "react-native-svg": "^15.0.0"
+  },
+  "peerDependenciesMeta": {
+    "lucide-react-native": {
+      "optional": true
+    },
+    "react-native-svg": {
+      "optional": true
+    }
+  }
+}
