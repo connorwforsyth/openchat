@@ -12,6 +12,9 @@ import {
   fixtureId,
   fixtureTime,
   grant,
+  llmProxyRequest,
+  llmProxyResponse,
+  llmStreamParts,
   me,
   modelOptions,
   org,
@@ -46,6 +49,7 @@ const modules = {
   grants: await import("./grants"),
   keys: await import("./keys"),
   library: await import("./library"),
+  llm: await import("./llm"),
   memory: await import("./memory"),
   messageParts: await import("./message-parts"),
   messages: await import("./messages"),
@@ -720,6 +724,111 @@ const cases: Record<string, Cases> = {
       { id: itemId },
       { definition: reviewerDefinition, icon: null, id: itemId },
     ],
+  },
+
+  // llm
+  "llm.llmContentPartSchema": {
+    invalid: [{}, { type: "" }, "text"],
+    valid: llmProxyResponse.content,
+  },
+  "llm.llmFinishReasonSchema": {
+    invalid: [{ unified: "done" }, { raw: "stop" }],
+    valid: [{ unified: "stop" }, llmProxyResponse.finishReason],
+  },
+  "llm.llmFunctionToolSchema": {
+    invalid: [
+      { ...llmProxyRequest.tools?.[0], type: "provider" },
+      { ...llmProxyRequest.tools?.[0], name: "has space" },
+      { ...llmProxyRequest.tools?.[0], inputSchema: "object" },
+    ],
+    valid: [
+      ...(llmProxyRequest.tools ?? []),
+      {
+        inputExamples: [{ input: { path: "a.ts" } }],
+        inputSchema: { type: "object" },
+        name: "mcp.github:search",
+        strict: true,
+        type: "function",
+      },
+    ],
+  },
+  "llm.llmPromptMessageSchema": {
+    invalid: [{ content: "hi", role: "developer" }, { role: "user" }],
+    valid: [
+      ...llmProxyRequest.prompt,
+      {
+        content: [{ text: "cached", type: "text" }],
+        providerOptions: { anthropic: { cacheControl: { type: "ephemeral" } } },
+        role: "user",
+      },
+    ],
+  },
+  "llm.llmProxyRequestSchema": {
+    invalid: [
+      { ...llmProxyRequest, context: undefined },
+      { ...llmProxyRequest, stream: undefined },
+      { ...llmProxyRequest, prompt: [] },
+      { ...llmProxyRequest, model: "Not A Model" },
+      { ...llmProxyRequest, temperature: 3 },
+      { ...llmProxyRequest, reasoning: "max" },
+    ],
+    valid: [
+      llmProxyRequest,
+      {
+        context: { type: "personal" },
+        model: "ollama:llama3.2:3b",
+        prompt: [{ content: "hi", role: "user" }],
+        reasoning: "low",
+        responseFormat: { schema: { type: "object" }, type: "json" },
+        stream: false,
+        toolChoice: { toolName: "read", type: "tool" },
+      },
+    ],
+  },
+  "llm.llmProxyResponseSchema": {
+    invalid: [
+      { ...llmProxyResponse, resolvedModel: "strong" },
+      { ...llmProxyResponse, warnings: undefined },
+    ],
+    valid: [
+      llmProxyResponse,
+      {
+        content: [{ text: "Hello", type: "text" }],
+        finishReason: { unified: "stop" },
+        resolvedModel: "openai:gpt-5",
+        usage: { inputTokens: {}, outputTokens: {} },
+        warnings: [{ feature: "topK", type: "unsupported" }],
+      },
+    ],
+  },
+  "llm.llmResponseFormatSchema": {
+    invalid: [{ type: "xml" }, { schema: "object", type: "json" }],
+    valid: [{ type: "text" }, { name: "answer", type: "json" }],
+  },
+  "llm.llmStreamErrorPartSchema": {
+    invalid: [{ error: "boom", type: "error" }],
+    valid: [
+      {
+        error: {
+          code: "provider_error",
+          message: "The provider failed.",
+          retryable: true,
+        },
+        type: "error",
+      },
+    ],
+  },
+  "llm.llmStreamPartSchema": {
+    invalid: [{ delta: "x" }, null],
+    valid: llmStreamParts,
+  },
+  "llm.llmToolChoiceSchema": {
+    invalid: [{ type: "tool" }, { type: "any" }],
+    valid: [{ type: "none" }, { toolName: "read", type: "tool" }],
+  },
+  "llm.llmUsageSchema": {
+    invalid: [{ inputTokens: { total: -1 }, outputTokens: {} }, {}],
+    valid: [llmProxyResponse.usage, { inputTokens: {}, outputTokens: {} }],
   },
 
   // memory
@@ -1587,6 +1696,19 @@ describe("model refs", () => {
       provider: "ollama",
     });
     expect(modules.models.parseModelRef("fast")).toBeUndefined();
+  });
+});
+
+describe("model proxy request", () => {
+  it("drops call options the proxy doesn't take", () => {
+    // A client forwards its AI SDK call options whole; these must not reach a provider.
+    const parsed = modules.llm.llmProxyRequestSchema.parse({
+      ...llmProxyRequest,
+      headers: { authorization: "Bearer from-the-client" },
+      includeRawChunks: true,
+    });
+    expect(parsed).not.toHaveProperty("headers");
+    expect(parsed).not.toHaveProperty("includeRawChunks");
   });
 });
 

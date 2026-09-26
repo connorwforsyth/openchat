@@ -101,6 +101,22 @@ export const featureError = {
 } as const;
 
 /**
+ * What `POST /api/llm` can answer before a response starts, in the same
+ * bodies procedures use. It isn't a procedure, so the server builds these
+ * itself and `openapi.ts` documents them. `FORBIDDEN` covers a context the
+ * caller isn't in or one the instance disallows; `VALIDATION` a model that
+ * doesn't resolve or can't take the request (tools on a model without them).
+ */
+export const llmProxyErrors = {
+  BUDGET_EXCEEDED: budgetError.BUDGET_EXCEEDED,
+  FORBIDDEN: baseErrors.FORBIDDEN,
+  PROVIDER_UNAVAILABLE: providerError.PROVIDER_UNAVAILABLE,
+  RATE_LIMITED: baseErrors.RATE_LIMITED,
+  UNAUTHORIZED: baseErrors.UNAUTHORIZED,
+  VALIDATION: baseErrors.VALIDATION,
+} as const;
+
+/**
  * Every error code the API can return, for exhaustive client handling.
  * `BAD_REQUEST` is oRPC's own, for input that fails the schema. A test keeps
  * this list in step with the maps above.
