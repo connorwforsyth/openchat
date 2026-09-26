@@ -14,3 +14,7 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-09-27 · 027 closed · PR #7 · /api/llm contract · 35/35 tasks, Redocly valid, CI pass
 - 2026-09-27 · 011 closed · PR #8 · database package · 38/38 tasks, CI ci + db (Postgres 17) pass
 - 2026-09-27 · 020 closed · PR #10 · code-ui · 41/41 tasks, /dev/code 200, CI pass
+- 2026-09-27 · 013 closed · PR #11 · AI runner, keys, Decider · 41/41, CI pass
+- 2026-09-27 · 023 closed · PR #13 · importers + fork · 44/44, CI pass
+- 2026-09-27 · 016 closed · PR #9 · TipTap composer · 47/47, CI pass after adding Chromium to CI
+- 2026-09-27 · 012 closed · PR #12 · auth + orgs + grants · 47/47, CI pass after fast test hashing
