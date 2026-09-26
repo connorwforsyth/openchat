@@ -5,7 +5,6 @@ import type { Metadata } from "next";
 import { requestLocale } from "@/lib/i18n";
 
 import { ComposerDemo } from "./demo";
-import "./composer.css";
 
 // A developer gallery, not a product page: keep it out of search indexes.
 export const metadata: Metadata = {

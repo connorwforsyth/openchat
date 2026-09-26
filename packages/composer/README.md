@@ -89,8 +89,7 @@ in `vitest.config.ts`.
 
 ## Styling note
 
-Tailwind generates utilities only for files its `@source` lines cover, and
-`packages/ui/src/styles/globals.css` covers apps and `packages/ui` but not
-this package. Until it adds `@source "../../../composer/src"`, a host has to
-generate them itself; `apps/web/app/dev/composer/composer.css` does that for
-the demo.
+Tailwind generates utilities only for files its `@source` lines cover.
+`packages/ui/src/styles/globals.css` scans every workspace package's `src`
+(`@source "../../../*/src/**/*.{ts,tsx}"`), so any app that imports
+`@workspace/ui/globals.css` gets the composer's styles with no extra CSS.
