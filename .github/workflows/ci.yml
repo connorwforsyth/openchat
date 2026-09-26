@@ -106,3 +106,66 @@ jobs:
       - name: Test against Postgres 17
         working-directory: packages/db
         run: bunx vitest run
+
+  # The Docker sandbox path end to end (ticket 029, PLAN.md §11 step 6):
+  # builds the runner image, starts the `sandbox` compose profile (runner +
+  # socket proxy) on the runner's real Docker, and drives it through the
+  # docker provider's client. Once per OCI runtime, since both must keep
+  # working (docs/decisions/0005): runc gets the admin warning, runsc is gVisor.
+  sandbox:
+    name: sandbox (${{ matrix.runtime }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        runtime: [runc, runsc]
+    env:
+      EXPECT_RUNTIME: ${{ matrix.runtime }}
+      # `auto` on both legs, so the runtime detection is what's under test.
+      SANDBOX_RUNTIME: auto
+      TURBO_TELEMETRY_DISABLED: 1
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.0
+
+      # https://gvisor.dev/docs/user_guide/install/ (apt repository), then
+      # `runsc install` adds it to /etc/docker/daemon.json.
+      - name: Install gVisor
+        if: matrix.runtime == 'runsc'
+        run: |
+          curl -fsSL https://gvisor.dev/archive.key | sudo gpg --dearmor -o /usr/share/keyrings/gvisor-archive-keyring.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/gvisor-archive-keyring.gpg] https://storage.googleapis.com/gvisor/releases release main" \
+            | sudo tee /etc/apt/sources.list.d/gvisor.list > /dev/null
+          sudo apt-get update -q
+          sudo apt-get install -y -q runsc
+          sudo runsc install
+          sudo systemctl restart docker
+          docker info --format '{{json .Runtimes}}'
+
+      # A fresh secret per run, masked in the log; never stored anywhere.
+      - name: Generate the runner token
+        run: |
+          token="$(openssl rand -hex 32)"
+          echo "::add-mask::$token"
+          echo "SANDBOX_RUNNER_TOKEN=$token" >> "$GITHUB_ENV"
+
+      - name: Start the sandbox profile
+        run: docker compose --profile sandbox up -d --build --wait --wait-timeout 180 docker-socket-proxy sandbox-runner
+
+      - name: Install
+        run: bun install --frozen-lockfile --filter sandbox-runner
+
+      - name: Smoke test
+        working-directory: apps/sandbox-runner
+        run: bun run smoke
+
+      - name: Runner and proxy logs
+        if: failure()
+        run: |
+          docker compose --profile sandbox ps -a
+          docker compose --profile sandbox logs --no-color docker-socket-proxy sandbox-runner
+          docker ps -a --filter label=sandbox-runner.managed
