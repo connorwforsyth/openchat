@@ -2,8 +2,8 @@
 id: "006"
 title: "i18n and icon packages"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: ["002"]
 ---
 
@@ -30,3 +30,11 @@ Set up the two cross-cutting packages every UI ticket uses (`PLAN.md` D12, D19).
 - `apps/web` renders a translated string and an icon through the registry.
 - The icon-import guard from 004 passes on the whole repo.
 - Tests cover formatters, negotiation, the codemod and the gap report. CI green.
+
+## Resolution (2026-09-26, loop)
+
+Built in [PR #3](https://github.com/connorwforsyth/openchat/pull/3): `packages/i18n` (Lingui 6.8, `en` catalog, compile, `Intl` formatters, `Accept-Language` negotiation, RSC + client providers) and `packages/icons` (74 lucide-named icons + aliases, lucide and Phosphor sets chosen by `ICON_SET` at build time, lucide fallback + gap report, post-install codemod). `apps/web` renders a translated string and a registry icon; fonts come from the `geist` package. The loop pointed `packages/ui` at `@workspace/icons` and the catalog's `zod`.
+
+Verified: `bun turbo typecheck lint test build --force` 17/17 on main + 004 guards; empty-env production start returns 200 with the translated text and `lucide-send`; the Phosphor build swaps the SVG; CI passed.
+
+Note: Lingui macros on Next 16.3 need `@lingui/swc-plugin` pinned to exactly 6.6.0. `ICON_SET` stands in for `app.config.yaml` `icons.set` until 005's config lands.
