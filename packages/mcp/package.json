@@ -1,0 +1,44 @@
+{
+  "name": "@workspace/mcp",
+  "version": "0.0.0",
+  "private": true,
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    "./create": "./src/create.ts",
+    "./crypto": "./src/crypto.ts",
+    "./errors": "./src/errors.ts",
+    "./handlers": "./src/handlers.ts",
+    "./lifecycle": "./src/lifecycle.ts",
+    "./manager": "./src/manager.ts",
+    "./oauth": "./src/oauth.ts",
+    "./registry": "./src/registry.ts",
+    "./server-config": "./src/server-config.ts",
+    "./testing/fixture-server": "./src/testing/fixture-server.ts",
+    "./token-store": "./src/token-store.ts",
+    "./tool-names": "./src/tool-names.ts"
+  },
+  "scripts": {
+    "lint": "ultracite check",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ai-sdk/mcp": "catalog:",
+    "@ai-sdk/provider-utils": "catalog:",
+    "@workspace/ai": "workspace:*",
+    "@workspace/config": "workspace:*",
+    "@workspace/contract": "workspace:*",
+    "@workspace/db": "workspace:*",
+    "@workspace/shared": "workspace:*",
+    "ai": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "catalog:",
+    "@types/node": "catalog:",
+    "@workspace/typescript-config": "workspace:*",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
