@@ -3,7 +3,7 @@ id: "023"
 title: "WS-importers: history importers and fork"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: ["011"]
 ---
 

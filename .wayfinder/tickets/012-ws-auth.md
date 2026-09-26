@@ -3,7 +3,7 @@ id: "012"
 title: "WS-auth: accounts, orgs, teams and grants"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: ["011"]
 ---
 
