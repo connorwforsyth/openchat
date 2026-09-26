@@ -3,7 +3,7 @@ id: "018"
 title: "WS-mcp: MCP connection manager"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: ["013"]
 ---
 

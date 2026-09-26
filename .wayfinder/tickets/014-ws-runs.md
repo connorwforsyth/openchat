@@ -3,7 +3,7 @@ id: "014"
 title: "WS-runs: runs, resumable streams and background jobs"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: ["011","013"]
 ---
 

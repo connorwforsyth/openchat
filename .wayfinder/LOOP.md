@@ -93,7 +93,7 @@ Read `.wayfinder/map.md` (Notes and the ownership register), then the parts of
   - strings via Lingui macros;
   - no stray `openchat` literals.
 - **Git:**
-  - never push code straight to `main`, and never force-push;
+  - never push code straight to `main`, and never force-push `main`; after rebasing your own PR branch, `--force-with-lease` is fine;
   - never commit `node_modules`, `.next`, `.turbo` or `.env*`;
   - never delete untracked files you didn't create. A doma agent once deleted `.agents/`
     this way.

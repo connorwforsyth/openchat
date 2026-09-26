@@ -3,7 +3,7 @@ id: "021"
 title: "WS-knowledge: files, RAG and search"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: ["011","013"]
 ---
 
