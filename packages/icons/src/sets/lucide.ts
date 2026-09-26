@@ -5,8 +5,10 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUp,
+  AtSign,
   Bot,
   Brain,
+  Building2,
   Calendar,
   Check,
   ChevronDown,
@@ -70,6 +72,7 @@ import {
   TriangleAlert,
   Upload,
   User,
+  Users,
   Wrench,
   X,
   ZoomIn,
@@ -150,6 +153,9 @@ export const SparklesIcon: Icon = Sparkles;
 export const StarIcon: Icon = Star;
 export const SunIcon: Icon = Sun;
 export const UserIcon: Icon = User;
+export const UsersIcon: Icon = Users;
+export const AtSignIcon: Icon = AtSign;
+export const Building2Icon: Icon = Building2;
 export const WrenchIcon: Icon = Wrench;
 export const AgentIcon: Icon = Bot;
 export const AttachIcon: Icon = Paperclip;

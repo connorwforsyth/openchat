@@ -27,9 +27,25 @@ msgstr "{deletions, plural, one {# line removed} other {# lines removed}}"
 msgid "{duration, plural, one {Thought for # second} other {Thought for # seconds}}"
 msgstr "{duration, plural, one {Thought for # second} other {Thought for # seconds}}"
 
+#: ../composer/src/components/attachment-list.tsx
+msgid "{fileName} is larger than {limit}."
+msgstr "{fileName} is larger than {limit}."
+
+#: ../composer/src/components/attachment-list.tsx
+msgid "{fileName} isn't a supported file type."
+msgstr "{fileName} isn't a supported file type."
+
+#: ../composer/src/components/attachment-list.tsx
+msgid "{maxFiles, plural, one {{fileName} wasn't added: you can attach # file.} other {{fileName} wasn't added: you can attach up to # files.}}"
+msgstr "{maxFiles, plural, one {{fileName} wasn't added: you can attach # file.} other {{fileName} wasn't added: you can attach up to # files.}}"
+
 #: ../ui/src/components/ai-elements/message.tsx
 msgid "{page} of {totalBranches}"
 msgstr "{page} of {totalBranches}"
+
+#: ../composer/src/components/composer.tsx
+msgid "{suggestionCount, plural, one {# suggestion} other {# suggestions}}"
+msgstr "{suggestionCount, plural, one {# suggestion} other {# suggestions}}"
 
 #: ../code-ui/src/diff-view.tsx
 msgid "Accept"
@@ -47,6 +63,10 @@ msgstr "Accept the rest"
 msgid "Add photos or files"
 msgstr "Add photos or files"
 
+#: ../composer/src/components/target-picker.tsx
+msgid "Agents"
+msgstr "Agents"
+
 #: ../../apps/web/app/dev/ai-elements/page.tsx
 msgid "AI Elements"
 msgstr "AI Elements"
@@ -55,10 +75,27 @@ msgstr "AI Elements"
 msgid "All files exceed the maximum size."
 msgstr "All files exceed the maximum size."
 
+#: ../composer/src/components/composer-shell.tsx
+#: ../composer/src/components/composer.tsx
+msgid "Ask anything"
+msgstr "Ask anything"
+
+#: ../composer/src/components/composer-footer.tsx
+msgid "Attach files"
+msgstr "Attach files"
+
 #: ../ui/src/components/ai-elements/message.tsx
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Attachment"
 msgstr "Attachment"
+
+#: ../composer/src/components/attachment-list.tsx
+msgid "Attachments"
+msgstr "Attachments"
+
+#: ../composer/src/components/target-picker.tsx
+msgid "Auto"
+msgstr "Auto"
 
 #: ../ui/src/components/ai-elements/tool.tsx
 msgid "Awaiting approval"
@@ -67,6 +104,10 @@ msgstr "Awaiting approval"
 #: ../../apps/web/app/page.tsx
 msgid "Button"
 msgstr "Button"
+
+#: ../composer/src/components/template-variables.tsx
+msgid "Cancel"
+msgstr "Cancel"
 
 #: ../code-ui/src/diff-view.tsx
 msgid "Change {number}"
@@ -79,6 +120,18 @@ msgstr "Change {number} accepted"
 #: ../code-ui/src/diff-view.tsx
 msgid "Change {number} rejected"
 msgstr "Change {number} rejected"
+
+#: ../composer/src/components/context-chip.tsx
+msgid "Chat context"
+msgstr "Chat context"
+
+#: ../composer/src/components/context-chip.tsx
+msgid "Chat context: {label}"
+msgstr "Chat context: {label}"
+
+#: ../composer/src/components/context-chip.tsx
+msgid "Chat context: {label}, locked"
+msgstr "Chat context: {label}, locked"
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Close"
@@ -95,6 +148,14 @@ msgstr "Comment for the agent on change {number}"
 #: ../ui/src/components/ai-elements/tool.tsx
 msgid "Completed"
 msgstr "Completed"
+
+#: ../../apps/web/app/dev/composer/page.tsx
+msgid "Composer"
+msgstr "Composer"
+
+#: ../../apps/web/app/dev/composer/demo.tsx
+msgid "Context locked"
+msgstr "Context locked"
 
 #: ../../apps/web/app/dev/ai-elements/demo.tsx
 msgid "Conversation, message, reasoning and tool"
@@ -148,6 +209,10 @@ msgstr "Denied"
 msgid "Diff layout"
 msgstr "Diff layout"
 
+#: ../../apps/web/app/dev/composer/demo.tsx
+msgid "Disabled"
+msgstr "Disabled"
+
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Download diagram"
 msgstr "Download diagram"
@@ -184,6 +249,10 @@ msgstr "Download table as CSV"
 msgid "Download table as Markdown"
 msgstr "Download table as Markdown"
 
+#: ../composer/src/components/composer.tsx
+msgid "Enter sends and Shift+Enter adds a line. Type / for prompts and @ to mention someone."
+msgstr "Enter sends and Shift+Enter adds a line. Type / for prompts and @ to mention someone."
+
 #: ../ui/src/components/ai-elements/tool.tsx
 msgid "Error"
 msgstr "Error"
@@ -212,6 +281,14 @@ msgstr "File tree"
 msgid "Files"
 msgstr "Files"
 
+#: ../composer/src/components/template-variables.tsx
+msgid "Fill in “{promptName}”"
+msgstr "Fill in “{promptName}”"
+
+#: ../composer/src/components/template-variables.tsx
+msgid "Fill in every field to insert the prompt."
+msgstr "Fill in every field to insert the prompt."
+
 #: ../ui/src/components/ai-elements/message.tsx
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Image"
@@ -221,9 +298,30 @@ msgstr "Image"
 msgid "Image not available"
 msgstr "Image not available"
 
+#: ../composer/src/components/template-variables.tsx
+msgid "Insert"
+msgstr "Insert"
+
+#: ../composer/src/components/template-variables.tsx
+msgid "Insert prompt"
+msgstr "Insert prompt"
+
+#: ../../apps/web/app/dev/composer/demo.tsx
+msgid "Last submitted value"
+msgstr "Last submitted value"
+
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Markdown"
 msgstr "Markdown"
+
+#: ../composer/src/components/composer.tsx
+msgid "Mention"
+msgstr "Mention"
+
+#: ../composer/src/components/composer-shell.tsx
+#: ../composer/src/components/composer.tsx
+msgid "Message"
+msgstr "Message"
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "MMD"
@@ -232,6 +330,14 @@ msgstr "MMD"
 #: ../../apps/web/app/dev/ai-elements/demo.tsx
 msgid "Model"
 msgstr "Model"
+
+#: ../composer/src/components/target-picker.tsx
+msgid "Model or agent: {label}"
+msgstr "Model or agent: {label}"
+
+#: ../composer/src/components/target-picker.tsx
+msgid "Models"
+msgstr "Models"
 
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "More actions"
@@ -245,6 +351,10 @@ msgstr "Next branch"
 msgid "No files match the accepted types."
 msgstr "No files match the accepted types."
 
+#: ../../apps/web/app/dev/composer/demo.tsx
+msgid "Nothing sent yet."
+msgstr "Nothing sent yet."
+
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Open external link?"
 msgstr "Open external link?"
@@ -257,6 +367,10 @@ msgstr "Open link"
 msgid "Optional: tell the agent why"
 msgstr "Optional: tell the agent why"
 
+#: ../composer/src/components/context-chip.tsx
+msgid "Organization"
+msgstr "Organization"
+
 #: ../ui/src/components/ai-elements/tool.tsx
 msgid "Parameters"
 msgstr "Parameters"
@@ -264,6 +378,14 @@ msgstr "Parameters"
 #: ../ui/src/components/ai-elements/tool.tsx
 msgid "Pending"
 msgstr "Pending"
+
+#: ../composer/src/components/context-chip.tsx
+msgid "Personal"
+msgstr "Personal"
+
+#: ../composer/src/components/target-picker.tsx
+msgid "Picks a model for each message"
+msgstr "Picks a model for each message"
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "PNG"
@@ -280,6 +402,10 @@ msgstr "Project ready!"
 #: ../../apps/web/app/dev/ai-elements/demo.tsx
 msgid "Prompt input"
 msgstr "Prompt input"
+
+#: ../composer/src/components/composer.tsx
+msgid "Prompts"
+msgstr "Prompts"
 
 #: ../../apps/web/app/dev/code/demo.tsx
 msgid "Proposed edit"
@@ -301,6 +427,10 @@ msgstr "Reject the rest"
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Remove"
 msgstr "Remove"
+
+#: ../composer/src/components/attachment-list.tsx
+msgid "Remove {name}"
+msgstr "Remove {name}"
 
 #: ../ui/src/components/ai-elements/message.tsx
 #: ../ui/src/components/ai-elements/prompt-input.tsx
@@ -339,6 +469,10 @@ msgstr "Scroll to start"
 msgid "Search files"
 msgstr "Search files"
 
+#: ../composer/src/components/composer-footer.tsx
+msgid "Send"
+msgstr "Send"
+
 #: ../code-ui/src/diff-view.tsx
 msgid "Split"
 msgstr "Split"
@@ -347,6 +481,7 @@ msgstr "Split"
 msgid "Start dictation"
 msgstr "Start dictation"
 
+#: ../composer/src/components/composer-footer.tsx
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Stop"
 msgstr "Stop"
@@ -367,13 +502,29 @@ msgstr "Submit review"
 msgid "SVG"
 msgstr "SVG"
 
+#: ../composer/src/components/context-chip.tsx
+msgid "Team"
+msgstr "Team"
+
 #: ../../apps/web/app/dev/code/demo.tsx
 msgid "The accepted changes couldn't be applied."
 msgstr "The accepted changes couldn't be applied."
 
+#: ../composer/src/components/context-chip.tsx
+msgid "The context can't change after the first message."
+msgstr "The context can't change after the first message."
+
+#: ../composer/src/components/composer-shell.tsx
+msgid "The editor didn't load. Reload the page to try again."
+msgstr "The editor didn't load. Reload the page to try again."
+
 #: ../../apps/web/app/dev/code/page.tsx
 msgid "The file tree, a highlighted file and a reviewable diff, themed from the design tokens. Sample data only; nothing is written anywhere."
 msgstr "The file tree, a highlighted file and a reviewable diff, themed from the design tokens. Sample data only; nothing is written anywhere."
+
+#: ../../apps/web/app/dev/composer/page.tsx
+msgid "The prompt composer with contract fixtures. Type / for a prompt template or @ to mention someone; sending fakes a short run you can stop. Nothing here calls a model."
+msgstr "The prompt composer with contract fixtures. Type / for a prompt template or @ to mention someone; sending fakes a short run you can stop. Nothing here calls a model."
 
 #: ../ui/src/components/ai-elements/reasoning.tsx
 msgid "Thinking…"
@@ -398,6 +549,10 @@ msgstr "TSV"
 #: ../code-ui/src/diff-view.tsx
 msgid "Unified"
 msgstr "Unified"
+
+#: ../composer/src/components/target-picker.tsx
+msgid "Unknown agent"
+msgstr "Unknown agent"
 
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Upload files"

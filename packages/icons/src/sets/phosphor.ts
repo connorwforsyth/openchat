@@ -12,7 +12,9 @@ import { ArrowRightIcon as ArrowRight } from "@phosphor-icons/react/dist/ssr/Arr
 import { ArrowSquareOutIcon as ArrowSquareOut } from "@phosphor-icons/react/dist/ssr/ArrowSquareOut";
 import { ArrowsOutIcon as ArrowsOut } from "@phosphor-icons/react/dist/ssr/ArrowsOut";
 import { ArrowUpIcon as ArrowUp } from "@phosphor-icons/react/dist/ssr/ArrowUp";
+import { AtIcon as At } from "@phosphor-icons/react/dist/ssr/At";
 import { BrainIcon as Brain } from "@phosphor-icons/react/dist/ssr/Brain";
+import { BuildingsIcon as Buildings } from "@phosphor-icons/react/dist/ssr/Buildings";
 import { CalendarIcon as Calendar } from "@phosphor-icons/react/dist/ssr/Calendar";
 import { CaretDownIcon as CaretDown } from "@phosphor-icons/react/dist/ssr/CaretDown";
 import { CaretLeftIcon as CaretLeft } from "@phosphor-icons/react/dist/ssr/CaretLeft";
@@ -69,6 +71,7 @@ import { ThumbsUpIcon as ThumbsUp } from "@phosphor-icons/react/dist/ssr/ThumbsU
 import { TrashIcon as Trash } from "@phosphor-icons/react/dist/ssr/Trash";
 import { UploadSimpleIcon as UploadSimple } from "@phosphor-icons/react/dist/ssr/UploadSimple";
 import { UserIcon as User } from "@phosphor-icons/react/dist/ssr/User";
+import { UsersIcon as Users } from "@phosphor-icons/react/dist/ssr/Users";
 import { WarningIcon as Warning } from "@phosphor-icons/react/dist/ssr/Warning";
 import { WarningCircleIcon as WarningCircle } from "@phosphor-icons/react/dist/ssr/WarningCircle";
 import { WrenchIcon as Wrench } from "@phosphor-icons/react/dist/ssr/Wrench";
@@ -155,6 +158,9 @@ export const SparklesIcon = /* @__PURE__ */ fromPhosphor(Sparkle);
 export const StarIcon = /* @__PURE__ */ fromPhosphor(Star);
 export const SunIcon = /* @__PURE__ */ fromPhosphor(Sun);
 export const UserIcon = /* @__PURE__ */ fromPhosphor(User);
+export const UsersIcon = /* @__PURE__ */ fromPhosphor(Users);
+export const AtSignIcon = /* @__PURE__ */ fromPhosphor(At);
+export const Building2Icon = /* @__PURE__ */ fromPhosphor(Buildings);
 export const WrenchIcon = /* @__PURE__ */ fromPhosphor(Wrench);
 export const AgentIcon = /* @__PURE__ */ fromPhosphor(Robot);
 export const AttachIcon = /* @__PURE__ */ fromPhosphor(Paperclip);
