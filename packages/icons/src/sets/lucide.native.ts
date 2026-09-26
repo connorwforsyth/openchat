@@ -1,0 +1,147 @@
+// React Native twin of `lucide.ts`, over `lucide-react-native`.
+import {
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  ArrowUp,
+  Bot,
+  Brain,
+  Calendar,
+  Check,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsUpDown,
+  ChevronUp,
+  Circle,
+  CircleAlert,
+  CircleCheck,
+  CircleX,
+  Copy,
+  Download,
+  Ellipsis,
+  EllipsisVertical,
+  ExternalLink,
+  Eye,
+  EyeOff,
+  File,
+  FileText,
+  GitBranch,
+  Globe,
+  GripVertical,
+  Image,
+  Info,
+  Layers,
+  Loader,
+  Loader2,
+  LoaderCircle,
+  Lock,
+  LogOut,
+  Menu,
+  MessageSquare,
+  Mic,
+  Minus,
+  Monitor,
+  Moon,
+  MoreHorizontal,
+  OctagonX,
+  PanelLeft,
+  Paperclip,
+  Pencil,
+  Plus,
+  RefreshCw,
+  RotateCcw,
+  Search,
+  Send,
+  Settings,
+  Share,
+  Sparkles,
+  Square,
+  SquarePen,
+  Star,
+  Sun,
+  ThumbsDown,
+  ThumbsUp,
+  Trash2,
+  TriangleAlert,
+  Upload,
+  User,
+  X,
+} from "lucide-react-native";
+
+import type { NativeIcon } from "../types.native";
+
+export const ArrowDownIcon: NativeIcon = ArrowDown;
+export const ArrowLeftIcon: NativeIcon = ArrowLeft;
+export const ArrowRightIcon: NativeIcon = ArrowRight;
+export const ArrowUpIcon: NativeIcon = ArrowUp;
+export const ChevronDownIcon: NativeIcon = ChevronDown;
+export const ChevronLeftIcon: NativeIcon = ChevronLeft;
+export const ChevronRightIcon: NativeIcon = ChevronRight;
+export const ChevronUpIcon: NativeIcon = ChevronUp;
+export const ChevronsUpDownIcon: NativeIcon = ChevronsUpDown;
+export const ExternalLinkIcon: NativeIcon = ExternalLink;
+export const MenuIcon: NativeIcon = Menu;
+export const PanelLeftIcon: NativeIcon = PanelLeft;
+export const CheckIcon: NativeIcon = Check;
+export const CopyIcon: NativeIcon = Copy;
+export const DownloadIcon: NativeIcon = Download;
+export const EllipsisIcon: NativeIcon = Ellipsis;
+export const EllipsisVerticalIcon: NativeIcon = EllipsisVertical;
+export const GripVerticalIcon: NativeIcon = GripVertical;
+export const LogOutIcon: NativeIcon = LogOut;
+export const MicIcon: NativeIcon = Mic;
+export const MinusIcon: NativeIcon = Minus;
+export const MoreHorizontalIcon: NativeIcon = MoreHorizontal;
+export const PaperclipIcon: NativeIcon = Paperclip;
+export const PencilIcon: NativeIcon = Pencil;
+export const PlusIcon: NativeIcon = Plus;
+export const RefreshCwIcon: NativeIcon = RefreshCw;
+export const RotateCcwIcon: NativeIcon = RotateCcw;
+export const SearchIcon: NativeIcon = Search;
+export const SendIcon: NativeIcon = Send;
+export const SettingsIcon: NativeIcon = Settings;
+export const ShareIcon: NativeIcon = Share;
+export const SquareIcon: NativeIcon = Square;
+export const SquarePenIcon: NativeIcon = SquarePen;
+export const ThumbsDownIcon: NativeIcon = ThumbsDown;
+export const ThumbsUpIcon: NativeIcon = ThumbsUp;
+export const Trash2Icon: NativeIcon = Trash2;
+export const UploadIcon: NativeIcon = Upload;
+export const XIcon: NativeIcon = X;
+export const CircleAlertIcon: NativeIcon = CircleAlert;
+export const CircleCheckIcon: NativeIcon = CircleCheck;
+export const CircleIcon: NativeIcon = Circle;
+export const CircleXIcon: NativeIcon = CircleX;
+export const InfoIcon: NativeIcon = Info;
+export const Loader2Icon: NativeIcon = Loader2;
+export const LoaderCircleIcon: NativeIcon = LoaderCircle;
+export const LoaderIcon: NativeIcon = Loader;
+export const OctagonXIcon: NativeIcon = OctagonX;
+export const TriangleAlertIcon: NativeIcon = TriangleAlert;
+export const BotIcon: NativeIcon = Bot;
+export const BrainIcon: NativeIcon = Brain;
+export const CalendarIcon: NativeIcon = Calendar;
+export const EyeIcon: NativeIcon = Eye;
+export const EyeOffIcon: NativeIcon = EyeOff;
+export const FileIcon: NativeIcon = File;
+export const FileTextIcon: NativeIcon = FileText;
+export const GitBranchIcon: NativeIcon = GitBranch;
+export const GlobeIcon: NativeIcon = Globe;
+export const ImageIcon: NativeIcon = Image;
+export const LayersIcon: NativeIcon = Layers;
+export const LockIcon: NativeIcon = Lock;
+export const MessageSquareIcon: NativeIcon = MessageSquare;
+export const MonitorIcon: NativeIcon = Monitor;
+export const MoonIcon: NativeIcon = Moon;
+export const SparklesIcon: NativeIcon = Sparkles;
+export const StarIcon: NativeIcon = Star;
+export const SunIcon: NativeIcon = Sun;
+export const UserIcon: NativeIcon = User;
+export const AgentIcon: NativeIcon = Bot;
+export const AttachIcon: NativeIcon = Paperclip;
+export const BranchIcon: NativeIcon = GitBranch;
+export const ContextIcon: NativeIcon = Layers;
+export const NewChatIcon: NativeIcon = SquarePen;
+export const ReasoningIcon: NativeIcon = Brain;
+export const StopIcon: NativeIcon = Square;

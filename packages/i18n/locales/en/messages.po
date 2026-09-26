@@ -1,0 +1,28 @@
+msgid ""
+msgstr ""
+"POT-Creation-Date: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: @lingui/cli\n"
+"Language: en\n"
+
+#: ../../apps/web/app/page.tsx
+msgid "(Press <0>d</0> to toggle dark mode)"
+msgstr "(Press <0>d</0> to toggle dark mode)"
+
+#: ../../apps/web/app/page.tsx
+msgid "Button"
+msgstr "Button"
+
+#: ../../apps/web/app/page.tsx
+msgid "Project ready!"
+msgstr "Project ready!"
+
+#: ../../apps/web/app/page.tsx
+msgid "We've already added the button component for you."
+msgstr "We've already added the button component for you."
+
+#: ../../apps/web/app/page.tsx
+msgid "You may now add components and start building."
+msgstr "You may now add components and start building."

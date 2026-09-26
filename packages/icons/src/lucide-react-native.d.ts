@@ -1,0 +1,84 @@
+// Minimal types for `lucide-react-native`, an optional peer that is not
+// installed until the mobile app lands (installing it pulls in all of React
+// Native). Delete this file once `apps/mobile` depends on the real package:
+// an ambient module shadows the package's own types.
+declare module "lucide-react-native" {
+  import type { ComponentType } from "react";
+
+  export interface LucideProps {
+    absoluteStrokeWidth?: boolean;
+    color?: string;
+    size?: number | string;
+    strokeWidth?: number | string;
+    testID?: string;
+  }
+  export type LucideIcon = ComponentType<LucideProps>;
+
+  export const ArrowDown: LucideIcon;
+  export const ArrowLeft: LucideIcon;
+  export const ArrowRight: LucideIcon;
+  export const ArrowUp: LucideIcon;
+  export const Bot: LucideIcon;
+  export const Brain: LucideIcon;
+  export const Calendar: LucideIcon;
+  export const Check: LucideIcon;
+  export const ChevronDown: LucideIcon;
+  export const ChevronLeft: LucideIcon;
+  export const ChevronRight: LucideIcon;
+  export const ChevronUp: LucideIcon;
+  export const ChevronsUpDown: LucideIcon;
+  export const Circle: LucideIcon;
+  export const CircleAlert: LucideIcon;
+  export const CircleCheck: LucideIcon;
+  export const CircleX: LucideIcon;
+  export const Copy: LucideIcon;
+  export const Download: LucideIcon;
+  export const Ellipsis: LucideIcon;
+  export const EllipsisVertical: LucideIcon;
+  export const ExternalLink: LucideIcon;
+  export const Eye: LucideIcon;
+  export const EyeOff: LucideIcon;
+  export const File: LucideIcon;
+  export const FileText: LucideIcon;
+  export const GitBranch: LucideIcon;
+  export const Globe: LucideIcon;
+  export const GripVertical: LucideIcon;
+  export const Image: LucideIcon;
+  export const Info: LucideIcon;
+  export const Layers: LucideIcon;
+  export const Loader: LucideIcon;
+  export const Loader2: LucideIcon;
+  export const LoaderCircle: LucideIcon;
+  export const Lock: LucideIcon;
+  export const LogOut: LucideIcon;
+  export const Menu: LucideIcon;
+  export const MessageSquare: LucideIcon;
+  export const Mic: LucideIcon;
+  export const Minus: LucideIcon;
+  export const Monitor: LucideIcon;
+  export const Moon: LucideIcon;
+  export const MoreHorizontal: LucideIcon;
+  export const OctagonX: LucideIcon;
+  export const PanelLeft: LucideIcon;
+  export const Paperclip: LucideIcon;
+  export const Pencil: LucideIcon;
+  export const Plus: LucideIcon;
+  export const RefreshCw: LucideIcon;
+  export const RotateCcw: LucideIcon;
+  export const Search: LucideIcon;
+  export const Send: LucideIcon;
+  export const Settings: LucideIcon;
+  export const Share: LucideIcon;
+  export const Sparkles: LucideIcon;
+  export const Square: LucideIcon;
+  export const SquarePen: LucideIcon;
+  export const Star: LucideIcon;
+  export const Sun: LucideIcon;
+  export const ThumbsDown: LucideIcon;
+  export const ThumbsUp: LucideIcon;
+  export const Trash2: LucideIcon;
+  export const TriangleAlert: LucideIcon;
+  export const Upload: LucideIcon;
+  export const User: LucideIcon;
+  export const X: LucideIcon;
+}

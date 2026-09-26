@@ -1,0 +1,3 @@
+# Written by `icons:select` from ICON_SET before build, dev and typecheck.
+src/selected.ts
+src/selected.native.ts
