@@ -19,16 +19,28 @@ services:
       timeout: 5s
       retries: 10
 
-  # Optional self-hosted web search: `docker compose --profile search up -d`.
+  # Optional self-hosted web search: `docker compose --profile search up -d`,
+  # then set SEARXNG_URL. Pinned to a release (bump deliberately); the
+  # settings below turn on the JSON API the `web_search` tool calls.
   searxng:
-    image: searxng/searxng:latest
+    image: searxng/searxng:2026.9.25-12f8b6515
     profiles: [search]
     restart: unless-stopped
     environment:
       SEARXNG_BASE_URL: http://localhost:${SEARXNG_PORT:-8080}/
       SEARXNG_SECRET: ${SEARXNG_SECRET:-dev-only-change-me}
+    configs:
+      - source: searxng-settings
+        target: /etc/searxng/settings.yml
     ports:
       - "127.0.0.1:${SEARXNG_PORT:-8080}:8080"
+
+configs:
+  searxng-settings:
+    content: |
+      use_default_settings: true
+      search:
+        formats: [html, json]
 
 volumes:
   postgres-data:

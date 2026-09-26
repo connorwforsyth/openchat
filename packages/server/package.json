@@ -6,7 +6,9 @@
   "type": "module",
   "exports": {
     "./*": "./src/*.ts",
-    "./ports/*": "./src/ports/*.ts"
+    "./ports/*": "./src/ports/*.ts",
+    "./knowledge/*": "./src/knowledge/*.ts",
+    "./storage/*": "./src/storage/*.ts"
   },
   "scripts": {
     "lint": "ultracite check",
@@ -28,6 +30,7 @@
     "hono": "catalog:",
     "pg-boss": "catalog:",
     "postgres": "catalog:",
+    "aws4fetch": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
@@ -35,6 +38,7 @@
     "@electric-sql/pglite": "catalog:",
     "@types/node": "catalog:",
     "@workspace/typescript-config": "workspace:*",
+    "msw": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

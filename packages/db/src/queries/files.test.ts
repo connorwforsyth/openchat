@@ -2,17 +2,30 @@ import { fileSchema } from "@workspace/contract/schemas/files";
 import { newId } from "@workspace/shared/ids";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
-import { createTestDb, expectOk, seedUser, type TestDb } from "../testing";
+import {
+  createTestDb,
+  expectOk,
+  seedOrg,
+  seedUser,
+  type TestDb,
+} from "../testing";
+import { createConversation, type Viewer } from "./conversations";
 import {
   createFile,
+  deleteFile,
   getFile,
+  getReadableFile,
   listChunks,
+  listFileIdsToReindex,
+  listFiles,
   listFilesToReindex,
+  listReadableIndexedFileIds,
   replaceChunks,
   searchChunks,
   setFileState,
   toFileRecord,
 } from "./files";
+import { upsertGrant } from "./grants";
 
 let testDb: TestDb;
 beforeAll(async () => {
@@ -166,5 +179,159 @@ describe("searchChunks", () => {
         })
       ).toEqual([]);
     }
+  });
+});
+
+describe("access and listing", () => {
+  const viewerOf = (userId: Viewer["userId"]): Viewer => ({
+    principals: [{ id: userId, type: "user" }],
+    userId,
+  });
+
+  const setup = async () => {
+    const { db } = testDb;
+    const owner = await seedUser(db);
+    const friend = await seedUser(db);
+    const stranger = await seedUser(db);
+    const personal = await seedOrg(db, owner.id, { isPersonal: true });
+    const chat = await createConversation(db, {
+      context: { id: personal.id, type: "personal" },
+      ownerId: owner.id,
+    });
+    const add = (name: string, conversationId: typeof chat.id | null = null) =>
+      createFile(db, {
+        conversationId,
+        mediaType: "text/plain",
+        name,
+        ownerId: owner.id,
+        purpose: "attachment",
+        size: 1,
+        storageDriver: "local",
+        storageKey: `uploads/${newId("x")}`,
+      });
+    const attached = await add("attached.txt", chat.id);
+    const loose = await add("loose.txt");
+    return { attached, chat, db, friend, loose, owner, stranger };
+  };
+
+  test("owners read their files; chat readers read its attachments", async () => {
+    const { attached, chat, db, friend, loose, owner } = await setup();
+    expect((await getReadableFile(db, viewerOf(owner.id), loose.id)).ok).toBe(
+      true
+    );
+    expect(
+      await getReadableFile(db, viewerOf(friend.id), attached.id)
+    ).toMatchObject({ error: { type: "not_found" } });
+    await upsertGrant(db, {
+      grantedBy: owner.id,
+      permission: "viewer",
+      principal: { id: friend.id, type: "user" },
+      resource: { resourceId: chat.id, resourceType: "conversation" },
+    });
+    expect(
+      (await getReadableFile(db, viewerOf(friend.id), attached.id)).ok
+    ).toBe(true);
+    // A grant on the chat reaches its attachments, not the owner's other files.
+    expect(
+      await getReadableFile(db, viewerOf(friend.id), loose.id)
+    ).toMatchObject({ error: { type: "not_found" } });
+
+    const page = expectOk(
+      await listFiles(db, viewerOf(friend.id), {
+        conversationId: chat.id,
+        limit: 10,
+      })
+    );
+    expect(page.items.map((row) => row.id)).toEqual([attached.id]);
+  });
+
+  test("pages the viewer's own files newest first", async () => {
+    const { attached, db, loose, owner } = await setup();
+    const first = expectOk(
+      await listFiles(db, viewerOf(owner.id), { limit: 1 })
+    );
+    expect(first.items.map((row) => row.id)).toEqual([loose.id]);
+    const second = expectOk(
+      await listFiles(db, viewerOf(owner.id), {
+        cursor: first.nextCursor ?? undefined,
+        limit: 1,
+      })
+    );
+    expect(second.items.map((row) => row.id)).toEqual([attached.id]);
+    expect(second.nextCursor).toBeNull();
+    expect(
+      await listFiles(db, viewerOf(owner.id), { cursor: "junk", limit: 1 })
+    ).toMatchObject({ error: { type: "invalid_cursor" } });
+  });
+
+  test("lists only indexed readable files for search", async () => {
+    const { attached, chat, db, loose, owner, stranger } = await setup();
+    expectOk(
+      await replaceChunks(
+        db,
+        attached.id,
+        [{ embedding: axis(5, 1), text: "x" }],
+        "test:embed"
+      )
+    );
+    expectOk(
+      await replaceChunks(db, loose.id, [{ embedding: null, text: "y" }], null)
+    );
+    const owned = viewerOf(owner.id);
+    expect(await listReadableIndexedFileIds(db, owned, { limit: 10 })).toEqual([
+      attached.id,
+    ]);
+    expect(
+      await listReadableIndexedFileIds(db, owned, {
+        conversationId: chat.id,
+        limit: 10,
+      })
+    ).toEqual([attached.id]);
+    expect(
+      await listReadableIndexedFileIds(db, owned, { fileIds: [], limit: 10 })
+    ).toEqual([]);
+    expect(
+      await listReadableIndexedFileIds(db, viewerOf(stranger.id), {
+        limit: 10,
+      })
+    ).toEqual([]);
+  });
+
+  test("walks files to re-index by id, and deletes with chunks", async () => {
+    const { attached, db, loose } = await setup();
+    for (const row of [attached, loose]) {
+      // biome-ignore lint/performance/noAwaitInLoops: two files, in turn.
+      const replaced = await replaceChunks(
+        db,
+        row.id,
+        [{ embedding: axis(5, 1), text: "x" }],
+        "test:old"
+      );
+      expectOk(replaced);
+    }
+    const ids = [attached.id, loose.id].sort();
+    const all: string[] = [];
+    let after: (typeof ids)[number] | null = null;
+    for (;;) {
+      // biome-ignore lint/performance/noAwaitInLoops: keyset pages in turn.
+      const page: typeof ids = await listFileIdsToReindex(db, "test:new", {
+        after,
+        limit: 1,
+      });
+      if (page.length === 0) {
+        break;
+      }
+      all.push(...page);
+      after = page.at(-1) ?? null;
+    }
+    expect(
+      all.filter((id) => ids.includes(id as (typeof ids)[number]))
+    ).toEqual(ids);
+
+    expect(expectOk(await deleteFile(db, loose.id)).id).toBe(loose.id);
+    expect(await listChunks(db, loose.id)).toEqual([]);
+    expect(await deleteFile(db, loose.id)).toMatchObject({
+      error: { type: "not_found" },
+    });
   });
 });
