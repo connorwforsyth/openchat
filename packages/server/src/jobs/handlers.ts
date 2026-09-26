@@ -1,0 +1,85 @@
+import { generateTitle } from "@workspace/ai/title/generate-title";
+import type { ConversationId } from "@workspace/contract/schemas/common";
+import type { ChatContext } from "@workspace/contract/schemas/tenancy";
+import type { Db } from "@workspace/db/client";
+import {
+  getConversationWithBranch,
+  toChatContext,
+  updateConversation,
+} from "@workspace/db/queries/conversations";
+import { toMessage } from "@workspace/db/queries/messages";
+import { err, ok } from "@workspace/shared/result";
+import type { LanguageModel } from "ai";
+
+import { actorFor } from "../context";
+import type { StreamChannel } from "../ports/stream-channel";
+import type { JobHandlers } from "./registry";
+
+// The handlers this package owns: titles and stream pruning. Other
+// workstreams add theirs to the same `JobHandlers` map at boot.
+
+export interface TitleModelRequest {
+  readonly context: ChatContext;
+  readonly conversationId: ConversationId;
+  readonly signal: AbortSignal;
+  readonly userId: Parameters<typeof actorFor>[1]["userId"];
+}
+
+export interface CoreJobDeps {
+  readonly db: Db;
+  readonly streams: StreamChannel;
+  /** A cheap model for titles in this chat's context; `null` when none is available. */
+  readonly titleModel: (
+    request: TitleModelRequest
+  ) => Promise<LanguageModel | null>;
+}
+
+export const coreJobHandlers = ({
+  db,
+  streams,
+  titleModel,
+}: CoreJobDeps): JobHandlers => ({
+  "run.prune": async (job) => {
+    const pruned = await streams.prune(job.data.runId);
+    return pruned.ok ? ok(undefined) : err(pruned.error.type);
+  },
+
+  "title.generate": async (job, signal) => {
+    const { conversationId, userId } = job.data;
+    const actor = await actorFor(db, { userId });
+    const found = await getConversationWithBranch(db, conversationId, actor);
+    if (!found.ok) {
+      // Deleted since, or no longer shared with the author: nothing to name.
+      return ok({ skipped: "not_found" });
+    }
+    const { branch, conversation } = found.value;
+    if (conversation.title) {
+      // Someone named it by hand first; theirs wins.
+      return ok({ skipped: "titled" });
+    }
+    const model = await titleModel({
+      context: toChatContext({
+        id: conversation.contextId,
+        type: conversation.contextType,
+      } as Parameters<typeof toChatContext>[0]),
+      conversationId,
+      signal,
+      userId,
+    });
+    if (!model) {
+      return ok({ skipped: "no_model" });
+    }
+    const messages = branch.messages.flatMap((row) => {
+      const message = toMessage(row);
+      return message.ok ? [message.value] : [];
+    });
+    const title = await generateTitle(messages, model, { signal });
+    if (!title.ok) {
+      return title.error.retryable
+        ? err(title.error.message)
+        : ok({ skipped: title.error.code });
+    }
+    await updateConversation(db, conversationId, { title: title.value });
+    return ok({ title: title.value });
+  },
+});

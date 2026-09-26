@@ -41,7 +41,13 @@ import {
   type UnsupportedPartsVersionError,
 } from "../errors";
 import { conversation, message } from "../schema/chat";
-import { rowsOf } from "./page";
+import {
+  decodeCursor,
+  type InvalidCursorError,
+  type Page,
+  rowsOf,
+  toPage,
+} from "./page";
 
 // Messages form a tree per conversation (`parentId`). Editing or
 // regenerating adds a sibling; a branch is the path from a root to a leaf.
@@ -343,4 +349,52 @@ export const toMessage = (
         version: row.partsVersion,
       });
   }
+};
+
+// --- Added for the message routes (ticket 014) ---
+
+/**
+ * Deletes a message and everything below it (the parent key cascades).
+ * Callers check access first, with `getMessage` for the conversation.
+ */
+export const deleteMessage = async (
+  db: Db,
+  id: MessageId
+): AsyncResult<void, NotFoundError> => {
+  const deleted = await db
+    .delete(message)
+    .where(eq(message.id, id))
+    .returning({ id: message.id });
+  return deleted.length > 0 ? ok(undefined) : err(notFound("message", id));
+};
+
+/** Every message in a conversation, oldest first, keyset-paged (export and sync). */
+export const listMessages = async (
+  db: Db,
+  conversationId: ConversationId,
+  input: { readonly cursor?: string; readonly limit: number }
+): AsyncResult<Page<MessageRow>, InvalidCursorError> => {
+  const cursor = input.cursor ? decodeCursor(input.cursor) : undefined;
+  if (cursor && !cursor.ok) {
+    return cursor;
+  }
+  const rows = await db
+    .select(messageColumns)
+    .from(message)
+    .where(
+      and(
+        eq(message.conversationId, conversationId),
+        cursor?.ok
+          ? sql`(${message.createdAt}, ${message.id}) > (${String(cursor.value.key)}::timestamptz, ${cursor.value.id}::uuid)`
+          : undefined
+      )
+    )
+    .orderBy(asc(message.createdAt), asc(message.id))
+    .limit(input.limit + 1);
+  return ok(
+    toPage(rows, input.limit, (row) => ({
+      id: row.id,
+      key: row.createdAt.toISOString(),
+    }))
+  );
 };

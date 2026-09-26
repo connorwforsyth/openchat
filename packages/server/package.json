@@ -5,6 +5,7 @@
   "sideEffects": false,
   "type": "module",
   "exports": {
+    "./*": "./src/*.ts",
     "./ports/*": "./src/ports/*.ts"
   },
   "scripts": {
@@ -13,12 +14,25 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@orpc/json-schema": "catalog:",
+    "@orpc/openapi": "catalog:",
+    "@orpc/server": "catalog:",
+    "@orpc/zod": "catalog:",
     "@workspace/ai": "workspace:*",
+    "@workspace/config": "workspace:*",
     "@workspace/contract": "workspace:*",
+    "@workspace/db": "workspace:*",
     "@workspace/shared": "workspace:*",
+    "ai": "catalog:",
+    "drizzle-orm": "catalog:",
+    "hono": "catalog:",
+    "pg-boss": "catalog:",
+    "postgres": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@ai-sdk/provider": "catalog:",
+    "@electric-sql/pglite": "catalog:",
     "@types/node": "catalog:",
     "@workspace/typescript-config": "workspace:*",
     "typescript": "catalog:",

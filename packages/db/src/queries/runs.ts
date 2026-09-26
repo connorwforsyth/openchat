@@ -8,6 +8,7 @@ import {
   userIdSchema,
 } from "@workspace/contract/schemas/common";
 import {
+  type ModelRef,
   modelRefSchema,
   tokenUsageSchema,
 } from "@workspace/contract/schemas/models";
@@ -20,7 +21,17 @@ import {
   type StreamChunk,
 } from "@workspace/contract/schemas/runs";
 import { type AsyncResult, err, ok } from "@workspace/shared/result";
-import { and, asc, eq, gt, inArray, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gt,
+  inArray,
+  notInArray,
+  type SQL,
+  sql,
+} from "drizzle-orm";
 import { z } from "zod";
 
 import type { Db } from "../client";
@@ -32,6 +43,12 @@ import {
 } from "../errors";
 import { ACTIVE_RUN_STATUSES, run, runChunk } from "../schema/chat";
 import type { StoredContext } from "./conversations";
+import {
+  decodeCursor,
+  type InvalidCursorError,
+  type Page,
+  toPage,
+} from "./page";
 
 // Runs (D4): a chat turn, executed detached from the request. Status changes
 // go through `transitionRun`, a compare-and-set on the current status, so
@@ -317,4 +334,85 @@ export const pruneRunChunks = async (db: Db, runId: RunId): Promise<number> => {
     .where(eq(runChunk.runId, runId))
     .returning({ seq: runChunk.seq });
   return deleted.length;
+};
+
+// --- Added for the run service (ticket 014) ---
+
+/**
+ * Re-points runs queued behind `fromRunId` to wait for `toRunId` instead
+ * (`null`: nothing to wait for). Used when a queued run is cancelled, so the
+ * ones behind it keep their place in the line. Returns the runs it moved.
+ */
+export const requeueAfter = (
+  db: Db,
+  fromRunId: RunId,
+  toRunId: RunId | null
+): Promise<RunRow[]> =>
+  db
+    .update(run)
+    .set({ afterRunId: toRunId })
+    .where(and(eq(run.afterRunId, fromRunId), eq(run.status, "queued")))
+    .returning();
+
+export interface ListRunsInput {
+  /** `true`: unfinished runs only (the queue); `false`: finished ones only. */
+  readonly active?: boolean;
+  readonly cursor?: string;
+  readonly limit: number;
+}
+
+/** Runs in a conversation, newest first. */
+export const listRuns = async (
+  db: Db,
+  conversationId: ConversationId,
+  input: ListRunsInput
+): AsyncResult<Page<RunRow>, InvalidCursorError> => {
+  const cursor = input.cursor ? decodeCursor(input.cursor) : undefined;
+  if (cursor && !cursor.ok) {
+    return cursor;
+  }
+  let activeFilter: SQL | undefined;
+  if (input.active !== undefined) {
+    activeFilter = input.active
+      ? inArray(run.status, [...ACTIVE_RUN_STATUSES])
+      : notInArray(run.status, [...ACTIVE_RUN_STATUSES]);
+  }
+  const rows = await db
+    .select()
+    .from(run)
+    .where(
+      and(
+        eq(run.conversationId, conversationId),
+        activeFilter,
+        cursor?.ok
+          ? sql`(${run.createdAt}, ${run.id}) < (${String(cursor.value.key)}::timestamptz, ${cursor.value.id}::uuid)`
+          : undefined
+      )
+    )
+    .orderBy(desc(run.createdAt), desc(run.id))
+    .limit(input.limit + 1);
+  return ok(
+    toPage(rows, input.limit, (row) => ({
+      id: row.id,
+      key: row.createdAt.toISOString(),
+    }))
+  );
+};
+
+/**
+ * Records the concrete model once routing resolved it. The run has already
+ * started (the executor claims a run before it resolves the model, so
+ * `createRun` can answer at once), so this isn't a status transition.
+ */
+export const setRunResolvedModel = async (
+  db: Db,
+  id: RunId,
+  resolvedModel: ModelRef
+): AsyncResult<RunRow, NotFoundError> => {
+  const [row] = await db
+    .update(run)
+    .set({ resolvedModel })
+    .where(eq(run.id, id))
+    .returning();
+  return row ? ok(row) : err(notFound("run", id));
 };
