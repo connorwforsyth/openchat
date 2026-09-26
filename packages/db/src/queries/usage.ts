@@ -1,0 +1,318 @@
+import type {
+  OrgId,
+  RunId,
+  TeamId,
+  UserId,
+} from "@workspace/contract/schemas/common";
+import type { ModelRef, TokenUsage } from "@workspace/contract/schemas/models";
+import type { Principal } from "@workspace/contract/schemas/tenancy";
+import type {
+  budgetPeriodSchema,
+  usageKindSchema,
+} from "@workspace/contract/schemas/usage";
+import { type AsyncResult, err, ok } from "@workspace/shared/result";
+import { and, desc, eq, lt, or, sql } from "drizzle-orm";
+import type { z } from "zod";
+import type { Db } from "../client";
+import type { PrincipalId } from "../schema/columns";
+import { budget } from "../schema/tenancy";
+import { balance, transaction } from "../schema/usage";
+import type { StoredContext } from "./conversations";
+import {
+  decodeCursor,
+  type InvalidCursorError,
+  type Page,
+  toPage,
+} from "./page";
+import { teamAncestors } from "./teams";
+
+// Usage and budgets (D17, D24). Each model call is a transaction recorded
+// against the user and the chat context; `balance` keeps running spend per
+// principal and period so the budget check before a run is a few indexed
+// reads. Team spend rolls up to parent teams and the org.
+
+export type BudgetPeriod = z.infer<typeof budgetPeriodSchema>;
+export type TransactionRow = typeof transaction.$inferSelect;
+export type BudgetRow = typeof budget.$inferSelect;
+
+export const BUDGET_PERIODS: readonly BudgetPeriod[] = ["day", "week", "month"];
+
+/** Start of the period containing `now`, in UTC. Weeks start on Monday (ISO 8601). */
+export const periodStart = (period: BudgetPeriod, now: Date): Date => {
+  const day = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  );
+  switch (period) {
+    case "day":
+      return day;
+    case "week":
+      return new Date(
+        day.getTime() - ((day.getUTCDay() + 6) % 7) * 24 * 60 * 60 * 1000
+      );
+    case "month":
+      return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    default:
+      return period satisfies never;
+  }
+};
+
+export interface NewTransaction {
+  /** The chat context as stored; `orgId` is its org (the personal org for Personal). */
+  readonly context: StoredContext;
+  readonly costMicros: number;
+  readonly kind: z.infer<typeof usageKindSchema>;
+  readonly model: ModelRef;
+  readonly orgId: OrgId;
+  /** Whose key paid; `instance` for keys from app.config.yaml. */
+  readonly paidBy:
+    | { readonly type: "instance" }
+    | { readonly id: PrincipalId; readonly type: "org" | "team" | "user" };
+  readonly runId?: RunId | null;
+  readonly usage: TokenUsage;
+  readonly userId: UserId;
+}
+
+/** The principals whose balances a transaction adds to: the user, the context's team chain, the org. */
+const chargedPrincipals = async (
+  db: Db,
+  input: NewTransaction
+): Promise<Principal[]> => {
+  const teams =
+    input.context.type === "team"
+      ? await teamAncestors(db, [input.context.id as TeamId])
+      : [];
+  return [
+    { id: input.userId, type: "user" },
+    ...teams.map((id): Principal => ({ id, type: "team" })),
+    { id: input.orgId, type: "org" },
+  ];
+};
+
+/** Records a model call and adds its cost to every balance it counts toward. */
+export const recordTransaction = (
+  db: Db,
+  input: NewTransaction,
+  now: Date = new Date()
+): Promise<TransactionRow> =>
+  db.transaction(async (tx) => {
+    const [row] = await tx
+      .insert(transaction)
+      .values({
+        cachedInputTokens: input.usage.cachedInputTokens ?? null,
+        contextId: input.context.id,
+        contextType: input.context.type,
+        costMicros: input.costMicros,
+        createdAt: now,
+        inputTokens: input.usage.inputTokens,
+        kind: input.kind,
+        model: input.model,
+        orgId: input.orgId,
+        outputTokens: input.usage.outputTokens,
+        paidById: input.paidBy.type === "instance" ? null : input.paidBy.id,
+        paidByType: input.paidBy.type,
+        reasoningTokens: input.usage.reasoningTokens ?? null,
+        runId: input.runId ?? null,
+        userId: input.userId,
+      })
+      .returning();
+    if (!row) {
+      throw new Error("insert returned no row");
+    }
+    const principals = await chargedPrincipals(tx, input);
+    await tx
+      .insert(balance)
+      .values(
+        principals.flatMap((principal) =>
+          BUDGET_PERIODS.map((period) => ({
+            orgId: input.orgId,
+            period,
+            periodStart: periodStart(period, now),
+            principalId: principal.id,
+            principalType: principal.type,
+            spentMicros: input.costMicros,
+          }))
+        )
+      )
+      .onConflictDoUpdate({
+        set: {
+          spentMicros: sql`${balance.spentMicros} + excluded.spent_micros`,
+          updatedAt: now,
+        },
+        target: [
+          balance.orgId,
+          balance.principalType,
+          balance.principalId,
+          balance.period,
+          balance.periodStart,
+        ],
+      });
+    return row;
+  });
+
+/** Spend in the current period (zero when nothing was recorded). */
+export const getSpend = async (
+  db: Db,
+  orgId: OrgId,
+  principal: Principal,
+  period: BudgetPeriod,
+  now: Date = new Date()
+): Promise<number> => {
+  const [row] = await db
+    .select({ spentMicros: balance.spentMicros })
+    .from(balance)
+    .where(
+      and(
+        eq(balance.orgId, orgId),
+        eq(balance.principalType, principal.type),
+        eq(balance.principalId, principal.id),
+        eq(balance.period, period),
+        eq(balance.periodStart, periodStart(period, now))
+      )
+    );
+  return row?.spentMicros ?? 0;
+};
+
+export interface BudgetInput {
+  readonly hard: boolean;
+  readonly limitMicros: number;
+  readonly orgId: OrgId;
+  readonly period: BudgetPeriod;
+  readonly principal: Principal;
+}
+
+/** One budget per principal and period: setting it again replaces it. */
+export const setBudget = async (
+  db: Db,
+  input: BudgetInput
+): Promise<BudgetRow> => {
+  const [row] = await db
+    .insert(budget)
+    .values({
+      hard: input.hard,
+      limitMicros: input.limitMicros,
+      orgId: input.orgId,
+      period: input.period,
+      principalId: input.principal.id,
+      principalType: input.principal.type,
+    })
+    .onConflictDoUpdate({
+      set: { hard: input.hard, limitMicros: input.limitMicros },
+      target: [
+        budget.orgId,
+        budget.principalType,
+        budget.principalId,
+        budget.period,
+      ],
+    })
+    .returning();
+  if (!row) {
+    throw new Error("upsert returned no row");
+  }
+  return row;
+};
+
+export interface BudgetStatus extends BudgetRow {
+  readonly resetsAt: Date;
+  readonly usedMicros: number;
+}
+
+const nextPeriodStart = (period: BudgetPeriod, now: Date): Date => {
+  const start = periodStart(period, now);
+  switch (period) {
+    case "day":
+      return new Date(start.getTime() + 24 * 60 * 60 * 1000);
+    case "week":
+      return new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000);
+    case "month":
+      return new Date(
+        Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1)
+      );
+    default:
+      return period satisfies never;
+  }
+};
+
+/**
+ * Budgets that apply to `principals` in `orgId`, with this period's spend.
+ * Pass one principal for the admin view, or everyone a run charges (the
+ * user, the context's team chain, the org) for the pre-run check.
+ */
+export const budgetStatuses = async (
+  db: Db,
+  orgId: OrgId,
+  principals: readonly Principal[],
+  now: Date = new Date()
+): Promise<BudgetStatus[]> => {
+  if (principals.length === 0) {
+    return [];
+  }
+  const rows = await db
+    .select()
+    .from(budget)
+    .where(
+      and(
+        eq(budget.orgId, orgId),
+        or(
+          ...principals.map((principal) =>
+            and(
+              eq(budget.principalType, principal.type),
+              eq(budget.principalId, principal.id)
+            )
+          )
+        )
+      )
+    );
+  return Promise.all(
+    rows.map(async (row) => ({
+      ...row,
+      resetsAt: nextPeriodStart(row.period, now),
+      usedMicros: await getSpend(
+        db,
+        orgId,
+        { id: row.principalId, type: row.principalType } as Principal,
+        row.period,
+        now
+      ),
+    }))
+  );
+};
+
+/** The budgets that are spent: hard ones block a run, soft ones only warn. */
+export const exceededBudgets = (
+  statuses: readonly BudgetStatus[]
+): BudgetStatus[] =>
+  statuses.filter((status) => status.usedMicros >= status.limitMicros);
+
+export const listBudgets = (db: Db, orgId: OrgId): Promise<BudgetRow[]> =>
+  db.select().from(budget).where(eq(budget.orgId, orgId));
+
+/** A user's transactions, newest first. */
+export const listTransactions = async (
+  db: Db,
+  userId: UserId,
+  { cursor, limit }: { readonly cursor?: string; readonly limit: number }
+): AsyncResult<Page<TransactionRow>, InvalidCursorError> => {
+  const decoded = cursor ? decodeCursor(cursor) : undefined;
+  if (decoded && !decoded.ok) {
+    return err(decoded.error);
+  }
+  const rows = await db
+    .select()
+    .from(transaction)
+    .where(
+      and(
+        eq(transaction.userId, userId),
+        decoded?.ok
+          ? lt(transaction.id, decoded.value.id as TransactionRow["id"])
+          : undefined
+      )
+    )
+    .orderBy(desc(transaction.id))
+    .limit(limit + 1);
+  return ok(
+    toPage(rows, limit, (row) => ({
+      id: row.id,
+      key: row.createdAt.toISOString(),
+    }))
+  );
+};

@@ -53,7 +53,8 @@
       "cache": false
     },
     "db:migrate": {
-      "cache": false
+      "cache": false,
+      "passThroughEnv": ["DATABASE_URL"]
     },
     "i18n:compile": {
       "outputs": ["locales/*/messages.ts"]

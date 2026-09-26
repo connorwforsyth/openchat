@@ -1,0 +1,13 @@
+{
+  "extends": "@workspace/typescript-config/base.json",
+  "compilerOptions": {
+    // Source is consumed as-is by Next (transpilePackages), Vitest and bun, all
+    // of which resolve like a bundler; NodeNext would demand file extensions
+    // that apps type-checking this source through `paths` reject.
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strictNullChecks": true
+  },
+  "include": ["."],
+  "exclude": ["node_modules", "dist"]
+}
