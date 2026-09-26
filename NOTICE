@@ -14,6 +14,15 @@ Ported (translated to TypeScript and adapted to this project's data model):
   api/server/utils/import/fork.js, packages/api/src/conversations/chatgpt.ts
   and packages/api/src/conversations/lineage.ts (reference revision
   7b2362d7a7c6148b84850924dc7fa5fc43307923).
+- packages/mcp: LibreChat's MCP connection management (packages/api/src/mcp:
+  MCPManager, UserConnectionManager, ConnectionsRepository, MCPConnection, the
+  MCP OAuth handler and token storage, MCPServersRegistry, and
+  normalizeServerName from packages/data-provider), as of commit 7b2362d
+  (2026-09-25). The logic was rewritten as functions over the AI SDK's
+  @ai-sdk/mcp client: shared vs per-user connections, reconnect backoff with
+  jitter, the connection circuit breaker and its defaults, the 429 stop,
+  tool-list limits, idle eviction, the per-user OAuth flow with state binding
+  and client-registration reuse, and server-name normalisation for tool names.
 
 MIT License
 
