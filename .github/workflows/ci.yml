@@ -44,6 +44,10 @@ jobs:
       - name: Repo guards
         run: bun run check:guards
 
+      # Component tests run in Vitest browser mode on headless Chromium.
+      - name: Install Playwright Chromium
+        run: bunx playwright install --with-deps chromium-headless-shell
+
       - name: Typecheck, lint, test, build
         run: bun turbo typecheck lint test build
 
