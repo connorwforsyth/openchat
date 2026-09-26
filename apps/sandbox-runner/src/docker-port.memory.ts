@@ -145,6 +145,11 @@ export const createMemoryDocker = ({
       return Promise.resolve();
     },
 
+    disconnectNetwork: (network, container) => {
+      networks.get(network)?.members.delete(container);
+      return Promise.resolve();
+    },
+
     ensureImage: (image) => {
       guard("ensureImage");
       pulled.push(image);
@@ -240,6 +245,9 @@ export const createMemoryDocker = ({
     },
 
     removeNetwork: (name) => {
+      if ((networks.get(name)?.members.size ?? 0) > 0) {
+        throw new Error(`network ${name} has active endpoints`);
+      }
       networks.delete(name);
       return Promise.resolve();
     },

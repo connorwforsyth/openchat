@@ -281,11 +281,20 @@ describe("runner through the docker client", () => {
   });
 
   it("snapshots into a new volume and restores from it", async () => {
-    const { factory } = setup();
+    const { factory, fake } = setup();
     const sandbox = await must(factory.create({ conversationId, id, limits }));
     await must(sandbox.writeFile("keep.txt", "kept"));
     const { ref } = await must(sandbox.snapshot());
     expect(ref).toMatch(SNAPSHOT_REF);
+    // The copy runs as the sandbox user, so the new volume is handed over first.
+    expect(
+      fake.created.some(
+        (spec) =>
+          spec.User === "0:0" &&
+          spec.Cmd?.[0] === "chown" &&
+          spec.HostConfig?.Mounts?.[0]?.Source === ref
+      )
+    ).toBe(true);
     const other = fixtureId("sandbox", 2);
     const restored = await must(
       factory.create({ conversationId, id: other, limits, snapshotRef: ref })
@@ -338,6 +347,8 @@ describe("runner through the docker client", () => {
     await must(sandbox.destroy());
     expect(fake.containers()).toEqual([]);
     expect(fake.volumes.has(`sbx-${id}`)).toBe(false);
+    // The runner joined it for previews, and had to leave before removing it.
+    expect(fake.networks.has(`sbx-${id}`)).toBe(false);
     expect(await factory.attach(id)).toMatchObject({
       error: { type: "unavailable" },
     });
