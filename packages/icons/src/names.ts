@@ -66,7 +66,9 @@ export const iconNames = [
   "OctagonXIcon",
   "TriangleAlertIcon",
   // Objects
+  "AtSignIcon",
   "BotIcon",
+  "Building2Icon",
   "BrainIcon",
   "CalendarIcon",
   "EyeIcon",
@@ -85,6 +87,7 @@ export const iconNames = [
   "StarIcon",
   "SunIcon",
   "UserIcon",
+  "UsersIcon",
   "WrenchIcon",
   // Semantic aliases: what the icon means in this app, not what it draws
   "AgentIcon",

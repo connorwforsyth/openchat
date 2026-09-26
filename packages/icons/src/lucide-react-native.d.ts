@@ -18,7 +18,9 @@ declare module "lucide-react-native" {
   export const ArrowLeft: LucideIcon;
   export const ArrowRight: LucideIcon;
   export const ArrowUp: LucideIcon;
+  export const AtSign: LucideIcon;
   export const Bot: LucideIcon;
+  export const Building2: LucideIcon;
   export const Brain: LucideIcon;
   export const Calendar: LucideIcon;
   export const Check: LucideIcon;
@@ -80,6 +82,7 @@ declare module "lucide-react-native" {
   export const TriangleAlert: LucideIcon;
   export const Upload: LucideIcon;
   export const User: LucideIcon;
+  export const Users: LucideIcon;
   export const X: LucideIcon;
   export const Wrench: LucideIcon;
   export const Clock: LucideIcon;

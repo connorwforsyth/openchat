@@ -3,8 +3,9 @@
 @import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
-@source "../../../apps/**/*.{ts,tsx}";
-@source "../../../components/**/*.{ts,tsx}";
+/* Paths are relative to this file (packages/ui/src/styles). Scan every app and every workspace package so their utilities are generated. */
+@source "../../../../apps/**/*.{ts,tsx}";
+@source "../../../*/src/**/*.{ts,tsx}";
 @source "../**/*.{ts,tsx}";
 /* Streamdown renders markdown with Tailwind classes from its own bundle. */
 @source "../../node_modules/streamdown/dist/*.js";
