@@ -12,6 +12,8 @@ blockedBy: ["011","012","013","014","015","016","017","018","019","020","021","0
 Wire every workstream into `apps/web`, write the Playwright smoke suite, and make
 `docker compose up` → `bun turbo db:migrate` → `bun dev` work end to end.
 
+Performance (D27): composer-first boot. Preload only the entry, React and the matched route; defer everything else until `composer:ready`; inline server-evaluated public config and hydrate the TanStack Query cache; apply the theme before paint; no third-party font or asset hosts. Record TTFB, `composer:ready` and first-token latency in the Playwright checks.
+
 ## Owns
 
 `apps/web` app code, `e2e/`, `docker-compose.yml` additions.

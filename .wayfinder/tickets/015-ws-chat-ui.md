@@ -13,6 +13,8 @@ The conversation view, message parts rendering, branch switcher, `AppHeader` wit
 context chip (following 009's direction), the artifacts panel, the memory note, and feedback
 controls, built from `@workspace/ui` against mock data from the contract (`PLAN.md` D14, D20, D21).
 
+Performance (D27): don't virtualise the message list; re-render the streaming message in place; lazy-load the artifacts panel, reasoning views, code views and KaTeX (keep KaTeX's MathML); `content-visibility: auto` on older messages is allowed.
+
 ## Owns
 
 `packages/chat-ui`.

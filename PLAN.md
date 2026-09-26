@@ -577,6 +577,18 @@ Three layers share one core in `packages/ai/evals`: datasets, a runner and score
   - It has first-class streaming/SSE helpers, typed middleware and zod-openapi.
   - It's also faster than Express, but that's a bonus, not the reason.
 
+### D27: Performance: composer-first (from performance.dev/chatgpt)
+
+The organising question for boot is **"can you type yet?"** ChatGPT's web app (React 19, React Router 7, Tailwind v4 over a token layer, ProseMirror, TanStack Query) is the reference.
+- **Composer:** TipTap (MIT packages only) on ProseMirror. The server renders a visually identical static `ComposerShell`; the editor chunk loads lazily and hydrates over it with no layout shift. A `composer:ready` performance mark is the headline metric.
+- **Defer everything behind the composer:** only the entry, React and the matched route are preloaded. Code views (`code-ui`), the artifacts panel, reasoning views, KaTeX, settings and admin load on demand, each with its own CSS where possible.
+- **Messages are not virtualised.** Conversations are usually short, and find-in-page matters. Streaming markdown is re-rendered in place per chunk (Streamdown handles unfinished fences and tables); `content-visibility: auto` on older messages is allowed.
+- **Math:** KaTeX with its MathML output kept, so formulas are selectable and screen-readable.
+- **Boot data:** server-evaluated config and flags are inlined into the page (no boot round trip), and the TanStack Query cache is hydrated from the server. The theme is applied by an inline script before paint.
+- **Fonts:** self-hosted only (no third-party font requests); the preset decides whether that's Geist or the system stack.
+- **Assets are first-party** (same origin, long cache headers). No service worker: offline chat is useless without the model backend.
+- **Measure from the first byte:** record TTFB, `composer:ready` and first-token latency in the M1 end-to-end checks.
+
 ---
 
 ## 5. Stack (versions checked 2026-09-26)
@@ -956,6 +968,7 @@ The wave table is in §2.
 | — | Importers | ChatGPT, Claude and LibreChat importers in M1 (assumed; move later if preferred) |
 | — | Execution (2026-09-26) | A Wayfinder map in `.wayfinder/` carries execution: destination = the whole plan, with gates; private GitHub repo; one PR per ticket, merged by the loop once CI passes (no branch protection on the free plan); up to 3 agents in parallel |
 | — | Config filename (2026-09-26) | `app.config.yaml` (brand-neutral), not `openchat.yaml` |
+| — | Composer and performance (2026-09-27) | TipTap (MIT only) composer with a server-rendered shell and lazy editor; composer-first loading per performance.dev/chatgpt (D27) |
 | — | Audit fixes (2026-09-26) | pg-boss in-process in `web` from M1; `resource_grant` is the only chat-access authority; per-type permission enums; `lingui extract` gate in M1; 20 dropped details restored from v1 |
 
 ---
