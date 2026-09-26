@@ -3,7 +3,7 @@ id: "005"
 title: "Contracts and ports"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: ["002","003"]
 ---
 
