@@ -214,6 +214,7 @@ const SubmittedNote = ({
 );
 
 const Composer = () => {
+  const { t } = useLingui();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [submitted, setSubmitted] = useState<PromptInputMessage | null>(null);
 
@@ -246,7 +247,7 @@ const Composer = () => {
               defaultValue={sample.models[0].value}
               items={sample.models}
             >
-              <PromptInputSelectTrigger>
+              <PromptInputSelectTrigger aria-label={t`Model`}>
                 <PromptInputSelectValue />
               </PromptInputSelectTrigger>
               <PromptInputSelectContent>

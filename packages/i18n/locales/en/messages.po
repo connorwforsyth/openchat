@@ -161,6 +161,14 @@ msgstr "Markdown"
 msgid "MMD"
 msgstr "MMD"
 
+#: ../../apps/web/app/dev/ai-elements/demo.tsx
+msgid "Model"
+msgstr "Model"
+
+#: ../ui/src/components/ai-elements/prompt-input.tsx
+msgid "More actions"
+msgstr "More actions"
+
 #: ../ui/src/components/ai-elements/message.tsx
 msgid "Next branch"
 msgstr "Next branch"

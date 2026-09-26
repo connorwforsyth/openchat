@@ -986,13 +986,24 @@ export const PromptInputActionMenuTrigger = ({
   className,
   children,
   ...props
-}: PromptInputActionMenuTriggerProps) => (
-  <DropdownMenuTrigger
-    render={<PromptInputButton className={className} {...props} />}
-  >
-    {children ?? <PlusIcon className="size-4" />}
-  </DropdownMenuTrigger>
-);
+}: PromptInputActionMenuTriggerProps) => {
+  const { t } = useLingui();
+
+  return (
+    <DropdownMenuTrigger
+      render={
+        // The default trigger is icon-only, so it needs a name of its own.
+        <PromptInputButton
+          aria-label={t`More actions`}
+          className={className}
+          {...props}
+        />
+      }
+    >
+      {children ?? <PlusIcon className="size-4" />}
+    </DropdownMenuTrigger>
+  );
+};
 
 export type PromptInputActionMenuContentProps = ComponentProps<
   typeof DropdownMenuContent
@@ -1001,7 +1012,13 @@ export const PromptInputActionMenuContent = ({
   className,
   ...props
 }: PromptInputActionMenuContentProps) => (
-  <DropdownMenuContent align="start" className={cn(className)} {...props} />
+  <DropdownMenuContent
+    align="start"
+    // Base UI's menu matches the trigger's width by default; an icon-sized
+    // trigger would squeeze the items, so size to them instead.
+    className={cn("w-auto", className)}
+    {...props}
+  />
 );
 
 export type PromptInputActionMenuItemProps = ComponentProps<
