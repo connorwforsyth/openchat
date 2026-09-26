@@ -22,6 +22,7 @@
   "scripts": {
     "build": "turbo run build",
     "check": "ultracite check",
+    "check:guards": "bun scripts/ci/cli.ts",
     "db:generate": "turbo run db:generate",
     "db:migrate": "turbo run db:migrate",
     "dev": "turbo run dev",
@@ -31,17 +32,21 @@
     "prepare": "lefthook install",
     "test": "turbo run test",
     "test:e2e": "turbo run test:e2e",
-    "typecheck": "turbo run typecheck"
+    "test:guards": "vitest run --project guards",
+    "typecheck": "turbo run typecheck",
+    "typecheck:guards": "tsc -p scripts/ci"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.12",
     "@playwright/test": "catalog:",
+    "@types/node": "catalog:",
     "@workspace/typescript-config": "workspace:*",
     "lefthook": "^2.1.14",
     "turbo": "^2.9.18",
     "typescript": "catalog:",
     "ultracite": "7.12.0",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "zod": "^4.4.3"
   },
   "packageManager": "bun@1.4.0",
   "engines": {

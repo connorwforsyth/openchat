@@ -1,0 +1,5 @@
+/* The token source is the one place raw colours belong. */
+:root {
+  --background: oklch(1 0 0);
+  --primary: #0f172a;
+}

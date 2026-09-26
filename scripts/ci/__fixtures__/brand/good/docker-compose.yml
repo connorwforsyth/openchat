@@ -1,0 +1,4 @@
+services:
+  web:
+    image: ghcr.io/example/openchat-web:latest
+    container_name: openchat-web

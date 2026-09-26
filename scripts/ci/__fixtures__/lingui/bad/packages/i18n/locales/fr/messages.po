@@ -1,0 +1,12 @@
+msgid ""
+msgstr ""
+"Language: fr\n"
+
+#: src/greeting.tsx:4
+msgid "Hello"
+msgstr ""
+
+msgid "One file"
+msgid_plural "Many files"
+msgstr[0] "Un fichier"
+msgstr[1] ""

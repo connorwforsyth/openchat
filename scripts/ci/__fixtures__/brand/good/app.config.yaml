@@ -1,0 +1,9 @@
+# Instance config.
+brand:
+  name: OpenChat
+  # Identifiers derive from the name.
+  appId: dev.openchat.app
+  urlScheme: openchat
+
+providers:
+  - id: ollama
