@@ -1,0 +1,4 @@
+brand:
+  name: openchat
+storage:
+  bucket: openchat-uploads

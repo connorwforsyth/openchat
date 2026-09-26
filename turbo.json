@@ -13,11 +13,24 @@
       "cache": false,
       "persistent": true
     },
-    "lint": {},
+    "lint": {
+      "dependsOn": ["//#check:guards"]
+    },
     "typecheck": {
-      "dependsOn": ["^typecheck"]
+      "dependsOn": ["^typecheck", "//#typecheck:guards"]
     },
     "test": {
+      "dependsOn": ["//#test:guards"],
+      "outputs": []
+    },
+    "//#check:guards": {
+      "cache": false
+    },
+    "//#typecheck:guards": {
+      "inputs": ["scripts/ci/**", "tsconfig.json"]
+    },
+    "//#test:guards": {
+      "inputs": ["scripts/ci/**", "vitest.config.ts"],
       "outputs": []
     },
     "test:e2e": {

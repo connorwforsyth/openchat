@@ -1,0 +1,6 @@
+# Files still allowed to import an icon library directly, one repo-relative path
+# per line. Ticket 006's codemod rewrites them to `@workspace/icons` and empties
+# this list; a listed file that no longer offends fails the guard, so it only shrinks.
+#
+# Empty today: the scaffold's `packages/ui` depends on lucide-react but no source
+# file imports it yet.

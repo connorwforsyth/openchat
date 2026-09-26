@@ -7,12 +7,14 @@
       "devDependencies": {
         "@biomejs/biome": "2.5.12",
         "@playwright/test": "catalog:",
+        "@types/node": "catalog:",
         "@workspace/typescript-config": "workspace:*",
         "lefthook": "^2.1.14",
         "turbo": "^2.9.18",
         "typescript": "catalog:",
         "ultracite": "7.12.0",
         "vitest": "catalog:",
+        "zod": "^4.4.3",
       },
     },
     "apps/web": {

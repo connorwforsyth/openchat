@@ -1,0 +1,20 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=utf-8\n"
+"Language: en\n"
+
+#: src/greeting.tsx:4
+msgid "Hello"
+msgstr "Hello"
+
+#: src/files.tsx:9
+msgid "{count, plural, one {# file} other {# files}}"
+msgstr "{count, plural, one {# file} other {# files}}"
+
+#: src/long.tsx:2
+msgid ""
+"A long message that "
+"wraps"
+msgstr ""
+"A long message that "
+"wraps"

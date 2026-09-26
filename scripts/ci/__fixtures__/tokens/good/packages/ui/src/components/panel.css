@@ -1,0 +1,7 @@
+/*
+ * Mixed from tokens, never #fff.
+ */
+.panel {
+  background: color-mix(in oklch, var(--secondary), var(--foreground) 5%);
+  color: var(--muted-foreground);
+}

@@ -1,0 +1,9 @@
+msgid ""
+msgstr ""
+"Language: en\n"
+
+msgid "Hello"
+msgstr "Hello"
+
+#~ msgid "Goodbye"
+#~ msgstr "Goodbye"

@@ -8,6 +8,7 @@
   ],
   "files": {
     // The tracker's own scripts and agent scratch space are not product code.
-    "includes": ["!.wayfinder", "!.context"]
+    // Guard fixtures break the rules on purpose.
+    "includes": ["!.wayfinder", "!.context", "!scripts/ci/__fixtures__"]
   }
 }

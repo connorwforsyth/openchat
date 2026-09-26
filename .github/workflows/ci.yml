@@ -39,5 +39,10 @@ jobs:
       - name: Lint repo root
         run: bun run check
 
+      # Tokens, icon imports, brand string and Lingui catalogs (scripts/ci). `lint`
+      # depends on these too; this step just fails fast with a readable log.
+      - name: Repo guards
+        run: bun run check:guards
+
       - name: Typecheck, lint, test, build
         run: bun turbo typecheck lint test build
