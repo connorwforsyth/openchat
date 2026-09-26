@@ -1,0 +1,90 @@
+# Instance configuration (PLAN.md §9, D18). Copy to app.config.yaml, or point
+# CONFIG_PATH at your copy. Every section is optional: with no file at all the
+# app boots on defaults and falls back to a local Ollama.
+#
+# Secrets come from the environment as ${NAME} (or ${NAME:-fallback}); never
+# write them here. A value that is just ${NAME} with NAME unset counts as
+# absent, so a missing key disables that provider instead of failing boot.
+# Changes apply on restart. Invalid config fails at boot with the path and
+# reason for every problem.
+version: 1
+
+# The product name lives only here (and in the root package.json and image
+# names); everything else reads it at runtime.
+brand:
+  name: openchat
+  appId: dev.openchat.app
+  urlScheme: openchat
+  logo: ./brand/logo.svg
+
+auth:
+  signup: invite            # open | invite | domain | sso; the first user is always admin
+  domains: []               # for signup: domain, e.g. [example.com]
+  oidc: []                  # SSO: [{ id, name, issuer, clientId, clientSecret }]
+  # social:
+  #   github: { clientId: ${GITHUB_CLIENT_ID}, clientSecret: ${GITHUB_CLIENT_SECRET} }
+
+providers:
+  anthropic: { apiKey: "${ANTHROPIC_API_KEY}" }
+  openai: { apiKey: "${OPENAI_API_KEY}" }
+  ollama: { type: openai-compatible, baseURL: "${OLLAMA_BASE_URL:-http://localhost:11434/v1}" }
+
+models:
+  aliases:
+    fast: anthropic:claude-haiku-4-5
+    strong: anthropic:claude-opus-5-5
+  default: strong
+  auto: { enabled: true, cheap: fast, strong: strong }
+
+# Instance-wide limits; each org chooses within them in the admin UI.
+policies:
+  chatContext: [personal, team, org]
+  auditPolicy: allowed      # allowed | forbidden
+  personalKeyFallback: allowed
+  instanceKeys: { personal: true, team: false, org: false }
+  publishGate: { default: informational, allowed: [informational, no-regressions] }
+  sampledScoring: allowed
+
+decider:
+  adapter: llm-fallback     # llm-fallback | jev | none
+  model: fast
+  thresholds: { autoRouteStrong: 0.6, needsRetrieval: 0.5, riskAsk: 0.3, riskBlock: 0.7 }
+
+search:
+  native: true              # use the provider's own web search when the model has it
+  backend: searxng          # none | searxng | brave | tavily | exa
+  searxng: { url: "${SEARXNG_URL:-http://localhost:8080}" }
+  # brave: { apiKey: "${BRAVE_API_KEY}" }
+
+sandbox:
+  default: just-bash        # just-bash | docker | e2b | vercel | microsandbox | none
+  docker:
+    runnerUrl: "${SANDBOX_RUNNER_URL:-http://sandbox-runner:7070}"
+    token: "${SANDBOX_RUNNER_TOKEN}"
+    runtime: runsc          # gVisor; the runner warns and falls back to runc if it's missing
+    limits: { cpu: 2, memoryMb: 2048, diskMb: 10240 }
+
+storage: { driver: local, path: ./data/files }
+# storage: { driver: s3, bucket: files, endpoint: "${S3_ENDPOINT}", accessKeyId: "${S3_ACCESS_KEY_ID}", secretAccessKey: "${S3_SECRET_ACCESS_KEY}" }
+
+embeddings: { model: openai:text-embedding-3-small }
+
+icons: { set: lucide }      # e.g. { set: material, style: rounded, weight: 400, fill: false }
+
+observability: { otlp: null }   # or { endpoint: "${OTEL_EXPORTER_OTLP_ENDPOINT}" }
+
+limits:
+  requestsPerMinute: 60
+  uploadMaxMb: 25
+  memoryMaxChars: 8000
+  # budgets: { user: { period: month, limitMicros: 20000000 } }   # 20 USD
+
+features:
+  importers: true
+  publicLinks: false
+
+mcp:
+  servers: []               # instance-wide: [{ name, url, transport: http }]
+
+artifacts:
+  origin: null              # a separate origin for artifacts and previews, e.g. https://artifacts.example.com
