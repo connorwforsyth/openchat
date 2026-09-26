@@ -6,7 +6,7 @@ import type {
 import { WORKDIR } from "@workspace/sandbox/paths";
 import type { RunnerRuntime } from "@workspace/sandbox/runner/protocol";
 import { err, ok, type Result } from "@workspace/shared/result";
-import type { ContainerCreateOptions } from "dockerode";
+import type { ContainerCreateOptions, MountSettings } from "dockerode";
 import type { z } from "zod";
 
 // What every sandbox container looks like, as pure functions over config
@@ -120,6 +120,26 @@ const proxyEnv = (egress: EgressPolicy): string[] =>
       )
     : [];
 
+/**
+ * A named volume, without Docker's copy-up. While a volume is empty, Docker
+ * copies the image's directory at the mount point into it, ownership
+ * included, on every container create; `WorkingDir` makes that a root-owned
+ * `/work`, which would undo the helper's `chown` and leave the sandbox user
+ * unable to write its own workspace.
+ */
+const volumeMount = (
+  source: string,
+  target: string,
+  readOnly: boolean
+): MountSettings => ({
+  ReadOnly: readOnly,
+  Source: source,
+  Target: target,
+  Type: "volume",
+  // The Engine API makes the other VolumeOptions optional; the types don't.
+  VolumeOptions: { NoCopy: true } as MountSettings["VolumeOptions"],
+});
+
 /** The effective policy for one sandbox: its own `network: false` always wins. */
 export const effectiveEgress = (
   policy: EgressPolicy,
@@ -143,14 +163,7 @@ export const buildContainerSpec = ({
       Memory: limits.memoryMb * MIB,
       // Equal to Memory: no swap on top.
       MemorySwap: limits.memoryMb * MIB,
-      Mounts: [
-        {
-          ReadOnly: false,
-          Source: volumeName(id),
-          Target: WORKDIR,
-          Type: "volume",
-        },
-      ],
+      Mounts: [volumeMount(volumeName(id), WORKDIR, false)],
       NanoCpus: Math.round(limits.cpu * 1e9),
       NetworkMode: networkName(id),
       PidsLimit: defaults.pidsLimit,
@@ -201,12 +214,9 @@ export const buildHelperSpec = ({
     CapAdd: asRoot ? ["CHOWN", "FOWNER"] : [],
     Memory: 256 * MIB,
     MemorySwap: 256 * MIB,
-    Mounts: mounts.map((mount) => ({
-      ReadOnly: mount.readOnly,
-      Source: mount.source,
-      Target: mount.target,
-      Type: "volume" as const,
-    })),
+    Mounts: mounts.map((mount) =>
+      volumeMount(mount.source, mount.target, mount.readOnly)
+    ),
     NanoCpus: 1e9,
     NetworkMode: "none",
     PidsLimit: 64,
