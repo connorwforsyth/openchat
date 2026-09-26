@@ -17,4 +17,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-09-27 · 013 closed · PR #11 · AI runner, keys, Decider · 41/41, CI pass
 - 2026-09-27 · 023 closed · PR #13 · importers + fork · 44/44, CI pass
 - 2026-09-27 · 016 closed · PR #9 · TipTap composer · 47/47, CI pass after adding Chromium to CI
-- 2026-09-27 · 012 closed · PR #12 · auth + orgs + grants · 47/47, CI pass after fast test hashing
+- 2026-09-27 · 012 merge refused (conflict after #9); rebasing

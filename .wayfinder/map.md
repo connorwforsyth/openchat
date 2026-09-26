@@ -78,7 +78,6 @@ brief, and their findings land in `.context/research/`.
 - [Contract: the /api/llm proxy](tickets/027-contract-llm-proxy.md): model proxy for the desktop loop in the AI SDK's gateway shape ([PR #7](https://github.com/connorwforsyth/openchat/pull/7))
 - [WS-db](tickets/011-ws-db.md): Drizzle schema for all M1 tables, query modules, PGlite harness, Postgres 17 CI job ([PR #8](https://github.com/connorwforsyth/openchat/pull/8))
 - [WS-code-ui](tickets/020-ws-code-ui.md): file tree, code and diff views on @pierre, token-themed, per-hunk review ([PR #10](https://github.com/connorwforsyth/openchat/pull/10))
-- [WS-auth](tickets/012-ws-auth.md): Better Auth with personal orgs, sign-up policies, team-tree grants and access checks ([PR #12](https://github.com/connorwforsyth/openchat/pull/12))
 - [WS-composer](tickets/016-ws-composer.md): TipTap composer with a server-rendered shell and lazy editor ([PR #9](https://github.com/connorwforsyth/openchat/pull/9))
 - [WS-importers](tickets/023-ws-importers.md): ChatGPT, Claude and LibreChat importers with branch trees; fork ([PR #13](https://github.com/connorwforsyth/openchat/pull/13))
 - [WS-ai](tickets/013-ws-ai.md): provider registry, key resolution, agent runner with approvals, Decider, `/api/llm` handler ([PR #11](https://github.com/connorwforsyth/openchat/pull/11))

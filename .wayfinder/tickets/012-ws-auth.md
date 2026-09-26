@@ -2,8 +2,8 @@
 id: "012"
 title: "WS-auth: accounts, orgs, teams and grants"
 labels: [wayfinder:build]
-status: closed
-assignee:
+status: open
+assignee: loop
 blockedBy: ["011"]
 ---
 
@@ -21,6 +21,3 @@ and grant resolution (`effectiveGrants`, access flowing down the tree) (`PLAN.md
 
 `PLAN.md` §11 M1 steps 1–2 pass headlessly; `effectiveGrants` has table-driven tests.
 
-## Resolution (2026-09-27, loop)
-
-Merged in [PR #12](https://github.com/connorwforsyth/openchat/pull/12): `packages/auth` with `createAuth` (Better Auth 1.7.6, relations-v2 adapter, UUIDv7 ids, email+password, organization (+ protected personal orgs), admin, bearer, generic OIDC, GitHub/Google when configured), sign-up policy (`decideSignUp`: invite default, domain, open; first user admin), access rules (`effectiveGrants`, `canAccess`, `checkAccess`), `authRouter` for orgs/teams/grants/shareLinks/me, web client, test helpers. The loop fixed CI timeouts: tests use a fast password hash and a 30 s timeout. Verified: 44/44 then 47/47 turbo tasks, 94 auth tests, CI passed. Questions 16–18 logged.
