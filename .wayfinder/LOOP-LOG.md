@@ -22,3 +22,5 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-09-27 · 014 closed · PR #16 · runs + server + client · 53/53 local after lockfile rebase
 - 2026-09-27 · 018 closed · PR #14 · MCP · 56/56 local after lockfile rebase
 - 2026-09-27 · 021 closed · PR #15 · knowledge · 56/56 local after lockfile rebase
+- 2026-09-27 · 028 closed · PR #18 · timestamptz(3) + test timeouts · CI ci + db pass
+- 2026-09-27 · 029 folded into PR #19 (sandbox job green on runc and runsc; 4 runner fixes)

@@ -83,6 +83,7 @@ brief, and their findings land in `.context/research/`.
 - [WS-runs](tickets/014-ws-runs.md): server app, runs with resumable SSE, per-branch queue, approvals, pg-boss jobs, typed client with optimistic send ([PR #16](https://github.com/connorwforsyth/openchat/pull/16))
 - [WS-mcp](tickets/018-ws-mcp.md): MCP connection manager with OAuth and sealed tokens ([PR #14](https://github.com/connorwforsyth/openchat/pull/14))
 - [WS-knowledge](tickets/021-ws-knowledge.md): storage, RAG ingestion + `file_search`, chat search, web search ([PR #15](https://github.com/connorwforsyth/openchat/pull/15))
+- [Millisecond timestamps](tickets/028-timestamp-precision.md): keyset cursors fixed on real Postgres; CI-safe test timeouts ([PR #18](https://github.com/connorwforsyth/openchat/pull/18))
 - [WS-importers](tickets/023-ws-importers.md): ChatGPT, Claude and LibreChat importers with branch trees; fork ([PR #13](https://github.com/connorwforsyth/openchat/pull/13))
 - [WS-ai](tickets/013-ws-ai.md): provider registry, key resolution, agent runner with approvals, Decider, `/api/llm` handler ([PR #11](https://github.com/connorwforsyth/openchat/pull/11))
 

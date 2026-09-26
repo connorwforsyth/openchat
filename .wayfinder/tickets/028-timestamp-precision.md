@@ -2,8 +2,8 @@
 id: "028"
 title: "Fix: millisecond timestamps for keyset cursors; CI timeouts"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -23,3 +23,7 @@ large-batch test times out at Vitest's 5 s default on CI runners.
 
 Every `instant()` column is `timestamptz(3)` (with a migration), the CI `db` job passes, and the
 importers suite has a CI-safe timeout.
+
+## Resolution (2026-09-27, loop)
+
+Merged in [PR #18](https://github.com/connorwforsyth/openchat/pull/18): every `instant()` column is `timestamptz(3)` (a migration alters all 94 columns), so keyset cursors that round-trip through `Date` no longer repeat or skip rows; PGlite-backed suites (db, importers, mcp) get a 30 s test timeout. Verified: 56/56 local; CI `ci` and `db` (Postgres 17) passed.
