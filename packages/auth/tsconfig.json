@@ -1,0 +1,18 @@
+{
+  "extends": "@workspace/typescript-config/base.json",
+  "compilerOptions": {
+    // Source is consumed as-is by Next (transpilePackages), Vitest and bun, all
+    // of which resolve like a bundler; NodeNext would demand file extensions
+    // that apps type-checking this source through `paths` reject.
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strictNullChecks": true,
+    // Nothing here is ever emitted, and Better Auth's inferred client and
+    // server types name modules deep inside its dist (TS2742) that a
+    // declaration build would have to spell out.
+    "declaration": false,
+    "declarationMap": false
+  },
+  "include": ["."],
+  "exclude": ["node_modules", "dist"]
+}
