@@ -34,9 +34,14 @@ export const principalIdRef = (name: string) => uuid(name).$type<PrincipalId>();
 export const contextIdRef = (name: string) =>
   uuid(name).$type<Id<"team"> | Id<"org">>();
 
-/** `timestamptz`, as a `Date`. Every instant is stored with its zone so UTC is never guessed. */
+/**
+ * `timestamptz(3)`, as a `Date`. Every instant is stored with its zone so UTC
+ * is never guessed, and at millisecond precision because that's all a `Date`
+ * holds: keyset cursors round-trip through `Date`, and microseconds would make
+ * `(created_at, id) > cursor` repeat or skip rows.
+ */
 export const instant = (name: string) =>
-  timestamp(name, { mode: "date", withTimezone: true });
+  timestamp(name, { mode: "date", precision: 3, withTimezone: true });
 
 export const createdAt = () => instant("created_at").notNull().defaultNow();
 
