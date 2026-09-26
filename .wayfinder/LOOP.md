@@ -40,9 +40,12 @@ Read `.wayfinder/map.md` (Notes and the ownership register), then the parts of
      - link them from the parent under `## Split` (the parent closes when all its
        children have closed);
      - work the first sub-ticket.
-4. **Do it through sub-agents.** Brief one general-purpose agent per ticket, with
-   `isolation: "worktree"`, working on branch `t/<id>-<slug>`. Launch them in one message
-   so they run in parallel. Each brief contains:
+4. **Do it through sub-agents.** For each ticket, create a worktree yourself:
+   `git -C ~/GitHub/openchat worktree add ~/GitHub/openchat-worktrees/t-<id> -b t/<id>-<slug> origin/main`.
+   (The Agent tool's `isolation: "worktree"` only works when the session's own folder is the
+   repo, so don't rely on it.) Brief one general-purpose agent per ticket to work only in its
+   worktree and commit there without pushing. Launch them in one message so they run in
+   parallel. Each brief contains:
    - the ticket's full text, including **Owns** and **Done when**;
    - the paths to read (`PLAN.md` sections, `AGENTS.md`, `.wayfinder/map.md` Notes, and
      `node_modules/next/dist/docs` for anything in `apps/web`);
@@ -55,7 +58,7 @@ Read `.wayfinder/map.md` (Notes and the ownership register), then the parts of
 
    If something fails, send it back to the same agent (`SendMessage`) or fix it.
 6. **Ship it.**
-   1. Push the branch and open a PR with `gh pr create --base main`. The body holds the
+   1. Push the branch from its worktree and open a PR with `gh pr create --base main`. The body holds the
       ticket link, what was built, how it was verified, and the Claude Code attribution
       line (from the session's attribution reminder).
    2. Bind the PR with the ccd_pr tools (`get_status`, then `bind_pr` if needed).
@@ -66,7 +69,8 @@ Read `.wayfinder/map.md` (Notes and the ownership register), then the parts of
      was verified, the PR link, and what's left. Set `status: closed` and clear `assignee`.
    - **In the map:** add one line under *Built*.
    - **In `LOOP-LOG.md`:** one line (date · ticket · PR · outcome · verification).
-   - Commit the tracker updates to `main`.
+   - Commit the tracker updates to `main`, and remove the worktree
+     (`git worktree remove ~/GitHub/openchat-worktrees/t-<id>`).
 8. **Re-arm.** Keep the chat output to a few lines per iteration. The context compacts
    on its own; everything worth keeping is in the tracker files.
 

@@ -3,7 +3,7 @@ id: "002"
 title: "Scaffold the monorepo"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: []
 ---
 
