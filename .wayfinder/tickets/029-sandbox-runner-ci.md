@@ -3,7 +3,7 @@ id: "029"
 title: "CI: smoke-test sandbox-runner against real Docker"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: ["019"]
 ---
 
