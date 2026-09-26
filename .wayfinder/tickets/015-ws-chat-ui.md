@@ -15,6 +15,8 @@ controls, built from `@workspace/ui` against mock data from the contract (`PLAN.
 
 Performance (D27): don't virtualise the message list; re-render the streaming message in place; lazy-load the artifacts panel, reasoning views, code views and KaTeX (keep KaTeX's MathML); `content-visibility: auto` on older messages is allowed.
 
+Speed (D28): message rows memoised by id so a streaming token re-renders only the streaming message; motion tokens (0/100/250/350 ms, transform/opacity only, instant in, ~150 ms fade out) added to `packages/ui` and the rule added to `AGENTS.md`.
+
 ## Owns
 
 `packages/chat-ui`.

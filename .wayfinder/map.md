@@ -87,7 +87,8 @@ closes (the M1 demo gate first). Their contents are in `PLAN.md` §2.
   permission modes, Quick AI, title bar, native menus, packaging. Open
   questions to expect: how the local loop syncs runs, and the git-checkpoint UX.
 - **Collaboration and always-on:** live multi-user chats, `apps/worker`,
-  schedules, notifications.
+  schedules, notifications. Open question: whether live chats need a
+  local-first sync engine (Zero, ElectricSQL) rather than the SSE events channel (`PLAN.md` D28).
 - **Agents+:** test sets and eval runs, publish gates, sampled scoring,
   per-agent memory, the Jev adapter.
 - **Annotate:** the annotate-to-agent loop on artifacts and previews.

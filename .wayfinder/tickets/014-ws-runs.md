@@ -14,6 +14,8 @@ the runs and stream routes, the one-run-per-branch queue, tool approvals, the re
 `useChat` transport, in-process pg-boss with a job registry, and title generation
 (`PLAN.md` D4, §8 Chat run).
 
+Speed (D28): sending is optimistic: the user message appears immediately and reconciles with the server's ids when `createRun` returns; stream updates are throttled to animation frames.
+
 ## Owns
 
 Run/stream code in `packages/server` and `packages/ai/src/runs/`, `packages/client` transport.

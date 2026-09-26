@@ -14,6 +14,8 @@ shortcuts), the settings pages (keys, memory, language, shortcuts), and the admi
 policies within config limits, keys, budgets, audit), following 009's direction
 (`PLAN.md` D10, D14, D17, D18).
 
+Speed (D28): ⌘K searches the cached conversations, library items and actions instantly, then merges server full-text results.
+
 ## Owns
 
 `packages/shortcuts`, settings and admin routes in `apps/web`.

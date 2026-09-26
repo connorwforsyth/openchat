@@ -589,6 +589,18 @@ The organising question for boot is **"can you type yet?"** ChatGPT's web app (R
 - **Assets are first-party** (same origin, long cache headers). No service worker: offline chat is useless without the model backend.
 - **Measure from the first byte:** record TTFB, `composer:ready` and first-token latency in the M1 end-to-end checks.
 
+### D28: Speed lessons from Linear (from performance.dev/how-is-linear-so-fast-a-technical-breakdown)
+
+Linear feels instant because the UI reads from local data and mutations apply locally first. We take the cheap 80% of that, not the sync engine.
+- **Optimistic everything:** sending a message shows it immediately; rename, pin, archive, share and library edits update the TanStack Query cache first and roll back only if the server rejects. Settled UUIDv7 ids come back with the response.
+- **Persisted cache for an instant boot:** the TanStack Query cache for the sidebar (conversation list), the library and the last few open conversations is persisted to IndexedDB (`@tanstack/query-persist-client` + `idb-keyval`). On boot the app renders from it and revalidates in the background ("assume the happy path, verify in the background"). Sign-out clears it, and an org policy can turn persistence off for shared machines.
+- **Granular re-renders:** a streaming token re-renders only the streaming message; message rows are memoised by id, and stream updates are throttled to animation frames. Nothing re-renders the whole list.
+- **⌘K searches locally first:** the palette searches the cached conversations, agents, prompts and actions instantly, then merges server full-text results.
+- **Inline app shell:** besides the theme, an inline script restores sidebar width and collapsed state from `localStorage` before paint, so the layout never jumps.
+- **Motion rules:** animate only `transform` and `opacity` (colours are fine); durations 0 / 100 / 250 / 350 ms as design tokens; things appear instantly and fade out over about 150 ms.
+- **Desktop renderer (Vite):** `modulepreload` for the whole entry graph and one vendor chunk per large package, so a dependency bump invalidates one chunk.
+- **Not adopted now:** a Linear-style local-first sync engine (IndexedDB database, delta sync over WebSockets). It's a large architectural bet. Revisit in the Collaboration wave (candidates: Zero, ElectricSQL) if live multi-user chats need it. No service worker on the web (D27).
+
 ---
 
 ## 5. Stack (versions checked 2026-09-26)
@@ -968,6 +980,7 @@ The wave table is in §2.
 | — | Importers | ChatGPT, Claude and LibreChat importers in M1 (assumed; move later if preferred) |
 | — | Execution (2026-09-26) | A Wayfinder map in `.wayfinder/` carries execution: destination = the whole plan, with gates; private GitHub repo; one PR per ticket, merged by the loop once CI passes (no branch protection on the free plan); up to 3 agents in parallel |
 | — | Config filename (2026-09-26) | `app.config.yaml` (brand-neutral), not `openchat.yaml` |
+| — | Speed lessons from Linear (2026-09-27) | Optimistic mutations, persisted query cache for instant boot, granular re-renders, local-first ⌘K, motion tokens; no sync engine yet (D28) |
 | — | Composer and performance (2026-09-27) | TipTap (MIT only) composer with a server-rendered shell and lazy editor; composer-first loading per performance.dev/chatgpt (D27) |
 | — | Audit fixes (2026-09-26) | pg-boss in-process in `web` from M1; `resource_grant` is the only chat-access authority; per-type permission enums; `lingui extract` gate in M1; 20 dropped details restored from v1 |
 

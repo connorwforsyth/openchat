@@ -14,6 +14,8 @@ Wire every workstream into `apps/web`, write the Playwright smoke suite, and mak
 
 Performance (D27): composer-first boot. Preload only the entry, React and the matched route; defer everything else until `composer:ready`; inline server-evaluated public config and hydrate the TanStack Query cache; apply the theme before paint; no third-party font or asset hosts. Record TTFB, `composer:ready` and first-token latency in the Playwright checks.
 
+Speed (D28): persist the TanStack Query cache (sidebar, library, recent conversations) to IndexedDB, render from it on boot and revalidate in the background; clear it on sign-out; an org policy can disable persistence. Inline-restore sidebar width/collapsed state before paint. Optimistic rename/pin/archive.
+
 ## Owns
 
 `apps/web` app code, `e2e/`, `docker-compose.yml` additions.
