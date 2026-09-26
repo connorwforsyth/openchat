@@ -1,0 +1,50 @@
+{
+  "name": "openchat",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "workspaces": {
+    "packages": [
+      "apps/*",
+      "packages/*"
+    ],
+    "catalog": {
+      "@playwright/test": "^1.63.0",
+      "@types/node": "^24",
+      "@types/react": "^19.2.0",
+      "@types/react-dom": "^19.2.0",
+      "react": "19.2.8",
+      "react-dom": "19.2.8",
+      "typescript": "^5.9.0",
+      "vitest": "^5.0.2"
+    }
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "check": "ultracite check",
+    "db:generate": "turbo run db:generate",
+    "db:migrate": "turbo run db:migrate",
+    "dev": "turbo run dev",
+    "eval": "turbo run eval",
+    "fix": "ultracite fix",
+    "lint": "turbo run lint",
+    "prepare": "lefthook install",
+    "test": "turbo run test",
+    "test:e2e": "turbo run test:e2e",
+    "typecheck": "turbo run typecheck"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.12",
+    "@playwright/test": "catalog:",
+    "@workspace/typescript-config": "workspace:*",
+    "lefthook": "^2.1.14",
+    "turbo": "^2.9.18",
+    "typescript": "catalog:",
+    "ultracite": "7.12.0",
+    "vitest": "catalog:"
+  },
+  "packageManager": "bun@1.4.0",
+  "engines": {
+    "node": ">=22"
+  }
+}
