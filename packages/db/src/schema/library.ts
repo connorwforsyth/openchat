@@ -52,8 +52,8 @@ const itemColumns = () => ({
   id: idColumn("libraryItem"),
   /** Maintainers of a published item; empty for personal items. */
   maintainers: uuid("maintainers")
+    .$type<Id<"user">>()
     .array()
-    .$type<Id<"user">[]>()
     .notNull()
     .default(sql`'{}'::uuid[]`),
   name: text("name").notNull(),

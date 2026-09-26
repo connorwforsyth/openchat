@@ -10,7 +10,8 @@
     "./migrator": "./src/migrator.ts",
     "./queries/*": "./src/queries/*.ts",
     "./schema/*": "./src/schema/*.ts",
-    "./testing": "./src/testing.ts"
+    "./testing": "./src/testing.ts",
+    "./testing-setup": "./src/testing-setup.ts"
   },
   "scripts": {
     "db:generate": "drizzle-kit generate",

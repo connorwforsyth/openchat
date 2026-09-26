@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+
 import { PGlite } from "@electric-sql/pglite";
 import { vector } from "@electric-sql/pglite-pgvector";
 import type { OrgId, TeamId, UserId } from "@workspace/contract/schemas/common";
@@ -29,17 +31,27 @@ export interface TestDb {
   readonly engine: "pglite" | "postgres";
 }
 
-// Migrating takes most of a second, so each process migrates one PGlite
-// once and clones it from a data-dir dump after that.
+/** Where `globalSetup` leaves the migrated template for the test workers. */
+export const TEMPLATE_ENV = "DB_TEST_TEMPLATE";
+
+/** A freshly migrated PGlite, dumped: the template every test database clones. */
+export const buildTemplate = async (): Promise<Blob> => {
+  const client = await PGlite.create({ extensions: { vector } });
+  await migrate(drizzle({ client }), { migrationsFolder: MIGRATIONS_FOLDER });
+  const dump = await client.dumpDataDir("none");
+  await client.close();
+  return dump;
+};
+
+// Migrating takes about a second of WASM work. `globalSetup`
+// (`@workspace/db/testing-setup`) does it once per run and every worker
+// clones the dump; without it, each worker migrates once and clones that.
 let template: Promise<Blob> | undefined;
 
 const migratedTemplate = (): Promise<Blob> => {
   template ??= (async () => {
-    const client = await PGlite.create({ extensions: { vector } });
-    await migrate(drizzle({ client }), { migrationsFolder: MIGRATIONS_FOLDER });
-    const dump = await client.dumpDataDir("none");
-    await client.close();
-    return dump;
+    const path = process.env[TEMPLATE_ENV];
+    return path ? new Blob([await readFile(path)]) : buildTemplate();
   })();
   return template;
 };

@@ -105,8 +105,8 @@ export const orgSettings = pgTable(
   {
     auditEnabled: boolean("audit_enabled").notNull().default(false),
     chatContexts: text("chat_contexts")
+      .$type<ChatContextType>()
       .array()
-      .$type<ChatContextType[]>()
       .notNull()
       .default(sql`'{personal,team,org}'::text[]`),
     orgId: idRef("org_id", "org")
