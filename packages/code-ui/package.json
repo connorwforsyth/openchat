@@ -1,0 +1,42 @@
+{
+  "name": "@workspace/code-ui",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./code-header": "./src/code-header.tsx",
+    "./code-view": "./src/code-view.tsx",
+    "./diff-view": "./src/diff-view.tsx",
+    "./file-tree": "./src/file-tree.tsx",
+    "./provider": "./src/code-ui-provider.tsx",
+    "./review/*": "./src/review/*.ts",
+    "./theme/*": "./src/theme/*.ts"
+  },
+  "scripts": {
+    "lint": "ultracite check",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lingui/core": "catalog:",
+    "@lingui/react": "catalog:",
+    "@pierre/diffs": "catalog:",
+    "@pierre/trees": "catalog:",
+    "@workspace/contract": "workspace:*",
+    "@workspace/icons": "workspace:*",
+    "@workspace/shared": "workspace:*",
+    "@workspace/ui": "workspace:*",
+    "next-themes": "^0.4.6",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@workspace/typescript-config": "workspace:*",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
