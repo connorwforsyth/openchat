@@ -72,6 +72,7 @@ brief, and their findings land in `.context/research/`.
 - [Scaffold the monorepo](tickets/002-scaffold.md): bun + Turbo + shadcn (Base UI) monorepo, Ultracite, Vitest, Playwright config, CI, compose ([PR #1](https://github.com/connorwforsyth/openchat/pull/1))
 - [AGENTS.md conventions and CI guards](tickets/004-conventions.md): agent conventions + token, icon-import, brand and Lingui guards in CI ([PR #2](https://github.com/connorwforsyth/openchat/pull/2))
 - [i18n and icon packages](tickets/006-i18n-icons.md): Lingui 6 with macros on Next 16, swappable icon registry with codemod ([PR #3](https://github.com/connorwforsyth/openchat/pull/3))
+- [AI Elements on Base UI](tickets/007-ai-elements.md): message, reasoning, tool, prompt-input migrated; no Radix left ([PR #5](https://github.com/connorwforsyth/openchat/pull/5))
 
 ## Not yet specified
 
