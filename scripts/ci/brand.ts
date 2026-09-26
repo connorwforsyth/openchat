@@ -8,7 +8,8 @@ import type { SourceFile, Violation } from "./lib/violation";
 export const BRAND = ["open", "chat"].join("");
 
 const EXEMPT_FILES = new Set(["PLAN.md", "bun.lock"]);
-const EXEMPT_DIRS = [".wayfinder/", ".github/"];
+// Research notes and decision records are dated history, not product surface.
+const EXEMPT_DIRS = [".wayfinder/", ".github/", ".context/", "docs/decisions/"];
 
 const APP_CONFIG = /(?:^|\/)app\.config(?:\.example)?\.ya?ml$/;
 const COMPOSE_FILE = /(?:^|\/)(?:docker-)?compose(?:\.[\w-]+)?\.ya?ml$/;
