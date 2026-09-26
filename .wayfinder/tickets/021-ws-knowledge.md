@@ -2,8 +2,8 @@
 id: "021"
 title: "WS-knowledge: files, RAG and search"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: ["011","013"]
 ---
 
@@ -21,3 +21,7 @@ into pgvector as pg-boss jobs, the `file_search` tool, full-text chat search, an
 
 An uploaded PDF becomes searchable; chat search finds a message; web search works against
 a mocked backend.
+
+## Resolution (2026-09-27, loop)
+
+Merged in [PR #15](https://github.com/connorwforsyth/openchat/pull/15): storage (local volume with HMAC-signed URLs; S3-compatible via `aws4fetch`), RAG (`chunkDocument`, unpdf/mammoth/text parsers, `embedMany` embedder, ingestion and re-index jobs, `file_search` with page citations), web search (SearXNG, Brave, Tavily, Exa; `web_search`; provider-native selection; SearXNG pinned in compose), files/search handlers with upload checks. Verified: end-to-end PDF ingestion + vector search on PGlite + pgvector; chat search; 56/56 turbo tasks; CI passed. Questions: local URL signing secret, which key pays for background embeddings, file-serving headers (logged for 025).

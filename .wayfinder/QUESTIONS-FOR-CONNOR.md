@@ -30,3 +30,8 @@ Collected by agents working the map, so you can answer them in one sitting. Each
 21. **Imported attachments (023):** exports don't contain the files, so attachments import as metadata-only `data` parts. Allow a file part with a "missing" source instead (contract change)? *Default: keep data parts.*
 22. **Fork modes (023):** add a `mode` (direct path / include branches / target level) to the fork input (contract change)? *Default: direct path only for now.*
 23. **Forking someone else's chat (023):** the copy should land in the forker's Personal context. *Default: yes, enforced in 025.*
+24. **Local file links (021):** signed URLs for the local storage volume need a secret. *Default: derive it from `BETTER_AUTH_SECRET`.*
+25. **Background embeddings (021):** which keys pay for ingestion embeddings? *Default: instance keys.*
+26. **Serving files (021):** the download route sends `Content-Disposition: attachment` and `X-Content-Type-Options: nosniff`. *Default: yes (025).*
+27. **Artifact format (022):** the dev eval scores a `:::artifact{…}` block format. Adopt it for the artifacts prompt in 015? *Default: yes.*
+28. **Telemetry content (022):** add `observability.recordContent` to config (off by default)? *Default: yes, small config PR.*

@@ -18,3 +18,7 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-09-27 · 023 closed · PR #13 · importers + fork · 44/44, CI pass
 - 2026-09-27 · 016 closed · PR #9 · TipTap composer · 47/47, CI pass after adding Chromium to CI
 - 2026-09-27 · 012 merge refused (conflict after #9); rebasing
+- 2026-09-27 · 012 closed · PR #12 · auth + orgs + grants · CI pass
+- 2026-09-27 · 014 closed · PR #16 · runs + server + client · 53/53 local after lockfile rebase
+- 2026-09-27 · 018 closed · PR #14 · MCP · 56/56 local after lockfile rebase
+- 2026-09-27 · 021 closed · PR #15 · knowledge · 56/56 local after lockfile rebase

@@ -79,6 +79,10 @@ brief, and their findings land in `.context/research/`.
 - [WS-db](tickets/011-ws-db.md): Drizzle schema for all M1 tables, query modules, PGlite harness, Postgres 17 CI job ([PR #8](https://github.com/connorwforsyth/openchat/pull/8))
 - [WS-code-ui](tickets/020-ws-code-ui.md): file tree, code and diff views on @pierre, token-themed, per-hunk review ([PR #10](https://github.com/connorwforsyth/openchat/pull/10))
 - [WS-composer](tickets/016-ws-composer.md): TipTap composer with a server-rendered shell and lazy editor ([PR #9](https://github.com/connorwforsyth/openchat/pull/9))
+- [WS-auth](tickets/012-ws-auth.md): Better Auth with personal orgs, sign-up policies, team-tree grants and access checks ([PR #12](https://github.com/connorwforsyth/openchat/pull/12))
+- [WS-runs](tickets/014-ws-runs.md): server app, runs with resumable SSE, per-branch queue, approvals, pg-boss jobs, typed client with optimistic send ([PR #16](https://github.com/connorwforsyth/openchat/pull/16))
+- [WS-mcp](tickets/018-ws-mcp.md): MCP connection manager with OAuth and sealed tokens ([PR #14](https://github.com/connorwforsyth/openchat/pull/14))
+- [WS-knowledge](tickets/021-ws-knowledge.md): storage, RAG ingestion + `file_search`, chat search, web search ([PR #15](https://github.com/connorwforsyth/openchat/pull/15))
 - [WS-importers](tickets/023-ws-importers.md): ChatGPT, Claude and LibreChat importers with branch trees; fork ([PR #13](https://github.com/connorwforsyth/openchat/pull/13))
 - [WS-ai](tickets/013-ws-ai.md): provider registry, key resolution, agent runner with approvals, Decider, `/api/llm` handler ([PR #11](https://github.com/connorwforsyth/openchat/pull/11))
 

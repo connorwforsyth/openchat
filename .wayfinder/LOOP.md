@@ -23,6 +23,7 @@ Read `.wayfinder/map.md` (Notes and the ownership register), then the parts of
    - **`ci` failed:** fix it on the same branch before taking new work.
    - **Still running:** leave it for the next iteration. Never wait or poll inside an iteration.
    - Never merge a PR that touches `packages/contract` after 008 closes (see Constraints).
+   - **Lockfile churn:** parallel PRs conflict on `bun.lock` (and sometimes `package.json` catalogs) as each merges. When a rebase only needs those resolved (regenerate `bun.lock` from main, union the JSON, `biome check --write`), run the full local suite (`bun run check` + `bun turbo typecheck lint test build`) and merge straight away rather than waiting for another CI run; CI still runs on `main` afterwards. A PR's first CI run is never skipped.
    - Act on any answers Connor has written into `QUESTIONS-FOR-CONNOR.md` or into a ticket.
 2. **Frontier.** Run `bun .wayfinder/frontier.ts`. Pick up to **3** tickets labelled
    `wayfinder:build`, `wayfinder:task` or `wayfinder:research`, in frontier order,
