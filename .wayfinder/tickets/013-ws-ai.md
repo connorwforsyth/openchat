@@ -3,7 +3,7 @@ id: "013"
 title: "WS-ai: providers, keys, agent runner and Decider"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: ["008", "027"]
 ---
 
