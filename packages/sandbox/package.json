@@ -5,7 +5,16 @@
   "sideEffects": false,
   "type": "module",
   "exports": {
-    "./ports/*": "./src/ports/*.ts"
+    "./docker/*": "./src/docker/*.ts",
+    "./handlers/*": "./src/handlers/*.ts",
+    "./just-bash/*": "./src/just-bash/*.ts",
+    "./output": "./src/output.ts",
+    "./paths": "./src/paths.ts",
+    "./ports/*": "./src/ports/*.ts",
+    "./providers": "./src/providers.ts",
+    "./remote/*": "./src/remote/*.ts",
+    "./runner/*": "./src/runner/*.ts",
+    "./tools/*": "./src/tools/*.ts"
   },
   "scripts": {
     "lint": "ultracite check",
@@ -13,8 +22,15 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@workspace/code-ui": "workspace:*",
+    "@workspace/config": "workspace:*",
     "@workspace/contract": "workspace:*",
+    "@workspace/db": "workspace:*",
+    "@workspace/server": "workspace:*",
     "@workspace/shared": "workspace:*",
+    "ai": "catalog:",
+    "diff": "catalog:",
+    "just-bash": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {

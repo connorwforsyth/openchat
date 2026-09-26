@@ -7,9 +7,29 @@ msgstr ""
 "X-Generator: @lingui/cli\n"
 "Language: en\n"
 
+#: ../chat-ui/src/sandbox/terminal.tsx
+msgid "(output shortened)"
+msgstr "(output shortened)"
+
 #: ../../apps/web/app/page.tsx
 msgid "(Press <0>d</0> to toggle dark mode)"
 msgstr "(Press <0>d</0> to toggle dark mode)"
+
+#. placeholder {0}: open.path
+#. placeholder {1}: open.size
+#: ../chat-ui/src/sandbox/files.tsx
+msgid "{0} is a binary file ({1} bytes) and can't be shown."
+msgstr "{0} is a binary file ({1} bytes) and can't be shown."
+
+#. placeholder {0}: error.path
+#: ../../apps/web/app/dev/sandbox/demo.tsx
+msgid "{0} is outside the sandbox"
+msgstr "{0} is outside the sandbox"
+
+#. placeholder {0}: error.path
+#: ../../apps/web/app/dev/sandbox/demo.tsx
+msgid "{0}: no such file or directory"
+msgstr "{0}: no such file or directory"
 
 #: ../code-ui/src/diff-view.tsx
 msgid "{accepted} accepted, {rejected} rejected, {pending, plural, one {# to review} other {# to review}}"
@@ -18,6 +38,10 @@ msgstr "{accepted} accepted, {rejected} rejected, {pending, plural, one {# to re
 #: ../code-ui/src/diff-view.tsx
 msgid "{additions, plural, one {# line added} other {# lines added}}"
 msgstr "{additions, plural, one {# line added} other {# lines added}}"
+
+#: ../chat-ui/src/sandbox/terminal.tsx
+msgid "{count, plural, one {# log entry} other {# log entries}}"
+msgstr "{count, plural, one {# log entry} other {# log entries}}"
 
 #: ../code-ui/src/diff-view.tsx
 msgid "{deletions, plural, one {# line removed} other {# lines removed}}"
@@ -46,6 +70,10 @@ msgstr "{page} of {totalBranches}"
 #: ../composer/src/components/composer.tsx
 msgid "{suggestionCount, plural, one {# suggestion} other {# suggestions}}"
 msgstr "{suggestionCount, plural, one {# suggestion} other {# suggestions}}"
+
+#: ../chat-ui/src/sandbox/status-pill.tsx
+msgid "A simulated shell with an in-memory filesystem. Nothing runs on a real machine."
+msgstr "A simulated shell with an in-memory filesystem. Nothing runs on a real machine."
 
 #: ../code-ui/src/diff-view.tsx
 msgid "Accept"
@@ -141,6 +169,14 @@ msgstr "Close"
 msgid "Code views"
 msgstr "Code views"
 
+#: ../chat-ui/src/sandbox/terminal.tsx
+msgid "Command"
+msgstr "Command"
+
+#: ../chat-ui/src/sandbox/terminal.tsx
+msgid "Command running"
+msgstr "Command running"
+
 #: ../code-ui/src/diff-view.tsx
 msgid "Comment for the agent on change {number}"
 msgstr "Comment for the agent on change {number}"
@@ -152,6 +188,10 @@ msgstr "Completed"
 #: ../../apps/web/app/dev/composer/page.tsx
 msgid "Composer"
 msgstr "Composer"
+
+#: ../chat-ui/src/sandbox/status-pill.tsx
+msgid "Container"
+msgstr "Container"
 
 #: ../../apps/web/app/dev/composer/demo.tsx
 msgid "Context locked"
@@ -193,6 +233,10 @@ msgstr "Copy table as Markdown"
 msgid "Copy table as TSV"
 msgstr "Copy table as TSV"
 
+#: ../chat-ui/src/sandbox/sandbox-panel.tsx
+msgid "Create sandbox"
+msgstr "Create sandbox"
+
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "CSV"
 msgstr "CSV"
@@ -204,6 +248,10 @@ msgstr "Decision sent to the agent"
 #: ../ui/src/components/ai-elements/tool.tsx
 msgid "Denied"
 msgstr "Denied"
+
+#: ../chat-ui/src/sandbox/status-pill.tsx
+msgid "Destroyed"
+msgstr "Destroyed"
 
 #: ../code-ui/src/diff-view.tsx
 msgid "Diff layout"
@@ -265,6 +313,16 @@ msgstr "Every migrated component with static sample data. Nothing here calls a m
 msgid "Exit fullscreen"
 msgstr "Exit fullscreen"
 
+#. placeholder {0}: entry.exitCode
+#. placeholder {1}: entry.durationMs
+#: ../chat-ui/src/sandbox/terminal.tsx
+msgid "Exited with code {0} in {1} ms"
+msgstr "Exited with code {0} in {1} ms"
+
+#: ../chat-ui/src/sandbox/status-pill.tsx
+msgid "Failed"
+msgstr "Failed"
+
 #: ../../apps/web/app/dev/code/demo.tsx
 msgid "File"
 msgstr "File"
@@ -277,6 +335,7 @@ msgstr "File after applying accepted changes"
 msgid "File tree"
 msgstr "File tree"
 
+#: ../chat-ui/src/sandbox/sandbox-panel.tsx
 #: ../code-ui/src/file-tree.tsx
 msgid "Files"
 msgstr "Files"
@@ -288,6 +347,10 @@ msgstr "Fill in “{promptName}”"
 #: ../composer/src/components/template-variables.tsx
 msgid "Fill in every field to insert the prompt."
 msgstr "Fill in every field to insert the prompt."
+
+#: ../chat-ui/src/sandbox/status-pill.tsx
+msgid "gVisor"
+msgstr "gVisor"
 
 #: ../ui/src/components/ai-elements/message.tsx
 #: ../ui/src/components/ai-elements/prompt-input.tsx
@@ -306,9 +369,29 @@ msgstr "Insert"
 msgid "Insert prompt"
 msgstr "Insert prompt"
 
+#: ../chat-ui/src/sandbox/status-pill.tsx
+msgid "Isolation: {isolationLabel}. {isolationHelp}"
+msgstr "Isolation: {isolationLabel}. {isolationHelp}"
+
 #: ../../apps/web/app/dev/composer/demo.tsx
 msgid "Last submitted value"
 msgstr "Last submitted value"
+
+#: ../chat-ui/src/sandbox/files.tsx
+msgid "Loading files…"
+msgstr "Loading files…"
+
+#: ../chat-ui/src/sandbox/lazy-sandbox-panel.tsx
+msgid "Loading sandbox"
+msgstr "Loading sandbox"
+
+#: ../chat-ui/src/sandbox/status-pill.tsx
+msgid "Local"
+msgstr "Local"
+
+#: ../chat-ui/src/sandbox/terminal.tsx
+msgid "ls -la"
+msgstr "ls -la"
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Markdown"
@@ -322,6 +405,10 @@ msgstr "Mention"
 #: ../composer/src/components/composer.tsx
 msgid "Message"
 msgstr "Message"
+
+#: ../chat-ui/src/sandbox/status-pill.tsx
+msgid "MicroVM"
+msgstr "MicroVM"
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "MMD"
@@ -363,6 +450,15 @@ msgstr "Open external link?"
 msgid "Open link"
 msgstr "Open link"
 
+#: ../chat-ui/src/sandbox/preview.tsx
+msgid "Open preview in a new tab"
+msgstr "Open preview in a new tab"
+
+#. placeholder {0}: open.path
+#: ../chat-ui/src/sandbox/files.tsx
+msgid "Opening {0}…"
+msgstr "Opening {0}…"
+
 #: ../code-ui/src/diff-view.tsx
 msgid "Optional: tell the agent why"
 msgstr "Optional: tell the agent why"
@@ -391,6 +487,24 @@ msgstr "Picks a model for each message"
 msgid "PNG"
 msgstr "PNG"
 
+#: ../chat-ui/src/sandbox/preview.tsx
+msgid "Port"
+msgstr "Port"
+
+#: ../chat-ui/src/sandbox/preview.tsx
+#: ../chat-ui/src/sandbox/sandbox-panel.tsx
+msgid "Preview"
+msgstr "Preview"
+
+#. placeholder {0}: preview.port
+#: ../chat-ui/src/sandbox/preview.tsx
+msgid "Preview of port {0}"
+msgstr "Preview of port {0}"
+
+#: ../chat-ui/src/sandbox/preview.tsx
+msgid "Previews need a Docker sandbox. This one is simulated, so nothing can listen on a port."
+msgstr "Previews need a Docker sandbox. This one is simulated, so nothing can listen on a port."
+
 #: ../ui/src/components/ai-elements/message.tsx
 msgid "Previous branch"
 msgstr "Previous branch"
@@ -411,6 +525,14 @@ msgstr "Prompts"
 msgid "Proposed edit"
 msgstr "Proposed edit"
 
+#: ../chat-ui/src/sandbox/status-pill.tsx
+msgid "Ready"
+msgstr "Ready"
+
+#: ../chat-ui/src/sandbox/files.tsx
+msgid "Refresh files"
+msgstr "Refresh files"
+
 #: ../code-ui/src/diff-view.tsx
 msgid "Reject"
 msgstr "Reject"
@@ -422,6 +544,10 @@ msgstr "Reject change {number}"
 #: ../code-ui/src/diff-view.tsx
 msgid "Reject the rest"
 msgstr "Reject the rest"
+
+#: ../chat-ui/src/sandbox/preview.tsx
+msgid "Reload preview"
+msgstr "Reload preview"
 
 #: ../ui/src/components/ai-elements/message.tsx
 #: ../ui/src/components/ai-elements/prompt-input.tsx
@@ -437,9 +563,17 @@ msgstr "Remove {name}"
 msgid "Remove attachment"
 msgstr "Remove attachment"
 
+#: ../chat-ui/src/sandbox/sandbox-panel.tsx
+msgid "Reset sandbox"
+msgstr "Reset sandbox"
+
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Reset zoom and pan"
 msgstr "Reset zoom and pan"
+
+#: ../chat-ui/src/sandbox/sandbox-panel.tsx
+msgid "Reset: start again with an empty workspace"
+msgstr "Reset: start again with an empty workspace"
 
 #: ../ui/src/components/ai-elements/tool.tsx
 msgid "Responded"
@@ -453,9 +587,57 @@ msgstr "Result"
 msgid "Retry"
 msgstr "Retry"
 
+#: ../chat-ui/src/sandbox/terminal.tsx
+msgid "Run a command to see its output here."
+msgstr "Run a command to see its output here."
+
+#: ../chat-ui/src/sandbox/terminal.tsx
+msgid "Run command"
+msgstr "Run command"
+
 #: ../ui/src/components/ai-elements/tool.tsx
 msgid "Running"
 msgstr "Running"
+
+#: ../chat-ui/src/sandbox/terminal.tsx
+msgid "Running…"
+msgstr "Running…"
+
+#: ../chat-ui/src/sandbox/status-pill.tsx
+msgid "Runs directly on this computer."
+msgstr "Runs directly on this computer."
+
+#: ../chat-ui/src/sandbox/status-pill.tsx
+msgid "Runs in a container under gVisor, which intercepts system calls before they reach the host."
+msgstr "Runs in a container under gVisor, which intercepts system calls before they reach the host."
+
+#: ../chat-ui/src/sandbox/status-pill.tsx
+msgid "Runs in a plain Docker container. gVisor isn't available on this host, so isolation is weaker."
+msgstr "Runs in a plain Docker container. gVisor isn't available on this host, so isolation is weaker."
+
+#: ../chat-ui/src/sandbox/status-pill.tsx
+msgid "Runs in a remote microVM."
+msgstr "Runs in a remote microVM."
+
+#: ../chat-ui/src/sandbox/sandbox-panel.tsx
+msgid "Sandbox"
+msgstr "Sandbox"
+
+#: ../chat-ui/src/sandbox/files.tsx
+msgid "Sandbox files"
+msgstr "Sandbox files"
+
+#: ../chat-ui/src/sandbox/terminal.tsx
+msgid "Sandbox output"
+msgstr "Sandbox output"
+
+#: ../../apps/web/app/dev/sandbox/page.tsx
+msgid "Sandbox panel"
+msgstr "Sandbox panel"
+
+#: ../chat-ui/src/sandbox/sandbox-panel.tsx
+msgid "Sandbox views"
+msgstr "Sandbox views"
 
 #: ../ui/src/components/message-scroller.tsx
 msgid "Scroll to end"
@@ -469,17 +651,33 @@ msgstr "Scroll to start"
 msgid "Search files"
 msgstr "Search files"
 
+#: ../chat-ui/src/sandbox/files.tsx
+msgid "Select a file to view it."
+msgstr "Select a file to view it."
+
 #: ../composer/src/components/composer-footer.tsx
 msgid "Send"
 msgstr "Send"
+
+#: ../chat-ui/src/sandbox/status-pill.tsx
+msgid "Simulated"
+msgstr "Simulated"
 
 #: ../code-ui/src/diff-view.tsx
 msgid "Split"
 msgstr "Split"
 
+#: ../chat-ui/src/sandbox/preview.tsx
+msgid "Start a server in the terminal, then preview its port. It opens on a separate origin, isolated from this app."
+msgstr "Start a server in the terminal, then preview its port. It opens on a separate origin, isolated from this app."
+
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Start dictation"
 msgstr "Start dictation"
+
+#: ../chat-ui/src/sandbox/status-pill.tsx
+msgid "Starting"
+msgstr "Starting"
 
 #: ../composer/src/components/composer-footer.tsx
 #: ../ui/src/components/ai-elements/prompt-input.tsx
@@ -489,6 +687,10 @@ msgstr "Stop"
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Stop dictation"
 msgstr "Stop dictation"
+
+#: ../chat-ui/src/sandbox/status-pill.tsx
+msgid "Stopped"
+msgstr "Stopped"
 
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Submit"
@@ -506,9 +708,17 @@ msgstr "SVG"
 msgid "Team"
 msgstr "Team"
 
+#: ../chat-ui/src/sandbox/sandbox-panel.tsx
+msgid "Terminal"
+msgstr "Terminal"
+
 #: ../../apps/web/app/dev/code/demo.tsx
 msgid "The accepted changes couldn't be applied."
 msgstr "The accepted changes couldn't be applied."
+
+#: ../../apps/web/app/dev/sandbox/page.tsx
+msgid "The chat sandbox panel over a just-bash workspace that runs entirely in this browser tab: simulated bash, an in-memory filesystem, no server and no network. Reloading the page starts over."
+msgstr "The chat sandbox panel over a just-bash workspace that runs entirely in this browser tab: simulated bash, an in-memory filesystem, no server and no network. Reloading the page starts over."
 
 #: ../composer/src/components/context-chip.tsx
 msgid "The context can't change after the first message."
@@ -526,6 +736,22 @@ msgstr "The file tree, a highlighted file and a reviewable diff, themed from the
 msgid "The prompt composer with contract fixtures. Type / for a prompt template or @ to mention someone; sending fakes a short run you can stop. Nothing here calls a model."
 msgstr "The prompt composer with contract fixtures. Type / for a prompt template or @ to mention someone; sending fakes a short run you can stop. Nothing here calls a model."
 
+#: ../../apps/web/app/dev/sandbox/demo.tsx
+msgid "The sandbox hit a limit."
+msgstr "The sandbox hit a limit."
+
+#: ../../apps/web/app/dev/sandbox/demo.tsx
+msgid "The sandbox is unavailable."
+msgstr "The sandbox is unavailable."
+
+#: ../../apps/web/app/dev/sandbox/demo.tsx
+msgid "The sandbox was destroyed. Create a new one."
+msgstr "The sandbox was destroyed. Create a new one."
+
+#: ../chat-ui/src/sandbox/files.tsx
+msgid "The workspace is empty."
+msgstr "The workspace is empty."
+
 #: ../ui/src/components/ai-elements/reasoning.tsx
 msgid "Thinking…"
 msgstr "Thinking…"
@@ -534,9 +760,22 @@ msgstr "Thinking…"
 msgid "This change couldn't be displayed as a diff."
 msgstr "This change couldn't be displayed as a diff."
 
+#: ../chat-ui/src/sandbox/sandbox-panel.tsx
+msgid "This chat has no sandbox yet. Create one to run commands and keep files the agent can work on."
+msgstr "This chat has no sandbox yet. Create one to run commands and keep files the agent can work on."
+
+#: ../../apps/web/app/dev/sandbox/demo.tsx
+msgid "This sandbox can't do that."
+msgstr "This sandbox can't do that."
+
 #: ../ui/src/components/ai-elements/reasoning.tsx
 msgid "Thought for a few seconds"
 msgstr "Thought for a few seconds"
+
+#. placeholder {0}: entry.durationMs
+#: ../chat-ui/src/sandbox/terminal.tsx
+msgid "Timed out after {0} ms"
+msgstr "Timed out after {0} ms"
 
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Too many files. Some were not added."
@@ -569,6 +808,10 @@ msgstr "We've already added the button component for you."
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "What would you like to know?"
 msgstr "What would you like to know?"
+
+#: ../chat-ui/src/sandbox/files.tsx
+msgid "Workspace"
+msgstr "Workspace"
 
 #: ../../apps/web/app/dev/ai-elements/demo.tsx
 msgid "Would send “{text}” with {fileCount, plural, one {# attachment} other {# attachments}}."
