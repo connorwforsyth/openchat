@@ -11,5 +11,7 @@ export default defineProject({
     hookTimeout: 60_000,
     include: ["src/**/*.test.ts"],
     name: "auth",
+    // PGlite on shared CI runners is several times slower than a laptop.
+    testTimeout: 30_000,
   },
 });

@@ -9,6 +9,22 @@ import { type Auth, createAuth } from "./server";
 // Sign-ins return bearer headers, which is how a request authenticates in
 // tests and on native clients alike.
 
+// Test-only hashing: a plain SHA-256 so suites don't spend seconds in scrypt.
+// Never used outside tests; `createAuth` keeps Better Auth's default otherwise.
+const sha256 = async (value: string): Promise<string> => {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(value)
+  );
+  return Buffer.from(digest).toString("hex");
+};
+
+const fastTestHasher = {
+  hash: (password: string) => sha256(password),
+  verify: async ({ hash, password }: { hash: string; password: string }) =>
+    (await sha256(password)) === hash,
+};
+
 export interface TestAuth extends TestDb {
   readonly auth: Auth;
   readonly config: AppConfig;
@@ -26,6 +42,7 @@ export const createTestAuth = async (
     db: testDb.db,
     env: { BETTER_AUTH_SECRET: "test-secret-0123456789abcdefghijklmnop" },
     log: { warn: () => undefined },
+    passwordHasher: fastTestHasher,
   });
   if (!created.ok) {
     throw new Error(`createTestAuth: ${created.error.type}`);

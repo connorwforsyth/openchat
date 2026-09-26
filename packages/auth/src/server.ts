@@ -60,6 +60,19 @@ export interface CreateAuthOptions {
   /** Defaults to `process.env`; parsed, so unknown keys and blanks are fine. */
   readonly env?: Readonly<Record<string, string | undefined>>;
   readonly log?: AuthLog;
+  /**
+   * Overrides Better Auth's password hashing. Only tests pass this: the
+   * default scrypt is deliberately slow, which times out suites on CI runners.
+   */
+  readonly passwordHasher?: PasswordHasher;
+}
+
+export interface PasswordHasher {
+  readonly hash: (password: string) => Promise<string>;
+  readonly verify: (data: {
+    hash: string;
+    password: string;
+  }) => Promise<boolean>;
 }
 
 const consoleLog: AuthLog = {
@@ -120,7 +133,13 @@ const personalOrgRefusal = (action: string): APIError =>
     message: `A personal space can't ${action}.`,
   });
 
-const buildAuth = (db: Db, config: AppConfig, env: AuthEnv, secret: string) => {
+const buildAuth = (
+  db: Db,
+  config: AppConfig,
+  env: AuthEnv,
+  secret: string,
+  passwordHasher?: PasswordHasher
+) => {
   const github = socialCredentials(config, env, "github");
   const google = socialCredentials(config, env, "google");
   return betterAuth({
@@ -157,7 +176,9 @@ const buildAuth = (db: Db, config: AppConfig, env: AuthEnv, secret: string) => {
         },
       },
     },
-    emailAndPassword: { enabled: true },
+    emailAndPassword: passwordHasher
+      ? { enabled: true, password: passwordHasher }
+      : { enabled: true },
     plugins: [
       organizationPlugin({
         allowUserToCreateOrganization: true,
@@ -269,6 +290,7 @@ export const createAuth = ({
   db,
   env = process.env,
   log = consoleLog,
+  passwordHasher,
 }: CreateAuthOptions): Result<Auth, SecretProblem> => {
   const parsed = authEnvSchema.parse(env);
   const secret = resolveSecret(parsed);
@@ -279,9 +301,9 @@ export const createAuth = ({
       log.warn(
         "[auth] BETTER_AUTH_SECRET is not set: using a fixed dev-only secret. Sessions are forgeable; set it before deploying (openssl rand -base64 32)."
       );
-      return ok(buildAuth(db, config, parsed, secret.secret));
+      return ok(buildAuth(db, config, parsed, secret.secret, passwordHasher));
     case "configured":
-      return ok(buildAuth(db, config, parsed, secret.secret));
+      return ok(buildAuth(db, config, parsed, secret.secret, passwordHasher));
     default: {
       const exhaustive: never = secret;
       return exhaustive;
