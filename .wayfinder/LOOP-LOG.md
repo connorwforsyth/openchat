@@ -24,3 +24,5 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-09-27 · 021 closed · PR #15 · knowledge · 56/56 local after lockfile rebase
 - 2026-09-27 · 028 closed · PR #18 · timestamptz(3) + test timeouts · CI ci + db pass
 - 2026-09-27 · 029 folded into PR #19 (sandbox job green on runc and runsc; 4 runner fixes)
+- 2026-09-27 · 009 closed by Connor · Classic sidebar/header + Workspace right panel and shortcuts
+- 2026-09-27 · 010 closed by Connor · builder follows the shell (form + live test chat)

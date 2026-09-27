@@ -62,6 +62,8 @@ brief, and their findings land in `.context/research/`.
 - [Design review of plan v1](tickets/001-design-review.md): 40 answers
   settling audience, scope (an ambitious web M1, then waves), runs, tenancy, sharing,
   config, icons, memory, evals and safety. The detail lives in `PLAN.md` §13.
+- [App shell](tickets/009-prototype-app-shell.md): Classic sidebar and header, plus Workspace's right-hand Sandbox/Artifacts panel and single-key shortcuts.
+- [Agent Builder and libraries](tickets/010-prototype-agent-builder.md): same shell; form + live test chat, draft/published, library tabs.
 - [Contract review](tickets/008-contract-review.md): contracts accepted as built; UUIDv7 ids, separate tool parts, `/api/llm` added now, events SSE in its wave.
 
 ## Built

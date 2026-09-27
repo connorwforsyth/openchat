@@ -3,7 +3,7 @@ id: "024"
 title: "WS-shell: palette, shortcuts, settings and admin"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: ["012","009"]
 ---
 

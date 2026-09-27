@@ -3,7 +3,7 @@ id: "015"
 title: "WS-chat-ui: conversation, branches, artifacts"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: ["008","009"]
 ---
 

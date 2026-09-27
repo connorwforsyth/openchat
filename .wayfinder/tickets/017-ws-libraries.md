@@ -3,7 +3,7 @@ id: "017"
 title: "WS-libraries: builders, sharing and publishing"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: ["012","010"]
 ---
 
