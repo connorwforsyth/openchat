@@ -45,6 +45,7 @@ import {
 import type { StreamChannel } from "../ports/stream-channel";
 import { type BudgetCheck, storeContext } from "../runs/chat-context";
 import { type CreateRunError, createRun, mayRun } from "../runs/create-run";
+import { pinnedDraft } from "../runs/drafts";
 import type { MemorySettings } from "../runs/memory";
 import { queuePosition, toRun } from "../runs/state";
 import { createFeedbackRouter } from "./feedback";
@@ -174,10 +175,16 @@ export const createChatRouter = (services: ApiServices) => {
           },
         });
       }
+      // A chat that answers with an agent's draft by default is the
+      // builder's test chat (033): the contract has no field for it, and
+      // needs none, since nothing else pins a draft. It stays out of the
+      // history and search, and the cleanup job deletes it later.
+      const draft = await pinnedDraft(db, input.defaultTarget);
       const row = await createConversation(db, {
         context: stored.value,
         defaultTarget: input.defaultTarget ?? null,
         ownerId: context.actor.userId,
+        purpose: draft ? "test" : "chat",
         title: input.title ?? null,
       });
       return viewOf(context.actor, row.id);
@@ -511,8 +518,12 @@ export const createChatRouter = (services: ApiServices) => {
         const run = await readableRun(context.actor, input.runId, "write");
         // Approving lets the agent go on acting, so it takes what starting
         // it took: someone who can't use the agent (or no longer can) can't
-        // push its tool calls through.
-        if (!(await mayRun(db, context.actor, run.target))) {
+        // push its tool calls through, and a draft run takes `edit` (033).
+        if (
+          !(await mayRun(db, context.actor, run.target, {
+            draft: run.agentDraft,
+          }))
+        ) {
           throw new ORPCError("FORBIDDEN");
         }
         const submitted = await executor.submitApprovals(

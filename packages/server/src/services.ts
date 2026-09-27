@@ -16,6 +16,7 @@ import {
   type Jobs,
   registerJobs,
 } from "./jobs/registry";
+import { testChatJobHandlers } from "./jobs/test-chats";
 import type { JobQueue } from "./ports/job-queue";
 import {
   type BudgetCheck,
@@ -153,7 +154,10 @@ export const createServices = (options: ServicesOptions): Services => {
     db,
     defaultModel: config.models.default,
     executor,
-    jobHandlers,
+    jobHandlers: {
+      ...jobHandlers,
+      ...testChatJobHandlers({ db, now: options.now }),
+    },
     loadModel,
     memory,
     stop: async () => {

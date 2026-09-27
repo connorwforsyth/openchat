@@ -722,6 +722,9 @@ msgstr "Create sandbox"
 #: ../../apps/web/app/(app)/admin/_components/teams-admin.tsx
 msgid "Create team"
 msgstr "Create team"
+#: ../library-ui/src/components/run-test-chat.tsx
+msgid "Create the agent to try it in a test chat."
+msgstr "Create the agent to try it in a test chat."
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "CSV"
@@ -2340,6 +2343,10 @@ msgid "Settings pages"
 msgstr "Settings pages"
 
 #: ../chat-ui/src/header/share-menu.tsx
+#: ../library-ui/src/components/run-test-chat.tsx
+msgid "Sending a message saves your changes to the draft first."
+msgstr "Sending a message saves your changes to the draft first."
+
 #: ../library-ui/src/components/item-builder.tsx
 msgid "Share"
 msgstr "Share"
@@ -2603,7 +2610,11 @@ msgstr "Test chat"
 msgid "Test in sandbox"
 msgstr "Test in sandbox"
 
-#: ../library-ui/src/components/item-builder.tsx
+#: ../library-ui/src/components/run-test-chat.tsx
+msgid "Testing draft"
+msgstr "Testing draft"
+
+#: ../library-ui/src/testing/echo-test-chat.tsx
 msgid "Testing what's on screen; save to keep it."
 msgstr "Testing what's on screen; save to keep it."
 
@@ -3154,6 +3165,9 @@ msgstr "You're not an owner or admin of any org. Admin pages appear here when yo
 #: ../shortcuts/src/react/shortcuts-editor.tsx
 msgid "Your browser keeps that combination; pick another one."
 msgstr "Your browser keeps that combination; pick another one."
+#: ../library-ui/src/components/run-test-chat.tsx
+msgid "Your changes couldn't be saved, so the message wasn't sent."
+msgstr "Your changes couldn't be saved, so the message wasn't sent."
 
 #: ../library-ui/src/components/item-builder.tsx
 msgid "Your changes weren't saved, so they were undone."

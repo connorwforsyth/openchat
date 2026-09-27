@@ -1,7 +1,7 @@
 import { createMemoryKeyStore } from "@workspace/ai/keys/key-store.memory";
 import { createMemoryProviderRegistry } from "@workspace/ai/ports/provider-registry.memory";
 import { textStream, toolCallStream } from "@workspace/ai/testing/mock-models";
-import type { UserId } from "@workspace/contract/schemas/common";
+import type { RunId, UserId } from "@workspace/contract/schemas/common";
 import type { Conversation } from "@workspace/contract/schemas/conversations";
 import type { AgentDefinition } from "@workspace/contract/schemas/library";
 import type { BranchPath } from "@workspace/contract/schemas/messages";
@@ -14,6 +14,7 @@ import {
   createVersionedItem,
   publishDraft,
 } from "@workspace/db/queries/library";
+import { getRun } from "@workspace/db/queries/runs";
 import { expectOk, seedOrg, seedUser } from "@workspace/db/testing";
 import { newId } from "@workspace/shared/ids";
 import { tool } from "ai";
@@ -75,7 +76,7 @@ const share = async (
   grantedBy: UserId,
   resource: { resourceId: string; resourceType: "agent" | "conversation" },
   user: UserId,
-  permission: "use" | "viewer" | "editor"
+  permission: "use" | "edit" | "viewer" | "editor"
 ) =>
   expectOk(
     await upsertGrant(h.db, {
@@ -248,6 +249,82 @@ describe("approvals access", () => {
     expect((await decide()).status).toBe(403);
 
     await share(carol, agentRef, h.ownerId, "use");
+    expect((await decide()).status).toBe(200);
+    await h.services.executor.idle();
+    const run = await h.request(`/api/runs/${created.runId}`);
+    expect(
+      ((await run.json()) as { state: { status: string } }).state.status
+    ).toBe("succeeded");
+  });
+});
+
+describe("approvals on a draft run", () => {
+  it("take edit on the agent, not just use (033 with 032)", async () => {
+    const carol = await someone();
+    const bob = await someone();
+    // Carol's agent, still a draft.
+    const { draft, item: agent } = await createVersionedItem(h.db, "agent", {
+      createdBy: carol,
+      definition,
+      name: "Reviewer",
+      owner: { id: carol, type: "user" },
+    });
+    const agentRef = { resourceId: agent.id, resourceType: "agent" as const };
+    await share(carol, agentRef, h.ownerId, "edit");
+    await share(carol, agentRef, bob, "use");
+    const chat = await newConversation();
+    await share(
+      h.ownerId,
+      { resourceId: chat.id, resourceType: "conversation" },
+      bob,
+      "editor"
+    );
+
+    const tools = {
+      write_file: tool({
+        execute: ({ path }: { path: string }) => `wrote ${path}`,
+        inputSchema: z.object({ path: z.string() }),
+      }),
+    };
+    const toolApproval = { write_file: "user-approval" } as const;
+    h.nextTurn({
+      model: new MockLanguageModelV4({
+        doStream: toolCallStream("write_file", { path: "a.txt" }),
+      }),
+      toolApproval,
+      tools,
+    });
+    h.nextTurn({
+      model: new MockLanguageModelV4({ doStream: textStream("Done.") }),
+      toolApproval,
+      tools,
+    });
+    const created = (await (
+      await send(chat.id, { id: agent.id, type: "agent", versionId: draft.id })
+    ).json()) as CreateRunOutput;
+    await h.services.executor.idle();
+    expect(
+      expectOk(await getRun(h.db, created.runId as RunId)).agentDraft
+    ).toBe(true);
+
+    const decide = (as?: UserId) =>
+      h.request(`/api/runs/${created.runId}/approvals`, {
+        as,
+        json: {
+          decisions: [
+            { decision: { decision: "approve" }, toolCallId: "call-1" },
+          ],
+        },
+        method: "POST",
+      });
+
+    // Bob edits the chat and may use the agent, but not edit it.
+    expect((await decide(bob)).status).toBe(403);
+    // Nor may the owner once they're down to `use`.
+    await share(carol, agentRef, h.ownerId, "use");
+    expect((await decide()).status).toBe(403);
+
+    await share(carol, agentRef, h.ownerId, "edit");
     expect((await decide()).status).toBe(200);
     await h.services.executor.idle();
     const run = await h.request(`/api/runs/${created.runId}`);

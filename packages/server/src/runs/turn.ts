@@ -40,6 +40,7 @@ import {
 import type { Tool, ToolApprovalStatus, ToolSet } from "ai";
 
 import { canUseLibraryItem } from "../library/router";
+import { draftFor } from "./drafts";
 
 // What a run answers with (PLAN.md §8 steps 3.2–3.4): the target resolved to
 // a model and the key that pays for it, plus the agent's instructions and
@@ -210,23 +211,34 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
         : loaded;
     }
 
-    // An agent: its latest published version unless the run pins one.
-    // `createRun` checked the caller may `use` it; checked again here
-    // because a queued or resumed run starts later, and access can be
-    // revoked (or its maintainer leave the library) in between.
-    if (!(await canUseLibraryItem(db, run.createdBy, "agent", target.id))) {
+    // An agent: its latest published version unless the run pins one, or
+    // its draft for someone who can edit it (the builder's test chat, 033).
+    // The draft is read now, as the run starts, so a saved edit shows up
+    // in the very next turn. `createRun` checked the caller may `edit` the
+    // draft or `use` the published agent (032); checked again here because
+    // a queued or resumed run starts later, and access can be revoked (or
+    // its maintainer leave the library) in between.
+    const draft = await draftFor(db, run.createdBy, target);
+    if (!draft.ok) {
+      return err({
+        code: "internal",
+        message: "You can't run that agent's draft.",
+        retryable: false,
+      });
+    }
+    if (
+      draft.value === null &&
+      !(await canUseLibraryItem(db, run.createdBy, "agent", target.id))
+    ) {
       return err({
         code: "internal",
         message: "You no longer have access to that agent.",
         retryable: false,
       });
     }
-    const version = await resolvePublishedVersion(
-      db,
-      "agent",
-      target.id,
-      target.versionId
-    );
+    const version = draft.value
+      ? ok(draft.value)
+      : await resolvePublishedVersion(db, "agent", target.id, target.versionId);
     if (!version.ok) {
       return err({
         code: "internal",

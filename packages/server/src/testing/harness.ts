@@ -144,8 +144,19 @@ const listenFor = (testDb: TestDb): Listen => {
     : postgresListen(client as postgres.Sql);
 };
 
+export interface HarnessOptions {
+  /** More models the registry serves, by ref (the `test` provider is keyless). */
+  readonly models?: Readonly<Record<string, LanguageModelV4>>;
+  /**
+   * Resolve turns for real (`createTurnResolver`: agents, drafts, tools)
+   * over `models`, instead of the scripted `nextTurn` queue.
+   */
+  readonly realTurns?: boolean;
+  readonly titleModel?: LanguageModelV4;
+}
+
 export const createHarness = async (
-  options: { readonly titleModel?: LanguageModelV4 } = {}
+  options: HarnessOptions = {}
 ): Promise<Harness> => {
   const testDb = await createTestDb();
   const { db } = testDb;
@@ -160,26 +171,29 @@ export const createHarness = async (
     listen: listenFor(testDb),
     registry: createMemoryProviderRegistry({
       keyless: ["test"],
-      languageModels: options.titleModel
-        ? { "test:title": options.titleModel }
-        : {},
+      languageModels: {
+        ...options.models,
+        ...(options.titleModel ? { "test:title": options.titleModel } : {}),
+      },
     }),
-    resolveTurn: () => {
-      const turn = turns.shift();
-      if (!turn) {
-        throw new Error("no turn scripted for this agent pass");
-      }
-      return Promise.resolve(
-        ok<Turn>({
-          agent: null,
-          model: turn.model,
-          paidBy: null,
-          resolvedModel: "test:model",
-          toolApproval: turn.toolApproval,
-          tools: turn.tools,
-        })
-      );
-    },
+    resolveTurn: options.realTurns
+      ? undefined
+      : () => {
+          const turn = turns.shift();
+          if (!turn) {
+            throw new Error("no turn scripted for this agent pass");
+          }
+          return Promise.resolve(
+            ok<Turn>({
+              agent: null,
+              model: turn.model,
+              paidBy: null,
+              resolvedModel: "test:model",
+              toolApproval: turn.toolApproval,
+              tools: turn.tools,
+            })
+          );
+        },
   });
   await registerCoreJobs(jobs, services);
   const app = createApp({

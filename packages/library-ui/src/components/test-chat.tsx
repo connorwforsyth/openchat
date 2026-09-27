@@ -6,6 +6,10 @@ import type {
   ComposerStatus,
   ComposerValue,
 } from "@workspace/composer/schemas";
+import type {
+  LibraryItemId,
+  LibraryVersionId,
+} from "@workspace/contract/schemas/common";
 import type { AgentDefinition } from "@workspace/contract/schemas/library";
 import { RotateCcwIcon } from "@workspace/icons";
 import {
@@ -29,7 +33,7 @@ import { type ComponentType, memo, type ReactNode, useCallback } from "react";
 // The builder's live test chat (010): the real composer over a small
 // message list. It doesn't depend on the chat UI package; where the answers
 // come from is a `TestChatSession` the page provides (runs against the
-// draft in the app, a scripted echo in the demo and tests).
+// saved draft in the app (033), a scripted echo in the demo and tests).
 
 export interface TestChatSession {
   readonly error: string | null;
@@ -41,10 +45,24 @@ export interface TestChatSession {
   readonly stop: () => void;
 }
 
+/** The agent's stored draft, which test runs answer with. */
+export interface TestChatDraft {
+  readonly itemId: LibraryItemId;
+  readonly versionId: LibraryVersionId;
+}
+
 export interface TestChatProps {
+  /**
+   * Saves unsaved edits to the draft, so the next test turn runs them.
+   * Resolves `false` when they couldn't be saved (the builder says why).
+   */
+  readonly beforeSend?: () => Promise<boolean>;
+  /** What's on screen, which may be ahead of the stored draft. */
   readonly definition: AgentDefinition;
-  /** A note above the chat, like what the test runs against. */
-  readonly notice?: ReactNode;
+  /** Whether what's on screen differs from the stored draft. */
+  readonly dirty: boolean;
+  /** `null` until the agent has been created (or for someone who can't edit it). */
+  readonly draft: TestChatDraft | null;
 }
 
 /** How the page plugs a session in: a hook-backed component per builder. */
@@ -88,11 +106,21 @@ function StarterButton({
   );
 }
 
+export interface TestChatPanelProps {
+  /** Beside the heading, like what the test runs against. */
+  readonly badge?: ReactNode;
+  readonly definition: AgentDefinition;
+  /** A note above the chat. */
+  readonly notice?: ReactNode;
+  readonly session: TestChatSession;
+}
+
 export function TestChatPanel({
+  badge,
   definition,
   notice,
   session,
-}: TestChatProps & { readonly session: TestChatSession }) {
+}: TestChatPanelProps) {
   const { t } = useLingui();
   const busy = session.status === "submitted" || session.status === "streaming";
   const { send } = session;
@@ -114,9 +142,12 @@ export function TestChatPanel({
       className="flex h-full min-h-0 flex-col gap-3"
     >
       <header className="flex items-center justify-between gap-2">
-        <h2 className="font-medium text-sm">
-          <Trans>Test chat</Trans>
-        </h2>
+        <div className="flex min-w-0 items-center gap-2">
+          <h2 className="font-medium text-sm">
+            <Trans>Test chat</Trans>
+          </h2>
+          {badge}
+        </div>
         <Button
           disabled={session.messages.length === 0 || busy}
           onClick={session.reset}
