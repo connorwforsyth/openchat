@@ -90,6 +90,7 @@ export default defineProject({
       provider: playwright(),
       screenshotFailures: false,
     },
+    hookTimeout: 60_000,
     include: ["src/**/*.test.{ts,tsx}"],
     name: "chat-ui",
     // Lazy chunks (the diff view, the editor) load mid-test; on a busy CI
