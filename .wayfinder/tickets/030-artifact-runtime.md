@@ -3,7 +3,7 @@ id: "030"
 title: "Artifact runtime: React and Mermaid previews on a separate origin"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: ["015"]
 ---
 

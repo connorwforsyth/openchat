@@ -3,7 +3,7 @@ id: "031"
 title: "M1 polish: motion audit, narrow screens, batched feedback"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: ["015"]
 ---
 
