@@ -16,6 +16,14 @@ Performance (D27): composer-first boot. Preload only the entry, React and the ma
 
 Speed (D28): persist the TanStack Query cache (sidebar, library, recent conversations) to IndexedDB, render from it on boot and revalidate in the background; clear it on sign-out; an org policy can disable persistence. Inline-restore sidebar width/collapsed state before paint. Optimistic rename/pin/archive.
 
+Wiring collected from earlier tickets (don't lose these):
+- Mount every router: 012 `authRouter`, 014 chat router, 017 `createLibraryRouter` + `loadSharedResource`, 018 mcp handlers, 019 sandbox handlers, 021 files/search + knowledge jobs, 022 memory/feedback, 024 settings/admin pages; correct 024's `_shared/routes.ts`.
+- `services.ts`: pass `knowledge` (embedder) and `retrieval` (Decider + `decider.thresholds.needsRetrieval`) to the turn resolver (036); build the Decider from config (013); register ingestion/re-index/eval/test-chat-prune jobs.
+- Plain model chats (no agent) get `file_search` over conversation attachments.
+- `ARTIFACTS_ORIGIN` → chat-ui `runtimeOrigin` (030); attachments upload in `ConnectedChat` (015).
+- Map `KnowledgeError.UNAVAILABLE` and sandbox `unavailable` to 503 / `FEATURE_DISABLED` (021, 019); file-serving headers `Content-Disposition: attachment` + `nosniff` (021); local storage URL secret derived from `BETTER_AUTH_SECRET` (021).
+- Gate `/dev/*` behind an env flag (007); viewport `interactive-widget=resizes-content` (031); oRPC request batching for feedback (031); `requestLocale` reads `user.locale` (024); PGlite fallback when `DATABASE_URL` is empty (011, Q15); random invite tokens (012, Q16).
+
 ## Owns
 
 `apps/web` app code, `e2e/`, `docker-compose.yml` additions.
