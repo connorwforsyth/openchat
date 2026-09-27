@@ -35,6 +35,59 @@ services:
     ports:
       - "127.0.0.1:${SEARXNG_PORT:-8080}:8080"
 
+  # Docker sandboxes (PLAN.md D7, D24): `docker compose --profile sandbox up -d`.
+  # The runner is the only service that can reach Docker, and only through
+  # this proxy, which allows just the API sections it uses. No other service
+  # (`web` included) ever mounts the socket.
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy:v0.4.2
+    profiles: [sandbox]
+    restart: unless-stopped
+    environment:
+      CONTAINERS: 1
+      EXEC: 1
+      IMAGES: 1
+      INFO: 1
+      NETWORKS: 1
+      VOLUMES: 1
+      # Write methods on the sections above (create, start, exec, remove).
+      POST: 1
+      EVENTS: 0
+      VERSION: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks: [docker-api]
+
+  sandbox-runner:
+    build:
+      context: .
+      dockerfile: apps/sandbox-runner/Dockerfile
+    profiles: [sandbox]
+    restart: unless-stopped
+    depends_on: [docker-socket-proxy]
+    # A stable name, so the runner can join sandbox networks to reach previews.
+    container_name: sandbox-runner
+    environment:
+      DOCKER_HOST: tcp://docker-socket-proxy:2375
+      RUNNER_CONTAINER: sandbox-runner
+      # Required: the API refuses every call without it. Share it with `web`.
+      SANDBOX_RUNNER_TOKEN: ${SANDBOX_RUNNER_TOKEN:-}
+      SANDBOX_RUNTIME: ${SANDBOX_RUNTIME:-auto}
+      SANDBOX_EGRESS: ${SANDBOX_EGRESS:-none}
+      SANDBOX_EGRESS_PROXY: ${SANDBOX_EGRESS_PROXY:-}
+      SANDBOX_IMAGE: ${SANDBOX_IMAGE:-node:24-bookworm-slim}
+      SANDBOX_PREVIEW_URL: ${SANDBOX_PREVIEW_URL:-http://{id}-{port}.sandbox.localhost:7071}
+    ports:
+      - "127.0.0.1:${SANDBOX_RUNNER_PORT:-7070}:7070"
+      # Previews: a separate origin from the app (D24).
+      - "127.0.0.1:${SANDBOX_PREVIEW_PORT:-7071}:7071"
+    networks: [docker-api, default]
+
+networks:
+  # Only the runner and the proxy are on it, and it has no route out.
+  docker-api:
+    internal: true
+
 configs:
   searxng-settings:
     content: |
