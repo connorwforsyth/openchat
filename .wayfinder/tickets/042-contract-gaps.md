@@ -3,7 +3,7 @@ id: "042"
 title: "Contract gaps from integration (owner review)"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: []
 ---
 
