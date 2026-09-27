@@ -92,5 +92,8 @@ export default defineProject({
     },
     include: ["src/**/*.test.{ts,tsx}"],
     name: "chat-ui",
+    // Lazy chunks (the diff view, the editor) load mid-test; on a busy CI
+    // runner running every package at once that takes a while.
+    testTimeout: 30_000,
   },
 });

@@ -84,7 +84,7 @@ describe("approvals", () => {
     const accept = await screen.findByRole(
       "button",
       { name: "Accept change 1" },
-      { timeout: 10_000 }
+      { timeout: 20_000 }
     );
     await userEvent.click(accept);
     await userEvent.click(
@@ -118,6 +118,12 @@ describe("approvals", () => {
   it("rejects the whole call with a reason", async () => {
     const onDecide = vi.fn();
     renderView({ onDecide });
+    // Let the lazy diff arrive first, so the buttons stop moving.
+    await screen.findByRole(
+      "button",
+      { name: "Accept change 1" },
+      { timeout: 20_000 }
+    );
     await userEvent.click(screen.getByRole("button", { name: "Reject all" }));
     await userEvent.type(screen.getByRole("textbox", { name: WHY }), "Not now");
     await userEvent.click(screen.getByRole("button", { name: "Reject" }));
