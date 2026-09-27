@@ -7,14 +7,15 @@ msgstr ""
 "X-Generator: @lingui/cli\n"
 "Language: en\n"
 
-#: ../chat-ui/src/sandbox/terminal.tsx
-msgid "(output shortened)"
-msgstr "(output shortened)"
 #: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
 msgid "- I prefer pnpm over npm\n"
 "- Answer in British English"
 msgstr "- I prefer pnpm over npm\n"
 "- Answer in British English"
+
+#: ../chat-ui/src/sandbox/terminal.tsx
+msgid "(output shortened)"
+msgstr "(output shortened)"
 
 #: ../../apps/web/app/page.tsx
 msgid "(Press <0>d</0> to toggle dark mode)"
@@ -98,9 +99,6 @@ msgstr "{reviewed} of {0} files reviewed"
 msgid "{suggestionCount, plural, one {# suggestion} other {# suggestions}}"
 msgstr "{suggestionCount, plural, one {# suggestion} other {# suggestions}}"
 
-#: ../chat-ui/src/sandbox/status-pill.tsx
-msgid "A simulated shell with an in-memory filesystem. Nothing runs on a real machine."
-msgstr "A simulated shell with an in-memory filesystem. Nothing runs on a real machine."
 #: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
 msgid "{used} of {limit}"
 msgstr "{used} of {limit}"
@@ -108,6 +106,10 @@ msgstr "{used} of {limit}"
 #: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
 msgid "A member"
 msgstr "A member"
+
+#: ../chat-ui/src/sandbox/status-pill.tsx
+msgid "A simulated shell with an in-memory filesystem. Nothing runs on a real machine."
+msgstr "A simulated shell with an in-memory filesystem. Nothing runs on a real machine."
 
 #: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
 msgid "A team"
@@ -475,13 +477,14 @@ msgstr "Code views"
 msgid "Command"
 msgstr "Command"
 
-#: ../chat-ui/src/sandbox/terminal.tsx
-msgid "Command running"
-msgstr "Command running"
 #: ../palette/src/command-palette.tsx
 #: ../ui/src/components/command.tsx
 msgid "Command palette"
 msgstr "Command palette"
+
+#: ../chat-ui/src/sandbox/terminal.tsx
+msgid "Command running"
+msgstr "Command running"
 
 #: ../code-ui/src/diff-view.tsx
 msgid "Comment for the agent on change {number}"
@@ -498,6 +501,7 @@ msgstr "Composer"
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "Container"
 msgstr "Container"
+
 #: ../palette/src/context-actions.ts
 msgid "context"
 msgstr "context"
@@ -580,6 +584,10 @@ msgstr "Couldn't check"
 #: ../../apps/web/app/(app)/admin/_components/audit-policy.tsx
 msgid "Covers chats held in this org's contexts (the org and its teams). Personal chats are never covered."
 msgstr "Covers chats held in this org's contexts (the org and its teams). Personal chats are never covered."
+
+#: ../chat-ui/src/sandbox/sandbox-panel.tsx
+msgid "Create sandbox"
+msgstr "Create sandbox"
 
 #: ../../apps/web/app/(app)/admin/_components/teams-admin.tsx
 msgid "Create team"
@@ -767,6 +775,10 @@ msgstr "Failed"
 msgid "Expires {expires}"
 msgstr "Expires {expires}"
 
+#: ../chat-ui/src/sandbox/status-pill.tsx
+msgid "Failed"
+msgstr "Failed"
+
 #: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
 msgid "Fall back to personal keys"
 msgstr "Fall back to personal keys"
@@ -783,11 +795,11 @@ msgstr "File after applying accepted changes"
 msgid "File tree"
 msgstr "File tree"
 
-#: ../chat-ui/src/sandbox/sandbox-panel.tsx
 #: ../palette/src/context-actions.ts
 msgid "files"
 msgstr "files"
 
+#: ../chat-ui/src/sandbox/sandbox-panel.tsx
 #: ../code-ui/src/file-tree.tsx
 msgid "Files"
 msgstr "Files"
@@ -822,6 +834,10 @@ msgstr "For"
 #: ../shortcuts/src/react/help-dialog.tsx
 msgid "General"
 msgstr "General"
+
+#: ../chat-ui/src/sandbox/status-pill.tsx
+msgid "gVisor"
+msgstr "gVisor"
 
 #: ../palette/src/context-actions.ts
 msgid "Hide the sandbox"
@@ -879,6 +895,10 @@ msgstr "Invite"
 #: ../../apps/web/app/(app)/admin/_components/members-admin.tsx
 msgid "Invite someone"
 msgstr "Invite someone"
+
+#: ../chat-ui/src/sandbox/status-pill.tsx
+msgid "Isolation: {isolationLabel}. {isolationHelp}"
+msgstr "Isolation: {isolationLabel}. {isolationHelp}"
 
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "Key"
@@ -993,6 +1013,18 @@ msgstr "Load latest"
 msgid "Loading"
 msgstr "Loading"
 
+#: ../chat-ui/src/sandbox/files.tsx
+msgid "Loading files…"
+msgstr "Loading files…"
+
+#: ../chat-ui/src/sandbox/lazy-sandbox-panel.tsx
+msgid "Loading sandbox"
+msgstr "Loading sandbox"
+
+#: ../chat-ui/src/sandbox/status-pill.tsx
+msgid "Local"
+msgstr "Local"
+
 #: ../../apps/web/app/(app)/_shared/providers.tsx
 msgid "locale"
 msgstr "locale"
@@ -1000,6 +1032,10 @@ msgstr "locale"
 #: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
 msgid "Locked by server config"
 msgstr "Locked by server config"
+
+#: ../chat-ui/src/sandbox/terminal.tsx
+msgid "ls -la"
+msgstr "ls -la"
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Markdown"
@@ -1267,10 +1303,6 @@ msgstr "Open link"
 msgid "Open preview in a new tab"
 msgstr "Open preview in a new tab"
 
-#. placeholder {0}: open.path
-#: ../chat-ui/src/sandbox/files.tsx
-msgid "Opening {0}…"
-msgstr "Opening {0}…"
 #: ../../apps/web/app/(app)/_shared/providers.tsx
 #: ../shortcuts/src/registry.ts
 msgid "Open settings"
@@ -1279,6 +1311,11 @@ msgstr "Open settings"
 #: ../shortcuts/src/registry.ts
 msgid "Open the command palette"
 msgstr "Open the command palette"
+
+#. placeholder {0}: open.path
+#: ../chat-ui/src/sandbox/files.tsx
+msgid "Opening {0}…"
+msgstr "Opening {0}…"
 
 #: ../code-ui/src/diff-view.tsx
 msgid "Optional: tell the agent why"
@@ -1372,11 +1409,28 @@ msgstr "Pinned"
 msgid "PNG"
 msgstr "PNG"
 
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+msgid "policies"
+msgstr "policies"
+
+#: ../../apps/web/app/(app)/admin/[orgId]/layout.tsx
+#: ../../apps/web/app/(app)/admin/[orgId]/policies/page.tsx
+msgid "Policies"
+msgstr "Policies"
+
 #: ../chat-ui/src/sandbox/preview.tsx
 msgid "Port"
 msgstr "Port"
 
 #: ../chat-ui/src/artifacts/artifacts-panel.tsx
+#: ../../apps/web/app/(app)/settings/_components/profile-settings.tsx
+msgid "Preferences"
+msgstr "Preferences"
+
+#: ../shortcuts/src/react/shortcuts-editor.tsx
+msgid "Press keys…"
+msgstr "Press keys…"
+
 #: ../chat-ui/src/sandbox/preview.tsx
 #: ../chat-ui/src/sandbox/sandbox-panel.tsx
 msgid "Preview"
@@ -1503,6 +1557,10 @@ msgstr "Publish gate"
 msgid "Publishing is blocked when evals regress."
 msgstr "Publishing is blocked when evals regress."
 
+#: ../chat-ui/src/sandbox/status-pill.tsx
+msgid "Ready"
+msgstr "Ready"
+
 #: ../palette/src/command-palette.tsx
 msgid "Recent chats"
 msgstr "Recent chats"
@@ -1524,6 +1582,10 @@ msgstr "Regenerate"
 msgid "Record your own keys for any shortcut. Your changes are saved in this browser."
 msgstr "Record your own keys for any shortcut. Your changes are saved in this browser."
 
+#: ../chat-ui/src/sandbox/files.tsx
+msgid "Refresh files"
+msgstr "Refresh files"
+
 #: ../code-ui/src/diff-view.tsx
 msgid "Reject"
 msgstr "Reject"
@@ -1540,12 +1602,13 @@ msgstr "Reject change {number}"
 msgid "Reject the rest"
 msgstr "Reject the rest"
 
-#: ../chat-ui/src/sandbox/preview.tsx
-msgid "Reload preview"
-msgstr "Reload preview"
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "Rejected"
 msgstr "Rejected"
+
+#: ../chat-ui/src/sandbox/preview.tsx
+msgid "Reload preview"
+msgstr "Reload preview"
 
 #: ../ui/src/components/ai-elements/message.tsx
 #: ../ui/src/components/ai-elements/prompt-input.tsx
@@ -1606,6 +1669,10 @@ msgstr "Reset {description}"
 msgid "Reset all"
 msgstr "Reset all"
 
+#: ../chat-ui/src/sandbox/sandbox-panel.tsx
+msgid "Reset sandbox"
+msgstr "Reset sandbox"
+
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Reset zoom and pan"
 msgstr "Reset zoom and pan"
@@ -1613,6 +1680,7 @@ msgstr "Reset zoom and pan"
 #: ../chat-ui/src/sandbox/sandbox-panel.tsx
 msgid "Reset: start again with an empty workspace"
 msgstr "Reset: start again with an empty workspace"
+
 #: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
 msgid "Resets {resets}"
 msgstr "Resets {resets}"
@@ -1661,6 +1729,14 @@ msgstr "Role"
 msgid "Role for {name}"
 msgstr "Role for {name}"
 
+#: ../chat-ui/src/sandbox/terminal.tsx
+msgid "Run a command to see its output here."
+msgstr "Run a command to see its output here."
+
+#: ../chat-ui/src/sandbox/terminal.tsx
+msgid "Run command"
+msgstr "Run command"
+
 #: ../ui/src/components/ai-elements/tool.tsx
 msgid "Running"
 msgstr "Running"
@@ -1685,6 +1761,14 @@ msgstr "Runs in a plain Docker container. gVisor isn't available on this host, s
 msgid "Runs in a remote microVM."
 msgstr "Runs in a remote microVM."
 
+#: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
+msgid "Sampled scoring"
+msgstr "Sampled scoring"
+
+#: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
+msgid "Sampled scoring is off: this server forbids it."
+msgstr "Sampled scoring is off: this server forbids it."
+
 #: ../chat-ui/src/sandbox/sandbox-panel.tsx
 #: ../chat-ui/src/shell/right-panel.tsx
 msgid "Sandbox"
@@ -1708,13 +1792,6 @@ msgstr "Sandbox panel"
 #: ../chat-ui/src/sandbox/sandbox-panel.tsx
 msgid "Sandbox views"
 msgstr "Sandbox views"
-#: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
-msgid "Sampled scoring"
-msgstr "Sampled scoring"
-
-#: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
-msgid "Sampled scoring is off: this server forbids it."
-msgstr "Sampled scoring is off: this server forbids it."
 
 #: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
 msgid "Save"
@@ -1766,9 +1843,6 @@ msgstr "Search chats, agents and settings, or run an action"
 msgid "Search files"
 msgstr "Search files"
 
-#: ../chat-ui/src/sandbox/files.tsx
-msgid "Select a file to view it."
-msgstr "Select a file to view it."
 #: ../ui/src/components/command.tsx
 msgid "Search for a command to run"
 msgstr "Search for a command to run"
@@ -1782,6 +1856,10 @@ msgid "Searching messages…"
 msgstr "Searching messages…"
 
 #: ../chat-ui/src/conversation/message-row.tsx
+#: ../chat-ui/src/sandbox/files.tsx
+msgid "Select a file to view it."
+msgstr "Select a file to view it."
+
 #: ../composer/src/components/composer-footer.tsx
 msgid "Send"
 msgstr "Send"
@@ -1867,6 +1945,10 @@ msgstr "Show the sandbox"
 msgid "Sign-in is switched off until an administrator sets BETTER_AUTH_SECRET."
 msgstr "Sign-in is switched off until an administrator sets BETTER_AUTH_SECRET."
 
+#: ../chat-ui/src/sandbox/status-pill.tsx
+msgid "Simulated"
+msgstr "Simulated"
+
 #: ../shortcuts/src/react/help-dialog.tsx
 msgid "Single keys work when you're not typing in a text field."
 msgstr "Single keys work when you're not typing in a text field."
@@ -1940,6 +2022,10 @@ msgstr "Stopped"
 msgid "Stop generating"
 msgstr "Stop generating"
 
+#: ../chat-ui/src/sandbox/status-pill.tsx
+msgid "Stopped"
+msgstr "Stopped"
+
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "Stored encrypted and never shown again; only its last characters are."
 msgstr "Stored encrypted and never shown again; only its last characters are."
@@ -1984,9 +2070,6 @@ msgstr "team"
 msgid "Team"
 msgstr "Team"
 
-#: ../chat-ui/src/sandbox/sandbox-panel.tsx
-msgid "Terminal"
-msgstr "Terminal"
 #: ../../apps/web/app/(app)/admin/_components/teams-admin.tsx
 msgid "Team name"
 msgstr "Team name"
@@ -2007,6 +2090,10 @@ msgstr "terminal"
 #: ../chat-ui/src/conversation/feedback.tsx
 msgid "Thanks! What was good? (optional)"
 msgstr "Thanks! What was good? (optional)"
+#: ../chat-ui/src/sandbox/sandbox-panel.tsx
+msgid "Terminal"
+msgstr "Terminal"
+
 #: ../../apps/web/app/(app)/admin/_components/members-admin.tsx
 #: ../../apps/web/app/(app)/admin/_components/teams-admin.tsx
 #: ../../apps/web/app/(app)/settings/_components/profile-settings.tsx
@@ -2056,6 +2143,10 @@ msgstr "The audit policy is off: this server forbids it."
 msgid "The budget couldn't be saved. Try again."
 msgstr "The budget couldn't be saved. Try again."
 
+#: ../../apps/web/app/dev/sandbox/page.tsx
+msgid "The chat sandbox panel over a just-bash workspace that runs entirely in this browser tab: simulated bash, an in-memory filesystem, no server and no network. Reloading the page starts over."
+msgstr "The chat sandbox panel over a just-bash workspace that runs entirely in this browser tab: simulated bash, an in-memory filesystem, no server and no network. Reloading the page starts over."
+
 #: ../composer/src/components/context-chip.tsx
 msgid "The context can't change after the first message."
 msgstr "The context can't change after the first message."
@@ -2096,9 +2187,6 @@ msgstr "The sandbox is unavailable."
 msgid "The sandbox was destroyed. Create a new one."
 msgstr "The sandbox was destroyed. Create a new one."
 
-#: ../chat-ui/src/sandbox/files.tsx
-msgid "The workspace is empty."
-msgstr "The workspace is empty."
 #: ../../apps/web/app/(app)/_shared/unavailable.tsx
 msgid "The server's configuration file has problems. An administrator can find the details in the server log."
 msgstr "The server's configuration file has problems. An administrator can find the details in the server log."
@@ -2111,6 +2199,10 @@ msgstr "The team couldn't be created. Try again."
 #: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
 msgid "The whole org"
 msgstr "The whole org"
+
+#: ../chat-ui/src/sandbox/files.tsx
+msgid "The workspace is empty."
+msgstr "The workspace is empty."
 
 #: ../../apps/web/app/(app)/_shared/providers.tsx
 msgid "theme"
@@ -2149,9 +2241,6 @@ msgstr "This change couldn't be displayed as a diff."
 msgid "This chat has no sandbox yet. Create one to run commands and keep files the agent can work on."
 msgstr "This chat has no sandbox yet. Create one to run commands and keep files the agent can work on."
 
-#: ../../apps/web/app/dev/sandbox/demo.tsx
-msgid "This sandbox can't do that."
-msgstr "This sandbox can't do that."
 #: ../../apps/web/app/(app)/_shared/query-state.tsx
 msgid "This couldn't be loaded."
 msgstr "This couldn't be loaded."
@@ -2159,6 +2248,10 @@ msgstr "This couldn't be loaded."
 #: ../../apps/web/app/(app)/_shared/query-state.tsx
 msgid "This feature is switched off on this server."
 msgstr "This feature is switched off on this server."
+
+#: ../../apps/web/app/dev/sandbox/demo.tsx
+msgid "This sandbox can't do that."
+msgstr "This sandbox can't do that."
 
 #: ../../apps/web/app/(app)/_shared/unavailable.tsx
 msgid "This server has no database yet, so there are no accounts to sign in to. An administrator needs to set DATABASE_URL."
@@ -2180,6 +2273,7 @@ msgstr "Thought for a few seconds"
 #: ../chat-ui/src/sandbox/terminal.tsx
 msgid "Timed out after {0} ms"
 msgstr "Timed out after {0} ms"
+
 #: ../shortcuts/src/registry.ts
 msgid "Toggle the artifacts panel"
 msgstr "Toggle the artifacts panel"
@@ -2359,6 +2453,10 @@ msgstr "Work account"
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "Works"
 msgstr "Works"
+
+#: ../chat-ui/src/sandbox/files.tsx
+msgid "Workspace"
+msgstr "Workspace"
 
 #: ../../apps/web/app/dev/ai-elements/demo.tsx
 msgid "Would send “{text}” with {fileCount, plural, one {# attachment} other {# attachments}}."
