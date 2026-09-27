@@ -11,6 +11,7 @@ import type {
   RunStreamWriter,
   TerminalRunStatus,
 } from "@workspace/ai/ports/run-executor";
+import { toolSources } from "@workspace/ai/rag/sources";
 import type {
   FileId,
   JsonValue,
@@ -156,6 +157,30 @@ const recordedDecisions = (
         : []
     )
   );
+
+/**
+ * The answer's parts with each retrieval tool's citations (`toolSources`)
+ * stored as `source` parts right after its result, where the UI renders
+ * them, also after a reload. A resumed answer already carries the earlier
+ * ones, so ids seen before aren't added twice.
+ */
+export const withCitations = (parts: readonly MessagePart[]): MessagePart[] => {
+  const seen = new Set(
+    parts.flatMap((part) => (part.type === "source" ? [part.id] : []))
+  );
+  return parts.flatMap((part) => {
+    if (part.type !== "tool-result" || part.output.status !== "success") {
+      return [part];
+    }
+    const cited = toolSources(part.output.value).filter(
+      (source) => !seen.has(source.id)
+    );
+    for (const source of cited) {
+      seen.add(source.id);
+    }
+    return [part, ...cited];
+  });
+};
 
 export const createInProcessExecutor = (
   deps: InProcessExecutorDeps
@@ -318,7 +343,7 @@ export const createInProcessExecutor = (
     if (!mapped.ok) {
       report("couldn't store the answer's parts", mapped.error);
     }
-    const parts = mapped.ok ? mapped.value : [];
+    const parts = mapped.ok ? withCitations(mapped.value) : [];
     const usage =
       outcome.usage.inputTokens + outcome.usage.outputTokens > 0
         ? outcome.usage

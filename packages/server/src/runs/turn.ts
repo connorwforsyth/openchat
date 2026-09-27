@@ -41,6 +41,12 @@ import type { Tool, ToolApprovalStatus, ToolSet } from "ai";
 
 import { canUseLibraryItem } from "../library/router";
 import { draftFor } from "./drafts";
+import {
+  gateTurnTools,
+  type KnowledgeDeps,
+  type RetrievalGateDeps,
+  withFileSearch,
+} from "./retrieval";
 
 // What a run answers with (PLAN.md §8 steps 3.2–3.4): the target resolved to
 // a model and the key that pays for it, plus the agent's instructions and
@@ -93,9 +99,16 @@ export interface TurnResolverDeps {
   readonly config: Pick<AppConfig, "models" | "policies">;
   readonly db: Db;
   readonly keyStore: KeyStore;
+  /**
+   * `file_search` over an agent's knowledge files and the chat's
+   * attachments (036); leave out when `embeddings.model` isn't set.
+   */
+  readonly knowledge?: KnowledgeDeps;
   /** MCP tools (ticket 018). */
   readonly mcp?: McpToolSource;
   readonly registry: ProviderRegistry;
+  /** The Decider's retrieval gate (D15); without it retrieval tools are always offered. */
+  readonly retrieval?: RetrievalGateDeps;
   /** Routes `auto` (the Decider); leave out when `models.auto` is off. */
   readonly routeAuto?: (
     state: DeciderState,
@@ -251,9 +264,17 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
     if (!loaded.ok) {
       return loaded;
     }
-    const builtins = deps.builtins ?? {};
+    const searchable = await withFileSearch(
+      db,
+      deps.knowledge,
+      run,
+      definition
+    );
+    // The per-turn `file_search` wins over a static one: only it is scoped
+    // to this requester, chat and agent.
+    const builtins = { ...deps.builtins, ...searchable.builtins };
     const plan = resolveTools(
-      definition,
+      searchable.agent,
       {
         builtins: new Set(Object.keys(builtins)),
         modelSupportsTools: true,
@@ -266,13 +287,17 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
       { builtins, mcp: deps.mcp },
       { signal }
     );
+    const gated = await gateTurnTools(deps.retrieval, run, toolSet, {
+      signal,
+      state,
+    });
     return ok({
       ...loaded.value,
       agent: { id: target.id, versionId: version.value.id },
       instructions: definition.instructions,
       parameters: definition.parameters,
-      toolApproval: toolSet.toolApproval,
-      tools: toolSet.tools,
+      toolApproval: gated.toolApproval,
+      tools: gated.tools,
     });
   };
 };
