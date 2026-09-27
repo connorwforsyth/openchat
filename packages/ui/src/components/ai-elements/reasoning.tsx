@@ -173,7 +173,7 @@ export const ReasoningTrigger = memo(
     return (
       <CollapsibleTrigger
         className={cn(
-          "flex w-full items-center gap-2 text-muted-foreground text-sm transition-colors hover:text-foreground",
+          "flex w-full items-center gap-2 text-muted-foreground text-sm transition-colors duration-(--motion-fast) hover:text-foreground",
           className
         )}
         {...props}
@@ -184,7 +184,7 @@ export const ReasoningTrigger = memo(
             {getThinkingMessage(isStreaming, duration)}
             <ChevronDownIcon
               className={cn(
-                "size-4 transition-transform",
+                "size-4 transition-transform duration-(--motion-fast) ease-motion-out",
                 isOpen ? "rotate-180" : "rotate-0"
               )}
             />
@@ -201,6 +201,7 @@ export type ReasoningContentProps = ComponentProps<
   children: string;
 };
 
+// Opens and closes at once, like `ToolContent` (D28: no height animation).
 export const ReasoningContent = memo(
   ({ className, children, ...props }: ReasoningContentProps) => {
     const defaults = useStreamdownDefaults();
@@ -208,7 +209,7 @@ export const ReasoningContent = memo(
     return (
       <CollapsibleContent
         className={cn(
-          "mt-4 h-(--collapsible-panel-height) overflow-hidden text-muted-foreground text-sm outline-none transition-[height,opacity] duration-200 ease-out data-ending-style:h-0 data-starting-style:h-0 data-ending-style:opacity-0 data-starting-style:opacity-0",
+          "mt-4 overflow-hidden text-muted-foreground text-sm outline-none",
           className
         )}
         {...props}

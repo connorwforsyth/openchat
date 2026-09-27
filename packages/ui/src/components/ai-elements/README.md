@@ -41,8 +41,8 @@ from the `base-nova` registry, so they were Base UI already.
   no longer nests a button in a button.
 - Radix's `useControllableState` in `reasoning.tsx` became a
   five-line controlled/uncontrolled state; Base UI keeps its version internal.
-- Collapsible `data-[state=open|closed]` animations became Base UI's
-  `--collapsible-panel-height` with `data-starting-style`/`data-ending-style`;
+- Collapsible `data-[state=open|closed]` height animations were dropped:
+  panels open and close at once (D28 animates only transform and opacity);
   the tool chevron reads the trigger's `data-panel-open`.
 - Hover-card delays moved from the root to the trigger
   (`PromptInputHoverCardTrigger`), where Base UI's `PreviewCard` keeps them.

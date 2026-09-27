@@ -301,7 +301,7 @@ export function PromptInputAttachment({
         render={
           <div
             className={cn(
-              "group relative flex h-8 cursor-pointer select-none items-center gap-1.5 rounded-md border border-border px-1.5 font-medium text-sm transition-all hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+              "group relative flex h-8 cursor-pointer select-none items-center gap-1.5 rounded-md border border-border px-1.5 font-medium text-sm transition-colors duration-(--motion-fast) hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
               className
             )}
             {...props}
@@ -1197,8 +1197,9 @@ export const PromptInputSpeechButton = ({
       aria-label={isListening ? t`Stop dictation` : t`Start dictation`}
       aria-pressed={isListening}
       className={cn(
-        "relative transition-all duration-200",
-        isListening && "animate-pulse bg-accent text-accent-foreground",
+        "relative transition-colors duration-(--motion-fast)",
+        isListening &&
+          "bg-accent text-accent-foreground motion-safe:animate-pulse",
         className
       )}
       disabled={!recognition}

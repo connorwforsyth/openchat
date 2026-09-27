@@ -99,6 +99,11 @@
   --motion-base: 250ms;
   --motion-slow: 350ms;
   --motion-exit: 150ms;
+  /*
+   * How far things travel as they enter and leave, as a multiplier on their
+   * offset: sheets slide in by `calc(100% * var(--motion-travel))`.
+   */
+  --motion-travel: 1;
 }
 
 /* Reduced motion keeps fades (they aid comprehension) and drops movement. */
@@ -106,6 +111,7 @@
   :root {
     --motion-base: var(--motion-fast);
     --motion-slow: var(--motion-fast);
+    --motion-travel: 0;
   }
 }
 

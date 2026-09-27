@@ -94,16 +94,18 @@ export const ToolHeader = ({
       </span>
       <ToolStatusBadge status={state} />
     </div>
-    <ChevronDownIcon className="size-4 text-muted-foreground transition-transform group-data-panel-open:rotate-180" />
+    <ChevronDownIcon className="size-4 text-muted-foreground transition-transform duration-(--motion-fast) ease-motion-out group-data-panel-open:rotate-180" />
   </CollapsibleTrigger>
 );
 
 export type ToolContentProps = ComponentProps<typeof CollapsibleContent>;
 
+// Opens and closes at once: D28 never animates height, and a tool card is
+// toggled often enough that a reveal would only slow it down.
 export const ToolContent = ({ className, ...props }: ToolContentProps) => (
   <CollapsibleContent
     className={cn(
-      "h-(--collapsible-panel-height) overflow-hidden text-popover-foreground outline-none transition-[height,opacity] duration-200 ease-out data-ending-style:h-0 data-starting-style:h-0 data-ending-style:opacity-0 data-starting-style:opacity-0",
+      "overflow-hidden text-popover-foreground outline-none",
       className
     )}
     {...props}

@@ -323,6 +323,7 @@ msgid "Artifacts in this chat"
 msgstr "Artifacts in this chat"
 
 #: ../chat-ui/src/chat/chat-screen.tsx
+#: ../chat-ui/src/header/overflow-menu.tsx
 #: ../chat-ui/src/shell/right-panel.tsx
 #: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
 msgid "Artifacts panel"
@@ -650,12 +651,14 @@ msgstr "Copy"
 msgid "Copy code"
 msgstr "Copy code"
 
+#: ../chat-ui/src/header/overflow-menu.tsx
 #: ../chat-ui/src/header/share-menu.tsx
 #: ../library-ui/src/components/share-dialog.tsx
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Copy link"
 msgstr "Copy link"
 
+#: ../chat-ui/src/header/overflow-menu.tsx
 #: ../chat-ui/src/header/share-menu.tsx
 msgid "Copy link to this chat"
 msgstr "Copy link to this chat"
@@ -1106,6 +1109,7 @@ msgstr "Instructions"
 msgid "Invite"
 msgstr "Invite"
 
+#: ../chat-ui/src/header/overflow-menu.tsx
 #: ../chat-ui/src/header/share-menu.tsx
 msgid "Invite people…"
 msgstr "Invite people…"
@@ -1226,6 +1230,7 @@ msgstr "Light"
 msgid "Limit (USD)"
 msgstr "Limit (USD)"
 
+#: ../chat-ui/src/header/overflow-menu.tsx
 #: ../chat-ui/src/header/share-menu.tsx
 msgid "Link copied"
 msgstr "Link copied"
@@ -1399,6 +1404,7 @@ msgstr "Models"
 msgid "Monthly"
 msgstr "Monthly"
 
+#: ../chat-ui/src/header/overflow-menu.tsx
 #: ../library-ui/src/components/item-builder.tsx
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "More actions"
@@ -2166,6 +2172,7 @@ msgid "Sandbox output"
 msgstr "Sandbox output"
 
 #: ../../apps/web/app/dev/sandbox/page.tsx
+#: ../chat-ui/src/header/overflow-menu.tsx
 #: ../chat-ui/src/header/sandbox-pill.tsx
 #: ../chat-ui/src/shell/right-panel.tsx
 #: ../chat-ui/src/shortcuts/use-shortcut-labels.ts

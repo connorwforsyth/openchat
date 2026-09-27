@@ -3,7 +3,7 @@ import { contextOptionsFromMe } from "@workspace/composer/options";
 import { fixtureId, me, teamPlatform } from "@workspace/contract/fixtures";
 import type { ChatContext } from "@workspace/contract/schemas/tenancy";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { userEvent } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
 
 import {
   chatArtifacts,
@@ -252,5 +252,107 @@ describe("sidebar", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: "Undo" }));
     expect(onRestore).toHaveBeenCalledWith(chats[2]?.id);
+  });
+});
+
+describe("narrow screens", () => {
+  beforeEach(async () => {
+    await page.viewport(375, 812);
+  });
+  afterEach(async () => {
+    await page.viewport(1280, 800);
+  });
+
+  const sheet = (name: string) => screen.findByRole("dialog", { name });
+
+  it("opens the sidebar as a sheet that traps focus and closes on Esc", async () => {
+    renderWithI18n(<ChatScreen {...props()} />);
+    // No sidebar beside the chat; the toggle opens it over the chat instead.
+    expect(screen.queryByRole("complementary", { name: "Chats" })).toBeNull();
+    const toggle = header().getByRole("button", { name: "Toggle sidebar" });
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+
+    await userEvent.click(toggle);
+    const chatsSheet = await sheet("Chats");
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    await waitFor(() =>
+      expect(chatsSheet.contains(document.activeElement)).toBe(true)
+    );
+    // Tabbing cycles inside the sheet rather than escaping to the page.
+    for (let step = 0; step < 12; step += 1) {
+      // biome-ignore lint/performance/noAwaitInLoops: each Tab depends on where the last one left focus.
+      await userEvent.tab();
+      expect(chatsSheet.contains(document.activeElement)).toBe(true);
+    }
+
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Chats" })).toBeNull()
+    );
+    // The wide layout's remembered sidebar is left alone.
+    expect(window.localStorage.getItem(SHELL_LAYOUT_STORAGE_KEY)).not.toContain(
+      '"sidebarOpen":false'
+    );
+  });
+
+  it("closes the sidebar sheet once a chat is picked", async () => {
+    const onSelect = vi.fn();
+    const base = props();
+    renderWithI18n(
+      <ChatScreen {...props({ sidebar: { ...base.sidebar, onSelect } })} />
+    );
+    const mod = modKey();
+    await userEvent.keyboard(`{${mod}>}b{/${mod}}`);
+    const chatsSheet = within(await sheet("Chats"));
+    const title = chats[2]?.title ?? "";
+    // The keyboard picks it: the page has no stylesheet in tests, so the
+    // row sits below the fold of a scroll-locked page.
+    chatsSheet.getByRole("button", { name: title }).focus();
+    await userEvent.keyboard("{Enter}");
+    expect(onSelect).toHaveBeenCalledWith(chats[2]?.id);
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Chats" })).toBeNull()
+    );
+  });
+
+  it("shows the side panel as a bottom sheet, opened from the overflow menu", async () => {
+    renderWithI18n(<ChatScreen {...props()} />);
+    // Share and the panel buttons move into the overflow menu.
+    expect(header().queryByRole("button", { name: "Share" })).toBeNull();
+    await userEvent.click(
+      header().getByRole("button", { name: "More actions" })
+    );
+    await userEvent.click(
+      await screen.findByRole("menuitemcheckbox", { name: "Artifacts panel" })
+    );
+    const panelSheet = within(await sheet("Side panel"));
+    expect(
+      panelSheet
+        .getByRole("tab", { name: "Artifacts" })
+        .getAttribute("aria-selected")
+    ).toBe("true");
+
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Side panel" })).toBeNull()
+    );
+    expect(
+      JSON.parse(window.localStorage.getItem(SHELL_LAYOUT_STORAGE_KEY) ?? "{}")
+    ).toMatchObject({ panel: null });
+  });
+
+  it("goes back to the side-by-side layout when the screen widens", async () => {
+    renderWithI18n(<ChatScreen {...props()} />);
+    await userEvent.keyboard("a");
+    expect(await sheet("Side panel")).toBeTruthy();
+
+    await page.viewport(1280, 800);
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Side panel" })).toBeNull()
+    );
+    expect(
+      screen.getByRole("complementary", { name: "Side panel" })
+    ).toBeTruthy();
+    expect(screen.getByRole("complementary", { name: "Chats" })).toBeTruthy();
   });
 });

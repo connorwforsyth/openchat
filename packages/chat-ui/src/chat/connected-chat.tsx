@@ -38,11 +38,8 @@ import type { SandboxPanelClient } from "../sandbox/model/client";
 import type { Platform } from "../shell/platform";
 import type { Theme } from "../sidebar/account-menu";
 import { ChatScreen } from "./chat-screen";
-import {
-  useChatQueries,
-  useConversationUpdate,
-  useFeedback,
-} from "./use-chat-data";
+import { useBranchFeedback } from "./use-branch-feedback";
+import { useChatQueries, useConversationUpdate } from "./use-chat-data";
 
 // The chat screen over the API (D11): TanStack Query for everything stored,
 // `useRunChat` for the turn that's streaming. Ticket 025 mounts this in the
@@ -221,7 +218,7 @@ export function ConnectedChat({
     sandboxes: config.features.sandboxes,
   });
   const stored = data.path.data?.messages ?? NO_MESSAGES;
-  const feedback = useFeedback(api, stored);
+  const feedback = useBranchFeedback(api, stored);
   const update = useConversationUpdate(api);
 
   // Another chat starts from its own active leaf and artifacts.

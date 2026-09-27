@@ -3,7 +3,6 @@
 import {
   skipToken,
   useMutation,
-  useQueries,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
@@ -17,13 +16,7 @@ import type {
   Conversation,
   updateConversationInputSchema,
 } from "@workspace/contract/schemas/conversations";
-import type { Feedback } from "@workspace/contract/schemas/feedback";
-import type { Message } from "@workspace/contract/schemas/messages";
-import { useCallback, useMemo, useState } from "react";
 import type { z } from "zod";
-
-import type { FeedbackInput } from "../conversation/actions";
-import type { MessageFeedback } from "../conversation/feedback";
 
 // The queries and mutations behind `ConnectedChat`, split out so each piece
 // reads on its own. Keys come from the contract through
@@ -99,81 +92,6 @@ export const useChatQueries = (
     tree,
     versions,
   };
-};
-
-const toFeedback = (
-  feedback: Feedback | null | undefined
-): MessageFeedback | undefined =>
-  feedback
-    ? {
-        comment: feedback.comment,
-        rating: feedback.rating,
-        shareWithMaintainers: feedback.shareWithMaintainers,
-      }
-    : undefined;
-
-/**
- * The user's feedback on the answers shown: fetched per message, overridden
- * locally the moment they click (D28), and sent in the background.
- */
-export const useFeedback = (api: QueryUtils, messages: readonly Message[]) => {
-  const [overrides, setOverrides] = useState<
-    Readonly<Record<string, MessageFeedback | null>>
-  >({});
-  const assistantIds = useMemo(
-    () =>
-      messages.flatMap((message) =>
-        message.role === "assistant" ? [message.id] : []
-      ),
-    [messages]
-  );
-  const stored = useQueries({
-    queries: assistantIds.map((messageId) =>
-      api.feedback.get.queryOptions({ input: { messageId }, retry: false })
-    ),
-  });
-  const { mutate: send } = useMutation(api.feedback.set.mutationOptions());
-  const { mutate: remove } = useMutation(api.feedback.delete.mutationOptions());
-
-  const byMessage = useMemo(() => {
-    const merged: Record<string, MessageFeedback> = {};
-    assistantIds.forEach((messageId, index) => {
-      const known =
-        messageId in overrides
-          ? overrides[messageId]
-          : toFeedback(stored[index]?.data);
-      if (known) {
-        merged[messageId] = known;
-      }
-    });
-    return merged;
-  }, [assistantIds, overrides, stored]);
-
-  const set = useCallback(
-    (input: FeedbackInput) => {
-      const shareWithMaintainers = input.shareWithMaintainers ?? false;
-      setOverrides((previous) => ({
-        ...previous,
-        [input.messageId]: {
-          comment: input.comment ?? null,
-          rating: input.rating,
-          shareWithMaintainers,
-        },
-      }));
-      send({ ...input, shareWithMaintainers });
-    },
-    [send]
-  );
-  const clear = useCallback(
-    (messageId: MessageId) => {
-      setOverrides((previous) => ({ ...previous, [messageId]: null }));
-      remove({ messageId });
-    },
-    [remove]
-  );
-  const reset = useCallback(() => setOverrides({}), []);
-
-  return { byMessage, clear, reset, set };
 };
 
 type ConversationUpdate = z.input<typeof updateConversationInputSchema>;
