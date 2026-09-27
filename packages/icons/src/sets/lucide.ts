@@ -1,6 +1,7 @@
 // The reference set, and the fallback for every other set: it must map every
 // name in `names.ts` (enforced by `sets.test.ts`).
 import {
+  Archive,
   ArrowDown,
   ArrowLeft,
   ArrowRight,
@@ -21,6 +22,7 @@ import {
   CircleCheck,
   CircleX,
   Clock,
+  Code,
   Copy,
   CornerDownLeft,
   Download,
@@ -36,7 +38,10 @@ import {
   GripVertical,
   Image,
   Info,
+  Keyboard,
   Layers,
+  Library,
+  Link,
   Loader,
   Loader2,
   LoaderCircle,
@@ -52,8 +57,11 @@ import {
   MoreHorizontal,
   OctagonX,
   PanelLeft,
+  PanelRight,
   Paperclip,
   Pencil,
+  Pin,
+  PinOff,
   Plus,
   RefreshCw,
   RotateCcw,
@@ -61,17 +69,20 @@ import {
   Send,
   Settings,
   Share,
+  Shield,
   Sparkles,
   Square,
   SquarePen,
   Star,
   Sun,
+  Terminal,
   ThumbsDown,
   ThumbsUp,
   Trash2,
   TriangleAlert,
   Upload,
   User,
+  UserPlus,
   Users,
   Wrench,
   X,
@@ -165,3 +176,14 @@ export const NewChatIcon: Icon = SquarePen;
 export const ReasoningIcon: Icon = Brain;
 export const StopIcon: Icon = Square;
 export const ToolIcon: Icon = Wrench;
+export const TerminalIcon: Icon = Terminal;
+export const PinIcon: Icon = Pin;
+export const PinOffIcon: Icon = PinOff;
+export const ArchiveIcon: Icon = Archive;
+export const LibraryIcon: Icon = Library;
+export const PanelRightIcon: Icon = PanelRight;
+export const KeyboardIcon: Icon = Keyboard;
+export const LinkIcon: Icon = Link;
+export const UserPlusIcon: Icon = UserPlus;
+export const ShieldIcon: Icon = Shield;
+export const CodeIcon: Icon = Code;

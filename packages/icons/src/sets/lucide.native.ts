@@ -1,5 +1,6 @@
 // React Native twin of `lucide.ts`, over `lucide-react-native`.
 import {
+  Archive,
   ArrowDown,
   ArrowLeft,
   ArrowRight,
@@ -20,6 +21,7 @@ import {
   CircleCheck,
   CircleX,
   Clock,
+  Code,
   Copy,
   CornerDownLeft,
   Download,
@@ -35,7 +37,10 @@ import {
   GripVertical,
   Image,
   Info,
+  Keyboard,
   Layers,
+  Library,
+  Link,
   Loader,
   Loader2,
   LoaderCircle,
@@ -51,8 +56,11 @@ import {
   MoreHorizontal,
   OctagonX,
   PanelLeft,
+  PanelRight,
   Paperclip,
   Pencil,
+  Pin,
+  PinOff,
   Plus,
   RefreshCw,
   RotateCcw,
@@ -60,17 +68,20 @@ import {
   Send,
   Settings,
   Share,
+  Shield,
   Sparkles,
   Square,
   SquarePen,
   Star,
   Sun,
+  Terminal,
   ThumbsDown,
   ThumbsUp,
   Trash2,
   TriangleAlert,
   Upload,
   User,
+  UserPlus,
   Users,
   Wrench,
   X,
@@ -164,3 +175,14 @@ export const NewChatIcon: NativeIcon = SquarePen;
 export const ReasoningIcon: NativeIcon = Brain;
 export const StopIcon: NativeIcon = Square;
 export const ToolIcon: NativeIcon = Wrench;
+export const TerminalIcon: NativeIcon = Terminal;
+export const PinIcon: NativeIcon = Pin;
+export const PinOffIcon: NativeIcon = PinOff;
+export const ArchiveIcon: NativeIcon = Archive;
+export const LibraryIcon: NativeIcon = Library;
+export const PanelRightIcon: NativeIcon = PanelRight;
+export const KeyboardIcon: NativeIcon = Keyboard;
+export const LinkIcon: NativeIcon = Link;
+export const UserPlusIcon: NativeIcon = UserPlus;
+export const ShieldIcon: NativeIcon = Shield;
+export const CodeIcon: NativeIcon = Code;

@@ -3,6 +3,8 @@
 //
 // Deep `dist/ssr/*` imports: the SSR build has no React context, so it renders
 // in Server Components, and per-icon paths keep bundlers off the 9,000-icon barrel.
+
+import { ArchiveIcon as Archive } from "@phosphor-icons/react/dist/ssr/Archive";
 import { ArrowClockwiseIcon as ArrowClockwise } from "@phosphor-icons/react/dist/ssr/ArrowClockwise";
 import { ArrowCounterClockwiseIcon as ArrowCounterClockwise } from "@phosphor-icons/react/dist/ssr/ArrowCounterClockwise";
 import { ArrowDownIcon as ArrowDown } from "@phosphor-icons/react/dist/ssr/ArrowDown";
@@ -13,6 +15,7 @@ import { ArrowSquareOutIcon as ArrowSquareOut } from "@phosphor-icons/react/dist
 import { ArrowsOutIcon as ArrowsOut } from "@phosphor-icons/react/dist/ssr/ArrowsOut";
 import { ArrowUpIcon as ArrowUp } from "@phosphor-icons/react/dist/ssr/ArrowUp";
 import { AtIcon as At } from "@phosphor-icons/react/dist/ssr/At";
+import { BooksIcon as Books } from "@phosphor-icons/react/dist/ssr/Books";
 import { BrainIcon as Brain } from "@phosphor-icons/react/dist/ssr/Brain";
 import { BuildingsIcon as Buildings } from "@phosphor-icons/react/dist/ssr/Buildings";
 import { CalendarIcon as Calendar } from "@phosphor-icons/react/dist/ssr/Calendar";
@@ -27,6 +30,7 @@ import { CheckCircleIcon as CheckCircle } from "@phosphor-icons/react/dist/ssr/C
 import { CircleIcon as Circle } from "@phosphor-icons/react/dist/ssr/Circle";
 import { CircleNotchIcon as CircleNotch } from "@phosphor-icons/react/dist/ssr/CircleNotch";
 import { ClockIcon as Clock } from "@phosphor-icons/react/dist/ssr/Clock";
+import { CodeIcon as Code } from "@phosphor-icons/react/dist/ssr/Code";
 import { CopyIcon as Copy } from "@phosphor-icons/react/dist/ssr/Copy";
 import { DotsSixVerticalIcon as DotsSixVertical } from "@phosphor-icons/react/dist/ssr/DotsSixVertical";
 import { DotsThreeIcon as DotsThree } from "@phosphor-icons/react/dist/ssr/DotsThree";
@@ -42,6 +46,8 @@ import { GitBranchIcon as GitBranch } from "@phosphor-icons/react/dist/ssr/GitBr
 import { GlobeIcon as Globe } from "@phosphor-icons/react/dist/ssr/Globe";
 import { ImageIcon as Image } from "@phosphor-icons/react/dist/ssr/Image";
 import { InfoIcon as Info } from "@phosphor-icons/react/dist/ssr/Info";
+import { KeyboardIcon as Keyboard } from "@phosphor-icons/react/dist/ssr/Keyboard";
+import { LinkIcon as Link } from "@phosphor-icons/react/dist/ssr/Link";
 import { ListIcon as List } from "@phosphor-icons/react/dist/ssr/List";
 import { LockIcon as Lock } from "@phosphor-icons/react/dist/ssr/Lock";
 import { MagnifyingGlassIcon as MagnifyingGlass } from "@phosphor-icons/react/dist/ssr/MagnifyingGlass";
@@ -56,7 +62,10 @@ import { PaperclipIcon as Paperclip } from "@phosphor-icons/react/dist/ssr/Paper
 import { PaperPlaneRightIcon as PaperPlaneRight } from "@phosphor-icons/react/dist/ssr/PaperPlaneRight";
 import { PencilSimpleIcon as PencilSimple } from "@phosphor-icons/react/dist/ssr/PencilSimple";
 import { PlusIcon as Plus } from "@phosphor-icons/react/dist/ssr/Plus";
+import { PushPinIcon as PushPin } from "@phosphor-icons/react/dist/ssr/PushPin";
+import { PushPinSlashIcon as PushPinSlash } from "@phosphor-icons/react/dist/ssr/PushPinSlash";
 import { RobotIcon as Robot } from "@phosphor-icons/react/dist/ssr/Robot";
+import { ShieldIcon as Shield } from "@phosphor-icons/react/dist/ssr/Shield";
 import { SidebarSimpleIcon as SidebarSimple } from "@phosphor-icons/react/dist/ssr/SidebarSimple";
 import { SignOutIcon as SignOut } from "@phosphor-icons/react/dist/ssr/SignOut";
 import { SparkleIcon as Sparkle } from "@phosphor-icons/react/dist/ssr/Sparkle";
@@ -66,11 +75,13 @@ import { StackIcon as Stack } from "@phosphor-icons/react/dist/ssr/Stack";
 import { StarIcon as Star } from "@phosphor-icons/react/dist/ssr/Star";
 import { StopIcon as Stop } from "@phosphor-icons/react/dist/ssr/Stop";
 import { SunIcon as Sun } from "@phosphor-icons/react/dist/ssr/Sun";
+import { TerminalWindowIcon as TerminalWindow } from "@phosphor-icons/react/dist/ssr/TerminalWindow";
 import { ThumbsDownIcon as ThumbsDown } from "@phosphor-icons/react/dist/ssr/ThumbsDown";
 import { ThumbsUpIcon as ThumbsUp } from "@phosphor-icons/react/dist/ssr/ThumbsUp";
 import { TrashIcon as Trash } from "@phosphor-icons/react/dist/ssr/Trash";
 import { UploadSimpleIcon as UploadSimple } from "@phosphor-icons/react/dist/ssr/UploadSimple";
 import { UserIcon as User } from "@phosphor-icons/react/dist/ssr/User";
+import { UserPlusIcon as UserPlus } from "@phosphor-icons/react/dist/ssr/UserPlus";
 import { UsersIcon as Users } from "@phosphor-icons/react/dist/ssr/Users";
 import { WarningIcon as Warning } from "@phosphor-icons/react/dist/ssr/Warning";
 import { WarningCircleIcon as WarningCircle } from "@phosphor-icons/react/dist/ssr/WarningCircle";
@@ -170,3 +181,13 @@ export const NewChatIcon = /* @__PURE__ */ fromPhosphor(NotePencil);
 export const ReasoningIcon = /* @__PURE__ */ fromPhosphor(Brain);
 export const StopIcon = /* @__PURE__ */ fromPhosphor(Stop);
 export const ToolIcon = /* @__PURE__ */ fromPhosphor(Wrench);
+export const TerminalIcon = /* @__PURE__ */ fromPhosphor(TerminalWindow);
+export const PinIcon = /* @__PURE__ */ fromPhosphor(PushPin);
+export const PinOffIcon = /* @__PURE__ */ fromPhosphor(PushPinSlash);
+export const ArchiveIcon = /* @__PURE__ */ fromPhosphor(Archive);
+export const LibraryIcon = /* @__PURE__ */ fromPhosphor(Books);
+export const KeyboardIcon = /* @__PURE__ */ fromPhosphor(Keyboard);
+export const LinkIcon = /* @__PURE__ */ fromPhosphor(Link);
+export const UserPlusIcon = /* @__PURE__ */ fromPhosphor(UserPlus);
+export const ShieldIcon = /* @__PURE__ */ fromPhosphor(Shield);
+export const CodeIcon = /* @__PURE__ */ fromPhosphor(Code);
