@@ -43,3 +43,6 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-09-27 · 038 closed · PR #29 · server wiring · 77/77 local, e2e 8/8
 - 2026-09-27 · added 041 (server follow-ups) and 042 (contract gaps, owner review)
 - 2026-09-27 · 039 closed · PR #30 · web app · 77/77
+- 2026-09-27 · 042 closed · PR #31 · Connor approved; local gate 77/77
+- 2026-09-27 · 041 closed · PR #32 · tests 24/24 at concurrency 2
+- 2026-09-27 · added 043 (browser tests under parallel runs)

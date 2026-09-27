@@ -2,8 +2,8 @@
 id: "042"
 title: "Contract gaps from integration (owner review)"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -28,3 +28,7 @@ they go in **one contract PR that Connor reviews and merges** (`packages/contrac
 ## Done when
 
 Connor has merged the contract PR; the follow-on PR wires each field.
+
+## Resolution (2026-09-27, Connor + loop)
+
+Connor approved and the loop merged [PR #31](https://github.com/connorwforsyth/openchat/pull/31): one-time random invite tokens (stored hashed) accepted by token; `setBudget` scoped by org; typed `ENCRYPTION_UNAVAILABLE`; nullable `latestVersionId`; `GET /api/health` (`?ready=true` 503 when db/jobs are down); `observability.recordContent`; storage default `./.data/files`; an org policy to turn off client cache persistence; shortcut overrides in user settings. Old invite/budget shapes work for one release. Local gate 77/77.

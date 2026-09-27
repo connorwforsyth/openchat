@@ -96,6 +96,8 @@ brief, and their findings land in `.context/research/`.
 - [Artifact runtime](tickets/030-artifact-runtime.md): React/Mermaid/HTML/SVG previews on a separate origin ([PR #23](https://github.com/connorwforsyth/openchat/pull/23))
 - [Integration: server wiring](tickets/038-integration-server.md): everything booted from the environment and mounted at `/api` ([PR #29](https://github.com/connorwforsyth/openchat/pull/29))
 - [Integration: web app](tickets/039-integration-web.md): auth pages, the app shell around every page, persisted cache, composer-first chat routes ([PR #30](https://github.com/connorwforsyth/openchat/pull/30))
+- [Contract gaps](tickets/042-contract-gaps.md): invite tokens, health route, budget scope, cache-persistence policy, shortcut sync ([PR #31](https://github.com/connorwforsyth/openchat/pull/31))
+- [Server follow-ups](tickets/041-server-followups.md): sandbox tools + per-hunk review in turns, `/api/llm`, `eval.run`, migrations at boot ([PR #32](https://github.com/connorwforsyth/openchat/pull/32))
 - [WS-shell](tickets/024-ws-shell.md): ⌘K palette, shortcut registry, settings and admin ([PR #20](https://github.com/connorwforsyth/openchat/pull/20))
 - [WS-libraries](tickets/017-ws-libraries.md): Agent/Prompt/Skill/MCP builders, sharing, publishing and library tabs ([PR #22](https://github.com/connorwforsyth/openchat/pull/22))
 - [M1 polish](tickets/031-m1-polish.md): motion audit + guard, narrow-screen layout, batched feedback lookups ([PR #24](https://github.com/connorwforsyth/openchat/pull/24))

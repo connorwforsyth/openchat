@@ -2,8 +2,8 @@
 id: "041"
 title: "Server follow-ups: sandbox tools in turns, /api/llm, eval.run, migrations at boot"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -29,3 +29,7 @@ needed), tests.
 An in-process test: an agent with the just-bash sandbox runs `ls && echo hi > a.txt && cat a.txt`;
 an `edit` proposes a patch, one hunk accepted and one rejected, only the accepted one applied;
 `POST /api/llm` streams with a mock model; migrations run once across two concurrent boots.
+
+## Resolution (2026-09-27, loop)
+
+Merged in [PR #32](https://github.com/connorwforsyth/openchat/pull/32): sandbox tools in agent turns with per-hunk review on `write`/`edit` (M1 steps 6–7), `POST /api/llm` (auth, context keys, budget, usage), an `eval.run` job handler, Postgres migrations at boot under an advisory lock. Verified: in-process scenarios pass; tests 24/24 at concurrency 2; typecheck/lint/build 53/53; no schema drift.
