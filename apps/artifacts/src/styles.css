@@ -1,0 +1,31 @@
+/* The runtime page's own styles: none of the app's theme, on purpose. An
+   artifact brings its own look; the page only gets out of its way. */
+:root {
+  color-scheme: light dark;
+}
+
+html,
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: transparent;
+}
+
+/* flow-root keeps children's margins inside, so the measured height is the
+   height the artifact needs. */
+#root {
+  display: flow-root;
+}
+
+#root > iframe {
+  display: block;
+  width: 100%;
+  border: 0;
+}
+
+#root > svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin-inline: auto;
+}

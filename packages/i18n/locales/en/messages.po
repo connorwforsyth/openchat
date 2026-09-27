@@ -118,6 +118,9 @@ msgstr "A member"
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "A secret is saved. It's never shown; type a new one to replace it."
 msgstr "A secret is saved. It's never shown; type a new one to replace it."
+#: ../chat-ui/src/artifacts/artifact-preview.tsx
+msgid "A React artifact needs a default export: a component or an element."
+msgstr "A React artifact needs a default export: a component or an element."
 
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "A simulated shell with an in-memory filesystem. Nothing runs on a real machine."
@@ -1267,6 +1270,10 @@ msgstr "Loading artifacts"
 msgid "Loading files…"
 msgstr "Loading files…"
 
+#: ../chat-ui/src/artifacts/artifact-preview.tsx
+msgid "Loading preview"
+msgstr "Loading preview"
+
 #: ../chat-ui/src/sandbox/lazy-sandbox-panel.tsx
 msgid "Loading sandbox"
 msgstr "Loading sandbox"
@@ -1796,19 +1803,26 @@ msgstr "Press keys…"
 msgid "Preview"
 msgstr "Preview"
 
-#. placeholder {0}: artifact.title
-#: ../chat-ui/src/artifacts/artifacts-panel.tsx
-msgid "Preview of {0}"
-msgstr "Preview of {0}"
+#: ../chat-ui/src/artifacts/artifact-preview.tsx
+msgid "Preview of {title}"
+msgstr "Preview of {title}"
 
 #. placeholder {0}: preview.port
 #: ../chat-ui/src/sandbox/preview.tsx
 msgid "Preview of port {0}"
 msgstr "Preview of port {0}"
 
+#: ../chat-ui/src/artifacts/artifact-preview.tsx
+msgid "Previews can't import \"{module}\". React artifacts can import {allowed}."
+msgstr "Previews can't import \"{module}\". React artifacts can import {allowed}."
+
 #: ../chat-ui/src/sandbox/preview.tsx
 msgid "Previews need a Docker sandbox. This one is simulated, so nothing can listen on a port."
 msgstr "Previews need a Docker sandbox. This one is simulated, so nothing can listen on a port."
+
+#: ../chat-ui/src/artifacts/artifact-preview.tsx
+msgid "Previews of this kind need the artifact runtime. Its source is in the Code tab."
+msgstr "Previews of this kind need the artifact runtime. Its source is in the Code tab."
 
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "Previous 7 days"
@@ -2737,6 +2751,9 @@ msgstr "The library didn't load"
 #: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
 msgid "The policy couldn't be saved. Try again."
 msgstr "The policy couldn't be saved. Try again."
+#: ../chat-ui/src/artifacts/artifact-preview.tsx
+msgid "The preview runtime isn't responding, so this artifact can't be previewed right now. Its source is in the Code tab."
+msgstr "The preview runtime isn't responding, so this artifact can't be previewed right now. Its source is in the Code tab."
 
 #: ../../apps/web/app/dev/composer/page.tsx
 msgid "The prompt composer with contract fixtures. Type / for a prompt template or @ to mention someone; sending fakes a short run you can stop. Nothing here calls a model."
@@ -2804,6 +2821,14 @@ msgstr "Thinking…"
 #: ../chat-ui/src/conversation/message-row.tsx
 msgid "This answer stopped early."
 msgstr "This answer stopped early."
+
+#: ../chat-ui/src/artifacts/artifact-preview.tsx
+msgid "This artifact failed while rendering."
+msgstr "This artifact failed while rendering."
+
+#: ../chat-ui/src/artifacts/artifact-preview.tsx
+msgid "This artifact has a syntax error."
+msgstr "This artifact has a syntax error."
 
 #: ../code-ui/src/diff-view.tsx
 msgid "This change couldn't be displayed as a diff."

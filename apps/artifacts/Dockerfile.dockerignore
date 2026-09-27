@@ -1,0 +1,11 @@
+# BuildKit reads this instead of a root .dockerignore for this Dockerfile.
+**/node_modules
+**/.next
+**/.turbo
+**/dist
+**/.env*
+.git
+.wayfinder
+.context
+playwright-report
+test-results
