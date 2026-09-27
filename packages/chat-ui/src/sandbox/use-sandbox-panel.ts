@@ -38,6 +38,23 @@ export const useSandboxPanel = (
   // Drops answers for a file that's no longer the one selected.
   const opening = useRef<string | null>(null);
 
+  // The chat's sandbox can arrive after the panel mounts: a panel restored
+  // open on reload renders before the chat's sandbox query answers, and the
+  // agent may create one or expose a port mid-chat. Adopt what arrives, but
+  // never over a sandbox or preview the panel already has.
+  const [adopted, setAdopted] = useState(initial);
+  if (initial !== adopted) {
+    setAdopted(initial);
+    if (initial && (sandbox === null || sandbox.id === initial.id)) {
+      if (sandbox === null) {
+        setSandbox(initial);
+      }
+      if (preview === null) {
+        setPreview(initial.previews.at(-1) ?? null);
+      }
+    }
+  }
+
   const id = sandbox?.id;
 
   const refresh = useCallback(async () => {

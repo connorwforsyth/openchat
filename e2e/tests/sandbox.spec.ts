@@ -43,6 +43,15 @@ test("just-bash: the panel runs `ls && echo hi > a.txt && cat a.txt`", async ({
 
   await panel.getByRole("tab", { name: "Files" }).click();
   await expect(panel.getByRole("treeitem", { name: "a.txt" })).toBeVisible();
+
+  // The panel stays open across a reload and mounts before the chat's
+  // sandbox has loaded; it must still find it (046).
+  await page.reload();
+  const reopened = page.getByRole("region", { name: "Sandbox" });
+  await expect(reopened.getByRole("tab", { name: "Terminal" })).toBeVisible();
+  await expect(
+    reopened.getByRole("button", { name: "Create sandbox" })
+  ).toBeHidden();
 });
 
 test("the agent runs bash in the chat's sandbox", async ({ page }) => {
