@@ -76,6 +76,11 @@ export const liveMessage = (
  * The stored path followed by the live tail, parents chained. `cache` keeps
  * a live message's mapping while its `UIMessage` is unchanged, so rows stay
  * memoised and a token re-renders only the message it landed in (D28).
+ *
+ * The run stores its assistant message when it starts (040's e2e: the path
+ * refetched after sending already has it, empty and `partial`), so the
+ * message that is streaming (`streamingId`) shows its live version in place
+ * of the stored one until the run finishes and the path catches up.
  */
 export const mergeLive = (
   path: readonly Message[],
@@ -85,15 +90,10 @@ export const mergeLive = (
     readonly conversationId: ConversationId;
     readonly now: string;
   },
-  cache?: WeakMap<UIMessage, Message>
+  cache?: WeakMap<UIMessage, Message>,
+  streamingId: string | null = null
 ): readonly Message[] => {
-  const tail = liveTail(new Set(path.map((message) => message.id)), live);
-  if (tail.length === 0) {
-    return path;
-  }
-  const merged: Message[] = [...path];
-  for (const message of tail) {
-    const parentId = merged.at(-1)?.id ?? null;
+  const mapLive = (message: UIMessage, parentId: MessageId | null) => {
     const cached = cache?.get(message);
     const mapped =
       cached && cached.parentId === parentId
@@ -105,7 +105,29 @@ export const mergeLive = (
             parentId,
           });
     cache?.set(message, mapped);
-    merged.push(mapped);
+    return mapped;
+  };
+  const streaming = streamingId
+    ? live.find((message) => message.id === streamingId)
+    : undefined;
+  const stored = streaming
+    ? path.map((message) =>
+        message.id === streaming.id
+          ? {
+              ...mapLive(streaming, message.parentId),
+              createdAt: message.createdAt,
+              runId: message.runId,
+            }
+          : message
+      )
+    : path;
+  const tail = liveTail(new Set(path.map((message) => message.id)), live);
+  if (tail.length === 0) {
+    return streaming ? stored : path;
+  }
+  const merged: Message[] = [...stored];
+  for (const message of tail) {
+    merged.push(mapLive(message, merged.at(-1)?.id ?? null));
   }
   return merged;
 };

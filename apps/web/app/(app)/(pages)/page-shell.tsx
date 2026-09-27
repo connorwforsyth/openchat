@@ -76,6 +76,8 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
     setSheetOpen(false);
     frame.openPalette();
   }, [frame]);
+  // The chat screen binds ⌘K itself; these pages have to as well (040's e2e).
+  useShortcut("palette.open", openPalette);
   const selectChat = useCallback(
     (id: ConversationId) => {
       setSheetOpen(false);

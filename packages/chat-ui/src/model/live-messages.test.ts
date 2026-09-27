@@ -69,6 +69,29 @@ describe("mergeLive", () => {
     expect(second[2]).toBe(first[2]);
     expect(second[3]).not.toBe(first[3]);
   });
+
+  it("shows the streaming message live where the path already stores it", () => {
+    const [question, answer] = path;
+    if (!(question && answer)) {
+      throw new Error("fixture path is too short");
+    }
+    const placeholder = { ...answer, parts: [], status: "partial" as const };
+    const stored = [question, placeholder];
+    const streaming = ui(answer.id, "assistant", "Half an ans");
+    const merged = mergeLive(
+      stored,
+      [streaming],
+      context,
+      undefined,
+      answer.id
+    );
+    expect(merged.map((m) => m.id)).toEqual([question.id, answer.id]);
+    expect(merged[1]?.parts).toEqual([{ text: "Half an ans", type: "text" }]);
+    expect(merged[1]?.parentId).toBe(placeholder.parentId);
+    expect(merged[1]?.createdAt).toBe(placeholder.createdAt);
+    // Not streaming (a finished or stopped turn): the stored message wins.
+    expect(mergeLive(stored, [streaming], context)).toBe(stored);
+  });
 });
 
 describe("liveParts", () => {

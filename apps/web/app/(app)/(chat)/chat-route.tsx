@@ -17,7 +17,10 @@ import {
   type ConversationId,
   conversationIdSchema,
 } from "@workspace/contract/schemas/common";
-import type { ModelOption } from "@workspace/contract/schemas/models";
+import {
+  AUTO_MODEL,
+  type ModelOption,
+} from "@workspace/contract/schemas/models";
 import type { RunTarget } from "@workspace/contract/schemas/runs";
 import type { ChatContext } from "@workspace/contract/schemas/tenancy";
 import type { PaletteContext } from "@workspace/palette/context-actions";
@@ -35,6 +38,22 @@ import { routeParams, routes } from "@/lib/routes";
 // the model and context choices the palette can change too.
 
 const NO_MODELS: readonly ModelOption[] = [];
+
+/**
+ * The target before anyone picks one: `auto` where this instance offers it
+ * (`models.auto`, off by default), else the first model the chat can use.
+ * Defaulting to `auto` where it's off fails every first message (040's e2e).
+ */
+const defaultTargetFor = (models: readonly ModelOption[]): RunTarget => {
+  if (
+    models.length === 0 ||
+    models.some((model) => model.selector === AUTO_MODEL && model.available)
+  ) {
+    return AUTO_TARGET;
+  }
+  const first = models.find((model) => model.available);
+  return first ? { model: first.selector, type: "model" } : AUTO_TARGET;
+};
 
 const modelsInput = (context: ChatContext) =>
   context.type === "personal"
@@ -169,8 +188,13 @@ export function ChatRoute({
   const models = useQuery(
     query.meta.models.queryOptions({ input: modelsInput(context) })
   );
+  // Memoised: the target feeds the palette context, which must stay stable.
+  const fallbackTarget = useMemo(
+    () => defaultTargetFor(models.data ?? NO_MODELS),
+    [models.data]
+  );
   const target: RunTarget =
-    chat.target ?? settings.data?.defaultTarget ?? AUTO_TARGET;
+    chat.target ?? settings.data?.defaultTarget ?? fallbackTarget;
 
   usePaletteContext({
     context,

@@ -1,0 +1,146 @@
+import { spawn } from "node:child_process";
+import { randomBytes } from "node:crypto";
+import { existsSync } from "node:fs";
+import { cp, mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
+import { createRequire } from "node:module";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+import { startMockLlm } from "./mock-llm";
+
+// Playwright's `webServer`: the production build of apps/web as `next start`
+// serves it, on an otherwise empty environment, so the app boots the way
+// AGENTS.md promises: no DATABASE_URL (the embedded PGlite, migrated at
+// boot), no provider keys. Everything it writes lives in a fresh temporary
+// directory that is deleted on exit, so every run starts from an empty
+// server, where the first sign-up becomes the admin.
+//
+// The only things set are what production refuses to run without (a
+// generated auth secret and encryption key, fresh per run) and an
+// app.config.yaml whose providers point at the mock model server.
+//
+// `E2E_STANDALONE=1` runs the server the Docker image runs instead: the
+// `standalone` build (`NEXT_OUTPUT=standalone next build`), laid out as
+// apps/web/Dockerfile lays it out, started with `node server.js`. It checks
+// the image's contents without Docker. `E2E_DEV=1` runs `next dev`, to debug
+// a failure with React's development warnings.
+
+const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+const web = join(root, "apps/web");
+const port = Number(process.env.E2E_PORT ?? 3100);
+
+const config = (baseURL: string, files: string) => `version: 1
+brand: { name: E2E Chat }
+auth: { signup: invite }
+providers:
+  # Keyless, like a local Ollama: every context can use it.
+  mock: { type: openai-compatible, baseURL: "${baseURL}", models: [echo] }
+  # Needs a key from the chat context (D17), for the key-payer check.
+  paid: { type: openai-compatible, baseURL: "${baseURL}", models: [echo], options: { keyless: "false" } }
+models:
+  default: mock:echo
+decider: { adapter: none }
+embeddings: { model: mock:embed, dimensions: 384 }
+sandbox: { default: just-bash }
+storage: { driver: local, path: "${files}" }
+limits: { requestsPerMinute: 1000 }
+`;
+
+interface Launch {
+  readonly args: readonly string[];
+  readonly cwd: string;
+}
+
+/** `next start` (or `next dev`) on apps/web, from the temporary directory. */
+const nextServer = async (dir: string): Promise<Launch> => {
+  // The embedded database finds its migrations under the working
+  // directory's node_modules, as it does in apps/web.
+  await mkdir(join(dir, "node_modules/@workspace"), { recursive: true });
+  await symlink(
+    join(root, "packages/db"),
+    join(dir, "node_modules/@workspace/db"),
+    "dir"
+  );
+  const require = createRequire(join(web, "package.json"));
+  const next = require.resolve("next/dist/bin/next");
+  const command = process.env.E2E_DEV ? "dev" : "start";
+  return { args: [next, command, web, "--port", String(port)], cwd: dir };
+};
+
+/** The standalone server, copied the way apps/web/Dockerfile copies it. */
+const standaloneServer = async (dir: string): Promise<Launch> => {
+  const built = join(web, ".next/standalone");
+  if (!existsSync(built)) {
+    throw new Error(
+      "no standalone build: run `NEXT_OUTPUT=standalone bunx next build` in apps/web"
+    );
+  }
+  const app = join(dir, "app");
+  const server = join(app, "apps/web");
+  await cp(built, app, { recursive: true, verbatimSymlinks: true });
+  await cp(join(web, ".next/static"), join(server, ".next/static"), {
+    recursive: true,
+  });
+  await cp(
+    join(root, "packages/db/drizzle"),
+    join(server, "node_modules/@workspace/db/drizzle"),
+    { recursive: true }
+  );
+  return { args: [join(server, "server.js")], cwd: server };
+};
+
+const main = async () => {
+  const dir = await mkdtemp(join(tmpdir(), "e2e-server-"));
+  const llm = await startMockLlm();
+  const configPath = join(dir, "app.config.yaml");
+  await writeFile(configPath, config(llm.baseUrl, join(dir, "files")));
+  const launch = process.env.E2E_STANDALONE
+    ? await standaloneServer(dir)
+    : await nextServer(dir);
+
+  const child = spawn(
+    process.execPath.endsWith("bun") ? "node" : process.execPath,
+    launch.args,
+    {
+      cwd: launch.cwd,
+      env: {
+        BETTER_AUTH_SECRET: randomBytes(32).toString("base64"),
+        BETTER_AUTH_URL: `http://localhost:${port}`,
+        CONFIG_PATH: configPath,
+        ENCRYPTION_KEY: randomBytes(32).toString("base64"),
+        HOME: process.env.HOME,
+        NEXT_TELEMETRY_DISABLED: "1",
+        NODE_ENV: process.env.E2E_DEV ? "development" : "production",
+        PATH: process.env.PATH,
+        PORT: String(port),
+      },
+      stdio: "inherit",
+    }
+  );
+
+  let stopping = false;
+  const stop = async (code: number) => {
+    if (stopping) {
+      return;
+    }
+    stopping = true;
+    child.kill("SIGTERM");
+    await llm.close();
+    await rm(dir, { force: true, recursive: true });
+    process.exit(code);
+  };
+  child.on("exit", (code) => {
+    stop(code ?? 0).catch(() => process.exit(1));
+  });
+  for (const signal of ["SIGINT", "SIGTERM"] as const) {
+    process.on(signal, () => {
+      stop(0).catch(() => process.exit(1));
+    });
+  }
+};
+
+main().catch((cause: unknown) => {
+  console.error("[e2e] couldn't start the server:", cause);
+  process.exit(1);
+});

@@ -1,0 +1,22 @@
+# The build context for every image here is the repo root (the apps import
+# workspace packages). Images install their own dependencies for Linux, so
+# nothing built on the host goes in, and neither do secrets or local state.
+**/node_modules
+**/.next
+**/.turbo
+**/dist
+**/coverage
+**/*.tsbuildinfo
+**/.data
+data/
+.env*
+!.env.example
+.git
+.github
+.context
+.wayfinder
+e2e/test-results
+e2e/.auth
+playwright-report
+test-results
+**/.DS_Store
