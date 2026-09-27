@@ -4,15 +4,11 @@ Collected by agents working the map, so you can answer them in one sitting. Each
 
 ## Waiting on you now
 
-1. **App shell prototype ([009](tickets/009-prototype-app-shell.md)):** run `/wayfinder` on this ticket whenever you like; it doesn't need the scaffold.
-2. **Agent Builder prototype ([010](tickets/010-prototype-agent-builder.md)):** same.
-3. **Theme preset (002):** the scaffold uses shadcn's default preset. When you've picked one on ui.shadcn.com/create, paste the preset code here and the loop runs `shadcn apply`.
+1. **M1 demo ([026](tickets/026-m1-demo-gate.md)):** run the `PLAN.md` §11 M1 checks yourself and close the ticket, or list what fails. Closing it lets us chart the waves in a `/wayfinder` session.
+2. **Theme preset (002):** the scaffold uses shadcn's default preset. When you've picked one on ui.shadcn.com/create, paste the preset code here and the loop runs `shadcn apply`.
+3. **Defaults below:** each item under "From the loop" has a default the loop already applied or will apply. Only answer the ones you disagree with.
 
-4. **Contract gaps (042):** seven small contract changes found during integration (invite tokens, `setBudget` orgId, typed missing-key error, nullable `latestVersionId`, a health route, three config fields, shortcut settings). The loop will open one contract PR for you to review and merge.
-
-5. ~~**Start Docker Desktop (045)**~~ done; all Docker checks passed (PR #36).
-
-6. **M1 demo ([026](tickets/026-m1-demo-gate.md)):** run the `PLAN.md` §11 M1 checks yourself and close the ticket (or list what fails).
+Done: 009 and 010 prototypes, 042 contract PR (#31), Docker verification (045, PR #36).
 
 ## From the loop
 
