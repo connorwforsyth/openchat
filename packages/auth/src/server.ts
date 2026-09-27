@@ -46,8 +46,9 @@ import {
 // The Better Auth server (D22): email and password, GitHub and Google when
 // their credentials exist, generic OIDC from app.config.yaml, and the
 // organization, admin and bearer plugins, over our Drizzle schema with
-// UUIDv7 ids (ticket 008). Built per call with its ports as arguments; the
-// shell (025) builds one at boot and mounts `auth.handler` at /api/auth.
+// UUIDv7 ids (ticket 008) except invitations, whose ids are random (below).
+// Built per call with its ports as arguments; the shell (025) builds one at
+// boot and mounts `auth.handler` at /api/auth.
 
 /** Where warnings go. The dev-secret warning must reach whoever runs the server. */
 export interface AuthLog {
@@ -133,6 +134,81 @@ const personalOrgRefusal = (action: string): APIError =>
     message: `A personal space can't ${action}.`,
   });
 
+/**
+ * Better Auth's organization plugin, with our hooks. Our oRPC `orgs` group
+ * drives it server-side through `auth.api.*`.
+ */
+const orgPlugin = (db: Db) =>
+  organizationPlugin({
+    allowUserToCreateOrganization: true,
+    organizationHooks: {
+      afterAcceptInvitation: async ({ invitation: accepted, user: who }) => {
+        await joinInvitedTeams(
+          db,
+          accepted.id as InvitationId,
+          who.id as UserId
+        );
+      },
+      afterRemoveMember: async ({ member: removed }) => {
+        await leaveOrgTeams(
+          db,
+          removed.organizationId as OrgId,
+          removed.userId as UserId
+        );
+      },
+      beforeAddMember: async ({ organization: org }) => {
+        if (await isPersonalOrg(db, org.id)) {
+          throw personalOrgRefusal("have other members");
+        }
+      },
+      beforeCreateInvitation: async ({ organization: org }) => {
+        if (await isPersonalOrg(db, org.id)) {
+          throw personalOrgRefusal("have other members");
+        }
+      },
+      beforeDeleteOrganization: async ({ organization: org }) => {
+        if (await isPersonalOrg(db, org.id)) {
+          throw personalOrgRefusal("be deleted");
+        }
+      },
+    },
+    // There is no mail transport in M1, so nobody could verify an email
+    // and nobody could accept anything. Instead the invitation id is the
+    // capability (Q16): random, handed out only to org admins (`orgs.invite`
+    // and `orgs.listInvitations`) who pass the link on, and never listed
+    // to the invitee (see `disabledPaths`). Knowing the invited address
+    // is not enough; the recipient check (session email must match the
+    // invitation's) still applies on top.
+    requireEmailVerificationOnInvitation: false,
+    schema: {
+      organization: {
+        additionalFields: {
+          // Set only by `bootstrapUser`; never from a request.
+          isPersonal: {
+            defaultValue: false,
+            input: false,
+            required: false,
+            type: "boolean",
+          },
+        },
+      },
+    },
+  });
+
+/**
+ * Every organization endpoint is closed over HTTP (`/api/auth/organization/*`
+ * answers 404). The oRPC `orgs` group covers all of it with our checks, and
+ * the plugin's own routes would hand out invitation ids, which are now the
+ * invite capability: `list-user-invitations` and `get-invitation` to the
+ * invitee's address (so to anyone who signs up with it), `list-invitations`
+ * and `get-full-organization` to every member rather than just admins.
+ * Better Auth checks `disabledPaths` only for HTTP requests, so our
+ * server-side `auth.api.*` calls are unaffected. Derived from the plugin so
+ * a route added by an upgrade is closed too.
+ */
+const httpDisabledPaths = (plugin: ReturnType<typeof orgPlugin>): string[] =>
+  Object.values(plugin.endpoints).map((endpoint) => endpoint.path);
+
 const buildAuth = (
   db: Db,
   config: AppConfig,
@@ -142,11 +218,16 @@ const buildAuth = (
 ) => {
   const github = socialCredentials(config, env, "github");
   const google = socialCredentials(config, env, "google");
+  const orgs = orgPlugin(db);
   return betterAuth({
     advanced: {
       database: {
-        // UUIDv7 everywhere, Better Auth's rows included (ticket 008).
-        generateId: ({ model }) => newId(model),
+        // UUIDv7 everywhere, Better Auth's rows included (ticket 008), except
+        // invitations: their id is the invite link's secret (`/invite/<id>`),
+        // so it is a v4 (122 random bits) rather than a v7, whose leading
+        // bits are a timestamp.
+        generateId: ({ model }) =>
+          model === "invitation" ? crypto.randomUUID() : newId(model),
       },
     },
     baseURL: env.BETTER_AUTH_URL,
@@ -176,65 +257,12 @@ const buildAuth = (
         },
       },
     },
+    disabledPaths: httpDisabledPaths(orgs),
     emailAndPassword: passwordHasher
       ? { enabled: true, password: passwordHasher }
       : { enabled: true },
     plugins: [
-      organizationPlugin({
-        allowUserToCreateOrganization: true,
-        organizationHooks: {
-          afterAcceptInvitation: async ({
-            invitation: accepted,
-            user: who,
-          }) => {
-            await joinInvitedTeams(
-              db,
-              accepted.id as InvitationId,
-              who.id as UserId
-            );
-          },
-          afterRemoveMember: async ({ member: removed }) => {
-            await leaveOrgTeams(
-              db,
-              removed.organizationId as OrgId,
-              removed.userId as UserId
-            );
-          },
-          beforeAddMember: async ({ organization: org }) => {
-            if (await isPersonalOrg(db, org.id)) {
-              throw personalOrgRefusal("have other members");
-            }
-          },
-          beforeCreateInvitation: async ({ organization: org }) => {
-            if (await isPersonalOrg(db, org.id)) {
-              throw personalOrgRefusal("have other members");
-            }
-          },
-          beforeDeleteOrganization: async ({ organization: org }) => {
-            if (await isPersonalOrg(db, org.id)) {
-              throw personalOrgRefusal("be deleted");
-            }
-          },
-        },
-        // Invitation ids are UUIDv7 (not opaque), so Better Auth would ask for
-        // a verified email before accepting one. There is no mail transport
-        // in M1, so nobody could accept anything; the recipient check (the
-        // session's email must match the invitation's) still applies.
-        requireEmailVerificationOnInvitation: false,
-        schema: {
-          organization: {
-            additionalFields: {
-              // Set only by `bootstrapUser`; never from a request.
-              isPersonal: {
-                defaultValue: false,
-                input: false,
-                required: false,
-                type: "boolean",
-              },
-            },
-          },
-        },
-      }),
+      orgs,
       admin(),
       bearer(),
       genericOAuth({ config: oidcProviders(config) }),
