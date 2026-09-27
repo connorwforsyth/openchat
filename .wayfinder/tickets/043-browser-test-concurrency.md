@@ -3,7 +3,7 @@ id: "043"
 title: "Browser-mode tests survive parallel turbo runs"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: []
 ---
 
