@@ -101,6 +101,22 @@ bun run test:e2e            # Playwright against a production build
 - Keyboard-first and accessible: follow Vercel's Web Interface Guidelines for
   focus, labels and hit targets.
 
+## Motion (`PLAN.md` D28)
+
+- **Animate only `transform` and `opacity`** (colour transitions are fine).
+  Never `height`, `width`, margins, `top`/`left` or `transition: all`.
+- **Durations are tokens**, not numbers: `--motion-instant` (0 ms),
+  `--motion-fast` (100 ms), `--motion-base` (250 ms) and `--motion-slow`
+  (350 ms) in `packages/ui/src/styles/globals.css`. Write
+  `duration-(--motion-fast)`; JavaScript timers read `motionMs` from
+  `@workspace/ui/lib/motion`. Easing: `ease-motion-out` for enter and exit,
+  `ease-motion-in-out` for things moving on screen.
+- **Appear instantly, fade out over about 150 ms** (`--motion-exit`, or the
+  `motion-exit` utility). Keyboard-driven UI (shortcuts, the palette, panel
+  and sidebar toggles) doesn't animate at all.
+- Respect `prefers-reduced-motion`: the tokens already shorten movement;
+  keep fades.
+
 ## Contract changes (`PLAN.md` §3)
 
 `packages/contract` (the oRPC + zod contract) and the port interfaces are the

@@ -51,6 +51,9 @@
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
   --font-sans: var(--font-sans);
+  /* Motion easings (D28): `ease-motion-out`, `ease-motion-in-out`. */
+  --ease-motion-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-motion-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
 :root {
@@ -86,6 +89,24 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  /*
+   * Motion (D28, AGENTS.md "Motion"): four durations and one exit. Things
+   * appear at once (--motion-instant) and fade out over --motion-exit; only
+   * transform and opacity animate. Use them as `duration-(--motion-fast)`.
+   */
+  --motion-instant: 0ms;
+  --motion-fast: 100ms;
+  --motion-base: 250ms;
+  --motion-slow: 350ms;
+  --motion-exit: 150ms;
+}
+
+/* Reduced motion keeps fades (they aid comprehension) and drops movement. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-base: var(--motion-fast);
+    --motion-slow: var(--motion-fast);
+  }
 }
 
 .dark {
@@ -120,6 +141,16 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+}
+
+/*
+ * The one exit transition: present at once, fade out over --motion-exit.
+ * Pair with a state that sets opacity-0 (e.g. `data-closed:opacity-0`).
+ */
+@utility motion-exit {
+  transition-timing-function: var(--ease-motion-out);
+  transition-duration: var(--motion-exit);
+  transition-property: opacity, transform;
 }
 
 @layer base {
