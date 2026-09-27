@@ -96,6 +96,19 @@ export const invitationTeam = pgTable(
 );
 
 /**
+ * The secret an invitee accepts with (Q16), kept only as a SHA-256 hash so
+ * a database read can't accept an invitation. The token itself is shown
+ * once, in the invite response.
+ */
+export const invitationToken = pgTable("invitation_token", {
+  invitationId: idRef("invitation_id", "invitation")
+    .primaryKey()
+    .references(() => invitation.id, { onDelete: "cascade" }),
+  /** base64url SHA-256 of the token. */
+  tokenHash: text("token_hash").notNull().unique(),
+});
+
+/**
  * An org's policy choices (`orgPolicySchema`), one column each so admin
  * queries can filter on them. The instance limits in app.config.yaml clamp
  * them on read (`clampOrgPolicy`); no row means every default.
@@ -112,6 +125,8 @@ export const orgSettings = pgTable(
     orgId: idRef("org_id", "org")
       .primaryKey()
       .references(() => organization.id, { onDelete: "cascade" }),
+    /** Clients may keep the query cache on disk (D28); off for shared machines. */
+    persistClientCache: boolean("persist_client_cache").notNull().default(true),
     personalKeyFallback: boolean("personal_key_fallback")
       .notNull()
       .default(false),

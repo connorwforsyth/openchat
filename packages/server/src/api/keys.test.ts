@@ -339,7 +339,11 @@ describe("keys procedures", () => {
         },
         as(alice.id)
       )
-    ).rejects.toMatchObject({ status: 503 });
+    ).rejects.toMatchObject({
+      code: "ENCRYPTION_UNAVAILABLE",
+      defined: true,
+      status: 503,
+    });
     expect(
       await db
         .select()

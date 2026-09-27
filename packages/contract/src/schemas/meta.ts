@@ -16,6 +16,11 @@ import {
 
 export const meSchema = z.object({
   orgs: z.array(orgSchema),
+  /**
+   * Whether this user's clients may keep the query cache on disk (D28):
+   * `false` when the instance or any org they belong to turns it off.
+   */
+  persistClientCache: z.boolean(),
   personalOrgId: orgIdSchema,
   teams: z.array(z.object({ role: teamRoleSchema, team: teamSchema })),
   user: z.object({
@@ -31,10 +36,25 @@ export const meSchema = z.object({
 });
 export type Me = z.infer<typeof meSchema>;
 
+/**
+ * A user's recorded shortcuts (Q31, D10): shortcut id to key combos. A
+ * missing id means the default, `[]` means off. Ids and combos are checked
+ * by `@workspace/shortcuts`, which drops entries it doesn't know, so the
+ * contract only bounds them.
+ */
+export const shortcutOverridesSchema = z
+  .record(z.string().min(1).max(64), z.array(z.string().min(1).max(64)).max(3))
+  .refine((overrides) => Object.keys(overrides).length <= 200, {
+    message: "at most 200 shortcuts",
+  });
+export type ShortcutOverridesSetting = z.infer<typeof shortcutOverridesSchema>;
+
 export const userSettingsSchema = z.object({
   defaultContext: chatContextSchema,
   defaultTarget: runTargetSchema.nullable(),
   locale: z.string().max(35).nullable(),
+  /** `{}` when nothing is recorded. Replaced whole on update. */
+  shortcuts: shortcutOverridesSchema,
 });
 export type UserSettings = z.infer<typeof userSettingsSchema>;
 

@@ -144,3 +144,28 @@ export const clearPersistedQueries = async (
 ): Promise<void> => {
   await del(key).catch(() => undefined);
 };
+
+/**
+ * A persister that only touches disk while `allowed()` says so: the user's
+ * `Me.persistClientCache`, off when an org they're in (or the instance)
+ * turns persistence off for shared machines (D28, 042). Unknown counts as
+ * no. Once it's off, what an earlier session stored is removed, not kept.
+ */
+export const gatePersister = (
+  persister: Persister,
+  allowed: () => boolean
+): Persister => ({
+  persistClient: (client) => {
+    if (allowed()) {
+      return persister.persistClient(client);
+    }
+    return persister.removeClient();
+  },
+  removeClient: () => persister.removeClient(),
+  restoreClient: async () => {
+    if (allowed()) {
+      return persister.restoreClient();
+    }
+    await persister.removeClient();
+  },
+});

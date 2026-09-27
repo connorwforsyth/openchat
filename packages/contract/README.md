@@ -5,6 +5,26 @@ an oRPC contract for the procedures, and the OpenAPI 3.1 document generated
 from both. Frozen for the M1 workstreams; changes follow the process at the
 end of this file.
 
+## Changes (2026-09-27, 042)
+
+Gaps found wiring the server (038) and the web app (039). All additive
+except where noted; the follow-on commit in the same PR wires each one.
+
+| Change | Who needs it | Compatibility |
+|---|---|---|
+| `Invitation.token` (random, stored hashed, only in `orgs.invite`'s response) and `orgs.acceptInvitation` takes `{ token }` (Q16) | Invite links; an invitation id alone no longer accepts | `acceptInvitation` moved from `POST /invitations/{id}/accept` to `POST /invitations/accept`. `{ id }` still accepted for one release, deprecated. TypeScript callers passing `{ id }` still compile. |
+| `usage.setBudget` takes `orgId` | Org admins capping one member's spend in their org | Optional for one release; omitted, it's the principal's own org (a user's personal org), as before. |
+| `ENCRYPTION_UNAVAILABLE` (503) on `keys.create` | Settings shows "ask your admin" instead of a generic 503 | New error code; the server already answered 503 here, untyped. |
+| `Artifact.latestVersionId` is nullable | The server's artifact row exists before its first version | Clients must handle `null` (no version yet). |
+| `meta.health`: `GET /health` (liveness, and `status` for database and jobs readiness; `?ready=true` answers `NOT_READY` 503 when degraded) | Compose healthchecks and load balancers | New public procedure and error code. |
+| `OrgPolicy.persistClientCache` (default `true`), instance limit `policies.persistClientCache`, and `Me.persistClientCache` (the effective answer for this user) (D28) | The web app's persisted query cache, turned off for shared machines | New fields with defaults. A client that `PUT`s a policy without the field resets it to `true`. |
+| `UserSettings.shortcuts` (Q31) | Recorded shortcuts follow the user across devices | New output field (`{}` when none); optional on update, replaced whole. |
+
+Config (`@workspace/config`, not the contract): `observability.recordContent`
+(default `false`, Q28), the local storage default is now `./.data/files`
+(git-ignored, beside the embedded database) instead of `./data/files`, and
+`policies.persistClientCache` above.
+
 ## What's in it
 
 | Import | What |
@@ -32,6 +52,7 @@ Schemas, by file:
 | `memory` | The memory document, versions, `MemoryPatch` and the `update_memory` tool input. |
 | `llm` | The model proxy: `LlmProxyRequest` (AI SDK call options plus model, chat context and `stream`), `LlmProxyResponse`, stream parts and the stream's `error` part. |
 | `feedback`, `keys`, `usage` | Thumbs feedback; provider keys (write-only secrets, scopes); transactions, summaries and budgets. |
+| `health` | The `meta.health` report: database and job-queue checks. |
 | `decider` | Decider questions, answers, state and the `decision_log` entry. The port itself is in `@workspace/ai`. |
 | `sandbox`, `search`, `meta`, `models` | Sandbox records and exec shapes; chat search and web search results; `me`, public config, model refs and picker options. |
 
@@ -49,8 +70,9 @@ Every procedure has a REST route under `/api`, a summary and one OpenAPI tag.
 - **Errors** are typed. Every authenticated procedure can return
   `UNAUTHORIZED`, `FORBIDDEN`, `NOT_FOUND`, `VALIDATION` (a domain rule the
   schema can't express) and `RATE_LIMITED`; some add `CONFLICT` (with a
-  `reason`), `BUDGET_EXCEEDED`, `PROVIDER_UNAVAILABLE` or
-  `FEATURE_DISABLED`. Input that fails a schema is oRPC's `BAD_REQUEST`.
+  `reason`), `BUDGET_EXCEEDED`, `PROVIDER_UNAVAILABLE`,
+  `FEATURE_DISABLED`, `ENCRYPTION_UNAVAILABLE` (`keys.create` without an
+  `ENCRYPTION_KEY`) or `NOT_READY` (`meta.health?ready=true`). Input that fails a schema is oRPC's `BAD_REQUEST`.
 - **GET inputs are flat** so they fit a query string. Numbers and booleans in
   query strings arrive as text; the server's OpenAPI handler coerces them with
   oRPC's smart-coercion plugin, so schemas stay plain `z.int()` and

@@ -687,6 +687,7 @@ msgstr "Conversation, message, reasoning and tool"
 msgid "Copied"
 msgstr "Copied"
 
+#: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 #: ../../apps/web/app/dev/ai-elements/demo.tsx
 #: ../chat-ui/src/conversation/message-row.tsx
 msgid "Copy"
@@ -878,6 +879,10 @@ msgstr "Destroyed"
 #: ../../apps/web/app/dev/library/page.tsx
 msgid "Developer gallery"
 msgstr "Developer gallery"
+
+#: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
+msgid "Devices"
+msgstr "Devices"
 
 #: ../chat-ui/src/conversation/artifact-card.tsx
 msgid "Diagram"
@@ -1193,6 +1198,10 @@ msgstr "Instructions"
 msgid "Invite"
 msgstr "Invite"
 
+#: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
+msgid "Invite link"
+msgstr "Invite link"
+
 #: ../chat-ui/src/header/overflow-menu.tsx
 #: ../chat-ui/src/header/share-menu.tsx
 msgid "Invite people…"
@@ -1225,6 +1234,14 @@ msgstr "Items published to your teams and orgs show up here."
 #: ../library-ui/src/components/confirm-delete.tsx
 msgid "Its versions go too, and anyone it's shared with loses it. This can't be undone."
 msgstr "Its versions go too, and anyone it's shared with loses it. This can't be undone."
+
+#: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
+msgid "Keep a copy on each device"
+msgstr "Keep a copy on each device"
+
+#: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
+msgid "Keeping a copy on this device is off: this server forbids it."
+msgstr "Keeping a copy on this device is off: this server forbids it."
 
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "Key"
@@ -1426,6 +1443,10 @@ msgstr "Members keep their accounts. Grants and budgets given to this team go aw
 #: ../library-ui/src/components/publish-dialog.tsx
 msgid "Members, and members of teams below it, can use it. The library's publish policy is checked first."
 msgstr "Members, and members of teams below it, can use it. The library's publish policy is checked first."
+
+#: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
+msgid "Members' browsers keep recent chats and the library on disk so the app opens instantly. Turn off for shared computers; it applies to anyone in this org, in every context."
+msgstr "Members' browsers keep recent chats and the library on disk so the app opens instantly. Turn off for shared computers; it applies to anyone in this org, in every context."
 
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
 #: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
@@ -2425,6 +2446,10 @@ msgstr "Send"
 msgid "Send feedback"
 msgstr "Send feedback"
 
+#: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
+msgid "Send this link to them. It's shown only once: for a new one, cancel the invitation and invite them again."
+msgstr "Send this link to them. It's shown only once: for a new one, cancel the invitation and invite them again."
+
 #: ../library-ui/src/components/run-test-chat.tsx
 msgid "Sending a message saves your changes to the draft first."
 msgstr "Sending a message saves your changes to the draft first."
@@ -3011,6 +3036,10 @@ msgstr "This item isn't available"
 #: ../../apps/web/app/dev/sandbox/demo.tsx
 msgid "This sandbox can't do that."
 msgstr "This sandbox can't do that."
+
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "This server can't store keys yet: an admin needs to set its encryption key (ENCRYPTION_KEY)."
+msgstr "This server can't store keys yet: an admin needs to set its encryption key (ENCRYPTION_KEY)."
 
 #: ../../apps/web/app/(auth)/_components/auth-problem.tsx
 msgid "This server is invite-only. Use the invitation link you were sent, with the email address it was sent to."

@@ -12,6 +12,7 @@ import {
 } from "../schemas/common";
 import {
   invitationSchema,
+  invitationTokenSchema,
   orgMemberSchema,
   orgPolicySchema,
   orgPolicyViewSchema,
@@ -32,11 +33,20 @@ const byOrg = z.object({ id: orgIdSchema });
 export const orgs = {
   acceptInvitation: authed
     .route({
+      description:
+        "Accepts with the invite link's `token` (Q16). The signed-in user's email must match the invitation's. `{ id }` still works for one release and is deprecated: an id is visible to org admins, a token only to the invitee. An unknown, used or expired token is `NOT_FOUND`.",
       method: "POST",
-      path: "/invitations/{id}/accept",
+      path: "/invitations/accept",
       summary: "Accept an invitation",
     })
-    .input(z.object({ id: invitationIdSchema }))
+    .input(
+      z.union([
+        z.object({ token: invitationTokenSchema }),
+        z
+          .object({ id: invitationIdSchema })
+          .meta({ deprecated: true, description: "Deprecated: use `token`." }),
+      ])
+    )
     .output(orgSchema),
   cancelInvitation: authed
     .route({
@@ -83,6 +93,8 @@ export const orgs = {
   invite: authed
     .errors(conflictError)
     .route({
+      description:
+        "The response carries the invitation's `token`, once: it's stored hashed. Build the invite link from it.",
       method: "POST",
       path: "/orgs/{orgId}/invitations",
       successStatus: 201,

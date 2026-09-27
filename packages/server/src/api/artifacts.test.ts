@@ -4,6 +4,7 @@ import type { Db } from "@workspace/db/client";
 import { saveArtifactVersion } from "@workspace/db/queries/artifacts";
 import { createConversation } from "@workspace/db/queries/conversations";
 import { insertMessage } from "@workspace/db/queries/messages";
+import { artifactVersion } from "@workspace/db/schema/files";
 import {
   createTestDb,
   expectOk,
@@ -11,6 +12,7 @@ import {
   seedUser,
   type TestDb,
 } from "@workspace/db/testing";
+import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { grantAccess } from "../context";
@@ -116,6 +118,28 @@ describe("artifacts procedures", () => {
         as(owner.id)
       )
     ).toMatchObject({ content: "v1", language: "ts", number: 1 });
+  });
+
+  it("still shows an artifact whose versions are gone, with no latest version", async () => {
+    const { artifacts } = createArtifactsRouter({
+      access: grantAccess(db),
+      db,
+    });
+    const { chat, first, owner } = await seedArtifact();
+    const { id } = first.artifact;
+    // `latest_version_id` is `on delete set null`.
+    await db.delete(artifactVersion).where(eq(artifactVersion.artifactId, id));
+
+    expect(await call(artifacts.get, { id }, as(owner.id))).toMatchObject({
+      id,
+      latestVersionId: null,
+    });
+    expect(
+      await call(artifacts.list, { conversationId: chat.id }, as(owner.id))
+    ).toEqual([expect.objectContaining({ id, latestVersionId: null })]);
+    expect(await call(artifacts.listVersions, { id }, as(owner.id))).toEqual(
+      []
+    );
   });
 
   it("answers NOT_FOUND to anyone who can't read the chat", async () => {

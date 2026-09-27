@@ -10,7 +10,7 @@ import type {
 } from "@workspace/contract/schemas/files";
 import type { ArtifactKind } from "@workspace/contract/schemas/message-parts";
 import { type AsyncResult, err, ok } from "@workspace/shared/result";
-import { and, asc, eq, isNotNull, sql } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 
 import type { Db } from "../client";
 import { type NotFoundError, notFound } from "../errors";
@@ -23,7 +23,7 @@ import { artifact, artifactVersion } from "../schema/files";
 export type ArtifactRow = typeof artifact.$inferSelect;
 export type ArtifactVersionRow = typeof artifactVersion.$inferSelect;
 
-/** An artifact once its first version is written; before that it isn't shown. */
+/** An artifact with a version. Every artifact has one once written; deleting its versions leaves `null`. */
 export type PublishedArtifactRow = ArtifactRow & {
   readonly latestVersionId: ArtifactVersionId;
 };
@@ -31,31 +31,28 @@ export type PublishedArtifactRow = ArtifactRow & {
 export const hasVersion = (row: ArtifactRow): row is PublishedArtifactRow =>
   row.latestVersionId !== null;
 
+// `latestVersionId` is nullable in the contract (042): an artifact whose
+// versions are gone is still listed, with `null`, rather than vanishing
+// while a message's artifact-ref still points at it.
+
 export const getArtifact = async (
   db: Db,
   id: ArtifactId
-): AsyncResult<PublishedArtifactRow, NotFoundError> => {
+): AsyncResult<ArtifactRow, NotFoundError> => {
   const [row] = await db.select().from(artifact).where(eq(artifact.id, id));
-  return row && hasVersion(row) ? ok(row) : err(notFound("artifact", id));
+  return row ? ok(row) : err(notFound("artifact", id));
 };
 
 /** A conversation's artifacts, oldest first. */
-export const listArtifacts = async (
+export const listArtifacts = (
   db: Db,
   conversationId: ConversationId
-): Promise<PublishedArtifactRow[]> => {
-  const rows = await db
+): Promise<ArtifactRow[]> =>
+  db
     .select()
     .from(artifact)
-    .where(
-      and(
-        eq(artifact.conversationId, conversationId),
-        isNotNull(artifact.latestVersionId)
-      )
-    )
+    .where(eq(artifact.conversationId, conversationId))
     .orderBy(asc(artifact.createdAt), asc(artifact.id));
-  return rows.filter(hasVersion);
-};
 
 /** Every version of an artifact, oldest first. */
 export const listArtifactVersions = (
@@ -175,7 +172,7 @@ export const saveArtifactVersion = (
     return ok({ artifact: updated, version });
   });
 
-export const toArtifact = (row: PublishedArtifactRow): Artifact => ({
+export const toArtifact = (row: ArtifactRow): Artifact => ({
   conversationId: row.conversationId,
   createdAt: row.createdAt.toISOString(),
   id: row.id,

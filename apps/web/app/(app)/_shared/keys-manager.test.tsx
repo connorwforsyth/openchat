@@ -5,10 +5,11 @@ import { afterEach, describe, expect, it } from "vitest";
 import { userEvent } from "vitest/browser";
 
 import { KeysManager } from "./keys-manager";
-import { fakeApi, renderWithApi } from "./test-harness";
+import { apiError, fakeApi, renderWithApi } from "./test-harness";
 
 const REMOVE = /^Remove/;
 const CHECK_PROVIDER = /Check the provider/;
+const NEEDS_ENCRYPTION_KEY = /an admin needs to set its encryption key/;
 
 afterEach(() => {
   cleanup();
@@ -85,6 +86,22 @@ describe("KeysManager", () => {
     await screen.findByText("…a1b2", { exact: false });
     expect((screen.getByLabelText("API key") as HTMLInputElement).value).toBe(
       ""
+    );
+  });
+
+  it("says when the server can't store keys, instead of asking to retry", async () => {
+    const api = fakeApi({
+      "GET /keys": () => [],
+      "POST /keys": () => apiError("ENCRYPTION_UNAVAILABLE", 503),
+    });
+    renderWithApi(<KeysManager owner={owner} />, api);
+    await screen.findByText("No keys yet");
+    await userEvent.fill(screen.getByLabelText("Provider"), "anthropic");
+    await userEvent.fill(screen.getByLabelText("API key"), "sk-test-00000000");
+    await userEvent.click(screen.getByRole("button", { name: "Add key" }));
+    expect(await screen.findByText(NEEDS_ENCRYPTION_KEY)).toBeTruthy();
+    expect(screen.queryByText("The key couldn't be added. Try again.")).toBe(
+      null
     );
   });
 

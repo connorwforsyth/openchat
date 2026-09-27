@@ -1,5 +1,6 @@
 import { Trans } from "@lingui/react/macro";
 import { invitationIdSchema } from "@workspace/contract/schemas/common";
+import { invitationTokenSchema } from "@workspace/contract/schemas/tenancy";
 import { initLingui } from "@workspace/i18n/server";
 import { buttonVariants } from "@workspace/ui/components/button";
 import Link from "next/link";
@@ -8,12 +9,29 @@ import { requestLocale } from "@/lib/i18n";
 import { routes } from "@/lib/routes";
 import { getViewer } from "@/lib/server-session";
 
-import { AcceptInvite } from "../../_components/accept-invite";
+import {
+  AcceptInvite,
+  type AcceptInviteInput,
+} from "../../_components/accept-invite";
 import { AuthCard } from "../../_components/auth-card";
 
 // An invitation link. Signed out, it offers to create the account (or sign
 // in) and comes back here; signed in, it accepts for the current account.
 // The API checks that the invitation is for this account's email.
+
+/**
+ * What the link carries: the one-time token (042), or an invitation id from
+ * a link made before tokens (deprecated for one release). A UUID also fits
+ * the token's alphabet, so the id is checked first.
+ */
+const acceptInputOf = (segment: string): AcceptInviteInput | null => {
+  const id = invitationIdSchema.safeParse(segment);
+  if (id.success) {
+    return { id: id.data };
+  }
+  const token = invitationTokenSchema.safeParse(segment);
+  return token.success ? { token: token.data } : null;
+};
 
 export default async function InvitePage({
   params,
@@ -22,8 +40,8 @@ export default async function InvitePage({
 }) {
   initLingui(await requestLocale());
   const { token } = await params;
-  const id = invitationIdSchema.safeParse(token);
-  if (!id.success) {
+  const accept = acceptInputOf(token);
+  if (!accept) {
     return (
       <AuthCard
         description={
@@ -62,7 +80,7 @@ export default async function InvitePage({
       title={<Trans>You've been invited</Trans>}
     >
       {viewer.kind === "signed_in" ? (
-        <AcceptInvite id={id.data} />
+        <AcceptInvite input={accept} />
       ) : (
         <div className="flex flex-col gap-3">
           <Link

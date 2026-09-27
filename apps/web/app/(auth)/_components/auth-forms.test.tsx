@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 
+import { AcceptInvite } from "./accept-invite";
 import { SignInForm } from "./sign-in-form";
 import { SignUpForm } from "./sign-up-form";
 
@@ -89,6 +90,32 @@ describe("SignUpForm", () => {
         password: "long-enough-1",
       }),
       url: "/api/auth/sign-up/email",
+    });
+  });
+});
+
+describe("AcceptInvite", () => {
+  it("accepts with the link's token and says when it's used up", async () => {
+    const fetcher = answer(404, {
+      code: "NOT_FOUND",
+      defined: true,
+      message: "Not found.",
+      status: 404,
+    });
+    vi.stubGlobal("fetch", fetcher);
+    const token = "k7Qm2c9Xr1VbN0pLw4Ez8TjYs6HgFdAaUoIiPq3Ke5M";
+    renderWithI18n(<AcceptInvite input={{ token }} />);
+    await userEvent.click(
+      screen.getByRole("button", { name: "Accept invitation" })
+    );
+    expect(
+      await screen.findByText(
+        "This invitation has expired, was cancelled or was already used."
+      )
+    ).toBeTruthy();
+    expect(await requestOf(fetcher)).toEqual({
+      body: { token },
+      url: "/api/invitations/accept",
     });
   });
 });

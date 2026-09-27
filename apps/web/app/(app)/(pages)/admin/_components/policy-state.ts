@@ -20,6 +20,7 @@ export interface PolicyFormState {
   /** Per context type: whether the instance allows it at all. */
   readonly chatContexts: Readonly<Record<ChatContextType, Lock>>;
   readonly effective: OrgPolicy;
+  readonly persistClientCache: Lock;
   readonly personalKeyFallback: Lock;
   readonly publishGate: Readonly<Record<PublishGate, Lock>>;
   readonly sampledScoring: Lock;
@@ -51,6 +52,7 @@ export const policyFormState = (
       team: contextLock("team"),
     },
     effective,
+    persistClientCache: allowance(limits.persistClientCache),
     personalKeyFallback: allowance(limits.personalKeyFallback),
     publishGate: {
       informational: gateLock("informational"),

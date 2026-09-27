@@ -10,10 +10,12 @@ import {
   baseErrors,
   budgetError,
   conflictError,
+  encryptionError,
   errorCodeSchema,
   featureError,
   llmProxyErrors,
   providerError,
+  readinessError,
 } from "./errors";
 import { generateOpenApi, serializeOpenApi } from "./openapi";
 
@@ -83,8 +85,10 @@ describe("contract", () => {
       ...baseErrors,
       ...budgetError,
       ...conflictError,
+      ...encryptionError,
       ...featureError,
       ...providerError,
+      ...readinessError,
     });
     expect([...errorCodeSchema.options].sort()).toEqual(
       ["BAD_REQUEST", ...defined].sort()
@@ -146,7 +150,11 @@ describe("openapi.json", () => {
         )
         .map(([method]) => `${method.toUpperCase()} ${path}`)
     );
-    expect(open.sort()).toEqual(["GET /config", "GET /share/{token}"]);
+    expect(open.sort()).toEqual([
+      "GET /config",
+      "GET /health",
+      "GET /share/{token}",
+    ]);
   });
 
   it("names shared shapes as components", async () => {

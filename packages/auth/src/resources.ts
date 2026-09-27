@@ -154,6 +154,7 @@ export const loadOrgPolicy = async (
       ? {
           auditEnabled: row.auditEnabled,
           chatContexts: row.chatContexts,
+          persistClientCache: row.persistClientCache,
           personalKeyFallback: row.personalKeyFallback,
           publishGate: row.publishGate,
           sampledScoring: row.sampledScoring,

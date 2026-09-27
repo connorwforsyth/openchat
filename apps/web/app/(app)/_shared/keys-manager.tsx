@@ -36,7 +36,7 @@ import { z } from "zod";
 
 import { useApi } from "./api";
 import { ConfirmButton } from "./confirm";
-import { QueryState } from "./query-state";
+import { codeOf, QueryState } from "./query-state";
 
 // Provider keys for one owner: the user (settings) or an org or team
 // (admin). Secrets are write-only (D24): the form sends the key once and
@@ -177,7 +177,9 @@ const AddKeyForm = ({
   const { t } = useLingui();
   const { query } = useApi();
   const id = useId();
-  const [problem, setProblem] = useState<"invalid" | "failed" | null>(null);
+  const [problem, setProblem] = useState<
+    "invalid" | "encryption" | "failed" | null
+  >(null);
   const create = useMutation(query.keys.create.mutationOptions());
   const { mutate } = create;
 
@@ -202,7 +204,12 @@ const AddKeyForm = ({
           scope: owner,
         },
         {
-          onError: () => setProblem("failed"),
+          onError: (error) =>
+            setProblem(
+              codeOf(error) === "ENCRYPTION_UNAVAILABLE"
+                ? "encryption"
+                : "failed"
+            ),
           onSuccess: () => {
             // Never keep a secret around longer than the request.
             form.reset();
@@ -283,9 +290,16 @@ const AddKeyForm = ({
                 Check the provider (lowercase, like “anthropic”), the key and
                 the URL.
               </Trans>
-            ) : (
+            ) : null}
+            {problem === "encryption" ? (
+              <Trans>
+                This server can't store keys yet: an admin needs to set its
+                encryption key (ENCRYPTION_KEY).
+              </Trans>
+            ) : null}
+            {problem === "failed" ? (
               <Trans>The key couldn't be added. Try again.</Trans>
-            )}
+            ) : null}
           </FieldError>
         ) : null}
         <div>

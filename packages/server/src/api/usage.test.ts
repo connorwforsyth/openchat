@@ -298,6 +298,74 @@ describe("usage procedures", () => {
     ).toEqual([teamBudget.id]);
   });
 
+  it("lets org admins cap one member in their org with `orgId`", async () => {
+    const w = await seedWorld();
+    const r = router();
+    const capped = await call(
+      r.setBudget,
+      {
+        limitMicros: 100,
+        orgId: w.org.id,
+        period: "month",
+        principal: { id: w.plain.id, type: "user" },
+      },
+      as(w.owner.id)
+    );
+    // Their spend in this org's contexts, not their personal spend.
+    expect(capped).toMatchObject({
+      principal: { id: w.plain.id, type: "user" },
+      usedMicros: 120,
+    });
+    expect(
+      (await call(r.budgets, { orgId: w.org.id }, as(w.owner.id))).map(
+        (each) => each.id
+      )
+    ).toContain(capped.id);
+    // Not in the member's personal org.
+    expect(
+      await call(r.budgets, { orgId: w.plainPersonal.id }, as(w.plain.id))
+    ).toEqual([]);
+
+    // A principal from elsewhere, or a caller who doesn't run the org.
+    const outsider = await seedUser(db);
+    await expect(
+      call(
+        r.setBudget,
+        {
+          limitMicros: 1,
+          orgId: w.org.id,
+          period: "day",
+          principal: { id: outsider.id, type: "user" },
+        },
+        as(w.owner.id)
+      )
+    ).rejects.toMatchObject({ code: "VALIDATION" });
+    await expect(
+      call(
+        r.setBudget,
+        {
+          limitMicros: 1,
+          orgId: w.org.id,
+          period: "day",
+          principal: { id: w.plainPersonal.id, type: "org" },
+        },
+        as(w.owner.id)
+      )
+    ).rejects.toMatchObject({ code: "VALIDATION" });
+    await expect(
+      call(
+        r.setBudget,
+        {
+          limitMicros: 1,
+          orgId: w.org.id,
+          period: "day",
+          principal: { id: w.plain.id, type: "user" },
+        },
+        as(w.plain.id)
+      )
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
   it("lets a user cap their own personal spend, and only theirs", async () => {
     const w = await seedWorld();
     const r = router();

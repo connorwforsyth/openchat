@@ -17,17 +17,22 @@ const configured = {
   serviceName: "web-test",
 };
 
-/** Runs one traced call through `integration` and returns the exported spans. */
-const traced = async (recordContent: boolean) => {
+/**
+ * Runs one traced call through `integration` and returns the exported spans.
+ * `recordContent` comes from config (`observability.recordContent`).
+ */
+const traced = async (recordContent?: boolean) => {
   const exporter = new InMemorySpanExporter();
   let integration: Telemetry | undefined;
-  const handle = startTelemetry(configured, {
-    exporter,
-    recordContent,
-    register: (registered) => {
-      integration = registered;
-    },
-  });
+  const handle = startTelemetry(
+    recordContent === undefined ? configured : { ...configured, recordContent },
+    {
+      exporter,
+      register: (registered) => {
+        integration = registered;
+      },
+    }
+  );
   await generateText({
     model: new MockLanguageModelV4({
       doGenerate: generated([{ text: ANSWER, type: "text" }]),
@@ -63,7 +68,7 @@ describe("startTelemetry", () => {
   });
 
   it("exports spans with no message content by default", async () => {
-    const spans = await traced(false);
+    const spans = await traced();
     expect(spans.length).toBeGreaterThan(0);
     expect(spans[0]?.resource.attributes["service.name"]).toBe("web-test");
     const text = attributeText(spans);
@@ -71,7 +76,8 @@ describe("startTelemetry", () => {
     expect(text).not.toContain("Biscuit");
   });
 
-  it("records content only when a deployment opts in", async () => {
+  it("records content only when `observability.recordContent` is on", async () => {
+    expect(attributeText(await traced(false))).not.toContain("Biscuit");
     expect(attributeText(await traced(true))).toContain(PROMPT);
   });
 

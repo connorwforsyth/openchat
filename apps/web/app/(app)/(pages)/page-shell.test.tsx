@@ -38,6 +38,7 @@ afterEach(() => {
 
 const me: Me = {
   orgs: [org],
+  persistClientCache: true,
   personalOrgId: fixtureId("org", 9),
   teams: [],
   user: {

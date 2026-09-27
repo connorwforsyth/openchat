@@ -21,6 +21,12 @@ import { and, eq } from "drizzle-orm";
 
 import type { RequestContext } from "../context";
 import type { OrgKeyPolicy } from "../keys/db-key-store";
+import {
+  checkHealth,
+  databaseProbe,
+  downProbe,
+  type HealthProbes,
+} from "./health";
 
 // The `meta` procedure group: the public instance config (no session) and
 // the model picker. The picker lists every model the config offers and
@@ -32,6 +38,8 @@ export interface MetaDeps {
   readonly db: Db;
   /** Where environment-only social sign-in comes from; `process.env` at the shell. */
   readonly env?: Env;
+  /** `meta.health`'s probes; by default the database is pinged and jobs report down. */
+  readonly health?: HealthProbes;
   readonly keyStore: KeyStore;
   /** The org's effective key policy (`orgKeyPolicy`). */
   readonly orgPolicy: OrgKeyPolicy;
@@ -120,10 +128,23 @@ export const createMetaRouter = (deps: MetaDeps) => {
     }
   };
 
+  const probes = deps.health ?? {
+    database: databaseProbe(db),
+    jobs: downProbe("no job queue"),
+  };
+
   const meta = {
     config: os.meta.config.handler(() =>
       toPublicConfig(config, deps.env ?? {})
     ),
+
+    health: os.meta.health.handler(async ({ errors, input }) => {
+      const report = await checkHealth(probes);
+      if (input.ready && report.status !== "ok") {
+        throw errors.NOT_READY({ data: report });
+      }
+      return report;
+    }),
 
     models: authed.meta.models.handler(async ({ context, input, signal }) => {
       const keyContext = await keyContextFor(
@@ -157,19 +178,28 @@ export const createMetaRouter = (deps: MetaDeps) => {
 };
 
 /**
- * Just `meta.config`, for a server running without a database: the sign-in
- * page still needs the brand and the sign-in options to say what's wrong.
+ * Just `meta.config` and `meta.health`, for a server running without a
+ * database: the sign-in page still needs the brand and the sign-in options
+ * to say what's wrong, and healthchecks need to see it's degraded.
  */
 export const createPublicConfigRouter = ({
   config,
   env,
-}: Pick<MetaDeps, "config" | "env">) => {
+  health,
+}: Pick<MetaDeps, "config" | "env"> & { readonly health: HealthProbes }) => {
   const os = implement({
-    meta: { config: contract.meta.config },
+    meta: { config: contract.meta.config, health: contract.meta.health },
   }).$context<RequestContext>();
   return os.router({
     meta: {
       config: os.meta.config.handler(() => toPublicConfig(config, env ?? {})),
+      health: os.meta.health.handler(async ({ errors, input }) => {
+        const report = await checkHealth(health);
+        if (input.ready && report.status !== "ok") {
+          throw errors.NOT_READY({ data: report });
+        }
+        return report;
+      }),
     },
   });
 };

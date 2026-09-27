@@ -124,7 +124,7 @@ const acme = async (t: TestAuth) => {
     const who = await signUp(t.auth, email);
     await call(
       authRouter.orgs.acceptInvitation,
-      { id: invitation.id },
+      { token: invitation.token ?? "" },
       { context: await authContext(t, who) }
     );
     return who;

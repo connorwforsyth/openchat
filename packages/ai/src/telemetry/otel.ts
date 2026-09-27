@@ -16,8 +16,8 @@ import { registerTelemetry, type Telemetry } from "ai";
 //
 // Spans carry timings, models, token counts and tool names, never message
 // content: prompts and outputs are user data and belong in our Postgres,
-// under our permissions. `recordContent` opts in, for a developer's own
-// instance.
+// under our permissions. `observability.recordContent` (Q28) opts in, for a
+// developer's own instance.
 
 export interface TelemetryHandle {
   readonly enabled: boolean;
@@ -30,7 +30,7 @@ export interface TelemetryHandle {
 export interface StartTelemetryOptions {
   /** Replaces the OTLP exporter (tests pass an in-memory one). */
   readonly exporter?: SpanExporter;
-  /** Record prompts and outputs on spans. Off unless a deployment opts in. */
+  /** Overrides `observability.recordContent` (tests). */
   readonly recordContent?: boolean;
   /** Where the integration goes; defaults to the AI SDK's global registry. */
   readonly register?: (integration: Telemetry) => void;
@@ -83,8 +83,12 @@ const unregister = (integration: Telemetry) => {
   }
 };
 
+/** `recordContent` may be left out: config always has it, older callers don't. */
+type ObservabilityConfig = Omit<AppConfig["observability"], "recordContent"> &
+  Partial<Pick<AppConfig["observability"], "recordContent">>;
+
 export const startTelemetry = (
-  observability: AppConfig["observability"],
+  observability: ObservabilityConfig,
   options: StartTelemetryOptions = {}
 ): TelemetryHandle => {
   const { otlp } = observability;
@@ -102,7 +106,9 @@ export const startTelemetry = (
     spanProcessors: [new BatchSpanProcessor(exporter)],
   });
   const otel = new OpenTelemetry({ tracer: provider.getTracer("ai") });
-  const integration = options.recordContent ? otel : withoutContent(otel);
+  const recordContent =
+    options.recordContent ?? observability.recordContent ?? false;
+  const integration = recordContent ? otel : withoutContent(otel);
   const register = options.register ?? registerTelemetry;
   register(integration);
 

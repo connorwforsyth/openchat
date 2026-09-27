@@ -1,3 +1,4 @@
+import type { ShortcutOverridesSetting } from "@workspace/contract/schemas/meta";
 import type { RunTarget } from "@workspace/contract/schemas/runs";
 import type { ChatContext } from "@workspace/contract/schemas/tenancy";
 import {
@@ -160,6 +161,11 @@ export const userSettings = pgTable("user_settings", {
     .notNull()
     .default({ type: "personal" }),
   defaultTarget: jsonb("default_target").$type<RunTarget>(),
+  /** Recorded shortcuts (Q31): id to combos, parsed leniently by `@workspace/shortcuts`. */
+  shortcuts: jsonb("shortcuts")
+    .$type<ShortcutOverridesSetting>()
+    .notNull()
+    .default({}),
   updatedAt: updatedAt(),
   userId: idRef("user_id", "user")
     .primaryKey()

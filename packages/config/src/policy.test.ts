@@ -83,6 +83,24 @@ describe("clampOrgPolicy", () => {
     ]);
   });
 
+  it("keeps the client cache on disk unless the org or instance says no", () => {
+    expect(clampOrgPolicy(org(), limits()).effective.persistClientCache).toBe(
+      true
+    );
+    expect(
+      clampOrgPolicy(org({ persistClientCache: false }), limits()).effective
+        .persistClientCache
+    ).toBe(false);
+    const forbidden = clampOrgPolicy(
+      org(),
+      limits({ persistClientCache: "forbidden" })
+    );
+    expect(forbidden.effective.persistClientCache).toBe(false);
+    expect(forbidden.adjustments).toEqual([
+      { field: "persistClientCache", reason: "forbidden_by_instance" },
+    ]);
+  });
+
   it("doesn't mutate its inputs", () => {
     const stored = org({ auditEnabled: true, chatContexts: ["team"] });
     const snapshot = structuredClone(stored);

@@ -63,6 +63,12 @@ const AdjustmentText = ({
           Some chat contexts aren't allowed on this server and are left out.
         </Trans>
       );
+    case "persistClientCache":
+      return (
+        <Trans>
+          Keeping a copy on this device is off: this server forbids it.
+        </Trans>
+      );
     case "personalKeyFallback":
       return (
         <Trans>Personal key fallback is off: this server forbids it.</Trans>
@@ -289,6 +295,27 @@ const PolicyForm = ({
             label={<Trans>Sampled scoring</Trans>}
             lock={state.sampledScoring}
             onChange={set("sampledScoring")}
+          />
+        </FieldGroup>
+      </FieldSet>
+      <FieldSet>
+        <FieldLegend>
+          <Trans>Devices</Trans>
+        </FieldLegend>
+        <FieldGroup>
+          <ToggleRow
+            checked={draft.persistClientCache}
+            description={
+              <Trans>
+                Members' browsers keep recent chats and the library on disk so
+                the app opens instantly. Turn off for shared computers; it
+                applies to anyone in this org, in every context.
+              </Trans>
+            }
+            id="persist-client-cache"
+            label={<Trans>Keep a copy on each device</Trans>}
+            lock={state.persistClientCache}
+            onChange={set("persistClientCache")}
           />
         </FieldGroup>
       </FieldSet>
