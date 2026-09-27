@@ -72,6 +72,7 @@ export interface ServicesOptions {
     | "mcpFor"
     | "orgPolicy"
     | "routeAuto"
+    | "sandbox"
   >;
 }
 

@@ -90,6 +90,8 @@ export const fileChangeOutputSchema = z.discriminatedUnion("status", [
   z.object({
     applied: z.array(z.string()),
     edit: proposedEditSchema,
+    /** The reviewer's comments (rejected hunks, lines), for the agent to act on (D16). */
+    feedback: z.string().optional(),
     /** Rejected or undecided hunks; the file keeps their original lines. */
     rejected: z.array(z.string()),
     status: z.literal("changed"),
@@ -129,11 +131,17 @@ export type ReviewLookup = (
   toolCallId: string
 ) => Review | undefined | Promise<Review | undefined>;
 
+/** The part of a `Sandbox` the tools use; a lazily started sandbox can stand in. */
+export type ToolSandbox = Pick<
+  Sandbox,
+  "exec" | "exposePort" | "readFile" | "writeFile"
+>;
+
 export interface SandboxToolsOptions {
   /** Streams `bash` output to the panel as it arrives. */
   readonly onOutput?: (toolCallId: string, chunk: OutputChunk) => void;
   readonly reviewFor?: ReviewLookup;
-  readonly sandbox: Sandbox;
+  readonly sandbox: ToolSandbox;
 }
 
 const describeError = (error: SandboxError): string => {
@@ -163,7 +171,7 @@ const decoder = new TextDecoder("utf-8", { fatal: true });
 
 /** A file as text: missing is empty (for `write`), binary is an error. */
 const readText = async (
-  sandbox: Sandbox,
+  sandbox: ToolSandbox,
   path: string,
   { missingIsEmpty }: { readonly missingIsEmpty: boolean }
 ): AsyncResult<string, string> => {
@@ -189,7 +197,7 @@ const countOccurrences = (text: string, search: string): number =>
 
 /** The file before and after a write or edit, without writing anything. */
 const planChange = async (
-  sandbox: Sandbox,
+  sandbox: ToolSandbox,
   change: ChangeInput
 ): AsyncResult<{ after: string; before: string; path: string }, string> => {
   const { path } = change.input;
@@ -223,7 +231,7 @@ const planChange = async (
  * run executor shows before asking (`PendingApproval.edits`).
  */
 export const proposeSandboxChange = async (
-  sandbox: Sandbox,
+  sandbox: ToolSandbox,
   change: ChangeInput
 ): AsyncResult<ReturnType<typeof proposeEdit>, string> => {
   const planned = await planChange(sandbox, change);
@@ -262,9 +270,35 @@ const acceptedHunks = (
   }
 };
 
+/**
+ * What the reviewer said beyond accept/reject: comments on rejected (or
+ * accepted) hunks and on lines. The SDK only passes a reason along with a
+ * denial, so a partly applied change carries it in its own result.
+ */
+export const reviewFeedback = (
+  decision: ApprovalDecision | undefined
+): string | undefined => {
+  if (decision?.decision !== "review") {
+    return;
+  }
+  const lines = [
+    ...decision.hunks.flatMap((hunk) =>
+      hunk.comment
+        ? [
+            `Hunk ${hunk.hunkId} (${hunk.decision === "accept" ? "accepted" : "rejected"}): ${hunk.comment}`,
+          ]
+        : []
+    ),
+    ...decision.comments.map(
+      (comment) => `${comment.path}:${comment.line}: ${comment.text}`
+    ),
+  ];
+  return lines.length > 0 ? lines.join("\n") : undefined;
+};
+
 /** Applies a write or edit, honouring a per-hunk review. */
 export const applySandboxChange = async (
-  sandbox: Sandbox,
+  sandbox: ToolSandbox,
   change: ChangeInput,
   review: Review | undefined
 ): Promise<FileChangeOutput> => {
@@ -305,7 +339,14 @@ export const applySandboxChange = async (
       return failure(describeError(written.error));
     }
   }
-  return { applied, edit, rejected, status: "changed" };
+  const feedback = reviewFeedback(review?.decision);
+  return {
+    applied,
+    edit,
+    ...(feedback ? { feedback } : {}),
+    rejected,
+    status: "changed",
+  };
 };
 
 const sliceLines = (

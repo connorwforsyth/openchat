@@ -24,6 +24,7 @@ import {
   createMemoryJobQueue,
   type MemoryJobQueue,
 } from "../ports/job-queue.memory";
+import type { SandboxToolSource } from "../runs/sandbox";
 import type { Turn } from "../runs/turn";
 import { createServices, registerCoreJobs, type Services } from "../services";
 import {
@@ -152,6 +153,8 @@ export interface HarnessOptions {
    * over `models`, instead of the scripted `nextTurn` queue.
    */
   readonly realTurns?: boolean;
+  /** Sandbox tools for real turns (the sandbox package binds its own over this database). */
+  readonly sandbox?: (db: TestDb["db"]) => SandboxToolSource;
   readonly titleModel?: LanguageModelV4;
 }
 
@@ -194,6 +197,7 @@ export const createHarness = async (
             })
           );
         },
+    tools: options.sandbox ? { sandbox: options.sandbox(db) } : undefined,
   });
   await registerCoreJobs(jobs, services);
   const app = createApp({

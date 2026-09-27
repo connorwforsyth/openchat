@@ -54,6 +54,7 @@ import { createKnowledgeJobs } from "./knowledge/ingestion";
 import { createSearchHandlers } from "./knowledge/search";
 import { createLibraryRouter } from "./library/router";
 import type { Storage } from "./ports/storage";
+import type { SandboxToolSource } from "./runs/sandbox";
 import {
   createServices,
   registerCoreJobs,
@@ -75,13 +76,21 @@ import { createStorage } from "./storage/from-config";
 
 type Env = Readonly<Record<string, string | undefined>>;
 
+/** The sandbox package bound to this instance's providers, once for the API and the turns. */
+export interface BoundSandbox {
+  /** The `sandbox` procedure group (the panel). */
+  readonly api: SandboxApi;
+  /** The chat's sandbox tools for runs; the same providers, so the panel sees what the agent did. */
+  readonly turnTools: SandboxToolSource;
+}
+
 /** What the shell binds from `@workspace/sandbox` (a package that depends on this one). */
 export type SandboxBinding = (deps: {
   readonly config: AppConfig;
   readonly db: Db;
   readonly report: (message: string, cause: unknown) => void;
   readonly storage: Storage;
-}) => SandboxApi;
+}) => BoundSandbox;
 
 export interface ServerFromEnvOptions
   extends Pick<ServicesOptions, "access" | "keyStore" | "tools"> {
@@ -374,6 +383,13 @@ export const createServerFromEnv = async (
     warn: log,
   });
 
+  const sandbox = options.sandbox?.({
+    config,
+    db,
+    report,
+    storage: storage.storage,
+  });
+
   const jobs = await startJobs({
     connection: database.jobs,
     pollingIntervalSeconds: options.jobPollingSeconds,
@@ -393,6 +409,7 @@ export const createServerFromEnv = async (
       knowledge: embedder ? { embedder } : undefined,
       mcpFor: (userId) => mcp.manager.toolSource(userId),
       orgPolicy,
+      sandbox: sandbox?.turnTools,
       ...options.tools,
     },
   });
@@ -417,12 +434,6 @@ export const createServerFromEnv = async (
     );
   }
 
-  const sandbox = options.sandbox?.({
-    config,
-    db,
-    report,
-    storage: storage.storage,
-  });
   const loadSharedResource = createSharedResourceLoader(db);
   const authContext = (
     request: Request,
@@ -474,7 +485,7 @@ export const createServerFromEnv = async (
         search: createSearchHandlers({ db }),
       }),
       ...createMcpRouter({ db, manager: mcp.manager }),
-      ...createSandboxRouter({ api: sandbox ?? disabledSandboxApi, db }),
+      ...createSandboxRouter({ api: sandbox?.api ?? disabledSandboxApi, db }),
       ...(auth ? authRouter : {}),
       ...options.routers,
     },

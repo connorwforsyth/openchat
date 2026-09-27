@@ -25,6 +25,7 @@ import type { Message } from "@workspace/contract/schemas/messages";
 import type { TokenUsage } from "@workspace/contract/schemas/models";
 import type {
   PendingApproval,
+  ProposedEdit,
   RunError,
   ToolApproval,
 } from "@workspace/contract/schemas/runs";
@@ -52,6 +53,7 @@ import { err, ok, type Result } from "@workspace/shared/result";
 import { readUIMessageStream, type UIMessage, type UIMessageChunk } from "ai";
 import { TransactionRollbackError } from "drizzle-orm";
 
+import type { ToolReview, ToolReviews } from "./sandbox";
 import {
   isTerminal,
   queuePosition,
@@ -150,6 +152,60 @@ const deciderState = (messages: readonly Message[]): DeciderState => {
     input: last?.role === "user" ? last.text : "",
   };
 };
+
+/** Proposed edits per paused call, as `PendingApproval.edits` carries them. */
+type EditsByCall = ReadonlyMap<string, readonly ProposedEdit[]>;
+
+/**
+ * What each paused `write`/`edit` would change, so the reviewer sees the
+ * patch and decides per hunk (D16). A proposal that can't be made (the file
+ * is gone, the edit doesn't match) leaves the call with approve/reject only;
+ * running it then reports why.
+ */
+const proposedEdits = async (
+  outcome: AgentOutcome,
+  turn: Turn
+): Promise<EditsByCall> => {
+  const { proposeEdits } = turn;
+  if (outcome.status !== "awaiting_approval" || !proposeEdits) {
+    return new Map();
+  }
+  const proposed = await Promise.all(
+    outcome.approvals.map(
+      async (call) =>
+        [
+          call.toolCallId,
+          await proposeEdits(call).catch(() => undefined),
+        ] as const
+    )
+  );
+  return new Map(
+    proposed.flatMap(([id, edits]) =>
+      edits && edits.length > 0 ? [[id, edits] as const] : []
+    )
+  );
+};
+
+/**
+ * The reviews a resumed pass executes with: each pending call's decision
+ * and the patch it was made on, which the sandbox tools apply per hunk.
+ */
+const reviewsFor = (
+  pending: readonly PendingApproval[],
+  decided: ReadonlyMap<string, RecordedDecision>
+): ToolReviews =>
+  new Map(
+    pending.flatMap((approval) => {
+      const decision = decided.get(approval.toolCallId);
+      if (!decision) {
+        return [];
+      }
+      const review: ToolReview = approval.edits
+        ? { decision: decision.decision, edits: approval.edits }
+        : { decision: decision.decision };
+      return [[approval.toolCallId, review] as const];
+    })
+  );
 
 /** Decisions already recorded on the answer's tool calls. */
 const recordedDecisions = (
@@ -317,7 +373,8 @@ export const createInProcessExecutor = (
     runId: RunId,
     outcome: AgentOutcome,
     parts: readonly MessagePart[],
-    usage: TokenUsage | null
+    usage: TokenUsage | null,
+    edits: EditsByCall
   ): {
     readonly status: "complete" | "partial" | "error";
     readonly transition: RunTransition;
@@ -331,12 +388,16 @@ export const createInProcessExecutor = (
         };
       case "awaiting_approval": {
         const requestedAt = now().toISOString();
-        const approvals: PendingApproval[] = outcome.approvals.map((call) => ({
-          input: call.input,
-          requestedAt,
-          toolCallId: call.toolCallId,
-          toolName: call.toolName,
-        }));
+        const approvals: PendingApproval[] = outcome.approvals.map((call) => {
+          const proposed = edits.get(call.toolCallId);
+          return {
+            ...(proposed ? { edits: [...proposed] } : {}),
+            input: call.input,
+            requestedAt,
+            toolCallId: call.toolCallId,
+            toolName: call.toolName,
+          };
+        });
         return {
           status: "partial",
           transition: { approvals, type: "await_approval" },
@@ -389,7 +450,8 @@ export const createInProcessExecutor = (
       run.runId,
       outcome,
       parts,
-      usage
+      usage,
+      await proposedEdits(outcome, turn)
     );
     await updateMessage(db, assistantMessageId, {
       model: turn.resolvedModel,
@@ -523,7 +585,8 @@ export const createInProcessExecutor = (
     run: RunStart,
     assistantMessageId: MessageId,
     leafId: MessageId,
-    controller: AbortController
+    controller: AbortController,
+    reviews: ToolReviews = new Map()
   ): Promise<void> => {
     try {
       const messages = await loadBranch(run, leafId);
@@ -532,6 +595,7 @@ export const createInProcessExecutor = (
         return;
       }
       const turn = await deps.resolveTurn(run, {
+        reviews,
         signal: controller.signal,
         state: deciderState(messages),
       });
@@ -810,13 +874,17 @@ export const createInProcessExecutor = (
       const controller = new AbortController();
       active.set(runId, controller);
       const start = runStartFromRow(resumed);
+      // Held in memory for this pass only: a crash mid-pass fails the run
+      // (`recover`), so no later pass could need them.
+      const reviews = reviewsFor(row.approvals ?? [], decided);
       track(
         runId,
         execute(
           start,
           row.assistantMessageId,
           row.assistantMessageId,
-          controller
+          controller,
+          reviews
         )
       );
       return ok(undefined);

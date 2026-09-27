@@ -35,7 +35,7 @@ import {
   type ModelSelector,
   parseModelRef,
 } from "@workspace/contract/schemas/models";
-import type { RunError } from "@workspace/contract/schemas/runs";
+import type { ProposedEdit, RunError } from "@workspace/contract/schemas/runs";
 import type { OrgPolicy } from "@workspace/contract/schemas/tenancy";
 import type { Db } from "@workspace/db/client";
 import { listReadableIndexedFileIds } from "@workspace/db/queries/files";
@@ -58,6 +58,16 @@ import {
   type RetrievalGateDeps,
   withFileSearch,
 } from "./retrieval";
+import {
+  chatSandboxApproval,
+  type PausedCall,
+  SANDBOX_TOOLS,
+  type SandboxToolRequest,
+  type SandboxToolSource,
+  type ToolReviews,
+  type TurnSandbox,
+  withSandboxTools,
+} from "./sandbox";
 
 // What a run answers with (PLAN.md §8 steps 3.2–3.4): the target resolved to
 // a model and the key that pays for it, plus the agent's instructions and
@@ -75,6 +85,10 @@ export interface Turn {
   /** Whose key pays; `null` for a keyless local provider. */
   readonly paidBy: KeyScope | null;
   readonly parameters?: ModelParameters;
+  /** What a call paused for approval would change (sandbox `write`/`edit`), for `PendingApproval.edits`. */
+  readonly proposeEdits?: (
+    call: PausedCall
+  ) => Promise<readonly ProposedEdit[] | undefined>;
   readonly resolvedModel: ModelRef;
   readonly toolApproval?: Readonly<Record<string, ToolApprovalStatus>>;
   readonly tools?: ToolSet;
@@ -99,9 +113,16 @@ export type ModelLoader = (
   options: { readonly signal?: AbortSignal; readonly state: DeciderState }
 ) => Promise<Result<LoadedModel, RunError>>;
 
+export interface TurnOptions {
+  /** Decisions on the calls a resumed pass executes (per-hunk reviews, D16). */
+  readonly reviews?: ToolReviews;
+  readonly signal?: AbortSignal;
+  readonly state: DeciderState;
+}
+
 export type TurnResolver = (
   run: RunStart,
-  options: { readonly signal?: AbortSignal; readonly state: DeciderState }
+  options: TurnOptions
 ) => AsyncResult<Turn, RunError>;
 
 export interface TurnResolverDeps {
@@ -141,6 +162,11 @@ export interface TurnResolverDeps {
     state: DeciderState,
     signal?: AbortSignal
   ) => Promise<Result<AutoRoute, { readonly type: "auto_disabled" }>>;
+  /**
+   * The chat's sandbox tools (019), bound by the shell; without it no run
+   * gets `bash`, `read`, `write`, `edit` or `preview`.
+   */
+  readonly sandbox?: SandboxToolSource;
 }
 
 const unavailable = (provider: string | null): RunError => ({
@@ -349,20 +375,76 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
     return { toolApproval: gated.toolApproval, tools: gated.tools };
   };
 
-  return async (run, { signal, state }) => {
+  /** The chat's sandbox for this turn, unless the composer turned it off. */
+  const sandboxFor = async (
+    run: RunStart,
+    requested: SandboxToolRequest["requested"],
+    { reviews, signal }: Pick<TurnOptions, "reviews" | "signal">
+  ): Promise<TurnSandbox | null> => {
+    if (!deps.sandbox || run.options.sandbox === "off") {
+      return null;
+    }
+    return await deps.sandbox({
+      requested,
+      reviews: reviews ?? new Map(),
+      run,
+      signal,
+    });
+  };
+
+  /**
+   * A plain chat with a sandbox attached (or switched on for this turn)
+   * gets its tools (D7); file changes ask, so each is reviewed before it
+   * lands.
+   */
+  const chatSandboxTools = async (
+    run: RunStart,
+    options: Pick<TurnOptions, "reviews" | "signal">
+  ): Promise<Pick<Turn, "proposeEdits" | "toolApproval" | "tools">> => {
+    const sandbox = await sandboxFor(
+      run,
+      run.options.sandbox === "on" ? "default" : null,
+      options
+    );
+    return sandbox === null
+      ? {}
+      : {
+          proposeEdits: sandbox.proposeEdits,
+          toolApproval: chatSandboxApproval(sandbox.tools),
+          tools: { ...sandbox.tools },
+        };
+  };
+
+  /** A plain model chat: the model, plus its attachments' and sandbox's tools. */
+  const modelTurn = async (
+    run: RunStart,
+    target: Extract<RunStart["target"], { type: "model" }>,
+    { reviews, signal, state }: TurnOptions
+  ): AsyncResult<Turn, RunError> => {
+    const caller = { context: run.context, userId: run.createdBy };
+    const loaded = await loadModel(caller, target.model, { signal, state });
+    if (!loaded.ok) {
+      return loaded;
+    }
+    const attached = await attachmentTools(run, caller, { signal, state });
+    const sandbox = await chatSandboxTools(run, { reviews, signal });
+    const tools = { ...sandbox.tools, ...attached.tools };
+    return ok({
+      agent: null,
+      parameters: target.parameters,
+      ...loaded.value,
+      proposeEdits: sandbox.proposeEdits,
+      toolApproval: { ...sandbox.toolApproval, ...attached.toolApproval },
+      tools: Object.keys(tools).length > 0 ? tools : undefined,
+    });
+  };
+
+  return async (run, options) => {
+    const { reviews, signal, state } = options;
     const { target } = run;
     const caller = { context: run.context, userId: run.createdBy };
     if (target.type === "model") {
-      const loaded = await loadModel(caller, target.model, { signal, state });
-      if (!loaded.ok) {
-        return loaded;
-      }
-      return ok({
-        agent: null,
-        parameters: target.parameters,
-        ...loaded.value,
-        ...(await attachmentTools(run, caller, { signal, state })),
-      });
+      return modelTurn(run, target, options);
     }
 
     // An agent: its latest published version unless the run pins one, or
@@ -411,14 +493,26 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
       run,
       definition
     );
+    // The version's sandbox (the chat's own if one is attached); `null`
+    // means no sandbox tools (contract `AgentDefinition.sandboxProvider`).
+    const sandbox = definition.sandboxProvider
+      ? await sandboxFor(run, definition.sandboxProvider, { reviews, signal })
+      : null;
     // The per-turn `file_search` wins over a static one: only it is scoped
     // to this requester, chat and agent.
-    const builtins = { ...deps.builtins, ...searchable.builtins };
+    const builtins = {
+      ...deps.builtins,
+      ...sandbox?.tools,
+      ...searchable.builtins,
+    };
     const plan = resolveTools(
-      searchable.agent,
+      sandbox === null
+        ? searchable.agent
+        : withSandboxTools(searchable.agent, sandbox),
       {
         builtins: new Set(Object.keys(builtins)),
         modelSupportsTools: true,
+        sandboxTools: new Set(SANDBOX_TOOLS),
       },
       // MCP grants come with 018; until then an agent's own servers are used.
       { mcpServers: new Set(definition.mcpServers.map((server) => server.id)) }
@@ -439,6 +533,7 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
       agent: { id: target.id, versionId: version.value.id },
       instructions: definition.instructions,
       parameters: definition.parameters,
+      proposeEdits: sandbox?.proposeEdits,
       toolApproval: gated.toolApproval,
       tools: gated.tools,
     });
