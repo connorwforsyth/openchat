@@ -29,8 +29,10 @@ import {
   desc,
   eq,
   getColumns,
+  inArray,
   isNotNull,
   isNull,
+  lt,
   ne,
   type SQL,
   type SQLWrapper,
@@ -44,9 +46,16 @@ import {
   type NotFoundError,
   notFound,
 } from "../errors";
-import { resourceGrant } from "../schema/access";
+import { resourceGrant, shareLink } from "../schema/access";
 import { user } from "../schema/auth";
-import { conversation, conversationParticipant, message } from "../schema/chat";
+import {
+  ACTIVE_RUN_STATUSES,
+  type ConversationPurpose,
+  conversation,
+  conversationParticipant,
+  message,
+  run,
+} from "../schema/chat";
 import { TEXT_SEARCH_CONFIG } from "../schema/columns";
 import { deleteGrantsForResource, hasLiveShareLink, heldBy } from "./grants";
 import { type BranchRows, getBranchPath, newestLeafId } from "./messages";
@@ -136,6 +145,8 @@ export interface NewConversation {
   readonly context: StoredContext;
   readonly defaultTarget?: RunTarget | null;
   readonly ownerId: UserId;
+  /** `test` for an Agent Builder test chat; `chat` by default. */
+  readonly purpose?: ConversationPurpose;
   readonly title?: string | null;
 }
 
@@ -152,6 +163,7 @@ export const createConversation = (
         contextType: input.context.type,
         defaultTarget: input.defaultTarget ?? null,
         ownerId: input.ownerId,
+        purpose: input.purpose ?? "chat",
         title: input.title ?? null,
       })
       .returning(conversationColumns);
@@ -254,6 +266,10 @@ const ownedBy = (
 
 const activityOf = sql<Date>`coalesce(${conversation.lastMessageAt}, ${conversation.createdAt})`;
 
+// Builder test chats are scratch space: reachable by id while the builder
+// holds them, but never part of anyone's history or search (ticket 033).
+const inHistory = eq(conversation.purpose, "chat");
+
 /** The viewer's conversations, most recently active first. */
 export const listConversations = async (
   db: Db,
@@ -267,6 +283,7 @@ export const listConversations = async (
   const rows = await selectViews(db, viewer)
     .where(
       and(
+        inHistory,
         ownedBy(viewer, input.ownership ?? "all"),
         isSetFilter(conversation.archivedAt, input.archived ?? false),
         input.contextType === undefined
@@ -400,6 +417,54 @@ export const deleteConversation = (
       : err(notFound("conversation", id));
   });
 
+/**
+ * Deletes builder test chats with no activity since `before`, with their
+ * grants and share links, skipping any with a run still going. Returns how
+ * many went.
+ */
+export const deleteStaleTestChats = (db: Db, before: Date): Promise<number> =>
+  db.transaction(async (tx) => {
+    const stale = await tx
+      .select({ id: conversation.id })
+      .from(conversation)
+      .where(
+        and(
+          eq(conversation.purpose, "test"),
+          // `createdAt` first so the partial index narrows the scan.
+          lt(conversation.createdAt, before),
+          lt(activityOf, before),
+          sql`not exists (select 1 from ${run} where ${run.conversationId} = ${conversation.id} and ${inArray(run.status, [...ACTIVE_RUN_STATUSES])})`
+        )
+      );
+    if (stale.length === 0) {
+      return 0;
+    }
+    // Grants and links have no foreign key to the chat (resources are
+    // polymorphic), so they go first, as in `deleteConversation`.
+    const ids = stale.map(({ id }) => id);
+    await tx
+      .delete(resourceGrant)
+      .where(
+        and(
+          eq(resourceGrant.resourceType, "conversation"),
+          inArray(resourceGrant.resourceId, ids)
+        )
+      );
+    await tx
+      .delete(shareLink)
+      .where(
+        and(
+          eq(shareLink.resourceType, "conversation"),
+          inArray(shareLink.resourceId, ids)
+        )
+      );
+    const deleted = await tx
+      .delete(conversation)
+      .where(inArray(conversation.id, ids))
+      .returning({ id: conversation.id });
+    return deleted.length;
+  });
+
 /** The contract's `ChatContext` for a stored one (Personal hides its org id). */
 export const toChatContext = (context: StoredContext): ChatContext =>
   context.type === "personal" ? { type: "personal" } : context;
@@ -472,6 +537,7 @@ export const searchConversations = async (
   const config = sql.raw(`'${TEXT_SEARCH_CONFIG}'`);
   const query = sql`websearch_to_tsquery(${config}, ${input.query})`;
   const scope = and(
+    inHistory,
     canRead(viewer),
     isSetFilter(conversation.archivedAt, input.archived),
     input.contextType === undefined

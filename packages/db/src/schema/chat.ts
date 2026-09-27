@@ -22,6 +22,7 @@ import {
 import { sql } from "drizzle-orm";
 import {
   type AnyPgColumn,
+  boolean,
   check,
   foreignKey,
   index,
@@ -58,6 +59,13 @@ export const ACTIVE_RUN_STATUSES = [
   "awaiting_approval",
 ] as const;
 
+/**
+ * What a conversation is for. `test` is an Agent Builder test chat (ticket
+ * 033): kept out of the chat list and search, and deleted after a while.
+ */
+export const CONVERSATION_PURPOSES = ["chat", "test"] as const;
+export type ConversationPurpose = (typeof CONVERSATION_PURPOSES)[number];
+
 export const conversation = pgTable(
   "conversation",
   {
@@ -78,6 +86,10 @@ export const conversation = pgTable(
     ownerId: idRef("owner_id", "user")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
+    purpose: text("purpose")
+      .$type<ConversationPurpose>()
+      .notNull()
+      .default("chat"),
     /** `null` until the title job names it. */
     title: text("title"),
     titleSearch: tsvector("title_search").generatedAlwaysAs(
@@ -89,10 +101,15 @@ export const conversation = pgTable(
     index("conversation_owner_idx").on(t.ownerId, t.updatedAt.desc()),
     index("conversation_context_idx").on(t.contextType, t.contextId),
     index("conversation_title_search_idx").using("gin", t.titleSearch),
+    // The test-chat cleanup's scan; ordinary chats never enter it.
+    index("conversation_test_idx")
+      .on(t.createdAt)
+      .where(sql`${t.purpose} = 'test'`),
     check(
       "conversation_context_type",
       oneOf(t.contextType, chatContextTypeSchema.options)
     ),
+    check("conversation_purpose", oneOf(t.purpose, CONVERSATION_PURPOSES)),
   ]
 );
 
@@ -209,6 +226,12 @@ export const run = pgTable(
       (): AnyPgColumn => run.id,
       { onDelete: "set null" }
     ),
+    /**
+     * The target was an agent's draft, not a published version (a builder
+     * test run, ticket 033). Kept because the draft changes, and becomes a
+     * published version, after the run.
+     */
+    agentDraft: boolean("agent_draft").notNull().default(false),
     /** Pending tool calls while `awaiting_approval`. */
     approvals: jsonb("approvals").$type<PendingApproval[]>(),
     /** The answer being written; `null` until the run starts. */

@@ -59,6 +59,8 @@ export type RunRow = typeof run.$inferSelect;
 
 export interface NewRun {
   readonly afterRunId?: RunId | null;
+  /** The target is an agent's draft (a builder test run). */
+  readonly agentDraft?: boolean;
   readonly context: StoredContext;
   readonly conversationId: ConversationId;
   readonly createdBy: UserId;
@@ -82,6 +84,7 @@ export const createRun = async (db: Db, input: NewRun): Promise<CreatedRun> => {
     .insert(run)
     .values({
       afterRunId: input.afterRunId ?? null,
+      agentDraft: input.agentDraft ?? false,
       contextId: input.context.id,
       contextType: input.context.type,
       conversationId: input.conversationId,
