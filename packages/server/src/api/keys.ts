@@ -8,7 +8,7 @@ import type {
 } from "@workspace/ai/ports/provider-registry";
 import type { AppConfig } from "@workspace/config/schema";
 import { contract } from "@workspace/contract/contract";
-import { baseErrors } from "@workspace/contract/errors";
+import { baseErrors, encryptionError } from "@workspace/contract/errors";
 import type {
   OrgId,
   ProviderKeyId,
@@ -184,12 +184,11 @@ export const createKeysRouter = (deps: KeysDeps) => {
         throw validation("That doesn't look like an API key.", ["apiKey"]);
       }
       if (!deps.keys.ok) {
-        // Contract gap: `keys.create` has no typed error for "this server
-        // can't store secrets", so this is a plain 503.
-        throw new ORPCError("SERVICE_UNAVAILABLE", {
-          message: "Keys can't be stored until ENCRYPTION_KEY is set.",
-          status: 503,
-        });
+        // An operator's problem, not the user's: say so, typed (042).
+        throw new ORPCError(
+          "ENCRYPTION_UNAVAILABLE",
+          encryptionError.ENCRYPTION_UNAVAILABLE
+        );
       }
       const sealed = seal(deps.keys.value, apiKey, providerKeyAad(scope));
       const row = await createProviderKey(db, {

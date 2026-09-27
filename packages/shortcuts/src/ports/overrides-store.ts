@@ -3,11 +3,9 @@ import { z } from "zod";
 
 import type { ShortcutOverrides } from "../overrides";
 
-// Where a user's recorded shortcuts live. The contract's user settings
-// (`GET/PATCH /me/settings`) have no field for them yet, so the web app uses
-// the browser-storage adapter keyed by user id; once the contract grows a
-// `shortcuts` setting, an adapter over `me.updateSettings` replaces it and no
-// caller changes.
+// Where a user's recorded shortcuts live. The web app uses the user-settings
+// adapter (`UserSettings.shortcuts`, `overrides-store.settings.ts`, 042) over
+// the browser-storage one, which keeps what the server doesn't have yet.
 
 export const overridesStoreErrorSchema = z.discriminatedUnion("type", [
   /** Storage is off (private mode, quota) or the server said no. Shortcuts still work with defaults. */

@@ -29,6 +29,7 @@ import { loadKeyRing } from "@workspace/mcp/crypto";
 import { createArtifactsRouter } from "./api/artifacts";
 import { createDecisionsRouter } from "./api/decisions";
 import { createFilesRouter } from "./api/files";
+import { databaseProbe, downProbe, jobsProbe } from "./api/health";
 import { createKeysRouter } from "./api/keys";
 import { createMcpRouter } from "./api/mcp";
 import { createMetaRouter, createPublicConfigRouter } from "./api/meta";
@@ -193,7 +194,14 @@ const withoutDatabase = (
     app: createApp({
       resolveSession,
       routers: {
-        ...createPublicConfigRouter({ config, env }),
+        ...createPublicConfigRouter({
+          config,
+          env,
+          health: {
+            database: downProbe("the database isn't available"),
+            jobs: downProbe("the job queue needs the database"),
+          },
+        }),
         ...options.routers,
       },
       services: null,
@@ -436,7 +444,15 @@ export const createServerFromEnv = async (
       Promise.resolve(authContext(request, session) ?? {}),
     resolveSession,
     routers: {
-      ...createMetaRouter({ config, db, env, keyStore, orgPolicy, registry }),
+      ...createMetaRouter({
+        config,
+        db,
+        env,
+        health: { database: databaseProbe(db), jobs: jobsProbe(jobs !== null) },
+        keyStore,
+        orgPolicy,
+        registry,
+      }),
       ...createKeysRouter({ config, db, keys: keyRing, registry }),
       ...createUsageRouter({ db }),
       ...createDecisionsRouter({ db }),

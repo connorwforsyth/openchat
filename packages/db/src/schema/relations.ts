@@ -44,6 +44,7 @@ import { sandbox } from "./sandbox";
 import {
   budget,
   invitationTeam,
+  invitationToken,
   orgSettings,
   team,
   teamMember,
@@ -76,6 +77,7 @@ const tables = {
   fileChunk,
   invitation,
   invitationTeam,
+  invitationToken,
   mcpOauthToken,
   mcpServer,
   member,

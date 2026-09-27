@@ -18,6 +18,7 @@ import type { RunTarget } from "@workspace/contract/schemas/runs";
 import type { ChatContext } from "@workspace/contract/schemas/tenancy";
 import { CircleAlertIcon } from "@workspace/icons";
 import type { PaletteContext } from "@workspace/palette/context-actions";
+import { createSettingsOverridesStore } from "@workspace/shortcuts/ports/overrides-store.settings";
 import { createStorageOverridesStore } from "@workspace/shortcuts/ports/overrides-store.storage";
 import { ShortcutsProvider } from "@workspace/shortcuts/react/context";
 import { Button } from "@workspace/ui/components/button";
@@ -47,13 +48,18 @@ import {
 import { routes } from "@/lib/routes";
 
 import { ApiProvider, useApi } from "./api";
-import { createIdbPersister, PERSIST_MAX_AGE_MS } from "./query-persistence";
+import {
+  createIdbPersister,
+  gatePersister,
+  PERSIST_MAX_AGE_MS,
+} from "./query-persistence";
 import { SHELL_LAYOUT_KEY, SIDEBAR_ATTRIBUTE } from "./shell-prepaint";
 import { useAfterBoot } from "./use-after-boot";
 
 // The signed-in app's client frame (039): the query cache (persisted to
-// IndexedDB, D28), the API client, shortcuts, the shell layout every page
-// shares, and the global surfaces. Chat, library, settings and admin pages
+// IndexedDB unless the user's orgs say no, D28), the API client, shortcuts
+// (kept in user settings), the shell layout every page shares, and the
+// global surfaces. Chat, library, settings and admin pages
 // all render inside it, so moving between them keeps the cache, the layout
 // and the palette.
 
@@ -326,11 +332,25 @@ export const AppFrame = ({
     }
     return created;
   });
-  const [persister] = useState(() => createIdbPersister());
+  const [persister] = useState(() => {
+    const meKey = createQueryUtils(client).me.get.queryKey();
+    // Read at each write, so a policy change applies without a reload.
+    return gatePersister(
+      createIdbPersister(),
+      () => queryClient.getQueryData<Me>(meKey)?.persistClientCache ?? false
+    );
+  });
   const [authClient] = useState(() => createWebAuthClient());
   const userId = initialMe?.user.id ?? "";
   const [store] = useState(() =>
-    createStorageOverridesStore(browserStorage(), `shortcuts:${userId}`)
+    createSettingsOverridesStore(
+      {
+        load: async () => (await client.me.settings()).shortcuts,
+        save: async (shortcuts) =>
+          (await client.me.updateSettings({ shortcuts })).shortcuts,
+      },
+      createStorageOverridesStore(browserStorage(), `shortcuts:${userId}`)
+    )
   );
 
   const signOut = useCallback(() => {

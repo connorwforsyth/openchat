@@ -1,4 +1,4 @@
-import type { UserId } from "@workspace/contract/schemas/common";
+import type { OrgId, UserId } from "@workspace/contract/schemas/common";
 import type { UserSettings } from "@workspace/contract/schemas/meta";
 import {
   type ChatContext,
@@ -11,13 +11,14 @@ import {
   user,
   userSettings,
 } from "@workspace/db/schema/auth";
-import { team, teamMember } from "@workspace/db/schema/tenancy";
-import { and, asc, eq } from "drizzle-orm";
+import { orgSettings, team, teamMember } from "@workspace/db/schema/tenancy";
+import { and, asc, eq, inArray } from "drizzle-orm";
 
 import { strongestOrgRole } from "../access";
 import { orgRoleOf } from "../resources";
 import { findPersonalOrgId } from "../store";
 import { authed } from "./base";
+import type { HandlerContext } from "./context";
 import { toOrg, toTeam, urlOrNull } from "./views";
 
 // The signed-in user: who they are, where they belong, and their defaults.
@@ -44,7 +45,36 @@ const loadSettings = async (db: Db, id: UserId): Promise<UserSettings> => {
     defaultContext: row?.settings?.defaultContext ?? { type: "personal" },
     defaultTarget: row?.settings?.defaultTarget ?? null,
     locale: row?.locale ?? null,
+    shortcuts: row?.settings?.shortcuts ?? {},
   };
+};
+
+/**
+ * Whether the user's clients may keep the query cache on disk (D28): not
+ * when the instance forbids it, nor when any org they're in turns it off
+ * (a shared machine is shared whichever org the user is looking at).
+ */
+const mayPersistClientCache = async (
+  context: Pick<HandlerContext, "config" | "db">,
+  orgIds: readonly string[]
+): Promise<boolean> => {
+  if (context.config.policies.persistClientCache === "forbidden") {
+    return false;
+  }
+  if (orgIds.length === 0) {
+    return true;
+  }
+  const off = await context.db
+    .select({ orgId: orgSettings.orgId })
+    .from(orgSettings)
+    .where(
+      and(
+        inArray(orgSettings.orgId, [...orgIds] as OrgId[]),
+        eq(orgSettings.persistClientCache, false)
+      )
+    )
+    .limit(1);
+  return off.length === 0;
 };
 
 /** Whether the user may pick `context` at all: Personal, or a team or org they're in. */
@@ -94,11 +124,16 @@ export const me = {
       // Every user gets one at sign-up (`bootstrapUser`).
       throw new Error("user has no personal org");
     }
+    const persistClientCache = await mayPersistClientCache(
+      context,
+      orgRows.map((each) => each.organization.id)
+    );
     return {
       // Personal included, flagged `isPersonal`: the one call that shows everything.
       orgs: orgRows.map((each) =>
         toOrg(each.organization, strongestOrgRole(each.member.role) ?? "member")
       ),
+      persistClientCache,
       personalOrgId,
       teams: teamRows.map((each) => ({
         role: teamRoleSchema.parse(each.role),
@@ -141,6 +176,9 @@ export const me = {
           ...(input.defaultTarget === undefined
             ? {}
             : { defaultTarget: input.defaultTarget }),
+          ...(input.shortcuts === undefined
+            ? {}
+            : { shortcuts: input.shortcuts }),
         };
         if (Object.keys(patch).length > 0) {
           await tx

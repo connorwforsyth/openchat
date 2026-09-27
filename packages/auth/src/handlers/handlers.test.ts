@@ -8,6 +8,7 @@ import type {
 import type { SharedResource } from "@workspace/contract/schemas/grants";
 import { conversation } from "@workspace/db/schema/chat";
 import { agent } from "@workspace/db/schema/library";
+import { invitationToken } from "@workspace/db/schema/tenancy";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { checkAccess } from "../resources";
@@ -91,6 +92,14 @@ const orgWithTree = async (t: TestAuth) => {
   return { admin, ctx, eng, org, platform };
 };
 
+/** The invite link's token, which only `invite`'s response carries. */
+const tokenOf = (invitation: { readonly token?: string }): string => {
+  if (!invitation.token) {
+    throw new Error("invite returned no token");
+  }
+  return invitation.token;
+};
+
 /** Invites `email` into the org (and teams), signs them up and accepts. */
 const join = async (
   t: TestAuth,
@@ -108,7 +117,7 @@ const join = async (
   const ctx = await contextOf(t, who);
   await call(
     authRouter.orgs.acceptInvitation,
-    { id: invitation.id },
+    { token: tokenOf(invitation) },
     { context: ctx }
   );
   return { ctx, who };
@@ -129,6 +138,32 @@ describe("me", () => {
         myRole: "owner",
       }),
     ]);
+  });
+
+  it("turns off the persisted client cache when an org or the instance does", async () => {
+    const t = await setup();
+    const { ctx, org } = await orgWithTree(t);
+    const bob = await join(t, ctx, org.id, "bob@example.test");
+    const persists = async (context: HandlerContext) =>
+      (await call(authRouter.me.get, undefined, { context }))
+        .persistClientCache;
+    expect(await persists(bob.ctx)).toBe(true);
+
+    const view = await call(
+      authRouter.orgs.updatePolicy,
+      { id: org.id, policy: { persistClientCache: false } },
+      { context: ctx }
+    );
+    expect(view.effective.persistClientCache).toBe(false);
+    expect(await persists(bob.ctx)).toBe(false);
+
+    await t.close();
+    const forbidding = await setup(
+      {},
+      { policies: { persistClientCache: "forbidden" } }
+    );
+    const solo = await signUp(forbidding.auth, "solo@example.test");
+    expect(await persists(await contextOf(forbidding, solo))).toBe(false);
   });
 
   it("needs a session", async () => {
@@ -155,7 +190,15 @@ describe("me", () => {
       defaultContext: { type: "personal" },
       defaultTarget: null,
       locale: "en-GB",
+      shortcuts: {},
     });
+    const shortcuts = { "chat.new": ["Mod+Shift+O"], "settings.open": [] };
+    expect(
+      await call(authRouter.me.updateSettings, { shortcuts }, { context: ctx })
+    ).toMatchObject({ locale: "en-GB", shortcuts });
+    expect(
+      await call(authRouter.me.settings, undefined, { context: ctx })
+    ).toMatchObject({ shortcuts });
     expect(
       await failure(
         call(
@@ -211,7 +254,7 @@ describe("orgs", () => {
     ]);
   });
 
-  it("takes an invitation only with its random id and the invited address", async () => {
+  it("takes an invitation only with its one-time token and the invited address", async () => {
     const t = await setup({ signup: "open" });
     const { ctx, org } = await orgWithTree(t);
     const first = await call(
@@ -224,12 +267,9 @@ describe("orgs", () => {
       { email: "cy@example.test", orgId: org.id, role: "member", teamIds: [] },
       { context: ctx }
     );
-    // v4, not v7: the id is the invite link's secret.
-    for (const id of [first.id, second.id]) {
-      expect(id).toMatch(UUID_V4);
-    }
-    // Listing orders by `createdAt`; a v4 id only breaks same-millisecond
-    // ties, arbitrarily but stably, so only membership is asserted here.
+    const token = tokenOf(first);
+    expect(token).not.toBe(tokenOf(second));
+    // Stored hashed: never listed, never in the database as given.
     const listed = await call(
       authRouter.orgs.listInvitations,
       { orgId: org.id },
@@ -238,24 +278,55 @@ describe("orgs", () => {
     expect(listed.map((each) => each.id).sort()).toEqual(
       [first.id, second.id].sort()
     );
+    expect(listed.every((each) => each.token === undefined)).toBe(true);
+    const stored = await t.db.select().from(invitationToken);
+    expect(stored).toHaveLength(2);
+    expect(stored.map((row) => row.tokenHash)).not.toContain(token);
 
     const eve = await contextOf(t, await signUp(t.auth, "eve@example.test"));
     expect(
       await failure(
-        call(
-          authRouter.orgs.acceptInvitation,
-          { id: first.id },
-          { context: eve }
-        )
+        call(authRouter.orgs.acceptInvitation, { token }, { context: eve })
       )
     ).toBe("FORBIDDEN");
 
     const bob = await contextOf(t, await signUp(t.auth, "bob@example.test"));
     expect(
+      await failure(
+        call(
+          authRouter.orgs.acceptInvitation,
+          { token: "x".repeat(43) },
+          { context: bob }
+        )
+      )
+    ).toBe("NOT_FOUND");
+    expect(
+      await call(authRouter.orgs.acceptInvitation, { token }, { context: bob })
+    ).toMatchObject({ id: org.id, myRole: "member" });
+    // Used up.
+    expect(
+      await failure(
+        call(authRouter.orgs.acceptInvitation, { token }, { context: bob })
+      )
+    ).toBe("NOT_FOUND");
+  });
+
+  it("still accepts by the (deprecated) invitation id for one release", async () => {
+    const t = await setup({ signup: "open" });
+    const { ctx, org } = await orgWithTree(t);
+    const invited = await call(
+      authRouter.orgs.invite,
+      { email: "cy@example.test", orgId: org.id, role: "member", teamIds: [] },
+      { context: ctx }
+    );
+    // v4, not v7, while an id can still accept.
+    expect(invited.id).toMatch(UUID_V4);
+    const cy = await contextOf(t, await signUp(t.auth, "cy@example.test"));
+    expect(
       await call(
         authRouter.orgs.acceptInvitation,
-        { id: first.id },
-        { context: bob }
+        { id: invited.id },
+        { context: cy }
       )
     ).toMatchObject({ id: org.id, myRole: "member" });
   });

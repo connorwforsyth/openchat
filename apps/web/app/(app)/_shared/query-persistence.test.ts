@@ -1,7 +1,14 @@
-import type { PersistedClient } from "@tanstack/react-query-persist-client";
+import type {
+  PersistedClient,
+  Persister,
+} from "@tanstack/react-query-persist-client";
 import { describe, expect, it } from "vitest";
 
-import { pickPersisted, RECENT_CONVERSATIONS } from "./query-persistence";
+import {
+  gatePersister,
+  pickPersisted,
+  RECENT_CONVERSATIONS,
+} from "./query-persistence";
 
 type Query = PersistedClient["clientState"]["queries"][number];
 
@@ -104,5 +111,44 @@ describe("pickPersisted", () => {
       clientState: { mutations: [{} as never], queries: [] },
     });
     expect(persisted.clientState.mutations).toEqual([]);
+  });
+});
+
+describe("gatePersister", () => {
+  /** A persister over one in-memory slot. */
+  const memoryPersister = () => {
+    let slot: PersistedClient | undefined;
+    const persister: Persister = {
+      persistClient: (persisted) => {
+        slot = persisted;
+      },
+      removeClient: () => {
+        slot = undefined;
+      },
+      restoreClient: () => slot,
+    };
+    return { persister, stored: () => slot };
+  };
+
+  it("writes and restores while the policy allows it", async () => {
+    const inner = memoryPersister();
+    const gated = gatePersister(inner.persister, () => true);
+    const persisted = client([query([["me", "get"], {}])]);
+    await gated.persistClient(persisted);
+    expect(await gated.restoreClient()).toBe(persisted);
+  });
+
+  it("keeps nothing on disk once an org turns persistence off", async () => {
+    const inner = memoryPersister();
+    let allowed = true;
+    const gated = gatePersister(inner.persister, () => allowed);
+    await gated.persistClient(client([query([["me", "get"], {}])]));
+    expect(inner.stored()).toBeDefined();
+
+    allowed = false;
+    expect(await gated.restoreClient()).toBeUndefined();
+    expect(inner.stored()).toBeUndefined();
+    await gated.persistClient(client([query([["me", "get"], {}])]));
+    expect(inner.stored()).toBeUndefined();
   });
 });

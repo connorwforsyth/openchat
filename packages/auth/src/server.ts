@@ -173,12 +173,13 @@ const orgPlugin = (db: Db) =>
       },
     },
     // There is no mail transport in M1, so nobody could verify an email
-    // and nobody could accept anything. Instead the invitation id is the
-    // capability (Q16): random, handed out only to org admins (`orgs.invite`
-    // and `orgs.listInvitations`) who pass the link on, and never listed
-    // to the invitee (see `disabledPaths`). Knowing the invited address
-    // is not enough; the recipient check (session email must match the
-    // invitation's) still applies on top.
+    // and nobody could accept anything. Instead a random token is the
+    // capability (Q16, 042): `orgs.invite` returns it once and stores only
+    // its hash (`invitation_token`); the admin passes the link on. The
+    // invitation id still accepts, deprecated, for one release: it's
+    // random too, and never listed to the invitee (see `disabledPaths`).
+    // Knowing the invited address is not enough; the recipient check
+    // (session email must match the invitation's) still applies on top.
     requireEmailVerificationOnInvitation: false,
     schema: {
       organization: {
@@ -223,9 +224,9 @@ const buildAuth = (
     advanced: {
       database: {
         // UUIDv7 everywhere, Better Auth's rows included (ticket 008), except
-        // invitations: their id is the invite link's secret (`/invite/<id>`),
-        // so it is a v4 (122 random bits) rather than a v7, whose leading
-        // bits are a timestamp.
+        // invitations: while `acceptInvitation` still takes a (deprecated)
+        // id, the id stays a v4 (122 random bits) rather than a v7, whose
+        // leading bits are a timestamp. Links use the token (042).
         generateId: ({ model }) =>
           model === "invitation" ? crypto.randomUUID() : newId(model),
       },

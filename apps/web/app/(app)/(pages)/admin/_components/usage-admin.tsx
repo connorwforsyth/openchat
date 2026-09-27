@@ -227,6 +227,7 @@ const SetBudgetForm = ({
         {
           hard,
           limitMicros: micros,
+          orgId,
           period,
           principal: team
             ? { id: team.id, type: "team" }

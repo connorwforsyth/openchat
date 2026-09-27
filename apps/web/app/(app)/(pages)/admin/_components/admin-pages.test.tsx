@@ -37,6 +37,7 @@ afterEach(() => {
 });
 
 const orgId = org.id;
+const INVITE_TOKEN = "k7Qm2c9Xr1VbN0pLw4Ez8TjYs6HgFdAaUoIiPq3Ke5M";
 
 const view = (stored: object = {}, limits: object = {}): OrgPolicyView => {
   const parsedStored = orgPolicySchema.parse(stored);
@@ -51,6 +52,7 @@ const view = (stored: object = {}, limits: object = {}): OrgPolicyView => {
 
 const PERSONAL_KEYS = /Fall back to personal keys/;
 const SAMPLED = /Sampled scoring/;
+const KEEP_ON_DEVICE = /Keep a copy on each device/;
 const AUDIT = /Let admins read chats/;
 const LAST_OWNER = /at least one owner/;
 const HAS_SUBTEAMS = /has sub-teams/;
@@ -90,6 +92,37 @@ describe("OrgPolicyForm", () => {
       ).toMatchObject({ policy: { sampledScoring: true } })
     );
     expect(await screen.findByText("Saved")).toBeTruthy();
+  });
+});
+
+describe("OrgPolicyForm persistence", () => {
+  it("turns off the on-device cache for shared computers", async () => {
+    const api = fakeApi({
+      "GET /orgs/:id/policy": () => view(),
+      "PUT /orgs/:id/policy": ({ body }) =>
+        view((body as { policy: object }).policy),
+    });
+    renderWithApi(<OrgPolicyForm orgId={orgId} />, api);
+    const keep = await screen.findByRole("switch", { name: KEEP_ON_DEVICE });
+    expect(keep.getAttribute("aria-checked")).toBe("true");
+    fireEvent.click(keep);
+    await userEvent.click(screen.getByRole("button", { name: "Save policy" }));
+    await waitFor(() =>
+      expect(
+        api.calls.find((call) => call.route.startsWith("PUT /orgs/"))?.body
+      ).toMatchObject({ policy: { persistClientCache: false } })
+    );
+  });
+
+  it("locks it off when the server forbids it", async () => {
+    const api = fakeApi({
+      "GET /orgs/:id/policy": () =>
+        view({}, { persistClientCache: "forbidden" }),
+    });
+    renderWithApi(<OrgPolicyForm orgId={orgId} />, api);
+    const keep = await screen.findByRole("switch", { name: KEEP_ON_DEVICE });
+    expect(keep.hasAttribute("data-disabled")).toBe(true);
+    expect(keep.getAttribute("aria-checked")).toBe("false");
   });
 });
 
@@ -168,6 +201,7 @@ describe("MembersAdmin", () => {
         role: "member",
         status: "pending",
         teamIds: [],
+        token: INVITE_TOKEN,
       }),
     });
     renderWithApi(<MembersAdmin orgId={orgId} />, api);
@@ -180,6 +214,11 @@ describe("MembersAdmin", () => {
         api.calls.find((call) => call.route.startsWith("POST"))?.body
       ).toEqual({ email: "cy@example.test", role: "member", teamIds: [] })
     );
+    // The link carries the one-time token, shown once.
+    const link = (await screen.findByLabelText(
+      "Invite link"
+    )) as HTMLInputElement;
+    expect(link.value).toBe(`${window.location.origin}/invite/${INVITE_TOKEN}`);
 
     fireEvent.click(
       screen.getByRole("button", { name: `Remove ${userAda.name}` })
@@ -273,6 +312,7 @@ describe("UsageAdmin", () => {
       ).toEqual({
         hard: true,
         limitMicros: 25_500_000,
+        orgId,
         period: "month",
         principal: { id: orgId, type: "org" },
       })

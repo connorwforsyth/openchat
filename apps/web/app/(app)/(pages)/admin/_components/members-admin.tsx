@@ -14,10 +14,11 @@ import type {
   OrgRole,
 } from "@workspace/contract/schemas/tenancy";
 import { formatDate } from "@workspace/i18n/format";
-import { MailIcon, Trash2Icon } from "@workspace/icons";
+import { CopyIcon, MailIcon, Trash2Icon } from "@workspace/icons";
 import { Button } from "@workspace/ui/components/button";
 import {
   Field,
+  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
@@ -31,13 +32,14 @@ import {
   TableHeader,
   TableRow,
 } from "@workspace/ui/components/table";
-import { type FormEvent, useCallback, useState } from "react";
+import { type FocusEvent, type FormEvent, useCallback, useState } from "react";
 import { z } from "zod";
 
 import { useApi } from "@/app/(app)/_shared/api";
 import { ConfirmButton } from "@/app/(app)/_shared/confirm";
 import { type Option, OptionSelect } from "@/app/(app)/_shared/option-select";
 import { codeOf, QueryState } from "@/app/(app)/_shared/query-state";
+import { routes } from "@/lib/routes";
 
 // Members and invitations (D17, D22). Better Auth's organization plugin is
 // underneath; the API refuses what a role can't do (an admin making an owner,
@@ -109,6 +111,41 @@ const MemberRow = ({
 
 const inviteSchema = z.object({ email: z.email() });
 
+/**
+ * The invite link, shown once (Q16): the server keeps only a hash of its
+ * token, so it can't be listed or shown again. Selecting it or copying it
+ * is the admin's way to pass it on until there's mail.
+ */
+const InviteLink = ({ link }: { readonly link: string }) => {
+  const copy = useCallback(() => {
+    navigator.clipboard?.writeText(link).catch(() => undefined);
+  }, [link]);
+  const selectAll = useCallback(
+    (event: FocusEvent<HTMLInputElement>) => event.currentTarget.select(),
+    []
+  );
+  return (
+    <Field>
+      <FieldLabel htmlFor="invite-link">
+        <Trans>Invite link</Trans>
+      </FieldLabel>
+      <div className="flex gap-2">
+        <Input id="invite-link" onFocus={selectAll} readOnly value={link} />
+        <Button onClick={copy} type="button" variant="outline">
+          <CopyIcon data-icon="inline-start" />
+          <Trans>Copy</Trans>
+        </Button>
+      </div>
+      <FieldDescription>
+        <Trans>
+          Send this link to them. It's shown only once: for a new one, cancel
+          the invitation and invite them again.
+        </Trans>
+      </FieldDescription>
+    </Field>
+  );
+};
+
 const InviteForm = ({
   onInvited,
   orgId,
@@ -123,6 +160,7 @@ const InviteForm = ({
   const [problem, setProblem] = useState<
     "invalid" | "exists" | "failed" | null
   >(null);
+  const [link, setLink] = useState<string | null>(null);
   const invite = useMutation(query.orgs.invite.mutationOptions());
   const { mutate } = invite;
   const submit = useCallback(
@@ -137,13 +175,22 @@ const InviteForm = ({
         return;
       }
       setProblem(null);
+      setLink(null);
       mutate(
         { email: parsed.data.email, orgId, role, teamIds: [] },
         {
           onError: (error) =>
             setProblem(codeOf(error) === "CONFLICT" ? "exists" : "failed"),
-          onSuccess: () => {
+          onSuccess: (invitation) => {
             form.reset();
+            setLink(
+              invitation.token
+                ? new URL(
+                    routes.invite(invitation.token),
+                    window.location.origin
+                  ).toString()
+                : null
+            );
             onInvited();
           },
         }
@@ -197,6 +244,7 @@ const InviteForm = ({
             ) : null}
           </FieldError>
         ) : null}
+        {link ? <InviteLink link={link} /> : null}
       </FieldGroup>
     </form>
   );

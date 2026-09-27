@@ -1,4 +1,5 @@
 import { implement, ORPCError } from "@orpc/server";
+import { orgRoleOf } from "@workspace/auth/resources";
 import { contract } from "@workspace/contract/contract";
 import { baseErrors } from "@workspace/contract/errors";
 import type { OrgId, TeamId, UserId } from "@workspace/contract/schemas/common";
@@ -91,7 +92,28 @@ export const createUsageRouter = ({
     }
   };
 
-  /** The org a budget for `principal` belongs to; `null` when there's none. */
+  /** Whether `principal` is in `orgId`: the org itself, one of its teams, or a member. */
+  const belongsTo = async (
+    principal: Principal,
+    orgId: OrgId
+  ): Promise<boolean> => {
+    switch (principal.type) {
+      case "org":
+        return principal.id === orgId;
+      case "team":
+        return (await teamOrg(db, principal.id)) === orgId;
+      case "user":
+        return (await orgRoleOf(db, orgId, principal.id)) !== null;
+      default:
+        return principal satisfies never;
+    }
+  };
+
+  /**
+   * The org a budget for `principal` belongs to when the caller doesn't say
+   * (deprecated, 042): its own org, a user's personal one. `null` when
+   * there's none.
+   */
   const budgetOrg = (principal: Principal): Promise<OrgId | null> => {
     switch (principal.type) {
       case "org":
@@ -139,12 +161,15 @@ export const createUsageRouter = ({
     ),
 
     setBudget: authed.usage.setBudget.handler(async ({ context, input }) => {
-      const orgId = await budgetOrg(input.principal);
+      const orgId = input.orgId ?? (await budgetOrg(input.principal));
       if (!orgId) {
         throw notFound();
       }
       if (!(await isOrgAdmin(db, orgId, context.userId))) {
         throw forbidden();
+      }
+      if (input.orgId && !(await belongsTo(input.principal, input.orgId))) {
+        throw validation("The principal isn't in this org.", ["principal"]);
       }
       const row = await setBudget(db, {
         hard: input.hard,

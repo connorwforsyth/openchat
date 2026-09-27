@@ -20,6 +20,7 @@ import {
 } from "@workspace/db/schema/auth";
 import {
   invitationTeam,
+  invitationToken,
   orgSettings,
   team,
   teamMember,
@@ -27,6 +28,7 @@ import {
 import { and, asc, desc, eq, ilike, inArray, ne, or, sql } from "drizzle-orm";
 
 import { strongestOrgRole } from "../access";
+import { hashInvitationToken, newInvitationToken } from "../invitation-token";
 import { loadOrgPolicy, orgRoleOf } from "../resources";
 import { leaveOrgTeams } from "../store";
 import { authed } from "./base";
@@ -173,6 +175,18 @@ const memberView = async (db: Db, orgId: OrgId, userId: UserId) => {
   };
 };
 
+/** The invitation a link's token opens, or `undefined` for an unknown one. */
+const invitationForToken = async (
+  db: Db,
+  token: string
+): Promise<InvitationId | undefined> => {
+  const [row] = await db
+    .select({ id: invitationToken.invitationId })
+    .from(invitationToken)
+    .where(eq(invitationToken.tokenHash, hashInvitationToken(token)));
+  return row?.id;
+};
+
 // --- Policy (D18: the YAML sets limits, each org chooses within them) ---
 
 const policyView = (
@@ -191,9 +205,17 @@ const policyView = (
 export const orgs = {
   acceptInvitation: authed.orgs.acceptInvitation.handler(
     async ({ context, errors, input }) => {
+      // `{ id }` is deprecated (042) and goes in the next contract release.
+      const invitationId =
+        "token" in input
+          ? await invitationForToken(context.db, input.token)
+          : input.id;
+      if (!invitationId) {
+        throw errors.NOT_FOUND();
+      }
       const accepted = await viaAuth(() =>
         context.auth.api.acceptInvitation({
-          body: { invitationId: input.id },
+          body: { invitationId },
           headers: context.headers,
         })
       );
@@ -211,6 +233,10 @@ export const orgs = {
       if (!found) {
         throw new Error("accepted an invitation but isn't a member");
       }
+      // Used up: the invitation is `accepted` now, so the token is dead weight.
+      await context.db
+        .delete(invitationToken)
+        .where(eq(invitationToken.invitationId, invitationId));
       return toOrg(found.row, found.role);
     }
   ),
@@ -339,6 +365,10 @@ export const orgs = {
         : refusalError(created.error, errors);
     }
     const invitationId = created.value.id as InvitationId;
+    const token = newInvitationToken();
+    await context.db
+      .insert(invitationToken)
+      .values({ invitationId, tokenHash: hashInvitationToken(token) });
     if (teamIds.length > 0) {
       await context.db
         .insert(invitationTeam)
@@ -352,7 +382,8 @@ export const orgs = {
     if (!row) {
       throw new Error("created an invitation that isn't there");
     }
-    return toInvitation(row, teamIds, nowOf(context));
+    // The only time the token leaves the server: it's stored hashed.
+    return { ...toInvitation(row, teamIds, nowOf(context)), token };
   }),
 
   leave: authed.orgs.leave.handler(async ({ context, errors, input }) => {
@@ -622,6 +653,7 @@ export const orgs = {
       const values = {
         auditEnabled: input.policy.auditEnabled,
         chatContexts: input.policy.chatContexts,
+        persistClientCache: input.policy.persistClientCache,
         personalKeyFallback: input.policy.personalKeyFallback,
         publishGate: input.policy.publishGate,
         sampledScoring: input.policy.sampledScoring,
