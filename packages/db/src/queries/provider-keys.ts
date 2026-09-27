@@ -13,6 +13,11 @@ import { type KEY_SCOPE_TYPES, providerKey } from "../schema/usage";
 // ENCRYPTION_KEY, done by the caller); the database never sees a plaintext
 // key. Reads return the public fields only, except `getSealedKey`, which the
 // key resolver calls right before decrypting.
+//
+// Every lookup, update and delete takes the owning scope as well as the id,
+// so a key id from one user, team or org can't reach another's key: the
+// caller names the scope it checked access to, and a key outside it is
+// `not_found`. Only rotation (`listKeysToReseal`) spans every scope.
 
 const { encryptedKey: _encryptedKey, ...publicColumns } =
   getColumns(providerKey);
@@ -65,21 +70,21 @@ export const createProviderKey = async (
   return row;
 };
 
+const inScope = (scope: KeyScopeRef) =>
+  and(eq(providerKey.scopeType, scope.type), eq(providerKey.scopeId, scope.id));
+
+/** One key, only if `scope` owns it. */
+const scopedKey = (scope: KeyScopeRef, id: ProviderKeyId) =>
+  and(eq(providerKey.id, id), inScope(scope));
+
 export const listProviderKeys = (
   db: Db,
-  scope?: KeyScopeRef
+  scope: KeyScopeRef
 ): Promise<ProviderKeyRow[]> =>
   db
     .select(publicColumns)
     .from(providerKey)
-    .where(
-      scope
-        ? and(
-            eq(providerKey.scopeType, scope.type),
-            eq(providerKey.scopeId, scope.id)
-          )
-        : undefined
-    )
+    .where(inScope(scope))
     .orderBy(asc(providerKey.createdAt));
 
 /**
@@ -98,19 +103,7 @@ export const findKeysForScopes = async (
   const rows = await db
     .select(publicColumns)
     .from(providerKey)
-    .where(
-      and(
-        eq(providerKey.provider, provider),
-        or(
-          ...scopes.map((scope) =>
-            and(
-              eq(providerKey.scopeType, scope.type),
-              eq(providerKey.scopeId, scope.id)
-            )
-          )
-        )
-      )
-    )
+    .where(and(eq(providerKey.provider, provider), or(...scopes.map(inScope))))
     .orderBy(asc(providerKey.createdAt));
   const rank = (row: ProviderKeyRow) =>
     scopes.findIndex(
@@ -127,6 +120,7 @@ export interface SealedKey {
 /** The sealed key, for decrypting just before use. Never log or return it. */
 export const getSealedKey = async (
   db: Db,
+  scope: KeyScopeRef,
   id: ProviderKeyId
 ): AsyncResult<SealedKey, NotFoundError> => {
   const [row] = await db
@@ -135,22 +129,27 @@ export const getSealedKey = async (
       keyId: providerKey.keyId,
     })
     .from(providerKey)
-    .where(eq(providerKey.id, id));
+    .where(scopedKey(scope, id));
   return row ? ok(row) : err(notFound("provider_key", id));
 };
 
 export const touchProviderKey = async (
   db: Db,
+  scope: KeyScopeRef,
   id: ProviderKeyId,
   now: Date = new Date()
 ): Promise<void> => {
   await db
     .update(providerKey)
     .set({ lastUsedAt: now })
-    .where(eq(providerKey.id, id));
+    .where(scopedKey(scope, id));
 };
 
-/** Keys still sealed with something other than `currentKeyId`: what rotation must reseal. */
+/**
+ * Keys still sealed with something other than `currentKeyId`: what rotation
+ * must reseal. Instance-wide on purpose; each row carries its scope for the
+ * reseal.
+ */
 export const listKeysToReseal = (
   db: Db,
   currentKeyId: string
@@ -162,24 +161,26 @@ export const listKeysToReseal = (
 
 export const resealProviderKey = async (
   db: Db,
+  scope: KeyScopeRef,
   id: ProviderKeyId,
   sealed: SealedKey
 ): AsyncResult<ProviderKeyRow, NotFoundError> => {
   const [row] = await db
     .update(providerKey)
     .set({ encryptedKey: sealed.encryptedKey, keyId: sealed.keyId })
-    .where(eq(providerKey.id, id))
+    .where(scopedKey(scope, id))
     .returning(publicColumns);
   return row ? ok(row) : err(notFound("provider_key", id));
 };
 
 export const deleteProviderKey = async (
   db: Db,
+  scope: KeyScopeRef,
   id: ProviderKeyId
 ): AsyncResult<void, NotFoundError> => {
   const deleted = await db
     .delete(providerKey)
-    .where(eq(providerKey.id, id))
+    .where(scopedKey(scope, id))
     .returning({ id: providerKey.id });
   return deleted.length > 0 ? ok(undefined) : err(notFound("provider_key", id));
 };

@@ -3,6 +3,8 @@ import type { ConversationId } from "@workspace/contract/schemas/common";
 import type { ChatContext } from "@workspace/contract/schemas/tenancy";
 import type { Db } from "@workspace/db/client";
 import {
+  type ConversationView,
+  getConversation,
   getConversationWithBranch,
   toChatContext,
   updateConversation,
@@ -34,6 +36,26 @@ export interface CoreJobDeps {
   ) => Promise<LanguageModel | null>;
 }
 
+/**
+ * Titles are written as the system, so whoever the job names must be able
+ * to rename the chat themselves: its owner or an editor. Reading it isn't
+ * enough, or a viewer's run (or one whose grant was cut back after it was
+ * enqueued) would rename someone else's chat.
+ */
+const canRename = (view: Pick<ConversationView, "myPermission">): boolean =>
+  view.myPermission === "owner" || view.myPermission === "editor";
+
+/** Whether to enqueue `title.generate` for this chat on `userId`'s behalf. */
+export const shouldTitle = async (
+  db: Db,
+  conversationId: ConversationId,
+  userId: TitleModelRequest["userId"]
+): Promise<boolean> => {
+  const actor = await actorFor(db, { userId });
+  const found = await getConversation(db, conversationId, actor);
+  return found.ok && found.value.title === null && canRename(found.value);
+};
+
 export const coreJobHandlers = ({
   db,
   streams,
@@ -53,6 +75,9 @@ export const coreJobHandlers = ({
       return ok({ skipped: "not_found" });
     }
     const { branch, conversation } = found.value;
+    if (!canRename(conversation)) {
+      return ok({ skipped: "forbidden" });
+    }
     if (conversation.title) {
       // Someone named it by hand first; theirs wins.
       return ok({ skipped: "titled" });

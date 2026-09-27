@@ -311,25 +311,30 @@ describe("sandbox exec job", () => {
     state: "active" as const,
   });
 
-  it("runs a command in the background and streams its output", async () => {
-    const factory = createJustBashFactory({
-      store: createMemorySnapshotStore(),
-    });
-    const sandboxId = newId("sandbox");
-    await must(
-      factory.create({
-        conversationId: newId("conversation"),
-        id: sandboxId,
-        limits,
-      })
+  /** A chat's just-bash sandbox, with the handler wired to its factory. */
+  const jobSetup = async () => {
+    const entry = justBash();
+    const { chat, deps, owner } = await setup(new Map([["just-bash", entry]]));
+    const created = await must(
+      createConversationSandbox(deps, { conversationId: chat.id })
     );
     const streamed: string[] = [];
     const handler = createSandboxExecJobHandler({
-      attach: factory.attach,
+      attach: entry.factory.attach,
+      db: testDb.db,
       onOutput: (_data, chunk) => streamed.push(chunk.data),
     });
+    return { chat, created, deps, handler, owner, streamed };
+  };
+
+  it("runs a command in the background and streams its output", async () => {
+    const { created, handler, owner, streamed } = await jobSetup();
     const result = await handler(
-      job({ command: "echo built", sandboxId }),
+      job({
+        command: "echo built",
+        requestedBy: owner.id,
+        sandboxId: created.id,
+      }),
       new AbortController().signal
     );
     expect(result).toMatchObject({
@@ -340,5 +345,48 @@ describe("sandbox exec job", () => {
     expect(
       await handler(job({ nope: true }), new AbortController().signal)
     ).toEqual(err("invalid sandbox job data"));
+  });
+
+  it("won't run without a requester, or for one who can't run commands there now", async () => {
+    const { chat, created, deps, handler, owner, streamed } = await jobSetup();
+    const { signal } = new AbortController();
+    const command = "echo pwned > owned.txt";
+    // Data that only names a sandbox acts as nobody.
+    expect(
+      await handler(job({ command, sandboxId: created.id }), signal)
+    ).toEqual(err("invalid sandbox job data"));
+
+    const stranger = await seedUser(testDb.db);
+    expect(
+      await handler(
+        job({ command, requestedBy: stranger.id, sandboxId: created.id }),
+        signal
+      )
+    ).toEqual(err("not_found"));
+
+    // An editor when it was enqueued, only a viewer by the time it runs.
+    const demoted = await seedUser(testDb.db);
+    await upsertGrant(testDb.db, {
+      grantedBy: owner.id,
+      permission: "viewer",
+      principal: { id: demoted.id, type: "user" },
+      resource: { resourceId: chat.id, resourceType: "conversation" },
+    });
+    expect(
+      await handler(
+        job({ command, requestedBy: demoted.id, sandboxId: created.id }),
+        signal
+      )
+    ).toEqual(err("forbidden"));
+
+    // Nothing ran: no output, and the workspace is still empty.
+    expect(streamed).toEqual([]);
+    expect(
+      await listSandboxFiles(deps, {
+        id: created.id,
+        path: ".",
+        recursive: false,
+      })
+    ).toEqual(ok([]));
   });
 });

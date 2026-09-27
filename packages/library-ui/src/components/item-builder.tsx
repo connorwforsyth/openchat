@@ -70,6 +70,7 @@ import { downloadJson, exportFileName } from "../transfer";
 import { AgentForm, type Choice, type KnowledgeFile } from "./agent-form";
 import { AccessBadge, VersionBadge, VisibilityBadge } from "./badges";
 import { ConfirmDelete } from "./confirm-delete";
+import { DuplicateNotice } from "./duplicate-notice";
 import { KindTile, useKindLabels } from "./kind";
 import type { LinkComponent } from "./library-index";
 import { McpForm, McpStatusPanel } from "./mcp-form";
@@ -331,6 +332,8 @@ function Builder({
         onSave={save}
         saving={draft.saving}
       />
+
+      {detail ? <DuplicateNotice id={detail.id} /> : null}
 
       {draft.problem ? (
         <Alert role="alert" variant="destructive">

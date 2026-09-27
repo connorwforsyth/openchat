@@ -10,8 +10,14 @@ import {
   signUp,
   type TestAuth,
 } from "@workspace/auth/testing";
-import type { OrgId, TeamId } from "@workspace/contract/schemas/common";
+import type {
+  FileId,
+  OrgId,
+  TeamId,
+  UserId,
+} from "@workspace/contract/schemas/common";
 import type { AgentDefinition } from "@workspace/contract/schemas/library";
+import { createFile } from "@workspace/db/queries/files";
 import { getMcpServer } from "@workspace/db/queries/mcp";
 import { keyRingOf, MCP_HEADER_SECRET_AAD, open } from "@workspace/mcp/crypto";
 import { ok } from "@workspace/shared/result";
@@ -674,5 +680,96 @@ describe("import, export and public links", () => {
       item: { definition: { instructions: "Be terse." }, name: "Reviewer" },
       resourceType: "agent",
     });
+  });
+});
+
+describe("maintainers and duplicates", () => {
+  it("sets maintainers on a published MCP server and preset, not only versioned kinds", async () => {
+    const { router, t } = await setup();
+    const { a, b, eng } = await acme(t);
+    const definitions = [
+      {
+        auth: { type: "none" as const },
+        kind: "mcp_server" as const,
+        transport: "http" as const,
+        url: "https://mcp.example.test/mcp",
+      },
+      { kind: "preset" as const, model: "fast" },
+    ];
+    for (const definition of definitions) {
+      // biome-ignore lint/performance/noAwaitInLoops: two kinds, one after the other on one database.
+      const created = await call(
+        router.library.create,
+        { definition, name: definition.kind },
+        as(a)
+      );
+      const copy = await call(
+        router.library.publishToLibrary,
+        { id: created.id, target: { id: eng.id, type: "team" } },
+        as(a)
+      );
+      const updated = await call(
+        router.library.setMaintainers,
+        { id: copy.id, userIds: [a.userId, b.userId] },
+        as(a)
+      );
+      expect(updated.maintainers.map((each) => each.id).sort()).toEqual(
+        [a.userId, b.userId].sort()
+      );
+      const seen = await call(router.library.get, { id: copy.id }, as(b));
+      expect(seen.myAccess).toBe("maintainer");
+    }
+  });
+
+  it("duplicating leaves out knowledge files the copier can't read on their own", async () => {
+    const { router, t } = await setup();
+    const { a, b, eng } = await acme(t);
+    const upload = (ownerId: UserId, name: string) =>
+      createFile(t.db, {
+        mediaType: "text/plain",
+        name,
+        ownerId,
+        purpose: "knowledge",
+        size: 4,
+        storageDriver: "local",
+        storageKey: name,
+      });
+    const aFile = await upload(a.userId, "a.txt");
+    const created = await call(
+      router.library.create,
+      {
+        definition: {
+          ...agentDefinition("Be terse."),
+          knowledgeFileIds: [aFile.id as FileId],
+        },
+        name: "Reviewer",
+      },
+      as(a)
+    );
+    await call(router.library.publishVersion, { id: created.id }, as(a));
+    const copy = await call(
+      router.library.publishToLibrary,
+      { id: created.id, target: { id: eng.id, type: "team" } },
+      as(a)
+    );
+    await call(
+      authRouter.grants.create,
+      {
+        permission: "view",
+        principal: { id: b.userId, type: "user" },
+        resourceId: copy.id,
+        resourceType: "agent",
+      },
+      { context: await authContext(t, a) }
+    );
+    const seen = await call(router.library.get, { id: copy.id }, as(b));
+    expect(seen.definition).toMatchObject({ knowledgeFileIds: [aFile.id] });
+
+    // B reached A's file only through the grant, which a copy would outlive.
+    const mine = await call(router.library.duplicate, { id: copy.id }, as(b));
+    expect(mine.definition).toMatchObject({ knowledgeFileIds: [] });
+    // A can read their own file, so A's copy keeps it.
+    const aCopy = await call(router.library.duplicate, { id: copy.id }, as(a));
+    expect(aCopy.definition).toMatchObject({ knowledgeFileIds: [aFile.id] });
   });
 });

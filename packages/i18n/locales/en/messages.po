@@ -49,6 +49,10 @@ msgstr "{additions, plural, one {# line added} other {# lines added}}"
 msgid "{count, plural, one {# item} other {# items}}"
 msgstr "{count, plural, one {# item} other {# items}}"
 
+#: ../library-ui/src/components/duplicate-notice.tsx
+msgid "{count, plural, one {# knowledge file wasn't copied} other {# knowledge files weren't copied}}"
+msgstr "{count, plural, one {# knowledge file wasn't copied} other {# knowledge files weren't copied}}"
+
 #: ../chat-ui/src/sandbox/terminal.tsx
 msgid "{count, plural, one {# log entry} other {# log entries}}"
 msgstr "{count, plural, one {# log entry} other {# log entries}}"
@@ -832,6 +836,9 @@ msgstr "Disconnect"
 #: ../chat-ui/src/conversation/artifact-card.tsx
 msgid "Document"
 msgstr "Document"
+#: ../library-ui/src/components/duplicate-notice.tsx
+msgid "Dismiss"
+msgstr "Dismiss"
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Download diagram"
@@ -3124,6 +3131,9 @@ msgstr "You don't have access to this."
 #: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
 msgid "You edited it"
 msgstr "You edited it"
+#: ../library-ui/src/components/duplicate-notice.tsx
+msgid "You could only search them through the original. Add your own files to give this copy knowledge."
+msgstr "You could only search them through the original. Add your own files to give this copy knowledge."
 
 #: ../library-ui/src/components/publish-dialog.tsx
 msgid "You have unsaved changes. Save the draft first to publish them."
