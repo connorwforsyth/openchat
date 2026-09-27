@@ -1,16 +1,17 @@
-import { existsSync, readFileSync } from "node:fs";
-import { createRequire } from "node:module";
-import { dirname, join } from "node:path";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
 import {
-  materialFile,
-  materialPackage,
   materialSymbols,
-  svgPathData,
+  materialVariants,
+  pickGlyphs,
+  vendoredFile,
+  vendoredWeightSchema,
 } from "../scripts/material";
 import { exportedIconNames } from "../scripts/registry";
+import { materialVendorDir } from "../scripts/sets";
 import { iconNames } from "./names";
 
 const lucideName = /^[A-Z]\w*Icon$/;
@@ -38,32 +39,32 @@ describe.each(["phosphor.ts", "material.ts"])("%s", (file) => {
 
 // `icons:select` fails the build on a symbol it can't find, so check every
 // variant the config allows up front rather than on someone's first
-// `weight: 100`.
-describe("material.ts symbols", () => {
+// `weight: 100`. A failure here means a symbol was mapped without rerunning
+// `icons:vendor`.
+describe("vendored Material symbols", () => {
   const symbols = materialSymbols(
     readFileSync(join(import.meta.dirname, "sets", "material.ts"), "utf8")
   );
-  const requireFrom = createRequire(import.meta.url);
-  const weights = [100, 200, 300, 400, 500, 600, 700] as const;
-  const variants = weights.flatMap((weight) =>
-    (["outlined", "rounded", "sharp"] as const).flatMap((style) =>
-      [false, true].map((fill) => ({ fill, style, weight }) as const)
-    )
-  );
 
-  it.each(variants)("exist in $style, $weight, fill $fill", (variant) => {
-    const packageDir = dirname(
-      requireFrom.resolve(`${materialPackage(variant.weight)}/package.json`)
-    );
-    const unusable = symbols.filter((symbol) => {
-      const file = join(packageDir, materialFile(variant, symbol));
-      return (
-        !existsSync(file) ||
-        svgPathData(readFileSync(file, "utf8")) === undefined
-      );
-    });
-    expect(unusable).toEqual([]);
+  it("cover all 42 variants", () => {
+    expect(materialVariants).toHaveLength(42);
   });
+
+  it.each(materialVariants)(
+    "cover every mapped symbol in $style, $weight, fill $fill",
+    (variant) => {
+      const data = vendoredWeightSchema.parse(
+        JSON.parse(
+          readFileSync(
+            join(materialVendorDir, vendoredFile(variant.weight)),
+            "utf8"
+          )
+        )
+      );
+      const picked = pickGlyphs(data, variant, symbols);
+      expect(picked.ok ? [] : picked.error).toEqual([]);
+    }
+  );
 });
 
 describe("the vocabulary", () => {

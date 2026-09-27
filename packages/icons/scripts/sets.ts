@@ -8,6 +8,14 @@ import { exportedIconNames } from "./registry";
 
 export const srcDir = join(import.meta.dirname, "..", "src");
 
+/** Where `icons:vendor` writes the Material Symbols subset. */
+export const materialVendorDir = join(
+  import.meta.dirname,
+  "..",
+  "vendor",
+  "material-symbols"
+);
+
 const extensions = [".ts", ".tsx"];
 
 function findFile(specifier: string): string | undefined {

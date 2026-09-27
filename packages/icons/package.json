@@ -12,6 +12,7 @@
   "scripts": {
     "icons:gaps": "bun scripts/gaps.ts",
     "icons:select": "bun scripts/select.ts",
+    "icons:vendor": "bun scripts/vendor.ts",
     "postinstall": "bun scripts/select.ts",
     "lint": "ultracite check",
     "test": "vitest run",
@@ -24,13 +25,6 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@material-symbols/svg-100": "catalog:",
-    "@material-symbols/svg-200": "catalog:",
-    "@material-symbols/svg-300": "catalog:",
-    "@material-symbols/svg-400": "catalog:",
-    "@material-symbols/svg-500": "catalog:",
-    "@material-symbols/svg-600": "catalog:",
-    "@material-symbols/svg-700": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@workspace/config": "workspace:*",

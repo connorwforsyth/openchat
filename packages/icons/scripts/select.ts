@@ -1,6 +1,5 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { createRequire } from "node:module";
-import { dirname, join, relative, resolve } from "node:path";
+import { join, relative, resolve } from "node:path";
 
 import { DEFAULT_CONFIG_FILE } from "@workspace/config/load";
 
@@ -8,11 +7,12 @@ import { iconNames } from "../src/names";
 import type { IconPlatform } from "../src/set-ids";
 import { describeChoice, type IconChoice, resolveIconChoice } from "./config";
 import {
-  materialFile,
-  materialPackage,
   materialSymbols,
+  pickGlyphs,
   renderMaterialGlyphs,
-  svgPathData,
+  type VendoredWeight,
+  vendoredFile,
+  vendoredWeightSchema,
 } from "./material";
 import {
   lucideBindings,
@@ -20,13 +20,20 @@ import {
   renderSelection,
   resolveSelection,
 } from "./registry";
-import { availableNames, setFile, setSource, srcDir } from "./sets";
+import {
+  availableNames,
+  materialVendorDir,
+  setFile,
+  setSource,
+  srcDir,
+} from "./sets";
 
 // Build-time set selection (D19): writes `src/selected.ts` and
 // `src/selected.native.ts`, which re-export each name from exactly one set
 // file, and `src/sets/material.glyphs.ts`, the Material path data in the
-// configured variant. Bundlers only ever see the chosen set (plus lucide for
-// its gaps), so the others are never in the bundle.
+// configured variant, picked from vendor/material-symbols. Bundlers only ever
+// see the chosen set (plus lucide for its gaps), so the others are never in
+// the bundle.
 //
 // The choice comes from `icons` in app.config.yaml, read where the web server
 // reads it: `CONFIG_PATH`, else `app.config.yaml`, both relative to apps/web.
@@ -41,7 +48,6 @@ declare const Bun: {
 
 const repoRoot = join(import.meta.dirname, "..", "..", "..");
 const appDir = join(repoRoot, "apps", "web");
-const requireFrom = createRequire(import.meta.url);
 
 interface ConfigBlock {
   /** The `icons` value, or undefined when there's no file or no block. */
@@ -79,36 +85,45 @@ function readConfigBlock(
   }
 }
 
-function materialGlyphs(
-  variant: IconChoice
-): Result<[symbol: string, path: string][], string[]> {
-  const packageDir = dirname(
-    requireFrom.resolve(`${materialPackage(variant.weight)}/package.json`)
-  );
-  const symbols = materialSymbols(
-    readFileSync(join(srcDir, "sets", "material.ts"), "utf8")
-  );
-  const glyphs = symbols.map((symbol) => {
-    const file = join(packageDir, materialFile(variant, symbol));
-    const path = existsSync(file)
-      ? svgPathData(readFileSync(file, "utf8"))
-      : undefined;
-    return [symbol, path, file] as const;
-  });
-  const broken = glyphs.filter(([, path]) => path === undefined);
-  if (broken.length > 0) {
+interface MaterialGlyphs {
+  readonly glyphs: [symbol: string, path: string][];
+  readonly source: VendoredWeight;
+}
+
+// From the committed subset in vendor/material-symbols, not the packages, so
+// installs don't carry ~165k SVG files for a hundred symbols.
+function materialGlyphs(variant: IconChoice): Result<MaterialGlyphs, string[]> {
+  const file = join(materialVendorDir, vendoredFile(variant.weight));
+  if (!existsSync(file)) {
     return {
-      error: broken.map(
-        ([symbol, , file]) =>
-          `material: no single-path SVG for "${symbol}" at ${file}`
+      error: [`material: ${file} is missing; run \`bun run icons:vendor\``],
+      ok: false,
+    };
+  }
+  let data: unknown;
+  try {
+    data = JSON.parse(readFileSync(file, "utf8"));
+  } catch (cause) {
+    const message = cause instanceof Error ? cause.message : String(cause);
+    return { error: [`material: ${file}: ${message}`], ok: false };
+  }
+  const parsed = vendoredWeightSchema.safeParse(data);
+  if (!parsed.success) {
+    return {
+      error: parsed.error.issues.map(
+        (issue) =>
+          `material: ${file}: ${issue.path.join(".")}: ${issue.message}`
       ),
       ok: false,
     };
   }
-  return {
-    ok: true,
-    value: glyphs.map(([symbol, path]) => [symbol, path ?? ""]),
-  };
+  const symbols = materialSymbols(
+    readFileSync(join(srcDir, "sets", "material.ts"), "utf8")
+  );
+  const glyphs = pickGlyphs(parsed.data, variant, symbols);
+  return glyphs.ok
+    ? { ok: true, value: { glyphs: glyphs.value, source: parsed.data } }
+    : glyphs;
 }
 
 // Leave an unchanged file alone so watchers don't rebuild for nothing.
@@ -142,7 +157,7 @@ if (!glyphs.ok) {
 }
 writeIfChanged(
   join(srcDir, "sets", "material.glyphs.ts"),
-  renderMaterialGlyphs(choice, glyphs.value)
+  renderMaterialGlyphs(choice, glyphs.value.source, glyphs.value.glyphs)
 );
 
 const outputs: Record<IconPlatform, string> = {

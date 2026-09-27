@@ -3,8 +3,8 @@ import { z } from "zod";
 /**
  * Icon sets the registry knows about. A set is "implemented" when
  * `src/sets/<id>.ts` (web) or `src/sets/<id>.native.ts` exists; until then
- * every name falls back to lucide. Material Symbols come from
- * `@material-symbols/svg-*` as SVG components, not the variable font (D19).
+ * every name falls back to lucide. Material Symbols are SVG paths vendored
+ * from `@material-symbols/svg-*`, not the variable font (D19).
  */
 export const iconSetIds = [
   "lucide",
