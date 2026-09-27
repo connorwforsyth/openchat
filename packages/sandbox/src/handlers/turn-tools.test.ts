@@ -344,6 +344,65 @@ describe("sandbox tools in agent turns", () => {
     // Nothing starts until a tool needs it.
     expect(await getSandboxForConversation(h.db, chat.id)).toBeNull();
   });
+
+  it("puts a port the agent previews on the chat's sandbox, for the panel", async () => {
+    // just-bash can't serve ports; this one can, like a Docker sandbox.
+    const inner = justBash();
+    const withPreviews = (
+      sandbox: Awaited<ReturnType<typeof inner.factory.attach>>
+    ) =>
+      sandbox.ok
+        ? ok({
+            ...sandbox.value,
+            exposePort: (port: number) =>
+              Promise.resolve(ok({ port, url: `http://preview.test:${port}` })),
+          })
+        : sandbox;
+    const previewing: ProviderEntry = {
+      ...inner,
+      factory: {
+        ...inner.factory,
+        attach: async (id) => withPreviews(await inner.factory.attach(id)),
+        create: async (spec) => withPreviews(await inner.factory.create(spec)),
+      },
+    };
+    const source = createTurnSandboxSource({
+      db: h.db,
+      defaultProvider: "just-bash",
+      providers: new Map([["just-bash", previewing]]),
+    });
+    const chat = await json<Conversation>(
+      await h.request("/api/conversations", { json: {}, method: "POST" }),
+      201
+    );
+    const turn = await source({
+      requested: "just-bash",
+      reviews: new Map(),
+      run: {
+        context: { type: "personal" },
+        conversationId: chat.id,
+        createdBy: h.ownerId,
+        options: { sandbox: "auto", webSearch: "auto" },
+        runId: "00000000-0000-7000-8000-000000000003" as RunId,
+        target: { model: "test:agent", type: "model" },
+        userMessageId: "00000000-0000-7000-8000-000000000004" as never,
+      },
+    });
+    const preview = turn?.tools.preview as unknown as {
+      execute: (input: { port: number }, options: object) => Promise<unknown>;
+    };
+    expect(
+      await preview.execute({ port: 5173 }, { messages: [], toolCallId: "p" })
+    ).toEqual({
+      port: 5173,
+      status: "exposed",
+      url: "http://preview.test:5173",
+    });
+    const row = await getSandboxForConversation(h.db, chat.id);
+    expect(row?.previews).toEqual([
+      { port: 5173, url: "http://preview.test:5173" },
+    ]);
+  });
 });
 
 describe("providerForTurn", () => {

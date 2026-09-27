@@ -1,4 +1,7 @@
-import type { ConversationId } from "@workspace/contract/schemas/common";
+import type {
+  ConversationId,
+  SandboxId,
+} from "@workspace/contract/schemas/common";
 import type { SandboxProvider } from "@workspace/contract/schemas/sandbox";
 import type { Db } from "@workspace/db/client";
 import type { Viewer } from "@workspace/db/queries/conversations";
@@ -27,6 +30,7 @@ import {
 import {
   authorizeSandboxExec,
   createConversationSandbox,
+  recordPreview,
   type SandboxHandlerError,
 } from "./sandbox";
 
@@ -87,9 +91,14 @@ const describe = (error: SandboxHandlerError): string => {
 /**
  * A sandbox that starts (or attaches) on first use. The start is shared by
  * every call in the turn; a failure is reported to each tool as its result.
+ * A port it exposes is handed to `onExposed`, so the panel can show it.
  */
 const lazySandbox = (
-  start: () => AsyncResult<Sandbox, SandboxError>
+  start: () => AsyncResult<Sandbox, SandboxError>,
+  onExposed: (
+    id: SandboxId,
+    exposed: { readonly port: number; readonly url: string }
+  ) => Promise<void>
 ): ToolSandbox => {
   let started: Promise<Awaited<ReturnType<typeof start>>> | undefined;
   const live = () => {
@@ -103,7 +112,14 @@ const lazySandbox = (
     },
     exposePort: async (port) => {
       const sandbox = await live();
-      return sandbox.ok ? sandbox.value.exposePort(port) : sandbox;
+      if (!sandbox.ok) {
+        return sandbox;
+      }
+      const exposed = await sandbox.value.exposePort(port);
+      if (exposed.ok) {
+        await onExposed(sandbox.value.id, exposed.value);
+      }
+      return exposed;
     },
     readFile: async (path) => {
       const sandbox = await live();
@@ -189,30 +205,33 @@ export const createTurnSandboxSource =
     if (!(provider && entry)) {
       return null;
     }
-    const sandbox = lazySandbox(async () => {
-      const viewer = await viewerOf(deps.db, run);
-      const row = await rowFor(deps, viewer, run.conversationId, provider);
-      if (!row.ok) {
-        return err(unavailable(describe(row.error)));
-      }
-      // Checked when it starts, not when the run was created: access can
-      // be cut back while a run waits in the queue or for an approval.
-      const allowed = await authorizeSandboxExec(
-        { db: deps.db, session: viewer },
-        row.value.id
-      );
-      if (!allowed.ok) {
-        return err(unavailable(describe(allowed.error)));
-      }
-      const live = deps.providers.get(row.value.provider);
-      return live
-        ? live.factory.attach(row.value.id)
-        : err(
-            unavailable(
-              `${row.value.provider} sandboxes are not configured on this instance`
-            )
-          );
-    });
+    const sandbox = lazySandbox(
+      async () => {
+        const viewer = await viewerOf(deps.db, run);
+        const row = await rowFor(deps, viewer, run.conversationId, provider);
+        if (!row.ok) {
+          return err(unavailable(describe(row.error)));
+        }
+        // Checked when it starts, not when the run was created: access can
+        // be cut back while a run waits in the queue or for an approval.
+        const allowed = await authorizeSandboxExec(
+          { db: deps.db, session: viewer },
+          row.value.id
+        );
+        if (!allowed.ok) {
+          return err(unavailable(describe(allowed.error)));
+        }
+        const live = deps.providers.get(row.value.provider);
+        return live
+          ? live.factory.attach(row.value.id)
+          : err(
+              unavailable(
+                `${row.value.provider} sandboxes are not configured on this instance`
+              )
+            );
+      },
+      (id, exposed) => recordPreview(deps.db, id, exposed)
+    );
     return {
       proposeEdits: (call) => proposal(sandbox, call),
       provider,

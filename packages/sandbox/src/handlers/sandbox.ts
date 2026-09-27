@@ -360,13 +360,30 @@ export const exposeSandboxPort = async (
   if (!exposed.ok) {
     return err(fromSandboxError(exposed.error));
   }
-  await updateSandbox(deps.db, row.value.id, {
+  await recordPreview(deps.db, row.value.id, exposed.value);
+  return ok({ port: exposed.value.port, url: exposed.value.url });
+};
+
+/**
+ * Adds a port the sandbox now serves to its row, replacing an older URL for
+ * the same port. The panel shows the row's previews, so both the panel's
+ * Preview button and the agent's `preview` tool record here.
+ */
+export const recordPreview = async (
+  db: Db,
+  id: SandboxId,
+  exposed: { readonly port: number; readonly url: string }
+): Promise<void> => {
+  const row = await getSandbox(db, id);
+  if (!row) {
+    return;
+  }
+  await updateSandbox(db, id, {
     previews: [
-      ...row.value.previews.filter((preview) => preview.port !== input.port),
-      exposed.value,
+      ...row.previews.filter((preview) => preview.port !== exposed.port),
+      { port: exposed.port, url: exposed.url },
     ].sort((a, b) => a.port - b.port),
   });
-  return ok({ port: exposed.value.port, url: exposed.value.url });
 };
 
 export const listSandboxFiles = async (
