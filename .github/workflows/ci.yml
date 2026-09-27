@@ -114,6 +114,68 @@ jobs:
         working-directory: packages/db
         run: bunx vitest run
 
+  # End to end (ticket 040, PLAN.md §11 M1). Pushes to main only: it builds
+  # the production app and drives it in Chromium, and private-repo Actions
+  # minutes are limited (the loop runs it locally before merging). Two legs:
+  # the Playwright suite against `next start` on the embedded database with
+  # a mock model server (as locally), then the Docker image with compose on
+  # Postgres, smoke-tested (e2e/support/compose-smoke.ts).
+  e2e:
+    if: github.event_name == 'push'
+    name: e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NEXT_TELEMETRY_DISABLED: 1
+      TURBO_TELEMETRY_DISABLED: 1
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.0
+
+      - name: Install
+        # Retried once: native builds (better-sqlite3 via evalite) occasionally race in bunx node-gyp.
+        run: bun install --frozen-lockfile || bun install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: bunx playwright install --with-deps chromium-headless-shell
+
+      - name: Playwright (production build, embedded database)
+        run: bun turbo test:e2e
+
+      - name: Playwright traces
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: e2e-test-results
+          path: e2e/test-results/
+          retention-days: 7
+
+      - name: Start the compose stack
+        # Retried: Docker Hub blob pulls occasionally fail mid-download on hosted runners.
+        run: |
+          cp .env.example .env
+          for attempt in 1 2 3; do
+            docker compose up -d --build --wait --wait-timeout 300 web postgres && exit 0
+            echo "compose up failed (attempt $attempt), retrying"; sleep 10
+          done
+          exit 1
+
+      - name: Compose smoke test
+        run: E2E_BASE_URL=http://localhost:3000 bun e2e/support/compose-smoke.ts
+
+      - name: Compose logs
+        if: failure()
+        run: |
+          docker compose ps -a
+          docker compose logs --no-color web postgres
+
   # The Docker sandbox path end to end (ticket 029, PLAN.md §11 step 6):
   # builds the runner image, starts the `sandbox` compose profile (runner +
   # socket proxy) on the runner's real Docker, and drives it through the

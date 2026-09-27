@@ -1,0 +1,21 @@
+{
+  "name": "@workspace/e2e",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "ultracite check",
+    "test:e2e": "playwright test --config ../playwright.config.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "catalog:",
+    "@types/node": "catalog:",
+    "@workspace/client": "workspace:*",
+    "@workspace/contract": "workspace:*",
+    "@workspace/typescript-config": "workspace:*",
+    "typescript": "catalog:",
+    "web": "workspace:*",
+    "zod": "catalog:"
+  }
+}

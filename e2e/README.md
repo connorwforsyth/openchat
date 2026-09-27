@@ -1,0 +1,50 @@
+# End-to-end tests
+
+Playwright over the production build of `apps/web` (PLAN.md §11 M1).
+
+```sh
+bun turbo test:e2e      # builds apps/web, then runs the suite
+```
+
+`e2e/support/serve.ts` is Playwright's web server: `next start` on an
+otherwise empty environment, so the app boots on the embedded database
+(PGlite) in a fresh temporary directory, deleted afterwards. Every run starts
+from a server with no users. It sets only what production refuses to run
+without (a generated `BETTER_AUTH_SECRET` and `ENCRYPTION_KEY`) and an
+`app.config.yaml` whose providers point at `support/mock-llm.ts`, an
+OpenAI-compatible mock model server. The app reaches it through its ordinary
+`openai-compatible` provider, like Ollama; no real provider is ever called.
+The mock's replies are steered by the message (see the comment at its top):
+`[slow]` streams slowly, `[tool:<name> <json>]` calls a tool, `remember …`
+calls `update_memory`, `[search:…]` calls `file_search`, anything else echoes.
+
+`accounts.setup.ts` runs first: the first sign-up (the admin), an org with a
+team tree, and two more people joining by invitation link. The specs build on
+the browser state and ids it saves in `e2e/.auth/` (gitignored). One worker,
+in file order, against one server.
+
+The D27 timings (TTFB, `composer:ready`, first token) are recorded as the
+suite goes and printed at the end.
+
+- `E2E_PORT` picks the port (3100).
+- `E2E_STANDALONE=1` runs the server the Docker image runs: after
+  `NEXT_OUTPUT=standalone bunx next build` in `apps/web`, the standalone
+  output is laid out as `apps/web/Dockerfile` lays it out (static assets,
+  migrations) and started with `node server.js`. It checks the image's
+  contents without Docker.
+- `E2E_DEV=1` runs `next dev` instead, to debug a failure with React's
+  development warnings (slow: it compiles on demand).
+
+## Docker
+
+Run when Docker is available (it isn't needed for the suite above):
+
+```sh
+docker compose -p smoke up -d --build --wait
+E2E_BASE_URL=http://localhost:3000 bun e2e/support/compose-smoke.ts
+docker compose -p smoke down -v
+```
+
+`compose-smoke.ts` checks the image on Postgres: boot and migrations, the
+first sign-up as admin, a stored chat, a signed-in page. CI runs it on pushes
+to `main` (`e2e` job). See `docs/self-hosting.md`.

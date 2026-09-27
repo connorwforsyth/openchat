@@ -43,8 +43,9 @@
       "outputs": []
     },
     "test:e2e": {
-      "dependsOn": ["build"],
-      "outputs": ["playwright-report/**", "test-results/**"]
+      "cache": false,
+      "dependsOn": ["^build"],
+      "passThroughEnv": ["CI", "E2E_DEV", "E2E_PORT", "E2E_STANDALONE"]
     },
     "eval": {
       "outputs": []

@@ -63,6 +63,8 @@
       "name": "web",
       "version": "0.0.1",
       "dependencies": {
+        "@electric-sql/pglite": "catalog:",
+        "@electric-sql/pglite-pgvector": "catalog:",
         "@lingui/core": "catalog:",
         "@lingui/react": "catalog:",
         "@tanstack/react-query": "catalog:",
@@ -111,6 +113,20 @@
         "playwright": "catalog:",
         "typescript": "catalog:",
         "vitest": "catalog:",
+      },
+    },
+    "e2e": {
+      "name": "@workspace/e2e",
+      "version": "0.0.0",
+      "devDependencies": {
+        "@playwright/test": "catalog:",
+        "@types/node": "catalog:",
+        "@workspace/client": "workspace:*",
+        "@workspace/contract": "workspace:*",
+        "@workspace/typescript-config": "workspace:*",
+        "typescript": "catalog:",
+        "web": "workspace:*",
+        "zod": "catalog:",
       },
     },
     "packages/ai": {
@@ -1621,6 +1637,8 @@
     "@workspace/contract": ["@workspace/contract@workspace:packages/contract"],
 
     "@workspace/db": ["@workspace/db@workspace:packages/db"],
+
+    "@workspace/e2e": ["@workspace/e2e@workspace:e2e"],
 
     "@workspace/i18n": ["@workspace/i18n@workspace:packages/i18n"],
 
