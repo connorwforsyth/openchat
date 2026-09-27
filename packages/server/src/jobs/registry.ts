@@ -25,6 +25,8 @@ export const jobSchemas = {
   "file.reindex": z.object({ fileId: fileIdSchema }),
   /** Drops a finished run's stored chunks; resume only needs them for a while. */
   "run.prune": z.object({ runId: runIdSchema }),
+  /** Deletes idle Agent Builder test chats (033); runs on a schedule. */
+  "testChat.prune": z.object({}),
   /** Names a conversation after its first turn. */
   "title.generate": z.object({
     conversationId: conversationIdSchema,
@@ -47,6 +49,8 @@ export const jobDefaults: { readonly [N in JobName]: SendOptions } = {
   "file.reindex": { retryBackoff: true, retryDelaySeconds: 10, retryLimit: 3 },
   // Long enough for a dropped client to reconnect and replay.
   "run.prune": { retryLimit: 1, startAfterSeconds: 600 },
+  // The next scheduled pass picks up whatever a failed one left.
+  "testChat.prune": { retryLimit: 0 },
   "title.generate": { retryDelaySeconds: 5, retryLimit: 2 },
 };
 

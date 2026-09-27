@@ -244,7 +244,19 @@ describe("canAccess", () => {
     {
       allowed: ["use", "view", "edit", "manage"],
       denied: [],
-      name: "a maintainer of a published item",
+      name: "a maintainer of an item published to Eng, from Platform",
+      query: query(publishedTo(asTeam(eng), [me])),
+    },
+    {
+      allowed: ["use", "view", "edit", "manage"],
+      denied: [],
+      name: "a maintainer of an item published to my org",
+      query: query(publishedTo(asOrg(org), [me])),
+    },
+    {
+      allowed: [],
+      denied: ["use", "view", "edit", "manage"],
+      name: "a maintainer no longer in the library it was published to",
       query: query(publishedTo(asTeam(sales), [me])),
     },
     {

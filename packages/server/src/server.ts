@@ -9,6 +9,7 @@ import { type App, createApp } from "./app";
 import type { SessionResolver } from "./context";
 import type { JobHandlers } from "./jobs/registry";
 import { type JobRuntime, startJobs } from "./jobs/start";
+import { scheduleTestChatPrune } from "./jobs/test-chats";
 import {
   createServices,
   registerCoreJobs,
@@ -82,6 +83,10 @@ export const createServerFromEnv = async (
   });
   if (jobs) {
     await registerCoreJobs(jobs.queue, services, options.jobHandlers);
+    const scheduled = await scheduleTestChatPrune(jobs.queue);
+    if (!scheduled.ok) {
+      report("couldn't schedule the test chat cleanup", scheduled.error);
+    }
   }
   return {
     app: createApp({

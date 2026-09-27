@@ -254,15 +254,24 @@ export interface AccessQuery {
   readonly userId: string;
 }
 
+/**
+ * The owner, or a maintainer who is still in the library that owns the item:
+ * someone who left the org (or the team) keeps no hold on what they
+ * published there (D13, "survives your departure").
+ */
 const isManager = (query: AccessQuery): boolean => {
   const { resource, userId } = query;
   if (resource.resourceType === "conversation") {
     return resource.ownerId === userId;
   }
-  return (
-    (resource.owner.type === "user" && resource.owner.id === userId) ||
-    resource.maintainers.some((id) => id === userId)
+  const { owner } = resource;
+  if (owner.type === "user") {
+    return owner.id === userId;
+  }
+  const member = expandPrincipals(query.principals, query.tree ?? []).some(
+    (principal) => principalKey(principal) === principalKey(owner)
   );
+  return member && resource.maintainers.some((id) => id === userId);
 };
 
 /**

@@ -38,6 +38,8 @@ export const libraryKeys = {
   config: ["meta", "config"] as const,
   detail: (id: string, revision: string) =>
     ["library", "item", id, revision] as const,
+  /** What a fresh copy left out, set by `useDuplicateItem` for the copy's builder. */
+  duplicateNotice: (id: string) => ["library", "duplicate-notice", id] as const,
   grants: (id: string) => ["grants", id] as const,
   item: (id: string) => ["library", "item", id] as const,
   links: (id: string) => ["shareLinks", id] as const,

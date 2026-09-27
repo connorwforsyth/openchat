@@ -6,17 +6,17 @@ import {
 import type { ProviderRegistry } from "@workspace/ai/ports/provider-registry";
 import type { AppConfig } from "@workspace/config/schema";
 import type { Db } from "@workspace/db/client";
-import { getConversation } from "@workspace/db/queries/conversations";
 
 import type { ApiServices } from "./api/router";
-import { actorFor, type ConversationAccess, grantAccess } from "./context";
-import { coreJobHandlers } from "./jobs/handlers";
+import { type ConversationAccess, grantAccess } from "./context";
+import { coreJobHandlers, shouldTitle } from "./jobs/handlers";
 import {
   enqueueJob,
   type JobHandlers,
   type Jobs,
   registerJobs,
 } from "./jobs/registry";
+import { testChatJobHandlers } from "./jobs/test-chats";
 import type { JobQueue } from "./ports/job-queue";
 import {
   type BudgetCheck,
@@ -102,18 +102,13 @@ export const createServices = (options: ServicesOptions): Services => {
     if (event.status !== "succeeded") {
       return;
     }
-    const actor = await actorFor(db, { userId: event.run.createdBy });
-    const conversation = await getConversation(
-      db,
-      event.run.conversationId,
-      actor
-    );
-    if (conversation.ok && conversation.value.title === null) {
+    const { conversationId, createdBy } = event.run;
+    if (await shouldTitle(db, conversationId, createdBy)) {
       await enqueueJob(
         jobs,
         "title.generate",
-        { conversationId: event.run.conversationId, userId: actor.userId },
-        { singletonKey: `title:${event.run.conversationId}` }
+        { conversationId, userId: createdBy },
+        { singletonKey: `title:${conversationId}` }
       );
     }
   };
@@ -159,7 +154,10 @@ export const createServices = (options: ServicesOptions): Services => {
     db,
     defaultModel: config.models.default,
     executor,
-    jobHandlers,
+    jobHandlers: {
+      ...jobHandlers,
+      ...testChatJobHandlers({ db, now: options.now }),
+    },
     loadModel,
     memory,
     stop: async () => {

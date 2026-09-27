@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans } from "@lingui/react/macro";
 import type { UIMessage } from "ai";
 import { useEffect, useRef, useState } from "react";
 
@@ -58,9 +59,17 @@ const useEchoSession = (instructions: string): TestChatSession => {
   };
 };
 
-export function EchoTestChat({ definition, notice }: TestChatProps) {
+export function EchoTestChat({ definition, dirty }: TestChatProps) {
   const session = useEchoSession(definition.instructions);
   return (
-    <TestChatPanel definition={definition} notice={notice} session={session} />
+    <TestChatPanel
+      definition={definition}
+      notice={
+        dirty ? (
+          <Trans>Testing what's on screen; save to keep it.</Trans>
+        ) : undefined
+      }
+      session={session}
+    />
   );
 }

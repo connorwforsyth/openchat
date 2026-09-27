@@ -96,9 +96,11 @@ const fromSandboxError = (error: SandboxError): SandboxHandlerError => {
   }
 };
 
+type AccessDeps = Pick<SandboxHandlerDeps, "db" | "session">;
+
 /** Checks the session may `need` the conversation. */
 const authorize = async (
-  { db, session }: SandboxHandlerDeps,
+  { db, session }: AccessDeps,
   conversationId: ConversationId,
   need: Need
 ): AsyncResult<void, SandboxHandlerError> => {
@@ -115,7 +117,7 @@ const authorize = async (
 
 /** The sandbox row, if the session may `need` its conversation. */
 const authorizedRow = async (
-  deps: SandboxHandlerDeps,
+  deps: AccessDeps,
   id: SandboxId,
   need: Need
 ): AsyncResult<SandboxRow, SandboxHandlerError> => {
@@ -125,6 +127,19 @@ const authorizedRow = async (
   }
   const allowed = await authorize(deps, row.conversationId, need);
   return allowed.ok ? ok(row) : allowed;
+};
+
+/**
+ * Whether the session may still run commands in the sandbox (an owner or
+ * editor of its conversation), for work that runs later than the request
+ * that asked for it, like the exec job.
+ */
+export const authorizeSandboxExec = async (
+  deps: AccessDeps,
+  id: SandboxId
+): AsyncResult<void, SandboxHandlerError> => {
+  const row = await authorizedRow(deps, id, "write");
+  return row.ok ? ok(undefined) : row;
 };
 
 const entryFor = (

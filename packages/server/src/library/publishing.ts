@@ -510,6 +510,31 @@ export const restoreVersion = async (
   return await freshDetail(db, userId, item.row.id, "draft");
 };
 
+/**
+ * Stores the maintainers for any kind. `setMaintainers` only knows the
+ * versioned tables, so MCP servers and presets take the published-copy
+ * write, which covers every kind. Items are created personal, so one a
+ * library owns is always a published copy and keeps its `publishedFrom`.
+ */
+const saveMaintainers = async (
+  db: Db,
+  item: Resolved,
+  userIds: readonly UserId[]
+): AsyncResult<void, LibraryError> => {
+  if (isVersionedKind(item.kind)) {
+    const updated = await setMaintainers(db, item.kind, item.row.id, userIds);
+    return updated.ok ? ok(undefined) : err({ type: "not_found" });
+  }
+  if (!item.row.publishedFrom) {
+    return err(invalid("Only published items have maintainers.", ["id"]));
+  }
+  await markPublishedCopy(db, item.kind, item.row.id, {
+    maintainers: userIds,
+    publishedFrom: item.row.publishedFrom,
+  });
+  return ok(undefined);
+};
+
 /** Sets who maintains a published item. Each must be in the library that owns it. */
 export const setItemMaintainers = async (
   deps: LibraryDeps,
@@ -540,14 +565,9 @@ export const setItemMaintainers = async (
       ])
     );
   }
-  const updated = await setMaintainers(
-    db,
-    item.kind as VersionedKind,
-    item.row.id,
-    input.userIds
-  );
+  const updated = await saveMaintainers(db, item, input.userIds);
   if (!updated.ok) {
-    return err({ type: "not_found" });
+    return updated;
   }
   const refreshed = await resolveItem(db, userId, item.row.id);
   if (!refreshed.ok) {
@@ -572,6 +592,36 @@ const copyableDefinition = async (
 ): Promise<LibraryDefinition | undefined> =>
   (await currentDefinition(db, item, allows(item.access, "edit")))?.definition;
 
+/** Whether the caller can read a file on their own (not through an agent's grant). */
+const canReadFile = (db: Db, caller: Caller) => {
+  const viewer = { principals: caller.principals, userId: caller.userId };
+  return async (id: string): Promise<boolean> =>
+    (await getReadableFile(db, viewer, id as FileId)).ok;
+};
+
+/**
+ * Drops the knowledge files the caller can't read on their own. They
+ * searched them through the original's grant; the copy is theirs outright,
+ * so keeping the ids would let them keep searching after that grant is
+ * revoked.
+ */
+const ownKnowledgeOnly = async (
+  db: Db,
+  caller: Caller,
+  definition: LibraryDefinition
+): Promise<LibraryDefinition> => {
+  if (definition.kind !== "agent") {
+    return definition;
+  }
+  const keep = await Promise.all(
+    definition.knowledgeFileIds.map(canReadFile(db, caller))
+  );
+  return {
+    ...definition,
+    knowledgeFileIds: definition.knowledgeFileIds.filter((_, i) => keep[i]),
+  };
+};
+
 /** Copies an item into the caller's own library as a new draft. Needs `view`. */
 export const duplicateItem = async (
   deps: LibraryDeps,
@@ -588,14 +638,15 @@ export const duplicateItem = async (
   if (!definition) {
     return err(invalid("There's no published version to copy yet.", ["id"]));
   }
-  // Knowledge and skill files come along: `view` may read them (D13). A
-  // header secret doesn't: the copy's owner sets their own.
-  const prepared = await prepareDefinition(
-    deps,
-    item.caller,
-    asInput(definition),
-    { definition, hasSecret: false }
-  );
+  // Skill files come along: `view` may read them (D13). Knowledge files
+  // only if the copier can read them without the original (see
+  // `ownKnowledgeOnly`); the client tells them what was left out. A header
+  // secret doesn't: the copy's owner sets their own.
+  const copied = await ownKnowledgeOnly(db, item.caller, definition);
+  const prepared = await prepareDefinition(deps, item.caller, asInput(copied), {
+    definition: copied,
+    hasSecret: false,
+  });
   if (!prepared.ok) {
     return prepared;
   }
@@ -713,9 +764,7 @@ const dropUnreachable = async (
   caller: Caller,
   definition: LibraryDefinition
 ): Promise<LibraryDefinition> => {
-  const viewer = { principals: caller.principals, userId: caller.userId };
-  const readable = async (id: string) =>
-    (await getReadableFile(db, viewer, id as FileId)).ok;
+  const readable = canReadFile(db, caller);
   const usable = async (id: string, kind: "mcp_server" | "skill") => {
     const found = await resolveItem(db, caller.userId, id as LibraryItemId);
     return found.ok && found.value.kind === kind;

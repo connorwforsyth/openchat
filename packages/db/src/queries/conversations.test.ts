@@ -1,6 +1,7 @@
 import type { MessageId, UserId } from "@workspace/contract/schemas/common";
 import { searchHitSchema } from "@workspace/contract/schemas/search";
 import { newId } from "@workspace/shared/ids";
+import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
 import { teamMember } from "../schema/tenancy";
@@ -15,6 +16,7 @@ import {
 import {
   createConversation,
   deleteConversation,
+  deleteStaleTestChats,
   getConversation,
   getConversationWithBranch,
   listConversations,
@@ -375,5 +377,79 @@ describe("search", () => {
       ],
       snippet: "a b c dé",
     });
+  });
+});
+
+describe("builder test chats", () => {
+  const testChat = (
+    { db, owner, personal }: Awaited<ReturnType<typeof setup>>,
+    title: string
+  ) =>
+    createConversation(db, {
+      context: { id: personal.id, type: "personal" },
+      ownerId: owner.id,
+      purpose: "test",
+      title,
+    });
+
+  test("stay out of the list and search, but open by id", async () => {
+    const seeded = await setup();
+    const { chat, db, owner, say } = seeded;
+    const scratch = await testChat(seeded, "Agent test");
+    await say(scratch.id, null, "a quokka walks into the builder");
+    const viewer = await viewerOf(owner.id);
+
+    const listed = expectOk(await listConversations(db, viewer, { limit: 10 }));
+    expect(listed.items.map((c) => c.id)).toEqual([chat.id]);
+    const archived = expectOk(
+      await listConversations(db, viewer, { archived: true, limit: 10 })
+    );
+    expect(archived.items).toEqual([]);
+    // Message text and title, each of which would otherwise match.
+    const searches = await Promise.all(
+      ["quokka", "agent test"].map((query) =>
+        searchConversations(db, viewer, { limit: 10, query })
+      )
+    );
+    expect(searches.map((found) => expectOk(found).items)).toEqual([[], []]);
+    expect(
+      expectOk(await getConversation(db, scratch.id, viewer))
+    ).toMatchObject({ id: scratch.id, purpose: "test" });
+  });
+
+  test("the cleanup deletes idle ones only", async () => {
+    const seeded = await setup();
+    const { chat, db, owner } = seeded;
+    const idle = await testChat(seeded, "Idle test");
+    const fresh = await testChat(seeded, "Fresh test");
+    expectOk(
+      await upsertGrant(db, {
+        grantedBy: owner.id,
+        permission: "viewer",
+        principal: { id: (await seedUser(db)).id, type: "user" },
+        resource: { resourceId: idle.id, resourceType: "conversation" },
+      })
+    );
+    // The database is shared by every test here, so "idle" is half a year back:
+    // nothing else is that old.
+    const cutoff = new Date(Date.now() - 180 * 24 * 3600 * 1000);
+    await db.execute(
+      sql`update conversation set created_at = ${new Date(cutoff.getTime() - 60_000)} where id = ${idle.id}`
+    );
+
+    expect(await deleteStaleTestChats(db, cutoff)).toBe(1);
+    const viewer = await viewerOf(owner.id);
+    expect(await getConversation(db, idle.id, viewer)).toMatchObject({
+      ok: false,
+    });
+    expect(
+      await listGrantsForResource(db, {
+        resourceId: idle.id,
+        resourceType: "conversation",
+      })
+    ).toEqual([]);
+    // Ordinary chats are never cleaned up, however old.
+    expectOk(await getConversation(db, fresh.id, viewer));
+    expectOk(await getConversation(db, chat.id, viewer));
   });
 });

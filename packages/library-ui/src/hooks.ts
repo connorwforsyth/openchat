@@ -3,6 +3,7 @@
 import {
   type QueryClient,
   type QueryKey,
+  skipToken,
   useInfiniteQuery,
   useMutation,
   useQuery,
@@ -27,6 +28,7 @@ import type {
   LibraryVersion,
 } from "@workspace/contract/schemas/library";
 import type { Principal } from "@workspace/contract/schemas/tenancy";
+import { useCallback } from "react";
 
 import {
   applyItemUpdate,
@@ -303,6 +305,42 @@ export const useDeleteItem = () => {
   });
 };
 
+export interface DuplicateNotice {
+  /** Knowledge files the server left out: ones the caller can't read on their own. */
+  readonly omittedKnowledgeFiles: number;
+}
+
+/**
+ * How many of the original's knowledge files the copy doesn't have. The
+ * server drops the ones the caller could only search through the original,
+ * and the response has no field for that, so compare with the original
+ * (duplicating needs `view`, which sees its definition). Best effort: if
+ * the original can't be read now, say nothing rather than fail the copy.
+ */
+const omittedKnowledge = async (
+  client: ReturnType<typeof useLibraryClient>,
+  sourceId: LibraryItemId,
+  copy: LibraryItemDetail
+): Promise<number> => {
+  if (copy.definition?.kind !== "agent") {
+    return 0;
+  }
+  try {
+    const source = await client.library.get({
+      id: sourceId,
+      revision: "latest",
+    });
+    if (source.definition?.kind !== "agent") {
+      return 0;
+    }
+    const kept = new Set<string>(copy.definition.knowledgeFileIds);
+    return source.definition.knowledgeFileIds.filter((id) => !kept.has(id))
+      .length;
+  } catch {
+    return 0;
+  }
+};
+
 export const useDuplicateItem = () => {
   const client = useLibraryClient();
   const queryClient = useQueryClient();
@@ -311,8 +349,15 @@ export const useDuplicateItem = () => {
       readonly id: LibraryItemId;
       readonly name?: string;
     }) => client.library.duplicate(input),
-    onSuccess: async (copy) => {
+    onSuccess: async (copy, input) => {
       queryClient.setQueryData(libraryKeys.detail(copy.id, "draft"), copy);
+      const omitted = await omittedKnowledge(client, input.id, copy);
+      if (omitted > 0) {
+        queryClient.setQueryData<DuplicateNotice>(
+          libraryKeys.duplicateNotice(copy.id),
+          { omittedKnowledgeFiles: omitted }
+        );
+      }
       await edit<ListData>(
         queryClient,
         libraryKeys.list({ tab: "mine" }),
@@ -321,6 +366,25 @@ export const useDuplicateItem = () => {
       return queryClient.invalidateQueries({ queryKey: libraryKeys.lists });
     },
   });
+};
+
+/** The notice a fresh copy carries (see `useDuplicateItem`), and dismissing it. */
+export const useDuplicateNotice = (id: LibraryItemId) => {
+  const queryClient = useQueryClient();
+  const notice = useQuery<DuplicateNotice | null>({
+    queryFn: skipToken,
+    queryKey: libraryKeys.duplicateNotice(id),
+  });
+  // Cleared rather than removed: removing wouldn't tell this observer.
+  const dismiss = useCallback(
+    () =>
+      queryClient.setQueryData<DuplicateNotice | null>(
+        libraryKeys.duplicateNotice(id),
+        null
+      ),
+    [id, queryClient]
+  );
+  return { dismiss, notice: notice.data ?? null };
 };
 
 export const useImportItem = () => {

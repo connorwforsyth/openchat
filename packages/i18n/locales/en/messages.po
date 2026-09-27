@@ -49,6 +49,10 @@ msgstr "{additions, plural, one {# line added} other {# lines added}}"
 msgid "{count, plural, one {# item} other {# items}}"
 msgstr "{count, plural, one {# item} other {# items}}"
 
+#: ../library-ui/src/components/duplicate-notice.tsx
+msgid "{count, plural, one {# knowledge file wasn't copied} other {# knowledge files weren't copied}}"
+msgstr "{count, plural, one {# knowledge file wasn't copied} other {# knowledge files weren't copied}}"
+
 #: ../chat-ui/src/sandbox/terminal.tsx
 msgid "{count, plural, one {# log entry} other {# log entries}}"
 msgstr "{count, plural, one {# log entry} other {# log entries}}"
@@ -719,6 +723,10 @@ msgstr "Create sandbox"
 msgid "Create team"
 msgstr "Create team"
 
+#: ../library-ui/src/components/run-test-chat.tsx
+msgid "Create the agent to try it in a test chat."
+msgstr "Create the agent to try it in a test chat."
+
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "CSV"
 msgstr "CSV"
@@ -828,6 +836,10 @@ msgstr "Disabled"
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "Disconnect"
 msgstr "Disconnect"
+
+#: ../library-ui/src/components/duplicate-notice.tsx
+msgid "Dismiss"
+msgstr "Dismiss"
 
 #: ../chat-ui/src/conversation/artifact-card.tsx
 msgid "Document"
@@ -2145,10 +2157,6 @@ msgstr "Runs in a plain Docker container. gVisor isn't available on this host, s
 msgid "Runs in a remote microVM."
 msgstr "Runs in a remote microVM."
 
-#: ../library-ui/src/components/run-test-chat.tsx
-msgid "Runs on the draft's model and settings. Instructions and tools aren't part of test runs yet."
-msgstr "Runs on the draft's model and settings. Instructions and tools aren't part of test runs yet."
-
 #: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
 msgid "Sampled scoring"
 msgstr "Sampled scoring"
@@ -2301,6 +2309,10 @@ msgstr "Send"
 #: ../chat-ui/src/conversation/feedback.tsx
 msgid "Send feedback"
 msgstr "Send feedback"
+
+#: ../library-ui/src/components/run-test-chat.tsx
+msgid "Sending a message saves your changes to the draft first."
+msgstr "Sending a message saves your changes to the draft first."
 
 #: ../chat-ui/src/conversation/message-row.tsx
 msgid "Sending the edit starts a new branch; the original stays."
@@ -2596,7 +2608,11 @@ msgstr "Test chat"
 msgid "Test in sandbox"
 msgstr "Test in sandbox"
 
-#: ../library-ui/src/components/item-builder.tsx
+#: ../library-ui/src/components/run-test-chat.tsx
+msgid "Testing draft"
+msgstr "Testing draft"
+
+#: ../library-ui/src/testing/echo-test-chat.tsx
 msgid "Testing what's on screen; save to keep it."
 msgstr "Testing what's on screen; save to keep it."
 
@@ -3117,6 +3133,10 @@ msgstr "You"
 msgid "You can use this, but not see how it's set up"
 msgstr "You can use this, but not see how it's set up"
 
+#: ../library-ui/src/components/duplicate-notice.tsx
+msgid "You could only search them through the original. Add your own files to give this copy knowledge."
+msgstr "You could only search them through the original. Add your own files to give this copy knowledge."
+
 #: ../../apps/web/app/(app)/_shared/query-state.tsx
 msgid "You don't have access to this."
 msgstr "You don't have access to this."
@@ -3144,6 +3164,10 @@ msgstr "You're not an owner or admin of any org. Admin pages appear here when yo
 #: ../shortcuts/src/react/shortcuts-editor.tsx
 msgid "Your browser keeps that combination; pick another one."
 msgstr "Your browser keeps that combination; pick another one."
+
+#: ../library-ui/src/components/run-test-chat.tsx
+msgid "Your changes couldn't be saved, so the message wasn't sent."
+msgstr "Your changes couldn't be saved, so the message wasn't sent."
 
 #: ../library-ui/src/components/item-builder.tsx
 msgid "Your changes weren't saved, so they were undone."

@@ -24,11 +24,13 @@ import { err, ok, type Result } from "@workspace/shared/result";
 import { TransactionRollbackError } from "drizzle-orm";
 
 import type { Actor } from "../context";
+import { canUseLibraryItem } from "../library/router";
 import {
   type BudgetCheck,
   type BudgetExceededData,
   storeContext,
 } from "./chat-context";
+import { canEditAgent, draftFor } from "./drafts";
 import { runStartFromRow } from "./state";
 
 // `POST /api/runs` (PLAN.md §8 steps 1–2): check, persist the user message,
@@ -184,7 +186,11 @@ const placeRun = async (
   db: Db,
   actor: Actor,
   input: CreateRunInput,
-  resolved: { readonly context: StoredContext; readonly target: RunTarget }
+  resolved: {
+    readonly agentDraft: boolean;
+    readonly context: StoredContext;
+    readonly target: RunTarget;
+  }
 ): Promise<Placed | undefined> => {
   const { conversationId, input: turn } = input;
   const anchor = turn.type === "message" ? turn.parentId : turn.userMessageId;
@@ -213,6 +219,7 @@ const placeRun = async (
       }
       const created = await insertRun(tx, {
         afterRunId: tail?.id ?? null,
+        agentDraft: resolved.agentDraft,
         context: resolved.context,
         conversationId,
         createdBy: actor.userId,
@@ -236,6 +243,25 @@ const placeRun = async (
   return placed;
 };
 
+/**
+ * Whether `actor` may answer with `target`: any model; an agent's published
+ * version when they may `use` it (032); its draft (`draft: true`) only when
+ * they may `edit` it (033).
+ */
+export const mayRun = async (
+  db: Db,
+  actor: Pick<Actor, "userId">,
+  target: RunTarget,
+  options: { readonly draft?: boolean } = {}
+): Promise<boolean> => {
+  if (target.type === "model") {
+    return true;
+  }
+  return options.draft
+    ? await canEditAgent(db, actor.userId, target.id)
+    : await canUseLibraryItem(db, actor.userId, "agent", target.id);
+};
+
 export const createRun = async (
   deps: CreateRunDeps,
   actor: Actor,
@@ -257,6 +283,18 @@ export const createRun = async (
   if (!target) {
     return err({ type: "no_model" });
   }
+  // An agent's draft runs only for its editors (033); anything else an
+  // agent answers with takes `use` (032): knowing its id isn't leave to run
+  // it (D13), and a chat's default agent is its owner's choice, not a share
+  // of the agent. `NOT_FOUND` either way, like the library, so ids and
+  // drafts don't leak.
+  const draft = await draftFor(db, actor.userId, target);
+  if (
+    !draft.ok ||
+    (draft.value === null && !(await mayRun(db, actor, target)))
+  ) {
+    return err({ type: "not_found" });
+  }
   const context = await settleContext(deps, actor, input, conversation);
   if (!context.ok) {
     return context;
@@ -271,6 +309,7 @@ export const createRun = async (
     return regenerating;
   }
   const placed = await placeRun(db, actor, input, {
+    agentDraft: draft.value !== null,
     context: context.value,
     target,
   });

@@ -70,6 +70,7 @@ import { downloadJson, exportFileName } from "../transfer";
 import { AgentForm, type Choice, type KnowledgeFile } from "./agent-form";
 import { AccessBadge, VersionBadge, VisibilityBadge } from "./badges";
 import { ConfirmDelete } from "./confirm-delete";
+import { DuplicateNotice } from "./duplicate-notice";
 import { KindTile, useKindLabels } from "./kind";
 import type { LinkComponent } from "./library-index";
 import { McpForm, McpStatusPanel } from "./mcp-form";
@@ -246,6 +247,33 @@ const useDraft = (
     setForm({ ...form, definition });
   }, [canEdit, createItem, detail, form, onCreated, saveDraft, t, valid]);
 
+  // The test chat runs the stored draft (033), so a test message saves
+  // what's on screen first: an edit then shows up in the very next answer.
+  const { mutateAsync: saveDraftNow } = update;
+  const saveBeforeTest = useCallback(async (): Promise<boolean> => {
+    if (!(detail && form && canEdit && dirty)) {
+      return true;
+    }
+    if (!valid) {
+      setShowIssues(true);
+      return false;
+    }
+    setProblem(null);
+    const definition = definitionToSave(form.definition);
+    setForm({ ...form, definition });
+    try {
+      await saveDraftNow({
+        definition,
+        description: form.description,
+        name: form.name,
+      });
+      return true;
+    } catch {
+      setProblem(t`Your changes weren't saved, so they were undone.`);
+      return false;
+    }
+  }, [canEdit, detail, dirty, form, saveDraftNow, t, valid]);
+
   return {
     canEdit,
     dirty,
@@ -253,6 +281,7 @@ const useDraft = (
     issues: showIssues ? issues : {},
     problem,
     save,
+    saveBeforeTest,
     saving: update.isPending || create.isPending,
     setForm,
     setProblem,
@@ -332,6 +361,8 @@ function Builder({
         saving={draft.saving}
       />
 
+      {detail ? <DuplicateNotice id={detail.id} /> : null}
+
       {draft.problem ? (
         <Alert role="alert" variant="destructive">
           <AlertDescription>{draft.problem}</AlertDescription>
@@ -354,6 +385,7 @@ function Builder({
           </div>
           <aside className="min-w-0 lg:sticky lg:top-6 lg:h-[calc(100svh-10rem)]">
             <KindPanel
+              beforeSend={draft.saveBeforeTest}
               definition={form.definition}
               detail={detail}
               dirty={draft.dirty}
@@ -726,12 +758,14 @@ function KindForm({
 }
 
 function KindPanel({
+  beforeSend,
   definition,
   detail,
   dirty,
   skill,
   testChat: TestChat,
 }: {
+  readonly beforeSend: () => Promise<boolean>;
   readonly definition: LibraryDefinitionInput;
   readonly detail: LibraryItemDetail | null;
   readonly dirty: boolean;
@@ -747,11 +781,18 @@ function KindPanel({
           </p>
         );
       }
-      let notice: ReactNode;
-      if (dirty) {
-        notice = <Trans>Testing what's on screen; save to keep it.</Trans>;
-      }
-      return <TestChat definition={definition} notice={notice} />;
+      return (
+        <TestChat
+          beforeSend={beforeSend}
+          definition={definition}
+          dirty={dirty}
+          draft={
+            detail?.draftVersionId
+              ? { itemId: detail.id, versionId: detail.draftVersionId }
+              : null
+          }
+        />
+      );
     }
     case "prompt":
       return <PromptPreview key={definition.template} value={definition} />;

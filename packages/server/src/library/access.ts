@@ -80,7 +80,7 @@ export const libraryAccessOf = (
     grants: caller.grants,
     principals: caller.principals,
     resource: {
-      // Maintainers were handled above, with the membership check `canAccess` lacks.
+      // Maintainers were handled above, to tell them apart from `edit`.
       maintainers: [],
       owner,
       resourceId: row.id,
