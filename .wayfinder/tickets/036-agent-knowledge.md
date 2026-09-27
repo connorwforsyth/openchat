@@ -3,7 +3,7 @@ id: "036"
 title: "Agent knowledge files feed file_search in turns"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: ["017"]
 ---
 
