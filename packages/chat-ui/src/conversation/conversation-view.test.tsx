@@ -1,14 +1,20 @@
 import { cleanup, screen, waitFor, within } from "@testing-library/react";
 import { fixtureId } from "@workspace/contract/fixtures";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 
 import { initialLeafId, pendingEdit, treeMessages } from "../fixtures";
 import { localBranchPath } from "../model/branch";
 import { renderWithI18n } from "../testing/render";
+import { conversationSettled } from "../testing/settle";
 import type { ConversationActions } from "./actions";
 import { ConversationView } from "./conversation-view";
 import type { MessageFeedback } from "./feedback";
+
+// Diffs and reasoning render synchronously here (ticket 037): the real lazy
+// DiffView waits on a chunk and on Shiki, which timed tests out on loaded CI
+// runners. `conversation-view.lazy.test.tsx` covers the real lazy path.
+vi.mock("./lazy", () => import("../testing/sync-lazy"));
 
 const WHY = /Why\?/;
 const WHAT_WENT_WRONG = /What went wrong/;
@@ -20,10 +26,10 @@ if (!path) {
   throw new Error("fixture branch path");
 }
 
-const renderView = (
+const renderView = async (
   actions: ConversationActions,
   feedback?: Record<string, MessageFeedback>
-) =>
+) => {
   renderWithI18n(
     <div style={{ height: 800 }}>
       <ConversationView
@@ -36,6 +42,8 @@ const renderView = (
       />
     </div>
   );
+  await conversationSettled();
+};
 
 /** The rendered row for a fixture message. */
 const row = (messageId: string) => {
@@ -48,6 +56,11 @@ const row = (messageId: string) => {
   return within(element);
 };
 
+// The KaTeX chunk loads here, under hookTimeout, not inside a test.
+beforeAll(async () => {
+  await import("./math-plugin");
+});
+
 afterEach(() => {
   cleanup();
 });
@@ -55,7 +68,7 @@ afterEach(() => {
 describe("branches", () => {
   it("shows each fork's position and switches to a sibling", async () => {
     const onSelectBranch = vi.fn();
-    renderView({ onSelectBranch });
+    await renderView({ onSelectBranch });
     const answer = fixtureId("message", 108);
     const edited = fixtureId("message", 110);
 
@@ -78,15 +91,11 @@ describe("branches", () => {
 describe("approvals", () => {
   it("reviews a proposed edit hunk by hunk and sends one review", async () => {
     const onDecide = vi.fn();
-    renderView({ onDecide });
+    await renderView({ onDecide });
 
-    // The diff loads lazily with its per-hunk controls.
-    const accept = await screen.findByRole(
-      "button",
-      { name: "Accept change 1" },
-      { timeout: 20_000 }
+    await userEvent.click(
+      screen.getByRole("button", { name: "Accept change 1" })
     );
-    await userEvent.click(accept);
     await userEvent.click(
       screen.getByRole("button", { name: "Reject change 2" })
     );
@@ -117,13 +126,7 @@ describe("approvals", () => {
 
   it("rejects the whole call with a reason", async () => {
     const onDecide = vi.fn();
-    renderView({ onDecide });
-    // Let the lazy diff arrive first, so the buttons stop moving.
-    await screen.findByRole(
-      "button",
-      { name: "Accept change 1" },
-      { timeout: 20_000 }
-    );
+    await renderView({ onDecide });
     await userEvent.click(screen.getByRole("button", { name: "Reject all" }));
     await userEvent.type(screen.getByRole("textbox", { name: WHY }), "Not now");
     await userEvent.click(screen.getByRole("button", { name: "Reject" }));
@@ -133,8 +136,8 @@ describe("approvals", () => {
     });
   });
 
-  it("shows no approval controls to someone who can't decide", () => {
-    renderView({});
+  it("shows no approval controls to someone who can't decide", async () => {
+    await renderView({});
     expect(screen.queryByRole("button", { name: "Approve all" })).toBeNull();
   });
 });
@@ -142,7 +145,7 @@ describe("approvals", () => {
 describe("memory note", () => {
   it("undoes the memory update and says so", async () => {
     const onUndoMemory = vi.fn(() => Promise.resolve());
-    renderView({ onUndoMemory });
+    await renderView({ onUndoMemory });
     const note = screen.getByText("Memory updated: Uses pnpm");
     expect(note).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: "Undo" }));
@@ -156,7 +159,7 @@ describe("memory note", () => {
 
   it("reports a failed undo", async () => {
     const onUndoMemory = vi.fn(() => Promise.reject(new Error("offline")));
-    renderView({ onUndoMemory });
+    await renderView({ onUndoMemory });
     await userEvent.click(screen.getByRole("button", { name: "Undo" }));
     expect(await screen.findByRole("alert")).toBeTruthy();
   });
@@ -167,7 +170,7 @@ describe("feedback", () => {
 
   it("records a rating at once, then an optional comment and consent", async () => {
     const onFeedback = vi.fn();
-    renderView({ onFeedback });
+    await renderView({ onFeedback });
     await userEvent.click(
       row(answer).getByRole("button", { name: "Bad answer" })
     );
@@ -198,7 +201,7 @@ describe("feedback", () => {
   it("clears the rating when the active thumb is pressed again", async () => {
     const onClearFeedback = vi.fn();
     const onFeedback = vi.fn();
-    renderView(
+    await renderView(
       { onClearFeedback, onFeedback },
       {
         [answer]: { comment: null, rating: "up", shareWithMaintainers: false },
@@ -215,7 +218,7 @@ describe("feedback", () => {
 describe("message actions", () => {
   it("edits a user message into a new branch", async () => {
     const onEdit = vi.fn();
-    renderView({ onEdit });
+    await renderView({ onEdit });
     const question = fixtureId("message", 101);
     await userEvent.click(row(question).getByRole("button", { name: "Edit" }));
     const box = screen.getByRole("textbox", { name: "Edit message" });
@@ -230,7 +233,7 @@ describe("message actions", () => {
 
   it("regenerates an answer", async () => {
     const onRegenerate = vi.fn();
-    renderView({ onRegenerate });
+    await renderView({ onRegenerate });
     const answer = fixtureId("message", 108);
     await userEvent.click(
       row(answer).getByRole("button", { name: "Regenerate" })
