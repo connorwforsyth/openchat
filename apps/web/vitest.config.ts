@@ -47,6 +47,8 @@ export default defineProject({
       "@workspace/ui > @base-ui/react/dialog",
       "@workspace/ui > @base-ui/react/input",
       "@workspace/ui > @base-ui/react/merge-props",
+      "@workspace/ui > @base-ui/react/radio",
+      "@workspace/ui > @base-ui/react/radio-group",
       "@workspace/ui > @base-ui/react/select",
       "@workspace/ui > @base-ui/react/separator",
       "@workspace/ui > @base-ui/react/switch",

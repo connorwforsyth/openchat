@@ -1,7 +1,10 @@
 "use client";
 
 import { Trans } from "@lingui/react/macro";
-import type { UseQueryResult } from "@tanstack/react-query";
+import type {
+  UseInfiniteQueryResult,
+  UseQueryResult,
+} from "@tanstack/react-query";
 import { CircleAlertIcon } from "@workspace/icons";
 import {
   Alert,
@@ -72,7 +75,7 @@ export const QueryState = <T,>({
   skeleton = 3,
 }: {
   readonly children: (data: T) => ReactNode;
-  readonly query: UseQueryResult<T>;
+  readonly query: UseQueryResult<T> | UseInfiniteQueryResult<T>;
   /** Rows of skeleton while loading. */
   readonly skeleton?: number;
 }) => {
