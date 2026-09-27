@@ -39,11 +39,11 @@ import {
   Image,
   Info,
   Keyboard,
+  KeyRound,
+  Languages,
   Layers,
   Library,
   Link,
-  KeyRound,
-  Languages,
   Loader,
   Loader2,
   LoaderCircle,
@@ -194,14 +194,9 @@ export const NewChatIcon: NativeIcon = SquarePen;
 export const ReasoningIcon: NativeIcon = Brain;
 export const StopIcon: NativeIcon = Square;
 export const ToolIcon: NativeIcon = Wrench;
-export const TerminalIcon: NativeIcon = Terminal;
 export const PinIcon: NativeIcon = Pin;
 export const PinOffIcon: NativeIcon = PinOff;
 export const ArchiveIcon: NativeIcon = Archive;
-export const LibraryIcon: NativeIcon = Library;
-export const PanelRightIcon: NativeIcon = PanelRight;
-export const KeyboardIcon: NativeIcon = Keyboard;
 export const LinkIcon: NativeIcon = Link;
 export const UserPlusIcon: NativeIcon = UserPlus;
-export const ShieldIcon: NativeIcon = Shield;
 export const CodeIcon: NativeIcon = Code;

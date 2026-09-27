@@ -102,16 +102,11 @@ export const iconNames = [
   "WrenchIcon",
   // Settings, admin and the palette
   "HistoryIcon",
-  "KeyboardIcon",
   "KeyRoundIcon",
   "LanguagesIcon",
-  "LibraryIcon",
   "MailIcon",
   "NetworkIcon",
   "PaletteIcon",
-  "PanelRightIcon",
-  "ShieldIcon",
-  "TerminalIcon",
   "WalletIcon",
   // Semantic aliases: what the icon means in this app, not what it draws
   "AgentIcon",
