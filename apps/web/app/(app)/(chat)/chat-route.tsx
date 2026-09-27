@@ -4,6 +4,7 @@ import { useLingui } from "@lingui/react/macro";
 import {
   skipToken,
   useMutation,
+  useQueries,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
@@ -13,10 +14,15 @@ import {
   contextKey,
   contextOptionsFromMe,
 } from "@workspace/composer/options";
+import type { ContextOption } from "@workspace/composer/schemas";
 import {
   type ConversationId,
   conversationIdSchema,
+  type LibraryItemId,
+  libraryItemIdSchema,
 } from "@workspace/contract/schemas/common";
+import type { Conversation } from "@workspace/contract/schemas/conversations";
+import type { LibraryItem } from "@workspace/contract/schemas/library";
 import {
   AUTO_MODEL,
   type ModelOption,
@@ -25,13 +31,20 @@ import type { RunTarget } from "@workspace/contract/schemas/runs";
 import type { ChatContext } from "@workspace/contract/schemas/tenancy";
 import type { PaletteContext } from "@workspace/palette/context-actions";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo } from "react";
-
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useApi } from "@/app/(app)/_shared/api";
-import { useAppFrame } from "@/app/(app)/_shared/app-frame";
+import { canAdmin, useAppFrame } from "@/app/(app)/_shared/app-frame";
 import { Brand } from "@/app/(app)/_shared/brand";
 import { createApiSandboxClient } from "@/app/(app)/_shared/sandbox-client";
+import { useAfterBoot } from "@/app/(app)/_shared/use-after-boot";
 import { routeParams, routes } from "@/lib/routes";
+
+import {
+  AGENT_TABS,
+  contextForOwner,
+  type UsableAgents,
+  usableAgents,
+} from "./usable-agents";
 
 // The chat screen over the API (015's `ConnectedChat`), wired to the app:
 // the router owns the address, the frame owns the layout, the palette and
@@ -73,32 +86,26 @@ const useConversationId = (): ConversationId | null | undefined => {
 /** Offers the palette this chat's model, context and sandbox (D14). */
 const usePaletteContext = ({
   context,
+  contextOptions,
   conversationId,
   locked,
   models,
+  onContextChange,
+  onTargetChange,
   target,
 }: {
   readonly context: ChatContext;
+  readonly contextOptions: readonly ContextOption[];
   readonly conversationId: ConversationId | null;
   readonly locked: boolean;
   readonly models: readonly ModelOption[];
+  readonly onContextChange: (context: ChatContext) => void;
+  readonly onTargetChange: (target: RunTarget) => void;
   readonly target: RunTarget;
 }) => {
   const { t } = useLingui();
-  const queryClient = useQueryClient();
-  const { query } = useApi();
-  const { chat, config, layout, me } = useAppFrame();
-  const { setDraftContext, setPaletteContext, setTarget } = chat;
-  const { mutate: setContext } = useMutation(
-    query.conversations.setContext.mutationOptions({
-      onSettled: () =>
-        queryClient.invalidateQueries({ queryKey: query.conversations.key() }),
-    })
-  );
-  const contextOptions = useMemo(
-    () => contextOptionsFromMe(me, config.policies.chatContexts),
-    [config.policies.chatContexts, me]
-  );
+  const { chat, config, layout } = useAppFrame();
+  const { setPaletteContext } = chat;
   const { togglePanel } = layout;
   const sandboxOpen = layout.layout.panel === "sandbox";
 
@@ -111,13 +118,8 @@ const usePaletteContext = ({
           const option = contextOptions.find(
             (each) => contextKey(each.context) === key
           );
-          if (!option) {
-            return;
-          }
-          if (conversationId) {
-            setContext({ context: option.context, id: conversationId });
-          } else {
-            setDraftContext(option.context);
+          if (option) {
+            onContextChange(option.context);
           }
         },
         options: contextOptions.map((option) => ({
@@ -127,7 +129,8 @@ const usePaletteContext = ({
       },
       model: {
         current: target.type === "model" ? target.model : null,
-        onSelect: (selector) => setTarget({ model: selector, type: "model" }),
+        onSelect: (selector) =>
+          onTargetChange({ model: selector, type: "model" }),
         options: models.map((model) => ({
           disabled: !model.available,
           id: model.selector,
@@ -148,10 +151,9 @@ const usePaletteContext = ({
       conversationId,
       locked,
       models,
+      onContextChange,
+      onTargetChange,
       sandboxOpen,
-      setContext,
-      setDraftContext,
-      setTarget,
       t,
       target,
       togglePanel,
@@ -162,6 +164,143 @@ const usePaletteContext = ({
     setPaletteContext(paletteContext);
   }, [paletteContext, setPaletteContext]);
   useEffect(() => () => setPaletteContext(undefined), [setPaletteContext]);
+};
+
+const NO_AGENTS: UsableAgents = { agents: [], owners: new Map() };
+const AGENT_LIST_LIMIT = 100;
+
+/**
+ * Agents for the composer's picker (044): published agents from the three
+ * library tabs. Fetched once the composer is up (D27), or straight away when
+ * the chat already talks to an agent, whose name the picker shows.
+ */
+const useAgentsForPicker = (enabled: boolean): UsableAgents => {
+  const { query } = useApi();
+  return useQueries({
+    combine: combineAgentLists,
+    queries: AGENT_TABS.map((tab) =>
+      query.library.list.queryOptions({
+        enabled,
+        input: { kind: "agent", limit: AGENT_LIST_LIMIT, tab },
+      })
+    ),
+  });
+};
+
+/** One list per tab, in `AGENT_TABS` order, into the picker's agents. */
+const combineAgentLists = (
+  lists: readonly {
+    readonly data?: { readonly items: readonly LibraryItem[] };
+  }[]
+): UsableAgents =>
+  lists.some((list) => list.data)
+    ? usableAgents(
+        AGENT_TABS.map((source, index) => ({
+          items: lists[index]?.data?.items ?? [],
+          source,
+        }))
+      )
+    : NO_AGENTS;
+
+/** `/?agent=<id>` ("Use in chat" in the library) starts the new chat with that agent. */
+const useAgentParam = (
+  conversationId: ConversationId | null | undefined
+): LibraryItemId | null => {
+  const searchParams = useSearchParams();
+  if (conversationId !== null) {
+    return null;
+  }
+  const parsed = libraryItemIdSchema.safeParse(
+    searchParams.get(routeParams.agent)
+  );
+  return parsed.success ? parsed.data : null;
+};
+
+/**
+ * Picking what answers (044). In a new chat it's the draft's choice; in an
+ * existing one it becomes the chat's default, so the chat continues with it
+ * after a reload. An agent from a team or org library also moves a chat that
+ * hasn't started yet into that team or org (D17).
+ */
+const useTargetChange = ({
+  contextOptions,
+  conversation,
+  conversationId,
+  onContextChange,
+  owners,
+}: {
+  readonly contextOptions: readonly ContextOption[];
+  readonly conversation: Conversation | undefined;
+  readonly conversationId: ConversationId | null;
+  readonly onContextChange: (context: ChatContext) => void;
+  readonly owners: UsableAgents["owners"];
+}) => {
+  const queryClient = useQueryClient();
+  const { query } = useApi();
+  const { chat } = useAppFrame();
+  const { setTarget } = chat;
+  const { mutate: update } = useMutation(
+    query.conversations.update.mutationOptions({
+      onSettled: () =>
+        queryClient.invalidateQueries({ queryKey: query.conversations.key() }),
+    })
+  );
+  const locked = conversation?.contextLocked ?? false;
+  return useCallback(
+    (next: RunTarget) => {
+      setTarget(next);
+      const suggested =
+        next.type === "agent" && !locked
+          ? contextForOwner(owners.get(next.id), contextOptions)
+          : null;
+      if (suggested) {
+        onContextChange(suggested);
+      }
+      if (!conversationId) {
+        return;
+      }
+      queryClient.setQueryData<Conversation>(
+        query.conversations.get.queryKey({ input: { id: conversationId } }),
+        (current) => (current ? { ...current, defaultTarget: next } : current)
+      );
+      update({ defaultTarget: next, id: conversationId });
+    },
+    [
+      contextOptions,
+      conversationId,
+      locked,
+      onContextChange,
+      owners,
+      query,
+      queryClient,
+      setTarget,
+      update,
+    ]
+  );
+};
+
+/** Changing the chat context: the draft's, or (until it locks) the chat's. */
+const useContextChange = (conversationId: ConversationId | null) => {
+  const queryClient = useQueryClient();
+  const { query } = useApi();
+  const { chat } = useAppFrame();
+  const { setDraftContext } = chat;
+  const { mutate: setContext } = useMutation(
+    query.conversations.setContext.mutationOptions({
+      onSettled: () =>
+        queryClient.invalidateQueries({ queryKey: query.conversations.key() }),
+    })
+  );
+  return useCallback(
+    (next: ChatContext) => {
+      if (conversationId) {
+        setContext({ context: next, id: conversationId });
+      } else {
+        setDraftContext(next);
+      }
+    },
+    [conversationId, setContext, setDraftContext]
+  );
 };
 
 export function ChatRoute({
@@ -193,14 +332,53 @@ export function ChatRoute({
     () => defaultTargetFor(models.data ?? NO_MODELS),
     [models.data]
   );
+  // An open chat continues with its own agent or model (044); a new one
+  // with the last pick, then the user's default.
   const target: RunTarget =
-    chat.target ?? settings.data?.defaultTarget ?? fallbackTarget;
+    conversation.data?.defaultTarget ??
+    chat.target ??
+    settings.data?.defaultTarget ??
+    fallbackTarget;
+
+  const contextOptions = useMemo(
+    () => contextOptionsFromMe(me, config.policies.chatContexts),
+    [config.policies.chatContexts, me]
+  );
+  const booted = useAfterBoot();
+  const { agents, owners } = useAgentsForPicker(
+    booted || target.type === "agent"
+  );
+  const changeContext = useContextChange(conversationId ?? null);
+  const changeTarget = useTargetChange({
+    contextOptions,
+    conversation: conversation.data,
+    conversationId: conversationId ?? null,
+    onContextChange: changeContext,
+    owners,
+  });
+
+  // "Use in chat": the library links here with the agent to start with.
+  const agentParam = useAgentParam(conversationId);
+  const agentOwner = agentParam ? owners.get(agentParam) : undefined;
+  const appliedAgent = useRef<string | null>(null);
+  useEffect(() => {
+    // Once for the agent, and once more when its owner (who may move the
+    // draft's context) arrives with the agent list; never over a later pick.
+    const key = agentParam && `${agentParam}:${agentOwner ? "owner" : ""}`;
+    if (key && appliedAgent.current !== key) {
+      appliedAgent.current = key;
+      changeTarget({ id: agentParam, type: "agent" });
+    }
+  }, [agentParam, agentOwner, changeTarget]);
 
   usePaletteContext({
     context,
+    contextOptions,
     conversationId: conversationId ?? null,
     locked: conversation.data?.contextLocked ?? false,
     models: models.data ?? NO_MODELS,
+    onContextChange: changeContext,
+    onTargetChange: changeTarget,
     target,
   });
 
@@ -231,6 +409,7 @@ export function ChatRoute({
   }
   return (
     <ConnectedChat
+      agents={agents}
       artifactsRuntimeOrigin={artifactsRuntimeOrigin}
       brand={<Brand config={config} />}
       client={client}
@@ -246,11 +425,12 @@ export function ChatRoute({
       models={models.data ?? NO_MODELS}
       onDraftContextChange={chat.setDraftContext}
       onNavigate={navigate}
-      onOpenAdmin={openAdmin}
+      onNewOrg={frame.openNewOrg}
+      onOpenAdmin={canAdmin(me) ? openAdmin : undefined}
       onOpenPalette={frame.openPalette}
       onOpenSettings={openSettings}
       onSignOut={frame.signOut}
-      onTargetChange={chat.setTarget}
+      onTargetChange={changeTarget}
       onThemeChange={frame.setTheme}
       sandboxClient={sandboxClient}
       target={target}

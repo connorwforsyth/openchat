@@ -161,6 +161,10 @@ msgstr "Account: {0}"
 msgid "Accounts on this server are for approved email domains. Ask an administrator for an invitation."
 msgstr "Accounts on this server are for approved email domains. Ask an administrator for an invitation."
 
+#: ../../apps/web/app/(app)/_shared/new-org-dialog.tsx
+msgid "Acme"
+msgstr "Acme"
+
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
@@ -682,6 +686,7 @@ msgstr "Conversation starters"
 msgid "Conversation, message, reasoning and tool"
 msgstr "Conversation, message, reasoning and tool"
 
+#: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 #: ../chat-ui/src/conversation/message-row.tsx
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Copied"
@@ -769,6 +774,10 @@ msgstr "Create an account"
 #: ../../apps/web/app/(auth)/invite/[token]/page.tsx
 msgid "Create an account with the email address the invitation was sent to, or sign in if you already have one."
 msgstr "Create an account with the email address the invitation was sent to, or sign in if you already have one."
+
+#: ../../apps/web/app/(app)/_shared/new-org-dialog.tsx
+msgid "Create organisation"
+msgstr "Create organisation"
 
 #: ../chat-ui/src/sandbox/sandbox-panel.tsx
 msgid "Create sandbox"
@@ -1202,6 +1211,10 @@ msgstr "Invite"
 msgid "Invite link"
 msgstr "Invite link"
 
+#: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
+msgid "Invite link copied"
+msgstr "Invite link copied"
+
 #: ../chat-ui/src/header/overflow-menu.tsx
 #: ../chat-ui/src/header/share-menu.tsx
 msgid "Invite people…"
@@ -1521,6 +1534,10 @@ msgstr "Monthly"
 msgid "More actions"
 msgstr "More actions"
 
+#: ../composer/src/components/target-picker.tsx
+msgid "My agents"
+msgstr "My agents"
+
 #: ../library-ui/src/components/library-index.tsx
 msgid "My library"
 msgstr "My library"
@@ -1588,6 +1605,12 @@ msgstr "New here? <0>Create an account</0>"
 msgid "New name for {name}"
 msgstr "New name for {name}"
 
+#: ../../apps/web/app/(app)/_shared/new-org-dialog.tsx
+#: ../../apps/web/app/(app)/(pages)/admin/_components/admin-index.tsx
+#: ../chat-ui/src/sidebar/account-menu.tsx
+msgid "New organisation"
+msgstr "New organisation"
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
 msgid "New team"
 msgstr "New team"
@@ -1644,6 +1667,10 @@ msgstr "No regressions"
 #: ../library-ui/src/components/agent-form.tsx
 msgid "No sandbox"
 msgstr "No sandbox"
+
+#: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
+msgid "No team"
+msgstr "No team"
 
 #: ../library-ui/src/components/library-index.tsx
 msgid "No team or org items"
@@ -1788,6 +1815,19 @@ msgstr "Org admin"
 #: ../../apps/web/app/(app)/(pages)/admin/[orgId]/keys/page.tsx
 msgid "Org and team keys"
 msgstr "Org and team keys"
+
+#: ../../apps/web/app/(app)/_shared/new-org-dialog.tsx
+msgid "Organisation name"
+msgstr "Organisation name"
+
+#. placeholder {0}: name ?? t`Org admin`
+#: ../../apps/web/app/(app)/(pages)/admin/_components/admin-index.tsx
+msgid "Organisation: {0}"
+msgstr "Organisation: {0}"
+
+#: ../../apps/web/app/(app)/(pages)/admin/_components/admin-index.tsx
+msgid "Organisations you run"
+msgstr "Organisations you run"
 
 #: ../composer/src/components/context-chip.tsx
 msgid "Organization"
@@ -2498,9 +2538,14 @@ msgstr "Share this conversation with the agent's maintainers. Without this they 
 msgid "Shared"
 msgstr "Shared"
 
+#: ../composer/src/components/target-picker.tsx
 #: ../library-ui/src/components/library-index.tsx
 msgid "Shared with me"
 msgstr "Shared with me"
+
+#: ../../apps/web/app/(app)/_shared/new-org-dialog.tsx
+msgid "Short name"
+msgstr "Short name"
 
 #: ../../apps/web/app/(app)/(pages)/settings/layout.tsx
 msgid "Shortcuts"
@@ -2722,6 +2767,7 @@ msgstr "System"
 msgid "team"
 msgstr "team"
 
+#: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 #: ../composer/src/components/context-chip.tsx
 msgid "Team"
@@ -2730,6 +2776,10 @@ msgstr "Team"
 #: ../library-ui/src/components/library-index.tsx
 msgid "Team & org"
 msgstr "Team & org"
+
+#: ../composer/src/components/target-picker.tsx
+msgid "Team & org agents"
+msgstr "Team & org agents"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
 msgid "Team name"
@@ -2813,6 +2863,10 @@ msgstr "That key couldn't be removed. Try again."
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "That publish gate isn't allowed here; the server default applies."
 msgstr "That publish gate isn't allowed here; the server default applies."
+
+#: ../../apps/web/app/(app)/_shared/new-org-dialog.tsx
+msgid "That short name is taken. Try another."
+msgstr "That short name is taken. Try another."
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
 msgid "That team has sub-teams. Delete or move them first."
@@ -2905,6 +2959,10 @@ msgstr "The library didn't load"
 #: ../chat-ui/src/chat/connected-chat.tsx
 msgid "The message couldn't be sent: an attachment didn't upload. Try again."
 msgstr "The message couldn't be sent: an attachment didn't upload. Try again."
+
+#: ../../apps/web/app/(app)/_shared/new-org-dialog.tsx
+msgid "The organisation couldn't be created. Try again."
+msgstr "The organisation couldn't be created. Try again."
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "The policy couldn't be saved. Try again."
@@ -3152,6 +3210,10 @@ msgstr "Undo"
 msgid "Unified"
 msgstr "Unified"
 
+#: ../../apps/web/app/(app)/_shared/new-org-dialog.tsx
+msgid "Unique on this server: lowercase letters, digits and dashes."
+msgstr "Unique on this server: lowercase letters, digits and dashes."
+
 #: ../composer/src/components/target-picker.tsx
 msgid "Unknown agent"
 msgstr "Unknown agent"
@@ -3196,6 +3258,11 @@ msgstr "Use {example} for a value people fill in when they use the prompt."
 #: ../../apps/web/app/(auth)/sign-up/page.tsx
 msgid "Use an email address from an approved domain."
 msgstr "Use an email address from an approved domain."
+
+#: ../library-ui/src/components/item-builder.tsx
+#: ../library-ui/src/components/library-index.tsx
+msgid "Use in chat"
+msgstr "Use in chat"
 
 #: ../library-ui/src/components/share-dialog.tsx
 msgid "Use lets people chat with it. View also shows its instructions and lets them copy it. Edit lets them change it."
@@ -3372,6 +3439,10 @@ msgstr "You edited it"
 #: ../library-ui/src/components/publish-dialog.tsx
 msgid "You have unsaved changes. Save the draft first to publish them."
 msgstr "You have unsaved changes. Save the draft first to publish them."
+
+#: ../../apps/web/app/(app)/_shared/new-org-dialog.tsx
+msgid "You'll be its owner. Next, add teams and invite people."
+msgstr "You'll be its owner. Next, add teams and invite people."
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "You're about to visit an external website."

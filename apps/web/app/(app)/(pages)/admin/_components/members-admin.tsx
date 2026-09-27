@@ -7,14 +7,14 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import type { OrgId } from "@workspace/contract/schemas/common";
+import type { OrgId, TeamId } from "@workspace/contract/schemas/common";
 import type {
   Invitation,
   OrgMember,
   OrgRole,
 } from "@workspace/contract/schemas/tenancy";
 import { formatDate } from "@workspace/i18n/format";
-import { CopyIcon, MailIcon, Trash2Icon } from "@workspace/icons";
+import { CheckIcon, CopyIcon, MailIcon, Trash2Icon } from "@workspace/icons";
 import { Button } from "@workspace/ui/components/button";
 import {
   Field,
@@ -32,7 +32,14 @@ import {
   TableHeader,
   TableRow,
 } from "@workspace/ui/components/table";
-import { type FocusEvent, type FormEvent, useCallback, useState } from "react";
+import {
+  type FocusEvent,
+  type FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { z } from "zod";
 
 import { useApi } from "@/app/(app)/_shared/api";
@@ -40,6 +47,8 @@ import { ConfirmButton } from "@/app/(app)/_shared/confirm";
 import { type Option, OptionSelect } from "@/app/(app)/_shared/option-select";
 import { codeOf, QueryState } from "@/app/(app)/_shared/query-state";
 import { routes } from "@/lib/routes";
+
+import { buildTeamTree, flattenTree } from "./team-tree";
 
 // Members and invitations (D17, D22). Better Auth's organization plugin is
 // underneath; the API refuses what a role can't do (an admin making an owner,
@@ -111,15 +120,47 @@ const MemberRow = ({
 
 const inviteSchema = z.object({ email: z.email() });
 
+/** How long "Copied" shows on the invite link's button. */
+const COPIED_MS = 2000;
+const NO_TEAM = "none";
+
+/** "No team", then the org's teams as a tree, for the invitation's team. */
+const useTeamOptions = (orgId: OrgId): readonly Option<string>[] => {
+  const { t } = useLingui();
+  const { query } = useApi();
+  const teams = useQuery(query.teams.list.queryOptions({ input: { orgId } }));
+  return useMemo(
+    () => [
+      { label: t`No team`, value: NO_TEAM },
+      ...flattenTree(buildTeamTree(teams.data ?? [])).map((node) => ({
+        label: `${"— ".repeat(node.depth)}${node.team.name}`,
+        value: node.team.id,
+      })),
+    ],
+    [t, teams.data]
+  );
+};
+
 /**
  * The invite link, shown once (Q16): the server keeps only a hash of its
  * token, so it can't be listed or shown again. Selecting it or copying it
  * is the admin's way to pass it on until there's mail.
  */
 const InviteLink = ({ link }: { readonly link: string }) => {
+  const [copied, setCopied] = useState(false);
   const copy = useCallback(() => {
-    navigator.clipboard?.writeText(link).catch(() => undefined);
+    navigator.clipboard
+      ?.writeText(link)
+      .then(() => setCopied(true))
+      .catch(() => undefined);
   }, [link]);
+  useEffect(() => {
+    if (!copied) {
+      return;
+    }
+    const timer = setTimeout(() => setCopied(false), COPIED_MS);
+    return () => clearTimeout(timer);
+  }, [copied]);
   const selectAll = useCallback(
     (event: FocusEvent<HTMLInputElement>) => event.currentTarget.select(),
     []
@@ -131,11 +172,23 @@ const InviteLink = ({ link }: { readonly link: string }) => {
       </FieldLabel>
       <div className="flex gap-2">
         <Input id="invite-link" onFocus={selectAll} readOnly value={link} />
-        <Button onClick={copy} type="button" variant="outline">
-          <CopyIcon data-icon="inline-start" />
-          <Trans>Copy</Trans>
+        <Button
+          className="min-w-24"
+          onClick={copy}
+          type="button"
+          variant="outline"
+        >
+          {copied ? (
+            <CheckIcon data-icon="inline-start" />
+          ) : (
+            <CopyIcon data-icon="inline-start" />
+          )}
+          {copied ? <Trans>Copied</Trans> : <Trans>Copy</Trans>}
         </Button>
       </div>
+      <span aria-live="polite" className="sr-only">
+        {copied ? <Trans>Invite link copied</Trans> : null}
+      </span>
       <FieldDescription>
         <Trans>
           Send this link to them. It's shown only once: for a new one, cancel
@@ -156,7 +209,9 @@ const InviteForm = ({
   const { t } = useLingui();
   const { query } = useApi();
   const roles = useRoleOptions();
+  const teamOptions = useTeamOptions(orgId);
   const [role, setRole] = useState<OrgRole>("member");
+  const [team, setTeam] = useState<string>(NO_TEAM);
   const [problem, setProblem] = useState<
     "invalid" | "exists" | "failed" | null
   >(null);
@@ -176,8 +231,13 @@ const InviteForm = ({
       }
       setProblem(null);
       setLink(null);
+      const teamIds = teamOptions.some(
+        (option) => option.value === team && team !== NO_TEAM
+      )
+        ? [team as TeamId]
+        : [];
       mutate(
-        { email: parsed.data.email, orgId, role, teamIds: [] },
+        { email: parsed.data.email, orgId, role, teamIds },
         {
           onError: (error) =>
             setProblem(codeOf(error) === "CONFLICT" ? "exists" : "failed"),
@@ -196,7 +256,7 @@ const InviteForm = ({
         }
       );
     },
-    [mutate, onInvited, orgId, role]
+    [mutate, onInvited, orgId, role, team, teamOptions]
   );
   return (
     <form onSubmit={submit}>
@@ -224,6 +284,17 @@ const InviteForm = ({
               onChange={setRole}
               options={roles}
               value={role}
+            />
+          </Field>
+          <Field className="sm:w-48">
+            <FieldLabel htmlFor="invite-team">
+              <Trans>Team</Trans>
+            </FieldLabel>
+            <OptionSelect
+              id="invite-team"
+              onChange={setTeam}
+              options={teamOptions}
+              value={team}
             />
           </Field>
           <Button disabled={invite.isPending} type="submit">

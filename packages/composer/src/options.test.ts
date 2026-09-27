@@ -36,6 +36,35 @@ const model = (
 });
 
 describe("buildTargetGroups", () => {
+  it("groups agents by where they come from, in library-tab order", () => {
+    const agent = (name: string, source?: "mine" | "shared" | "libraries") => ({
+      ...agentItem,
+      id: fixtureId("libraryItem", 100 + name.length),
+      name,
+      source,
+    });
+    const groups = buildTargetGroups(modelOptions, [
+      agent("Team helper", "libraries"),
+      agent("Mine", "mine"),
+      agent("From Ada", "shared"),
+    ]);
+    expect(
+      groups.agentGroups.map((group) => [
+        group.source,
+        group.choices.map((choice) => choice.label),
+      ])
+    ).toEqual([
+      ["mine", ["Mine"]],
+      ["shared", ["From Ada"]],
+      ["libraries", ["Team helper"]],
+    ]);
+    expect(groups.agents.map((choice) => choice.label)).toEqual([
+      "Mine",
+      "From Ada",
+      "Team helper",
+    ]);
+  });
+
   it("files models under their provider and agents apart, without a second Auto", () => {
     const groups = buildTargetGroups(
       [

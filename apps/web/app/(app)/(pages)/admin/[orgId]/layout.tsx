@@ -18,7 +18,7 @@ import { requestLocale } from "@/lib/i18n";
 
 import { routes } from "@/lib/routes";
 import { getViewer } from "@/lib/server-session";
-import { OrgName } from "../_components/admin-index";
+import { OrgSwitcher } from "../_components/admin-index";
 
 // One org's admin pages, for its owners and admins only. The role is checked
 // here on the server (so others get a 404, not a page of failing calls) and
@@ -58,7 +58,7 @@ export default async function OrgAdminLayout({
           <Trans>All orgs</Trans>
         </Link>
       }
-      heading={<OrgName orgId={orgId} />}
+      heading={<OrgSwitcher orgId={orgId} />}
       items={[
         {
           href: section("policies"),

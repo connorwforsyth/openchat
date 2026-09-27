@@ -24,6 +24,9 @@ import type { z } from "zod";
 
 export const SIDEBAR_LIST_INPUT = { archived: false, limit: 100 } as const;
 
+/** How often an untitled chat is checked while its title is being made. */
+const TITLE_POLL_MS = 1000;
+
 /** Everything stored the chat screen reads for one conversation. */
 export const useChatQueries = (
   api: QueryUtils,
@@ -32,11 +35,14 @@ export const useChatQueries = (
     conversationId,
     leafId,
     sandboxes,
+    watchTitle = false,
   }: {
     readonly artifactId: ArtifactId | null;
     readonly conversationId: ConversationId | null;
     readonly leafId: MessageId | undefined;
     readonly sandboxes: boolean;
+    /** Poll the chat until the title job has named it (live titles, 044). */
+    readonly watchTitle?: boolean;
   }
 ) => {
   const byConversation = conversationId ? { conversationId } : skipToken;
@@ -45,7 +51,11 @@ export const useChatQueries = (
     api.conversations.list.queryOptions({ input: SIDEBAR_LIST_INPUT })
   );
   const conversation = useQuery(
-    api.conversations.get.queryOptions({ input: byId })
+    api.conversations.get.queryOptions({
+      input: byId,
+      refetchInterval: (query) =>
+        watchTitle && query.state.data?.title === null ? TITLE_POLL_MS : false,
+    })
   );
   const path = useQuery(
     api.messages.path.queryOptions({

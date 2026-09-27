@@ -1,4 +1,5 @@
 import { textStream } from "@workspace/ai/testing/mock-models";
+import type { AppConfig } from "@workspace/config/schema";
 import type {
   ConversationId,
   FileId,
@@ -29,15 +30,19 @@ const pdfId = newId("file") as FileId;
 const PDF = new TextEncoder().encode("%PDF-1.4 tiny");
 
 const message = (parts: Message["parts"]): Message => ({
+  agent: null,
   authorId: userId,
   conversationId: newId("conversation") as ConversationId,
   createdAt: new Date(0).toISOString(),
   id: newId("message") as MessageId,
+  model: null,
   parentId: null,
   parts,
+  partsVersion: 1,
   role: "user",
   runId: null,
   status: "complete",
+  usage: null,
 });
 
 const pdfPart = {
@@ -133,7 +138,7 @@ describe("attachmentsForModel", () => {
 });
 
 describe("attachmentsFor", () => {
-  const providers = {
+  const providers: AppConfig["providers"] = {
     anthropic: { headers: {}, models: [], options: {}, type: "anthropic" },
     local: {
       baseURL: "http://localhost:11434/v1",
@@ -142,7 +147,7 @@ describe("attachmentsFor", () => {
       options: {},
       type: "openai-compatible",
     },
-  } as const;
+  };
 
   it("goes by the model's provider", () => {
     expect(

@@ -1,6 +1,12 @@
 import { setupI18n } from "@lingui/core";
 import { I18nProvider } from "@lingui/react";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import {
   agentItem,
   fixtureId,
@@ -357,6 +363,42 @@ describe("Composer", () => {
     expect(onContextChange).toHaveBeenCalledWith({
       id: teamPlatform.id,
       type: "team",
+    });
+  });
+
+  it("lists agents by where they come from (044)", async () => {
+    const onTargetChange = vi.fn();
+    const shared = {
+      ...agentItem,
+      id: fixtureId("libraryItem", 41),
+      name: "Ada's drafter",
+      source: "shared" as const,
+    };
+    renderComposer({
+      agents: [{ ...agentItem, source: "libraries" }, shared],
+      models: modelOptions,
+      onTargetChange,
+      target: { id: shared.id, type: "agent" },
+    });
+    await userEvent.click(
+      screen.getByRole("button", { name: "Model or agent: Ada's drafter" })
+    );
+    const team = await screen.findByRole("group", {
+      name: "Team & org agents",
+    });
+    expect(
+      within(team).getByRole("menuitemradio", { name: REVIEWER })
+    ).toBeTruthy();
+    const fromOthers = screen.getByRole("group", { name: "Shared with me" });
+    expect(
+      within(fromOthers).getByRole("menuitemradio", { name: "Ada's drafter" })
+    ).toBeTruthy();
+    await userEvent.click(
+      within(team).getByRole("menuitemradio", { name: REVIEWER })
+    );
+    expect(onTargetChange).toHaveBeenCalledWith({
+      id: agentItem.id,
+      type: "agent",
     });
   });
 

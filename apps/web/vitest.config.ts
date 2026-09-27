@@ -40,6 +40,7 @@ export default defineProject({
       "@workspace/auth > better-auth/client/plugins",
       "@workspace/auth > better-auth/react",
       "@workspace/client > @orpc/client",
+      "@workspace/client > @orpc/client/plugins",
       "@workspace/client > @orpc/openapi-client/fetch",
       "@workspace/client > @orpc/tanstack-query",
       "@workspace/contract > @orpc/contract",

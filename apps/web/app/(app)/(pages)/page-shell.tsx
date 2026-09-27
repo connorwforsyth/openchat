@@ -23,7 +23,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
 
 import { useApi } from "@/app/(app)/_shared/api";
-import { useAppFrame } from "@/app/(app)/_shared/app-frame";
+import { canAdmin, useAppFrame } from "@/app/(app)/_shared/app-frame";
 import { Brand } from "@/app/(app)/_shared/brand";
 import { routes } from "@/lib/routes";
 
@@ -85,10 +85,6 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
     },
     [router]
   );
-  // Org owners and admins reach admin too, not only the instance admin.
-  const canAdmin =
-    me.user.isAdmin ||
-    me.orgs.some((org) => org.myRole === "owner" || org.myRole === "admin");
   const sidebarActions = useMemo(
     () => ({
       onArchive: (id: ConversationId) => update({ archived: true, id }),
@@ -164,7 +160,11 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
         <ChatSidebar
           {...sidebarActions}
           account={{
-            onOpenAdmin: canAdmin ? () => router.push(routes.admin) : undefined,
+            onNewOrg: frame.openNewOrg,
+            // Org owners and admins reach admin too, not only the instance admin.
+            onOpenAdmin: canAdmin(me)
+              ? () => router.push(routes.admin)
+              : undefined,
             onOpenSettings: () => router.push(routes.settings()),
             onSignOut: frame.signOut,
             onThemeChange: frame.setTheme,

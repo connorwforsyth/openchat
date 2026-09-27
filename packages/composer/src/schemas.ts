@@ -22,13 +22,25 @@ export const composerStatusSchema = z.enum([
 ]);
 export type ComposerStatus = z.infer<typeof composerStatusSchema>;
 
+/**
+ * Where an agent the caller can use comes from (D13's library tabs): their
+ * own, shared with them, or a team or org library.
+ */
+export const agentSourceSchema = z.enum(["mine", "shared", "libraries"]);
+export type AgentSource = z.infer<typeof agentSourceSchema>;
+
 /** An agent the composer can target or mention: the listing fields of a library item. */
-export const agentOptionSchema = libraryItemSchema.pick({
-  description: true,
-  icon: true,
-  id: true,
-  name: true,
-});
+export const agentOptionSchema = libraryItemSchema
+  .pick({
+    description: true,
+    icon: true,
+    id: true,
+    name: true,
+  })
+  .extend({
+    /** Groups the picker; left out, the agent is listed under "Agents". */
+    source: agentSourceSchema.optional(),
+  });
 export type AgentOption = z.infer<typeof agentOptionSchema>;
 
 /** A prompt template offered from `/`: a library item with its prompt definition. */

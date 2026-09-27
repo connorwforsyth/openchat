@@ -59,6 +59,8 @@ const usePins = (): NonNullable<ItemBuilderProps["pins"]> => {
   );
 };
 
+const chatHref = (item: LibraryItemDetail) => routes.chatWithAgent(item.id);
+
 export function BuilderScreen({ target }: { readonly target: BuilderTarget }) {
   const router = useRouter();
   const api = useApiClient();
@@ -76,6 +78,7 @@ export function BuilderScreen({ target }: { readonly target: BuilderTarget }) {
   return (
     <ItemBuilder
       backHref={routes.library}
+      chatHref={chatHref}
       link={NextLink}
       onCreated={open}
       onDeleted={back}
