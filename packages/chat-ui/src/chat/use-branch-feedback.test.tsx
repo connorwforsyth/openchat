@@ -111,8 +111,8 @@ describe("useBranchFeedback", () => {
     // Every answer is asked about before any reply arrives: one burst per
     // branch view, which a batching link turns into a single request.
     await waitFor(() => expect(server.asked).toHaveLength(answers.length));
-    expect(server.asked.toSorted()).toEqual(
-      answers.map((answer) => answer.id).toSorted()
+    expect(new Set(server.asked)).toEqual(
+      new Set(answers.map((answer) => answer.id))
     );
     expect(branchQueries()).toHaveLength(1);
 
