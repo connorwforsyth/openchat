@@ -6,7 +6,7 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build", "typecheck", "^i18n:compile", "^icons:select"],
-      "env": ["ICON_SET"],
+      "env": ["ICON_SET", "NEXT_OUTPUT"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
