@@ -10,6 +10,11 @@ msgstr ""
 #: ../chat-ui/src/sandbox/terminal.tsx
 msgid "(output shortened)"
 msgstr "(output shortened)"
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "- I prefer pnpm over npm\n"
+"- Answer in British English"
+msgstr "- I prefer pnpm over npm\n"
+"- Answer in British English"
 
 #: ../../apps/web/app/page.tsx
 msgid "(Press <0>d</0> to toggle dark mode)"
@@ -58,6 +63,14 @@ msgstr "{fileName} is larger than {limit}."
 #: ../composer/src/components/attachment-list.tsx
 msgid "{fileName} isn't a supported file type."
 msgstr "{fileName} isn't a supported file type."
+
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "{length} of {max} characters"
+msgstr "{length} of {max} characters"
+
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "{length} of {max} characters. Anything past the limit isn't included in chats."
+msgstr "{length} of {max} characters. Anything past the limit isn't included in chats."
 
 #: ../composer/src/components/attachment-list.tsx
 msgid "{maxFiles, plural, one {{fileName} wasn't added: you can attach # file.} other {{fileName} wasn't added: you can attach up to # files.}}"
@@ -109,9 +122,22 @@ msgstr "Account: {0}"
 #: ../chat-ui/src/sidebar/chat-row.tsx
 msgid "Actions for {title}"
 msgstr "Actions for {title}"
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 #: ../palette/src/command-palette.tsx
 msgid "Actions"
 msgstr "Actions"
+
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Add a key"
+msgstr "Add a key"
+
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Add a key below to use a provider's models with your own account."
+msgstr "Add a key below to use a provider's models with your own account."
+
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Add key"
+msgstr "Add key"
 
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Add photos or files"
@@ -120,6 +146,11 @@ msgstr "Add photos or files"
 #: ../chat-ui/src/sidebar/account-menu.tsx
 msgid "Admin"
 msgstr "Admin"
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+#: ../../apps/web/app/(app)/settings/layout.tsx
+msgid "Admin"
+msgstr "Admin"
+
 #: ../palette/src/command-palette.tsx
 msgid "agent"
 msgstr "agent"
@@ -127,6 +158,10 @@ msgstr "agent"
 #: ../composer/src/components/target-picker.tsx
 msgid "Agents"
 msgstr "Agents"
+
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "Agents propose memory edits as a diff for you to approve, instead of saving them right away."
+msgstr "Agents propose memory edits as a diff for you to approve, instead of saving them right away."
 
 #: ../../apps/web/app/dev/ai-elements/page.tsx
 msgid "AI Elements"
@@ -184,6 +219,20 @@ msgstr "Artifacts panel"
 msgid "Already used by “{other}”."
 msgstr "Already used by “{other}”."
 
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "API key"
+msgstr "API key"
+
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+msgid "API keys"
+msgstr "API keys"
+
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+#: ../../apps/web/app/(app)/settings/appearance/page.tsx
+#: ../../apps/web/app/(app)/settings/layout.tsx
+msgid "Appearance"
+msgstr "Appearance"
+
 #: ../palette/src/command-palette.tsx
 msgid "Ask AI"
 msgstr "Ask AI"
@@ -196,6 +245,10 @@ msgstr "Ask AI: “{prompt}”"
 #: ../composer/src/components/composer.tsx
 msgid "Ask anything"
 msgstr "Ask anything"
+
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "Ask before changing memory"
+msgstr "Ask before changing memory"
 
 #: ../composer/src/components/composer-footer.tsx
 msgid "Attach files"
@@ -227,6 +280,13 @@ msgstr "Bad answer"
 #: ../chat-ui/src/header/branch-switcher.tsx
 msgid "Branches"
 msgstr "Branches"
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Base URL (optional)"
+msgstr "Base URL (optional)"
+
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+msgid "budgets"
+msgstr "budgets"
 
 #: ../../apps/web/app/page.tsx
 msgid "Button"
@@ -234,6 +294,7 @@ msgstr "Button"
 
 #: ../chat-ui/src/conversation/approval.tsx
 #: ../chat-ui/src/conversation/message-row.tsx
+#: ../../apps/web/app/(app)/_shared/confirm.tsx
 #: ../composer/src/components/template-variables.tsx
 #: ../shortcuts/src/react/shortcuts-editor.tsx
 msgid "Cancel"
@@ -254,6 +315,9 @@ msgstr "Change {number} rejected"
 #: ../chat-ui/src/artifacts/artifacts-panel.tsx
 msgid "Changes"
 msgstr "Changes"
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+msgid "Change shortcuts"
+msgstr "Change shortcuts"
 
 #: ../composer/src/components/context-chip.tsx
 msgid "Chat context"
@@ -286,6 +350,22 @@ msgstr "Click to rename"
 #: ../palette/src/command-palette.tsx
 msgid "Chats"
 msgstr "Chats"
+
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Chats that relied on it fall back to other keys, or stop if there are none."
+msgstr "Chats that relied on it fall back to other keys, or stop if there are none."
+
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Check"
+msgstr "Check"
+
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Check the provider (lowercase, like “anthropic”), the key and the URL."
+msgstr "Check the provider (lowercase, like “anthropic”), the key and the URL."
+
+#: ../../apps/web/app/(app)/_shared/query-state.tsx
+msgid "Check your connection and try again."
+msgstr "Check your connection and try again."
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 #: ../ui/src/components/dialog.tsx
@@ -407,11 +487,24 @@ msgstr "Create sandbox"
 msgid "Copy the last reply"
 msgstr "Copy the last reply"
 
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Couldn't check"
+msgstr "Couldn't check"
+
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "CSV"
 msgstr "CSV"
 
 #: ../chat-ui/src/sidebar/account-menu.tsx
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "Current"
+msgstr "Current"
+
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+msgid "dark"
+msgstr "dark"
+
+#: ../../apps/web/app/(app)/settings/_components/appearance-settings.tsx
 msgid "Dark"
 msgstr "Dark"
 
@@ -422,6 +515,9 @@ msgstr "Decision sent to the agent"
 #: ../chat-ui/src/conversation/approval.tsx
 msgid "Decision sent. Waiting for the agent…"
 msgstr "Decision sent. Waiting for the agent…"
+#: ../../apps/web/app/(app)/settings/_components/profile-settings.tsx
+msgid "Default chat context"
+msgstr "Default chat context"
 
 #: ../ui/src/components/ai-elements/tool.tsx
 msgid "Denied"
@@ -504,6 +600,10 @@ msgstr "Enter sends and Shift+Enter adds a line. Type / for prompts and @ to men
 msgid "Error"
 msgstr "Error"
 
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "Every change is kept. Restoring makes a new version, so nothing is lost."
+msgstr "Every change is kept. Restoring makes a new version, so nothing is lost."
+
 #: ../../apps/web/app/dev/ai-elements/page.tsx
 msgid "Every migrated component with static sample data. Nothing here calls a model."
 msgstr "Every migrated component with static sample data. Nothing here calls a model."
@@ -576,6 +676,18 @@ msgid "Hide the sandbox"
 msgstr "Hide the sandbox"
 
 #: ../chat-ui/src/conversation/artifact-card.tsx
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "History"
+msgstr "History"
+
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+msgid "hotkeys"
+msgstr "hotkeys"
+
+#: ../../apps/web/app/(app)/settings/appearance/page.tsx
+msgid "How the app looks on this device."
+msgstr "How the app looks on this device."
+
 #: ../ui/src/components/ai-elements/message.tsx
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Image"
@@ -600,6 +712,16 @@ msgstr "Invite people…"
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "Isolation: {isolationLabel}. {isolationHelp}"
 msgstr "Isolation: {isolationLabel}. {isolationHelp}"
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Key"
+msgstr "Key"
+
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+msgid "keyboard"
+msgstr "keyboard"
+
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+#: ../../apps/web/app/(app)/settings/shortcuts/page.tsx
 #: ../shortcuts/src/react/help-dialog.tsx
 msgid "Keyboard shortcuts"
 msgstr "Keyboard shortcuts"
@@ -608,6 +730,17 @@ msgstr "Keyboard shortcuts"
 #: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
 msgid "Keyboard shortcuts"
 msgstr "Keyboard shortcuts"
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Label"
+msgstr "Label"
+
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+msgid "language"
+msgstr "language"
+
+#: ../../apps/web/app/(app)/settings/_components/profile-settings.tsx
+msgid "Language"
+msgstr "Language"
 
 #: ../../apps/web/app/dev/composer/demo.tsx
 msgid "Last submitted value"
@@ -648,13 +781,33 @@ msgstr "Local"
 #: ../chat-ui/src/sandbox/terminal.tsx
 msgid "ls -la"
 msgstr "ls -la"
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Last used"
+msgstr "Last used"
+
 #: ../palette/src/command-palette.tsx
 msgid "Library"
 msgstr "Library"
 
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+msgid "light"
+msgstr "light"
+
+#: ../../apps/web/app/(app)/settings/_components/appearance-settings.tsx
+msgid "Light"
+msgstr "Light"
+
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "Load latest"
+msgstr "Load latest"
+
 #: ../ui/src/components/spinner.tsx
 msgid "Loading"
 msgstr "Loading"
+
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+msgid "locale"
+msgstr "locale"
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Markdown"
@@ -668,6 +821,32 @@ msgstr "Memory change undone"
 #: ../chat-ui/src/conversation/memory-note.tsx
 msgid "Memory updated: {0}"
 msgstr "Memory updated: {0}"
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "Markdown that's included in every chat you start. Agents add to it when you ask them to remember something."
+msgstr "Markdown that's included in every chat you start. Agents add to it when you ask them to remember something."
+
+#: ../../apps/web/app/(app)/settings/_components/profile-settings.tsx
+msgid "Match my browser"
+msgstr "Match my browser"
+
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+msgid "members"
+msgstr "members"
+
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+#: ../../apps/web/app/(app)/settings/layout.tsx
+#: ../../apps/web/app/(app)/settings/memory/page.tsx
+msgid "Memory"
+msgstr "Memory"
+
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "Memory changed since you opened it, probably in a chat. Load the latest version, then make your edit again."
+msgstr "Memory changed since you opened it, probably in a chat. Load the latest version, then make your edit again."
+
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "Memory couldn't be saved. Try again."
+msgstr "Memory couldn't be saved. Try again."
 
 #: ../composer/src/components/composer.tsx
 msgid "Mention"
@@ -720,18 +899,30 @@ msgstr "Newer version"
 
 #: ../chat-ui/src/header/branch-switcher.tsx
 #: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+msgid "name"
+msgstr "name"
+
 #: ../shortcuts/src/react/help-dialog.tsx
 msgid "Navigation"
 msgstr "Navigation"
 
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Never used"
+msgstr "Never used"
+
+#: ../../apps/web/app/(app)/_shared/providers.tsx
 #: ../shortcuts/src/registry.ts
 msgid "New chat"
 msgstr "New chat"
 
-#. placeholder {0}: item.name
 #: ../palette/src/command-palette.tsx
-msgid "New chat with {0}"
-msgstr "New chat with {0}"
+msgid "New chat with {name}"
+msgstr "New chat with {name}"
+
+#: ../../apps/web/app/(app)/settings/_components/profile-settings.tsx
+msgid "New chats start here: it decides whose keys pay and where usage counts. You can change it in a chat until the first message."
+msgstr "New chats start here: it decides whose keys pay and where usage counts. You can change it in a chat until the first message."
 
 #: ../shortcuts/src/registry.ts
 #: ../ui/src/components/ai-elements/message.tsx
@@ -765,6 +956,18 @@ msgstr "No sandbox"
 #: ../chat-ui/src/artifacts/artifacts-panel.tsx
 msgid "Nothing here yet. Code, pages and documents the agent makes in this chat show up here."
 msgstr "Nothing here yet. Code, pages and documents the agent makes in this chat show up here."
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "No keys yet"
+msgstr "No keys yet"
+
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "No label"
+msgstr "No label"
+
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "No versions yet. Saving creates the first one."
+msgstr "No versions yet. Saving creates the first one."
+
 #: ../palette/src/command-palette.tsx
 msgid "Nothing found."
 msgstr "Nothing found."
@@ -806,6 +1009,7 @@ msgstr "Open preview in a new tab"
 #: ../chat-ui/src/sandbox/files.tsx
 msgid "Opening {0}…"
 msgstr "Opening {0}…"
+#: ../../apps/web/app/(app)/_shared/providers.tsx
 #: ../shortcuts/src/registry.ts
 msgid "Open settings"
 msgstr "Open settings"
@@ -817,6 +1021,10 @@ msgstr "Open the command palette"
 #: ../code-ui/src/diff-view.tsx
 msgid "Optional: tell the agent why"
 msgstr "Optional: tell the agent why"
+
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+msgid "org"
+msgstr "org"
 
 #: ../composer/src/components/context-chip.tsx
 msgid "Organization"
@@ -848,6 +1056,7 @@ msgstr "People in this chat: {names}"
 msgid "permissions"
 msgstr "permissions"
 
+#: ../../apps/web/app/(app)/settings/_components/profile-settings.tsx
 #: ../composer/src/components/context-chip.tsx
 msgid "Personal"
 msgstr "Personal"
@@ -895,6 +1104,13 @@ msgstr "Preview of port {0}"
 #: ../chat-ui/src/sandbox/preview.tsx
 msgid "Previews need a Docker sandbox. This one is simulated, so nothing can listen on a port."
 msgstr "Previews need a Docker sandbox. This one is simulated, so nothing can listen on a port."
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+msgid "policies"
+msgstr "policies"
+
+#: ../../apps/web/app/(app)/settings/_components/profile-settings.tsx
+msgid "Preferences"
+msgstr "Preferences"
 
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "Previous 7 days"
@@ -922,6 +1138,16 @@ msgstr "Primary"
 #: ../shortcuts/src/registry.ts
 msgid "Previous chat"
 msgstr "Previous chat"
+
+#: ../../apps/web/app/(app)/settings/_components/profile-settings.tsx
+msgid "Profile"
+msgstr "Profile"
+
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+#: ../../apps/web/app/(app)/settings/layout.tsx
+#: ../../apps/web/app/(app)/settings/profile/page.tsx
+msgid "Profile and language"
+msgstr "Profile and language"
 
 #: ../../apps/web/app/page.tsx
 msgid "Project ready!"
@@ -955,6 +1181,20 @@ msgstr "Reasoning"
 #: ../chat-ui/src/sandbox/files.tsx
 msgid "Refresh files"
 msgstr "Refresh files"
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Provider"
+msgstr "Provider"
+
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+#: ../../apps/web/app/(app)/settings/keys/page.tsx
+#: ../../apps/web/app/(app)/settings/layout.tsx
+msgid "Provider keys"
+msgstr "Provider keys"
+
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+msgid "providers"
+msgstr "providers"
+
 #: ../palette/src/command-palette.tsx
 msgid "Recent chats"
 msgstr "Recent chats"
@@ -972,6 +1212,10 @@ msgid "Regenerate"
 msgstr "Regenerate"
 
 #: ../chat-ui/src/conversation/approval.tsx
+#: ../../apps/web/app/(app)/settings/shortcuts/page.tsx
+msgid "Record your own keys for any shortcut. Your changes are saved in this browser."
+msgstr "Record your own keys for any shortcut. Your changes are saved in this browser."
+
 #: ../code-ui/src/diff-view.tsx
 msgid "Reject"
 msgstr "Reject"
@@ -991,12 +1235,16 @@ msgstr "Reject the rest"
 #: ../chat-ui/src/sandbox/preview.tsx
 msgid "Reload preview"
 msgstr "Reload preview"
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Rejected"
+msgstr "Rejected"
 
 #: ../ui/src/components/ai-elements/message.tsx
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Remove"
 msgstr "Remove"
 
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 #: ../composer/src/components/attachment-list.tsx
 msgid "Remove {name}"
 msgstr "Remove {name}"
@@ -1017,6 +1265,14 @@ msgstr "Rename chat: {shown}"
 #: ../chat-ui/src/sandbox/sandbox-panel.tsx
 msgid "Reset sandbox"
 msgstr "Reset sandbox"
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Remove key"
+msgstr "Remove key"
+
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Remove this key?"
+msgstr "Remove this key?"
+
 #: ../shortcuts/src/react/shortcuts-editor.tsx
 msgid "Reset"
 msgstr "Reset"
@@ -1040,6 +1296,18 @@ msgstr "Reset: start again with an empty workspace"
 #: ../ui/src/components/ai-elements/tool.tsx
 msgid "Responded"
 msgstr "Responded"
+
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "Restore"
+msgstr "Restore"
+
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "Restore version {number}"
+msgstr "Restore version {number}"
+
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "Restored an earlier version"
+msgstr "Restored an earlier version"
 
 #: ../ui/src/components/ai-elements/tool.tsx
 msgid "Result"
@@ -1109,6 +1377,13 @@ msgstr "Sandbox panel"
 #: ../chat-ui/src/sandbox/sandbox-panel.tsx
 msgid "Sandbox views"
 msgstr "Sandbox views"
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "Save"
+msgstr "Save"
+
+#: ../../apps/web/app/(app)/settings/_components/appearance-settings.tsx
+msgid "Saved in this browser."
+msgstr "Saved in this browser."
 
 #: ../chat-ui/src/header/sandbox-pill.tsx
 msgid "Sandbox: {label}"
@@ -1193,13 +1468,34 @@ msgstr "Sign out"
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "Simulated"
 msgstr "Simulated"
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Server config"
+msgstr "Server config"
+
 #: ../palette/src/context-actions.ts
 msgid "Set permission mode to {label}"
 msgstr "Set permission mode to {label}"
 
+#: ../../apps/web/app/(app)/settings/layout.tsx
 #: ../palette/src/command-palette.tsx
 msgid "Settings"
 msgstr "Settings"
+
+#: ../../apps/web/app/(app)/_shared/unavailable.tsx
+msgid "Settings aren't available"
+msgstr "Settings aren't available"
+
+#: ../../apps/web/app/(app)/settings/layout.tsx
+msgid "Settings pages"
+msgstr "Settings pages"
+
+#: ../../apps/web/app/(app)/settings/layout.tsx
+msgid "Shortcuts"
+msgstr "Shortcuts"
+
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "Show contents"
+msgstr "Show contents"
 
 #: ../shortcuts/src/registry.ts
 msgid "Show keyboard shortcuts"
@@ -1208,6 +1504,10 @@ msgstr "Show keyboard shortcuts"
 #: ../palette/src/context-actions.ts
 msgid "Show the sandbox"
 msgstr "Show the sandbox"
+
+#: ../../apps/web/app/(app)/_shared/unavailable.tsx
+msgid "Sign-in is switched off until an administrator sets BETTER_AUTH_SECRET."
+msgstr "Sign-in is switched off until an administrator sets BETTER_AUTH_SECRET."
 
 #: ../shortcuts/src/react/help-dialog.tsx
 msgid "Single keys work when you're not typing in a text field."
@@ -1259,6 +1559,10 @@ msgstr "Stopped"
 msgid "Stop generating"
 msgstr "Stop generating"
 
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Stored encrypted and never shown again; only its last characters are."
+msgstr "Stored encrypted and never shown again; only its last characters are."
+
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Submit"
 msgstr "Submit"
@@ -1286,6 +1590,10 @@ msgstr "Switch model"
 msgid "Switch model to {label}"
 msgstr "Switch model to {label}"
 
+#: ../../apps/web/app/(app)/settings/_components/appearance-settings.tsx
+msgid "System"
+msgstr "System"
+
 #: ../palette/src/context-actions.ts
 msgid "team"
 msgstr "team"
@@ -1304,6 +1612,13 @@ msgstr "terminal"
 #: ../chat-ui/src/conversation/feedback.tsx
 msgid "Thanks! What was good? (optional)"
 msgstr "Thanks! What was good? (optional)"
+#: ../../apps/web/app/(app)/settings/_components/profile-settings.tsx
+msgid "That change couldn't be saved. Try again."
+msgstr "That change couldn't be saved. Try again."
+
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "That key couldn't be removed. Try again."
+msgstr "That key couldn't be removed. Try again."
 
 #: ../../apps/web/app/dev/code/demo.tsx
 msgid "The accepted changes couldn't be applied."
@@ -1337,6 +1652,10 @@ msgstr "The editor didn't load. Reload the page to try again."
 msgid "The file tree, a highlighted file and a reviewable diff, themed from the design tokens. Sample data only; nothing is written anywhere."
 msgstr "The file tree, a highlighted file and a reviewable diff, themed from the design tokens. Sample data only; nothing is written anywhere."
 
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "The key couldn't be added. Try again."
+msgstr "The key couldn't be added. Try again."
+
 #: ../../apps/web/app/dev/composer/page.tsx
 msgid "The prompt composer with contract fixtures. Type / for a prompt template or @ to mention someone; sending fakes a short run you can stop. Nothing here calls a model."
 msgstr "The prompt composer with contract fixtures. Type / for a prompt template or @ to mention someone; sending fakes a short run you can stop. Nothing here calls a model."
@@ -1356,6 +1675,17 @@ msgstr "The sandbox was destroyed. Create a new one."
 #: ../chat-ui/src/sandbox/files.tsx
 msgid "The workspace is empty."
 msgstr "The workspace is empty."
+#: ../../apps/web/app/(app)/_shared/unavailable.tsx
+msgid "The server's configuration file has problems. An administrator can find the details in the server log."
+msgstr "The server's configuration file has problems. An administrator can find the details in the server log."
+
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+msgid "theme"
+msgstr "theme"
+
+#: ../../apps/web/app/(app)/settings/_components/appearance-settings.tsx
+msgid "Theme"
+msgstr "Theme"
 
 #: ../chat-ui/src/sidebar/account-menu.tsx
 msgid "Theme"
@@ -1381,6 +1711,18 @@ msgstr "This chat has no sandbox yet. Create one to run commands and keep files 
 #: ../../apps/web/app/dev/sandbox/demo.tsx
 msgid "This sandbox can't do that."
 msgstr "This sandbox can't do that."
+#: ../../apps/web/app/(app)/_shared/query-state.tsx
+msgid "This couldn't be loaded."
+msgstr "This couldn't be loaded."
+
+#: ../../apps/web/app/(app)/_shared/query-state.tsx
+msgid "This feature is switched off on this server."
+msgstr "This feature is switched off on this server."
+
+#: ../../apps/web/app/(app)/_shared/unavailable.tsx
+msgid "This server has no database yet, so there are no accounts to sign in to. An administrator needs to set DATABASE_URL."
+msgstr "This server has no database yet, so there are no accounts to sign in to. An administrator needs to set DATABASE_URL."
+
 #: ../shortcuts/src/react/shortcuts-editor.tsx
 msgid "Those keys can't be used as a shortcut."
 msgstr "Those keys can't be used as a shortcut."
@@ -1418,6 +1760,10 @@ msgstr "Toggle sidebar"
 msgid "Too many files. Some were not added."
 msgstr "Too many files. Some were not added."
 
+#: ../../apps/web/app/(app)/_shared/query-state.tsx
+msgid "Try again"
+msgstr "Try again"
+
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "TSV"
 msgstr "TSV"
@@ -1442,6 +1788,10 @@ msgstr "Unpin"
 msgid "Untitled chat"
 msgstr "Untitled chat"
 
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "Updated in a chat"
+msgstr "Updated in a chat"
+
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Upload files"
 msgstr "Upload files"
@@ -1457,6 +1807,13 @@ msgstr "v{number} of {total}"
 #: ../chat-ui/src/artifacts/artifacts-panel.tsx
 msgid "Versions"
 msgstr "Versions"
+#: ../../apps/web/app/(app)/settings/_components/profile-settings.tsx
+msgid "Used for the interface and passed to agents so they answer in your language."
+msgstr "Used for the interface and passed to agents so they answer in your language."
+
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "Version {number}"
+msgstr "Version {number}"
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "View fullscreen"
@@ -1481,6 +1838,9 @@ msgstr "What are we working on?"
 #: ../chat-ui/src/conversation/feedback.tsx
 msgid "What went wrong? (optional)"
 msgstr "What went wrong? (optional)"
+#: ../../apps/web/app/(app)/settings/memory/page.tsx
+msgid "What agents remember about you across chats."
+msgstr "What agents remember about you across chats."
 
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "What would you like to know?"
@@ -1497,6 +1857,14 @@ msgstr "Workspace"
 msgid "While recording, Escape cancels and Backspace turns a shortcut off."
 msgstr "While recording, Escape cancels and Backspace turns a shortcut off."
 
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Work account"
+msgstr "Work account"
+
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Works"
+msgstr "Works"
+
 #: ../../apps/web/app/dev/ai-elements/demo.tsx
 msgid "Would send “{text}” with {fileCount, plural, one {# attachment} other {# attachments}}."
 msgstr "Would send “{text}” with {fileCount, plural, one {# attachment} other {# attachments}}."
@@ -1504,6 +1872,13 @@ msgstr "Would send “{text}” with {fileCount, plural, one {# attachment} othe
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "Yesterday"
 msgstr "Yesterday"
+#: ../../apps/web/app/(app)/_shared/query-state.tsx
+msgid "You don't have access to this."
+msgstr "You don't have access to this."
+
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "You edited it"
+msgstr "You edited it"
 
 #: ../../apps/web/app/page.tsx
 msgid "You may now add components and start building."
@@ -1520,6 +1895,18 @@ msgstr "Your browser keeps that combination; pick another one."
 #: ../shortcuts/src/react/shortcuts-editor.tsx
 msgid "Your changes work now but couldn't be saved, so they'll reset when you reload."
 msgstr "Your changes work now but couldn't be saved, so they'll reset when you reload."
+
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "Your memory"
+msgstr "Your memory"
+
+#: ../../apps/web/app/(app)/settings/_components/profile-settings.tsx
+msgid "Your name and email come from how you signed in."
+msgstr "Your name and email come from how you signed in."
+
+#: ../../apps/web/app/(app)/settings/keys/page.tsx
+msgid "Your own keys pay for your Personal chats, and for team or org chats when the org allows it."
+msgstr "Your own keys pay for your Personal chats, and for team or org chats when the org allows it."
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Zoom in"

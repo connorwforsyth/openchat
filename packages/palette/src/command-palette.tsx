@@ -261,17 +261,18 @@ export const CommandPalette = ({
       onNewChatWithAgent && searching
         ? library
             .filter((item) => item.kind === "agent")
-            .map((item) =>
-              paletteAction(
+            .map((item) => {
+              const { name } = item;
+              return paletteAction(
                 {
                   id: `new-chat-with:${item.id}`,
                   keywords: [t`agent`],
                   section: "actions",
-                  title: t`New chat with ${item.name}`,
+                  title: t`New chat with ${name}`,
                 },
                 () => onNewChatWithAgent(item)
-              )
-            )
+              );
+            })
         : [];
     return [...actions, ...contextActions, ...agentActions];
   }, [actions, context, i18n, library, onNewChatWithAgent, searching, t]);
