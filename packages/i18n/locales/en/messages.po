@@ -1404,8 +1404,8 @@ msgstr "Models"
 msgid "Monthly"
 msgstr "Monthly"
 
-#: ../library-ui/src/components/item-builder.tsx
 #: ../chat-ui/src/header/overflow-menu.tsx
+#: ../library-ui/src/components/item-builder.tsx
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "More actions"
 msgstr "More actions"
