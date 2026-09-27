@@ -3,7 +3,7 @@ id: "025"
 title: "Integration: wire M1 into apps/web"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: ["011","012","013","014","015","016","017","018","019","020","021","022","023","024"]
 ---
 
@@ -23,6 +23,14 @@ Wiring collected from earlier tickets (don't lose these):
 - `ARTIFACTS_ORIGIN` → chat-ui `runtimeOrigin` (030); attachments upload in `ConnectedChat` (015).
 - Map `KnowledgeError.UNAVAILABLE` and sandbox `unavailable` to 503 / `FEATURE_DISABLED` (021, 019); file-serving headers `Content-Disposition: attachment` + `nosniff` (021); local storage URL secret derived from `BETTER_AUTH_SECRET` (021).
 - Gate `/dev/*` behind an env flag (007); viewport `interactive-widget=resizes-content` (031); oRPC request batching for feedback (031); `requestLocale` reads `user.locale` (024); PGlite fallback when `DATABASE_URL` is empty (011, Q15); random invite tokens (012, Q16).
+
+## Split (2026-09-27, loop)
+
+- [038](038-integration-server.md) Server wiring
+- [039](039-integration-web.md) Web app pages
+- [040](040-integration-e2e.md) Docker, compose and end-to-end
+
+Closes when all three close.
 
 ## Owns
 
