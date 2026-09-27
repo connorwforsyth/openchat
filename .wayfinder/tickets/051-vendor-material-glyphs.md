@@ -3,7 +3,7 @@ id: "051"
 title: "Vendor only the mapped Material symbols"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: []
 ---
 
