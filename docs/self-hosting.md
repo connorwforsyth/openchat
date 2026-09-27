@@ -79,6 +79,25 @@ services:
 An invalid file doesn't half-start: the API answers with the list of
 problems, and so does the log.
 
+### Icon set
+
+The icon set is compiled into the image, so the `icons` block of a mounted
+`app.config.yaml` can't change it: the image is built before the file is
+there. Choose the set with build args instead, in `.env` (compose passes them
+through):
+
+```sh
+ICON_SET=material        # lucide (default), phosphor or material
+ICON_STYLE=rounded       # Material only: outlined (default), rounded, sharp
+ICON_WEIGHT=400          # Material only: 100–700, default 400
+ICON_FILL=false          # Material only: true for the filled symbols
+```
+
+then rebuild with `docker compose up -d --build`. Without compose, pass them
+to `docker build` as `--build-arg ICON_SET=material` and so on. Outside
+Docker, `bun run build` reads the `icons` block itself (from `CONFIG_PATH`, or
+`apps/web/app.config.yaml`), and these variables override it.
+
 ## Optional services
 
 Each is a compose profile; start it alongside the rest.

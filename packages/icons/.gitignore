@@ -1,3 +1,5 @@
-# Written by `icons:select` from ICON_SET before build, dev and typecheck.
+# Written by `icons:select` (from app.config.yaml's `icons`, or ICON_*) before
+# build, dev and typecheck.
 src/selected.ts
 src/selected.native.ts
+src/sets/material.glyphs.ts

@@ -29,12 +29,15 @@ export function setFile(
   return findFile(specifier) ? specifier : undefined;
 }
 
+/** The source of `./sets/<id>[.native]`, if it exists. */
+export function setSource(specifier: string | undefined): string | undefined {
+  const file = specifier && findFile(specifier);
+  return file ? readFileSync(file, "utf8") : undefined;
+}
+
 export function availableNames(
   specifier: string | undefined
 ): ReadonlySet<string> | undefined {
-  const file = specifier && findFile(specifier);
-  if (!file) {
-    return;
-  }
-  return new Set(exportedIconNames(readFileSync(file, "utf8")));
+  const source = setSource(specifier);
+  return source === undefined ? undefined : new Set(exportedIconNames(source));
 }

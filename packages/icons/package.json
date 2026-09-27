@@ -24,8 +24,16 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@material-symbols/svg-100": "catalog:",
+    "@material-symbols/svg-200": "catalog:",
+    "@material-symbols/svg-300": "catalog:",
+    "@material-symbols/svg-400": "catalog:",
+    "@material-symbols/svg-500": "catalog:",
+    "@material-symbols/svg-600": "catalog:",
+    "@material-symbols/svg-700": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
+    "@workspace/config": "workspace:*",
     "@workspace/typescript-config": "workspace:*",
     "typescript": "catalog:",
     "vitest": "catalog:"

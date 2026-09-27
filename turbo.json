@@ -6,7 +6,7 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build", "typecheck", "^i18n:compile", "^icons:select"],
-      "env": ["ICON_SET", "NEXT_OUTPUT"],
+      "env": ["NEXT_OUTPUT"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
@@ -64,8 +64,25 @@
       "cache": false
     },
     "icons:select": {
-      "env": ["ICON_SET"],
-      "outputs": ["src/selected.ts", "src/selected.native.ts"]
+      "env": [
+        "CONFIG_PATH",
+        "ICON_FILL",
+        "ICON_SET",
+        "ICON_STYLE",
+        "ICON_WEIGHT"
+      ],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/app.config.yaml",
+        "$TURBO_ROOT$/apps/web/app.config.yaml",
+        "$TURBO_ROOT$/packages/config/src/parse.ts",
+        "$TURBO_ROOT$/packages/config/src/schema.ts"
+      ],
+      "outputs": [
+        "src/selected.ts",
+        "src/selected.native.ts",
+        "src/sets/material.glyphs.ts"
+      ]
     }
   }
 }

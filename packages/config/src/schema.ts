@@ -379,17 +379,27 @@ const embeddingsSchema = z
   })
   .prefault({});
 
-const iconsSchema = z
+/**
+ * The icon set is compiled in (D19): `icons:select` in packages/icons reads
+ * this block at build time, so a change needs a rebuild, not a restart.
+ * Exported for that script, which parses just this block.
+ */
+export const iconsSchema = z
   .strictObject({
+    /** Material only: the filled variants. */
     fill: z.boolean().default(false),
     // Mirrors `iconSetIds` in packages/icons (a test keeps them equal).
     set: z
       .enum(["lucide", "phosphor", "tabler", "hugeicons", "material"])
       .default("lucide"),
+    /** Material only; unset means `outlined`. */
     style: z.enum(["outlined", "rounded", "sharp"]).optional(),
+    /** Material only; unset means 400. */
     weight: z.literal([100, 200, 300, 400, 500, 600, 700]).optional(),
   })
   .prefault({});
+
+export type IconsConfig = z.infer<typeof iconsSchema>;
 
 const observabilitySchema = z
   .strictObject({
