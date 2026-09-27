@@ -48,6 +48,9 @@ msgstr "{additions, plural, one {# line added} other {# lines added}}"
 #: ../chat-ui/src/sandbox/terminal.tsx
 msgid "{count, plural, one {# log entry} other {# log entries}}"
 msgstr "{count, plural, one {# log entry} other {# log entries}}"
+#: ../library-ui/src/components/library-index.tsx
+msgid "{count, plural, one {# item} other {# items}}"
+msgstr "{count, plural, one {# item} other {# items}}"
 
 #: ../code-ui/src/diff-view.tsx
 msgid "{deletions, plural, one {# line removed} other {# lines removed}}"
@@ -110,6 +113,13 @@ msgstr "A member"
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "A simulated shell with an in-memory filesystem. Nothing runs on a real machine."
 msgstr "A simulated shell with an in-memory filesystem. Nothing runs on a real machine."
+#: ../library-ui/src/components/mcp-form.tsx
+msgid "A secret is saved. It's never shown; type a new one to replace it."
+msgstr "A secret is saved. It's never shown; type a new one to replace it."
+
+#: ../library-ui/src/components/badges.tsx
+msgid "A team"
+msgstr "A team"
 
 #: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
 msgid "A team"
@@ -150,6 +160,26 @@ msgstr "Actions"
 #: ../chat-ui/src/sidebar/chat-row.tsx
 msgid "Actions for {title}"
 msgstr "Actions for {title}"
+#: ../library-ui/src/components/library-index.tsx
+msgid "Actions for {name}"
+msgstr "Actions for {name}"
+
+#: ../library-ui/src/components/agent-form.tsx
+msgid "Add a starter"
+msgstr "Add a starter"
+
+#: ../library-ui/src/components/agent-form.tsx
+msgid "Add an MCP server to your library to connect it here."
+msgstr "Add an MCP server to your library to connect it here."
+
+#: ../library-ui/src/components/agent-form.tsx
+#: ../library-ui/src/components/skill-form.tsx
+msgid "Add files"
+msgstr "Add files"
+
+#: ../library-ui/src/components/share-dialog.tsx
+msgid "Add people, teams or orgs"
+msgstr "Add people, teams or orgs"
 
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "Add a key"
@@ -175,6 +205,13 @@ msgstr "Add photos or files"
 #: ../chat-ui/src/sidebar/account-menu.tsx
 msgid "Admin"
 msgstr "Admin"
+#: ../library-ui/src/components/kind.tsx
+msgid "Agent"
+msgstr "Agent"
+
+#: ../library-ui/src/components/run-test-chat.tsx
+msgid "Agent test"
+msgstr "Agent test"
 
 #: ../../apps/web/app/(app)/admin/[orgId]/layout.tsx
 msgid "Admin pages"
@@ -185,16 +222,24 @@ msgid "agent"
 msgstr "agent"
 
 #: ../composer/src/components/target-picker.tsx
+#: ../library-ui/src/components/kind.tsx
 msgid "Agents"
 msgstr "Agents"
 
 #: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
 msgid "Agents propose memory edits as a diff for you to approve, instead of saving them right away."
 msgstr "Agents propose memory edits as a diff for you to approve, instead of saving them right away."
+#: ../library-ui/src/components/library-index.tsx
+msgid "Agents, prompts, skills and MCP servers: yours, shared with you, and published to your teams."
+msgstr "Agents, prompts, skills and MCP servers: yours, shared with you, and published to your teams."
 
 #: ../../apps/web/app/dev/ai-elements/page.tsx
 msgid "AI Elements"
 msgstr "AI Elements"
+
+#: ../library-ui/src/components/library-index.tsx
+msgid "All"
+msgstr "All"
 
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "All files exceed the maximum size."
@@ -278,6 +323,18 @@ msgid "Ask AI: “{prompt}”"
 msgstr "Ask AI: “{prompt}”"
 
 #: ../../apps/web/app/dev/chat/demo.tsx
+#: ../library-ui/src/components/publish-dialog.tsx
+msgid "Also publish to a team or org library"
+msgstr "Also publish to a team or org library"
+
+#: ../library-ui/src/components/agent-form.tsx
+msgid "An alias follows whatever the instance maps it to."
+msgstr "An alias follows whatever the instance maps it to."
+
+#: ../library-ui/src/components/badges.tsx
+msgid "An org"
+msgstr "An org"
+
 #: ../composer/src/components/composer-shell.tsx
 #: ../composer/src/components/composer.tsx
 msgid "Ask anything"
@@ -292,6 +349,10 @@ msgid "Attach files"
 msgstr "Attach files"
 
 #: ../chat-ui/src/conversation/file-parts.tsx
+#: ../library-ui/src/components/agent-form.tsx
+msgid "Attached file"
+msgstr "Attached file"
+
 #: ../ui/src/components/ai-elements/message.tsx
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Attachment"
@@ -306,6 +367,9 @@ msgstr "Attachments"
 #: ../../apps/web/app/(app)/admin/[orgId]/layout.tsx
 msgid "Audit policy"
 msgstr "Audit policy"
+#: ../library-ui/src/components/mcp-form.tsx
+msgid "Authentication"
+msgstr "Authentication"
 
 #: ../composer/src/components/target-picker.tsx
 msgid "Auto"
@@ -334,6 +398,17 @@ msgstr "Blocks new chats"
 #: ../chat-ui/src/header/branch-switcher.tsx
 msgid "Branches"
 msgstr "Branches"
+#: ../library-ui/src/components/item-builder.tsx
+msgid "Back to the library"
+msgstr "Back to the library"
+
+#: ../library-ui/src/components/agent-form.tsx
+msgid "Build a skill to load it into this agent's sandbox."
+msgstr "Build a skill to load it into this agent's sandbox."
+
+#: ../library-ui/src/components/library-index.tsx
+msgid "Build an agent, prompt, skill or MCP server, or import one."
+msgstr "Build an agent, prompt, skill or MCP server, or import one."
 
 #: ../../apps/web/app/(app)/_shared/providers.tsx
 msgid "budgets"
@@ -356,8 +431,26 @@ msgstr "Button"
 #: ../../apps/web/app/(app)/admin/_components/members-admin.tsx
 #: ../chat-ui/src/conversation/approval.tsx
 #: ../chat-ui/src/conversation/message-row.tsx
+#: ../library-ui/src/components/badges.tsx
+msgid "Can edit"
+msgstr "Can edit"
+
+#: ../library-ui/src/components/badges.tsx
+msgid "Can use"
+msgstr "Can use"
+
+#: ../library-ui/src/components/badges.tsx
+msgid "Can view"
+msgstr "Can view"
+
+#: ../library-ui/src/components/mcp-form.tsx
+msgid "Can't connect"
+msgstr "Can't connect"
+
 #: ../composer/src/components/template-variables.tsx
 #: ../shortcuts/src/react/shortcuts-editor.tsx
+#: ../library-ui/src/components/confirm-delete.tsx
+#: ../library-ui/src/components/publish-dialog.tsx
 msgid "Cancel"
 msgstr "Cancel"
 
@@ -449,6 +542,13 @@ msgstr "Choices for this org, within the limits this server's configuration sets
 #: ../chat-ui/src/header/chat-title.tsx
 msgid "Click to rename"
 msgstr "Click to rename"
+#: ../library-ui/src/components/library-index.tsx
+msgid "Check your connection and try again."
+msgstr "Check your connection and try again."
+
+#: ../library-ui/src/components/publish-dialog.tsx
+msgid "Choose a library"
+msgstr "Choose a library"
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 #: ../ui/src/components/dialog.tsx
@@ -500,6 +600,17 @@ msgstr "Composer"
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "Container"
 msgstr "Container"
+#: ../library-ui/src/components/mcp-form.tsx
+msgid "Connect"
+msgstr "Connect"
+
+#: ../library-ui/src/components/mcp-form.tsx
+msgid "Connected · {count} tools"
+msgstr "Connected · {count} tools"
+
+#: ../library-ui/src/components/mcp-form.tsx
+msgid "Connection"
+msgstr "Connection"
 
 #: ../palette/src/context-actions.ts
 msgid "context"
@@ -513,6 +624,9 @@ msgstr "Context locked"
 #: ../shortcuts/src/react/help-dialog.tsx
 msgid "Conversation"
 msgstr "Conversation"
+#: ../library-ui/src/components/agent-form.tsx
+msgid "Conversation starters"
+msgstr "Conversation starters"
 
 #: ../../apps/web/app/dev/ai-elements/demo.tsx
 msgid "Conversation, message, reasoning and tool"
@@ -533,6 +647,7 @@ msgid "Copy code"
 msgstr "Copy code"
 
 #: ../chat-ui/src/header/share-menu.tsx
+#: ../library-ui/src/components/share-dialog.tsx
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Copy link"
 msgstr "Copy link"
@@ -584,6 +699,13 @@ msgstr "Covers chats held in this org's contexts (the org and its teams). Person
 #: ../chat-ui/src/sandbox/sandbox-panel.tsx
 msgid "Create sandbox"
 msgstr "Create sandbox"
+#: ../library-ui/src/components/item-builder.tsx
+msgid "Create"
+msgstr "Create"
+
+#: ../library-ui/src/components/share-dialog.tsx
+msgid "Create a read-only link"
+msgstr "Create a read-only link"
 
 #: ../../apps/web/app/(app)/admin/_components/teams-admin.tsx
 msgid "Create team"
@@ -617,6 +739,23 @@ msgstr "Decision sent to the agent"
 #: ../chat-ui/src/conversation/approval.tsx
 msgid "Decision sent. Waiting for the agent…"
 msgstr "Decision sent. Waiting for the agent…"
+#: ../library-ui/src/components/prompt-form.tsx
+msgid "Default"
+msgstr "Default"
+
+#: ../library-ui/src/components/prompt-form.tsx
+msgid "Default for {name}"
+msgstr "Default for {name}"
+
+#: ../library-ui/src/components/confirm-delete.tsx
+#: ../library-ui/src/components/item-builder.tsx
+#: ../library-ui/src/components/library-index.tsx
+msgid "Delete"
+msgstr "Delete"
+
+#: ../library-ui/src/components/confirm-delete.tsx
+msgid "Delete {name}?"
+msgstr "Delete {name}?"
 
 #: ../../apps/web/app/(app)/settings/_components/profile-settings.tsx
 msgid "Default chat context"
@@ -654,6 +793,18 @@ msgstr "Denied"
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "Destroyed"
 msgstr "Destroyed"
+#: ../library-ui/src/components/item-builder.tsx
+#: ../library-ui/src/components/prompt-form.tsx
+msgid "Description"
+msgstr "Description"
+
+#: ../library-ui/src/components/prompt-form.tsx
+msgid "Description for {name}"
+msgstr "Description for {name}"
+
+#: ../../apps/web/app/dev/library/page.tsx
+msgid "Developer gallery"
+msgstr "Developer gallery"
 
 #: ../chat-ui/src/conversation/artifact-card.tsx
 msgid "Diagram"
@@ -670,6 +821,9 @@ msgstr "Disabled"
 #: ../chat-ui/src/conversation/artifact-card.tsx
 msgid "Document"
 msgstr "Document"
+#: ../library-ui/src/components/mcp-form.tsx
+msgid "Disconnect"
+msgstr "Disconnect"
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Download diagram"
@@ -730,6 +884,19 @@ msgstr "Enter an amount in dollars, like 25 or 12.50."
 #: ../../apps/web/app/(app)/admin/_components/members-admin.tsx
 msgid "Enter an email address."
 msgstr "Enter an email address."
+#: ../library-ui/src/components/badges.tsx
+#: ../library-ui/src/components/version-history.tsx
+msgid "Draft"
+msgstr "Draft"
+
+#: ../library-ui/src/components/item-builder.tsx
+#: ../library-ui/src/components/library-index.tsx
+msgid "Duplicate to my library"
+msgstr "Duplicate to my library"
+
+#: ../library-ui/src/components/share-dialog.tsx
+msgid "Edit"
+msgstr "Edit"
 
 #: ../composer/src/components/composer.tsx
 msgid "Enter sends and Shift+Enter adds a line. Type / for prompts and @ to mention someone."
@@ -754,6 +921,9 @@ msgstr "Every migrated component with static sample data. Nothing here calls a m
 #: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
 msgid "Everything in the org, including its teams."
 msgstr "Everything in the org, including its teams."
+#: ../library-ui/src/components/version-history.tsx
+msgid "Everyone gets the latest published version unless they pin one."
+msgstr "Everyone gets the latest published version unless they pin one."
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Exit fullscreen"
@@ -773,6 +943,14 @@ msgstr "Expires {expires}"
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "Failed"
 msgstr "Failed"
+#: ../library-ui/src/components/prompt-form.tsx
+msgid "explain"
+msgstr "explain"
+
+#: ../library-ui/src/components/item-builder.tsx
+#: ../library-ui/src/components/library-index.tsx
+msgid "Export"
+msgstr "Export"
 
 #: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
 msgid "Fall back to personal keys"
@@ -796,6 +974,7 @@ msgstr "files"
 
 #: ../chat-ui/src/sandbox/sandbox-panel.tsx
 #: ../code-ui/src/file-tree.tsx
+#: ../library-ui/src/components/skill-form.tsx
 msgid "Files"
 msgstr "Files"
 
@@ -830,6 +1009,37 @@ msgstr "Good answer"
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "gVisor"
 msgstr "gVisor"
+#: ../library-ui/src/components/prompt-form.tsx
+msgid "Fill in every variable to see the message."
+msgstr "Fill in every variable to see the message."
+
+#: ../library-ui/src/components/share-dialog.tsx
+msgid "Find people, teams or orgs"
+msgstr "Find people, teams or orgs"
+
+#: ../library-ui/src/components/skill-form.tsx
+msgid "Frontmatter with a name and description, then the instructions the agent follows."
+msgstr "Frontmatter with a name and description, then the instructions the agent follows."
+
+#: ../library-ui/src/components/mcp-form.tsx
+msgid "Header"
+msgstr "Header"
+
+#: ../library-ui/src/components/mcp-form.tsx
+msgid "Header name"
+msgstr "Header name"
+
+#: ../library-ui/src/components/version-history.tsx
+msgid "Hide"
+msgstr "Hide"
+
+#: ../library-ui/src/components/item-builder.tsx
+msgid "History"
+msgstr "History"
+
+#: ../library-ui/src/components/version-history.tsx
+msgid "History of {name}"
+msgstr "History of {name}"
 
 #: ../palette/src/context-actions.ts
 msgid "Hide the sandbox"
@@ -860,6 +1070,17 @@ msgstr "Image not available"
 #: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
 msgid "Informational"
 msgstr "Informational"
+#: ../library-ui/src/components/library-index.tsx
+msgid "Import"
+msgstr "Import"
+
+#: ../library-ui/src/components/library-index.tsx
+msgid "Import file"
+msgstr "Import file"
+
+#: ../library-ui/src/components/badges.tsx
+msgid "In a library"
+msgstr "In a library"
 
 #: ../composer/src/components/template-variables.tsx
 msgid "Insert"
@@ -888,6 +1109,37 @@ msgstr "Invite someone"
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "Isolation: {isolationLabel}. {isolationHelp}"
 msgstr "Isolation: {isolationLabel}. {isolationHelp}"
+#: ../library-ui/src/components/agent-form.tsx
+msgid "Instructions"
+msgstr "Instructions"
+
+#: ../library-ui/src/components/item-builder.tsx
+msgid "It couldn't be created. Try again."
+msgstr "It couldn't be created. Try again."
+
+#: ../library-ui/src/components/item-builder.tsx
+msgid "It may have been deleted, or it isn't shared with you."
+msgstr "It may have been deleted, or it isn't shared with you."
+
+#: ../library-ui/src/components/item-builder.tsx
+msgid "It was shared for use only. Ask its owner for view access to see its instructions or copy it."
+msgstr "It was shared for use only. Ask its owner for view access to see its instructions or copy it."
+
+#: ../library-ui/src/components/library-index.tsx
+msgid "Items published to your teams and orgs show up here."
+msgstr "Items published to your teams and orgs show up here."
+
+#: ../library-ui/src/components/confirm-delete.tsx
+msgid "Its versions go too, and anyone it's shared with loses it. This can't be undone."
+msgstr "Its versions go too, and anyone it's shared with loses it. This can't be undone."
+
+#: ../library-ui/src/components/library-index.tsx
+msgid "Kind"
+msgstr "Kind"
+
+#: ../library-ui/src/components/agent-form.tsx
+msgid "Knowledge files"
+msgstr "Knowledge files"
 
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "Key"
@@ -1002,6 +1254,30 @@ msgstr "Locked by server config"
 #: ../chat-ui/src/sandbox/terminal.tsx
 msgid "ls -la"
 msgstr "ls -la"
+#: ../library-ui/src/components/share-dialog.tsx
+msgid "Level for {name}"
+msgstr "Level for {name}"
+
+#: ../library-ui/src/components/share-dialog.tsx
+msgid "Level for new shares"
+msgstr "Level for new shares"
+
+#: ../library-ui/src/components/library-index.tsx
+#: ../library-ui/src/components/publish-dialog.tsx
+msgid "Library"
+msgstr "Library"
+
+#: ../ui/src/components/spinner.tsx
+msgid "Loading"
+msgstr "Loading"
+
+#: ../library-ui/src/components/prompt-form.tsx
+msgid "Lowercase letters, digits and dashes. Type / and this in the composer to use it."
+msgstr "Lowercase letters, digits and dashes. Type / and this in the composer to use it."
+
+#: ../library-ui/src/components/badges.tsx
+msgid "Maintainer"
+msgstr "Maintainer"
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Markdown"
@@ -1063,6 +1339,22 @@ msgstr "Memory couldn't be saved. Try again."
 #: ../chat-ui/src/conversation/memory-note.tsx
 msgid "Memory updated: {0}"
 msgstr "Memory updated: {0}"
+#: ../library-ui/src/components/share-dialog.tsx
+msgid "Matches"
+msgstr "Matches"
+
+#: ../library-ui/src/components/kind.tsx
+msgid "MCP server"
+msgstr "MCP server"
+
+#: ../library-ui/src/components/agent-form.tsx
+#: ../library-ui/src/components/kind.tsx
+msgid "MCP servers"
+msgstr "MCP servers"
+
+#: ../library-ui/src/components/publish-dialog.tsx
+msgid "Members, and members of teams below it, can use it. The library's publish policy is checked first."
+msgstr "Members, and members of teams below it, can use it. The library's publish policy is checked first."
 
 #: ../composer/src/components/composer.tsx
 msgid "Mention"
@@ -1076,6 +1368,9 @@ msgstr "Message"
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "MicroVM"
 msgstr "MicroVM"
+#: ../library-ui/src/components/test-chat.tsx
+msgid "Message the draft"
+msgstr "Message the draft"
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "MMD"
@@ -1087,6 +1382,7 @@ msgstr "model"
 
 #: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
 #: ../../apps/web/app/dev/ai-elements/demo.tsx
+#: ../library-ui/src/components/agent-form.tsx
 msgid "Model"
 msgstr "Model"
 
@@ -1102,6 +1398,7 @@ msgstr "Models"
 msgid "Monthly"
 msgstr "Monthly"
 
+#: ../library-ui/src/components/item-builder.tsx
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "More actions"
 msgstr "More actions"
@@ -1159,6 +1456,26 @@ msgstr "Newer version"
 #: ../chat-ui/src/header/branch-switcher.tsx
 #: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
 #: ../shortcuts/src/registry.ts
+#: ../library-ui/src/components/library-index.tsx
+msgid "My library"
+msgstr "My library"
+
+#: ../library-ui/src/components/item-builder.tsx
+msgid "Name"
+msgstr "Name"
+
+#: ../library-ui/src/components/item-builder.tsx
+msgid "Name your {kindLabel}"
+msgstr "Name your {kindLabel}"
+
+#: ../library-ui/src/components/mcp-form.tsx
+msgid "Needs you to sign in"
+msgstr "Needs you to sign in"
+
+#: ../library-ui/src/components/library-index.tsx
+msgid "New"
+msgstr "New"
+
 #: ../ui/src/components/ai-elements/message.tsx
 msgid "Next branch"
 msgstr "Next branch"
@@ -1223,6 +1540,33 @@ msgstr "Nothing found."
 #: ../chat-ui/src/artifacts/artifacts-panel.tsx
 msgid "Nothing here yet. Code, pages and documents the agent makes in this chat show up here."
 msgstr "Nothing here yet. Code, pages and documents the agent makes in this chat show up here."
+#: ../library-ui/src/components/agent-form.tsx
+msgid "No sandbox"
+msgstr "No sandbox"
+
+#: ../library-ui/src/components/library-index.tsx
+msgid "No team or org items"
+msgstr "No team or org items"
+
+#: ../library-ui/src/components/version-history.tsx
+msgid "No versions yet."
+msgstr "No versions yet."
+
+#: ../library-ui/src/components/mcp-form.tsx
+msgid "None"
+msgstr "None"
+
+#: ../library-ui/src/components/publish-dialog.tsx
+msgid "Nothing has changed since the last version."
+msgstr "Nothing has changed since the last version."
+
+#: ../library-ui/src/components/library-index.tsx
+msgid "Nothing here yet"
+msgstr "Nothing here yet"
+
+#: ../library-ui/src/components/library-index.tsx
+msgid "Nothing matches"
+msgstr "Nothing matches"
 
 #: ../../apps/web/app/dev/composer/demo.tsx
 msgid "Nothing sent yet."
@@ -1253,6 +1597,17 @@ msgstr "Only the org's owners can change this."
 #: ../chat-ui/src/conversation/artifact-card.tsx
 msgid "Open artifact: {0}"
 msgstr "Open artifact: {0}"
+#: ../library-ui/src/components/library-index.tsx
+msgid "Nothing shared with you"
+msgstr "Nothing shared with you"
+
+#: ../library-ui/src/components/mcp-form.tsx
+msgid "OAuth"
+msgstr "OAuth"
+
+#: ../library-ui/src/components/share-dialog.tsx
+msgid "Only the owner, so far."
+msgstr "Only the owner, so far."
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Open external link?"
@@ -1299,6 +1654,9 @@ msgstr "Org admin"
 #: ../../apps/web/app/(app)/admin/[orgId]/keys/page.tsx
 msgid "Org and team keys"
 msgstr "Org and team keys"
+#: ../library-ui/src/components/publish-dialog.tsx
+msgid "Optional. Shown in the version history."
+msgstr "Optional. Shown in the version history."
 
 #: ../composer/src/components/context-chip.tsx
 msgid "Organization"
@@ -1311,6 +1669,7 @@ msgstr "Orgs you own or administer."
 #: ../../apps/web/app/(app)/admin/_components/admin-index.tsx
 #: ../../apps/web/app/(app)/admin/_components/members-admin.tsx
 #: ../chat-ui/src/header/share-menu.tsx
+#: ../library-ui/src/components/badges.tsx
 msgid "Owner"
 msgstr "Owner"
 
@@ -1333,6 +1692,13 @@ msgstr "People in this chat"
 #: ../chat-ui/src/header/share-menu.tsx
 msgid "People in this chat: {names}"
 msgstr "People in this chat: {names}"
+#: ../library-ui/src/components/publish-dialog.tsx
+msgid "People using it get version {nextVersion} as soon as it's published. Your draft stays editable."
+msgstr "People using it get version {nextVersion} as soon as it's published. Your draft stays editable."
+
+#: ../library-ui/src/components/share-dialog.tsx
+msgid "People with access"
+msgstr "People with access"
 
 #: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
 msgid "Period"
@@ -1365,6 +1731,11 @@ msgid "Pin"
 msgstr "Pin"
 
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
+#: ../library-ui/src/components/version-history.tsx
+msgid "Pin this version"
+msgstr "Pin this version"
+
+#: ../library-ui/src/components/version-history.tsx
 msgid "Pinned"
 msgstr "Pinned"
 
@@ -1420,6 +1791,18 @@ msgstr "Previous 7 days"
 #: ../chat-ui/src/header/branch-switcher.tsx
 #: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
 #: ../shortcuts/src/registry.ts
+#: ../library-ui/src/components/kind.tsx
+msgid "Preset"
+msgstr "Preset"
+
+#: ../library-ui/src/components/kind.tsx
+msgid "Presets"
+msgstr "Presets"
+
+#: ../library-ui/src/components/prompt-form.tsx
+msgid "Preview"
+msgstr "Preview"
+
 #: ../ui/src/components/ai-elements/message.tsx
 msgid "Previous branch"
 msgstr "Previous branch"
@@ -1432,6 +1815,9 @@ msgstr "Previous chat"
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "Primary"
 msgstr "Primary"
+#: ../library-ui/src/components/badges.tsx
+msgid "Private"
+msgstr "Private"
 
 #: ../../apps/web/app/(app)/settings/_components/profile-settings.tsx
 msgid "Profile"
@@ -1447,11 +1833,16 @@ msgstr "Profile and language"
 msgid "Project ready!"
 msgstr "Project ready!"
 
+#: ../library-ui/src/components/kind.tsx
+msgid "Prompt"
+msgstr "Prompt"
+
 #: ../../apps/web/app/dev/ai-elements/demo.tsx
 msgid "Prompt input"
 msgstr "Prompt input"
 
 #: ../composer/src/components/composer.tsx
+#: ../library-ui/src/components/kind.tsx
 msgid "Prompts"
 msgstr "Prompts"
 
@@ -1517,6 +1908,46 @@ msgstr "Record your own keys for any shortcut. Your changes are saved in this br
 #: ../chat-ui/src/sandbox/files.tsx
 msgid "Refresh files"
 msgstr "Refresh files"
+#: ../library-ui/src/components/badges.tsx
+#: ../library-ui/src/components/share-dialog.tsx
+msgid "Public link"
+msgstr "Public link"
+
+#: ../library-ui/src/components/share-dialog.tsx
+msgid "Public links are turned off on this instance."
+msgstr "Public links are turned off on this instance."
+
+#: ../library-ui/src/components/item-builder.tsx
+msgid "Publish"
+msgstr "Publish"
+
+#: ../library-ui/src/components/publish-dialog.tsx
+msgid "Publish {name}"
+msgstr "Publish {name}"
+
+#: ../library-ui/src/components/publish-dialog.tsx
+msgid "Publish to library"
+msgstr "Publish to library"
+
+#: ../library-ui/src/components/publish-dialog.tsx
+msgid "Publish v{nextVersion}"
+msgstr "Publish v{nextVersion}"
+
+#: ../library-ui/src/components/badges.tsx
+msgid "Published v{version}"
+msgstr "Published v{version}"
+
+#: ../library-ui/src/components/publish-dialog.tsx
+msgid "Publishing failed, so nothing changed."
+msgstr "Publishing failed, so nothing changed."
+
+#: ../library-ui/src/components/publish-dialog.tsx
+msgid "Put a copy in a team or org library. The library owns it and you maintain it."
+msgstr "Put a copy in a team or org library. The library owns it and you maintain it."
+
+#: ../../apps/web/app/dev/library/demo.tsx
+msgid "Refuse the next save and share"
+msgstr "Refuse the next save and share"
 
 #: ../chat-ui/src/conversation/message-row.tsx
 msgid "Regenerate"
@@ -1555,12 +1986,17 @@ msgstr "Remove"
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 #: ../../apps/web/app/(app)/admin/_components/members-admin.tsx
 #: ../composer/src/components/attachment-list.tsx
+#: ../library-ui/src/components/agent-form.tsx
+#: ../library-ui/src/components/share-dialog.tsx
 msgid "Remove {name}"
 msgstr "Remove {name}"
 
 #: ../../apps/web/app/(app)/admin/_components/members-admin.tsx
 msgid "Remove {name} from this org?"
 msgstr "Remove {name} from this org?"
+#: ../library-ui/src/components/skill-form.tsx
+msgid "Remove {path}"
+msgstr "Remove {path}"
 
 #: ../ui/src/components/ai-elements/message.tsx
 #: ../ui/src/components/ai-elements/prompt-input.tsx
@@ -1606,6 +2042,13 @@ msgstr "Reset all"
 #: ../chat-ui/src/sandbox/sandbox-panel.tsx
 msgid "Reset sandbox"
 msgstr "Reset sandbox"
+#: ../library-ui/src/components/agent-form.tsx
+msgid "Remove starter {position}"
+msgstr "Remove starter {position}"
+
+#: ../library-ui/src/components/fields.tsx
+msgid "Required."
+msgstr "Required."
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Reset zoom and pan"
@@ -1634,6 +2077,9 @@ msgstr "Restore version {number}"
 #: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
 msgid "Restored an earlier version"
 msgstr "Restored an earlier version"
+#: ../library-ui/src/components/version-history.tsx
+msgid "Restore to draft"
+msgstr "Restore to draft"
 
 #: ../ui/src/components/ai-elements/tool.tsx
 msgid "Result"
@@ -1663,6 +2109,9 @@ msgstr "Run a command to see its output here."
 #: ../chat-ui/src/sandbox/terminal.tsx
 msgid "Run command"
 msgstr "Run command"
+#: ../library-ui/src/components/agent-form.tsx
+msgid "Run code in the sandbox"
+msgstr "Run code in the sandbox"
 
 #: ../ui/src/components/ai-elements/tool.tsx
 msgid "Running"
@@ -1719,6 +2168,37 @@ msgstr "Sandbox panel"
 #: ../chat-ui/src/sandbox/sandbox-panel.tsx
 msgid "Sandbox views"
 msgstr "Sandbox views"
+#: ../library-ui/src/components/run-test-chat.tsx
+msgid "Runs on the draft's model and settings. Instructions and tools aren't part of test runs yet."
+msgstr "Runs on the draft's model and settings. Instructions and tools aren't part of test runs yet."
+
+#: ../library-ui/src/components/agent-form.tsx
+msgid "Sandbox"
+msgstr "Sandbox"
+
+#: ../library-ui/src/components/item-builder.tsx
+msgid "Save draft"
+msgstr "Save draft"
+
+#: ../library-ui/src/components/mcp-form.tsx
+msgid "Save the server to check its connection."
+msgstr "Save the server to check its connection."
+
+#: ../library-ui/src/components/mcp-form.tsx
+msgid "Saved"
+msgstr "Saved"
+
+#: ../library-ui/src/components/item-builder.tsx
+msgid "Saving…"
+msgstr "Saving…"
+
+#: ../library-ui/src/components/mcp-form.tsx
+msgid "Scopes"
+msgstr "Scopes"
+
+#: ../library-ui/src/components/skill-form.tsx
+msgid "Scripts and resources the skill refers to, by path."
+msgstr "Scripts and resources the skill refers to, by path."
 
 #: ../chat-ui/src/header/sandbox-pill.tsx
 msgid "Sandbox: {label}"
@@ -1767,6 +2247,9 @@ msgstr "Search and commands"
 #: ../palette/src/command-palette.tsx
 msgid "Search chats, agents and settings, or run an action"
 msgstr "Search chats, agents and settings, or run an action"
+#: ../library-ui/src/components/library-index.tsx
+msgid "Search"
+msgstr "Search"
 
 #: ../code-ui/src/file-tree.tsx
 msgid "Search files"
@@ -1787,6 +2270,25 @@ msgstr "Searching messages…"
 #: ../chat-ui/src/sandbox/files.tsx
 msgid "Select a file to view it."
 msgstr "Select a file to view it."
+#: ../library-ui/src/components/agent-form.tsx
+msgid "Search knowledge files"
+msgstr "Search knowledge files"
+
+#: ../library-ui/src/components/library-index.tsx
+msgid "Search the library"
+msgstr "Search the library"
+
+#: ../library-ui/src/components/agent-form.tsx
+msgid "Search the web"
+msgstr "Search the web"
+
+#: ../library-ui/src/components/agent-form.tsx
+msgid "Searched with file search. Only people who can view the agent can read them."
+msgstr "Searched with file search. Only people who can view the agent can read them."
+
+#: ../library-ui/src/components/mcp-form.tsx
+msgid "Secret"
+msgstr "Secret"
 
 #: ../chat-ui/src/conversation/message-row.tsx
 #: ../composer/src/components/composer-footer.tsx
@@ -1871,6 +2373,55 @@ msgstr "Sign-in is switched off until an administrator sets BETTER_AUTH_SECRET."
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "Simulated"
 msgstr "Simulated"
+#: ../library-ui/src/components/item-builder.tsx
+msgid "Share"
+msgstr "Share"
+
+#: ../library-ui/src/components/share-dialog.tsx
+msgid "Share {name}"
+msgstr "Share {name}"
+
+#: ../library-ui/src/components/badges.tsx
+msgid "Shared"
+msgstr "Shared"
+
+#: ../library-ui/src/components/library-index.tsx
+msgid "Shared with me"
+msgstr "Shared with me"
+
+#: ../library-ui/src/components/version-history.tsx
+msgid "Show"
+msgstr "Show"
+
+#: ../library-ui/src/components/library-index.tsx
+msgid "Show more"
+msgstr "Show more"
+
+#: ../library-ui/src/components/kind.tsx
+msgid "Skill"
+msgstr "Skill"
+
+#: ../library-ui/src/components/skill-form.tsx
+msgid "Skill files"
+msgstr "Skill files"
+
+#: ../library-ui/src/components/agent-form.tsx
+#: ../library-ui/src/components/kind.tsx
+msgid "Skills"
+msgstr "Skills"
+
+#: ../library-ui/src/components/prompt-form.tsx
+msgid "Slash command"
+msgstr "Slash command"
+
+#: ../library-ui/src/components/badges.tsx
+#: ../library-ui/src/components/share-dialog.tsx
+msgid "Someone"
+msgstr "Someone"
+
+#: ../library-ui/src/components/mcp-form.tsx
+msgid "Space-separated. Leave empty for the server's defaults."
+msgstr "Space-separated. Leave empty for the server's defaults."
 
 #: ../chat-ui/src/shortcuts/shortcut-help.tsx
 #: ../shortcuts/src/react/help-dialog.tsx
@@ -1916,6 +2467,9 @@ msgstr "Split"
 #: ../chat-ui/src/sandbox/preview.tsx
 msgid "Start a server in the terminal, then preview its port. It opens on a separate origin, isolated from this app."
 msgstr "Start a server in the terminal, then preview its port. It opens on a separate origin, isolated from this app."
+#: ../library-ui/src/components/mcp-form.tsx
+msgid "SSE"
+msgstr "SSE"
 
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Start dictation"
@@ -1925,6 +2479,17 @@ msgstr "Start dictation"
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "Starting"
 msgstr "Starting"
+#: ../library-ui/src/components/test-chat.tsx
+msgid "Start over"
+msgstr "Start over"
+
+#: ../library-ui/src/components/agent-form.tsx
+msgid "Starter {position}"
+msgstr "Starter {position}"
+
+#: ../library-ui/src/components/mcp-form.tsx
+msgid "Status unavailable"
+msgstr "Status unavailable"
 
 #: ../composer/src/components/composer-footer.tsx
 #: ../ui/src/components/ai-elements/prompt-input.tsx
@@ -1943,6 +2508,13 @@ msgstr "Stop generating"
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "Stopped"
 msgstr "Stopped"
+#: ../library-ui/src/components/mcp-form.tsx
+msgid "Stored encrypted and never shown again. Changing the URL or header name needs it typed again."
+msgstr "Stored encrypted and never shown again. Changing the URL or header name needs it typed again."
+
+#: ../library-ui/src/components/mcp-form.tsx
+msgid "Streamable HTTP"
+msgstr "Streamable HTTP"
 
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "Stored encrypted and never shown again; only its last characters are."
@@ -2006,6 +2578,53 @@ msgstr "terminal"
 #: ../chat-ui/src/sandbox/sandbox-panel.tsx
 msgid "Terminal"
 msgstr "Terminal"
+#: ../library-ui/src/components/library-index.tsx
+msgid "Team & org"
+msgstr "Team & org"
+
+#: ../library-ui/src/components/prompt-form.tsx
+msgid "Template"
+msgstr "Template"
+
+#: ../library-ui/src/components/test-chat.tsx
+msgid "Test chat"
+msgstr "Test chat"
+
+#: ../library-ui/src/components/skill-form.tsx
+msgid "Test in sandbox"
+msgstr "Test in sandbox"
+
+#: ../library-ui/src/components/item-builder.tsx
+msgid "Testing what's on screen; save to keep it."
+msgstr "Testing what's on screen; save to keep it."
+
+#: ../library-ui/src/components/share-dialog.tsx
+msgid "That change didn't go through, so it was undone."
+msgstr "That change didn't go through, so it was undone."
+
+#: ../library-ui/src/components/fields.tsx
+msgid "That doesn't look right."
+msgstr "That doesn't look right."
+
+#: ../library-ui/src/components/library-index.tsx
+msgid "That file isn't JSON."
+msgstr "That file isn't JSON."
+
+#: ../library-ui/src/components/library-index.tsx
+msgid "That isn't a library export or a LibreChat agent."
+msgstr "That isn't a library export or a LibreChat agent."
+
+#: ../library-ui/src/components/fields.tsx
+msgid "That isn't valid."
+msgstr "That isn't valid."
+
+#: ../library-ui/src/components/fields.tsx
+msgid "That's too long."
+msgstr "That's too long."
+
+#: ../library-ui/src/components/fields.tsx
+msgid "That's too many."
+msgstr "That's too many."
 
 #: ../chat-ui/src/conversation/feedback.tsx
 msgid "Thanks! What was good? (optional)"
@@ -2084,6 +2703,21 @@ msgstr "The key couldn't be added. Try again."
 #: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
 msgid "The policy couldn't be saved. Try again."
 msgstr "The policy couldn't be saved. Try again."
+#: ../library-ui/src/components/library-index.tsx
+msgid "The import was refused."
+msgstr "The import was refused."
+
+#: ../../apps/web/app/dev/library/page.tsx
+msgid "The library and its builders over an in-memory API with fixtures. Edits, shares and publishes apply at once; switch on \"Refuse the next save and share\" to watch one roll back. The agent test chat echoes the draft instead of calling a model."
+msgstr "The library and its builders over an in-memory API with fixtures. Edits, shares and publishes apply at once; switch on \"Refuse the next save and share\" to watch one roll back. The agent test chat echoes the draft instead of calling a model."
+
+#: ../library-ui/src/components/publish-dialog.tsx
+msgid "The library didn't accept it, so it was taken back out."
+msgstr "The library didn't accept it, so it was taken back out."
+
+#: ../library-ui/src/components/library-index.tsx
+msgid "The library didn't load"
+msgstr "The library didn't load"
 
 #: ../../apps/web/app/dev/composer/page.tsx
 msgid "The prompt composer with contract fixtures. Type / for a prompt template or @ to mention someone; sending fakes a short run you can stop. Nothing here calls a model."
@@ -2117,6 +2751,13 @@ msgstr "The whole org"
 #: ../chat-ui/src/sandbox/files.tsx
 msgid "The workspace is empty."
 msgstr "The workspace is empty."
+#: ../library-ui/src/components/mcp-form.tsx
+msgid "The server's streamable HTTP or SSE endpoint."
+msgstr "The server's streamable HTTP or SSE endpoint."
+
+#: ../library-ui/src/components/item-builder.tsx
+msgid "The test chat needs a server to run against."
+msgstr "The test chat needs a server to run against."
 
 #: ../../apps/web/app/(app)/_shared/providers.tsx
 msgid "theme"
@@ -2163,6 +2804,13 @@ msgstr "This feature is switched off on this server."
 #: ../../apps/web/app/dev/sandbox/demo.tsx
 msgid "This sandbox can't do that."
 msgstr "This sandbox can't do that."
+#: ../library-ui/src/components/skill-form.tsx
+msgid "This file can't be shown here."
+msgstr "This file can't be shown here."
+
+#: ../library-ui/src/components/item-builder.tsx
+msgid "This item isn't available"
+msgstr "This item isn't available"
 
 #: ../../apps/web/app/(app)/_shared/unavailable.tsx
 msgid "This server has no database yet, so there are no accounts to sign in to. An administrator needs to set DATABASE_URL."
@@ -2221,6 +2869,21 @@ msgstr "Top level"
 #: ../../apps/web/app/(app)/_shared/query-state.tsx
 msgid "Try again"
 msgstr "Try again"
+#: ../library-ui/src/components/agent-form.tsx
+msgid "Tools"
+msgstr "Tools"
+
+#: ../library-ui/src/components/mcp-form.tsx
+msgid "Transport"
+msgstr "Transport"
+
+#: ../library-ui/src/components/library-index.tsx
+msgid "Try another search or kind."
+msgstr "Try another search or kind."
+
+#: ../library-ui/src/components/test-chat.tsx
+msgid "Try the draft before you publish it."
+msgstr "Try the draft before you publish it."
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "TSV"
@@ -2230,6 +2893,13 @@ msgstr "TSV"
 #: ../chat-ui/src/shell/use-undo-toast.ts
 msgid "Undo"
 msgstr "Undo"
+#: ../library-ui/src/components/share-dialog.tsx
+msgid "Turn off"
+msgstr "Turn off"
+
+#: ../library-ui/src/components/mcp-form.tsx
+msgid "Turned off on this instance"
+msgstr "Turned off on this instance"
 
 #: ../code-ui/src/diff-view.tsx
 msgid "Unified"
@@ -2250,6 +2920,13 @@ msgstr "Untitled chat"
 #: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
 msgid "Updated in a chat"
 msgstr "Updated in a chat"
+#: ../library-ui/src/components/version-history.tsx
+msgid "Unpin"
+msgstr "Unpin"
+
+#: ../library-ui/src/components/item-builder.tsx
+msgid "Unsaved changes"
+msgstr "Unsaved changes"
 
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Upload files"
@@ -2282,6 +2959,33 @@ msgstr "Version {number}"
 #: ../chat-ui/src/artifacts/artifacts-panel.tsx
 msgid "Versions"
 msgstr "Versions"
+#: ../library-ui/src/components/mcp-form.tsx
+msgid "URL"
+msgstr "URL"
+
+#: ../library-ui/src/components/share-dialog.tsx
+msgid "Use"
+msgstr "Use"
+
+#: ../library-ui/src/components/prompt-form.tsx
+msgid "Use {example} for a value people fill in when they use the prompt."
+msgstr "Use {example} for a value people fill in when they use the prompt."
+
+#: ../library-ui/src/components/share-dialog.tsx
+msgid "Use lets people chat with it. View also shows its instructions and lets them copy it. Edit lets them change it."
+msgstr "Use lets people chat with it. View also shows its instructions and lets them copy it. Edit lets them change it."
+
+#: ../library-ui/src/components/version-history.tsx
+msgid "v{number}"
+msgstr "v{number}"
+
+#: ../library-ui/src/components/prompt-form.tsx
+msgid "Variables"
+msgstr "Variables"
+
+#: ../library-ui/src/components/share-dialog.tsx
+msgid "View"
+msgstr "View"
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "View fullscreen"
@@ -2326,6 +3030,17 @@ msgstr "What this org spends, and the limits on it."
 #: ../chat-ui/src/conversation/feedback.tsx
 msgid "What went wrong? (optional)"
 msgstr "What went wrong? (optional)"
+#: ../library-ui/src/components/publish-dialog.tsx
+msgid "What changed"
+msgstr "What changed"
+
+#: ../library-ui/src/components/item-builder.tsx
+msgid "What it's for"
+msgstr "What it's for"
+
+#: ../library-ui/src/components/agent-form.tsx
+msgid "What the agent is for and how it should behave. People who can only use the agent never see this."
+msgstr "What the agent is for and how it should behave. People who can only use the agent never see this."
 
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "What would you like to know?"
@@ -2370,6 +3085,13 @@ msgstr "Works"
 #: ../chat-ui/src/sandbox/files.tsx
 msgid "Workspace"
 msgstr "Workspace"
+#: ../library-ui/src/components/library-index.tsx
+msgid "When someone shares an item with you or your team, it shows up here."
+msgstr "When someone shares an item with you or your team, it shows up here."
+
+#: ../library-ui/src/components/agent-form.tsx
+msgid "Where the agent runs code and loads its skills."
+msgstr "Where the agent runs code and loads its skills."
 
 #: ../../apps/web/app/dev/ai-elements/demo.tsx
 msgid "Would send “{text}” with {fileCount, plural, one {# attachment} other {# attachments}}."
@@ -2378,6 +3100,17 @@ msgstr "Would send “{text}” with {fileCount, plural, one {# attachment} othe
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "Yesterday"
 msgstr "Yesterday"
+#: ../library-ui/src/components/badges.tsx
+msgid "You"
+msgstr "You"
+
+#: ../library-ui/src/components/item-builder.tsx
+msgid "You can use this, but not see how it's set up"
+msgstr "You can use this, but not see how it's set up"
+
+#: ../library-ui/src/components/publish-dialog.tsx
+msgid "You have unsaved changes. Save the draft first to publish them."
+msgstr "You have unsaved changes. Save the draft first to publish them."
 
 #: ../../apps/web/app/(app)/_shared/query-state.tsx
 msgid "You don't have access to this."
@@ -2418,6 +3151,9 @@ msgstr "Your name and email come from how you signed in."
 #: ../../apps/web/app/(app)/settings/keys/page.tsx
 msgid "Your own keys pay for your Personal chats, and for team or org chats when the org allows it."
 msgstr "Your own keys pay for your Personal chats, and for team or org chats when the org allows it."
+#: ../library-ui/src/components/item-builder.tsx
+msgid "Your changes weren't saved, so they were undone."
+msgstr "Your changes weren't saved, so they were undone."
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Zoom in"
