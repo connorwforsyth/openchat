@@ -61,3 +61,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-09-28 · 049 closed · PR #38 · preview WebSockets · runner 36/36, Docker smoke with WS echo, 79/79
 - 2026-09-28 · 048 closed · PR #39 · Material icons · material build renders Material, bundle checked, 79/79 · added 051 (vendor glyphs)
 - 2026-09-28 · 047 closed by Connor · exec in $HOME and /tmp; preview proxy allows the null origin · 050 started
+- 2026-09-28 · 051 closed · PR #40 · vendored Material glyphs · install 245k → 81k files, 79/79

@@ -2,8 +2,8 @@
 id: "051"
 title: "Vendor only the mapped Material symbols"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -70,3 +70,7 @@ Left for later:
 - The root `NOTICE` lists ported code only; the Material attribution lives in
   `packages/icons/vendor/material-symbols/NOTICE`. Add a pointer there if the root file should be
   the single index.
+
+## Resolution (2026-09-28, loop)
+
+Merged in [PR #40](https://github.com/connorwforsyth/openchat/pull/40). The mapped symbols are vendored (1.65 MB, Apache-2.0 LICENSE/NOTICE alongside), `bun run icons:vendor` regenerates them, and the seven packages are gone: a fresh install drops from 245,524 to 80,569 files. The Material build was verified; gate 79/79.
