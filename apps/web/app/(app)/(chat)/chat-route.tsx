@@ -145,7 +145,12 @@ const usePaletteContext = ({
   useEffect(() => () => setPaletteContext(undefined), [setPaletteContext]);
 };
 
-export function ChatRoute() {
+export function ChatRoute({
+  artifactsRuntimeOrigin,
+}: {
+  /** From `ARTIFACTS_ORIGIN` on the server; `null` previews in `srcdoc`. */
+  readonly artifactsRuntimeOrigin: string | null;
+}) {
   const { t } = useLingui();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -202,6 +207,7 @@ export function ChatRoute() {
   }
   return (
     <ConnectedChat
+      artifactsRuntimeOrigin={artifactsRuntimeOrigin}
       brand={<Brand config={config} />}
       client={client}
       config={config}

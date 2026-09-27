@@ -53,6 +53,11 @@ import { useChatQueries, useConversationUpdate } from "./use-chat-data";
 // app (inside a QueryClientProvider); the screen stays presentational.
 
 export interface ConnectedChatProps {
+  /**
+   * The artifact runtime's origin (`ARTIFACTS_ORIGIN`, D24), normalised with
+   * `runtimeOriginFrom`. Omitted or `null`, previews fall back to `srcdoc`.
+   */
+  readonly artifactsRuntimeOrigin?: string | null;
   readonly brand?: ReactNode;
   readonly client: ApiClient;
   readonly config: PublicConfig;
@@ -314,6 +319,7 @@ const useFirstSend = ({
 };
 
 export function ConnectedChat({
+  artifactsRuntimeOrigin = null,
   brand,
   client,
   config,
@@ -547,6 +553,7 @@ export function ConnectedChat({
         artifacts: data.artifacts.data ?? [],
         error: data.versions.isError ? t`Couldn't load this artifact.` : null,
         onSelect: setSelection,
+        runtimeOrigin: artifactsRuntimeOrigin,
         selection: data.selectedArtifactId
           ? { ...selection, artifactId: data.selectedArtifactId }
           : null,
