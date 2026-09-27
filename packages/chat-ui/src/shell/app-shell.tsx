@@ -1,6 +1,11 @@
 "use client";
 
-import { useLingui } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerTitle,
+} from "@workspace/ui/components/drawer";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -19,10 +24,13 @@ import {
 
 import { PANEL_MAX_WIDTH, PANEL_MIN_WIDTH } from "../model/layout";
 import { type Platform, PlatformProvider } from "./platform";
+import { useNarrowScreen } from "./use-narrow-screen";
 
 // The chosen app shell (ticket 009: Classic sidebar + Workspace panels): a
 // collapsible sidebar, then the conversation column (header on top, content,
 // composer docked at the bottom), then an optional resizable right panel.
+// Below `md` the sidebar is a sheet from the start edge and the right panel a
+// bottom sheet (both modal: focus stays inside, Esc or a swipe closes them).
 // Layout only; what goes in each slot comes from the caller.
 
 type PanelSize = Parameters<
@@ -37,27 +45,42 @@ export interface AppShellProps {
   readonly children: ReactNode;
   readonly className?: string;
   readonly header: ReactNode;
+  /** A narrow screen's panel sheet was dismissed (Esc, swipe, backdrop). */
+  readonly onPanelClose: () => void;
   readonly onPanelWidthChange?: (width: number) => void;
-  /** The right panel's content, or `null` when it's closed. */
-  readonly panel: ReactNode | null;
+  readonly onSidebarSheetOpenChange: (open: boolean) => void;
+  /**
+   * The right panel's content. Kept while it closes, so a sheet fades out
+   * with its content rather than empty.
+   */
+  readonly panel: ReactNode;
+  readonly panelOpen: boolean;
   readonly panelWidth: number;
   readonly platform?: Platform;
   readonly sidebar: ReactNode;
+  /** The sidebar beside the conversation (wide screens). */
   readonly sidebarOpen: boolean;
+  /** The sidebar as a sheet (narrow screens). */
+  readonly sidebarSheetOpen: boolean;
 }
 
 export function AppShell({
   children,
   className,
   header,
+  onPanelClose,
   onPanelWidthChange,
+  onSidebarSheetOpenChange,
   panel,
+  panelOpen,
   panelWidth,
   platform = "web",
   sidebar,
   sidebarOpen,
+  sidebarSheetOpen,
 }: AppShellProps) {
   const { t } = useLingui();
+  const narrow = useNarrowScreen();
   // One toast queue per shell (undo toasts), not a module-level singleton.
   const [toastManager] = useState(createToastManager);
   // Dragging reports every frame; only a finished, user-made resize is kept.
@@ -73,6 +96,14 @@ export function AppShell({
     },
     [onPanelWidthChange]
   );
+  const onPanelSheetOpenChange = useCallback(
+    (open: boolean) => {
+      if (!open) {
+        onPanelClose();
+      }
+    },
+    [onPanelClose]
+  );
 
   return (
     <PlatformProvider platform={platform}>
@@ -80,15 +111,17 @@ export function AppShell({
         <Toaster toastManager={toastManager}>
           <div
             className={cn(
-              "flex h-svh min-h-0 w-full overflow-hidden bg-background text-foreground",
+              // dvh follows the browser's collapsing toolbars, so the
+              // composer stays docked at the bottom of what's visible.
+              "flex h-dvh min-h-0 w-full overflow-hidden bg-background text-foreground",
               className
             )}
             data-slot="app-shell"
           >
-            {sidebarOpen ? (
+            {sidebarOpen && !narrow ? (
               <aside
                 aria-label={t`Chats`}
-                className="flex w-64 shrink-0 flex-col border-sidebar-border border-e bg-sidebar text-sidebar-foreground"
+                className="flex w-64 shrink-0 flex-col border-sidebar-border border-e bg-sidebar text-sidebar-foreground max-md:hidden"
                 data-slot="app-shell-sidebar"
               >
                 {sidebar}
@@ -107,7 +140,7 @@ export function AppShell({
                   </main>
                 </div>
               </ResizablePanel>
-              {panel === null ? null : (
+              {panelOpen && !narrow ? (
                 <>
                   <ResizableHandle />
                   <ResizablePanel
@@ -126,9 +159,47 @@ export function AppShell({
                     </aside>
                   </ResizablePanel>
                 </>
-              )}
+              ) : null}
             </ResizablePanelGroup>
           </div>
+          {narrow ? (
+            <>
+              <Drawer
+                onOpenChange={onSidebarSheetOpenChange}
+                open={sidebarSheetOpen}
+                swipeDirection="left"
+              >
+                <DrawerContent
+                  className="w-[min(18rem,85vw)] bg-sidebar text-sidebar-foreground"
+                  data-slot="app-shell-sidebar-sheet"
+                >
+                  <DrawerTitle className="sr-only">
+                    <Trans>Chats</Trans>
+                  </DrawerTitle>
+                  <div className="flex min-h-0 flex-1 flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+                    {sidebar}
+                  </div>
+                </DrawerContent>
+              </Drawer>
+              <Drawer
+                onOpenChange={onPanelSheetOpenChange}
+                open={panelOpen}
+                showSwipeHandle
+              >
+                <DrawerContent
+                  className="h-[85dvh] bg-background"
+                  data-slot="app-shell-panel-sheet"
+                >
+                  <DrawerTitle className="sr-only">
+                    <Trans>Side panel</Trans>
+                  </DrawerTitle>
+                  <div className="flex min-h-0 flex-1 flex-col pb-[env(safe-area-inset-bottom)]">
+                    {panel}
+                  </div>
+                </DrawerContent>
+              </Drawer>
+            </>
+          ) : null}
         </Toaster>
       </TooltipProvider>
     </PlatformProvider>

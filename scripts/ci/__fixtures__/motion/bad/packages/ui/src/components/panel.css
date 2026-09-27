@@ -1,0 +1,6 @@
+.panel {
+  transition: all 200ms;
+}
+.drawer {
+  transition-property: opacity, max-height;
+}

@@ -32,9 +32,16 @@ import {
   findLinguiConfigs,
   isCatalog,
 } from "./lingui";
+import { checkMotion, isMotionChecked } from "./motion";
 import { checkTokens, isTokenChecked } from "./tokens";
 
-const GuardName = z.enum(["tokens", "icon-imports", "brand", "lingui"]);
+const GuardName = z.enum([
+  "tokens",
+  "icon-imports",
+  "brand",
+  "lingui",
+  "motion",
+]);
 type GuardName = z.infer<typeof GuardName>;
 
 interface Context {
@@ -123,6 +130,8 @@ const GUARDS: Readonly<Record<GuardName, Guard>> = {
       ),
     }),
   lingui,
+  motion: (context) =>
+    ok({ violations: checkMotion(read(context, isMotionChecked)) }),
   tokens: (context) =>
     ok({ violations: checkTokens(read(context, isTokenChecked)) }),
 };

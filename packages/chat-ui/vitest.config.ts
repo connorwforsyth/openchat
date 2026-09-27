@@ -23,6 +23,7 @@ export default defineProject({
     include: [
       "@lingui/core",
       "@lingui/react",
+      "@tanstack/react-query",
       "@testing-library/react",
       "diff",
       "react",
@@ -49,6 +50,10 @@ export default defineProject({
       "@workspace/composer > @tiptap/pm/state",
       "@workspace/composer > @tiptap/react",
       "@workspace/composer > @tiptap/suggestion",
+      "@workspace/client > @orpc/client",
+      "@workspace/client > @orpc/openapi-client/fetch",
+      "@workspace/client > @orpc/tanstack-query",
+      "@workspace/contract > @orpc/contract",
       "@workspace/shared > uuidv7",
       "@workspace/icons > lucide-react",
       "@workspace/ui > @base-ui/react/avatar",
@@ -56,6 +61,7 @@ export default defineProject({
       "@workspace/ui > @base-ui/react/checkbox",
       "@workspace/ui > @base-ui/react/collapsible",
       "@workspace/ui > @base-ui/react/dialog",
+      "@workspace/ui > @base-ui/react/drawer",
       "@workspace/ui > @base-ui/react/input",
       "@workspace/ui > @base-ui/react/menu",
       "@workspace/ui > @base-ui/react/merge-props",
@@ -89,6 +95,9 @@ export default defineProject({
       instances: [{ browser: "chromium" }],
       provider: playwright(),
       screenshotFailures: false,
+      // A desktop-sized frame by default (Vitest's is phone-sized, which is
+      // below `md` and gets the sheets); the narrow-screen tests resize it.
+      viewport: { height: 800, width: 1280 },
     },
     hookTimeout: 60_000,
     include: ["src/**/*.test.{ts,tsx}"],

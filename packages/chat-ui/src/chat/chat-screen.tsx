@@ -22,6 +22,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@workspace/ui/components/tooltip";
+import { cn } from "@workspace/ui/lib/utils";
 import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
 
 import type { ArtifactsPanelProps } from "../artifacts/artifacts-panel";
@@ -32,16 +33,19 @@ import type { MessageFeedback } from "../conversation/feedback";
 import { AppHeader } from "../header/app-header";
 import { BranchSwitcher } from "../header/branch-switcher";
 import { ChatTitle } from "../header/chat-title";
+import { HeaderOverflowMenu } from "../header/overflow-menu";
 import { SandboxPill } from "../header/sandbox-pill";
 import { Participants, ShareMenu } from "../header/share-menu";
 import { activeFork, stepSibling } from "../model/branch";
 import { groupChats, orderedChats } from "../model/date-groups";
+import type { RightPanel as RightPanelKind } from "../model/layout";
 import type { ArtifactRefPart } from "../model/parts";
 import { LazySandboxPanel } from "../sandbox/lazy-sandbox-panel";
 import type { SandboxPanelProps } from "../sandbox/sandbox-panel";
 import { AppShell } from "../shell/app-shell";
 import { type Platform, PlatformProvider } from "../shell/platform";
 import { RightPanel } from "../shell/right-panel";
+import { useNarrowScreen } from "../shell/use-narrow-screen";
 import { useShellLayout } from "../shell/use-shell-layout";
 import { ShortcutHelp } from "../shortcuts/shortcut-help";
 import { ShortcutHint } from "../shortcuts/shortcut-hint";
@@ -136,6 +140,14 @@ function ChatScreenBody({
   const { t } = useLingui();
   const { layout, setPanel, setPanelWidth, togglePanel, toggleSidebar } =
     useShellLayout();
+  const narrow = useNarrowScreen();
+  const [sidebarSheetOpen, setSidebarSheetOpen] = useState(false);
+  // The panel a narrow screen's sheet shows, kept after it's dismissed so the
+  // sheet fades out with its content.
+  const [sheetPanel, setSheetPanel] = useState<RightPanelKind>("artifacts");
+  if (layout.panel !== null && layout.panel !== sheetPanel) {
+    setSheetPanel(layout.panel);
+  }
   const [helpOpen, setHelpOpen] = useState(false);
   const composerRef = useRef<HTMLDivElement>(null);
   const fork = activeFork(siblings);
@@ -164,6 +176,43 @@ function ChatScreenBody({
     },
     [actions, fork]
   );
+  // A wide screen shows or hides the sidebar (and remembers it); a narrow one
+  // opens it as a sheet over the chat.
+  const toggleChats = useCallback(() => {
+    if (narrow) {
+      setSidebarSheetOpen((open) => !open);
+    } else {
+      toggleSidebar();
+    }
+  }, [narrow, toggleSidebar]);
+  const closeSidebarSheet = useCallback(() => setSidebarSheetOpen(false), []);
+  // Picking a chat, starting one or searching is done with the sheet.
+  const sheetSidebar = useMemo(
+    () => ({
+      ...sidebar,
+      onSelect: (id: ConversationId) => {
+        closeSidebarSheet();
+        sidebar.onSelect(id);
+      },
+    }),
+    [closeSidebarSheet, sidebar]
+  );
+  const newChat = useCallback(() => {
+    closeSidebarSheet();
+    onNewChat();
+  }, [closeSidebarSheet, onNewChat]);
+  const openPalette = useMemo(
+    () =>
+      onOpenPalette
+        ? () => {
+            closeSidebarSheet();
+            onOpenPalette();
+          }
+        : undefined,
+    [closeSidebarSheet, onOpenPalette]
+  );
+  const closePanel = useCallback(() => setPanel(null), [setPanel]);
+
   const focusComposer = useCallback(() => {
     composerRef.current?.querySelector<HTMLElement>(FOCUSABLE_INPUT)?.focus();
   }, []);
@@ -179,7 +228,7 @@ function ChatScreenBody({
     "palette.open": onOpenPalette,
     "panel.artifacts": () => togglePanel("artifacts"),
     "panel.sandbox": sandbox ? () => togglePanel("sandbox") : undefined,
-    "sidebar.toggle": toggleSidebar,
+    "sidebar.toggle": toggleChats,
   });
 
   // Opening an artifact from a message shows it in the panel.
@@ -222,45 +271,71 @@ function ChatScreenBody({
       }
       end={
         <>
-          <ContextChip
-            locked={conversation.contextLocked}
-            onChange={conversation.onContextChange}
-            options={conversation.contextOptions}
-            value={conversation.context}
-          />
-          <Participants participants={conversation.participants} />
-          <ShareMenu
-            disabled={conversation.id === null}
-            onCopyLink={conversation.onCopyLink}
-            onInvite={conversation.onInvite}
-            participants={conversation.participants}
-          />
-          {sandbox ? (
-            <SandboxPill
-              onOpen={openSandbox}
-              open={layout.panel === "sandbox"}
-              sandbox={sandbox.initial}
-            />
-          ) : null}
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <Button
-                  aria-label={t`Artifacts panel`}
-                  aria-pressed={layout.panel === "artifacts"}
-                  onClick={openArtifacts}
-                  size="icon-sm"
-                  variant="ghost"
-                />
-              }
+          {/* On a narrow screen a locked context is just a label, so it
+              gives its room to the title; an open one is still a choice.
+              The CSS covers the moment before hydration knows the width. */}
+          {narrow && conversation.contextLocked ? null : (
+            <div
+              className={cn(
+                "flex items-center",
+                conversation.contextLocked && "max-md:hidden"
+              )}
             >
-              <FileTextIcon aria-hidden />
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-              <Trans>Artifacts panel</Trans>
-              <ShortcutHint id="panel.artifacts" />
-            </TooltipContent>
-          </Tooltip>
+              <ContextChip
+                locked={conversation.contextLocked}
+                onChange={conversation.onContextChange}
+                options={conversation.contextOptions}
+                value={conversation.context}
+              />
+            </div>
+          )}
+          <Participants participants={conversation.participants} />
+          {narrow ? (
+            <HeaderOverflowMenu
+              artifactsOpen={layout.panel === "artifacts"}
+              onCopyLink={conversation.onCopyLink}
+              onInvite={conversation.onInvite}
+              onToggleArtifacts={openArtifacts}
+              onToggleSandbox={sandbox ? openSandbox : undefined}
+              sandboxOpen={layout.panel === "sandbox"}
+              shareDisabled={conversation.id === null}
+            />
+          ) : (
+            <div className="flex items-center gap-1 max-md:hidden">
+              <ShareMenu
+                disabled={conversation.id === null}
+                onCopyLink={conversation.onCopyLink}
+                onInvite={conversation.onInvite}
+                participants={conversation.participants}
+              />
+              {sandbox ? (
+                <SandboxPill
+                  onOpen={openSandbox}
+                  open={layout.panel === "sandbox"}
+                  sandbox={sandbox.initial}
+                />
+              ) : null}
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      aria-label={t`Artifacts panel`}
+                      aria-pressed={layout.panel === "artifacts"}
+                      onClick={openArtifacts}
+                      size="icon-sm"
+                      variant="ghost"
+                    />
+                  }
+                >
+                  <FileTextIcon aria-hidden />
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <Trans>Artifacts panel</Trans>
+                  <ShortcutHint id="panel.artifacts" />
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          )}
         </>
       }
       start={
@@ -269,9 +344,9 @@ function ChatScreenBody({
             <TooltipTrigger
               render={
                 <Button
-                  aria-expanded={layout.sidebarOpen}
+                  aria-expanded={narrow ? sidebarSheetOpen : layout.sidebarOpen}
                   aria-label={t`Toggle sidebar`}
-                  onClick={toggleSidebar}
+                  onClick={toggleChats}
                   size="icon-sm"
                   variant="ghost"
                 />
@@ -284,7 +359,7 @@ function ChatScreenBody({
               <ShortcutHint id="sidebar.toggle" />
             </TooltipContent>
           </Tooltip>
-          {layout.sidebarOpen ? null : (
+          {layout.sidebarOpen && !narrow ? null : (
             <Tooltip>
               <TooltipTrigger
                 render={
@@ -310,40 +385,43 @@ function ChatScreenBody({
     />
   );
 
-  const panel =
-    layout.panel === null ? null : (
-      <RightPanel
-        artifacts={<LazyArtifactsPanel {...artifacts} />}
-        onPanelChange={setPanel}
-        panel={layout.panel}
-        sandbox={
-          sandbox ? (
-            <LazySandboxPanel {...sandbox} />
-          ) : (
-            <p className="p-4 text-muted-foreground text-sm">
-              <Trans>Sandboxes are turned off on this server.</Trans>
-            </p>
-          )
-        }
-      />
-    );
+  const panel = (
+    <RightPanel
+      artifacts={<LazyArtifactsPanel {...artifacts} />}
+      onPanelChange={setPanel}
+      panel={layout.panel ?? sheetPanel}
+      sandbox={
+        sandbox ? (
+          <LazySandboxPanel {...sandbox} />
+        ) : (
+          <p className="p-4 text-muted-foreground text-sm">
+            <Trans>Sandboxes are turned off on this server.</Trans>
+          </p>
+        )
+      }
+    />
+  );
 
   return (
     <AppShell
       header={header}
+      onPanelClose={closePanel}
       onPanelWidthChange={setPanelWidth}
+      onSidebarSheetOpenChange={setSidebarSheetOpen}
       panel={panel}
+      panelOpen={layout.panel !== null}
       panelWidth={layout.panelWidth}
       platform={platform}
       sidebar={
         <ChatSidebar
-          {...sidebar}
+          {...sheetSidebar}
           brand={brand}
-          onNewChat={onNewChat}
-          onOpenPalette={onOpenPalette}
+          onNewChat={newChat}
+          onOpenPalette={openPalette}
         />
       }
       sidebarOpen={layout.sidebarOpen}
+      sidebarSheetOpen={sidebarSheetOpen}
     >
       <ConversationView
         actions={conversationActions}
@@ -357,7 +435,7 @@ function ChatScreenBody({
         streamingMessageId={streamingMessageId}
       />
       <div
-        className="mx-auto w-full max-w-3xl shrink-0 px-4 pb-4"
+        className="mx-auto w-full max-w-3xl shrink-0 px-4 pb-[max(--spacing(4),env(safe-area-inset-bottom))]"
         ref={composerRef}
       >
         <ComposerLoader {...composer} />

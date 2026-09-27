@@ -1,0 +1,4 @@
+.panel {
+  transition: transform 100ms, opacity 150ms;
+  transition-property: color, background-color;
+}
