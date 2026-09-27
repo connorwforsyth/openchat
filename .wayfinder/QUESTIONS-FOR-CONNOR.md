@@ -37,3 +37,8 @@ Collected by agents working the map, so you can answer them in one sitting. Each
 28. **Telemetry content (022):** add `observability.recordContent` to config (off by default)? *Default: yes, small config PR.*
 29. **Sandbox "unavailable" (019):** the contract's `sandbox` group has no 503 for "provider unavailable". *Default: map it to `FEATURE_DISABLED` in 025.*
 30. **Terminal icon (019):** add `TerminalIcon` to the icon registry (the panel uses `ToolIcon`)? *Default: yes, in 015.*
+31. **Shortcut storage (024):** personal shortcut overrides live in the browser because the contract's user settings have no field for them. Add a `shortcuts` field (contract PR) so they follow you across devices? *Default: yes, small contract PR after M1.*
+32. **New default shortcuts (024):** ⌘, settings · ⌘. switch model · ⌘⇧; copy last reply (⌘⇧C is taken by devtools) · Esc stop. OK? *Default: yes.*
+33. **Branch switcher at the ends (015):** stop at first/last (current) or wrap around (prototype)? *Default: stop.*
+34. **Which fork `[` / `]` act on (015):** the most recent fork in the conversation. *Default: keep.*
+35. **Undo for a first memory (015):** when there was no previous version, Undo clears the memory file. *Default: show Undo and clear.*
