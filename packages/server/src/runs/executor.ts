@@ -22,7 +22,7 @@ import type {
 import type { DeciderState } from "@workspace/contract/schemas/decider";
 import type { MessagePart } from "@workspace/contract/schemas/message-parts";
 import type { Message } from "@workspace/contract/schemas/messages";
-import type { TokenUsage } from "@workspace/contract/schemas/models";
+import type { ModelRef, TokenUsage } from "@workspace/contract/schemas/models";
 import type {
   PendingApproval,
   ProposedEdit,
@@ -53,6 +53,11 @@ import { err, ok, type Result } from "@workspace/shared/result";
 import { readUIMessageStream, type UIMessage, type UIMessageChunk } from "ai";
 import { TransactionRollbackError } from "drizzle-orm";
 
+import {
+  attachmentsForModel,
+  type ModelAttachments,
+  NO_ATTACHMENTS,
+} from "./attachments";
 import type { ToolReview, ToolReviews } from "./sandbox";
 import {
   isTerminal,
@@ -87,6 +92,12 @@ export interface RunSettled {
 }
 
 export interface InProcessExecutorDeps {
+  /**
+   * How attachments reach the turn's model (044): which kinds it reads, and
+   * the bytes of those it does. Without it every attachment is a note and
+   * `file_search` answers from it.
+   */
+  readonly attachments?: (model: ModelRef) => ModelAttachments;
   readonly db: Db;
   /** Where the answer's `file` parts point clients (and providers) for uploads. */
   readonly fileUrl?: (fileId: FileId) => string;
@@ -604,11 +615,16 @@ export const createInProcessExecutor = (
         return;
       }
       await setRunResolvedModel(db, run.runId, turn.value.resolvedModel);
+      const forModel = await attachmentsForModel(
+        messages,
+        run.createdBy,
+        deps.attachments?.(turn.value.resolvedModel) ?? NO_ATTACHMENTS
+      );
       const agentRun = await runAgent({
         generateMessageId: () => assistantMessageId,
         instructions: turn.value.instructions,
         maxSteps: deps.maxSteps,
-        messages: toUIMessages(messages, { fileUrl }),
+        messages: toUIMessages(forModel, { fileUrl }),
         model: turn.value.model,
         parameters: turn.value.parameters,
         signal: controller.signal,

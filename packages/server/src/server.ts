@@ -406,6 +406,7 @@ export const createServerFromEnv = async (
     listen: database.listen,
     registry,
     report,
+    storage: storage.storage,
     tools: {
       decider,
       knowledge: embedder ? { embedder } : undefined,

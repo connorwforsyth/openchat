@@ -13,6 +13,7 @@ import type {
   ProviderRegistry,
   ProviderRegistryError,
 } from "../ports/provider-registry";
+import { type ModelCapability, providerCapabilities } from "./capabilities";
 import {
   createProvider,
   isKeyless,
@@ -98,6 +99,13 @@ export const buildRegistry = (
       : err({ provider, type: "unknown_provider" });
   };
 
+  /** What a ref's provider reads (images, PDFs); none for an unknown one. */
+  const capabilitiesOf = (ref: ModelRef | null): ModelCapability[] => {
+    const provider = ref ? parseModelRef(ref)?.provider : undefined;
+    const providerConfig = provider ? config.providers[provider] : undefined;
+    return providerConfig ? [...providerCapabilities(providerConfig)] : [];
+  };
+
   // `auto` ends may be aliases; the picker shows the ref each resolves to.
   const refOf = (selector: string | null): ModelRef | null => {
     if (!selector) {
@@ -133,7 +141,7 @@ export const buildRegistry = (
       const aliased = Object.entries(aliases).map(
         ([alias, ref]): ModelOption => ({
           available: isAvailable(ref, keyedProviders),
-          capabilities: [],
+          capabilities: capabilitiesOf(ref),
           contextWindow: null,
           label: alias,
           selector: alias,
@@ -150,7 +158,7 @@ export const buildRegistry = (
             .map(
               (ref): ModelOption => ({
                 available: isAvailable(ref, keyedProviders),
-                capabilities: [],
+                capabilities: capabilitiesOf(ref),
                 contextWindow: null,
                 label: parseModelRef(ref)?.modelId ?? ref,
                 selector: ref,
