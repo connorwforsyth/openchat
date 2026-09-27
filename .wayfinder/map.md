@@ -86,6 +86,9 @@ brief, and their findings land in `.context/research/`.
 - [WS-mcp](tickets/018-ws-mcp.md): MCP connection manager with OAuth and sealed tokens ([PR #14](https://github.com/connorwforsyth/openchat/pull/14))
 - [WS-knowledge](tickets/021-ws-knowledge.md): storage, RAG ingestion + `file_search`, chat search, web search ([PR #15](https://github.com/connorwforsyth/openchat/pull/15))
 - [Millisecond timestamps](tickets/028-timestamp-precision.md): keyset cursors fixed on real Postgres; CI-safe test timeouts ([PR #18](https://github.com/connorwforsyth/openchat/pull/18))
+- [WS-sandbox](tickets/019-ws-sandbox.md): just-bash + Docker sandboxes via an isolated `sandbox-runner`, review-by-hunk tools, sandbox panel ([PR #19](https://github.com/connorwforsyth/openchat/pull/19))
+- [Sandbox-runner CI](tickets/029-sandbox-runner-ci.md): real-Docker smoke test on runc and gVisor; four runner fixes ([PR #19](https://github.com/connorwforsyth/openchat/pull/19))
+- [WS-memory-evals](tickets/022-ws-memory-evals.md): Markdown memory with versions and undo, feedback, OTLP traces, dev evals in CI ([PR #17](https://github.com/connorwforsyth/openchat/pull/17))
 - [WS-importers](tickets/023-ws-importers.md): ChatGPT, Claude and LibreChat importers with branch trees; fork ([PR #13](https://github.com/connorwforsyth/openchat/pull/13))
 - [WS-ai](tickets/013-ws-ai.md): provider registry, key resolution, agent runner with approvals, Decider, `/api/llm` handler ([PR #11](https://github.com/connorwforsyth/openchat/pull/11))
 

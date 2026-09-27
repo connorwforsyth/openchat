@@ -26,3 +26,6 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-09-27 · 029 folded into PR #19 (sandbox job green on runc and runsc; 4 runner fixes)
 - 2026-09-27 · 009 closed by Connor · Classic sidebar/header + Workspace right panel and shortcuts
 - 2026-09-27 · 010 closed by Connor · builder follows the shell (form + live test chat)
+- 2026-09-27 · 019 + 029 closed · PR #19 · sandboxes + real-Docker CI · CI ci, db, sandbox runc/runsc pass
+- 2026-09-27 · 022 closed · PR #17 · memory, feedback, telemetry, evals · 64/64 local after rebase, CI pass
+- 2026-09-27 · 015, 017, 024 started in parallel (015 stacked on 019)
