@@ -10,7 +10,9 @@ Collected by agents working the map, so you can answer them in one sitting. Each
 
 4. **Contract gaps (042):** seven small contract changes found during integration (invite tokens, `setBudget` orgId, typed missing-key error, nullable `latestVersionId`, a health route, three config fields, shortcut settings). The loop will open one contract PR for you to review and merge.
 
-5. **Start Docker Desktop (045)** when convenient, so the loop can verify the image, compose on Postgres 17, and the sandbox runner before your demo.
+5. ~~**Start Docker Desktop (045)**~~ done; all Docker checks passed (PR #36).
+
+6. **M1 demo ([026](tickets/026-m1-demo-gate.md)):** run the `PLAN.md` §11 M1 checks yourself and close the ticket (or list what fails).
 
 ## From the loop
 

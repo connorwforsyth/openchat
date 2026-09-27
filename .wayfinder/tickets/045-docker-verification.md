@@ -2,8 +2,8 @@
 id: "045"
 title: "Verify the Docker image and compose stack"
 labels: [wayfinder:task]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -50,3 +50,7 @@ identically hardened container took 0.2 s, and the rerun passed. Once the VM rec
 suite passed with its default timeouts. Images are kept for reruns: `openchat-web` 388 MB,
 `t-045-sandbox-runner` 251 MB, plus pulled `pgvector:pg17` 464 MB, `node:24-bookworm-slim` 249 MB
 and the socket proxy 33 MB. Build cache is about 5 GB (`docker builder prune` reclaims it).
+
+## Resolution (2026-09-27, loop)
+
+Merged in [PR #36](https://github.com/connorwforsyth/openchat/pull/36). The web image, the compose stack on Postgres 17.11 and the sandbox runner (runc) all pass; results are above. One Postgres-only bug fixed (`deleteStaleTestChats` bound a JS `Date` in raw SQL). Local gate 79/79. Left: Playwright against the compose stack (its config always starts its own mock server), and gVisor, which needs a Linux host.
