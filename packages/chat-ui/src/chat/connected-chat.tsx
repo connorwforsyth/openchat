@@ -188,6 +188,9 @@ const useLiveTurn = ({
     }
   }, [busy, initialMessages, setMessages]);
 
+  const last = live.at(-1);
+  const streamingMessageId =
+    busy && last?.role === "assistant" ? (last.id as MessageId) : null;
   const cache = useRef(new WeakMap<UIMessage, Message>());
   const messages = useMemo(
     () =>
@@ -200,14 +203,12 @@ const useLiveTurn = ({
               conversationId,
               now: new Date().toISOString(),
             },
-            cache.current
+            cache.current,
+            streamingMessageId
           )
         : stored,
-    [conversationId, live, me.user.id, stored]
+    [conversationId, live, me.user.id, stored, streamingMessageId]
   );
-  const last = live.at(-1);
-  const streamingMessageId =
-    busy && last?.role === "assistant" ? (last.id as MessageId) : null;
 
   return { chat, messages, streamingMessageId };
 };
@@ -269,6 +270,40 @@ function RunError({
     </p>
   );
 }
+
+/**
+ * A chat opened while a reply is still being written (the tab was closed or
+ * reloaded mid-reply, PLAN.md §11 M1 step 3) follows that run's stream.
+ * Checked once per opened chat, when its active runs first load: a run this
+ * page started itself is already being followed (the chat isn't idle).
+ */
+const useFollowRunningReply = ({
+  conversationId,
+  resumeStream,
+  runningRunId,
+  status,
+}: {
+  readonly conversationId: ConversationId | null;
+  readonly resumeStream: () => Promise<void>;
+  readonly runningRunId: string | null | undefined;
+  readonly status: "submitted" | "streaming" | "ready" | "error";
+}) => {
+  const idle = status === "ready" || status === "error";
+  const checked = useRef<ConversationId | null>(null);
+  useEffect(() => {
+    if (
+      !conversationId ||
+      runningRunId === undefined ||
+      checked.current === conversationId
+    ) {
+      return;
+    }
+    checked.current = conversationId;
+    if (runningRunId && idle) {
+      resumeStream().catch(ignore);
+    }
+  }, [conversationId, idle, resumeStream, runningRunId]);
+};
 
 /** A new chat is created on first send; the send happens once it's routed to. */
 const useFirstSend = ({
@@ -395,6 +430,12 @@ export function ConnectedChat({
     target,
   });
   const { regenerate, resumeStream, sendMessage, setMessages } = chat;
+  useFollowRunningReply({
+    conversationId,
+    resumeStream,
+    runningRunId: data.runningRunId,
+    status: chat.status,
+  });
   const send = useCallback(
     (text: string, files: FileUIPart[] = []) => {
       sendMessage(files.length > 0 ? { files, text } : { text }).catch(ignore);

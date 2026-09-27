@@ -80,6 +80,13 @@ export const useChatQueries = (
   const activeRun = runs.data?.items.find(
     (run) => run.state.status === "awaiting_approval"
   );
+  // `undefined` until the list loads: a run still producing a reply, which a
+  // page opened mid-reply follows (PLAN.md §11 M1 step 3).
+  const runningRunId = runs.data
+    ? (runs.data.items.find(
+        (run) => run.state.status === "running" || run.state.status === "queued"
+      )?.id ?? null)
+    : undefined;
   return {
     activeRun,
     artifacts,
@@ -87,6 +94,7 @@ export const useChatQueries = (
     conversation,
     participants,
     path,
+    runningRunId,
     sandbox,
     selectedArtifactId,
     tree,
