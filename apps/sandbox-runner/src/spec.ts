@@ -13,7 +13,7 @@ import type { z } from "zod";
 // (D7, docs/decisions/0005). The hardening is applied whatever the runtime,
 // so gVisor is defence in depth rather than the only wall:
 // - no host mounts: the workdir is a named volume, /tmp and $HOME are
-//   size-capped tmpfs, the root filesystem is read-only;
+//   size-capped tmpfs (nosuid, nodev), the root filesystem is read-only;
 // - every capability dropped, no-new-privileges, the default seccomp
 //   profile, a non-root user and no privileged mode;
 // - CPU, memory (no swap), pids and (where the storage driver can) disk caps;
@@ -170,9 +170,12 @@ export const buildContainerSpec = ({
       ...(defaults.storageQuota && limits.diskMb
         ? { StorageOpt: { size: `${limits.diskMb}M` } }
         : {}),
+      // `exec` because Docker mounts tmpfs noexec by default, and npx, bunx
+      // and pip run binaries from their cache or temp dirs; /work is
+      // executable anyway (ticket 047).
       Tmpfs: {
-        [SANDBOX_HOME]: `rw,nosuid,nodev,size=${defaults.tmpMb}m,uid=${defaults.user.split(":")[0]}`,
-        "/tmp": `rw,nosuid,nodev,size=${defaults.tmpMb}m`,
+        [SANDBOX_HOME]: `rw,exec,nosuid,nodev,size=${defaults.tmpMb}m,uid=${defaults.user.split(":")[0]}`,
+        "/tmp": `rw,exec,nosuid,nodev,size=${defaults.tmpMb}m`,
       },
     },
     Image: defaults.image,

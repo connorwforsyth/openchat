@@ -79,6 +79,21 @@ describe("buildContainerSpec", () => {
     expect(Object.keys(host.Tmpfs ?? {})).toEqual(["/home/sandbox", "/tmp"]);
   });
 
+  it("lets $HOME and /tmp run binaries, but not setuid ones or devices", () => {
+    // npx and `npm create` run a package's bin from ~/.npm/_npx (ticket 047).
+    for (const options of Object.values(host.Tmpfs ?? {})) {
+      const flags = options.split(",");
+      expect(flags).toEqual(
+        expect.arrayContaining(["exec", "nosuid", "nodev"])
+      );
+      expect(flags).not.toContain("noexec");
+    }
+    expect(host.Tmpfs?.["/home/sandbox"]).toBe(
+      "rw,exec,nosuid,nodev,size=512m,uid=1000"
+    );
+    expect(host.Tmpfs?.["/tmp"]).toBe("rw,exec,nosuid,nodev,size=512m");
+  });
+
   it("drops every capability and privilege", () => {
     expect(host.CapDrop).toEqual(["ALL"]);
     expect(host.CapAdd).toBeUndefined();

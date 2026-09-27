@@ -30,6 +30,62 @@ const PREVIEW_ATTEMPTS = 30;
 const limits = { cpu: 1, diskMb: null, memoryMb: 512, network: false };
 
 const PREVIEW_ECHO = "hot reload";
+// A module script, served like a dev server serves one: no CORS headers of
+// its own, which is what Vite does for an origin it doesn't know.
+const MODULE_PATH = "/main.js";
+const MODULE_BODY = "export const ready = true;\n";
+
+// `npm create` without the internet (the sandbox's default egress is
+// `none`): an initializer package, and a registry on the sandbox's loopback
+// that serves it. It takes npm's real route, installing into ~/.npm/_npx
+// and running the bin from there, which a noexec $HOME refuses (ticket 047).
+const REGISTRY_PORT = 4873;
+const INITIALIZER = {
+  "create-smoke/index.js": `#!/usr/bin/env node
+const fs = require("node:fs");
+fs.mkdirSync(process.argv[2]);
+fs.writeFileSync(process.argv[2] + "/made-by", process.argv[1] + "\\n");
+`,
+  "create-smoke/package.json": JSON.stringify({
+    bin: { "create-smoke": "index.js" },
+    name: "create-smoke",
+    version: "1.0.0",
+  }),
+  "registry.js": `const fs = require("node:fs");
+const { createHash } = require("node:crypto");
+const file = "create-smoke-1.0.0.tgz";
+const tarball = fs.readFileSync("/tmp/" + file);
+const base = "http://127.0.0.1:${REGISTRY_PORT}";
+const manifest = {
+  bin: { "create-smoke": "index.js" },
+  dist: {
+    integrity: "sha512-" + createHash("sha512").update(tarball).digest("base64"),
+    shasum: createHash("sha1").update(tarball).digest("hex"),
+    tarball: base + "/" + file,
+  },
+  name: "create-smoke",
+  version: "1.0.0",
+};
+const packument = {
+  "dist-tags": { latest: "1.0.0" },
+  name: "create-smoke",
+  versions: { "1.0.0": manifest },
+};
+require("node:http")
+  .createServer((req, res) => {
+    if (req.url === "/create-smoke") {
+      res.setHeader("content-type", "application/json");
+      res.end(JSON.stringify(packument));
+    } else if (req.url === "/" + file) {
+      res.end(tarball);
+    } else {
+      res.statusCode = 404;
+      res.end();
+    }
+  })
+  .listen(${REGISTRY_PORT}, "127.0.0.1");
+`,
+};
 
 // The server the preview step starts; plain Node, so the image needs nothing
 // extra. It also echoes WebSocket messages, the way a dev server's hot reload
@@ -37,9 +93,14 @@ const PREVIEW_ECHO = "hot reload";
 // only as much of it as the smoke sends: short masked frames, echoed back
 // unmasked with the same opcode (a close is answered with a close).
 const SERVER = `const { createHash } = require("node:crypto");
-const server = require("node:http").createServer((_req, res) =>
-  res.end(${JSON.stringify(PREVIEW_BODY)})
-);
+const server = require("node:http").createServer((req, res) => {
+  if (req.url === "${MODULE_PATH}") {
+    res.setHeader("content-type", "text/javascript");
+    res.end(${JSON.stringify(MODULE_BODY)});
+    return;
+  }
+  res.end(${JSON.stringify(PREVIEW_BODY)});
+});
 server.on("upgrade", (req, socket) => {
   const accept = createHash("sha1")
     .update(req.headers["sec-websocket-key"] + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11")
@@ -124,10 +185,10 @@ const expectOutput = async (
  * doesn't resolve everywhere, so connect to loopback on the URL's port and
  * send the preview hostname as `Host`, which is all the proxy routes on.
  */
-const fetchPreview = (url: string) => {
+const fetchPreview = (url: string, headers: Record<string, string> = {}) => {
   const parsed = new URL(url);
   return fetch(`http://127.0.0.1:${parsed.port}${parsed.pathname}`, {
-    headers: { host: parsed.host },
+    headers: { ...headers, host: parsed.host },
     signal: AbortSignal.timeout(5000),
   });
 };
@@ -268,6 +329,37 @@ const main = async () => {
       "offline\n"
     );
 
+    log("npx and npm create");
+    for (const [path, content] of Object.entries(INITIALIZER)) {
+      // biome-ignore lint/performance/noAwaitInLoops: a few small files.
+      await must(`writeFile ${path}`, sandbox.writeFile(path, content));
+    }
+    const registry = await run(
+      sandbox,
+      "npm pack ./create-smoke --pack-destination /tmp --silent > /dev/null && " +
+        "nohup node registry.js > /tmp/registry.log 2>&1 < /dev/null &"
+    );
+    check(registry.exitCode === 0, "couldn't start the local registry");
+    const npm = `npm_config_registry=http://127.0.0.1:${REGISTRY_PORT} npm_config_update_notifier=false`;
+    const scaffolded = await run(
+      sandbox,
+      `for i in $(seq 1 20); do node -e 'fetch("http://127.0.0.1:${REGISTRY_PORT}/create-smoke").then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))' && break; sleep 0.5; done; ` +
+        `${npm} npm create --yes smoke from-create > /dev/null && cat from-create/made-by && ` +
+        `${npm} npx --yes create-smoke from-npx > /dev/null && cat from-npx/made-by`
+    );
+    const bins = scaffolded.stdout.trim().split("\n");
+    check(
+      scaffolded.exitCode === 0 &&
+        bins.length === 2 &&
+        bins.every((bin) => bin.startsWith("/home/sandbox/.npm/_npx/")),
+      `npm create and npx exited ${scaffolded.exitCode}: ${JSON.stringify(scaffolded.stdout)} ${scaffolded.stderr.trim()}`
+    );
+    await expectOutput(
+      sandbox,
+      "printf '#!/bin/sh\\necho ran\\n' > /tmp/probe && chmod +x /tmp/probe && /tmp/probe",
+      "ran\n"
+    );
+
     log("files");
     await must("writeFile", sandbox.writeFile("server.js", SERVER));
     const read = new TextDecoder().decode(
@@ -302,6 +394,27 @@ const main = async () => {
     check(
       unexposed.status === 404,
       `an unexposed port answered ${unexposed.status}, expected 404`
+    );
+    // The panel's iframe has an opaque origin (no allow-same-origin), so a
+    // dev server's module scripts are cross-origin requests from `null`.
+    const script = await fetchPreview(`${preview.url}${MODULE_PATH}`, {
+      origin: "null",
+    });
+    const scriptBody = await script.text();
+    check(
+      script.ok &&
+        scriptBody === MODULE_BODY &&
+        script.headers.get("access-control-allow-origin") === "null" &&
+        !script.headers.has("access-control-allow-credentials"),
+      `a module script for the null origin came back ${script.status} with Access-Control-Allow-Origin ${script.headers.get("access-control-allow-origin") ?? "absent"}`
+    );
+    const foreign = await fetchPreview(`${preview.url}${MODULE_PATH}`, {
+      origin: "https://elsewhere.test",
+    });
+    await foreign.body?.cancel();
+    check(
+      !foreign.headers.has("access-control-allow-origin"),
+      "the preview proxy allowed an origin the dev server didn't"
     );
     const echoed = await echoThroughPreview(preview.url, PREVIEW_ECHO);
     check(
