@@ -3,7 +3,7 @@ id: "045"
 title: "Verify the Docker image and compose stack"
 labels: [wayfinder:task]
 status: open
-assignee:
+assignee: loop
 blockedBy: []
 ---
 
@@ -14,7 +14,7 @@ Desktop running: build `apps/web`'s image, `docker compose up -d` with Postgres,
 `e2e/compose-smoke.ts`, run the db tests against Postgres 17 (`TEST_DATABASE_URL`), and run the
 sandbox runner smoke (`--profile sandbox`, runc on macOS). Fix whatever fails.
 
-**HITL step:** Connor starts Docker Desktop (the loop won't launch apps on his Mac unasked).
+**HITL step (done 2026-09-27):** Connor approved starting Docker Desktop; the loop started it.
 
 ## Done when
 

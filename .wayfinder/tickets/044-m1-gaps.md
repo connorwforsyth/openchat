@@ -2,8 +2,8 @@
 id: "044"
 title: "M1 gaps before the demo"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -30,3 +30,7 @@ Found by 040's end-to-end suite (steps it had to do through the API):
 
 Each item works in the browser and has an e2e test (turn 040's API shortcuts into UI steps); the
 e2e fixme passes; local gate green.
+
+## Resolution (2026-09-27, loop)
+
+Merged in [PR #35](https://github.com/connorwforsyth/openchat/pull/35): org creation/switching in the UI, invite links with Copy, the composer agent picker + "Use in chat", model-aware attachments (never fail the turn), live titles, `TRUSTED_PROXIES`. Verified: 79/79; e2e 23/23 with the UI driving orgs, invites and agent chats.

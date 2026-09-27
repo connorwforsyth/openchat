@@ -49,3 +49,5 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-09-27 · 043 closed · PR #33 · 3×77/77 at default concurrency under load
 - 2026-09-27 · 040 closed · PR #34 · e2e 20/21, 79/79 · 025 closed
 - 2026-09-27 · added 044 (M1 gaps) and 045 (Docker verification, needs Docker Desktop); 026 now waits on both
+- 2026-09-27 · 044 closed · PR #35 · e2e 23/23
+- 2026-09-27 · Docker Desktop started (Connor approved); 045 running
