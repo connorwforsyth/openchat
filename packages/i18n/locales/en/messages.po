@@ -63,9 +63,23 @@ msgstr "{fileName} isn't a supported file type."
 msgid "{maxFiles, plural, one {{fileName} wasn't added: you can attach # file.} other {{fileName} wasn't added: you can attach up to # files.}}"
 msgstr "{maxFiles, plural, one {{fileName} wasn't added: you can attach # file.} other {{fileName} wasn't added: you can attach up to # files.}}"
 
+#. placeholder {0}: source.page
+#: ../chat-ui/src/conversation/sources.tsx
+msgid "{name}, page {0}"
+msgstr "{name}, page {0}"
+
 #: ../ui/src/components/ai-elements/message.tsx
 msgid "{page} of {totalBranches}"
 msgstr "{page} of {totalBranches}"
+
+#: ../chat-ui/src/header/branch-switcher.tsx
+msgid "{position}/{total}"
+msgstr "{position}/{total}"
+
+#. placeholder {0}: edits.length
+#: ../chat-ui/src/conversation/approval.tsx
+msgid "{reviewed} of {0} files reviewed"
+msgstr "{reviewed} of {0} files reviewed"
 
 #: ../composer/src/components/composer.tsx
 msgid "{suggestionCount, plural, one {# suggestion} other {# suggestions}}"
@@ -87,9 +101,22 @@ msgstr "Accept change {number}"
 msgid "Accept the rest"
 msgstr "Accept the rest"
 
+#. placeholder {0}: user.name
+#: ../chat-ui/src/sidebar/account-menu.tsx
+msgid "Account: {0}"
+msgstr "Account: {0}"
+
+#: ../chat-ui/src/sidebar/chat-row.tsx
+msgid "Actions for {title}"
+msgstr "Actions for {title}"
+
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Add photos or files"
 msgstr "Add photos or files"
+
+#: ../chat-ui/src/sidebar/account-menu.tsx
+msgid "Admin"
+msgstr "Admin"
 
 #: ../composer/src/components/target-picker.tsx
 msgid "Agents"
@@ -103,6 +130,50 @@ msgstr "AI Elements"
 msgid "All files exceed the maximum size."
 msgstr "All files exceed the maximum size."
 
+#: ../chat-ui/src/conversation/message-row.tsx
+msgid "Annotation attached"
+msgstr "Annotation attached"
+
+#: ../chat-ui/src/conversation/approval.tsx
+msgid "Approval needed for {toolName}"
+msgstr "Approval needed for {toolName}"
+
+#: ../chat-ui/src/conversation/approval.tsx
+msgid "Approve"
+msgstr "Approve"
+
+#: ../chat-ui/src/conversation/approval.tsx
+msgid "Approve all"
+msgstr "Approve all"
+
+#: ../chat-ui/src/sidebar/chat-row.tsx
+msgid "Archive"
+msgstr "Archive"
+
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "Archived “{title}”"
+msgstr "Archived “{title}”"
+
+#: ../chat-ui/src/artifacts/artifacts-panel.tsx
+msgid "Artifact views"
+msgstr "Artifact views"
+
+#: ../chat-ui/src/artifacts/artifacts-panel.tsx
+#: ../chat-ui/src/shell/right-panel.tsx
+msgid "Artifacts"
+msgstr "Artifacts"
+
+#: ../chat-ui/src/artifacts/artifacts-panel.tsx
+msgid "Artifacts in this chat"
+msgstr "Artifacts in this chat"
+
+#: ../chat-ui/src/chat/chat-screen.tsx
+#: ../chat-ui/src/shell/right-panel.tsx
+#: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
+msgid "Artifacts panel"
+msgstr "Artifacts panel"
+
+#: ../../apps/web/app/dev/chat/demo.tsx
 #: ../composer/src/components/composer-shell.tsx
 #: ../composer/src/components/composer.tsx
 msgid "Ask anything"
@@ -112,11 +183,13 @@ msgstr "Ask anything"
 msgid "Attach files"
 msgstr "Attach files"
 
+#: ../chat-ui/src/conversation/file-parts.tsx
 #: ../ui/src/components/ai-elements/message.tsx
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Attachment"
 msgstr "Attachment"
 
+#: ../chat-ui/src/conversation/file-parts.tsx
 #: ../composer/src/components/attachment-list.tsx
 msgid "Attachments"
 msgstr "Attachments"
@@ -129,10 +202,20 @@ msgstr "Auto"
 msgid "Awaiting approval"
 msgstr "Awaiting approval"
 
+#: ../chat-ui/src/conversation/feedback.tsx
+msgid "Bad answer"
+msgstr "Bad answer"
+
+#: ../chat-ui/src/header/branch-switcher.tsx
+msgid "Branches"
+msgstr "Branches"
+
 #: ../../apps/web/app/page.tsx
 msgid "Button"
 msgstr "Button"
 
+#: ../chat-ui/src/conversation/approval.tsx
+#: ../chat-ui/src/conversation/message-row.tsx
 #: ../composer/src/components/template-variables.tsx
 msgid "Cancel"
 msgstr "Cancel"
@@ -149,6 +232,10 @@ msgstr "Change {number} accepted"
 msgid "Change {number} rejected"
 msgstr "Change {number} rejected"
 
+#: ../chat-ui/src/artifacts/artifacts-panel.tsx
+msgid "Changes"
+msgstr "Changes"
+
 #: ../composer/src/components/context-chip.tsx
 msgid "Chat context"
 msgstr "Chat context"
@@ -161,9 +248,39 @@ msgstr "Chat context: {label}"
 msgid "Chat context: {label}, locked"
 msgstr "Chat context: {label}, locked"
 
+#: ../../apps/web/app/dev/chat/demo.tsx
+msgid "Chat demo"
+msgstr "Chat demo"
+
+#: ../chat-ui/src/sidebar/rename-input.tsx
+msgid "Chat title"
+msgstr "Chat title"
+
+#: ../chat-ui/src/shell/app-shell.tsx
+msgid "Chats"
+msgstr "Chats"
+
+#: ../chat-ui/src/header/chat-title.tsx
+msgid "Click to rename"
+msgstr "Click to rename"
+
 #: ../ui/src/components/ai-elements/streamdown.tsx
+#: ../ui/src/components/dialog.tsx
 msgid "Close"
 msgstr "Close"
+
+#: ../chat-ui/src/shell/right-panel.tsx
+msgid "Close panel"
+msgstr "Close panel"
+
+#: ../ui/src/components/toast.tsx
+msgid "Close toast"
+msgstr "Close toast"
+
+#: ../chat-ui/src/artifacts/artifacts-panel.tsx
+#: ../chat-ui/src/conversation/artifact-card.tsx
+msgid "Code"
+msgstr "Code"
 
 #: ../../apps/web/app/dev/code/page.tsx
 msgid "Code views"
@@ -197,15 +314,21 @@ msgstr "Container"
 msgid "Context locked"
 msgstr "Context locked"
 
+#: ../chat-ui/src/conversation/conversation-view.tsx
+msgid "Conversation"
+msgstr "Conversation"
+
 #: ../../apps/web/app/dev/ai-elements/demo.tsx
 msgid "Conversation, message, reasoning and tool"
 msgstr "Conversation, message, reasoning and tool"
 
+#: ../chat-ui/src/conversation/message-row.tsx
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Copied"
 msgstr "Copied"
 
 #: ../../apps/web/app/dev/ai-elements/demo.tsx
+#: ../chat-ui/src/conversation/message-row.tsx
 msgid "Copy"
 msgstr "Copy"
 
@@ -213,9 +336,14 @@ msgstr "Copy"
 msgid "Copy code"
 msgstr "Copy code"
 
+#: ../chat-ui/src/header/share-menu.tsx
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Copy link"
 msgstr "Copy link"
+
+#: ../chat-ui/src/header/share-menu.tsx
+msgid "Copy link to this chat"
+msgstr "Copy link to this chat"
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Copy table"
@@ -233,6 +361,14 @@ msgstr "Copy table as Markdown"
 msgid "Copy table as TSV"
 msgstr "Copy table as TSV"
 
+#: ../chat-ui/src/chat/connected-chat.tsx
+msgid "Couldn't load this artifact."
+msgstr "Couldn't load this artifact."
+
+#: ../chat-ui/src/conversation/memory-note.tsx
+msgid "Couldn't undo. Try again."
+msgstr "Couldn't undo. Try again."
+
 #: ../chat-ui/src/sandbox/sandbox-panel.tsx
 msgid "Create sandbox"
 msgstr "Create sandbox"
@@ -241,17 +377,30 @@ msgstr "Create sandbox"
 msgid "CSV"
 msgstr "CSV"
 
+#: ../chat-ui/src/sidebar/account-menu.tsx
+msgid "Dark"
+msgstr "Dark"
+
 #: ../../apps/web/app/dev/code/demo.tsx
 msgid "Decision sent to the agent"
 msgstr "Decision sent to the agent"
+
+#: ../chat-ui/src/conversation/approval.tsx
+msgid "Decision sent. Waiting for the agent…"
+msgstr "Decision sent. Waiting for the agent…"
 
 #: ../ui/src/components/ai-elements/tool.tsx
 msgid "Denied"
 msgstr "Denied"
 
+#: ../chat-ui/src/header/sandbox-pill.tsx
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "Destroyed"
 msgstr "Destroyed"
+
+#: ../chat-ui/src/conversation/artifact-card.tsx
+msgid "Diagram"
+msgstr "Diagram"
 
 #: ../code-ui/src/diff-view.tsx
 msgid "Diff layout"
@@ -260,6 +409,10 @@ msgstr "Diff layout"
 #: ../../apps/web/app/dev/composer/demo.tsx
 msgid "Disabled"
 msgstr "Disabled"
+
+#: ../chat-ui/src/conversation/artifact-card.tsx
+msgid "Document"
+msgstr "Document"
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Download diagram"
@@ -297,6 +450,18 @@ msgstr "Download table as CSV"
 msgid "Download table as Markdown"
 msgstr "Download table as Markdown"
 
+#: ../chat-ui/src/conversation/message-row.tsx
+msgid "Edit"
+msgstr "Edit"
+
+#: ../chat-ui/src/conversation/message-row.tsx
+msgid "Edit message"
+msgstr "Edit message"
+
+#: ../chat-ui/src/header/share-menu.tsx
+msgid "Editor"
+msgstr "Editor"
+
 #: ../composer/src/components/composer.tsx
 msgid "Enter sends and Shift+Enter adds a line. Type / for prompts and @ to mention someone."
 msgstr "Enter sends and Shift+Enter adds a line. Type / for prompts and @ to mention someone."
@@ -319,6 +484,7 @@ msgstr "Exit fullscreen"
 msgid "Exited with code {0} in {1} ms"
 msgstr "Exited with code {0} in {1} ms"
 
+#: ../chat-ui/src/header/sandbox-pill.tsx
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "Failed"
 msgstr "Failed"
@@ -348,10 +514,19 @@ msgstr "Fill in “{promptName}”"
 msgid "Fill in every field to insert the prompt."
 msgstr "Fill in every field to insert the prompt."
 
+#: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
+msgid "Focus the message box"
+msgstr "Focus the message box"
+
+#: ../chat-ui/src/conversation/feedback.tsx
+msgid "Good answer"
+msgstr "Good answer"
+
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "gVisor"
 msgstr "gVisor"
 
+#: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../ui/src/components/ai-elements/message.tsx
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Image"
@@ -369,13 +544,42 @@ msgstr "Insert"
 msgid "Insert prompt"
 msgstr "Insert prompt"
 
+#: ../chat-ui/src/header/share-menu.tsx
+msgid "Invite people…"
+msgstr "Invite people…"
+
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "Isolation: {isolationLabel}. {isolationHelp}"
 msgstr "Isolation: {isolationLabel}. {isolationHelp}"
 
+#: ../chat-ui/src/shortcuts/shortcut-help.tsx
+#: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
+msgid "Keyboard shortcuts"
+msgstr "Keyboard shortcuts"
+
 #: ../../apps/web/app/dev/composer/demo.tsx
 msgid "Last submitted value"
 msgstr "Last submitted value"
+
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "Library"
+msgstr "Library"
+
+#: ../chat-ui/src/sidebar/account-menu.tsx
+msgid "Light"
+msgstr "Light"
+
+#: ../chat-ui/src/header/share-menu.tsx
+msgid "Link copied"
+msgstr "Link copied"
+
+#: ../chat-ui/src/artifacts/artifacts-panel.tsx
+msgid "Loading artifact"
+msgstr "Loading artifact"
+
+#: ../chat-ui/src/artifacts/lazy-artifacts-panel.tsx
+msgid "Loading artifacts"
+msgstr "Loading artifacts"
 
 #: ../chat-ui/src/sandbox/files.tsx
 msgid "Loading files…"
@@ -396,6 +600,15 @@ msgstr "ls -la"
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Markdown"
 msgstr "Markdown"
+
+#: ../chat-ui/src/conversation/memory-note.tsx
+msgid "Memory change undone"
+msgstr "Memory change undone"
+
+#. placeholder {0}: update.summary
+#: ../chat-ui/src/conversation/memory-note.tsx
+msgid "Memory updated: {0}"
+msgstr "Memory updated: {0}"
 
 #: ../composer/src/components/composer.tsx
 msgid "Mention"
@@ -430,17 +643,64 @@ msgstr "Models"
 msgid "More actions"
 msgstr "More actions"
 
+#: ../chat-ui/src/chat/chat-screen.tsx
+#: ../chat-ui/src/header/chat-title.tsx
+#: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
+#: ../chat-ui/src/sidebar/chat-row.tsx
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "New chat"
+msgstr "New chat"
+
+#: ../chat-ui/src/artifacts/artifacts-panel.tsx
+msgid "Newer version"
+msgstr "Newer version"
+
+#: ../chat-ui/src/header/branch-switcher.tsx
+#: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
 #: ../ui/src/components/ai-elements/message.tsx
 msgid "Next branch"
 msgstr "Next branch"
+
+#: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
+msgid "Next chat"
+msgstr "Next chat"
+
+#: ../chat-ui/src/artifacts/artifacts-panel.tsx
+msgid "No changes from the previous version."
+msgstr "No changes from the previous version."
+
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "No chats yet. Start one and it shows up here."
+msgstr "No chats yet. Start one and it shows up here."
 
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "No files match the accepted types."
 msgstr "No files match the accepted types."
 
+#: ../chat-ui/src/header/sandbox-pill.tsx
+msgid "No sandbox"
+msgstr "No sandbox"
+
+#: ../chat-ui/src/artifacts/artifacts-panel.tsx
+msgid "Nothing here yet. Code, pages and documents the agent makes in this chat show up here."
+msgstr "Nothing here yet. Code, pages and documents the agent makes in this chat show up here."
+
 #: ../../apps/web/app/dev/composer/demo.tsx
 msgid "Nothing sent yet."
 msgstr "Nothing sent yet."
+
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "Older"
+msgstr "Older"
+
+#: ../chat-ui/src/artifacts/artifacts-panel.tsx
+msgid "Older version"
+msgstr "Older version"
+
+#. placeholder {0}: part.title
+#: ../chat-ui/src/conversation/artifact-card.tsx
+msgid "Open artifact: {0}"
+msgstr "Open artifact: {0}"
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Open external link?"
@@ -467,6 +727,10 @@ msgstr "Optional: tell the agent why"
 msgid "Organization"
 msgstr "Organization"
 
+#: ../chat-ui/src/header/share-menu.tsx
+msgid "Owner"
+msgstr "Owner"
+
 #: ../ui/src/components/ai-elements/tool.tsx
 msgid "Parameters"
 msgstr "Parameters"
@@ -475,13 +739,33 @@ msgstr "Parameters"
 msgid "Pending"
 msgstr "Pending"
 
+#: ../chat-ui/src/header/share-menu.tsx
+msgid "People in this chat"
+msgstr "People in this chat"
+
+#: ../chat-ui/src/header/share-menu.tsx
+msgid "People in this chat: {names}"
+msgstr "People in this chat: {names}"
+
 #: ../composer/src/components/context-chip.tsx
 msgid "Personal"
 msgstr "Personal"
 
+#: ../chat-ui/src/chat/chat-screen.tsx
+msgid "Pick whose keys and budget this chat uses with the context in the header. You can change it until you send the first message."
+msgstr "Pick whose keys and budget this chat uses with the context in the header. You can change it until you send the first message."
+
 #: ../composer/src/components/target-picker.tsx
 msgid "Picks a model for each message"
 msgstr "Picks a model for each message"
+
+#: ../chat-ui/src/sidebar/chat-row.tsx
+msgid "Pin"
+msgstr "Pin"
+
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "Pinned"
+msgstr "Pinned"
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "PNG"
@@ -491,10 +775,16 @@ msgstr "PNG"
 msgid "Port"
 msgstr "Port"
 
+#: ../chat-ui/src/artifacts/artifacts-panel.tsx
 #: ../chat-ui/src/sandbox/preview.tsx
 #: ../chat-ui/src/sandbox/sandbox-panel.tsx
 msgid "Preview"
 msgstr "Preview"
+
+#. placeholder {0}: artifact.title
+#: ../chat-ui/src/artifacts/artifacts-panel.tsx
+msgid "Preview of {0}"
+msgstr "Preview of {0}"
 
 #. placeholder {0}: preview.port
 #: ../chat-ui/src/sandbox/preview.tsx
@@ -505,9 +795,23 @@ msgstr "Preview of port {0}"
 msgid "Previews need a Docker sandbox. This one is simulated, so nothing can listen on a port."
 msgstr "Previews need a Docker sandbox. This one is simulated, so nothing can listen on a port."
 
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "Previous 7 days"
+msgstr "Previous 7 days"
+
+#: ../chat-ui/src/header/branch-switcher.tsx
+#: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
 #: ../ui/src/components/ai-elements/message.tsx
 msgid "Previous branch"
 msgstr "Previous branch"
+
+#: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
+msgid "Previous chat"
+msgstr "Previous chat"
+
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "Primary"
+msgstr "Primary"
 
 #: ../../apps/web/app/page.tsx
 msgid "Project ready!"
@@ -525,17 +829,35 @@ msgstr "Prompts"
 msgid "Proposed edit"
 msgstr "Proposed edit"
 
+#: ../chat-ui/src/conversation/artifact-card.tsx
+msgid "React component"
+msgstr "React component"
+
+#: ../chat-ui/src/header/sandbox-pill.tsx
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "Ready"
 msgstr "Ready"
+
+#: ../chat-ui/src/conversation/lazy.tsx
+msgid "Reasoning"
+msgstr "Reasoning"
 
 #: ../chat-ui/src/sandbox/files.tsx
 msgid "Refresh files"
 msgstr "Refresh files"
 
+#: ../chat-ui/src/conversation/message-row.tsx
+msgid "Regenerate"
+msgstr "Regenerate"
+
+#: ../chat-ui/src/conversation/approval.tsx
 #: ../code-ui/src/diff-view.tsx
 msgid "Reject"
 msgstr "Reject"
+
+#: ../chat-ui/src/conversation/approval.tsx
+msgid "Reject all"
+msgstr "Reject all"
 
 #: ../code-ui/src/diff-view.tsx
 msgid "Reject change {number}"
@@ -563,6 +885,14 @@ msgstr "Remove {name}"
 msgid "Remove attachment"
 msgstr "Remove attachment"
 
+#: ../chat-ui/src/sidebar/chat-row.tsx
+msgid "Rename"
+msgstr "Rename"
+
+#: ../chat-ui/src/header/chat-title.tsx
+msgid "Rename chat: {shown}"
+msgstr "Rename chat: {shown}"
+
 #: ../chat-ui/src/sandbox/sandbox-panel.tsx
 msgid "Reset sandbox"
 msgstr "Reset sandbox"
@@ -586,6 +916,11 @@ msgstr "Result"
 #: ../../apps/web/app/dev/ai-elements/demo.tsx
 msgid "Retry"
 msgstr "Retry"
+
+#. placeholder {0}: edit.path
+#: ../chat-ui/src/conversation/approval.tsx
+msgid "Reviewed {0}"
+msgstr "Reviewed {0}"
 
 #: ../chat-ui/src/sandbox/terminal.tsx
 msgid "Run a command to see its output here."
@@ -620,6 +955,7 @@ msgid "Runs in a remote microVM."
 msgstr "Runs in a remote microVM."
 
 #: ../chat-ui/src/sandbox/sandbox-panel.tsx
+#: ../chat-ui/src/shell/right-panel.tsx
 msgid "Sandbox"
 msgstr "Sandbox"
 
@@ -632,12 +968,23 @@ msgid "Sandbox output"
 msgstr "Sandbox output"
 
 #: ../../apps/web/app/dev/sandbox/page.tsx
+#: ../chat-ui/src/header/sandbox-pill.tsx
+#: ../chat-ui/src/shell/right-panel.tsx
+#: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
 msgid "Sandbox panel"
 msgstr "Sandbox panel"
 
 #: ../chat-ui/src/sandbox/sandbox-panel.tsx
 msgid "Sandbox views"
 msgstr "Sandbox views"
+
+#: ../chat-ui/src/header/sandbox-pill.tsx
+msgid "Sandbox: {label}"
+msgstr "Sandbox: {label}"
+
+#: ../chat-ui/src/chat/chat-screen.tsx
+msgid "Sandboxes are turned off on this server."
+msgstr "Sandboxes are turned off on this server."
 
 #: ../ui/src/components/message-scroller.tsx
 msgid "Scroll to end"
@@ -647,6 +994,14 @@ msgstr "Scroll to end"
 msgid "Scroll to start"
 msgstr "Scroll to start"
 
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "Search"
+msgstr "Search"
+
+#: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
+msgid "Search and commands"
+msgstr "Search and commands"
+
 #: ../code-ui/src/file-tree.tsx
 msgid "Search files"
 msgstr "Search files"
@@ -655,13 +1010,55 @@ msgstr "Search files"
 msgid "Select a file to view it."
 msgstr "Select a file to view it."
 
+#: ../chat-ui/src/conversation/message-row.tsx
 #: ../composer/src/components/composer-footer.tsx
 msgid "Send"
 msgstr "Send"
 
+#: ../chat-ui/src/conversation/feedback.tsx
+msgid "Send feedback"
+msgstr "Send feedback"
+
+#: ../chat-ui/src/conversation/message-row.tsx
+msgid "Sending the edit starts a new branch; the original stays."
+msgstr "Sending the edit starts a new branch; the original stays."
+
+#: ../chat-ui/src/sidebar/account-menu.tsx
+msgid "Settings"
+msgstr "Settings"
+
+#: ../chat-ui/src/header/share-menu.tsx
+msgid "Share"
+msgstr "Share"
+
+#: ../chat-ui/src/conversation/feedback.tsx
+msgid "Share this conversation with the agent's maintainers. Without this they only see totals."
+msgstr "Share this conversation with the agent's maintainers. Without this they only see totals."
+
+#: ../chat-ui/src/shell/app-shell.tsx
+#: ../chat-ui/src/shell/right-panel.tsx
+msgid "Side panel"
+msgstr "Side panel"
+
+#: ../chat-ui/src/sidebar/account-menu.tsx
+msgid "Sign out"
+msgstr "Sign out"
+
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "Simulated"
 msgstr "Simulated"
+
+#: ../chat-ui/src/shortcuts/shortcut-help.tsx
+msgid "Single keys work when you're not typing in a text field."
+msgstr "Single keys work when you're not typing in a text field."
+
+#: ../chat-ui/src/conversation/message-row.tsx
+msgid "Something went wrong and there's no answer."
+msgstr "Something went wrong and there's no answer."
+
+#: ../chat-ui/src/conversation/sources.tsx
+msgid "Sources"
+msgstr "Sources"
 
 #: ../code-ui/src/diff-view.tsx
 msgid "Split"
@@ -675,6 +1072,7 @@ msgstr "Start a server in the terminal, then preview its port. It opens on a sep
 msgid "Start dictation"
 msgstr "Start dictation"
 
+#: ../chat-ui/src/header/sandbox-pill.tsx
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "Starting"
 msgstr "Starting"
@@ -688,6 +1086,7 @@ msgstr "Stop"
 msgid "Stop dictation"
 msgstr "Stop dictation"
 
+#: ../chat-ui/src/header/sandbox-pill.tsx
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "Stopped"
 msgstr "Stopped"
@@ -704,6 +1103,10 @@ msgstr "Submit review"
 msgid "SVG"
 msgstr "SVG"
 
+#: ../chat-ui/src/sidebar/account-menu.tsx
+msgid "System"
+msgstr "System"
+
 #: ../composer/src/components/context-chip.tsx
 msgid "Team"
 msgstr "Team"
@@ -712,9 +1115,25 @@ msgstr "Team"
 msgid "Terminal"
 msgstr "Terminal"
 
+#: ../chat-ui/src/conversation/feedback.tsx
+msgid "Thanks! What was good? (optional)"
+msgstr "Thanks! What was good? (optional)"
+
 #: ../../apps/web/app/dev/code/demo.tsx
 msgid "The accepted changes couldn't be applied."
 msgstr "The accepted changes couldn't be applied."
+
+#: ../chat-ui/src/conversation/approval.tsx
+msgid "The agent wants to change files. Review each change, or decide for all of them."
+msgstr "The agent wants to change files. Review each change, or decide for all of them."
+
+#: ../chat-ui/src/conversation/approval.tsx
+msgid "The agent wants to run {toolName}."
+msgstr "The agent wants to run {toolName}."
+
+#: ../chat-ui/src/chat/connected-chat.tsx
+msgid "The answer failed. Try again, or regenerate it."
+msgstr "The answer failed. Try again, or regenerate it."
 
 #: ../../apps/web/app/dev/sandbox/page.tsx
 msgid "The chat sandbox panel over a just-bash workspace that runs entirely in this browser tab: simulated bash, an in-memory filesystem, no server and no network. Reloading the page starts over."
@@ -752,9 +1171,18 @@ msgstr "The sandbox was destroyed. Create a new one."
 msgid "The workspace is empty."
 msgstr "The workspace is empty."
 
+#: ../chat-ui/src/sidebar/account-menu.tsx
+msgid "Theme"
+msgstr "Theme"
+
+#: ../chat-ui/src/conversation/message-row.tsx
 #: ../ui/src/components/ai-elements/reasoning.tsx
 msgid "Thinking…"
 msgstr "Thinking…"
+
+#: ../chat-ui/src/conversation/message-row.tsx
+msgid "This answer stopped early."
+msgstr "This answer stopped early."
 
 #: ../code-ui/src/diff-view.tsx
 msgid "This change couldn't be displayed as a diff."
@@ -777,6 +1205,15 @@ msgstr "Thought for a few seconds"
 msgid "Timed out after {0} ms"
 msgstr "Timed out after {0} ms"
 
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "Today"
+msgstr "Today"
+
+#: ../chat-ui/src/chat/chat-screen.tsx
+#: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
+msgid "Toggle sidebar"
+msgstr "Toggle sidebar"
+
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Too many files. Some were not added."
 msgstr "Too many files. Some were not added."
@@ -784,6 +1221,11 @@ msgstr "Too many files. Some were not added."
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "TSV"
 msgstr "TSV"
+
+#: ../chat-ui/src/conversation/memory-note.tsx
+#: ../chat-ui/src/shell/use-undo-toast.ts
+msgid "Undo"
+msgstr "Undo"
 
 #: ../code-ui/src/diff-view.tsx
 msgid "Unified"
@@ -793,21 +1235,57 @@ msgstr "Unified"
 msgid "Unknown agent"
 msgstr "Unknown agent"
 
+#: ../chat-ui/src/sidebar/chat-row.tsx
+msgid "Unpin"
+msgstr "Unpin"
+
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Upload files"
 msgstr "Upload files"
+
+#: ../chat-ui/src/conversation/sources.tsx
+msgid "Uploaded file"
+msgstr "Uploaded file"
+
+#: ../chat-ui/src/artifacts/artifacts-panel.tsx
+msgid "v{number} of {total}"
+msgstr "v{number} of {total}"
+
+#: ../chat-ui/src/artifacts/artifacts-panel.tsx
+msgid "Versions"
+msgstr "Versions"
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "View fullscreen"
 msgstr "View fullscreen"
 
+#: ../chat-ui/src/header/share-menu.tsx
+msgid "Viewer"
+msgstr "Viewer"
+
 #: ../../apps/web/app/page.tsx
 msgid "We've already added the button component for you."
 msgstr "We've already added the button component for you."
 
+#: ../chat-ui/src/conversation/artifact-card.tsx
+msgid "Web page"
+msgstr "Web page"
+
+#: ../chat-ui/src/chat/chat-screen.tsx
+msgid "What are we working on?"
+msgstr "What are we working on?"
+
+#: ../chat-ui/src/conversation/feedback.tsx
+msgid "What went wrong? (optional)"
+msgstr "What went wrong? (optional)"
+
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "What would you like to know?"
 msgstr "What would you like to know?"
+
+#: ../chat-ui/src/conversation/approval.tsx
+msgid "Why? (optional, sent to the agent)"
+msgstr "Why? (optional, sent to the agent)"
 
 #: ../chat-ui/src/sandbox/files.tsx
 msgid "Workspace"
@@ -816,6 +1294,10 @@ msgstr "Workspace"
 #: ../../apps/web/app/dev/ai-elements/demo.tsx
 msgid "Would send “{text}” with {fileCount, plural, one {# attachment} other {# attachments}}."
 msgstr "Would send “{text}” with {fileCount, plural, one {# attachment} other {# attachments}}."
+
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "Yesterday"
+msgstr "Yesterday"
 
 #: ../../apps/web/app/page.tsx
 msgid "You may now add components and start building."
