@@ -2,8 +2,8 @@
 id: "046"
 title: "Pre-demo audit: the §11 M1 checks e2e doesn't cover"
 labels: [wayfinder:task]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -194,3 +194,7 @@ guard (CI "Repo guards") is green: no missing translations and no obsolete keys.
   --no-interactive`, then `vite --host 0.0.0.0 --cors`, and open the app in Chrome, not the Claude
   app's built-in browser. The compose `web` image also predates this branch, so rebuild it to get
   `/api/openapi.json` and the panel fix.
+
+## Resolution (2026-09-28, loop)
+
+Merged in [PR #37](https://github.com/connorwforsyth/openchat/pull/37). Config, brand, i18n pass; `/api/openapi.json` added; sandbox panel reload fixed; CI prints `icons:gaps`. Follow-ups: A+B are Connor's ([047](047-sandbox-dev-previews.md), then [050](050-sandbox-dev-previews-build.md)); C+D are [048](048-material-icons.md); WebSocket upgrades are [049](049-preview-websockets.md).
