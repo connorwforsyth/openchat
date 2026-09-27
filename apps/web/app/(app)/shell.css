@@ -1,0 +1,5 @@
+/* See `_shared/shell-prepaint.ts`: a sidebar the user collapsed stays hidden
+   from the first paint, before React has read their layout. */
+html[data-sidebar="closed"] [data-slot="app-shell-sidebar"] {
+  display: none;
+}

@@ -3,15 +3,21 @@ import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { requestLocale } from "@/lib/i18n";
+import { getPublicConfig } from "@/lib/public-config";
+import { routes } from "@/lib/routes";
+import { getViewer } from "@/lib/server-session";
 
-import { AppProviders } from "./_shared/providers";
-import { routes } from "./_shared/routes";
-import { getViewer } from "./_shared/session";
-import { UnavailableNotice } from "./_shared/unavailable";
+import { AppFrame } from "./_shared/app-frame";
+import { shellPrepaintScript } from "./_shared/shell-prepaint";
+import { BadConfigNotice } from "./_shared/unavailable";
+import "./shell.css";
 
-// Signed-in pages (settings and admin for now). The session is checked on the
-// server; the API checks it again on every call, so this is about showing
-// the right page, not about security. 025 replaces this with 015's AppShell.
+// Every signed-in page: chat, library, settings, admin. The proxy has already
+// sent visitors without a session cookie to sign-in; this asks the API who
+// the cookie belongs to (a stale one also goes to sign-in) and inlines that
+// and the public config, so the first render needs no round trip (D27). The
+// API checks the session again on every call: this is about showing the right
+// page, not about security.
 
 export default async function SignedInLayout({
   children,
@@ -19,16 +25,25 @@ export default async function SignedInLayout({
   readonly children: ReactNode;
 }) {
   initLingui(await requestLocale());
-  const viewer = await getViewer();
-  switch (viewer.kind) {
-    case "unavailable":
-      return <UnavailableNotice reason={viewer.reason} />;
-    case "signed_out":
-      redirect(routes.signIn);
-      break;
-    case "signed_in":
-      return <AppProviders userId={viewer.userId}>{children}</AppProviders>;
-    default:
-      return viewer satisfies never;
+  const [config, viewer] = await Promise.all([getPublicConfig(), getViewer()]);
+  if (!config.ok) {
+    return <BadConfigNotice />;
   }
+  if (viewer.kind === "signed_out") {
+    redirect(routes.signIn);
+  }
+  return (
+    <>
+      <script
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: a constant written in this repo, not user input; it has to run before paint (D28).
+        dangerouslySetInnerHTML={{ __html: shellPrepaintScript }}
+      />
+      <AppFrame
+        config={config.config}
+        initialMe={viewer.kind === "signed_in" ? viewer.me : null}
+      >
+        {children}
+      </AppFrame>
+    </>
+  );
 }

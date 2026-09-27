@@ -3,14 +3,18 @@ import { resolveLocale } from "@workspace/i18n/negotiate";
 import { headers } from "next/headers";
 import { cache } from "react";
 
+import { getViewer } from "./server-session";
+
 /**
- * The locale for this request, negotiated from `Accept-Language`. Once auth
- * lands, the signed-in user's saved `user.locale` goes in as `userLocale` and
- * wins. Cached so the layout and page negotiate once per request.
+ * The locale for this request (D12): the signed-in user's saved
+ * `user.locale` when it's set and supported, else negotiated from
+ * `Accept-Language`. Cached so the layouts and the page resolve it once per
+ * request; the viewer lookup is shared with the app layout.
  */
 export const requestLocale = cache(async (): Promise<SupportedLocale> => {
-  const requestHeaders = await headers();
+  const [requestHeaders, viewer] = await Promise.all([headers(), getViewer()]);
   return resolveLocale({
     acceptLanguage: requestHeaders.get("accept-language"),
+    userLocale: viewer.kind === "signed_in" ? viewer.me.user.locale : null,
   });
 });
