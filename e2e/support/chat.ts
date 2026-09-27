@@ -63,9 +63,17 @@ export const send = async (
           },
           { capture: true, once: true }
         );
+        // Only answers that weren't on screen before this send count.
+        const earlier = new Set(
+          [...document.querySelectorAll(".is-assistant[data-message-id]")].map(
+            (node) => node.getAttribute("data-message-id")
+          )
+        );
         const seen = () =>
           [...document.querySelectorAll(".is-assistant[data-message-id]")].some(
-            (node) => (node.textContent ?? "").includes(token)
+            (node) =>
+              !earlier.has(node.getAttribute("data-message-id")) &&
+              (node.textContent ?? "").includes(token)
           );
         const observer = new MutationObserver(() => {
           if (start > 0 && seen()) {
