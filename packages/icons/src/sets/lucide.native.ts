@@ -67,6 +67,7 @@ import {
   Pencil,
   Pin,
   PinOff,
+  Play,
   Plus,
   RefreshCw,
   RotateCcw,
@@ -122,6 +123,7 @@ export const MinusIcon: NativeIcon = Minus;
 export const MoreHorizontalIcon: NativeIcon = MoreHorizontal;
 export const PaperclipIcon: NativeIcon = Paperclip;
 export const PencilIcon: NativeIcon = Pencil;
+export const PlayIcon: NativeIcon = Play;
 export const PlusIcon: NativeIcon = Plus;
 export const RefreshCwIcon: NativeIcon = RefreshCw;
 export const RotateCcwIcon: NativeIcon = RotateCcw;

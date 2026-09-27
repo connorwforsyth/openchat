@@ -26,6 +26,7 @@
     "@workspace/db": "workspace:*",
     "@workspace/i18n": "workspace:*",
     "@workspace/icons": "workspace:*",
+    "@workspace/library-ui": "workspace:*",
     "@workspace/palette": "workspace:*",
     "@workspace/sandbox": "workspace:*",
     "@workspace/shared": "workspace:*",

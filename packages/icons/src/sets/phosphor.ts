@@ -61,6 +61,7 @@ import { NotePencilIcon as NotePencil } from "@phosphor-icons/react/dist/ssr/Not
 import { PaperclipIcon as Paperclip } from "@phosphor-icons/react/dist/ssr/Paperclip";
 import { PaperPlaneRightIcon as PaperPlaneRight } from "@phosphor-icons/react/dist/ssr/PaperPlaneRight";
 import { PencilSimpleIcon as PencilSimple } from "@phosphor-icons/react/dist/ssr/PencilSimple";
+import { PlayIcon as Play } from "@phosphor-icons/react/dist/ssr/Play";
 import { PlusIcon as Plus } from "@phosphor-icons/react/dist/ssr/Plus";
 import { PushPinIcon as PushPin } from "@phosphor-icons/react/dist/ssr/PushPin";
 import { PushPinSlashIcon as PushPinSlash } from "@phosphor-icons/react/dist/ssr/PushPinSlash";
@@ -119,6 +120,7 @@ export const MinusIcon = /* @__PURE__ */ fromPhosphor(Minus);
 export const MoreHorizontalIcon = /* @__PURE__ */ fromPhosphor(DotsThree);
 export const PaperclipIcon = /* @__PURE__ */ fromPhosphor(Paperclip);
 export const PencilIcon = /* @__PURE__ */ fromPhosphor(PencilSimple);
+export const PlayIcon = /* @__PURE__ */ fromPhosphor(Play);
 export const PlusIcon = /* @__PURE__ */ fromPhosphor(Plus);
 export const RefreshCwIcon = /* @__PURE__ */ fromPhosphor(ArrowClockwise);
 export const RotateCcwIcon = /* @__PURE__ */ fromPhosphor(
