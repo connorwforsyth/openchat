@@ -89,7 +89,7 @@ export const openEmbeddedDb = (
       message:
         cause instanceof Error
           ? cause.message
-          : JSON.stringify(cause) ?? String(cause),
+          : (JSON.stringify(cause) ?? String(cause)),
       type: "embedded_failed",
     })
   );
