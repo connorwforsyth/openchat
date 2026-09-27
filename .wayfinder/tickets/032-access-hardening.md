@@ -3,7 +3,7 @@ id: "032"
 title: "Security: membership-checked maintainers; runs check agent access"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: ["017"]
 ---
 
