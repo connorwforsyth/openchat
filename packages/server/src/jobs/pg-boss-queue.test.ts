@@ -98,7 +98,7 @@ describe.skipIf(process.env.TEST_DATABASE_URL)("pg-boss JobQueue", () => {
 
   it("rejects a malformed cron", async () => {
     const result = await jobs?.queue.schedule("eval.run", "every day", {
-      suite: "routing",
+      evalRunId: "01a0de5f-bf67-7628-9db6-f0c96ff5586c",
     });
     expect(result).toMatchObject({
       error: { type: "invalid_cron" },
