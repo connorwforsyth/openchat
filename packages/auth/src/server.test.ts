@@ -1,4 +1,5 @@
 import { member, organization, user } from "@workspace/db/schema/auth";
+import { idTimestamp } from "@workspace/shared/ids";
 import { isAPIError } from "better-auth/api";
 import { eq } from "drizzle-orm";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -8,6 +9,9 @@ import { createAuth } from "./server";
 import { createTestAuth, signUp, type TestAuth } from "./testing";
 
 let current: TestAuth | undefined;
+
+const UUID_V4 =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 const setup = async (auth: Record<string, unknown> = {}) => {
   current = await createTestAuth(auth);
@@ -194,6 +198,100 @@ describe("personal orgs", () => {
         })
       )
     ).toBe("PERSONAL_ORG");
+  });
+});
+
+describe("invitations (the id is the invite capability)", () => {
+  /** An admin, their org and a pending invitation for `email`. */
+  const invited = async (auth: TestAuth["auth"], email: string) => {
+    const admin = await signUp(auth, "admin@example.test");
+    const org = await auth.api.createOrganization({
+      body: { name: "Acme", slug: "acme" },
+      headers: admin.headers,
+    });
+    const invitation = await auth.api.createInvitation({
+      body: { email, organizationId: org.id, role: "member" },
+      headers: admin.headers,
+    });
+    return { admin, invitation, org };
+  };
+
+  /** A request to the mounted Better Auth handler, as the shell serves it. */
+  const overHttp = (
+    auth: TestAuth["auth"],
+    path: string,
+    headers: Headers
+  ): Promise<Response> =>
+    auth.handler(
+      new Request(`http://localhost:3000/api/auth${path}`, { headers })
+    );
+
+  it("mints random v4 ids, not time-ordered v7 ones", async () => {
+    const { auth } = await setup({ signup: "open" });
+    const { admin, invitation, org } = await invited(auth, "a@example.test");
+    const second = await auth.api.createInvitation({
+      body: { email: "b@example.test", organizationId: org.id, role: "member" },
+      headers: admin.headers,
+    });
+    for (const id of [invitation.id, second.id]) {
+      expect(id).toMatch(UUID_V4);
+      expect(idTimestamp(id)).toBeUndefined();
+    }
+    expect(second.id).not.toBe(invitation.id);
+    // Everything else keeps UUIDv7 (ticket 008).
+    expect(idTimestamp(org.id)).toBeInstanceOf(Date);
+    expect(idTimestamp(admin.userId)).toBeInstanceOf(Date);
+  });
+
+  it("never lists or shows an invitation over Better Auth's HTTP routes", async () => {
+    const { auth } = await setup();
+    const { admin, invitation, org } = await invited(auth, "bob@example.test");
+    // Someone who signed up with the invited address but has no link.
+    const squatter = await signUp(auth, "bob@example.test");
+
+    const probes = [
+      [squatter, "/organization/list-user-invitations"],
+      [squatter, "/organization/list-user-invitations/"],
+      [squatter, `/organization/get-invitation?id=${invitation.id}`],
+      [admin, `/organization/list-invitations?organizationId=${org.id}`],
+      [admin, `/organization/get-full-organization?organizationId=${org.id}`],
+      [admin, "/organization/list"],
+    ] as const;
+    const statuses = await Promise.all(
+      probes.map(async ([who, path]) => ({
+        path,
+        status: (await overHttp(auth, path, who.headers)).status,
+      }))
+    );
+    expect(statuses).toEqual(probes.map(([, path]) => ({ path, status: 404 })));
+    // The handler itself is live: the session route still answers.
+    const session = await overHttp(auth, "/get-session", squatter.headers);
+    expect(session.status).toBe(200);
+  });
+
+  it("still accepts server-side for the right address, never for another", async () => {
+    const { auth, db } = await setup({ signup: "open" });
+    const { invitation, org } = await invited(auth, "bob@example.test");
+    const eve = await signUp(auth, "eve@example.test");
+    expect(
+      await refusal(
+        auth.api.acceptInvitation({
+          body: { invitationId: invitation.id },
+          headers: eve.headers,
+        })
+      )
+    ).toBe("YOU_ARE_NOT_THE_RECIPIENT_OF_THE_INVITATION");
+
+    const bob = await signUp(auth, "bob@example.test");
+    await auth.api.acceptInvitation({
+      body: { invitationId: invitation.id },
+      headers: bob.headers,
+    });
+    const memberships = await db
+      .select({ orgId: member.organizationId })
+      .from(member)
+      .where(eq(member.userId, bob.userId));
+    expect(memberships).toContainEqual({ orgId: org.id });
   });
 });
 

@@ -1,0 +1,206 @@
+import { implement, ORPCError } from "@orpc/server";
+import { contract } from "@workspace/contract/contract";
+import { baseErrors } from "@workspace/contract/errors";
+import type { OrgId, TeamId, UserId } from "@workspace/contract/schemas/common";
+import type { Principal } from "@workspace/contract/schemas/tenancy";
+import type { Db } from "@workspace/db/client";
+import { personalOrgOf, teamSubtree } from "@workspace/db/queries/teams";
+import {
+  budgetStatuses,
+  deleteBudget,
+  getBudget,
+  listBudgets,
+  listTransactionsFor,
+  setBudget,
+  summarizeUsage,
+  toBudget,
+  toTransaction,
+  type UsageFilter,
+} from "@workspace/db/queries/usage";
+
+import type { RequestContext } from "../context";
+import { administersTeam, isOrgAdmin, teamOrg } from "./roles";
+
+// The `usage` procedure group (D17, D24). Who sees what:
+// - a user sees their own usage, in every context;
+// - a team's totals (its chats and its sub-teams') are for whoever
+//   administers the team: a team admin of it or a team above it, or an org
+//   owner or admin;
+// - an org's totals (everything recorded in it) are for its owners and admins.
+// Budgets are managed by org owners and admins only, team budgets included
+// (team admins don't set their own caps). A user's own budget lives in their
+// personal org, which they own, so they can cap their personal spend.
+
+export interface UsageDeps {
+  readonly db: Db;
+  /** The clock budgets' periods are read against. */
+  readonly now?: () => Date;
+}
+
+const forbidden = () => new ORPCError("FORBIDDEN", baseErrors.FORBIDDEN);
+const notFound = () => new ORPCError("NOT_FOUND", baseErrors.NOT_FOUND);
+const validation = (message: string, path: (string | number)[]) =>
+  new ORPCError("VALIDATION", {
+    data: { issues: [{ message, path }] },
+    message: baseErrors.VALIDATION.message,
+    status: baseErrors.VALIDATION.status,
+  });
+
+export const createUsageRouter = ({
+  db,
+  now = () => new Date(),
+}: UsageDeps) => {
+  const os = implement(contract).$context<RequestContext>();
+  const authed = os.use(({ context, next }) => {
+    if (!context.session) {
+      throw new ORPCError("UNAUTHORIZED", baseErrors.UNAUTHORIZED);
+    }
+    return next({ context: { userId: context.session.userId } });
+  });
+
+  /** The principal as a typed union, from the flat query-string pair. */
+  const principalOf = (input: {
+    readonly principalId: string;
+    readonly principalType: Principal["type"];
+  }): Principal =>
+    ({ id: input.principalId, type: input.principalType }) as Principal;
+
+  /** Whose transactions the caller may read for `principal`; `FORBIDDEN` otherwise. */
+  const readableUsage = async (
+    userId: UserId,
+    principal: Principal
+  ): Promise<UsageFilter> => {
+    switch (principal.type) {
+      case "user":
+        if (principal.id !== userId) {
+          throw forbidden();
+        }
+        return { type: "user", userId };
+      case "team":
+        if (!(await administersTeam(db, principal.id, userId))) {
+          throw forbidden();
+        }
+        return { teamIds: await teamSubtree(db, principal.id), type: "team" };
+      case "org":
+        if (!(await isOrgAdmin(db, principal.id, userId))) {
+          throw forbidden();
+        }
+        return { orgId: principal.id, type: "org" };
+      default:
+        return principal satisfies never;
+    }
+  };
+
+  /** The org a budget for `principal` belongs to; `null` when there's none. */
+  const budgetOrg = (principal: Principal): Promise<OrgId | null> => {
+    switch (principal.type) {
+      case "org":
+        return Promise.resolve(principal.id);
+      case "team":
+        return teamOrg(db, principal.id as TeamId);
+      case "user":
+        return personalOrgOf(db, principal.id);
+      default:
+        return principal satisfies never;
+    }
+  };
+
+  const usage = {
+    budgets: authed.usage.budgets.handler(async ({ context, input }) => {
+      if (!(await isOrgAdmin(db, input.orgId, context.userId))) {
+        throw forbidden();
+      }
+      const rows = await listBudgets(db, input.orgId);
+      const principals = [
+        ...new Map(
+          rows.map((row) => [
+            `${row.principalType}:${row.principalId}`,
+            { id: row.principalId, type: row.principalType } as Principal,
+          ])
+        ).values(),
+      ];
+      const statuses = await budgetStatuses(db, input.orgId, principals, now());
+      return statuses.map(toBudget);
+    }),
+
+    deleteBudget: authed.usage.deleteBudget.handler(
+      async ({ context, input }) => {
+        const found = await getBudget(db, input.id);
+        if (
+          !(
+            found.ok &&
+            (await isOrgAdmin(db, found.value.orgId, context.userId))
+          )
+        ) {
+          throw notFound();
+        }
+        await deleteBudget(db, input.id);
+      }
+    ),
+
+    setBudget: authed.usage.setBudget.handler(async ({ context, input }) => {
+      const orgId = await budgetOrg(input.principal);
+      if (!orgId) {
+        throw notFound();
+      }
+      if (!(await isOrgAdmin(db, orgId, context.userId))) {
+        throw forbidden();
+      }
+      const row = await setBudget(db, {
+        hard: input.hard,
+        limitMicros: input.limitMicros,
+        orgId,
+        period: input.period,
+        principal: input.principal,
+      });
+      const [status] = (
+        await budgetStatuses(db, orgId, [input.principal], now())
+      ).filter((each) => each.id === row.id);
+      if (!status) {
+        throw new Error("budget vanished after upsert");
+      }
+      return toBudget(status);
+    }),
+
+    summary: authed.usage.summary.handler(async ({ context, input }) => {
+      const from = new Date(input.from);
+      const to = new Date(input.to);
+      if (from >= to) {
+        throw validation("`from` must be before `to`.", ["from"]);
+      }
+      const principal = principalOf(input);
+      const filter = await readableUsage(context.userId, principal);
+      const rows = await summarizeUsage(db, filter, {
+        from,
+        groupBy: input.groupBy,
+        to,
+      });
+      return {
+        from: from.toISOString(),
+        principal,
+        rows,
+        to: to.toISOString(),
+        totalCostMicros: rows.reduce((sum, row) => sum + row.costMicros, 0),
+      };
+    }),
+
+    transactions: authed.usage.transactions.handler(
+      async ({ context, input }) => {
+        const filter = await readableUsage(context.userId, principalOf(input));
+        const page = await listTransactionsFor(db, filter, {
+          cursor: input.cursor,
+          limit: input.limit,
+        });
+        if (!page.ok) {
+          throw validation("Unknown cursor.", ["cursor"]);
+        }
+        return {
+          items: page.value.items.map(toTransaction),
+          nextCursor: page.value.nextCursor,
+        };
+      }
+    ),
+  };
+
+  return { usage };
+};

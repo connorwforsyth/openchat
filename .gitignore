@@ -12,3 +12,5 @@ coverage/
 playwright-report/
 test-results/
 next-env.d.ts
+# The embedded database (PGlite) and other local state `bun dev` keeps.
+.data/

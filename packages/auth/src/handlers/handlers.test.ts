@@ -22,6 +22,9 @@ import { authRouter } from "./index";
 
 let current: TestAuth | undefined;
 
+const UUID_V4 =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
 afterEach(async () => {
   await current?.close();
   current = undefined;
@@ -206,6 +209,55 @@ describe("orgs", () => {
     expect(invitations).toEqual([
       expect.objectContaining({ status: "accepted", teamIds: [platform.id] }),
     ]);
+  });
+
+  it("takes an invitation only with its random id and the invited address", async () => {
+    const t = await setup({ signup: "open" });
+    const { ctx, org } = await orgWithTree(t);
+    const first = await call(
+      authRouter.orgs.invite,
+      { email: "bob@example.test", orgId: org.id, role: "member", teamIds: [] },
+      { context: ctx }
+    );
+    const second = await call(
+      authRouter.orgs.invite,
+      { email: "cy@example.test", orgId: org.id, role: "member", teamIds: [] },
+      { context: ctx }
+    );
+    // v4, not v7: the id is the invite link's secret.
+    for (const id of [first.id, second.id]) {
+      expect(id).toMatch(UUID_V4);
+    }
+    // Listing orders by `createdAt`; a v4 id only breaks same-millisecond
+    // ties, arbitrarily but stably, so only membership is asserted here.
+    const listed = await call(
+      authRouter.orgs.listInvitations,
+      { orgId: org.id },
+      { context: ctx }
+    );
+    expect(listed.map((each) => each.id).sort()).toEqual(
+      [first.id, second.id].sort()
+    );
+
+    const eve = await contextOf(t, await signUp(t.auth, "eve@example.test"));
+    expect(
+      await failure(
+        call(
+          authRouter.orgs.acceptInvitation,
+          { id: first.id },
+          { context: eve }
+        )
+      )
+    ).toBe("FORBIDDEN");
+
+    const bob = await contextOf(t, await signUp(t.auth, "bob@example.test"));
+    expect(
+      await call(
+        authRouter.orgs.acceptInvitation,
+        { id: first.id },
+        { context: bob }
+      )
+    ).toMatchObject({ id: org.id, myRole: "member" });
   });
 
   it("hides an org from non-members and keeps members from admin work", async () => {

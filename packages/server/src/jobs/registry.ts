@@ -1,6 +1,11 @@
 import {
+  INGEST_FILE_JOB,
+  ingestFileJobDataSchema,
+  REINDEX_EMBEDDINGS_JOB,
+  reindexEmbeddingsJobDataSchema,
+} from "@workspace/ai/rag/ingest";
+import {
   conversationIdSchema,
-  fileIdSchema,
   runIdSchema,
   userIdSchema,
 } from "@workspace/contract/schemas/common";
@@ -14,15 +19,17 @@ import type { JobHandler, JobQueue, SendOptions } from "../ports/job-queue";
 // `apps/worker` later means calling `registerJobs` there instead of in `web`;
 // no job code changes.
 //
-// Jobs without a handler yet (`file.ingest`, `file.reindex`, `eval.run`) are
-// declared so producers can type against them; their workstreams (021, 022)
-// pass the handler in `JobHandlers`. Until then such jobs wait in the queue
-// rather than being dropped.
+// Handlers from other workstreams arrive in `JobHandlers` (ingestion and
+// re-indexing from 021's `createKnowledgeJobs`, under the names it enqueues
+// with). `eval.run` has no handler until agent evals land (Agents+ wave);
+// such jobs wait in the queue rather than being dropped.
 
 export const jobSchemas = {
   "eval.run": z.object({ suite: z.string().min(1).max(200) }),
-  "file.ingest": z.object({ fileId: fileIdSchema }),
-  "file.reindex": z.object({ fileId: fileIdSchema }),
+  /** Parses, chunks and embeds one uploaded file (PLAN.md §8 RAG). */
+  [INGEST_FILE_JOB]: ingestFileJobDataSchema,
+  /** Queues ingestion for every file embedded with another model. */
+  [REINDEX_EMBEDDINGS_JOB]: reindexEmbeddingsJobDataSchema,
   /** Drops a finished run's stored chunks; resume only needs them for a while. */
   "run.prune": z.object({ runId: runIdSchema }),
   /** Deletes idle Agent Builder test chats (033); runs on a schedule. */
@@ -45,8 +52,13 @@ export const JOB_NAMES = Object.keys(jobSchemas) as JobName[];
 /** Defaults per job; callers may override. */
 export const jobDefaults: { readonly [N in JobName]: SendOptions } = {
   "eval.run": { expireInSeconds: 3600, retryLimit: 0 },
-  "file.ingest": { retryBackoff: true, retryDelaySeconds: 10, retryLimit: 3 },
-  "file.reindex": { retryBackoff: true, retryDelaySeconds: 10, retryLimit: 3 },
+  [INGEST_FILE_JOB]: {
+    retryBackoff: true,
+    retryDelaySeconds: 10,
+    retryLimit: 3,
+  },
+  // One pass enqueues per-file jobs; a failed pass is redone at next boot.
+  [REINDEX_EMBEDDINGS_JOB]: { retryLimit: 1, singletonKey: "reindex" },
   // Long enough for a dropped client to reconnect and replay.
   "run.prune": { retryLimit: 1, startAfterSeconds: 600 },
   // The next scheduled pass picks up whatever a failed one left.

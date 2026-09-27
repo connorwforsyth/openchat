@@ -198,3 +198,56 @@ export const toProviderKey = (row: ProviderKeyRow): ProviderKey => ({
   scope: { id: row.scopeId, type: row.scopeType } as ProviderKey["scope"],
   source: "database",
 });
+
+// --- Added for the keys API and the database KeyStore (ticket 038) ---
+
+/**
+ * One key by id alone, public fields only. For a handler that is handed just
+ * an id: it reads the owning scope here, checks the caller may manage it,
+ * then goes through the scoped functions above.
+ */
+export const getProviderKey = async (
+  db: Db,
+  id: ProviderKeyId
+): AsyncResult<ProviderKeyRow, NotFoundError> => {
+  const [row] = await db
+    .select(publicColumns)
+    .from(providerKey)
+    .where(eq(providerKey.id, id));
+  return row ? ok(row) : err(notFound("provider_key", id));
+};
+
+/** Keys held by any of `scopes`, oldest first; public fields only. */
+export const listProviderKeysForScopes = async (
+  db: Db,
+  scopes: readonly KeyScopeRef[]
+): Promise<ProviderKeyRow[]> => {
+  if (scopes.length === 0) {
+    return [];
+  }
+  return await db
+    .select(publicColumns)
+    .from(providerKey)
+    .where(or(...scopes.map(inScope)))
+    .orderBy(asc(providerKey.createdAt));
+};
+
+export type SealedProviderKeyRow = ProviderKeyRow & SealedKey;
+
+/**
+ * Keys held by any of `scopes`, sealed key included, for the KeyStore to
+ * open just before a call. Never log or return what this gives back.
+ */
+export const listSealedKeysForScopes = async (
+  db: Db,
+  scopes: readonly KeyScopeRef[]
+): Promise<SealedProviderKeyRow[]> => {
+  if (scopes.length === 0) {
+    return [];
+  }
+  return await db
+    .select()
+    .from(providerKey)
+    .where(or(...scopes.map(inScope)))
+    .orderBy(asc(providerKey.createdAt));
+};
