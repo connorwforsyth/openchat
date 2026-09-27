@@ -161,7 +161,13 @@ jobs:
           echo "SANDBOX_RUNNER_TOKEN=$token" >> "$GITHUB_ENV"
 
       - name: Start the sandbox profile
-        run: docker compose --profile sandbox up -d --build --wait --wait-timeout 180 docker-socket-proxy sandbox-runner
+        # Retried: Docker Hub blob pulls occasionally fail mid-download on hosted runners.
+        run: |
+          for attempt in 1 2 3; do
+            docker compose --profile sandbox up -d --build --wait --wait-timeout 180 docker-socket-proxy sandbox-runner && exit 0
+            echo "compose up failed (attempt $attempt), retrying"; sleep 10
+          done
+          exit 1
 
       - name: Install
         # Retried once: native builds (better-sqlite3 via evalite) occasionally race in bunx node-gyp.
