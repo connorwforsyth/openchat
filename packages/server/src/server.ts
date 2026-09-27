@@ -44,6 +44,7 @@ import { type App, createApp } from "./app";
 import { type DatabaseProblem, openDatabase } from "./boot/database";
 import type { Session, SessionResolver } from "./context";
 import { mountFileRoutes } from "./http/files";
+import { mountLlmRoute } from "./http/llm";
 import { MCP_OAUTH_CALLBACK_PATH, mountMcpRoutes } from "./http/mcp";
 import { enqueueJob, type JobHandlers } from "./jobs/registry";
 import { type JobRuntime, startJobs } from "./jobs/start";
@@ -67,7 +68,8 @@ import { createStorage } from "./storage/from-config";
 // `apps/worker`. In order: database (Postgres from DATABASE_URL, else the
 // embedded PGlite in `.data/`), auth, the provider registry and key store,
 // the Decider, the embedder, storage, MCP, sandboxes, the job queue with
-// every job registered, then every router behind one Hono app.
+// every job registered, then every router behind one Hono app, plus the
+// plain HTTP routes (auth, downloads, OAuth callbacks, the `/api/llm` proxy).
 //
 // Every piece degrades instead of failing boot (AGENTS.md): no secret in
 // production turns sign-in off, no embedding model turns indexing off, no
@@ -500,6 +502,17 @@ export const createServerFromEnv = async (
         storage: storage.storage,
       });
       mountMcpRoutes(hono, { manager: mcp.manager, resolveSession });
+      mountLlmRoute(hono, {
+        budget: services.budget,
+        config,
+        db,
+        decider,
+        keyStore,
+        orgPolicy,
+        registry,
+        report,
+        resolveSession,
+      });
     },
     services,
   });
