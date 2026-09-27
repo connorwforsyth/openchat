@@ -13,7 +13,7 @@
   },
   "scripts": {
     "lint": "ultracite check",
-    "test": "vitest run",
+    "test": "bun ../../scripts/ci/browser-lock.ts vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

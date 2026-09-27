@@ -141,6 +141,11 @@ frozen interfaces parallel work builds against.
   Postgres is for integration tests only.
 - **API tests** call oRPC handlers in-process through Hono `app.request()`.
 - **Components:** Vitest browser mode + Testing Library. **E2E:** Playwright.
+  A browser-mode package's `test` script is
+  `bun ../../scripts/ci/browser-lock.ts vitest run`, so one browser run is up
+  per machine at a time, and its config sets `connectTimeout`, `maxWorkers`
+  and the in-process network service (ticket 043; enforced by
+  `scripts/ci/vitest-timeouts.test.ts`). Copy an existing browser package.
 - Test the pure core directly; fake ports with the in-memory fakes that ship
   next to each port. No `.only` or `.skip` in commits.
 
