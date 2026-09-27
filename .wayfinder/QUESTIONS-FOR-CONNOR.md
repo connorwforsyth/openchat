@@ -10,6 +10,8 @@ Collected by agents working the map, so you can answer them in one sitting. Each
 
 4. **Contract gaps (042):** seven small contract changes found during integration (invite tokens, `setBudget` orgId, typed missing-key error, nullable `latestVersionId`, a health route, three config fields, shortcut settings). The loop will open one contract PR for you to review and merge.
 
+5. **Start Docker Desktop (045)** when convenient, so the loop can verify the image, compose on Postgres 17, and the sandbox runner before your demo.
+
 ## From the loop
 
 4. **Offline builds (002):** `next/font/google` downloads the Geist fonts at build time, so builds fail offline or in locked-down CI. Switch to the `geist` npm package (self-hosted fonts)? *Loop default if unanswered: yes, being done inside ticket 006.*
@@ -53,3 +55,4 @@ Collected by agents working the map, so you can answer them in one sitting. Each
 42. **Test chat retention (033):** builder test chats are deleted 24 h after their last message (pruned hourly). *Default: keep.*
 43. **Duplicating skills (034):** duplicates still copy skill files and MCP/skill references without checking the copier can use them. Check and drop like knowledge files? *Default: yes, in the Agents+ wave.*
 44. **Chat route bundle (039):** the chat route's first load (754 kB gzip) carries `ai`, `@ai-sdk/gateway`, zod locales and parse5 through chat-ui. Trim them? *Default: yes, after M1 (a lighter client-side message mapper).*
+45. **Secrets generated at first boot (040):** the Docker entrypoint writes random `BETTER_AUTH_SECRET`/`ENCRYPTION_KEY` into the data volume when they're empty, so the quick start needs no `.env` edits. OK? *Default: yes (documented in self-hosting).*

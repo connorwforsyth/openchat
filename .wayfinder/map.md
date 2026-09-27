@@ -99,6 +99,7 @@ brief, and their findings land in `.context/research/`.
 - [Contract gaps](tickets/042-contract-gaps.md): invite tokens, health route, budget scope, cache-persistence policy, shortcut sync ([PR #31](https://github.com/connorwforsyth/openchat/pull/31))
 - [Server follow-ups](tickets/041-server-followups.md): sandbox tools + per-hunk review in turns, `/api/llm`, `eval.run`, migrations at boot ([PR #32](https://github.com/connorwforsyth/openchat/pull/32))
 - [Browser test concurrency](tickets/043-browser-test-concurrency.md): one browser test run at a time machine-wide; stable full runs ([PR #33](https://github.com/connorwforsyth/openchat/pull/33))
+- [Integration: Docker + e2e](tickets/040-integration-e2e.md): Dockerfile, compose, Playwright suite (20 pass) that found and fixed 7 bugs ([PR #34](https://github.com/connorwforsyth/openchat/pull/34)); [Integration](tickets/025-integration.md) closed
 - [WS-shell](tickets/024-ws-shell.md): ⌘K palette, shortcut registry, settings and admin ([PR #20](https://github.com/connorwforsyth/openchat/pull/20))
 - [WS-libraries](tickets/017-ws-libraries.md): Agent/Prompt/Skill/MCP builders, sharing, publishing and library tabs ([PR #22](https://github.com/connorwforsyth/openchat/pull/22))
 - [M1 polish](tickets/031-m1-polish.md): motion audit + guard, narrow-screen layout, batched feedback lookups ([PR #24](https://github.com/connorwforsyth/openchat/pull/24))

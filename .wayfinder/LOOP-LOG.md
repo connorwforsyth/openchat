@@ -47,3 +47,5 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-09-27 · 041 closed · PR #32 · tests 24/24 at concurrency 2
 - 2026-09-27 · added 043 (browser tests under parallel runs)
 - 2026-09-27 · 043 closed · PR #33 · 3×77/77 at default concurrency under load
+- 2026-09-27 · 040 closed · PR #34 · e2e 20/21, 79/79 · 025 closed
+- 2026-09-27 · added 044 (M1 gaps) and 045 (Docker verification, needs Docker Desktop); 026 now waits on both

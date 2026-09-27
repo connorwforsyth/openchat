@@ -2,8 +2,8 @@
 id: "025"
 title: "Integration: wire M1 into apps/web"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: ["011","012","013","014","015","016","017","018","019","020","021","022","023","024"]
 ---
 
@@ -40,3 +40,7 @@ Closes when all three close.
 
 Every `PLAN.md` §11 M1 step passes headlessly (Playwright) except where a human is needed;
 `bun turbo test:e2e` is green in CI.
+
+## Resolution (2026-09-27, loop)
+
+All three parts closed: [038](038-integration-server.md) server wiring (PR #29), [039](039-integration-web.md) web app (PR #30), [040](040-integration-e2e.md) Docker + e2e (PR #34). Follow-ups in 041–044.
