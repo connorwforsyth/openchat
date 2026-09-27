@@ -74,6 +74,7 @@ export default defineProject({
     hookTimeout: 60_000,
     include: ["src/**/*.test.{ts,tsx}"],
     name: "composer",
+    setupFiles: ["./vitest.setup.ts"],
     // Loaded CI runners are several times slower than a laptop (ticket 035).
     testTimeout: 30_000,
   },

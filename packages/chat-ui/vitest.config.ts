@@ -93,6 +93,7 @@ export default defineProject({
     hookTimeout: 60_000,
     include: ["src/**/*.test.{ts,tsx}"],
     name: "chat-ui",
+    setupFiles: ["./vitest.setup.ts"],
     // Lazy chunks (the diff view, the editor) load mid-test; on a busy CI
     // runner running every package at once that takes a while.
     testTimeout: 30_000,
