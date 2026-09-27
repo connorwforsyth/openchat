@@ -28,6 +28,12 @@ import {
 } from "better-auth/plugins";
 
 import {
+  CLIENT_ADDRESS_HEADER,
+  parseTrustedProxies,
+  type TrustedProxies,
+  withClientAddress,
+} from "./client-address";
+import {
   type AuthEnv,
   authEnvSchema,
   resolveSecret,
@@ -215,12 +221,18 @@ const buildAuth = (
   config: AppConfig,
   env: AuthEnv,
   secret: string,
-  passwordHasher?: PasswordHasher
+  {
+    passwordHasher,
+    proxies,
+  }: {
+    readonly passwordHasher?: PasswordHasher;
+    readonly proxies: TrustedProxies;
+  }
 ) => {
   const github = socialCredentials(config, env, "github");
   const google = socialCredentials(config, env, "google");
   const orgs = orgPlugin(db);
-  return betterAuth({
+  const auth = betterAuth({
     advanced: {
       database: {
         // UUIDv7 everywhere, Better Auth's rows included (ticket 008), except
@@ -230,6 +242,10 @@ const buildAuth = (
         generateId: ({ model }) =>
           model === "invitation" ? crypto.randomUUID() : newId(model),
       },
+      // Rate limits and session addresses use the address `handler` below
+      // resolved from `X-Forwarded-For` and `TRUSTED_PROXIES` (044), never
+      // the raw header, whose left end any client can write.
+      ipAddress: { ipAddressHeaders: [CLIENT_ADDRESS_HEADER] },
     },
     baseURL: env.BETTER_AUTH_URL,
     database: drizzleAdapter(db, {
@@ -303,6 +319,11 @@ const buildAuth = (
       },
     },
   });
+  return {
+    ...auth,
+    handler: (request: Request) =>
+      auth.handler(withClientAddress(request, proxies)),
+  };
 };
 
 export type Auth = ReturnType<typeof buildAuth>;
@@ -323,6 +344,13 @@ export const createAuth = ({
 }: CreateAuthOptions): Result<Auth, SecretProblem> => {
   const parsed = authEnvSchema.parse(env);
   const secret = resolveSecret(parsed);
+  const trusted = parseTrustedProxies(parsed.TRUSTED_PROXIES);
+  if (trusted.invalid.length > 0) {
+    log.warn(
+      `[auth] TRUSTED_PROXIES: ignoring ${trusted.invalid.join(", ")} (not an IP address or CIDR range).`
+    );
+  }
+  const options = { passwordHasher, proxies: trusted.proxies };
   switch (secret.kind) {
     case "missing":
       return err(secret.problem);
@@ -330,9 +358,9 @@ export const createAuth = ({
       log.warn(
         "[auth] BETTER_AUTH_SECRET is not set: using a fixed dev-only secret. Sessions are forgeable; set it before deploying (openssl rand -base64 32)."
       );
-      return ok(buildAuth(db, config, parsed, secret.secret, passwordHasher));
+      return ok(buildAuth(db, config, parsed, secret.secret, options));
     case "configured":
-      return ok(buildAuth(db, config, parsed, secret.secret, passwordHasher));
+      return ok(buildAuth(db, config, parsed, secret.secret, options));
     default: {
       const exhaustive: never = secret;
       return exhaustive;

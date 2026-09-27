@@ -1,4 +1,11 @@
-import { member, organization, user } from "@workspace/db/schema/auth";
+import { appConfigSchema } from "@workspace/config/schema";
+import {
+  member,
+  organization,
+  session as sessionTable,
+  user,
+} from "@workspace/db/schema/auth";
+import { createTestDb } from "@workspace/db/testing";
 import { idTimestamp } from "@workspace/shared/ids";
 import { isAPIError } from "better-auth/api";
 import { eq } from "drizzle-orm";
@@ -320,5 +327,89 @@ describe("createAuth", () => {
       log: { warn: () => undefined },
     });
     expect(result).toEqual({ error: { type: "missing_secret" }, ok: false });
+  });
+});
+
+describe("client addresses (044)", () => {
+  /** Signs up over the mounted handler, as a browser behind proxies would. */
+  const signUpOverHttp = (
+    auth: TestAuth["auth"],
+    email: string,
+    headers: Record<string, string>
+  ) =>
+    auth.handler(
+      new Request("http://localhost:3000/api/auth/sign-up/email", {
+        body: JSON.stringify({
+          email,
+          name: "Pat",
+          password: "correct-horse-battery",
+        }),
+        headers: {
+          "content-type": "application/json",
+          origin: "http://localhost:3000",
+          ...headers,
+        },
+        method: "POST",
+      })
+    );
+
+  const sessionAddress = async (db: TestAuth["db"], email: string) => {
+    const [row] = await db
+      .select({ ipAddress: sessionTable.ipAddress })
+      .from(sessionTable)
+      .innerJoin(user, eq(user.id, sessionTable.userId))
+      .where(eq(user.email, email));
+    return row?.ipAddress ?? null;
+  };
+
+  it("records the last hop, not what the client wrote, without trusted proxies", async () => {
+    const { auth, db } = await setup({ signup: "open" });
+    const response = await signUpOverHttp(auth, "pat@example.test", {
+      "x-forwarded-for": "198.51.100.1, 203.0.113.9",
+      "x-resolved-client-address": "192.0.2.77",
+    });
+    expect(response.status).toBe(200);
+    expect(await sessionAddress(db, "pat@example.test")).toBe("203.0.113.9");
+  });
+
+  it("walks past TRUSTED_PROXIES to the client", async () => {
+    const testDb = await createTestDb();
+    const created = createAuth({
+      config: appConfigSchema.parse({ auth: { signup: "open" } }),
+      db: testDb.db,
+      env: {
+        BETTER_AUTH_SECRET: "test-secret-0123456789abcdefghijklmnop",
+        TRUSTED_PROXIES: "10.0.0.0/8, 127.0.0.1",
+      },
+      log: { warn: () => undefined },
+    });
+    if (!created.ok) {
+      throw new Error(created.error.type);
+    }
+    try {
+      const response = await signUpOverHttp(created.value, "sam@example.test", {
+        "x-forwarded-for": "198.51.100.1, 203.0.113.9, 10.0.0.4, 127.0.0.1",
+      });
+      expect(response.status).toBe(200);
+      expect(await sessionAddress(testDb.db, "sam@example.test")).toBe(
+        "203.0.113.9"
+      );
+    } finally {
+      await testDb.close();
+    }
+  });
+
+  it("warns about entries it can't use", () => {
+    const warn = vi.fn();
+    createAuth({
+      config: appConfigSchema.parse({}),
+      db: {} as TestAuth["db"],
+      env: {
+        BETTER_AUTH_SECRET: "x".repeat(40),
+        TRUSTED_PROXIES: "10.0.0.0/8,lb.internal",
+      },
+      log: { warn },
+    });
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("lb.internal"));
   });
 });
