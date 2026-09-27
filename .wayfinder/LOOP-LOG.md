@@ -33,3 +33,6 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-09-27 · 017 (#22), 024 (#20), 030 (#23), 031 (#24) in CI; 032 done locally (stacked on 017); 033, 034 starting
 - 2026-09-27 · 035 closed · PR #25 · CI stability · CI pass
 - 2026-09-27 · 033, 034, 036 done locally (stacked on 017/032)
+- 2026-09-27 · 024 closed · PR #20 · CI pass
+- 2026-09-27 · 017 closed · PR #22 · 73/73 local after rebase, CI pass before
+- 2026-09-27 · 031 closed · PR #24 · motion fix at merge, 73/73 local

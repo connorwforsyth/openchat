@@ -91,6 +91,9 @@ brief, and their findings land in `.context/research/`.
 - [WS-memory-evals](tickets/022-ws-memory-evals.md): Markdown memory with versions and undo, feedback, OTLP traces, dev evals in CI ([PR #17](https://github.com/connorwforsyth/openchat/pull/17))
 - [WS-chat-ui](tickets/015-ws-chat-ui.md): app shell (Classic + Workspace panels), conversation with per-hunk approvals, artifacts panel ([PR #21](https://github.com/connorwforsyth/openchat/pull/21))
 - [CI-safe timeouts](tickets/035-ci-timeouts.md): test/hook timeouts everywhere with a guard; retried install and compose ([PR #25](https://github.com/connorwforsyth/openchat/pull/25))
+- [WS-shell](tickets/024-ws-shell.md): ⌘K palette, shortcut registry, settings and admin ([PR #20](https://github.com/connorwforsyth/openchat/pull/20))
+- [WS-libraries](tickets/017-ws-libraries.md): Agent/Prompt/Skill/MCP builders, sharing, publishing and library tabs ([PR #22](https://github.com/connorwforsyth/openchat/pull/22))
+- [M1 polish](tickets/031-m1-polish.md): motion audit + guard, narrow-screen layout, batched feedback lookups ([PR #24](https://github.com/connorwforsyth/openchat/pull/24))
 - [WS-importers](tickets/023-ws-importers.md): ChatGPT, Claude and LibreChat importers with branch trees; fork ([PR #13](https://github.com/connorwforsyth/openchat/pull/13))
 - [WS-ai](tickets/013-ws-ai.md): provider registry, key resolution, agent runner with approvals, Decider, `/api/llm` handler ([PR #11](https://github.com/connorwforsyth/openchat/pull/11))
 

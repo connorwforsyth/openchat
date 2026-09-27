@@ -2,8 +2,8 @@
 id: "031"
 title: "M1 polish: motion audit, narrow screens, batched feedback"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: ["015"]
 ---
 
@@ -23,3 +23,7 @@ client hook, no contract change if an existing procedure fits; otherwise report)
 
 No height/width animations remain in shared components; `/dev/chat` works at 375 px; one feedback
 request per branch view.
+
+## Resolution (2026-09-27, loop)
+
+Merged in [PR #24](https://github.com/connorwforsyth/openchat/pull/24): D28 motion audit across `packages/ui` (instant in, token fade out, no height/`transition-all`; switch and toggle fixed at merge), a motion guard in `scripts/ci`, narrow-screen shell (sidebar and panel as sheets, condensed header, `dvh`, safe-area composer), `useBranchFeedback` batching lookups. Verified: 73/73 turbo tasks; `/dev/chat` at 375×812 and desktop; CI passed. Open: true one-request feedback via oRPC batching (025).
