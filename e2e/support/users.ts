@@ -31,8 +31,8 @@ export const storageStateFor = (name: UserName): string =>
 /**
  * Clicks an auth form's submit button and waits for Better Auth's answer.
  * Sign-in and sign-up are rate limited (3 per 10 s per client address, and
- * without a trusted proxy header every client shares one bucket), so a 429
- * waits out `X-Retry-After` and submits again, as a patient person would.
+ * every browser here is the same address, 127.0.0.1), so a 429 waits out
+ * `X-Retry-After` and submits again, as a patient person would.
  */
 const AUTH_SUBMIT = /\/api\/auth\/sign-(in|up)\//;
 

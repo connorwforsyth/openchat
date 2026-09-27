@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { apiFor, eventually } from "../support/api";
+import { apiFor } from "../support/api";
 import {
   assistantMessages,
   composer,
@@ -31,14 +31,18 @@ test("a new chat streams a reply, gets a title, and records the boot timings", a
   const id = await conversationIdOf(page);
   await expect(userMessages(page)).toHaveCount(1);
 
-  // Titles come from a background job on the cheap model (§11 step 10).
-  const api = await apiFor(page, baseURL ?? "");
+  // Titles come from a background job on the cheap model (§11 step 10),
+  // and show up on the open page, in the sidebar and the header, without
+  // a reload (044).
   const title = "Topic Hello zebracorn alpha";
-  const titled = await eventually(
-    () => api.conversations.get({ id }),
-    (chat) => chat.title === title
-  );
-  expect(titled.title).toBe(title);
+  await expect(
+    page.getByRole("complementary", { name: "Chats" }).getByText(title)
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: `Rename chat: ${title}` })
+  ).toBeVisible();
+  const api = await apiFor(page, baseURL ?? "");
+  expect((await api.conversations.get({ id })).title).toBe(title);
 
   // A second turn in the same chat, and the boot timings of a chat page.
   await page.reload();
@@ -48,12 +52,6 @@ test("a new chat streams a reply, gets a title, and records the boot timings", a
   });
   await expectReply(page, "Echo: And a second turn");
   await expect(assistantMessages(page)).toHaveCount(2);
-  // The title isn't pushed to an open page: it shows once the chat list is
-  // next fetched (a finished turn refreshes it; so does a load after the
-  // 30 s the cached list counts as fresh).
-  await expect(
-    page.getByRole("complementary", { name: "Chats" }).getByText(title)
-  ).toBeVisible();
 });
 
 test("closing the tab mid-reply and reopening resumes the stream", async ({

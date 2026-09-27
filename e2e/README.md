@@ -18,10 +18,17 @@ The mock's replies are steered by the message (see the comment at its top):
 `[slow]` streams slowly, `[tool:<name> <json>]` calls a tool, `remember …`
 calls `update_memory`, `[search:…]` calls `file_search`, anything else echoes.
 
-`accounts.setup.ts` runs first: the first sign-up (the admin), an org with a
-team tree, and two more people joining by invitation link. The specs build on
-the browser state and ids it saves in `e2e/.auth/` (gitignored). One worker,
-in file order, against one server.
+`accounts.setup.ts` runs first: the first sign-up (the admin), an org made
+from the account menu with a team tree, and two more people joining by the
+invite links the members page shows. The specs build on the browser state and
+ids it saves in `e2e/.auth/` (gitignored). One worker, in file order, against
+one server. Specs drive the UI; the typed API client (`support/api.ts`) only
+reads back what the UI implies and sets up what isn't this suite's subject
+(publishing an agent, granting access, a team key).
+
+The server trusts loopback as its proxy (`TRUSTED_PROXIES`), so a request
+that carries `X-Forwarded-For` reads as a client behind a proxy
+(`proxy.spec.ts`: sign-in rate limits per client address).
 
 The D27 timings (TTFB, `composer:ready`, first token) are recorded as the
 suite goes and printed at the end.

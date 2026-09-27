@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { apiFor, eventually } from "../support/api";
 import {
-  composer,
+  composerReady,
   conversationIdOf,
   expectReply,
   send,
@@ -12,6 +12,7 @@ import { makePdf } from "../support/pdf";
 import { storageStateFor } from "../support/users";
 
 const SEARCH_RESULT = /Tool result: .*heliotrope budget grew/;
+const ATTACHED_RESULT = /Tool result: .*saffron forecast doubled/;
 
 // PLAN.md §11 M1 step 10: an uploaded PDF becomes searchable through the
 // in-process job queue (parse, chunk, embed with the mock embedding model),
@@ -22,6 +23,10 @@ test.use({ storageState: storageStateFor("ada") });
 const REPORT = [
   "Quarterly report for the platform team.",
   "The heliotrope budget grew by twelve percent this quarter.",
+];
+const ATTACHED = [
+  "Annual outlook for the platform team.",
+  "The saffron forecast doubled after the spring review.",
 ];
 
 test("a PDF attached to a chat is indexed and searchable, from the API and the chat", async ({
@@ -64,21 +69,20 @@ test("a PDF attached to a chat is indexed and searchable, from the API and the c
   await expectReply(page, SEARCH_RESULT);
 });
 
-// Attaching the PDF in the composer sends it with the message as a file
-// part, and a model that can't take PDFs (any openai-compatible one, like
-// Ollama or this suite's mock) fails the turn: "The conversation couldn't be
-// prepared for the model." Plain chats should fall back to `file_search`
-// over the attachment instead of inlining it. Found by 040; unfixed.
-// biome-ignore lint/suspicious/noSkippedTests: a known bug (above), kept runnable for the fix.
-test.fixme("a PDF attached in the composer goes with the message", async ({
+// Attached in the composer, the PDF goes with the message. The suite's
+// model is openai-compatible, which reads no PDFs (044): the turn doesn't
+// fail; the model is told a file came with it, and once the upload is
+// indexed the chat searches it with `file_search`.
+test("a PDF attached in the composer goes with the message", async ({
+  baseURL,
   page,
 }) => {
   await page.goto("/");
-  await expect(composer(page)).toBeEditable();
+  await composerReady(page);
   const chooser = page.waitForEvent("filechooser");
   await page.getByRole("button", { name: "Attach files" }).click();
   await (await chooser).setFiles({
-    buffer: makePdf(REPORT),
+    buffer: makePdf(ATTACHED),
     mimeType: "application/pdf",
     name: "attached-report.pdf",
   });
@@ -86,4 +90,18 @@ test.fixme("a PDF attached in the composer goes with the message", async ({
   await send(page, "Here is the quarterly report");
   await expectReply(page, "Echo: Here is the quarterly report");
   await expect(userMessages(page).first()).toContainText("attached-report.pdf");
+
+  const api = await apiFor(page, baseURL ?? "");
+  const conversationId = await conversationIdOf(page);
+  const attached = await eventually(
+    async () =>
+      (await api.files.list({ conversationId, limit: 5 })).items.find(
+        (file) => file.name === "attached-report.pdf"
+      ),
+    (file) => file?.status.state === "ready" || file?.status.state === "failed",
+    { timeoutMs: 45_000 }
+  );
+  expect(attached?.status.state).toBe("ready");
+  await send(page, "[search:saffron forecast] what does it say?");
+  await expectReply(page, ATTACHED_RESULT);
 });

@@ -28,6 +28,18 @@ export const conversationIdOf = async (page: Page): Promise<ConversationId> => {
 };
 
 /**
+ * Waits for the live composer. The server renders a look-alike shell, which
+ * the editor replaces once it loads: a menu opened or a button pressed in
+ * the shell is gone with it.
+ */
+export const composerReady = async (page: Page) => {
+  await page.waitForFunction(
+    () => performance.getEntriesByName("composer:ready", "mark").length > 0
+  );
+  await expect(composer(page)).toBeEditable();
+};
+
+/**
  * Types `text` and sends it with Enter. With `measure`, records first-token
  * latency: from the Enter keydown to the first streamed text of the reply
  * (`measure.token`) on screen, both timed inside the page.
@@ -42,11 +54,7 @@ export const send = async (
   } = {}
 ) => {
   const input = composer(page);
-  // The server renders a look-alike shell; type once the editor is live.
-  await page.waitForFunction(
-    () => performance.getEntriesByName("composer:ready", "mark").length > 0
-  );
-  await expect(input).toBeEditable();
+  await composerReady(page);
   await input.click();
   await input.pressSequentially(text);
   if (measure) {
@@ -104,4 +112,30 @@ export const expectReply = async (page: Page, text: string | RegExp) => {
   const reply = assistantMessages(page).last();
   await expect(reply).toContainText(text, { timeout: 30_000 });
   return reply;
+};
+
+const ANY_TARGET = /^Model or agent:/;
+
+/** The composer's model and agent picker, showing `label`. */
+export const targetPicker = (page: Page, label?: string): Locator =>
+  page.getByRole("button", {
+    name: label === undefined ? ANY_TARGET : `Model or agent: ${label}`,
+  });
+
+/**
+ * Picks what answers from the composer's picker: `name` in the menu group
+ * labelled `group` ("My agents", "Shared with me", "Team & org agents", or
+ * a provider).
+ */
+export const pickTarget = async (
+  page: Page,
+  { group, name }: { readonly group: string; readonly name: string }
+) => {
+  await composerReady(page);
+  await targetPicker(page).click();
+  await page
+    .getByRole("group", { name: group })
+    .getByRole("menuitemradio", { name })
+    .click();
+  await expect(targetPicker(page, name)).toBeVisible();
 };

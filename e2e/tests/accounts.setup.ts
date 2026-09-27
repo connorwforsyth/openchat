@@ -8,8 +8,9 @@ import {
   test as setup,
 } from "@playwright/test";
 
+import { createOrg, createTeam, invite } from "../support/admin";
 import { apiFor, saveWorld } from "../support/api";
-import { clickHydrated, hydrated } from "../support/hydration";
+import { hydrated } from "../support/hydration";
 import { HOME_URL, SIGN_IN_URL, SIGN_UP_FOR_INVITE_URL } from "../support/urls";
 import {
   signUp,
@@ -21,9 +22,10 @@ import {
 
 // PLAN.md §11 M1 steps 1 and 2 on a server that has never had a user:
 // the first sign-up becomes the admin; nobody else gets in without an
-// invitation; an org gets a team tree (Eng › Platform); the others join by
-// invitation link. Every later spec starts from the browser state and the
-// ids saved here.
+// invitation; an org, made from the account menu, gets a team tree
+// (Eng › Platform); the others join by the invite links Members shows, each
+// into a team. All through the UI (044); the API only reads back. Every
+// later spec starts from the browser state and the ids saved here.
 
 // Four sign-ups inside Better Auth's sign-up rate limit window (3 per 10 s)
 // wait some of it out (support/users.ts), so this takes longer than most.
@@ -40,11 +42,11 @@ const joinByInvite = async (
   browser: Browser,
   baseURL: string,
   user: TestUser,
-  invitationId: string
+  link: string
 ) => {
   const context = await browser.newContext({ baseURL });
   const page = await context.newPage();
-  await page.goto(`/invite/${invitationId}`);
+  await page.goto(link);
   await expect(
     page.getByRole("heading", { name: "You've been invited" })
   ).toBeVisible();
@@ -52,7 +54,7 @@ const joinByInvite = async (
   await expect(page).toHaveURL(SIGN_UP_FOR_INVITE_URL);
   await signUp(page, user);
   // Back on the invitation, now signed in, to accept it.
-  await expect(page).toHaveURL(new RegExp(`/invite/${invitationId}`));
+  await expect(page).toHaveURL(new RegExp(`${new URL(link).pathname}$`));
   await (
     await hydrated(page.getByRole("button", { name: "Accept invitation" }))
   ).click();
@@ -85,21 +87,16 @@ setup(
     const adaMe = await ada.me.get();
     expect(adaMe.user.isAdmin).toBe(true);
 
-    // Orgs have no "create" screen yet (only the API); teams and invitations do.
-    const org = await ada.orgs.create({ name: "Acme", slug: "acme" });
-
-    await page.goto(`/admin/${org.id}/teams`);
+    // An org from the account menu (044); it opens on its (empty) teams.
+    const orgId = await createOrg(page, {
+      name: "Acme",
+      owner: users.ada.name,
+    });
     await expect(page.getByText("No teams yet")).toBeVisible();
-    await page.getByLabel("Team name").fill("Eng");
-    await clickHydrated(page.getByRole("button", { name: "Create team" }));
-    await expect(page.getByText("Eng", { exact: true })).toBeVisible();
-    await page.getByLabel("Team name").fill("Platform");
-    await page.getByRole("combobox", { name: "Inside" }).click();
-    await page.getByRole("option", { name: "Eng" }).click();
-    await clickHydrated(page.getByRole("button", { name: "Create team" }));
-    await expect(page.getByText("Platform", { exact: true })).toBeVisible();
+    await createTeam(page, { name: "Eng" });
+    await createTeam(page, { name: "Platform", parent: "Eng" });
 
-    const teams = await ada.teams.list({ orgId: org.id });
+    const teams = await ada.teams.list({ orgId });
     const eng = teams.find((team) => team.name === "Eng");
     const platform = teams.find((team) => team.name === "Platform");
     expect(eng?.parentId).toBeNull();
@@ -118,45 +115,53 @@ setup(
     ).toBeVisible();
     await stranger.close();
 
-    // Invite Ben from the members screen; the link is /invite/<id>.
-    await page.goto(`/admin/${org.id}/members`);
-    await page.getByLabel("Email").fill(users.ben.email);
-    await clickHydrated(page.getByRole("button", { name: "Invite" }));
-    await expect(page.getByText(users.ben.email)).toBeVisible();
-    const invitations = await ada.orgs.listInvitations({ orgId: org.id });
-    const benInvite = invitations.find(
-      (invitation) => invitation.email === users.ben.email
-    );
-    expect(benInvite?.status).toBe("pending");
-    if (!benInvite) {
-      throw new Error("no invitation for Ben");
-    }
-    const cyInvite = await ada.orgs.invite({
-      email: users.cy.email,
-      orgId: org.id,
-      teamIds: [eng.id],
+    // Invitations from Members, each into a team; the page shows the
+    // one-time link, and its Copy button puts it on the clipboard (042's
+    // token: /invite/<token>).
+    await page
+      .context()
+      .grantPermissions(["clipboard-read", "clipboard-write"], {
+        origin: baseURL,
+      });
+    await page.goto(`/admin/${orgId}/members`);
+    const benLink = await invite(page, {
+      email: users.ben.email,
+      team: "Platform",
     });
+    await page.getByRole("button", { name: "Copy" }).click();
+    await expect(page.getByRole("button", { name: "Copied" })).toBeVisible();
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
+      benLink
+    );
+    const cyLink = await invite(page, { email: users.cy.email, team: "Eng" });
+    expect(cyLink).not.toBe(benLink);
+    const invitations = await ada.orgs.listInvitations({ orgId });
+    expect(
+      invitations
+        .filter((invitation) => invitation.status === "pending")
+        .map((invitation) => [invitation.email, invitation.teamIds])
+    ).toEqual(
+      expect.arrayContaining([
+        [users.ben.email, [platform.id]],
+        [users.cy.email, [eng.id]],
+      ])
+    );
 
-    const ben = await joinByInvite(browser, baseURL, users.ben, benInvite.id);
+    // Ben works in Platform (and so, through the tree, under Eng); Cy in Eng.
+    const ben = await joinByInvite(browser, baseURL, users.ben, benLink);
     const benMe = await (await apiFor(ben.page, baseURL)).me.get();
     expect(benMe.user.isAdmin).toBe(false);
     expect(benMe.orgs.map((each) => each.name)).toContain("Acme");
+    expect(benMe.teams.map((each) => each.team.name)).toContain("Platform");
 
-    const cy = await joinByInvite(browser, baseURL, users.cy, cyInvite.id);
+    const cy = await joinByInvite(browser, baseURL, users.cy, cyLink);
     const cyMe = await (await apiFor(cy.page, baseURL)).me.get();
     expect(cyMe.teams.map((each) => each.team.name)).toContain("Eng");
-
-    // Ben works in Platform (and so, through the tree, under Eng).
-    await ada.teams.addMember({
-      role: "member",
-      teamId: platform.id,
-      userId: benMe.user.id,
-    });
 
     await saveState(page, "ada");
     await saveState(ben.page, "ben");
     await saveState(cy.page, "cy");
-    await saveWorld({ eng: eng.id, orgId: org.id, platform: platform.id });
+    await saveWorld({ eng: eng.id, orgId, platform: platform.id });
     await ben.context.close();
     await cy.context.close();
   }
