@@ -8,6 +8,8 @@ Collected by agents working the map, so you can answer them in one sitting. Each
 2. **Agent Builder prototype ([010](tickets/010-prototype-agent-builder.md)):** same.
 3. **Theme preset (002):** the scaffold uses shadcn's default preset. When you've picked one on ui.shadcn.com/create, paste the preset code here and the loop runs `shadcn apply`.
 
+4. **Contract gaps (042):** seven small contract changes found during integration (invite tokens, `setBudget` orgId, typed missing-key error, nullable `latestVersionId`, a health route, three config fields, shortcut settings). The loop will open one contract PR for you to review and merge.
+
 ## From the loop
 
 4. **Offline builds (002):** `next/font/google` downloads the Geist fonts at build time, so builds fail offline or in locked-down CI. Switch to the `geist` npm package (self-hosted fonts)? *Loop default if unanswered: yes, being done inside ticket 006.*
@@ -50,3 +52,4 @@ Collected by agents working the map, so you can answer them in one sitting. Each
 41. **Artifact libraries (030):** React artifacts can import only react/react-dom. Allow a curated set (e.g. an icon set exempt from the icon guard, Tailwind's browser build)? *Default: add Tailwind browser + lucide for artifacts only, after M1.*
 42. **Test chat retention (033):** builder test chats are deleted 24 h after their last message (pruned hourly). *Default: keep.*
 43. **Duplicating skills (034):** duplicates still copy skill files and MCP/skill references without checking the copier can use them. Check and drop like knowledge files? *Default: yes, in the Agents+ wave.*
+44. **Chat route bundle (039):** the chat route's first load (754 kB gzip) carries `ai`, `@ai-sdk/gateway`, zod locales and parse5 through chat-ui. Trim them? *Default: yes, after M1 (a lighter client-side message mapper).*

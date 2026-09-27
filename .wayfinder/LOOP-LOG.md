@@ -40,3 +40,5 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-09-27 · 032+034+033+036 closed · PR #27 · local gate 73/73
 - 2026-09-27 · 037 closed · PR #26 · local gate 73/73
 - 2026-09-27 · 030 closed · PR #23 · local gate (chat-ui 93/93 alone; machine load ~100 from 038/039)
+- 2026-09-27 · 038 closed · PR #29 · server wiring · 77/77 local, e2e 8/8
+- 2026-09-27 · added 041 (server follow-ups) and 042 (contract gaps, owner review)

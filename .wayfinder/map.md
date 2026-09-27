@@ -94,6 +94,7 @@ brief, and their findings land in `.context/research/`.
 - [Access hardening](tickets/032-access-hardening.md), [audit follow-ups](tickets/034-audit-followups.md), [draft runs](tickets/033-run-agent-drafts.md), [agent knowledge](tickets/036-agent-knowledge.md): combined ([PR #27](https://github.com/connorwforsyth/openchat/pull/27))
 - [Chat-ui test stability](tickets/037-chat-ui-test-stability.md): deterministic lazy chunks in tests ([PR #26](https://github.com/connorwforsyth/openchat/pull/26))
 - [Artifact runtime](tickets/030-artifact-runtime.md): React/Mermaid/HTML/SVG previews on a separate origin ([PR #23](https://github.com/connorwforsyth/openchat/pull/23))
+- [Integration: server wiring](tickets/038-integration-server.md): everything booted from the environment and mounted at `/api` ([PR #29](https://github.com/connorwforsyth/openchat/pull/29))
 - [WS-shell](tickets/024-ws-shell.md): ⌘K palette, shortcut registry, settings and admin ([PR #20](https://github.com/connorwforsyth/openchat/pull/20))
 - [WS-libraries](tickets/017-ws-libraries.md): Agent/Prompt/Skill/MCP builders, sharing, publishing and library tabs ([PR #22](https://github.com/connorwforsyth/openchat/pull/22))
 - [M1 polish](tickets/031-m1-polish.md): motion audit + guard, narrow-screen layout, batched feedback lookups ([PR #24](https://github.com/connorwforsyth/openchat/pull/24))

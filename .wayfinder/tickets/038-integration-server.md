@@ -2,8 +2,8 @@
 id: "038"
 title: "Integration: server wiring"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -18,3 +18,7 @@ Split from 025 (read its full wiring list). Make `createServerFromEnv` / `create
 ## Done when
 
 An in-process test boots the full app from an empty env on PGlite, signs up the first user, creates a chat, runs a turn with a mock model (streamed, resumed), uploads + searches a file, and uses a library agent; `bun dev` with no `.env` serves `/api/meta`.
+
+## Resolution (2026-09-27, loop)
+
+Merged in [PR #29](https://github.com/connorwforsyth/openchat/pull/29): `createServerFromEnv` boots DB (Postgres or file-backed PGlite with migrations), Better Auth at `/api/auth/*`, key store + org policy, Decider, embedder, storage (signed URLs), MCP manager, pg-boss jobs, and mounts every router; downloads as attachments with `nosniff`; 503 `FEATURE_DISABLED` mappings; random invitation ids; oRPC batching; plain-chat `file_search`; crash recovery for runs; `/api/[[...route]]` mount. Verified: 77/77 local; server e2e test 8/8; empty-env `bun dev` works. Follow-ups: 041 (server) and 042 (contract gaps).
