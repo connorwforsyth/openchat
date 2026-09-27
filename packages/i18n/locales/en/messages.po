@@ -115,12 +115,13 @@ msgstr "{used} of {limit}"
 msgid "A member"
 msgstr "A member"
 
-#: ../library-ui/src/components/mcp-form.tsx
-msgid "A secret is saved. It's never shown; type a new one to replace it."
-msgstr "A secret is saved. It's never shown; type a new one to replace it."
 #: ../chat-ui/src/artifacts/artifact-preview.tsx
 msgid "A React artifact needs a default export: a component or an element."
 msgstr "A React artifact needs a default export: a component or an element."
+
+#: ../library-ui/src/components/mcp-form.tsx
+msgid "A secret is saved. It's never shown; type a new one to replace it."
+msgstr "A secret is saved. It's never shown; type a new one to replace it."
 
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "A simulated shell with an in-memory filesystem. Nothing runs on a real machine."
@@ -2751,6 +2752,7 @@ msgstr "The library didn't load"
 #: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
 msgid "The policy couldn't be saved. Try again."
 msgstr "The policy couldn't be saved. Try again."
+
 #: ../chat-ui/src/artifacts/artifact-preview.tsx
 msgid "The preview runtime isn't responding, so this artifact can't be previewed right now. Its source is in the Code tab."
 msgstr "The preview runtime isn't responding, so this artifact can't be previewed right now. Its source is in the Code tab."
