@@ -434,7 +434,7 @@ describe("builder test chats", () => {
     // nothing else is that old.
     const cutoff = new Date(Date.now() - 180 * 24 * 3600 * 1000);
     await db.execute(
-      sql`update conversation set created_at = ${new Date(cutoff.getTime() - 60_000)} where id = ${idle.id}`
+      sql`update conversation set created_at = ${new Date(cutoff.getTime() - 60_000).toISOString()}::timestamptz where id = ${idle.id}`
     );
 
     expect(await deleteStaleTestChats(db, cutoff)).toBe(1);

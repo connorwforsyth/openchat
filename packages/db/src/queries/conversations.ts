@@ -432,7 +432,9 @@ export const deleteStaleTestChats = (db: Db, before: Date): Promise<number> =>
           eq(conversation.purpose, "test"),
           // `createdAt` first so the partial index narrows the scan.
           lt(conversation.createdAt, before),
-          lt(activityOf, before),
+          // A raw expression has no column codec, so the Date goes in as ISO
+          // text: postgres-js can't bind a Date object itself.
+          sql`${activityOf} < ${before.toISOString()}::timestamptz`,
           sql`not exists (select 1 from ${run} where ${run.conversationId} = ${conversation.id} and ${inArray(run.status, [...ACTIVE_RUN_STATUSES])})`
         )
       );
