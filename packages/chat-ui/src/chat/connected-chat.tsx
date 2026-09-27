@@ -23,7 +23,10 @@ import type {
 import type { Message } from "@workspace/contract/schemas/messages";
 import type { Me, PublicConfig } from "@workspace/contract/schemas/meta";
 import type { ModelOption } from "@workspace/contract/schemas/models";
-import type { RunTarget } from "@workspace/contract/schemas/runs";
+import type {
+  PendingApproval,
+  RunTarget,
+} from "@workspace/contract/schemas/runs";
 import type { ChatContext } from "@workspace/contract/schemas/tenancy";
 import type { FileUIPart, UIMessage } from "ai";
 import {
@@ -147,6 +150,7 @@ const useLiveTurn = ({
   me,
   onFinish,
   stored,
+  storedAt,
   target,
 }: {
   readonly client: ApiClient;
@@ -155,6 +159,8 @@ const useLiveTurn = ({
   readonly me: Me;
   readonly onFinish: () => void;
   readonly stored: readonly Message[];
+  /** When the stored branch was last fetched (`dataUpdatedAt`). */
+  readonly storedAt: number;
   readonly target: RunTarget | null;
 }) => {
   const initialMessages = useMemo(
@@ -179,18 +185,21 @@ const useLiveTurn = ({
   });
   const { messages: live, setMessages, status } = chat;
   const busy = status === "submitted" || status === "streaming";
+  const settling = useSettling({ busy, conversationId, storedAt });
 
-  // Back on the stored branch whenever nothing streams: after a switch, a
-  // refetch or a finished turn.
+  // Back on the stored branch whenever nothing streams and the branch has
+  // caught up: after a switch, a refetch, or the refetch after a turn.
   useEffect(() => {
-    if (!busy) {
+    if (!(busy || settling)) {
       setMessages(initialMessages);
     }
-  }, [busy, initialMessages, setMessages]);
+  }, [busy, initialMessages, setMessages, settling]);
 
   const last = live.at(-1);
-  const streamingMessageId =
-    busy && last?.role === "assistant" ? (last.id as MessageId) : null;
+  const lastAnswer = last?.role === "assistant" ? (last.id as MessageId) : null;
+  const streamingMessageId = busy ? lastAnswer : null;
+  // Until then the finished answer stays as streamed.
+  const liveMessageId = busy || settling ? lastAnswer : null;
   const cache = useRef(new WeakMap<UIMessage, Message>());
   const messages = useMemo(
     () =>
@@ -204,10 +213,10 @@ const useLiveTurn = ({
               now: new Date().toISOString(),
             },
             cache.current,
-            streamingMessageId
+            liveMessageId
           )
         : stored,
-    [conversationId, live, me.user.id, stored, streamingMessageId]
+    [conversationId, live, liveMessageId, me.user.id, stored]
   );
 
   return { chat, messages, streamingMessageId };
@@ -270,6 +279,95 @@ function RunError({
     </p>
   );
 }
+
+/** Tool calls on screen that wait for a decision. Pure. */
+const pendingCallIds = (messages: readonly Message[]): string =>
+  messages
+    .flatMap((message) =>
+      message.parts.flatMap((part) =>
+        part.type === "tool-call" && part.approval.state === "pending"
+          ? [part.toolCallId]
+          : []
+      )
+    )
+    .join(" ");
+
+/**
+ * A reply that pauses for approval does so mid-stream, and the stream
+ * doesn't carry the run's pending approvals: the proposed edits a reviewer
+ * decides hunk by hunk (D16) are on the run. So a call waiting on screen
+ * that the fetched run doesn't list yet fetches it again (040's e2e: the
+ * card offered only approve/reject until a reload).
+ */
+const useApprovalsInSync = ({
+  approvals,
+  messages,
+  onMissing,
+}: {
+  readonly approvals: readonly PendingApproval[] | undefined;
+  readonly messages: readonly Message[];
+  readonly onMissing: () => void;
+}) => {
+  const pending = pendingCallIds(messages);
+  const known = new Set(approvals?.map((approval) => approval.toolCallId));
+  const missing =
+    pending !== "" && pending.split(" ").some((id) => !known.has(id));
+  // The call can reach the screen a moment before the run records the pause,
+  // so a fetch that still finds it running tries again, a few times.
+  const [attempts, setAttempts] = useState(0);
+  useEffect(() => {
+    if (!missing || attempts >= APPROVAL_SYNC_ATTEMPTS) {
+      return;
+    }
+    const timer = setTimeout(
+      () => {
+        onMissing();
+        setAttempts((count) => count + 1);
+      },
+      attempts === 0 ? 0 : APPROVAL_SYNC_RETRY_MS
+    );
+    return () => clearTimeout(timer);
+  }, [attempts, missing, onMissing]);
+  useEffect(() => {
+    if (!missing) {
+      setAttempts(0);
+    }
+  }, [missing]);
+};
+
+const APPROVAL_SYNC_ATTEMPTS = 10;
+const APPROVAL_SYNC_RETRY_MS = 500;
+
+/**
+ * Whether a turn just finished and the stored branch hasn't been fetched
+ * since. The run stores its answer before the stream ends, but the branch
+ * on screen is the one fetched when the turn started (040's e2e: showing it
+ * flashed "This answer stopped early" at the end of every reply). So the
+ * streamed answer stays until the refetch the finish triggers lands.
+ */
+const useSettling = ({
+  busy,
+  conversationId,
+  storedAt,
+}: {
+  readonly busy: boolean;
+  readonly conversationId: ConversationId | null;
+  readonly storedAt: number;
+}): boolean => {
+  const [seen, setSeen] = useState({ busy, conversationId });
+  const [finishedAt, setFinishedAt] = useState<number | null>(null);
+  // Derived during render (React's "adjusting state on a prop change"), so
+  // the render where the turn ends already knows it's settling.
+  if (seen.busy !== busy || seen.conversationId !== conversationId) {
+    setSeen({ busy, conversationId });
+    setFinishedAt(
+      seen.busy && !busy && seen.conversationId === conversationId
+        ? storedAt
+        : null
+    );
+  }
+  return finishedAt !== null && storedAt <= finishedAt;
+};
 
 /**
  * A chat opened while a reply is still being written (the tab was closed or
@@ -427,6 +525,7 @@ export function ConnectedChat({
     me,
     onFinish: refresh,
     stored,
+    storedAt: data.path.dataUpdatedAt,
     target,
   });
   const { regenerate, resumeStream, sendMessage, setMessages } = chat;
@@ -585,6 +684,7 @@ export function ConnectedChat({
     data.activeRun?.state.status === "awaiting_approval"
       ? data.activeRun.state.approvals
       : undefined;
+  useApprovalsInSync({ approvals, messages, onMissing: refresh });
   const current = data.conversation.data;
 
   return (
