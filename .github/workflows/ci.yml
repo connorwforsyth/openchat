@@ -33,7 +33,8 @@ jobs:
           bun-version: 1.4.0
 
       - name: Install
-        run: bun install --frozen-lockfile
+        # Retried once: native builds (better-sqlite3 via evalite) occasionally race in bunx node-gyp.
+        run: bun install --frozen-lockfile || bun install --frozen-lockfile
 
       # Per-package `lint` tasks don't cover root config files, so check the whole tree once.
       - name: Lint repo root
@@ -94,7 +95,8 @@ jobs:
           bun-version: 1.4.0
 
       - name: Install
-        run: bun install --frozen-lockfile
+        # Retried once: native builds (better-sqlite3 via evalite) occasionally race in bunx node-gyp.
+        run: bun install --frozen-lockfile || bun install --frozen-lockfile
 
       - name: Migrations are up to date with the schema
         working-directory: packages/db
@@ -159,10 +161,17 @@ jobs:
           echo "SANDBOX_RUNNER_TOKEN=$token" >> "$GITHUB_ENV"
 
       - name: Start the sandbox profile
-        run: docker compose --profile sandbox up -d --build --wait --wait-timeout 180 docker-socket-proxy sandbox-runner
+        # Retried: Docker Hub blob pulls occasionally fail mid-download on hosted runners.
+        run: |
+          for attempt in 1 2 3; do
+            docker compose --profile sandbox up -d --build --wait --wait-timeout 180 docker-socket-proxy sandbox-runner && exit 0
+            echo "compose up failed (attempt $attempt), retrying"; sleep 10
+          done
+          exit 1
 
       - name: Install
-        run: bun install --frozen-lockfile --filter sandbox-runner
+        # Retried once: native builds (better-sqlite3 via evalite) occasionally race in bunx node-gyp.
+        run: bun install --frozen-lockfile --filter sandbox-runner || bun install --frozen-lockfile --filter sandbox-runner
 
       - name: Smoke test
         working-directory: apps/sandbox-runner
