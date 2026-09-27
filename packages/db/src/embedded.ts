@@ -85,7 +85,11 @@ export const openEmbeddedDb = (
       };
     },
     (cause) => ({
-      message: cause instanceof Error ? cause.message : String(cause),
+      // PGlite can reject with a plain object (a WASM abort, say).
+      message:
+        cause instanceof Error
+          ? cause.message
+          : JSON.stringify(cause) ?? String(cause),
       type: "embedded_failed",
     })
   );
