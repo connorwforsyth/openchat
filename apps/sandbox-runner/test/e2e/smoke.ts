@@ -29,10 +29,34 @@ const PREVIEW_BODY = "hello from the sandbox";
 const PREVIEW_ATTEMPTS = 30;
 const limits = { cpu: 1, diskMb: null, memoryMb: 512, network: false };
 
-// The server the preview step starts; plain Node, so the image needs nothing extra.
-const SERVER = `require("node:http")
-  .createServer((_req, res) => res.end(${JSON.stringify(PREVIEW_BODY)}))
-  .listen(${PREVIEW_PORT}, "0.0.0.0");
+const PREVIEW_ECHO = "hot reload";
+
+// The server the preview step starts; plain Node, so the image needs nothing
+// extra. It also echoes WebSocket messages, the way a dev server's hot reload
+// talks to the page. The image has no `ws`, so the protocol is by hand, and
+// only as much of it as the smoke sends: short masked frames, echoed back
+// unmasked with the same opcode (a close is answered with a close).
+const SERVER = `const { createHash } = require("node:crypto");
+const server = require("node:http").createServer((_req, res) =>
+  res.end(${JSON.stringify(PREVIEW_BODY)})
+);
+server.on("upgrade", (req, socket) => {
+  const accept = createHash("sha1")
+    .update(req.headers["sec-websocket-key"] + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11")
+    .digest("base64");
+  socket.write(
+    "HTTP/1.1 101 Switching Protocols\\r\\nUpgrade: websocket\\r\\nConnection: Upgrade\\r\\n" +
+      "Sec-WebSocket-Accept: " + accept + "\\r\\n\\r\\n"
+  );
+  socket.on("data", (frame) => {
+    const length = frame[1] & 0x7f;
+    const mask = frame.subarray(2, 6);
+    const payload = frame.subarray(6, 6 + length).map((byte, i) => byte ^ mask[i % 4]);
+    socket.write(Buffer.concat([Buffer.from([0x80 | (frame[0] & 0x0f), length]), payload]));
+  });
+  socket.on("error", () => socket.destroy());
+});
+server.listen(${PREVIEW_PORT}, "0.0.0.0");
 `;
 
 /** A failed check. Thrown, and caught once in `main`, like any test assertion. */
@@ -126,6 +150,35 @@ const waitForPreview = async (url: string): Promise<string> => {
   }
   return fail(`the preview at ${url} never answered: ${last}`);
 };
+
+/** Bun's WebSocket takes headers; the DOM typings in scope don't know that. */
+const HeadedWebSocket = WebSocket as unknown as new (
+  url: string,
+  init: { readonly headers: Record<string, string> }
+) => WebSocket;
+
+/**
+ * Sends one WebSocket message through a preview URL and returns the reply;
+ * `null` when the upgrade is refused or nothing comes back. Bun's WebSocket
+ * takes a `Host` header, which is what the proxy routes on (see above).
+ */
+const echoThroughPreview = (url: string, message: string) =>
+  new Promise<string | null>((resolve) => {
+    const parsed = new URL(url);
+    const socket = new HeadedWebSocket(`ws://127.0.0.1:${parsed.port}/`, {
+      headers: { host: parsed.host },
+    });
+    const settle = (reply: string | null) => {
+      clearTimeout(timer);
+      socket.close();
+      resolve(reply);
+    };
+    const timer = setTimeout(() => settle(null), 5000);
+    socket.addEventListener("open", () => socket.send(message));
+    socket.addEventListener("message", (event) => settle(String(event.data)));
+    socket.addEventListener("error", () => settle(null));
+    socket.addEventListener("close", () => settle(null));
+  });
 
 /** Everything Docker still has for a sandbox, by kind. */
 const leftovers = (id: SandboxId) => {
@@ -250,6 +303,16 @@ const main = async () => {
       unexposed.status === 404,
       `an unexposed port answered ${unexposed.status}, expected 404`
     );
+    const echoed = await echoThroughPreview(preview.url, PREVIEW_ECHO);
+    check(
+      echoed === PREVIEW_ECHO,
+      `a WebSocket through the preview echoed ${JSON.stringify(echoed)}`
+    );
+    const refused = await echoThroughPreview(
+      preview.url.replace(`-${PREVIEW_PORT}.`, `-${PREVIEW_PORT + 1}.`),
+      PREVIEW_ECHO
+    );
+    check(refused === null, "a WebSocket to an unexposed port was let through");
 
     log("snapshot and restore");
     const snapshot = await must("snapshot", sandbox.snapshot());

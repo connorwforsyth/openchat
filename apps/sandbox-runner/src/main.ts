@@ -6,6 +6,7 @@ import { serve } from "@hono/node-server";
 import { createApp, createPreviewApp } from "./app";
 import { createDockerodePort } from "./dockerode";
 import { egressPolicy, envSchema } from "./env";
+import { createPreviewUpgrade } from "./preview-upgrade";
 import { createRunner, type Log } from "./runner";
 import { selectRuntime } from "./spec";
 
@@ -105,6 +106,8 @@ const main = async () => {
         port: env.RUNNER_PREVIEW_PORT,
       })
     : null;
+  // WebSocket upgrades (dev-server hot reload) skip Hono and arrive here.
+  preview?.on("upgrade", createPreviewUpgrade({ runner }));
   log("info", "sandbox-runner listening", {
     isolation: choice.value.isolation,
     port: env.RUNNER_PORT,

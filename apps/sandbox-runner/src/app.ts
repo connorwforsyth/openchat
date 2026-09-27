@@ -276,8 +276,9 @@ const HOP_BY_HOP = [
 /**
  * The preview proxy: `{id}-{port}.<preview domain>` → the sandbox's port.
  * It listens on its own port and hostname, a separate origin from the app
- * (D24), and forwards only ports the sandbox explicitly exposed. Plain HTTP
- * only for now: no WebSocket upgrades, so dev-server hot reload won't work.
+ * (D24), and forwards only ports the sandbox explicitly exposed. WebSocket
+ * upgrades (dev-server hot reload) never reach Hono; `preview-upgrade.ts`
+ * handles them with the same routing.
  */
 export const createPreviewApp = ({
   fetch: fetchImpl = globalThis.fetch,
