@@ -4,8 +4,14 @@ import {
   materialFile,
   materialPackage,
   materialSymbols,
+  materialVariants,
+  pickGlyphs,
   renderMaterialGlyphs,
+  renderVendoredWeight,
   svgPathData,
+  variantKey,
+  vendoredWeightSchema,
+  vendorWeight,
 } from "./material";
 
 describe("materialSymbols", () => {
@@ -47,9 +53,113 @@ describe("svgPathData", () => {
   });
 });
 
+describe("materialVariants", () => {
+  it("is every style, weight and fill the config accepts", () => {
+    expect(materialVariants).toHaveLength(3 * 7 * 2);
+    expect(materialVariants).toContainEqual({
+      fill: true,
+      style: "sharp",
+      weight: 700,
+    });
+  });
+});
+
+describe("vendorWeight", () => {
+  const svg = (d: string) =>
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="${d}"/></svg>`;
+
+  it("keys each style and fill's paths by symbol", () => {
+    const vendored = vendorWeight(
+      { version: "1.2.3", weight: 300 },
+      ["add"],
+      (file) => svg(file)
+    );
+    expect(vendored.ok && vendored.value.package).toBe(
+      "@material-symbols/svg-300"
+    );
+    expect(vendored.ok && vendored.value.variants).toEqual({
+      outlined: { add: "outlined/add.svg" },
+      "outlined-fill": { add: "outlined/add-fill.svg" },
+      rounded: { add: "rounded/add.svg" },
+      "rounded-fill": { add: "rounded/add-fill.svg" },
+      sharp: { add: "sharp/add.svg" },
+      "sharp-fill": { add: "sharp/add-fill.svg" },
+    });
+  });
+
+  it("fails with every missing or unusable file", () => {
+    const vendored = vendorWeight(
+      { version: "1.2.3", weight: 300 },
+      ["add", "gone"],
+      (file) => {
+        if (file.startsWith("sharp/gone")) {
+          return;
+        }
+        return file === "rounded/add.svg" ? "<svg/>" : svg("M1Z");
+      }
+    );
+    expect(vendored.ok ? [] : vendored.error).toEqual([
+      "@material-symbols/svg-300/rounded/add.svg: not a single path in a 0 -960 960 960 box",
+      "@material-symbols/svg-300/sharp/gone.svg: missing",
+      "@material-symbols/svg-300/sharp/gone-fill.svg: missing",
+    ]);
+  });
+});
+
+describe("pickGlyphs", () => {
+  const data = vendoredWeightSchema.parse({
+    package: "@material-symbols/svg-400",
+    variants: { "rounded-fill": { add: "M1Z", search: "M2Z" } },
+    version: "1.2.3",
+  });
+
+  it("picks the variant's path for each symbol, in order", () => {
+    expect(variantKey({ fill: true, style: "rounded" })).toBe("rounded-fill");
+    expect(
+      pickGlyphs(data, { fill: true, style: "rounded", weight: 400 }, [
+        "search",
+        "add",
+      ])
+    ).toEqual({
+      ok: true,
+      value: [
+        ["search", "M2Z"],
+        ["add", "M1Z"],
+      ],
+    });
+  });
+
+  it("names symbols that were mapped after the last icons:vendor", () => {
+    const picked = pickGlyphs(
+      data,
+      { fill: false, style: "rounded", weight: 400 },
+      ["add"]
+    );
+    expect(picked.ok ? [] : picked.error).toEqual([
+      'material: "add" isn\'t vendored for rounded in svg-400.json; run `bun run icons:vendor` in packages/icons',
+    ]);
+  });
+});
+
+describe("renderVendoredWeight", () => {
+  it("sorts variants and symbols so regenerating diffs cleanly", () => {
+    const source = renderVendoredWeight({
+      package: "@material-symbols/svg-400",
+      variants: { outlined: { c: "M3Z" }, sharp: { a: "M1Z", b: "M2Z" } },
+      version: "1.2.3",
+    });
+    expect(source.indexOf('"outlined"')).toBeLessThan(
+      source.indexOf('"sharp"')
+    );
+    expect(source.indexOf('"a"')).toBeLessThan(source.indexOf('"b"'));
+    expect(source.endsWith("}\n")).toBe(true);
+  });
+});
+
 describe("renderMaterialGlyphs", () => {
   const source = renderMaterialGlyphs(
     { fill: true, style: "rounded", weight: 500 },
+    { package: "@material-symbols/svg-500", version: "0.47.5" },
     [
       ["add", "M1Z"],
       ["delete", "M2Z"],
@@ -57,7 +167,9 @@ describe("renderMaterialGlyphs", () => {
   );
 
   it("exports one string per symbol, naming the variant", () => {
-    expect(source).toContain("@material-symbols/svg-500, rounded,\n// filled.");
+    expect(source).toContain(
+      "vendor/material-symbols/svg-500.json\n// (@material-symbols/svg-500 0.47.5): rounded, filled."
+    );
     expect(source).toContain('export const add = "M1Z";');
   });
 

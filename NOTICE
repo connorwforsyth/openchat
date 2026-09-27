@@ -45,3 +45,12 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+--------------------------------------------------------------------------------
+Material Symbols
+https://github.com/google/material-design-icons
+License: Apache-2.0
+
+Included (unmodified SVG path data for the mapped symbols):
+- packages/icons/vendor/material-symbols: from @material-symbols/svg-100 ...
+  svg-700. See the LICENSE and NOTICE files in that directory.

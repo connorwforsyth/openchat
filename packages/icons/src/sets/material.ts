@@ -4,9 +4,10 @@
 // branch, draws `call_split`).
 //
 // The path data lives in `./material.glyphs`, which `icons:select` generates
-// from `@material-symbols/svg-<weight>` in the configured style, weight and
-// fill, so the choice costs nothing at runtime. Adding a symbol here is all it
-// takes: the generator reads the `glyph.<symbol>` references below.
+// from the committed subset in `vendor/material-symbols` in the configured
+// style, weight and fill, so the choice costs nothing at runtime. To add a
+// symbol, reference it below and run `bun run icons:vendor`: both scripts read
+// the `glyph.<symbol>` references.
 
 import { fromMaterial } from "./adapters";
 // biome-ignore lint/performance/noNamespaceImport: only ever read as static `glyph.<symbol>`, which bundlers shake per member; it's also what the generator keys on.

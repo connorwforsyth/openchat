@@ -1,0 +1,15 @@
+Material Symbols
+================
+
+Material Symbols are by Google (https://github.com/google/material-design-icons)
+and licensed under the Apache License, Version 2.0; see LICENSE in this
+directory.
+
+The svg-<weight>.json files hold the SVG path data of the symbols that
+packages/icons/src/sets/material.ts uses, in the outlined, rounded and sharp
+styles, unfilled and filled, taken from the npm packages
+@material-symbols/svg-100 to svg-700, release 0.47.5
+(https://github.com/marella/material-symbols, Apache-2.0). The paths are
+unchanged; only the <path d="…"> value of each SVG is kept.
+
+Regenerate with `bun run icons:vendor` in packages/icons (see its README).

@@ -57,13 +57,31 @@ file name.
 
 `sets/material.ts` maps names to symbols as `fromMaterial(glyph.<symbol>)`.
 The path data comes from `src/sets/material.glyphs.ts`, which `icons:select`
-generates (gitignored) from `@material-symbols/svg-<weight>` (Apache-2.0) in
-the configured style (`outlined`, `rounded`, `sharp`; default `outlined`),
-weight (100–700; default 400) and fill: SVG paths rather than the variable
-font, so each icon costs a few hundred bytes and unused ones drop out. To map
-another name, add a line with the symbol's name from
-[the catalogue](https://fonts.google.com/icons); `sets.test.ts` checks it
-exists in every variant.
+generates (gitignored) in the configured style (`outlined`, `rounded`,
+`sharp`; default `outlined`), weight (100–700; default 400) and fill: SVG
+paths rather than the variable font, so each icon costs a few hundred bytes
+and unused ones drop out.
+
+It picks them from `vendor/material-symbols/svg-<weight>.json`, a committed
+subset of the `@material-symbols/svg-100…700` packages (Apache-2.0; `LICENSE`
+and `NOTICE` sit beside it): just the mapped symbols, in all 42 style, weight
+and fill variants, about 1.7 MB. The packages themselves are ~165k files, so
+they're not a dependency; `icons:vendor` installs them into a temporary
+directory when it runs.
+
+To map another name, add a line with the symbol's name from
+[the catalogue](https://fonts.google.com/icons), then regenerate the subset
+and commit it:
+
+```sh
+bun run icons:vendor          # same release as the committed data
+bun run icons:vendor 0.48.0   # or move to another release
+```
+
+It fails without writing anything if a symbol is missing or isn't a single
+path in any variant. `sets.test.ts` checks the committed data covers every
+mapped symbol in every variant, so a name mapped without regenerating fails
+the tests (and `icons:select`).
 
 ## Codemod
 
