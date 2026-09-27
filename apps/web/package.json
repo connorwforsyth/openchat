@@ -29,6 +29,7 @@
     "@workspace/library-ui": "workspace:*",
     "@workspace/palette": "workspace:*",
     "@workspace/sandbox": "workspace:*",
+    "@workspace/server": "workspace:*",
     "@workspace/shared": "workspace:*",
     "@workspace/shortcuts": "workspace:*",
     "@workspace/ui": "workspace:*",
