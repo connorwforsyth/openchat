@@ -104,7 +104,7 @@ describe("CommandPalette", () => {
   it("shows cached chats at once, then merges server hits below them", async () => {
     let resolve: (hits: readonly SearchHit[]) => void = () => undefined;
     const searchChats = vi.fn(
-      () =>
+      (_query: string, _options?: unknown) =>
         new Promise<readonly SearchHit[]>((onResolve) => {
           resolve = onResolve;
         })
