@@ -2,7 +2,7 @@
 id: "047"
 title: "Sandbox dev-server previews: exec in $HOME and /tmp, and cross-origin previews"
 labels: [wayfinder:grilling]
-status: open
+status: closed
 assignee:
 blockedBy: []
 ---
@@ -25,3 +25,11 @@ blockedBy: []
 ## Done when
 
 Connor picks an option for each; the loop then builds it in 050.
+
+## Resolution (2026-09-28, Connor)
+
+Connor chose, in chat:
+1. **Allow exec in `$HOME` and `/tmp`**: drop `noexec` from the two tmpfs mounts in the Docker sandbox (`/work` is executable anyway; this also fixes bunx, pip and other tools that run from a cache or temp dir).
+2. **The preview proxy allows the null origin**: it answers `Access-Control-Allow-Origin` for the iframe's opaque origin, so any dev server's module scripts load, and the iframe keeps no `allow-same-origin`.
+
+Built in [050](050-sandbox-dev-previews-build.md).

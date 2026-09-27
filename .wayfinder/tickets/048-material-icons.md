@@ -2,8 +2,8 @@
 id: "048"
 title: "Material Symbols icon set, icons.set from config, lucide only as fallback"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -83,3 +83,7 @@ Left for later:
   server resolves `app.config.yaml` from `apps/web`, its working directory, so a root copy is only
   read with `CONFIG_PATH`. `icons:select` follows the server. Not changed here.
 - Native Material (`material.native.ts`) isn't built; native falls back to lucide as before.
+
+## Resolution (2026-09-28, loop)
+
+Merged in [PR #39](https://github.com/connorwforsyth/openchat/pull/39). Material Symbols (102/103 names), `icons.set` read from config with env overrides and turbo keys, Docker build args, lucide bundled only for gaps. Verified with a material production build and bundle checks; local gate 79/79. Follow-up: vendor only the mapped Material symbols instead of seven ~14 MB packages ([051](051-vendor-material-glyphs.md)).

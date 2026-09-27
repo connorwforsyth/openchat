@@ -103,6 +103,8 @@ brief, and their findings land in `.context/research/`.
 - [M1 gaps](tickets/044-m1-gaps.md): org creation, invite links, agent picker, model-aware attachments, live titles, trusted proxies ([PR #35](https://github.com/connorwforsyth/openchat/pull/35))
 - [Docker verification](tickets/045-docker-verification.md): image, compose on Postgres 17, sandbox runner on runc; one Postgres-only fix ([PR #36](https://github.com/connorwforsyth/openchat/pull/36))
 - [Pre-demo audit](tickets/046-m1-predemo-audit.md): §11 checks outside e2e; `/api/openapi.json`, sandbox panel reload fix, brand e2e ([PR #37](https://github.com/connorwforsyth/openchat/pull/37))
+- [Preview WebSockets](tickets/049-preview-websockets.md): upgrades pass through the preview proxy ([PR #38](https://github.com/connorwforsyth/openchat/pull/38))
+- [Material icons](tickets/048-material-icons.md): Material Symbols set, `icons.set` from config, lucide only for gaps ([PR #39](https://github.com/connorwforsyth/openchat/pull/39))
 - [WS-shell](tickets/024-ws-shell.md): ⌘K palette, shortcut registry, settings and admin ([PR #20](https://github.com/connorwforsyth/openchat/pull/20))
 - [WS-libraries](tickets/017-ws-libraries.md): Agent/Prompt/Skill/MCP builders, sharing, publishing and library tabs ([PR #22](https://github.com/connorwforsyth/openchat/pull/22))
 - [M1 polish](tickets/031-m1-polish.md): motion audit + guard, narrow-screen layout, batched feedback lookups ([PR #24](https://github.com/connorwforsyth/openchat/pull/24))

@@ -58,3 +58,6 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-09-27 · added 046 (pre-demo audit of §11 checks e2e doesn't cover); 026 waits on it
 - 2026-09-28 · 046 closed · PR #37 · pre-demo audit · 79/79, e2e 24/24 · added 047 (Connor: sandbox exec + previews), 048 (Material icons), 049 (preview WebSockets), 050 (build 047)
 - 2026-09-28 · 048, 049 started in parallel
+- 2026-09-28 · 049 closed · PR #38 · preview WebSockets · runner 36/36, Docker smoke with WS echo, 79/79
+- 2026-09-28 · 048 closed · PR #39 · Material icons · material build renders Material, bundle checked, 79/79 · added 051 (vendor glyphs)
+- 2026-09-28 · 047 closed by Connor · exec in $HOME and /tmp; preview proxy allows the null origin · 050 started

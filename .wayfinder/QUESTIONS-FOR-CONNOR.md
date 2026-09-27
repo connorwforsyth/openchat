@@ -5,11 +5,10 @@ Collected by agents working the map, so you can answer them in one sitting. Each
 ## Waiting on you now
 
 1. **M1 demo ([026](tickets/026-m1-demo-gate.md)):** run the `PLAN.md` §11 M1 checks yourself and close the ticket, or list what fails. Closing it lets us chart the waves in a `/wayfinder` session.
-2. **Sandbox dev previews ([047](tickets/047-sandbox-dev-previews.md)):** two choices so `npm create vite` works and Vite previews render in the panel. Blocks the Docker leg of the demo.
-3. **Theme preset (002):** the scaffold uses shadcn's default preset. When you've picked one on ui.shadcn.com/create, paste the preset code here and the loop runs `shadcn apply`.
-4. **Defaults below:** each item under "From the loop" has a default the loop already applied or will apply. Only answer the ones you disagree with.
+2. **Theme preset (002):** the scaffold uses shadcn's default preset. When you've picked one on ui.shadcn.com/create, paste the preset code here and the loop runs `shadcn apply`.
+3. **Defaults below:** each item under "From the loop" has a default the loop already applied or will apply. Only answer the ones you disagree with.
 
-Done: 009 and 010 prototypes, 042 contract PR (#31), Docker verification (045, PR #36).
+Done: 009 and 010 prototypes, 042 contract PR (#31), Docker verification (045, PR #36), sandbox preview choices (047).
 
 ## From the loop
 

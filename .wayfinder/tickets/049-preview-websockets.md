@@ -2,8 +2,8 @@
 id: "049"
 title: "Preview proxy passes WebSocket upgrades (dev-server hot reload)"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -54,3 +54,7 @@ Notes:
   requests. Worth revisiting if HMR sessions get reaped in practice.
 - Vite HMR still needs 047/050's CORS decision before a dev preview renders in the panel's iframe;
   this ticket only removes the WebSocket gap.
+
+## Resolution (2026-09-28, loop)
+
+Merged in [PR #38](https://github.com/connorwforsyth/openchat/pull/38). WebSocket upgrades pass through the preview proxy with the HTTP preview checks; unit tests 36/36; Docker smoke on runc with a WebSocket echo; gate 79/79. Note: an open WebSocket doesn't keep a sandbox from idling out.

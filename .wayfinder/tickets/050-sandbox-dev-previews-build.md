@@ -3,7 +3,7 @@ id: "050"
 title: "Build 047's choices: npm create in sandboxes, and non-blank dev previews"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: ["047", "049"]
 ---
 
