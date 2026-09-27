@@ -28,6 +28,7 @@ import {
   type InProcessExecutor,
   type RunSettled,
 } from "./runs/executor";
+import { type MemorySettings, withChatMemory } from "./runs/memory";
 import {
   createModelLoader,
   createTurnResolver,
@@ -117,12 +118,21 @@ export const createServices = (options: ServicesOptions): Services => {
     }
   };
 
+  const memory: MemorySettings = {
+    enabled: config.features.memory,
+    maxChars: config.limits.memoryMaxChars,
+  };
+
   const executor = createInProcessExecutor({
     db,
     now: options.now,
     onSettled: afterRun,
     report,
-    resolveTurn: options.resolveTurn ?? createTurnResolver(turnDeps),
+    // Memory wraps whichever resolver runs, so scripted test turns get it too.
+    resolveTurn: withChatMemory(
+      options.resolveTurn ?? createTurnResolver(turnDeps),
+      { db, report, settings: memory }
+    ),
     timeoutMs: config.limits.runTimeoutSeconds * 1000,
     writer: streams,
   });
@@ -151,6 +161,7 @@ export const createServices = (options: ServicesOptions): Services => {
     executor,
     jobHandlers,
     loadModel,
+    memory,
     stop: async () => {
       await executor.shutdown();
       await streams.stop();

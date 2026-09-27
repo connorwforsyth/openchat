@@ -29,6 +29,7 @@ export interface CreateAppOptions {
 /** The procedure groups this package serves; they need the database. */
 const CHAT_PATHS = [
   /^\/api\/conversations(\/|$)/,
+  /^\/api\/memory(\/|$)/,
   /^\/api\/messages\//,
   /^\/api\/runs(\/|$)/,
 ];

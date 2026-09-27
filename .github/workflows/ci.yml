@@ -51,6 +51,11 @@ jobs:
       - name: Typecheck, lint, test, build
         run: bun turbo typecheck lint test build
 
+      # Evalite suites on recorded fixtures (D21): no network, no keys. Any
+      # score under 100% fails the step.
+      - name: Dev evals
+        run: bun turbo eval
+
   # PGlite (what `ci` tests on) is Postgres 18; production and compose run 17.
   # This job applies the migrations to a real Postgres 17 with pgvector and
   # runs the db tests there, each in a database of its own.
