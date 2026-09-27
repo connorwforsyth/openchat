@@ -165,7 +165,7 @@ jobs:
 
       - name: Install
         # Retried once: native builds (better-sqlite3 via evalite) occasionally race in bunx node-gyp.
-        run: bun install --frozen-lockfile || bun install --frozen-lockfile --filter sandbox-runner
+        run: bun install --frozen-lockfile --filter sandbox-runner || bun install --frozen-lockfile --filter sandbox-runner
 
       - name: Smoke test
         working-directory: apps/sandbox-runner
