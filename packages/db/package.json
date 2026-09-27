@@ -5,6 +5,7 @@
   "sideEffects": false,
   "type": "module",
   "exports": {
+    "./boot-migrate": "./src/boot-migrate.ts",
     "./client": "./src/client.ts",
     "./embedded": "./src/embedded.ts",
     "./errors": "./src/errors.ts",
