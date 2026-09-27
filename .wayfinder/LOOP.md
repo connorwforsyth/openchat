@@ -16,7 +16,15 @@ Read `.wayfinder/map.md` (Notes and the ownership register), then the parts of
 
 ## One iteration
 
-1. **Housekeeping first: merge what's green.** The repo is private on GitHub's free plan,
+1. **Housekeeping first: merge what's green.**
+   **Merge gate (Connor, 2026-09-27): local.** GitHub Actions minutes for the private repo ran
+   out, so a PR merges when the full local suite passes on the rebased branch: `bun install
+   --frozen-lockfile`, `bun run check`, `bun run check:guards`, `bun turbo typecheck lint test build`
+   (plus `eval` when evals changed). If Docker Desktop is running, also run the db tests against
+   Postgres 17 (`docker compose up -d postgres` + `TEST_DATABASE_URL`) for migrations/queries, and the
+   sandbox smoke test for sandbox changes. If CI happens to run and fails, fix it. The rest of this
+   step describes the CI-era procedure and still applies whenever CI is available.
+ The repo is private on GitHub's free plan,
    so there's no branch protection and no auto-merge. The loop is the merge gate. For each
    open PR on a `t/*` branch (`gh pr list --search "head:t/"`), read `gh pr checks <n>` **once**:
    - **`ci` passed:** merge with `gh pr merge <n> --squash --delete-branch`, then record it (step 7).
