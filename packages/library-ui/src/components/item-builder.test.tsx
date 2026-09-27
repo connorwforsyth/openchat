@@ -1,5 +1,6 @@
 import {
   cleanup,
+  configure,
   render,
   screen,
   waitFor,
@@ -15,6 +16,10 @@ import { EchoTestChat } from "../testing/echo-test-chat";
 import { createFakeLibraryClient } from "../testing/fake-client";
 import { createTestProviders } from "../testing/providers";
 import { type BuilderTarget, ItemBuilder } from "./item-builder";
+
+// The fake server answers after 1.5 s so optimistic states are observable on
+// slow CI runners; async queries must outlast it.
+configure({ asyncUtilTimeout: 5000 });
 
 afterEach(() => {
   cleanup();
@@ -116,7 +121,8 @@ describe("agent builder", () => {
 describe("optimistic saves", () => {
   it("shows the edit at once and rolls it back when the server refuses", async () => {
     const client = createFakeLibraryClient();
-    client.setLatency(150);
+    // Wide enough that the optimistic state is observable on a slow CI runner.
+    client.setLatency(1500);
     const { queryClient } = renderBuilder(
       { id: PROMPT, type: "existing" },
       client
@@ -163,7 +169,8 @@ describe("optimistic saves", () => {
 describe("publish dialog", () => {
   it("publishes the draft as v1 and shows it at once", async () => {
     const client = createFakeLibraryClient();
-    client.setLatency(100);
+    // Wide enough that the optimistic state is observable on a slow CI runner.
+    client.setLatency(1500);
     renderBuilder({ id: SKILL, type: "existing" }, client);
     expect(await screen.findByText("Draft")).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: "Publish" }));
@@ -239,7 +246,8 @@ describe("share dialog", () => {
 
   it("takes a share back out when the server refuses it", async () => {
     const client = createFakeLibraryClient();
-    client.setLatency(100);
+    // Wide enough that the optimistic state is observable on a slow CI runner.
+    client.setLatency(1500);
     client.failNext("grants.create", "VALIDATION");
     renderBuilder({ id: PROMPT, type: "existing" }, client);
     const dialog = await openShare();

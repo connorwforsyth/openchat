@@ -1,5 +1,6 @@
 import {
   cleanup,
+  configure,
   render,
   screen,
   waitFor,
@@ -15,6 +16,10 @@ import { userEvent } from "vitest/browser";
 import { createFakeLibraryClient } from "../testing/fake-client";
 import { createTestProviders } from "../testing/providers";
 import { LibraryIndex } from "./library-index";
+
+// The fake server answers after 1.5 s so optimistic states are observable on
+// slow CI runners; async queries must outlast it.
+configure({ asyncUtilTimeout: 5000 });
 
 afterEach(() => {
   cleanup();
@@ -75,7 +80,8 @@ describe("LibraryIndex", () => {
 
   it("deletes at once after confirming, and puts it back if the server refuses", async () => {
     const client = createFakeLibraryClient();
-    client.setLatency(50);
+    // Wide enough that the optimistic state is observable on a slow CI runner.
+    client.setLatency(1500);
     client.failNext("library.delete", "FORBIDDEN");
     renderIndex(client);
     await waitFor(() => expect(names()).toHaveLength(3));
