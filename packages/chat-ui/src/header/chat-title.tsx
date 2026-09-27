@@ -40,7 +40,7 @@ export function ChatTitle({
     return <h1 className="truncate font-medium text-sm">{shown}</h1>;
   }
   return (
-    <h1 className="min-w-0">
+    <h1 className="flex min-w-0">
       <button
         aria-label={t`Rename chat: ${shown}`}
         className="max-w-full truncate rounded-md px-2 py-1 font-medium text-sm outline-none transition-colors duration-(--motion-fast) hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50"

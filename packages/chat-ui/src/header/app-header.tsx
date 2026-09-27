@@ -44,7 +44,7 @@ export function AppHeader({
   return (
     <header
       className={cn(
-        "grid h-12 shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 border-b px-2",
+        "grid h-12 shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border-b px-2",
         underWindowControls && platformClass[platform],
         // The bar drags the window; anything you can click opts out.
         desktop &&
@@ -58,7 +58,7 @@ export function AppHeader({
       <div className="flex min-w-0 items-center justify-center gap-1">
         {center}
       </div>
-      <div className="flex min-w-0 items-center justify-end gap-1">{end}</div>
+      <div className="flex items-center justify-end gap-1">{end}</div>
     </header>
   );
 }
