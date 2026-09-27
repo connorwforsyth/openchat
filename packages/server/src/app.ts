@@ -3,6 +3,7 @@ import { OpenAPIHandler } from "@orpc/openapi/fetch";
 import type { AnyRouter } from "@orpc/server";
 import { BatchHandlerPlugin } from "@orpc/server/plugins";
 import { ZodToJsonSchemaConverter } from "@orpc/zod/zod4";
+import { generateOpenApi } from "@workspace/contract/openapi";
 import { runIdSchema } from "@workspace/contract/schemas/common";
 import { getRun } from "@workspace/db/queries/runs";
 import { Hono } from "hono";
@@ -97,6 +98,15 @@ export const createApp = ({
   );
 
   routes?.(app);
+
+  // The API's own description (D26, PLAN.md §11 "Contract"), public like the
+  // docs it feeds. Built from the contract this server implements, once, on
+  // first request; `packages/contract/openapi.json` is the same document.
+  let openApi: ReturnType<typeof generateOpenApi> | undefined;
+  app.get("/api/openapi.json", async (c) => {
+    openApi ??= generateOpenApi();
+    return c.json(await openApi);
+  });
 
   // The run stream isn't a procedure: SSE in the AI SDK's UI message stream
   // protocol (contract README "The run stream").

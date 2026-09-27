@@ -598,6 +598,8 @@ export function ConnectedChat({
       api.runs.key(),
       api.conversations.key(),
       api.artifacts.key(),
+      // The agent may have created a sandbox or exposed a preview this turn.
+      api.sandbox.key(),
     ]) {
       queryClient.invalidateQueries({ queryKey: key }).catch(ignore);
     }

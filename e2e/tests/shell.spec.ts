@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 
+import { BRAND_NAME } from "../support/brand";
 import { composer } from "../support/chat";
 import { clickHydrated } from "../support/hydration";
 import {
@@ -12,8 +13,8 @@ import { signIn, storageStateFor, users } from "../support/users";
 
 // The signed-in shell (039): sign-out and back in, a stale session cookie,
 // the persisted query cache (D28: gone after sign-out), the sidebar's
-// collapsed state restored before paint, and library, settings and admin
-// rendered inside the one shell.
+// collapsed state restored before paint, the instance's name from config, and
+// library, settings and admin rendered inside the one shell.
 
 const PERSISTED_KEY = "query-cache";
 
@@ -146,6 +147,29 @@ test.describe("shell", () => {
     // Open it again for the specs that follow.
     await clickHydrated(page.getByRole("button", { name: "Toggle sidebar" }));
     await expect(sidebar).toBeVisible();
+  });
+
+  // D18: the instance's name is `brand.name` from app.config.yaml (serve.ts
+  // sets it), never a literal: the page title everywhere, the sidebar, and
+  // the signed-out pages.
+  test("the name comes from config", async ({ baseURL, browser, page }) => {
+    for (const path of ["/", "/library", "/settings/profile"]) {
+      // biome-ignore lint/performance/noAwaitInLoops: one page, visited in turn.
+      await page.goto(path);
+      await expect(page).toHaveTitle(BRAND_NAME);
+    }
+    await expect(
+      page
+        .getByRole("complementary", { name: "Chats" })
+        .getByText(BRAND_NAME, { exact: true })
+    ).toBeVisible();
+
+    const signedOut = await browser.newContext({ baseURL });
+    const visitor = await signedOut.newPage();
+    await visitor.goto("/sign-in");
+    await expect(visitor).toHaveTitle(BRAND_NAME);
+    await expect(visitor.getByText(BRAND_NAME, { exact: true })).toBeVisible();
+    await signedOut.close();
   });
 
   test("library, settings and admin render inside the shell", async ({

@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { BRAND_NAME } from "./brand";
 import { startMockLlm } from "./mock-llm";
 
 // Playwright's `webServer`: the production build of apps/web as `next start`
@@ -32,7 +33,7 @@ const web = join(root, "apps/web");
 const port = Number(process.env.E2E_PORT ?? 3100);
 
 const config = (baseURL: string, files: string) => `version: 1
-brand: { name: E2E Chat }
+brand: { name: ${BRAND_NAME} }
 auth: { signup: invite }
 providers:
   # Keyless, like a local Ollama: every context can use it.

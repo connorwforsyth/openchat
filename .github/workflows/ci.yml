@@ -45,6 +45,11 @@ jobs:
       - name: Repo guards
         run: bun run check:guards
 
+      # Per icon set and platform, the names that fall back to lucide
+      # (PLAN.md §11 "Icons", D19). A report, not a gate: gaps are allowed.
+      - name: Unmapped icons
+        run: bun run icons:gaps
+
       # Component tests run in Vitest browser mode on headless Chromium.
       - name: Install Playwright Chromium
         run: bunx playwright install --with-deps chromium-headless-shell
