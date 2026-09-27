@@ -89,10 +89,17 @@ export const budgetSchema = z.object({
 });
 export type Budget = z.infer<typeof budgetSchema>;
 
-/** One budget per principal and period; setting it again replaces it. */
+/**
+ * One budget per org, principal and period; setting it again replaces it.
+ * `orgId` is the org the budget applies in: a user's budget caps their spend
+ * in that org's contexts, so an org admin can cap one member there. Omitted,
+ * it's the principal's own org (a user's personal org), as before 042; it
+ * becomes required in the next contract release.
+ */
 export const setBudgetInputSchema = z.object({
   hard: z.boolean().default(true),
   limitMicros: microUsdSchema,
+  orgId: orgIdSchema.optional(),
   period: budgetPeriodSchema,
   principal: principalSchema,
 });

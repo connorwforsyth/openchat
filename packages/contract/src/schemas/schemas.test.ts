@@ -47,6 +47,7 @@ const modules = {
   feedback: await import("./feedback"),
   files: await import("./files"),
   grants: await import("./grants"),
+  health: await import("./health"),
   keys: await import("./keys"),
   library: await import("./library"),
   llm: await import("./llm"),
@@ -275,6 +276,16 @@ const cases: Record<string, Cases> = {
         title: "Page",
         updatedAt: t,
       },
+      {
+        conversationId: convId,
+        createdAt: t,
+        id: fixtureId("artifact", 2),
+        kind: "code",
+        latestVersionId: null,
+        messageId: msgId,
+        title: "Script",
+        updatedAt: t,
+      },
     ],
   },
   "files.artifactVersionSchema": {
@@ -419,6 +430,47 @@ const cases: Record<string, Cases> = {
   },
 
   // keys
+  // health
+  "health.healthCheckSchema": {
+    invalid: [{ message: null, status: "sideways" }, { status: "up" }],
+    valid: [
+      { message: null, status: "up" },
+      { message: "the job queue didn't start", status: "down" },
+    ],
+  },
+  "health.healthInputSchema": {
+    invalid: [{ ready: "yes" }],
+    valid: [{}, { ready: true }],
+  },
+  "health.healthSchema": {
+    invalid: [
+      { checks: { database: { message: null, status: "up" } }, status: "ok" },
+      {
+        checks: {
+          database: { message: null, status: "up" },
+          jobs: { message: null, status: "up" },
+        },
+        status: "fine",
+      },
+    ],
+    valid: [
+      {
+        checks: {
+          database: { message: null, status: "up" },
+          jobs: { message: null, status: "up" },
+        },
+        status: "ok",
+      },
+      {
+        checks: {
+          database: { message: "no database", status: "down" },
+          jobs: { message: "no database", status: "down" },
+        },
+        status: "degraded",
+      },
+    ],
+  },
+
   "keys.createProviderKeyInputSchema": {
     invalid: [
       {
@@ -1085,8 +1137,11 @@ const cases: Record<string, Cases> = {
     valid: [{}, { contextId: teamPlatform.id, contextType: "team" }],
   },
   "meta.meSchema": {
-    invalid: [{ ...me, personalOrgId: notUuid }],
-    valid: [me],
+    invalid: [
+      { ...me, personalOrgId: notUuid },
+      { ...me, persistClientCache: undefined },
+    ],
+    valid: [me, { ...me, persistClientCache: false }],
   },
   "meta.publicConfigSchema": {
     invalid: [
@@ -1095,17 +1150,44 @@ const cases: Record<string, Cases> = {
     ],
     valid: [publicConfig],
   },
+  "meta.shortcutOverridesSchema": {
+    invalid: [
+      { "chat.new": ["Mod+K", "Mod+J", "Mod+L", "Mod+P"] },
+      { "chat.new": "Mod+K" },
+      { "": ["Mod+K"] },
+      Object.fromEntries(Array.from({ length: 201 }, (_, i) => [`s.${i}`, []])),
+    ],
+    valid: [{}, { "chat.new": ["Mod+Shift+O"], "settings.open": [] }],
+  },
   "meta.updateUserSettingsInputSchema": {
-    invalid: [{ locale: 1 }],
-    valid: [{}, { defaultTarget: null, locale: "en" }],
+    invalid: [{ locale: 1 }, { shortcuts: { "chat.new": "Mod+K" } }],
+    valid: [
+      {},
+      { defaultTarget: null, locale: "en" },
+      { shortcuts: { "chat.new": ["Mod+Shift+O"] } },
+    ],
   },
   "meta.userSettingsSchema": {
-    invalid: [{ defaultContext: { type: "personal" } }],
+    invalid: [
+      { defaultContext: { type: "personal" } },
+      {
+        defaultContext: { type: "personal" },
+        defaultTarget: null,
+        locale: null,
+      },
+    ],
     valid: [
       {
         defaultContext: { type: "personal" },
         defaultTarget: null,
         locale: null,
+        shortcuts: {},
+      },
+      {
+        defaultContext: { type: "personal" },
+        defaultTarget: null,
+        locale: "en",
+        shortcuts: { "palette.open": ["Mod+P"] },
       },
     ],
   },
@@ -1426,10 +1508,14 @@ const cases: Record<string, Cases> = {
       { auditPolicy: "maybe" },
       { publishGate: { allowed: [] } },
     ],
-    valid: [{}, { chatContext: ["personal"], instanceKeys: { org: true } }],
+    valid: [
+      {},
+      { chatContext: ["personal"], instanceKeys: { org: true } },
+      { persistClientCache: "forbidden" },
+    ],
   },
   "tenancy.invitationSchema": {
-    invalid: [{}],
+    invalid: [{}, { token: "short" }],
     valid: [
       {
         createdAt: t,
@@ -1442,7 +1528,23 @@ const cases: Record<string, Cases> = {
         status: "pending",
         teamIds: [teamPlatform.id],
       },
+      {
+        createdAt: t,
+        email: "bo@example.test",
+        expiresAt: t,
+        id: fixtureId("invitation", 2),
+        invitedBy: uid,
+        orgId: org.id,
+        role: "admin",
+        status: "pending",
+        teamIds: [],
+        token: "k7Qm2c9Xr1VbN0pLw4Ez8TjYs6HgFdAaUoIiPq3Ke5M",
+      },
     ],
+  },
+  "tenancy.invitationTokenSchema": {
+    invalid: ["short", "has spaces in it and is long enough to pass min", 42],
+    valid: ["k7Qm2c9Xr1VbN0pLw4Ez8TjYs6HgFdAaUoIiPq3Ke5M"],
   },
   "tenancy.orgMemberSchema": {
     invalid: [
@@ -1461,6 +1563,7 @@ const cases: Record<string, Cases> = {
         chatContexts: ["team"],
         publishGate: "no-regressions",
       },
+      { persistClientCache: false },
     ],
   },
   "tenancy.orgPolicyViewSchema": {
@@ -1485,7 +1588,10 @@ const cases: Record<string, Cases> = {
   },
   "tenancy.policyAdjustmentSchema": {
     invalid: [{ field: "name", reason: "forbidden_by_instance" }],
-    valid: [{ field: "chatContexts", reason: "not_allowed_by_instance" }],
+    valid: [
+      { field: "chatContexts", reason: "not_allowed_by_instance" },
+      { field: "persistClientCache", reason: "forbidden_by_instance" },
+    ],
   },
   "tenancy.principalSchema": {
     invalid: [{ id: uid, type: "group" }, { type: "user" }],
@@ -1538,6 +1644,12 @@ const cases: Record<string, Cases> = {
   "usage.setBudgetInputSchema": {
     invalid: [
       {
+        limitMicros: 1,
+        orgId: notUuid,
+        period: "month",
+        principal: { id: uid, type: "user" },
+      },
+      {
         limitMicros: 1.5,
         period: "month",
         principal: { id: uid, type: "user" },
@@ -1546,6 +1658,12 @@ const cases: Record<string, Cases> = {
     valid: [
       {
         limitMicros: 5_000_000,
+        period: "week",
+        principal: { id: uid, type: "user" },
+      },
+      {
+        limitMicros: 5_000_000,
+        orgId: org.id,
         period: "week",
         principal: { id: uid, type: "user" },
       },

@@ -1,6 +1,11 @@
 import { z } from "zod";
 
-import { conflictError, featureError } from "../errors";
+import {
+  conflictError,
+  encryptionError,
+  featureError,
+  readinessError,
+} from "../errors";
 import {
   messageIdSchema,
   pageInputSchema,
@@ -8,6 +13,7 @@ import {
   providerKeyIdSchema,
 } from "../schemas/common";
 import { feedbackSchema, setFeedbackInputSchema } from "../schemas/feedback";
+import { healthInputSchema, healthSchema } from "../schemas/health";
 import {
   createProviderKeyInputSchema,
   listProviderKeysInputSchema,
@@ -57,6 +63,17 @@ export const meta = {
       summary: "Get public instance config",
     })
     .output(publicConfigSchema),
+  health: open
+    .errors(readinessError)
+    .route({
+      description:
+        "Liveness and readiness for healthchecks. Any answer means the process is up; `status` is `ok` when the database answers and the job queue runs. With `ready=true` a degraded server answers `NOT_READY` (503) instead. Public.",
+      method: "GET",
+      path: "/health",
+      summary: "Check server health",
+    })
+    .input(healthInputSchema)
+    .output(healthSchema),
   models: authed
     .route({
       description:
@@ -139,9 +156,10 @@ export const feedback = {
 
 export const keys = {
   create: authed
+    .errors(encryptionError)
     .route({
       description:
-        "`apiKey` is write-only: encrypted at rest and never returned.",
+        "`apiKey` is write-only: encrypted at rest and never returned. `ENCRYPTION_UNAVAILABLE` when the server has no usable `ENCRYPTION_KEY`.",
       method: "POST",
       path: "/keys",
       successStatus: 201,

@@ -67,6 +67,17 @@ export const invitationStatusSchema = z.enum([
   "expired",
 ]);
 
+/**
+ * The secret an invitee accepts with (Q16): 32 random bytes, base64url. The
+ * server keeps only a hash, so it's shown once, in `invite`'s response, and
+ * travels in the invite link; the invitation id is not enough to accept.
+ */
+export const invitationTokenSchema = z
+  .string()
+  .min(32)
+  .max(128)
+  .regex(/^[A-Za-z0-9_-]+$/, "base64url");
+
 export const invitationSchema = z.object({
   createdAt: timestampSchema,
   email: z.email(),
@@ -78,6 +89,8 @@ export const invitationSchema = z.object({
   status: invitationStatusSchema,
   /** Teams the invitee joins on accepting. */
   teamIds: z.array(teamIdSchema),
+  /** Only in `invite`'s response: it's stored hashed, so it can't be listed or shown again. */
+  token: invitationTokenSchema.optional(),
 });
 export type Invitation = z.infer<typeof invitationSchema>;
 
@@ -152,6 +165,8 @@ export const instancePolicySchema = z.object({
       team: z.boolean().default(false),
     })
     .prefault({}),
+  /** Whether clients may keep the query cache on disk (D28); `forbidden` turns it off everywhere. */
+  persistClientCache: allowance.default("allowed"),
   personalKeyFallback: allowance.default("allowed"),
   publishGate: z
     .object({
@@ -179,6 +194,12 @@ export const orgPolicySchema = z.object({
     .array(chatContextTypeSchema)
     .min(1)
     .default(["personal", "team", "org"]),
+  /**
+   * Clients may keep the query cache on disk for an instant boot (D28). Off
+   * for shared machines: a member of any org that turns it off gets no
+   * persisted cache (`Me.persistClientCache`).
+   */
+  persistClientCache: z.boolean().default(true),
   /** Fall back to a member's personal keys when the context has none. */
   personalKeyFallback: z.boolean().default(false),
   /** Default publish-gate policy for this org's libraries. */
@@ -193,6 +214,7 @@ export const policyAdjustmentSchema = z.object({
   field: z.enum([
     "auditEnabled",
     "chatContexts",
+    "persistClientCache",
     "personalKeyFallback",
     "publishGate",
     "sampledScoring",

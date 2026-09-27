@@ -355,7 +355,8 @@ const storageSchema = z
   .discriminatedUnion("driver", [
     z.strictObject({
       driver: z.literal("local"),
-      path: z.string().min(1).default("./data/files"),
+      /** Inside `./.data` beside the embedded database, which git ignores. */
+      path: z.string().min(1).default("./.data/files"),
     }),
     z.strictObject({
       accessKeyId: secret.optional(),
@@ -367,7 +368,7 @@ const storageSchema = z
       secretAccessKey: secret.optional(),
     }),
   ])
-  .default({ driver: "local", path: "./data/files" });
+  .default({ driver: "local", path: "./.data/files" });
 
 const embeddingsSchema = z
   .strictObject({
@@ -400,6 +401,12 @@ const observabilitySchema = z
       })
       .nullable()
       .default(null),
+    /**
+     * Put prompts and outputs on spans (Q28). Off: they're user data and
+     * belong in Postgres under our permissions; turn it on only for a
+     * developer's own instance.
+     */
+    recordContent: z.boolean().default(false),
     serviceName: z.string().min(1).default("web"),
   })
   .prefault({});

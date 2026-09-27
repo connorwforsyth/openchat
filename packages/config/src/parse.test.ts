@@ -50,11 +50,13 @@ describe("parseConfig defaults", () => {
     });
     expect(config.sandbox.default).toBe("just-bash");
     expect(config.search.backend).toBe("none");
-    expect(config.storage).toEqual({ driver: "local", path: "./data/files" });
+    expect(config.storage).toEqual({ driver: "local", path: "./.data/files" });
     expect(config.embeddings.model).toBeNull();
     expect(config.features.publicLinks).toBe(false);
     expect(config.features.importers).toBe(true);
     expect(config.observability.otlp).toBeNull();
+    expect(config.observability.recordContent).toBe(false);
+    expect(config.policies.persistClientCache).toBe("allowed");
   });
 
   it("treats a comment-only file as empty", () => {

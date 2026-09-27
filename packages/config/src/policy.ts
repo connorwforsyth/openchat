@@ -46,6 +46,11 @@ export const clampOrgPolicy = (
     stored.sampledScoring,
     limits.sampledScoring
   );
+  const persistClientCache = forbid(
+    "persistClientCache",
+    stored.persistClientCache,
+    limits.persistClientCache
+  );
 
   const allowedContexts = stored.chatContexts.filter((context) =>
     limits.chatContext.includes(context)
@@ -76,6 +81,7 @@ export const clampOrgPolicy = (
     effective: {
       auditEnabled,
       chatContexts,
+      persistClientCache,
       personalKeyFallback,
       publishGate: publishGateAllowed
         ? stored.publishGate

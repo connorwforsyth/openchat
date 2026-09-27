@@ -90,7 +90,8 @@ export const artifactSchema = z.object({
   createdAt: timestampSchema,
   id: artifactIdSchema,
   kind: artifactKindSchema,
-  latestVersionId: artifactVersionIdSchema,
+  /** `null` until its first version is written (the row is created first). */
+  latestVersionId: artifactVersionIdSchema.nullable(),
   /** The message that created it. */
   messageId: messageIdSchema,
   title: z.string().max(200),

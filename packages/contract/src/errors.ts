@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { microUsdSchema } from "./schemas/common";
+import { healthSchema } from "./schemas/health";
 import { principalSchema } from "./schemas/tenancy";
 import { budgetPeriodSchema } from "./schemas/usage";
 
@@ -101,6 +102,26 @@ export const featureError = {
 } as const;
 
 /**
+ * The server has no usable `ENCRYPTION_KEY`, so it can't seal a secret
+ * (provider keys) for storage. An operator fixes it; the user can't.
+ */
+export const encryptionError = {
+  ENCRYPTION_UNAVAILABLE: {
+    message: "This server can't store secrets until ENCRYPTION_KEY is set.",
+    status: 503,
+  },
+} as const;
+
+/** `GET /health?ready=true` while a dependency is down; `data` is the health report. */
+export const readinessError = {
+  NOT_READY: {
+    data: healthSchema,
+    message: "The server is up but not ready.",
+    status: 503,
+  },
+} as const;
+
+/**
  * What `POST /api/llm` can answer before a response starts, in the same
  * bodies procedures use. It isn't a procedure, so the server builds these
  * itself and `openapi.ts` documents them. `FORBIDDEN` covers a context the
@@ -132,5 +153,7 @@ export const errorCodeSchema = z.enum([
   "BUDGET_EXCEEDED",
   "PROVIDER_UNAVAILABLE",
   "FEATURE_DISABLED",
+  "ENCRYPTION_UNAVAILABLE",
+  "NOT_READY",
 ]);
 export type ErrorCode = z.infer<typeof errorCodeSchema>;

@@ -44,6 +44,7 @@ policies:
   instanceKeys: { personal: true, team: false, org: false }
   publishGate: { default: informational, allowed: [informational, no-regressions] }
   sampledScoring: allowed
+  persistClientCache: allowed   # forbidden: no client keeps its query cache on disk (D28)
 
 decider:
   adapter: llm-fallback     # llm-fallback | jev | none
@@ -64,14 +65,14 @@ sandbox:
     runtime: runsc          # gVisor; the runner warns and falls back to runc if it's missing
     limits: { cpu: 2, memoryMb: 2048, diskMb: 10240 }
 
-storage: { driver: local, path: ./data/files }
+storage: { driver: local, path: ./.data/files }
 # storage: { driver: s3, bucket: files, endpoint: "${S3_ENDPOINT}", accessKeyId: "${S3_ACCESS_KEY_ID}", secretAccessKey: "${S3_SECRET_ACCESS_KEY}" }
 
 embeddings: { model: openai:text-embedding-3-small }
 
 icons: { set: lucide }      # e.g. { set: material, style: rounded, weight: 400, fill: false }
 
-observability: { otlp: null }   # or { endpoint: "${OTEL_EXPORTER_OTLP_ENDPOINT}" }
+observability: { otlp: null, recordContent: false }   # otlp: { endpoint: "${OTEL_EXPORTER_OTLP_ENDPOINT}" }; recordContent puts prompts on spans
 
 limits:
   requestsPerMinute: 60

@@ -28,6 +28,28 @@ describe("appConfigSchema", () => {
     ).toBe(false);
   });
 
+  it("keeps local files under ./.data unless told otherwise", () => {
+    expect(
+      appConfigSchema.parse({ storage: { driver: "local" } }).storage
+    ).toEqual({ driver: "local", path: "./.data/files" });
+    expect(
+      appConfigSchema.parse({
+        storage: { driver: "local", path: "/srv/files" },
+      }).storage
+    ).toEqual({ driver: "local", path: "/srv/files" });
+  });
+
+  it("records span content only when asked", () => {
+    expect(
+      appConfigSchema.parse({ observability: { recordContent: true } })
+        .observability.recordContent
+    ).toBe(true);
+    expect(
+      appConfigSchema.safeParse({ observability: { recordContent: "yes" } })
+        .success
+    ).toBe(false);
+  });
+
   it("orders the risk thresholds", () => {
     expect(
       appConfigSchema.safeParse({
