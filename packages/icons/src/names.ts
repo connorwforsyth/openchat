@@ -100,6 +100,14 @@ export const iconNames = [
   "UserIcon",
   "UsersIcon",
   "WrenchIcon",
+  // Settings, admin and the palette
+  "HistoryIcon",
+  "KeyRoundIcon",
+  "LanguagesIcon",
+  "MailIcon",
+  "NetworkIcon",
+  "PaletteIcon",
+  "WalletIcon",
   // Semantic aliases: what the icon means in this app, not what it draws
   "AgentIcon",
   "AttachIcon",

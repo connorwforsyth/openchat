@@ -1,12 +1,12 @@
 import type { PublicConfig } from "@workspace/contract/schemas/meta";
 import type { SandboxProvider } from "@workspace/contract/schemas/sandbox";
 
+import type { Env } from "./parse";
 import type { AppConfig } from "./schema";
+import { enabledSocialProviders, socialProviderNames } from "./social";
 
 // The slice of config any client may read (`GET /config`). Built here so the
 // rule "no secrets, no internal URLs" lives next to the schema that has them.
-
-const socialNames = { github: "GitHub", google: "Google" } as const;
 
 /** Sandbox providers that are configured enough to try. `local` is desktop-only. */
 export const availableSandboxProviders = (
@@ -26,16 +26,24 @@ export const availableSandboxProviders = (
   return candidates.filter(([, ok]) => ok).map(([provider]) => provider);
 };
 
-export const toPublicConfig = (config: AppConfig): PublicConfig => {
+/**
+ * `env` is where environment-only social sign-in comes from
+ * (`GITHUB_CLIENT_ID` and friends); pass `process.env` at the shell.
+ */
+export const toPublicConfig = (
+  config: AppConfig,
+  env: Env = {}
+): PublicConfig => {
   const sandboxProviders = availableSandboxProviders(config);
   const { sandbox } = config;
   return {
     auth: {
       providers: [
         ...config.auth.oidc.map(({ id, name }) => ({ id, name })),
-        ...(["github", "google"] as const)
-          .filter((id) => config.auth.social[id])
-          .map((id) => ({ id, name: socialNames[id] })),
+        ...enabledSocialProviders(config, env).map((id) => ({
+          id,
+          name: socialProviderNames[id],
+        })),
       ],
       signup: config.auth.signup,
     },

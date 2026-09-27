@@ -36,9 +36,12 @@ import {
   GitBranch,
   Globe,
   GripVertical,
+  History,
   Image,
   Info,
   Keyboard,
+  KeyRound,
+  Languages,
   Layers,
   Library,
   Link,
@@ -47,6 +50,7 @@ import {
   LoaderCircle,
   Lock,
   LogOut,
+  Mail,
   Maximize2,
   Menu,
   MessageSquare,
@@ -55,7 +59,9 @@ import {
   Monitor,
   Moon,
   MoreHorizontal,
+  Network,
   OctagonX,
+  Palette,
   PanelLeft,
   PanelRight,
   Paperclip,
@@ -84,6 +90,7 @@ import {
   User,
   UserPlus,
   Users,
+  Wallet,
   Wrench,
   X,
   ZoomIn,
@@ -168,6 +175,18 @@ export const UsersIcon: Icon = Users;
 export const AtSignIcon: Icon = AtSign;
 export const Building2Icon: Icon = Building2;
 export const WrenchIcon: Icon = Wrench;
+export const HistoryIcon: Icon = History;
+export const KeyboardIcon: Icon = Keyboard;
+export const KeyRoundIcon: Icon = KeyRound;
+export const LanguagesIcon: Icon = Languages;
+export const LibraryIcon: Icon = Library;
+export const MailIcon: Icon = Mail;
+export const NetworkIcon: Icon = Network;
+export const PaletteIcon: Icon = Palette;
+export const PanelRightIcon: Icon = PanelRight;
+export const ShieldIcon: Icon = Shield;
+export const TerminalIcon: Icon = Terminal;
+export const WalletIcon: Icon = Wallet;
 export const AgentIcon: Icon = Bot;
 export const AttachIcon: Icon = Paperclip;
 export const BranchIcon: Icon = GitBranch;
@@ -176,14 +195,9 @@ export const NewChatIcon: Icon = SquarePen;
 export const ReasoningIcon: Icon = Brain;
 export const StopIcon: Icon = Square;
 export const ToolIcon: Icon = Wrench;
-export const TerminalIcon: Icon = Terminal;
 export const PinIcon: Icon = Pin;
 export const PinOffIcon: Icon = PinOff;
 export const ArchiveIcon: Icon = Archive;
-export const LibraryIcon: Icon = Library;
-export const PanelRightIcon: Icon = PanelRight;
-export const KeyboardIcon: Icon = Keyboard;
 export const LinkIcon: Icon = Link;
 export const UserPlusIcon: Icon = UserPlus;
-export const ShieldIcon: Icon = Shield;
 export const CodeIcon: Icon = Code;

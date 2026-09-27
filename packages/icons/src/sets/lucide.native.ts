@@ -35,9 +35,12 @@ import {
   GitBranch,
   Globe,
   GripVertical,
+  History,
   Image,
   Info,
   Keyboard,
+  KeyRound,
+  Languages,
   Layers,
   Library,
   Link,
@@ -46,6 +49,7 @@ import {
   LoaderCircle,
   Lock,
   LogOut,
+  Mail,
   Maximize2,
   Menu,
   MessageSquare,
@@ -54,7 +58,9 @@ import {
   Monitor,
   Moon,
   MoreHorizontal,
+  Network,
   OctagonX,
+  Palette,
   PanelLeft,
   PanelRight,
   Paperclip,
@@ -83,6 +89,7 @@ import {
   User,
   UserPlus,
   Users,
+  Wallet,
   Wrench,
   X,
   ZoomIn,
@@ -167,6 +174,18 @@ export const UsersIcon: NativeIcon = Users;
 export const AtSignIcon: NativeIcon = AtSign;
 export const Building2Icon: NativeIcon = Building2;
 export const WrenchIcon: NativeIcon = Wrench;
+export const HistoryIcon: NativeIcon = History;
+export const KeyboardIcon: NativeIcon = Keyboard;
+export const KeyRoundIcon: NativeIcon = KeyRound;
+export const LanguagesIcon: NativeIcon = Languages;
+export const LibraryIcon: NativeIcon = Library;
+export const MailIcon: NativeIcon = Mail;
+export const NetworkIcon: NativeIcon = Network;
+export const PaletteIcon: NativeIcon = Palette;
+export const PanelRightIcon: NativeIcon = PanelRight;
+export const ShieldIcon: NativeIcon = Shield;
+export const TerminalIcon: NativeIcon = Terminal;
+export const WalletIcon: NativeIcon = Wallet;
 export const AgentIcon: NativeIcon = Bot;
 export const AttachIcon: NativeIcon = Paperclip;
 export const BranchIcon: NativeIcon = GitBranch;
@@ -175,14 +194,9 @@ export const NewChatIcon: NativeIcon = SquarePen;
 export const ReasoningIcon: NativeIcon = Brain;
 export const StopIcon: NativeIcon = Square;
 export const ToolIcon: NativeIcon = Wrench;
-export const TerminalIcon: NativeIcon = Terminal;
 export const PinIcon: NativeIcon = Pin;
 export const PinOffIcon: NativeIcon = PinOff;
 export const ArchiveIcon: NativeIcon = Archive;
-export const LibraryIcon: NativeIcon = Library;
-export const PanelRightIcon: NativeIcon = PanelRight;
-export const KeyboardIcon: NativeIcon = Keyboard;
 export const LinkIcon: NativeIcon = Link;
 export const UserPlusIcon: NativeIcon = UserPlus;
-export const ShieldIcon: NativeIcon = Shield;
 export const CodeIcon: NativeIcon = Code;

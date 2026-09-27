@@ -7,6 +7,12 @@ msgstr ""
 "X-Generator: @lingui/cli\n"
 "Language: en\n"
 
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "- I prefer pnpm over npm\n"
+"- Answer in British English"
+msgstr "- I prefer pnpm over npm\n"
+"- Answer in British English"
+
 #: ../chat-ui/src/sandbox/terminal.tsx
 msgid "(output shortened)"
 msgstr "(output shortened)"
@@ -59,6 +65,14 @@ msgstr "{fileName} is larger than {limit}."
 msgid "{fileName} isn't a supported file type."
 msgstr "{fileName} isn't a supported file type."
 
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "{length} of {max} characters"
+msgstr "{length} of {max} characters"
+
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "{length} of {max} characters. Anything past the limit isn't included in chats."
+msgstr "{length} of {max} characters. Anything past the limit isn't included in chats."
+
 #: ../composer/src/components/attachment-list.tsx
 msgid "{maxFiles, plural, one {{fileName} wasn't added: you can attach # file.} other {{fileName} wasn't added: you can attach up to # files.}}"
 msgstr "{maxFiles, plural, one {{fileName} wasn't added: you can attach # file.} other {{fileName} wasn't added: you can attach up to # files.}}"
@@ -85,9 +99,25 @@ msgstr "{reviewed} of {0} files reviewed"
 msgid "{suggestionCount, plural, one {# suggestion} other {# suggestions}}"
 msgstr "{suggestionCount, plural, one {# suggestion} other {# suggestions}}"
 
+#: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
+msgid "{used} of {limit}"
+msgstr "{used} of {limit}"
+
+#: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
+msgid "A member"
+msgstr "A member"
+
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "A simulated shell with an in-memory filesystem. Nothing runs on a real machine."
 msgstr "A simulated shell with an in-memory filesystem. Nothing runs on a real machine."
+
+#: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
+msgid "A team"
+msgstr "A team"
+
+#: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
+msgid "A team's spend counts toward its parents' budgets and the org's."
+msgstr "A team's spend counts toward its parents' budgets and the org's."
 
 #: ../code-ui/src/diff-view.tsx
 msgid "Accept"
@@ -101,26 +131,66 @@ msgstr "Accept change {number}"
 msgid "Accept the rest"
 msgstr "Accept the rest"
 
+#: ../../apps/web/app/(app)/admin/[orgId]/teams/page.tsx
+msgid "Access given to a team flows to its sub-teams; usage rolls up."
+msgstr "Access given to a team flows to its sub-teams; usage rolls up."
+
 #. placeholder {0}: user.name
 #: ../chat-ui/src/sidebar/account-menu.tsx
 msgid "Account: {0}"
 msgstr "Account: {0}"
 
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+#: ../../apps/web/app/(app)/admin/_components/members-admin.tsx
+#: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
+#: ../palette/src/command-palette.tsx
+msgid "Actions"
+msgstr "Actions"
+
 #: ../chat-ui/src/sidebar/chat-row.tsx
 msgid "Actions for {title}"
 msgstr "Actions for {title}"
+
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Add a key"
+msgstr "Add a key"
+
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Add a key below to use a provider's models with your own account."
+msgstr "Add a key below to use a provider's models with your own account."
+
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Add key"
+msgstr "Add key"
 
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Add photos or files"
 msgstr "Add photos or files"
 
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+#: ../../apps/web/app/(app)/admin/_components/admin-index.tsx
+#: ../../apps/web/app/(app)/admin/_components/members-admin.tsx
+#: ../../apps/web/app/(app)/admin/page.tsx
+#: ../../apps/web/app/(app)/settings/layout.tsx
 #: ../chat-ui/src/sidebar/account-menu.tsx
 msgid "Admin"
 msgstr "Admin"
 
+#: ../../apps/web/app/(app)/admin/[orgId]/layout.tsx
+msgid "Admin pages"
+msgstr "Admin pages"
+
+#: ../palette/src/command-palette.tsx
+msgid "agent"
+msgstr "agent"
+
 #: ../composer/src/components/target-picker.tsx
 msgid "Agents"
 msgstr "Agents"
+
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "Agents propose memory edits as a diff for you to approve, instead of saving them right away."
+msgstr "Agents propose memory edits as a diff for you to approve, instead of saving them right away."
 
 #: ../../apps/web/app/dev/ai-elements/page.tsx
 msgid "AI Elements"
@@ -130,9 +200,35 @@ msgstr "AI Elements"
 msgid "All files exceed the maximum size."
 msgstr "All files exceed the maximum size."
 
+#: ../../apps/web/app/(app)/admin/[orgId]/layout.tsx
+msgid "All orgs"
+msgstr "All orgs"
+
+#: ../shortcuts/src/react/shortcuts-editor.tsx
+msgid "Already used by “{other}”."
+msgstr "Already used by “{other}”."
+
+#: ../../apps/web/app/(app)/admin/_components/members-admin.tsx
+msgid "An org needs at least one owner. Make someone else an owner first."
+msgstr "An org needs at least one owner. Make someone else an owner first."
+
 #: ../chat-ui/src/conversation/message-row.tsx
 msgid "Annotation attached"
 msgstr "Annotation attached"
+
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "API key"
+msgstr "API key"
+
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+msgid "API keys"
+msgstr "API keys"
+
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+#: ../../apps/web/app/(app)/settings/appearance/page.tsx
+#: ../../apps/web/app/(app)/settings/layout.tsx
+msgid "Appearance"
+msgstr "Appearance"
 
 #: ../chat-ui/src/conversation/approval.tsx
 msgid "Approval needed for {toolName}"
@@ -173,11 +269,23 @@ msgstr "Artifacts in this chat"
 msgid "Artifacts panel"
 msgstr "Artifacts panel"
 
+#: ../palette/src/command-palette.tsx
+msgid "Ask AI"
+msgstr "Ask AI"
+
+#: ../palette/src/command-palette.tsx
+msgid "Ask AI: “{prompt}”"
+msgstr "Ask AI: “{prompt}”"
+
 #: ../../apps/web/app/dev/chat/demo.tsx
 #: ../composer/src/components/composer-shell.tsx
 #: ../composer/src/components/composer.tsx
 msgid "Ask anything"
 msgstr "Ask anything"
+
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "Ask before changing memory"
+msgstr "Ask before changing memory"
 
 #: ../composer/src/components/composer-footer.tsx
 msgid "Attach files"
@@ -194,6 +302,11 @@ msgstr "Attachment"
 msgid "Attachments"
 msgstr "Attachments"
 
+#: ../../apps/web/app/(app)/admin/[orgId]/audit/page.tsx
+#: ../../apps/web/app/(app)/admin/[orgId]/layout.tsx
+msgid "Audit policy"
+msgstr "Audit policy"
+
 #: ../composer/src/components/target-picker.tsx
 msgid "Auto"
 msgstr "Auto"
@@ -206,19 +319,51 @@ msgstr "Awaiting approval"
 msgid "Bad answer"
 msgstr "Bad answer"
 
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Base URL (optional)"
+msgstr "Base URL (optional)"
+
+#: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
+msgid "Block new chats when it's spent"
+msgstr "Block new chats when it's spent"
+
+#: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
+msgid "Blocks new chats"
+msgstr "Blocks new chats"
+
 #: ../chat-ui/src/header/branch-switcher.tsx
 msgid "Branches"
 msgstr "Branches"
+
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+msgid "budgets"
+msgstr "budgets"
+
+#: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
+msgid "Budgets"
+msgstr "Budgets"
+
+#: ../../apps/web/app/(app)/admin/[orgId]/layout.tsx
+#: ../../apps/web/app/(app)/admin/[orgId]/usage/page.tsx
+msgid "Budgets and usage"
+msgstr "Budgets and usage"
 
 #: ../../apps/web/app/page.tsx
 msgid "Button"
 msgstr "Button"
 
+#: ../../apps/web/app/(app)/_shared/confirm.tsx
+#: ../../apps/web/app/(app)/admin/_components/members-admin.tsx
 #: ../chat-ui/src/conversation/approval.tsx
 #: ../chat-ui/src/conversation/message-row.tsx
 #: ../composer/src/components/template-variables.tsx
+#: ../shortcuts/src/react/shortcuts-editor.tsx
 msgid "Cancel"
 msgstr "Cancel"
+
+#: ../../apps/web/app/(app)/admin/_components/members-admin.tsx
+msgid "Cancel the invitation for {email}"
+msgstr "Cancel the invitation for {email}"
 
 #: ../code-ui/src/diff-view.tsx
 msgid "Change {number}"
@@ -231,6 +376,10 @@ msgstr "Change {number} accepted"
 #: ../code-ui/src/diff-view.tsx
 msgid "Change {number} rejected"
 msgstr "Change {number} rejected"
+
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+msgid "Change shortcuts"
+msgstr "Change shortcuts"
 
 #: ../chat-ui/src/artifacts/artifacts-panel.tsx
 msgid "Changes"
@@ -248,6 +397,10 @@ msgstr "Chat context: {label}"
 msgid "Chat context: {label}, locked"
 msgstr "Chat context: {label}, locked"
 
+#: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
+msgid "Chat contexts"
+msgstr "Chat contexts"
+
 #: ../../apps/web/app/dev/chat/demo.tsx
 msgid "Chat demo"
 msgstr "Chat demo"
@@ -257,8 +410,41 @@ msgid "Chat title"
 msgstr "Chat title"
 
 #: ../chat-ui/src/shell/app-shell.tsx
+#: ../palette/src/command-palette.tsx
 msgid "Chats"
 msgstr "Chats"
+
+#: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
+msgid "Chats on the member's own keys and budget."
+msgstr "Chats on the member's own keys and budget."
+
+#: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
+msgid "Chats paid for by a team; usage rolls up to parent teams."
+msgstr "Chats paid for by a team; usage rolls up to parent teams."
+
+#: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
+msgid "Chats paid for by the org and visible to its admins' usage reports."
+msgstr "Chats paid for by the org and visible to its admins' usage reports."
+
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Chats that relied on it fall back to other keys, or stop if there are none."
+msgstr "Chats that relied on it fall back to other keys, or stop if there are none."
+
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Check"
+msgstr "Check"
+
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Check the provider (lowercase, like “anthropic”), the key and the URL."
+msgstr "Check the provider (lowercase, like “anthropic”), the key and the URL."
+
+#: ../../apps/web/app/(app)/_shared/query-state.tsx
+msgid "Check your connection and try again."
+msgstr "Check your connection and try again."
+
+#: ../../apps/web/app/(app)/admin/[orgId]/policies/page.tsx
+msgid "Choices for this org, within the limits this server's configuration sets."
+msgstr "Choices for this org, within the limits this server's configuration sets."
 
 #: ../chat-ui/src/header/chat-title.tsx
 msgid "Click to rename"
@@ -290,6 +476,11 @@ msgstr "Code views"
 msgid "Command"
 msgstr "Command"
 
+#: ../palette/src/command-palette.tsx
+#: ../ui/src/components/command.tsx
+msgid "Command palette"
+msgstr "Command palette"
+
 #: ../chat-ui/src/sandbox/terminal.tsx
 msgid "Command running"
 msgstr "Command running"
@@ -310,11 +501,16 @@ msgstr "Composer"
 msgid "Container"
 msgstr "Container"
 
+#: ../palette/src/context-actions.ts
+msgid "context"
+msgstr "context"
+
 #: ../../apps/web/app/dev/composer/demo.tsx
 msgid "Context locked"
 msgstr "Context locked"
 
 #: ../chat-ui/src/conversation/conversation-view.tsx
+#: ../shortcuts/src/react/help-dialog.tsx
 msgid "Conversation"
 msgstr "Conversation"
 
@@ -361,6 +557,18 @@ msgstr "Copy table as Markdown"
 msgid "Copy table as TSV"
 msgstr "Copy table as TSV"
 
+#: ../shortcuts/src/registry.ts
+msgid "Copy the last reply"
+msgstr "Copy the last reply"
+
+#: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
+msgid "Cost"
+msgstr "Cost"
+
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Couldn't check"
+msgstr "Couldn't check"
+
 #: ../chat-ui/src/chat/connected-chat.tsx
 msgid "Couldn't load this artifact."
 msgstr "Couldn't load this artifact."
@@ -369,14 +577,35 @@ msgstr "Couldn't load this artifact."
 msgid "Couldn't undo. Try again."
 msgstr "Couldn't undo. Try again."
 
+#: ../../apps/web/app/(app)/admin/_components/audit-policy.tsx
+msgid "Covers chats held in this org's contexts (the org and its teams). Personal chats are never covered."
+msgstr "Covers chats held in this org's contexts (the org and its teams). Personal chats are never covered."
+
 #: ../chat-ui/src/sandbox/sandbox-panel.tsx
 msgid "Create sandbox"
 msgstr "Create sandbox"
+
+#: ../../apps/web/app/(app)/admin/_components/teams-admin.tsx
+msgid "Create team"
+msgstr "Create team"
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "CSV"
 msgstr "CSV"
 
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "Current"
+msgstr "Current"
+
+#: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
+msgid "Daily"
+msgstr "Daily"
+
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+msgid "dark"
+msgstr "dark"
+
+#: ../../apps/web/app/(app)/settings/_components/appearance-settings.tsx
 #: ../chat-ui/src/sidebar/account-menu.tsx
 msgid "Dark"
 msgstr "Dark"
@@ -388,6 +617,34 @@ msgstr "Decision sent to the agent"
 #: ../chat-ui/src/conversation/approval.tsx
 msgid "Decision sent. Waiting for the agent…"
 msgstr "Decision sent. Waiting for the agent…"
+
+#: ../../apps/web/app/(app)/settings/_components/profile-settings.tsx
+msgid "Default chat context"
+msgstr "Default chat context"
+
+#: ../../apps/web/app/(app)/admin/_components/teams-admin.tsx
+msgid "Delete {name}"
+msgstr "Delete {name}"
+
+#: ../../apps/web/app/(app)/admin/_components/teams-admin.tsx
+msgid "Delete {name}?"
+msgstr "Delete {name}?"
+
+#: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
+msgid "Delete budget"
+msgstr "Delete budget"
+
+#: ../../apps/web/app/(app)/admin/_components/teams-admin.tsx
+msgid "Delete team"
+msgstr "Delete team"
+
+#: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
+msgid "Delete the budget for {name}"
+msgstr "Delete the budget for {name}"
+
+#: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
+msgid "Delete this budget?"
+msgstr "Delete this budget?"
 
 #: ../ui/src/components/ai-elements/tool.tsx
 msgid "Denied"
@@ -462,6 +719,18 @@ msgstr "Edit message"
 msgid "Editor"
 msgstr "Editor"
 
+#: ../../apps/web/app/(app)/admin/_components/members-admin.tsx
+msgid "Email"
+msgstr "Email"
+
+#: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
+msgid "Enter an amount in dollars, like 25 or 12.50."
+msgstr "Enter an amount in dollars, like 25 or 12.50."
+
+#: ../../apps/web/app/(app)/admin/_components/members-admin.tsx
+msgid "Enter an email address."
+msgstr "Enter an email address."
+
 #: ../composer/src/components/composer.tsx
 msgid "Enter sends and Shift+Enter adds a line. Type / for prompts and @ to mention someone."
 msgstr "Enter sends and Shift+Enter adds a line. Type / for prompts and @ to mention someone."
@@ -470,9 +739,21 @@ msgstr "Enter sends and Shift+Enter adds a line. Type / for prompts and @ to men
 msgid "Error"
 msgstr "Error"
 
+#: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
+msgid "Eval results are shown; publishing is never blocked."
+msgstr "Eval results are shown; publishing is never blocked."
+
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "Every change is kept. Restoring makes a new version, so nothing is lost."
+msgstr "Every change is kept. Restoring makes a new version, so nothing is lost."
+
 #: ../../apps/web/app/dev/ai-elements/page.tsx
 msgid "Every migrated component with static sample data. Nothing here calls a model."
 msgstr "Every migrated component with static sample data. Nothing here calls a model."
+
+#: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
+msgid "Everything in the org, including its teams."
+msgstr "Everything in the org, including its teams."
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Exit fullscreen"
@@ -484,10 +765,18 @@ msgstr "Exit fullscreen"
 msgid "Exited with code {0} in {1} ms"
 msgstr "Exited with code {0} in {1} ms"
 
+#: ../../apps/web/app/(app)/admin/_components/members-admin.tsx
+msgid "Expires {expires}"
+msgstr "Expires {expires}"
+
 #: ../chat-ui/src/header/sandbox-pill.tsx
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "Failed"
 msgstr "Failed"
+
+#: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
+msgid "Fall back to personal keys"
+msgstr "Fall back to personal keys"
 
 #: ../../apps/web/app/dev/code/demo.tsx
 msgid "File"
@@ -500,6 +789,10 @@ msgstr "File after applying accepted changes"
 #: ../../apps/web/app/dev/code/demo.tsx
 msgid "File tree"
 msgstr "File tree"
+
+#: ../palette/src/context-actions.ts
+msgid "files"
+msgstr "files"
 
 #: ../chat-ui/src/sandbox/sandbox-panel.tsx
 #: ../code-ui/src/file-tree.tsx
@@ -514,9 +807,21 @@ msgstr "Fill in “{promptName}”"
 msgid "Fill in every field to insert the prompt."
 msgstr "Fill in every field to insert the prompt."
 
+#: ../shortcuts/src/registry.ts
+msgid "Focus the composer"
+msgstr "Focus the composer"
+
 #: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
 msgid "Focus the message box"
 msgstr "Focus the message box"
+
+#: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
+msgid "For"
+msgstr "For"
+
+#: ../shortcuts/src/react/help-dialog.tsx
+msgid "General"
+msgstr "General"
 
 #: ../chat-ui/src/conversation/feedback.tsx
 msgid "Good answer"
@@ -525,6 +830,22 @@ msgstr "Good answer"
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "gVisor"
 msgstr "gVisor"
+
+#: ../palette/src/context-actions.ts
+msgid "Hide the sandbox"
+msgstr "Hide the sandbox"
+
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "History"
+msgstr "History"
+
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+msgid "hotkeys"
+msgstr "hotkeys"
+
+#: ../../apps/web/app/(app)/settings/appearance/page.tsx
+msgid "How the app looks on this device."
+msgstr "How the app looks on this device."
 
 #: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../ui/src/components/ai-elements/message.tsx
@@ -536,6 +857,10 @@ msgstr "Image"
 msgid "Image not available"
 msgstr "Image not available"
 
+#: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
+msgid "Informational"
+msgstr "Informational"
+
 #: ../composer/src/components/template-variables.tsx
 msgid "Insert"
 msgstr "Insert"
@@ -544,34 +869,107 @@ msgstr "Insert"
 msgid "Insert prompt"
 msgstr "Insert prompt"
 
+#: ../../apps/web/app/(app)/admin/_components/teams-admin.tsx
+msgid "Inside"
+msgstr "Inside"
+
+#: ../../apps/web/app/(app)/admin/_components/members-admin.tsx
+msgid "Invite"
+msgstr "Invite"
+
 #: ../chat-ui/src/header/share-menu.tsx
 msgid "Invite people…"
 msgstr "Invite people…"
+
+#: ../../apps/web/app/(app)/admin/_components/members-admin.tsx
+msgid "Invite someone"
+msgstr "Invite someone"
 
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "Isolation: {isolationLabel}. {isolationHelp}"
 msgstr "Isolation: {isolationLabel}. {isolationHelp}"
 
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Key"
+msgstr "Key"
+
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+msgid "keyboard"
+msgstr "keyboard"
+
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+#: ../../apps/web/app/(app)/settings/shortcuts/page.tsx
 #: ../chat-ui/src/shortcuts/shortcut-help.tsx
 #: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
+#: ../shortcuts/src/react/help-dialog.tsx
 msgid "Keyboard shortcuts"
 msgstr "Keyboard shortcuts"
+
+#: ../../apps/web/app/(app)/admin/[orgId]/layout.tsx
+msgid "Keys"
+msgstr "Keys"
+
+#: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
+msgid "Keys and scoring"
+msgstr "Keys and scoring"
+
+#: ../../apps/web/app/(app)/admin/_components/org-keys-admin.tsx
+msgid "Keys for"
+msgstr "Keys for"
+
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Label"
+msgstr "Label"
+
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+msgid "language"
+msgstr "language"
+
+#: ../../apps/web/app/(app)/settings/_components/profile-settings.tsx
+msgid "Language"
+msgstr "Language"
 
 #: ../../apps/web/app/dev/composer/demo.tsx
 msgid "Last submitted value"
 msgstr "Last submitted value"
 
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Last used"
+msgstr "Last used"
+
+#: ../../apps/web/app/(app)/admin/_components/audit-policy.tsx
+msgid "Let admins read chats in this org"
+msgstr "Let admins read chats in this org"
+
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
+#: ../palette/src/command-palette.tsx
 msgid "Library"
 msgstr "Library"
 
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+msgid "light"
+msgstr "light"
+
+#: ../../apps/web/app/(app)/settings/_components/appearance-settings.tsx
 #: ../chat-ui/src/sidebar/account-menu.tsx
 msgid "Light"
 msgstr "Light"
 
+#: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
+msgid "Limit (USD)"
+msgstr "Limit (USD)"
+
 #: ../chat-ui/src/header/share-menu.tsx
 msgid "Link copied"
 msgstr "Link copied"
+
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "Load latest"
+msgstr "Load latest"
+
+#: ../ui/src/components/spinner.tsx
+msgid "Loading"
+msgstr "Loading"
 
 #: ../chat-ui/src/artifacts/artifacts-panel.tsx
 msgid "Loading artifact"
@@ -593,6 +991,14 @@ msgstr "Loading sandbox"
 msgid "Local"
 msgstr "Local"
 
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+msgid "locale"
+msgstr "locale"
+
+#: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
+msgid "Locked by server config"
+msgstr "Locked by server config"
+
 #: ../chat-ui/src/sandbox/terminal.tsx
 msgid "ls -la"
 msgstr "ls -la"
@@ -601,9 +1007,57 @@ msgstr "ls -la"
 msgid "Markdown"
 msgstr "Markdown"
 
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "Markdown that's included in every chat you start. Agents add to it when you ask them to remember something."
+msgstr "Markdown that's included in every chat you start. Agents add to it when you ask them to remember something."
+
+#: ../../apps/web/app/(app)/settings/_components/profile-settings.tsx
+msgid "Match my browser"
+msgstr "Match my browser"
+
+#: ../../apps/web/app/(app)/admin/_components/members-admin.tsx
+msgid "Member"
+msgstr "Member"
+
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+msgid "members"
+msgstr "members"
+
+#: ../../apps/web/app/(app)/admin/_components/members-admin.tsx
+#: ../../apps/web/app/(app)/admin/[orgId]/layout.tsx
+msgid "Members"
+msgstr "Members"
+
+#: ../../apps/web/app/(app)/admin/[orgId]/members/page.tsx
+msgid "Members and invitations"
+msgstr "Members and invitations"
+
+#: ../../apps/web/app/(app)/admin/_components/audit-policy.tsx
+msgid "Members are told"
+msgstr "Members are told"
+
+#: ../../apps/web/app/(app)/admin/_components/teams-admin.tsx
+msgid "Members keep their accounts. Grants and budgets given to this team go away with it."
+msgstr "Members keep their accounts. Grants and budgets given to this team go away with it."
+
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+#: ../../apps/web/app/(app)/settings/layout.tsx
+#: ../../apps/web/app/(app)/settings/memory/page.tsx
+msgid "Memory"
+msgstr "Memory"
+
 #: ../chat-ui/src/conversation/memory-note.tsx
 msgid "Memory change undone"
 msgstr "Memory change undone"
+
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "Memory changed since you opened it, probably in a chat. Load the latest version, then make your edit again."
+msgstr "Memory changed since you opened it, probably in a chat. Load the latest version, then make your edit again."
+
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "Memory couldn't be saved. Try again."
+msgstr "Memory couldn't be saved. Try again."
 
 #. placeholder {0}: update.summary
 #: ../chat-ui/src/conversation/memory-note.tsx
@@ -627,6 +1081,11 @@ msgstr "MicroVM"
 msgid "MMD"
 msgstr "MMD"
 
+#: ../palette/src/context-actions.ts
+msgid "model"
+msgstr "model"
+
+#: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
 #: ../../apps/web/app/dev/ai-elements/demo.tsx
 msgid "Model"
 msgstr "Model"
@@ -639,17 +1098,59 @@ msgstr "Model or agent: {label}"
 msgid "Models"
 msgstr "Models"
 
+#: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
+msgid "Monthly"
+msgstr "Monthly"
+
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "More actions"
 msgstr "More actions"
 
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+msgid "name"
+msgstr "name"
+
+#: ../../apps/web/app/(app)/admin/_components/members-admin.tsx
+msgid "Name"
+msgstr "Name"
+
+#: ../../apps/web/app/(app)/admin/_components/members-admin.tsx
+msgid "name@example.com"
+msgstr "name@example.com"
+
+#: ../shortcuts/src/react/help-dialog.tsx
+msgid "Navigation"
+msgstr "Navigation"
+
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Never used"
+msgstr "Never used"
+
+#: ../../apps/web/app/(app)/_shared/providers.tsx
 #: ../chat-ui/src/chat/chat-screen.tsx
 #: ../chat-ui/src/header/chat-title.tsx
 #: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
 #: ../chat-ui/src/sidebar/chat-row.tsx
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
+#: ../shortcuts/src/registry.ts
 msgid "New chat"
 msgstr "New chat"
+
+#: ../palette/src/command-palette.tsx
+msgid "New chat with {name}"
+msgstr "New chat with {name}"
+
+#: ../../apps/web/app/(app)/settings/_components/profile-settings.tsx
+msgid "New chats start here: it decides whose keys pay and where usage counts. You can change it in a chat until the first message."
+msgstr "New chats start here: it decides whose keys pay and where usage counts. You can change it in a chat until the first message."
+
+#: ../../apps/web/app/(app)/admin/_components/teams-admin.tsx
+msgid "New name for {name}"
+msgstr "New name for {name}"
+
+#: ../../apps/web/app/(app)/admin/_components/teams-admin.tsx
+msgid "New team"
+msgstr "New team"
 
 #: ../chat-ui/src/artifacts/artifacts-panel.tsx
 msgid "Newer version"
@@ -657,13 +1158,19 @@ msgstr "Newer version"
 
 #: ../chat-ui/src/header/branch-switcher.tsx
 #: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
+#: ../shortcuts/src/registry.ts
 #: ../ui/src/components/ai-elements/message.tsx
 msgid "Next branch"
 msgstr "Next branch"
 
 #: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
+#: ../shortcuts/src/registry.ts
 msgid "Next chat"
 msgstr "Next chat"
+
+#: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
+msgid "No budgets"
+msgstr "No budgets"
 
 #: ../chat-ui/src/artifacts/artifacts-panel.tsx
 msgid "No changes from the previous version."
@@ -677,9 +1184,41 @@ msgstr "No chats yet. Start one and it shows up here."
 msgid "No files match the accepted types."
 msgstr "No files match the accepted types."
 
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "No keys yet"
+msgstr "No keys yet"
+
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "No label"
+msgstr "No label"
+
+#: ../../apps/web/app/(app)/admin/_components/admin-index.tsx
+msgid "No orgs to manage"
+msgstr "No orgs to manage"
+
+#: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
+msgid "No regressions"
+msgstr "No regressions"
+
 #: ../chat-ui/src/header/sandbox-pill.tsx
 msgid "No sandbox"
 msgstr "No sandbox"
+
+#: ../../apps/web/app/(app)/admin/_components/teams-admin.tsx
+msgid "No teams yet"
+msgstr "No teams yet"
+
+#: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
+msgid "No usage this month yet."
+msgstr "No usage this month yet."
+
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "No versions yet. Saving creates the first one."
+msgstr "No versions yet. Saving creates the first one."
+
+#: ../palette/src/command-palette.tsx
+msgid "Nothing found."
+msgstr "Nothing found."
 
 #: ../chat-ui/src/artifacts/artifacts-panel.tsx
 msgid "Nothing here yet. Code, pages and documents the agent makes in this chat show up here."
@@ -689,6 +1228,15 @@ msgstr "Nothing here yet. Code, pages and documents the agent makes in this chat
 msgid "Nothing sent yet."
 msgstr "Nothing sent yet."
 
+#: ../shortcuts/src/react/help-dialog.tsx
+#: ../shortcuts/src/react/shortcuts-editor.tsx
+msgid "Off"
+msgstr "Off"
+
+#: ../../apps/web/app/(app)/admin/[orgId]/audit/page.tsx
+msgid "Off unless an owner turns it on. Admins see usage and metadata either way, never chat content."
+msgstr "Off unless an owner turns it on. Admins see usage and metadata either way, never chat content."
+
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "Older"
 msgstr "Older"
@@ -696,6 +1244,10 @@ msgstr "Older"
 #: ../chat-ui/src/artifacts/artifacts-panel.tsx
 msgid "Older version"
 msgstr "Older version"
+
+#: ../../apps/web/app/(app)/admin/_components/audit-policy.tsx
+msgid "Only the org's owners can change this."
+msgstr "Only the org's owners can change this."
 
 #. placeholder {0}: part.title
 #: ../chat-ui/src/conversation/artifact-card.tsx
@@ -714,6 +1266,15 @@ msgstr "Open link"
 msgid "Open preview in a new tab"
 msgstr "Open preview in a new tab"
 
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+#: ../shortcuts/src/registry.ts
+msgid "Open settings"
+msgstr "Open settings"
+
+#: ../shortcuts/src/registry.ts
+msgid "Open the command palette"
+msgstr "Open the command palette"
+
 #. placeholder {0}: open.path
 #: ../chat-ui/src/sandbox/files.tsx
 msgid "Opening {0}…"
@@ -723,13 +1284,39 @@ msgstr "Opening {0}…"
 msgid "Optional: tell the agent why"
 msgstr "Optional: tell the agent why"
 
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+msgid "org"
+msgstr "org"
+
+#: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
+msgid "Org"
+msgstr "Org"
+
+#: ../../apps/web/app/(app)/admin/_components/admin-index.tsx
+msgid "Org admin"
+msgstr "Org admin"
+
+#: ../../apps/web/app/(app)/admin/[orgId]/keys/page.tsx
+msgid "Org and team keys"
+msgstr "Org and team keys"
+
 #: ../composer/src/components/context-chip.tsx
 msgid "Organization"
 msgstr "Organization"
 
+#: ../../apps/web/app/(app)/admin/page.tsx
+msgid "Orgs you own or administer."
+msgstr "Orgs you own or administer."
+
+#: ../../apps/web/app/(app)/admin/_components/admin-index.tsx
+#: ../../apps/web/app/(app)/admin/_components/members-admin.tsx
 #: ../chat-ui/src/header/share-menu.tsx
 msgid "Owner"
 msgstr "Owner"
+
+#: ../shortcuts/src/react/help-dialog.tsx
+msgid "Panels"
+msgstr "Panels"
 
 #: ../ui/src/components/ai-elements/tool.tsx
 msgid "Parameters"
@@ -747,9 +1334,23 @@ msgstr "People in this chat"
 msgid "People in this chat: {names}"
 msgstr "People in this chat: {names}"
 
+#: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
+msgid "Period"
+msgstr "Period"
+
+#: ../palette/src/context-actions.ts
+msgid "permissions"
+msgstr "permissions"
+
+#: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
+#: ../../apps/web/app/(app)/settings/_components/profile-settings.tsx
 #: ../composer/src/components/context-chip.tsx
 msgid "Personal"
 msgstr "Personal"
+
+#: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
+msgid "Personal key fallback is off: this server forbids it."
+msgstr "Personal key fallback is off: this server forbids it."
 
 #: ../chat-ui/src/chat/chat-screen.tsx
 msgid "Pick whose keys and budget this chat uses with the context in the header. You can change it until you send the first message."
@@ -771,9 +1372,26 @@ msgstr "Pinned"
 msgid "PNG"
 msgstr "PNG"
 
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+msgid "policies"
+msgstr "policies"
+
+#: ../../apps/web/app/(app)/admin/[orgId]/layout.tsx
+#: ../../apps/web/app/(app)/admin/[orgId]/policies/page.tsx
+msgid "Policies"
+msgstr "Policies"
+
 #: ../chat-ui/src/sandbox/preview.tsx
 msgid "Port"
 msgstr "Port"
+
+#: ../../apps/web/app/(app)/settings/_components/profile-settings.tsx
+msgid "Preferences"
+msgstr "Preferences"
+
+#: ../shortcuts/src/react/shortcuts-editor.tsx
+msgid "Press keys…"
+msgstr "Press keys…"
 
 #: ../chat-ui/src/artifacts/artifacts-panel.tsx
 #: ../chat-ui/src/sandbox/preview.tsx
@@ -801,17 +1419,29 @@ msgstr "Previous 7 days"
 
 #: ../chat-ui/src/header/branch-switcher.tsx
 #: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
+#: ../shortcuts/src/registry.ts
 #: ../ui/src/components/ai-elements/message.tsx
 msgid "Previous branch"
 msgstr "Previous branch"
 
 #: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
+#: ../shortcuts/src/registry.ts
 msgid "Previous chat"
 msgstr "Previous chat"
 
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "Primary"
 msgstr "Primary"
+
+#: ../../apps/web/app/(app)/settings/_components/profile-settings.tsx
+msgid "Profile"
+msgstr "Profile"
+
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+#: ../../apps/web/app/(app)/settings/layout.tsx
+#: ../../apps/web/app/(app)/settings/profile/page.tsx
+msgid "Profile and language"
+msgstr "Profile and language"
 
 #: ../../apps/web/app/page.tsx
 msgid "Project ready!"
@@ -829,6 +1459,32 @@ msgstr "Prompts"
 msgid "Proposed edit"
 msgstr "Proposed edit"
 
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Provider"
+msgstr "Provider"
+
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+#: ../../apps/web/app/(app)/settings/keys/page.tsx
+#: ../../apps/web/app/(app)/settings/layout.tsx
+msgid "Provider keys"
+msgstr "Provider keys"
+
+#: ../../apps/web/app/(app)/admin/[orgId]/keys/page.tsx
+msgid "Provider keys that pay for this org's chats. Secrets are never shown again after you add them."
+msgstr "Provider keys that pay for this org's chats. Secrets are never shown again after you add them."
+
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+msgid "providers"
+msgstr "providers"
+
+#: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
+msgid "Publish gate"
+msgstr "Publish gate"
+
+#: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
+msgid "Publishing is blocked when evals regress."
+msgstr "Publishing is blocked when evals regress."
+
 #: ../chat-ui/src/conversation/artifact-card.tsx
 msgid "React component"
 msgstr "React component"
@@ -841,6 +1497,22 @@ msgstr "Ready"
 #: ../chat-ui/src/conversation/lazy.tsx
 msgid "Reasoning"
 msgstr "Reasoning"
+
+#: ../palette/src/command-palette.tsx
+msgid "Recent chats"
+msgstr "Recent chats"
+
+#: ../shortcuts/src/react/shortcuts-editor.tsx
+msgid "Record"
+msgstr "Record"
+
+#: ../shortcuts/src/react/shortcuts-editor.tsx
+msgid "Record a shortcut for {description}"
+msgstr "Record a shortcut for {description}"
+
+#: ../../apps/web/app/(app)/settings/shortcuts/page.tsx
+msgid "Record your own keys for any shortcut. Your changes are saved in this browser."
+msgstr "Record your own keys for any shortcut. Your changes are saved in this browser."
 
 #: ../chat-ui/src/sandbox/files.tsx
 msgid "Refresh files"
@@ -867,6 +1539,10 @@ msgstr "Reject change {number}"
 msgid "Reject the rest"
 msgstr "Reject the rest"
 
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Rejected"
+msgstr "Rejected"
+
 #: ../chat-ui/src/sandbox/preview.tsx
 msgid "Reload preview"
 msgstr "Reload preview"
@@ -876,22 +1552,56 @@ msgstr "Reload preview"
 msgid "Remove"
 msgstr "Remove"
 
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+#: ../../apps/web/app/(app)/admin/_components/members-admin.tsx
 #: ../composer/src/components/attachment-list.tsx
 msgid "Remove {name}"
 msgstr "Remove {name}"
+
+#: ../../apps/web/app/(app)/admin/_components/members-admin.tsx
+msgid "Remove {name} from this org?"
+msgstr "Remove {name} from this org?"
 
 #: ../ui/src/components/ai-elements/message.tsx
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Remove attachment"
 msgstr "Remove attachment"
 
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Remove key"
+msgstr "Remove key"
+
+#: ../../apps/web/app/(app)/admin/_components/members-admin.tsx
+msgid "Remove member"
+msgstr "Remove member"
+
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Remove this key?"
+msgstr "Remove this key?"
+
 #: ../chat-ui/src/sidebar/chat-row.tsx
 msgid "Rename"
 msgstr "Rename"
 
+#: ../../apps/web/app/(app)/admin/_components/teams-admin.tsx
+msgid "Rename {name}"
+msgstr "Rename {name}"
+
 #: ../chat-ui/src/header/chat-title.tsx
 msgid "Rename chat: {shown}"
 msgstr "Rename chat: {shown}"
+
+#: ../shortcuts/src/react/shortcuts-editor.tsx
+msgid "Reset"
+msgstr "Reset"
+
+#: ../shortcuts/src/react/shortcuts-editor.tsx
+msgid "Reset {description}"
+msgstr "Reset {description}"
+
+#: ../shortcuts/src/react/shortcuts-editor.tsx
+msgid "Reset all"
+msgstr "Reset all"
 
 #: ../chat-ui/src/sandbox/sandbox-panel.tsx
 msgid "Reset sandbox"
@@ -905,9 +1615,25 @@ msgstr "Reset zoom and pan"
 msgid "Reset: start again with an empty workspace"
 msgstr "Reset: start again with an empty workspace"
 
+#: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
+msgid "Resets {resets}"
+msgstr "Resets {resets}"
+
 #: ../ui/src/components/ai-elements/tool.tsx
 msgid "Responded"
 msgstr "Responded"
+
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "Restore"
+msgstr "Restore"
+
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "Restore version {number}"
+msgstr "Restore version {number}"
+
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "Restored an earlier version"
+msgstr "Restored an earlier version"
 
 #: ../ui/src/components/ai-elements/tool.tsx
 msgid "Result"
@@ -921,6 +1647,14 @@ msgstr "Retry"
 #: ../chat-ui/src/conversation/approval.tsx
 msgid "Reviewed {0}"
 msgstr "Reviewed {0}"
+
+#: ../../apps/web/app/(app)/admin/_components/members-admin.tsx
+msgid "Role"
+msgstr "Role"
+
+#: ../../apps/web/app/(app)/admin/_components/members-admin.tsx
+msgid "Role for {name}"
+msgstr "Role for {name}"
 
 #: ../chat-ui/src/sandbox/terminal.tsx
 msgid "Run a command to see its output here."
@@ -954,6 +1688,14 @@ msgstr "Runs in a plain Docker container. gVisor isn't available on this host, s
 msgid "Runs in a remote microVM."
 msgstr "Runs in a remote microVM."
 
+#: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
+msgid "Sampled scoring"
+msgstr "Sampled scoring"
+
+#: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
+msgid "Sampled scoring is off: this server forbids it."
+msgstr "Sampled scoring is off: this server forbids it."
+
 #: ../chat-ui/src/sandbox/sandbox-panel.tsx
 #: ../chat-ui/src/shell/right-panel.tsx
 msgid "Sandbox"
@@ -986,6 +1728,26 @@ msgstr "Sandbox: {label}"
 msgid "Sandboxes are turned off on this server."
 msgstr "Sandboxes are turned off on this server."
 
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "Save"
+msgstr "Save"
+
+#: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
+msgid "Save policy"
+msgstr "Save policy"
+
+#: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
+msgid "Saved"
+msgstr "Saved"
+
+#: ../../apps/web/app/(app)/settings/_components/appearance-settings.tsx
+msgid "Saved in this browser."
+msgstr "Saved in this browser."
+
+#: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
+msgid "Score a sample of this org's chats to catch quality drops."
+msgstr "Score a sample of this org's chats to catch quality drops."
+
 #: ../ui/src/components/message-scroller.tsx
 msgid "Scroll to end"
 msgstr "Scroll to end"
@@ -1002,9 +1764,25 @@ msgstr "Search"
 msgid "Search and commands"
 msgstr "Search and commands"
 
+#: ../palette/src/command-palette.tsx
+msgid "Search chats, agents and settings, or run an action"
+msgstr "Search chats, agents and settings, or run an action"
+
 #: ../code-ui/src/file-tree.tsx
 msgid "Search files"
 msgstr "Search files"
+
+#: ../ui/src/components/command.tsx
+msgid "Search for a command to run"
+msgstr "Search for a command to run"
+
+#: ../palette/src/command-palette.tsx
+msgid "Search or type a command…"
+msgstr "Search or type a command…"
+
+#: ../palette/src/command-palette.tsx
+msgid "Searching messages…"
+msgstr "Searching messages…"
 
 #: ../chat-ui/src/sandbox/files.tsx
 msgid "Select a file to view it."
@@ -1023,9 +1801,31 @@ msgstr "Send feedback"
 msgid "Sending the edit starts a new branch; the original stays."
 msgstr "Sending the edit starts a new branch; the original stays."
 
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Server config"
+msgstr "Server config"
+
+#: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
+msgid "Set budget"
+msgstr "Set budget"
+
+#: ../palette/src/context-actions.ts
+msgid "Set permission mode to {label}"
+msgstr "Set permission mode to {label}"
+
+#: ../../apps/web/app/(app)/settings/layout.tsx
 #: ../chat-ui/src/sidebar/account-menu.tsx
+#: ../palette/src/command-palette.tsx
 msgid "Settings"
 msgstr "Settings"
+
+#: ../../apps/web/app/(app)/_shared/unavailable.tsx
+msgid "Settings aren't available"
+msgstr "Settings aren't available"
+
+#: ../../apps/web/app/(app)/settings/layout.tsx
+msgid "Settings pages"
+msgstr "Settings pages"
 
 #: ../chat-ui/src/header/share-menu.tsx
 msgid "Share"
@@ -1034,6 +1834,26 @@ msgstr "Share"
 #: ../chat-ui/src/conversation/feedback.tsx
 msgid "Share this conversation with the agent's maintainers. Without this they only see totals."
 msgstr "Share this conversation with the agent's maintainers. Without this they only see totals."
+
+#: ../../apps/web/app/(app)/settings/layout.tsx
+msgid "Shortcuts"
+msgstr "Shortcuts"
+
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "Show contents"
+msgstr "Show contents"
+
+#: ../shortcuts/src/registry.ts
+msgid "Show keyboard shortcuts"
+msgstr "Show keyboard shortcuts"
+
+#: ../../apps/web/app/(app)/admin/_components/members-admin.tsx
+msgid "Show more"
+msgstr "Show more"
+
+#: ../palette/src/context-actions.ts
+msgid "Show the sandbox"
+msgstr "Show the sandbox"
 
 #: ../chat-ui/src/shell/app-shell.tsx
 #: ../chat-ui/src/shell/right-panel.tsx
@@ -1044,13 +1864,26 @@ msgstr "Side panel"
 msgid "Sign out"
 msgstr "Sign out"
 
+#: ../../apps/web/app/(app)/_shared/unavailable.tsx
+msgid "Sign-in is switched off until an administrator sets BETTER_AUTH_SECRET."
+msgstr "Sign-in is switched off until an administrator sets BETTER_AUTH_SECRET."
+
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "Simulated"
 msgstr "Simulated"
 
 #: ../chat-ui/src/shortcuts/shortcut-help.tsx
+#: ../shortcuts/src/react/help-dialog.tsx
 msgid "Single keys work when you're not typing in a text field."
 msgstr "Single keys work when you're not typing in a text field."
+
+#: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
+msgid "Some chat contexts aren't allowed on this server and are left out."
+msgstr "Some chat contexts aren't allowed on this server and are left out."
+
+#: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
+msgid "Some choices don't apply on this server"
+msgstr "Some choices don't apply on this server"
 
 #: ../chat-ui/src/conversation/message-row.tsx
 msgid "Something went wrong and there's no answer."
@@ -1059,6 +1892,22 @@ msgstr "Something went wrong and there's no answer."
 #: ../chat-ui/src/conversation/sources.tsx
 msgid "Sources"
 msgstr "Sources"
+
+#: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
+msgid "Spend this month"
+msgstr "Spend this month"
+
+#: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
+msgid "Spending here won't be limited any more."
+msgstr "Spending here won't be limited any more."
+
+#: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
+msgid "Spending isn't limited anywhere in this org."
+msgstr "Spending isn't limited anywhere in this org."
+
+#: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
+msgid "Spent"
+msgstr "Spent"
 
 #: ../code-ui/src/diff-view.tsx
 msgid "Split"
@@ -1086,10 +1935,18 @@ msgstr "Stop"
 msgid "Stop dictation"
 msgstr "Stop dictation"
 
+#: ../shortcuts/src/registry.ts
+msgid "Stop generating"
+msgstr "Stop generating"
+
 #: ../chat-ui/src/header/sandbox-pill.tsx
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "Stopped"
 msgstr "Stopped"
+
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Stored encrypted and never shown again; only its last characters are."
+msgstr "Stored encrypted and never shown again; only its last characters are."
 
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Submit"
@@ -1103,13 +1960,48 @@ msgstr "Submit review"
 msgid "SVG"
 msgstr "SVG"
 
+#: ../palette/src/context-actions.ts
+msgid "Switch chat context to {label}"
+msgstr "Switch chat context to {label}"
+
+#: ../shortcuts/src/registry.ts
+msgid "Switch model"
+msgstr "Switch model"
+
+#: ../palette/src/context-actions.ts
+msgid "Switch model to {label}"
+msgstr "Switch model to {label}"
+
+#: ../../apps/web/app/(app)/settings/_components/appearance-settings.tsx
 #: ../chat-ui/src/sidebar/account-menu.tsx
 msgid "System"
 msgstr "System"
 
+#: ../palette/src/context-actions.ts
+msgid "team"
+msgstr "team"
+
+#: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
 #: ../composer/src/components/context-chip.tsx
 msgid "Team"
 msgstr "Team"
+
+#: ../../apps/web/app/(app)/admin/_components/teams-admin.tsx
+msgid "Team name"
+msgstr "Team name"
+
+#: ../../apps/web/app/(app)/admin/[orgId]/layout.tsx
+#: ../../apps/web/app/(app)/admin/[orgId]/teams/page.tsx
+msgid "Teams"
+msgstr "Teams"
+
+#: ../../apps/web/app/(app)/admin/_components/teams-admin.tsx
+msgid "Teams group members for sharing, keys and budgets. Sub-teams inherit what their parent is given."
+msgstr "Teams group members for sharing, keys and budgets. Sub-teams inherit what their parent is given."
+
+#: ../palette/src/context-actions.ts
+msgid "terminal"
+msgstr "terminal"
 
 #: ../chat-ui/src/sandbox/sandbox-panel.tsx
 msgid "Terminal"
@@ -1118,6 +2010,24 @@ msgstr "Terminal"
 #: ../chat-ui/src/conversation/feedback.tsx
 msgid "Thanks! What was good? (optional)"
 msgstr "Thanks! What was good? (optional)"
+
+#: ../../apps/web/app/(app)/admin/_components/members-admin.tsx
+#: ../../apps/web/app/(app)/admin/_components/teams-admin.tsx
+#: ../../apps/web/app/(app)/settings/_components/profile-settings.tsx
+msgid "That change couldn't be saved. Try again."
+msgstr "That change couldn't be saved. Try again."
+
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "That key couldn't be removed. Try again."
+msgstr "That key couldn't be removed. Try again."
+
+#: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
+msgid "That publish gate isn't allowed here; the server default applies."
+msgstr "That publish gate isn't allowed here; the server default applies."
+
+#: ../../apps/web/app/(app)/admin/_components/teams-admin.tsx
+msgid "That team has sub-teams. Delete or move them first."
+msgstr "That team has sub-teams. Delete or move them first."
 
 #: ../../apps/web/app/dev/code/demo.tsx
 msgid "The accepted changes couldn't be applied."
@@ -1135,6 +2045,18 @@ msgstr "The agent wants to run {toolName}."
 msgid "The answer failed. Try again, or regenerate it."
 msgstr "The answer failed. Try again, or regenerate it."
 
+#: ../../apps/web/app/(app)/admin/_components/audit-policy.tsx
+msgid "The audit policy couldn't be changed. Try again."
+msgstr "The audit policy couldn't be changed. Try again."
+
+#: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
+msgid "The audit policy is off: this server forbids it."
+msgstr "The audit policy is off: this server forbids it."
+
+#: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
+msgid "The budget couldn't be saved. Try again."
+msgstr "The budget couldn't be saved. Try again."
+
 #: ../../apps/web/app/dev/sandbox/page.tsx
 msgid "The chat sandbox panel over a just-bash workspace that runs entirely in this browser tab: simulated bash, an in-memory filesystem, no server and no network. Reloading the page starts over."
 msgstr "The chat sandbox panel over a just-bash workspace that runs entirely in this browser tab: simulated bash, an in-memory filesystem, no server and no network. Reloading the page starts over."
@@ -1150,6 +2072,18 @@ msgstr "The editor didn't load. Reload the page to try again."
 #: ../../apps/web/app/dev/code/page.tsx
 msgid "The file tree, a highlighted file and a reviewable diff, themed from the design tokens. Sample data only; nothing is written anywhere."
 msgstr "The file tree, a highlighted file and a reviewable diff, themed from the design tokens. Sample data only; nothing is written anywhere."
+
+#: ../../apps/web/app/(app)/admin/_components/members-admin.tsx
+msgid "The invitation couldn't be sent. Try again."
+msgstr "The invitation couldn't be sent. Try again."
+
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "The key couldn't be added. Try again."
+msgstr "The key couldn't be added. Try again."
+
+#: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
+msgid "The policy couldn't be saved. Try again."
+msgstr "The policy couldn't be saved. Try again."
 
 #: ../../apps/web/app/dev/composer/page.tsx
 msgid "The prompt composer with contract fixtures. Type / for a prompt template or @ to mention someone; sending fakes a short run you can stop. Nothing here calls a model."
@@ -1167,13 +2101,39 @@ msgstr "The sandbox is unavailable."
 msgid "The sandbox was destroyed. Create a new one."
 msgstr "The sandbox was destroyed. Create a new one."
 
+#: ../../apps/web/app/(app)/_shared/unavailable.tsx
+msgid "The server's configuration file has problems. An administrator can find the details in the server log."
+msgstr "The server's configuration file has problems. An administrator can find the details in the server log."
+
+#: ../../apps/web/app/(app)/admin/_components/teams-admin.tsx
+msgid "The team couldn't be created. Try again."
+msgstr "The team couldn't be created. Try again."
+
+#: ../../apps/web/app/(app)/admin/_components/org-keys-admin.tsx
+#: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
+msgid "The whole org"
+msgstr "The whole org"
+
 #: ../chat-ui/src/sandbox/files.tsx
 msgid "The workspace is empty."
 msgstr "The workspace is empty."
 
+#: ../../apps/web/app/(app)/_shared/providers.tsx
+msgid "theme"
+msgstr "theme"
+
+#: ../../apps/web/app/(app)/settings/_components/appearance-settings.tsx
 #: ../chat-ui/src/sidebar/account-menu.tsx
 msgid "Theme"
 msgstr "Theme"
+
+#: ../../apps/web/app/(app)/admin/_components/members-admin.tsx
+msgid "They lose access to this org's chats, library and keys. Their personal chats are untouched."
+msgstr "They lose access to this org's chats, library and keys. Their personal chats are untouched."
+
+#: ../../apps/web/app/(app)/admin/_components/members-admin.tsx
+msgid "They're already a member or already invited."
+msgstr "They're already a member or already invited."
 
 #: ../chat-ui/src/conversation/message-row.tsx
 #: ../ui/src/components/ai-elements/reasoning.tsx
@@ -1192,9 +2152,29 @@ msgstr "This change couldn't be displayed as a diff."
 msgid "This chat has no sandbox yet. Create one to run commands and keep files the agent can work on."
 msgstr "This chat has no sandbox yet. Create one to run commands and keep files the agent can work on."
 
+#: ../../apps/web/app/(app)/_shared/query-state.tsx
+msgid "This couldn't be loaded."
+msgstr "This couldn't be loaded."
+
+#: ../../apps/web/app/(app)/_shared/query-state.tsx
+msgid "This feature is switched off on this server."
+msgstr "This feature is switched off on this server."
+
 #: ../../apps/web/app/dev/sandbox/demo.tsx
 msgid "This sandbox can't do that."
 msgstr "This sandbox can't do that."
+
+#: ../../apps/web/app/(app)/_shared/unavailable.tsx
+msgid "This server has no database yet, so there are no accounts to sign in to. An administrator needs to set DATABASE_URL."
+msgstr "This server has no database yet, so there are no accounts to sign in to. An administrator needs to set DATABASE_URL."
+
+#: ../../apps/web/app/(app)/admin/_components/audit-policy.tsx
+msgid "This server's configuration forbids audit policies, so admins can't read chat content in any org."
+msgstr "This server's configuration forbids audit policies, so admins can't read chat content in any org."
+
+#: ../shortcuts/src/react/shortcuts-editor.tsx
+msgid "Those keys can't be used as a shortcut."
+msgstr "Those keys can't be used as a shortcut."
 
 #: ../ui/src/components/ai-elements/reasoning.tsx
 msgid "Thought for a few seconds"
@@ -1214,9 +2194,33 @@ msgstr "Today"
 msgid "Toggle sidebar"
 msgstr "Toggle sidebar"
 
+#: ../shortcuts/src/registry.ts
+msgid "Toggle the artifacts panel"
+msgstr "Toggle the artifacts panel"
+
+#: ../shortcuts/src/registry.ts
+msgid "Toggle the sandbox panel"
+msgstr "Toggle the sandbox panel"
+
+#: ../shortcuts/src/registry.ts
+msgid "Toggle the sidebar"
+msgstr "Toggle the sidebar"
+
+#: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
+msgid "Tokens"
+msgstr "Tokens"
+
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Too many files. Some were not added."
 msgstr "Too many files. Some were not added."
+
+#: ../../apps/web/app/(app)/admin/_components/teams-admin.tsx
+msgid "Top level"
+msgstr "Top level"
+
+#: ../../apps/web/app/(app)/_shared/query-state.tsx
+msgid "Try again"
+msgstr "Try again"
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "TSV"
@@ -1239,6 +2243,14 @@ msgstr "Unknown agent"
 msgid "Unpin"
 msgstr "Unpin"
 
+#: ../palette/src/command-palette.tsx
+msgid "Untitled chat"
+msgstr "Untitled chat"
+
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "Updated in a chat"
+msgstr "Updated in a chat"
+
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Upload files"
 msgstr "Upload files"
@@ -1247,9 +2259,25 @@ msgstr "Upload files"
 msgid "Uploaded file"
 msgstr "Uploaded file"
 
+#: ../../apps/web/app/(app)/admin/_components/org-keys-admin.tsx
+msgid "Used by org chats, and by team chats when no team up the tree has a key."
+msgstr "Used by org chats, and by team chats when no team up the tree has a key."
+
+#: ../../apps/web/app/(app)/admin/_components/org-keys-admin.tsx
+msgid "Used by this team's chats and its sub-teams' when they have none of their own."
+msgstr "Used by this team's chats and its sub-teams' when they have none of their own."
+
+#: ../../apps/web/app/(app)/settings/_components/profile-settings.tsx
+msgid "Used for the interface and passed to agents so they answer in your language."
+msgstr "Used for the interface and passed to agents so they answer in your language."
+
 #: ../chat-ui/src/artifacts/artifacts-panel.tsx
 msgid "v{number} of {total}"
 msgstr "v{number} of {total}"
+
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "Version {number}"
+msgstr "Version {number}"
 
 #: ../chat-ui/src/artifacts/artifacts-panel.tsx
 msgid "Versions"
@@ -1263,6 +2291,10 @@ msgstr "View fullscreen"
 msgid "Viewer"
 msgstr "Viewer"
 
+#: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
+msgid "Warns"
+msgstr "Warns"
+
 #: ../../apps/web/app/page.tsx
 msgid "We've already added the button component for you."
 msgstr "We've already added the button component for you."
@@ -1271,9 +2303,25 @@ msgstr "We've already added the button component for you."
 msgid "Web page"
 msgstr "Web page"
 
+#: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
+msgid "Weekly"
+msgstr "Weekly"
+
+#: ../../apps/web/app/(app)/settings/memory/page.tsx
+msgid "What agents remember about you across chats."
+msgstr "What agents remember about you across chats."
+
 #: ../chat-ui/src/chat/chat-screen.tsx
 msgid "What are we working on?"
 msgstr "What are we working on?"
+
+#: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
+msgid "What happens when an agent is published to this org's library."
+msgstr "What happens when an agent is published to this org's library."
+
+#: ../../apps/web/app/(app)/admin/[orgId]/usage/page.tsx
+msgid "What this org spends, and the limits on it."
+msgstr "What this org spends, and the limits on it."
 
 #: ../chat-ui/src/conversation/feedback.tsx
 msgid "What went wrong? (optional)"
@@ -1283,9 +2331,41 @@ msgstr "What went wrong? (optional)"
 msgid "What would you like to know?"
 msgstr "What would you like to know?"
 
+#: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
+msgid "When a team or org chat has no key of its own, use the member's personal key."
+msgstr "When a team or org chat has no key of its own, use the member's personal key."
+
+#: ../../apps/web/app/(app)/admin/_components/usage-admin.tsx
+msgid "When spent"
+msgstr "When spent"
+
+#: ../../apps/web/app/(app)/admin/_components/org-policy-form.tsx
+msgid "Where members of this org may hold chats. The context decides whose keys pay and where usage counts."
+msgstr "Where members of this org may hold chats. The context decides whose keys pay and where usage counts."
+
+#: ../shortcuts/src/react/shortcuts-editor.tsx
+msgid "While recording, Escape cancels and Backspace turns a shortcut off."
+msgstr "While recording, Escape cancels and Backspace turns a shortcut off."
+
+#: ../../apps/web/app/(app)/admin/_components/audit-policy.tsx
+msgid "While this is on, every member sees “Admins of this org can read this chat” on the chats it covers, and when picking a team or org context. Admins always see usage and metadata; only this policy lets them see content."
+msgstr "While this is on, every member sees “Admins of this org can read this chat” on the chats it covers, and when picking a team or org context. Admins always see usage and metadata; only this policy lets them see content."
+
+#: ../../apps/web/app/(app)/admin/[orgId]/members/page.tsx
+msgid "Who's in this org and what they can manage."
+msgstr "Who's in this org and what they can manage."
+
 #: ../chat-ui/src/conversation/approval.tsx
 msgid "Why? (optional, sent to the agent)"
 msgstr "Why? (optional, sent to the agent)"
+
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Work account"
+msgstr "Work account"
+
+#: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+msgid "Works"
+msgstr "Works"
 
 #: ../chat-ui/src/sandbox/files.tsx
 msgid "Workspace"
@@ -1299,6 +2379,14 @@ msgstr "Would send “{text}” with {fileCount, plural, one {# attachment} othe
 msgid "Yesterday"
 msgstr "Yesterday"
 
+#: ../../apps/web/app/(app)/_shared/query-state.tsx
+msgid "You don't have access to this."
+msgstr "You don't have access to this."
+
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "You edited it"
+msgstr "You edited it"
+
 #: ../../apps/web/app/page.tsx
 msgid "You may now add components and start building."
 msgstr "You may now add components and start building."
@@ -1306,6 +2394,30 @@ msgstr "You may now add components and start building."
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "You're about to visit an external website."
 msgstr "You're about to visit an external website."
+
+#: ../../apps/web/app/(app)/admin/_components/admin-index.tsx
+msgid "You're not an owner or admin of any org. Admin pages appear here when you are."
+msgstr "You're not an owner or admin of any org. Admin pages appear here when you are."
+
+#: ../shortcuts/src/react/shortcuts-editor.tsx
+msgid "Your browser keeps that combination; pick another one."
+msgstr "Your browser keeps that combination; pick another one."
+
+#: ../shortcuts/src/react/shortcuts-editor.tsx
+msgid "Your changes work now but couldn't be saved, so they'll reset when you reload."
+msgstr "Your changes work now but couldn't be saved, so they'll reset when you reload."
+
+#: ../../apps/web/app/(app)/settings/_components/memory-settings.tsx
+msgid "Your memory"
+msgstr "Your memory"
+
+#: ../../apps/web/app/(app)/settings/_components/profile-settings.tsx
+msgid "Your name and email come from how you signed in."
+msgstr "Your name and email come from how you signed in."
+
+#: ../../apps/web/app/(app)/settings/keys/page.tsx
+msgid "Your own keys pay for your Personal chats, and for team or org chats when the org allows it."
+msgstr "Your own keys pay for your Personal chats, and for team or org chats when the org allows it."
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Zoom in"
