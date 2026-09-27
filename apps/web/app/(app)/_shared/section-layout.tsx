@@ -21,7 +21,7 @@ export const SectionLayout = ({
   <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-4 md:p-8">
     <div className="flex flex-col gap-2">
       {back}
-      <p className="font-medium text-xl">{heading}</p>
+      <div className="font-medium text-xl">{heading}</div>
     </div>
     <div className="flex flex-col gap-6 md:flex-row md:gap-10">
       <aside className="md:w-48 md:shrink-0">

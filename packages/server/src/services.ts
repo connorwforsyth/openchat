@@ -19,6 +19,8 @@ import {
 } from "./jobs/registry";
 import { testChatJobHandlers } from "./jobs/test-chats";
 import type { JobQueue } from "./ports/job-queue";
+import type { Storage } from "./ports/storage";
+import { attachmentsFor, uploadReader } from "./runs/attachments";
 import {
   type BudgetCheck,
   budgetCheck,
@@ -64,6 +66,8 @@ export interface ServicesOptions {
   readonly report?: (message: string, cause: unknown) => void;
   /** Overrides model resolution entirely (tests hand in mock models). */
   readonly resolveTurn?: TurnResolver;
+  /** Uploads, for attachments a model reads as file parts (044). */
+  readonly storage?: Storage;
   readonly tools?: Pick<
     TurnResolverDeps,
     | "builtins"
@@ -129,7 +133,11 @@ export const createServices = (options: ServicesOptions): Services => {
     maxChars: config.limits.memoryMaxChars,
   };
 
+  const readUpload = options.storage
+    ? uploadReader(db, options.storage)
+    : undefined;
   const executor = createInProcessExecutor({
+    attachments: (model) => attachmentsFor(config.providers, model, readUpload),
     db,
     now: options.now,
     onSettled: afterRun,

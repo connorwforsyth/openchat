@@ -11,6 +11,8 @@ import type { LibraryKind } from "@workspace/contract/schemas/library";
 
 /** Query parameters the routes read. */
 export const routeParams = {
+  /** `/?agent=` starts a new chat with that agent ("Use in chat"). */
+  agent: "agent",
   /** `/?prompt=` starts a new chat and sends it (the palette's "Ask AI"). */
   askAi: "prompt",
   /** `/sign-up?invite=` returns to the invitation once the account exists. */
@@ -27,9 +29,11 @@ export const routes = {
   adminOrg: (orgId: OrgId, section = "policies") =>
     `/admin/${orgId}/${section}`,
   askAi: (prompt: string) => withQuery("/", { [routeParams.askAi]: prompt }),
-  // A search hit names the message; the fragment keeps it in the address.
   chat: (id: ConversationId, messageId: MessageId | null = null) =>
     messageId ? `/c/${id}#${messageId}` : `/c/${id}`,
+  // A search hit names the message; the fragment keeps it in the address.
+  chatWithAgent: (agentId: LibraryItemId) =>
+    withQuery("/", { [routeParams.agent]: agentId }),
   home: "/",
   invite: (token: string) => `/invite/${encodeURIComponent(token)}`,
   library: "/library",

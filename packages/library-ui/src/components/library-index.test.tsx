@@ -25,6 +25,8 @@ afterEach(() => {
   cleanup();
 });
 
+const AGENT_CHAT = /^\/\?agent=/;
+
 const itemHref = (item: LibraryItem) => `/library/${item.id}`;
 const newHref = (kind: LibraryKind) => `/library/new/${kind}`;
 
@@ -107,5 +109,32 @@ describe("LibraryIndex", () => {
     await waitFor(() =>
       expect(names()).toEqual(["Changelog", "Explain a concept", "Docs"])
     );
+  });
+
+  it("links a published agent to a chat with it (044)", async () => {
+    const chatHref = (item: LibraryItem) => `/?agent=${item.id}`;
+    const providers = createTestProviders(createFakeLibraryClient());
+    render(
+      providers.wrap(
+        <LibraryIndex
+          chatHref={chatHref}
+          itemHref={itemHref}
+          newHref={newHref}
+        />
+      )
+    );
+    await userEvent.click(
+      await screen.findByRole("tab", { name: "Team & org" })
+    );
+    const link = await screen.findByRole("link", {
+      name: "Use in chat Reviewer",
+    });
+    expect(link.getAttribute("href")).toMatch(AGENT_CHAT);
+    // Prompts never answer a chat.
+    await userEvent.click(screen.getByRole("tab", { name: "My library" }));
+    await screen.findByText("Explain a concept");
+    expect(
+      screen.queryByRole("link", { name: "Use in chat Explain a concept" })
+    ).toBeNull();
   });
 });

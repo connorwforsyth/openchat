@@ -25,7 +25,7 @@ import {
   type TargetChoice,
   targetKey,
 } from "../options";
-import type { AgentOption } from "../schemas";
+import type { AgentOption, AgentSource } from "../schemas";
 
 export interface TargetPickerProps {
   readonly agents: readonly AgentOption[];
@@ -51,6 +51,21 @@ function ChoiceItems({
       <span className="truncate">{choice.label}</span>
     </DropdownMenuRadioItem>
   ));
+}
+
+function AgentGroupLabel({ source }: { readonly source: AgentSource | null }) {
+  switch (source) {
+    case "mine":
+      return <Trans>My agents</Trans>;
+    case "shared":
+      return <Trans>Shared with me</Trans>;
+    case "libraries":
+      return <Trans>Team & org agents</Trans>;
+    case null:
+      return <Trans>Agents</Trans>;
+    default:
+      return source satisfies never;
+  }
 }
 
 /** Auto, an agent, or a model (D3, D15): what answers the next turn. */
@@ -128,17 +143,15 @@ export function TargetPicker({
               </span>
             </span>
           </DropdownMenuRadioItem>
-          {groups.agents.length > 0 ? (
-            <>
+          {groups.agentGroups.map((group) => (
+            <DropdownMenuGroup key={group.source ?? "agents"}>
               <DropdownMenuSeparator />
-              <DropdownMenuGroup>
-                <DropdownMenuLabel>
-                  <Trans>Agents</Trans>
-                </DropdownMenuLabel>
-                <ChoiceItems choices={groups.agents} />
-              </DropdownMenuGroup>
-            </>
-          ) : null}
+              <DropdownMenuLabel>
+                <AgentGroupLabel source={group.source} />
+              </DropdownMenuLabel>
+              <ChoiceItems choices={group.choices} />
+            </DropdownMenuGroup>
+          ))}
           {groups.providers.map((group) => (
             <DropdownMenuGroup key={group.provider}>
               <DropdownMenuSeparator />

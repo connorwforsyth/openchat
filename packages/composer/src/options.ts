@@ -12,6 +12,7 @@ import type {
 
 import type {
   AgentOption,
+  AgentSource,
   ContextOption,
   MentionCandidate,
   PromptOption,
@@ -34,7 +35,16 @@ export interface TargetChoice {
   readonly target: RunTarget;
 }
 
+export interface AgentGroup {
+  readonly choices: readonly TargetChoice[];
+  /** `null` for agents that didn't say where they come from. */
+  readonly source: AgentSource | null;
+}
+
 export interface TargetGroups {
+  /** Agents by where they come from: mine, shared with me, team & org libraries. */
+  readonly agentGroups: readonly AgentGroup[];
+  /** Every agent, in the order the groups list them. */
   readonly agents: readonly TargetChoice[];
   /** Whether `auto` can run in this context; its label is the composer's to translate. */
   readonly autoAvailable: boolean;
@@ -54,6 +64,18 @@ const modelChoice = (model: ModelOption): TargetChoice => {
     target,
   };
 };
+
+const agentChoice = (agent: AgentOption): TargetChoice => {
+  const target: RunTarget = { id: agent.id, type: "agent" };
+  return { available: true, key: targetKey(target), label: agent.name, target };
+};
+
+const AGENT_SOURCE_ORDER: readonly (AgentSource | null)[] = [
+  null,
+  "mine",
+  "shared",
+  "libraries",
+];
 
 /**
  * The picker's groups: Auto, then agents, then models by provider. An alias
@@ -78,16 +100,15 @@ export const buildTargetGroups = (
       group.choices.push(modelChoice(model));
     }
   }
+  const agentGroups = AGENT_SOURCE_ORDER.flatMap((source): AgentGroup[] => {
+    const choices = agents
+      .filter((agent) => (agent.source ?? null) === source)
+      .map(agentChoice);
+    return choices.length > 0 ? [{ choices, source }] : [];
+  });
   return {
-    agents: agents.map((agent) => {
-      const target: RunTarget = { id: agent.id, type: "agent" };
-      return {
-        available: true,
-        key: targetKey(target),
-        label: agent.name,
-        target,
-      };
-    }),
+    agentGroups,
+    agents: agentGroups.flatMap((group) => group.choices),
     autoAvailable:
       models.find((model) => model.selector === AUTO_MODEL)?.available ?? true,
     providers,

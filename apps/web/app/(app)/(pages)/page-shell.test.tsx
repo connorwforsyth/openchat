@@ -85,6 +85,7 @@ const frame = (overrides: Partial<AppFrameValue> = {}): AppFrameValue => ({
     toggleSidebar: vi.fn(),
   },
   me,
+  openNewOrg: vi.fn(),
   openPalette: vi.fn(),
   paletteOpen: false,
   setPaletteOpen: vi.fn(),
@@ -150,6 +151,25 @@ describe("PageShell", () => {
     await waitFor(() =>
       expect(value.layout.toggleSidebar).toHaveBeenCalledTimes(2)
     );
+  });
+
+  it("offers a new organisation from the account menu (044)", async () => {
+    const value = frame();
+    renderWithApi(
+      <AppFrameProvider value={value}>
+        <PageShell>
+          <p>Page</p>
+        </PageShell>
+      </AppFrameProvider>,
+      api()
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: `Account: ${me.user.name}` })
+    );
+    await userEvent.click(
+      await screen.findByRole("menuitem", { name: "New organisation" })
+    );
+    expect(value.openNewOrg).toHaveBeenCalled();
   });
 
   it("leaves the sidebar out while it's collapsed", () => {

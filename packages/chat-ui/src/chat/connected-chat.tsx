@@ -11,6 +11,7 @@ import {
 import { useRunChat } from "@workspace/client/use-run-chat";
 import { contextOptionsFromMe } from "@workspace/composer/options";
 import type {
+  AgentOption,
   AttachmentLimits,
   ComposerAttachment,
   ComposerValue,
@@ -20,6 +21,7 @@ import type {
   FileId,
   MessageId,
 } from "@workspace/contract/schemas/common";
+import type { Conversation } from "@workspace/contract/schemas/conversations";
 import type { Message } from "@workspace/contract/schemas/messages";
 import type { Me, PublicConfig } from "@workspace/contract/schemas/meta";
 import type { ModelOption } from "@workspace/contract/schemas/models";
@@ -56,6 +58,8 @@ import { useChatQueries, useConversationUpdate } from "./use-chat-data";
 // app (inside a QueryClientProvider); the screen stays presentational.
 
 export interface ConnectedChatProps {
+  /** Agents the caller can use, for the composer's picker (`target` and `onTargetChange`). */
+  readonly agents?: readonly AgentOption[];
   /**
    * The artifact runtime's origin (`ARTIFACTS_ORIGIN`, D24), normalised with
    * `runtimeOriginFrom`. Omitted or `null`, previews fall back to `srcdoc`.
@@ -83,6 +87,9 @@ export interface ConnectedChatProps {
   readonly onDraftContextChange?: (context: ChatContext) => void;
   /** Route to a chat (or `null` for a new one); the app owns the URL. */
   readonly onNavigate: (conversationId: ConversationId | null) => void;
+  /** "New organisation" in the account menu. */
+  readonly onNewOrg?: () => void;
+  /** Shown to the instance admin and to org owners and admins. */
   readonly onOpenAdmin?: () => void;
   readonly onOpenPalette?: () => void;
   readonly onOpenSettings?: () => void;
@@ -411,6 +418,7 @@ const useFirstSend = ({
   conversationId,
   onNavigate,
   send,
+  target,
 }: {
   readonly api: QueryUtils;
   readonly client: ApiClient;
@@ -418,6 +426,8 @@ const useFirstSend = ({
   readonly conversationId: ConversationId | null;
   readonly onNavigate: (id: ConversationId) => void;
   readonly send: (text: string, files: FileUIPart[]) => void;
+  /** Stored as the new chat's default, so reopening it continues with the same agent or model. */
+  readonly target: RunTarget | null;
 }) => {
   const [pending, setPending] = useState<{
     readonly conversationId: ConversationId;
@@ -438,7 +448,9 @@ const useFirstSend = ({
     async (value: ComposerValue) => {
       // Files belong to a conversation, so a new chat exists before they
       // upload; the message goes once they have.
-      const id = conversationId ?? (await create({ context })).id;
+      const id =
+        conversationId ??
+        (await create({ context, defaultTarget: target ?? undefined })).id;
       const files = await uploadAttachments(client, id, value.attachments);
       if (conversationId) {
         send(value.text, files);
@@ -447,11 +459,78 @@ const useFirstSend = ({
       setPending({ conversationId: id, files, text: value.text });
       onNavigate(id);
     },
-    [client, context, conversationId, create, onNavigate, send]
+    [client, context, conversationId, create, onNavigate, send, target]
   );
 };
 
+const TITLE_WAIT_MS = 30_000;
+
+/**
+ * Live titles (044). The title job runs once a chat's first turn has ended,
+ * after its stream has closed, so a turn that ends in an untitled chat
+ * watches the chat for a short while: `watching` makes the chat's query
+ * poll until the title is there (`useChatQueries`).
+ */
+const useTitleWatch = (conversationId: ConversationId | null) => {
+  const [watch, setWatch] = useState<{
+    readonly id: ConversationId;
+    readonly until: number;
+  } | null>(null);
+  const watching = watch !== null && watch.id === conversationId;
+  const until = watching ? watch.until : null;
+  useEffect(() => {
+    if (until === null) {
+      return;
+    }
+    const timer = setTimeout(
+      () => setWatch(null),
+      Math.max(0, until - Date.now())
+    );
+    return () => clearTimeout(timer);
+  }, [until]);
+  const start = useCallback(() => {
+    if (conversationId) {
+      setWatch({ id: conversationId, until: Date.now() + TITLE_WAIT_MS });
+    }
+  }, [conversationId]);
+  return { start, watching };
+};
+
+/** A chat's title as fetched, copied into the cached chat lists (the sidebar). */
+const useTitleInLists = (
+  api: QueryUtils,
+  conversationId: ConversationId | null,
+  title: string | null | undefined
+) => {
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    if (!(conversationId && title)) {
+      return;
+    }
+    queryClient.setQueriesData<ConversationPage>(
+      { queryKey: api.conversations.list.key() },
+      (page) =>
+        page?.items.some(
+          (item) => item.id === conversationId && item.title !== title
+        )
+          ? {
+              ...page,
+              items: page.items.map((item) =>
+                item.id === conversationId ? { ...item, title } : item
+              ),
+            }
+          : page
+    );
+  }, [api, conversationId, queryClient, title]);
+};
+
+interface ConversationPage {
+  readonly items: readonly Conversation[];
+  readonly nextCursor: string | null;
+}
+
 export function ConnectedChat({
+  agents,
   artifactsRuntimeOrigin = null,
   brand,
   client,
@@ -465,6 +544,7 @@ export function ConnectedChat({
   models,
   onDraftContextChange,
   onNavigate,
+  onNewOrg,
   onOpenAdmin,
   onOpenPalette,
   onOpenSettings,
@@ -486,13 +566,19 @@ export function ConnectedChat({
     onDraftContextChange
   );
   const [uploadFailed, setUploadFailed] = useState(false);
+  const titleWatch = useTitleWatch(conversationId);
 
   const data = useChatQueries(api, {
     artifactId: selection?.artifactId ?? null,
     conversationId,
     leafId,
     sandboxes: config.features.sandboxes,
+    watchTitle: titleWatch.watching,
   });
+  const storedTitle = data.conversation.data?.title;
+  useTitleInLists(api, conversationId, storedTitle);
+  const titleRef = useRef(storedTitle);
+  titleRef.current = storedTitle;
   const stored = data.path.data?.messages ?? NO_MESSAGES;
   const feedback = useBranchFeedback(api, stored);
   const update = useConversationUpdate(api);
@@ -518,12 +604,19 @@ export function ConnectedChat({
   }, [api, queryClient]);
 
   const context = data.conversation.data?.context ?? draftContext;
+  const { start: watchTitle } = titleWatch;
+  const onFinish = useCallback(() => {
+    refresh();
+    if (titleRef.current === null) {
+      watchTitle();
+    }
+  }, [refresh, watchTitle]);
   const { chat, messages, streamingMessageId } = useLiveTurn({
     client,
     context,
     conversationId,
     me,
-    onFinish: refresh,
+    onFinish,
     stored,
     storedAt: data.path.dataUpdatedAt,
     target,
@@ -548,6 +641,7 @@ export function ConnectedChat({
     conversationId,
     onNavigate,
     send,
+    target,
   });
 
   const { mutate: decide } = useMutation(
@@ -702,6 +796,7 @@ export function ConnectedChat({
       }}
       brand={brand}
       composer={{
+        agents,
         attachmentLimits,
         models,
         onStop: chat.stop,
@@ -740,7 +835,8 @@ export function ConnectedChat({
       sidebar={{
         ...sidebarActions,
         account: {
-          onOpenAdmin: me.user.isAdmin ? onOpenAdmin : undefined,
+          onNewOrg,
+          onOpenAdmin,
           onOpenSettings,
           onSignOut,
           onThemeChange,

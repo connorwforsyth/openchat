@@ -26,6 +26,7 @@
     "./messages/from-ui": "./src/messages/from-ui.ts",
     "./messages/to-ui": "./src/messages/to-ui.ts",
     "./ports/*": "./src/ports/*.ts",
+    "./providers/capabilities": "./src/providers/capabilities.ts",
     "./providers/factory": "./src/providers/factory.ts",
     "./providers/registry": "./src/providers/registry.ts",
     "./rag/*": "./src/rag/*.ts",

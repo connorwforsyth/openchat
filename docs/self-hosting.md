@@ -34,6 +34,34 @@ rather than failing the start. Models come from `app.config.yaml` (copy
 proxy (Caddy, nginx, Traefik) in front and set `BETTER_AUTH_URL` to the
 public origin.
 
+### Behind a proxy
+
+Sign-in and sign-up are rate limited per client address, and each session
+records the address it signed in from. Behind a proxy, the app sees the
+proxy's address, and the client's arrives in `X-Forwarded-For`, a list each
+proxy appends to and any client can start. So the app reads it from the
+right and believes an entry only when every hop after it is a proxy you
+trust. List yours in `TRUSTED_PROXIES`, as addresses or CIDR ranges:
+
+```sh
+# a proxy on the same host, or on a Docker network
+TRUSTED_PROXIES=127.0.0.1, ::1, 172.16.0.0/12
+```
+
+- Unset, only the last entry counts: the address the nearest proxy saw.
+  That's right for exactly one proxy that appends the client's address
+  (nginx `$proxy_add_x_forwarded_for`, Caddy, Traefik).
+- With two hops (a CDN, then your proxy), list the inner ones, or every
+  sign-in lands in the proxy's bucket and people lock each other out.
+- Don't list ranges that clients can send from: their own entries would
+  then be believed, and they could pick their rate-limit bucket.
+- Without any proxy, Next.js fills the header with the connection's address
+  when the request has none, but keeps one a client sent. Serve the app
+  through a proxy that overwrites or appends to the header.
+
+Entries that aren't an address or a range are ignored, with a warning at
+start.
+
 ### Configuration file
 
 To use an `app.config.yaml`, mount it and point `CONFIG_PATH` at it, in a

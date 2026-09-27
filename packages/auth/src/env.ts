@@ -20,6 +20,11 @@ export const authEnvSchema = z.object({
   GOOGLE_CLIENT_ID: optional,
   GOOGLE_CLIENT_SECRET: optional,
   NODE_ENV: optional,
+  /**
+   * Proxies whose `X-Forwarded-For` entries are believed, as IP addresses and
+   * CIDR ranges (`10.0.0.0/8, ::1`). Unset, only the last hop is (044).
+   */
+  TRUSTED_PROXIES: optional,
 });
 export type AuthEnv = z.infer<typeof authEnvSchema>;
 

@@ -17,8 +17,9 @@ import { startMockLlm } from "./mock-llm";
 // server, where the first sign-up becomes the admin.
 //
 // The only things set are what production refuses to run without (a
-// generated auth secret and encryption key, fresh per run) and an
-// app.config.yaml whose providers point at the mock model server.
+// generated auth secret and encryption key, fresh per run), an
+// app.config.yaml whose providers point at the mock model server, and
+// loopback as a trusted proxy (for proxy.spec.ts).
 //
 // `E2E_STANDALONE=1` runs the server the Docker image runs instead: the
 // `standalone` build (`NEXT_OUTPUT=standalone next build`), laid out as
@@ -114,6 +115,8 @@ const main = async () => {
         NODE_ENV: process.env.E2E_DEV ? "development" : "production",
         PATH: process.env.PATH,
         PORT: String(port),
+        // The specs stand in for a proxy on this machine (proxy.spec.ts).
+        TRUSTED_PROXIES: "127.0.0.1, ::1",
       },
       stdio: "inherit",
     }

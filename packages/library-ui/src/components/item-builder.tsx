@@ -17,6 +17,7 @@ import {
   CopyIcon,
   DownloadIcon,
   EllipsisIcon,
+  MessageSquareIcon,
   ShareIcon,
   Trash2Icon,
 } from "@workspace/icons";
@@ -72,7 +73,7 @@ import { AccessBadge, VersionBadge, VisibilityBadge } from "./badges";
 import { ConfirmDelete } from "./confirm-delete";
 import { DuplicateNotice } from "./duplicate-notice";
 import { KindTile, useKindLabels } from "./kind";
-import type { LinkComponent } from "./library-index";
+import { type LinkComponent, usableInChat } from "./library-index";
 import { McpForm, McpStatusPanel } from "./mcp-form";
 import { PromptForm, PromptPreview } from "./prompt-form";
 import { PublishDialog } from "./publish-dialog";
@@ -94,6 +95,8 @@ export type BuilderTarget =
 
 export interface ItemBuilderProps {
   readonly backHref: string;
+  /** Where "Use in chat" goes for a published agent (044). */
+  readonly chatHref?: (item: LibraryItemDetail) => string | null;
   /** Agent knowledge: names for attached files, when the page knows them. */
   readonly knowledgeFiles?: readonly KnowledgeFile[];
   readonly link?: LinkComponent;
@@ -290,6 +293,7 @@ const useDraft = (
 
 function Builder({
   backHref,
+  chatHref,
   detail,
   kind,
   knowledgeFiles,
@@ -347,6 +351,9 @@ function Builder({
     <div className="flex min-h-0 flex-col gap-6">
       <BuilderHeader
         backHref={backHref}
+        chatHref={
+          detail && usableInChat(detail) ? (chatHref?.(detail) ?? null) : null
+        }
         detail={detail}
         dirty={draft.dirty}
         form={draft.canEdit ? form : null}
@@ -425,6 +432,7 @@ function Builder({
 
 function BuilderHeader({
   backHref,
+  chatHref,
   detail,
   dirty,
   form,
@@ -439,6 +447,7 @@ function BuilderHeader({
   saving,
 }: {
   readonly backHref: string;
+  readonly chatHref: string | null;
   readonly detail: LibraryItemDetail | null;
   readonly dirty: boolean;
   /** `null` when the caller can't edit. */
@@ -487,6 +496,15 @@ function BuilderHeader({
           </div>
         ) : null}
       </div>
+      {chatHref ? (
+        <Link
+          className={buttonVariants({ variant: "outline" })}
+          href={chatHref}
+        >
+          <MessageSquareIcon data-icon="inline-start" />
+          <Trans>Use in chat</Trans>
+        </Link>
+      ) : null}
       <HeaderActions
         detail={detail}
         dirty={dirty}

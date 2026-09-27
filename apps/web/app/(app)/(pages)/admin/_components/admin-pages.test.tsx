@@ -230,6 +230,59 @@ describe("MembersAdmin", () => {
   });
 });
 
+describe("MembersAdmin invitations into a team (044)", () => {
+  it("invites into the chosen team and copies the one-time link", async () => {
+    const writeText = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
+    const api = fakeApi({
+      "GET /orgs/:orgId/invitations": () => [],
+      "GET /orgs/:orgId/members": () => ({ items: [], nextCursor: null }),
+      "GET /orgs/:orgId/teams": () => [teamEngineering, teamPlatform],
+      "POST /orgs/:orgId/invitations": ({ body }) => ({
+        createdAt: fixtureTime(3),
+        email: (body as { email: string }).email,
+        expiresAt: fixtureTime(59),
+        id: fixtureId("invitation", 2),
+        invitedBy: userAda.id,
+        orgId,
+        role: "member",
+        status: "pending",
+        teamIds: (body as { teamIds: string[] }).teamIds,
+        token: INVITE_TOKEN,
+      }),
+    });
+    try {
+      renderWithApi(<MembersAdmin orgId={orgId} />, api);
+      await userEvent.fill(screen.getByLabelText("Email"), "bo@example.test");
+      await userEvent.click(screen.getByRole("combobox", { name: "Team" }));
+      await userEvent.click(
+        await screen.findByRole("option", { name: "— Platform" })
+      );
+      await userEvent.click(screen.getByRole("button", { name: "Invite" }));
+      await waitFor(() =>
+        expect(
+          api.calls.find((call) => call.route.startsWith("POST"))?.body
+        ).toEqual({
+          email: "bo@example.test",
+          role: "member",
+          teamIds: [teamPlatform.id],
+        })
+      );
+      await userEvent.click(
+        await screen.findByRole("button", { name: "Copy" })
+      );
+      expect(writeText).toHaveBeenCalledWith(
+        `${window.location.origin}/invite/${INVITE_TOKEN}`
+      );
+      expect(
+        await screen.findByRole("button", { name: "Copied" })
+      ).toBeTruthy();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
 describe("TeamsAdmin", () => {
   it("shows the tree and explains why a parent can't be deleted", async () => {
     const api = fakeApi({

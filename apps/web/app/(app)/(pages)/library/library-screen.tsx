@@ -14,6 +14,7 @@ import { NextLink } from "./next-link";
 
 const itemHref = (item: LibraryItem) => routes.libraryItem(item.id);
 const newHref = (kind: LibraryKind) => routes.libraryNew(kind);
+const chatHref = (item: LibraryItem) => routes.chatWithAgent(item.id);
 
 export function LibraryScreen() {
   const router = useRouter();
@@ -23,6 +24,7 @@ export function LibraryScreen() {
   );
   return (
     <LibraryIndex
+      chatHref={chatHref}
       itemHref={itemHref}
       link={NextLink}
       newHref={newHref}

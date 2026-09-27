@@ -15,7 +15,7 @@ import {
 import { createApiClient, createQueryUtils } from "@workspace/client/api";
 import type { Me, PublicConfig } from "@workspace/contract/schemas/meta";
 import type { RunTarget } from "@workspace/contract/schemas/runs";
-import type { ChatContext } from "@workspace/contract/schemas/tenancy";
+import type { ChatContext, Org } from "@workspace/contract/schemas/tenancy";
 import { CircleAlertIcon } from "@workspace/icons";
 import type { PaletteContext } from "@workspace/palette/context-actions";
 import { createSettingsOverridesStore } from "@workspace/shortcuts/ports/overrides-store.settings";
@@ -32,6 +32,7 @@ import {
 } from "@workspace/ui/components/empty";
 import { Spinner } from "@workspace/ui/components/spinner";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import {
   createContext,
@@ -79,6 +80,8 @@ export interface AppFrameValue {
   readonly config: PublicConfig;
   readonly layout: ShellLayoutState;
   readonly me: Me;
+  /** Opens "New organisation" (the account menu's). */
+  readonly openNewOrg: () => void;
   readonly openPalette: () => void;
   readonly paletteOpen: boolean;
   readonly setPaletteOpen: (open: boolean) => void;
@@ -106,6 +109,40 @@ const GlobalSurfaces = dynamic(
   () => import("./global-surfaces").then((module) => module.GlobalSurfaces),
   { ssr: false }
 );
+
+// Loaded the first time someone asks for it.
+const NewOrgDialog = dynamic(
+  () => import("./new-org-dialog").then((module) => module.NewOrgDialog),
+  { ssr: false }
+);
+
+/** Whether `me` can reach the admin pages: the instance admin, or an org owner or admin. */
+export const canAdmin = (me: Me): boolean =>
+  me.user.isAdmin ||
+  me.orgs.some(
+    (org) =>
+      !org.isPersonal && (org.myRole === "owner" || org.myRole === "admin")
+  );
+
+/** "New organisation": the dialog, loaded on first use, and where it goes after. */
+const useNewOrg = () => {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  // Stays mounted once used, so closing it can fade out.
+  const [used, setUsed] = useState(false);
+  const openNewOrg = useCallback(() => {
+    setUsed(true);
+    setOpen(true);
+  }, []);
+  const created = useCallback(
+    (org: Org) => router.push(routes.adminOrg(org.id, "teams")),
+    [router]
+  );
+  const dialog = used ? (
+    <NewOrgDialog onCreated={created} onOpenChange={setOpen} open={open} />
+  ) : null;
+  return { dialog, openNewOrg };
+};
 
 const browserStorage = () => {
   try {
@@ -257,6 +294,8 @@ const Frame = ({
   >();
   const openPalette = useCallback(() => setPaletteOpen(true), []);
   const booted = useAfterBoot();
+  const newOrg = useNewOrg();
+  const { openNewOrg } = newOrg;
 
   const value = useMemo(
     (): AppFrameValue => ({
@@ -271,6 +310,7 @@ const Frame = ({
       config,
       layout,
       me,
+      openNewOrg,
       openPalette,
       paletteOpen,
       setPaletteOpen,
@@ -284,6 +324,7 @@ const Frame = ({
       layout,
       me,
       onSignOut,
+      openNewOrg,
       openPalette,
       paletteContext,
       paletteOpen,
@@ -296,6 +337,7 @@ const Frame = ({
     <AppFrameContext.Provider value={value}>
       {children}
       {booted ? <GlobalSurfaces /> : null}
+      {newOrg.dialog}
     </AppFrameContext.Provider>
   );
 };

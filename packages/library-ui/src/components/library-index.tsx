@@ -9,6 +9,7 @@ import {
   CopyIcon,
   DownloadIcon,
   EllipsisIcon,
+  MessageSquareIcon,
   PlusIcon,
   SearchIcon,
   Trash2Icon,
@@ -19,7 +20,7 @@ import {
   AlertDescription,
   AlertTitle,
 } from "@workspace/ui/components/alert";
-import { Button } from "@workspace/ui/components/button";
+import { Button, buttonVariants } from "@workspace/ui/components/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -94,6 +95,11 @@ const PlainLink: LinkComponent = ({ children, className, href }) => (
 );
 
 export interface LibraryIndexProps {
+  /**
+   * Where "Use in chat" goes for a published agent (044); `null` or left
+   * out, the card has no such link.
+   */
+  readonly chatHref?: (item: LibraryItem) => string | null;
   readonly initialTab?: LibraryTab;
   readonly itemHref: (item: LibraryItem) => string;
   readonly link?: LinkComponent;
@@ -107,6 +113,7 @@ export interface LibraryIndexProps {
 type KindFilter = LibraryKind | "all";
 
 export function LibraryIndex({
+  chatHref,
   initialTab = "mine",
   itemHref,
   link: Link = PlainLink,
@@ -224,6 +231,7 @@ export function LibraryIndex({
       </div>
 
       <ItemList
+        chatHref={chatHref}
         itemHref={itemHref}
         kind={kind === "all" ? undefined : kind}
         link={Link}
@@ -301,12 +309,14 @@ function ImportButton({
 }
 
 function ItemList({
+  chatHref,
   itemHref,
   kind,
   link,
   query,
   tab,
 }: {
+  readonly chatHref?: (item: LibraryItem) => string | null;
   readonly itemHref: (item: LibraryItem) => string;
   readonly kind?: LibraryKind;
   readonly link: LinkComponent;
@@ -355,6 +365,7 @@ function ItemList({
         {items.map((item) => (
           <li key={item.id}>
             <ItemCard
+              chatHref={usableInChat(item) ? (chatHref?.(item) ?? null) : null}
               href={itemHref(item)}
               item={item}
               link={link}
@@ -419,16 +430,24 @@ function EmptyTab({
 }
 
 const canView = (item: LibraryItem) => item.myAccess !== "use";
+
+/** A chat answers with an agent's latest published version (D13). */
+export const usableInChat = (
+  item: Pick<LibraryItem, "kind" | "latestVersionId">
+): boolean => item.kind === "agent" && item.latestVersionId !== null;
 const canManage = (item: LibraryItem) =>
   item.myAccess === "owner" || item.myAccess === "maintainer";
 
 export function ItemCard({
+  chatHref = null,
   href,
   item,
   link: Link,
   me,
   showOwner,
 }: {
+  /** "Use in chat", for an agent that can answer one. */
+  readonly chatHref?: string | null;
   readonly href: string;
   readonly item: LibraryItem;
   readonly link: LinkComponent;
@@ -485,6 +504,19 @@ export function ItemCard({
           <AccessBadge access={item.myAccess} />
           {showOwner ? (
             <span className="text-muted-foreground text-xs">{owner}</span>
+          ) : null}
+          {chatHref ? (
+            <Link
+              className={buttonVariants({
+                className: "relative z-10 ms-auto",
+                size: "xs",
+                variant: "outline",
+              })}
+              href={chatHref}
+            >
+              <MessageSquareIcon data-icon="inline-start" />
+              <Trans>Use in chat</Trans> <span className="sr-only">{name}</span>
+            </Link>
           ) : null}
         </div>
       </div>

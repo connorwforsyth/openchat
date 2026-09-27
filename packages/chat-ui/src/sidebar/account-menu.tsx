@@ -2,6 +2,7 @@
 
 import { Trans, useLingui } from "@lingui/react/macro";
 import {
+  Building2Icon,
   ChevronsUpDownIcon,
   LogOutIcon,
   MonitorIcon,
@@ -35,6 +36,8 @@ export const themeSchema = z.enum(["light", "dark", "system"]);
 export type Theme = z.infer<typeof themeSchema>;
 
 export interface AccountMenuProps {
+  /** "New organisation": anyone can create an org (D17). */
+  readonly onNewOrg?: () => void;
   /** Shown only to instance or org admins (the admin area is ticket 024). */
   readonly onOpenAdmin?: () => void;
   readonly onOpenSettings?: () => void;
@@ -50,6 +53,7 @@ export interface AccountMenuProps {
 
 /** The sidebar footer: who you are, theme, settings, admin and sign out. */
 export function AccountMenu({
+  onNewOrg,
   onOpenAdmin,
   onOpenSettings,
   onSignOut,
@@ -120,6 +124,12 @@ export function AccountMenu({
             <DropdownMenuItem onClick={onOpenAdmin}>
               <ShieldIcon aria-hidden />
               <Trans>Admin</Trans>
+            </DropdownMenuItem>
+          ) : null}
+          {onNewOrg ? (
+            <DropdownMenuItem onClick={onNewOrg}>
+              <Building2Icon aria-hidden />
+              <Trans>New organisation</Trans>
             </DropdownMenuItem>
           ) : null}
           <DropdownMenuItem onClick={onSignOut}>
