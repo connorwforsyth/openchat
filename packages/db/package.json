@@ -6,6 +6,7 @@
   "type": "module",
   "exports": {
     "./client": "./src/client.ts",
+    "./embedded": "./src/embedded.ts",
     "./errors": "./src/errors.ts",
     "./migrator": "./src/migrator.ts",
     "./queries/*": "./src/queries/*.ts",

@@ -1,4 +1,5 @@
 import type {
+  BudgetId,
   OrgId,
   RunId,
   TeamId,
@@ -7,13 +8,27 @@ import type {
 import type { ModelRef, TokenUsage } from "@workspace/contract/schemas/models";
 import type { Principal } from "@workspace/contract/schemas/tenancy";
 import type {
+  Budget,
   budgetPeriodSchema,
+  Transaction,
   usageKindSchema,
+  usageSummaryInputSchema,
 } from "@workspace/contract/schemas/usage";
 import { type AsyncResult, err, ok } from "@workspace/shared/result";
-import { and, desc, eq, lt, or, sql } from "drizzle-orm";
+import {
+  and,
+  desc,
+  eq,
+  gte,
+  inArray,
+  lt,
+  or,
+  type SQL,
+  sql,
+} from "drizzle-orm";
 import type { z } from "zod";
 import type { Db } from "../client";
+import { type NotFoundError, notFound } from "../errors";
 import type { PrincipalId } from "../schema/columns";
 import { budget } from "../schema/tenancy";
 import { balance, transaction } from "../schema/usage";
@@ -316,3 +331,212 @@ export const listTransactions = async (
     }))
   );
 };
+
+// --- Added for the usage API (ticket 038) ---
+
+/**
+ * Whose usage to read. A user's is everything they spent, in any context; a
+ * team's is its chats and its sub-teams' (pass the subtree); an org's is
+ * everything recorded in it.
+ */
+export type UsageFilter =
+  | { readonly type: "user"; readonly userId: UserId }
+  | { readonly teamIds: readonly TeamId[]; readonly type: "team" }
+  | { readonly orgId: OrgId; readonly type: "org" };
+
+const filterWhere = (filter: UsageFilter): SQL | undefined => {
+  switch (filter.type) {
+    case "user":
+      return eq(transaction.userId, filter.userId);
+    case "team":
+      return filter.teamIds.length === 0
+        ? sql`false`
+        : and(
+            eq(transaction.contextType, "team"),
+            inArray(transaction.contextId, [...filter.teamIds])
+          );
+    case "org":
+      return eq(transaction.orgId, filter.orgId);
+    default:
+      return filter satisfies never;
+  }
+};
+
+export type UsageGroupBy = z.infer<typeof usageSummaryInputSchema>["groupBy"];
+
+export interface UsageSummaryRow {
+  readonly costMicros: number;
+  readonly key: string;
+  readonly usage: TokenUsage;
+}
+
+const groupKey = (groupBy: UsageGroupBy): SQL<string> => {
+  switch (groupBy) {
+    case "model":
+      return sql<string>`${transaction.model}`;
+    case "user":
+      return sql<string>`${transaction.userId}::text`;
+    case "day":
+      return sql<string>`to_char(${transaction.createdAt} at time zone 'UTC', 'YYYY-MM-DD')`;
+    case "kind":
+      return sql<string>`${transaction.kind}`;
+    default:
+      return groupBy satisfies never;
+  }
+};
+
+/** Postgres sums bigints as numeric, which arrives as text. */
+const total = (column: SQL | typeof transaction.costMicros) =>
+  sql`coalesce(sum(${column}), 0)`.mapWith(Number);
+const optionalTotal = (column: typeof transaction.cachedInputTokens) =>
+  sql<number | null>`sum(${column})`.mapWith((value) =>
+    value === null ? null : Number(value)
+  );
+
+/** Spend in `[from, to)` grouped by `groupBy`, biggest first. */
+export const summarizeUsage = async (
+  db: Db,
+  filter: UsageFilter,
+  range: {
+    readonly from: Date;
+    readonly groupBy: UsageGroupBy;
+    readonly to: Date;
+  }
+): Promise<UsageSummaryRow[]> => {
+  const key = groupKey(range.groupBy);
+  const rows = await db
+    .select({
+      cachedInputTokens: optionalTotal(transaction.cachedInputTokens),
+      costMicros: total(transaction.costMicros),
+      inputTokens: total(sql`${transaction.inputTokens}`),
+      key,
+      outputTokens: total(sql`${transaction.outputTokens}`),
+      reasoningTokens: optionalTotal(transaction.reasoningTokens),
+    })
+    .from(transaction)
+    .where(
+      and(
+        filterWhere(filter),
+        gte(transaction.createdAt, range.from),
+        lt(transaction.createdAt, range.to)
+      )
+    )
+    .groupBy(key)
+    .orderBy(desc(total(transaction.costMicros)), key);
+  return rows.map((row) => ({
+    costMicros: row.costMicros,
+    key: row.key,
+    usage: {
+      inputTokens: row.inputTokens,
+      outputTokens: row.outputTokens,
+      ...(row.cachedInputTokens === null
+        ? {}
+        : { cachedInputTokens: row.cachedInputTokens }),
+      ...(row.reasoningTokens === null
+        ? {}
+        : { reasoningTokens: row.reasoningTokens }),
+    },
+  }));
+};
+
+/** Transactions matching `filter`, newest first. */
+export const listTransactionsFor = async (
+  db: Db,
+  filter: UsageFilter,
+  { cursor, limit }: { readonly cursor?: string; readonly limit: number }
+): AsyncResult<Page<TransactionRow>, InvalidCursorError> => {
+  const decoded = cursor ? decodeCursor(cursor) : undefined;
+  if (decoded && !decoded.ok) {
+    return err(decoded.error);
+  }
+  const rows = await db
+    .select()
+    .from(transaction)
+    .where(
+      and(
+        filterWhere(filter),
+        decoded?.ok
+          ? lt(transaction.id, decoded.value.id as TransactionRow["id"])
+          : undefined
+      )
+    )
+    .orderBy(desc(transaction.id))
+    .limit(limit + 1);
+  return ok(
+    toPage(rows, limit, (row) => ({
+      id: row.id,
+      key: row.createdAt.toISOString(),
+    }))
+  );
+};
+
+export const getBudget = async (
+  db: Db,
+  id: BudgetId
+): AsyncResult<BudgetRow, NotFoundError> => {
+  const [row] = await db.select().from(budget).where(eq(budget.id, id));
+  return row ? ok(row) : err(notFound("budget", id));
+};
+
+export const deleteBudget = async (
+  db: Db,
+  id: BudgetId
+): AsyncResult<void, NotFoundError> => {
+  const deleted = await db
+    .delete(budget)
+    .where(eq(budget.id, id))
+    .returning({ id: budget.id });
+  return deleted.length > 0 ? ok(undefined) : err(notFound("budget", id));
+};
+
+/** Personal is stored as the personal org; the wire names only the kind. */
+const toChatContextOf = (row: TransactionRow): Transaction["context"] => {
+  switch (row.contextType) {
+    case "personal":
+      return { type: "personal" };
+    case "team":
+      return { id: row.contextId as TeamId, type: "team" };
+    case "org":
+      return { id: row.contextId as OrgId, type: "org" };
+    default:
+      return row.contextType satisfies never;
+  }
+};
+
+export const toTransaction = (row: TransactionRow): Transaction => ({
+  context: toChatContextOf(row),
+  costMicros: row.costMicros,
+  createdAt: row.createdAt.toISOString(),
+  id: row.id,
+  kind: row.kind,
+  model: row.model,
+  paidBy:
+    row.paidByType === "instance" || row.paidById === null
+      ? { type: "instance" }
+      : ({ id: row.paidById, type: row.paidByType } as Transaction["paidBy"]),
+  runId: row.runId,
+  usage: {
+    inputTokens: row.inputTokens,
+    outputTokens: row.outputTokens,
+    ...(row.cachedInputTokens === null
+      ? {}
+      : { cachedInputTokens: row.cachedInputTokens }),
+    ...(row.reasoningTokens === null
+      ? {}
+      : { reasoningTokens: row.reasoningTokens }),
+  },
+  userId: row.userId,
+});
+
+export const toBudget = (status: BudgetStatus): Budget => ({
+  hard: status.hard,
+  id: status.id,
+  limitMicros: status.limitMicros,
+  period: status.period,
+  principal: {
+    id: status.principalId,
+    type: status.principalType,
+  } as Budget["principal"],
+  resetsAt: status.resetsAt.toISOString(),
+  usedMicros: status.usedMicros,
+});

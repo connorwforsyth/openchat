@@ -143,6 +143,21 @@ export const listActiveRuns = (
     )
     .orderBy(asc(run.createdAt), asc(run.id));
 
+/**
+ * Every run in one of `statuses`, oldest first, across all conversations.
+ * For boot-time recovery: a run still `running` when the process starts was
+ * orphaned by the last one.
+ */
+export const listRunsWithStatus = (
+  db: Db,
+  statuses: readonly RunStatus[]
+): Promise<RunRow[]> =>
+  db
+    .select()
+    .from(run)
+    .where(inArray(run.status, [...statuses]))
+    .orderBy(asc(run.createdAt), asc(run.id));
+
 /** Queued runs waiting on `runId`: the ones to start when it finishes. */
 export const listQueuedAfter = (db: Db, runId: RunId): Promise<RunRow[]> =>
   db

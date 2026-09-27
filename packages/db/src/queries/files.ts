@@ -91,6 +91,21 @@ export const getFile = async (
   return row ? ok(row) : err(notFound("file", id));
 };
 
+/**
+ * The file stored under `storageKey`, for the route that serves signed local
+ * URLs: the signature already proved access, this only names the download.
+ */
+export const getFileByStorageKey = async (
+  db: Db,
+  storageKey: string
+): Promise<FileRow | null> => {
+  const [row] = await db
+    .select()
+    .from(file)
+    .where(eq(file.storageKey, storageKey));
+  return row ?? null;
+};
+
 /** Ingestion progress. `message` is kept only for `failed`. */
 export const setFileState = async (
   db: Db,
