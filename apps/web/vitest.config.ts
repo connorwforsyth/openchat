@@ -83,7 +83,11 @@ export default defineProject({
       provider: playwright(),
       screenshotFailures: false,
     },
+    hookTimeout: 60_000,
     include: ["app/**/*.test.{ts,tsx}"],
     name: "web",
+    setupFiles: ["./vitest.setup.ts"],
+    // Loaded CI runners are several times slower than a laptop (ticket 035).
+    testTimeout: 30_000,
   },
 });
