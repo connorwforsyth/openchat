@@ -55,3 +55,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-09-27 · Docker Desktop started (Connor approved); 045 running
 - 2026-09-27 · 045 closed · PR #36 · Docker verification · compose smoke 7/7, db suites on Postgres 17, sandbox smoke (runc), 79/79
 - 2026-09-27 · loop stopped: only 026 (M1 demo gate, Connor) remains
+- 2026-09-27 · added 046 (pre-demo audit of §11 checks e2e doesn't cover); 026 waits on it
