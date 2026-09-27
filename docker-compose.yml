@@ -83,6 +83,22 @@ services:
       - "127.0.0.1:${SANDBOX_PREVIEW_PORT:-7071}:7071"
     networks: [docker-api, default]
 
+  # Artifact previews (PLAN.md D24): `docker compose --profile artifacts up -d`,
+  # then set ARTIFACTS_ORIGIN. Artifacts render here, on their own origin and
+  # never the app's; the page has no network and keeps no cookies or storage.
+  artifacts:
+    build:
+      context: .
+      dockerfile: apps/artifacts/Dockerfile
+    profiles: [artifacts]
+    restart: unless-stopped
+    environment:
+      # The app origins allowed to embed it (comma-separated); unset allows
+      # any localhost port, for development.
+      ARTIFACTS_APP_ORIGINS: ${ARTIFACTS_APP_ORIGINS:-}
+    ports:
+      - "127.0.0.1:${ARTIFACTS_PORT:-3910}:3910"
+
 networks:
   # Only the runner and the proxy are on it, and it has no route out.
   docker-api:

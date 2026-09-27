@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  chatArtifacts,
   initialLeafId,
   pendingEdit,
   sidebarChats,
@@ -23,6 +22,8 @@ import type { PendingApproval } from "@workspace/contract/schemas/runs";
 import type { ChatContext } from "@workspace/contract/schemas/tenancy";
 import { newId } from "@workspace/shared/ids";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+import { demoArtifacts } from "./demo-artifacts";
 
 // The demo's stand-in for the API and the run stream: chats and messages in
 // React state, and answers "streamed" word by word on a timer. Replies are
@@ -332,7 +333,7 @@ export const useDemoChat = () => {
   return {
     activeChat,
     approvals,
-    artifacts: chatArtifacts,
+    artifacts: demoArtifacts,
     chats: chats.filter((chat) => !chat.archived),
     decide,
     draftContext,

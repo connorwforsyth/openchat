@@ -29,11 +29,13 @@ import { useCallback, useMemo, useState } from "react";
 
 import { Markdown } from "../conversation/markdown";
 import {
+  type ArtifactPreviewKind,
   artifactFileName,
-  frameDocument,
   previewKind,
   versionEdit,
 } from "../model/artifacts";
+import { ArtifactPreview, SrcdocPreview } from "./artifact-preview";
+import { isRuntimeKind } from "./runtime-protocol";
 
 // The Artifacts panel (D16, D27): the chat's artifacts, one at a time, with
 // its versions. Preview, source (CodeView) and what changed since the
@@ -51,6 +53,12 @@ export interface ArtifactsPanelProps {
   /** A message the host can show if loading versions failed. */
   readonly error?: string | null;
   readonly onSelect: (selection: ArtifactSelection) => void;
+  /**
+   * The artifact runtime's origin (`ARTIFACTS_ORIGIN`, D24). Without one,
+   * HTML and SVG preview in a `srcdoc` frame and React and Mermaid show
+   * source only.
+   */
+  readonly runtimeOrigin?: string | null;
   readonly selection: ArtifactSelection | null;
   /** Versions of the selected artifact, oldest first; `undefined` while loading. */
   readonly versions: readonly ArtifactVersion[] | undefined;
@@ -62,6 +70,7 @@ export function ArtifactsPanel({
   artifacts,
   error,
   onSelect,
+  runtimeOrigin = null,
   selection,
   versions,
 }: ArtifactsPanelProps) {
@@ -120,6 +129,7 @@ export function ArtifactsPanel({
           artifact={selected}
           key={selected.id}
           onSelect={onSelect}
+          runtimeOrigin={runtimeOrigin}
           selection={selection}
           versions={versions}
         />
@@ -165,11 +175,13 @@ function ArtifactListItem({
 function ArtifactDetail({
   artifact,
   onSelect,
+  runtimeOrigin,
   selection,
   versions,
 }: {
   readonly artifact: Artifact;
   readonly onSelect: (selection: ArtifactSelection) => void;
+  readonly runtimeOrigin: string | null;
   readonly selection: ArtifactSelection | null;
   readonly versions: readonly ArtifactVersion[];
 }) {
@@ -182,7 +194,11 @@ function ArtifactDetail({
   );
   const version = versions[index] ?? versions.at(-1);
   const previous = index > 0 ? versions[index - 1] : undefined;
-  const preview = previewKind(artifact.kind);
+  // The runtime previews every kind it knows; without it, what 015 could.
+  const preview: ArtifactPreviewKind | "runtime" =
+    runtimeOrigin && isRuntimeKind(artifact.kind)
+      ? "runtime"
+      : previewKind(artifact.kind);
   const [view, setView] = useState<View>(
     preview === "none" ? "code" : "preview"
   );
@@ -281,21 +297,27 @@ function ArtifactDetail({
       <div className="min-h-0 flex-1 overflow-auto p-3">
         {preview === "none" ? null : (
           <TabsContent className="h-full" value="preview">
-            {preview === "frame" ? (
-              // TODO(025): serve previews from a separate origin so a page
-              // can't reach this one; `srcdoc` plus `allow-scripts` (and no
-              // `allow-same-origin`) gives it an opaque origin until then.
-              <iframe
-                className="size-full min-h-80 rounded-lg border bg-background"
-                sandbox="allow-scripts"
-                srcDoc={frameDocument(artifact.kind, version.content)}
-                title={t`Preview of ${artifact.title}`}
+            {preview === "runtime" && isRuntimeKind(artifact.kind) ? (
+              <ArtifactPreview
+                content={version.content}
+                fileName={path}
+                kind={artifact.kind}
+                runtimeOrigin={runtimeOrigin}
+                title={artifact.title}
               />
-            ) : (
+            ) : null}
+            {preview === "frame" ? (
+              <SrcdocPreview
+                content={version.content}
+                kind={artifact.kind}
+                title={artifact.title}
+              />
+            ) : null}
+            {preview === "markdown" ? (
               <div className="text-sm">
                 <Markdown>{version.content}</Markdown>
               </div>
-            )}
+            ) : null}
           </TabsContent>
         )}
         <TabsContent value="code">

@@ -28,6 +28,7 @@ import { ok } from "@workspace/shared/result";
 import { useTheme } from "next-themes";
 import { useCallback, useMemo, useState } from "react";
 
+import { demoArtifactVersions } from "./demo-artifacts";
 import { useDemoChat } from "./use-demo-chat";
 
 // The whole chat shell over contract fixtures and a mock stream, for trying
@@ -85,7 +86,12 @@ const demoSandbox: SandboxPanelClient = {
   reset: () => Promise.resolve(ok(chatSandbox)),
 };
 
-export function ChatDemo() {
+export function ChatDemo({
+  artifactsOrigin,
+}: {
+  /** The artifact runtime (`ARTIFACTS_ORIGIN`); `null` falls back to `srcdoc`. */
+  readonly artifactsOrigin: string | null;
+}) {
   const { t } = useLingui();
   const demo = useDemoChat();
   const { setTheme, theme } = useTheme();
@@ -140,8 +146,13 @@ export function ChatDemo() {
       artifacts={{
         artifacts: demo.artifacts,
         onSelect: setSelection,
+        runtimeOrigin: artifactsOrigin,
         selection: selectedId ? { ...selection, artifactId: selectedId } : null,
-        versions: selectedId ? (artifactVersions[selectedId] ?? []) : [],
+        versions: selectedId
+          ? (artifactVersions[selectedId] ??
+            demoArtifactVersions[selectedId] ??
+            [])
+          : [],
       }}
       brand={
         <span className="truncate font-medium text-sm">

@@ -1,0 +1,32 @@
+{
+  "name": "artifacts",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bun run build:public && bun build src/server.ts --target=node --outfile=dist/server.js",
+    "build:public": "bun build ./index.html --outdir=dist/public --production --splitting",
+    "dev": "bun src/server.ts --watch",
+    "lint": "ultracite check",
+    "start": "node dist/server.js",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@workspace/chat-ui": "workspace:*",
+    "@workspace/shared": "workspace:*",
+    "mermaid": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "sucrase": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@workspace/typescript-config": "workspace:*",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

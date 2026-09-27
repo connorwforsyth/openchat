@@ -1,3 +1,4 @@
+import { runtimeOriginFrom } from "@workspace/chat-ui/artifacts/runtime-protocol";
 import { initLingui } from "@workspace/i18n/server";
 import type { Metadata } from "next";
 
@@ -14,5 +15,11 @@ export default async function Page() {
   // Pages render independently of layouts, so each sets up Lingui for RSC.
   initLingui(await requestLocale());
 
-  return <ChatDemo />;
+  // Read per request, so the runtime can be pointed elsewhere without a
+  // rebuild. Unset or invalid: previews fall back to `srcdoc`.
+  return (
+    <ChatDemo
+      artifactsOrigin={runtimeOriginFrom(process.env.ARTIFACTS_ORIGIN)}
+    />
+  );
 }
