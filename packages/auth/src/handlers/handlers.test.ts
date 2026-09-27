@@ -642,6 +642,136 @@ describe("grants", () => {
   });
 });
 
+describe("maintainers of a published item", () => {
+  interface AgentRef {
+    resourceId: LibraryItemId;
+    resourceType: "agent";
+  }
+
+  /** An agent published to the org or its Eng team that Bob and Carol (both in Eng) maintain. */
+  const published = async (t: TestAuth, library: "org" | "team") => {
+    const tree = await orgWithTree(t);
+    const bob = await join(t, tree.ctx, tree.org.id, "bob@example.test", [
+      tree.eng.id,
+    ]);
+    const carol = await join(t, tree.ctx, tree.org.id, "carol@example.test", [
+      tree.eng.id,
+    ]);
+    const [row] = await t.db
+      .insert(agent)
+      .values({
+        createdBy: bob.who.userId,
+        maintainers: [bob.who.userId, carol.who.userId],
+        name: "Reviewer",
+        ownerId: library === "org" ? tree.org.id : tree.eng.id,
+        ownerType: library,
+      })
+      .returning();
+    if (!row) {
+      throw new Error("no agent");
+    }
+    const ref: AgentRef = {
+      resourceId: row.id as LibraryItemId,
+      resourceType: "agent",
+    };
+    // A grant and a link Carol made, for the others to try to revoke.
+    const other = await signUp(t.auth, "other@example.test");
+    const grant = await call(
+      authRouter.grants.create,
+      {
+        ...ref,
+        permission: "view",
+        principal: { id: other.userId, type: "user" },
+      },
+      { context: carol.ctx }
+    );
+    const link = await call(authRouter.shareLinks.create, ref, {
+      context: carol.ctx,
+    });
+    return { ...tree, bob, carol, earlier: { grant, link }, other, ref };
+  };
+
+  const outcome = (promise: Promise<unknown>): Promise<string> =>
+    promise.then(
+      () => "ok",
+      (error: unknown) => failure(Promise.reject(error))
+    );
+
+  /** Every sharing action a maintainer takes, as the error each ends in (or `ok`). */
+  const attempts = async (
+    who: HandlerContext,
+    { earlier, other, ref }: Awaited<ReturnType<typeof published>>
+  ) => ({
+    grant: await outcome(
+      call(
+        authRouter.grants.create,
+        {
+          ...ref,
+          permission: "use",
+          principal: { id: other.userId, type: "user" },
+        },
+        { context: who }
+      )
+    ),
+    link: await outcome(
+      call(authRouter.shareLinks.create, ref, { context: who })
+    ),
+    revokeGrant: await outcome(
+      call(authRouter.grants.revoke, { id: earlier.grant.id }, { context: who })
+    ),
+    revokeLink: await outcome(
+      call(
+        authRouter.shareLinks.revoke,
+        { id: earlier.link.id },
+        { context: who }
+      )
+    ),
+  });
+
+  const refused = {
+    grant: "FORBIDDEN",
+    link: "FORBIDDEN",
+    revokeGrant: "FORBIDDEN",
+    revokeLink: "FORBIDDEN",
+  };
+  const allowed = {
+    grant: "ok",
+    link: "ok",
+    revokeGrant: "ok",
+    revokeLink: "ok",
+  };
+
+  it("stop sharing an org's item once they leave the org; current ones still can", async () => {
+    const t = await setup(
+      { signup: "open" },
+      { features: { publicLinks: true } }
+    );
+    const item = await published(t, "org");
+    await call(
+      authRouter.orgs.removeMember,
+      { orgId: item.org.id, userId: item.bob.who.userId },
+      { context: item.ctx }
+    );
+    expect(await attempts(item.bob.ctx, item)).toEqual(refused);
+    expect(await attempts(item.carol.ctx, item)).toEqual(allowed);
+  });
+
+  it("stop sharing a team's item once they leave the team, though still in the org", async () => {
+    const t = await setup(
+      { signup: "open" },
+      { features: { publicLinks: true } }
+    );
+    const item = await published(t, "team");
+    await call(
+      authRouter.teams.removeMember,
+      { teamId: item.eng.id, userId: item.bob.who.userId },
+      { context: item.bob.ctx }
+    );
+    expect(await attempts(item.bob.ctx, item)).toEqual(refused);
+    expect(await attempts(item.carol.ctx, item)).toEqual(allowed);
+  });
+});
+
 describe("share links", () => {
   it("is off unless the instance enables public links", async () => {
     const t = await setup();

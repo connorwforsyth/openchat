@@ -44,7 +44,7 @@ import {
 } from "../context";
 import type { StreamChannel } from "../ports/stream-channel";
 import { type BudgetCheck, storeContext } from "../runs/chat-context";
-import { type CreateRunError, createRun } from "../runs/create-run";
+import { type CreateRunError, createRun, mayRun } from "../runs/create-run";
 import type { MemorySettings } from "../runs/memory";
 import { queuePosition, toRun } from "../runs/state";
 import { createFeedbackRouter } from "./feedback";
@@ -508,7 +508,13 @@ export const createChatRouter = (services: ApiServices) => {
 
     submitApprovals: authed.runs.submitApprovals.handler(
       async ({ context, errors, input }) => {
-        await readableRun(context.actor, input.runId, "write");
+        const run = await readableRun(context.actor, input.runId, "write");
+        // Approving lets the agent go on acting, so it takes what starting
+        // it took: someone who can't use the agent (or no longer can) can't
+        // push its tool calls through.
+        if (!(await mayRun(db, context.actor, run.target))) {
+          throw new ORPCError("FORBIDDEN");
+        }
         const submitted = await executor.submitApprovals(
           input.runId,
           input.decisions,

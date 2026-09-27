@@ -24,6 +24,7 @@ import { err, ok, type Result } from "@workspace/shared/result";
 import { TransactionRollbackError } from "drizzle-orm";
 
 import type { Actor } from "../context";
+import { canUseLibraryItem } from "../library/router";
 import {
   type BudgetCheck,
   type BudgetExceededData,
@@ -236,6 +237,15 @@ const placeRun = async (
   return placed;
 };
 
+/** Whether `actor` may answer with `target`: any model, or an agent they may `use`. */
+export const mayRun = async (
+  db: Db,
+  actor: Pick<Actor, "userId">,
+  target: RunTarget
+): Promise<boolean> =>
+  target.type === "model" ||
+  (await canUseLibraryItem(db, actor.userId, "agent", target.id));
+
 export const createRun = async (
   deps: CreateRunDeps,
   actor: Actor,
@@ -256,6 +266,12 @@ export const createRun = async (
   const target = targetFor(input, conversation, deps.defaultModel);
   if (!target) {
     return err({ type: "no_model" });
+  }
+  // Knowing an agent's id isn't leave to run it (D13), and a chat's default
+  // agent is its owner's choice, not a share of the agent. `NOT_FOUND`, like
+  // the library, so ids don't leak.
+  if (!(await mayRun(db, actor, target))) {
+    return err({ type: "not_found" });
   }
   const context = await settleContext(deps, actor, input, conversation);
   if (!context.ok) {

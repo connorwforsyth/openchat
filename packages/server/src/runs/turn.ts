@@ -39,6 +39,8 @@ import {
 } from "@workspace/shared/result";
 import type { Tool, ToolApprovalStatus, ToolSet } from "ai";
 
+import { canUseLibraryItem } from "../library/router";
+
 // What a run answers with (PLAN.md §8 steps 3.2–3.4): the target resolved to
 // a model and the key that pays for it, plus the agent's instructions and
 // tools. The executor takes a `TurnResolver` so tests can hand it a mock
@@ -209,8 +211,16 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
     }
 
     // An agent: its latest published version unless the run pins one.
-    // Whether the caller may `use` it is the library workstream's check
-    // (017), made before the run is created.
+    // `createRun` checked the caller may `use` it; checked again here
+    // because a queued or resumed run starts later, and access can be
+    // revoked (or its maintainer leave the library) in between.
+    if (!(await canUseLibraryItem(db, run.createdBy, "agent", target.id))) {
+      return err({
+        code: "internal",
+        message: "You no longer have access to that agent.",
+        retryable: false,
+      });
+    }
     const version = await resolvePublishedVersion(
       db,
       "agent",
