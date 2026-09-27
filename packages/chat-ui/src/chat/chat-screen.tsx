@@ -46,7 +46,10 @@ import { AppShell } from "../shell/app-shell";
 import { type Platform, PlatformProvider } from "../shell/platform";
 import { RightPanel } from "../shell/right-panel";
 import { useNarrowScreen } from "../shell/use-narrow-screen";
-import { useShellLayout } from "../shell/use-shell-layout";
+import {
+  type ShellLayoutState,
+  useShellLayout,
+} from "../shell/use-shell-layout";
 import { ShortcutHelp } from "../shortcuts/shortcut-help";
 import { ShortcutHint } from "../shortcuts/shortcut-hint";
 import { useShortcuts } from "../shortcuts/use-shortcuts";
@@ -81,6 +84,12 @@ export interface ChatScreenProps {
   readonly composer: ComposerLoaderProps;
   readonly conversation: ChatScreenConversation;
   readonly feedback?: Readonly<Record<string, MessageFeedback>>;
+  /**
+   * The shell's layout when the app owns it, so it survives leaving the chat
+   * for another page with the same shell and can be restored before paint.
+   * Omitted, the screen keeps its own.
+   */
+  readonly layout?: ShellLayoutState;
   readonly messages: readonly Message[];
   readonly onNewChat: () => void;
   /** Opens the ⌘K palette (ticket 024). */
@@ -126,6 +135,7 @@ function ChatScreenBody({
   composer,
   conversation,
   feedback,
+  layout: sharedLayout,
   messages,
   onNewChat,
   onOpenPalette,
@@ -138,8 +148,11 @@ function ChatScreenBody({
   streamingMessageId = null,
 }: ChatScreenProps) {
   const { t } = useLingui();
+  // Hooks can't be conditional, so the screen's own layout always exists; it
+  // just goes unused when the app passes one in.
+  const ownLayout = useShellLayout();
   const { layout, setPanel, setPanelWidth, togglePanel, toggleSidebar } =
-    useShellLayout();
+    sharedLayout ?? ownLayout;
   const narrow = useNarrowScreen();
   const [sidebarSheetOpen, setSidebarSheetOpen] = useState(false);
   // The panel a narrow screen's sheet shows, kept after it's dismissed so the

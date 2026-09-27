@@ -10,7 +10,11 @@ import {
 } from "@workspace/client/api";
 import { useRunChat } from "@workspace/client/use-run-chat";
 import { contextOptionsFromMe } from "@workspace/composer/options";
-import type { ComposerValue } from "@workspace/composer/schemas";
+import type {
+  AttachmentLimits,
+  ComposerAttachment,
+  ComposerValue,
+} from "@workspace/composer/schemas";
 import type {
   ConversationId,
   FileId,
@@ -18,8 +22,10 @@ import type {
 } from "@workspace/contract/schemas/common";
 import type { Message } from "@workspace/contract/schemas/messages";
 import type { Me, PublicConfig } from "@workspace/contract/schemas/meta";
+import type { ModelOption } from "@workspace/contract/schemas/models";
+import type { RunTarget } from "@workspace/contract/schemas/runs";
 import type { ChatContext } from "@workspace/contract/schemas/tenancy";
-import type { UIMessage } from "ai";
+import type { FileUIPart, UIMessage } from "ai";
 import {
   type ReactNode,
   useCallback,
@@ -36,6 +42,7 @@ import { mergeLive } from "../model/live-messages";
 import type { MemoryUpdate } from "../model/parts";
 import type { SandboxPanelClient } from "../sandbox/model/client";
 import type { Platform } from "../shell/platform";
+import type { ShellLayoutState } from "../shell/use-shell-layout";
 import type { Theme } from "../sidebar/account-menu";
 import { ChatScreen } from "./chat-screen";
 import { useBranchFeedback } from "./use-branch-feedback";
@@ -51,25 +58,77 @@ export interface ConnectedChatProps {
   readonly config: PublicConfig;
   /** `null` opens a new, not-yet-created chat. */
   readonly conversationId: ConversationId | null;
+  /**
+   * The context a new chat starts in. Pass it with `onDraftContextChange` when
+   * something outside the screen (the ⌘K palette) can change it too.
+   */
+  readonly draftContext?: ChatContext;
+  /** A new chat sends this once, as soon as it mounts ("Ask AI" in ⌘K). */
+  readonly initialPrompt?: string | null;
+  /** The shell's layout, when the app owns it (see `ChatScreenProps.layout`). */
+  readonly layout?: ShellLayoutState;
   /** Where the library lives (ticket 017). */
   readonly libraryHref?: string;
   readonly me: Me;
+  /** The picker's models (`meta.models`); the picker shows with `target` and `onTargetChange`. */
+  readonly models?: readonly ModelOption[];
+  readonly onDraftContextChange?: (context: ChatContext) => void;
   /** Route to a chat (or `null` for a new one); the app owns the URL. */
   readonly onNavigate: (conversationId: ConversationId | null) => void;
   readonly onOpenAdmin?: () => void;
   readonly onOpenPalette?: () => void;
   readonly onOpenSettings?: () => void;
   readonly onSignOut: () => void;
+  readonly onTargetChange?: (target: RunTarget) => void;
   readonly onThemeChange: (theme: Theme) => void;
   readonly platform?: Platform;
   /** The sandbox panel's port over the API; `null` hides the panel. */
   readonly sandboxClient: SandboxPanelClient | null;
+  /** What answers: a model or an agent. Omitted, the server's default does. */
+  readonly target?: RunTarget | null;
   readonly theme: Theme;
 }
 
 const fileUrl = (fileId: FileId): string => `/api/files/${fileId}/content`;
 
 const ignore = () => undefined;
+
+const MAX_ATTACHMENTS = 10;
+const BYTES_PER_MB = 1024 * 1024;
+
+/** What the composer may attach: nothing when uploads are off (D18 `features`). */
+const attachmentLimitsFor = (config: PublicConfig): AttachmentLimits =>
+  config.features.fileUploads === false
+    ? { maxFiles: 0 }
+    : {
+        maxFileSize: Math.floor(config.limits.uploadMaxMb * BYTES_PER_MB),
+        maxFiles: MAX_ATTACHMENTS,
+      };
+
+/**
+ * Uploads a turn's attachments through the files API, as the file parts the
+ * run transport turns back into stored file references.
+ */
+const uploadAttachments = (
+  client: ApiClient,
+  conversationId: ConversationId,
+  attachments: readonly ComposerAttachment[]
+): Promise<FileUIPart[]> =>
+  Promise.all(
+    attachments.map(async ({ file }) => {
+      const uploaded = await client.files.upload({
+        conversationId,
+        file,
+        purpose: "attachment",
+      });
+      return {
+        filename: uploaded.name,
+        mediaType: uploaded.mediaType,
+        type: "file" as const,
+        url: fileUrl(uploaded.id),
+      };
+    })
+  );
 
 /**
  * The turn being written: `useChat` over runs, seeded with the stored branch
@@ -83,6 +142,7 @@ const useLiveTurn = ({
   me,
   onFinish,
   stored,
+  target,
 }: {
   readonly client: ApiClient;
   readonly context: ChatContext;
@@ -90,21 +150,27 @@ const useLiveTurn = ({
   readonly me: Me;
   readonly onFinish: () => void;
   readonly stored: readonly Message[];
+  readonly target: RunTarget | null;
 }) => {
   const initialMessages = useMemo(
     () => toUIMessages(stored, { fileUrl }),
     [stored]
   );
-  const contextRef = useRef(context);
+  const fieldsRef = useRef({ context, target });
   useEffect(() => {
-    contextRef.current = context;
+    fieldsRef.current = { context, target };
   });
   const chat = useRunChat({
     client,
     conversationId: conversationId ?? "new",
     initialMessages,
     onFinish,
-    runFields: () => ({ context: contextRef.current }),
+    runFields: () => {
+      const fields = fieldsRef.current;
+      return fields.target
+        ? { context: fields.context, target: fields.target }
+        : { context: fields.context };
+    },
   });
   const { messages: live, setMessages, status } = chat;
   const busy = status === "submitted" || status === "streaming";
@@ -141,28 +207,89 @@ const useLiveTurn = ({
   return { chat, messages, streamingMessageId };
 };
 
+/** A new chat's context: the caller's when it passes one, else the screen's own. */
+const useDraftContext = (
+  controlled: ChatContext | undefined,
+  onChange: ((context: ChatContext) => void) | undefined
+) => {
+  const [own, setOwn] = useState<ChatContext>({ type: "personal" });
+  const set = useCallback(
+    (next: ChatContext) => {
+      setOwn(next);
+      onChange?.(next);
+    },
+    [onChange]
+  );
+  return [controlled ?? own, set] as const;
+};
+
+/**
+ * "Ask AI" opens a new chat that sends its prompt straight away, once per
+ * visit to the new chat.
+ */
+const useAskOnce = (
+  prompt: string | null | undefined,
+  conversationId: ConversationId | null,
+  submit: (value: ComposerValue) => void
+) => {
+  const asked = useRef<string | null>(null);
+  useEffect(() => {
+    if (conversationId !== null) {
+      asked.current = null;
+      return;
+    }
+    if (prompt && asked.current !== prompt) {
+      asked.current = prompt;
+      submit({ attachments: [], mentions: [], templateId: null, text: prompt });
+    }
+  }, [conversationId, prompt, submit]);
+};
+
+function RunError({
+  failed,
+  uploadFailed,
+}: {
+  readonly failed: boolean;
+  readonly uploadFailed: boolean;
+}) {
+  const { t } = useLingui();
+  if (!(uploadFailed || failed)) {
+    return null;
+  }
+  return (
+    <p className="text-destructive text-sm" role="alert">
+      {uploadFailed
+        ? t`The message couldn't be sent: an attachment didn't upload. Try again.`
+        : t`The answer failed. Try again, or regenerate it.`}
+    </p>
+  );
+}
+
 /** A new chat is created on first send; the send happens once it's routed to. */
 const useFirstSend = ({
   api,
+  client,
   context,
   conversationId,
   onNavigate,
   send,
 }: {
   readonly api: QueryUtils;
+  readonly client: ApiClient;
   readonly context: ChatContext;
   readonly conversationId: ConversationId | null;
   readonly onNavigate: (id: ConversationId) => void;
-  readonly send: (text: string) => void;
+  readonly send: (text: string, files: FileUIPart[]) => void;
 }) => {
   const [pending, setPending] = useState<{
     readonly conversationId: ConversationId;
+    readonly files: FileUIPart[];
     readonly text: string;
   } | null>(null);
   useEffect(() => {
     if (pending && pending.conversationId === conversationId) {
       setPending(null);
-      send(pending.text);
+      send(pending.text, pending.files);
     }
   }, [conversationId, pending, send]);
 
@@ -171,17 +298,18 @@ const useFirstSend = ({
   );
   return useCallback(
     async (value: ComposerValue) => {
-      // TODO(025): upload `value.attachments` through the files API and send
-      // them as file parts; the composer already hands over the `File`s.
+      // Files belong to a conversation, so a new chat exists before they
+      // upload; the message goes once they have.
+      const id = conversationId ?? (await create({ context })).id;
+      const files = await uploadAttachments(client, id, value.attachments);
       if (conversationId) {
-        send(value.text);
+        send(value.text, files);
         return;
       }
-      const created = await create({ context });
-      setPending({ conversationId: created.id, text: value.text });
-      onNavigate(created.id);
+      setPending({ conversationId: id, files, text: value.text });
+      onNavigate(id);
     },
-    [context, conversationId, create, onNavigate, send]
+    [client, context, conversationId, create, onNavigate, send]
   );
 };
 
@@ -190,16 +318,23 @@ export function ConnectedChat({
   client,
   config,
   conversationId,
+  draftContext: draftContextProp,
+  initialPrompt,
+  layout,
   libraryHref,
   me,
+  models,
+  onDraftContextChange,
   onNavigate,
   onOpenAdmin,
   onOpenPalette,
   onOpenSettings,
   onSignOut,
+  onTargetChange,
   onThemeChange,
   platform,
   sandboxClient,
+  target = null,
   theme,
 }: ConnectedChatProps) {
   const { t } = useLingui();
@@ -207,9 +342,11 @@ export function ConnectedChat({
   const queryClient = useQueryClient();
   const [leafId, setLeafId] = useState<MessageId | undefined>();
   const [selection, setSelection] = useState<ArtifactSelection | null>(null);
-  const [draftContext, setDraftContext] = useState<ChatContext>({
-    type: "personal",
-  });
+  const [draftContext, setDraftContext] = useDraftContext(
+    draftContextProp,
+    onDraftContextChange
+  );
+  const [uploadFailed, setUploadFailed] = useState(false);
 
   const data = useChatQueries(api, {
     artifactId: selection?.artifactId ?? null,
@@ -249,16 +386,18 @@ export function ConnectedChat({
     me,
     onFinish: refresh,
     stored,
+    target,
   });
   const { regenerate, resumeStream, sendMessage, setMessages } = chat;
   const send = useCallback(
-    (text: string) => {
-      sendMessage({ text }).catch(ignore);
+    (text: string, files: FileUIPart[] = []) => {
+      sendMessage(files.length > 0 ? { files, text } : { text }).catch(ignore);
     },
     [sendMessage]
   );
   const submit = useFirstSend({
     api,
+    client,
     context: draftContext,
     conversationId,
     onNavigate,
@@ -360,7 +499,7 @@ export function ConnectedChat({
         setDraftContext(next);
       }
     },
-    [changeContext, conversationId]
+    [changeContext, conversationId, setDraftContext]
   );
   const onRename = useCallback(
     (title: string) => {
@@ -375,10 +514,14 @@ export function ConnectedChat({
   }, []);
   const onSubmit = useCallback(
     (value: ComposerValue) => {
-      submit(value).catch(ignore);
+      setUploadFailed(false);
+      submit(value).catch(() => setUploadFailed(true));
     },
     [submit]
   );
+
+  useAskOnce(initialPrompt, conversationId, onSubmit);
+  const attachmentLimits = useMemo(() => attachmentLimitsFor(config), [config]);
   const newChat = useCallback(() => onNavigate(null), [onNavigate]);
   const sidebarActions = useMemo(
     () => ({
@@ -411,9 +554,13 @@ export function ConnectedChat({
       }}
       brand={brand}
       composer={{
+        attachmentLimits,
+        models,
         onStop: chat.stop,
         onSubmit,
+        onTargetChange,
         status: chat.status,
+        target: target ?? undefined,
       }}
       conversation={{
         context,
@@ -427,17 +574,14 @@ export function ConnectedChat({
         title: current?.title ?? null,
       }}
       feedback={feedback.byMessage}
+      layout={layout}
       messages={messages}
       onNewChat={newChat}
       onOpenPalette={onOpenPalette}
       pendingApprovals={approvals}
       platform={platform}
       runError={
-        chat.error ? (
-          <p className="text-destructive text-sm" role="alert">
-            {t`The answer failed. Try again, or regenerate it.`}
-          </p>
-        ) : null
+        <RunError failed={Boolean(chat.error)} uploadFailed={uploadFailed} />
       }
       sandbox={
         sandboxClient && config.features.sandboxes

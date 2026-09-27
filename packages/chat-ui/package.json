@@ -7,6 +7,7 @@
   "exports": {
     "./artifacts/*": "./src/artifacts/*.tsx",
     "./chat/*": "./src/chat/*.tsx",
+    "./chat/use-chat-data": "./src/chat/use-chat-data.ts",
     "./conversation/*": "./src/conversation/*.tsx",
     "./fixtures": "./src/fixtures.ts",
     "./header/*": "./src/header/*.tsx",
@@ -14,6 +15,8 @@
     "./sandbox/*": "./src/sandbox/*.tsx",
     "./sandbox/model/*": "./src/sandbox/model/*.ts",
     "./shell/*": "./src/shell/*.tsx",
+    "./shell/use-narrow-screen": "./src/shell/use-narrow-screen.ts",
+    "./shell/use-shell-layout": "./src/shell/use-shell-layout.ts",
     "./shortcuts/registry": "./src/shortcuts/registry.ts",
     "./sidebar/*": "./src/sidebar/*.tsx"
   },
