@@ -125,10 +125,37 @@ const oidcProviderSchema = z.strictObject({
   scopes: z.array(z.string()).default(["openid", "email", "profile"]),
 });
 
-const socialProviderSchema = z.strictObject({
-  clientId: secret,
-  clientSecret: secret,
-});
+const socialCredentialKeys: ReadonlySet<string> = new Set([
+  "clientId",
+  "clientSecret",
+]);
+
+/**
+ * `github: { clientId: ${GITHUB_CLIENT_ID}, clientSecret: … }` with the
+ * variables unset interpolates to `{}` (or half a pair). That is a provider
+ * left off, like a provider without an `apiKey`, not a boot failure. Unknown
+ * keys still fail, so a typo (`clientID`) is caught.
+ */
+const withoutHalfCredentials = (value: unknown): unknown => {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return value;
+  }
+  const keys = Object.keys(value);
+  const onlyCredentials = keys.every((key) => socialCredentialKeys.has(key));
+  return onlyCredentials && keys.length < socialCredentialKeys.size
+    ? undefined
+    : value;
+};
+
+const socialProviderSchema = z.preprocess(
+  withoutHalfCredentials,
+  z
+    .strictObject({
+      clientId: secret,
+      clientSecret: secret,
+    })
+    .optional()
+);
 
 const DOMAIN = /^(?!-)[a-z0-9-]+(?:\.[a-z0-9-]+)+$/;
 
@@ -145,8 +172,8 @@ const authSchema = z
     signup: z.enum(["open", "invite", "domain", "sso"]).default("invite"),
     social: z
       .strictObject({
-        github: socialProviderSchema.optional(),
-        google: socialProviderSchema.optional(),
+        github: socialProviderSchema,
+        google: socialProviderSchema,
       })
       .prefault({}),
   })

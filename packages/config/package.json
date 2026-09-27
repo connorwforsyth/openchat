@@ -9,7 +9,8 @@
     "./parse": "./src/parse.ts",
     "./policy": "./src/policy.ts",
     "./public": "./src/public.ts",
-    "./schema": "./src/schema.ts"
+    "./schema": "./src/schema.ts",
+    "./social": "./src/social.ts"
   },
   "scripts": {
     "lint": "ultracite check",

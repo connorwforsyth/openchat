@@ -109,6 +109,9 @@ msgstr "Account: {0}"
 #: ../chat-ui/src/sidebar/chat-row.tsx
 msgid "Actions for {title}"
 msgstr "Actions for {title}"
+#: ../palette/src/command-palette.tsx
+msgid "Actions"
+msgstr "Actions"
 
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Add photos or files"
@@ -117,6 +120,9 @@ msgstr "Add photos or files"
 #: ../chat-ui/src/sidebar/account-menu.tsx
 msgid "Admin"
 msgstr "Admin"
+#: ../palette/src/command-palette.tsx
+msgid "agent"
+msgstr "agent"
 
 #: ../composer/src/components/target-picker.tsx
 msgid "Agents"
@@ -174,6 +180,18 @@ msgid "Artifacts panel"
 msgstr "Artifacts panel"
 
 #: ../../apps/web/app/dev/chat/demo.tsx
+#: ../shortcuts/src/react/shortcuts-editor.tsx
+msgid "Already used by “{other}”."
+msgstr "Already used by “{other}”."
+
+#: ../palette/src/command-palette.tsx
+msgid "Ask AI"
+msgstr "Ask AI"
+
+#: ../palette/src/command-palette.tsx
+msgid "Ask AI: “{prompt}”"
+msgstr "Ask AI: “{prompt}”"
+
 #: ../composer/src/components/composer-shell.tsx
 #: ../composer/src/components/composer.tsx
 msgid "Ask anything"
@@ -217,6 +235,7 @@ msgstr "Button"
 #: ../chat-ui/src/conversation/approval.tsx
 #: ../chat-ui/src/conversation/message-row.tsx
 #: ../composer/src/components/template-variables.tsx
+#: ../shortcuts/src/react/shortcuts-editor.tsx
 msgid "Cancel"
 msgstr "Cancel"
 
@@ -264,6 +283,10 @@ msgstr "Chats"
 msgid "Click to rename"
 msgstr "Click to rename"
 
+#: ../palette/src/command-palette.tsx
+msgid "Chats"
+msgstr "Chats"
+
 #: ../ui/src/components/ai-elements/streamdown.tsx
 #: ../ui/src/components/dialog.tsx
 msgid "Close"
@@ -293,6 +316,10 @@ msgstr "Command"
 #: ../chat-ui/src/sandbox/terminal.tsx
 msgid "Command running"
 msgstr "Command running"
+#: ../palette/src/command-palette.tsx
+#: ../ui/src/components/command.tsx
+msgid "Command palette"
+msgstr "Command palette"
 
 #: ../code-ui/src/diff-view.tsx
 msgid "Comment for the agent on change {number}"
@@ -309,12 +336,16 @@ msgstr "Composer"
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "Container"
 msgstr "Container"
+#: ../palette/src/context-actions.ts
+msgid "context"
+msgstr "context"
 
 #: ../../apps/web/app/dev/composer/demo.tsx
 msgid "Context locked"
 msgstr "Context locked"
 
 #: ../chat-ui/src/conversation/conversation-view.tsx
+#: ../shortcuts/src/react/help-dialog.tsx
 msgid "Conversation"
 msgstr "Conversation"
 
@@ -372,6 +403,9 @@ msgstr "Couldn't undo. Try again."
 #: ../chat-ui/src/sandbox/sandbox-panel.tsx
 msgid "Create sandbox"
 msgstr "Create sandbox"
+#: ../shortcuts/src/registry.ts
+msgid "Copy the last reply"
+msgstr "Copy the last reply"
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "CSV"
@@ -502,6 +536,10 @@ msgid "File tree"
 msgstr "File tree"
 
 #: ../chat-ui/src/sandbox/sandbox-panel.tsx
+#: ../palette/src/context-actions.ts
+msgid "files"
+msgstr "files"
+
 #: ../code-ui/src/file-tree.tsx
 msgid "Files"
 msgstr "Files"
@@ -525,6 +563,17 @@ msgstr "Good answer"
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "gVisor"
 msgstr "gVisor"
+#: ../shortcuts/src/registry.ts
+msgid "Focus the composer"
+msgstr "Focus the composer"
+
+#: ../shortcuts/src/react/help-dialog.tsx
+msgid "General"
+msgstr "General"
+
+#: ../palette/src/context-actions.ts
+msgid "Hide the sandbox"
+msgstr "Hide the sandbox"
 
 #: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../ui/src/components/ai-elements/message.tsx
@@ -551,6 +600,9 @@ msgstr "Invite people…"
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "Isolation: {isolationLabel}. {isolationHelp}"
 msgstr "Isolation: {isolationLabel}. {isolationHelp}"
+#: ../shortcuts/src/react/help-dialog.tsx
+msgid "Keyboard shortcuts"
+msgstr "Keyboard shortcuts"
 
 #: ../chat-ui/src/shortcuts/shortcut-help.tsx
 #: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
@@ -596,6 +648,13 @@ msgstr "Local"
 #: ../chat-ui/src/sandbox/terminal.tsx
 msgid "ls -la"
 msgstr "ls -la"
+#: ../palette/src/command-palette.tsx
+msgid "Library"
+msgstr "Library"
+
+#: ../ui/src/components/spinner.tsx
+msgid "Loading"
+msgstr "Loading"
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Markdown"
@@ -627,6 +686,10 @@ msgstr "MicroVM"
 msgid "MMD"
 msgstr "MMD"
 
+#: ../palette/src/context-actions.ts
+msgid "model"
+msgstr "model"
+
 #: ../../apps/web/app/dev/ai-elements/demo.tsx
 msgid "Model"
 msgstr "Model"
@@ -657,6 +720,20 @@ msgstr "Newer version"
 
 #: ../chat-ui/src/header/branch-switcher.tsx
 #: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
+#: ../shortcuts/src/react/help-dialog.tsx
+msgid "Navigation"
+msgstr "Navigation"
+
+#: ../shortcuts/src/registry.ts
+msgid "New chat"
+msgstr "New chat"
+
+#. placeholder {0}: item.name
+#: ../palette/src/command-palette.tsx
+msgid "New chat with {0}"
+msgstr "New chat with {0}"
+
+#: ../shortcuts/src/registry.ts
 #: ../ui/src/components/ai-elements/message.tsx
 msgid "Next branch"
 msgstr "Next branch"
@@ -673,6 +750,10 @@ msgstr "No changes from the previous version."
 msgid "No chats yet. Start one and it shows up here."
 msgstr "No chats yet. Start one and it shows up here."
 
+#: ../shortcuts/src/registry.ts
+msgid "Next chat"
+msgstr "Next chat"
+
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "No files match the accepted types."
 msgstr "No files match the accepted types."
@@ -684,6 +765,9 @@ msgstr "No sandbox"
 #: ../chat-ui/src/artifacts/artifacts-panel.tsx
 msgid "Nothing here yet. Code, pages and documents the agent makes in this chat show up here."
 msgstr "Nothing here yet. Code, pages and documents the agent makes in this chat show up here."
+#: ../palette/src/command-palette.tsx
+msgid "Nothing found."
+msgstr "Nothing found."
 
 #: ../../apps/web/app/dev/composer/demo.tsx
 msgid "Nothing sent yet."
@@ -701,6 +785,10 @@ msgstr "Older version"
 #: ../chat-ui/src/conversation/artifact-card.tsx
 msgid "Open artifact: {0}"
 msgstr "Open artifact: {0}"
+#: ../shortcuts/src/react/help-dialog.tsx
+#: ../shortcuts/src/react/shortcuts-editor.tsx
+msgid "Off"
+msgstr "Off"
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Open external link?"
@@ -718,6 +806,13 @@ msgstr "Open preview in a new tab"
 #: ../chat-ui/src/sandbox/files.tsx
 msgid "Opening {0}…"
 msgstr "Opening {0}…"
+#: ../shortcuts/src/registry.ts
+msgid "Open settings"
+msgstr "Open settings"
+
+#: ../shortcuts/src/registry.ts
+msgid "Open the command palette"
+msgstr "Open the command palette"
 
 #: ../code-ui/src/diff-view.tsx
 msgid "Optional: tell the agent why"
@@ -730,6 +825,9 @@ msgstr "Organization"
 #: ../chat-ui/src/header/share-menu.tsx
 msgid "Owner"
 msgstr "Owner"
+#: ../shortcuts/src/react/help-dialog.tsx
+msgid "Panels"
+msgstr "Panels"
 
 #: ../ui/src/components/ai-elements/tool.tsx
 msgid "Parameters"
@@ -746,6 +844,9 @@ msgstr "People in this chat"
 #: ../chat-ui/src/header/share-menu.tsx
 msgid "People in this chat: {names}"
 msgstr "People in this chat: {names}"
+#: ../palette/src/context-actions.ts
+msgid "permissions"
+msgstr "permissions"
 
 #: ../composer/src/components/context-chip.tsx
 msgid "Personal"
@@ -801,6 +902,11 @@ msgstr "Previous 7 days"
 
 #: ../chat-ui/src/header/branch-switcher.tsx
 #: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
+#: ../shortcuts/src/react/shortcuts-editor.tsx
+msgid "Press keys…"
+msgstr "Press keys…"
+
+#: ../shortcuts/src/registry.ts
 #: ../ui/src/components/ai-elements/message.tsx
 msgid "Previous branch"
 msgstr "Previous branch"
@@ -812,6 +918,10 @@ msgstr "Previous chat"
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "Primary"
 msgstr "Primary"
+
+#: ../shortcuts/src/registry.ts
+msgid "Previous chat"
+msgstr "Previous chat"
 
 #: ../../apps/web/app/page.tsx
 msgid "Project ready!"
@@ -845,6 +955,17 @@ msgstr "Reasoning"
 #: ../chat-ui/src/sandbox/files.tsx
 msgid "Refresh files"
 msgstr "Refresh files"
+#: ../palette/src/command-palette.tsx
+msgid "Recent chats"
+msgstr "Recent chats"
+
+#: ../shortcuts/src/react/shortcuts-editor.tsx
+msgid "Record"
+msgstr "Record"
+
+#: ../shortcuts/src/react/shortcuts-editor.tsx
+msgid "Record a shortcut for {description}"
+msgstr "Record a shortcut for {description}"
 
 #: ../chat-ui/src/conversation/message-row.tsx
 msgid "Regenerate"
@@ -896,6 +1017,17 @@ msgstr "Rename chat: {shown}"
 #: ../chat-ui/src/sandbox/sandbox-panel.tsx
 msgid "Reset sandbox"
 msgstr "Reset sandbox"
+#: ../shortcuts/src/react/shortcuts-editor.tsx
+msgid "Reset"
+msgstr "Reset"
+
+#: ../shortcuts/src/react/shortcuts-editor.tsx
+msgid "Reset {description}"
+msgstr "Reset {description}"
+
+#: ../shortcuts/src/react/shortcuts-editor.tsx
+msgid "Reset all"
+msgstr "Reset all"
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Reset zoom and pan"
@@ -1001,6 +1133,9 @@ msgstr "Search"
 #: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
 msgid "Search and commands"
 msgstr "Search and commands"
+#: ../palette/src/command-palette.tsx
+msgid "Search chats, agents and settings, or run an action"
+msgstr "Search chats, agents and settings, or run an action"
 
 #: ../code-ui/src/file-tree.tsx
 msgid "Search files"
@@ -1009,6 +1144,17 @@ msgstr "Search files"
 #: ../chat-ui/src/sandbox/files.tsx
 msgid "Select a file to view it."
 msgstr "Select a file to view it."
+#: ../ui/src/components/command.tsx
+msgid "Search for a command to run"
+msgstr "Search for a command to run"
+
+#: ../palette/src/command-palette.tsx
+msgid "Search or type a command…"
+msgstr "Search or type a command…"
+
+#: ../palette/src/command-palette.tsx
+msgid "Searching messages…"
+msgstr "Searching messages…"
 
 #: ../chat-ui/src/conversation/message-row.tsx
 #: ../composer/src/components/composer-footer.tsx
@@ -1047,6 +1193,25 @@ msgstr "Sign out"
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "Simulated"
 msgstr "Simulated"
+#: ../palette/src/context-actions.ts
+msgid "Set permission mode to {label}"
+msgstr "Set permission mode to {label}"
+
+#: ../palette/src/command-palette.tsx
+msgid "Settings"
+msgstr "Settings"
+
+#: ../shortcuts/src/registry.ts
+msgid "Show keyboard shortcuts"
+msgstr "Show keyboard shortcuts"
+
+#: ../palette/src/context-actions.ts
+msgid "Show the sandbox"
+msgstr "Show the sandbox"
+
+#: ../shortcuts/src/react/help-dialog.tsx
+msgid "Single keys work when you're not typing in a text field."
+msgstr "Single keys work when you're not typing in a text field."
 
 #: ../chat-ui/src/shortcuts/shortcut-help.tsx
 msgid "Single keys work when you're not typing in a text field."
@@ -1090,6 +1255,9 @@ msgstr "Stop dictation"
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "Stopped"
 msgstr "Stopped"
+#: ../shortcuts/src/registry.ts
+msgid "Stop generating"
+msgstr "Stop generating"
 
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Submit"
@@ -1106,6 +1274,21 @@ msgstr "SVG"
 #: ../chat-ui/src/sidebar/account-menu.tsx
 msgid "System"
 msgstr "System"
+#: ../palette/src/context-actions.ts
+msgid "Switch chat context to {label}"
+msgstr "Switch chat context to {label}"
+
+#: ../shortcuts/src/registry.ts
+msgid "Switch model"
+msgstr "Switch model"
+
+#: ../palette/src/context-actions.ts
+msgid "Switch model to {label}"
+msgstr "Switch model to {label}"
+
+#: ../palette/src/context-actions.ts
+msgid "team"
+msgstr "team"
 
 #: ../composer/src/components/context-chip.tsx
 msgid "Team"
@@ -1114,6 +1297,9 @@ msgstr "Team"
 #: ../chat-ui/src/sandbox/sandbox-panel.tsx
 msgid "Terminal"
 msgstr "Terminal"
+#: ../palette/src/context-actions.ts
+msgid "terminal"
+msgstr "terminal"
 
 #: ../chat-ui/src/conversation/feedback.tsx
 msgid "Thanks! What was good? (optional)"
@@ -1195,6 +1381,9 @@ msgstr "This chat has no sandbox yet. Create one to run commands and keep files 
 #: ../../apps/web/app/dev/sandbox/demo.tsx
 msgid "This sandbox can't do that."
 msgstr "This sandbox can't do that."
+#: ../shortcuts/src/react/shortcuts-editor.tsx
+msgid "Those keys can't be used as a shortcut."
+msgstr "Those keys can't be used as a shortcut."
 
 #: ../ui/src/components/ai-elements/reasoning.tsx
 msgid "Thought for a few seconds"
@@ -1204,6 +1393,17 @@ msgstr "Thought for a few seconds"
 #: ../chat-ui/src/sandbox/terminal.tsx
 msgid "Timed out after {0} ms"
 msgstr "Timed out after {0} ms"
+#: ../shortcuts/src/registry.ts
+msgid "Toggle the artifacts panel"
+msgstr "Toggle the artifacts panel"
+
+#: ../shortcuts/src/registry.ts
+msgid "Toggle the sandbox panel"
+msgstr "Toggle the sandbox panel"
+
+#: ../shortcuts/src/registry.ts
+msgid "Toggle the sidebar"
+msgstr "Toggle the sidebar"
 
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "Today"
@@ -1238,6 +1438,9 @@ msgstr "Unknown agent"
 #: ../chat-ui/src/sidebar/chat-row.tsx
 msgid "Unpin"
 msgstr "Unpin"
+#: ../palette/src/command-palette.tsx
+msgid "Untitled chat"
+msgstr "Untitled chat"
 
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Upload files"
@@ -1290,6 +1493,9 @@ msgstr "Why? (optional, sent to the agent)"
 #: ../chat-ui/src/sandbox/files.tsx
 msgid "Workspace"
 msgstr "Workspace"
+#: ../shortcuts/src/react/shortcuts-editor.tsx
+msgid "While recording, Escape cancels and Backspace turns a shortcut off."
+msgstr "While recording, Escape cancels and Backspace turns a shortcut off."
 
 #: ../../apps/web/app/dev/ai-elements/demo.tsx
 msgid "Would send “{text}” with {fileCount, plural, one {# attachment} other {# attachments}}."
@@ -1306,6 +1512,14 @@ msgstr "You may now add components and start building."
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "You're about to visit an external website."
 msgstr "You're about to visit an external website."
+
+#: ../shortcuts/src/react/shortcuts-editor.tsx
+msgid "Your browser keeps that combination; pick another one."
+msgstr "Your browser keeps that combination; pick another one."
+
+#: ../shortcuts/src/react/shortcuts-editor.tsx
+msgid "Your changes work now but couldn't be saved, so they'll reset when you reload."
+msgstr "Your changes work now but couldn't be saved, so they'll reset when you reload."
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Zoom in"
