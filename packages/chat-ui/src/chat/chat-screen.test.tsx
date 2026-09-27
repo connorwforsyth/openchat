@@ -2,7 +2,15 @@ import { cleanup, screen, waitFor, within } from "@testing-library/react";
 import { contextOptionsFromMe } from "@workspace/composer/options";
 import { fixtureId, me, teamPlatform } from "@workspace/contract/fixtures";
 import type { ChatContext } from "@workspace/contract/schemas/tenancy";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import { page, userEvent } from "vitest/browser";
 
 import {
@@ -16,6 +24,10 @@ import { localBranchPath } from "../model/branch";
 import { SHELL_LAYOUT_STORAGE_KEY } from "../shell/use-shell-layout";
 import { modKey, renderWithI18n } from "../testing/render";
 import { ChatScreen, type ChatScreenProps } from "./chat-screen";
+
+// Reasoning renders synchronously (ticket 037), so no chunk lands mid-test and
+// shifts the conversation.
+vi.mock("../conversation/lazy", () => import("../testing/sync-lazy"));
 
 const path = localBranchPath(treeMessages, initialLeafId);
 if (!path) {
@@ -64,6 +76,17 @@ const props = (overrides: Partial<ChatScreenProps> = {}): ChatScreenProps => ({
     onTogglePin: vi.fn(),
   },
   ...overrides,
+});
+
+// The chunks the screen loads on demand (the editor, the artifacts panel,
+// KaTeX) arrive here, under hookTimeout, so a test waits on React and not on
+// a busy runner serving modules (ticket 037).
+beforeAll(async () => {
+  await Promise.all([
+    import("@workspace/composer/components/composer"),
+    import("../artifacts/artifacts-panel"),
+    import("../conversation/math-plugin"),
+  ]);
 });
 
 beforeEach(() => {

@@ -103,8 +103,10 @@ export default defineProject({
     include: ["src/**/*.test.{ts,tsx}"],
     name: "chat-ui",
     setupFiles: ["./vitest.setup.ts"],
-    // Lazy chunks (the diff view, the editor) load mid-test; on a busy CI
-    // runner running every package at once that takes a while.
+    // Headroom for a busy CI runner running every package at once. Tests
+    // don't wait on lazy chunks or Shiki (ticket 037): they warm chunks in
+    // `beforeAll` (hookTimeout) or render synchronous stand-ins, and the one
+    // test on the real lazy diff path sets its own, longer timeout.
     testTimeout: 30_000,
   },
 });
