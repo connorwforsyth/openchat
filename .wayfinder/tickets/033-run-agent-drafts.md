@@ -3,7 +3,7 @@ id: "033"
 title: "Builder test chat runs the draft; test chats stay out of history"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: ["017"]
 ---
 

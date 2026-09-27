@@ -29,3 +29,5 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-09-27 · 019 + 029 closed · PR #19 · sandboxes + real-Docker CI · CI ci, db, sandbox runc/runsc pass
 - 2026-09-27 · 022 closed · PR #17 · memory, feedback, telemetry, evals · 64/64 local after rebase, CI pass
 - 2026-09-27 · 015, 017, 024 started in parallel (015 stacked on 019)
+- 2026-09-27 · 015 closed · PR #21 · chat UI + app shell · CI pass
+- 2026-09-27 · 017 (#22), 024 (#20), 030 (#23), 031 (#24) in CI; 032 done locally (stacked on 017); 033, 034 starting

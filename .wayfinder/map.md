@@ -89,6 +89,7 @@ brief, and their findings land in `.context/research/`.
 - [WS-sandbox](tickets/019-ws-sandbox.md): just-bash + Docker sandboxes via an isolated `sandbox-runner`, review-by-hunk tools, sandbox panel ([PR #19](https://github.com/connorwforsyth/openchat/pull/19))
 - [Sandbox-runner CI](tickets/029-sandbox-runner-ci.md): real-Docker smoke test on runc and gVisor; four runner fixes ([PR #19](https://github.com/connorwforsyth/openchat/pull/19))
 - [WS-memory-evals](tickets/022-ws-memory-evals.md): Markdown memory with versions and undo, feedback, OTLP traces, dev evals in CI ([PR #17](https://github.com/connorwforsyth/openchat/pull/17))
+- [WS-chat-ui](tickets/015-ws-chat-ui.md): app shell (Classic + Workspace panels), conversation with per-hunk approvals, artifacts panel ([PR #21](https://github.com/connorwforsyth/openchat/pull/21))
 - [WS-importers](tickets/023-ws-importers.md): ChatGPT, Claude and LibreChat importers with branch trees; fork ([PR #13](https://github.com/connorwforsyth/openchat/pull/13))
 - [WS-ai](tickets/013-ws-ai.md): provider registry, key resolution, agent runner with approvals, Decider, `/api/llm` handler ([PR #11](https://github.com/connorwforsyth/openchat/pull/11))
 

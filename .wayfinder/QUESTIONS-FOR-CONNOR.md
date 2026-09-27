@@ -42,3 +42,9 @@ Collected by agents working the map, so you can answer them in one sitting. Each
 33. **Branch switcher at the ends (015):** stop at first/last (current) or wrap around (prototype)? *Default: stop.*
 34. **Which fork `[` / `]` act on (015):** the most recent fork in the conversation. *Default: keep.*
 35. **Undo for a first memory (015):** when there was no previous version, Undo clears the memory file. *Default: show Undo and clear.*
+36. **Default agent vs chat editors (032):** an editor of a chat can't run the chat's default agent unless they can use that agent themselves. *Default: keep (least privilege).*
+37. **Approving tool calls (032):** approving also requires being able to use the agent. *Default: keep.*
+38. **Feedback in one request (031):** add a `feedback.list` procedure (contract PR) or turn on oRPC request batching? *Default: batching in 025 (no contract change).*
+39. **Motion guard scope (031):** extend the guard from `packages/ui` to all of `apps/` and `packages/`? *Default: yes (it finds nothing today).*
+40. **Android keyboard (031):** set viewport `interactive-widget=resizes-content` in `apps/web`? *Default: yes, in 025.*
+41. **Artifact libraries (030):** React artifacts can import only react/react-dom. Allow a curated set (e.g. an icon set exempt from the icon guard, Tailwind's browser build)? *Default: add Tailwind browser + lucide for artifacts only, after M1.*

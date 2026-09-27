@@ -2,8 +2,8 @@
 id: "015"
 title: "WS-chat-ui: conversation, branches, artifacts"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: ["008","009"]
 ---
 
@@ -25,3 +25,7 @@ Speed (D28): message rows memoised by id so a streaming token re-renders only th
 
 Component tests in Vitest browser mode; a Storybook-style demo route in `apps/web`; no raw
 colours, icons or strings (the 004 guards pass).
+
+## Resolution (2026-09-27, loop)
+
+Merged in [PR #21](https://github.com/connorwforsyth/openchat/pull/21), built to Connor's app-shell choice (009): `packages/chat-ui` `AppShell` (platform context, date-grouped sidebar with rename/pin/archive + undo, ⌘B; `AppHeader` with rename, branch switcher, context chip with lock, participants, Share, sandbox pill; resizable Sandbox | Artifacts panel that remembers state), the conversation view (rows memoised by id, every `MessagePart`, approvals with per-hunk review in a lazy DiffView, lazy KaTeX with MathML, feedback with share consent, edit/regenerate, synced branch switchers, docked composer), the lazy artifacts panel, `ChatScreen`, `ConnectedChat` for 025; motion tokens + nine primitives in `packages/ui`; `/dev/chat`. Verified: 63/63, 65 chat-ui tests, empty-env `/dev/chat` 200, clicked through; CI passed. Follow-ups became 030 (artifact runtime) and 031 (polish).
