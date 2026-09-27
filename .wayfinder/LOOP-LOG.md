@@ -31,3 +31,5 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-09-27 · 015, 017, 024 started in parallel (015 stacked on 019)
 - 2026-09-27 · 015 closed · PR #21 · chat UI + app shell · CI pass
 - 2026-09-27 · 017 (#22), 024 (#20), 030 (#23), 031 (#24) in CI; 032 done locally (stacked on 017); 033, 034 starting
+- 2026-09-27 · 035 closed · PR #25 · CI stability · CI pass
+- 2026-09-27 · 033, 034, 036 done locally (stacked on 017/032)
