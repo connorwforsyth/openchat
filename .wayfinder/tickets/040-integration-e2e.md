@@ -3,7 +3,7 @@ id: "040"
 title: "Integration: Docker, compose and end-to-end"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: ["038","039"]
 ---
 

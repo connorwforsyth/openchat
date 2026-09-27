@@ -2,8 +2,8 @@
 id: "039"
 title: "Integration: web app pages"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -18,3 +18,7 @@ Split from 025 (read its full wiring list). Build the real app in `apps/web`: au
 ## Done when
 
 With a running server (038's app on PGlite), a browser can sign up, chat with a mock/Ollama model, branch, search, open the library and settings, and use ⌘K; Lighthouse-style check: the chat route's initial JS excludes code-ui, KaTeX, library-ui and admin.
+
+## Resolution (2026-09-27, loop)
+
+Merged in [PR #30](https://github.com/connorwforsyth/openchat/pull/30): auth pages (sign-in, sign-up modes, invite), `proxy.ts` protection, the `(app)` shell around chat/library/settings/admin, persisted query cache (cleared on sign-out), pre-paint sidebar restore, palette after `composer:ready`, chat routes with attachments and the artifact runtime origin, locale from `user.locale`, `/dev/*` gated. Verified: 77/77; empty-env `/sign-in` 200, `/` → sign-in, `/dev/chat` 404; chat route first load 754 kB gzip with none of code-ui/KaTeX/library-ui/admin/palette/TipTap.

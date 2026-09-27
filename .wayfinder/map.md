@@ -95,6 +95,7 @@ brief, and their findings land in `.context/research/`.
 - [Chat-ui test stability](tickets/037-chat-ui-test-stability.md): deterministic lazy chunks in tests ([PR #26](https://github.com/connorwforsyth/openchat/pull/26))
 - [Artifact runtime](tickets/030-artifact-runtime.md): React/Mermaid/HTML/SVG previews on a separate origin ([PR #23](https://github.com/connorwforsyth/openchat/pull/23))
 - [Integration: server wiring](tickets/038-integration-server.md): everything booted from the environment and mounted at `/api` ([PR #29](https://github.com/connorwforsyth/openchat/pull/29))
+- [Integration: web app](tickets/039-integration-web.md): auth pages, the app shell around every page, persisted cache, composer-first chat routes ([PR #30](https://github.com/connorwforsyth/openchat/pull/30))
 - [WS-shell](tickets/024-ws-shell.md): ⌘K palette, shortcut registry, settings and admin ([PR #20](https://github.com/connorwforsyth/openchat/pull/20))
 - [WS-libraries](tickets/017-ws-libraries.md): Agent/Prompt/Skill/MCP builders, sharing, publishing and library tabs ([PR #22](https://github.com/connorwforsyth/openchat/pull/22))
 - [M1 polish](tickets/031-m1-polish.md): motion audit + guard, narrow-screen layout, batched feedback lookups ([PR #24](https://github.com/connorwforsyth/openchat/pull/24))
