@@ -39,6 +39,9 @@ export default defineConfig({
   },
   webServer: {
     command: "bun e2e/support/serve.ts",
+    // SIGTERM, so serve.ts stops the server and deletes its temporary
+    // directory (Playwright's default is SIGKILL, which leaves it behind).
+    gracefulShutdown: { signal: "SIGTERM", timeout: 10_000 },
     // Never reuse one: it would already have users, and the first sign-up
     // has to be the first.
     reuseExistingServer: false,
