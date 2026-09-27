@@ -9,6 +9,7 @@ import type { Db } from "@workspace/db/client";
 
 import type { ApiServices } from "./api/router";
 import { type ConversationAccess, grantAccess } from "./context";
+import { createEvalJobHandlers } from "./evals/run";
 import { coreJobHandlers, shouldTitle } from "./jobs/handlers";
 import {
   enqueueJob,
@@ -167,6 +168,7 @@ export const createServices = (options: ServicesOptions): Services => {
     jobHandlers: {
       ...jobHandlers,
       ...testChatJobHandlers({ db, now: options.now }),
+      ...createEvalJobHandlers({ db, loadModel, now: options.now, report }),
     },
     loadModel,
     memory,

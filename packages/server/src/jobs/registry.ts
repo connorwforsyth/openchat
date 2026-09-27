@@ -21,11 +21,11 @@ import type { JobHandler, JobQueue, SendOptions } from "../ports/job-queue";
 //
 // Handlers from other workstreams arrive in `JobHandlers` (ingestion and
 // re-indexing from 021's `createKnowledgeJobs`, under the names it enqueues
-// with). `eval.run` has no handler until agent evals land (Agents+ wave);
-// such jobs wait in the queue rather than being dropped.
+// with). A job without a handler waits in the queue rather than being dropped.
 
 export const jobSchemas = {
-  "eval.run": z.object({ suite: z.string().min(1).max(200) }),
+  /** Runs an `eval_run` (a dataset against an agent version) and stores its scores (041). */
+  "eval.run": z.object({ evalRunId: z.uuid() }),
   /** Parses, chunks and embeds one uploaded file (PLAN.md §8 RAG). */
   [INGEST_FILE_JOB]: ingestFileJobDataSchema,
   /** Queues ingestion for every file embedded with another model. */
