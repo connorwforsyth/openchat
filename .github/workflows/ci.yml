@@ -119,7 +119,29 @@ jobs:
   # socket proxy) on the runner's real Docker, and drives it through the
   # docker provider's client. Once per OCI runtime, since both must keep
   # working (docs/decisions/0005): runc gets the admin warning, runsc is gVisor.
+  # Docker sandboxes are slow and minute-hungry: run them only on pushes to
+  # main that touch the sandbox (the loop runs them locally before merging
+  # when Docker is available). Private-repo Actions minutes are limited.
+  changes:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    outputs:
+      sandbox: ${{ steps.filter.outputs.sandbox }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+      - id: filter
+        run: |
+          if git diff --name-only HEAD~1 HEAD | grep -qE '^(apps/sandbox-runner/|packages/sandbox/|docker-compose.yml)'; then
+            echo "sandbox=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "sandbox=false" >> "$GITHUB_OUTPUT"
+          fi
+
   sandbox:
+    needs: changes
+    if: needs.changes.outputs.sandbox == 'true'
     name: sandbox (${{ matrix.runtime }})
     runs-on: ubuntu-latest
     timeout-minutes: 10
