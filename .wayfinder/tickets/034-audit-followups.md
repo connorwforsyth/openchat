@@ -2,8 +2,8 @@
 id: "034"
 title: "Audit follow-ups from 032"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: ["032"]
 ---
 
@@ -28,3 +28,7 @@ Findings 032's audit left for a follow-up:
 ## Done when
 
 Each item has a regression test and is fixed; CI green.
+
+## Resolution (2026-09-27, loop)
+
+Merged in [PR #27](https://github.com/connorwforsyth/openchat/pull/27): `setMaintainers` works for MCP servers/presets; duplicates drop knowledge files the copier can't read (with a notice); provider-key queries require the owning scope; the sandbox exec job and title job re-check the requester. Each fix has a regression test that failed before it.

@@ -2,8 +2,8 @@
 id: "032"
 title: "Security: membership-checked maintainers; runs check agent access"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: ["017"]
 ---
 
@@ -27,3 +27,7 @@ turn resolver access check), tests.
 ## Done when
 
 Both regression tests fail before and pass after; the audit list is in the resolution.
+
+## Resolution (2026-09-27, loop)
+
+Merged in [PR #27](https://github.com/connorwforsyth/openchat/pull/27) (combined with 033/034/036): maintainers act only while still members of the owning org/team (grants, share links); `createRun`, the turn resolver and approvals check the caller may **use** the agent (NOT_FOUND on refusal); audit of every id-taking handler (findings fixed in 034). Regression tests failed before the fix. Local gate 73/73.

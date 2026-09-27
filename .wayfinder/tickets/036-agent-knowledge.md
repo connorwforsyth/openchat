@@ -2,8 +2,8 @@
 id: "036"
 title: "Agent knowledge files feed file_search in turns"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: ["017"]
 ---
 
@@ -24,3 +24,7 @@ back as `source` parts via `toolSources()` (021's note for 014).
 
 A mock-model run of an agent with a knowledge PDF calls `file_search`, gets the right chunk, and the
 answer carries a citation; a user with only `use` can't download the file directly.
+
+## Resolution (2026-09-27, loop)
+
+Merged in [PR #27](https://github.com/connorwforsyth/openchat/pull/27): agents with knowledge files get a scoped `file_search` per turn (knowledge via the agent's grant; attachments need the user's own read access), gated by the Decider's retrieval gate; citations stored as `source` parts (`withCitations`). Production wiring of the embedder/Decider is in 038.

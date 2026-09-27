@@ -37,3 +37,6 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-09-27 · 017 closed · PR #22 · 73/73 local after rebase, CI pass before
 - 2026-09-27 · 031 closed · PR #24 · motion fix at merge, 73/73 local
 - 2026-09-27 · GitHub Actions blocked (spending limit); Connor chose a local merge gate + leaner CI (PR #28: sandbox jobs only on main pushes touching the sandbox)
+- 2026-09-27 · 032+034+033+036 closed · PR #27 · local gate 73/73
+- 2026-09-27 · 037 closed · PR #26 · local gate 73/73
+- 2026-09-27 · 030 closed · PR #23 · local gate (chat-ui 93/93 alone; machine load ~100 from 038/039)

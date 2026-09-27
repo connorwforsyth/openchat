@@ -2,8 +2,8 @@
 id: "037"
 title: "Stabilise chat-ui approval tests on CI"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -23,3 +23,7 @@ one real integration test of the lazy path with generous timeouts, isolated in i
 
 `bun turbo test --filter @workspace/chat-ui` passes 5 times in a row locally under load
 (`--concurrency` high) and CI passes.
+
+## Resolution (2026-09-27, loop)
+
+Merged in [PR #26](https://github.com/connorwforsyth/openchat/pull/26): chat-ui tests mock the lazy module with a synchronous one (`sync-lazy.tsx`, a `TestDiffView` stand-in driven by code-ui's real review logic), preload heavy chunks in `beforeAll`, forbid workers in unit tests, and keep one real lazy-path test. 5/5 runs under load; local gate 73/73.

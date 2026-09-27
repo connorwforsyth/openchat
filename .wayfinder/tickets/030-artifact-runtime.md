@@ -2,8 +2,8 @@
 id: "030"
 title: "Artifact runtime: React and Mermaid previews on a separate origin"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: ["015"]
 ---
 
@@ -26,3 +26,7 @@ bundle step so the Annotate wave can use it (D16).
 
 HTML, SVG, React (with a hook and an allowed import) and Mermaid artifacts render on the separate
 origin in `/dev/chat`; the frame can't read the app's cookies or storage; errors show in the panel.
+
+## Resolution (2026-09-27, loop)
+
+Merged in [PR #23](https://github.com/connorwforsyth/openchat/pull/23): `apps/artifacts` runtime on its own origin (HTML, SVG, React via Sucrase with `data-src` stamps, Mermaid), react/react-dom only, strict CSP, `sandbox allow-scripts`; chat-ui `ArtifactPreview` with srcdoc fallback. Verified isolation in headless Chromium (null origin; cookies/storage/parent access throw; fetch blocked). Local gate: all tasks pass (chat-ui 93/93 run alone under machine load).

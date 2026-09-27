@@ -2,8 +2,8 @@
 id: "033"
 title: "Builder test chat runs the draft; test chats stay out of history"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: ["017"]
 ---
 
@@ -24,3 +24,7 @@ change, make it a separate contract PR and flag it in `QUESTIONS-FOR-CONNOR.md`.
 
 Editing instructions in the builder changes the test chat's behaviour immediately (mock-model test);
 test chats don't appear in history or search.
+
+## Resolution (2026-09-27, loop)
+
+Merged in [PR #27](https://github.com/connorwforsyth/openchat/pull/27): editors can run an agent's draft (use-only callers get NOT_FOUND; the turn resolver and approvals re-check edit for drafts, use for published versions); the builder's test chat runs the stored draft; `conversation.purpose = test` hides test chats from list/search and a job prunes them after 24 h; `run.agent_draft` records draft runs. No contract change.
