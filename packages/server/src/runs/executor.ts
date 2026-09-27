@@ -40,6 +40,7 @@ import {
   getRun,
   listActiveRuns,
   listQueuedAfter,
+  listRunsWithStatus,
   type RunRow,
   type RunTransition,
   requeueAfter,
@@ -103,6 +104,13 @@ export interface InProcessExecutorDeps {
 export interface InProcessExecutor extends RunExecutor {
   /** Resolves once no run is executing in this process (tests, shutdown). */
   readonly idle: () => Promise<void>;
+  /**
+   * Boot-time recovery (014): runs a crash left `running` fail as
+   * interrupted, and queued runs whose turn came while nothing was running
+   * start. Call once, before serving, while this is the only executor.
+   * Returns how many runs it failed.
+   */
+  readonly recover: () => Promise<number>;
   /** Aborts every run executing here; they settle as `cancelled`. */
   readonly shutdown: () => Promise<void>;
 }
@@ -113,6 +121,12 @@ const OUTCOME_GRACE_MS = 1000;
 const INTERNAL: RunError = {
   code: "internal",
   message: "Something went wrong while answering.",
+  retryable: true,
+};
+
+const INTERRUPTED: RunError = {
+  code: "internal",
+  message: "The server restarted while answering. Try again.",
   retryable: true,
 };
 
@@ -262,6 +276,25 @@ export const createInProcessExecutor = (
       await finishTerminal(failed, null, null);
     } else {
       await settleLostRace(run.runId, null, null);
+    }
+  };
+
+  /** A run no process is executing any more (the last one crashed). */
+  const failOrphan = async (row: RunRow) => {
+    if (row.assistantMessageId) {
+      await failEarly(
+        runStartFromRow(row),
+        row.assistantMessageId,
+        INTERRUPTED
+      );
+      return;
+    }
+    const moved = await transition(row.id, {
+      error: INTERRUPTED,
+      type: "fail",
+    });
+    if (moved) {
+      await finishTerminal(moved, null, null);
     }
   };
 
@@ -692,6 +725,26 @@ export const createInProcessExecutor = (
         // biome-ignore lint/performance/noAwaitInLoops: a settling run may start the next one.
         await Promise.all([...running.values()]);
       }
+    },
+
+    recover: async () => {
+      const orphaned = (await listRunsWithStatus(db, ["running"])).filter(
+        (row) => !active.has(row.id)
+      );
+      for (const row of orphaned) {
+        // biome-ignore lint/performance/noAwaitInLoops: each settles its branch's queue before the next.
+        await failOrphan(row);
+      }
+      // A crash between a run ending and the next one starting leaves that
+      // one queued behind a finished run; `startRun` skips any still waiting.
+      for (const row of await listRunsWithStatus(db, ["queued"])) {
+        // biome-ignore lint/performance/noAwaitInLoops: in order, oldest first, like the queue.
+        const started = await startRun(runStartFromRow(row));
+        if (!started.ok && started.error.type !== "already_started") {
+          report("couldn't start a queued run", started.error);
+        }
+      }
+      return orphaned.length;
     },
 
     shutdown: async () => {

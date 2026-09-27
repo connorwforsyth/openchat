@@ -1,11 +1,17 @@
 import type { LanguageModelV4 } from "@ai-sdk/provider";
-import type { AutoRoute } from "@workspace/ai/decider/auto-route";
+import {
+  type AutoRoute,
+  routeAutoModel,
+} from "@workspace/ai/decider/auto-route";
+import { FILE_SEARCH_TOOL } from "@workspace/ai/decider/retrieval-gate";
 import type { KeyStore } from "@workspace/ai/keys/key-store";
 import {
+  type ChatKeys,
   type KeyContext,
   type KeyPolicy,
   resolveChatKeys,
 } from "@workspace/ai/keys/resolve";
+import type { Decider } from "@workspace/ai/ports/decider";
 import type {
   ProviderCredentials,
   ProviderRegistry,
@@ -17,6 +23,8 @@ import type { AppConfig } from "@workspace/config/schema";
 import type {
   LibraryItemId,
   LibraryVersionId,
+  OrgId,
+  UserId,
 } from "@workspace/contract/schemas/common";
 import type { DeciderState } from "@workspace/contract/schemas/decider";
 import type { KeyScope } from "@workspace/contract/schemas/keys";
@@ -28,7 +36,9 @@ import {
   parseModelRef,
 } from "@workspace/contract/schemas/models";
 import type { RunError } from "@workspace/contract/schemas/runs";
+import type { OrgPolicy } from "@workspace/contract/schemas/tenancy";
 import type { Db } from "@workspace/db/client";
+import { listReadableIndexedFileIds } from "@workspace/db/queries/files";
 import { resolvePublishedVersion } from "@workspace/db/queries/library";
 import { teamLineage } from "@workspace/db/queries/teams";
 import {
@@ -39,6 +49,7 @@ import {
 } from "@workspace/shared/result";
 import type { Tool, ToolApprovalStatus, ToolSet } from "ai";
 
+import { actorFor } from "../context";
 import { canUseLibraryItem } from "../library/router";
 import { draftFor } from "./drafts";
 import {
@@ -96,16 +107,32 @@ export type TurnResolver = (
 export interface TurnResolverDeps {
   /** Built-in tools this instance serves (web search, file search, …), from their workstreams. */
   readonly builtins?: Readonly<Record<string, Tool>>;
-  readonly config: Pick<AppConfig, "models" | "policies">;
+  readonly config: Pick<AppConfig, "models" | "policies"> &
+    Partial<Pick<AppConfig, "decider">>;
   readonly db: Db;
+  /**
+   * The Decider (D15) paid for by the caller's keys in this chat's context,
+   * like any other model call (D17). Used for `auto` routing and the
+   * retrieval gate unless `routeAuto` or `retrieval` override it.
+   */
+  readonly decider?: (keys: ChatKeys) => Decider;
   readonly keyStore: KeyStore;
   /**
    * `file_search` over an agent's knowledge files and the chat's
    * attachments (036); leave out when `embeddings.model` isn't set.
    */
   readonly knowledge?: KnowledgeDeps;
-  /** MCP tools (ticket 018). */
+  /** MCP tools (ticket 018), the same for every caller. */
   readonly mcp?: McpToolSource;
+  /** MCP tools as one user sees them (per-user OAuth connections); wins over `mcp`. */
+  readonly mcpFor?: (userId: UserId) => McpToolSource;
+  /**
+   * The org's effective policy (`org_settings` clamped by the instance), for
+   * the personal-key fallback. Without it the conservative default holds.
+   */
+  readonly orgPolicy?: (
+    orgId: OrgId
+  ) => Promise<Pick<OrgPolicy, "personalKeyFallback">>;
   readonly registry: ProviderRegistry;
   /** The Decider's retrieval gate (D15); without it retrieval tools are always offered. */
   readonly retrieval?: RetrievalGateDeps;
@@ -150,30 +177,83 @@ const keyContextFor = async (
   }
 };
 
+type KeyDeps = Pick<
+  TurnResolverDeps,
+  "config" | "db" | "keyStore" | "orgPolicy"
+>;
+
+/**
+ * The keys that pay for `caller`'s calls in their chat context (D17), per
+ * provider; `null` when the context no longer exists. A key store outage
+ * reads as no keys: keyless local providers still work.
+ */
+export const chatKeysFor = async (
+  deps: KeyDeps,
+  caller: ModelCaller,
+  signal?: AbortSignal
+): Promise<ChatKeys | null> => {
+  const keyContext = await keyContextFor(deps.db, caller);
+  if (!keyContext) {
+    return null;
+  }
+  const policy: KeyPolicy = {
+    instance: deps.config.policies,
+    org:
+      keyContext.type === "personal" || !deps.orgPolicy
+        ? null
+        : await deps.orgPolicy(keyContext.orgId),
+  };
+  const keys = await resolveChatKeys(keyContext, deps.keyStore, policy, {
+    signal,
+  });
+  return keys.ok ? keys.value : {};
+};
+
 export const createModelLoader = (
   deps: Pick<
     TurnResolverDeps,
-    "config" | "db" | "keyStore" | "registry" | "routeAuto"
+    | "config"
+    | "db"
+    | "decider"
+    | "keyStore"
+    | "orgPolicy"
+    | "registry"
+    | "routeAuto"
   >
 ): ModelLoader => {
-  const { config, db, registry } = deps;
-  const policy: KeyPolicy = {
-    instance: config.policies,
-    // Org policy lives in `org_settings`, which the orgs workstream loads;
-    // until then the conservative default (no personal-key fallback) holds.
-    org: null,
+  const { config, registry } = deps;
+
+  const routeAuto = (
+    caller: ModelCaller,
+    keys: ChatKeys,
+    state: DeciderState,
+    signal: AbortSignal | undefined
+  ): Promise<Result<AutoRoute, { readonly type: "auto_disabled" }>> => {
+    if (deps.routeAuto) {
+      return deps.routeAuto(state, signal);
+    }
+    if (!(deps.decider && config.decider)) {
+      return Promise.resolve(err({ type: "auto_disabled" }));
+    }
+    return routeAutoModel({
+      config: { decider: config.decider, models: config.models },
+      context: { userId: caller.userId },
+      decider: deps.decider(keys),
+      signal,
+      state,
+    });
   };
 
   const route = async (
+    caller: ModelCaller,
+    keys: ChatKeys,
     selector: ModelSelector,
     state: DeciderState,
     signal: AbortSignal | undefined
   ): Promise<Result<ModelRef, RunError>> => {
     let chosen = selector;
     if (selector === AUTO_MODEL) {
-      const routed = deps.routeAuto
-        ? await deps.routeAuto(state, signal)
-        : err({ type: "auto_disabled" as const });
+      const routed = await routeAuto(caller, keys, state, signal);
       if (!routed.ok) {
         return err(unavailable(null));
       }
@@ -184,21 +264,16 @@ export const createModelLoader = (
   };
 
   return async (caller, selector, { signal, state }) => {
-    const ref = await route(selector, state, signal);
+    const keys = await chatKeysFor(deps, caller, signal);
+    if (!keys) {
+      return err(unavailable(null));
+    }
+    const ref = await route(caller, keys, selector, state, signal);
     if (!ref.ok) {
       return ref;
     }
     const provider = parseModelRef(ref.value)?.provider ?? ref.value;
-    const keyContext = await keyContextFor(db, caller);
-    if (!keyContext) {
-      return err(unavailable(provider));
-    }
-    const keys = await resolveChatKeys(keyContext, deps.keyStore, policy, {
-      signal,
-    });
-    const credentials: ProviderCredentials | undefined = keys.ok
-      ? keys.value[provider]
-      : undefined;
+    const credentials: ProviderCredentials | undefined = keys[provider];
     const model = registry.languageModel(ref.value, credentials);
     return model.ok
       ? ok({
@@ -210,18 +285,84 @@ export const createModelLoader = (
   };
 };
 
+/** Attachments one plain chat checks for before offering `file_search`. */
+const ATTACHMENT_PROBE = 1;
+
 export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
   const { db } = deps;
   const loadModel = createModelLoader(deps);
+
+  /**
+   * The retrieval gate for this caller: the configured one, or the Decider
+   * on the caller's keys. `undefined` leaves every retrieval tool offered.
+   */
+  const gateFor = async (
+    caller: ModelCaller,
+    signal: AbortSignal | undefined
+  ): Promise<RetrievalGateDeps | undefined> => {
+    if (deps.retrieval) {
+      return deps.retrieval;
+    }
+    if (!(deps.decider && deps.config.decider)) {
+      return;
+    }
+    const keys = await chatKeysFor(deps, caller, signal);
+    return keys
+      ? {
+          decider: deps.decider(keys),
+          threshold: deps.config.decider.thresholds.needsRetrieval,
+        }
+      : undefined;
+  };
+
+  /**
+   * A plain model chat (no agent) searches its own attachments (025): the
+   * tool is offered only once the chat has an indexed file the caller can
+   * read, so a chat without files isn't handed a tool it can't use.
+   */
+  const attachmentTools = async (
+    run: RunStart,
+    caller: ModelCaller,
+    { signal, state }: { signal?: AbortSignal; state: DeciderState }
+  ): Promise<Pick<Turn, "toolApproval" | "tools">> => {
+    if (!deps.knowledge) {
+      return {};
+    }
+    const viewer = await actorFor(db, { userId: run.createdBy });
+    const attached = await listReadableIndexedFileIds(db, viewer, {
+      conversationId: run.conversationId,
+      limit: ATTACHMENT_PROBE,
+    });
+    if (attached.length === 0) {
+      return {};
+    }
+    const searchable = await withFileSearch(db, deps.knowledge, run, {
+      knowledgeFileIds: [],
+      tools: [FILE_SEARCH_TOOL],
+    });
+    const gated = await gateTurnTools(
+      await gateFor(caller, signal),
+      run,
+      { toolApproval: {}, tools: { ...searchable.builtins } },
+      { signal, state }
+    );
+    return { toolApproval: gated.toolApproval, tools: gated.tools };
+  };
 
   return async (run, { signal, state }) => {
     const { target } = run;
     const caller = { context: run.context, userId: run.createdBy };
     if (target.type === "model") {
       const loaded = await loadModel(caller, target.model, { signal, state });
-      return loaded.ok
-        ? ok({ agent: null, parameters: target.parameters, ...loaded.value })
-        : loaded;
+      if (!loaded.ok) {
+        return loaded;
+      }
+      return ok({
+        agent: null,
+        parameters: target.parameters,
+        ...loaded.value,
+        ...(await attachmentTools(run, caller, { signal, state })),
+      });
     }
 
     // An agent: its latest published version unless the run pins one, or
@@ -284,13 +425,15 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
     );
     const toolSet = await buildToolSet(
       plan,
-      { builtins, mcp: deps.mcp },
+      { builtins, mcp: deps.mcpFor?.(run.createdBy) ?? deps.mcp },
       { signal }
     );
-    const gated = await gateTurnTools(deps.retrieval, run, toolSet, {
-      signal,
-      state,
-    });
+    const gated = await gateTurnTools(
+      await gateFor(caller, signal),
+      run,
+      toolSet,
+      { signal, state }
+    );
     return ok({
       ...loaded.value,
       agent: { id: target.id, versionId: version.value.id },

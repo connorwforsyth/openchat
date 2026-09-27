@@ -63,7 +63,16 @@ export interface ServicesOptions {
   readonly report?: (message: string, cause: unknown) => void;
   /** Overrides model resolution entirely (tests hand in mock models). */
   readonly resolveTurn?: TurnResolver;
-  readonly tools?: Pick<TurnResolverDeps, "builtins" | "mcp" | "routeAuto">;
+  readonly tools?: Pick<
+    TurnResolverDeps,
+    | "builtins"
+    | "decider"
+    | "knowledge"
+    | "mcp"
+    | "mcpFor"
+    | "orgPolicy"
+    | "routeAuto"
+  >;
 }
 
 export interface Services extends ApiServices {

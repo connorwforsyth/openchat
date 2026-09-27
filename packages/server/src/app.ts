@@ -1,13 +1,20 @@
 import { SmartCoercionPlugin } from "@orpc/json-schema";
 import { OpenAPIHandler } from "@orpc/openapi/fetch";
 import type { AnyRouter } from "@orpc/server";
+import { BatchHandlerPlugin } from "@orpc/server/plugins";
 import { ZodToJsonSchemaConverter } from "@orpc/zod/zod4";
 import { runIdSchema } from "@workspace/contract/schemas/common";
 import { getRun } from "@workspace/db/queries/runs";
 import { Hono } from "hono";
 
 import { type ApiServices, createChatRouter } from "./api/router";
-import { actorFor, type RequestContext, type SessionResolver } from "./context";
+import {
+  actorFor,
+  type RequestContext,
+  type Session,
+  type SessionResolver,
+} from "./context";
+import { problem } from "./http/problem";
 import { runStreamResponse } from "./stream/sse";
 
 // The HTTP app (D26): Hono as a thin adapter over the oRPC contract, served
@@ -18,24 +25,31 @@ import { runStreamResponse } from "./stream/sse";
 // answer 503 and say why, and any extra routers (auth, meta) still work.
 
 export interface CreateAppOptions {
+  /**
+   * More per-request context for routers that need it beside the session
+   * (the auth handlers' `HandlerContext`). Merged over `{ request, session }`.
+   */
+  readonly context?: (
+    request: Request,
+    session: Session | null
+  ) => Promise<Readonly<Record<string, unknown>>>;
   /** Reads the caller from the request (ticket 012's session lookup). */
   readonly resolveSession: SessionResolver;
   /** Extra procedure groups beside the chat ones (auth, library, …), keyed like the contract. */
   readonly routers?: Readonly<Record<string, AnyRouter>>;
+  /**
+   * Plain HTTP routes that aren't procedures (the auth handler, downloads,
+   * OAuth callbacks), registered before the procedures.
+   */
+  readonly routes?: (app: Hono) => void;
   /** `null` when there is no database. */
   readonly services: ApiServices | null;
 }
 
-/** The procedure groups this package serves; they need the database. */
-const CHAT_PATHS = [
-  /^\/api\/conversations(\/|$)/,
-  /^\/api\/memory(\/|$)/,
-  /^\/api\/messages\//,
-  /^\/api\/runs(\/|$)/,
+/** Procedure groups that need the database, for the "no database" answer. */
+const DATABASE_PATHS = [
+  /^\/api\/(artifacts|budgets|conversations|decisions|files|grants|invitations|keys|library|mcp|me|memory|messages|models|orgs|runs|sandboxes|search|share|share-links|teams|usage)(\/|$)/,
 ];
-
-const problem = (status: number, code: string, message: string) =>
-  Response.json({ code, defined: false, message, status }, { status });
 
 const noDatabase = () =>
   problem(
@@ -45,8 +59,10 @@ const noDatabase = () =>
   );
 
 export const createApp = ({
+  context: extraContext,
   resolveSession,
   routers = {},
+  routes,
   services,
 }: CreateAppOptions) => {
   const router = {
@@ -60,6 +76,9 @@ export const createApp = ({
       new SmartCoercionPlugin({
         schemaConverters: [new ZodToJsonSchemaConverter()],
       }),
+      // The client batches concurrent GETs (feedback per message, Q38) into
+      // one request; each still runs as its own procedure with this context.
+      new BatchHandlerPlugin({ maxSize: 10 }),
     ],
   });
 
@@ -76,6 +95,8 @@ export const createApp = ({
       500
     )
   );
+
+  routes?.(app);
 
   // The run stream isn't a procedure: SSE in the AI SDK's UI message stream
   // protocol (contract README "The run stream").
@@ -101,15 +122,20 @@ export const createApp = ({
 
   app.all("/api/*", async (c) => {
     const request = c.req.raw;
+    const session = await resolveSession(request);
     const { matched, response } = await handler.handle(request, {
-      context: { request, session: await resolveSession(request) },
+      context: {
+        ...(extraContext ? await extraContext(request, session) : {}),
+        request,
+        session,
+      },
       prefix: "/api",
     });
     if (matched) {
       return response;
     }
     const { pathname } = new URL(request.url);
-    if (!services && CHAT_PATHS.some((path) => path.test(pathname))) {
+    if (!services && DATABASE_PATHS.some((path) => path.test(pathname))) {
       return noDatabase();
     }
     return problem(404, "NOT_FOUND", "Not found.");
