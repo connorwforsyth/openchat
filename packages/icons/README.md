@@ -25,27 +25,45 @@ complete; `sets.test.ts` checks), and optionally in other sets.
 | Set | Web | Native |
 |---|---|---|
 | lucide | `sets/lucide.ts` | `sets/lucide.native.ts` |
-| phosphor | `sets/phosphor.ts` (all but `OctagonXIcon`) | not yet |
-| tabler, hugeicons, material | not yet | not yet |
+| phosphor | `sets/phosphor.ts` (all but 9) | not yet |
+| material | `sets/material.ts` (all but `GitBranchIcon`) | not yet |
+| tabler, hugeicons | not yet | not yet |
 
-`ICON_SET` (default `lucide`) picks the set at build time; it stands in for
-`app.config.yaml`'s `icons.set` until `packages/config` lands. The
-`icons:select` script writes `src/selected.ts` and `src/selected.native.ts`
+The set is chosen at build time from the `icons` block of `app.config.yaml`,
+read where the web server reads it: `CONFIG_PATH`, else `app.config.yaml`,
+both relative to `apps/web`. `ICON_SET`, `ICON_STYLE`, `ICON_WEIGHT` and
+`ICON_FILL` override it (a Docker image is built before its config is
+mounted, so it gets them as build args; see `docs/self-hosting.md`).
+
+The `icons:select` script writes `src/selected.ts` and `src/selected.native.ts`
 (gitignored), which are the package entries: each name is re-exported from
 exactly one set file, so the other sets never reach the bundle. Names the
-chosen set lacks come from lucide. Turbo runs `icons:select` before `build`,
-`dev` and `typecheck` (and keys their caches on `ICON_SET`); `postinstall` runs
-it once so editors resolve the package.
+chosen set lacks come from lucide, and only those. Turbo runs `icons:select`
+before `build`, `dev` and `typecheck`, keyed on those variables, `CONFIG_PATH`
+and the config at `apps/web/app.config.yaml` (or the repo root); a config
+elsewhere isn't hashed, so run with `--force` after editing its `icons`
+block. `postinstall` runs it once so editors resolve the package.
 
 ```sh
-ICON_SET=phosphor bun turbo build --filter web
+ICON_SET=material ICON_STYLE=rounded bun turbo build --filter web
 bun run icons:gaps     # per set and platform, which names fall back to lucide
 ```
 
 To add a set, create `src/sets/<id>.ts` (and/or `<id>.native.ts`) exporting
 `export const FooIcon = …` for the names it covers; the scripts discover it by
-file name. Material Symbols should be generated as SVG components from
-`@material-symbols/svg-{100..700}` (Apache-2.0), not the variable font.
+file name.
+
+### Material Symbols
+
+`sets/material.ts` maps names to symbols as `fromMaterial(glyph.<symbol>)`.
+The path data comes from `src/sets/material.glyphs.ts`, which `icons:select`
+generates (gitignored) from `@material-symbols/svg-<weight>` (Apache-2.0) in
+the configured style (`outlined`, `rounded`, `sharp`; default `outlined`),
+weight (100–700; default 400) and fill: SVG paths rather than the variable
+font, so each icon costs a few hundred bytes and unused ones drop out. To map
+another name, add a line with the symbol's name from
+[the catalogue](https://fonts.google.com/icons); `sets.test.ts` checks it
+exists in every variant.
 
 ## Codemod
 

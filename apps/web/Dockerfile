@@ -21,6 +21,15 @@ COPY . .
 # Scripts are skipped: git hooks have no place in an image, and the Lingui
 # catalogs and the icon set are turbo tasks the build runs itself.
 RUN bun install --frozen-lockfile --ignore-scripts
+# The icon set is compiled in (D19), and the image is built before any
+# app.config.yaml is mounted, so it comes in as build args; `icons:select`
+# reads them from the environment. Empty ones leave it to an app.config.yaml
+# in the build context, if any, and then the defaults.
+#   docker build -f apps/web/Dockerfile --build-arg ICON_SET=material .
+ARG ICON_SET= \
+    ICON_STYLE= \
+    ICON_WEIGHT= \
+    ICON_FILL=
 # `NEXT_OUTPUT=standalone` switches next.config.ts to a traced, self-contained
 # server; `bun dev` and `next start` are unaffected.
 RUN NEXT_OUTPUT=standalone bunx turbo run build --filter=web

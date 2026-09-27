@@ -38,3 +38,39 @@ export function fromPhosphor(Glyph: PhosphorIcon): Icon {
   PhosphorGlyph.displayName = Glyph.displayName;
   return PhosphorGlyph;
 }
+
+/**
+ * Draws a Material Symbol from its path data (`material.glyphs.ts`) with the
+ * lucide prop surface. Symbols are filled shapes in a 960-unit box, so they
+ * paint with `fill` and ignore the stroke props. A plain function component,
+ * so it renders in Server Components too.
+ */
+export function fromMaterial(path: string): Icon {
+  function MaterialGlyph({
+    absoluteStrokeWidth: _absoluteStrokeWidth,
+    children,
+    nonScalingStroke: _nonScalingStroke,
+    size = defaultSize,
+    strokeWidth: _strokeWidth,
+    ...props
+  }: IconProps) {
+    return (
+      // biome-ignore lint/a11y/noSvgWithoutTitle: decorative unless the caller names it (aria-label or a <title> child), as with lucide.
+      <svg
+        aria-hidden={
+          hasAccessibleName({ children, ...props }) ? undefined : true
+        }
+        fill="currentColor"
+        height={size}
+        viewBox="0 -960 960 960"
+        width={size}
+        xmlns="http://www.w3.org/2000/svg"
+        {...props}
+      >
+        {children}
+        <path d={path} />
+      </svg>
+    );
+  }
+  return MaterialGlyph;
+}

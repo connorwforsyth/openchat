@@ -8,6 +8,13 @@ services:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
+      # The icon set is compiled in (D19): set these in .env, then
+      # `docker compose up -d --build` (docs/self-hosting.md).
+      args:
+        ICON_SET: ${ICON_SET:-}
+        ICON_STYLE: ${ICON_STYLE:-}
+        ICON_WEIGHT: ${ICON_WEIGHT:-}
+        ICON_FILL: ${ICON_FILL:-}
     image: openchat-web
     restart: unless-stopped
     depends_on:

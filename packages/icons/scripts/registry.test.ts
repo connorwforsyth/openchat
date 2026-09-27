@@ -4,7 +4,7 @@ import {
   exportedIconNames,
   findGaps,
   formatGapReport,
-  parseIconSet,
+  lucideBindings,
   renderSelection,
   resolveSelection,
 } from "./registry";
@@ -24,19 +24,24 @@ describe("exportedIconNames", () => {
   });
 });
 
-describe("parseIconSet", () => {
-  it("defaults to lucide when unset or blank", () => {
-    expect(parseIconSet(undefined)).toEqual({ ok: true, value: "lucide" });
-    expect(parseIconSet("  ")).toEqual({ ok: true, value: "lucide" });
+describe("lucideBindings", () => {
+  it("maps each name to the lucide export that draws it", () => {
+    const bindings = lucideBindings(
+      [
+        'import { Check, GitBranch } from "lucide-react-native";',
+        "export const CheckIcon: NativeIcon = Check;",
+        "export const BranchIcon: NativeIcon = GitBranch;",
+      ].join("\n")
+    );
+    expect(bindings?.module).toBe("lucide-react-native");
+    expect([...(bindings?.exports ?? [])]).toEqual([
+      ["CheckIcon", "Check"],
+      ["BranchIcon", "GitBranch"],
+    ]);
   });
 
-  it("accepts known sets case-insensitively", () => {
-    expect(parseIconSet("Phosphor")).toEqual({ ok: true, value: "phosphor" });
-  });
-
-  it("returns an error for an unknown set", () => {
-    const result = parseIconSet("fontawesome");
-    expect(result.ok).toBe(false);
+  it("returns nothing for a file that doesn't import lucide", () => {
+    expect(lucideBindings("export const XIcon = 1;")).toBeUndefined();
   });
 });
 
@@ -61,6 +66,28 @@ describe("renderSelection", () => {
       'export { SendIcon, XIcon } from "./sets/phosphor";'
     );
     expect(source).toContain('export { CheckIcon } from "./sets/lucide";');
+  });
+
+  it("re-exports a set's gaps straight from lucide when it can", () => {
+    const source = renderSelection({
+      lucide: {
+        exports: new Map([["CheckIcon", "Check"]]),
+        module: "lucide-react",
+      },
+      platform: "web",
+      selection: {
+        fallback: ["CheckIcon", "XIcon"],
+        fromSet: ["SendIcon"],
+      },
+      setFile: "./sets/material",
+      setId: "material",
+    });
+    expect(source).toContain('export { SendIcon } from "./sets/material";');
+    expect(source).toContain(
+      'export { Check as CheckIcon } from "lucide-react";'
+    );
+    // A name the bindings miss still resolves, through the set file.
+    expect(source).toContain('export { XIcon } from "./sets/lucide";');
   });
 
   it("uses only lucide when lucide is chosen", () => {
