@@ -18,7 +18,14 @@ const credentialsSchema = z.object({
 });
 
 /** Email and password. Where it lands is the page's `next`, already made safe. */
-export function SignInForm({ next }: { readonly next: string }) {
+export function SignInForm({
+  appUrl,
+  next,
+}: {
+  /** The configured origin, for the message when this one isn't trusted. */
+  readonly appUrl?: string;
+  readonly next: string;
+}) {
   const { t } = useLingui();
   const auth = useAuthClient();
   const [pending, setPending] = useState(false);
@@ -85,7 +92,7 @@ export function SignInForm({ next }: { readonly next: string }) {
             type="password"
           />
         </Field>
-        <AuthProblemMessage problem={problem} />
+        <AuthProblemMessage appUrl={appUrl} problem={problem} />
         <Button disabled={pending} type="submit">
           {pending ? <Spinner data-icon="inline-start" /> : null}
           <Trans>Sign in</Trans>

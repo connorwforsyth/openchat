@@ -1,4 +1,5 @@
 import { Trans } from "@lingui/react/macro";
+import { appOriginOf } from "@workspace/auth/env";
 import { initLingui } from "@workspace/i18n/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -25,6 +26,9 @@ export default async function SignInPage({
     redirect(next);
   }
   const providers = config.ok ? config.config.auth.providers : [];
+  // Named when this page's own address isn't trusted (054). It's the public
+  // address, not a secret, so it can reach the browser.
+  const appUrl = appOriginOf(process.env.BETTER_AUTH_URL);
   const ssoOnly = config.ok && config.config.auth.signup === "sso";
   return (
     <AuthCard
@@ -42,13 +46,14 @@ export default async function SignInPage({
     >
       <div className="flex flex-col gap-4">
         <SocialButtons
+          appUrl={appUrl}
           callbackUrl={next}
           providers={providers}
           separator={!ssoOnly}
         />
         {/* SSO-only instances still let existing password accounts (the
             first admin) in; they just can't create new ones. */}
-        <SignInForm next={next} />
+        <SignInForm appUrl={appUrl} next={next} />
       </div>
     </AuthCard>
   );

@@ -14,6 +14,9 @@ import { SignUpForm } from "./sign-up-form";
 
 const UNAVAILABLE = /Sign-in isn't available on this server/;
 const INVITE_ONLY = /This server is invite-only/;
+const ORIGIN_REJECTED = /This address isn't allowed to sign in/;
+const UNREACHABLE = /Couldn't reach the server/;
+const TRUSTED_ORIGINS_HINT = /ask them to add this one/;
 
 const i18n = setupI18n({ locale: "en", messages: { en: {} } });
 const renderWithI18n = (ui: ReactNode) =>
@@ -58,6 +61,42 @@ describe("SignInForm", () => {
     });
   });
 
+  it("names the configured address when this one isn't trusted (054)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      answer(403, { code: "INVALID_ORIGIN", message: "Invalid origin" })
+    );
+    renderWithI18n(
+      <SignInForm appUrl="https://chat.example.test" next="/library" />
+    );
+    await userEvent.type(screen.getByLabelText("Email"), "ada@example.test");
+    await userEvent.type(screen.getByLabelText("Password"), "whatever-1");
+    await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
+    expect(await screen.findByText(ORIGIN_REJECTED)).toBeTruthy();
+    const link = screen.getByRole("link", {
+      name: "https://chat.example.test",
+    });
+    // The same page, on the address that works.
+    expect(link.getAttribute("href")).toBe(
+      new URL(
+        `${window.location.pathname}${window.location.search}`,
+        "https://chat.example.test"
+      ).href
+    );
+  });
+
+  it("says when the server can't be reached", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.reject(new TypeError("Failed to fetch")))
+    );
+    renderWithI18n(<SignInForm next="/" />);
+    await userEvent.type(screen.getByLabelText("Email"), "ada@example.test");
+    await userEvent.type(screen.getByLabelText("Password"), "whatever-1");
+    await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
+    expect(await screen.findByText(UNREACHABLE)).toBeTruthy();
+  });
+
   it("says sign-in isn't set up when nothing answers", async () => {
     vi.stubGlobal("fetch", answer(503, { code: "SERVICE_UNAVAILABLE" }));
     renderWithI18n(<SignInForm next="/" />);
@@ -91,6 +130,21 @@ describe("SignUpForm", () => {
       }),
       url: "/api/auth/sign-up/email",
     });
+  });
+});
+
+describe("SignUpForm, origin refused (054)", () => {
+  it("asks for an administrator when no address is configured", async () => {
+    vi.stubGlobal("fetch", answer(403, { code: "INVALID_ORIGIN" }));
+    renderWithI18n(<SignUpForm next="/" />);
+    await userEvent.type(screen.getByLabelText("Name"), "Bo");
+    await userEvent.type(screen.getByLabelText("Email"), "bo@example.test");
+    await userEvent.type(screen.getByLabelText("Password"), "long-enough-1");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Create account" })
+    );
+    expect(await screen.findByText(TRUSTED_ORIGINS_HINT)).toBeTruthy();
+    expect(screen.queryByRole("link")).toBeNull();
   });
 });
 
