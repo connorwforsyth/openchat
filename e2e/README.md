@@ -30,6 +30,11 @@ The server trusts loopback as its proxy (`TRUSTED_PROXIES`), so a request
 that carries `X-Forwarded-For` reads as a client behind a proxy
 (`proxy.spec.ts`: sign-in rate limits per client address).
 
+The server's `BETTER_AUTH_URL` is `http://localhost:<port>`. `shell.spec.ts`
+also signs in at `http://127.0.0.1:<port>` (loopback names stand in for each
+other) and checks the refusal at `http://e2e.localhost:<port>`, which Chromium
+sends to this machine but the server doesn't trust (054).
+
 The D27 timings (TTFB, `composer:ready`, first token) are recorded as the
 suite goes and printed at the end.
 
