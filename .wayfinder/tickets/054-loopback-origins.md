@@ -2,8 +2,8 @@
 id: "054"
 title: "Sign-in from 127.0.0.1 fails with \"Something went wrong\""
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -67,3 +67,7 @@ same happens behind any second hostname.
   change only because the owned files changed.
 - **Gate**: passes (82/82). Two earlier gate runs failed once each in `@workspace/db#test`, which passes on
   its own and in a full `--continue` run. That looks like flakiness under load, unrelated to this change.
+
+## Resolution (2026-09-28, loop)
+
+Merged in [PR #44](https://github.com/connorwforsyth/openchat/pull/44). Loopback aliases are trusted, `TRUSTED_ORIGINS` validates extra origins, and sign-in/sign-up say which address to open. E2E 25/25, gate 82/82.
