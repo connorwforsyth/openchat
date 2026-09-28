@@ -587,6 +587,24 @@
         "vitest": "catalog:",
       },
     },
+    "packages/setup": {
+      "name": "@workspace/setup",
+      "version": "0.0.0",
+      "dependencies": {
+        "@clack/prompts": "catalog:",
+        "@workspace/config": "workspace:*",
+        "@workspace/contract": "workspace:*",
+        "@workspace/shared": "workspace:*",
+        "yaml": "^2.9.1",
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@types/node": "catalog:",
+        "@workspace/typescript-config": "workspace:*",
+        "typescript": "catalog:",
+        "vitest": "catalog:",
+      },
+    },
     "packages/shared": {
       "name": "@workspace/shared",
       "version": "0.0.0",
@@ -685,6 +703,7 @@
     "@ai-sdk/react": "^4.0.119",
     "@babel/core": "^7.29.0",
     "@better-auth/drizzle-adapter": "1.7.6",
+    "@clack/prompts": "^1.8.1",
     "@electric-sql/pglite": "0.5.8",
     "@electric-sql/pglite-pgvector": "0.0.9",
     "@hono/node-server": "^2.1.1",
@@ -1656,6 +1675,8 @@
     "@workspace/sandbox": ["@workspace/sandbox@workspace:packages/sandbox"],
 
     "@workspace/server": ["@workspace/server@workspace:packages/server"],
+
+    "@workspace/setup": ["@workspace/setup@workspace:packages/setup"],
 
     "@workspace/shared": ["@workspace/shared@workspace:packages/shared"],
 

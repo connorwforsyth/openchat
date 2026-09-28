@@ -7,13 +7,46 @@ brings up both.
 ## Quick start
 
 ```sh
-cp .env.example .env
-docker compose up -d
+bun install
+bun run setup          # asks a few questions, writes the config files
+bun run setup up       # builds and starts it, and prints the URL
 ```
 
 Open <http://localhost:3000> and create an account: **the first account
 becomes the administrator**, and after that people join by invitation
 (Admin › Members).
+
+`bun run setup` asks how to run the app (Docker, or `bun dev` for working on
+the code), which model providers to use and their keys, who can sign up,
+the instance name, sandboxes, optional services and the icon set. Every
+question has a safe default. It writes:
+
+- `.env`: keys (typed into a masked prompt; they're written here and nowhere
+  else), the sandbox runner's token, service URLs and the icon build args.
+  Readable by you only.
+- `app.config.yaml`: providers (as `${ENV}` references), models, sign-up,
+  sandboxes, search and icons. It's checked against the app's schema before
+  anything is written.
+- `docker-compose.override.yml` (Docker only): mounts the config into `web`
+  (see [Configuration file](#configuration-file)).
+
+Run it again to change anything: it starts from what the files say now,
+edits them in place (comments and your own additions stay) and asks before
+overwriting each one. `bun run setup doctor` checks Docker, ports, the
+config, `/api/health?ready=true`, the sandbox runner and that a model
+answers, and says how to fix each failure. `app.config.yaml` and
+`docker-compose.override.yml` are gitignored, like `.env`.
+
+In local mode, `bun run setup up` starts what `bun dev` needs in Docker
+(Postgres unless you chose PGlite, the sandbox runner, SearXNG), then runs
+`bun dev` with `.env` and `app.config.yaml` handed to it.
+
+The same by hand, with every setting at its default:
+
+```sh
+cp .env.example .env
+docker compose up -d
+```
 
 What happens on the first start:
 
@@ -65,7 +98,7 @@ start.
 ### Configuration file
 
 To use an `app.config.yaml`, mount it and point `CONFIG_PATH` at it, in a
-`docker-compose.override.yml`:
+`docker-compose.override.yml` (`bun run setup` writes this for you):
 
 ```yaml
 services:

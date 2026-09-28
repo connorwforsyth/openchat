@@ -1,0 +1,38 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`runDoctor > passes a healthy demo stack 1`] = `
+"✓ .env: present
+✓ docker-compose.override.yml: mounts app.config.yaml into web
+✓ app.config.yaml: valid
+✓ Docker: engine 28.4.0
+✓ Docker Compose: 2.39.2
+✓ Port 3000 (web): in use by web
+✓ Port 5432 (postgres): in use by postgres
+✓ Port 7070 (sandbox-runner): in use by sandbox-runner
+✓ Port 7071 (sandbox-runner): in use by sandbox-runner
+✓ App health: http://localhost:3000 is up and ready
+✓ Sandbox runner: up on http://localhost:7070
+✓ Provider anthropic: reachable, key accepted
+✓ Models: at least one model provider answers"
+`;
+
+exports[`runDoctor > says how to fix each failure 1`] = `
+"✓ .env: present
+✓ docker-compose.override.yml: mounts app.config.yaml into web
+✓ app.config.yaml: valid
+✓ Docker: engine 28.4.0
+✓ Docker Compose: 2.39.2
+✓ Port 3000 (web): in use by web
+✗ Port 5432 (postgres): in use, but not by this checkout's compose stack
+    fix: stop whatever holds it (another program, or this app started from another folder), or set POSTGRES_PORT in .env to a free port
+✓ Port 7070 (sandbox-runner): free
+✓ Port 7071 (sandbox-runner): free
+✗ App health: answers 503 (database: connection refused)
+    fix: docker compose logs web (or the bun dev output) says why
+✗ Sandbox runner: running, but without SANDBOX_RUNNER_TOKEN
+    fix: bun run setup up (recreates it with the token from .env)
+✗ Provider anthropic: the key was rejected (401)
+    fix: check the key in .env, or type it again with bun run setup
+✗ Models: no model provider answers, so chats can't run
+    fix: add a key with bun run setup, or start Ollama"
+`;

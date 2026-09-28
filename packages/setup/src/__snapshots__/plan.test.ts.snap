@@ -1,0 +1,631 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`first run: Docker with every provider and a host gateway > writes .env 1`] = `
+"# Copy to .env and adjust. Every variable is optional: the web app boots with an
+# empty .env and features that need a missing value degrade instead of failing.
+
+# --- Database (docker-compose \`postgres\` service) ---
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=app
+POSTGRES_PORT=5432
+# Used by the app and migrations. Leave it empty (or unset) and the server
+# runs on an embedded database (PGlite) in \`./.data/pglite\`, migrated at boot:
+# fine for \`bun dev\` and trying things out, one process only, not for
+# deployments.
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/app
+
+# --- Auth (Better Auth) ---
+# Signs sessions and encrypts tokens. Generate with \`openssl rand -base64 32\`.
+# Unset in development: a fixed dev-only secret is used, with a warning.
+# Unset in production: sign-in stays off rather than use a known key.
+# Also keys the local file store's signed download links (derived, not reused).
+BETTER_AUTH_SECRET=
+# The public origin (https://chat.example.com); inferred per request when unset.
+BETTER_AUTH_URL=http://localhost:3000
+# Social sign-in appears only when both halves of a pair are set (or when
+# app.config.yaml \`auth.social\` configures the provider).
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+# Proxies in front of the app whose X-Forwarded-For entries are believed: IP
+# addresses and CIDR ranges, comma-separated (for example
+# \`127.0.0.1, ::1, 172.16.0.0/12\` for a proxy on the host or a Docker network).
+# Sign-in rate limits and the address kept on each session come from the
+# first hop, read from the right, that isn't one of these. Unset, only the
+# last hop counts. See docs/self-hosting.md, "Behind a proxy".
+TRUSTED_PROXIES=
+
+# --- Web search (optional \`search\` compose profile) ---
+SEARXNG_PORT=8080
+# Any long random string; only used to sign SearXNG's own cookies.
+SEARXNG_SECRET=fake-random-1
+# Setting this makes SearXNG the \`web_search\` backend unless app.config.yaml
+# \`search.backend\` picks another. Models with built-in search use theirs.
+SEARXNG_URL=http://localhost:8080
+# Paid backends, used when \`search.backend\` names them (keys stay here, not in
+# the YAML). Without a key the backend is simply unavailable.
+BRAVE_API_KEY=
+TAVILY_API_KEY=
+EXA_API_KEY=
+
+# --- File storage (app.config.yaml \`storage\`) ---
+# Only for \`driver: s3\` (S3, R2, MinIO). The local volume needs nothing.
+S3_ACCESS_KEY_ID=
+S3_SECRET_ACCESS_KEY=
+
+# --- Tooling ---
+# Port Playwright serves the production build on for E2E runs.
+E2E_PORT=3100
+# Set to 1 to serve the component galleries under /dev/*. Unset, they 404.
+# Checked per request, so one build serves both.
+ENABLE_DEV_ROUTES=
+
+# --- Secrets at rest (D24) ---
+# Seals provider keys, MCP header secrets and MCP OAuth tokens (AES-256-GCM).
+# 32 random bytes, base64 or hex: \`openssl rand -base64 32\`. Required in
+# production (NODE_ENV=production): without it those features turn off.
+# Elsewhere an insecure development key stands in, with a warning.
+ENCRYPTION_KEY=
+# To rotate: move the old key here (comma-separated for several) and set a new
+# ENCRYPTION_KEY. Old secrets still open and are resealed when next written.
+ENCRYPTION_KEY_PREVIOUS=
+
+# --- Docker sandboxes (optional \`sandbox\` compose profile) ---
+# Shared secret between web and sandbox-runner; the runner refuses every call
+# without it. Any long random string, e.g. \`openssl rand -hex 32\`.
+SANDBOX_RUNNER_TOKEN=
+SANDBOX_RUNNER_URL=http://localhost:7070
+# auto (gVisor if the host has it, else runc with a warning) | runsc | runc
+SANDBOX_RUNTIME=auto
+# none (default) | allowlist (via SANDBOX_EGRESS_PROXY) | open
+SANDBOX_EGRESS=none
+SANDBOX_EGRESS_PROXY=
+SANDBOX_IMAGE=node:24-bookworm-slim
+# Previews are served from their own origin, never the app's.
+SANDBOX_PREVIEW_URL=http://{id}-{port}.sandbox.localhost:7071
+SANDBOX_RUNNER_PORT=7070
+SANDBOX_PREVIEW_PORT=7071
+
+# --- Artifact previews (\`bun dev\`, or the optional \`artifacts\` compose profile) ---
+# Where the artifact runtime (apps/artifacts) is served: its own origin, never
+# the app's (D24). Unset: HTML and SVG preview in a srcdoc frame, and React and
+# Mermaid show their source only.
+ARTIFACTS_ORIGIN=http://artifacts.localhost:3910
+ARTIFACTS_PORT=3910
+# App origins allowed to embed the runtime, comma-separated. Unset: any
+# localhost port, for development. Set it to the app's public origin in production.
+ARTIFACTS_APP_ORIGINS=
+
+# --- Set by \`bun run setup\` ---
+ANTHROPIC_API_KEY=fake-anthropic-key-placeholder
+GATEWAY_API_KEY=fake-gateway-key-placeholder
+OPENAI_API_KEY=fake-openai-key-placeholder
+ICON_SET=phosphor
+"
+`;
+
+exports[`first run: Docker with every provider and a host gateway > writes app.config.yaml, which the app accepts 1`] = `
+"# Instance configuration (PLAN.md §9, D18). Copy to app.config.yaml, or point
+# CONFIG_PATH at your copy. Every section is optional: with no file at all the
+# app boots on defaults and falls back to a local Ollama.
+#
+# Secrets come from the environment as \${NAME} (or \${NAME:-fallback}); never
+# write them here. A value that is just \${NAME} with NAME unset counts as
+# absent, so a missing key disables that provider instead of failing boot.
+# Changes apply on restart. Invalid config fails at boot with the path and
+# reason for every problem.
+version: 1
+
+# The product name lives only here (and in the root package.json and image
+# names); everything else reads it at runtime.
+brand:
+  name: Everything
+  appId: dev.example.app
+  urlScheme: example
+  logo: ./brand/logo.svg
+
+auth:
+  signup: open # open | invite | domain | sso; the first user is always admin
+  domains: [] # for signup: domain, e.g. [example.com]
+  oidc: [] # SSO: [{ id, name, issuer, clientId, clientSecret }]
+  # social:
+  #   github: { clientId: \${GITHUB_CLIENT_ID}, clientSecret: \${GITHUB_CLIENT_SECRET} }
+
+providers:
+  anthropic: { apiKey: "\${ANTHROPIC_API_KEY}" }
+  openai: { apiKey: "\${OPENAI_API_KEY}" }
+  gateway: { baseURL: http://host.docker.internal:4000/v1, type: openai-compatible, apiKey: "\${GATEWAY_API_KEY}" }
+
+models:
+  aliases:
+    fast: openai:gpt-5-mini
+    strong: anthropic:claude-opus-5-5
+  default: strong
+  auto: { enabled: true, cheap: fast, strong: strong }
+
+# Instance-wide limits; each org chooses within them in the admin UI.
+policies:
+  chatContext: [ personal, team, org ]
+  auditPolicy: allowed # allowed | forbidden
+  personalKeyFallback: allowed
+  instanceKeys: { personal: true, team: false, org: false }
+  publishGate: { default: informational, allowed: [ informational, no-regressions ] }
+  sampledScoring: allowed
+  persistClientCache: allowed # forbidden: no client keeps its query cache on disk (D28)
+
+decider:
+  adapter: llm-fallback # llm-fallback | jev | none
+  model: fast
+  thresholds: { autoRouteStrong: 0.6, needsRetrieval: 0.5, riskAsk: 0.3, riskBlock: 0.7 }
+
+search:
+  native: true # use the provider's own web search when the model has it
+  backend: searxng # none | searxng | brave | tavily | exa
+  searxng: { url: "\${SEARXNG_URL:-http://localhost:8080}" }
+  # brave: { apiKey: "\${BRAVE_API_KEY}" }
+
+sandbox:
+  default: none # just-bash | docker | e2b | vercel | microsandbox | none
+  docker:
+    runnerUrl: "\${SANDBOX_RUNNER_URL:-http://sandbox-runner:7070}"
+    token: "\${SANDBOX_RUNNER_TOKEN}"
+    runtime: runsc # gVisor; the runner warns and falls back to runc if it's missing
+    limits: { cpu: 2, memoryMb: 2048, diskMb: 10240 }
+
+storage: { driver: local, path: ./data/files }
+# storage: { driver: s3, bucket: files, endpoint: "\${S3_ENDPOINT}", accessKeyId: "\${S3_ACCESS_KEY_ID}", secretAccessKey: "\${S3_SECRET_ACCESS_KEY}" }
+
+embeddings: { model: openai:text-embedding-3-small }
+
+# Read at build time, not boot (D19): rebuild after changing it. ICON_SET,
+# ICON_STYLE, ICON_WEIGHT and ICON_FILL override it (a Docker image's build args).
+icons: { set: phosphor } # e.g. { set: material, style: rounded, weight: 400, fill: false }
+
+observability: { otlp: null, recordContent: false } # otlp: { endpoint: "\${OTEL_EXPORTER_OTLP_ENDPOINT}" }; recordContent puts prompts on spans
+
+limits:
+  requestsPerMinute: 60
+  uploadMaxMb: 25
+  memoryMaxChars: 8000
+  # budgets: { user: { period: month, limitMicros: 20000000 } }   # 20 USD
+
+features:
+  importers: true
+  publicLinks: false
+
+mcp:
+  servers: [] # instance-wide: [{ name, url, transport: http }]
+
+artifacts:
+  origin: null # a separate origin for artifacts and previews, e.g. https://artifacts.example.com
+"
+`;
+
+exports[`first run: Docker with every provider and a host gateway > writes docker-compose.override.yml only for Docker 1`] = `
+"# Written by \`bun run setup\`: mounts app.config.yaml into \`web\`
+# (docs/self-hosting.md). Your own additions are kept on a re-run.
+
+services:
+  web:
+    environment:
+      CONFIG_PATH: /config/app.config.yaml
+    volumes:
+      - ./app.config.yaml:/config/app.config.yaml:ro
+    extra_hosts:
+      - host.docker.internal:host-gateway
+"
+`;
+
+exports[`first run: local dev on PGlite with Ollama and every service > writes .env 1`] = `
+"# Copy to .env and adjust. Every variable is optional: the web app boots with an
+# empty .env and features that need a missing value degrade instead of failing.
+
+# --- Database (docker-compose \`postgres\` service) ---
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=app
+POSTGRES_PORT=5432
+# Used by the app and migrations. Leave it empty (or unset) and the server
+# runs on an embedded database (PGlite) in \`./.data/pglite\`, migrated at boot:
+# fine for \`bun dev\` and trying things out, one process only, not for
+# deployments.
+DATABASE_URL=
+
+# --- Auth (Better Auth) ---
+# Signs sessions and encrypts tokens. Generate with \`openssl rand -base64 32\`.
+# Unset in development: a fixed dev-only secret is used, with a warning.
+# Unset in production: sign-in stays off rather than use a known key.
+# Also keys the local file store's signed download links (derived, not reused).
+BETTER_AUTH_SECRET=
+# The public origin (https://chat.example.com); inferred per request when unset.
+BETTER_AUTH_URL=http://localhost:3000
+# Social sign-in appears only when both halves of a pair are set (or when
+# app.config.yaml \`auth.social\` configures the provider).
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+# Proxies in front of the app whose X-Forwarded-For entries are believed: IP
+# addresses and CIDR ranges, comma-separated (for example
+# \`127.0.0.1, ::1, 172.16.0.0/12\` for a proxy on the host or a Docker network).
+# Sign-in rate limits and the address kept on each session come from the
+# first hop, read from the right, that isn't one of these. Unset, only the
+# last hop counts. See docs/self-hosting.md, "Behind a proxy".
+TRUSTED_PROXIES=
+
+# --- Web search (optional \`search\` compose profile) ---
+SEARXNG_PORT=8080
+# Any long random string; only used to sign SearXNG's own cookies.
+SEARXNG_SECRET=fake-random-1
+# Setting this makes SearXNG the \`web_search\` backend unless app.config.yaml
+# \`search.backend\` picks another. Models with built-in search use theirs.
+SEARXNG_URL=http://localhost:8080
+# Paid backends, used when \`search.backend\` names them (keys stay here, not in
+# the YAML). Without a key the backend is simply unavailable.
+BRAVE_API_KEY=
+TAVILY_API_KEY=
+EXA_API_KEY=
+
+# --- File storage (app.config.yaml \`storage\`) ---
+# Only for \`driver: s3\` (S3, R2, MinIO). The local volume needs nothing.
+S3_ACCESS_KEY_ID=
+S3_SECRET_ACCESS_KEY=
+
+# --- Tooling ---
+# Port Playwright serves the production build on for E2E runs.
+E2E_PORT=3100
+# Set to 1 to serve the component galleries under /dev/*. Unset, they 404.
+# Checked per request, so one build serves both.
+ENABLE_DEV_ROUTES=
+
+# --- Secrets at rest (D24) ---
+# Seals provider keys, MCP header secrets and MCP OAuth tokens (AES-256-GCM).
+# 32 random bytes, base64 or hex: \`openssl rand -base64 32\`. Required in
+# production (NODE_ENV=production): without it those features turn off.
+# Elsewhere an insecure development key stands in, with a warning.
+ENCRYPTION_KEY=
+# To rotate: move the old key here (comma-separated for several) and set a new
+# ENCRYPTION_KEY. Old secrets still open and are resealed when next written.
+ENCRYPTION_KEY_PREVIOUS=
+
+# --- Docker sandboxes (optional \`sandbox\` compose profile) ---
+# Shared secret between web and sandbox-runner; the runner refuses every call
+# without it. Any long random string, e.g. \`openssl rand -hex 32\`.
+SANDBOX_RUNNER_TOKEN=
+SANDBOX_RUNNER_URL=http://localhost:7070
+# auto (gVisor if the host has it, else runc with a warning) | runsc | runc
+SANDBOX_RUNTIME=auto
+# none (default) | allowlist (via SANDBOX_EGRESS_PROXY) | open
+SANDBOX_EGRESS=none
+SANDBOX_EGRESS_PROXY=
+SANDBOX_IMAGE=node:24-bookworm-slim
+# Previews are served from their own origin, never the app's.
+SANDBOX_PREVIEW_URL=http://{id}-{port}.sandbox.localhost:7071
+SANDBOX_RUNNER_PORT=7070
+SANDBOX_PREVIEW_PORT=7071
+
+# --- Artifact previews (\`bun dev\`, or the optional \`artifacts\` compose profile) ---
+# Where the artifact runtime (apps/artifacts) is served: its own origin, never
+# the app's (D24). Unset: HTML and SVG preview in a srcdoc frame, and React and
+# Mermaid show their source only.
+ARTIFACTS_ORIGIN=http://artifacts.localhost:3910
+ARTIFACTS_PORT=3910
+# App origins allowed to embed the runtime, comma-separated. Unset: any
+# localhost port, for development. Set it to the app's public origin in production.
+ARTIFACTS_APP_ORIGINS=
+
+# --- Set by \`bun run setup\` ---
+ICON_SET=lucide
+"
+`;
+
+exports[`first run: local dev on PGlite with Ollama and every service > writes app.config.yaml, which the app accepts 1`] = `
+"# Instance configuration (PLAN.md §9, D18). Copy to app.config.yaml, or point
+# CONFIG_PATH at your copy. Every section is optional: with no file at all the
+# app boots on defaults and falls back to a local Ollama.
+#
+# Secrets come from the environment as \${NAME} (or \${NAME:-fallback}); never
+# write them here. A value that is just \${NAME} with NAME unset counts as
+# absent, so a missing key disables that provider instead of failing boot.
+# Changes apply on restart. Invalid config fails at boot with the path and
+# reason for every problem.
+version: 1
+
+# The product name lives only here (and in the root package.json and image
+# names); everything else reads it at runtime.
+brand:
+  name: Acme Chat
+  appId: dev.example.app
+  urlScheme: example
+  logo: ./brand/logo.svg
+
+auth:
+  signup: domain # open | invite | domain | sso; the first user is always admin
+  domains: [ example.com, example.org ]
+  oidc: [] # SSO: [{ id, name, issuer, clientId, clientSecret }]
+  # social:
+  #   github: { clientId: \${GITHUB_CLIENT_ID}, clientSecret: \${GITHUB_CLIENT_SECRET} }
+
+providers:
+  ollama: { type: openai-compatible, baseURL: "\${OLLAMA_BASE_URL:-http://localhost:11434/v1}" }
+
+models:
+  aliases:
+    strong: ollama:llama3.2
+  default: strong
+  auto: { enabled: false, cheap: null, strong: null }
+
+# Instance-wide limits; each org chooses within them in the admin UI.
+policies:
+  chatContext: [ personal, team, org ]
+  auditPolicy: allowed # allowed | forbidden
+  personalKeyFallback: allowed
+  instanceKeys: { personal: true, team: false, org: false }
+  publishGate: { default: informational, allowed: [ informational, no-regressions ] }
+  sampledScoring: allowed
+  persistClientCache: allowed # forbidden: no client keeps its query cache on disk (D28)
+
+decider:
+  adapter: llm-fallback # llm-fallback | jev | none
+  model: null
+  thresholds: { autoRouteStrong: 0.6, needsRetrieval: 0.5, riskAsk: 0.3, riskBlock: 0.7 }
+
+search:
+  native: true # use the provider's own web search when the model has it
+  backend: searxng # none | searxng | brave | tavily | exa
+  searxng: { url: "\${SEARXNG_URL:-http://localhost:8080}" }
+  # brave: { apiKey: "\${BRAVE_API_KEY}" }
+
+sandbox:
+  default: just-bash # just-bash | docker | e2b | vercel | microsandbox | none
+  docker:
+    runnerUrl: "\${SANDBOX_RUNNER_URL:-http://sandbox-runner:7070}"
+    token: "\${SANDBOX_RUNNER_TOKEN}"
+    runtime: runsc # gVisor; the runner warns and falls back to runc if it's missing
+    limits: { cpu: 2, memoryMb: 2048, diskMb: 10240 }
+
+storage: { driver: local, path: ./.data/files }
+# storage: { driver: s3, bucket: files, endpoint: "\${S3_ENDPOINT}", accessKeyId: "\${S3_ACCESS_KEY_ID}", secretAccessKey: "\${S3_SECRET_ACCESS_KEY}" }
+
+embeddings: { model: null }
+
+# Read at build time, not boot (D19): rebuild after changing it. ICON_SET,
+# ICON_STYLE, ICON_WEIGHT and ICON_FILL override it (a Docker image's build args).
+icons: { set: lucide } # e.g. { set: material, style: rounded, weight: 400, fill: false }
+
+observability: { otlp: null, recordContent: false } # otlp: { endpoint: "\${OTEL_EXPORTER_OTLP_ENDPOINT}" }; recordContent puts prompts on spans
+
+limits:
+  requestsPerMinute: 60
+  uploadMaxMb: 25
+  memoryMaxChars: 8000
+  # budgets: { user: { period: month, limitMicros: 20000000 } }   # 20 USD
+
+features:
+  importers: true
+  publicLinks: false
+
+mcp:
+  servers: [] # instance-wide: [{ name, url, transport: http }]
+
+artifacts:
+  origin: null # a separate origin for artifacts and previews, e.g. https://artifacts.example.com
+"
+`;
+
+exports[`first run: local dev on PGlite with Ollama and every service > writes docker-compose.override.yml only for Docker 1`] = `undefined`;
+
+exports[`first run: the 026 demo (Docker, Anthropic, Docker sandboxes, Material) > writes .env 1`] = `
+"# Copy to .env and adjust. Every variable is optional: the web app boots with an
+# empty .env and features that need a missing value degrade instead of failing.
+
+# --- Database (docker-compose \`postgres\` service) ---
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=app
+POSTGRES_PORT=5432
+# Used by the app and migrations. Leave it empty (or unset) and the server
+# runs on an embedded database (PGlite) in \`./.data/pglite\`, migrated at boot:
+# fine for \`bun dev\` and trying things out, one process only, not for
+# deployments.
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/app
+
+# --- Auth (Better Auth) ---
+# Signs sessions and encrypts tokens. Generate with \`openssl rand -base64 32\`.
+# Unset in development: a fixed dev-only secret is used, with a warning.
+# Unset in production: sign-in stays off rather than use a known key.
+# Also keys the local file store's signed download links (derived, not reused).
+BETTER_AUTH_SECRET=
+# The public origin (https://chat.example.com); inferred per request when unset.
+BETTER_AUTH_URL=http://localhost:3000
+# Social sign-in appears only when both halves of a pair are set (or when
+# app.config.yaml \`auth.social\` configures the provider).
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+# Proxies in front of the app whose X-Forwarded-For entries are believed: IP
+# addresses and CIDR ranges, comma-separated (for example
+# \`127.0.0.1, ::1, 172.16.0.0/12\` for a proxy on the host or a Docker network).
+# Sign-in rate limits and the address kept on each session come from the
+# first hop, read from the right, that isn't one of these. Unset, only the
+# last hop counts. See docs/self-hosting.md, "Behind a proxy".
+TRUSTED_PROXIES=
+
+# --- Web search (optional \`search\` compose profile) ---
+SEARXNG_PORT=8080
+# Any long random string; only used to sign SearXNG's own cookies.
+SEARXNG_SECRET=dev-only-change-me
+# Setting this makes SearXNG the \`web_search\` backend unless app.config.yaml
+# \`search.backend\` picks another. Models with built-in search use theirs.
+SEARXNG_URL=
+# Paid backends, used when \`search.backend\` names them (keys stay here, not in
+# the YAML). Without a key the backend is simply unavailable.
+BRAVE_API_KEY=
+TAVILY_API_KEY=
+EXA_API_KEY=
+
+# --- File storage (app.config.yaml \`storage\`) ---
+# Only for \`driver: s3\` (S3, R2, MinIO). The local volume needs nothing.
+S3_ACCESS_KEY_ID=
+S3_SECRET_ACCESS_KEY=
+
+# --- Tooling ---
+# Port Playwright serves the production build on for E2E runs.
+E2E_PORT=3100
+# Set to 1 to serve the component galleries under /dev/*. Unset, they 404.
+# Checked per request, so one build serves both.
+ENABLE_DEV_ROUTES=
+
+# --- Secrets at rest (D24) ---
+# Seals provider keys, MCP header secrets and MCP OAuth tokens (AES-256-GCM).
+# 32 random bytes, base64 or hex: \`openssl rand -base64 32\`. Required in
+# production (NODE_ENV=production): without it those features turn off.
+# Elsewhere an insecure development key stands in, with a warning.
+ENCRYPTION_KEY=
+# To rotate: move the old key here (comma-separated for several) and set a new
+# ENCRYPTION_KEY. Old secrets still open and are resealed when next written.
+ENCRYPTION_KEY_PREVIOUS=
+
+# --- Docker sandboxes (optional \`sandbox\` compose profile) ---
+# Shared secret between web and sandbox-runner; the runner refuses every call
+# without it. Any long random string, e.g. \`openssl rand -hex 32\`.
+SANDBOX_RUNNER_TOKEN=fake-random-1
+SANDBOX_RUNNER_URL=http://localhost:7070
+# auto (gVisor if the host has it, else runc with a warning) | runsc | runc
+SANDBOX_RUNTIME=auto
+# none (default) | allowlist (via SANDBOX_EGRESS_PROXY) | open
+SANDBOX_EGRESS=open
+SANDBOX_EGRESS_PROXY=
+SANDBOX_IMAGE=node:24-bookworm-slim
+# Previews are served from their own origin, never the app's.
+SANDBOX_PREVIEW_URL=http://{id}-{port}.sandbox.localhost:7071
+SANDBOX_RUNNER_PORT=7070
+SANDBOX_PREVIEW_PORT=7071
+
+# --- Artifact previews (\`bun dev\`, or the optional \`artifacts\` compose profile) ---
+# Where the artifact runtime (apps/artifacts) is served: its own origin, never
+# the app's (D24). Unset: HTML and SVG preview in a srcdoc frame, and React and
+# Mermaid show their source only.
+ARTIFACTS_ORIGIN=
+ARTIFACTS_PORT=3910
+# App origins allowed to embed the runtime, comma-separated. Unset: any
+# localhost port, for development. Set it to the app's public origin in production.
+ARTIFACTS_APP_ORIGINS=
+
+# --- Set by \`bun run setup\` ---
+ANTHROPIC_API_KEY=fake-anthropic-key-placeholder
+ICON_SET=material
+ICON_STYLE=rounded
+"
+`;
+
+exports[`first run: the 026 demo (Docker, Anthropic, Docker sandboxes, Material) > writes app.config.yaml, which the app accepts 1`] = `
+"# Instance configuration (PLAN.md §9, D18). Copy to app.config.yaml, or point
+# CONFIG_PATH at your copy. Every section is optional: with no file at all the
+# app boots on defaults and falls back to a local Ollama.
+#
+# Secrets come from the environment as \${NAME} (or \${NAME:-fallback}); never
+# write them here. A value that is just \${NAME} with NAME unset counts as
+# absent, so a missing key disables that provider instead of failing boot.
+# Changes apply on restart. Invalid config fails at boot with the path and
+# reason for every problem.
+version: 1
+
+# The product name lives only here (and in the root package.json and image
+# names); everything else reads it at runtime.
+brand:
+  name: example
+  appId: dev.example.app
+  urlScheme: example
+  logo: ./brand/logo.svg
+
+auth:
+  signup: invite # open | invite | domain | sso; the first user is always admin
+  domains: [] # for signup: domain, e.g. [example.com]
+  oidc: [] # SSO: [{ id, name, issuer, clientId, clientSecret }]
+  # social:
+  #   github: { clientId: \${GITHUB_CLIENT_ID}, clientSecret: \${GITHUB_CLIENT_SECRET} }
+
+providers:
+  anthropic: { apiKey: "\${ANTHROPIC_API_KEY}" }
+
+models:
+  aliases:
+    fast: anthropic:claude-haiku-4-5
+    strong: anthropic:claude-opus-5-5
+  default: strong
+  auto: { enabled: true, cheap: fast, strong: strong }
+
+# Instance-wide limits; each org chooses within them in the admin UI.
+policies:
+  chatContext: [ personal, team, org ]
+  auditPolicy: allowed # allowed | forbidden
+  personalKeyFallback: allowed
+  instanceKeys: { personal: true, team: false, org: false }
+  publishGate: { default: informational, allowed: [ informational, no-regressions ] }
+  sampledScoring: allowed
+  persistClientCache: allowed # forbidden: no client keeps its query cache on disk (D28)
+
+decider:
+  adapter: llm-fallback # llm-fallback | jev | none
+  model: fast
+  thresholds: { autoRouteStrong: 0.6, needsRetrieval: 0.5, riskAsk: 0.3, riskBlock: 0.7 }
+
+search:
+  native: true # use the provider's own web search when the model has it
+  backend: none # none | searxng | brave | tavily | exa
+  searxng: { url: "\${SEARXNG_URL:-http://localhost:8080}" }
+  # brave: { apiKey: "\${BRAVE_API_KEY}" }
+
+sandbox:
+  default: docker # just-bash | docker | e2b | vercel | microsandbox | none
+  docker:
+    runnerUrl: "\${SANDBOX_RUNNER_URL:-http://sandbox-runner:7070}"
+    token: "\${SANDBOX_RUNNER_TOKEN}"
+    runtime: runsc # gVisor; the runner warns and falls back to runc if it's missing
+    limits: { cpu: 2, memoryMb: 2048, diskMb: 10240 }
+
+storage: { driver: local, path: ./data/files }
+# storage: { driver: s3, bucket: files, endpoint: "\${S3_ENDPOINT}", accessKeyId: "\${S3_ACCESS_KEY_ID}", secretAccessKey: "\${S3_SECRET_ACCESS_KEY}" }
+
+embeddings: { model: null }
+
+# Read at build time, not boot (D19): rebuild after changing it. ICON_SET,
+# ICON_STYLE, ICON_WEIGHT and ICON_FILL override it (a Docker image's build args).
+icons: { set: material, style: rounded } # e.g. { set: material, style: rounded, weight: 400, fill: false }
+
+observability: { otlp: null, recordContent: false } # otlp: { endpoint: "\${OTEL_EXPORTER_OTLP_ENDPOINT}" }; recordContent puts prompts on spans
+
+limits:
+  requestsPerMinute: 60
+  uploadMaxMb: 25
+  memoryMaxChars: 8000
+  # budgets: { user: { period: month, limitMicros: 20000000 } }   # 20 USD
+
+features:
+  importers: true
+  publicLinks: false
+
+mcp:
+  servers: [] # instance-wide: [{ name, url, transport: http }]
+
+artifacts:
+  origin: null # a separate origin for artifacts and previews, e.g. https://artifacts.example.com
+"
+`;
+
+exports[`first run: the 026 demo (Docker, Anthropic, Docker sandboxes, Material) > writes docker-compose.override.yml only for Docker 1`] = `
+"# Written by \`bun run setup\`: mounts app.config.yaml into \`web\`
+# (docs/self-hosting.md). Your own additions are kept on a re-run.
+
+services:
+  web:
+    environment:
+      CONFIG_PATH: /config/app.config.yaml
+    volumes:
+      - ./app.config.yaml:/config/app.config.yaml:ro
+"
+`;
