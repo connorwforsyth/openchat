@@ -1,4 +1,5 @@
 import { Trans } from "@lingui/react/macro";
+import { appOriginOf } from "@workspace/auth/env";
 import type { SignupMode } from "@workspace/contract/schemas/meta";
 import { initLingui } from "@workspace/i18n/server";
 import Link from "next/link";
@@ -74,6 +75,9 @@ export default async function SignUpPage({
   }
   const mode: SignupMode = config.ok ? config.config.auth.signup : "invite";
   const providers = config.ok ? config.config.auth.providers : [];
+  // Named when this page's own address isn't trusted (054). It's the public
+  // address, not a secret, so it can reach the browser.
+  const appUrl = appOriginOf(process.env.BETTER_AUTH_URL);
   return (
     <AuthCard
       description={<ModeHint invited={invite !== undefined} mode={mode} />}
@@ -92,6 +96,7 @@ export default async function SignUpPage({
     >
       <div className="flex flex-col gap-4">
         <SocialButtons
+          appUrl={appUrl}
           callbackUrl={next}
           providers={providers}
           separator={mode !== "sso"}
@@ -99,7 +104,7 @@ export default async function SignUpPage({
         {mode === "sso" ? (
           <SsoOnly configured={providers.length > 0} />
         ) : (
-          <SignUpForm next={next} />
+          <SignUpForm appUrl={appUrl} next={next} />
         )}
       </div>
     </AuthCard>

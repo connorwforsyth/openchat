@@ -3,7 +3,39 @@ import { FieldError } from "@workspace/ui/components/field";
 
 import type { AuthProblem } from "./auth-errors";
 
-const Message = ({ problem }: { readonly problem: AuthProblem }) => {
+/** This page on the configured origin, so the link lands on the same form. */
+const hereOn = (appUrl: string): string => {
+  const { hash, pathname, search } = window.location;
+  return new URL(`${pathname}${search}${hash}`, appUrl).href;
+};
+
+/**
+ * The page was opened on an address the server doesn't trust (054). The
+ * configured one is where it works; without one, only an admin can help.
+ */
+const OriginRejected = ({ appUrl }: { readonly appUrl?: string }) =>
+  appUrl ? (
+    <Trans>
+      This address isn't allowed to sign in. Open{" "}
+      <a className="underline underline-offset-4" href={hereOn(appUrl)}>
+        {appUrl}
+      </a>{" "}
+      instead.
+    </Trans>
+  ) : (
+    <Trans>
+      This address isn't allowed to sign in. Use the address your administrator
+      gave you, or ask them to add this one to the server's trusted origins.
+    </Trans>
+  );
+
+const Message = ({
+  appUrl,
+  problem,
+}: {
+  readonly appUrl?: string;
+  readonly problem: AuthProblem;
+}) => {
   switch (problem) {
     case "wrong_credentials":
       return <Trans>That email and password don't match an account.</Trans>;
@@ -33,6 +65,29 @@ const Message = ({ problem }: { readonly problem: AuthProblem }) => {
       return (
         <Trans>This server signs people in with single sign-on only.</Trans>
       );
+    case "invalid_email":
+      return <Trans>Enter a valid email address.</Trans>;
+    case "password_too_long":
+      return <Trans>That password is too long. Choose a shorter one.</Trans>;
+    case "origin_rejected":
+      return <OriginRejected appUrl={appUrl} />;
+    case "rate_limited":
+      return (
+        <Trans>Too many attempts. Wait a few seconds and try again.</Trans>
+      );
+    case "unreachable":
+      return (
+        <Trans>
+          Couldn't reach the server. Check your connection and try again.
+        </Trans>
+      );
+    case "server_error":
+      return (
+        <Trans>
+          The server couldn't finish that. Try again in a moment; if it keeps
+          happening, an administrator can check the server's log.
+        </Trans>
+      );
     case "unavailable":
       return (
         <Trans>
@@ -47,14 +102,19 @@ const Message = ({ problem }: { readonly problem: AuthProblem }) => {
   }
 };
 
-/** A sign-in or sign-up failure, announced to screen readers. */
+/**
+ * A sign-in or sign-up failure, announced to screen readers. `appUrl` is the
+ * configured origin (`BETTER_AUTH_URL`), named when the page's isn't trusted.
+ */
 export const AuthProblemMessage = ({
+  appUrl,
   problem,
 }: {
+  readonly appUrl?: string;
   readonly problem: AuthProblem | null;
 }) =>
   problem ? (
     <FieldError>
-      <Message problem={problem} />
+      <Message appUrl={appUrl} problem={problem} />
     </FieldError>
   ) : null;

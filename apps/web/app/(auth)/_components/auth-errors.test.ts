@@ -30,11 +30,34 @@ describe("authProblemOf", () => {
     expect(authProblemOf({ status: 404 })).toBe("unavailable");
   });
 
-  it("falls back to a generic failure", () => {
+  it("says when the page's address isn't a trusted origin (054)", () => {
+    expect(authProblemOf({ code: "INVALID_ORIGIN", status: 403 })).toBe(
+      "origin_rejected"
+    );
+    expect(authProblemOf({ code: "MISSING_OR_NULL_ORIGIN", status: 403 })).toBe(
+      "origin_rejected"
+    );
+  });
+
+  it("names the other failures a person can act on", () => {
+    expect(authProblemOf({ code: "INVALID_EMAIL", status: 400 })).toBe(
+      "invalid_email"
+    );
+    expect(authProblemOf({ code: "PASSWORD_TOO_LONG", status: 400 })).toBe(
+      "password_too_long"
+    );
+    expect(authProblemOf({ status: 429 })).toBe("rate_limited");
     expect(authProblemOf({ code: "SOMETHING_NEW", status: 500 })).toBe(
+      "server_error"
+    );
+    expect(authProblemOf(new TypeError("Failed to fetch"))).toBe("unreachable");
+  });
+
+  it("falls back to a generic failure", () => {
+    expect(authProblemOf({ code: "SOMETHING_NEW", status: 400 })).toBe(
       "failed"
     );
-    expect(authProblemOf(new TypeError("fetch failed"))).toBe("failed");
+    expect(authProblemOf(new Error("boom"))).toBe("failed");
     expect(authProblemOf(null)).toBe("failed");
   });
 });

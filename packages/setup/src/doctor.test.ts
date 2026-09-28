@@ -204,3 +204,57 @@ describe("parseComposePs", () => {
     expect(parseComposePs("")).toEqual(new Set());
   });
 });
+
+describe("sign-in address (054)", () => {
+  const signInCheck = async (env: string, answers: Answers = demoAnswers) => {
+    const files = filesFor(answers);
+    const checks = await runDoctor(
+      { ...files, env: `${files.env ?? ""}\n${env}\n` },
+      {
+        http: healthyHttp,
+        portInUse: () => Promise.resolve(true),
+        runner: createFakeRunner(dockerUp),
+      }
+    );
+    return byLabel(checks, "Sign-in address");
+  };
+
+  it("names the address to open, and its loopback aliases", async () => {
+    expect(await signInCheck("")).toEqual({
+      detail:
+        "open http://localhost:3000 (127.0.0.1 and [::1] work too); other addresses need TRUSTED_ORIGINS in .env",
+      label: "Sign-in address",
+      status: "ok",
+    });
+    expect(
+      (
+        await signInCheck(
+          "BETTER_AUTH_URL=https://chat.example.com\nTRUSTED_ORIGINS=https://chat.example.org"
+        )
+      )?.detail
+    ).toBe(
+      "open https://chat.example.com, or an origin listed in TRUSTED_ORIGINS"
+    );
+  });
+
+  it("warns when BETTER_AUTH_URL's port isn't where the app is", async () => {
+    expect(
+      await signInCheck("BETTER_AUTH_URL=http://127.0.0.1:3001")
+    ).toMatchObject({
+      fix: "set BETTER_AUTH_URL=http://127.0.0.1:3000 in .env",
+      status: "warn",
+    });
+  });
+
+  it("flags a BETTER_AUTH_URL that isn't a URL, and the unchecked list", async () => {
+    expect(
+      (await signInCheck("BETTER_AUTH_URL=chat.example.com"))?.status
+    ).toBe("fail");
+    expect(
+      await signInCheck("BETTER_AUTH_TRUSTED_ORIGINS=https://*.example.com")
+    ).toMatchObject({
+      fix: "move those origins to TRUSTED_ORIGINS in .env (exact origins only)",
+      status: "warn",
+    });
+  });
+});

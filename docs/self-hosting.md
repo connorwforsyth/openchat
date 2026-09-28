@@ -95,6 +95,30 @@ TRUSTED_PROXIES=127.0.0.1, ::1, 172.16.0.0/12
 Entries that aren't an address or a range are ignored, with a warning at
 start.
 
+#### Addresses that can sign in
+
+Sign-in and sign-up only work from the address in `BETTER_AUTH_URL`: the
+server refuses them from any other origin, and the form says which address
+to open instead. When `BETTER_AUTH_URL` is on `localhost`, `127.0.0.1` or
+`[::1]`, the other two names on the same scheme and port work as well (the
+default `http://localhost:3000` also answers at `http://127.0.0.1:3000`).
+
+To serve the same instance under more than one name (a second domain, or a
+LAN address while you try it out), list the others in `TRUSTED_ORIGINS`:
+
+```sh
+BETTER_AUTH_URL=https://chat.example.com
+TRUSTED_ORIGINS=https://chat.example.org, http://192.168.1.20:3000
+```
+
+- Each entry is an exact origin: scheme, host and port. Paths, credentials
+  and wildcards (`https://*.example.com`) are refused; refused entries are
+  ignored, with a warning at start.
+- Better Auth also reads its own `BETTER_AUTH_TRUSTED_ORIGINS`, unchecked and
+  with wildcards. Use `TRUSTED_ORIGINS` instead; the app warns when the other
+  is set.
+- `bun run setup doctor` shows the address to open.
+
 ### Configuration file
 
 To use an `app.config.yaml`, mount it and point `CONFIG_PATH` at it, in a

@@ -30,7 +30,14 @@ const signUpSchema = z.object({
  * A new account with a password. Whether it's allowed (first user, invite,
  * domain) is the server's decision (D22); a refusal comes back as a reason.
  */
-export function SignUpForm({ next }: { readonly next: string }) {
+export function SignUpForm({
+  appUrl,
+  next,
+}: {
+  /** The configured origin, for the message when this one isn't trusted. */
+  readonly appUrl?: string;
+  readonly next: string;
+}) {
   const { t } = useLingui();
   const auth = useAuthClient();
   const [pending, setPending] = useState(false);
@@ -106,7 +113,7 @@ export function SignUpForm({ next }: { readonly next: string }) {
             <Trans>At least 8 characters.</Trans>
           </FieldDescription>
         </Field>
-        <AuthProblemMessage problem={problem} />
+        <AuthProblemMessage appUrl={appUrl} problem={problem} />
         <Button disabled={pending} type="submit">
           {pending ? <Spinner data-icon="inline-start" /> : null}
           <Trans>Create account</Trans>

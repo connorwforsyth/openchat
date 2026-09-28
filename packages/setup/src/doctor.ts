@@ -241,6 +241,69 @@ const checkHealth = async (url: string, http: HttpGet): Promise<Check> => {
   }
 };
 
+// Better Auth refuses a sign-in from any origin but `BETTER_AUTH_URL`, its
+// loopback aliases and `TRUSTED_ORIGINS` (054), and the browser only sees
+// "not allowed" while the log says "Invalid origin". Say where it works.
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
+/** A variable from .env, trimmed; "" when it isn't there. */
+const setting = (env: EnvValues, name: string): string =>
+  Object.hasOwn(env, name) ? String(env[name]).trim() : "";
+
+const portOf = (url: URL): string =>
+  url.port || (url.protocol === "https:" ? "443" : "80");
+
+const checkSignIn = (env: EnvValues, docker: boolean, served: URL): Check => {
+  const label = "Sign-in address";
+  // Compose fills it in when .env doesn't; `bun dev` infers it per request.
+  const configured =
+    setting(env, "BETTER_AUTH_URL") || (docker ? served.origin : "");
+  if (!configured) {
+    return {
+      detail:
+        "BETTER_AUTH_URL is unset, so sign-in works at whichever address the app is opened on",
+      label,
+      status: "ok",
+    };
+  }
+  const app = URL.canParse(configured) ? new URL(configured) : null;
+  if (!(app && (app.protocol === "http:" || app.protocol === "https:"))) {
+    return {
+      detail: `BETTER_AUTH_URL (${configured}) isn't an http(s) URL, so sign-in is refused`,
+      fix: "set BETTER_AUTH_URL in .env to the address people open, like https://chat.example.com",
+      label,
+      status: "fail",
+    };
+  }
+  const loopback = LOOPBACK_HOSTS.has(app.hostname);
+  if (loopback && portOf(app) !== portOf(served)) {
+    return {
+      detail: `BETTER_AUTH_URL is ${app.origin}, but the app is on port ${portOf(served)}, so sign-in there is refused`,
+      fix: `set BETTER_AUTH_URL=${app.protocol}//${app.hostname}:${portOf(served)} in .env`,
+      label,
+      status: "warn",
+    };
+  }
+  if (setting(env, "BETTER_AUTH_TRUSTED_ORIGINS")) {
+    return {
+      detail:
+        "BETTER_AUTH_TRUSTED_ORIGINS is applied by Better Auth unchecked, wildcards included",
+      fix: "move those origins to TRUSTED_ORIGINS in .env (exact origins only)",
+      label,
+      status: "warn",
+    };
+  }
+  const also = loopback ? " (127.0.0.1 and [::1] work too)" : "";
+  const others = setting(env, "TRUSTED_ORIGINS")
+    ? ", or an origin listed in TRUSTED_ORIGINS"
+    : "; other addresses need TRUSTED_ORIGINS in .env";
+  return {
+    detail: `open ${app.origin}${also}${others}`,
+    label,
+    status: "ok",
+  };
+};
+
 const checkRunner = async (env: EnvValues, http: HttpGet): Promise<Check[]> => {
   const label = "Sandbox runner";
   if (!env.SANDBOX_RUNNER_TOKEN) {
@@ -487,6 +550,7 @@ export const runDoctor = async (
 
   const url = `http://localhost:${docker ? portNumber(env, "WEB_PORT", 3000) : portNumber(env, "PORT", 3000)}`;
   checks.push(await checkHealth(url, http));
+  checks.push(checkSignIn(env, docker, new URL(url)));
   if (settings.sandbox === "docker") {
     checks.push(...(await checkRunner(env, http)));
   }

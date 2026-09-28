@@ -11,10 +11,11 @@ import {
 } from "../support/urls";
 import { signIn, storageStateFor, users } from "../support/users";
 
-// The signed-in shell (039): sign-out and back in, a stale session cookie,
-// the persisted query cache (D28: gone after sign-out), the sidebar's
-// collapsed state restored before paint, the instance's name from config, and
-// library, settings and admin rendered inside the one shell.
+// The signed-in shell (039): sign-out and back in, sign-in at another
+// loopback name (054), a stale session cookie, the persisted query cache
+// (D28: gone after sign-out), the sidebar's collapsed state restored before
+// paint, the instance's name from config, and library, settings and admin
+// rendered inside the one shell.
 
 const PERSISTED_KEY = "query-cache";
 
@@ -70,6 +71,41 @@ test.describe("session", () => {
     await expect(page).toHaveURL(SIGN_IN_FOR_LIBRARY_URL);
     await signIn(page, users.cy, "/library");
     await expect(page).toHaveURL(LIBRARY_URL);
+  });
+
+  // 054: serve.ts sets BETTER_AUTH_URL to http://localhost:<port>. The same
+  // server opened as 127.0.0.1 signs in too; a name that isn't a loopback
+  // alias (Chromium sends *.localhost to this machine as well) is refused,
+  // and the form names the address to open instead.
+  test("signs in at 127.0.0.1 too, and names the address when refused", async ({
+    baseURL,
+    browser,
+  }) => {
+    const { port } = new URL(baseURL ?? "");
+    const loopback = await browser.newContext({
+      baseURL: `http://127.0.0.1:${port}`,
+    });
+    const page = await loopback.newPage();
+    const answer = await signIn(page, users.cy);
+    expect(answer.status()).toBe(200);
+    await expect(composer(page)).toBeVisible();
+    await loopback.close();
+
+    const elsewhere = await browser.newContext({
+      baseURL: `http://e2e.localhost:${port}`,
+    });
+    const visitor = await elsewhere.newPage();
+    const refused = await signIn(visitor, users.cy);
+    expect(refused.status()).toBe(403);
+    await expect(
+      visitor.getByText("This address isn't allowed to sign in.", {
+        exact: false,
+      })
+    ).toBeVisible();
+    await expect(
+      visitor.getByRole("link", { name: `http://localhost:${port}` })
+    ).toHaveAttribute("href", `http://localhost:${port}/sign-in?next=%2F`);
+    await elsewhere.close();
   });
 
   test("a stale session cookie goes to sign-in, not an error", async ({

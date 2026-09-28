@@ -42,10 +42,13 @@ const ProviderButton = ({
  * registered as social ones on the server, so one call covers all of them.
  */
 export function SocialButtons({
+  appUrl,
   callbackUrl,
   providers,
   separator = true,
 }: {
+  /** The configured origin, for the message when this one isn't trusted. */
+  readonly appUrl?: string;
   readonly callbackUrl: string;
   readonly providers: readonly Provider[];
   /** "or" under the buttons, when a password form follows. */
@@ -82,7 +85,7 @@ export function SocialButtons({
           provider={provider}
         />
       ))}
-      <AuthProblemMessage problem={problem} />
+      <AuthProblemMessage appUrl={appUrl} problem={problem} />
       {separator ? (
         <FieldSeparator>
           <Trans>or</Trans>

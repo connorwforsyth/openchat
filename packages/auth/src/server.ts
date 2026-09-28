@@ -39,6 +39,7 @@ import {
   resolveSecret,
   type SecretProblem,
 } from "./env";
+import { trustedOriginsFor } from "./origins";
 import { decideSignUp, type SignUpRefusal } from "./signup";
 import {
   bootstrapUser,
@@ -222,9 +223,11 @@ const buildAuth = (
   env: AuthEnv,
   secret: string,
   {
+    origins,
     passwordHasher,
     proxies,
   }: {
+    readonly origins: readonly string[];
     readonly passwordHasher?: PasswordHasher;
     readonly proxies: TrustedProxies;
   }
@@ -242,6 +245,9 @@ const buildAuth = (
         generateId: ({ model }) =>
           model === "invitation" ? crypto.randomUUID() : newId(model),
       },
+      // Better Auth skips its origin checks under NODE_ENV=test; keep them
+      // on, so tests see the checks production runs (054).
+      disableOriginCheck: false,
       // Rate limits and session addresses use the address `handler` below
       // resolved from `X-Forwarded-For` and `TRUSTED_PROXIES` (044), never
       // the raw header, whose left end any client can write.
@@ -290,7 +296,9 @@ const buildAuth = (
       ...(google ? { google } : {}),
     },
     telemetry: { enabled: false },
-    trustedOrigins: env.BETTER_AUTH_URL ? [env.BETTER_AUTH_URL] : undefined,
+    // `BETTER_AUTH_URL`, its loopback aliases and `TRUSTED_ORIGINS` (054).
+    // Unset, Better Auth trusts the origin each request arrives on.
+    trustedOrigins: [...origins],
     user: {
       validateUserInfo: async ({ source, user: incoming }) => {
         if (source.action !== "create-user") {
@@ -350,7 +358,25 @@ export const createAuth = ({
       `[auth] TRUSTED_PROXIES: ignoring ${trusted.invalid.join(", ")} (not an IP address or CIDR range).`
     );
   }
-  const options = { passwordHasher, proxies: trusted.proxies };
+  const origins = trustedOriginsFor({
+    appUrl: parsed.BETTER_AUTH_URL,
+    extra: parsed.TRUSTED_ORIGINS,
+  });
+  if (origins.invalid.length > 0) {
+    log.warn(
+      `[auth] TRUSTED_ORIGINS: ignoring ${origins.invalid.join(", ")} (not an origin like https://chat.example.com; no paths or wildcards).`
+    );
+  }
+  if (parsed.BETTER_AUTH_TRUSTED_ORIGINS) {
+    log.warn(
+      "[auth] BETTER_AUTH_TRUSTED_ORIGINS is applied by Better Auth unchecked, wildcards included. List exact origins in TRUSTED_ORIGINS instead."
+    );
+  }
+  const options = {
+    origins: origins.origins,
+    passwordHasher,
+    proxies: trusted.proxies,
+  };
   switch (secret.kind) {
     case "missing":
       return err(secret.problem);

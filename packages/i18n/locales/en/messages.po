@@ -746,6 +746,10 @@ msgstr "Couldn't check"
 msgid "Couldn't load this artifact."
 msgstr "Couldn't load this artifact."
 
+#: ../../apps/web/app/(auth)/_components/auth-problem.tsx
+msgid "Couldn't reach the server. Check your connection and try again."
+msgstr "Couldn't reach the server. Check your connection and try again."
+
 #: ../chat-ui/src/conversation/memory-note.tsx
 msgid "Couldn't undo. Try again."
 msgstr "Couldn't undo. Try again."
@@ -981,6 +985,10 @@ msgstr "Editor"
 #: ../../apps/web/app/(auth)/_components/sign-up-form.tsx
 msgid "Email"
 msgstr "Email"
+
+#: ../../apps/web/app/(auth)/_components/auth-problem.tsx
+msgid "Enter a valid email address."
+msgstr "Enter a valid email address."
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "Enter an amount in dollars, like 25 or 12.50."
@@ -2860,6 +2868,10 @@ msgstr "That isn't valid."
 msgid "That key couldn't be removed. Try again."
 msgstr "That key couldn't be removed. Try again."
 
+#: ../../apps/web/app/(auth)/_components/auth-problem.tsx
+msgid "That password is too long. Choose a shorter one."
+msgstr "That password is too long. Choose a shorter one."
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "That publish gate isn't allowed here; the server default applies."
 msgstr "That publish gate isn't allowed here; the server default applies."
@@ -2992,6 +3004,10 @@ msgstr "The sandbox is unavailable."
 msgid "The sandbox was destroyed. Create a new one."
 msgstr "The sandbox was destroyed. Create a new one."
 
+#: ../../apps/web/app/(auth)/_components/auth-problem.tsx
+msgid "The server couldn't finish that. Try again in a moment; if it keeps happening, an administrator can check the server's log."
+msgstr "The server couldn't finish that. Try again in a moment; if it keeps happening, an administrator can check the server's log."
+
 #: ../../apps/web/app/(app)/_shared/unavailable.tsx
 msgid "The server's configuration file has problems. An administrator can find the details in the server log."
 msgstr "The server's configuration file has problems. An administrator can find the details in the server log."
@@ -3042,6 +3058,14 @@ msgstr "They're already a member or already invited."
 #: ../ui/src/components/ai-elements/reasoning.tsx
 msgid "Thinking…"
 msgstr "Thinking…"
+
+#: ../../apps/web/app/(auth)/_components/auth-problem.tsx
+msgid "This address isn't allowed to sign in. Open <0>{appUrl}</0> instead."
+msgstr "This address isn't allowed to sign in. Open <0>{appUrl}</0> instead."
+
+#: ../../apps/web/app/(auth)/_components/auth-problem.tsx
+msgid "This address isn't allowed to sign in. Use the address your administrator gave you, or ask them to add this one to the server's trusted origins."
+msgstr "This address isn't allowed to sign in. Use the address your administrator gave you, or ask them to add this one to the server's trusted origins."
 
 #: ../chat-ui/src/conversation/message-row.tsx
 msgid "This answer stopped early."
@@ -3159,6 +3183,10 @@ msgstr "Toggle the sidebar"
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "Tokens"
 msgstr "Tokens"
+
+#: ../../apps/web/app/(auth)/_components/auth-problem.tsx
+msgid "Too many attempts. Wait a few seconds and try again."
+msgstr "Too many attempts. Wait a few seconds and try again."
 
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Too many files. Some were not added."
