@@ -2,8 +2,8 @@
 id: "053"
 title: "Docker: uploads land outside the data volume"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -63,3 +63,7 @@ under load; it passed alone and on the re-run. That package was not touched.)
 - **Existing installs.** Connor's demo config already has `storage.path: ./data/files`, which is in the
   volume, so it needs nothing. An install on the old default had its uploads in the container's own
   layer; copy them out before the rebuild (docs, "Updating").
+
+## Resolution (2026-09-28, loop)
+
+Merged in [PR #43](https://github.com/connorwforsyth/openchat/pull/43). The image links `.data` to the `data` volume, so uploads survive recreating `web`. The setup CLI workaround is removed, and the docs cover migrating older containers. Gate 82/82.
