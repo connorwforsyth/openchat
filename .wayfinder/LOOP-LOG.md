@@ -67,3 +67,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-09-28 · added 052 (setup CLI, Connor's idea); demo walkthrough of 026 started
 - 2026-09-28 · 052 closed · PR #42 · setup CLI · 57 tests, 82/82 · added 053 (Docker uploads outside the volume), started
 - 2026-09-28 · 053 closed · PR #43 · Docker uploads in the volume · 82/82 · only 026 (Connor) remains
+- 2026-09-28 · demo: sign-in from 127.0.0.1 failed (invalid origin) · added 054, started
