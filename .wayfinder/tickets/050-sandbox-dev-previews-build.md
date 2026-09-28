@@ -2,8 +2,8 @@
 id: "050"
 title: "Build 047's choices: npm create in sandboxes, and non-blank dev previews"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: ["047", "049"]
 ---
 
@@ -77,3 +77,7 @@ Gate: `gate.sh` passes (check, guards, `turbo typecheck lint test build` 79/79).
   need `allow-same-origin` on a different site, which 047 ruled out.
 - Everything I started is torn down: compose `t050` `down -v`, the `sbx-*` containers, volumes and
   networks, `sandbox-egress`, and the web server (stopped by PID).
+
+## Resolution (2026-09-28, loop)
+
+Merged in [PR #41](https://github.com/connorwforsyth/openchat/pull/41). Exec in `$HOME` and `/tmp`, null-origin CORS on the preview proxy (no credentials), and the agent's previews now reach the panel. The smoke covers npm create, exec in /tmp and a null-origin module script. Verified end to end in headless Chromium: Vite renders in the panel and hot reload works. Gate 79/79. Known gap: SVG `<use>` sprites don't draw from an opaque origin (browser rule).

@@ -106,6 +106,7 @@ brief, and their findings land in `.context/research/`.
 - [Preview WebSockets](tickets/049-preview-websockets.md): upgrades pass through the preview proxy ([PR #38](https://github.com/connorwforsyth/openchat/pull/38))
 - [Material icons](tickets/048-material-icons.md): Material Symbols set, `icons.set` from config, lucide only for gaps ([PR #39](https://github.com/connorwforsyth/openchat/pull/39))
 - [Vendored Material glyphs](tickets/051-vendor-material-glyphs.md): mapped symbols only, ~165k fewer install files ([PR #40](https://github.com/connorwforsyth/openchat/pull/40))
+- [Sandbox dev previews](tickets/050-sandbox-dev-previews-build.md): npm create works, Vite previews render in the panel with hot reload ([PR #41](https://github.com/connorwforsyth/openchat/pull/41))
 - [WS-shell](tickets/024-ws-shell.md): ⌘K palette, shortcut registry, settings and admin ([PR #20](https://github.com/connorwforsyth/openchat/pull/20))
 - [WS-libraries](tickets/017-ws-libraries.md): Agent/Prompt/Skill/MCP builders, sharing, publishing and library tabs ([PR #22](https://github.com/connorwforsyth/openchat/pull/22))
 - [M1 polish](tickets/031-m1-polish.md): motion audit + guard, narrow-screen layout, batched feedback lookups ([PR #24](https://github.com/connorwforsyth/openchat/pull/24))
