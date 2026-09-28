@@ -64,3 +64,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-09-28 · 051 closed · PR #40 · vendored Material glyphs · install 245k → 81k files, 79/79
 - 2026-09-28 · 050 closed · PR #41 · sandbox dev previews · smoke + headless panel render with HMR, 79/79
 - 2026-09-28 · loop stopped: only 026 (Connor) remains
+- 2026-09-28 · added 052 (setup CLI, Connor's idea); demo walkthrough of 026 started
