@@ -14,3 +14,8 @@ test-results/
 next-env.d.ts
 # The embedded database (PGlite) and other local state `bun dev` keeps.
 .data/
+# This machine's instance (`bun run setup` writes them). Anchored, so the
+# guard fixtures named app.config.yaml stay tracked.
+/app.config.yaml
+/apps/web/app.config.yaml
+/docker-compose.override.yml

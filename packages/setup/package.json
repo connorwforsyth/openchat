@@ -1,0 +1,26 @@
+{
+  "name": "@workspace/setup",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "ultracite check",
+    "start": "bun src/main.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@clack/prompts": "catalog:",
+    "@workspace/config": "workspace:*",
+    "@workspace/contract": "workspace:*",
+    "@workspace/shared": "workspace:*",
+    "yaml": "^2.9.1",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@workspace/typescript-config": "workspace:*",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
