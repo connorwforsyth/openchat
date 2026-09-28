@@ -413,3 +413,107 @@ describe("client addresses (044)", () => {
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("lb.internal"));
   });
 });
+
+describe("trusted origins (054)", () => {
+  /** A server with `env` over a fresh database; closed after the test. */
+  const serverWith = async (env: Record<string, string>) => {
+    const testDb = await createTestDb();
+    const warn = vi.fn();
+    const created = createAuth({
+      config: appConfigSchema.parse({ auth: { signup: "open" } }),
+      db: testDb.db,
+      env: {
+        BETTER_AUTH_SECRET: "test-secret-0123456789abcdefghijklmnop",
+        ...env,
+      },
+      log: { warn },
+    });
+    if (!created.ok) {
+      throw new Error(created.error.type);
+    }
+    return { auth: created.value, testDb, warn };
+  };
+
+  /** A browser's sign-up from `origin`, to the server at the same address. */
+  const signUpFrom = (auth: TestAuth["auth"], origin: string, email: string) =>
+    auth.handler(
+      new Request(`${origin}/api/auth/sign-up/email`, {
+        body: JSON.stringify({
+          email,
+          name: "Pat",
+          password: "correct-horse-battery",
+        }),
+        headers: { "content-type": "application/json", origin },
+        method: "POST",
+      })
+    );
+
+  it("lets the other loopback names in when BETTER_AUTH_URL is one", async () => {
+    const { auth, testDb } = await serverWith({
+      BETTER_AUTH_URL: "http://localhost:3000",
+    });
+    try {
+      for (const [origin, email] of [
+        ["http://127.0.0.1:3000", "a@example.test"],
+        ["http://[::1]:3000", "b@example.test"],
+      ] as const) {
+        // biome-ignore lint/performance/noAwaitInLoops: one database, in turn.
+        const response = await signUpFrom(auth, origin, email);
+        expect(response.status, origin).toBe(200);
+      }
+      // Another port is another app.
+      const elsewhere = await signUpFrom(
+        auth,
+        "http://127.0.0.1:4000",
+        "c@example.test"
+      );
+      expect(elsewhere.status).toBe(403);
+      expect(await elsewhere.json()).toMatchObject({ code: "INVALID_ORIGIN" });
+    } finally {
+      await testDb.close();
+    }
+  });
+
+  it("keeps a public BETTER_AUTH_URL exact, plus TRUSTED_ORIGINS", async () => {
+    const { auth, testDb, warn } = await serverWith({
+      BETTER_AUTH_URL: "https://chat.example.com",
+      TRUSTED_ORIGINS: "https://chat.example.org, https://*.example.net",
+    });
+    try {
+      const loopback = await signUpFrom(
+        auth,
+        "http://127.0.0.1:3000",
+        "a@example.test"
+      );
+      expect(loopback.status).toBe(403);
+      const listed = await signUpFrom(
+        auth,
+        "https://chat.example.org",
+        "b@example.test"
+      );
+      expect(listed.status).toBe(200);
+      // The wildcard entry is ignored, with a warning, not matched.
+      const patterned = await signUpFrom(
+        auth,
+        "https://evil.example.net",
+        "c@example.test"
+      );
+      expect(patterned.status).toBe(403);
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining("https://*.example.net")
+      );
+    } finally {
+      await testDb.close();
+    }
+  });
+
+  it("warns that BETTER_AUTH_TRUSTED_ORIGINS goes unchecked", async () => {
+    const { testDb, warn } = await serverWith({
+      BETTER_AUTH_TRUSTED_ORIGINS: "https://chat.example.org",
+    });
+    await testDb.close();
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("TRUSTED_ORIGINS instead")
+    );
+  });
+});
