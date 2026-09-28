@@ -2,8 +2,8 @@
 id: "052"
 title: "Setup CLI: start the app and configure it interactively"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -90,3 +90,7 @@ clean; `bun turbo typecheck lint test build` 82/82.
   `/app/apps/web/.data/files` in the image, outside the `web-data` volume (`apps/web/data`), so Docker
   uploads are lost when the container is recreated. The CLI writes `storage.path: ./data/files` in
   Docker mode to avoid it; the default itself (config schema or Dockerfile) wants its own ticket.
+
+## Resolution (2026-09-28, loop)
+
+Merged in [PR #42](https://github.com/connorwforsyth/openchat/pull/42). `bun run setup`, `setup up`, `setup doctor` in `packages/setup`; 57 tests; gate 82/82. Found: Docker uploads live outside the data volume ([053](053-docker-upload-storage.md)).

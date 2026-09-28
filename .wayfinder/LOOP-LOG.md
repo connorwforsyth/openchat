@@ -65,3 +65,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-09-28 · 050 closed · PR #41 · sandbox dev previews · smoke + headless panel render with HMR, 79/79
 - 2026-09-28 · loop stopped: only 026 (Connor) remains
 - 2026-09-28 · added 052 (setup CLI, Connor's idea); demo walkthrough of 026 started
+- 2026-09-28 · 052 closed · PR #42 · setup CLI · 57 tests, 82/82 · added 053 (Docker uploads outside the volume), started
