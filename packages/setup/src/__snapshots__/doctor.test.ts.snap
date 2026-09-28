@@ -11,6 +11,7 @@ exports[`runDoctor > passes a healthy demo stack 1`] = `
 ✓ Port 7070 (sandbox-runner): in use by sandbox-runner
 ✓ Port 7071 (sandbox-runner): in use by sandbox-runner
 ✓ App health: http://localhost:3000 is up and ready
+✓ Sign-in address: open http://localhost:3000 (127.0.0.1 and [::1] work too); other addresses need TRUSTED_ORIGINS in .env
 ✓ Sandbox runner: up on http://localhost:7070
 ✓ Provider anthropic: reachable, key accepted
 ✓ Models: at least one model provider answers"
@@ -29,6 +30,7 @@ exports[`runDoctor > says how to fix each failure 1`] = `
 ✓ Port 7071 (sandbox-runner): free
 ✗ App health: answers 503 (database: connection refused)
     fix: docker compose logs web (or the bun dev output) says why
+✓ Sign-in address: open http://localhost:3000 (127.0.0.1 and [::1] work too); other addresses need TRUSTED_ORIGINS in .env
 ✗ Sandbox runner: running, but without SANDBOX_RUNNER_TOKEN
     fix: bun run setup up (recreates it with the token from .env)
 ✗ Provider anthropic: the key was rejected (401)

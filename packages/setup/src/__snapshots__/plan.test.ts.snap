@@ -22,7 +22,16 @@ DATABASE_URL=postgres://postgres:postgres@localhost:5432/app
 # Also keys the local file store's signed download links (derived, not reused).
 BETTER_AUTH_SECRET=
 # The public origin (https://chat.example.com); inferred per request when unset.
+# Sign-in works from this origin only; when it's localhost, 127.0.0.1 or [::1],
+# from the other two on the same scheme and port as well.
 BETTER_AUTH_URL=http://localhost:3000
+# Other origins sign-in accepts, exactly, comma-separated: another hostname for
+# the same server, or a LAN address (\`https://chat.example.org,
+# http://192.168.1.20:3000\`). No paths or wildcards; entries that aren't an
+# origin are ignored, with a warning at start. Use this rather than Better
+# Auth's own BETTER_AUTH_TRUSTED_ORIGINS, which it applies unchecked.
+# See docs/self-hosting.md, "Behind a proxy".
+TRUSTED_ORIGINS=
 # Social sign-in appears only when both halves of a pair are set (or when
 # app.config.yaml \`auth.social\` configures the provider).
 GITHUB_CLIENT_ID=
@@ -241,7 +250,16 @@ DATABASE_URL=
 # Also keys the local file store's signed download links (derived, not reused).
 BETTER_AUTH_SECRET=
 # The public origin (https://chat.example.com); inferred per request when unset.
+# Sign-in works from this origin only; when it's localhost, 127.0.0.1 or [::1],
+# from the other two on the same scheme and port as well.
 BETTER_AUTH_URL=http://localhost:3000
+# Other origins sign-in accepts, exactly, comma-separated: another hostname for
+# the same server, or a LAN address (\`https://chat.example.org,
+# http://192.168.1.20:3000\`). No paths or wildcards; entries that aren't an
+# origin are ignored, with a warning at start. Use this rather than Better
+# Auth's own BETTER_AUTH_TRUSTED_ORIGINS, which it applies unchecked.
+# See docs/self-hosting.md, "Behind a proxy".
+TRUSTED_ORIGINS=
 # Social sign-in appears only when both halves of a pair are set (or when
 # app.config.yaml \`auth.social\` configures the provider).
 GITHUB_CLIENT_ID=
@@ -441,7 +459,16 @@ DATABASE_URL=postgres://postgres:postgres@localhost:5432/app
 # Also keys the local file store's signed download links (derived, not reused).
 BETTER_AUTH_SECRET=
 # The public origin (https://chat.example.com); inferred per request when unset.
+# Sign-in works from this origin only; when it's localhost, 127.0.0.1 or [::1],
+# from the other two on the same scheme and port as well.
 BETTER_AUTH_URL=http://localhost:3000
+# Other origins sign-in accepts, exactly, comma-separated: another hostname for
+# the same server, or a LAN address (\`https://chat.example.org,
+# http://192.168.1.20:3000\`). No paths or wildcards; entries that aren't an
+# origin are ignored, with a warning at start. Use this rather than Better
+# Auth's own BETTER_AUTH_TRUSTED_ORIGINS, which it applies unchecked.
+# See docs/self-hosting.md, "Behind a proxy".
+TRUSTED_ORIGINS=
 # Social sign-in appears only when both halves of a pair are set (or when
 # app.config.yaml \`auth.social\` configures the provider).
 GITHUB_CLIENT_ID=
