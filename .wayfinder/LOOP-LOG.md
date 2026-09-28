@@ -2,7 +2,7 @@
 
 One line per iteration: date · ticket · PR · outcome · verification. The newest summary goes at the top when the loop stops.
 
-**Stopped 2026-09-28: M1 is built and pre-demo audited; waiting on Connor for 026 (M1 demo gate, see its Demo guide).** Closed 53 of 54 tickets across 43 PRs (046–053 on 2026-09-28: audit, Material icons, preview WebSockets, sandbox dev previews, setup CLI, Docker upload storage). All M1 workstreams are merged; e2e 23/23, local gate 79/79; the Docker image, the compose stack on Postgres 17 and the sandbox runner are verified (045). Waiting on Connor: the 026 demo (`PLAN.md` §11 M1 checks), the theme preset, and the defaults in `QUESTIONS-FOR-CONNOR.md`. After 026, charting the waves is a `/wayfinder` session.
+**Stopped 2026-09-28: M1 is built and pre-demo audited; waiting on Connor for 026 (M1 demo gate, see its Demo guide).** Closed 52 of 53 tickets across 43 PRs (046–053 on 2026-09-28: audit, Material icons, preview WebSockets, sandbox dev previews, setup CLI, Docker upload storage). All M1 workstreams are merged; e2e 23/23, local gate 79/79; the Docker image, the compose stack on Postgres 17 and the sandbox runner are verified (045). Waiting on Connor: the 026 demo (`PLAN.md` §11 M1 checks), the theme preset, and the defaults in `QUESTIONS-FOR-CONNOR.md`. After 026, charting the waves is a `/wayfinder` session.
 
 - 2026-09-26 · map charted (26 tickets; 001 closed at charting) · frontier: 002, 009, 010
 - 2026-09-26 · 002 closed · PR #1 · monorepo scaffold · typecheck/lint/test/build 6/6, empty-env boot 200, CI pass
