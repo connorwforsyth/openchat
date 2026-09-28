@@ -112,6 +112,15 @@ services:
 An invalid file doesn't half-start: the API answers with the list of
 problems, and so does the log.
 
+### Uploaded files
+
+Uploads go to the local file store, `storage.path` in `app.config.yaml`
+(default `./.data/files`, relative to `apps/web`). In the image `./.data`
+links into the `web-data` volume, so with the default, or any relative path
+under `./.data` or `./data`, uploads survive `web` being recreated. Anywhere
+else needs a volume of its own. For S3-compatible storage (S3, R2, MinIO),
+see the `storage` block in `app.config.example.yaml`.
+
 ### Icon set
 
 The icon set is compiled into the image, so the `icons` block of a mounted
@@ -158,6 +167,19 @@ docker compose up -d --build
 ```
 
 Migrations run on start. `docker compose logs -f web` shows them.
+
+Until the image linked `./.data` into the `web-data` volume, uploads at the
+default path were kept in the container itself (`/app/apps/web/.data/files`)
+and lost whenever it was recreated. If yours has some there (a
+`storage.path` under `./data` was already in the volume), copy them out
+before updating, and back in after:
+
+```sh
+docker compose cp web:/app/apps/web/.data/files ./files-backup  # before
+git pull && docker compose up -d --build
+docker compose cp ./files-backup/. web:/app/apps/web/data/files
+docker compose exec -u root web chown -R node:node /app/apps/web/data/files
+```
 
 ## Backups
 

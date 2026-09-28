@@ -2,6 +2,7 @@ import { parseConfig } from "@workspace/config/parse";
 import { describe, expect, it } from "vitest";
 
 import type { Answers } from "./answers";
+import { LEGACY_DOCKER_STORAGE_PATH, STORAGE_PATH } from "./config-file";
 import { type CurrentFiles, readDefaults } from "./current";
 import { parseEnv } from "./env-file";
 import {
@@ -158,19 +159,27 @@ describe("re-running", () => {
     );
   });
 
-  it("switches the mode's storage path and database", () => {
+  it("switches the database, and moves the old Docker storage path back for local mode", () => {
+    // What setup wrote for Docker before the image linked ./.data into its volume.
+    const legacy: CurrentFiles = {
+      ...first,
+      config: first.config?.replace(STORAGE_PATH, LEGACY_DOCKER_STORAGE_PATH),
+    };
+    expect(legacy.config).toContain(`path: ${LEGACY_DOCKER_STORAGE_PATH}`);
     const local = apply(
-      first,
-      plan(first, {
+      legacy,
+      plan(legacy, {
         ...demoAnswers,
         database: "pglite",
         keys: {},
         mode: "local",
       })
     );
-    expect(local.config).toContain("path: ./.data/files");
+    expect(local.config).toContain(`path: ${STORAGE_PATH}`);
     expect(parseEnv(local.env ?? "").DATABASE_URL).toBe("");
     expect(readDefaults({ ...local, override: undefined }).mode).toBe("local");
+    // In the image both are the same directory in the volume: nothing to move.
+    expect(plan(legacy, { ...demoAnswers, keys: {} })).toEqual([]);
   });
 });
 

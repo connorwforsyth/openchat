@@ -41,7 +41,8 @@ ENV NODE_ENV=production \
     PORT=3000
 # The traced server keeps the monorepo layout (apps/web/server.js beside the
 # workspace packages and node_modules it needs), and runs from apps/web:
-# relative paths (the file store's ./data, app.config.yaml) resolve there.
+# relative paths (the file store's ./.data/files, app.config.yaml) resolve
+# there.
 WORKDIR /app/apps/web
 COPY --from=build --chown=node:node /repo/apps/web/.next/standalone/ /app/
 # Static assets aren't traced.
@@ -51,7 +52,10 @@ COPY --from=build --chown=node:node /repo/apps/web/.next/static/ ./.next/static/
 COPY --from=build --chown=node:node /repo/packages/db/drizzle/ ./node_modules/@workspace/db/drizzle/
 COPY --chmod=755 apps/web/docker-entrypoint.sh /usr/local/bin/web-entrypoint
 # Uploads and the generated secrets live here; compose mounts a volume on it.
-RUN mkdir -p data && chown node:node data
+# `.data` links into it. That's where `bun dev` keeps local state, including
+# the default `storage.path` (./.data/files), which would otherwise land in
+# the container's own layer and be lost whenever `web` is recreated.
+RUN mkdir -p data && chown node:node data && ln -s data .data
 # Never root, and never the Docker socket (D24): sandboxes go through the
 # sandbox-runner service.
 USER node
