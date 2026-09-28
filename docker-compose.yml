@@ -36,7 +36,8 @@ services:
       # Loopback only: put a TLS proxy in front to serve it to a network.
       - "127.0.0.1:${WEB_PORT:-3000}:3000"
     volumes:
-      # Uploads (the local file store) and the generated secrets.
+      # Uploads (the local file store; the image links ./.data, where the
+      # default storage.path is, into it) and the generated secrets.
       - web-data:/app/apps/web/data
     # No Docker socket, ever (D24): sandboxes go through sandbox-runner.
 

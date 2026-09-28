@@ -24,13 +24,17 @@ import {
 
 type Path = readonly (string | number)[];
 
-/** Where the local file store keeps uploads. */
-export const STORAGE_PATHS = {
-  // The image's data volume (apps/web/Dockerfile), so uploads survive a rebuild.
-  docker: "./data/files",
-  // Beside the embedded database, which git ignores.
-  local: "./.data/files",
-} as const;
+/**
+ * Where the local file store keeps uploads, in both modes: beside the
+ * embedded database, which git ignores, and in the Docker image the data
+ * volume, which `./.data` links to (apps/web/Dockerfile).
+ */
+export const STORAGE_PATH = "./.data/files";
+/**
+ * What setup used to write for Docker, before the image linked `./.data`
+ * into the volume. It's the same directory there, so a Docker config keeps it.
+ */
+export const LEGACY_DOCKER_STORAGE_PATH = "./data/files";
 
 const EMBEDDINGS_MODEL = "openai:text-embedding-3-small";
 
@@ -235,17 +239,19 @@ const applySandbox = (doc: Document, answers: Answers): void => {
 
 const applyStorage = (doc: Document, answers: Answers): void => {
   const path = read(doc, ["storage", "path"]);
-  const isDefault =
+  // Under `bun dev` the legacy path isn't git-ignored, so local mode moves
+  // it back; a path of your own is left alone.
+  const replace =
     path === undefined ||
-    Object.values(STORAGE_PATHS).some((known) => known === path);
-  if (read(doc, ["storage", "driver"]) !== "s3" && isDefault) {
+    (path === LEGACY_DOCKER_STORAGE_PATH && answers.mode === "local");
+  if (read(doc, ["storage", "driver"]) !== "s3" && replace) {
     if (!doc.hasIn(["storage"])) {
       doc.setIn(
         ["storage"],
-        flowMap(doc, { driver: "local", path: STORAGE_PATHS[answers.mode] })
+        flowMap(doc, { driver: "local", path: STORAGE_PATH })
       );
     }
-    set(doc, ["storage", "path"], STORAGE_PATHS[answers.mode]);
+    set(doc, ["storage", "path"], STORAGE_PATH);
   }
 };
 

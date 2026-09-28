@@ -355,7 +355,10 @@ const storageSchema = z
   .discriminatedUnion("driver", [
     z.strictObject({
       driver: z.literal("local"),
-      /** Inside `./.data` beside the embedded database, which git ignores. */
+      /**
+       * Inside `./.data` beside the embedded database, which git ignores. The
+       * Docker image links `./.data` into its data volume, so it persists there too.
+       */
       path: z.string().min(1).default("./.data/files"),
     }),
     z.strictObject({

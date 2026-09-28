@@ -65,6 +65,7 @@ sandbox:
     runtime: runsc          # gVisor; the runner warns and falls back to runc if it's missing
     limits: { cpu: 2, memoryMb: 2048, diskMb: 10240 }
 
+# ./.data is git-ignored; in the Docker image it's the `web-data` volume.
 storage: { driver: local, path: ./.data/files }
 # storage: { driver: s3, bucket: files, endpoint: "${S3_ENDPOINT}", accessKeyId: "${S3_ACCESS_KEY_ID}", secretAccessKey: "${S3_SECRET_ACCESS_KEY}" }
 

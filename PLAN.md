@@ -791,7 +791,7 @@ search:
 sandbox:
   default: just-bash
   docker: { runnerUrl: http://sandbox-runner:7070, runtime: runsc, limits: { cpu: 2, memoryMb: 2048 } }
-storage: { driver: local, path: /data/files }   # or s3-compatible
+storage: { driver: local, path: ./.data/files }   # or s3-compatible; in the image .data is the web-data volume
 embeddings: { model: openai:text-embedding-3-small }
 icons: { set: lucide }      # e.g. { set: material, style: rounded, weight: 400, fill: false }
 observability: { otlp: null }
