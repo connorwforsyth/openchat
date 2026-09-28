@@ -327,6 +327,89 @@ describe("runner through the docker client", () => {
     expect(hidden.status).toBe(404);
   });
 
+  describe("preview CORS", () => {
+    const host = `${id}-5173.sandbox.localhost:7071`;
+    /** A proxy in front of a dev server that answers with `upstream`'s headers. */
+    const proxyWith = async (upstream: Record<string, string> = {}) => {
+      const { factory, runner } = setup();
+      const sandbox = await must(
+        factory.create({ conversationId, id, limits })
+      );
+      await must(sandbox.exposePort(5173));
+      const origins: (string | null)[] = [];
+      const proxy = createPreviewApp({
+        fetch: (_input, init) => {
+          origins.push(new Headers(init?.headers).get("origin"));
+          return Promise.resolve(
+            new Response("export {};", {
+              headers: { "content-type": "text/javascript", ...upstream },
+            })
+          );
+        },
+        runner,
+      });
+      const get = (origin?: string) =>
+        proxy.request("/src/main.js", {
+          headers: origin ? { host, origin } : { host },
+        });
+      return { get, origins };
+    };
+
+    it("lets the panel's opaque-origin iframe load module scripts", async () => {
+      const { get, origins } = await proxyWith();
+      const response = await get("null");
+      expect(response.status).toBe(200);
+      expect(response.headers.get("access-control-allow-origin")).toBe("null");
+      expect(response.headers.get("access-control-allow-credentials")).toBe(
+        null
+      );
+      expect(response.headers.get("vary")).toBe("Origin");
+      // The dev server still sees who asked.
+      expect(origins).toEqual(["null"]);
+    });
+
+    it("never allows credentials for the null origin", async () => {
+      const { get } = await proxyWith({
+        "access-control-allow-credentials": "true",
+        "access-control-allow-origin": "*",
+        vary: "Accept-Encoding",
+      });
+      const response = await get("null");
+      expect(response.headers.get("access-control-allow-origin")).toBe("null");
+      expect(response.headers.get("access-control-allow-credentials")).toBe(
+        null
+      );
+      expect(response.headers.get("vary")).toBe("Accept-Encoding, Origin");
+    });
+
+    it("leaves every other origin to the dev server", async () => {
+      const { get } = await proxyWith();
+      for (const origin of ["http://localhost:3000", "https://evil.test"]) {
+        // biome-ignore lint/performance/noAwaitInLoops: one request at a time.
+        const response = await get(origin);
+        expect(response.headers.get("access-control-allow-origin")).toBe(null);
+        expect(response.headers.get("vary")).toBe("Origin");
+      }
+      const plain = await get();
+      expect(plain.headers.get("access-control-allow-origin")).toBe(null);
+      expect(plain.headers.get("vary")).toBe("Origin");
+
+      const allowed = await proxyWith({
+        "access-control-allow-credentials": "true",
+        "access-control-allow-origin": "http://localhost:3000",
+        vary: "origin",
+      });
+      const response = await allowed.get("http://localhost:3000");
+      expect(response.headers.get("access-control-allow-origin")).toBe(
+        "http://localhost:3000"
+      );
+      expect(response.headers.get("access-control-allow-credentials")).toBe(
+        "true"
+      );
+      expect(response.headers.get("vary")).toBe("origin");
+    });
+  });
+
   it("stops idle sandboxes and starts them again on use", async () => {
     const { advance, factory, fake, runner } = setup();
     const sandbox = await must(factory.create({ conversationId, id, limits }));

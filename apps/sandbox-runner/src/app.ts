@@ -273,10 +273,39 @@ const HOP_BY_HOP = [
   "host",
 ];
 
+/** A `Vary` entry that already covers `Origin`. */
+const VARIES_BY_ORIGIN = /^(origin|\*)$/i;
+
+/**
+ * CORS for the panel's preview iframe. It's sandboxed without
+ * `allow-same-origin` (D24), so its origin is opaque and every subresource it
+ * fetches with CORS, like a dev server's module scripts, arrives with
+ * `Origin: null`, which dev servers refuse (Vite by default since 6.0.9).
+ * The proxy answers that origin alone, never with credentials (ticket 047);
+ * any other origin gets exactly what the dev server said. The answer depends
+ * on `Origin`, so every response says so to caches.
+ */
+export const previewCors = (
+  origin: string | undefined,
+  headers: Headers
+): Headers => {
+  const out = new Headers(headers);
+  if (origin === "null") {
+    out.set("access-control-allow-origin", "null");
+    out.delete("access-control-allow-credentials");
+  }
+  const vary = (out.get("vary") ?? "").split(",");
+  if (!vary.some((name) => VARIES_BY_ORIGIN.test(name.trim()))) {
+    out.append("vary", "Origin");
+  }
+  return out;
+};
+
 /**
  * The preview proxy: `{id}-{port}.<preview domain>` → the sandbox's port.
  * It listens on its own port and hostname, a separate origin from the app
- * (D24), and forwards only ports the sandbox explicitly exposed. WebSocket
+ * (D24), and forwards only ports the sandbox explicitly exposed. Responses
+ * get `previewCors`, so the panel's opaque-origin iframe can load them. WebSocket
  * upgrades (dev-server hot reload) never reach Hono; `preview-upgrade.ts`
  * handles them with the same routing.
  */
@@ -322,7 +351,7 @@ export const createPreviewApp = ({
         out.delete(name);
       }
       return new Response(response.body, {
-        headers: out,
+        headers: previewCors(c.req.header("origin"), out),
         status: response.status,
       });
     } catch {
