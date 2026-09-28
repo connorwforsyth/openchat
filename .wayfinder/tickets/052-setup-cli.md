@@ -3,7 +3,7 @@ id: "052"
 title: "Setup CLI: start the app and configure it interactively"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: []
 ---
 
