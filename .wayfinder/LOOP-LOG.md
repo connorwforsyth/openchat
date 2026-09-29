@@ -2,7 +2,7 @@
 
 One line per iteration: date · ticket · PR · outcome · verification. The newest summary goes at the top when the loop stops.
 
-**Stopped 2026-09-30: ready to launch; waiting on Connor for 026 (M1 demo gate).** Closed 64 of 65 tickets across 55 PRs. The 055–065 composer-first workspace and UI cleanup is merged: template-style chat, a slimmer header, an always-on self-healing workspace, one Workspace panel (files + editor, preview, artifacts; no terminal), `@file` and `/` commands, and tool status lines. e2e 32/32, gate 82/82, sandbox runner smoke passed on runc. The app runs locally with Docker sandboxes.
+**Stopped 2026-09-30: ready to launch; waiting on Connor for 026 (M1 demo gate).** Closed 68 of 69 tickets across 59 PRs. Since the first launch check: the built-in browser Preview (066), static pages preview with no server (067), compressed previews no longer blank (068), and the runner rejoins networks and restores previews after a restart (069). e2e 33/33, gate 82/82.
 
 - 2026-09-26 · map charted (26 tickets; 001 closed at charting) · frontier: 002, 009, 010
 - 2026-09-26 · 002 closed · PR #1 · monorepo scaffold · typecheck/lint/test/build 6/6, empty-env boot 200, CI pass
@@ -89,3 +89,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-09-30 · added 069 (runner rejoins sandbox networks after a restart; found while fixing Connor's preview)
 - 2026-09-30 · 067 closed · PR #57 · static preview + restore after runner restart · 82/82
 - 2026-09-30 · 069 closed · PR #58 · 82/82
+- 2026-09-30 · 066 closed · PR #59 · e2e 33/33 · only 026 (Connor) remains

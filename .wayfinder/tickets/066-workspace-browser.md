@@ -2,8 +2,8 @@
 id: "066"
 title: "Workspace preview as a built-in browser"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -71,3 +71,7 @@ Branch `t/066-workspace-browser` (rebased on `origin/main` after 067 merged), no
 
 **Checks.** `gate.sh`: 82/82. `E2E_PORT=3511 bun turbo test:e2e`: 33/33 (the first run, before the approval fix, lost that race twice; `memory.spec`'s shared-chat test also failed once, as noted in 060, and passed since).
 Screenshots of `/dev/sandbox`: Markdown rendered; an `.html` file rendered with its CSS and in Code; Preview; after following a link; mobile width, light and dark.
+
+## Resolution (2026-09-30, loop)
+
+Merged in [PR #59](https://github.com/connorwforsyth/openchat/pull/59). Browser chrome, auto-open, rendered HTML/Markdown with a Code toggle, srcdoc fallback, and a fix for dropped approvals. chat-ui 212/212, e2e 33/33, gate 82/82. Follow-ups: a `SmartphoneIcon` for the Mobile toggle; move the card's Preview to `actions.onPreviewFile`.
