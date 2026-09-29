@@ -12,13 +12,13 @@
     "./fixtures": "./src/fixtures.ts",
     "./header/*": "./src/header/*.tsx",
     "./model/*": "./src/model/*.ts",
-    "./sandbox/*": "./src/sandbox/*.tsx",
-    "./sandbox/model/*": "./src/sandbox/model/*.ts",
     "./shell/*": "./src/shell/*.tsx",
     "./shell/use-narrow-screen": "./src/shell/use-narrow-screen.ts",
     "./shell/use-shell-layout": "./src/shell/use-shell-layout.ts",
     "./shortcuts/registry": "./src/shortcuts/registry.ts",
-    "./sidebar/*": "./src/sidebar/*.tsx"
+    "./sidebar/*": "./src/sidebar/*.tsx",
+    "./workspace/*": "./src/workspace/*.tsx",
+    "./workspace/model/*": "./src/workspace/model/*.ts"
   },
   "scripts": {
     "lint": "ultracite check",

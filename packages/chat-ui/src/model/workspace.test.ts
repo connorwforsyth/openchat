@@ -15,6 +15,7 @@ const call = (
   toolName: string,
   toolCallId: string
 ): Parts["parts"][number] => ({
+  approval: { state: "not-required" },
   input: {},
   toolCallId,
   toolName,

@@ -1,15 +1,19 @@
 "use client";
 
 import { useLingui } from "@lingui/react/macro";
+import { Skeleton } from "@workspace/ui/components/skeleton";
 import { lazy, Suspense } from "react";
 
-import type { SandboxPanelProps } from "./sandbox-panel";
+import type { WorkspacePanelProps } from "./workspace-panel";
 
-// The panel behind a dynamic import (D27): the terminal, file tree and code
-// views load the first time a chat opens its sandbox, not with the chat.
+// The panel behind a dynamic import (D27): the file tree, the editor, code
+// views and artifact previews load the first time a chat opens its
+// workspace, not with the chat.
 
-const SandboxPanel = lazy(() =>
-  import("./sandbox-panel").then((module) => ({ default: module.SandboxPanel }))
+const WorkspacePanel = lazy(() =>
+  import("./workspace-panel").then((module) => ({
+    default: module.WorkspacePanel,
+  }))
 );
 
 const PanelFallback = () => {
@@ -17,20 +21,20 @@ const PanelFallback = () => {
   return (
     <div
       aria-busy
-      aria-label={t`Loading sandbox`}
+      aria-label={t`Loading workspace`}
       className="flex h-full flex-col gap-2 bg-background p-3"
       role="status"
     >
-      <div className="h-5 w-32 animate-pulse rounded-md bg-muted" />
-      <div className="flex-1 animate-pulse rounded-md bg-muted/40" />
+      <Skeleton className="h-5 w-32" />
+      <Skeleton className="flex-1" />
     </div>
   );
 };
 
-export function LazySandboxPanel(props: SandboxPanelProps) {
+export function LazyWorkspacePanel(props: WorkspacePanelProps) {
   return (
     <Suspense fallback={<PanelFallback />}>
-      <SandboxPanel {...props} />
+      <WorkspacePanel {...props} />
     </Suspense>
   );
 }

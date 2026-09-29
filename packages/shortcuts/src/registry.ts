@@ -112,14 +112,14 @@ export const shortcutRegistry: readonly ShortcutDefinition[] = [
     ["S"],
     "chat",
     "panels",
-    msg`Toggle the sandbox panel`
+    msg`Show or hide the workspace`
   ),
   define(
     "panel.artifacts",
     ["A"],
     "chat",
     "panels",
-    msg`Toggle the artifacts panel`
+    msg`Show the workspace artifacts`
   ),
 ];
 

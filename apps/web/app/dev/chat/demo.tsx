@@ -1,7 +1,6 @@
 "use client";
 
 import { Trans, useLingui } from "@lingui/react/macro";
-import type { ArtifactSelection } from "@workspace/chat-ui/artifacts/artifacts-panel";
 import { ChatScreen } from "@workspace/chat-ui/chat/chat-screen";
 import type {
   ConversationActions,
@@ -12,10 +11,9 @@ import {
   artifactVersions,
   chatContext,
   chatMe,
-  chatSandbox,
   participants,
 } from "@workspace/chat-ui/fixtures";
-import type { SandboxPanelClient } from "@workspace/chat-ui/sandbox/model/client";
+import type { WorkspaceSelection } from "@workspace/chat-ui/model/workspace";
 import {
   type Theme,
   themeSchema,
@@ -24,10 +22,11 @@ import { contextOptionsFromMe } from "@workspace/composer/options";
 import type { ComposerValue } from "@workspace/composer/schemas";
 import { publicConfig } from "@workspace/contract/fixtures";
 import type { MessageId } from "@workspace/contract/schemas/common";
-import { ok } from "@workspace/shared/result";
+import type { SandboxRecord } from "@workspace/contract/schemas/sandbox";
 import { useTheme } from "next-themes";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { createDemoWorkspace } from "../sandbox/demo";
 import { demoArtifactVersions } from "./demo-artifacts";
 import { useDemoChat } from "./use-demo-chat";
 
@@ -41,51 +40,6 @@ const contextOptions = contextOptionsFromMe(
 
 const MEMORY_UNDO_MS = 400;
 
-/** A sandbox that answers every command with a canned line (no real shell). */
-const demoSandbox: SandboxPanelClient = {
-  create: () => Promise.resolve(ok(chatSandbox)),
-  exec: (_id, command, onOutput) => {
-    onOutput({ data: `demo: ${command}\n`, stream: "stdout" });
-    return Promise.resolve(
-      ok({
-        durationMs: 12,
-        exitCode: 0,
-        stderr: "",
-        stdout: "",
-        timedOut: false,
-        truncated: false,
-      })
-    );
-  },
-  exposePort: (_id, port) =>
-    Promise.resolve(ok({ port, url: `https://example.test:${port}` })),
-  listFiles: () =>
-    Promise.resolve(
-      ok([
-        {
-          modifiedAt: null,
-          path: "/work/bench/search.ts",
-          size: 3100,
-          type: "file" as const,
-        },
-        {
-          modifiedAt: null,
-          path: "/work/results/benchmark.csv",
-          size: 12_000,
-          type: "file" as const,
-        },
-      ])
-    ),
-  readFile: () =>
-    Promise.resolve(
-      ok({
-        content: "engine,p95\npostgres,38\nmeili,6\n",
-        encoding: "utf8" as const,
-      })
-    ),
-  reset: () => Promise.resolve(ok(chatSandbox)),
-};
-
 export function ChatDemo({
   artifactsOrigin,
 }: {
@@ -95,9 +49,22 @@ export function ChatDemo({
   const { t } = useLingui();
   const demo = useDemoChat();
   const { setTheme, theme } = useTheme();
-  const [selection, setSelection] = useState<ArtifactSelection | null>(null);
+  const [selection, setSelection] = useState<WorkspaceSelection | null>(null);
   const [feedback, setFeedback] = useState<Record<string, MessageFeedback>>({});
-  const selectedId = selection?.artifactId ?? demo.artifacts[0]?.id;
+  const selectedId =
+    (selection?.kind === "artifact" ? selection.artifactId : undefined) ??
+    demo.artifacts[0]?.id;
+  // The Workspace panel's files: a just-bash workspace in this tab.
+  const workspace = useMemo(
+    () => createDemoWorkspace(() => t`The demo workspace couldn't do that.`),
+    [t]
+  );
+  const [record, setRecord] = useState<SandboxRecord | null>(null);
+  useEffect(() => setRecord(workspace.record()), [workspace]);
+  const onWorkspaceChanged = useCallback(
+    () => setRecord(workspace.record()),
+    [workspace]
+  );
 
   const actions = useMemo(
     (): ConversationActions => ({
@@ -143,17 +110,6 @@ export function ChatDemo({
   return (
     <ChatScreen
       actions={actions}
-      artifacts={{
-        artifacts: demo.artifacts,
-        onSelect: setSelection,
-        runtimeOrigin: artifactsOrigin,
-        selection: selectedId ? { ...selection, artifactId: selectedId } : null,
-        versions: selectedId
-          ? (artifactVersions[selectedId] ??
-            demoArtifactVersions[selectedId] ??
-            [])
-          : [],
-      }}
       brand={
         <span className="truncate font-medium text-sm">
           <Trans>Chat demo</Trans>
@@ -183,7 +139,6 @@ export function ChatDemo({
       messages={demo.messages}
       onNewChat={demo.newChat}
       pendingApprovals={demo.approvals}
-      sandbox={{ client: demoSandbox, initial: chatSandbox }}
       siblings={demo.siblings}
       sidebar={{
         account: {
@@ -205,6 +160,25 @@ export function ChatDemo({
         onTogglePin: (id, pinned) => demo.updateChat(id, { pinned }),
       }}
       streamingMessageId={demo.streaming}
+      workspace={{
+        artifacts: {
+          artifacts: demo.artifacts,
+          runtimeOrigin: artifactsOrigin,
+          versions: selectedId
+            ? (artifactVersions[selectedId] ??
+              demoArtifactVersions[selectedId] ??
+              [])
+            : [],
+        },
+        files: {
+          client: workspace.client,
+          kind: "chat",
+          onChanged: onWorkspaceChanged,
+          sandbox: record,
+        },
+        onSelect: setSelection,
+        selection,
+      }}
     />
   );
 }

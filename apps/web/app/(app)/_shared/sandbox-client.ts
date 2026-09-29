@@ -1,11 +1,12 @@
-import type { SandboxPanelClient } from "@workspace/chat-ui/sandbox/model/client";
+import type { WorkspaceClient } from "@workspace/chat-ui/workspace/model/client";
 import type { ApiClient } from "@workspace/client/api";
 import type { ConversationId } from "@workspace/contract/schemas/common";
-import { fromPromise } from "@workspace/shared/result";
+import { err, fromPromise, ok } from "@workspace/shared/result";
 
-// The sandbox panel's port over the API (the contract's `sandbox` group),
-// for one conversation. Commands run to completion on the server, so a
-// command's output arrives in one piece when it finishes.
+// The Workspace panel's port over the API (the contract's `sandbox` group),
+// for one conversation. Writes, imports and deletes go by conversation, so
+// the first one creates the workspace; a write's CONFLICT reasons come back
+// as values the editor reacts to (Reload / Overwrite).
 
 export interface SandboxErrorMessages {
   /** The provider isn't available (`FEATURE_DISABLED`). */
@@ -14,37 +15,53 @@ export interface SandboxErrorMessages {
   readonly failed: string;
 }
 
-const codeOf = (cause: unknown): string | null =>
-  typeof cause === "object" &&
-  cause !== null &&
-  "code" in cause &&
-  typeof cause.code === "string"
-    ? cause.code
-    : null;
+const field = (cause: unknown, name: string): unknown =>
+  typeof cause === "object" && cause !== null && name in cause
+    ? (cause as Record<string, unknown>)[name]
+    : undefined;
+
+const codeOf = (cause: unknown): string | null => {
+  const code = field(cause, "code");
+  return typeof code === "string" ? code : null;
+};
+
+/** `CONFLICT`'s `data.reason` (`version_mismatch`, `already_exists`, …). */
+const conflictReason = (cause: unknown): string | null => {
+  if (codeOf(cause) !== "CONFLICT") {
+    return null;
+  }
+  const reason = field(field(cause, "data"), "reason");
+  return typeof reason === "string" ? reason : null;
+};
 
 export const createApiSandboxClient = (
-  client: Pick<ApiClient, "sandbox">,
+  client: Pick<ApiClient, "files" | "sandbox">,
   conversationId: ConversationId,
   messages: SandboxErrorMessages
-): SandboxPanelClient => {
+): WorkspaceClient => {
   const describe = (cause: unknown): string =>
     codeOf(cause) === "FEATURE_DISABLED" ? messages.disabled : messages.failed;
   return {
-    create: () =>
-      fromPromise(client.sandbox.create({ conversationId }), describe),
-    exec: (id, command, onOutput) =>
+    deleteFile: (path) =>
       fromPromise(async () => {
-        const result = await client.sandbox.exec({ command, id });
-        if (result.stdout) {
-          onOutput({ data: result.stdout, stream: "stdout" });
-        }
-        if (result.stderr) {
-          onOutput({ data: result.stderr, stream: "stderr" });
-        }
-        return result;
+        await client.sandbox.deleteFile({
+          conversationId,
+          path,
+          recursive: false,
+        });
       }, describe),
-    exposePort: (id, port) =>
-      fromPromise(client.sandbox.exposePort({ id, port }), describe),
+    importFile: (file) =>
+      fromPromise(async () => {
+        const uploaded = await client.files.upload({
+          conversationId,
+          file,
+          purpose: "attachment",
+        });
+        return client.sandbox.importFile({
+          conversationId,
+          fileId: uploaded.id,
+        });
+      }, describe),
     listFiles: (id) =>
       fromPromise(
         client.sandbox.listFiles({ id, path: ".", recursive: true }),
@@ -53,5 +70,24 @@ export const createApiSandboxClient = (
     readFile: (id, path) =>
       fromPromise(client.sandbox.readFile({ id, path }), describe),
     reset: (id) => fromPromise(client.sandbox.reset({ id }), describe),
+    writeFile: async ({ content, ifMatch, path }) => {
+      try {
+        return ok(
+          await client.sandbox.writeFile({
+            content,
+            conversationId,
+            encoding: "utf8",
+            ifMatch,
+            path,
+          })
+        );
+      } catch (cause) {
+        const reason = conflictReason(cause);
+        if (reason === "version_mismatch" || reason === "already_exists") {
+          return err({ kind: reason });
+        }
+        return err({ kind: "failed", message: describe(cause) });
+      }
+    },
   };
 };

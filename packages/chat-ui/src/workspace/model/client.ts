@@ -53,3 +53,23 @@ export interface WorkspaceClient {
     input: WorkspaceWriteInput
   ) => AsyncResult<SandboxFileWrite, WorkspaceWriteError>;
 }
+
+/**
+ * Where the panel's files come from: nowhere when sandboxes are off on this
+ * instance; nowhere yet for a chat that hasn't been created (its first
+ * message creates it); otherwise the chat's workspace.
+ */
+export type WorkspaceFilesSource =
+  | { readonly kind: "off" }
+  | { readonly kind: "new-chat" }
+  | {
+      readonly client: WorkspaceClient;
+      readonly kind: "chat";
+      /** Refetch `sandbox.get`: something the panel did changed the workspace. */
+      readonly onChanged: () => void;
+      /**
+       * The chat's workspace, straight from the `sandbox.get` query (the one
+       * source of truth); `null` before its first use creates it.
+       */
+      readonly sandbox: SandboxRecord | null;
+    };

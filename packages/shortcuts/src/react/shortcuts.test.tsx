@@ -105,7 +105,7 @@ describe("ShortcutsHelpDialog", () => {
       "New chat",
       "Focus the composer",
       "Previous branch",
-      "Toggle the sandbox panel",
+      "Show or hide the workspace",
       "Toggle the sidebar",
     ]) {
       expect(dialog.textContent).toContain(text);

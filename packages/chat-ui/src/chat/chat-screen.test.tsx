@@ -40,12 +40,6 @@ const platformContext: ChatContext = { id: teamPlatform.id, type: "team" };
 
 const props = (overrides: Partial<ChatScreenProps> = {}): ChatScreenProps => ({
   actions: { onSelectBranch: vi.fn() },
-  artifacts: {
-    artifacts: chatArtifacts,
-    onSelect: vi.fn(),
-    selection: null,
-    versions: [],
-  },
   composer: { onSubmit: vi.fn() },
   conversation: {
     context: platformContext,
@@ -57,7 +51,6 @@ const props = (overrides: Partial<ChatScreenProps> = {}): ChatScreenProps => ({
   },
   messages: path.messages,
   onNewChat: vi.fn(),
-  sandbox: null,
   siblings: path.siblings,
   sidebar: {
     account: {
@@ -75,6 +68,12 @@ const props = (overrides: Partial<ChatScreenProps> = {}): ChatScreenProps => ({
     onSelect: vi.fn(),
     onTogglePin: vi.fn(),
   },
+  workspace: {
+    artifacts: { artifacts: chatArtifacts, versions: [] },
+    files: { kind: "off" },
+    onSelect: vi.fn(),
+    selection: null,
+  },
   ...overrides,
 });
 
@@ -84,7 +83,7 @@ const props = (overrides: Partial<ChatScreenProps> = {}): ChatScreenProps => ({
 beforeAll(async () => {
   await Promise.all([
     import("@workspace/composer/components/composer"),
-    import("../artifacts/artifacts-panel"),
+    import("../workspace/workspace-panel"),
     import("../conversation/math-plugin"),
   ]);
 });
