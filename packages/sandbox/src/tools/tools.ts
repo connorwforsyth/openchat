@@ -147,6 +147,8 @@ export interface SandboxToolsOptions {
   readonly onOutput?: (toolCallId: string, chunk: OutputChunk) => void;
   readonly reviewFor?: ReviewLookup;
   readonly sandbox: ToolSandbox;
+  /** Waits between listener probes; tests pass one that doesn't. */
+  readonly sleep?: (ms: number) => Promise<void>;
 }
 
 const describeError = (error: SandboxError): string => {
@@ -393,6 +395,93 @@ export const applySandboxChange = async (
   };
 };
 
+// `preview` checks that something listens on the port before exposing it:
+// otherwise a model that built a library with no server still gets a URL,
+// and the user a dead panel. The check reads the kernel's socket tables,
+// which every Linux image has, rather than relying on `ss` or `netstat`.
+// The preview proxy dials the container's own address, so a server bound
+// only to loopback is as unreachable as none.
+
+/** Probes before giving up, `PROBE_INTERVAL_MS` apart: about 5 s for a server to come up. */
+const PROBE_ATTEMPTS = 10;
+const PROBE_INTERVAL_MS = 500;
+const PROBE_COMMAND = "cat /proc/net/tcp /proc/net/tcp6 2>/dev/null";
+/** The `st` column's value for a listening socket. */
+const TCP_LISTEN = "0A";
+/** A row of `/proc/net/tcp{,6}`: `sl local_address rem_address st ...`. */
+const SOCKET_ROW =
+  /^\s*\d+:\s+([0-9A-Fa-f]+):([0-9A-Fa-f]{4})\s+\S+\s+([0-9A-Fa-f]{2})\s/;
+const TABLE_HEADER = /^\s*sl\s+local_address/m;
+/** ::1, and 127.0.0.0/8 plain or IPv4-mapped; addresses are little-endian words. */
+const LOOPBACK = /^(?:[0-9A-F]{6}7F|0{16}FFFF0{4}[0-9A-F]{6}7F|0{24}01000000)$/;
+
+type Listening = "loopback" | "none" | "reachable" | "unknown";
+
+/** Whether `port` is listening in the socket tables `output` holds. */
+const listeningOn = (output: string, port: number): Listening => {
+  if (!TABLE_HEADER.test(output)) {
+    // No tables to read (just-bash has no /proc): don't block the preview.
+    return "unknown";
+  }
+  let loopback = false;
+  for (const line of output.split("\n")) {
+    const row = SOCKET_ROW.exec(line);
+    if (
+      !row ||
+      row[3]?.toUpperCase() !== TCP_LISTEN ||
+      Number.parseInt(row[2] ?? "", 16) !== port
+    ) {
+      continue;
+    }
+    if (!LOOPBACK.test(row[1]?.toUpperCase() ?? "")) {
+      return "reachable";
+    }
+    loopback = true;
+  }
+  return loopback ? "loopback" : "none";
+};
+
+const startServerHint = (port: number) =>
+  `Start the dev server in the background bound to 0.0.0.0 (e.g. \`npm run dev -- --host 0.0.0.0 --port ${port} &\`) and call preview again.`;
+
+const wait = (ms: number) =>
+  new Promise<void>((resolve) => {
+    setTimeout(resolve, ms);
+  });
+
+/** Waits briefly for a listener on `port`; `ok` means expose it. */
+const awaitListener = async (
+  sandbox: ToolSandbox,
+  port: number,
+  sleep: (ms: number) => Promise<void>,
+  signal: AbortSignal | undefined,
+  attempt = 1
+): AsyncResult<void, string> => {
+  const probed = await sandbox.exec(PROBE_COMMAND, {
+    signal,
+    timeoutMs: 5000,
+  });
+  if (!probed.ok) {
+    return err(describeError(probed.error));
+  }
+  const state = listeningOn(probed.value.stdout, port);
+  if (state === "loopback") {
+    return err(
+      `The server on port ${port} only listens on localhost, which the preview can't reach. ${startServerHint(port)}`
+    );
+  }
+  if (state !== "none") {
+    return ok(undefined);
+  }
+  if (attempt >= PROBE_ATTEMPTS || signal?.aborted) {
+    return err(
+      `Nothing is listening on port ${port}. ${startServerHint(port)}`
+    );
+  }
+  await sleep(PROBE_INTERVAL_MS);
+  return awaitListener(sandbox, port, sleep, signal, attempt + 1);
+};
+
 const sliceLines = (
   text: string,
   offset: number | undefined,
@@ -408,6 +497,7 @@ export const createSandboxTools = ({
   onOutput,
   reviewFor,
   sandbox,
+  sleep = wait,
 }: SandboxToolsOptions): Record<SandboxToolName, Tool> => ({
   bash: tool({
     description: `Run a bash command in the chat's workspace, a sandboxed machine. The working directory is the workspace root, ${WORKDIR}; files there persist between calls and the user sees them in the Files panel. Run commands yourself rather than asking the user to.`,
@@ -443,8 +533,12 @@ export const createSandboxTools = ({
 
   preview: tool({
     description:
-      "Expose a port a server in the workspace listens on and get a URL the user can open in the preview panel.",
-    execute: async ({ port }) => {
+      "Expose a port a server in the workspace listens on and get a URL the user can open in the preview panel. Start the server first, in the background and bound to 0.0.0.0 (e.g. `npm run dev -- --host 0.0.0.0 --port 5173 &`); a server bound to localhost can't be previewed. Only preview something that serves pages: a library or script with no server has nothing to show.",
+    execute: async ({ port }, { abortSignal }) => {
+      const listening = await awaitListener(sandbox, port, sleep, abortSignal);
+      if (!listening.ok) {
+        return failure(listening.error);
+      }
       const exposed = await sandbox.exposePort(port);
       return exposed.ok
         ? { ...exposed.value, status: "exposed" as const }

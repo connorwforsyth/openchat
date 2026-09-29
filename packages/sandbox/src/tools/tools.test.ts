@@ -1,6 +1,8 @@
 import { parseProposedEdit } from "@workspace/code-ui/review/patch";
 import { fixtureId } from "@workspace/contract/fixtures";
 import type { ApprovalDecision } from "@workspace/contract/schemas/message-parts";
+import type { ExecResult } from "@workspace/contract/schemas/sandbox";
+import { ok } from "@workspace/shared/result";
 import type { Tool, ToolExecutionOptions } from "ai";
 import { describe, expect, it } from "vitest";
 
@@ -322,6 +324,123 @@ describe("sandbox tools", () => {
     expect(await run(memory, "preview", { port: 5173 })).toMatchObject({
       port: 5173,
       status: "exposed",
+    });
+  });
+
+  describe("preview waits for a listener", () => {
+    const tcp = (...rows: string[]) =>
+      [
+        "  sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode",
+        ...rows.map(
+          (row, index) =>
+            `   ${index}: ${row} 00000000:00000000 00:00000000 00000000  1000        0 1234${index} 1 0000000000000000 100 0 0 10 0`
+        ),
+        "",
+      ].join("\n");
+    const tcp6 = (...rows: string[]) =>
+      [
+        "  sl  local_address                         remote_address                        st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode",
+        ...rows.map(
+          (row, index) =>
+            `   ${index}: ${row} 00000000:00000000 00:00000000 00000000  1000        0 2234${index} 1 0000000000000000 100 0 0 10 0`
+        ),
+        "",
+      ].join("\n");
+    const any6 = "0".repeat(32);
+    // Port 5173 is 0x1435; `0A` is LISTEN, `01` ESTABLISHED.
+    const listening = tcp("00000000:1435 00000000:0000 0A") + tcp6();
+    const nothing =
+      tcp("00000000:0BB8 00000000:0000 0A", "0200A8C0:1435 0100A8C0:D431 01") +
+      tcp6();
+
+    /** A sandbox whose socket tables are `tables`, one probe at a time. */
+    const probed = (...tables: string[]) => {
+      const inner = createMemorySandbox({ id });
+      const probes: string[] = [];
+      const exposed: number[] = [];
+      const sandbox: Sandbox = {
+        ...inner,
+        exec: (command) => {
+          probes.push(command);
+          const stdout = tables[Math.min(probes.length, tables.length) - 1];
+          const result: ExecResult = {
+            durationMs: 1,
+            exitCode: 0,
+            stderr: "",
+            stdout: stdout ?? "",
+            timedOut: false,
+            truncated: false,
+          };
+          return Promise.resolve(ok(result));
+        },
+        exposePort: (port) => {
+          exposed.push(port);
+          return inner.exposePort(port);
+        },
+      };
+      const sleeps: number[] = [];
+      const tools = createSandboxTools({
+        sandbox,
+        sleep: (ms) => {
+          sleeps.push(ms);
+          return Promise.resolve();
+        },
+      });
+      return { exposed, probes, sleeps, tools };
+    };
+
+    it("exposes a port something listens on", async () => {
+      const { exposed, probes, tools } = probed(listening);
+      expect(await run(tools, "preview", { port: 5173 })).toMatchObject({
+        port: 5173,
+        status: "exposed",
+      });
+      expect(probes).toEqual([expect.stringContaining("/proc/net/tcp6")]);
+      expect(exposed).toEqual([5173]);
+    });
+
+    it("exposes nothing when nothing listens, and says how to fix it", async () => {
+      const { exposed, probes, sleeps, tools } = probed(nothing);
+      expect(await run(tools, "preview", { port: 5173 })).toEqual({
+        message:
+          "Nothing is listening on port 5173. Start the dev server in the background bound to 0.0.0.0 (e.g. `npm run dev -- --host 0.0.0.0 --port 5173 &`) and call preview again.",
+        status: "error",
+      });
+      expect(exposed).toEqual([]);
+      // About 5 s of retries before giving up.
+      expect(probes).toHaveLength(10);
+      expect(sleeps.reduce((sum, ms) => sum + ms, 0)).toBe(4500);
+    });
+
+    it("waits for a server that is still starting", async () => {
+      const { exposed, probes, tools } = probed(nothing, nothing, listening);
+      expect(await run(tools, "preview", { port: 5173 })).toMatchObject({
+        status: "exposed",
+      });
+      expect(probes).toHaveLength(3);
+      expect(exposed).toEqual([5173]);
+    });
+
+    it("counts a server listening only on IPv6", async () => {
+      const { tools } = probed(tcp() + tcp6(`${any6}:1435 ${any6}:0000 0A`));
+      expect(await run(tools, "preview", { port: 5173 })).toMatchObject({
+        status: "exposed",
+      });
+    });
+
+    it("refuses a server bound to localhost, which the proxy can't reach", async () => {
+      const loopback6 = `${"0".repeat(24)}01000000`;
+      const { exposed, tools } = probed(
+        tcp("0100007F:1435 00000000:0000 0A") +
+          tcp6(`${loopback6}:1435 ${any6}:0000 0A`)
+      );
+      expect(await run(tools, "preview", { port: 5173 })).toEqual({
+        message: expect.stringContaining(
+          "only listens on localhost, which the preview can't reach"
+        ),
+        status: "error",
+      });
+      expect(exposed).toEqual([]);
     });
   });
 });
