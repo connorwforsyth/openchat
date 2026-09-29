@@ -21,7 +21,9 @@ import { z } from "zod";
 //   - `[search:<query>]` → a `file_search` call when it's offered;
 //   - `remember <fact>` → an `update_memory` call when it's offered;
 //   - `[slow]` → forty numbered words, one every SLOW_TOKEN_MS;
-//   - anything else → `Echo: <message>`.
+//   - anything else → `Echo: <message>`, followed by `[<path>: <content>]`
+//     for each workspace file the message mentions (`@file` and attachments,
+//     which the server reads into the instructions; ticket 056).
 
 const SLOW_TOKEN_MS = 120;
 const SLOW_TOKENS = 40;
@@ -38,6 +40,9 @@ const TOKENS = /\S+\s*/g;
 const WORDS = /[a-z0-9]+/g;
 const TRAILING_STOPS = /[.!]+$/;
 const FIRST_PERSON = /^I /i;
+// `server/runs/workspace-context.ts`: a mentioned file inlined whole.
+const WORKSPACE_FILE =
+  /<workspace-file path="([^"]*)">\n([\s\S]*?)\n<\/workspace-file>/g;
 
 const textPartSchema = z.object({ text: z.string(), type: z.literal("text") });
 
@@ -173,7 +178,10 @@ export const replyFor = (request: ChatRequest): Reply => {
     );
     return text(`Slow reply: ${words.join(" ")} done.`, SLOW_TOKEN_MS);
   }
-  return text(`Echo: ${userText.trim()}`);
+  const files = [...system.matchAll(WORKSPACE_FILE)].map(
+    ([, path, content]) => ` [${path}: ${content?.trim()}]`
+  );
+  return text(`Echo: ${userText.trim()}${files.join("")}`);
 };
 
 /** A stable unit vector per text: texts sharing words land near each other. */

@@ -5,6 +5,7 @@ import {
   composerReady,
   conversationIdOf,
   expectReply,
+  openWorkspace,
   send,
   userMessages,
 } from "../support/chat";
@@ -72,7 +73,8 @@ test("a PDF attached to a chat is indexed and searchable, from the API and the c
 // Attached in the composer, the PDF goes with the message. The suite's
 // model is openai-compatible, which reads no PDFs (044): the turn doesn't
 // fail; the model is told a file came with it, and once the upload is
-// indexed the chat searches it with `file_search`.
+// indexed the chat searches it with `file_search`. It also lands in the
+// chat's workspace, for the agent's tools and the Files panel (062).
 test("a PDF attached in the composer goes with the message", async ({
   baseURL,
   page,
@@ -90,6 +92,10 @@ test("a PDF attached in the composer goes with the message", async ({
   await send(page, "Here is the quarterly report");
   await expectReply(page, "Echo: Here is the quarterly report");
   await expect(userMessages(page).first()).toContainText("attached-report.pdf");
+  const panel = await openWorkspace(page);
+  await expect(
+    panel.getByRole("treeitem", { name: "attached-report.pdf" })
+  ).toBeVisible();
 
   const api = await apiFor(page, baseURL ?? "");
   const conversationId = await conversationIdOf(page);

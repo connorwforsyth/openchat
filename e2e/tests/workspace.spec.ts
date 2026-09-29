@@ -1,8 +1,10 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import type { ConversationId } from "@workspace/contract/schemas/common";
 
 import { apiFor, eventually } from "../support/api";
 import {
+  composer,
+  composerReady,
   conversationIdOf,
   expectReply,
   openWorkspace,
@@ -13,21 +15,32 @@ import { storageStateFor } from "../support/users";
 const BASH_RESULT = /Tool result: .*from-the-agent/;
 const HI_RESULT = /Tool result: .*hi/;
 const REVIEW_RESULT = /Tool result: .*Keep the last line as a number/;
+const RAN_LS = /^Ran ls/;
+const APPROVE = /^Approve/;
+const SAVED = /Saved/;
 
-// PLAN.md §11 M1 steps 6 and 7 without Docker: the agent's commands run in
-// the chat's just-bash workspace, which it creates on first use (056), and
-// the Workspace panel shows the files (060: no terminal, no Create button).
-// A file change the agent proposes is reviewed hunk by hunk (only accepted
-// hunks land; the agent hears about the rejected one). The Docker leg (a
-// dev server and its preview, `runsc`) needs Docker: see the sandbox job in
-// ci.yml. Ticket 062 turns this into workspace.spec.ts.
+// The chat's workspace (PLAN.md D7, §11 M1 steps 6 and 7 without Docker):
+// every chat has one, made on first use (056) on just-bash here, shown in
+// the Workspace panel (060: files, an editor, no terminal) and reachable
+// from the composer (061, 062): `@` mentions files, attachments land in it,
+// `/new-file` makes one. A file change the agent proposes is reviewed hunk
+// by hunk (only accepted hunks land; the agent hears about the rejected
+// one). The Docker leg (a dev server and its preview, `runsc`) needs
+// Docker: see the sandbox job in ci.yml.
 
 test.describe.configure({ mode: "serial" });
 test.use({ storageState: storageStateFor("ada") });
 
-let conversationId: ConversationId;
+/** The chat the bash and review tests share. */
+let shellChat: ConversationId;
+/** The chat the file tests share: `hello.md` lives here. */
+let filesChat: ConversationId;
 
-test("the Workspace panel shows files the agent made, with no terminal", async ({
+/** The panel's editor, typed into as a person would (060). */
+const editorIn = (page: Page) =>
+  page.locator('[data-slot="code-editor"] [contenteditable="true"]');
+
+test("the agent's commands show as quiet lines, and the panel has files but no terminal", async ({
   page,
 }) => {
   await page.goto("/");
@@ -36,11 +49,12 @@ test("the Workspace panel shows files the agent made, with no terminal", async (
     '[tool:bash {"command": "ls && echo hi > a.txt && cat a.txt"}]'
   );
   await expectReply(page, HI_RESULT);
-  conversationId = await conversationIdOf(page);
+  shellChat = await conversationIdOf(page);
+  await expect(page.getByRole("button", { name: RAN_LS })).toBeVisible();
 
   const panel = await openWorkspace(page);
   await expect(panel.getByRole("treeitem", { name: "a.txt" })).toBeVisible();
-  await expect(panel.getByText("Terminal")).toHaveCount(0);
+  await expect(page.getByText("Terminal")).toHaveCount(0);
   await expect(
     panel.getByRole("button", { name: "Create sandbox" })
   ).toHaveCount(0);
@@ -52,8 +66,8 @@ test("the Workspace panel shows files the agent made, with no terminal", async (
   await expect(reopened.getByRole("treeitem", { name: "a.txt" })).toBeVisible();
 });
 
-test("the agent runs bash in the chat's sandbox", async ({ page }) => {
-  await page.goto(`/c/${conversationId}`);
+test("the agent runs bash in the chat's workspace", async ({ page }) => {
+  await page.goto(`/c/${shellChat}`);
   await send(
     page,
     '[tool:bash {"command": "echo from-the-agent > b.txt && cat a.txt b.txt"}]'
@@ -66,19 +80,21 @@ test("per-hunk review: a rejected hunk stays unapplied and the agent is told", a
   page,
 }) => {
   const api = await apiFor(page, baseURL ?? "");
-  const sandbox = await api.sandbox.get({ conversationId });
-  if (!sandbox) {
-    throw new Error("the chat has no sandbox");
-  }
   const lines = Array.from({ length: 20 }, (_, index) => String(index + 1));
-  await api.sandbox.exec({
-    command: `printf '${lines.join("\\n")}\\n' > notes.txt`,
-    id: sandbox.id,
+  await api.sandbox.writeFile({
+    content: `${lines.join("\n")}\n`,
+    conversationId: shellChat,
+    encoding: "utf8",
+    path: "notes.txt",
   });
+  const sandbox = await api.sandbox.get({ conversationId: shellChat });
+  if (!sandbox) {
+    throw new Error("the chat has no workspace");
+  }
   // Two changes far enough apart to be two hunks: line 1 and line 20.
   const proposed = ["one", ...lines.slice(1, 19), "twenty"].join("\\n");
 
-  await page.goto(`/c/${conversationId}`);
+  await page.goto(`/c/${shellChat}`);
   await send(
     page,
     `[tool:write {"path": "notes.txt", "content": "${proposed}\\n"}]`
@@ -88,7 +104,7 @@ test("per-hunk review: a rejected hunk stays unapplied and the agent is told", a
   ).toBeVisible();
 
   const waiting = await eventually(
-    () => api.runs.list({ active: true, conversationId, limit: 5 }),
+    () => api.runs.list({ active: true, conversationId: shellChat, limit: 5 }),
     (runs) =>
       runs.items.some((each) => each.state.status === "awaiting_approval")
   );
@@ -142,4 +158,128 @@ test("per-hunk review: a rejected hunk stays unapplied and the agent is told", a
   // The agent's next step saw the rejection and the reviewer's comment.
   await page.reload();
   await expectReply(page, REVIEW_RESULT);
+});
+
+test("a file the agent writes shows as a card; Open shows it in the tree and the editor", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await send(
+    page,
+    '[tool:write {"path": "hello.md", "content": "hello-from-the-agent\\n"}]'
+  );
+  await page.getByRole("button", { name: APPROVE }).click();
+  const card = page.getByRole("region", { name: "Created hello.md" });
+  await expect(card).toBeVisible({ timeout: 30_000 });
+  filesChat = await conversationIdOf(page);
+
+  await card.getByRole("button", { name: "Open hello.md" }).click();
+  const panel = page.getByRole("region", { name: "Workspace" });
+  await expect(
+    panel.getByRole("treeitem", { name: "hello.md" })
+  ).toHaveAttribute("aria-selected", "true");
+  await expect(editorIn(page)).toContainText("hello-from-the-agent");
+});
+
+test("an edit typed in the panel's editor survives a reload", async ({
+  baseURL,
+  page,
+}) => {
+  await page.goto(`/c/${filesChat}`);
+  const panel = await openWorkspace(page);
+  await panel.getByRole("treeitem", { name: "hello.md" }).click();
+  const editor = editorIn(page);
+  await expect(editor).toContainText("hello-from-the-agent");
+  await editor.click();
+  await page.keyboard.press("ControlOrMeta+End");
+  await page.keyboard.type("edited-by-hand");
+  await expect(panel.getByText(SAVED)).toBeVisible();
+
+  await page.reload();
+  const reopened = page.getByRole("region", { name: "Workspace" });
+  await reopened.getByRole("treeitem", { name: "hello.md" }).click();
+  await expect(editorIn(page)).toContainText("edited-by-hand");
+
+  const api = await apiFor(page, baseURL ?? "");
+  const sandbox = await api.sandbox.get({ conversationId: filesChat });
+  if (!sandbox) {
+    throw new Error("the chat has no workspace");
+  }
+  const file = await api.sandbox.readFile({ id: sandbox.id, path: "hello.md" });
+  expect(file.content).toContain("edited-by-hand");
+});
+
+test("@hello.md puts the file's content in front of the model", async ({
+  page,
+}) => {
+  await page.goto(`/c/${filesChat}`);
+  const input = composer(page);
+  await composerReady(page);
+  await input.click();
+  await input.pressSequentially("What is in @hello");
+  await expect(page.getByRole("option", { name: "hello.md" })).toBeVisible();
+  await input.press("Enter");
+  await input.pressSequentially(" now");
+  await input.press("Enter");
+  // The mock echoes the files the server read into the turn (056), as they
+  // are now: with the edit typed in the panel.
+  await expectReply(page, "[hello.md: hello-from-the-agent");
+  await expectReply(page, "edited-by-hand]");
+});
+
+test("a file attached in the composer lands in the workspace", async ({
+  page,
+}) => {
+  await page.goto(`/c/${filesChat}`);
+  await composerReady(page);
+  const chooser = page.waitForEvent("filechooser");
+  await page.getByRole("button", { name: "Attach files" }).click();
+  await (await chooser).setFiles({
+    buffer: Buffer.from("attached-content\n"),
+    mimeType: "text/plain",
+    name: "attached-notes.txt",
+  });
+  await send(page, "Here are my notes");
+  // Mentioned as it went in, so the turn read it too.
+  await expectReply(page, "[attached-notes.txt: attached-content]");
+
+  const panel = await openWorkspace(page);
+  await expect(
+    panel.getByRole("treeitem", { name: "attached-notes.txt" })
+  ).toBeVisible();
+});
+
+test("/new-file creates a file and opens it", async ({ baseURL, page }) => {
+  await page.goto(`/c/${filesChat}`);
+  const input = composer(page);
+  await composerReady(page);
+  await input.click();
+  await input.pressSequentially("/new-file");
+  await expect(page.getByRole("option", { name: "New file" })).toBeVisible();
+  await input.press("Enter");
+
+  const dialog = page.getByRole("dialog", { name: "New file" });
+  await dialog.getByLabel("Name").fill("todo.md");
+  await dialog.getByRole("button", { name: "Create" }).click();
+  await expect(dialog).toBeHidden();
+
+  const panel = page.getByRole("region", { name: "Workspace" });
+  await expect(
+    panel.getByRole("treeitem", { name: "todo.md" })
+  ).toHaveAttribute("aria-selected", "true");
+  await expect(editorIn(page)).toBeVisible();
+  // A command, not a message.
+  await expect(input).toHaveText("");
+
+  const api = await apiFor(page, baseURL ?? "");
+  const sandbox = await api.sandbox.get({ conversationId: filesChat });
+  if (!sandbox) {
+    throw new Error("the chat has no workspace");
+  }
+  const listed = await api.sandbox.listFiles({
+    id: sandbox.id,
+    path: ".",
+    recursive: true,
+  });
+  expect(listed.map((entry) => entry.path)).toContain("/work/todo.md");
 });
