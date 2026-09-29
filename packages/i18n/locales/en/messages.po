@@ -37,9 +37,21 @@ msgstr "{0}: no such file or directory"
 msgid "{accepted} accepted, {rejected} rejected, {pending, plural, one {# to review} other {# to review}}"
 msgstr "{accepted} accepted, {rejected} rejected, {pending, plural, one {# to review} other {# to review}}"
 
+#: ../chat-ui/src/conversation/file-change-card.tsx
+msgid "{added, plural, one {# line added} other {# lines added}}"
+msgstr "{added, plural, one {# line added} other {# lines added}}"
+
 #: ../code-ui/src/diff-view.tsx
 msgid "{additions, plural, one {# line added} other {# lines added}}"
 msgstr "{additions, plural, one {# line added} other {# lines added}}"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "{code} exited with code {exitCode}"
+msgstr "{code} exited with code {exitCode}"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "{code} timed out"
+msgstr "{code} timed out"
 
 #: ../library-ui/src/components/library-index.tsx
 msgid "{count, plural, one {# item} other {# items}}"
@@ -94,6 +106,14 @@ msgstr "{page} of {totalBranches}"
 #: ../chat-ui/src/header/branch-switcher.tsx
 msgid "{position}/{total}"
 msgstr "{position}/{total}"
+
+#: ../chat-ui/src/conversation/file-change-card.tsx
+msgid "{rejected, plural, one {# change rejected} other {# changes rejected}}"
+msgstr "{rejected, plural, one {# change rejected} other {# changes rejected}}"
+
+#: ../chat-ui/src/conversation/file-change-card.tsx
+msgid "{removed, plural, one {# line removed} other {# lines removed}}"
+msgstr "{removed, plural, one {# line removed} other {# lines removed}}"
 
 #. placeholder {0}: edits.length
 #: ../chat-ui/src/conversation/approval.tsx
@@ -507,6 +527,10 @@ msgstr "Change {number} rejected"
 msgid "Change shortcuts"
 msgstr "Change shortcuts"
 
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Changed {code}"
+msgstr "Changed {code}"
+
 #: ../chat-ui/src/artifacts/artifacts-panel.tsx
 msgid "Changes"
 msgstr "Changes"
@@ -623,6 +647,10 @@ msgstr "Code views"
 #: ../chat-ui/src/sandbox/terminal.tsx
 msgid "Command"
 msgstr "Command"
+
+#: ../chat-ui/src/conversation/tool-status.tsx
+msgid "Command and output"
+msgstr "Command and output"
 
 #: ../palette/src/command-palette.tsx
 #: ../ui/src/components/command.tsx
@@ -742,6 +770,10 @@ msgstr "Copy the last reply"
 msgid "Cost"
 msgstr "Cost"
 
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Couldn't change {code}"
+msgstr "Couldn't change {code}"
+
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "Couldn't check"
 msgstr "Couldn't check"
@@ -750,13 +782,41 @@ msgstr "Couldn't check"
 msgid "Couldn't load this artifact."
 msgstr "Couldn't load this artifact."
 
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Couldn't open a preview"
+msgstr "Couldn't open a preview"
+
 #: ../../apps/web/app/(auth)/_components/auth-problem.tsx
 msgid "Couldn't reach the server. Check your connection and try again."
 msgstr "Couldn't reach the server. Check your connection and try again."
 
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Couldn't read {code}"
+msgstr "Couldn't read {code}"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Couldn't run {code}"
+msgstr "Couldn't run {code}"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Couldn't search the web"
+msgstr "Couldn't search the web"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Couldn't search your files"
+msgstr "Couldn't search your files"
+
 #: ../chat-ui/src/conversation/memory-note.tsx
 msgid "Couldn't undo. Try again."
 msgstr "Couldn't undo. Try again."
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Couldn't use {code}"
+msgstr "Couldn't use {code}"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Couldn't use {code} from {server}"
+msgstr "Couldn't use {code} from {server}"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/audit-policy.tsx
 msgid "Covers chats held in this org's contexts (the org and its teams). Personal chats are never covered."
@@ -802,6 +862,18 @@ msgstr "Create the agent to try it in a test chat."
 #: ../../apps/web/app/(auth)/sign-up/page.tsx
 msgid "Create your account with the email address the invitation was sent to."
 msgstr "Create your account with the email address the invitation was sent to."
+
+#: ../chat-ui/src/conversation/file-change-card.tsx
+msgid "Created"
+msgstr "Created"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Created {code}"
+msgstr "Created {code}"
+
+#: ../chat-ui/src/conversation/file-change-card.tsx
+msgid "Created {path}"
+msgstr "Created {path}"
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "CSV"
@@ -904,6 +976,38 @@ msgstr "Devices"
 msgid "Diagram"
 msgstr "Diagram"
 
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Didn't change {code}"
+msgstr "Didn't change {code}"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Didn't open a preview"
+msgstr "Didn't open a preview"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Didn't read {code}"
+msgstr "Didn't read {code}"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Didn't run {code}"
+msgstr "Didn't run {code}"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Didn't search the web"
+msgstr "Didn't search the web"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Didn't search your files"
+msgstr "Didn't search your files"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Didn't use {code}"
+msgstr "Didn't use {code}"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Didn't use {code} from {server}"
+msgstr "Didn't use {code} from {server}"
+
 #: ../code-ui/src/diff-view.tsx
 msgid "Diff layout"
 msgstr "Diff layout"
@@ -986,6 +1090,22 @@ msgstr "Edit"
 #: ../chat-ui/src/conversation/message-row.tsx
 msgid "Edit message"
 msgstr "Edit message"
+
+#: ../chat-ui/src/conversation/file-change-card.tsx
+msgid "Edited"
+msgstr "Edited"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Edited {code}"
+msgstr "Edited {code}"
+
+#: ../chat-ui/src/conversation/file-change-card.tsx
+msgid "Edited {path}"
+msgstr "Edited {path}"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Editing {code}"
+msgstr "Editing {code}"
 
 #: ../chat-ui/src/header/share-menu.tsx
 msgid "Editor"
@@ -1674,6 +1794,10 @@ msgstr "No budgets"
 msgid "No changes from the previous version."
 msgstr "No changes from the previous version."
 
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "No changes to {path}"
+msgstr "No changes to {path}"
+
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "No chats yet. Start one and it shows up here."
 msgstr "No chats yet. Start one and it shows up here."
@@ -1787,6 +1911,15 @@ msgstr "Only the org's owners can change this."
 msgid "Only the owner, so far."
 msgstr "Only the owner, so far."
 
+#: ../chat-ui/src/conversation/file-change-card.tsx
+#: ../chat-ui/src/conversation/tool-status.tsx
+msgid "Open"
+msgstr "Open"
+
+#: ../chat-ui/src/conversation/file-change-card.tsx
+msgid "Open {path}"
+msgstr "Open {path}"
+
 #. placeholder {0}: part.title
 #: ../chat-ui/src/conversation/artifact-card.tsx
 msgid "Open artifact: {0}"
@@ -1821,10 +1954,18 @@ msgstr "Open the command palette"
 msgid "Open the library"
 msgstr "Open the library"
 
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Opened a preview"
+msgstr "Opened a preview"
+
 #. placeholder {0}: open.path
 #: ../chat-ui/src/sandbox/files.tsx
 msgid "Opening {0}…"
 msgstr "Opening {0}…"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Opening a preview"
+msgstr "Opening a preview"
 
 #: ../code-ui/src/diff-view.tsx
 msgid "Optional: tell the agent why"
@@ -2135,10 +2276,23 @@ msgstr "Publishing is blocked when evals regress."
 msgid "Put a copy in a team or org library. The library owns it and you maintain it."
 msgstr "Put a copy in a team or org library. The library owns it and you maintain it."
 
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Ran {code}"
+msgstr "Ran {code}"
+
 #: ../chat-ui/src/conversation/artifact-card.tsx
 msgid "React component"
 msgstr "React component"
 
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Read {code}"
+msgstr "Read {code}"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Reading {code}"
+msgstr "Reading {code}"
+
+#: ../chat-ui/src/header/sandbox-pill.tsx
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "Ready"
 msgstr "Ready"
@@ -2343,6 +2497,10 @@ msgstr "Run command"
 msgid "Running"
 msgstr "Running"
 
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Running {code}"
+msgstr "Running {code}"
+
 #: ../chat-ui/src/sandbox/terminal.tsx
 msgid "Running…"
 msgstr "Running…"
@@ -2489,13 +2647,29 @@ msgstr "Search the library"
 msgid "Search the web"
 msgstr "Search the web"
 
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Searched the web"
+msgstr "Searched the web"
+
 #: ../library-ui/src/components/agent-form.tsx
 msgid "Searched with file search. Only people who can view the agent can read them."
 msgstr "Searched with file search. Only people who can view the agent can read them."
 
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Searched your files"
+msgstr "Searched your files"
+
 #: ../palette/src/command-palette.tsx
 msgid "Searching messages…"
 msgstr "Searching messages…"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Searching the web"
+msgstr "Searching the web"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Searching your files"
+msgstr "Searching your files"
 
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "Secret"
@@ -3319,6 +3493,14 @@ msgstr "Use in chat"
 msgid "Use lets people chat with it. View also shows its instructions and lets them copy it. Edit lets them change it."
 msgstr "Use lets people chat with it. View also shows its instructions and lets them copy it. Edit lets them change it."
 
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Used {code}"
+msgstr "Used {code}"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Used {code} from {server}"
+msgstr "Used {code} from {server}"
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-keys-admin.tsx
 msgid "Used by org chats, and by team chats when no team up the tree has a key."
 msgstr "Used by org chats, and by team chats when no team up the tree has a key."
@@ -3330,6 +3512,14 @@ msgstr "Used by this team's chats and its sub-teams' when they have none of thei
 #: ../../apps/web/app/(app)/(pages)/settings/_components/profile-settings.tsx
 msgid "Used for the interface and passed to agents so they answer in your language."
 msgstr "Used for the interface and passed to agents so they answer in your language."
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Using {code}"
+msgstr "Using {code}"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Using {code} from {server}"
+msgstr "Using {code} from {server}"
 
 #: ../library-ui/src/components/version-history.tsx
 msgid "v{number}"
@@ -3362,6 +3552,38 @@ msgstr "View fullscreen"
 #: ../chat-ui/src/header/share-menu.tsx
 msgid "Viewer"
 msgstr "Viewer"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Wants to change {code}"
+msgstr "Wants to change {code}"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Wants to open a preview"
+msgstr "Wants to open a preview"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Wants to read {code}"
+msgstr "Wants to read {code}"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Wants to run {code}"
+msgstr "Wants to run {code}"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Wants to search the web"
+msgstr "Wants to search the web"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Wants to search your files"
+msgstr "Wants to search your files"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Wants to use {code}"
+msgstr "Wants to use {code}"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Wants to use {code} from {server}"
+msgstr "Wants to use {code} from {server}"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "Warns"
@@ -3476,6 +3698,9 @@ msgstr "Write a small TypeScript function that groups a list of dates by ISO wee
 #: ../chat-ui/src/conversation/empty-state.tsx
 msgid "Write some code"
 msgstr "Write some code"
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Writing {code}"
+msgstr "Writing {code}"
 
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "Yesterday"
