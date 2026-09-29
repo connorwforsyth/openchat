@@ -350,6 +350,13 @@ export const createPreviewApp = ({
       for (const name of HOP_BY_HOP) {
         out.delete(name);
       }
+      // fetch has already decoded a gzip/br/deflate body, so passing the
+      // upstream encoding (and its length) on makes the browser decode it
+      // again, fail, and show a blank preview (ticket 068).
+      if (out.has("content-encoding")) {
+        out.delete("content-encoding");
+        out.delete("content-length");
+      }
       return new Response(response.body, {
         headers: previewCors(c.req.header("origin"), out),
         status: response.status,

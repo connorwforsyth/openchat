@@ -355,6 +355,20 @@ describe("runner through the docker client", () => {
       return { get, origins };
     };
 
+    it("doesn't pass on an encoding fetch has already decoded", async () => {
+      // The fake stands in for fetch after it gunzipped the body: the headers
+      // still say gzip, the body is plain (ticket 068).
+      const { get } = await proxyWith({
+        "content-encoding": "gzip",
+        "content-length": "12",
+      });
+      const response = await get();
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-encoding")).toBe(null);
+      expect(response.headers.get("content-length")).toBe(null);
+      expect(await response.text()).toBe("export {};");
+    });
+
     it("lets the panel's opaque-origin iframe load module scripts", async () => {
       const { get, origins } = await proxyWith();
       const response = await get("null");
