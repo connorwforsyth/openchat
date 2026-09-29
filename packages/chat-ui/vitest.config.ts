@@ -34,6 +34,7 @@ export default defineProject({
       "zod",
       "@streamdown/math",
       "@workspace/code-ui > @pierre/diffs",
+      "@workspace/code-ui > @pierre/diffs/edit",
       "@workspace/code-ui > @pierre/diffs/react",
       "@workspace/code-ui > @pierre/trees",
       "@workspace/code-ui > @pierre/trees/react",
