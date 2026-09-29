@@ -75,3 +75,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-09-29 · 057 closed · PR #47 · template restyle · e2e 26/26, 82/82 · demo image rebuilt for Connor
 - 2026-09-29 · 061 closed · PR #48 · composer file features · 79/79, 82/82
 - 2026-09-29 · 058 closed · PR #49 · tool status lines · 131/131, e2e 25/25, 82/82 · 059/060/062 wait on PR #45 (Connor)
+- 2026-09-29 · 059, 060 started, stacked on the 055 branch (PR #45 still waiting on Connor)

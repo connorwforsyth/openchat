@@ -3,7 +3,7 @@ id: "060"
 title: "One Workspace panel"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: ["055", "057"]
 ---
 

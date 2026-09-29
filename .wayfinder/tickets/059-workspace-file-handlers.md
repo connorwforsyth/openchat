@@ -3,7 +3,7 @@ id: "059"
 title: "Server side of the workspace file routes"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: ["055", "056"]
 ---
 
