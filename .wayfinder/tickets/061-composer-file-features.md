@@ -90,3 +90,13 @@ paths and command names in, and gets tokens and `onCommand` calls out.
 | New browser tests in `components/composer.test.tsx` | Choosing a file mention gives `{ kind: "file", path: "src/app.ts", label: "app.ts", start: 4, end: 11 }` in the submitted value. `/op` then Enter lists 2 files; typing `read` narrows to 1; Enter calls `onCommand("open", "README.md")` and clears the text. `/new-file`, `/preview`, and `/open` with no files call `onCommand` and never submit. Commands are hidden without `commands`, and only `preview` shows when that's the only one passed |
 | New pure tests | `fileCandidate`/`candidateKey`, `filterMentions` with files, `slashItems` (order, hiding, `open:` stage), `slashStage`, and `serializeDoc` for a file node |
 | composer suite | 79/79 (3 runs) |
+| Gate (`.tools/gate.sh`) | `bun install --frozen-lockfile` no changes; `check` and `check:guards` clean; `bun turbo typecheck lint test build` 82/82. (The Lingui guard counts any uncommitted `.po` change as drift, so the gate only passes once the catalog is committed.) |
+
+Notes for 062 (wiring):
+- Pass the workspace's file paths as `files` (workspace-relative, no leading `/`), and
+  `commands={["new-file", "open", "preview"]}` or whichever of these the app can do.
+  `onCommand(command, path?)` receives `"open"` with a path, or without one when `files` is empty.
+- A file mention reaches `onSubmit` as `value.mentions[i] = { kind: "file", path, label, start, end }`.
+  The text reads `@app.ts`, so the host should add the path to the message itself, for example as a
+  `data` part, if the model needs it.
+- `packages/composer/README.md` isn't in Owns, so it doesn't list the new props yet.
