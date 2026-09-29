@@ -3,7 +3,7 @@ id: "062"
 title: "Wire it together, plus e2e"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: ["058", "059", "060", "061"]
 ---
 
@@ -81,3 +81,9 @@ After trying the M1 demo, Connor asked for two things.
 - The preview line's Open currently opens a new tab; add `onOpenPreview` to open the in-app Preview item instead.
 - A tool call with no result, because its run failed or was cancelled, spins forever. Pass "message still streaming" from `message-row.tsx` into `ToolPart` so it settles to a neutral "Stopped" line. Additional Owns: `packages/chat-ui/src/conversation/message-row.tsx`, `tool-part.tsx`, `tool-status.tsx`.
 - Do a visual pass in the running app: 058's styling was only covered by e2e.
+
+## Notes from 060 (also in scope here)
+- Use `ChatScreen`'s `workspaceHandle` (`openFile`, `openPreview`) for `/new-file`, `/open`, `/preview`, and `onOpenPreview` on the preview status line.
+- In e2e, type into the editor by clicking `[data-slot="code-editor"] [contenteditable="true"]`, then wait for "Saved".
+- Bug: after viewing an artifact, clicking the same file in the tree doesn't fire a selection change; fix it.
+- `apps/web/app/dev/sandbox/page.tsx` copy still says "Sandbox panel"; rename it to Workspace (additional Owns).

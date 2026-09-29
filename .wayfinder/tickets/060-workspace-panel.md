@@ -2,8 +2,8 @@
 id: "060"
 title: "One Workspace panel"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: ["055", "057"]
 ---
 
@@ -115,3 +115,7 @@ Built on `t/060-workspace-panel` (stacked on 055's contract branch with `origin/
 - `onOpenPreview` for the preview status line: call `workspaceHandle.openPreview()` (or `select({kind:"preview"})` in `ChatScreen`).
 - `workspace.spec.ts` can drive the editor by clicking `[data-slot="code-editor"] [contenteditable="true"]` (Playwright pierces the shadow root) and waiting for "Saved".
 - Selecting the same file in the tree after viewing an artifact doesn't re-fire the tree's selection (the tree still has it selected); click another item first, or remount the tree if it matters.
+
+## Resolution (2026-09-30, loop)
+
+Merged in [PR #52](https://github.com/connorwforsyth/openchat/pull/52). One Workspace panel (Preview, Files with editor, Artifacts), no terminal, etag-safe editing, one source of truth, new-chat and preview-not-running states. chat-ui 165/165, e2e 26/26, gate 82/82.

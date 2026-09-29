@@ -2,8 +2,8 @@
 id: "059"
 title: "Server side of the workspace file routes"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: ["055", "056"]
 ---
 
@@ -77,3 +77,7 @@ Branch `t/059-workspace-file-handlers`, stacked on `t/055-contract-workspace-fil
   - `server/src/api/sandbox.test.ts`: `app.request()` tests through `createApp` for each route: 200, 201 and 204 statuses, inputs with defaults (`encoding`, `recursive`, delete path in the body), 409 `already_exists`, `version_mismatch` and `not_empty`, 422, 404, 403 and 401, and a malformed etag refused with 400 before the handler. 18 tests.
 - **Gate: 82/82.** The first two runs failed in `@workspace/db#test` and then `@workspace/chat-ui#test` (neither touched here) at load average ~210. Both passed alone, and the third run passed in full.
 - **Left:** the version check reads and then writes, so two saves in the same instant can both pass. `getConversationSandbox` still only reads (it doesn't call `ensureWorkspace`).
+
+## Resolution (2026-09-30, loop)
+
+Merged in [PR #51](https://github.com/connorwforsyth/openchat/pull/51). Real `writeFile`/`importFile`/`deleteFile`: etag conflicts, `resolveWorkspacePath` confined to /work, editor-only permissions, just-bash caps, workspace started through `ensureWorkspace`. 58 new tests, gate 82/82. Left: the etag check reads then writes (a tiny race); `get` doesn't recover a workspace.

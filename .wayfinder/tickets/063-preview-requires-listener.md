@@ -2,8 +2,8 @@
 id: "063"
 title: "The agent's preview tool checks that something is listening"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -51,3 +51,7 @@ still called `preview`, so a dead preview was recorded and shown.
 - Gate: passes (82/82). An earlier run failed `@workspace/db#test` while load average was around 180; it passed alone
   and in the next two full runs.
 - Not run against real Docker: the smoke test calls `exposePort` directly, not the tool.
+
+## Resolution (2026-09-30, loop)
+
+Merged in [PR #50](https://github.com/connorwforsyth/openchat/pull/50). `preview` checks /proc/net/tcp{,6} for a listener (~5 s of retries), refuses localhost-only servers, and tells the model how to start the server. Gate 82/82.
