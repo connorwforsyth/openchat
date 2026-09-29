@@ -22,9 +22,11 @@ import { z } from "zod";
 
 import { resolveSandboxPath, WORKDIR } from "../paths";
 import type { Sandbox, SandboxError } from "../ports/sandbox";
+import { previewStaticPage } from "../static-preview";
 import {
   authorize,
   fromSandboxError,
+  recordPreview,
   type SandboxHandlerDeps,
   sandboxHandlerErrorSchema,
 } from "./sandbox";
@@ -185,6 +187,17 @@ const workspaceFor = async (
   );
 };
 
+/** A page someone saved previews without a server (067); never fails the save. */
+const previewPage = (
+  deps: SandboxHandlerDeps,
+  sandbox: Sandbox,
+  path: string
+): Promise<void> =>
+  previewStaticPage(sandbox, path, {
+    log: deps.log,
+    record: (id, exposed) => recordPreview(deps.db, id, exposed),
+  });
+
 /**
  * What's at `path`, from its directory's listing: every provider lists a
  * directory, none stats a single path. `null` when nothing is there,
@@ -296,7 +309,11 @@ export const writeWorkspaceFile = async (
   if (!sandbox.ok) {
     return sandbox;
   }
-  return put(sandbox.value, path.value, bytes, input.ifMatch);
+  const written = await put(sandbox.value, path.value, bytes, input.ifMatch);
+  if (written.ok) {
+    await previewPage(deps, sandbox.value, written.value.path);
+  }
+  return written;
 };
 
 /** `path`, or the first `name (n).ext` beside it that nothing has taken. */
@@ -416,7 +433,11 @@ export const importWorkspaceFile = async (
   if (!path.ok) {
     return path;
   }
-  return put(sandbox.value, path.value, read.bytes, null);
+  const written = await put(sandbox.value, path.value, read.bytes, null);
+  if (written.ok) {
+    await previewPage(deps, sandbox.value, written.value.path);
+  }
+  return written;
 };
 
 /** Quotes one argument for a POSIX shell. */

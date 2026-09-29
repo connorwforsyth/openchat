@@ -20,6 +20,8 @@ import { z } from "zod";
 
 import { WORKDIR } from "../paths";
 import type { OutputChunk, Sandbox, SandboxError } from "../ports/sandbox";
+import { STATIC_PREVIEW_PORT } from "../static-preview";
+import { wait, waitForListener } from "./listener";
 import { proposeEdit } from "./patch";
 
 // The agent's sandbox tools (D7) over any `Sandbox`: `bash`, `read`, `write`,
@@ -143,6 +145,12 @@ export type ToolSandbox = Pick<
 >;
 
 export interface SandboxToolsOptions {
+  /**
+   * Called once a `write` or `edit` has landed (some of it applied), with
+   * the path it was given; the static preview (067) hangs off it. It must
+   * not fail: the change is already made.
+   */
+  readonly onChanged?: (path: string) => Promise<void>;
   /** Streams `bash` output to the panel as it arrives. */
   readonly onOutput?: (toolCallId: string, chunk: OutputChunk) => void;
   readonly reviewFor?: ReviewLookup;
@@ -397,89 +405,38 @@ export const applySandboxChange = async (
 
 // `preview` checks that something listens on the port before exposing it:
 // otherwise a model that built a library with no server still gets a URL,
-// and the user a dead panel. The check reads the kernel's socket tables,
-// which every Linux image has, rather than relying on `ss` or `netstat`.
-// The preview proxy dials the container's own address, so a server bound
-// only to loopback is as unreachable as none.
-
-/** Probes before giving up, `PROBE_INTERVAL_MS` apart: about 5 s for a server to come up. */
-const PROBE_ATTEMPTS = 10;
-const PROBE_INTERVAL_MS = 500;
-const PROBE_COMMAND = "cat /proc/net/tcp /proc/net/tcp6 2>/dev/null";
-/** The `st` column's value for a listening socket. */
-const TCP_LISTEN = "0A";
-/** A row of `/proc/net/tcp{,6}`: `sl local_address rem_address st ...`. */
-const SOCKET_ROW =
-  /^\s*\d+:\s+([0-9A-Fa-f]+):([0-9A-Fa-f]{4})\s+\S+\s+([0-9A-Fa-f]{2})\s/;
-const TABLE_HEADER = /^\s*sl\s+local_address/m;
-/** ::1, and 127.0.0.0/8 plain or IPv4-mapped; addresses are little-endian words. */
-const LOOPBACK = /^(?:[0-9A-F]{6}7F|0{16}FFFF0{4}[0-9A-F]{6}7F|0{24}01000000)$/;
-
-type Listening = "loopback" | "none" | "reachable" | "unknown";
-
-/** Whether `port` is listening in the socket tables `output` holds. */
-const listeningOn = (output: string, port: number): Listening => {
-  if (!TABLE_HEADER.test(output)) {
-    // No tables to read (just-bash has no /proc): don't block the preview.
-    return "unknown";
-  }
-  let loopback = false;
-  for (const line of output.split("\n")) {
-    const row = SOCKET_ROW.exec(line);
-    if (
-      !row ||
-      row[3]?.toUpperCase() !== TCP_LISTEN ||
-      Number.parseInt(row[2] ?? "", 16) !== port
-    ) {
-      continue;
-    }
-    if (!LOOPBACK.test(row[1]?.toUpperCase() ?? "")) {
-      return "reachable";
-    }
-    loopback = true;
-  }
-  return loopback ? "loopback" : "none";
-};
+// and the user a dead panel. If the socket tables can't be read (just-bash
+// has no /proc), it doesn't block the preview.
 
 const startServerHint = (port: number) =>
   `Start the dev server in the background bound to 0.0.0.0 (e.g. \`npm run dev -- --host 0.0.0.0 --port ${port} &\`) and call preview again.`;
-
-const wait = (ms: number) =>
-  new Promise<void>((resolve) => {
-    setTimeout(resolve, ms);
-  });
 
 /** Waits briefly for a listener on `port`; `ok` means expose it. */
 const awaitListener = async (
   sandbox: ToolSandbox,
   port: number,
   sleep: (ms: number) => Promise<void>,
-  signal: AbortSignal | undefined,
-  attempt = 1
+  signal: AbortSignal | undefined
 ): AsyncResult<void, string> => {
-  const probed = await sandbox.exec(PROBE_COMMAND, {
-    signal,
-    timeoutMs: 5000,
-  });
-  if (!probed.ok) {
-    return err(describeError(probed.error));
+  const listening = await waitForListener(sandbox, port, { signal, sleep });
+  if (!listening.ok) {
+    return err(describeError(listening.error));
   }
-  const state = listeningOn(probed.value.stdout, port);
-  if (state === "loopback") {
-    return err(
-      `The server on port ${port} only listens on localhost, which the preview can't reach. ${startServerHint(port)}`
-    );
+  switch (listening.value) {
+    case "loopback":
+      return err(
+        `The server on port ${port} only listens on localhost, which the preview can't reach. ${startServerHint(port)}`
+      );
+    case "none":
+      return err(
+        `Nothing is listening on port ${port}. ${startServerHint(port)}`
+      );
+    case "reachable":
+    case "unknown":
+      return ok(undefined);
+    default:
+      return listening.value satisfies never;
   }
-  if (state !== "none") {
-    return ok(undefined);
-  }
-  if (attempt >= PROBE_ATTEMPTS || signal?.aborted) {
-    return err(
-      `Nothing is listening on port ${port}. ${startServerHint(port)}`
-    );
-  }
-  await sleep(PROBE_INTERVAL_MS);
-  return awaitListener(sandbox, port, sleep, signal, attempt + 1);
 };
 
 const sliceLines = (
@@ -493,91 +450,110 @@ const sliceLines = (
   return { content: lines.slice(start, end).join("\n"), total: lines.length };
 };
 
+/** Pages written with `write` or `edit` preview without a server of the agent's own. */
+const STATIC_PREVIEW_NOTE = `Writing an .html file shows it in the user's Preview panel on its own; plain HTML, CSS and JS need no server.`;
+
 export const createSandboxTools = ({
+  onChanged,
   onOutput,
   reviewFor,
   sandbox,
   sleep = wait,
-}: SandboxToolsOptions): Record<SandboxToolName, Tool> => ({
-  bash: tool({
-    description: `Run a bash command in the chat's workspace, a sandboxed machine. The working directory is the workspace root, ${WORKDIR}; files there persist between calls and the user sees them in the Files panel. Run commands yourself rather than asking the user to.`,
-    execute: async (
-      { command, cwd, timeoutMs },
-      { abortSignal, toolCallId }
-    ) => {
-      const result = await sandbox.exec(command, {
-        cwd,
-        onOutput: onOutput ? (chunk) => onOutput(toolCallId, chunk) : undefined,
-        signal: abortSignal,
-        timeoutMs,
-      });
-      return result.ok
-        ? { ...result.value, status: "ran" as const }
-        : failure(describeError(result.error));
-    },
-    inputSchema: bashInputSchema,
-    outputSchema: bashOutputSchema,
-  }),
+}: SandboxToolsOptions): Record<SandboxToolName, Tool> => {
+  /** Applies a change, then tells `onChanged` if any of it landed. */
+  const change = async (
+    input: ChangeInput,
+    toolCallId: string
+  ): Promise<FileChangeOutput> => {
+    const output = await applySandboxChange(
+      sandbox,
+      input,
+      await reviewFor?.(toolCallId)
+    );
+    if (output.status === "changed" && output.applied.length > 0) {
+      await onChanged?.(input.input.path);
+    }
+    return output;
+  };
+  return {
+    bash: tool({
+      description: `Run a bash command in the chat's workspace, a sandboxed machine. The working directory is the workspace root, ${WORKDIR}; files there persist between calls and the user sees them in the Files panel. Run commands yourself rather than asking the user to.`,
+      execute: async (
+        { command, cwd, timeoutMs },
+        { abortSignal, toolCallId }
+      ) => {
+        const result = await sandbox.exec(command, {
+          cwd,
+          onOutput: onOutput
+            ? (chunk) => onOutput(toolCallId, chunk)
+            : undefined,
+          signal: abortSignal,
+          timeoutMs,
+        });
+        return result.ok
+          ? { ...result.value, status: "ran" as const }
+          : failure(describeError(result.error));
+      },
+      inputSchema: bashInputSchema,
+      outputSchema: bashOutputSchema,
+    }),
 
-  edit: tool({
-    description: `Replace an exact string in a text file in the workspace (${WORKDIR}, the user's Files panel). The change is shown to the user as a diff and may be applied only in part.`,
-    execute: async (input, { toolCallId }) =>
-      applySandboxChange(
-        sandbox,
-        { input, kind: "edit" },
-        await reviewFor?.(toolCallId)
-      ),
-    inputSchema: editInputSchema,
-    outputSchema: fileChangeOutputSchema,
-  }),
+    edit: tool({
+      description: `Replace an exact string in a text file in the workspace (${WORKDIR}, the user's Files panel). The change is shown to the user as a diff and may be applied only in part. ${STATIC_PREVIEW_NOTE}`,
+      execute: (input, { toolCallId }) =>
+        change({ input, kind: "edit" }, toolCallId),
+      inputSchema: editInputSchema,
+      outputSchema: fileChangeOutputSchema,
+    }),
 
-  preview: tool({
-    description:
-      "Expose a port a server in the workspace listens on and get a URL the user can open in the preview panel. Start the server first, in the background and bound to 0.0.0.0 (e.g. `npm run dev -- --host 0.0.0.0 --port 5173 &`); a server bound to localhost can't be previewed. Only preview something that serves pages: a library or script with no server has nothing to show.",
-    execute: async ({ port }, { abortSignal }) => {
-      const listening = await awaitListener(sandbox, port, sleep, abortSignal);
-      if (!listening.ok) {
-        return failure(listening.error);
-      }
-      const exposed = await sandbox.exposePort(port);
-      return exposed.ok
-        ? { ...exposed.value, status: "exposed" as const }
-        : failure(describeError(exposed.error));
-    },
-    inputSchema: previewInputSchema,
-    outputSchema: previewOutputSchema,
-  }),
+    preview: tool({
+      description: `Expose a port a server in the workspace listens on and get a URL the user can open in the preview panel. This is for dev servers (Vite and the like): static HTML, CSS and JS preview on their own when you write the .html file, so don't start a server for them. Start the server first, in the background and bound to 0.0.0.0 (e.g. \`npm run dev -- --host 0.0.0.0 --port 5173 &\`); a server bound to localhost can't be previewed. Don't use port ${STATIC_PREVIEW_PORT}; the static preview has it. Only preview something that serves pages: a library or script with no server has nothing to show.`,
+      execute: async ({ port }, { abortSignal }) => {
+        const listening = await awaitListener(
+          sandbox,
+          port,
+          sleep,
+          abortSignal
+        );
+        if (!listening.ok) {
+          return failure(listening.error);
+        }
+        const exposed = await sandbox.exposePort(port);
+        return exposed.ok
+          ? { ...exposed.value, status: "exposed" as const }
+          : failure(describeError(exposed.error));
+      },
+      inputSchema: previewInputSchema,
+      outputSchema: previewOutputSchema,
+    }),
 
-  read: tool({
-    description: `Read a text file from the workspace (${WORKDIR}, the user's Files panel), optionally a range of lines. Relative paths are relative to ${WORKDIR}.`,
-    execute: async ({ limit, offset, path }) => {
-      const text = await readText(sandbox, path, { missingIsEmpty: false });
-      if (!text.ok) {
-        return failure(text.error);
-      }
-      const { content, total } = sliceLines(text.value, offset, limit);
-      const truncated = content.length > MAX_READ_CHARS;
-      return {
-        content: truncated ? content.slice(0, MAX_READ_CHARS) : content,
-        path,
-        status: "read" as const,
-        totalLines: total,
-        truncated,
-      };
-    },
-    inputSchema: readInputSchema,
-    outputSchema: readOutputSchema,
-  }),
+    read: tool({
+      description: `Read a text file from the workspace (${WORKDIR}, the user's Files panel), optionally a range of lines. Relative paths are relative to ${WORKDIR}.`,
+      execute: async ({ limit, offset, path }) => {
+        const text = await readText(sandbox, path, { missingIsEmpty: false });
+        if (!text.ok) {
+          return failure(text.error);
+        }
+        const { content, total } = sliceLines(text.value, offset, limit);
+        const truncated = content.length > MAX_READ_CHARS;
+        return {
+          content: truncated ? content.slice(0, MAX_READ_CHARS) : content,
+          path,
+          status: "read" as const,
+          totalLines: total,
+          truncated,
+        };
+      },
+      inputSchema: readInputSchema,
+      outputSchema: readOutputSchema,
+    }),
 
-  write: tool({
-    description: `Create or overwrite a text file in the workspace (${WORKDIR}, the user's Files panel). The change is shown to the user as a diff and may be applied only in part.`,
-    execute: async (input, { toolCallId }) =>
-      applySandboxChange(
-        sandbox,
-        { input, kind: "write" },
-        await reviewFor?.(toolCallId)
-      ),
-    inputSchema: writeInputSchema,
-    outputSchema: fileChangeOutputSchema,
-  }),
-});
+    write: tool({
+      description: `Create or overwrite a text file in the workspace (${WORKDIR}, the user's Files panel). The change is shown to the user as a diff and may be applied only in part. ${STATIC_PREVIEW_NOTE}`,
+      execute: (input, { toolCallId }) =>
+        change({ input, kind: "write" }, toolCallId),
+      inputSchema: writeInputSchema,
+      outputSchema: fileChangeOutputSchema,
+    }),
+  };
+};
