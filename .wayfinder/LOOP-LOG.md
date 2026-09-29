@@ -86,3 +86,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-09-30 · Connor: the Workspace preview should work like a built-in browser · added 066 (browser UI) and 067 (static preview without a server), started
 - 2026-09-30 · added 068 (previews of gzip responses render blank; found by Connor), fixed by the loop directly
 - 2026-09-30 · 068 closed · PR #56 · runner image rebuilt locally with the fix
+- 2026-09-30 · added 069 (runner rejoins sandbox networks after a restart; found while fixing Connor's preview)
