@@ -1,3 +1,4 @@
+import type { ThemeTypes } from "@pierre/diffs";
 import { themeToTreeStyles } from "@pierre/trees";
 import type { CSSProperties } from "react";
 
@@ -11,7 +12,7 @@ import { type CodeThemeType, createCodeTheme } from "./code-theme";
 type CustomProperties = Readonly<Record<`--${string}`, string>>;
 
 /** `--diffs-*` overrides for the file and diff hosts. */
-export const diffsHostStyle: CSSProperties = {
+const diffsOverrides: CSSProperties = {
   "--diffs-bg-buffer-override": "var(--muted)",
   "--diffs-bg-separator-override": "var(--muted)",
   "--diffs-fg-number-override": "var(--muted-foreground)",
@@ -21,6 +22,24 @@ export const diffsHostStyle: CSSProperties = {
   // mixing towards the foreground token follows the theme instead.
   "--diffs-mixer": "var(--foreground)",
 } satisfies CustomProperties as CSSProperties;
+
+// The library's `light-dark()` mixes (diff tints, selection, hover) follow the
+// host's `color-scheme`, which it writes into the shadow root. While a file is
+// being edited it writes the scheme the editor last tokenized in, recorded
+// after the render that applies it, so it lags one switch behind the app
+// (064). The host's own style outranks the shadow root's `:host` rule, so
+// pinning the scheme here keeps every view on the app's. "system" leaves it
+// to the library (before hydration, when the app's scheme isn't known yet).
+const diffsHostStyles: Readonly<Record<ThemeTypes, CSSProperties>> = {
+  dark: { ...diffsOverrides, colorScheme: "dark" },
+  light: { ...diffsOverrides, colorScheme: "light" },
+  system: diffsOverrides,
+};
+
+/** Host style for the file and diff views in the given colour scheme. */
+export function diffsHostStyle(themeType: ThemeTypes): CSSProperties {
+  return diffsHostStyles[themeType];
+}
 
 /**
  * Host style for the file tree: the trees skill's `themeToTreeStyles` over the

@@ -20,11 +20,15 @@ import {
 
 import { CodeHeader } from "./code-header";
 import { codeThemeNames } from "./theme/code-theme";
+import { prepareEditorColors } from "./theme/editor-colors";
 import { diffsHostStyle } from "./theme/host-styles";
 import { registerCodeThemes } from "./theme/register";
 import { useCodeThemeType } from "./theme/use-code-theme-type";
 
 registerCodeThemes();
+// Before any editor mounts: without it, text the editor tokenizes (typing, a
+// colour-scheme switch) is drawn in placeholder colours and vanishes (064).
+prepareEditorColors();
 
 // An editable file on @pierre/diffs' own editor (`File` with `edit`), so the
 // editor and the read-only views share one highlighter, theme and look: no
@@ -146,7 +150,7 @@ export function CodeEditor({
           onEditChange={onEditChange}
           onEditComplete={accept}
           options={options}
-          style={diffsHostStyle}
+          style={diffsHostStyle(themeType)}
         />
       </EditProvider>
     </div>

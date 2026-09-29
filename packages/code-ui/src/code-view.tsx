@@ -83,7 +83,7 @@ export function CodeView<Meta = undefined>({
         options={options}
         renderAnnotation={renderAnnotation}
         selectedLines={selectedLines}
-        style={diffsHostStyle}
+        style={diffsHostStyle(themeType)}
       />
     </div>
   );
