@@ -112,6 +112,7 @@ brief, and their findings land in `.context/research/`.
 - [Loopback origins](tickets/054-loopback-origins.md): sign-in from 127.0.0.1, `TRUSTED_ORIGINS`, clear refusal messages ([PR #44](https://github.com/connorwforsyth/openchat/pull/44))
 - [Always-on workspace](tickets/056-workspace-always-on.md): every chat gets file tools; self-healing; `@file` mentions ([PR #46](https://github.com/connorwforsyth/openchat/pull/46))
 - [Template restyle](tickets/057-template-restyle.md): template-style chat, slimmer header, new D14 ([PR #47](https://github.com/connorwforsyth/openchat/pull/47))
+- [Composer file features](tickets/061-composer-file-features.md): `@` file mentions and `/` file commands ([PR #48](https://github.com/connorwforsyth/openchat/pull/48))
 - [WS-shell](tickets/024-ws-shell.md): ⌘K palette, shortcut registry, settings and admin ([PR #20](https://github.com/connorwforsyth/openchat/pull/20))
 - [WS-libraries](tickets/017-ws-libraries.md): Agent/Prompt/Skill/MCP builders, sharing, publishing and library tabs ([PR #22](https://github.com/connorwforsyth/openchat/pull/22))
 - [M1 polish](tickets/031-m1-polish.md): motion audit + guard, narrow-screen layout, batched feedback lookups ([PR #24](https://github.com/connorwforsyth/openchat/pull/24))

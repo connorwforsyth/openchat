@@ -2,8 +2,8 @@
 id: "061"
 title: "Composer file features (composer package only)"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -100,3 +100,7 @@ Notes for 062 (wiring):
   The text reads `@app.ts`, so the host should add the path to the message itself, for example as a
   `data` part, if the model needs it.
 - `packages/composer/README.md` isn't in Owns, so it doesn't list the new props yet.
+
+## Resolution (2026-09-29, loop)
+
+Merged in [PR #48](https://github.com/connorwforsyth/openchat/pull/48). Composer `files`/`commands`/`onCommand`, `@` file mentions (`{kind:"file", path}`), and the `/new-file`, `/open` (file list) and `/preview` commands. Composer 79/79, gate 82/82.

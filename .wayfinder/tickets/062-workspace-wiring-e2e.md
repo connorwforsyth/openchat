@@ -68,3 +68,10 @@ After trying the M1 demo, Connor asked for two things.
 - `/new-file` works;
 - `[tool:bash …]` shows "Ran …", and there is no Terminal;
 - per-hunk review still works, seeded with `sandbox.writeFile`.
+
+## Notes from 061 (also in scope here)
+- Pass relative workspace paths (no leading `/`, no spaces) as `files`; `onCommand("open")` arrives without a path when `files` is empty, so open the Files panel.
+- File mentions reach `onSubmit` as `value.mentions[i] = {kind:"file", path, label, start, end}`; send them as `data-workspace-file` parts (056).
+- Fix: TipTap's suggestion briefly reports an empty list while loading, so an Enter in that gap submits instead of choosing. Ignore `loading` updates in `packages/composer/src/hooks/use-suggestion-menus.ts`, with a test.
+- Update the composer's screen-reader hint ("Type / for prompts and @ to mention someone") and `packages/composer/README.md` for the file features and the new context-chip placement.
+- Additional Owns: `packages/composer/src/hooks/use-suggestion-menus.ts`, `packages/composer/src/components/composer.tsx` (hint only), `packages/composer/README.md`.
