@@ -502,8 +502,8 @@ export function Composer({
       <RejectionAlert rejections={files.rejections} />
       <p className="sr-only" id={hintId}>
         <Trans>
-          Enter sends and Shift+Enter adds a line. Type / for prompts and @ to
-          mention someone.
+          Enter sends and Shift+Enter adds a line. Type / for commands and
+          prompts, and @ to mention someone or a file.
         </Trans>
       </p>
     </form>

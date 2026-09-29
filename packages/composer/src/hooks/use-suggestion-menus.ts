@@ -81,6 +81,33 @@ const mentionMenu = (
   },
 });
 
+/**
+ * TipTap fetches a query's items asynchronously and, until they land,
+ * reports the query with no items (`loading`). Shown as is, the menu would
+ * close for that moment, and an Enter typed in it would send the message
+ * instead of choosing (061's e2e: `/new-file` then Enter). So a loading
+ * update keeps the last list it had, with the new range, so choosing
+ * replaces the whole query. Before any list has landed there is nothing to
+ * keep, and the plugin's first answer follows within a tick.
+ */
+export const keepWhileLoading = <I, S>(
+  render: (props: SuggestionProps<I, S>) => void
+) => {
+  let items: I[] | null = null;
+  const onProps = (props: SuggestionProps<I, S>) => {
+    if (!props.loading) {
+      ({ items } = props);
+      render(props);
+    } else if (items !== null) {
+      render({ ...props, items });
+    }
+  };
+  onProps.reset = () => {
+    items = null;
+  };
+  return onProps;
+};
+
 export function useSuggestionMenus() {
   const [snapshot, setSnapshot] = useState<MenuSnapshot>(CLOSED);
   // Plugin callbacks run outside React's render and read the latest state here.
@@ -144,22 +171,38 @@ export function useSuggestionMenus() {
   );
 
   const slashRenderer = useMemo(
-    (): Renderer<SlashItem, SlashItem> => () => ({
-      onExit: close,
-      onKeyDown,
-      onStart: (props) => show(slashMenu(props), props.query),
-      onUpdate: (props) => show(slashMenu(props), props.query),
-    }),
+    (): Renderer<SlashItem, SlashItem> => () => {
+      const render = keepWhileLoading<SlashItem, SlashItem>((props) =>
+        show(slashMenu(props), props.query)
+      );
+      return {
+        onExit: () => {
+          render.reset();
+          close();
+        },
+        onKeyDown,
+        onStart: render,
+        onUpdate: render,
+      };
+    },
     [close, onKeyDown, show]
   );
 
   const mentionRenderer = useMemo(
-    (): Renderer<MentionCandidate, MentionAttrs> => () => ({
-      onExit: close,
-      onKeyDown,
-      onStart: (props) => show(mentionMenu(props), props.query),
-      onUpdate: (props) => show(mentionMenu(props), props.query),
-    }),
+    (): Renderer<MentionCandidate, MentionAttrs> => () => {
+      const render = keepWhileLoading<MentionCandidate, MentionAttrs>((props) =>
+        show(mentionMenu(props), props.query)
+      );
+      return {
+        onExit: () => {
+          render.reset();
+          close();
+        },
+        onKeyDown,
+        onStart: render,
+        onUpdate: render,
+      };
+    },
     [close, onKeyDown, show]
   );
 
