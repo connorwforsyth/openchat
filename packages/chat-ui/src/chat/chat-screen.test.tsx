@@ -292,6 +292,23 @@ describe("shortcuts", () => {
     expect(onNewChat).toHaveBeenCalledTimes(1);
   });
 
+  it("don't run while typing in an editor inside a shadow root (the panel's)", async () => {
+    const onNewChat = vi.fn();
+    renderWithI18n(<ChatScreen {...props({ onNewChat })} />);
+    const host = document.createElement("div");
+    document.body.append(host);
+    const editor = document.createElement("div");
+    editor.contentEditable = "true";
+    host.attachShadow({ mode: "open" }).append(editor);
+    try {
+      editor.focus();
+      await userEvent.keyboard("n");
+      expect(onNewChat).not.toHaveBeenCalled();
+    } finally {
+      host.remove();
+    }
+  });
+
   it("/ focuses the composer; ⌘B (Ctrl+B) toggles the sidebar even while typing", async () => {
     renderWithI18n(<ChatScreen {...props()} />);
     await userEvent.keyboard("/");
