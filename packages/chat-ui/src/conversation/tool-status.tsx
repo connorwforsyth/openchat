@@ -57,24 +57,20 @@ export const toolIcons: Readonly<Record<ToolIconName, Icon>> = {
 /** A summary label, with its `code` value (a command, a path) in code font. */
 export function ToolLabel({ label }: { readonly label: MessageDescriptor }) {
   const code = label.values?.code;
-  return (
-    <TransRuntime
-      id={label.id}
-      message={label.message}
-      values={{
-        ...label.values,
-        ...(typeof code === "string"
-          ? {
-              code: (
-                <code className="rounded-sm bg-muted px-1 py-0.5 font-mono text-[0.85em] text-foreground">
-                  {code}
-                </code>
-              ),
-            }
-          : {}),
-      }}
-    />
-  );
+  // Built outside the JSX so the extractor, which reads literal `values`,
+  // leaves this runtime `Trans` alone: the ids come from `msg` descriptors.
+  const values =
+    typeof code === "string"
+      ? {
+          ...label.values,
+          code: (
+            <code className="rounded-sm bg-muted px-1 py-0.5 font-mono text-[0.85em] text-foreground">
+              {code}
+            </code>
+          ),
+        }
+      : label.values;
+  return <TransRuntime id={label.id} message={label.message} values={values} />;
 }
 
 function StatusIcon({ summary }: { readonly summary: ToolSummary }) {
