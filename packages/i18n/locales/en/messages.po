@@ -2292,7 +2292,6 @@ msgstr "Read {code}"
 msgid "Reading {code}"
 msgstr "Reading {code}"
 
-#: ../chat-ui/src/header/sandbox-pill.tsx
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "Ready"
 msgstr "Ready"
@@ -3698,6 +3697,7 @@ msgstr "Write a small TypeScript function that groups a list of dates by ISO wee
 #: ../chat-ui/src/conversation/empty-state.tsx
 msgid "Write some code"
 msgstr "Write some code"
+
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Writing {code}"
 msgstr "Writing {code}"
