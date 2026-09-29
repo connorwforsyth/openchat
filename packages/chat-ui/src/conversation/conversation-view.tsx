@@ -97,8 +97,18 @@ export function ConversationView({
     });
   }, [pendingApprovals, visible]);
 
-  if (visible.length === 0 && !error) {
-    return <>{empty}</>;
+  // A new chat shows its empty state even with an error slot: the app passes
+  // one that renders nothing until something fails, so an element there
+  // doesn't mean there's an error to show. A real one shows under it.
+  if (visible.length === 0) {
+    return (
+      <>
+        {empty}
+        {error ? (
+          <div className="mx-auto w-full max-w-2xl px-6 pb-4">{error}</div>
+        ) : null}
+      </>
+    );
   }
 
   return (

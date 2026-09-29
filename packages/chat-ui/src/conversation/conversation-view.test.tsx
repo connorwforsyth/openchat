@@ -268,3 +268,39 @@ describe("message actions", () => {
     ).not.toBeNull();
   });
 });
+
+describe("empty conversation", () => {
+  // The app always passes an error slot that renders nothing until a run
+  // fails; a new chat must still show its empty state (057).
+  const Nothing = () => null;
+
+  it("shows the empty state beside an error slot that renders nothing", () => {
+    renderWithI18n(
+      <ConversationView
+        actions={{}}
+        conversationKey="new"
+        empty={<p>Nothing yet</p>}
+        error={<Nothing />}
+        messages={[]}
+        siblings={[]}
+      />
+    );
+    expect(screen.getByText("Nothing yet")).toBeTruthy();
+    expect(screen.queryByRole("region", { name: "Conversation" })).toBeNull();
+  });
+
+  it("shows a real error under the empty state", () => {
+    renderWithI18n(
+      <ConversationView
+        actions={{}}
+        conversationKey="new"
+        empty={<p>Nothing yet</p>}
+        error={<p role="alert">It failed</p>}
+        messages={[]}
+        siblings={[]}
+      />
+    );
+    expect(screen.getByText("Nothing yet")).toBeTruthy();
+    expect(screen.getByRole("alert").textContent).toBe("It failed");
+  });
+});
