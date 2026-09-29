@@ -465,6 +465,41 @@ const APPROVAL_SYNC_ATTEMPTS = 10;
 const APPROVAL_SYNC_RETRY_MS = 500;
 
 /**
+ * The run waiting on `toolCallId`'s approval. An approval can be decided
+ * before the page has seen its run pause (the call reaches the screen
+ * first), so this asks the server, a few times, rather than drop the
+ * decision.
+ */
+const awaitingRunFor = async (
+  client: ApiClient,
+  conversationId: ConversationId,
+  toolCallId: string
+): Promise<string | null> => {
+  for (let attempt = 0; attempt < APPROVAL_SYNC_ATTEMPTS; attempt += 1) {
+    if (attempt > 0) {
+      // biome-ignore lint/performance/noAwaitInLoops: polling, one at a time on purpose.
+      await new Promise((resolve) =>
+        setTimeout(resolve, APPROVAL_SYNC_RETRY_MS)
+      );
+    }
+    const runs = await client.runs
+      .list({ active: true, conversationId, limit: 5 })
+      .catch(() => null);
+    const run = runs?.items.find(
+      (each) =>
+        each.state.status === "awaiting_approval" &&
+        each.state.approvals.some(
+          (approval) => approval.toolCallId === toolCallId
+        )
+    );
+    if (run) {
+      return run.id;
+    }
+  }
+  return null;
+};
+
+/**
  * Whether a turn just finished and the stored branch hasn't been fetched
  * since. The run stores its answer before the stream ends, but the branch
  * on screen is the one fetched when the turn started (040's e2e: showing it
@@ -884,19 +919,26 @@ export function ConnectedChat({
       fileUrl,
       onClearFeedback: feedback.clear,
       onDecide: (toolCallId, decision) => {
-        if (!runId) {
-          return;
+        const sendDecision = (id: string) =>
+          decide(
+            { decisions: [{ decision, toolCallId }], runId: id },
+            {
+              onSettled: () => {
+                refresh();
+                // The run carries on server-side; follow its stream again.
+                resumeStream().catch(ignore);
+              },
+            }
+          );
+        if (runId) {
+          sendDecision(runId);
+        } else if (conversationId) {
+          awaitingRunFor(client, conversationId, toolCallId).then((id) => {
+            if (id) {
+              sendDecision(id);
+            }
+          }, ignore);
         }
-        decide(
-          { decisions: [{ decision, toolCallId }], runId },
-          {
-            onSettled: () => {
-              refresh();
-              // The run carries on server-side; follow its stream again.
-              resumeStream().catch(ignore);
-            },
-          }
-        );
       },
       onEdit: (message, text) => {
         // An edit answers the same parent: send it from that point.
@@ -926,6 +968,7 @@ export function ConnectedChat({
       },
     }),
     [
+      client,
       conversationId,
       decide,
       feedback.clear,
