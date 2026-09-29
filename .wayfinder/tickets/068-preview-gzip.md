@@ -23,3 +23,7 @@ Connor (2026-09-30): the preview URL showed nothing in the browser. The preview 
 ## Owns
 
 `apps/sandbox-runner/src/app.ts`, `apps/sandbox-runner/src/app.test.ts`.
+
+## Results (2026-09-30, loop)
+
+`createPreviewApp` deletes `content-encoding` and `content-length` when the upstream response had an encoding. There's a unit test (fake decoded upstream), and runner tests pass 19/19. The runner image was rebuilt from host-built dist (Docker Desktop's registry proxy is hanging). Found alongside it: the runner forgets exposed ports on restart, so recorded previews 404; handed to 067 (re-expose on attach).
