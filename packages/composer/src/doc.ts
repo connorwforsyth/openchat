@@ -39,12 +39,15 @@ const mentionToken = (
   start: number
 ): MentionToken | undefined => {
   const label = stringAttr(node, "label") ?? "";
+  const id = stringAttr(node, "id");
+  const kind = stringAttr(node, "kind") ?? "user";
   const parsed = mentionTokenSchema.safeParse({
     end: start + label.length + 1,
-    id: stringAttr(node, "id"),
-    kind: stringAttr(node, "kind") ?? "user",
+    kind,
     label,
     start,
+    // A file mention keeps its path in Mention's own `id` attribute.
+    ...(kind === "file" ? { path: id } : { id }),
   });
   return parsed.success ? parsed.data : undefined;
 };

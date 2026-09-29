@@ -59,6 +59,20 @@ export const contextOptionSchema = z.object({
 });
 export type ContextOption = z.infer<typeof contextOptionSchema>;
 
+/**
+ * A file in the chat's workspace, relative to its root (`src/app.ts`). The
+ * host lists them; the composer only offers and echoes them back.
+ */
+export const workspacePathSchema = z.string().min(1);
+export type WorkspacePath = z.infer<typeof workspacePathSchema>;
+
+/**
+ * File actions `/` offers ahead of prompts. The composer only reports the
+ * choice (`onCommand`); what a command does is the host's.
+ */
+export const composerCommandSchema = z.enum(["new-file", "open", "preview"]);
+export type ComposerCommand = z.infer<typeof composerCommandSchema>;
+
 /** Something `@` can mention. */
 export const mentionCandidateSchema = z.discriminatedUnion("kind", [
   z.object({
@@ -73,8 +87,17 @@ export const mentionCandidateSchema = z.discriminatedUnion("kind", [
     kind: z.literal("user"),
     label: z.string().min(1),
   }),
+  z.object({
+    /** The folder, as a hint beside the name. */
+    description: z.string().optional(),
+    kind: z.literal("file"),
+    /** The file name; `path` says which one. */
+    label: z.string().min(1),
+    path: workspacePathSchema,
+  }),
 ]);
 export type MentionCandidate = z.infer<typeof mentionCandidateSchema>;
+export type FileCandidate = Extract<MentionCandidate, { kind: "file" }>;
 
 /**
  * A mention as it sits in the submitted text: `text.slice(start, end)` is
@@ -85,6 +108,9 @@ export const mentionTokenSchema = z.discriminatedUnion("kind", [
     .omit({ description: true })
     .extend({ end: z.int().min(1), start: z.int().min(0) }),
   mentionCandidateSchema.options[1]
+    .omit({ description: true })
+    .extend({ end: z.int().min(1), start: z.int().min(0) }),
+  mentionCandidateSchema.options[2]
     .omit({ description: true })
     .extend({ end: z.int().min(1), start: z.int().min(0) }),
 ]);

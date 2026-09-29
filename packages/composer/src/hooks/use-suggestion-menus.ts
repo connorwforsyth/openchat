@@ -8,17 +8,22 @@ import { useCallback, useMemo, useRef, useState } from "react";
 
 import type { Suggestion } from "../components/suggestion-menu";
 import type { MentionAttrs } from "../editor/extensions";
-import type { MentionCandidate, PromptOption } from "../schemas";
-import { menuKeyAction, moveActive } from "../triggers";
+import type { SlashItem } from "../options";
+import type { MentionCandidate } from "../schemas";
+import { menuKeyAction, moveActive, slashStage } from "../triggers";
 
 // TipTap's Suggestion utility finds `/query` and `@query` and drives a
 // renderer through lifecycle hooks. This hook is that renderer for both
 // menus: it mirrors the plugin's state into React so SuggestionMenu can draw
 // it, and answers the plugin's key events. Focus never leaves the editor.
 
+/** What the open menu lists, which names it. */
+export type MenuList = "commands" | "files" | "mentions" | "prompts";
+
 export interface OpenMenu {
   readonly char: "/" | "@";
   readonly items: readonly Suggestion[];
+  readonly list: MenuList;
   /** Runs the plugin's command for the item at this index. */
   readonly select: (index: number) => void;
 }
@@ -38,15 +43,21 @@ type Renderer<I, S> = () => {
   onUpdate: (props: SuggestionProps<I, S>) => void;
 };
 
-const slashMenu = (
-  props: SuggestionProps<PromptOption, PromptOption>
-): OpenMenu => ({
+const slashList = (query: string, items: readonly SlashItem[]): MenuList => {
+  if (slashStage(query).stage === "open") {
+    return "files";
+  }
+  return items.some((item) => item.kind === "command") ? "commands" : "prompts";
+};
+
+const slashMenu = (props: SuggestionProps<SlashItem, SlashItem>): OpenMenu => ({
   char: "/",
-  items: props.items.map((prompt) => ({ kind: "prompt", prompt })),
+  items: props.items,
+  list: slashList(props.query, props.items),
   select: (index) => {
-    const prompt = props.items[index];
-    if (prompt) {
-      props.command(prompt);
+    const item = props.items[index];
+    if (item) {
+      props.command(item);
     }
   },
 });
@@ -56,11 +67,16 @@ const mentionMenu = (
 ): OpenMenu => ({
   char: "@",
   items: props.items.map((candidate) => ({ candidate, kind: "mention" })),
+  list: "mentions",
   select: (index) => {
     const candidate = props.items[index];
     if (candidate) {
-      const { id, kind, label } = candidate;
-      props.command({ id, kind, label });
+      const { kind, label } = candidate;
+      props.command({
+        id: kind === "file" ? candidate.path : candidate.id,
+        kind,
+        label,
+      });
     }
   },
 });
@@ -80,7 +96,7 @@ export function useSuggestionMenus() {
       const previous = latest.current;
       // A new query starts again at the top; the same one keeps its place.
       const sameQuery =
-        previous.menu?.char === menu.char && previous.query === query;
+        previous.menu?.list === menu.list && previous.query === query;
       update({
         active: sameQuery
           ? Math.min(previous.active, Math.max(0, menu.items.length - 1))
@@ -128,7 +144,7 @@ export function useSuggestionMenus() {
   );
 
   const slashRenderer = useMemo(
-    (): Renderer<PromptOption, PromptOption> => () => ({
+    (): Renderer<SlashItem, SlashItem> => () => ({
       onExit: close,
       onKeyDown,
       onStart: (props) => show(slashMenu(props), props.query),

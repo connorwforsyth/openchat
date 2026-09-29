@@ -52,3 +52,41 @@ After trying the M1 demo, Connor asked for two things.
 - The `/` menu lists `/new-file`, `/open` (which opens a file list) and `/preview` before prompts.
 
 **Done when:** browser tests cover choosing a file mention, the `{kind:"file", path}` token it produces, and each command.
+
+## Results (2026-09-29, loop)
+
+The composer now knows about workspace files, still with no knowledge of the app: the host passes
+paths and command names in, and gets tokens and `onCommand` calls out.
+
+- **Types (`schemas.ts`).** `workspacePathSchema` (`z.string().min(1)`, workspace-relative),
+  `composerCommandSchema = z.enum(["new-file", "open", "preview"])`, and a third
+  `mentionCandidateSchema` kind: `{ kind: "file", path, label, description? }` (label is the file
+  name, description its folder). `mentionTokenSchema` gains the matching
+  `{ kind: "file", path, label, start, end }`; `text.slice(start, end)` is `@label` as for the others.
+  In the editor a file mention is the same Mention node with the path in its `id` attribute;
+  `doc.ts` turns that back into `path`.
+- **Props (`props.ts`).** `files?: readonly WorkspacePath[]`, `commands?: readonly ComposerCommand[]`,
+  `onCommand?: (command: ComposerCommand, path?: WorkspacePath) => void`. The shell ignores them, and
+  the loader passes them through unchanged.
+- **`@` menu.** Files come after agents and people (`mentionCandidates(agents, people, files)`), with
+  a file icon, the name, and the folder as the hint. `filterMentions` ranks files separately (by name
+  or path, 8 at most) so a big workspace never pushes people out of the list.
+- **`/` menu (`options.ts` `slashItems`, `triggers.ts` `slashStage`).** The host's commands come
+  first, always in the order new-file, open, preview, and only those listed in `commands`. Prompts
+  follow as before. The title reads "Commands" when a command is listed and "Prompts" otherwise.
+  Choosing `/new-file` or `/preview` deletes the `/query` text and calls `onCommand(command)`.
+  Choosing `/open` rewrites the trigger to `/open:`. The same Suggestion keeps running and lists
+  `files` under "Files"; typing filters them, and Backspace past the colon goes back to the commands.
+  Choosing a file deletes the text and calls `onCommand("open", path)`. With no `files`, `/open` calls
+  `onCommand("open")` straight away. A typed file name after `/new-file` isn't supported:
+  single-word triggers can't hold a space.
+- **Icons:** `FileIcon`, `PlusIcon` (new file) and `EyeIcon` (preview), all already in the registry.
+  **Strings:** "Commands", "Files", "New file", "Open file" and "Preview", with the catalog
+  re-extracted. `packages/i18n/locales/en/messages.po` is outside Owns, but the Lingui guard requires
+  it to match the source (+14 lines).
+
+| Check | Result |
+|---|---|
+| New browser tests in `components/composer.test.tsx` | Choosing a file mention gives `{ kind: "file", path: "src/app.ts", label: "app.ts", start: 4, end: 11 }` in the submitted value. `/op` then Enter lists 2 files; typing `read` narrows to 1; Enter calls `onCommand("open", "README.md")` and clears the text. `/new-file`, `/preview`, and `/open` with no files call `onCommand` and never submit. Commands are hidden without `commands`, and only `preview` shows when that's the only one passed |
+| New pure tests | `fileCandidate`/`candidateKey`, `filterMentions` with files, `slashItems` (order, hiding, `open:` stage), `slashStage`, and `serializeDoc` for a file node |
+| composer suite | 79/79 (3 runs) |

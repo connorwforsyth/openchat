@@ -25,9 +25,17 @@ import { textToDoc, textToInline } from "../doc";
 import { createComposerExtensions, slashPluginKey } from "../editor/extensions";
 import { useAttachments } from "../hooks/use-attachments";
 import { useFileDrop } from "../hooks/use-file-drop";
-import { useSuggestionMenus } from "../hooks/use-suggestion-menus";
-import { mentionCandidates } from "../mentions";
-import { filterMentions, filterPrompts } from "../options";
+import {
+  type MenuList,
+  useSuggestionMenus,
+} from "../hooks/use-suggestion-menus";
+import { fileCandidate, mentionCandidates } from "../mentions";
+import {
+  filterMentions,
+  type SlashItem,
+  type SlashSources,
+  slashItems,
+} from "../options";
 import type { ComposerHandoff, ComposerProps } from "../props";
 import type {
   AttachmentLimits,
@@ -35,6 +43,7 @@ import type {
   MentionCandidate,
   PromptOption,
 } from "../schemas";
+import { OPEN_TRIGGER } from "../triggers";
 import { buildComposerValue, hasContent } from "../value";
 import { type PromptVariable, resolvePromptVariables } from "../variables";
 import { AttachmentList, RejectionMessage } from "./attachment-list";
@@ -54,13 +63,9 @@ export interface EditorComposerProps extends ComposerProps {
 interface LiveHandlers {
   readonly addFiles: (files: readonly File[]) => void;
   readonly candidates: readonly MentionCandidate[];
-  readonly choosePrompt: (
-    editor: Editor,
-    range: Range,
-    prompt: PromptOption
-  ) => void;
-  readonly prompts: readonly PromptOption[];
+  readonly chooseSlash: (editor: Editor, range: Range, item: SlashItem) => void;
   readonly removeLastAttachment: () => boolean;
+  readonly slash: SlashSources;
   readonly submit: () => void;
 }
 
@@ -89,14 +94,17 @@ export function Composer({
   agents = NONE,
   attachmentLimits = NO_LIMITS,
   className,
+  commands = NONE,
   context,
   contextLocked,
   contexts = NONE,
   disabled = false,
+  files: workspaceFiles = NONE,
   handoff,
   models = NONE,
   onAttachmentsChange,
   onAttachmentsRejected,
+  onCommand,
   onContextChange,
   onStop,
   onSubmit,
@@ -127,8 +135,16 @@ export function Composer({
   const drop = useFileDrop(files.add, disabled);
   const menus = useSuggestionMenus();
   const candidates = useMemo(
-    () => mentionCandidates(agents, people),
-    [agents, people]
+    () => mentionCandidates(agents, people, workspaceFiles),
+    [agents, people, workspaceFiles]
+  );
+  const slash = useMemo(
+    (): SlashSources => ({
+      commands,
+      files: workspaceFiles.map(fileCandidate),
+      prompts,
+    }),
+    [commands, prompts, workspaceFiles]
   );
 
   const busy = status === "submitted" || status === "streaming";
@@ -142,9 +158,9 @@ export function Composer({
   const live = useRef<LiveHandlers>({
     addFiles: files.add,
     candidates,
-    choosePrompt: () => undefined,
-    prompts,
+    chooseSlash: () => undefined,
     removeLastAttachment: () => false,
+    slash,
     submit: () => undefined,
   });
 
@@ -201,9 +217,9 @@ export function Composer({
         },
         placeholder: placeholder ?? t`Ask anything`,
         slash: {
-          command: ({ editor: current, props: prompt, range }) =>
-            live.current.choosePrompt(current, range, prompt),
-          items: ({ query }) => [...filterPrompts(live.current.prompts, query)],
+          command: ({ editor: current, props: item, range }) =>
+            live.current.chooseSlash(current, range, item),
+          items: ({ query }) => [...slashItems(query, live.current.slash)],
           render: menus.slashRenderer,
         },
       }),
@@ -252,6 +268,41 @@ export function Composer({
     []
   );
 
+  const chooseSlash = useCallback(
+    (current: Editor, range: Range, item: SlashItem) => {
+      switch (item.kind) {
+        case "prompt":
+          choosePrompt(current, range, item.prompt);
+          return;
+        case "command":
+          // `/open` becomes `/open:`, which the same menu lists files for.
+          // With no files to list, the host decides what opening means.
+          if (item.command === "open" && slash.files.length > 0) {
+            current
+              .chain()
+              .focus()
+              .insertContentAt(range, {
+                text: `/${OPEN_TRIGGER}`,
+                type: "text",
+              })
+              .run();
+            return;
+          }
+          // A command is an action, not words to send: its text goes.
+          current.chain().focus().deleteRange(range).run();
+          onCommand?.(item.command);
+          return;
+        case "file":
+          current.chain().focus().deleteRange(range).run();
+          onCommand?.("open", item.file.path);
+          return;
+        default:
+          return item satisfies never;
+      }
+    },
+    [choosePrompt, onCommand, slash.files.length]
+  );
+
   const removeLastAttachment = useCallback(() => {
     const last = files.attachments.at(-1);
     if (last === undefined) {
@@ -265,9 +316,9 @@ export function Composer({
     live.current = {
       addFiles: files.add,
       candidates,
-      choosePrompt,
-      prompts,
+      chooseSlash,
       removeLastAttachment,
+      slash,
       submit,
     };
   });
@@ -359,6 +410,12 @@ export function Composer({
   );
 
   const openFilePicker = useCallback(() => fileInputRef.current?.click(), []);
+  const menuTitles: Record<MenuList, string> = {
+    commands: t`Commands`,
+    files: t`Files`,
+    mentions: t`Mention`,
+    prompts: t`Prompts`,
+  };
   const suggestionCount = menus.menu?.items.length ?? 0;
 
   return (
@@ -386,7 +443,7 @@ export function Composer({
           items={menus.menu.items}
           onChoose={menus.menu.select}
           onHover={menus.hover}
-          title={menus.menu.char === "/" ? t`Prompts` : t`Mention`}
+          title={menuTitles[menus.menu.list]}
         />
       ) : null}
       <InputGroup

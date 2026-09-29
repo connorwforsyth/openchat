@@ -8,7 +8,7 @@ import {
 } from "@workspace/contract/fixtures";
 import type { ModelOption } from "@workspace/contract/schemas/models";
 import { describe, expect, it } from "vitest";
-
+import { fileCandidate } from "./mentions";
 import {
   AUTO_TARGET,
   buildTargetGroups,
@@ -18,6 +18,7 @@ import {
   filterPrompts,
   findTargetChoice,
   isAutoTarget,
+  slashItems,
   targetKey,
 } from "./options";
 import type { MentionCandidate, PromptOption } from "./schemas";
@@ -186,5 +187,65 @@ describe("filterMentions", () => {
     expect(filterMentions(candidates, "AD").map((c) => c.label)).toEqual([
       "Ada",
     ]);
+  });
+});
+
+describe("filterMentions with files", () => {
+  const candidates: MentionCandidate[] = [
+    fileCandidate("docs/adr.md"),
+    { id: me.user.id, kind: "user", label: "Ada" },
+    fileCandidate("src/app.ts"),
+  ];
+
+  it("lists people before files, and finds files by path", () => {
+    expect(filterMentions(candidates, "ad").map((c) => c.label)).toEqual([
+      "Ada",
+      "adr.md",
+    ]);
+    expect(filterMentions(candidates, "src").map((c) => c.label)).toEqual([
+      "app.ts",
+    ]);
+  });
+});
+
+describe("slashItems", () => {
+  const prompts = [prompt(24, "New feature", "newfeat")];
+  const files = [fileCandidate("src/app.ts"), fileCandidate("README.md")];
+  const kinds = (items: ReturnType<typeof slashItems>) =>
+    items.map((item) => {
+      switch (item.kind) {
+        case "command":
+          return `/${item.command}`;
+        case "file":
+          return item.file.path;
+        default:
+          return item.prompt.name;
+      }
+    });
+
+  it("offers the host's commands, in a fixed order, before prompts", () => {
+    expect(
+      kinds(
+        slashItems("", { commands: ["preview", "new-file"], files, prompts })
+      )
+    ).toEqual(["/new-file", "/preview", "New feature"]);
+    expect(
+      kinds(slashItems("new", { commands: ["new-file"], files, prompts }))
+    ).toEqual(["/new-file", "New feature"]);
+  });
+
+  it("offers no commands the host didn't ask for", () => {
+    expect(kinds(slashItems("", { commands: [], files, prompts }))).toEqual([
+      "New feature",
+    ]);
+  });
+
+  it("lists files to open after /open:", () => {
+    expect(
+      kinds(slashItems("open:", { commands: ["open"], files, prompts }))
+    ).toEqual(["src/app.ts", "README.md"]);
+    expect(
+      kinds(slashItems("open:read", { commands: ["open"], files, prompts }))
+    ).toEqual(["README.md"]);
   });
 });
