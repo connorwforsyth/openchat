@@ -20,6 +20,8 @@ const APPROVE = /^Approve/;
 const SAVED = /Saved/;
 const DARK = /\bdark\b/;
 const LIGHT = /\blight\b/;
+/** A workspace listing (`sandbox.listFiles`), batched or not. */
+const LISTING = /\/sandboxes\/[^/\s"]+\/files/;
 
 // The chat's workspace (PLAN.md D7, §11 M1 steps 6 and 7 without Docker):
 // every chat has one, made on first use (056) on just-bash here, shown in
@@ -285,21 +287,35 @@ test("an edit typed in the panel's editor survives a reload", async ({
 test("@hello.md puts the file's content in front of the model", async ({
   page,
 }) => {
+  // The `@` list reads the workspace listing, which can land after the last
+  // keystroke (065). Hold it until the query is typed, so the open menu has
+  // to pick it up then, with no retyping.
+  let held = 0;
+  let release: () => void = () => undefined;
+  const listed = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route("**/api/**", async (route) => {
+    const request = route.request();
+    const sent = decodeURIComponent(
+      `${request.url()} ${request.postData() ?? ""}`
+    );
+    if (LISTING.test(sent)) {
+      held += 1;
+      await listed;
+    }
+    await route.fallback();
+  });
+
   await page.goto(`/c/${filesChat}`);
   const input = composer(page);
   await composerReady(page);
   await input.click();
-  // The `@` list reads the workspace listing, which loads after the page; a
-  // query typed before it lands matches nothing until the next keystroke. A
-  // person types again; so does the test.
-  await expect(async () => {
-    await input.press("ControlOrMeta+a");
-    await input.press("Backspace");
-    await input.pressSequentially("What is in @hello");
-    await expect(page.getByRole("option", { name: "hello.md" })).toBeVisible({
-      timeout: 2000,
-    });
-  }).toPass();
+  await input.pressSequentially("What is in @hello");
+  await expect.poll(() => held).toBeGreaterThan(0);
+  await expect(page.getByRole("option", { name: "hello.md" })).toBeHidden();
+  release();
+  await expect(page.getByRole("option", { name: "hello.md" })).toBeVisible();
   await input.press("Enter");
   await input.pressSequentially(" now");
   await input.press("Enter");
