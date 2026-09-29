@@ -89,9 +89,14 @@ const main = async () => {
     docker,
     log,
   });
+  // Before serving: a preview for a sandbox from before the restart must find
+  // the runner already back on its network.
   const recovered = await runner.recover();
   if (recovered.ok) {
-    log("info", "recovered running sandboxes", { count: recovered.value });
+    log("info", "recovered running sandboxes", {
+      count: recovered.value.running,
+      rejoined: recovered.value.rejoined,
+    });
   }
 
   const api = serve({

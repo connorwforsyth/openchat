@@ -125,6 +125,13 @@ export const createRunner = ({
 }: RunnerDeps) => {
   const lastUsed = new Map<SandboxId, number>();
   const previews = new Map<SandboxId, Set<number>>();
+  /**
+   * Sandbox networks this process has joined (or is joining). Membership lives
+   * in Docker, not here: a recreated runner container starts on none of them,
+   * and a new process starts with this empty, so it rejoins (ticket 069). The
+   * map only saves a Docker call per preview request.
+   */
+  const joined = new Map<SandboxId, AsyncResult<void, SandboxError>>();
 
   const touch = (id: SandboxId) => lastUsed.set(id, now().getTime());
 
@@ -206,6 +213,33 @@ export const createRunner = ({
     return code.ok ? ok({ code: code.value, stderr, stdout }) : code;
   };
 
+  /**
+   * Puts the runner on the sandbox's private network, the only way to reach
+   * its ports. Idempotent: Docker's "already connected" counts as joined.
+   * Concurrent callers share one attempt; a failed one is forgotten, so the
+   * next request tries again.
+   */
+  const joinNetwork = (id: SandboxId): AsyncResult<void, SandboxError> => {
+    const { runnerContainer } = config;
+    if (!runnerContainer) {
+      return Promise.resolve(ok(undefined));
+    }
+    const pending = joined.get(id);
+    if (pending) {
+      return pending;
+    }
+    const attempt = guarded("join the sandbox network", () =>
+      docker.connectNetwork(networkName(id), runnerContainer)
+    ).then((result) => {
+      if (!result.ok && joined.get(id) === attempt) {
+        joined.delete(id);
+      }
+      return result;
+    });
+    joined.set(id, attempt);
+    return attempt;
+  };
+
   const resolve = (path: string) => resolveSandboxPath(path, WORKDIR);
 
   /** The volume and networks a sandbox needs, before its container. */
@@ -273,13 +307,10 @@ export const createRunner = ({
       }
       await docker.startContainer(containerName(id));
     });
-    const { previewTemplate, runnerContainer } = config;
-    if (started.ok && runnerContainer && previewTemplate) {
+    if (started.ok && config.previewTemplate) {
       // Best effort: without it previews fail, commands still work.
-      const joined = await guarded("join the sandbox network", () =>
-        docker.connectNetwork(networkName(id), runnerContainer)
-      );
-      if (!joined.ok) {
+      const reachable = await joinNetwork(id);
+      if (!reachable.ok) {
         log("warn", "previews unavailable for sandbox", { id });
       }
     }
@@ -549,6 +580,15 @@ export const createRunner = ({
     if (!container.ok) {
       return container;
     }
+    // A URL the runner can't reach would only hang, so say so instead.
+    const reachable = await joinNetwork(id);
+    if (!reachable.ok) {
+      return err(
+        unavailable(
+          "the sandbox host couldn't reach the sandbox's network, so previews can't load"
+        )
+      );
+    }
     const ports = previews.get(id) ?? new Set<number>();
     ports.add(port);
     previews.set(id, ports);
@@ -563,6 +603,8 @@ export const createRunner = ({
     if (!previews.get(id)?.has(port)) {
       return null;
     }
+    // Best effort: if Docker refuses, the proxy's fetch fails and answers 502.
+    await joinNetwork(id);
     const found = await guarded("inspect the sandbox", () =>
       docker.inspectContainer(containerName(id))
     );
@@ -617,6 +659,7 @@ export const createRunner = ({
     });
     lastUsed.delete(id);
     previews.delete(id);
+    joined.delete(id);
     return removed;
   };
 
@@ -641,23 +684,37 @@ export const createRunner = ({
     return reaped;
   };
 
-  /** After a restart, counts running sandboxes as just used so the reaper sees them. */
-  const recover = async (): AsyncResult<number, SandboxError> => {
+  /**
+   * After a restart: counts running sandboxes as just used so the reaper sees
+   * them, and rejoins their networks, since a recreated runner container is on
+   * none of them (ticket 069). Stopped sandboxes rejoin when next used.
+   * Exposed ports aren't restored; the server re-exposes what it recorded.
+   */
+  const recover = async (): AsyncResult<
+    { readonly rejoined: number; readonly running: number },
+    SandboxError
+  > => {
     const found = await guarded("list sandboxes", () =>
       docker.listContainers(MANAGED_LABEL, "true")
     );
     if (!found.ok) {
       return found;
     }
-    let count = 0;
+    const ids = new Set<SandboxId>();
     for (const container of found.value) {
       const id = container.labels[SANDBOX_LABEL] as SandboxId | undefined;
       if (id && container.running) {
         touch(id);
-        count += 1;
+        ids.add(id);
       }
     }
-    return ok(count);
+    const rejoins = config.previewTemplate
+      ? await Promise.all([...ids].map((id) => joinNetwork(id)))
+      : [];
+    return ok({
+      rejoined: rejoins.filter((result) => result.ok).length,
+      running: ids.size,
+    });
   };
 
   const status = (): RunnerStatus => ({
