@@ -219,10 +219,14 @@ Research against LibreChat `main` (v0.8.8-rc4, released 2026-09-20):
   - LibreChat's `ClickHouse/code-interpreter` is an optional provider.
 - **`local`** (desktop only; see cowork below).
 
-**Sandboxes inside chats:**
-- A `sandbox` table stores conversationId, provider, status and snapshot ref.
-- The side panel has a terminal, file tree (`code-ui`), sandbox status and web preview.
-- The user can create, attach or reset a sandbox, or let the agent create one.
+**Every chat has a workspace** (its sandbox; "Workspace" and "Files" are UI labels, the code and router keep `sandbox`):
+- A `sandbox` table stores conversationId, provider, status and snapshot ref: at most one per chat.
+- **Always on.** Whenever sandboxes are enabled, every chat's model gets `bash`, `read`, `write`, `edit` and `preview`, unless the composer turns the workspace off for a message (`options.sandbox: "off"`). Nothing starts until a tool needs it; the first call creates the workspace silently. There is no "Create sandbox" step.
+- **It recovers by itself.** `ensureWorkspace` (in `packages/sandbox`) runs before each turn's first tool call: no workspace → create one; `failed` or `destroyed` → restart it in place (same id, same provider); `stopped` → re-attach. A failed start is reported to the model as the tool's result, and the next call tries again, so a bad start never blocks the chat and nobody has to press Reset.
+- **Provider.** A new workspace uses the agent's or the instance's provider; if that is Docker and the runner doesn't answer, it falls back to just-bash. An existing workspace never switches provider, so a runner outage never costs it its files.
+- **The user never runs commands.** The model is told the workspace is at `/work`, that the user sees it in the Files panel, and never to ask the user to run commands. The panel shows files (`code-ui`), which the user can edit, and the web preview; there is no terminal.
+- **Files from the composer.** An `@file` mention is a `data-workspace-file` part (`workspaceFileRefSchema` in `@workspace/ai`). As the turn starts the server reads each mentioned file into the turn's instructions (the AI SDK drops data parts on the way to the model): up to 32 KB it is inlined as `<workspace-file path=…>`, larger or binary ones become a note telling the model to use `read`.
+- **File changes are reviewed.** `write` and `edit` ask by default and pause the run with the proposed patch for per-hunk review (D16). The proposal carries a hash of the file it was made from; if the user edited the file while it waited, the change isn't applied and the model is told to read the file again.
 - Long-running sandbox work runs as a background job, so it survives the tab closing.
 
 **Desktop cowork mode** (Desktop wave):

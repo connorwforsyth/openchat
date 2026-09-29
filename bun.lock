@@ -239,6 +239,7 @@
         "@orpc/openapi-client": "catalog:",
         "@orpc/tanstack-query": "catalog:",
         "@tanstack/react-query": "catalog:",
+        "@workspace/ai": "workspace:*",
         "@workspace/contract": "workspace:*",
         "@workspace/shared": "workspace:*",
         "ai": "catalog:",

@@ -25,6 +25,7 @@
     "./messages/approval": "./src/messages/approval.ts",
     "./messages/from-ui": "./src/messages/from-ui.ts",
     "./messages/to-ui": "./src/messages/to-ui.ts",
+    "./messages/workspace-file": "./src/messages/workspace-file.ts",
     "./ports/*": "./src/ports/*.ts",
     "./providers/capabilities": "./src/providers/capabilities.ts",
     "./providers/factory": "./src/providers/factory.ts",

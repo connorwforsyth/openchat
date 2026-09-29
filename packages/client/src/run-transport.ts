@@ -1,3 +1,7 @@
+import {
+  WORKSPACE_FILE_DATA,
+  workspaceFileRefSchema,
+} from "@workspace/ai/messages/workspace-file";
 import type {
   ConversationId,
   MessageId,
@@ -42,7 +46,7 @@ export interface RunTransportOptions
   readonly runFields?: (
     chatId: string
   ) => Pick<CreateRunInput, "context" | "options" | "target">;
-  /** Maps a message the user sent to stored parts; the default keeps text and uploaded files. */
+  /** Maps a message the user sent to stored parts; the default keeps text, uploaded files and `@file` mentions. */
   readonly toParts?: (message: UIMessage) => UserMessagePart[];
 }
 
@@ -50,11 +54,23 @@ const UPLOADED = /\/api\/files\/([0-9a-f-]{36})\/content$/i;
 const ABSOLUTE = /^https?:\/\//;
 const TRAILING_SLASH = /\/$/;
 
-/** Text and file parts of a `UIMessage` as the contract's user parts. Pure. */
+/**
+ * Text, file and workspace-file mention parts of a `UIMessage` as the
+ * contract's user parts. A mention the server can't read is dropped here
+ * rather than stored. Pure.
+ */
 export const userParts = (message: UIMessage): UserMessagePart[] =>
   message.parts.flatMap((part): UserMessagePart[] => {
     if (part.type === "text") {
       return [{ text: part.text, type: "text" }];
+    }
+    if (part.type === `data-${WORKSPACE_FILE_DATA}`) {
+      const ref = workspaceFileRefSchema.safeParse(
+        (part as { readonly data?: unknown }).data
+      );
+      return ref.success
+        ? [{ data: ref.data, name: WORKSPACE_FILE_DATA, type: "data" }]
+        : [];
     }
     if (part.type !== "file") {
       return [];

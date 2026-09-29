@@ -2,7 +2,10 @@ import type {
   ConversationId,
   SandboxId,
 } from "@workspace/contract/schemas/common";
-import type { SandboxProvider } from "@workspace/contract/schemas/sandbox";
+import type {
+  SandboxProvider,
+  SandboxRecord,
+} from "@workspace/contract/schemas/sandbox";
 import type { Db } from "@workspace/db/client";
 import type { Viewer } from "@workspace/db/queries/conversations";
 import {
@@ -15,6 +18,7 @@ import type {
   SandboxToolRequest,
   SandboxToolSource,
   TurnSandbox,
+  WorkspaceRead,
 } from "@workspace/server/runs/sandbox";
 import { type AsyncResult, err } from "@workspace/shared/result";
 
@@ -31,16 +35,19 @@ import {
   authorizeSandboxExec,
   createConversationSandbox,
   recordPreview,
+  resetSandbox,
   type SandboxHandlerError,
 } from "./sandbox";
 
-// The chat's sandbox as a run's tools (D7, PLAN.md §11 M1 steps 6–7), bound
-// by the shell into the server's turn resolver. The chat's attached sandbox
-// wins, so the agent works where the panel looks; otherwise the agent
-// version's provider (or just-bash, the default scratch workspace, when
-// that one isn't configured here). Nothing starts until a tool needs it:
-// a turn that never touches the sandbox creates nothing. It starts as the
-// run's author, who must still be able to edit the chat.
+// The chat's workspace (its sandbox) as a run's tools (D7, PLAN.md §11 M1
+// steps 6–7), bound by the shell into the server's turn resolver. The
+// chat's attached workspace wins, so the agent works where the Files panel
+// looks; otherwise the agent version's provider (or just-bash, the default
+// scratch workspace, when that one isn't configured here or its host is
+// down). Nothing starts until a tool needs it: a turn that never touches
+// the workspace creates nothing. It starts as the run's author, who must
+// still be able to edit the chat, and `ensureWorkspace` brings back one
+// whose last start failed, so a bad start never blocks the chat.
 
 export interface TurnSandboxDeps {
   readonly db: Db;
@@ -75,11 +82,11 @@ const describe = (error: SandboxHandlerError): string => {
   switch (error.type) {
     case "forbidden":
     case "not_found":
-      return "You can't use this chat's sandbox.";
+      return "You can't use this chat's workspace.";
     case "feature_disabled":
-      return "Sandboxes are off on this instance.";
+      return "Workspaces are off on this instance.";
     case "already_exists":
-      return "The chat's sandbox is being replaced; try again.";
+      return "The chat's workspace is being replaced; try again.";
     case "invalid":
     case "unavailable":
       return error.message;
@@ -90,8 +97,10 @@ const describe = (error: SandboxHandlerError): string => {
 
 /**
  * A sandbox that starts (or attaches) on first use. The start is shared by
- * every call in the turn; a failure is reported to each tool as its result.
- * A port it exposes is handed to `onExposed`, so the panel can show it.
+ * every call in the turn; a failure is reported to each tool as its result,
+ * and the next call starts again, as does one after the workspace was
+ * destroyed under it (a Reset from the panel). A port it exposes is handed
+ * to `onExposed`, so the panel can show it.
  */
 const lazySandbox = (
   start: () => AsyncResult<Sandbox, SandboxError>,
@@ -102,35 +111,75 @@ const lazySandbox = (
 ): ToolSandbox => {
   let started: Promise<Awaited<ReturnType<typeof start>>> | undefined;
   const live = () => {
-    started ??= start();
-    return started;
+    const current = started ?? start();
+    started = current;
+    return current;
+  };
+  /** Runs `use` on the live sandbox; a failed start or a destroyed sandbox is forgotten. */
+  const using = async <T>(
+    use: (sandbox: Sandbox) => AsyncResult<T, SandboxError>
+  ): AsyncResult<T, SandboxError> => {
+    const current = live();
+    const sandbox = await current;
+    const result = sandbox.ok ? await use(sandbox.value) : sandbox;
+    if (
+      !result.ok &&
+      (!sandbox.ok || result.error.type === "destroyed") &&
+      started === current
+    ) {
+      started = undefined;
+    }
+    return result;
   };
   return {
-    exec: async (command, options) => {
-      const sandbox = await live();
-      return sandbox.ok ? sandbox.value.exec(command, options) : sandbox;
-    },
-    exposePort: async (port) => {
-      const sandbox = await live();
-      if (!sandbox.ok) {
-        return sandbox;
-      }
-      const exposed = await sandbox.value.exposePort(port);
-      if (exposed.ok) {
-        await onExposed(sandbox.value.id, exposed.value);
-      }
-      return exposed;
-    },
-    readFile: async (path) => {
-      const sandbox = await live();
-      return sandbox.ok ? sandbox.value.readFile(path) : sandbox;
-    },
-    writeFile: async (path, content) => {
-      const sandbox = await live();
-      return sandbox.ok ? sandbox.value.writeFile(path, content) : sandbox;
-    },
+    exec: (command, options) =>
+      using((sandbox) => sandbox.exec(command, options)),
+    exposePort: (port) =>
+      using(async (sandbox) => {
+        const exposed = await sandbox.exposePort(port);
+        if (exposed.ok) {
+          await onExposed(sandbox.id, exposed.value);
+        }
+        return exposed;
+      }),
+    readFile: (path) => using((sandbox) => sandbox.readFile(path)),
+    writeFile: (path, content) =>
+      using((sandbox) => sandbox.writeFile(path, content)),
   };
 };
+
+/** The workspace's `readFile` as the server's `WorkspaceRead`. */
+const workspaceRead =
+  (sandbox: ToolSandbox): WorkspaceRead =>
+  async (path) => {
+    const read = await sandbox.readFile(path);
+    if (read.ok) {
+      return read;
+    }
+    switch (read.error.type) {
+      case "not_found":
+        return err({ type: "not_found" });
+      case "invalid_path":
+        return err({
+          message: `${read.error.path} is outside the workspace`,
+          type: "unavailable",
+        });
+      case "destroyed":
+        return err({ message: "the workspace was reset", type: "unavailable" });
+      case "unsupported":
+      case "limit_exceeded":
+      case "unavailable":
+        return err({
+          message:
+            read.error.type === "unsupported"
+              ? `this workspace can't ${read.error.operation}`
+              : read.error.message,
+          type: "unavailable",
+        });
+      default:
+        return read.error satisfies never;
+    }
+  };
 
 const viewerOf = async (db: Db, run: SandboxToolRequest["run"]) =>
   ({
@@ -138,29 +187,137 @@ const viewerOf = async (db: Db, run: SandboxToolRequest["run"]) =>
     userId: run.createdBy,
   }) satisfies Viewer;
 
-/** The chat's sandbox row, creating it with `provider` when there's none. */
-const rowFor = async (
+/**
+ * A new workspace's provider: `wanted`, unless its host doesn't answer and
+ * just-bash is here to stand in. Only new workspaces fall back; one that
+ * exists keeps its provider, and its files, however its host is doing.
+ */
+const reachableProvider = async (
+  deps: TurnSandboxDeps,
+  wanted: SandboxProvider
+): Promise<SandboxProvider> => {
+  const entry = deps.providers.get(wanted);
+  if (wanted === FALLBACK || !(entry && deps.providers.has(FALLBACK))) {
+    return wanted;
+  }
+  const reachable = await entry.isolation();
+  return reachable.ok ? wanted : FALLBACK;
+};
+
+const attachTo = (
+  deps: TurnSandboxDeps,
+  row: Pick<SandboxRow, "id" | "provider">
+): AsyncResult<Sandbox, SandboxError> => {
+  const entry = deps.providers.get(row.provider);
+  return entry
+    ? entry.factory.attach(row.id)
+    : Promise.resolve(
+        err(
+          unavailable(
+            `${row.provider} sandboxes are not configured on this instance`
+          )
+        )
+      );
+};
+
+/** The workspace a create or restart left, if it started. */
+const started = (
+  deps: TurnSandboxDeps,
+  record: SandboxRecord
+): AsyncResult<Sandbox, SandboxError> =>
+  record.status.state === "failed"
+    ? Promise.resolve(err(unavailable(record.status.message)))
+    : attachTo(deps, record);
+
+/** Starts the row's workspace again in place: same id, same provider. */
+const restart = async (
+  deps: TurnSandboxDeps,
+  viewer: Viewer,
+  row: SandboxRow
+): AsyncResult<Sandbox, SandboxError> => {
+  const reset = await resetSandbox(
+    { ...deps, session: viewer },
+    { id: row.id }
+  );
+  return reset.ok
+    ? started(deps, reset.value)
+    : err(unavailable(describe(reset.error)));
+};
+
+/**
+ * Whether a failed attach means the workspace is gone rather than out of
+ * reach. just-bash lives in this process, so there's no host to be down:
+ * if it can't attach, the workspace went with a restart.
+ */
+const isGone = (row: SandboxRow, error: SandboxError): boolean =>
+  error.type === "destroyed" || row.provider === FALLBACK;
+
+const resume = async (
+  deps: TurnSandboxDeps,
+  viewer: Viewer,
+  row: SandboxRow
+): AsyncResult<Sandbox, SandboxError> => {
+  // Checked when it starts, not when the run was created: access can be
+  // cut back while a run waits in the queue or for an approval.
+  const allowed = await authorizeSandboxExec(
+    { db: deps.db, session: viewer },
+    row.id
+  );
+  if (!allowed.ok) {
+    return err(unavailable(describe(allowed.error)));
+  }
+  switch (row.state) {
+    case "failed":
+    case "destroyed":
+      return restart(deps, viewer, row);
+    // Someone else is starting it.
+    case "provisioning":
+      return attachTo(deps, row);
+    // A stopped one resumes from its volume when it's attached.
+    case "ready":
+    case "stopped": {
+      const attached = await attachTo(deps, row);
+      return attached.ok || !isGone(row, attached.error)
+        ? attached
+        : restart(deps, viewer, row);
+    }
+    default:
+      return row.state satisfies never;
+  }
+};
+
+/**
+ * The chat's workspace, ready for a tool: created with `wanted` (or
+ * just-bash, if `wanted`'s host is down) when the chat has none; restarted
+ * in place when its last start failed or it was destroyed; re-attached when
+ * stopped. A start that fails is reported, and the next call tries again,
+ * so nobody has to press Reset.
+ */
+export const ensureWorkspace = async (
   deps: TurnSandboxDeps,
   viewer: Viewer,
   conversationId: ConversationId,
-  provider: SandboxProvider
-): AsyncResult<SandboxRow, SandboxHandlerError> => {
+  wanted: SandboxProvider
+): AsyncResult<Sandbox, SandboxError> => {
   const existing = await getSandboxForConversation(deps.db, conversationId);
   if (existing) {
-    return { ok: true, value: existing };
+    return resume(deps, viewer, existing);
   }
   const created = await createConversationSandbox(
     { ...deps, session: viewer },
-    { conversationId, provider }
+    { conversationId, provider: await reachableProvider(deps, wanted) }
   );
-  // Someone else's create won the race; theirs is the chat's sandbox.
-  if (!created.ok && created.error.type !== "already_exists") {
-    return created;
+  if (created.ok) {
+    return started(deps, created.value);
   }
-  const row = await getSandboxForConversation(deps.db, conversationId);
-  return row
-    ? { ok: true, value: row }
-    : err({ message: "The sandbox couldn't start.", type: "unavailable" });
+  if (created.error.type !== "already_exists") {
+    return err(unavailable(describe(created.error)));
+  }
+  // Someone else's create won the race; theirs is the chat's workspace.
+  const theirs = await getSandboxForConversation(deps.db, conversationId);
+  return theirs
+    ? resume(deps, viewer, theirs)
+    : err(unavailable("The workspace couldn't start."));
 };
 
 type Change = Parameters<typeof proposeSandboxChange>[1];
@@ -206,35 +363,19 @@ export const createTurnSandboxSource =
       return null;
     }
     const sandbox = lazySandbox(
-      async () => {
-        const viewer = await viewerOf(deps.db, run);
-        const row = await rowFor(deps, viewer, run.conversationId, provider);
-        if (!row.ok) {
-          return err(unavailable(describe(row.error)));
-        }
-        // Checked when it starts, not when the run was created: access can
-        // be cut back while a run waits in the queue or for an approval.
-        const allowed = await authorizeSandboxExec(
-          { db: deps.db, session: viewer },
-          row.value.id
-        );
-        if (!allowed.ok) {
-          return err(unavailable(describe(allowed.error)));
-        }
-        const live = deps.providers.get(row.value.provider);
-        return live
-          ? live.factory.attach(row.value.id)
-          : err(
-              unavailable(
-                `${row.value.provider} sandboxes are not configured on this instance`
-              )
-            );
-      },
+      async () =>
+        ensureWorkspace(
+          deps,
+          await viewerOf(deps.db, run),
+          run.conversationId,
+          provider
+        ),
       (id, exposed) => recordPreview(deps.db, id, exposed)
     );
     return {
       proposeEdits: (call) => proposal(sandbox, call),
       provider,
+      readFile: workspaceRead(sandbox),
       tools: createSandboxTools({
         reviewFor: (toolCallId) => {
           const review = reviews.get(toolCallId);

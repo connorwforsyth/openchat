@@ -185,6 +185,24 @@ describe("turnFor", () => {
       },
     ]);
   });
+
+  it("keeps @file mentions of workspace files, drops other data", () => {
+    expect(
+      userParts({
+        id: "m",
+        parts: [
+          { text: "look at @src/app.ts", type: "text" },
+          { data: { path: "src/app.ts" }, type: "data-workspace-file" },
+          { data: { nope: true }, type: "data-workspace-file" },
+          { data: { path: "x" }, type: "data-something-else" },
+        ],
+        role: "user",
+      })
+    ).toEqual([
+      { text: "look at @src/app.ts", type: "text" },
+      { data: { path: "src/app.ts" }, name: "workspace-file", type: "data" },
+    ]);
+  });
 });
 
 describe("createRunTransport", () => {

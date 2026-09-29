@@ -11,6 +11,7 @@ import {
   type KeyPolicy,
   resolveChatKeys,
 } from "@workspace/ai/keys/resolve";
+import { workspaceFileRefs } from "@workspace/ai/messages/workspace-file";
 import type { Decider } from "@workspace/ai/ports/decider";
 import type {
   ProviderCredentials,
@@ -40,6 +41,7 @@ import type { OrgPolicy } from "@workspace/contract/schemas/tenancy";
 import type { Db } from "@workspace/db/client";
 import { listReadableIndexedFileIds } from "@workspace/db/queries/files";
 import { resolvePublishedVersion } from "@workspace/db/queries/library";
+import { getMessage } from "@workspace/db/queries/messages";
 import { teamLineage } from "@workspace/db/queries/teams";
 import {
   type AsyncResult,
@@ -66,8 +68,10 @@ import {
   type SandboxToolSource,
   type ToolReviews,
   type TurnSandbox,
+  WORKSPACE_INSTRUCTIONS,
   withSandboxTools,
 } from "./sandbox";
+import { workspaceContext } from "./workspace-context";
 
 // What a run answers with (PLAN.md §8 steps 3.2–3.4): the target resolved to
 // a model and the key that pays for it, plus the agent's instructions and
@@ -393,26 +397,44 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
   };
 
   /**
-   * A plain chat with a sandbox attached (or switched on for this turn)
-   * gets its tools (D7); file changes ask, so each is reviewed before it
-   * lands.
+   * Every plain chat has a workspace (D7): its tools are offered unless the
+   * composer turned it off, and the first call creates it. File changes
+   * ask, so each is reviewed before it lands.
    */
   const chatSandboxTools = async (
     run: RunStart,
     options: Pick<TurnOptions, "reviews" | "signal">
-  ): Promise<Pick<Turn, "proposeEdits" | "toolApproval" | "tools">> => {
-    const sandbox = await sandboxFor(
-      run,
-      run.options.sandbox === "on" ? "default" : null,
-      options
-    );
+  ): Promise<
+    Pick<Turn, "proposeEdits" | "toolApproval" | "tools"> & {
+      readonly sandbox: TurnSandbox | null;
+    }
+  > => {
+    const sandbox = await sandboxFor(run, "default", options);
     return sandbox === null
-      ? {}
+      ? { sandbox }
       : {
           proposeEdits: sandbox.proposeEdits,
+          sandbox,
           toolApproval: chatSandboxApproval(sandbox.tools),
           tools: { ...sandbox.tools },
         };
+  };
+
+  /**
+   * The `@file` mentions in the message this run answers, read from the
+   * workspace as the turn starts (`workspace-context.ts`). `sandbox` is the
+   * turn's workspace, or a thunk for one when the turn has no tools.
+   */
+  const mentionedFiles = async (
+    run: RunStart,
+    sandbox: () => Promise<TurnSandbox | null>
+  ): Promise<string | undefined> => {
+    const message = await getMessage(db, run.userMessageId);
+    const refs = message.ok ? workspaceFileRefs(message.value.parts) : [];
+    if (refs.length === 0) {
+      return;
+    }
+    return workspaceContext(refs, (await sandbox())?.readFile);
   };
 
   /** A plain model chat: the model, plus its attachments' and sandbox's tools. */
@@ -429,8 +451,18 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
     const attached = await attachmentTools(run, caller, { signal, state });
     const sandbox = await chatSandboxTools(run, { reviews, signal });
     const tools = { ...sandbox.tools, ...attached.tools };
+    const mentioned = await mentionedFiles(run, () =>
+      Promise.resolve(sandbox.sandbox)
+    );
+    const instructions = [
+      sandbox.sandbox ? WORKSPACE_INSTRUCTIONS : undefined,
+      mentioned,
+    ].filter((part) => part !== undefined);
     return ok({
       agent: null,
+      ...(instructions.length > 0
+        ? { instructions: instructions.join("\n\n") }
+        : {}),
       parameters: target.parameters,
       ...loaded.value,
       proposeEdits: sandbox.proposeEdits,
@@ -528,10 +560,19 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
       toolSet,
       { signal, state }
     );
+    // An agent without sandbox tools still reads mentions from a workspace
+    // the chat already has.
+    const mentioned = await mentionedFiles(run, () =>
+      sandbox
+        ? Promise.resolve(sandbox)
+        : sandboxFor(run, null, { reviews, signal })
+    );
     return ok({
       ...loaded.value,
       agent: { id: target.id, versionId: version.value.id },
-      instructions: definition.instructions,
+      instructions: mentioned
+        ? [definition.instructions, mentioned].filter(Boolean).join("\n\n")
+        : definition.instructions,
       parameters: definition.parameters,
       proposeEdits: sandbox?.proposeEdits,
       toolApproval: gated.toolApproval,

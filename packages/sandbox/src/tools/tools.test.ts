@@ -10,6 +10,8 @@ import { createMemorySandbox } from "../ports/sandbox.memory";
 import { proposeEdit } from "./patch";
 import {
   applySandboxChange,
+  baseHashOf,
+  contentHash,
   createSandboxTools,
   proposeSandboxChange,
 } from "./tools";
@@ -247,13 +249,73 @@ describe("sandbox tools", () => {
     expect(sandbox.files().get("/work/a.txt")).toBe("changed meanwhile\n");
   });
 
+  it("stamps a proposal with its file's hash, which the review UI ignores", async () => {
+    const sandbox = createMemorySandbox({ files: { "a.txt": "a\n" }, id });
+    const proposed = await proposeSandboxChange(sandbox, {
+      input: { content: "b\n", path: "a.txt" },
+      kind: "write",
+    });
+    const edit = proposed.ok ? proposed.value : null;
+    if (!edit) {
+      throw new Error("no proposal");
+    }
+    expect(baseHashOf(edit)).toBe(await contentHash("a\n"));
+    const parsed = parseProposedEdit(edit);
+    expect(parsed.ok && parsed.value.hunks.map((hunk) => hunk.hunkId)).toEqual([
+      "h1",
+    ]);
+  });
+
+  it("won't apply an approved edit to a file the user changed while it waited", async () => {
+    // The user's change is far from the edit, so the patch alone can't tell.
+    const sandbox = createMemorySandbox({
+      files: { "src/billing.ts": source },
+      id,
+    });
+    const change = {
+      input: {
+        newString: "  return sum + 1;",
+        oldString: "  return sum;",
+        path: "src/billing.ts",
+      },
+      kind: "edit" as const,
+    };
+    const proposed = await proposeSandboxChange(sandbox, change);
+    const edited = source.replace("function label", "function formatLabel");
+    await sandbox.writeFile("src/billing.ts", edited);
+
+    const tools = createSandboxTools({
+      reviewFor: () => ({
+        decision: { decision: "approve" },
+        proposed: (proposed.ok && proposed.value) || undefined,
+      }),
+      sandbox,
+    });
+    const output = await run(tools, "edit", change.input);
+    expect(output).toEqual({
+      message: expect.stringContaining("Read the file again"),
+      status: "error",
+    });
+    expect(await text(sandbox, "src/billing.ts")).toBe(edited);
+
+    // Proposed again from what's there now, it applies.
+    const fresh = await proposeSandboxChange(sandbox, change);
+    expect(
+      await applySandboxChange(sandbox, change, {
+        decision: { decision: "approve" },
+        proposed: (fresh.ok && fresh.value) || undefined,
+      })
+    ).toMatchObject({ applied: ["h1"], status: "changed" });
+    expect(await text(sandbox, "src/billing.ts")).toContain("return sum + 1;");
+  });
+
   it("explains that previews need Docker", async () => {
     const tools = createSandboxTools({
       sandbox: await createJustBashSandbox({ id }),
     });
     expect(await run(tools, "preview", { port: 3000 })).toEqual({
       message:
-        "This sandbox can't serve previews; previews need a Docker sandbox.",
+        "This workspace can't serve previews; previews need a Docker workspace.",
       status: "error",
     });
     const memory = createSandboxTools({ sandbox: createMemorySandbox({ id }) });
