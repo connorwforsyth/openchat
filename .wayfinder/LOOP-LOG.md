@@ -2,7 +2,7 @@
 
 One line per iteration: date · ticket · PR · outcome · verification. The newest summary goes at the top when the loop stops.
 
-**Stopped 2026-09-28: M1 is built and pre-demo audited; waiting on Connor for 026 (M1 demo gate, see its Demo guide).** Closed 53 of 54 tickets across 44 PRs (046–053 on 2026-09-28: audit, Material icons, preview WebSockets, sandbox dev previews, setup CLI, Docker upload storage, loopback origins). All M1 workstreams are merged; e2e 23/23, local gate 79/79; the Docker image, the compose stack on Postgres 17 and the sandbox runner are verified (045). Waiting on Connor: the 026 demo (`PLAN.md` §11 M1 checks), the theme preset, and the defaults in `QUESTIONS-FOR-CONNOR.md`. After 026, charting the waves is a `/wayfinder` session.
+**Stopped 2026-09-30: ready to launch; waiting on Connor for 026 (M1 demo gate).** Closed 64 of 65 tickets across 55 PRs. The 055–065 composer-first workspace and UI cleanup is merged: template-style chat, a slimmer header, an always-on self-healing workspace, one Workspace panel (files + editor, preview, artifacts; no terminal), `@file` and `/` commands, and tool status lines. e2e 32/32, gate 82/82, sandbox runner smoke passed on runc. The app runs locally with Docker sandboxes.
 
 - 2026-09-26 · map charted (26 tickets; 001 closed at charting) · frontier: 002, 009, 010
 - 2026-09-26 · 002 closed · PR #1 · monorepo scaffold · typecheck/lint/test/build 6/6, empty-env boot 200, CI pass
@@ -82,3 +82,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-09-30 · 062 closed · PR #53 · e2e 31/31, 82/82 · added 064 (editor theme switch), started
 - 2026-09-30 · 064 closed · PR #54 · e2e 32/32 · added 065 (@ mention list race), started
 - 2026-09-30 · 065 closed · PR #55 · e2e 32/32 · only 026 (Connor) remains; launch check next
+- 2026-09-30 · launch check: runner rebuilt (Docker Desktop's registry proxy hung, so dist was built on the host); smoke passed (npx/npm create, preview, snapshot); app up at localhost:3000 with Docker sandboxes · only 026 remains
