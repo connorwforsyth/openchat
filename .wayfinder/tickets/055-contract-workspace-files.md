@@ -2,8 +2,8 @@
 id: "055"
 title: "Contract: workspace file routes"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -68,3 +68,7 @@ Branch `t/055-contract-workspace-files`, commit `cd0c30f` (touches only `package
 - **Tests**: round-trip cases for every new schema, cap tests (decoded base64, UTF-8 bytes rather than characters), and contract tests for the paths, errors, the readFile etag and the OpenAPI operations. Contract: 1346 pass. `openapi.json` regenerated; Redocly lint passes. README has a "Changes (2026-09-29, 055)" table.
 - **Server stubs** (commit `3d5a45b`, `packages/server/src/api/sandbox.ts` + new `sandbox.test.ts`, so 055 can merge on its own): `writeFile`, `importFile` and `deleteFile` are optional on `SandboxApi`, and `disabledSandboxApi` has all three. A route whose method the bound api lacks answers `FEATURE_DISABLED` (403, "Workspace file writes aren't available yet."). `readFile` adds `etag` in the router: the SHA-256 of the decoded bytes. `apps/web` is unchanged. 059 implements the real handlers.
 - **Gate: passes** (82/82). On the first run, one `@workspace/server#test` failure didn't reproduce; the suite passes 185/185 on its own and on the rerun.
+
+## Resolution (2026-09-30, Connor)
+
+Connor asked the loop to merge [PR #45](https://github.com/connorwforsyth/openchat/pull/45) after it passed the local gate (82/82) on the rebased branch. Accepted as is: `deleteFile.recursive` stays, and `runOptions.sandbox: on` means the same as `auto`.
