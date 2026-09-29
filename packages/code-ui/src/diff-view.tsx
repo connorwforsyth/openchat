@@ -221,7 +221,7 @@ function ParsedDiffView<Meta>({
         lineAnnotations={lineAnnotations}
         options={options}
         renderAnnotation={renderLineAnnotation}
-        style={diffsHostStyle}
+        style={diffsHostStyle(themeType)}
       />
       {reviewing ? (
         <ReviewFooter
