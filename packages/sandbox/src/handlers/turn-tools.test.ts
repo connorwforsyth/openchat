@@ -5,6 +5,7 @@ import type {
 } from "@workspace/contract/schemas/common";
 import type { Conversation } from "@workspace/contract/schemas/conversations";
 import type { AgentDefinition } from "@workspace/contract/schemas/library";
+import type { UserMessagePart } from "@workspace/contract/schemas/message-parts";
 import type {
   CreateRunOutput,
   Run,
@@ -15,9 +16,11 @@ import {
   publishDraft,
 } from "@workspace/db/queries/library";
 import { getSandboxForConversation } from "@workspace/db/queries/sandboxes";
+import { loadPrincipals } from "@workspace/db/queries/teams";
 import { expectOk } from "@workspace/db/testing";
+import { WORKSPACE_INSTRUCTIONS } from "@workspace/server/runs/sandbox";
 import { createHarness, type Harness } from "@workspace/server/testing/harness";
-import { ok } from "@workspace/shared/result";
+import { err, ok } from "@workspace/shared/result";
 import { simulateReadableStream } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -26,7 +29,11 @@ import { createJustBashFactory } from "../just-bash/provider";
 import { createMemorySnapshotStore } from "../just-bash/snapshot-store";
 import type { ProviderEntry, SandboxProviders } from "../providers";
 import { SANDBOX_TOOL_NAMES } from "../tools/tools";
-import { createTurnSandboxSource, providerForTurn } from "./turn-tools";
+import {
+  createTurnSandboxSource,
+  ensureWorkspace,
+  providerForTurn,
+} from "./turn-tools";
 
 // Sandbox tools in agent turns, in process (ticket 041, PLAN.md §11 M1 steps
 // 6–7): an agent with the just-bash sandbox runs commands, and its `edit`
@@ -168,8 +175,9 @@ const publishedAgent = async (): Promise<RunTarget> => {
 const send = async (
   conversationId: string,
   target: RunTarget,
-  prompt: string,
-  parentId: string | null
+  prompt: string | UserMessagePart[],
+  parentId: string | null,
+  options?: { readonly sandbox: "auto" | "off" | "on" }
 ) =>
   json<CreateRunOutput>(
     await h.request("/api/runs", {
@@ -177,15 +185,27 @@ const send = async (
         conversationId,
         input: {
           parentId,
-          parts: [{ text: prompt, type: "text" }],
+          parts:
+            typeof prompt === "string"
+              ? [{ text: prompt, type: "text" }]
+              : prompt,
           type: "message",
         },
+        ...(options ? { options } : {}),
         target,
       },
       method: "POST",
     }),
     202
   );
+
+const newChat = async () =>
+  json<Conversation>(
+    await h.request("/api/conversations", { json: {}, method: "POST" }),
+    201
+  );
+
+const MODEL: RunTarget = { model: "test:agent", type: "model" };
 
 const getRun = async (runId: RunId) =>
   json<Run>(await h.request(`/api/runs/${runId}`));
@@ -311,7 +331,7 @@ describe("sandbox tools in agent turns", () => {
     });
   });
 
-  it("gives a plain chat no sandbox tools until one is attached", async () => {
+  it("offers no tools for a request without a provider until a workspace is attached", async () => {
     const source = createTurnSandboxSource({
       db: h.db,
       defaultProvider: "just-bash",
@@ -402,6 +422,284 @@ describe("sandbox tools in agent turns", () => {
     expect(row?.previews).toEqual([
       { port: 5173, url: "http://preview.test:5173" },
     ]);
+  });
+});
+
+const viewer = async () => ({
+  principals: await loadPrincipals(h.db, h.ownerId),
+  userId: h.ownerId,
+});
+
+/** The sandbox tools offered on the model's `n`th call (memory's are always there). */
+const sandboxToolsSeen = (n: number) =>
+  (model.doStreamCalls[n]?.tools ?? [])
+    .map((each) => each.name)
+    .filter((name) => (SANDBOX_TOOL_NAMES as readonly string[]).includes(name))
+    .sort();
+
+/** The model's system prompt on its `n`th call. */
+const systemSeen = (n: number) =>
+  model.doStreamCalls[n]?.prompt.find((message) => message.role === "system")
+    ?.content;
+
+describe("every plain chat has a workspace", () => {
+  let script: ReturnType<typeof text>[] = [];
+
+  beforeEach(async () => {
+    await h.close();
+    script = [];
+    model = new MockLanguageModelV4({
+      doStream: () => Promise.resolve(script.shift() ?? text("Done.")),
+    });
+    h = await createHarness({
+      models: { "test:agent": model },
+      realTurns: true,
+      sandbox: (db) =>
+        createTurnSandboxSource({
+          db,
+          defaultProvider: "just-bash",
+          providers,
+        }),
+    });
+  });
+
+  it("offers the tools, and the first call creates the workspace", async () => {
+    script = [
+      toolCall("bash", { command: "echo hi > a.txt && cat a.txt" }, "call-1"),
+    ];
+    const chat = await newChat();
+    const first = await send(chat.id, MODEL, "make a file", null);
+    await h.services.executor.idle();
+
+    expect((await getRun(first.runId)).state.status).toBe("succeeded");
+    expect(sandboxToolsSeen(0)).toEqual([...SANDBOX_TOOL_NAMES].sort());
+    expect(systemSeen(0)).toContain(WORKSPACE_INSTRUCTIONS);
+    expect(systemSeen(0)).toContain("Never ask the user to run commands");
+    expect(toolResultSeen(1, "call-1")).toMatchObject({
+      output: { type: "json", value: { status: "ran", stdout: "hi\n" } },
+    });
+    const row = await getSandboxForConversation(h.db, chat.id);
+    expect(row).toMatchObject({ provider: "just-bash", state: "ready" });
+  });
+
+  it("offers nothing when the composer turns the workspace off", async () => {
+    const chat = await newChat();
+    const first = await send(chat.id, MODEL, "just talk", null, {
+      sandbox: "off",
+    });
+    await h.services.executor.idle();
+
+    expect((await getRun(first.runId)).state.status).toBe("succeeded");
+    expect(sandboxToolsSeen(0)).toEqual([]);
+    expect(systemSeen(0) ?? "").not.toContain(WORKSPACE_INSTRUCTIONS);
+    expect(await getSandboxForConversation(h.db, chat.id)).toBeNull();
+  });
+
+  it("reads @file mentions from the workspace into the turn", async () => {
+    const chat = await newChat();
+    const workspace = await ensureWorkspace(
+      { db: h.db, defaultProvider: "just-bash", providers },
+      await viewer(),
+      chat.id,
+      "just-bash"
+    );
+    if (!workspace.ok) {
+      throw new Error("the workspace didn't start");
+    }
+    expectOk(await workspace.value.writeFile("notes.md", "# Notes\nship it"));
+
+    await send(
+      chat.id,
+      MODEL,
+      [
+        { text: "what does @notes.md say?", type: "text" },
+        { data: { path: "notes.md" }, name: "workspace-file", type: "data" },
+        { data: { path: "missing.md" }, name: "workspace-file", type: "data" },
+      ],
+      null
+    );
+    await h.services.executor.idle();
+
+    expect(systemSeen(0)).toContain(
+      '<workspace-file path="notes.md">\n# Notes\nship it\n</workspace-file>'
+    );
+    expect(systemSeen(0)).toContain(
+      '<workspace-file path="missing.md" omitted="true">No such file in the workspace.</workspace-file>'
+    );
+  });
+});
+
+/** A just-bash factory standing in for Docker, whose host is up or down. */
+const fakeDocker = () => {
+  const inner = justBash();
+  const host: { up: boolean } = { up: true };
+  const down = () =>
+    Promise.resolve(
+      err({ message: "the runner is down", type: "unavailable" as const })
+    );
+  const entry: ProviderEntry = {
+    factory: {
+      attach: (id) => (host.up ? inner.factory.attach(id) : down()),
+      create: (spec) => (host.up ? inner.factory.create(spec) : down()),
+      provider: "docker",
+    },
+    isolation: () =>
+      host.up ? Promise.resolve(ok("container" as const)) : down(),
+    limits: inner.limits,
+  };
+  return { entry, host };
+};
+
+describe("ensureWorkspace", () => {
+  it("recovers from a start that failed, without a Reset", async () => {
+    const inner = justBash();
+    let failures = 1;
+    const flaky: ProviderEntry = {
+      ...inner,
+      factory: {
+        ...inner.factory,
+        create: (spec) => {
+          if (failures > 0) {
+            failures -= 1;
+            return Promise.resolve(
+              err({ message: "no room", type: "unavailable" as const })
+            );
+          }
+          return inner.factory.create(spec);
+        },
+      },
+    };
+    const deps = {
+      db: h.db,
+      defaultProvider: "just-bash" as const,
+      providers: new Map([["just-bash", flaky]]) as SandboxProviders,
+    };
+    const chat = await newChat();
+
+    const first = await ensureWorkspace(
+      deps,
+      await viewer(),
+      chat.id,
+      "just-bash"
+    );
+    expect(first.ok).toBe(false);
+    const failed = await getSandboxForConversation(h.db, chat.id);
+    expect(failed?.state).toBe("failed");
+
+    const second = await ensureWorkspace(
+      deps,
+      await viewer(),
+      chat.id,
+      "just-bash"
+    );
+    expect(second.ok).toBe(true);
+    const row = await getSandboxForConversation(h.db, chat.id);
+    expect(row).toMatchObject({ id: failed?.id, state: "ready" });
+  });
+
+  it("starts a just-bash workspace again when the process lost it", async () => {
+    const chat = await newChat();
+    const deps = {
+      db: h.db,
+      defaultProvider: "just-bash" as const,
+      providers,
+    };
+    expect(
+      (await ensureWorkspace(deps, await viewer(), chat.id, "just-bash")).ok
+    ).toBe(true);
+    const before = await getSandboxForConversation(h.db, chat.id);
+
+    // A restart with an in-memory store: the row says ready, nothing's there.
+    const restarted = {
+      ...deps,
+      providers: new Map([["just-bash", justBash()]]) as SandboxProviders,
+    };
+    const again = await ensureWorkspace(
+      restarted,
+      await viewer(),
+      chat.id,
+      "just-bash"
+    );
+    expect(again.ok && again.value.id).toBe(before?.id);
+  });
+
+  it("falls back to just-bash for a new workspace when Docker is down", async () => {
+    const docker = fakeDocker();
+    docker.host.up = false;
+    const deps = {
+      db: h.db,
+      defaultProvider: "docker" as const,
+      providers: new Map([
+        ["docker", docker.entry],
+        ["just-bash", justBash()],
+      ]) as SandboxProviders,
+    };
+    const chat = await newChat();
+    const workspace = await ensureWorkspace(
+      deps,
+      await viewer(),
+      chat.id,
+      "docker"
+    );
+    expect(workspace.ok && workspace.value.provider).toBe("just-bash");
+    expect(await getSandboxForConversation(h.db, chat.id)).toMatchObject({
+      provider: "just-bash",
+      state: "ready",
+    });
+  });
+
+  it("keeps an existing Docker workspace, and its files, through an outage", async () => {
+    const docker = fakeDocker();
+    const deps = {
+      db: h.db,
+      defaultProvider: "docker" as const,
+      providers: new Map([
+        ["docker", docker.entry],
+        ["just-bash", justBash()],
+      ]) as SandboxProviders,
+    };
+    const chat = await newChat();
+    const first = await ensureWorkspace(
+      deps,
+      await viewer(),
+      chat.id,
+      "docker"
+    );
+    if (!first.ok) {
+      throw new Error("the workspace didn't start");
+    }
+    expectOk(await first.value.writeFile("keep.txt", "kept"));
+
+    docker.host.up = false;
+    const during = await ensureWorkspace(
+      deps,
+      await viewer(),
+      chat.id,
+      "docker"
+    );
+    expect(during).toEqual({
+      error: { message: "the runner is down", type: "unavailable" },
+      ok: false,
+    });
+    expect(await getSandboxForConversation(h.db, chat.id)).toMatchObject({
+      id: first.value.id,
+      provider: "docker",
+      state: "ready",
+    });
+
+    docker.host.up = true;
+    const after = await ensureWorkspace(
+      deps,
+      await viewer(),
+      chat.id,
+      "docker"
+    );
+    if (!after.ok) {
+      throw new Error("the workspace didn't come back");
+    }
+    expect(after.value.id).toBe(first.value.id);
+    const kept = await after.value.readFile("keep.txt");
+    expect(kept.ok && new TextDecoder().decode(kept.value)).toBe("kept");
   });
 });
 

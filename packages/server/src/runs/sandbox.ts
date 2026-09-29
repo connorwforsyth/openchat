@@ -4,15 +4,19 @@ import type { JsonValue } from "@workspace/contract/schemas/common";
 import type { ApprovalDecision } from "@workspace/contract/schemas/message-parts";
 import type { ProposedEdit } from "@workspace/contract/schemas/runs";
 import type { SandboxProvider } from "@workspace/contract/schemas/sandbox";
+import type { AsyncResult } from "@workspace/shared/result";
 import type { Tool, ToolApprovalStatus } from "ai";
+import { z } from "zod";
 
-// Sandbox tools in a turn (D7, PLAN.md §11 M1 steps 6–7). `@workspace/sandbox`
-// depends on this package, so it can't be imported here: the shell binds a
-// `SandboxToolSource` (the sandbox package's `createTurnSandboxSource`) and
-// the turn resolver asks it for the chat's tools. What stays here is the
-// policy: which runs get them, and that `write`/`edit` ask by default, so
-// every file change pauses the run with its proposed patch for per-hunk
-// review (D16) unless the agent says otherwise.
+// Sandbox tools in a turn (D7, PLAN.md §11 M1 steps 6–7). Every chat has a
+// workspace (its sandbox, "Files" in the UI), created on first use.
+// `@workspace/sandbox` depends on this package, so it can't be imported
+// here: the shell binds a `SandboxToolSource` (the sandbox package's
+// `createTurnSandboxSource`) and the turn resolver asks it for the chat's
+// tools. What stays here is the policy: which runs get them, and that
+// `write`/`edit` ask by default, so every file change pauses the run with
+// its proposed patch for per-hunk review (D16) unless the agent says
+// otherwise.
 
 /** The agent-facing sandbox tools, by the names agents list them under. */
 export const SANDBOX_TOOLS = [
@@ -22,6 +26,18 @@ export const SANDBOX_TOOLS = [
   "edit",
   "preview",
 ] as const;
+
+/**
+ * What a plain chat's model is told about its workspace. The user has no
+ * terminal (D7), so a model that asks them to run something leaves them
+ * stuck.
+ */
+export const WORKSPACE_INSTRUCTIONS = [
+  "You have a workspace: a sandboxed machine whose files live in /work.",
+  "The user sees those files in the Files panel next to this chat.",
+  "Use the bash, read, write and edit tools to do the work yourself.",
+  "Never ask the user to run commands; they have no terminal. Run them yourself with bash.",
+].join(" ");
 
 /** Tools that change files: they ask unless the agent overrides them. */
 export const FILE_CHANGE_TOOLS = ["write", "edit"] as const;
@@ -45,23 +61,42 @@ export interface PausedCall {
   readonly toolName: string;
 }
 
+export const workspaceReadErrorSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("not_found") }),
+  /** The workspace couldn't start, or the path is outside it. */
+  z.object({ message: z.string(), type: z.literal("unavailable") }),
+]);
+export type WorkspaceReadError = z.infer<typeof workspaceReadErrorSchema>;
+
+/** Reads a file from the chat's workspace, starting it if it must. */
+export type WorkspaceRead = (
+  path: string
+) => AsyncResult<Uint8Array, WorkspaceReadError>;
+
 /** The chat's sandbox as one turn sees it. */
 export interface TurnSandbox {
   /** What a paused call would change; `undefined` when it changes no file (or can't). */
   readonly proposeEdits: (
     call: PausedCall
   ) => Promise<readonly ProposedEdit[] | undefined>;
+  /**
+   * The provider a new workspace is asked for, or the attached one's. A new
+   * one may still fall back to just-bash when this one's host is down.
+   */
   readonly provider: SandboxProvider;
+  /** For `@file` mentions (`workspace-context.ts`). */
+  readonly readFile: WorkspaceRead;
   /** Keyed by the names in `SANDBOX_TOOLS`. */
   readonly tools: Readonly<Record<string, Tool>>;
 }
 
 export interface SandboxToolRequest {
   /**
-   * The agent version's provider, or `default` (the instance's) when the
-   * composer turned the sandbox on for a plain chat. `null` for a plain
-   * chat otherwise: it gets tools only when a sandbox is already attached.
-   * An attached sandbox always wins; it's the one the panel shows.
+   * The agent version's provider, or `default` (the instance's) for a plain
+   * chat, which always has a workspace unless the composer turned it off.
+   * `null` asks only for a workspace that's already attached (an agent
+   * without sandbox tools reading an `@file` mention). An attached
+   * workspace always wins; it's the one the Files panel shows.
    */
   readonly requested: SandboxProvider | "default" | null;
   /** Decisions for the calls this pass executes (empty on a fresh turn). */

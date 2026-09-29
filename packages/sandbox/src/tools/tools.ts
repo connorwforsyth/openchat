@@ -18,15 +18,20 @@ import {
 import { type Tool, tool } from "ai";
 import { z } from "zod";
 
+import { WORKDIR } from "../paths";
 import type { OutputChunk, Sandbox, SandboxError } from "../ports/sandbox";
 import { proposeEdit } from "./patch";
 
 // The agent's sandbox tools (D7) over any `Sandbox`: `bash`, `read`, `write`,
-// `edit` and `preview`. `write` and `edit` never touch the file blindly:
-// each computes a `ProposedEdit` first, and in `ask` mode the run executor
-// shows it for per-hunk review (D16) and hands the decision back through
-// `reviewFor`; only accepted hunks are applied. Expected failures come back
-// as `{ status: "error" }` outputs the model can read, not throws.
+// `edit` and `preview`. The user calls the sandbox the chat's workspace and
+// sees its files in the Files panel, so the descriptions say so. `write`
+// and `edit` never touch the file blindly: each computes a `ProposedEdit`
+// first, and in `ask` mode the run executor shows it for per-hunk review
+// (D16) and hands the decision back through `reviewFor`; only accepted
+// hunks are applied. The proposal carries a hash of the file it was made
+// from, so a file the user edited while the change waited isn't
+// overwritten. Expected failures come back as `{ status: "error" }` outputs
+// the model can read, not throws.
 
 export const SANDBOX_TOOL_NAMES = [
   "bash",
@@ -149,17 +154,17 @@ const describeError = (error: SandboxError): string => {
     case "not_found":
       return `${error.path}: no such file or directory`;
     case "invalid_path":
-      return `${error.path}: path is outside the sandbox`;
+      return `${error.path}: path is outside the workspace`;
     case "destroyed":
-      return "The sandbox was destroyed; ask the user to create a new one.";
+      return "The workspace was reset and its files are gone; try again to use the new one.";
     case "unsupported":
       return error.operation === "exposePort"
-        ? "This sandbox can't serve previews; previews need a Docker sandbox."
-        : `This sandbox doesn't support ${error.operation}.`;
+        ? "This workspace can't serve previews; previews need a Docker workspace."
+        : `This workspace doesn't support ${error.operation}.`;
     case "limit_exceeded":
-      return `Sandbox limit reached: ${error.message}`;
+      return `Workspace limit reached: ${error.message}`;
     case "unavailable":
-      return `The sandbox is unavailable: ${error.message}`;
+      return `The workspace is unavailable: ${error.message}`;
     default:
       return error satisfies never;
   }
@@ -226,6 +231,45 @@ const planChange = async (
   return ok({ after, before: before.value, path });
 };
 
+const encoder = new TextEncoder();
+
+/** SHA-256 of the file a change was planned against, as hex. */
+export const contentHash = async (text: string): Promise<string> => {
+  const digest = await crypto.subtle.digest("SHA-256", encoder.encode(text));
+  return Array.from(new Uint8Array(digest), (byte) =>
+    byte.toString(16).padStart(2, "0")
+  ).join("");
+};
+
+const BASE_HASH = /^--- [^\n]*\tsha256:([0-9a-f]{64})$/m;
+const OLD_HEADER = /^--- [^\n\t]*$/m;
+
+/**
+ * Stamps the patch's `---` header with the hash of the file it was made
+ * from, where a unified diff keeps a timestamp. The proposal is stored with
+ * the pending approval and handed back with the decision, and the contract
+ * has no field for it; `DiffView` reads from the first hunk, so the header
+ * is free.
+ */
+const withBaseHash = (edit: ProposedEdit, hash: string): ProposedEdit => ({
+  ...edit,
+  patch: edit.patch.replace(OLD_HEADER, (line) => `${line}\tsha256:${hash}`),
+});
+
+/** The hash a proposal was made from; `undefined` for one made before hashes. */
+export const baseHashOf = (edit: ProposedEdit): string | undefined =>
+  BASE_HASH.exec(edit.patch.slice(0, edit.patch.indexOf("\n@@")))?.[1];
+
+/** The proposal for a planned change, stamped with its file's hash. */
+const proposalFor = async (planned: {
+  readonly after: string;
+  readonly before: string;
+  readonly path: string;
+}): Promise<ProposedEdit | null> => {
+  const edit = proposeEdit(planned.path, planned.before, planned.after);
+  return edit && withBaseHash(edit, await contentHash(planned.before));
+};
+
 /**
  * What a `write` or `edit` call would change, for the approval request the
  * run executor shows before asking (`PendingApproval.edits`).
@@ -233,17 +277,9 @@ const planChange = async (
 export const proposeSandboxChange = async (
   sandbox: ToolSandbox,
   change: ChangeInput
-): AsyncResult<ReturnType<typeof proposeEdit>, string> => {
+): AsyncResult<ProposedEdit | null, string> => {
   const planned = await planChange(sandbox, change);
-  return planned.ok
-    ? ok(
-        proposeEdit(
-          planned.value.path,
-          planned.value.before,
-          planned.value.after
-        )
-      )
-    : planned;
+  return planned.ok ? ok(await proposalFor(planned.value)) : planned;
 };
 
 /** Which hunk ids a decision lets through. */
@@ -307,7 +343,15 @@ export const applySandboxChange = async (
     return failure(planned.error);
   }
   const { after, before, path } = planned.value;
-  const edit = proposeEdit(path, before, after);
+  // After an approval, the file must be the one the reviewer saw: the user
+  // may have edited it in the Files panel while the change waited.
+  const reviewedHash = review?.proposed && baseHashOf(review.proposed);
+  if (reviewedHash && reviewedHash !== (await contentHash(before))) {
+    return failure(
+      `${path} was edited while this change waited for approval, so it wasn't applied. Read the file again and redo the change on its current contents.`
+    );
+  }
+  const edit = await proposalFor(planned.value);
   const stale = failure(
     `${path} changed since the edit was reviewed; read it again and retry`
   );
@@ -366,8 +410,7 @@ export const createSandboxTools = ({
   sandbox,
 }: SandboxToolsOptions): Record<SandboxToolName, Tool> => ({
   bash: tool({
-    description:
-      "Run a bash command in the chat's sandbox. The working directory is the workspace root; files persist between calls.",
+    description: `Run a bash command in the chat's workspace, a sandboxed machine. The working directory is the workspace root, ${WORKDIR}; files there persist between calls and the user sees them in the Files panel. Run commands yourself rather than asking the user to.`,
     execute: async (
       { command, cwd, timeoutMs },
       { abortSignal, toolCallId }
@@ -387,8 +430,7 @@ export const createSandboxTools = ({
   }),
 
   edit: tool({
-    description:
-      "Replace an exact string in a text file in the sandbox. The change is shown to the user as a diff and may be applied only in part.",
+    description: `Replace an exact string in a text file in the workspace (${WORKDIR}, the user's Files panel). The change is shown to the user as a diff and may be applied only in part.`,
     execute: async (input, { toolCallId }) =>
       applySandboxChange(
         sandbox,
@@ -401,7 +443,7 @@ export const createSandboxTools = ({
 
   preview: tool({
     description:
-      "Expose a port a server in the sandbox listens on and get a URL the user can open in the preview panel.",
+      "Expose a port a server in the workspace listens on and get a URL the user can open in the preview panel.",
     execute: async ({ port }) => {
       const exposed = await sandbox.exposePort(port);
       return exposed.ok
@@ -413,8 +455,7 @@ export const createSandboxTools = ({
   }),
 
   read: tool({
-    description:
-      "Read a text file from the sandbox, optionally a range of lines.",
+    description: `Read a text file from the workspace (${WORKDIR}, the user's Files panel), optionally a range of lines. Relative paths are relative to ${WORKDIR}.`,
     execute: async ({ limit, offset, path }) => {
       const text = await readText(sandbox, path, { missingIsEmpty: false });
       if (!text.ok) {
@@ -435,8 +476,7 @@ export const createSandboxTools = ({
   }),
 
   write: tool({
-    description:
-      "Create or overwrite a text file in the sandbox. The change is shown to the user as a diff and may be applied only in part.",
+    description: `Create or overwrite a text file in the workspace (${WORKDIR}, the user's Files panel). The change is shown to the user as a diff and may be applied only in part.`,
     execute: async (input, { toolCallId }) =>
       applySandboxChange(
         sandbox,
