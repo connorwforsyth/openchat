@@ -1,8 +1,14 @@
 "use client";
 
 import { useLingui } from "@lingui/react/macro";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  skipToken,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { toUIMessages } from "@workspace/ai/messages/to-ui";
+import { WORKSPACE_FILE_DATA } from "@workspace/ai/messages/workspace-file";
 import {
   type ApiClient,
   createQueryUtils,
@@ -29,6 +35,7 @@ import type {
   PendingApproval,
   RunTarget,
 } from "@workspace/contract/schemas/runs";
+import type { SandboxRecord } from "@workspace/contract/schemas/sandbox";
 import type { ChatContext } from "@workspace/contract/schemas/tenancy";
 import type { FileUIPart, UIMessage } from "ai";
 import {
@@ -44,7 +51,11 @@ import type { ConversationActions } from "../conversation/actions";
 import { newestLeafUnder, type TreeNode } from "../model/branch";
 import { mergeLive } from "../model/live-messages";
 import type { MemoryUpdate } from "../model/parts";
-import type { WorkspaceSelection } from "../model/workspace";
+import {
+  type WorkspaceSelection,
+  workspacePath,
+  workspaceRevision,
+} from "../model/workspace";
 import type { Platform } from "../shell/platform";
 import type { ShellLayoutState } from "../shell/use-shell-layout";
 import type { Theme } from "../sidebar/account-menu";
@@ -52,6 +63,7 @@ import type {
   WorkspaceClient,
   WorkspaceFilesSource,
 } from "../workspace/model/client";
+import { toTreePaths } from "../workspace/model/tree";
 import { ChatScreen } from "./chat-screen";
 import { useBranchFeedback } from "./use-branch-feedback";
 import { useChatQueries, useConversationUpdate } from "./use-chat-data";
@@ -127,6 +139,11 @@ const attachmentLimitsFor = (config: PublicConfig): AttachmentLimits =>
         maxFiles: MAX_ATTACHMENTS,
       };
 
+interface Uploaded {
+  readonly fileId: FileId;
+  readonly part: FileUIPart;
+}
+
 /**
  * Uploads a turn's attachments through the files API, as the file parts the
  * run transport turns back into stored file references.
@@ -135,7 +152,7 @@ const uploadAttachments = (
   client: ApiClient,
   conversationId: ConversationId,
   attachments: readonly ComposerAttachment[]
-): Promise<FileUIPart[]> =>
+): Promise<Uploaded[]> =>
   Promise.all(
     attachments.map(async ({ file }) => {
       const uploaded = await client.files.upload({
@@ -144,13 +161,108 @@ const uploadAttachments = (
         purpose: "attachment",
       });
       return {
-        filename: uploaded.name,
-        mediaType: uploaded.mediaType,
-        type: "file" as const,
-        url: fileUrl(uploaded.id),
+        fileId: uploaded.id,
+        part: {
+          filename: uploaded.name,
+          mediaType: uploaded.mediaType,
+          type: "file" as const,
+          url: fileUrl(uploaded.id),
+        },
       };
     })
   );
+
+/**
+ * Copies uploaded attachments into the chat's workspace (D7), so the agent
+ * and the Files panel have them too; resolves to their workspace paths. One
+ * at a time, so names that collide get distinct free names. An import that
+ * fails leaves the attachment as it is: the message still goes.
+ */
+const importToWorkspace = async (
+  client: ApiClient,
+  conversationId: ConversationId,
+  uploaded: readonly Uploaded[]
+): Promise<string[]> => {
+  const paths: string[] = [];
+  for (const { fileId } of uploaded) {
+    try {
+      // biome-ignore lint/performance/noAwaitInLoops: sequential on purpose.
+      const imported = await client.sandbox.importFile({
+        conversationId,
+        fileId,
+      });
+      paths.push(workspacePath(imported.path));
+    } catch {
+      // Not imported (no workspace here, a cap): the upload still counts.
+    }
+  }
+  return paths;
+};
+
+/** What a turn sends besides its text. */
+interface Outgoing {
+  readonly files: FileUIPart[];
+  /** Workspace files the message mentions, sent as `data-workspace-file` parts (056). */
+  readonly workspaceFiles: readonly string[];
+}
+
+const NOTHING_ELSE: Outgoing = { files: [], workspaceFiles: [] };
+
+/**
+ * The message `useChat` sends: its attachments, its text, then a
+ * `data-workspace-file` part per mentioned workspace file, which the server
+ * reads into the turn when it starts. Pure.
+ */
+export const outgoingMessage = (
+  text: string,
+  { files, workspaceFiles }: Outgoing
+) =>
+  workspaceFiles.length === 0
+    ? { files, text }
+    : {
+        parts: [
+          ...files,
+          { text, type: "text" as const },
+          ...[...new Set(workspaceFiles)].map((path) => ({
+            data: { path },
+            type: `data-${WORKSPACE_FILE_DATA}` as const,
+          })),
+        ],
+      };
+
+/** Mentioned workspace files, in text order. Pure. */
+const mentionedFiles = (value: ComposerValue): string[] =>
+  value.mentions.flatMap((mention) =>
+    mention.kind === "file" ? [mention.path] : []
+  );
+
+/** Paths the composer offers: files only, relative to the workspace. Pure. */
+const filePaths = (
+  entries: Parameters<typeof toTreePaths>[0] | undefined
+): readonly string[] =>
+  entries ? toTreePaths(entries).filter((path) => !path.endsWith("/")) : [];
+
+/** Whether the workspace's files can be listed right now. */
+const listable = (sandbox: SandboxRecord | null): sandbox is SandboxRecord =>
+  sandbox?.status.state === "ready" || sandbox?.status.state === "stopped";
+
+/** Whether attachments can go into a workspace on this instance. */
+const canImport = (config: PublicConfig): boolean =>
+  config.features.sandboxes === true && config.sandbox.default !== null;
+
+/**
+ * Whether `/preview` can do anything: a workspace serves previews unless it
+ * runs on just-bash. An existing one says which provider it's on (Docker
+ * falls back to just-bash when it's down, 056); a new one will use the
+ * instance's default.
+ */
+const canPreviewOn = (
+  config: PublicConfig,
+  sandbox: SandboxRecord | null
+): boolean => {
+  const provider = sandbox?.provider ?? config.sandbox.default;
+  return provider !== null && provider !== "just-bash";
+};
 
 /**
  * The turn being written: `useChat` over runs, seeded with the stored branch
@@ -423,7 +535,9 @@ const useFirstSend = ({
   client,
   context,
   conversationId,
+  importFiles,
   onNavigate,
+  onWorkspaceChanged,
   send,
   target,
 }: {
@@ -431,20 +545,24 @@ const useFirstSend = ({
   readonly client: ApiClient;
   readonly context: ChatContext;
   readonly conversationId: ConversationId | null;
+  /** Attachments are copied into the chat's workspace too. */
+  readonly importFiles: boolean;
   readonly onNavigate: (id: ConversationId) => void;
-  readonly send: (text: string, files: FileUIPart[]) => void;
+  /** The workspace changed (attachments were imported). */
+  readonly onWorkspaceChanged: () => void;
+  readonly send: (text: string, outgoing: Outgoing) => void;
   /** Stored as the new chat's default, so reopening it continues with the same agent or model. */
   readonly target: RunTarget | null;
 }) => {
   const [pending, setPending] = useState<{
     readonly conversationId: ConversationId;
-    readonly files: FileUIPart[];
+    readonly outgoing: Outgoing;
     readonly text: string;
   } | null>(null);
   useEffect(() => {
     if (pending && pending.conversationId === conversationId) {
       setPending(null);
-      send(pending.text, pending.files);
+      send(pending.text, pending.outgoing);
     }
   }, [conversationId, pending, send]);
 
@@ -458,15 +576,37 @@ const useFirstSend = ({
       const id =
         conversationId ??
         (await create({ context, defaultTarget: target ?? undefined })).id;
-      const files = await uploadAttachments(client, id, value.attachments);
+      const uploaded = await uploadAttachments(client, id, value.attachments);
+      // Imported before sending, so the turn can read them when it starts.
+      const imported =
+        importFiles && uploaded.length > 0
+          ? await importToWorkspace(client, id, uploaded)
+          : [];
+      if (imported.length > 0) {
+        onWorkspaceChanged();
+      }
+      const outgoing: Outgoing = {
+        files: uploaded.map((each) => each.part),
+        workspaceFiles: [...mentionedFiles(value), ...imported],
+      };
       if (conversationId) {
-        send(value.text, files);
+        send(value.text, outgoing);
         return;
       }
-      setPending({ conversationId: id, files, text: value.text });
+      setPending({ conversationId: id, outgoing, text: value.text });
       onNavigate(id);
     },
-    [client, context, conversationId, create, onNavigate, send, target]
+    [
+      client,
+      context,
+      conversationId,
+      create,
+      importFiles,
+      onNavigate,
+      onWorkspaceChanged,
+      send,
+      target,
+    ]
   );
 };
 
@@ -535,6 +675,29 @@ interface ConversationPage {
   readonly items: readonly Conversation[];
   readonly nextCursor: string | null;
 }
+
+/**
+ * The agent's workspace tools moved the revision (060): its files, and maybe
+ * the workspace itself, changed mid-reply. Refetch without cancelling a
+ * fetch already on its way: the open panel asks for the same one.
+ */
+const useWorkspaceInSync = (api: QueryUtils, messages: readonly Message[]) => {
+  const queryClient = useQueryClient();
+  const revision = workspaceRevision(messages);
+  const seen = useRef(revision);
+  useEffect(() => {
+    if (seen.current === revision) {
+      return;
+    }
+    seen.current = revision;
+    queryClient
+      .invalidateQueries(
+        { queryKey: api.sandbox.key() },
+        { cancelRefetch: false }
+      )
+      .catch(ignore);
+  }, [api, queryClient, revision]);
+};
 
 export function ConnectedChat({
   agents,
@@ -642,6 +805,19 @@ export function ConnectedChat({
     sandboxRecord,
   ]);
 
+  // The composer's `@` and `/open` list the workspace's files. The panel
+  // lists them for itself when it's open; this listing is for the composer,
+  // refreshed by everything that refetches `sandbox.get`.
+  const listing = useQuery(
+    api.sandbox.listFiles.queryOptions({
+      input:
+        conversationId && listable(sandboxRecord)
+          ? { id: sandboxRecord.id, path: ".", recursive: true }
+          : skipToken,
+    })
+  );
+  const workspacePaths = useMemo(() => filePaths(listing.data), [listing.data]);
+
   const context = data.conversation.data?.context ?? draftContext;
   const { start: watchTitle } = titleWatch;
   const onFinish = useCallback(() => {
@@ -668,8 +844,8 @@ export function ConnectedChat({
     status: chat.status,
   });
   const send = useCallback(
-    (text: string, files: FileUIPart[] = []) => {
-      sendMessage(files.length > 0 ? { files, text } : { text }).catch(ignore);
+    (text: string, outgoing: Outgoing = NOTHING_ELSE) => {
+      sendMessage(outgoingMessage(text, outgoing)).catch(ignore);
     },
     [sendMessage]
   );
@@ -678,7 +854,9 @@ export function ConnectedChat({
     client,
     context: draftContext,
     conversationId,
+    importFiles: canImport(config),
     onNavigate,
+    onWorkspaceChanged,
     send,
     target,
   });
@@ -818,6 +996,7 @@ export function ConnectedChat({
       ? data.activeRun.state.approvals
       : undefined;
   useApprovalsInSync({ approvals, messages, onMissing: refresh });
+  useWorkspaceInSync(api, messages);
   const current = data.conversation.data;
 
   return (
@@ -880,8 +1059,10 @@ export function ConnectedChat({
           runtimeOrigin: artifactsRuntimeOrigin,
           versions: data.versions.data,
         },
+        canPreview: canPreviewOn(config, sandboxRecord),
         files: workspaceFiles,
         onSelect: setSelection,
+        paths: workspacePaths,
         selection,
       }}
     />

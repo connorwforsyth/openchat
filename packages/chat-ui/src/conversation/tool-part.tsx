@@ -16,17 +16,22 @@ import { ToolStatus } from "./tool-status";
  * A tool call and (once it lands, maybe in a later message) its result: a
  * status line, or a card for a file the agent changed. A call waiting on
  * approval keeps the approval card, with per-hunk review for file changes.
+ * A call with no result in a message that has stopped streaming never will
+ * get one (the run failed or was cancelled), so it stops spinning.
  */
 export const ToolPart = memo(function ToolPartInner({
   approvals,
   call,
   result,
+  streaming,
 }: {
   readonly approvals: readonly PendingApproval[] | undefined;
   readonly call: ToolCallPart;
   readonly result: ToolResultPart | undefined;
+  /** Whether the message holding the call is still being written. */
+  readonly streaming: boolean;
 }) {
-  const { onDecide } = useConversationActions();
+  const { onDecide, onOpenPreview } = useConversationActions();
   const summary = useMemo(() => toolSummary(call, result), [call, result]);
   const decide = useCallback(
     (decision: ApprovalDecision) => onDecide?.(call.toolCallId, decision),
@@ -38,7 +43,11 @@ export const ToolPart = memo(function ToolPartInner({
       {summary.detail.kind === "file-change" ? (
         <FileChangeCard change={summary.detail.change} />
       ) : (
-        <ToolStatus summary={summary} />
+        <ToolStatus
+          onOpenPreview={onOpenPreview}
+          stopped={!streaming && summary.status === "running"}
+          summary={summary}
+        />
       )}
       {summary.status === "awaiting" && onDecide ? (
         <ApprovalCard

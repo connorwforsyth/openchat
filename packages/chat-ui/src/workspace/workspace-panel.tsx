@@ -346,7 +346,11 @@ function WorkspaceList({
           </Button>
           <WorkspaceMenu view={view} writable={writable} />
         </div>
-        <FilesList onSelectFiles={selectFile} view={view} />
+        <FilesList
+          onSelectFiles={selectFile}
+          selectedPath={selection?.kind === "file" ? selection.path : null}
+          view={view}
+        />
       </div>
       <div className="flex max-h-[40%] shrink-0 flex-col gap-1 overflow-auto">
         <h3 className="ps-2 font-medium text-muted-foreground text-xs">
@@ -398,9 +402,12 @@ function ArtifactItem({
 
 function FilesList({
   onSelectFiles,
+  selectedPath,
   view,
 }: {
   readonly onSelectFiles: (paths: readonly string[]) => void;
+  /** The open file; the tree follows it, so a file opened from the chat shows selected. */
+  readonly selectedPath: string | null;
   readonly view: FilesView;
 }) {
   const { t } = useLingui();
@@ -440,6 +447,7 @@ function FilesList({
       onSelectionChange={onSelectFiles}
       paths={paths}
       search={false}
+      selectedPath={selectedPath}
     />
   );
 }

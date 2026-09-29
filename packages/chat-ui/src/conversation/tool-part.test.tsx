@@ -80,11 +80,17 @@ const changed = (
 const renderTool = (
   toolCall: ToolCallPart,
   result: ToolResultPart | undefined,
-  actions: ConversationActions = {}
+  actions: ConversationActions = {},
+  { streaming = true }: { readonly streaming?: boolean } = {}
 ) =>
   renderWithI18n(
     <ConversationActionsProvider actions={actions}>
-      <ToolPart approvals={[pendingEdit]} call={toolCall} result={result} />
+      <ToolPart
+        approvals={[pendingEdit]}
+        call={toolCall}
+        result={result}
+        streaming={streaming}
+      />
     </ConversationActionsProvider>
   );
 
@@ -107,6 +113,18 @@ describe("bash", () => {
     expect(toggle.textContent).toContain("ls -la…");
     expect(statusOf(toggle)).toBe("running");
     expect(toggle.querySelector(".motion-safe\\:animate-spin")).toBeTruthy();
+  });
+
+  it("says Stopped, without a spinner, once the message stopped with no result", async () => {
+    renderTool(bash, undefined, {}, { streaming: false });
+    const toggle = line("Stopped");
+    expect(statusOf(toggle)).toBe("stopped");
+    expect(toggle.className).not.toContain("text-destructive");
+    expect(toggle.querySelector(".motion-safe\\:animate-spin")).toBeNull();
+    await userEvent.click(toggle);
+    expect(screen.getByLabelText("Command and output").textContent).toContain(
+      "ls -la"
+    );
   });
 
   it("expands to the command and the end of its output", async () => {
@@ -223,6 +241,22 @@ describe("other tools", () => {
     const open = screen.getByRole("link", { name: "Open" });
     expect(open.getAttribute("href")).toBe("http://localhost:4100/");
     expect(open.getAttribute("target")).toBe("_blank");
+  });
+
+  it("opens a preview in the app when the host can", async () => {
+    const onOpenPreview = vi.fn();
+    renderTool(
+      call("preview", { port: 3000 }),
+      success("preview", {
+        port: 3000,
+        status: "exposed",
+        url: "http://localhost:4100/",
+      }),
+      { onOpenPreview }
+    );
+    expect(screen.queryByRole("link", { name: "Open" })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Open" }));
+    expect(onOpenPreview).toHaveBeenCalledWith("http://localhost:4100/");
   });
 
   it("searches files and the web", () => {

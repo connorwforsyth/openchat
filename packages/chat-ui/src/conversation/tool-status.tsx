@@ -23,13 +23,14 @@ import {
   ToolInput,
   ToolOutput,
 } from "@workspace/ui/components/ai-elements/tool";
-import { buttonVariants } from "@workspace/ui/components/button";
+import { Button, buttonVariants } from "@workspace/ui/components/button";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@workspace/ui/components/collapsible";
 import { cn } from "@workspace/ui/lib/utils";
+import { useCallback } from "react";
 
 import type {
   ToolDetail,
@@ -73,8 +74,14 @@ export function ToolLabel({ label }: { readonly label: MessageDescriptor }) {
   return <TransRuntime id={label.id} message={label.message} values={values} />;
 }
 
-function StatusIcon({ summary }: { readonly summary: ToolSummary }) {
-  if (summary.status === "running") {
+function StatusIcon({
+  stopped,
+  summary,
+}: {
+  readonly stopped: boolean;
+  readonly summary: ToolSummary;
+}) {
+  if (summary.status === "running" && !stopped) {
     // Spins (a transform) while the tool runs; with reduced motion it
     // breathes instead, which is opacity only (D28).
     return (
@@ -135,12 +142,41 @@ function Details({
   }
 }
 
-export function ToolStatus({ summary }: { readonly summary: ToolSummary }) {
+function PreviewButton({
+  onOpen,
+  url,
+}: {
+  readonly onOpen: (url: string) => void;
+  readonly url: string;
+}) {
+  const open = useCallback(() => onOpen(url), [onOpen, url]);
+  return (
+    <Button onClick={open} size="xs" variant="ghost">
+      <MonitorIcon aria-hidden data-icon="inline-start" />
+      <Trans>Open</Trans>
+    </Button>
+  );
+}
+
+export function ToolStatus({
+  onOpenPreview,
+  stopped = false,
+  summary,
+}: {
+  /** Opens a preview in the app; without it, Open is a link to a new tab. */
+  readonly onOpenPreview?: (url: string) => void;
+  /**
+   * A running call whose message has stopped streaming: the run ended
+   * without its result, so it reads "Stopped" instead of spinning forever.
+   */
+  readonly stopped?: boolean;
+  readonly summary: ToolSummary;
+}) {
   const failed = summary.status === "error";
   return (
     <Collapsible
       className="not-prose flex flex-col gap-2"
-      data-status={summary.status}
+      data-status={stopped ? "stopped" : summary.status}
     >
       <div className="flex min-w-0 items-center gap-1">
         <CollapsibleTrigger
@@ -151,9 +187,13 @@ export function ToolStatus({ summary }: { readonly summary: ToolSummary }) {
               : "text-muted-foreground hover:text-foreground"
           )}
         >
-          <StatusIcon summary={summary} />
+          <StatusIcon stopped={stopped} summary={summary} />
           <span className="min-w-0 truncate">
-            <ToolLabel label={summary.label} />
+            {stopped ? (
+              <Trans>Stopped</Trans>
+            ) : (
+              <ToolLabel label={summary.label} />
+            )}
           </span>
           {failed && summary.errorText ? (
             <span className="min-w-0 max-w-64 truncate text-xs opacity-80">
@@ -165,7 +205,10 @@ export function ToolStatus({ summary }: { readonly summary: ToolSummary }) {
             className="size-3.5 shrink-0 opacity-0 transition-[opacity,transform] duration-(--motion-fast) ease-motion-out group-hover:opacity-100 group-focus-visible:opacity-100 group-data-panel-open:rotate-180 group-data-panel-open:opacity-100"
           />
         </CollapsibleTrigger>
-        {summary.previewUrl ? (
+        {summary.previewUrl && onOpenPreview ? (
+          <PreviewButton onOpen={onOpenPreview} url={summary.previewUrl} />
+        ) : null}
+        {summary.previewUrl && !onOpenPreview ? (
           <a
             className={buttonVariants({ size: "xs", variant: "ghost" })}
             href={summary.previewUrl}

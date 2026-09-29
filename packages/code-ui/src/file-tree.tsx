@@ -47,6 +47,13 @@ export interface FileTreeProps {
   readonly paths: readonly string[];
   /** Shows the search field. */
   readonly search?: boolean;
+  /**
+   * The path the host has open, when it controls selection: the tree selects
+   * it, and clears its own selection when it's `null`, so clicking the same
+   * row again (after the host showed something else) selects it anew.
+   * Omitted, selection is the tree's own.
+   */
+  readonly selectedPath?: string | null;
   readonly style?: CSSProperties;
 }
 
@@ -75,6 +82,7 @@ export function FileTree({
   onSelectionChange,
   paths,
   search = true,
+  selectedPath,
   style,
 }: FileTreeProps) {
   const { t } = useLingui();
@@ -110,6 +118,24 @@ export function FileTree({
       model.resetPaths(paths);
     }
   }, [model, paths]);
+
+  // `paths` is a dependency: a reset can drop the selection or bring the
+  // selected path into the tree.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: see above.
+  useEffect(() => {
+    if (selectedPath === undefined) {
+      return;
+    }
+    for (const path of model.getSelectedPaths()) {
+      if (path !== selectedPath) {
+        model.getItem(path)?.deselect();
+      }
+    }
+    const item = selectedPath === null ? null : model.getItem(selectedPath);
+    if (item && !item.isSelected()) {
+      item.select();
+    }
+  }, [model, paths, selectedPath]);
 
   const firstGitStatus = useRef(gitStatus);
   useEffect(() => {

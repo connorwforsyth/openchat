@@ -1,8 +1,8 @@
 # @workspace/composer
 
-The prompt composer (PLAN.md §6, D13, D17): a TipTap editor with `/` prompt
-templates and `@` mentions, file attachments, the model/agent picker and the
-chat context chip. It's standalone: data and callbacks come in as props (no
+The prompt composer (PLAN.md §6, D13, D17): a TipTap editor with `/` file
+commands and prompt templates, `@` mentions of agents, people and workspace
+files, file attachments, the model/agent picker and the chat context chip. It's standalone: data and callbacks come in as props (no
 fetching, no server), so a chat, Quick AI or an agent's test chat can each
 host it. It depends only on `@workspace/ui`, `@workspace/icons`,
 `@workspace/i18n` and contract types.
@@ -19,16 +19,44 @@ import { ComposerLoader } from "@workspace/composer/components/composer-loader";
   people={members}             // UserSummary[] for @mentions
   prompts={prompts}            // { id, name, description, definition: PromptDefinition }
   attachmentLimits={{ accept: ["image/*", ".pdf"], maxFiles: 10, maxFileSize: 25e6 }}
+  files={["README.md", "src/app.ts"]}  // workspace paths for @ and /open
+  commands={["new-file", "open", "preview"]}
+  onCommand={(command, path) => run(command, path)}
   status={status} onStop={stop}
   onSubmit={(value) => send(value)}   // ComposerValue, see src/schemas.ts
 />
 ```
 
 `onSubmit` gets a `ComposerValue` (zod: `composerValueSchema`): trimmed
-`text`, `mentions` as `{ kind, id, label, start, end }` tokens indexing into
-`text`, `attachments` as `{ id, file: File }` for the host to upload, and the
-`templateId` of the prompt it started from. Enter sends, Shift+Enter adds a
-line, paste is plain text (pasted files become attachments).
+`text`, `mentions` as tokens indexing into `text` (`{ kind, id, label,
+start, end }` for agents and people, `{ kind: "file", path, label, start,
+end }` for files), `attachments` as `{ id, file: File }` for the host to
+upload, and the `templateId` of the prompt it started from. Enter sends,
+Shift+Enter adds a line, paste is plain text (pasted files become
+attachments).
+
+## Workspace files
+
+The composer knows nothing about workspaces; the host passes paths and
+command names in and gets tokens and calls out.
+
+- `files` are workspace-relative paths (`src/app.ts`, no leading `/`).
+  `@` offers them after agents and people (name first, folder as the hint),
+  and a chosen file is a `{ kind: "file", path }` mention. The text reads
+  `@app.ts`, so the host adds the path to the message itself (the chat sends
+  a `data-workspace-file` part).
+- `commands` lists the file commands `/` offers ahead of the prompts, always
+  in the order `new-file`, `open`, `preview`. Choosing one removes the
+  `/query` text and calls `onCommand(command)`. `/open` first lists `files`
+  (typing filters them) and calls `onCommand("open", path)`; with no `files`
+  it calls `onCommand("open")` at once. Leave `commands` out and `/` lists
+  prompts only.
+
+## Bottom row
+
+Attach and the model/agent picker sit at the start; the chat context chip
+(only while `contextLocked` is false: after the first message the chat
+shows its context elsewhere) and the round Send or Stop button at the end.
 
 ## Layout
 
@@ -70,7 +98,9 @@ Render `Composer` directly only in client-only trees (tests do).
 is the renderer: it mirrors the plugin state into React and answers its keys;
 `SuggestionMenu` draws a listbox above the composer while focus stays in the
 editor (`aria-activedescendant`). Choosing a template with variables opens
-the variables form, then inserts the filled text.
+the variables form, then inserts the filled text. While TipTap loads a new
+query's items it reports none; the renderer keeps the last list meanwhile,
+so an Enter typed in that moment chooses rather than sends.
 
 ## TipTap licence
 

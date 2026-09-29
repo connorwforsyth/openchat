@@ -37,6 +37,11 @@ export interface ConversationActions {
    * `write`/`edit` call used. Without it, file-change cards have no Open.
    */
   readonly onOpenFile?: (path: string) => void;
+  /**
+   * Open a preview the agent started, in the app. Without it, a preview
+   * line's Open opens its URL in a new tab.
+   */
+  readonly onOpenPreview?: (url: string) => void;
   /** Answer the user message behind this assistant message again. */
   readonly onRegenerate?: (message: Message) => void;
   /** Switch the branch to this sibling message. */

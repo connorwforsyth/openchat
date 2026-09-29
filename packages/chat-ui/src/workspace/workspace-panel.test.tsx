@@ -183,6 +183,32 @@ const editable = async (): Promise<HTMLElement> => {
   return found;
 };
 
+/** A file tree row by path (the tree renders in a shadow root); re-queried on each call. */
+const treeItem = async (name: string): Promise<() => HTMLElement> => {
+  const find = () => {
+    const roots = [...document.querySelectorAll("*")]
+      .map((element) => element.shadowRoot)
+      .filter((root): root is ShadowRoot => root !== null);
+    for (const root of roots) {
+      const item = root.querySelector<HTMLElement>(
+        `[role="treeitem"][data-item-path="${name}"]`
+      );
+      if (item) {
+        return item;
+      }
+    }
+    return null;
+  };
+  await waitFor(() => expect(find()).not.toBeNull());
+  return () => {
+    const item = find();
+    if (!item) {
+      throw new Error(`no tree item ${name}`);
+    }
+    return item;
+  };
+};
+
 beforeAll(async () => {
   // The editor and tree chunks, warmed under hookTimeout (ticket 037).
   await Promise.all([
@@ -243,6 +269,44 @@ describe("the list and the main area", () => {
       workspace.queryByRole("button", { name: "Create sandbox" })
     ).toBeNull();
     await waitFor(() => expect(client.listFiles).toHaveBeenCalled());
+  });
+
+  it("follows the open file in the tree, so a file can be opened again after an artifact", async () => {
+    const { client } = fakeClient({
+      "/work/notes.md": { content: "# Notes\n", etag: V1 },
+    });
+    const onSelect = vi.fn();
+    const base = props({
+      artifacts: { artifacts: chatArtifacts, versions: undefined },
+      files: chatFiles(client),
+      onSelect,
+    });
+    const view = renderWithI18n(
+      <WorkspacePanel
+        {...base}
+        selection={{ kind: "file", path: "notes.md" }}
+      />
+    );
+    const row = await treeItem("notes.md");
+    await waitFor(() =>
+      expect(row().getAttribute("aria-selected")).toBe("true")
+    );
+
+    // An artifact takes the main area: the tree lets go of the file…
+    view.rerender(
+      <WorkspacePanel {...base} selection={{ kind: "artifact" }} />
+    );
+    await waitFor(() =>
+      expect(row().getAttribute("aria-selected")).not.toBe("true")
+    );
+    // …so clicking it selects it anew.
+    onSelect.mockClear();
+    // The DOM way: Playwright's hit test doesn't reach the row here.
+    await press(row());
+    expect(onSelect).toHaveBeenLastCalledWith({
+      kind: "file",
+      path: "notes.md",
+    });
   });
 
   it("shows the selected artifact", () => {

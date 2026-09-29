@@ -37,7 +37,10 @@ export const useShortcuts = (
       if (!shortcut || shortcut.scope !== scope) {
         return;
       }
-      if (scope === "view" && isEditableTarget(event.target)) {
+      // The innermost target: a window listener sees an event from inside a
+      // shadow root (the Workspace panel's editor) as coming from its host.
+      const target = event.composedPath()[0] ?? event.target;
+      if (scope === "view" && isEditableTarget(target)) {
         return;
       }
       const handler = latest.current.handlers[shortcut.id];

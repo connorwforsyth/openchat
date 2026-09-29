@@ -87,3 +87,54 @@ After trying the M1 demo, Connor asked for two things.
 - In e2e, type into the editor by clicking `[data-slot="code-editor"] [contenteditable="true"]`, then wait for "Saved".
 - Bug: after viewing an artifact, clicking the same file in the tree doesn't fire a selection change; fix it.
 - `apps/web/app/dev/sandbox/page.tsx` copy still says "Sandbox panel"; rename it to Workspace (additional Owns).
+
+## Results
+
+Branch `t/062-workspace-wiring-e2e`, not pushed. `status` stays `open`.
+
+**Composer ↔ workspace** (`chat-screen.tsx`, `connected-chat.tsx`; `chat-route.tsx` needed no change: `ConnectedChat` already has the client and config).
+- `ChatScreenWorkspace` gains `paths` (the workspace's files, relative) and `canPreview`. Once the chat exists (`files.kind === "chat"`), `ChatScreen` gives the composer `files` (paths with whitespace left out: the triggers are single words), `commands` (`new-file`, `open`, plus `preview` when `canPreview`) and `onCommand`. A new chat gets none of them.
+  - `/new-file` opens the panel's `NewFileDialog` (lazy-loaded on first use), then `writeFile` with `ifMatch: null`, `onChanged`, and `openFile`. A taken name is refused in the dialog.
+  - `/open` with a path opens it; without one it opens the panel on Files.
+  - `/preview` opens the recorded preview, or sends the localised "Start the app and open a preview".
+- `ConnectedChat` lists the files with `sandbox.listFiles` (a query keyed by the workspace, enabled once it's ready or stopped), so the composer has them with the panel closed. It refreshes with everything that invalidates `sandbox.key()`, and when `workspaceRevision` moves (`useWorkspaceInSync`, `cancelRefetch: false`, so it doesn't fight the open panel's own refetch). `canPreview` is the record's provider, or `config.sandbox.default` before there is one, and not `just-bash`.
+- File mentions go as `data-workspace-file` parts after the text (`outgoingMessage`, deduplicated); without mentions the message is sent exactly as before.
+- Attachments upload as before (file parts kept for every type). When the instance has a default workspace provider, each is also `sandbox.importFile`d, one at a time, before the message goes, and mentioned. A failed import doesn't stop the send. New chats too: the chat is created before its uploads.
+- `actions.onOpenFile` (060) is unchanged and verified by e2e. `actions.onOpenPreview(url)` is new: the preview line's Open becomes a button that shows the recorded preview in the panel (or opens the URL in a new tab if the record doesn't have it yet). Without the action it stays a link.
+
+**Fixes from the notes.**
+- `use-suggestion-menus.ts`: `keepWhileLoading` keeps the last list, with the new range, through TipTap's `loading` updates, so Enter chooses rather than sends. Tested in `use-suggestion-menus.test.ts`.
+- Screen-reader hint: "Type / for commands and prompts, and @ to mention someone or a file." `packages/composer/README.md` covers `files`/`commands`/`onCommand`, file mentions, the bottom row (context chip at the end, only while unlocked) and the loading fix.
+- `message-row.tsx` passes `streaming` to `ToolPart`. A running call in a message that has stopped streaming renders `ToolStatus` with `stopped`: the tool's icon, no spinner, a neutral "Stopped" (`data-status="stopped"`), still expandable.
+- Tree re-selection: `@workspace/code-ui/file-tree` gets an optional controlled `selectedPath`, and the panel passes the open file (or `null`). The tree drops its selection when an artifact or preview is shown, so clicking the same file fires again. A file opened from the chat also shows as selected.
+- `apps/web/app/dev/sandbox/page.tsx`: "Workspace panel".
+- **Found in e2e and fixed:** single-key shortcuts fired while typing in the panel's editor. The editor is in a shadow root, so the window listener saw its host as the target, and typing an "n" started a new chat. `use-shortcuts.ts` now checks `event.composedPath()[0]`. Test added; it fails without the fix.
+
+**Outside Owns, minimal and needed:** `conversation/actions.tsx` (`onOpenPreview`), `code-ui/src/file-tree.tsx` + `workspace/workspace-panel.tsx` (the re-select fix), `shortcuts/use-shortcuts.ts` (the shadow-root fix), the catalog.
+
+**Tests.**
+- chat-ui 174/174. New:
+  - `chat-screen.test.tsx`: `/new-file` → dialog → write → open; `/open` lists files, leaving out spaced names; `/preview` sends the prompt; no `/preview` when `canPreview` is false; no commands in a new chat; shortcuts ignore a shadow-root editor.
+  - `tool-part.test.tsx`: Stopped; Open in the app.
+  - `workspace-panel.test.tsx`: the tree follows the open file and re-selects after an artifact.
+  - `connected-chat.test.ts`: `outgoingMessage` through `userParts`.
+- Composer: the new hook test.
+- E2E: `sandbox.spec.ts` → `workspace.spec.ts`, 8 tests:
+  - bash shows "Ran …", Files but no Terminal, and the panel survives a reload;
+  - bash in the workspace;
+  - per-hunk review, now seeded with `api.sandbox.writeFile`;
+  - `[tool:write]` → Approve → "Created hello.md" card → Open selects it in the tree and shows it in the editor;
+  - typing in the editor → "Saved" → survives a reload (checked through the API too);
+  - `@hello` → pick `hello.md` → the reply echoes the file's current content;
+  - an attached `.txt` is mentioned in the reply and shows in Files;
+  - `/new-file` → dialog → `todo.md` selected and open, the composer empty, the file listed by the API.
+
+  `files.spec.ts`: the composer-attached PDF also shows in Files. `mock-llm.ts`: the echo appends `[<path>: <content>]` for each `<workspace-file>` the server put in the system prompt.
+- Visual pass (e2e screenshots, light and dark): tool lines, the error line, the file card, panel with tree selection, the `@` file menu, the Commands menu (no Preview on just-bash), the New file dialog. All fine.
+
+**Checks.** `gate.sh`: install unchanged, check and guards clean, `turbo typecheck lint test build` 82/82. `E2E_PORT=3481 bun turbo test:e2e`: 31/31.
+
+**Left / noticed.**
+- After switching the colour scheme at runtime (dark → light), the panel editor's text rendered invisible until the file was reopened (seen in screenshots; not investigated). It looks like the code editor's theme, which is outside this ticket.
+- `e2e/README.md` still describes the mock's echo without the mentioned files (not in Owns).
+- The composer lists at most what `listFiles` returns (recursive, no cap). A huge workspace means a big `@` list, although `filterMentions` shows 8 at most.
