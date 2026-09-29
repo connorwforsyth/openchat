@@ -2,7 +2,11 @@ import { createHash } from "node:crypto";
 
 import { implement, ORPCError } from "@orpc/server";
 import { contract } from "@workspace/contract/contract";
-import { conflictError, featureError } from "@workspace/contract/errors";
+import {
+  type ConflictReason,
+  conflictError,
+  featureError,
+} from "@workspace/contract/errors";
 import type {
   ConversationId,
   SandboxId,
@@ -37,8 +41,9 @@ import {
 // package (for the Storage and JobQueue ports), so this one can't import its
 // handlers without a cycle; the shell that has both (`apps/web`) binds them
 // into a `SandboxApi` and this router mounts that. The error union mirrors
-// the sandbox package's `sandboxHandlerErrorSchema`, which its handlers
-// return unchanged.
+// the sandbox package's `sandboxHandlerErrorSchema` and, for the workspace
+// file writes, its `workspaceFileErrorSchema`, which its handlers return
+// unchanged.
 
 export const sandboxApiErrorSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("not_found") }),
@@ -47,6 +52,11 @@ export const sandboxApiErrorSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("feature_disabled") }),
   z.object({ message: z.string(), type: z.literal("invalid") }),
   z.object({ message: z.string(), type: z.literal("unavailable") }),
+  /** A workspace file write that lost to the file's current state (059). */
+  z.object({
+    reason: z.enum(["version_mismatch", "not_empty"]),
+    type: z.literal("conflict"),
+  }),
 ]);
 export type SandboxApiError = z.infer<typeof sandboxApiErrorSchema>;
 
@@ -54,9 +64,9 @@ type Call<I, O> = (viewer: Viewer, input: I) => AsyncResult<O, SandboxApiError>;
 
 /**
  * The sandbox handlers, bound to the instance's providers. The workspace
- * file writes (`writeFile`, `importFile`, `deleteFile`, 055) are optional
- * until the sandbox package implements them (059); without one, its route
- * says the feature is off.
+ * file writes (`writeFile`, `importFile`, `deleteFile`, 055) are optional:
+ * the sandbox package implements them (059), but a shell that binds an api
+ * without one gets a route that says the feature is off.
  */
 export interface SandboxApi {
   readonly create: Call<
@@ -99,6 +109,13 @@ export interface SandboxApi {
   readonly writeFile?: Call<WriteFileInput, SandboxFileWrite>;
 }
 
+const conflict = (reason: ConflictReason) =>
+  new ORPCError("CONFLICT", {
+    data: { reason },
+    message: conflictError.CONFLICT.message,
+    status: conflictError.CONFLICT.status,
+  });
+
 const toOrpcError = (error: SandboxApiError): ORPCError<string, unknown> => {
   switch (error.type) {
     case "not_found":
@@ -106,11 +123,9 @@ const toOrpcError = (error: SandboxApiError): ORPCError<string, unknown> => {
     case "forbidden":
       return forbiddenError();
     case "already_exists":
-      return new ORPCError("CONFLICT", {
-        data: { reason: "already_exists" },
-        message: conflictError.CONFLICT.message,
-        status: conflictError.CONFLICT.status,
-      });
+      return conflict("already_exists");
+    case "conflict":
+      return conflict(error.reason);
     case "feature_disabled":
       return featureDisabledError("sandboxes");
     case "invalid":

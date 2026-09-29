@@ -68,7 +68,8 @@ export interface SandboxHandlerDeps {
 
 type Need = "read" | "write";
 
-const fromSandboxError = (error: SandboxError): SandboxHandlerError => {
+/** A provider's error as the handlers report it; the workspace file writes share it. */
+export const fromSandboxError = (error: SandboxError): SandboxHandlerError => {
   switch (error.type) {
     case "not_found":
       return {
@@ -99,7 +100,7 @@ const fromSandboxError = (error: SandboxError): SandboxHandlerError => {
 type AccessDeps = Pick<SandboxHandlerDeps, "db" | "session">;
 
 /** Checks the session may `need` the conversation. */
-const authorize = async (
+export const authorize = async (
   { db, session }: AccessDeps,
   conversationId: ConversationId,
   need: Need
