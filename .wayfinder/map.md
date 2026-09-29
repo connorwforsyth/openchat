@@ -122,6 +122,7 @@ brief, and their findings land in `.context/research/`.
 - [Editor theme switch](tickets/064-editor-theme-switch.md): editor text readable across theme changes ([PR #54](https://github.com/connorwforsyth/openchat/pull/54))
 - [Mention list race](tickets/065-mention-list-race.md) ([PR #55](https://github.com/connorwforsyth/openchat/pull/55))
 - [Gzip previews](tickets/068-preview-gzip.md): the preview proxy no longer forwards a decoded body with its encoding ([PR #56](https://github.com/connorwforsyth/openchat/pull/56))
+- [Static preview](tickets/067-static-preview.md): static pages preview with no server; previews survive a runner restart ([PR #57](https://github.com/connorwforsyth/openchat/pull/57))
 - [WS-shell](tickets/024-ws-shell.md): ⌘K palette, shortcut registry, settings and admin ([PR #20](https://github.com/connorwforsyth/openchat/pull/20))
 - [WS-libraries](tickets/017-ws-libraries.md): Agent/Prompt/Skill/MCP builders, sharing, publishing and library tabs ([PR #22](https://github.com/connorwforsyth/openchat/pull/22))
 - [M1 polish](tickets/031-m1-polish.md): motion audit + guard, narrow-screen layout, batched feedback lookups ([PR #24](https://github.com/connorwforsyth/openchat/pull/24))

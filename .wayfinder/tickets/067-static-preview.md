@@ -2,8 +2,8 @@
 id: "067"
 title: "Static pages preview without a server"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -113,3 +113,7 @@ Branch `t/067-static-preview`, not pushed.
     running sandbox (at most a minute's throttle).
 - **Gate:** passes (82/82). The first run failed `@workspace/db#test` (not touched here) at load average ~150; it
   passed alone (68/68), and the rerun passed in full.
+
+## Resolution (2026-09-30, loop)
+
+Merged in [PR #57](https://github.com/connorwforsyth/openchat/pull/57). Static server on `STATIC_PREVIEW_PORT = 4747`, started on `.html` writes (agent and user); `restorePreviews` re-exposes recorded previews after a runner restart. Sandbox tests 127, runner smoke passed, gate 82/82. Left: HTML created through `bash` doesn't trigger it; a folder without `index.html` returns 404.
