@@ -211,7 +211,7 @@ function WorkspaceLayout({
           {view.notice}
         </p>
       ) : null}
-      <div className="grid min-h-0 flex-1 @lg:grid-cols-[12rem_minmax(0,1fr)] @lg:grid-rows-1 grid-rows-[minmax(0,14rem)_minmax(0,1fr)]">
+      <div className="grid min-h-0 flex-1 @lg:grid-cols-[12rem_minmax(0,1fr)] @lg:grid-rows-1 grid-rows-[minmax(0,16rem)_minmax(0,1fr)]">
         <WorkspaceList
           artifacts={artifacts.artifacts}
           onNewFile={openNewFile}
@@ -329,7 +329,7 @@ function WorkspaceList({
           />
         </ul>
       ) : null}
-      <div className="flex min-h-24 flex-1 flex-col gap-1">
+      <div className="flex min-h-0 flex-1 flex-col gap-1">
         <div className="flex items-center gap-1 ps-2">
           <h3 className="font-medium text-muted-foreground text-xs">
             <Trans>Files</Trans>
