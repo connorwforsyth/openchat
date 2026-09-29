@@ -5,8 +5,8 @@ import {
   ComposerLoader,
   type ComposerLoaderProps,
 } from "@workspace/composer/components/composer-loader";
-import { ContextChip } from "@workspace/composer/components/context-chip";
-import type { ContextOption } from "@workspace/composer/schemas";
+import { ContextSummary } from "@workspace/composer/components/context-chip";
+import type { ComposerValue, ContextOption } from "@workspace/composer/schemas";
 import type { ConversationId } from "@workspace/contract/schemas/common";
 import type { Participant } from "@workspace/contract/schemas/conversations";
 import type {
@@ -15,27 +15,27 @@ import type {
 } from "@workspace/contract/schemas/messages";
 import type { PendingApproval } from "@workspace/contract/schemas/runs";
 import type { ChatContext } from "@workspace/contract/schemas/tenancy";
-import { FileTextIcon, NewChatIcon, PanelLeftIcon } from "@workspace/icons";
+import { NewChatIcon, PanelLeftIcon } from "@workspace/icons";
 import { Button } from "@workspace/ui/components/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@workspace/ui/components/tooltip";
-import { cn } from "@workspace/ui/lib/utils";
 import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
 
 import type { ArtifactsPanelProps } from "../artifacts/artifacts-panel";
 import { LazyArtifactsPanel } from "../artifacts/lazy-artifacts-panel";
 import type { ConversationActions } from "../conversation/actions";
 import { ConversationView } from "../conversation/conversation-view";
+import { EmptyState } from "../conversation/empty-state";
 import type { MessageFeedback } from "../conversation/feedback";
 import { AppHeader } from "../header/app-header";
 import { BranchSwitcher } from "../header/branch-switcher";
 import { ChatTitle } from "../header/chat-title";
 import { HeaderOverflowMenu } from "../header/overflow-menu";
-import { SandboxPill } from "../header/sandbox-pill";
-import { Participants, ShareMenu } from "../header/share-menu";
+import { ShareMenu } from "../header/share-menu";
+import { WorkspaceToggle } from "../header/workspace-toggle";
 import { activeFork, stepSibling } from "../model/branch";
 import { groupChats, orderedChats } from "../model/date-groups";
 import type { RightPanel as RightPanelKind } from "../model/layout";
@@ -56,9 +56,11 @@ import { useShortcuts } from "../shortcuts/use-shortcuts";
 import { ChatSidebar, type ChatSidebarProps } from "../sidebar/chat-sidebar";
 
 // The whole chat screen, presentational: the app shell with the sidebar,
-// header, conversation, docked composer and the Sandbox / Artifacts panel,
-// plus the single-key shortcuts. Every piece of data and every action comes
-// in through props; `ConnectedChat` supplies them from the API.
+// header, conversation, docked composer and the workspace panel (Sandbox /
+// Artifacts), plus the single-key shortcuts. Every piece of data and every
+// action comes in through props; `ConnectedChat` supplies them from the API.
+// The look follows shadcn's chatbot template (MIT): a narrow column, muted
+// user bubbles, plain assistant prose, a rounded composer.
 
 export interface ChatScreenConversation {
   readonly context: ChatContext;
@@ -112,22 +114,6 @@ type ChatScreenStreamingId = Message["id"] | null;
 
 const FOCUSABLE_INPUT = '[contenteditable="true"], textarea';
 
-function NewChatIntro() {
-  return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
-      <h2 className="text-balance font-medium text-2xl tracking-tight">
-        <Trans>What are we working on?</Trans>
-      </h2>
-      <p className="max-w-md text-pretty text-muted-foreground text-sm">
-        <Trans>
-          Pick whose keys and budget this chat uses with the context in the
-          header. You can change it until you send the first message.
-        </Trans>
-      </p>
-    </div>
-  );
-}
-
 function ChatScreenBody({
   actions,
   artifacts,
@@ -155,11 +141,14 @@ function ChatScreenBody({
     sharedLayout ?? ownLayout;
   const narrow = useNarrowScreen();
   const [sidebarSheetOpen, setSidebarSheetOpen] = useState(false);
-  // The panel a narrow screen's sheet shows, kept after it's dismissed so the
-  // sheet fades out with its content.
-  const [sheetPanel, setSheetPanel] = useState<RightPanelKind>("artifacts");
-  if (layout.panel !== null && layout.panel !== sheetPanel) {
-    setSheetPanel(layout.panel);
+  // The panel's last tab: the Workspace toggle reopens it, and a narrow
+  // screen's sheet keeps showing it while it fades out. A chat starts on its
+  // sandbox when there is one.
+  const [lastPanel, setLastPanel] = useState<RightPanelKind>(
+    sandbox ? "sandbox" : "artifacts"
+  );
+  if (layout.panel !== null && layout.panel !== lastPanel) {
+    setLastPanel(layout.panel);
   }
   const [helpOpen, setHelpOpen] = useState(false);
   const composerRef = useRef<HTMLDivElement>(null);
@@ -261,95 +250,82 @@ function ChatScreenBody({
     [actions, openArtifact]
   );
 
-  const openSandbox = useCallback(() => togglePanel("sandbox"), [togglePanel]);
-  const openArtifacts = useCallback(
-    () => togglePanel("artifacts"),
-    [togglePanel]
+  const toggleWorkspace = useCallback(
+    () => setPanel(layout.panel === null ? lastPanel : null),
+    [lastPanel, layout.panel, setPanel]
+  );
+
+  // The context is chosen in the composer until the first message locks it;
+  // after that it's a fact about the chat, shown in the Share menu.
+  const { contextLocked } = conversation;
+  const composerProps = useMemo<ComposerLoaderProps>(
+    () =>
+      contextLocked
+        ? composer
+        : {
+            ...composer,
+            context: conversation.context,
+            contexts: conversation.contextOptions,
+            onContextChange: conversation.onContextChange,
+          },
+    [
+      composer,
+      contextLocked,
+      conversation.context,
+      conversation.contextOptions,
+      conversation.onContextChange,
+    ]
+  );
+  const lockedContext = contextLocked ? (
+    <ContextSummary
+      options={conversation.contextOptions}
+      value={conversation.context}
+    />
+  ) : undefined;
+
+  // A suggestion is sent as the first message, as if typed.
+  const { disabled: composerDisabled, onSubmit } = composer;
+  const sendSuggestion = useCallback(
+    (prompt: string) => {
+      const value: ComposerValue = {
+        attachments: [],
+        mentions: [],
+        templateId: null,
+        text: prompt,
+      };
+      onSubmit(value);
+    },
+    [onSubmit]
   );
 
   const header = (
     <AppHeader
-      center={
-        <>
-          <ChatTitle
-            onRename={conversation.onRename}
-            title={conversation.title}
-          />
-          <BranchSwitcher
-            info={fork}
-            onSelect={actions.onSelectBranch ?? noop}
-            size="sm"
-          />
-        </>
-      }
       end={
-        <>
-          {/* On a narrow screen a locked context is just a label, so it
-              gives its room to the title; an open one is still a choice.
-              The CSS covers the moment before hydration knows the width. */}
-          {narrow && conversation.contextLocked ? null : (
-            <div
-              className={cn(
-                "flex items-center",
-                conversation.contextLocked && "max-md:hidden"
-              )}
-            >
-              <ContextChip
-                locked={conversation.contextLocked}
-                onChange={conversation.onContextChange}
-                options={conversation.contextOptions}
-                value={conversation.context}
-              />
-            </div>
-          )}
-          <Participants participants={conversation.participants} />
-          {narrow ? (
-            <HeaderOverflowMenu
-              artifactsOpen={layout.panel === "artifacts"}
+        narrow ? (
+          <HeaderOverflowMenu
+            lockedContext={lockedContext}
+            onCopyLink={conversation.onCopyLink}
+            onInvite={conversation.onInvite}
+            onToggleWorkspace={toggleWorkspace}
+            shareDisabled={conversation.id === null}
+            workspaceOpen={layout.panel !== null}
+          />
+        ) : (
+          // The CSS covers the moment before hydration knows the width.
+          <div className="flex items-center gap-1 max-md:hidden">
+            <ShareMenu
+              disabled={conversation.id === null}
+              lockedContext={lockedContext}
               onCopyLink={conversation.onCopyLink}
               onInvite={conversation.onInvite}
-              onToggleArtifacts={openArtifacts}
-              onToggleSandbox={sandbox ? openSandbox : undefined}
-              sandboxOpen={layout.panel === "sandbox"}
-              shareDisabled={conversation.id === null}
+              participants={conversation.participants}
             />
-          ) : (
-            <div className="flex items-center gap-1 max-md:hidden">
-              <ShareMenu
-                disabled={conversation.id === null}
-                onCopyLink={conversation.onCopyLink}
-                onInvite={conversation.onInvite}
-                participants={conversation.participants}
-              />
-              {sandbox ? (
-                <SandboxPill
-                  onOpen={openSandbox}
-                  open={layout.panel === "sandbox"}
-                  sandbox={sandbox.initial}
-                />
-              ) : null}
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <Button
-                      aria-label={t`Artifacts panel`}
-                      aria-pressed={layout.panel === "artifacts"}
-                      onClick={openArtifacts}
-                      size="icon-sm"
-                      variant="ghost"
-                    />
-                  }
-                >
-                  <FileTextIcon aria-hidden />
-                </TooltipTrigger>
-                <TooltipContent side="bottom">
-                  <Trans>Artifacts panel</Trans>
-                  <ShortcutHint id="panel.artifacts" />
-                </TooltipContent>
-              </Tooltip>
-            </div>
-          )}
-        </>
+            <WorkspaceToggle
+              onToggle={toggleWorkspace}
+              open={layout.panel !== null}
+            />
+          </div>
+        )
       }
       start={
         <>
@@ -392,6 +368,16 @@ function ChatScreenBody({
               </TooltipContent>
             </Tooltip>
           )}
+          <ChatTitle
+            onRename={conversation.onRename}
+            title={conversation.title}
+          />
+          <BranchSwitcher
+            className="shrink-0"
+            info={fork}
+            onSelect={actions.onSelectBranch ?? noop}
+            size="sm"
+          />
         </>
       }
       underWindowControls={!layout.sidebarOpen}
@@ -402,7 +388,7 @@ function ChatScreenBody({
     <RightPanel
       artifacts={<LazyArtifactsPanel {...artifacts} />}
       onPanelChange={setPanel}
-      panel={layout.panel ?? sheetPanel}
+      panel={layout.panel ?? lastPanel}
       sandbox={
         sandbox ? (
           <LazySandboxPanel {...sandbox} />
@@ -439,7 +425,11 @@ function ChatScreenBody({
       <ConversationView
         actions={conversationActions}
         conversationKey={conversation.id ?? "new"}
-        empty={<NewChatIntro />}
+        empty={
+          <EmptyState
+            onSuggestion={composerDisabled ? undefined : sendSuggestion}
+          />
+        }
         error={runError}
         feedback={feedback}
         messages={messages}
@@ -448,10 +438,10 @@ function ChatScreenBody({
         streamingMessageId={streamingMessageId}
       />
       <div
-        className="mx-auto w-full max-w-3xl shrink-0 px-4 pb-[max(--spacing(4),env(safe-area-inset-bottom))]"
+        className="mx-auto w-full max-w-2xl shrink-0 px-6 pb-[max(--spacing(4),env(safe-area-inset-bottom))]"
         ref={composerRef}
       >
-        <ComposerLoader {...composer} />
+        <ComposerLoader {...composerProps} />
       </div>
       <ShortcutHelp onOpenChange={setHelpOpen} open={helpOpen} />
     </AppShell>

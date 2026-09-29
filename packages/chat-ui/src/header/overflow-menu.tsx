@@ -3,9 +3,8 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import {
   EllipsisIcon,
-  FileTextIcon,
   LinkIcon,
-  TerminalIcon,
+  PanelRightIcon,
   UserPlusIcon,
 } from "@workspace/icons";
 import { Button } from "@workspace/ui/components/button";
@@ -19,36 +18,36 @@ import {
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
 import { useToastManager } from "@workspace/ui/components/toast";
-import { useCallback } from "react";
+import { type ReactNode, useCallback } from "react";
+
+import { LockedContextGroup } from "./share-menu";
 
 /** How long "Link copied" stays: long enough to read. */
 const COPIED_TOAST_MS = 2000;
 
 export interface HeaderOverflowMenuProps {
-  readonly artifactsOpen: boolean;
+  /** The chat's context once it's locked, as in the Share menu. */
+  readonly lockedContext?: ReactNode;
   readonly onCopyLink?: () => Promise<void> | void;
   readonly onInvite?: () => void;
-  readonly onToggleArtifacts: () => void;
-  /** Absent when sandboxes are off. */
-  readonly onToggleSandbox?: () => void;
-  readonly sandboxOpen: boolean;
+  readonly onToggleWorkspace: () => void;
   /** Nothing to share before the first message. */
   readonly shareDisabled?: boolean;
+  readonly workspaceOpen: boolean;
 }
 
 /**
- * The header's secondary actions on a narrow screen, where the Share menu,
- * the sandbox pill and the artifacts button don't fit: the panels and the
- * share actions in one menu. Needs the shell's toast provider.
+ * The header's end on a narrow screen, where Share and the Workspace toggle
+ * don't fit beside the title: both in one menu, plus the locked context.
+ * Needs the shell's toast provider.
  */
 export function HeaderOverflowMenu({
-  artifactsOpen,
+  lockedContext,
   onCopyLink,
   onInvite,
-  onToggleArtifacts,
-  onToggleSandbox,
-  sandboxOpen,
+  onToggleWorkspace,
   shareDisabled = false,
+  workspaceOpen,
 }: HeaderOverflowMenuProps) {
   const { t } = useLingui();
   const { add } = useToastManager();
@@ -67,25 +66,15 @@ export function HeaderOverflowMenu({
       >
         <EllipsisIcon aria-hidden />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuContent align="end" className="w-64">
         <DropdownMenuGroup>
-          {onToggleSandbox ? (
-            <DropdownMenuCheckboxItem
-              checked={sandboxOpen}
-              closeOnClick
-              onCheckedChange={onToggleSandbox}
-            >
-              <TerminalIcon aria-hidden />
-              <Trans>Sandbox panel</Trans>
-            </DropdownMenuCheckboxItem>
-          ) : null}
           <DropdownMenuCheckboxItem
-            checked={artifactsOpen}
+            checked={workspaceOpen}
             closeOnClick
-            onCheckedChange={onToggleArtifacts}
+            onCheckedChange={onToggleWorkspace}
           >
-            <FileTextIcon aria-hidden />
-            <Trans>Artifacts panel</Trans>
+            <PanelRightIcon aria-hidden />
+            <Trans>Workspace</Trans>
           </DropdownMenuCheckboxItem>
         </DropdownMenuGroup>
         {share ? (
@@ -109,6 +98,12 @@ export function HeaderOverflowMenu({
                 </DropdownMenuItem>
               ) : null}
             </DropdownMenuGroup>
+          </>
+        ) : null}
+        {lockedContext ? (
+          <>
+            <DropdownMenuSeparator />
+            <LockedContextGroup>{lockedContext}</LockedContextGroup>
           </>
         ) : null}
       </DropdownMenuContent>

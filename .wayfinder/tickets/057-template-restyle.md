@@ -65,3 +65,42 @@ After trying the M1 demo, Connor asked for two things.
   - Narrow screens: an overflow menu.
 
 **Done when:** the header has at most 4 controls, the e2e specs use the new selectors (the "Chat context" chip is found in the composer), and the tokens, Lingui and motion guards pass.
+
+## Results
+
+Built on `t/057-template-restyle`; `status` stays `open` for review.
+
+**Primitives.** `bubble` and `item` added to `packages/ui` with the shadcn CLI (base-nova registry). Bubble's `tinted` variant is left out (its `oklch()` literals fail the tokens guard); both use logical utilities.
+
+**Messages.** A `max-w-2xl px-6 gap-6` column. User turns are a muted `rounded-3xl` Bubble, at most 80% wide and end-aligned. Assistant turns are 15px/1.75 prose with no avatars. `.is-user` / `.is-assistant[data-message-id]` are unchanged. "Thinking…" (and the reasoning trigger's) pulses in opacity instead of shimmering. The scroll-to-bottom button is round.
+
+**Empty state.** "What can I help with?" and 4 localised suggestions, which send as the first message (hidden while the composer is disabled). `ConversationView` now shows the empty state even when given an error slot: `ConnectedChat` always passes `<RunError>`, which renders nothing, so the real app never showed a new chat's intro before.
+
+**Composer.** A `rounded-2xl bg-input/50` frame with a `ring-3 ring-ring/30` focus ring (on both the shell's textarea and the editor). The bottom row has Attach and the model picker at the start; the context chip and a round Send (arrow up) or Stop at the end. `ChatScreen` passes the context to the composer only while it's unlocked.
+
+**Header (new D14).**
+- Before: toggle, New chat (sidebar collapsed); centre title and branches; end context chip, avatars, Share, "Sandbox: …" pill, Artifacts button (up to 7).
+- After: start has the toggle, New chat (sidebar collapsed), title and branch switcher. End has Share, with avatars on the button and the locked context (`ContextSummary`) in its menu, and one Workspace toggle (`aria-pressed`, reopening the panel's last tab, sandbox first).
+- Narrow screens: a "More actions" menu with Workspace, Invite, Copy link and the locked context.
+- At most 4 buttons besides the title and branch switcher; a unit test checks this.
+- `header/sandbox-pill.tsx` is deleted.
+- PLAN.md D14's web layout is rewritten.
+
+**E2E.**
+- `support/chat.ts` has new helpers: `chatHeader`, `contextChip` (scoped to the composer), `lockedContext` (the Share menu group) and `openWorkspace`.
+- `context.spec` picks the context in the composer and checks the locked one in Share.
+- `shell.spec` has a new header and empty-state test.
+- Two specs outside this ticket needed minimal fixes:
+  - `sandbox.spec`: the "Sandbox: " pill became `openWorkspace(page, "Sandbox")`.
+  - `orgs.spec`: the chip is now in the composer, which the editor replaces, so it waits for `composerReady` and uses `contextChip`.
+
+**Verified.**
+- Gate: `gate.sh` passes (82/82 turbo tasks).
+- Unit tests: chat-ui 103, composer 67 and ui 2 all pass.
+- E2E: `E2E_PORT=3457 bun turbo test:e2e` passed 26 of 26.
+- Screenshots of the `/dev/chat` demo cover wide, empty (light and dark), the Share menu, the Workspace panel open, and narrow with its overflow menu.
+
+**For 060/062.**
+- The Workspace toggle opens today's `RightPanel` and remembers its last tab. 060 can swap the panel without touching the header.
+- The S and A shortcuts still open the Sandbox and Artifacts tabs directly.
+- Streamdown still renders its own markdown styles; `typeset.css` from the template was not ported, because it lives in globals.css.

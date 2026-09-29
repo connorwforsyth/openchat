@@ -20,6 +20,7 @@ import {
   Message as MessageFrame,
   MessageToolbar,
 } from "@workspace/ui/components/ai-elements/message";
+import { Bubble, BubbleContent } from "@workspace/ui/components/bubble";
 import { Button } from "@workspace/ui/components/button";
 import { Textarea } from "@workspace/ui/components/textarea";
 import {
@@ -48,6 +49,7 @@ import { LazyReasoning } from "./lazy";
 import { Markdown } from "./markdown";
 import { MemoryNote } from "./memory-note";
 import { Sources } from "./sources";
+import { ThinkingLabel } from "./thinking";
 import { ToolPart } from "./tool-part";
 
 const COPIED_MS = 1500;
@@ -260,9 +262,11 @@ function UserMessage({
             </div>
           ))}
           {text ? (
-            <MessageContent className="whitespace-pre-wrap">
-              {text}
-            </MessageContent>
+            <Bubble align="end" variant="muted">
+              <BubbleContent className="whitespace-pre-wrap px-4 py-2.5 text-[15px]">
+                {text}
+              </BubbleContent>
+            </Bubble>
           ) : null}
           <MessageToolbar className="mt-0 justify-end gap-1 opacity-0 pointer-coarse:opacity-100 focus-within:opacity-100 group-hover:opacity-100">
             <BranchSwitcher info={siblings} onSelect={onSelectBranch ?? noop} />
@@ -315,7 +319,6 @@ function AssistantMessage({
   return (
     <MessageFrame
       aria-busy={streaming}
-      className="max-w-full"
       data-message-id={message.id}
       from="assistant"
     >
@@ -329,8 +332,8 @@ function AssistantMessage({
           />
         ))}
         {streaming && view.blocks.length === 0 ? (
-          <p className="shimmer text-muted-foreground text-sm">
-            <Trans>Thinking…</Trans>
+          <p className="text-muted-foreground text-sm">
+            <ThinkingLabel />
           </p>
         ) : null}
         <Sources sources={view.sources} />

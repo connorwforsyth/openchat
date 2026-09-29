@@ -23,8 +23,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemMedia,
+  ItemTitle,
+} from "@workspace/ui/components/item";
 import { motionMs } from "@workspace/ui/lib/motion";
-import { useCallback, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
 
 import { initialsOf } from "../model/people";
 
@@ -50,59 +57,86 @@ function PermissionLabel({
 }
 
 function PersonAvatar({
+  className,
   person,
-  size = "sm",
 }: {
+  readonly className?: string;
   readonly person: Participant["user"];
-  readonly size?: "sm" | "default";
 }) {
   return (
-    <Avatar size={size}>
+    <Avatar className={className} size="sm">
       {person.image ? <AvatarImage alt="" src={person.image} /> : null}
       <AvatarFallback>{initialsOf(person.name)}</AvatarFallback>
     </Avatar>
   );
 }
 
-/** Who's in the chat, as overlapping avatars (D25). */
-export function Participants({
+/**
+ * Who's in the chat as overlapping avatars (D25), inside the Share button.
+ * Decorative there: the button is named "Share" and its menu lists everyone
+ * by name.
+ */
+function ParticipantAvatars({
   participants,
 }: {
   readonly participants: readonly Participant[];
 }) {
-  const { t } = useLingui();
-  if (participants.length < 2) {
-    return null;
-  }
   const shown = participants.slice(0, MAX_AVATARS);
   const more = participants.length - shown.length;
-  const names = participants.map((person) => person.user.name).join(", ");
   return (
-    <AvatarGroup
-      aria-label={t`People in this chat: ${names}`}
-      className="hidden md:flex"
-      role="img"
-    >
+    <AvatarGroup aria-hidden className="-space-x-1.5">
       {shown.map((person) => (
-        <PersonAvatar key={person.user.id} person={person.user} />
+        <PersonAvatar
+          className="size-5"
+          key={person.user.id}
+          person={person.user}
+        />
       ))}
-      {more > 0 ? <AvatarGroupCount>+{more}</AvatarGroupCount> : null}
+      {more > 0 ? (
+        <AvatarGroupCount className="size-5 text-[0.625rem]">
+          +{more}
+        </AvatarGroupCount>
+      ) : null}
     </AvatarGroup>
   );
+}
+
+function TriggerIcon({
+  copied,
+  shared,
+}: {
+  readonly copied: boolean;
+  readonly shared: boolean;
+}) {
+  if (copied) {
+    return <CheckIcon aria-hidden data-icon="inline-start" />;
+  }
+  // The avatars stand in for the icon once other people are in the chat.
+  return shared ? null : <ShareIcon aria-hidden data-icon="inline-start" />;
 }
 
 export interface ShareMenuProps {
   /** Nothing to share before the first message. */
   readonly disabled?: boolean;
+  /**
+   * The chat's context once it's locked (D17), shown in the menu; while it
+   * can still change, the composer offers it instead.
+   */
+  readonly lockedContext?: ReactNode;
   /** Copies the chat's link; resolves once it's on the clipboard. */
   readonly onCopyLink?: () => Promise<void> | void;
   readonly onInvite?: () => void;
   readonly participants: readonly Participant[];
 }
 
-/** Share: who has access, invite people, copy a link (all through callbacks). */
+/**
+ * Share (D14): who has access, invite people, copy a link (all through
+ * callbacks), and the chat's locked context. The people in the chat show as
+ * avatars on the button itself.
+ */
 export function ShareMenu({
   disabled,
+  lockedContext,
   onCopyLink,
   onInvite,
   participants,
@@ -121,61 +155,96 @@ export function ShareMenu({
     await onCopyLink?.();
     setCopied(true);
   }, [onCopyLink]);
+  const shared = participants.length > 1;
+  const actions = Boolean(onInvite || onCopyLink);
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
         disabled={disabled}
-        render={<Button size="sm" variant="ghost" />}
+        render={<Button className="rounded-full" size="sm" variant="ghost" />}
       >
-        {copied ? (
-          <CheckIcon aria-hidden data-icon="inline-start" />
-        ) : (
-          <ShareIcon aria-hidden data-icon="inline-start" />
-        )}
+        {shared ? <ParticipantAvatars participants={participants} /> : null}
+        <TriggerIcon copied={copied} shared={shared} />
         <span aria-live="polite">
           {copied ? <Trans>Link copied</Trans> : <Trans>Share</Trans>}
         </span>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-64">
+      <DropdownMenuContent align="end" className="w-72">
         <DropdownMenuGroup>
           <DropdownMenuLabel>
             <Trans>People in this chat</Trans>
           </DropdownMenuLabel>
           {participants.map((person) => (
-            <div
-              className="flex items-center gap-2 px-1.5 py-1 text-sm"
-              key={person.user.id}
-            >
-              <PersonAvatar person={person.user} />
-              <span className="min-w-0 flex-1 truncate">
-                {person.user.name}
-              </span>
-              <span className="text-muted-foreground text-xs">
+            <Item className="px-1.5 py-1" key={person.user.id} size="xs">
+              <ItemMedia>
+                <PersonAvatar person={person.user} />
+              </ItemMedia>
+              <ItemContent className="min-w-0">
+                <ItemTitle className="font-normal">
+                  {person.user.name}
+                </ItemTitle>
+              </ItemContent>
+              <ItemActions className="text-muted-foreground text-xs">
                 <PermissionLabel permission={person.permission} />
-              </span>
-            </div>
+              </ItemActions>
+            </Item>
           ))}
         </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          {onInvite ? (
-            <DropdownMenuItem onClick={onInvite}>
-              <UserPlusIcon aria-hidden />
-              <Trans>Invite people…</Trans>
-            </DropdownMenuItem>
-          ) : null}
-          {onCopyLink ? (
-            <DropdownMenuItem
-              aria-label={t`Copy link to this chat`}
-              onClick={copy}
-            >
-              <LinkIcon aria-hidden />
-              <Trans>Copy link</Trans>
-            </DropdownMenuItem>
-          ) : null}
-        </DropdownMenuGroup>
+        {lockedContext ? (
+          <>
+            <DropdownMenuSeparator />
+            <LockedContextGroup>{lockedContext}</LockedContextGroup>
+          </>
+        ) : null}
+        {actions ? (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              {onInvite ? (
+                <DropdownMenuItem onClick={onInvite}>
+                  <UserPlusIcon aria-hidden />
+                  <Trans>Invite people…</Trans>
+                </DropdownMenuItem>
+              ) : null}
+              {onCopyLink ? (
+                <DropdownMenuItem
+                  aria-label={t`Copy link to this chat`}
+                  onClick={copy}
+                >
+                  <LinkIcon aria-hidden />
+                  <Trans>Copy link</Trans>
+                </DropdownMenuItem>
+              ) : null}
+            </DropdownMenuGroup>
+          </>
+        ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+/**
+ * The locked context inside a menu (Share, or the narrow screen's overflow
+ * menu): read-only, with why it can't change.
+ */
+export function LockedContextGroup({
+  children,
+}: {
+  readonly children: ReactNode;
+}) {
+  return (
+    <DropdownMenuGroup>
+      <DropdownMenuLabel>
+        <Trans>Chat context</Trans>
+      </DropdownMenuLabel>
+      <div className="px-1.5 py-1 text-sm">{children}</div>
+      <p className="px-1.5 pb-1 text-muted-foreground text-xs">
+        <Trans>
+          Whose keys and budget this chat uses. It can't change after the first
+          message.
+        </Trans>
+      </p>
+    </DropdownMenuGroup>
   );
 }

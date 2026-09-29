@@ -114,6 +114,41 @@ export const expectReply = async (page: Page, text: string | RegExp) => {
   return reply;
 };
 
+/** The chat header (D14): title and branches at the start, Share and Workspace at the end. */
+export const chatHeader = (page: Page): Locator =>
+  page.locator('[data-slot="app-header"]');
+
+/**
+ * The composer's chat context chip, showing `label`. It's there only until
+ * the first message locks the context; wait for `composerReady` before
+ * opening it, or the menu goes with the shell.
+ */
+export const contextChip = (page: Page, label: string): Locator =>
+  page
+    .locator('[data-slot="composer"]')
+    .getByRole("button", { name: `Chat context: ${label}` });
+
+/** Opens the header's Share menu and returns its locked "Chat context" group. */
+export const lockedContext = async (page: Page): Promise<Locator> => {
+  await chatHeader(page).getByRole("button", { name: "Share" }).click();
+  return page.getByRole("group", { name: "Chat context" });
+};
+
+/**
+ * Opens the right panel with the header's Workspace toggle and shows its
+ * `tab` ("Sandbox" or "Artifacts").
+ */
+export const openWorkspace = async (
+  page: Page,
+  tab: "Artifacts" | "Sandbox"
+) => {
+  const toggle = chatHeader(page).getByRole("button", { name: "Workspace" });
+  if ((await toggle.getAttribute("aria-pressed")) !== "true") {
+    await toggle.click();
+  }
+  await page.getByRole("tab", { name: tab }).click();
+};
+
 const ANY_TARGET = /^Model or agent:/;
 
 /** The composer's model and agent picker, showing `label`. */

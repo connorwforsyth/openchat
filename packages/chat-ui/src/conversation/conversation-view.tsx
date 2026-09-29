@@ -97,8 +97,18 @@ export function ConversationView({
     });
   }, [pendingApprovals, visible]);
 
-  if (visible.length === 0 && !error) {
-    return <>{empty}</>;
+  // A new chat shows its empty state even with an error slot: the app passes
+  // one that renders nothing until something fails, so an element there
+  // doesn't mean there's an error to show. A real one shows under it.
+  if (visible.length === 0) {
+    return (
+      <>
+        {empty}
+        {error ? (
+          <div className="mx-auto w-full max-w-2xl px-6 pb-4">{error}</div>
+        ) : null}
+      </>
+    );
   }
 
   return (
@@ -106,7 +116,7 @@ export function ConversationView({
       <MessageScrollerProvider autoScroll key={conversationKey}>
         <MessageScroller className={className}>
           <MessageScrollerViewport aria-label={t`Conversation`}>
-            <MessageScrollerContent className="mx-auto w-full max-w-3xl px-4 pt-6 pb-10">
+            <MessageScrollerContent className="mx-auto w-full max-w-2xl gap-6 px-6 pt-6 pb-10">
               {rows.map((row, index) => {
                 const streaming = row.message.id === streamingMessageId;
                 const last = index === rows.length - 1;
@@ -139,7 +149,7 @@ export function ConversationView({
               ) : null}
             </MessageScrollerContent>
           </MessageScrollerViewport>
-          <MessageScrollerButton />
+          <MessageScrollerButton className="rounded-full shadow-sm" />
         </MessageScroller>
       </MessageScrollerProvider>
     </ConversationActionsProvider>

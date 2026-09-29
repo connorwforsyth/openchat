@@ -57,6 +57,7 @@ msgstr "{count, plural, one {# log entry} other {# log entries}}"
 msgid "{deletions, plural, one {# line removed} other {# lines removed}}"
 msgstr "{deletions, plural, one {# line removed} other {# lines removed}}"
 
+#: ../chat-ui/src/conversation/reasoning-part.tsx
 #: ../ui/src/components/ai-elements/reasoning.tsx
 msgid "{duration, plural, one {Thought for # second} other {Thought for # seconds}}"
 msgstr "{duration, plural, one {Thought for # second} other {Thought for # seconds}}"
@@ -347,8 +348,6 @@ msgstr "Artifacts"
 msgid "Artifacts in this chat"
 msgstr "Artifacts in this chat"
 
-#: ../chat-ui/src/chat/chat-screen.tsx
-#: ../chat-ui/src/header/overflow-menu.tsx
 #: ../chat-ui/src/shell/right-panel.tsx
 #: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
 msgid "Artifacts panel"
@@ -512,6 +511,7 @@ msgstr "Change shortcuts"
 msgid "Changes"
 msgstr "Changes"
 
+#: ../chat-ui/src/header/share-menu.tsx
 #: ../composer/src/components/context-chip.tsx
 msgid "Chat context"
 msgstr "Chat context"
@@ -884,7 +884,6 @@ msgstr "Description"
 msgid "Description for {name}"
 msgstr "Description for {name}"
 
-#: ../chat-ui/src/header/sandbox-pill.tsx
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "Destroyed"
 msgstr "Destroyed"
@@ -961,6 +960,14 @@ msgstr "Download table as Markdown"
 #: ../library-ui/src/components/version-history.tsx
 msgid "Draft"
 msgstr "Draft"
+
+#: ../chat-ui/src/conversation/empty-state.tsx
+msgid "Draft a document"
+msgstr "Draft a document"
+
+#: ../chat-ui/src/conversation/empty-state.tsx
+msgid "Draft a one-page project brief as a Markdown file: goal, scope, risks and next steps."
+msgstr "Draft a one-page project brief as a Markdown file: goal, scope, risks and next steps."
 
 #: ../library-ui/src/components/item-builder.tsx
 #: ../library-ui/src/components/library-index.tsx
@@ -1044,12 +1051,19 @@ msgstr "Expires {expires}"
 msgid "explain"
 msgstr "explain"
 
+#: ../chat-ui/src/conversation/empty-state.tsx
+msgid "Explain a concept"
+msgstr "Explain a concept"
+
+#: ../chat-ui/src/conversation/empty-state.tsx
+msgid "Explain how HTTPS keeps a connection private, in plain language with one short example."
+msgstr "Explain how HTTPS keeps a connection private, in plain language with one short example."
+
 #: ../library-ui/src/components/item-builder.tsx
 #: ../library-ui/src/components/library-index.tsx
 msgid "Export"
 msgstr "Export"
 
-#: ../chat-ui/src/header/sandbox-pill.tsx
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "Failed"
 msgstr "Failed"
@@ -1139,6 +1153,10 @@ msgstr "Header name"
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
 msgid "help"
 msgstr "help"
+
+#: ../chat-ui/src/conversation/empty-state.tsx
+msgid "Help me plan a team offsite. Ask me a few questions first, then suggest an agenda."
+msgstr "Help me plan a team offsite. Ask me a few questions first, then suggest an agenda."
 
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
 msgid "hide"
@@ -1671,7 +1689,6 @@ msgstr "No orgs to manage"
 msgid "No regressions"
 msgstr "No regressions"
 
-#: ../chat-ui/src/header/sandbox-pill.tsx
 #: ../library-ui/src/components/agent-form.tsx
 msgid "No sandbox"
 msgstr "No sandbox"
@@ -1877,10 +1894,6 @@ msgstr "Pending"
 msgid "People in this chat"
 msgstr "People in this chat"
 
-#: ../chat-ui/src/header/share-menu.tsx
-msgid "People in this chat: {names}"
-msgstr "People in this chat: {names}"
-
 #: ../library-ui/src/components/publish-dialog.tsx
 msgid "People using it get version {nextVersion} as soon as it's published. Your draft stays editable."
 msgstr "People using it get version {nextVersion} as soon as it's published. Your draft stays editable."
@@ -1908,10 +1921,6 @@ msgstr "Personal"
 msgid "Personal key fallback is off: this server forbids it."
 msgstr "Personal key fallback is off: this server forbids it."
 
-#: ../chat-ui/src/chat/chat-screen.tsx
-msgid "Pick whose keys and budget this chat uses with the context in the header. You can change it until you send the first message."
-msgstr "Pick whose keys and budget this chat uses with the context in the header. You can change it until you send the first message."
-
 #: ../composer/src/components/target-picker.tsx
 msgid "Picks a model for each message"
 msgstr "Picks a model for each message"
@@ -1928,6 +1937,10 @@ msgstr "Pin this version"
 #: ../library-ui/src/components/version-history.tsx
 msgid "Pinned"
 msgstr "Pinned"
+
+#: ../chat-ui/src/conversation/empty-state.tsx
+msgid "Plan something"
+msgstr "Plan something"
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "PNG"
@@ -2112,7 +2125,6 @@ msgstr "Put a copy in a team or org library. The library owns it and you maintai
 msgid "React component"
 msgstr "React component"
 
-#: ../chat-ui/src/header/sandbox-pill.tsx
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "Ready"
 msgstr "Ready"
@@ -2360,8 +2372,6 @@ msgid "Sandbox output"
 msgstr "Sandbox output"
 
 #: ../../apps/web/app/dev/sandbox/page.tsx
-#: ../chat-ui/src/header/overflow-menu.tsx
-#: ../chat-ui/src/header/sandbox-pill.tsx
 #: ../chat-ui/src/shell/right-panel.tsx
 #: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
 msgid "Sandbox panel"
@@ -2370,10 +2380,6 @@ msgstr "Sandbox panel"
 #: ../chat-ui/src/sandbox/sandbox-panel.tsx
 msgid "Sandbox views"
 msgstr "Sandbox views"
-
-#: ../chat-ui/src/header/sandbox-pill.tsx
-msgid "Sandbox: {label}"
-msgstr "Sandbox: {label}"
 
 #: ../chat-ui/src/chat/chat-screen.tsx
 msgid "Sandboxes are turned off on this server."
@@ -2703,7 +2709,6 @@ msgstr "Start over"
 msgid "Starter {position}"
 msgstr "Starter {position}"
 
-#: ../chat-ui/src/header/sandbox-pill.tsx
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "Starting"
 msgstr "Starting"
@@ -2725,7 +2730,6 @@ msgstr "Stop dictation"
 msgid "Stop generating"
 msgstr "Stop generating"
 
-#: ../chat-ui/src/header/sandbox-pill.tsx
 #: ../chat-ui/src/sandbox/status-pill.tsx
 msgid "Stopped"
 msgstr "Stopped"
@@ -2749,6 +2753,10 @@ msgstr "Submit"
 #: ../code-ui/src/diff-view.tsx
 msgid "Submit review"
 msgstr "Submit review"
+
+#: ../chat-ui/src/conversation/empty-state.tsx
+msgid "Suggestions"
+msgstr "Suggestions"
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "SVG"
@@ -3054,7 +3062,7 @@ msgstr "They lose access to this org's chats, library and keys. Their personal c
 msgid "They're already a member or already invited."
 msgstr "They're already a member or already invited."
 
-#: ../chat-ui/src/conversation/message-row.tsx
+#: ../chat-ui/src/conversation/thinking.tsx
 #: ../ui/src/components/ai-elements/reasoning.tsx
 msgid "Thinking…"
 msgstr "Thinking…"
@@ -3147,6 +3155,7 @@ msgstr "This server's configuration forbids audit policies, so admins can't read
 msgid "Those keys can't be used as a shortcut."
 msgstr "Those keys can't be used as a shortcut."
 
+#: ../chat-ui/src/conversation/reasoning-part.tsx
 #: ../ui/src/components/ai-elements/reasoning.tsx
 msgid "Thought for a few seconds"
 msgstr "Thought for a few seconds"
@@ -3356,9 +3365,9 @@ msgstr "Weekly"
 msgid "What agents remember about you across chats."
 msgstr "What agents remember about you across chats."
 
-#: ../chat-ui/src/chat/chat-screen.tsx
-msgid "What are we working on?"
-msgstr "What are we working on?"
+#: ../chat-ui/src/conversation/empty-state.tsx
+msgid "What can I help with?"
+msgstr "What can I help with?"
 
 #: ../library-ui/src/components/publish-dialog.tsx
 msgid "What changed"
@@ -3420,6 +3429,10 @@ msgstr "While this is on, every member sees “Admins of this org can read this 
 msgid "Who's in this org and what they can manage."
 msgstr "Who's in this org and what they can manage."
 
+#: ../chat-ui/src/header/share-menu.tsx
+msgid "Whose keys and budget this chat uses. It can't change after the first message."
+msgstr "Whose keys and budget this chat uses. It can't change after the first message."
+
 #: ../chat-ui/src/conversation/approval.tsx
 msgid "Why? (optional, sent to the agent)"
 msgstr "Why? (optional, sent to the agent)"
@@ -3432,6 +3445,8 @@ msgstr "Work account"
 msgid "Works"
 msgstr "Works"
 
+#: ../chat-ui/src/header/overflow-menu.tsx
+#: ../chat-ui/src/header/workspace-toggle.tsx
 #: ../chat-ui/src/sandbox/files.tsx
 msgid "Workspace"
 msgstr "Workspace"
@@ -3439,6 +3454,14 @@ msgstr "Workspace"
 #: ../../apps/web/app/dev/ai-elements/demo.tsx
 msgid "Would send “{text}” with {fileCount, plural, one {# attachment} other {# attachments}}."
 msgstr "Would send “{text}” with {fileCount, plural, one {# attachment} other {# attachments}}."
+
+#: ../chat-ui/src/conversation/empty-state.tsx
+msgid "Write a small TypeScript function that groups a list of dates by ISO week, with a couple of tests."
+msgstr "Write a small TypeScript function that groups a list of dates by ISO week, with a couple of tests."
+
+#: ../chat-ui/src/conversation/empty-state.tsx
+msgid "Write some code"
+msgstr "Write some code"
 
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "Yesterday"

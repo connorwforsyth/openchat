@@ -5,10 +5,11 @@ import type { ReactNode } from "react";
 
 import { usePlatform } from "../shell/platform";
 
-// The top bar (D14) with three slots: start (sidebar toggle), centre (title
-// and branch switcher) and end (context, people, share, sandbox). On desktop
-// it doubles as the window's title bar: the whole bar drags the window,
-// controls opt out, and it leaves room for the OS window controls.
+// The top bar (D14). The chat puts everything in two slots: start (sidebar
+// toggle, New chat, title, branch switcher) and end (Share, Workspace). Pages
+// with a centred title, like the library, add a centre slot. On desktop it
+// doubles as the window's title bar: the whole bar drags the window, controls
+// opt out, and it leaves room for the OS window controls.
 
 export interface AppHeaderProps {
   readonly center?: ReactNode;
@@ -44,7 +45,12 @@ export function AppHeader({
   return (
     <header
       className={cn(
-        "grid h-12 shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border-b px-2",
+        "grid h-12 shrink-0 items-center gap-2 border-b px-2",
+        // Without a centre the start slot takes the room, so a long title
+        // truncates instead of pushing the end slot off screen.
+        center === undefined
+          ? "grid-cols-[minmax(0,1fr)_auto]"
+          : "grid-cols-[auto_minmax(0,1fr)_auto]",
         underWindowControls && platformClass[platform],
         // The bar drags the window; anything you can click opts out.
         desktop &&
@@ -55,9 +61,11 @@ export function AppHeader({
       data-slot="app-header"
     >
       <div className="flex min-w-0 items-center gap-1">{start}</div>
-      <div className="flex min-w-0 items-center justify-center gap-1">
-        {center}
-      </div>
+      {center === undefined ? null : (
+        <div className="flex min-w-0 items-center justify-center gap-1">
+          {center}
+        </div>
+      )}
       <div className="flex items-center justify-end gap-1">{end}</div>
     </header>
   );
