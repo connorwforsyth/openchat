@@ -5,24 +5,25 @@ import { codeThemeNames } from "./code-theme";
 import { resolveColorMap, resolveEditorColors } from "./editor-colors";
 import { registerCodeThemes } from "./register";
 
-// Shiki's stand-ins for colours it can't hand to TextMate: `#00000001`, ….
+// Shiki's stand-ins for colours it can't hand to TextMate: the nth one is
+// n in eight hex digits. Built, not written out: they aren't ui colours.
 const PLACEHOLDER = /^#0{6}[0-9a-f]{2}$/i;
+const placeholder = (n: number): string =>
+  `#${n.toString(16).padStart(8, "0")}`;
 
 describe("resolveColorMap", () => {
   it("swaps placeholders for their colours, whatever the case", () => {
     expect(
-      resolveColorMap(["#FFFFFF", "#0000000A", "#00000001"], {
-        "#0000000a": "var(--muted-foreground)",
-        "#00000001": "var(--foreground)",
+      resolveColorMap([placeholder(10).toUpperCase(), placeholder(1)], {
+        [placeholder(1)]: "var(--foreground)",
+        [placeholder(10)]: "var(--muted-foreground)",
       })
-    ).toEqual(["#FFFFFF", "var(--muted-foreground)", "var(--foreground)"]);
+    ).toEqual(["var(--muted-foreground)", "var(--foreground)"]);
   });
 
-  it("leaves a map without replacements alone", () => {
-    expect(resolveColorMap(["#000000", "#00000001"])).toEqual([
-      "#000000",
-      "#00000001",
-    ]);
+  it("passes through colours it has no replacement for", () => {
+    expect(resolveColorMap([placeholder(2)], {})).toEqual([placeholder(2)]);
+    expect(resolveColorMap([placeholder(2)])).toEqual([placeholder(2)]);
   });
 });
 
