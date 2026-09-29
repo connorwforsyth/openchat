@@ -2,8 +2,8 @@
 id: "056"
 title: "Every chat gets a workspace that recovers from failures"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -112,3 +112,7 @@ Built on `t/056-workspace-always-on`, not yet pushed.
 - 059: `getConversationSandbox`/panel reads could use `ensureWorkspace`. A row stuck in `provisioning` after a crash still only attaches.
 - 062 (composer): send `data-workspace-file` parts next to the `@path` text.
 - The model's `tools` capability isn't consulted before offering sandbox tools. `TurnResolverDeps.config` has no `providers`, and `file_search` works the same way today.
+
+## Resolution (2026-09-29, loop)
+
+Merged in [PR #46](https://github.com/connorwforsyth/openchat/pull/46). Always-on file tools, `ensureWorkspace` (self-healing, Docker falling back to just-bash), stale-edit guard, `@file` mentions resolved into the turn instructions. e2e 25/25, gate 82/82. Left: 059 could `ensureWorkspace` on panel reads; 062 sends `data-workspace-file` parts; sandbox tools are offered without a model tools-capability check (same gap as file_search).

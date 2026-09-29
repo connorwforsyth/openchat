@@ -3,7 +3,7 @@ id: "058"
 title: "Tool calls as status lines and file-change cards"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: []
 ---
 
