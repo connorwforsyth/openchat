@@ -84,3 +84,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-09-30 · 065 closed · PR #55 · e2e 32/32 · only 026 (Connor) remains; launch check next
 - 2026-09-30 · launch check: runner rebuilt (Docker Desktop's registry proxy hung, so dist was built on the host); smoke passed (npx/npm create, preview, snapshot); app up at localhost:3000 with Docker sandboxes · only 026 remains
 - 2026-09-30 · Connor: the Workspace preview should work like a built-in browser · added 066 (browser UI) and 067 (static preview without a server), started
+- 2026-09-30 · added 068 (previews of gzip responses render blank; found by Connor), fixed by the loop directly
