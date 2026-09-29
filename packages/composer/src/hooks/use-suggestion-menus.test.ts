@@ -96,4 +96,40 @@ describe("useSuggestionMenus", () => {
     });
     expect(result.current.menu).toBeNull();
   });
+
+  it("refilters the active query when the lists change, until exit", () => {
+    const { result } = renderHook(() => useSuggestionMenus());
+    const renderer = result.current.slashRenderer();
+    const sources = (items: readonly SlashItem[]) => ({
+      mentions: () => [],
+      slash: (query: string) =>
+        items.filter(
+          (item) => item.kind === "command" && item.command.startsWith(query)
+        ),
+    });
+
+    // `/op` matched nothing when it was typed, so nothing shows.
+    act(() => {
+      renderer.onStart(props("op", []));
+    });
+    expect(result.current.menu).toBeNull();
+
+    // The host's list changes with no keystroke in between.
+    act(() => {
+      result.current.refresh(sources([NEW_FILE, OPEN]));
+    });
+    expect(result.current.menu?.items).toEqual([OPEN]);
+
+    // A later loading update still keeps the refreshed list.
+    act(() => {
+      renderer.onUpdate(props("ope", [], { loading: true }));
+    });
+    expect(result.current.menu?.items).toEqual([OPEN]);
+
+    act(() => {
+      renderer.onExit();
+      result.current.refresh(sources([NEW_FILE, OPEN]));
+    });
+    expect(result.current.menu).toBeNull();
+  });
 });

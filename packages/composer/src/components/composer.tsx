@@ -323,6 +323,18 @@ export function Composer({
     };
   });
 
+  // Mention candidates and files can land while a menu is open (the
+  // workspace listing, 065); the plugins wouldn't ask again until the next
+  // keystroke. Runs after the layout effect above, so the plugins' own next
+  // ask sees the same lists.
+  const { refresh: refreshMenus } = menus;
+  useEffect(() => {
+    refreshMenus({
+      mentions: (query) => filterMentions(candidates, query),
+      slash: (query) => slashItems(query, slash),
+    });
+  }, [candidates, refreshMenus, slash]);
+
   useEffect(() => {
     editor.setEditable(!disabled && pendingTemplate === null, false);
   }, [disabled, editor, pendingTemplate]);

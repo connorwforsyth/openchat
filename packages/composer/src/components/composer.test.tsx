@@ -304,6 +304,57 @@ describe("Composer", () => {
     expect(screen.queryByRole("listbox")).toBeNull();
   });
 
+  it("shows files that arrive while the @ menu is open, with no more typing", async () => {
+    // The host's workspace listing can land after the last keystroke (065).
+    const withFiles = (files: readonly string[]) => (
+      <I18nProvider i18n={i18n}>
+        <Composer files={files} onSubmit={vi.fn()} people={[userAda]} />
+      </I18nProvider>
+    );
+    const { rerender } = render(withFiles([]));
+    const editor = screen.getByRole("textbox", { name: "Message" });
+    await userEvent.click(editor);
+    await userEvent.keyboard("fix @app");
+    // Nothing matches yet, so no menu at all.
+    expect(screen.queryByRole("listbox")).toBeNull();
+
+    rerender(withFiles(["src/app.ts"]));
+    await screen.findByRole("option", { name: APP_TS });
+    await userEvent.keyboard("{Enter}");
+    expect(editor.textContent).toBe("fix @app.ts ");
+  });
+
+  it("adds files that arrive while /open lists them", async () => {
+    const onCommand = vi.fn();
+    const withFiles = (files: readonly string[]) => (
+      <I18nProvider i18n={i18n}>
+        <Composer
+          commands={["open"]}
+          files={files}
+          onCommand={onCommand}
+          onSubmit={vi.fn()}
+        />
+      </I18nProvider>
+    );
+    const { rerender } = render(withFiles(["README.md"]));
+    const editor = screen.getByRole("textbox", { name: "Message" });
+    await userEvent.click(editor);
+    await userEvent.keyboard("/op");
+    await screen.findByRole("listbox", { name: "Commands" });
+    await userEvent.keyboard("{Enter}");
+    const listbox = await screen.findByRole("listbox", { name: "Files" });
+    expect(within(listbox).getAllByRole("option")).toHaveLength(1);
+
+    rerender(withFiles(["README.md", "src/app.ts"]));
+    await waitFor(() =>
+      expect(
+        within(screen.getByRole("listbox", { name: "Files" })).getAllByRole(
+          "option"
+        )
+      ).toHaveLength(2)
+    );
+  });
+
   it("runs /new-file and /preview, and /open with no files to list", async () => {
     const onCommand = vi.fn();
     const { editor, onSubmit } = renderComposer({
