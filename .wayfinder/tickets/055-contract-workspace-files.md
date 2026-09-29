@@ -58,3 +58,13 @@ Each new route creates the workspace on first use. `get` stays read-only. `exec`
 **Done when:** the routes have tests, the OpenAPI output includes them, the PR touches nothing else, and there's a line in QUESTIONS-FOR-CONNOR.
 
 This PR changes `packages/contract`: the loop never merges it; Connor does.
+
+## Results
+
+Branch `t/055-contract-workspace-files`, commit `cd0c30f` (touches only `packages/contract/**`). Not pushed; Connor reviews and merges.
+
+- **Schemas** (`schemas/sandbox.ts`): `sandboxFileEncodingSchema` (`utf8 | base64`), `sandboxFileEtagSchema` (lowercase hex SHA-256), `SANDBOX_WRITE_MAX_BYTES` (5 MiB decoded, checked per encoding; over it is `BAD_REQUEST`), `writeFileInputSchema`, `sandboxFileWriteSchema` (`{ path, size, etag }`), `importFileInputSchema`, `deleteFileInputSchema`.
+- **Routes** (`routes/ops.ts`, `sandbox` group): `writeFile` `POST /conversations/{conversationId}/sandbox/files` (CONFLICT `already_exists` / `version_mismatch`, FEATURE_DISABLED); `importFile` `POST /conversations/{conversationId}/sandbox/imports` → 201 (FEATURE_DISABLED; a taken path gets a free name, never a conflict); `deleteFile` `DELETE /conversations/{conversationId}/sandbox/files` → 204, with an added `recursive` flag (default `false`; a non-empty directory without it is CONFLICT `not_empty`). `readFile` output gains `etag`. `exec` is described as for the API and tests. `runOptionsSchema.sandbox` now documents `auto` as file tools whenever sandboxes are enabled.
+- **Tests**: round-trip cases for every new schema, cap tests (decoded base64, UTF-8 bytes rather than characters), and contract tests for the paths, errors, the readFile etag and the OpenAPI operations. Contract: 1346 pass. `openapi.json` regenerated; Redocly lint passes. README has a "Changes (2026-09-29, 055)" table.
+- **Server stubs** (commit `3d5a45b`, `packages/server/src/api/sandbox.ts` + new `sandbox.test.ts`, so 055 can merge on its own): `writeFile`, `importFile` and `deleteFile` are optional on `SandboxApi`, and `disabledSandboxApi` has all three. A route whose method the bound api lacks answers `FEATURE_DISABLED` (403, "Workspace file writes aren't available yet."). `readFile` adds `etag` in the router: the SHA-256 of the decoded bytes. `apps/web` is unchanged. 059 implements the real handlers.
+- **Gate: passes** (82/82). On the first run, one `@workspace/server#test` failure didn't reproduce; the suite passes 185/185 on its own and on the rerun.

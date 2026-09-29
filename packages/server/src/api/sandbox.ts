@@ -1,16 +1,23 @@
+import { createHash } from "node:crypto";
+
 import { implement, ORPCError } from "@orpc/server";
 import { contract } from "@workspace/contract/contract";
-import { conflictError } from "@workspace/contract/errors";
+import { conflictError, featureError } from "@workspace/contract/errors";
 import type {
   ConversationId,
   SandboxId,
 } from "@workspace/contract/schemas/common";
 import type {
+  DeleteFileInput,
   ExecInput,
   ExecResult,
   FileEntry,
+  ImportFileInput,
+  SandboxFileEncoding,
+  SandboxFileWrite,
   SandboxProvider,
   SandboxRecord,
+  WriteFileInput,
 } from "@workspace/contract/schemas/sandbox";
 import type { Db } from "@workspace/db/client";
 import type { Viewer } from "@workspace/db/queries/conversations";
@@ -45,7 +52,12 @@ export type SandboxApiError = z.infer<typeof sandboxApiErrorSchema>;
 
 type Call<I, O> = (viewer: Viewer, input: I) => AsyncResult<O, SandboxApiError>;
 
-/** The sandbox handlers, bound to the instance's providers. */
+/**
+ * The sandbox handlers, bound to the instance's providers. The workspace
+ * file writes (`writeFile`, `importFile`, `deleteFile`, 055) are optional
+ * until the sandbox package implements them (059); without one, its route
+ * says the feature is off.
+ */
 export interface SandboxApi {
   readonly create: Call<
     {
@@ -54,6 +66,7 @@ export interface SandboxApi {
     },
     SandboxRecord
   >;
+  readonly deleteFile?: Call<DeleteFileInput, void>;
   readonly destroy: Call<{ readonly id: SandboxId }, void>;
   readonly exec: Call<ExecInput & { readonly id: SandboxId }, ExecResult>;
   readonly exposePort: Call<
@@ -64,6 +77,7 @@ export interface SandboxApi {
     { readonly conversationId: ConversationId },
     SandboxRecord | null
   >;
+  readonly importFile?: Call<ImportFileInput, SandboxFileWrite>;
   readonly listFiles: Call<
     {
       readonly id: SandboxId;
@@ -82,6 +96,7 @@ export interface SandboxApi {
     }
   >;
   readonly reset: Call<{ readonly id: SandboxId }, SandboxRecord>;
+  readonly writeFile?: Call<WriteFileInput, SandboxFileWrite>;
 }
 
 const toOrpcError = (error: SandboxApiError): ORPCError<string, unknown> => {
@@ -115,6 +130,30 @@ const unwrap = <T>(result: Result<T, SandboxApiError>): T => {
 };
 
 /**
+ * `readFile`'s etag: the lowercase hex SHA-256 of the file's bytes, which
+ * `writeFile`'s `ifMatch` compares against. Computed here from what the
+ * provider returned, so providers don't each need to hash.
+ */
+export const fileEtag = (
+  content: string,
+  encoding: SandboxFileEncoding
+): string =>
+  createHash("sha256")
+    .update(Buffer.from(content, encoding === "base64" ? "base64" : "utf8"))
+    .digest("hex");
+
+/**
+ * A workspace file write the bound sandbox package doesn't offer yet. Off
+ * for this build rather than down, so it's the contract's 403, not a 503.
+ */
+const notYet = () =>
+  new ORPCError("FEATURE_DISABLED", {
+    data: { feature: "sandboxes" },
+    message: "Workspace file writes aren't available yet.",
+    status: featureError.FEATURE_DISABLED.status,
+  });
+
+/**
  * Stands in when the shell has no sandbox wiring: every call says the
  * feature is off, which is what an instance without providers says anyway.
  */
@@ -126,13 +165,16 @@ export const disabledSandboxApi: SandboxApi = (() => {
     });
   return {
     create: off,
+    deleteFile: off,
     destroy: off,
     exec: off,
     exposePort: off,
     get: off,
+    importFile: off,
     listFiles: off,
     readFile: off,
     reset: off,
+    writeFile: off,
   };
 })();
 
@@ -161,6 +203,12 @@ export const createSandboxRouter = ({
       create: sandbox.create.handler(async ({ context, input }) =>
         unwrap(await api.create(context.viewer, input))
       ),
+      deleteFile: sandbox.deleteFile.handler(async ({ context, input }) => {
+        if (!api.deleteFile) {
+          throw notYet();
+        }
+        unwrap(await api.deleteFile(context.viewer, input));
+      }),
       destroy: sandbox.destroy.handler(async ({ context, input }) => {
         unwrap(await api.destroy(context.viewer, input));
       }),
@@ -173,15 +221,28 @@ export const createSandboxRouter = ({
       get: sandbox.get.handler(async ({ context, input }) =>
         unwrap(await api.get(context.viewer, input))
       ),
+      importFile: sandbox.importFile.handler(async ({ context, input }) => {
+        if (!api.importFile) {
+          throw notYet();
+        }
+        return unwrap(await api.importFile(context.viewer, input));
+      }),
       listFiles: sandbox.listFiles.handler(async ({ context, input }) =>
         unwrap(await api.listFiles(context.viewer, input))
       ),
-      readFile: sandbox.readFile.handler(async ({ context, input }) =>
-        unwrap(await api.readFile(context.viewer, input))
-      ),
+      readFile: sandbox.readFile.handler(async ({ context, input }) => {
+        const file = unwrap(await api.readFile(context.viewer, input));
+        return { ...file, etag: fileEtag(file.content, file.encoding) };
+      }),
       reset: sandbox.reset.handler(async ({ context, input }) =>
         unwrap(await api.reset(context.viewer, input))
       ),
+      writeFile: sandbox.writeFile.handler(async ({ context, input }) => {
+        if (!api.writeFile) {
+          throw notYet();
+        }
+        return unwrap(await api.writeFile(context.viewer, input));
+      }),
     },
   });
 };

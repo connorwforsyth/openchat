@@ -12,13 +12,19 @@ import {
   listDecisionsInputSchema,
 } from "../schemas/decider";
 import {
+  deleteFileInputSchema,
   execInputSchema,
   execResultSchema,
   fileEntrySchema,
+  importFileInputSchema,
+  sandboxFileEncodingSchema,
+  sandboxFileEtagSchema,
+  sandboxFileWriteSchema,
   sandboxPathSchema,
   sandboxPreviewSchema,
   sandboxProviderSchema,
   sandboxSchema,
+  writeFileInputSchema,
 } from "../schemas/sandbox";
 import {
   searchConversationsInputSchema,
@@ -98,6 +104,18 @@ export const sandbox = {
       })
     )
     .output(sandboxSchema),
+  deleteFile: authed
+    .errors({ ...conflictError, ...featureError })
+    .route({
+      description:
+        "Deletes a file or directory in the conversation's workspace, creating the workspace if it has none. A non-empty directory needs `recursive` (`CONFLICT` `not_empty` without it).",
+      method: "DELETE",
+      path: "/conversations/{conversationId}/sandbox/files",
+      successStatus: 204,
+      summary: "Delete a workspace file",
+    })
+    .input(deleteFileInputSchema)
+    .output(z.void()),
   destroy: authed
     .route({
       method: "DELETE",
@@ -110,7 +128,8 @@ export const sandbox = {
   exec: authed
     .errors(conflictError)
     .route({
-      description: "Runs a command from the panel's terminal and waits for it.",
+      description:
+        "Runs a command and waits for it. For the API and tests: the chat UI has no terminal, and the agent runs its own commands through its tools.",
       method: "POST",
       path: "/sandboxes/{id}/exec",
       summary: "Run a command",
@@ -134,6 +153,18 @@ export const sandbox = {
     })
     .input(z.object({ conversationId: conversationIdSchema }))
     .output(sandboxSchema.nullable()),
+  importFile: authed
+    .errors(featureError)
+    .route({
+      description:
+        "Copies an uploaded file (`files.upload`) into the conversation's workspace, creating the workspace if it has none. A taken path gets a free name beside it, returned as `path`. For anything over `writeFile`'s cap.",
+      method: "POST",
+      path: "/conversations/{conversationId}/sandbox/imports",
+      successStatus: 201,
+      summary: "Import an upload into the workspace",
+    })
+    .input(importFileInputSchema)
+    .output(sandboxFileWriteSchema),
   listFiles: authed
     .route({
       method: "GET",
@@ -159,7 +190,9 @@ export const sandbox = {
       z.object({
         /** Text files come back as UTF-8; anything else as base64. */
         content: z.string(),
-        encoding: z.enum(["utf8", "base64"]),
+        encoding: sandboxFileEncodingSchema,
+        /** Pass back as `writeFile`'s `ifMatch` to save over this version only. */
+        etag: sandboxFileEtagSchema,
         path: sandboxPathSchema,
         size: z.int().min(0),
       })
@@ -174,6 +207,17 @@ export const sandbox = {
     })
     .input(bySandbox)
     .output(sandboxSchema),
+  writeFile: authed
+    .errors({ ...conflictError, ...featureError })
+    .route({
+      description:
+        "Writes a whole file in the conversation's workspace, creating the workspace if it has none. `ifMatch: null` only creates (`CONFLICT` `already_exists`); an etag from `readFile` only replaces that version (`CONFLICT` `version_mismatch`); omitted, it overwrites. At most 5 MiB decoded; import anything bigger.",
+      method: "POST",
+      path: "/conversations/{conversationId}/sandbox/files",
+      summary: "Write a workspace file",
+    })
+    .input(writeFileInputSchema)
+    .output(sandboxFileWriteSchema),
 };
 
 export const search = {
