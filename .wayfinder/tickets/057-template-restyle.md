@@ -2,8 +2,8 @@
 id: "057"
 title: "Template-style restyle and a slimmer header"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -104,3 +104,7 @@ Built on `t/057-template-restyle`; `status` stays `open` for review.
 - The Workspace toggle opens today's `RightPanel` and remembers its last tab. 060 can swap the panel without touching the header.
 - The S and A shortcuts still open the Sandbox and Artifacts tabs directly.
 - Streamdown still renders its own markdown styles; `typeset.css` from the template was not ported, because it lives in globals.css.
+
+## Resolution (2026-09-29, loop)
+
+Merged in [PR #47](https://github.com/connorwforsyth/openchat/pull/47). The template-style messages, composer and empty state; the header is now toggle / New chat / title / branch plus Share and Workspace; D14 is updated. e2e 26/26, gate 82/82. Left: typeset-style prose (globals.css), the ai-elements reasoning shimmer default, and the composer README.
