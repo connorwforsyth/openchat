@@ -1,11 +1,15 @@
 "use client";
 
 import { useLingui } from "@lingui/react/macro";
+import type { SandboxProvider } from "@workspace/contract/schemas/sandbox";
+import { err } from "@workspace/shared/result";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { workspacePath } from "../model/workspace";
+import type { SandboxPreview } from "./model/browser";
 import type { WorkspaceClient, WorkspaceFilesSource } from "./model/client";
 import type { OpenFile } from "./model/editor";
+import type { ReadStaticFile } from "./model/static-page";
 import { toSandboxPath } from "./model/tree";
 import { useOpenFile } from "./use-open-file";
 import { useWorkspaceTree } from "./use-workspace-tree";
@@ -46,16 +50,25 @@ export interface FilesView {
   readonly open: OpenFile | null;
   /** `null` until listed. */
   readonly paths: readonly string[] | null;
-  readonly preview: { readonly port: number; readonly url: string } | null;
+  /** Ports the agent (or the static-files server, 067) exposed. */
+  readonly previews: readonly SandboxPreview[];
+  /** `null` before the workspace exists. */
+  readonly provider: SandboxProvider | null;
+  /** Reads a file by its workspace path, for the browser's static renders. */
+  readonly readFile: ReadStaticFile | null;
   readonly status: FilesStatus;
 }
+
+const NO_PREVIEWS: readonly SandboxPreview[] = [];
 
 export const staticFiles = (kind: "off" | "new-chat"): FilesView => ({
   actions: null,
   notice: null,
   open: null,
   paths: [],
-  preview: null,
+  previews: [],
+  provider: null,
+  readFile: null,
   status: { kind },
 });
 
@@ -176,6 +189,13 @@ export const useWorkspaceFiles = ({
   );
 
   const id = sandbox?.id;
+  const readFile = useCallback<ReadStaticFile>(
+    (path) =>
+      id
+        ? client.readFile(id, toSandboxPath(path))
+        : Promise.resolve(err(path)),
+    [client, id]
+  );
   const reset = useCallback(async () => {
     if (!id) {
       return;
@@ -216,7 +236,9 @@ export const useWorkspaceFiles = ({
     notice: notice ?? tree.error,
     open: opened.file,
     paths: tree.paths,
-    preview: sandbox?.previews.at(-1) ?? null,
+    previews: sandbox?.previews ?? NO_PREVIEWS,
+    provider: sandbox?.provider ?? null,
+    readFile: id ? readFile : null,
     status,
   };
 };

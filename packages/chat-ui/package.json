@@ -37,6 +37,7 @@
     "@workspace/contract": "workspace:*",
     "@workspace/i18n": "workspace:*",
     "@workspace/icons": "workspace:*",
+    "@workspace/sandbox": "workspace:*",
     "@workspace/shared": "workspace:*",
     "@workspace/ui": "workspace:*",
     "ai": "catalog:",

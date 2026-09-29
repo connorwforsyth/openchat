@@ -1,9 +1,15 @@
 import { act, cleanup, screen, waitFor, within } from "@testing-library/react";
 import { contextOptionsFromMe } from "@workspace/composer/options";
-import { fixtureId, me, teamPlatform } from "@workspace/contract/fixtures";
+import {
+  fixtureId,
+  me,
+  sandbox as sandboxFixture,
+  teamPlatform,
+} from "@workspace/contract/fixtures";
+import type { Message } from "@workspace/contract/schemas/messages";
 import type { ChatContext } from "@workspace/contract/schemas/tenancy";
 import { err, ok } from "@workspace/shared/result";
-import { createRef } from "react";
+import { createRef, useState } from "react";
 import {
   afterEach,
   beforeAll,
@@ -24,7 +30,10 @@ import {
 import { localBranchPath } from "../model/branch";
 import { SHELL_LAYOUT_STORAGE_KEY } from "../shell/use-shell-layout";
 import { modKey, renderWithI18n } from "../testing/render";
-import type { WorkspaceClient } from "../workspace/model/client";
+import type {
+  WorkspaceClient,
+  WorkspaceFilesSource,
+} from "../workspace/model/client";
 
 import {
   ChatScreen,
@@ -538,6 +547,203 @@ describe("composer file commands (062)", () => {
       .poll(() => screen.queryByRole("option", { name: NEW_FILE }))
       .toBeNull();
     expect(screen.queryByRole("listbox")).toBeNull();
+  });
+});
+
+describe("the Preview opens by itself (066)", () => {
+  const answer = path.messages
+    .filter((each) => each.role === "assistant")
+    .at(-1);
+  if (!answer) {
+    throw new Error("fixture answer");
+  }
+  const HASH = "a".repeat(64);
+  const call: Message["parts"][number] = {
+    approval: { state: "not-required" },
+    input: { content: "<h1>Hi</h1>", path: "index.html" },
+    toolCallId: "call_page",
+    toolName: "write",
+    type: "tool-call",
+  };
+  const landed: Message["parts"][number] = {
+    output: {
+      status: "success",
+      value: {
+        applied: ["h1"],
+        edit: {
+          hunks: [{ hunkId: "h1" }],
+          patch: `--- index.html\tsha256:${HASH}\n+++ index.html\n@@ -0,0 +1 @@\n+<h1>Hi</h1>\n`,
+          path: "index.html",
+        },
+        rejected: [],
+        status: "changed",
+      },
+    },
+    toolCallId: "call_page",
+    toolName: "write",
+    type: "tool-result",
+  };
+  /** The branch with the last answer's parts replaced. */
+  const withAnswer = (parts: Message["parts"]): Message[] => [
+    ...path.messages.filter((each) => each.id !== answer.id),
+    { ...answer, parts },
+  ];
+
+  const pageClient = (): WorkspaceClient => {
+    const fail = () => Promise.resolve(err("unused"));
+    return {
+      deleteFile: vi.fn(fail),
+      importFile: vi.fn(fail),
+      listFiles: vi.fn(() =>
+        Promise.resolve(
+          ok([
+            {
+              modifiedAt: null,
+              path: "/work/index.html",
+              size: 11,
+              type: "file" as const,
+            },
+          ])
+        )
+      ),
+      readFile: vi.fn(() =>
+        Promise.resolve(
+          ok({
+            content: "<h1>Hi</h1>",
+            encoding: "utf8" as const,
+            etag: HASH,
+            size: 11,
+          })
+        )
+      ),
+      reset: vi.fn(fail),
+      writeFile: vi.fn(() =>
+        Promise.resolve(err({ kind: "failed" as const, message: "unused" }))
+      ),
+    };
+  };
+
+  const screenProps = (
+    messages: readonly Message[],
+    onSelect = vi.fn(),
+    files: WorkspaceFilesSource = {
+      client: pageClient(),
+      kind: "chat",
+      onChanged: vi.fn(),
+      sandbox: { ...sandboxFixture, previews: [], provider: "just-bash" },
+    }
+  ): ChatScreenProps => {
+    const base = props();
+    return props({
+      messages,
+      workspace: {
+        ...base.workspace,
+        files,
+        onSelect,
+        paths: ["index.html"],
+      },
+    });
+  };
+
+  /** The screen with a branch the test can move on, as a stream would. */
+  const live = (first: readonly Message[], onSelect = vi.fn()) => {
+    const files: WorkspaceFilesSource = {
+      client: pageClient(),
+      kind: "chat",
+      onChanged: vi.fn(),
+      sandbox: { ...sandboxFixture, previews: [], provider: "just-bash" },
+    };
+    let setMessages: (next: readonly Message[]) => void = () => undefined;
+    function Live() {
+      const [messages, set] = useState(first);
+      setMessages = set;
+      return <ChatScreen {...screenProps(messages, onSelect, files)} />;
+    }
+    renderWithI18n(<Live />);
+    return {
+      stream: (next: readonly Message[]) => act(() => setMessages(next)),
+    };
+  };
+
+  const workspaceRegion = () =>
+    screen.queryByRole("region", { name: "Workspace" });
+
+  it("when the agent writes a page, on that page", async () => {
+    const onSelect = vi.fn();
+    const { stream } = live(withAnswer([call]), onSelect);
+    expect(workspaceRegion()).toBeNull();
+    stream(withAnswer([call, landed]));
+    expect(onSelect).toHaveBeenCalledWith({ kind: "preview" });
+    const workspace = within(
+      await screen.findByRole("region", { name: "Workspace" })
+    );
+    expect(
+      await workspace.findByTitle("Static render of index.html")
+    ).toBeTruthy();
+  });
+
+  it("not for a chat opened with pages in its history", async () => {
+    renderWithI18n(<ChatScreen {...screenProps(withAnswer([call, landed]))} />);
+    // The card is there; the panel stays shut.
+    expect(
+      await screen.findByRole("region", { name: "Created index.html" })
+    ).toBeTruthy();
+    expect(workspaceRegion()).toBeNull();
+  });
+
+  it("not when the person closed the panel during the run", async () => {
+    const { stream } = live(withAnswer([call]));
+    const toggle = header().getByRole("button", { name: "Workspace" });
+    await userEvent.click(toggle);
+    expect(
+      await screen.findByRole("region", { name: "Workspace" })
+    ).toBeTruthy();
+    await userEvent.click(toggle);
+    expect(workspaceRegion()).toBeNull();
+    stream(withAnswer([call, landed]));
+    await act(() => new Promise((resolve) => window.setTimeout(resolve, 50)));
+    expect(workspaceRegion()).toBeNull();
+  });
+
+  it("a page's card leads with Preview, which shows it in the panel", async () => {
+    const onSelect = vi.fn();
+    renderWithI18n(
+      <ChatScreen {...screenProps(withAnswer([call, landed]), onSelect)} />
+    );
+    const card = within(
+      await screen.findByRole("region", { name: "Created index.html" })
+    );
+    const [preview, open] = card.getAllByRole("button");
+    expect(preview?.getAttribute("aria-label")).toBe("Preview index.html");
+    expect(open?.getAttribute("aria-label")).toBe("Open index.html");
+    await userEvent.click(
+      card.getByRole("button", { name: "Preview index.html" })
+    );
+    expect(onSelect).toHaveBeenCalledWith({ kind: "preview" });
+    const workspace = within(
+      await screen.findByRole("region", { name: "Workspace" })
+    );
+    expect(
+      await workspace.findByTitle("Static render of index.html")
+    ).toBeTruthy();
+  });
+
+  it("openPreview(path) shows that page", async () => {
+    const handle = createRef<WorkspaceHandle>();
+    renderWithI18n(
+      <ChatScreen {...screenProps(path.messages)} workspaceHandle={handle} />
+    );
+    act(() => handle.current?.openPreview("/work/index.html"));
+    const workspace = within(
+      await screen.findByRole("region", { name: "Workspace" })
+    );
+    expect(
+      await workspace.findByTitle("Static render of index.html")
+    ).toBeTruthy();
+    expect(
+      workspace.getByRole<HTMLInputElement>("textbox", { name: "Address" })
+        .value
+    ).toBe("/index.html");
   });
 });
 

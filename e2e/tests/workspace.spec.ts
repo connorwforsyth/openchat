@@ -1,4 +1,4 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Locator, type Page, test } from "@playwright/test";
 import type { ConversationId } from "@workspace/contract/schemas/common";
 import { openAccountMenu } from "../support/admin";
 import { apiFor, eventually } from "../support/api";
@@ -22,6 +22,7 @@ const DARK = /\bdark\b/;
 const LIGHT = /\blight\b/;
 /** A workspace listing (`sandbox.listFiles`), batched or not. */
 const LISTING = /\/sandboxes\/[^/\s"]+\/files/;
+const SAME_ORIGIN = /allow-same-origin/;
 
 // The chat's workspace (PLAN.md D7, §11 M1 steps 6 and 7 without Docker):
 // every chat has one, made on first use (056) on just-bash here, shown in
@@ -43,6 +44,16 @@ let filesChat: ConversationId;
 /** The panel's editor, typed into as a person would (060). */
 const editorIn = (page: Page) =>
   page.locator('[data-slot="code-editor"] [contenteditable="true"]');
+
+/**
+ * Shows the open file as code: Markdown and HTML open rendered (066), with
+ * a Preview/Code toggle.
+ */
+const showCode = (panel: Locator) =>
+  panel
+    .getByRole("group", { name: "Show as" })
+    .getByRole("button", { name: "Code" })
+    .click();
 
 /** Picks a theme from the account menu, as a person switches it. */
 const pickTheme = async (page: Page, theme: "Dark" | "Light" | "System") => {
@@ -253,7 +264,50 @@ test("a file the agent writes shows as a card; Open shows it in the tree and the
   await expect(
     panel.getByRole("treeitem", { name: "hello.md" })
   ).toHaveAttribute("aria-selected", "true");
+  // Markdown opens as prose (066); Code shows it in the editor.
+  await expect(panel.locator("article")).toContainText("hello-from-the-agent");
+  await showCode(panel);
   await expect(editorIn(page)).toContainText("hello-from-the-agent");
+});
+
+test("a page the agent writes opens in the Preview by itself, as a static render without Docker", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await send(
+    page,
+    '[tool:write {"path": "index.html", "content": "<!doctype html><title>Made</title><h1>Made by the agent</h1>\\n"}]'
+  );
+  await page.getByRole("button", { name: APPROVE }).click();
+  const card = page.getByRole("region", { name: "Created index.html" });
+  await expect(card).toBeVisible({ timeout: 30_000 });
+
+  // No click: the panel opened on the Preview, at the page (066).
+  const panel = page.getByRole("region", { name: "Workspace" });
+  const frame = panel.getByTitle("Static render of index.html");
+  await expect(frame).toBeVisible();
+  // D24: never the app's origin.
+  await expect(frame).not.toHaveAttribute("sandbox", SAME_ORIGIN);
+  await expect(panel.getByRole("textbox", { name: "Address" })).toHaveValue(
+    "/index.html"
+  );
+  await expect(panel.getByText("Static render")).toBeVisible();
+  await expect(
+    panel
+      .frameLocator('iframe[title="Static render of index.html"]')
+      .getByRole("heading", { name: "Made by the agent" })
+  ).toBeVisible();
+
+  // The card leads with Preview; Open shows the file, rendered, with Code.
+  await expect(
+    card.getByRole("button", { name: "Preview index.html" })
+  ).toBeVisible();
+  await card.getByRole("button", { name: "Open index.html" }).click();
+  await expect(
+    panel.getByRole("treeitem", { name: "index.html" })
+  ).toHaveAttribute("aria-selected", "true");
+  await showCode(panel);
+  await expect(editorIn(page)).toContainText("Made by the agent");
 });
 
 test("an edit typed in the panel's editor survives a reload", async ({
@@ -263,6 +317,7 @@ test("an edit typed in the panel's editor survives a reload", async ({
   await page.goto(`/c/${filesChat}`);
   const panel = await openWorkspace(page);
   await panel.getByRole("treeitem", { name: "hello.md" }).click();
+  await showCode(panel);
   const editor = editorIn(page);
   await expect(editor).toContainText("hello-from-the-agent");
   await editor.click();
@@ -273,6 +328,7 @@ test("an edit typed in the panel's editor survives a reload", async ({
   await page.reload();
   const reopened = page.getByRole("region", { name: "Workspace" });
   await reopened.getByRole("treeitem", { name: "hello.md" }).click();
+  await showCode(reopened);
   await expect(editorIn(page)).toContainText("edited-by-hand");
 
   const api = await apiFor(page, baseURL ?? "");
@@ -388,6 +444,7 @@ test("the editor stays legible while the theme switches under an open file", asy
   await page.goto(`/c/${filesChat}`);
   const panel = await openWorkspace(page);
   await panel.getByRole("treeitem", { name: "hello.md" }).click();
+  await showCode(panel);
   const editor = editorIn(page);
   await expect(editor).toContainText("edited-by-hand");
 

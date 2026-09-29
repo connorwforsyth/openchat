@@ -32,6 +32,7 @@ import {
   type Ref,
   Suspense,
   useCallback,
+  useEffect,
   useImperativeHandle,
   useMemo,
   useRef,
@@ -42,6 +43,7 @@ import type { ConversationActions } from "../conversation/actions";
 import { ConversationView } from "../conversation/conversation-view";
 import { EmptyState } from "../conversation/empty-state";
 import type { MessageFeedback } from "../conversation/feedback";
+import { FilePreviewContext } from "../conversation/file-change-card";
 import { AppHeader } from "../header/app-header";
 import { BranchSwitcher } from "../header/branch-switcher";
 import { ChatTitle } from "../header/chat-title";
@@ -72,6 +74,17 @@ import { ShortcutHint } from "../shortcuts/shortcut-hint";
 import { useShortcuts } from "../shortcuts/use-shortcuts";
 import { ChatSidebar, type ChatSidebarProps } from "../sidebar/chat-sidebar";
 import { LazyWorkspacePanel } from "../workspace/lazy-workspace-panel";
+import { type OpeningWatch, watchOpenings } from "../workspace/model/auto-open";
+import {
+  type BrowserPage,
+  defaultPage,
+  isHtmlPath,
+  NO_SOURCES,
+  type PreviewRequest,
+  type PreviewSources,
+  pageOfUrl,
+  pagePathOf,
+} from "../workspace/model/browser";
 import type { WorkspaceFilesSource } from "../workspace/model/client";
 import { toSandboxPath } from "../workspace/model/tree";
 import type { WorkspaceArtifacts } from "../workspace/workspace-panel";
@@ -121,8 +134,11 @@ export interface ChatScreenWorkspace {
 export interface WorkspaceHandle {
   /** Opens a file; the path may be absolute (`/work/a.md`) or relative. */
   readonly openFile: (path: string) => void;
-  /** Opens the recorded preview. */
-  readonly openPreview: () => void;
+  /**
+   * Opens the Preview: at a workspace page (`index.html`, `/work/a.html`)
+   * when given one, else where it was.
+   */
+  readonly openPreview: (path?: string) => void;
 }
 
 export interface ChatScreenProps {
@@ -178,6 +194,16 @@ const WHITESPACE = /\s/;
  */
 const composerPaths = (paths: readonly string[] | undefined) =>
   (paths ?? []).filter((path) => !WHITESPACE.test(path));
+
+/** The pathname of a URL, or `/`. */
+const pathOfUrl = (url: string): string => {
+  try {
+    const parsed = new URL(url);
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return "/";
+  }
+};
 
 /** A composer value that says only `text`. */
 const textValue = (text: string): ComposerValue => ({
@@ -283,7 +309,29 @@ function ChatScreenBody({
         : undefined,
     [closeSidebarSheet, onOpenPalette]
   );
-  const closePanel = useCallback(() => setPanel(null), [setPanel]);
+  // "Closed during this run": the answer being written when the person
+  // closed the panel. The agent writing a page then doesn't reopen it.
+  const lastAnswer = useRef<string | null>(null);
+  useEffect(() => {
+    lastAnswer.current =
+      messages.filter((message) => message.role === "assistant").at(-1)?.id ??
+      null;
+  });
+  const [closedIn, setClosedIn] = useState<string | null>(null);
+  const closingPanel = useCallback(() => setClosedIn(lastAnswer.current), []);
+  const closePanel = useCallback(() => {
+    closingPanel();
+    setPanel(null);
+  }, [closingPanel, setPanel]);
+  const togglePanelBy = useCallback(
+    (toggled: WorkspaceSection) => {
+      if (layout.panel === toggled) {
+        closingPanel();
+      }
+      togglePanel(toggled);
+    },
+    [closingPanel, layout.panel, togglePanel]
+  );
 
   const focusComposer = useCallback(() => {
     composerRef.current?.querySelector<HTMLElement>(FOCUSABLE_INPUT)?.focus();
@@ -298,18 +346,33 @@ function ChatScreenBody({
     "composer.focus": focusComposer,
     help: () => setHelpOpen(true),
     "palette.open": onOpenPalette,
-    "panel.artifacts": () => togglePanel("artifacts"),
-    "panel.sandbox": () => togglePanel("files"),
+    "panel.artifacts": () => togglePanelBy("artifacts"),
+    "panel.sandbox": () => togglePanelBy("files"),
     "sidebar.toggle": toggleChats,
   });
 
   // The panel shows the host's selection when it belongs to the section
   // that's open, and that section's default otherwise.
   const section = layout.panel ?? lastPanel;
-  const { files } = workspace;
-  const preview =
-    files.kind === "chat" ? (files.sandbox?.previews.at(-1) ?? null) : null;
-  const shown = shownSelection(section, workspace.selection, preview !== null);
+  const { files, paths } = workspace;
+  const sandboxRecord = files.kind === "chat" ? files.sandbox : null;
+  const sources = useMemo(
+    (): PreviewSources =>
+      files.kind === "chat"
+        ? {
+            htmlPaths: (paths ?? []).filter(isHtmlPath),
+            previews: sandboxRecord?.previews ?? [],
+            provider: sandboxRecord?.provider ?? null,
+          }
+        : NO_SOURCES,
+    [files.kind, paths, sandboxRecord]
+  );
+  // A page the chat asked the Preview for; the panel navigates once per id.
+  const [previewRequest, setPreviewRequest] = useState<PreviewRequest | null>(
+    null
+  );
+  const hasPreview = defaultPage(sources) !== null || previewRequest !== null;
+  const shown = shownSelection(section, workspace.selection, hasPreview);
   const { onSelect: selectInWorkspace } = workspace;
   const select = useCallback(
     (selection: WorkspaceSelection | null) => {
@@ -341,7 +404,22 @@ function ChatScreenBody({
     },
     [actions, select]
   );
-  const openPreview = useCallback(() => select({ kind: "preview" }), [select]);
+  const showPage = useCallback(
+    (page: BrowserPage | null) => {
+      if (page) {
+        setPreviewRequest((last) => ({ id: (last?.id ?? 0) + 1, page }));
+      }
+      select({ kind: "preview" });
+    },
+    [select]
+  );
+  const openPreview = useCallback(
+    (path?: string) =>
+      showPage(
+        path ? { path: pagePathOf(workspacePath(path)), port: null } : null
+      ),
+    [showPage]
+  );
   useImperativeHandle(workspaceHandle, () => ({ openFile, openPreview }), [
     openFile,
     openPreview,
@@ -350,14 +428,59 @@ function ChatScreenBody({
   // record doesn't have (yet) opens in a new tab, as a link would.
   const openPreviewAt = useCallback(
     (url: string) => {
-      if (preview) {
-        openPreview();
+      const page = pageOfUrl(sources, url);
+      if (page) {
+        showPage(page);
       } else {
         window.open(url, "_blank", "noopener,noreferrer");
       }
     },
-    [openPreview, preview]
+    [showPage, sources]
   );
+  const previewFile = useCallback(
+    (path: string) => openPreview(path),
+    [openPreview]
+  );
+
+  // The panel opens by itself on the Preview when the agent writes a page
+  // or starts a preview (066), unless the person closed it during this run.
+  const watch = useRef<OpeningWatch | null>(null);
+  const watchedChat = useRef(conversation.id);
+  useEffect(() => {
+    // Another chat starts from what it has; a new chat getting its id keeps going.
+    if (watchedChat.current !== conversation.id) {
+      if (watchedChat.current !== null) {
+        watch.current = null;
+      }
+      watchedChat.current = conversation.id;
+    }
+    const seen = watchOpenings(watch.current, messages, streamingMessageId);
+    watch.current = seen.watch;
+    const { open } = seen;
+    if (
+      !open ||
+      files.kind !== "chat" ||
+      (closedIn !== null && open.messageIds.includes(closedIn))
+    ) {
+      return;
+    }
+    showPage(
+      open.path === null
+        ? (pageOfUrl(sources, open.url ?? "") ?? {
+            path: pathOfUrl(open.url ?? ""),
+            port: null,
+          })
+        : { path: pagePathOf(open.path), port: null }
+    );
+  }, [
+    closedIn,
+    conversation.id,
+    files.kind,
+    messages,
+    showPage,
+    sources,
+    streamingMessageId,
+  ]);
   const chatWorkspace = files.kind === "chat";
   const conversationActions = useMemo(
     () => ({
@@ -369,10 +492,12 @@ function ChatScreenBody({
     [actions, chatWorkspace, openArtifact, openFile, openPreviewAt]
   );
 
-  const toggleWorkspace = useCallback(
-    () => setPanel(layout.panel === null ? lastPanel : null),
-    [lastPanel, layout.panel, setPanel]
-  );
+  const toggleWorkspace = useCallback(() => {
+    if (layout.panel !== null) {
+      closingPanel();
+    }
+    setPanel(layout.panel === null ? lastPanel : null);
+  }, [closingPanel, lastPanel, layout.panel, setPanel]);
 
   // The composer's file commands (061) act on the panel; they exist once
   // the chat does, since its first message creates the workspace.
@@ -420,7 +545,7 @@ function ChatScreenBody({
           return;
         case "preview":
           // Nothing to show yet: ask the agent to start one.
-          if (preview) {
+          if (hasPreview) {
             openPreview();
           } else {
             onSubmit(textValue(startPreview));
@@ -431,16 +556,16 @@ function ChatScreenBody({
       }
     },
     [
+      hasPreview,
       onSubmit,
       openFile,
       openPreview,
-      preview,
       setNewFileOpen,
       setPanel,
       startPreview,
     ]
   );
-  const { canPreview = false, paths } = workspace;
+  const { canPreview = false } = workspace;
   const workspaceComposer = useMemo(
     () =>
       chatWorkspace
@@ -582,6 +707,7 @@ function ChatScreenBody({
         artifacts={workspace.artifacts}
         files={files}
         onSelect={select}
+        previewRequest={previewRequest}
         revision={revision}
         selection={shown}
       />
@@ -609,21 +735,23 @@ function ChatScreenBody({
       sidebarOpen={layout.sidebarOpen}
       sidebarSheetOpen={sidebarSheetOpen}
     >
-      <ConversationView
-        actions={conversationActions}
-        conversationKey={conversation.id ?? "new"}
-        empty={
-          <EmptyState
-            onSuggestion={composerDisabled ? undefined : sendSuggestion}
-          />
-        }
-        error={runError}
-        feedback={feedback}
-        messages={messages}
-        pendingApprovals={pendingApprovals}
-        siblings={siblings}
-        streamingMessageId={streamingMessageId}
-      />
+      <FilePreviewContext.Provider value={chatWorkspace ? previewFile : null}>
+        <ConversationView
+          actions={conversationActions}
+          conversationKey={conversation.id ?? "new"}
+          empty={
+            <EmptyState
+              onSuggestion={composerDisabled ? undefined : sendSuggestion}
+            />
+          }
+          error={runError}
+          feedback={feedback}
+          messages={messages}
+          pendingApprovals={pendingApprovals}
+          siblings={siblings}
+          streamingMessageId={streamingMessageId}
+        />
+      </FilePreviewContext.Provider>
       <div
         className="mx-auto w-full max-w-2xl shrink-0 px-6 pb-[max(--spacing(4),env(safe-area-inset-bottom))]"
         ref={composerRef}

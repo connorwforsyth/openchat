@@ -3,20 +3,35 @@
 import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import { FileIcon, PencilIcon } from "@workspace/icons";
 import { Button } from "@workspace/ui/components/button";
-import { useCallback } from "react";
+import { createContext, useCallback, useContext } from "react";
 
 import type { FileChange } from "../model/tool-summary";
+import { isHtmlPath } from "../workspace/model/browser";
 import { useConversationActions } from "./actions";
 
 // A `write` or `edit` that landed: which file, created or edited, how many
 // lines, and a way to open it in the Files panel. The line counts are the
 // applied hunks' only; a partly rejected change says how much was left out.
+// A page (`.html`) leads with Preview, which shows it in the Workspace
+// panel's browser (066); Open still opens its code.
+
+/**
+ * Shows a workspace page in the Workspace panel's Preview, by the path its
+ * `write`/`edit` call used. The chat screen provides it once the chat has
+ * a workspace; without it, cards have no Preview.
+ */
+export const FilePreviewContext = createContext<
+  ((path: string) => void) | null
+>(null);
 
 export function FileChangeCard({ change }: { readonly change: FileChange }) {
   const { t } = useLingui();
   const { onOpenFile } = useConversationActions();
+  const previewFile = useContext(FilePreviewContext);
   const { added, path, rejected, removed } = change;
   const open = useCallback(() => onOpenFile?.(path), [onOpenFile, path]);
+  const preview = useCallback(() => previewFile?.(path), [previewFile, path]);
+  const page = previewFile !== null && isHtmlPath(path);
   const ChangeIcon = change.change === "created" ? FileIcon : PencilIcon;
 
   return (
@@ -71,6 +86,11 @@ export function FileChangeCard({ change }: { readonly change: FileChange }) {
           </span>
         </span>
       </p>
+      {page ? (
+        <Button aria-label={t`Preview ${path}`} onClick={preview} size="xs">
+          <Trans>Preview</Trans>
+        </Button>
+      ) : null}
       {onOpenFile ? (
         <Button
           aria-label={t`Open ${path}`}
