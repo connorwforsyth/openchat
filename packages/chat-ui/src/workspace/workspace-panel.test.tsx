@@ -638,3 +638,227 @@ describe("the preview", () => {
     expect(probe).toHaveBeenCalledTimes(2);
   });
 });
+
+describe("the built-in browser (066)", () => {
+  const served: SandboxRecord = {
+    ...ready,
+    previews: [{ port: 5173, url: "https://preview.example.test/" }],
+  };
+  const address = () =>
+    panel().getByRole<HTMLInputElement>("textbox", { name: "Address" });
+  const frameSrc = () =>
+    panel().getByTitle("Preview of port 5173").getAttribute("src");
+  const goTo = async (typed: string) => {
+    await userEvent.clear(address());
+    await userEvent.type(address(), `${typed}{Enter}`);
+  };
+
+  it("drives a served page: the address bar, back, forward, reload, a new tab and a phone's width", async () => {
+    const probe = vi.fn(() => Promise.resolve(true));
+    renderWithI18n(
+      <WorkspacePanel
+        {...props({
+          files: chatFiles(fakeClient().client, served),
+          probePreview: probe,
+          selection: { kind: "preview" },
+        })}
+      />
+    );
+    const frame = await panel().findByTitle("Preview of port 5173");
+    expect(frame.getAttribute("src")).toBe("https://preview.example.test/");
+    // D24: the page never shares the app's origin.
+    expect(frame.getAttribute("sandbox")).not.toContain("allow-same-origin");
+    expect(address().value).toBe("/");
+    const back = panel().getByRole("button", { name: "Back" });
+    const forward = panel().getByRole("button", { name: "Forward" });
+    expect(back).toHaveProperty("disabled", true);
+
+    await goTo("about?tab=2");
+    await waitFor(() =>
+      expect(frameSrc()).toBe("https://preview.example.test/about?tab=2")
+    );
+    expect(address().value).toBe("/about?tab=2");
+    expect(
+      panel()
+        .getByRole("link", { name: "Open in a new tab" })
+        .getAttribute("href")
+    ).toBe("https://preview.example.test/about?tab=2");
+
+    await userEvent.click(back);
+    await waitFor(() =>
+      expect(frameSrc()).toBe("https://preview.example.test/")
+    );
+    expect(address().value).toBe("/");
+    await userEvent.click(forward);
+    await waitFor(() =>
+      expect(frameSrc()).toBe("https://preview.example.test/about?tab=2")
+    );
+
+    // Somewhere else isn't this preview: refused, the page stays.
+    await goTo("https://elsewhere.test/");
+    expect(address().getAttribute("aria-invalid")).toBe("true");
+    expect(frameSrc()).toBe("https://preview.example.test/about?tab=2");
+
+    const checks = probe.mock.calls.length;
+    await userEvent.click(panel().getByRole("button", { name: "Reload" }));
+    await waitFor(() => expect(probe).toHaveBeenCalledTimes(checks + 1));
+
+    const width = () =>
+      document.querySelector("[data-width]")?.getAttribute("data-width");
+    expect(width()).toBe("desktop");
+    await userEvent.click(
+      panel().getByRole("button", { name: "Mobile width" })
+    );
+    expect(width()).toBe("mobile");
+  });
+
+  it("renders a page itself when nothing can serve it, labelled, with its CSS inlined and links followed", async () => {
+    const { client } = fakeClient({
+      "/work/about.html": { content: "<h1>About</h1>", etag: V1 },
+      "/work/index.html": {
+        content:
+          '<link rel="stylesheet" href="style.css"><h1>Home</h1><a href="about.html">About</a>',
+        etag: V1,
+      },
+      "/work/style.css": { content: "h1 { color: red }", etag: V1 },
+    });
+    const base = props({
+      files: chatFiles(client, { ...served, provider: "just-bash" }),
+      selection: { kind: "preview" },
+    });
+    const view = renderWithI18n(<WorkspacePanel {...base} />);
+    // The list offers the Preview as soon as there's a page.
+    expect(
+      await panel().findByRole("button", { name: "Preview" })
+    ).toBeTruthy();
+    const frame = await panel().findByTitle<HTMLIFrameElement>(
+      "Static render of index.html"
+    );
+    const srcdoc = frame.getAttribute("srcdoc") ?? "";
+    expect(srcdoc).toContain("h1 { color: red }");
+    expect(srcdoc).toContain("<h1>Home</h1>");
+    expect(frame.getAttribute("sandbox")).not.toContain("allow-same-origin");
+    expect(panel().getByText("Static render")).toBeTruthy();
+    expect(
+      panel().queryByRole("link", { name: "Open in a new tab" })
+    ).toBeNull();
+
+    // A link clicked in the page asks the panel for the page it points to.
+    act(() =>
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          data: { href: "about.html", type: "workspace-preview-link" },
+          source: frame.contentWindow,
+        })
+      )
+    );
+    expect(
+      await panel().findByTitle("Static render of about.html")
+    ).toBeTruthy();
+    expect(address().value).toBe("/about.html");
+
+    // The chat asks for a page (an `.html` write, `openPreview`).
+    view.rerender(
+      <WorkspacePanel
+        {...base}
+        previewRequest={{ id: 1, page: { path: "/", port: null } }}
+      />
+    );
+    expect(
+      await panel().findByTitle("Static render of index.html")
+    ).toBeTruthy();
+    expect(address().value).toBe("/");
+  });
+
+  it("says when a page isn't in the workspace", async () => {
+    const { client } = fakeClient({
+      "/work/index.html": { content: "<p>home</p>", etag: V1 },
+    });
+    renderWithI18n(
+      <WorkspacePanel
+        {...props({
+          files: chatFiles(client),
+          previewRequest: { id: 1, page: { path: "/gone.html", port: null } },
+          selection: { kind: "preview" },
+        })}
+      />
+    );
+    expect(
+      await panel().findByText("There's no gone.html in the workspace.")
+    ).toBeTruthy();
+  });
+});
+
+describe("rendered files (066)", () => {
+  const showAs = (mode: "Preview" | "Code") =>
+    within(panel().getByRole("group", { name: "Show as" })).getByRole(
+      "button",
+      { name: mode }
+    );
+
+  it("opens an .html file in the browser at its path, with a Code toggle", async () => {
+    const { client } = fakeClient({
+      "/work/site/page.html": { content: "<h1>Page</h1>", etag: V1 },
+    });
+    renderWithI18n(
+      <WorkspacePanel
+        {...props({
+          files: chatFiles(client),
+          selection: { kind: "file", path: "site/page.html" },
+        })}
+      />
+    );
+    const frame = await panel().findByTitle("Static render of site/page.html");
+    expect(frame.getAttribute("srcdoc")).toContain("<h1>Page</h1>");
+    expect(
+      panel().getByRole<HTMLInputElement>("textbox", { name: "Address" }).value
+    ).toBe("/site/page.html");
+
+    await userEvent.click(showAs("Code"));
+    expect(await editable()).toBeTruthy();
+    expect(panel().queryByTitle("Static render of site/page.html")).toBeNull();
+    await userEvent.click(showAs("Preview"));
+    expect(
+      await panel().findByTitle("Static render of site/page.html")
+    ).toBeTruthy();
+  });
+
+  it("renders Markdown as prose, with a Code toggle to the editor", async () => {
+    const { client } = fakeClient({
+      "/work/README.md": {
+        content: "# Read me\n\nSome *words*.\n",
+        etag: V1,
+      },
+    });
+    renderWithI18n(
+      <WorkspacePanel
+        {...props({
+          files: chatFiles(client),
+          selection: { kind: "file", path: "README.md" },
+        })}
+      />
+    );
+    expect(
+      await panel().findByRole("heading", { name: "Read me" })
+    ).toBeTruthy();
+    await userEvent.click(showAs("Code"));
+    expect(await editable()).toBeTruthy();
+    expect(panel().queryByRole("heading", { name: "Read me" })).toBeNull();
+  });
+
+  it("opens a new, empty Markdown file as code", async () => {
+    const { client } = fakeClient({
+      "/work/todo.md": { content: "", etag: V1 },
+    });
+    renderWithI18n(
+      <WorkspacePanel
+        {...props({
+          files: chatFiles(client),
+          selection: { kind: "file", path: "todo.md" },
+        })}
+      />
+    );
+    expect(await editable()).toBeTruthy();
+    expect(showAs("Code").getAttribute("aria-pressed")).toBe("true");
+  });
+});

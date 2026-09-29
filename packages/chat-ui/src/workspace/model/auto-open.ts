@@ -14,6 +14,12 @@ import { isHtmlPath } from "./browser";
 // loaded with such calls in its history stays as the person left it. Pure,
 // so the rules are tested without rendering.
 
+/** A message as far as openings go; ids needn't be branded here. */
+interface MessageLike {
+  readonly id: string;
+  readonly parts: Message["parts"];
+}
+
 /** Something the agent did that the Preview should show. */
 export interface PreviewOpening {
   /** The message with the call, and the one with its result (may differ after an approval). */
@@ -27,7 +33,7 @@ export interface PreviewOpening {
 
 /** Which message each tool result is in, by the call it answers. */
 const resultMessages = (
-  messages: readonly Pick<Message, "id" | "parts">[]
+  messages: readonly MessageLike[]
 ): ReadonlyMap<string, string> => {
   const found = new Map<string, string>();
   for (const message of messages) {
@@ -71,7 +77,7 @@ const openingOf = (
 
 /** Every opening on the branch, oldest first. */
 export const previewOpenings = (
-  messages: readonly Pick<Message, "id" | "parts">[]
+  messages: readonly MessageLike[]
 ): PreviewOpening[] => {
   const results = indexToolResults(messages);
   const resultIn = resultMessages(messages);
@@ -112,7 +118,7 @@ export interface OpeningWatch {
  */
 export const watchOpenings = (
   watch: OpeningWatch | null,
-  messages: readonly Pick<Message, "id" | "parts">[],
+  messages: readonly MessageLike[],
   streamingId: string | null
 ): { readonly open: PreviewOpening | null; readonly watch: OpeningWatch } => {
   const openings = previewOpenings(messages);
