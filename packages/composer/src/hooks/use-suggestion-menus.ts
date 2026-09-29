@@ -36,6 +36,18 @@ interface MenuSnapshot {
 
 const CLOSED: MenuSnapshot = { active: 0, menu: null, query: "" };
 
+/**
+ * Where each menu's items come from, for a query. The plugins ask only when
+ * the text changes; a refresh asks again when the host's lists change.
+ */
+export interface SuggestionSources {
+  readonly mentions: (query: string) => readonly MentionCandidate[];
+  readonly slash: (query: string) => readonly SlashItem[];
+}
+
+/** Redraws the open menu from new sources, for the query it shows. */
+type Requery = (sources: SuggestionSources) => void;
+
 type Renderer<I, S> = () => {
   onExit: () => void;
   onKeyDown: (props: SuggestionKeyDownProps) => boolean;
@@ -112,6 +124,10 @@ export function useSuggestionMenus() {
   const [snapshot, setSnapshot] = useState<MenuSnapshot>(CLOSED);
   // Plugin callbacks run outside React's render and read the latest state here.
   const latest = useRef<MenuSnapshot>(CLOSED);
+  // Set while a plugin has a suggestion active, from start to exit, even
+  // when its query matches nothing and no menu shows: that's when a list
+  // landing late (065) has something to add.
+  const requery = useRef<Requery | null>(null);
 
   const update = useCallback((next: MenuSnapshot) => {
     latest.current = next;
@@ -175,14 +191,24 @@ export function useSuggestionMenus() {
       const render = keepWhileLoading<SlashItem, SlashItem>((props) =>
         show(slashMenu(props), props.query)
       );
+      const onProps = (props: SuggestionProps<SlashItem, SlashItem>) => {
+        requery.current = (sources) =>
+          render({
+            ...props,
+            items: [...sources.slash(props.query)],
+            loading: false,
+          });
+        render(props);
+      };
       return {
         onExit: () => {
+          requery.current = null;
           render.reset();
           close();
         },
         onKeyDown,
-        onStart: render,
-        onUpdate: render,
+        onStart: onProps,
+        onUpdate: onProps,
       };
     },
     [close, onKeyDown, show]
@@ -193,20 +219,43 @@ export function useSuggestionMenus() {
       const render = keepWhileLoading<MentionCandidate, MentionAttrs>((props) =>
         show(mentionMenu(props), props.query)
       );
+      const onProps = (
+        props: SuggestionProps<MentionCandidate, MentionAttrs>
+      ) => {
+        requery.current = (sources) =>
+          render({
+            ...props,
+            items: [...sources.mentions(props.query)],
+            loading: false,
+          });
+        render(props);
+      };
       return {
         onExit: () => {
+          requery.current = null;
           render.reset();
           close();
         },
         onKeyDown,
-        onStart: render,
-        onUpdate: render,
+        onStart: onProps,
+        onUpdate: onProps,
       };
     },
     [close, onKeyDown, show]
   );
 
   const isOpen = useCallback(() => latest.current.menu !== null, []);
+
+  /**
+   * The plugins ask for items only when the text changes, so a list that
+   * lands after the last keystroke (the workspace listing, 065) would stay
+   * out of an open menu until the next one. The host calls this when its
+   * lists change: an active suggestion is filtered again for its query, and
+   * the menu opens, grows or shrinks to match.
+   */
+  const refresh = useCallback((sources: SuggestionSources) => {
+    requery.current?.(sources);
+  }, []);
 
   return {
     active: snapshot.active,
@@ -216,6 +265,7 @@ export function useSuggestionMenus() {
     isOpen,
     mentionRenderer,
     menu: snapshot.menu,
+    refresh,
     slashRenderer,
   };
 }
