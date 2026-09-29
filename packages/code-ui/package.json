@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./code-editor": "./src/code-editor.tsx",
     "./code-header": "./src/code-header.tsx",
     "./code-view": "./src/code-view.tsx",
     "./diff-view": "./src/diff-view.tsx",

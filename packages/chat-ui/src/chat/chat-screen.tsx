@@ -22,10 +22,16 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@workspace/ui/components/tooltip";
-import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
+import {
+  type ReactNode,
+  type Ref,
+  useCallback,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
-import type { ArtifactsPanelProps } from "../artifacts/artifacts-panel";
-import { LazyArtifactsPanel } from "../artifacts/lazy-artifacts-panel";
 import type { ConversationActions } from "../conversation/actions";
 import { ConversationView } from "../conversation/conversation-view";
 import { EmptyState } from "../conversation/empty-state";
@@ -38,10 +44,15 @@ import { ShareMenu } from "../header/share-menu";
 import { WorkspaceToggle } from "../header/workspace-toggle";
 import { activeFork, stepSibling } from "../model/branch";
 import { groupChats, orderedChats } from "../model/date-groups";
-import type { RightPanel as RightPanelKind } from "../model/layout";
+import type { WorkspaceSection } from "../model/layout";
 import type { ArtifactRefPart } from "../model/parts";
-import { LazySandboxPanel } from "../sandbox/lazy-sandbox-panel";
-import type { SandboxPanelProps } from "../sandbox/sandbox-panel";
+import {
+  sectionOf,
+  shownSelection,
+  type WorkspaceSelection,
+  workspacePath,
+  workspaceRevision,
+} from "../model/workspace";
 import { AppShell } from "../shell/app-shell";
 import { type Platform, PlatformProvider } from "../shell/platform";
 import { RightPanel } from "../shell/right-panel";
@@ -54,10 +65,13 @@ import { ShortcutHelp } from "../shortcuts/shortcut-help";
 import { ShortcutHint } from "../shortcuts/shortcut-hint";
 import { useShortcuts } from "../shortcuts/use-shortcuts";
 import { ChatSidebar, type ChatSidebarProps } from "../sidebar/chat-sidebar";
+import { LazyWorkspacePanel } from "../workspace/lazy-workspace-panel";
+import type { WorkspaceFilesSource } from "../workspace/model/client";
+import type { WorkspaceArtifacts } from "../workspace/workspace-panel";
 
 // The whole chat screen, presentational: the app shell with the sidebar,
-// header, conversation, docked composer and the workspace panel (Sandbox /
-// Artifacts), plus the single-key shortcuts. Every piece of data and every
+// header, conversation, docked composer and the Workspace panel (files,
+// preview and artifacts), plus the single-key shortcuts. Every piece of data and every
 // action comes in through props; `ConnectedChat` supplies them from the API.
 // The look follows shadcn's chatbot template (MIT): a narrow column, muted
 // user bubbles, plain assistant prose, a rounded composer.
@@ -77,11 +91,25 @@ export interface ChatScreenConversation {
   readonly title: string | null;
 }
 
+/** The chat's Workspace panel (060), controlled by the host. */
+export interface ChatScreenWorkspace {
+  readonly artifacts: WorkspaceArtifacts;
+  readonly files: WorkspaceFilesSource;
+  readonly onSelect: (selection: WorkspaceSelection | null) => void;
+  /** What the panel last had selected; the section it's on decides what shows. */
+  readonly selection: WorkspaceSelection | null;
+}
+
+/** Opens things in the Workspace panel from outside it (composer commands). */
+export interface WorkspaceHandle {
+  /** Opens a file; the path may be absolute (`/work/a.md`) or relative. */
+  readonly openFile: (path: string) => void;
+  /** Opens the recorded preview. */
+  readonly openPreview: () => void;
+}
+
 export interface ChatScreenProps {
   readonly actions: ConversationActions;
-  readonly artifacts: Omit<ArtifactsPanelProps, "onSelect"> & {
-    readonly onSelect: ArtifactsPanelProps["onSelect"];
-  };
   readonly brand?: ReactNode;
   readonly composer: ComposerLoaderProps;
   readonly conversation: ChatScreenConversation;
@@ -100,14 +128,15 @@ export interface ChatScreenProps {
   readonly platform?: Platform;
   /** A run-level error to show after the last message. */
   readonly runError?: ReactNode;
-  /** `null` when sandboxes are off for this instance. */
-  readonly sandbox: SandboxPanelProps | null;
   readonly siblings: readonly SiblingInfo[];
   readonly sidebar: Omit<
     ChatSidebarProps,
     "brand" | "onNewChat" | "onOpenPalette"
   >;
   readonly streamingMessageId?: ChatScreenStreamingId;
+  readonly workspace: ChatScreenWorkspace;
+  /** Receives `WorkspaceHandle`, for opening files from the composer. */
+  readonly workspaceHandle?: Ref<WorkspaceHandle>;
 }
 
 type ChatScreenStreamingId = Message["id"] | null;
@@ -116,7 +145,6 @@ const FOCUSABLE_INPUT = '[contenteditable="true"], textarea';
 
 function ChatScreenBody({
   actions,
-  artifacts,
   brand,
   composer,
   conversation,
@@ -128,10 +156,11 @@ function ChatScreenBody({
   pendingApprovals,
   platform = "web",
   runError,
-  sandbox,
   sidebar,
   siblings,
   streamingMessageId = null,
+  workspace,
+  workspaceHandle,
 }: ChatScreenProps) {
   const { t } = useLingui();
   // Hooks can't be conditional, so the screen's own layout always exists; it
@@ -141,12 +170,9 @@ function ChatScreenBody({
     sharedLayout ?? ownLayout;
   const narrow = useNarrowScreen();
   const [sidebarSheetOpen, setSidebarSheetOpen] = useState(false);
-  // The panel's last tab: the Workspace toggle reopens it, and a narrow
-  // screen's sheet keeps showing it while it fades out. A chat starts on its
-  // sandbox when there is one.
-  const [lastPanel, setLastPanel] = useState<RightPanelKind>(
-    sandbox ? "sandbox" : "artifacts"
-  );
+  // The panel's last section: the Workspace toggle reopens it, and a narrow
+  // screen's sheet keeps showing it while it fades out.
+  const [lastPanel, setLastPanel] = useState<WorkspaceSection>("files");
   if (layout.panel !== null && layout.panel !== lastPanel) {
     setLastPanel(layout.panel);
   }
@@ -229,25 +255,56 @@ function ChatScreenBody({
     help: () => setHelpOpen(true),
     "palette.open": onOpenPalette,
     "panel.artifacts": () => togglePanel("artifacts"),
-    "panel.sandbox": sandbox ? () => togglePanel("sandbox") : undefined,
+    "panel.sandbox": () => togglePanel("files"),
     "sidebar.toggle": toggleChats,
   });
 
-  // Opening an artifact from a message shows it in the panel.
+  // The panel shows the host's selection when it belongs to the section
+  // that's open, and that section's default otherwise.
+  const section = layout.panel ?? lastPanel;
+  const { files } = workspace;
+  const preview =
+    files.kind === "chat" ? (files.sandbox?.previews.at(-1) ?? null) : null;
+  const shown = shownSelection(section, workspace.selection, preview !== null);
+  const { onSelect: selectInWorkspace } = workspace;
+  const select = useCallback(
+    (selection: WorkspaceSelection | null) => {
+      selectInWorkspace(selection);
+      if (selection) {
+        setPanel(sectionOf(selection));
+      }
+    },
+    [selectInWorkspace, setPanel]
+  );
+  const revision = useMemo(() => workspaceRevision(messages), [messages]);
+
+  // Opening an artifact or a file from a message shows it in the panel.
   const openArtifact = useCallback(
     (ref: ArtifactRefPart) => {
-      setPanel("artifacts");
-      artifacts.onSelect({
+      select({
         artifactId: ref.artifactId,
+        kind: "artifact",
         versionId: ref.versionId,
       });
       actions.onOpenArtifact?.(ref);
     },
-    [actions, artifacts, setPanel]
+    [actions, select]
   );
+  const openFile = useCallback(
+    (path: string) => {
+      select({ kind: "file", path: workspacePath(path) });
+      actions.onOpenFile?.(path);
+    },
+    [actions, select]
+  );
+  const openPreview = useCallback(() => select({ kind: "preview" }), [select]);
+  useImperativeHandle(workspaceHandle, () => ({ openFile, openPreview }), [
+    openFile,
+    openPreview,
+  ]);
   const conversationActions = useMemo(
-    () => ({ ...actions, onOpenArtifact: openArtifact }),
-    [actions, openArtifact]
+    () => ({ ...actions, onOpenArtifact: openArtifact, onOpenFile: openFile }),
+    [actions, openArtifact, openFile]
   );
 
   const toggleWorkspace = useCallback(
@@ -385,20 +442,15 @@ function ChatScreenBody({
   );
 
   const panel = (
-    <RightPanel
-      artifacts={<LazyArtifactsPanel {...artifacts} />}
-      onPanelChange={setPanel}
-      panel={layout.panel ?? lastPanel}
-      sandbox={
-        sandbox ? (
-          <LazySandboxPanel {...sandbox} />
-        ) : (
-          <p className="p-4 text-muted-foreground text-sm">
-            <Trans>Sandboxes are turned off on this server.</Trans>
-          </p>
-        )
-      }
-    />
+    <RightPanel onClose={closePanel}>
+      <LazyWorkspacePanel
+        artifacts={workspace.artifacts}
+        files={files}
+        onSelect={select}
+        revision={revision}
+        selection={shown}
+      />
+    </RightPanel>
   );
 
   return (

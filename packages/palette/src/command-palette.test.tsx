@@ -167,7 +167,7 @@ describe("CommandPalette", () => {
             { id: "strong", label: "Strong" },
           ],
         },
-        sandbox: { available: true, onToggle, open: false },
+        workspace: { available: true, onToggle, open: false },
       },
     });
     await openPalette();
@@ -178,7 +178,7 @@ describe("CommandPalette", () => {
     fireEvent.click(screen.getByText("Switch chat context to Platform team"));
     expect(onContext).toHaveBeenCalledWith("team");
     await openPalette();
-    fireEvent.click(screen.getByText("Show the sandbox"));
+    fireEvent.click(screen.getByText("Show the workspace"));
     expect(onToggle).toHaveBeenCalled();
     unmount();
 

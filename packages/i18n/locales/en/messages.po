@@ -13,20 +13,10 @@ msgid "- I prefer pnpm over npm\n"
 msgstr "- I prefer pnpm over npm\n"
 "- Answer in British English"
 
-#: ../chat-ui/src/sandbox/terminal.tsx
-msgid "(output shortened)"
-msgstr "(output shortened)"
-
-#. placeholder {0}: open.path
-#. placeholder {1}: open.size
-#: ../chat-ui/src/sandbox/files.tsx
-msgid "{0} is a binary file ({1} bytes) and can't be shown."
-msgstr "{0} is a binary file ({1} bytes) and can't be shown."
-
 #. placeholder {0}: error.path
 #: ../../apps/web/app/dev/sandbox/demo.tsx
-msgid "{0} is outside the sandbox"
-msgstr "{0} is outside the sandbox"
+msgid "{0} is outside the workspace"
+msgstr "{0} is outside the workspace"
 
 #. placeholder {0}: error.path
 #: ../../apps/web/app/dev/sandbox/demo.tsx
@@ -60,10 +50,6 @@ msgstr "{count, plural, one {# item} other {# items}}"
 #: ../library-ui/src/components/duplicate-notice.tsx
 msgid "{count, plural, one {# knowledge file wasn't copied} other {# knowledge files weren't copied}}"
 msgstr "{count, plural, one {# knowledge file wasn't copied} other {# knowledge files weren't copied}}"
-
-#: ../chat-ui/src/sandbox/terminal.tsx
-msgid "{count, plural, one {# log entry} other {# log entries}}"
-msgstr "{count, plural, one {# log entry} other {# log entries}}"
 
 #: ../code-ui/src/diff-view.tsx
 msgid "{deletions, plural, one {# line removed} other {# lines removed}}"
@@ -128,6 +114,10 @@ msgstr "{suggestionCount, plural, one {# suggestion} other {# suggestions}}"
 msgid "{used} of {limit}"
 msgstr "{used} of {limit}"
 
+#: ../chat-ui/src/workspace/use-workspace-files.ts
+msgid "A file with that name already exists."
+msgstr "A file with that name already exists."
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "A member"
 msgstr "A member"
@@ -139,10 +129,6 @@ msgstr "A React artifact needs a default export: a component or an element."
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "A secret is saved. It's never shown; type a new one to replace it."
 msgstr "A secret is saved. It's never shown; type a new one to replace it."
-
-#: ../chat-ui/src/sandbox/status-pill.tsx
-msgid "A simulated shell with an in-memory filesystem. Nothing runs on a real machine."
-msgstr "A simulated shell with an in-memory filesystem. Nothing runs on a real machine."
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 #: ../library-ui/src/components/badges.tsx
@@ -221,6 +207,10 @@ msgstr "Add an MCP server to your library to connect it here."
 #: ../library-ui/src/components/skill-form.tsx
 msgid "Add files"
 msgstr "Add files"
+
+#: ../chat-ui/src/workspace/new-file-dialog.tsx
+msgid "Add it to this chat's workspace, where you and the agent can both edit it."
+msgstr "Add it to this chat's workspace, where you and the agent can both edit it."
 
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "Add key"
@@ -355,23 +345,21 @@ msgstr "Archive"
 msgid "Archived “{title}”"
 msgstr "Archived “{title}”"
 
-#: ../chat-ui/src/artifacts/artifacts-panel.tsx
+#: ../chat-ui/src/artifacts/artifact-view.tsx
 msgid "Artifact views"
 msgstr "Artifact views"
 
-#: ../chat-ui/src/artifacts/artifacts-panel.tsx
-#: ../chat-ui/src/shell/right-panel.tsx
+#: ../palette/src/context-actions.ts
+msgid "artifacts"
+msgstr "artifacts"
+
+#: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Artifacts"
 msgstr "Artifacts"
 
-#: ../chat-ui/src/artifacts/artifacts-panel.tsx
+#: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Artifacts in this chat"
 msgstr "Artifacts in this chat"
-
-#: ../chat-ui/src/shell/right-panel.tsx
-#: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
-msgid "Artifacts panel"
-msgstr "Artifacts panel"
 
 #: ../palette/src/command-palette.tsx
 msgid "Ask AI"
@@ -500,6 +488,8 @@ msgstr "Can't reach the server"
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 #: ../chat-ui/src/conversation/approval.tsx
 #: ../chat-ui/src/conversation/message-row.tsx
+#: ../chat-ui/src/workspace/file-view.tsx
+#: ../chat-ui/src/workspace/workspace-panel.tsx
 #: ../composer/src/components/template-variables.tsx
 #: ../library-ui/src/components/confirm-delete.tsx
 #: ../library-ui/src/components/publish-dialog.tsx
@@ -531,7 +521,11 @@ msgstr "Change shortcuts"
 msgid "Changed {code}"
 msgstr "Changed {code}"
 
-#: ../chat-ui/src/artifacts/artifacts-panel.tsx
+#: ../chat-ui/src/workspace/file-view.tsx
+msgid "Changed by the agent"
+msgstr "Changed by the agent"
+
+#: ../chat-ui/src/artifacts/artifact-view.tsx
 msgid "Changes"
 msgstr "Changes"
 
@@ -635,7 +629,7 @@ msgstr "Close panel"
 msgid "Close toast"
 msgstr "Close toast"
 
-#: ../chat-ui/src/artifacts/artifacts-panel.tsx
+#: ../chat-ui/src/artifacts/artifact-view.tsx
 #: ../chat-ui/src/conversation/artifact-card.tsx
 msgid "Code"
 msgstr "Code"
@@ -643,10 +637,6 @@ msgstr "Code"
 #: ../../apps/web/app/dev/code/page.tsx
 msgid "Code views"
 msgstr "Code views"
-
-#: ../chat-ui/src/sandbox/terminal.tsx
-msgid "Command"
-msgstr "Command"
 
 #: ../chat-ui/src/conversation/tool-status.tsx
 msgid "Command and output"
@@ -656,10 +646,6 @@ msgstr "Command and output"
 #: ../ui/src/components/command.tsx
 msgid "Command palette"
 msgstr "Command palette"
-
-#: ../chat-ui/src/sandbox/terminal.tsx
-msgid "Command running"
-msgstr "Command running"
 
 #: ../composer/src/components/composer.tsx
 msgid "Commands"
@@ -685,13 +671,13 @@ msgstr "Connect"
 msgid "Connected · {count} tools"
 msgstr "Connected · {count} tools"
 
+#: ../chat-ui/src/workspace/preview.tsx
+msgid "Connecting to port {port}…"
+msgstr "Connecting to port {port}…"
+
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "Connection"
 msgstr "Connection"
-
-#: ../chat-ui/src/sandbox/status-pill.tsx
-msgid "Container"
-msgstr "Container"
 
 #: ../palette/src/context-actions.ts
 msgid "context"
@@ -798,6 +784,14 @@ msgstr "Couldn't read {code}"
 msgid "Couldn't run {code}"
 msgstr "Couldn't run {code}"
 
+#: ../chat-ui/src/workspace/file-view.tsx
+msgid "Couldn't save"
+msgstr "Couldn't save"
+
+#: ../chat-ui/src/workspace/use-open-file.ts
+msgid "Couldn't save this file."
+msgstr "Couldn't save this file."
+
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Couldn't search the web"
 msgstr "Couldn't search the web"
@@ -822,6 +816,7 @@ msgstr "Couldn't use {code} from {server}"
 msgid "Covers chats held in this org's contexts (the org and its teams). Personal chats are never covered."
 msgstr "Covers chats held in this org's contexts (the org and its teams). Personal chats are never covered."
 
+#: ../chat-ui/src/workspace/new-file-dialog.tsx
 #: ../library-ui/src/components/item-builder.tsx
 msgid "Create"
 msgstr "Create"
@@ -846,10 +841,6 @@ msgstr "Create an account with the email address the invitation was sent to, or 
 #: ../../apps/web/app/(app)/_shared/new-org-dialog.tsx
 msgid "Create organisation"
 msgstr "Create organisation"
-
-#: ../chat-ui/src/sandbox/sandbox-panel.tsx
-msgid "Create sandbox"
-msgstr "Create sandbox"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
 msgid "Create team"
@@ -916,6 +907,7 @@ msgstr "Default chat context"
 msgid "Default for {name}"
 msgstr "Default for {name}"
 
+#: ../chat-ui/src/workspace/file-view.tsx
 #: ../library-ui/src/components/confirm-delete.tsx
 #: ../library-ui/src/components/item-builder.tsx
 #: ../library-ui/src/components/library-index.tsx
@@ -930,6 +922,14 @@ msgstr "Delete {name}"
 #: ../library-ui/src/components/confirm-delete.tsx
 msgid "Delete {name}?"
 msgstr "Delete {name}?"
+
+#: ../chat-ui/src/workspace/file-view.tsx
+msgid "Delete {path}"
+msgstr "Delete {path}"
+
+#: ../chat-ui/src/workspace/file-view.tsx
+msgid "Delete {path}?"
+msgstr "Delete {path}?"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "Delete budget"
@@ -959,10 +959,6 @@ msgstr "Description"
 #: ../library-ui/src/components/prompt-form.tsx
 msgid "Description for {name}"
 msgstr "Description for {name}"
-
-#: ../chat-ui/src/sandbox/status-pill.tsx
-msgid "Destroyed"
-msgstr "Destroyed"
 
 #: ../../apps/web/app/dev/library/page.tsx
 msgid "Developer gallery"
@@ -1077,6 +1073,10 @@ msgstr "Draft a document"
 msgid "Draft a one-page project brief as a Markdown file: goal, scope, risks and next steps."
 msgstr "Draft a one-page project brief as a Markdown file: goal, scope, risks and next steps."
 
+#: ../chat-ui/src/workspace/workspace-panel.tsx
+msgid "Drop to add to the workspace"
+msgstr "Drop to add to the workspace"
+
 #: ../library-ui/src/components/item-builder.tsx
 #: ../library-ui/src/components/library-index.tsx
 msgid "Duplicate to my library"
@@ -1090,6 +1090,10 @@ msgstr "Edit"
 #: ../chat-ui/src/conversation/message-row.tsx
 msgid "Edit message"
 msgstr "Edit message"
+
+#: ../../apps/web/app/dev/sandbox/demo.tsx
+msgid "Edit README.md as the agent"
+msgstr "Edit README.md as the agent"
 
 #: ../chat-ui/src/conversation/file-change-card.tsx
 msgid "Edited"
@@ -1145,6 +1149,10 @@ msgstr "Eval results are shown; publishing is never blocked."
 msgid "Every change is kept. Restoring makes a new version, so nothing is lost."
 msgstr "Every change is kept. Restoring makes a new version, so nothing is lost."
 
+#: ../chat-ui/src/workspace/workspace-panel.tsx
+msgid "Every file in it is deleted and it starts again empty, for you and the agent. This can't be undone."
+msgstr "Every file in it is deleted and it starts again empty, for you and the agent. This can't be undone."
+
 #: ../../apps/web/app/dev/ai-elements/page.tsx
 msgid "Every migrated component with static sample data. Nothing here calls a model."
 msgstr "Every migrated component with static sample data. Nothing here calls a model."
@@ -1160,12 +1168,6 @@ msgstr "Everything in the org, including its teams."
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Exit fullscreen"
 msgstr "Exit fullscreen"
-
-#. placeholder {0}: entry.exitCode
-#. placeholder {1}: entry.durationMs
-#: ../chat-ui/src/sandbox/terminal.tsx
-msgid "Exited with code {0} in {1} ms"
-msgstr "Exited with code {0} in {1} ms"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 msgid "Expires {expires}"
@@ -1188,10 +1190,6 @@ msgstr "Explain how HTTPS keeps a connection private, in plain language with one
 msgid "Export"
 msgstr "Export"
 
-#: ../chat-ui/src/sandbox/status-pill.tsx
-msgid "Failed"
-msgstr "Failed"
-
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "Fall back to personal keys"
 msgstr "Fall back to personal keys"
@@ -1204,6 +1202,10 @@ msgstr "File"
 msgid "File after applying accepted changes"
 msgstr "File after applying accepted changes"
 
+#: ../chat-ui/src/workspace/new-file-dialog.tsx
+msgid "File names can't use . or .. to leave the workspace."
+msgstr "File names can't use . or .. to leave the workspace."
+
 #: ../../apps/web/app/dev/code/demo.tsx
 msgid "File tree"
 msgstr "File tree"
@@ -1212,12 +1214,16 @@ msgstr "File tree"
 msgid "files"
 msgstr "files"
 
-#: ../chat-ui/src/sandbox/sandbox-panel.tsx
+#: ../chat-ui/src/workspace/workspace-panel.tsx
 #: ../code-ui/src/file-tree.tsx
 #: ../composer/src/components/composer.tsx
 #: ../library-ui/src/components/skill-form.tsx
 msgid "Files"
 msgstr "Files"
+
+#: ../chat-ui/src/workspace/workspace-panel.tsx
+msgid "Files are turned off on this server."
+msgstr "Files are turned off on this server."
 
 #: ../composer/src/components/template-variables.tsx
 msgid "Fill in “{promptName}”"
@@ -1255,6 +1261,10 @@ msgstr "Frontmatter with a name and description, then the instructions the agent
 msgid "General"
 msgstr "General"
 
+#: ../chat-ui/src/workspace/new-file-dialog.tsx
+msgid "Give the file a name."
+msgstr "Give the file a name."
+
 #: ../../apps/web/app/(auth)/invite/[token]/page.tsx
 msgid "Go to sign in"
 msgstr "Go to sign in"
@@ -1262,10 +1272,6 @@ msgstr "Go to sign in"
 #: ../chat-ui/src/conversation/feedback.tsx
 msgid "Good answer"
 msgstr "Good answer"
-
-#: ../chat-ui/src/sandbox/status-pill.tsx
-msgid "gVisor"
-msgstr "gVisor"
 
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "Header"
@@ -1292,8 +1298,8 @@ msgid "Hide"
 msgstr "Hide"
 
 #: ../palette/src/context-actions.ts
-msgid "Hide the sandbox"
-msgstr "Hide the sandbox"
+msgid "Hide the workspace"
+msgstr "Hide the workspace"
 
 #: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
 #: ../library-ui/src/components/item-builder.tsx
@@ -1375,10 +1381,6 @@ msgstr "Invite people…"
 msgid "Invite someone"
 msgstr "Invite someone"
 
-#: ../chat-ui/src/sandbox/status-pill.tsx
-msgid "Isolation: {isolationLabel}. {isolationHelp}"
-msgstr "Isolation: {isolationLabel}. {isolationHelp}"
-
 #: ../library-ui/src/components/item-builder.tsx
 msgid "It couldn't be created. Try again."
 msgstr "It couldn't be created. Try again."
@@ -1387,9 +1389,17 @@ msgstr "It couldn't be created. Try again."
 msgid "It may have been deleted, or it isn't shared with you."
 msgstr "It may have been deleted, or it isn't shared with you."
 
+#: ../chat-ui/src/workspace/workspace-panel.tsx
+msgid "It starts again the next time you or the agent use a file."
+msgstr "It starts again the next time you or the agent use a file."
+
 #: ../library-ui/src/components/item-builder.tsx
 msgid "It was shared for use only. Ask its owner for view access to see its instructions or copy it."
 msgstr "It was shared for use only. Ask its owner for view access to see its instructions or copy it."
+
+#: ../chat-ui/src/workspace/file-view.tsx
+msgid "It's removed from this chat's workspace for you and the agent. This can't be undone."
+msgstr "It's removed from this chat's workspace for you and the agent. This can't be undone."
 
 #: ../library-ui/src/components/library-index.tsx
 msgid "Items published to your teams and orgs show up here."
@@ -1510,15 +1520,11 @@ msgstr "Load latest"
 msgid "Loading"
 msgstr "Loading"
 
-#: ../chat-ui/src/artifacts/artifacts-panel.tsx
+#: ../chat-ui/src/artifacts/artifact-view.tsx
 msgid "Loading artifact"
 msgstr "Loading artifact"
 
-#: ../chat-ui/src/artifacts/lazy-artifacts-panel.tsx
-msgid "Loading artifacts"
-msgstr "Loading artifacts"
-
-#: ../chat-ui/src/sandbox/files.tsx
+#: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Loading files…"
 msgstr "Loading files…"
 
@@ -1526,13 +1532,9 @@ msgstr "Loading files…"
 msgid "Loading preview"
 msgstr "Loading preview"
 
-#: ../chat-ui/src/sandbox/lazy-sandbox-panel.tsx
-msgid "Loading sandbox"
-msgstr "Loading sandbox"
-
-#: ../chat-ui/src/sandbox/status-pill.tsx
-msgid "Local"
-msgstr "Local"
+#: ../chat-ui/src/workspace/lazy-workspace-panel.tsx
+msgid "Loading workspace"
+msgstr "Loading workspace"
 
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
 msgid "locale"
@@ -1545,10 +1547,6 @@ msgstr "Locked by server config"
 #: ../library-ui/src/components/prompt-form.tsx
 msgid "Lowercase letters, digits and dashes. Type / and this in the composer to use it."
 msgstr "Lowercase letters, digits and dashes. Type / and this in the composer to use it."
-
-#: ../chat-ui/src/sandbox/terminal.tsx
-msgid "ls -la"
-msgstr "ls -la"
 
 #: ../library-ui/src/components/badges.tsx
 msgid "Maintainer"
@@ -1649,10 +1647,6 @@ msgstr "Message"
 msgid "Message the draft"
 msgstr "Message the draft"
 
-#: ../chat-ui/src/sandbox/status-pill.tsx
-msgid "MicroVM"
-msgstr "MicroVM"
-
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "MMD"
 msgstr "MMD"
@@ -1699,6 +1693,7 @@ msgstr "name"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 #: ../../apps/web/app/(auth)/_components/sign-up-form.tsx
+#: ../chat-ui/src/workspace/new-file-dialog.tsx
 #: ../library-ui/src/components/item-builder.tsx
 msgid "Name"
 msgstr "Name"
@@ -1748,6 +1743,8 @@ msgstr "New chat with {name}"
 msgid "New chats start here: it decides whose keys pay and where usage counts. You can change it in a chat until the first message."
 msgstr "New chats start here: it decides whose keys pay and where usage counts. You can change it in a chat until the first message."
 
+#: ../chat-ui/src/workspace/new-file-dialog.tsx
+#: ../chat-ui/src/workspace/workspace-panel.tsx
 #: ../composer/src/components/suggestion-menu.tsx
 msgid "New file"
 msgstr "New file"
@@ -1770,7 +1767,7 @@ msgstr "New organisation"
 msgid "New team"
 msgstr "New team"
 
-#: ../chat-ui/src/artifacts/artifacts-panel.tsx
+#: ../chat-ui/src/artifacts/artifact-view.tsx
 msgid "Newer version"
 msgstr "Newer version"
 
@@ -1786,11 +1783,15 @@ msgstr "Next branch"
 msgid "Next chat"
 msgstr "Next chat"
 
+#: ../chat-ui/src/artifacts/artifact-view.tsx
+msgid "No artifacts yet. Code, pages and documents the agent makes in this chat show up here."
+msgstr "No artifacts yet. Code, pages and documents the agent makes in this chat show up here."
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "No budgets"
 msgstr "No budgets"
 
-#: ../chat-ui/src/artifacts/artifacts-panel.tsx
+#: ../chat-ui/src/artifacts/artifact-view.tsx
 msgid "No changes from the previous version."
 msgstr "No changes from the previous version."
 
@@ -1805,6 +1806,18 @@ msgstr "No chats yet. Start one and it shows up here."
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "No files match the accepted types."
 msgstr "No files match the accepted types."
+
+#: ../chat-ui/src/workspace/workspace-panel.tsx
+msgid "No files yet"
+msgstr "No files yet"
+
+#: ../chat-ui/src/workspace/workspace-panel.tsx
+msgid "No files yet. Ask for one, drop a file here, or type /new-file"
+msgstr "No files yet. Ask for one, drop a file here, or type /new-file"
+
+#: ../chat-ui/src/workspace/workspace-panel.tsx
+msgid "No files yet. Files you and the agent create will appear here."
+msgstr "No files yet. Files you and the agent create will appear here."
 
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "No keys yet"
@@ -1854,6 +1867,18 @@ msgstr "No versions yet. Saving creates the first one."
 msgid "None"
 msgstr "None"
 
+#: ../chat-ui/src/workspace/workspace-panel.tsx
+msgid "None yet"
+msgstr "None yet"
+
+#: ../chat-ui/src/workspace/file-view.tsx
+msgid "Not saved"
+msgstr "Not saved"
+
+#: ../chat-ui/src/workspace/new-file-dialog.tsx
+msgid "notes.md"
+msgstr "notes.md"
+
 #: ../palette/src/command-palette.tsx
 msgid "Nothing found."
 msgstr "Nothing found."
@@ -1866,9 +1891,9 @@ msgstr "Nothing has changed since the last version."
 msgid "Nothing here yet"
 msgstr "Nothing here yet"
 
-#: ../chat-ui/src/artifacts/artifacts-panel.tsx
-msgid "Nothing here yet. Code, pages and documents the agent makes in this chat show up here."
-msgstr "Nothing here yet. Code, pages and documents the agent makes in this chat show up here."
+#: ../chat-ui/src/workspace/preview.tsx
+msgid "Nothing is running on port {port} yet. Ask the agent to start the app."
+msgstr "Nothing is running on port {port} yet. Ask the agent to start the app."
 
 #: ../library-ui/src/components/library-index.tsx
 msgid "Nothing matches"
@@ -1899,7 +1924,7 @@ msgstr "Off unless an owner turns it on. Admins see usage and metadata either wa
 msgid "Older"
 msgstr "Older"
 
-#: ../chat-ui/src/artifacts/artifacts-panel.tsx
+#: ../chat-ui/src/artifacts/artifact-view.tsx
 msgid "Older version"
 msgstr "Older version"
 
@@ -1937,7 +1962,7 @@ msgstr "Open file"
 msgid "Open link"
 msgstr "Open link"
 
-#: ../chat-ui/src/sandbox/preview.tsx
+#: ../chat-ui/src/workspace/preview.tsx
 msgid "Open preview in a new tab"
 msgstr "Open preview in a new tab"
 
@@ -1958,8 +1983,8 @@ msgstr "Open the library"
 msgid "Opened a preview"
 msgstr "Opened a preview"
 
-#. placeholder {0}: open.path
-#: ../chat-ui/src/sandbox/files.tsx
+#. placeholder {0}: file.path
+#: ../chat-ui/src/workspace/file-view.tsx
 msgid "Opening {0}…"
 msgstr "Opening {0}…"
 
@@ -2015,6 +2040,10 @@ msgstr "Organization"
 #: ../../apps/web/app/(app)/(pages)/admin/page.tsx
 msgid "Orgs you own or administer."
 msgstr "Orgs you own or administer."
+
+#: ../chat-ui/src/workspace/file-view.tsx
+msgid "Overwrite"
+msgstr "Overwrite"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/admin-index.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
@@ -2109,10 +2138,6 @@ msgstr "policies"
 msgid "Policies"
 msgstr "Policies"
 
-#: ../chat-ui/src/sandbox/preview.tsx
-msgid "Port"
-msgstr "Port"
-
 #: ../../apps/web/app/(app)/(pages)/settings/_components/profile-settings.tsx
 msgid "Preferences"
 msgstr "Preferences"
@@ -2129,30 +2154,32 @@ msgstr "Presets"
 msgid "Press keys…"
 msgstr "Press keys…"
 
-#: ../chat-ui/src/artifacts/artifacts-panel.tsx
-#: ../chat-ui/src/sandbox/preview.tsx
-#: ../chat-ui/src/sandbox/sandbox-panel.tsx
+#: ../palette/src/context-actions.ts
+msgid "preview"
+msgstr "preview"
+
+#: ../chat-ui/src/artifacts/artifact-view.tsx
 #: ../composer/src/components/suggestion-menu.tsx
 #: ../library-ui/src/components/prompt-form.tsx
 msgid "Preview"
 msgstr "Preview"
 
+#. placeholder {0}: preview.port
+#: ../chat-ui/src/workspace/workspace-panel.tsx
+msgid "Preview · :{0}"
+msgstr "Preview · :{0}"
+
 #: ../chat-ui/src/artifacts/artifact-preview.tsx
 msgid "Preview of {title}"
 msgstr "Preview of {title}"
 
-#. placeholder {0}: preview.port
-#: ../chat-ui/src/sandbox/preview.tsx
-msgid "Preview of port {0}"
-msgstr "Preview of port {0}"
+#: ../chat-ui/src/workspace/preview.tsx
+msgid "Preview of port {port}"
+msgstr "Preview of port {port}"
 
 #: ../chat-ui/src/artifacts/artifact-preview.tsx
 msgid "Previews can't import \"{module}\". React artifacts can import {allowed}."
 msgstr "Previews can't import \"{module}\". React artifacts can import {allowed}."
-
-#: ../chat-ui/src/sandbox/preview.tsx
-msgid "Previews need a Docker sandbox. This one is simulated, so nothing can listen on a port."
-msgstr "Previews need a Docker sandbox. This one is simulated, so nothing can listen on a port."
 
 #: ../chat-ui/src/artifacts/artifact-preview.tsx
 msgid "Previews of this kind need the artifact runtime. Its source is in the Code tab."
@@ -2288,13 +2315,13 @@ msgstr "React component"
 msgid "Read {code}"
 msgstr "Read {code}"
 
+#: ../chat-ui/src/workspace/file-view.tsx
+msgid "Read-only: over 1 MB"
+msgstr "Read-only: over 1 MB"
+
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Reading {code}"
 msgstr "Reading {code}"
-
-#: ../chat-ui/src/sandbox/status-pill.tsx
-msgid "Ready"
-msgstr "Ready"
 
 #: ../chat-ui/src/conversation/lazy.tsx
 msgid "Reasoning"
@@ -2316,9 +2343,9 @@ msgstr "Record a shortcut for {description}"
 msgid "Record your own keys for any shortcut. Your changes are saved in this browser."
 msgstr "Record your own keys for any shortcut. Your changes are saved in this browser."
 
-#: ../chat-ui/src/sandbox/files.tsx
-msgid "Refresh files"
-msgstr "Refresh files"
+#: ../chat-ui/src/workspace/workspace-panel.tsx
+msgid "Refresh"
+msgstr "Refresh"
 
 #: ../../apps/web/app/dev/library/demo.tsx
 msgid "Refuse the next save and share"
@@ -2349,7 +2376,11 @@ msgstr "Reject the rest"
 msgid "Rejected"
 msgstr "Rejected"
 
-#: ../chat-ui/src/sandbox/preview.tsx
+#: ../chat-ui/src/workspace/file-view.tsx
+msgid "Reload"
+msgstr "Reload"
+
+#: ../chat-ui/src/workspace/preview.tsx
 msgid "Reload preview"
 msgstr "Reload preview"
 
@@ -2411,6 +2442,7 @@ msgstr "Rename chat: {shown}"
 msgid "Required."
 msgstr "Required."
 
+#: ../chat-ui/src/workspace/workspace-panel.tsx
 #: ../shortcuts/src/react/shortcuts-editor.tsx
 msgid "Reset"
 msgstr "Reset"
@@ -2423,17 +2455,17 @@ msgstr "Reset {description}"
 msgid "Reset all"
 msgstr "Reset all"
 
-#: ../chat-ui/src/sandbox/sandbox-panel.tsx
-msgid "Reset sandbox"
-msgstr "Reset sandbox"
+#: ../chat-ui/src/workspace/workspace-panel.tsx
+msgid "Reset the workspace?"
+msgstr "Reset the workspace?"
+
+#: ../chat-ui/src/workspace/workspace-panel.tsx
+msgid "Reset workspace…"
+msgstr "Reset workspace…"
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Reset zoom and pan"
 msgstr "Reset zoom and pan"
-
-#: ../chat-ui/src/sandbox/sandbox-panel.tsx
-msgid "Reset: start again with an empty workspace"
-msgstr "Reset: start again with an empty workspace"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "Resets {resets}"
@@ -2464,6 +2496,8 @@ msgid "Result"
 msgstr "Result"
 
 #: ../../apps/web/app/dev/ai-elements/demo.tsx
+#: ../chat-ui/src/workspace/preview.tsx
+#: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Retry"
 msgstr "Retry"
 
@@ -2480,17 +2514,9 @@ msgstr "Role"
 msgid "Role for {name}"
 msgstr "Role for {name}"
 
-#: ../chat-ui/src/sandbox/terminal.tsx
-msgid "Run a command to see its output here."
-msgstr "Run a command to see its output here."
-
 #: ../library-ui/src/components/agent-form.tsx
 msgid "Run code in the sandbox"
 msgstr "Run code in the sandbox"
-
-#: ../chat-ui/src/sandbox/terminal.tsx
-msgid "Run command"
-msgstr "Run command"
 
 #: ../ui/src/components/ai-elements/tool.tsx
 msgid "Running"
@@ -2500,26 +2526,6 @@ msgstr "Running"
 msgid "Running {code}"
 msgstr "Running {code}"
 
-#: ../chat-ui/src/sandbox/terminal.tsx
-msgid "Running…"
-msgstr "Running…"
-
-#: ../chat-ui/src/sandbox/status-pill.tsx
-msgid "Runs directly on this computer."
-msgstr "Runs directly on this computer."
-
-#: ../chat-ui/src/sandbox/status-pill.tsx
-msgid "Runs in a container under gVisor, which intercepts system calls before they reach the host."
-msgstr "Runs in a container under gVisor, which intercepts system calls before they reach the host."
-
-#: ../chat-ui/src/sandbox/status-pill.tsx
-msgid "Runs in a plain Docker container. gVisor isn't available on this host, so isolation is weaker."
-msgstr "Runs in a plain Docker container. gVisor isn't available on this host, so isolation is weaker."
-
-#: ../chat-ui/src/sandbox/status-pill.tsx
-msgid "Runs in a remote microVM."
-msgstr "Runs in a remote microVM."
-
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "Sampled scoring"
 msgstr "Sampled scoring"
@@ -2528,37 +2534,17 @@ msgstr "Sampled scoring"
 msgid "Sampled scoring is off: this server forbids it."
 msgstr "Sampled scoring is off: this server forbids it."
 
-#: ../chat-ui/src/sandbox/sandbox-panel.tsx
-#: ../chat-ui/src/shell/right-panel.tsx
 #: ../library-ui/src/components/agent-form.tsx
 msgid "Sandbox"
 msgstr "Sandbox"
 
-#: ../chat-ui/src/sandbox/files.tsx
-msgid "Sandbox files"
-msgstr "Sandbox files"
-
-#: ../chat-ui/src/sandbox/terminal.tsx
-msgid "Sandbox output"
-msgstr "Sandbox output"
-
 #: ../../apps/web/app/dev/sandbox/page.tsx
-#: ../chat-ui/src/shell/right-panel.tsx
-#: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
 msgid "Sandbox panel"
 msgstr "Sandbox panel"
 
-#: ../chat-ui/src/sandbox/sandbox-panel.tsx
-msgid "Sandbox views"
-msgstr "Sandbox views"
-
-#: ../chat-ui/src/chat/chat-screen.tsx
+#: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Sandboxes are turned off on this server."
 msgstr "Sandboxes are turned off on this server."
-
-#: ../../apps/web/app/(app)/(chat)/chat-route.tsx
-msgid "Sandboxes aren't available on this server right now."
-msgstr "Sandboxes aren't available on this server right now."
 
 #: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
 msgid "Save"
@@ -2577,6 +2563,7 @@ msgid "Save the server to check its connection."
 msgstr "Save the server to check its connection."
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
+#: ../chat-ui/src/workspace/file-view.tsx
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "Saved"
 msgstr "Saved"
@@ -2585,6 +2572,7 @@ msgstr "Saved"
 msgid "Saved in this browser."
 msgstr "Saved in this browser."
 
+#: ../chat-ui/src/workspace/file-view.tsx
 #: ../library-ui/src/components/item-builder.tsx
 msgid "Saving…"
 msgstr "Saving…"
@@ -2674,9 +2662,9 @@ msgstr "Searching your files"
 msgid "Secret"
 msgstr "Secret"
 
-#: ../chat-ui/src/sandbox/files.tsx
-msgid "Select a file to view it."
-msgstr "Select a file to view it."
+#: ../chat-ui/src/workspace/workspace-panel.tsx
+msgid "Select a file to open it."
+msgstr "Select a file to open it."
 
 #: ../chat-ui/src/conversation/message-row.tsx
 #: ../composer/src/components/composer-footer.tsx
@@ -2774,12 +2762,19 @@ msgstr "Show keyboard shortcuts"
 msgid "Show more"
 msgstr "Show more"
 
+#: ../shortcuts/src/registry.ts
+msgid "Show or hide the workspace"
+msgstr "Show or hide the workspace"
+
 #: ../palette/src/context-actions.ts
-msgid "Show the sandbox"
-msgstr "Show the sandbox"
+msgid "Show the workspace"
+msgstr "Show the workspace"
+
+#: ../shortcuts/src/registry.ts
+msgid "Show the workspace artifacts"
+msgstr "Show the workspace artifacts"
 
 #: ../chat-ui/src/shell/app-shell.tsx
-#: ../chat-ui/src/shell/right-panel.tsx
 msgid "Side panel"
 msgstr "Side panel"
 
@@ -2796,10 +2791,6 @@ msgstr "Sign out"
 #: ../../apps/web/app/(auth)/_components/auth-problem.tsx
 msgid "Sign-in isn't available on this server right now. An administrator needs to finish setting it up."
 msgstr "Sign-in isn't available on this server right now. An administrator needs to finish setting it up."
-
-#: ../chat-ui/src/sandbox/status-pill.tsx
-msgid "Simulated"
-msgstr "Simulated"
 
 #: ../chat-ui/src/shortcuts/shortcut-help.tsx
 #: ../shortcuts/src/react/help-dialog.tsx
@@ -2880,10 +2871,6 @@ msgstr "Split"
 msgid "SSE"
 msgstr "SSE"
 
-#: ../chat-ui/src/sandbox/preview.tsx
-msgid "Start a server in the terminal, then preview its port. It opens on a separate origin, isolated from this app."
-msgstr "Start a server in the terminal, then preview its port. It opens on a separate origin, isolated from this app."
-
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Start dictation"
 msgstr "Start dictation"
@@ -2896,9 +2883,9 @@ msgstr "Start over"
 msgid "Starter {position}"
 msgstr "Starter {position}"
 
-#: ../chat-ui/src/sandbox/status-pill.tsx
-msgid "Starting"
-msgstr "Starting"
+#: ../chat-ui/src/workspace/workspace-panel.tsx
+msgid "Starting the workspace…"
+msgstr "Starting the workspace…"
 
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "Status unavailable"
@@ -2916,10 +2903,6 @@ msgstr "Stop dictation"
 #: ../shortcuts/src/registry.ts
 msgid "Stop generating"
 msgstr "Stop generating"
-
-#: ../chat-ui/src/sandbox/status-pill.tsx
-msgid "Stopped"
-msgstr "Stopped"
 
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "Stored encrypted and never shown again; only its last characters are."
@@ -3001,14 +2984,6 @@ msgstr "Teams group members for sharing, keys and budgets. Sub-teams inherit wha
 msgid "Template"
 msgstr "Template"
 
-#: ../palette/src/context-actions.ts
-msgid "terminal"
-msgstr "terminal"
-
-#: ../chat-ui/src/sandbox/sandbox-panel.tsx
-msgid "Terminal"
-msgstr "Terminal"
-
 #: ../library-ui/src/components/test-chat.tsx
 msgid "Test chat"
 msgstr "Test chat"
@@ -3079,6 +3054,10 @@ msgstr "That short name is taken. Try another."
 msgid "That team has sub-teams. Delete or move them first."
 msgstr "That team has sub-teams. Delete or move them first."
 
+#: ../chat-ui/src/workspace/new-file-dialog.tsx
+msgid "That's a folder name. Add a file name after the slash."
+msgstr "That's a folder name. Add a file name after the slash."
+
 #: ../library-ui/src/components/fields.tsx
 msgid "That's too long."
 msgstr "That's too long."
@@ -3122,6 +3101,10 @@ msgstr "The chat sandbox panel over a just-bash workspace that runs entirely in 
 #: ../composer/src/components/context-chip.tsx
 msgid "The context can't change after the first message."
 msgstr "The context can't change after the first message."
+
+#: ../../apps/web/app/dev/chat/demo.tsx
+msgid "The demo workspace couldn't do that."
+msgstr "The demo workspace couldn't do that."
 
 #: ../composer/src/components/composer-shell.tsx
 msgid "The editor didn't load. Reload the page to try again."
@@ -3183,22 +3166,6 @@ msgstr "The preview runtime isn't responding, so this artifact can't be previewe
 msgid "The prompt composer with contract fixtures. Type / for a prompt template or @ to mention someone; sending fakes a short run you can stop. Nothing here calls a model."
 msgstr "The prompt composer with contract fixtures. Type / for a prompt template or @ to mention someone; sending fakes a short run you can stop. Nothing here calls a model."
 
-#: ../../apps/web/app/(app)/(chat)/chat-route.tsx
-msgid "The sandbox didn't respond. Try again."
-msgstr "The sandbox didn't respond. Try again."
-
-#: ../../apps/web/app/dev/sandbox/demo.tsx
-msgid "The sandbox hit a limit."
-msgstr "The sandbox hit a limit."
-
-#: ../../apps/web/app/dev/sandbox/demo.tsx
-msgid "The sandbox is unavailable."
-msgstr "The sandbox is unavailable."
-
-#: ../../apps/web/app/dev/sandbox/demo.tsx
-msgid "The sandbox was destroyed. Create a new one."
-msgstr "The sandbox was destroyed. Create a new one."
-
 #: ../../apps/web/app/(auth)/_components/auth-problem.tsx
 msgid "The server couldn't finish that. Try again in a moment; if it keeps happening, an administrator can check the server's log."
 msgstr "The server couldn't finish that. Try again in a moment; if it keeps happening, an administrator can check the server's log."
@@ -3224,9 +3191,29 @@ msgstr "The test chat needs a server to run against."
 msgid "The whole org"
 msgstr "The whole org"
 
-#: ../chat-ui/src/sandbox/files.tsx
-msgid "The workspace is empty."
-msgstr "The workspace is empty."
+#: ../../apps/web/app/(app)/(chat)/chat-route.tsx
+msgid "The workspace didn't respond. Try again."
+msgstr "The workspace didn't respond. Try again."
+
+#: ../chat-ui/src/workspace/workspace-panel.tsx
+msgid "The workspace didn't start"
+msgstr "The workspace didn't start"
+
+#: ../../apps/web/app/dev/sandbox/demo.tsx
+msgid "The workspace hit a limit."
+msgstr "The workspace hit a limit."
+
+#: ../../apps/web/app/dev/sandbox/demo.tsx
+msgid "The workspace is unavailable."
+msgstr "The workspace is unavailable."
+
+#: ../../apps/web/app/(app)/(chat)/chat-route.tsx
+msgid "The workspace isn't available on this server right now."
+msgstr "The workspace isn't available on this server right now."
+
+#: ../../apps/web/app/dev/sandbox/demo.tsx
+msgid "The workspace was reset."
+msgstr "The workspace was reset."
 
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
 msgid "theme"
@@ -3278,10 +3265,6 @@ msgstr "This artifact has a syntax error."
 msgid "This change couldn't be displayed as a diff."
 msgstr "This change couldn't be displayed as a diff."
 
-#: ../chat-ui/src/sandbox/sandbox-panel.tsx
-msgid "This chat has no sandbox yet. Create one to run commands and keep files the agent can work on."
-msgstr "This chat has no sandbox yet. Create one to run commands and keep files the agent can work on."
-
 #: ../../apps/web/app/(app)/_shared/query-state.tsx
 msgid "This couldn't be loaded."
 msgstr "This couldn't be loaded."
@@ -3293,6 +3276,10 @@ msgstr "This feature is switched off on this server."
 #: ../library-ui/src/components/skill-form.tsx
 msgid "This file can't be shown here."
 msgstr "This file can't be shown here."
+
+#: ../chat-ui/src/workspace/file-view.tsx
+msgid "This file changed since you opened it. Reload to see the new version, or overwrite it with yours."
+msgstr "This file changed since you opened it. Reload to see the new version, or overwrite it with yours."
 
 #: ../../apps/web/app/(auth)/_components/accept-invite.tsx
 msgid "This invitation has expired, was cancelled or was already used."
@@ -3306,13 +3293,14 @@ msgstr "This invitation link isn't valid"
 msgid "This invitation was sent to a different email address. Sign in with that address to accept it."
 msgstr "This invitation was sent to a different email address. Sign in with that address to accept it."
 
+#. placeholder {0}: file.size
+#: ../chat-ui/src/workspace/file-view.tsx
+msgid "This is a binary file ({0} bytes), so it can't be shown or edited here."
+msgstr "This is a binary file ({0} bytes), so it can't be shown or edited here."
+
 #: ../library-ui/src/components/item-builder.tsx
 msgid "This item isn't available"
 msgstr "This item isn't available"
-
-#: ../../apps/web/app/dev/sandbox/demo.tsx
-msgid "This sandbox can't do that."
-msgstr "This sandbox can't do that."
 
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "This server can't store keys yet: an admin needs to set its encryption key (ENCRYPTION_KEY)."
@@ -3338,6 +3326,10 @@ msgstr "This server signs people in with single sign-on, and none is set up yet.
 msgid "This server's configuration forbids audit policies, so admins can't read chat content in any org."
 msgstr "This server's configuration forbids audit policies, so admins can't read chat content in any org."
 
+#: ../../apps/web/app/dev/sandbox/demo.tsx
+msgid "This workspace can't do that."
+msgstr "This workspace can't do that."
+
 #: ../shortcuts/src/react/shortcuts-editor.tsx
 msgid "Those keys can't be used as a shortcut."
 msgstr "Those keys can't be used as a shortcut."
@@ -3346,11 +3338,6 @@ msgstr "Those keys can't be used as a shortcut."
 #: ../ui/src/components/ai-elements/reasoning.tsx
 msgid "Thought for a few seconds"
 msgstr "Thought for a few seconds"
-
-#. placeholder {0}: entry.durationMs
-#: ../chat-ui/src/sandbox/terminal.tsx
-msgid "Timed out after {0} ms"
-msgstr "Timed out after {0} ms"
 
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "Today"
@@ -3363,13 +3350,8 @@ msgid "Toggle sidebar"
 msgstr "Toggle sidebar"
 
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
-#: ../shortcuts/src/registry.ts
 msgid "Toggle the artifacts panel"
 msgstr "Toggle the artifacts panel"
-
-#: ../shortcuts/src/registry.ts
-msgid "Toggle the sandbox panel"
-msgstr "Toggle the sandbox panel"
 
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
 #: ../shortcuts/src/registry.ts
@@ -3447,6 +3429,7 @@ msgstr "Unknown agent"
 msgid "Unpin"
 msgstr "Unpin"
 
+#: ../chat-ui/src/workspace/file-view.tsx
 #: ../library-ui/src/components/item-builder.tsx
 msgid "Unsaved changes"
 msgstr "Unsaved changes"
@@ -3462,6 +3445,10 @@ msgstr "Updated in a chat"
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Upload files"
 msgstr "Upload files"
+
+#: ../chat-ui/src/workspace/workspace-panel.tsx
+msgid "Upload files…"
+msgstr "Upload files…"
 
 #: ../chat-ui/src/conversation/sources.tsx
 msgid "Uploaded file"
@@ -3524,7 +3511,7 @@ msgstr "Using {code} from {server}"
 msgid "v{number}"
 msgstr "v{number}"
 
-#: ../chat-ui/src/artifacts/artifacts-panel.tsx
+#: ../chat-ui/src/artifacts/artifact-view.tsx
 msgid "v{number} of {total}"
 msgstr "v{number} of {total}"
 
@@ -3536,7 +3523,7 @@ msgstr "Variables"
 msgid "Version {number}"
 msgstr "Version {number}"
 
-#: ../chat-ui/src/artifacts/artifacts-panel.tsx
+#: ../chat-ui/src/artifacts/artifact-view.tsx
 msgid "Versions"
 msgstr "Versions"
 
@@ -3682,9 +3669,23 @@ msgstr "Works"
 
 #: ../chat-ui/src/header/overflow-menu.tsx
 #: ../chat-ui/src/header/workspace-toggle.tsx
-#: ../chat-ui/src/sandbox/files.tsx
+#: ../chat-ui/src/shell/right-panel.tsx
+#: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
+#: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Workspace"
 msgstr "Workspace"
+
+#: ../chat-ui/src/workspace/workspace-panel.tsx
+msgid "Workspace actions"
+msgstr "Workspace actions"
+
+#: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
+msgid "Workspace artifacts"
+msgstr "Workspace artifacts"
+
+#: ../chat-ui/src/workspace/workspace-panel.tsx
+msgid "Workspace contents"
+msgstr "Workspace contents"
 
 #: ../../apps/web/app/dev/ai-elements/demo.tsx
 msgid "Would send “{text}” with {fileCount, plural, one {# attachment} other {# attachments}}."

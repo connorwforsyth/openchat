@@ -1,18 +1,33 @@
 import { z } from "zod";
 
 // The app shell's remembered layout (ticket 009: "resizable, remembers
-// state"): the sidebar, which right panel is open and how wide it is. Stored
-// per browser; anything unreadable falls back to the defaults.
+// state"): the sidebar, whether the Workspace panel is open, which of its
+// sections it shows, and how wide it is. Stored per browser; anything
+// unreadable falls back to the defaults.
 
-export const rightPanelSchema = z.enum(["sandbox", "artifacts"]);
-export type RightPanel = z.infer<typeof rightPanelSchema>;
+/**
+ * The Workspace panel's sections (060): the chat's files (with the preview)
+ * or its artifacts. Non-null in the layout means the panel is open.
+ */
+export const workspaceSectionSchema = z.enum(["files", "artifacts"]);
+export type WorkspaceSection = z.infer<typeof workspaceSectionSchema>;
+
+/**
+ * Before 060 the panel had Sandbox and Artifacts tabs; a stored `"sandbox"`
+ * reopens on the files, and `"artifacts"` keeps meaning the artifacts.
+ */
+const storedPanelSchema = z.preprocess(
+  (value) => (value === "sandbox" ? "files" : value),
+  workspaceSectionSchema.nullable()
+);
 
 export const PANEL_MIN_WIDTH = 280;
 export const PANEL_MAX_WIDTH = 960;
-export const PANEL_DEFAULT_WIDTH = 400;
+// Wide enough for the file list beside an editor.
+export const PANEL_DEFAULT_WIDTH = 560;
 
 export const shellLayoutSchema = z.object({
-  panel: rightPanelSchema.nullable().catch(null),
+  panel: storedPanelSchema.catch(null),
   panelWidth: z
     .number()
     .transform(Math.round)
@@ -52,10 +67,13 @@ export const clampPanelWidth = (width: number): number =>
     ? Math.min(PANEL_MAX_WIDTH, Math.max(PANEL_MIN_WIDTH, Math.round(width)))
     : PANEL_DEFAULT_WIDTH;
 
-/** Opens `panel`, or closes it if it's the one showing (the S / A keys). */
+/**
+ * Opens the Workspace panel on `panel`, or closes it if that section is the
+ * one showing (the S / A keys).
+ */
 export const togglePanel = (
   layout: ShellLayout,
-  panel: RightPanel
+  panel: WorkspaceSection
 ): ShellLayout => ({
   ...layout,
   panel: layout.panel === panel ? null : panel,

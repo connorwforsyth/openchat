@@ -40,15 +40,18 @@ import {
   useState,
 } from "react";
 
-import type { ArtifactSelection } from "../artifacts/artifacts-panel";
 import type { ConversationActions } from "../conversation/actions";
 import { newestLeafUnder, type TreeNode } from "../model/branch";
 import { mergeLive } from "../model/live-messages";
 import type { MemoryUpdate } from "../model/parts";
-import type { SandboxPanelClient } from "../sandbox/model/client";
+import type { WorkspaceSelection } from "../model/workspace";
 import type { Platform } from "../shell/platform";
 import type { ShellLayoutState } from "../shell/use-shell-layout";
 import type { Theme } from "../sidebar/account-menu";
+import type {
+  WorkspaceClient,
+  WorkspaceFilesSource,
+} from "../workspace/model/client";
 import { ChatScreen } from "./chat-screen";
 import { useBranchFeedback } from "./use-branch-feedback";
 import { useChatQueries, useConversationUpdate } from "./use-chat-data";
@@ -97,8 +100,12 @@ export interface ConnectedChatProps {
   readonly onTargetChange?: (target: RunTarget) => void;
   readonly onThemeChange: (theme: Theme) => void;
   readonly platform?: Platform;
-  /** The sandbox panel's port over the API; `null` hides the panel. */
-  readonly sandboxClient: SandboxPanelClient | null;
+  /**
+   * The Workspace panel's port over the API, for this chat; `null` for a
+   * chat that doesn't exist yet or when sandboxes are off (`config.features`
+   * tells the two apart).
+   */
+  readonly sandboxClient: WorkspaceClient | null;
   /** What answers: a model or an agent. Omitted, the server's default does. */
   readonly target?: RunTarget | null;
   readonly theme: Theme;
@@ -560,7 +567,7 @@ export function ConnectedChat({
   const api = useMemo(() => createQueryUtils(client), [client]);
   const queryClient = useQueryClient();
   const [leafId, setLeafId] = useState<MessageId | undefined>();
-  const [selection, setSelection] = useState<ArtifactSelection | null>(null);
+  const [selection, setSelection] = useState<WorkspaceSelection | null>(null);
   const [draftContext, setDraftContext] = useDraftContext(
     draftContextProp,
     onDraftContextChange
@@ -569,7 +576,8 @@ export function ConnectedChat({
   const titleWatch = useTitleWatch(conversationId);
 
   const data = useChatQueries(api, {
-    artifactId: selection?.artifactId ?? null,
+    artifactId:
+      selection?.kind === "artifact" ? (selection.artifactId ?? null) : null,
     conversationId,
     leafId,
     sandboxes: config.features.sandboxes,
@@ -604,6 +612,35 @@ export function ConnectedChat({
       queryClient.invalidateQueries({ queryKey: key }).catch(ignore);
     }
   }, [api, queryClient]);
+
+  // Every change the Workspace panel makes goes back through `sandbox.get`,
+  // so the panel and everything else read one record (060).
+  const onWorkspaceChanged = useCallback(() => {
+    queryClient
+      .invalidateQueries({ queryKey: api.sandbox.key() })
+      .catch(ignore);
+  }, [api, queryClient]);
+  const sandboxRecord = data.sandbox.data ?? null;
+  const workspaceFiles = useMemo((): WorkspaceFilesSource => {
+    if (!config.features.sandboxes) {
+      return { kind: "off" };
+    }
+    if (!(conversationId && sandboxClient)) {
+      return { kind: "new-chat" };
+    }
+    return {
+      client: sandboxClient,
+      kind: "chat",
+      onChanged: onWorkspaceChanged,
+      sandbox: sandboxRecord,
+    };
+  }, [
+    config.features.sandboxes,
+    conversationId,
+    onWorkspaceChanged,
+    sandboxClient,
+    sandboxRecord,
+  ]);
 
   const context = data.conversation.data?.context ?? draftContext;
   const { start: watchTitle } = titleWatch;
@@ -786,16 +823,6 @@ export function ConnectedChat({
   return (
     <ChatScreen
       actions={actions}
-      artifacts={{
-        artifacts: data.artifacts.data ?? [],
-        error: data.versions.isError ? t`Couldn't load this artifact.` : null,
-        onSelect: setSelection,
-        runtimeOrigin: artifactsRuntimeOrigin,
-        selection: data.selectedArtifactId
-          ? { ...selection, artifactId: data.selectedArtifactId }
-          : null,
-        versions: data.versions.data,
-      }}
       brand={brand}
       composer={{
         agents,
@@ -828,11 +855,6 @@ export function ConnectedChat({
       runError={
         <RunError failed={Boolean(chat.error)} uploadFailed={uploadFailed} />
       }
-      sandbox={
-        sandboxClient && config.features.sandboxes
-          ? { client: sandboxClient, initial: data.sandbox.data ?? null }
-          : null
-      }
       siblings={data.path.data?.siblings ?? []}
       sidebar={{
         ...sidebarActions,
@@ -851,6 +873,17 @@ export function ConnectedChat({
         onSelect: onNavigate,
       }}
       streamingMessageId={streamingMessageId}
+      workspace={{
+        artifacts: {
+          artifacts: data.artifacts.data ?? [],
+          error: data.versions.isError ? t`Couldn't load this artifact.` : null,
+          runtimeOrigin: artifactsRuntimeOrigin,
+          versions: data.versions.data,
+        },
+        files: workspaceFiles,
+        onSelect: setSelection,
+        selection,
+      }}
     />
   );
 }

@@ -26,7 +26,8 @@ export interface PaletteContext {
   readonly model?: PaletteChoice;
   /** Cowork permission modes (desktop). */
   readonly permissionMode?: PaletteChoice;
-  readonly sandbox?: {
+  /** The chat's Workspace panel: its files, preview and artifacts (060). */
+  readonly workspace?: {
     readonly available: boolean;
     readonly onToggle: () => void;
     readonly open: boolean;
@@ -60,21 +61,25 @@ export const buildContextActions = (
   i18n: I18n,
   context: PaletteContext
 ): readonly PaletteAction[] => {
-  const { chatContext, model, permissionMode, sandbox } = context;
-  const sandboxAction =
-    sandbox?.available === true
+  const { chatContext, model, permissionMode, workspace } = context;
+  const workspaceAction =
+    workspace?.available === true
       ? [
           paletteAction(
             {
-              id: "sandbox:toggle",
-              keywords: [i18n._(msg`terminal`), i18n._(msg`files`)],
+              id: "workspace:toggle",
+              keywords: [
+                i18n._(msg`files`),
+                i18n._(msg`artifacts`),
+                i18n._(msg`preview`),
+              ],
               section: "actions",
               shortcutId: "panel.sandbox",
-              title: sandbox.open
-                ? i18n._(msg`Hide the sandbox`)
-                : i18n._(msg`Show the sandbox`),
+              title: workspace.open
+                ? i18n._(msg`Hide the workspace`)
+                : i18n._(msg`Show the workspace`),
             },
-            sandbox.onToggle
+            workspace.onToggle
           ),
         ]
       : [];
@@ -93,7 +98,7 @@ export const buildContextActions = (
           (label) => i18n._(msg`Switch chat context to ${label}`),
           [i18n._(msg`context`), i18n._(msg`team`)]
         )),
-    ...sandboxAction,
+    ...workspaceAction,
     ...choices(
       "permission",
       permissionMode,

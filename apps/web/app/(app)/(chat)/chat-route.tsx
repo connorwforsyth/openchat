@@ -83,11 +83,10 @@ const useConversationId = (): ConversationId | null | undefined => {
   return parsed.success ? parsed.data : undefined;
 };
 
-/** Offers the palette this chat's model, context and sandbox (D14). */
+/** Offers the palette this chat's model, context and workspace (D14). */
 const usePaletteContext = ({
   context,
   contextOptions,
-  conversationId,
   locked,
   models,
   onContextChange,
@@ -96,7 +95,6 @@ const usePaletteContext = ({
 }: {
   readonly context: ChatContext;
   readonly contextOptions: readonly ContextOption[];
-  readonly conversationId: ConversationId | null;
   readonly locked: boolean;
   readonly models: readonly ModelOption[];
   readonly onContextChange: (context: ChatContext) => void;
@@ -104,10 +102,10 @@ const usePaletteContext = ({
   readonly target: RunTarget;
 }) => {
   const { t } = useLingui();
-  const { chat, config, layout } = useAppFrame();
+  const { chat, layout } = useAppFrame();
   const { setPaletteContext } = chat;
-  const { togglePanel } = layout;
-  const sandboxOpen = layout.layout.panel === "sandbox";
+  const { setPanel } = layout;
+  const workspaceOpen = layout.layout.panel !== null;
 
   const paletteContext = useMemo(
     (): PaletteContext => ({
@@ -137,26 +135,23 @@ const usePaletteContext = ({
           label: model.label,
         })),
       },
-      sandbox: {
-        available:
-          config.features.sandboxes === true && conversationId !== null,
-        onToggle: () => togglePanel("sandbox"),
-        open: sandboxOpen,
+      workspace: {
+        available: true,
+        onToggle: () => setPanel(workspaceOpen ? null : "files"),
+        open: workspaceOpen,
       },
     }),
     [
-      config.features.sandboxes,
       context,
       contextOptions,
-      conversationId,
       locked,
       models,
       onContextChange,
       onTargetChange,
-      sandboxOpen,
+      setPanel,
       t,
       target,
-      togglePanel,
+      workspaceOpen,
     ]
   );
 
@@ -374,7 +369,6 @@ export function ChatRoute({
   usePaletteContext({
     context,
     contextOptions,
-    conversationId: conversationId ?? null,
     locked: conversation.data?.contextLocked ?? false,
     models: models.data ?? NO_MODELS,
     onContextChange: changeContext,
@@ -396,8 +390,8 @@ export function ChatRoute({
     () =>
       conversationId && config.features.sandboxes
         ? createApiSandboxClient(client, conversationId, {
-            disabled: t`Sandboxes aren't available on this server right now.`,
-            failed: t`The sandbox didn't respond. Try again.`,
+            disabled: t`The workspace isn't available on this server right now.`,
+            failed: t`The workspace didn't respond. Try again.`,
           })
         : null,
     [client, config.features.sandboxes, conversationId, t]

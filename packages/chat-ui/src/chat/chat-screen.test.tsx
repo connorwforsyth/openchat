@@ -1,7 +1,8 @@
-import { cleanup, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, screen, waitFor, within } from "@testing-library/react";
 import { contextOptionsFromMe } from "@workspace/composer/options";
 import { fixtureId, me, teamPlatform } from "@workspace/contract/fixtures";
 import type { ChatContext } from "@workspace/contract/schemas/tenancy";
+import { createRef } from "react";
 import {
   afterEach,
   beforeAll,
@@ -12,7 +13,6 @@ import {
   vi,
 } from "vitest";
 import { page, userEvent } from "vitest/browser";
-
 import {
   chatArtifacts,
   initialLeafId,
@@ -23,12 +23,18 @@ import {
 import { localBranchPath } from "../model/branch";
 import { SHELL_LAYOUT_STORAGE_KEY } from "../shell/use-shell-layout";
 import { modKey, renderWithI18n } from "../testing/render";
-import { ChatScreen, type ChatScreenProps } from "./chat-screen";
+
+import {
+  ChatScreen,
+  type ChatScreenProps,
+  type WorkspaceHandle,
+} from "./chat-screen";
 
 // Reasoning renders synchronously (ticket 037), so no chunk lands mid-test and
 // shifts the conversation.
 vi.mock("../conversation/lazy", () => import("../testing/sync-lazy"));
 
+const TURNED_OFF = /turned off/;
 const path = localBranchPath(treeMessages, initialLeafId);
 if (!path) {
   throw new Error("fixture branch path");
@@ -40,12 +46,6 @@ const platformContext: ChatContext = { id: teamPlatform.id, type: "team" };
 
 const props = (overrides: Partial<ChatScreenProps> = {}): ChatScreenProps => ({
   actions: { onSelectBranch: vi.fn() },
-  artifacts: {
-    artifacts: chatArtifacts,
-    onSelect: vi.fn(),
-    selection: null,
-    versions: [],
-  },
   composer: { onSubmit: vi.fn() },
   conversation: {
     context: platformContext,
@@ -57,7 +57,6 @@ const props = (overrides: Partial<ChatScreenProps> = {}): ChatScreenProps => ({
   },
   messages: path.messages,
   onNewChat: vi.fn(),
-  sandbox: null,
   siblings: path.siblings,
   sidebar: {
     account: {
@@ -75,6 +74,12 @@ const props = (overrides: Partial<ChatScreenProps> = {}): ChatScreenProps => ({
     onSelect: vi.fn(),
     onTogglePin: vi.fn(),
   },
+  workspace: {
+    artifacts: { artifacts: chatArtifacts, versions: [] },
+    files: { kind: "off" },
+    onSelect: vi.fn(),
+    selection: null,
+  },
   ...overrides,
 });
 
@@ -84,7 +89,7 @@ const props = (overrides: Partial<ChatScreenProps> = {}): ChatScreenProps => ({
 beforeAll(async () => {
   await Promise.all([
     import("@workspace/composer/components/composer"),
-    import("../artifacts/artifacts-panel"),
+    import("../workspace/workspace-panel"),
     import("../conversation/math-plugin"),
   ]);
 });
@@ -308,14 +313,20 @@ describe("shortcuts", () => {
     renderWithI18n(
       <ChatScreen {...props({ sidebar: { ...base.sidebar, onSelect } })} />
     );
+    // A opens the Workspace panel on the chat's artifacts (060).
     await userEvent.keyboard("a");
+    const workspace = within(
+      await screen.findByRole("region", { name: "Workspace" })
+    );
     expect(
-      (await screen.findByRole("tab", { name: "Artifacts" })).getAttribute(
-        "aria-selected"
-      )
+      (
+        await workspace.findByRole("button", { name: chatArtifacts[0]?.title })
+      ).getAttribute("aria-current")
     ).toBe("true");
     await userEvent.keyboard("a");
-    expect(screen.queryByRole("tab", { name: "Artifacts" })).toBeNull();
+    await waitFor(() =>
+      expect(screen.queryByRole("region", { name: "Workspace" })).toBeNull()
+    );
 
     // The open chat is first in "Today" after the pinned one.
     await userEvent.keyboard("j");
@@ -331,6 +342,63 @@ describe("shortcuts", () => {
       name: "Keyboard shortcuts",
     });
     expect(within(dialog).getByText("Toggle sidebar")).toBeTruthy();
+  });
+});
+
+describe("the Workspace panel (060)", () => {
+  it("reopens a stored Artifacts tab as the panel on its artifacts", async () => {
+    window.localStorage.setItem(
+      SHELL_LAYOUT_STORAGE_KEY,
+      JSON.stringify({ panel: "artifacts" })
+    );
+    renderWithI18n(<ChatScreen {...props()} />);
+    const workspace = within(
+      await screen.findByRole("region", { name: "Workspace" })
+    );
+    expect(
+      (
+        await workspace.findByRole("button", { name: chatArtifacts[0]?.title })
+      ).getAttribute("aria-current")
+    ).toBe("true");
+  });
+
+  it("S opens the files; a new chat gets the normal empty state", async () => {
+    const base = props();
+    renderWithI18n(
+      <ChatScreen
+        {...props({
+          conversation: { ...base.conversation, id: null },
+          workspace: { ...base.workspace, files: { kind: "new-chat" } },
+        })}
+      />
+    );
+    await userEvent.keyboard("s");
+    const workspace = within(
+      await screen.findByRole("region", { name: "Workspace" })
+    );
+    expect(
+      workspace.getByText(
+        "No files yet. Files you and the agent create will appear here."
+      )
+    ).toBeTruthy();
+    expect(workspace.queryByText(TURNED_OFF)).toBeNull();
+  });
+
+  it("opens a file from outside the panel, with a workspace path", async () => {
+    const onSelect = vi.fn();
+    const handle = createRef<WorkspaceHandle>();
+    const base = props();
+    renderWithI18n(
+      <ChatScreen
+        {...props({ workspace: { ...base.workspace, onSelect } })}
+        workspaceHandle={handle}
+      />
+    );
+    act(() => handle.current?.openFile("/work/notes.md"));
+    expect(onSelect).toHaveBeenCalledWith({ kind: "file", path: "notes.md" });
+    expect(
+      await screen.findByRole("region", { name: "Workspace" })
+    ).toBeTruthy();
   });
 });
 
@@ -447,11 +515,11 @@ describe("narrow screens", () => {
       await screen.findByRole("menuitemcheckbox", { name: "Workspace" })
     );
     const panelSheet = within(await sheet("Side panel"));
+    // One Workspace panel, and no terminal anywhere in it (060).
     expect(
-      panelSheet
-        .getByRole("tab", { name: "Artifacts" })
-        .getAttribute("aria-selected")
-    ).toBe("true");
+      await panelSheet.findByRole("region", { name: "Workspace" })
+    ).toBeTruthy();
+    expect(panelSheet.queryByText("Terminal")).toBeNull();
 
     await userEvent.keyboard("{Escape}");
     await waitFor(() =>
