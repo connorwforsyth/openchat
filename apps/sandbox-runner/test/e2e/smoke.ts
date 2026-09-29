@@ -473,9 +473,10 @@ const main = async () => {
       again.ok && again.value?.url === staticUrl,
       "a second ensureStaticPreview didn't reuse the running server"
     );
+    // The slim image has no procps; `[s]` keeps this command out of its own count.
     await expectOutput(
       sandbox,
-      "pgrep -fc static-preview.mjs || ps -eo args | grep -c '[s]tatic-preview.mjs'",
+      "grep -l '[s]tatic-preview.mjs' /proc/[0-9]*/cmdline 2>/dev/null | wc -l",
       "1\n"
     );
     const inWork = await must(
