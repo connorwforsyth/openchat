@@ -225,6 +225,10 @@ msgstr "Add people, teams or orgs"
 msgid "Add photos or files"
 msgstr "Add photos or files"
 
+#: ../chat-ui/src/workspace/preview.tsx
+msgid "Address"
+msgstr "Address"
+
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/admin-index.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
@@ -420,6 +424,10 @@ msgstr "Auto"
 msgid "Awaiting approval"
 msgstr "Awaiting approval"
 
+#: ../chat-ui/src/workspace/preview.tsx
+msgid "Back"
+msgstr "Back"
+
 #: ../library-ui/src/components/item-builder.tsx
 msgid "Back to the library"
 msgstr "Back to the library"
@@ -443,6 +451,10 @@ msgstr "Blocks new chats"
 #: ../chat-ui/src/header/branch-switcher.tsx
 msgid "Branches"
 msgstr "Branches"
+
+#: ../chat-ui/src/workspace/preview.tsx
+msgid "Browser"
+msgstr "Browser"
 
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
 msgid "budgets"
@@ -632,6 +644,7 @@ msgstr "Close toast"
 
 #: ../chat-ui/src/artifacts/artifact-view.tsx
 #: ../chat-ui/src/conversation/artifact-card.tsx
+#: ../chat-ui/src/workspace/rendered-file.tsx
 msgid "Code"
 msgstr "Code"
 
@@ -1254,6 +1267,10 @@ msgstr "Focus the message box"
 msgid "For"
 msgstr "For"
 
+#: ../chat-ui/src/workspace/preview.tsx
+msgid "Forward"
+msgstr "Forward"
+
 #: ../library-ui/src/components/skill-form.tsx
 msgid "Frontmatter with a name and description, then the instructions the agent follows."
 msgstr "Frontmatter with a name and description, then the instructions the agent follows."
@@ -1652,6 +1669,14 @@ msgstr "Message the draft"
 msgid "MMD"
 msgstr "MMD"
 
+#: ../chat-ui/src/workspace/preview.tsx
+msgid "Mobile"
+msgstr "Mobile"
+
+#: ../chat-ui/src/workspace/preview.tsx
+msgid "Mobile width"
+msgstr "Mobile width"
+
 #: ../palette/src/context-actions.ts
 msgid "model"
 msgstr "model"
@@ -1908,6 +1933,10 @@ msgstr "Nothing sent yet."
 msgid "Nothing shared with you"
 msgstr "Nothing shared with you"
 
+#: ../chat-ui/src/workspace/preview.tsx
+msgid "Nothing to preview yet. Pages the agent writes and apps it starts show here."
+msgstr "Nothing to preview yet. Pages the agent writes and apps it starts show here."
+
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "OAuth"
 msgstr "OAuth"
@@ -1928,6 +1957,10 @@ msgstr "Older"
 #: ../chat-ui/src/artifacts/artifact-view.tsx
 msgid "Older version"
 msgstr "Older version"
+
+#: ../chat-ui/src/workspace/preview.tsx
+msgid "Only pages in this preview can open here."
+msgstr "Only pages in this preview can open here."
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/audit-policy.tsx
 msgid "Only the org's owners can change this."
@@ -1959,13 +1992,13 @@ msgstr "Open external link?"
 msgid "Open file"
 msgstr "Open file"
 
+#: ../chat-ui/src/workspace/preview.tsx
+msgid "Open in a new tab"
+msgstr "Open in a new tab"
+
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Open link"
 msgstr "Open link"
-
-#: ../chat-ui/src/workspace/preview.tsx
-msgid "Open preview in a new tab"
-msgstr "Open preview in a new tab"
 
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
 #: ../shortcuts/src/registry.ts
@@ -2160,15 +2193,17 @@ msgid "preview"
 msgstr "preview"
 
 #: ../chat-ui/src/artifacts/artifact-view.tsx
+#: ../chat-ui/src/conversation/file-change-card.tsx
+#: ../chat-ui/src/workspace/rendered-file.tsx
+#: ../chat-ui/src/workspace/workspace-panel.tsx
 #: ../composer/src/components/suggestion-menu.tsx
 #: ../library-ui/src/components/prompt-form.tsx
 msgid "Preview"
 msgstr "Preview"
 
-#. placeholder {0}: preview.port
-#: ../chat-ui/src/workspace/workspace-panel.tsx
-msgid "Preview · :{0}"
-msgstr "Preview · :{0}"
+#: ../chat-ui/src/conversation/file-change-card.tsx
+msgid "Preview {path}"
+msgstr "Preview {path}"
 
 #: ../chat-ui/src/artifacts/artifact-preview.tsx
 msgid "Preview of {title}"
@@ -2378,12 +2413,9 @@ msgid "Rejected"
 msgstr "Rejected"
 
 #: ../chat-ui/src/workspace/file-view.tsx
+#: ../chat-ui/src/workspace/preview.tsx
 msgid "Reload"
 msgstr "Reload"
-
-#: ../chat-ui/src/workspace/preview.tsx
-msgid "Reload preview"
-msgstr "Reload preview"
 
 #: ../ui/src/components/ai-elements/message.tsx
 #: ../ui/src/components/ai-elements/prompt-input.tsx
@@ -2438,6 +2470,10 @@ msgstr "Rename {name}"
 #: ../chat-ui/src/header/chat-title.tsx
 msgid "Rename chat: {shown}"
 msgstr "Rename chat: {shown}"
+
+#: ../chat-ui/src/workspace/preview.tsx
+msgid "Rendering {file}…"
+msgstr "Rendering {file}…"
 
 #: ../library-ui/src/components/fields.tsx
 msgid "Required."
@@ -2745,6 +2781,10 @@ msgstr "show"
 msgid "Show"
 msgstr "Show"
 
+#: ../chat-ui/src/workspace/rendered-file.tsx
+msgid "Show as"
+msgstr "Show as"
+
 #: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
 msgid "Show contents"
 msgstr "Show contents"
@@ -2762,6 +2802,10 @@ msgstr "Show more"
 #: ../shortcuts/src/registry.ts
 msgid "Show or hide the workspace"
 msgstr "Show or hide the workspace"
+
+#: ../chat-ui/src/workspace/preview.tsx
+msgid "Show the page at a phone's width"
+msgstr "Show the page at a phone's width"
 
 #: ../palette/src/context-actions.ts
 msgid "Show the workspace"
@@ -2887,6 +2931,14 @@ msgstr "Starter {position}"
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Starting the workspace…"
 msgstr "Starting the workspace…"
+
+#: ../chat-ui/src/workspace/preview.tsx
+msgid "Static render"
+msgstr "Static render"
+
+#: ../chat-ui/src/workspace/preview.tsx
+msgid "Static render of {file}"
+msgstr "Static render of {file}"
 
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "Status unavailable"
@@ -3232,6 +3284,18 @@ msgstr "Theme"
 #: ../../apps/web/app/(auth)/_components/auth-problem.tsx
 msgid "There's already an account with that email. Sign in instead."
 msgstr "There's already an account with that email. Sign in instead."
+
+#: ../chat-ui/src/workspace/preview.tsx
+msgid "There's no {missing} in the workspace."
+msgstr "There's no {missing} in the workspace."
+
+#: ../chat-ui/src/workspace/preview.tsx
+msgid "There's no server here, so the HTML file is shown as it is, with its local styles, scripts and images."
+msgstr "There's no server here, so the HTML file is shown as it is, with its local styles, scripts and images."
+
+#: ../chat-ui/src/workspace/preview.tsx
+msgid "There's nothing to show at {path}."
+msgstr "There's nothing to show at {path}."
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 msgid "They lose access to this org's chats, library and keys. Their personal chats are untouched."
