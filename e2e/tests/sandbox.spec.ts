@@ -1,4 +1,4 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import type { ConversationId } from "@workspace/contract/schemas/common";
 
 import { apiFor, eventually } from "../support/api";
@@ -11,51 +11,45 @@ import {
 import { storageStateFor } from "../support/users";
 
 const BASH_RESULT = /Tool result: .*from-the-agent/;
+const HI_RESULT = /Tool result: .*hi/;
 const REVIEW_RESULT = /Tool result: .*Keep the last line as a number/;
 
-// PLAN.md §11 M1 steps 6 and 7 without Docker: a just-bash sandbox runs
-// commands from the panel and from the agent, and a file change the agent
-// proposes is reviewed hunk by hunk (only accepted hunks land; the agent
-// hears about the rejected one). The Docker leg (a dev server and its
-// preview, `runsc`) needs Docker: see the sandbox job in ci.yml.
+// PLAN.md §11 M1 steps 6 and 7 without Docker: the agent's commands run in
+// the chat's just-bash workspace, which it creates on first use (056), and
+// the Workspace panel shows the files (060: no terminal, no Create button).
+// A file change the agent proposes is reviewed hunk by hunk (only accepted
+// hunks land; the agent hears about the rejected one). The Docker leg (a
+// dev server and its preview, `runsc`) needs Docker: see the sandbox job in
+// ci.yml. Ticket 062 turns this into workspace.spec.ts.
 
 test.describe.configure({ mode: "serial" });
 test.use({ storageState: storageStateFor("ada") });
 
 let conversationId: ConversationId;
 
-const openSandbox = async (page: Page) => {
-  await openWorkspace(page, "Sandbox");
-  return page.getByRole("region", { name: "Sandbox" });
-};
-
-test("just-bash: the panel runs `ls && echo hi > a.txt && cat a.txt`", async ({
+test("the Workspace panel shows files the agent made, with no terminal", async ({
   page,
 }) => {
   await page.goto("/");
-  await send(page, "A chat with a sandbox");
-  await expectReply(page, "Echo: A chat with a sandbox");
+  await send(
+    page,
+    '[tool:bash {"command": "ls && echo hi > a.txt && cat a.txt"}]'
+  );
+  await expectReply(page, HI_RESULT);
   conversationId = await conversationIdOf(page);
 
-  const panel = await openSandbox(page);
-  await panel.getByRole("button", { name: "Create sandbox" }).click();
-  const command = panel.getByRole("textbox", { name: "Command" });
-  await expect(command).toBeEnabled();
-  await command.fill("ls && echo hi > a.txt && cat a.txt");
-  await command.press("Enter");
-  await expect(panel.getByLabel("Sandbox output")).toContainText("hi");
-
-  await panel.getByRole("tab", { name: "Files" }).click();
+  const panel = await openWorkspace(page);
   await expect(panel.getByRole("treeitem", { name: "a.txt" })).toBeVisible();
+  await expect(panel.getByText("Terminal")).toHaveCount(0);
+  await expect(
+    panel.getByRole("button", { name: "Create sandbox" })
+  ).toHaveCount(0);
 
   // The panel stays open across a reload and mounts before the chat's
-  // sandbox has loaded; it must still find it (046).
+  // workspace has loaded; it must still find it (046).
   await page.reload();
-  const reopened = page.getByRole("region", { name: "Sandbox" });
-  await expect(reopened.getByRole("tab", { name: "Terminal" })).toBeVisible();
-  await expect(
-    reopened.getByRole("button", { name: "Create sandbox" })
-  ).toBeHidden();
+  const reopened = page.getByRole("region", { name: "Workspace" });
+  await expect(reopened.getByRole("treeitem", { name: "a.txt" })).toBeVisible();
 });
 
 test("the agent runs bash in the chat's sandbox", async ({ page }) => {

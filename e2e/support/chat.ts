@@ -135,18 +135,15 @@ export const lockedContext = async (page: Page): Promise<Locator> => {
 };
 
 /**
- * Opens the right panel with the header's Workspace toggle and shows its
- * `tab` ("Sandbox" or "Artifacts").
+ * Opens the chat's Workspace panel from the header (060: one panel with the
+ * files, preview and artifacts; no tabs) and returns it.
  */
-export const openWorkspace = async (
-  page: Page,
-  tab: "Artifacts" | "Sandbox"
-) => {
+export const openWorkspace = async (page: Page): Promise<Locator> => {
   const toggle = chatHeader(page).getByRole("button", { name: "Workspace" });
   if ((await toggle.getAttribute("aria-pressed")) !== "true") {
     await toggle.click();
   }
-  await page.getByRole("tab", { name: tab }).click();
+  return page.getByRole("region", { name: "Workspace" });
 };
 
 const ANY_TARGET = /^Model or agent:/;
