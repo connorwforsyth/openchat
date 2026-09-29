@@ -68,3 +68,47 @@ After trying the M1 demo, Connor asked for two things.
 - A start that fails and then succeeds recovers without a Reset.
 - The Docker fallback works.
 - Mention resolution and the stale-edit guard have unit tests.
+
+## Results
+
+Built on `t/056-workspace-always-on`, not yet pushed.
+
+- **Tools always offered.** `chatSandboxTools` (`packages/server/src/runs/turn.ts`) asks for the `default` provider on every plain chat, unless `options.sandbox === "off"`. When the chat has tools, `modelTurn` adds `WORKSPACE_INSTRUCTIONS` (`server/runs/sandbox.ts`): the workspace is `/work`, it shows in the Files panel, and the model must never ask the user to run commands.
+- **`ensureWorkspace`** lives in `packages/sandbox/src/handlers/turn-tools.ts`, so `handlers/sandbox.ts` is untouched. It builds on the exported `createConversationSandbox` and `resetSandbox`:
+  - no row → create one;
+  - `failed` or `destroyed` → restart in place (same id and provider);
+  - `stopped` or `ready` → attach. A just-bash workspace the process lost is restarted.
+  - `provisioning` → attach only.
+
+  `lazySandbox` forgets a failed start, or a sandbox destroyed under it, so the next call in the same turn tries again.
+- **Docker fallback.** A new workspace probes the wanted provider's `isolation()`. If it fails, the workspace uses `FALLBACK` (just-bash). An existing workspace keeps its provider: through a runner outage the row stays `ready` and nothing is reset.
+- **Tool names are unchanged.** Descriptions and error text now say "workspace", `/work` and the Files panel. `destroyed` no longer tells the model to ask the user to create a sandbox.
+- **Stale-edit guard.** A `write`/`edit` proposal stamps the SHA-256 of its base file into the patch's `---` header, the unified-diff timestamp slot. The contract has no field for it, and `normalisePatch` drops everything before the first `@@`, so the review UI is unaffected. On resume after approval, a hash mismatch returns an error telling the model to read the file again. The existing patch comparison stays as a backstop.
+- **`@file` mentions.**
+  - `packages/ai/src/messages/workspace-file.ts` has `WORKSPACE_FILE_DATA`, `workspaceFileRefSchema` and `workspaceFileRefs`.
+  - `run-transport.ts` `userParts` keeps valid `data-workspace-file` parts.
+  - `server/runs/workspace-context.ts` resolves them: files up to 32 KB are inlined as `<workspace-file path=…>`, with 128 KB per message in total. Larger files get a note to use `read`; missing, binary or unreadable files get a note. It never fails the turn.
+  - The executor (not owned here) passes stored messages through `convertToModelMessages`, which drops data parts. So the resolved text goes into the turn's **instructions**, only for the message the run answers. It is re-read on every pass, so the model sees current contents.
+- **Outside Owns, needed for the above:** a `./messages/workspace-file` export in `packages/ai/package.json`, `@workspace/ai` as a dependency of `packages/client`, and the matching `bun.lock` line.
+- **PLAN.md D7** now describes the always-on workspace.
+
+**Tests:**
+- `turn-tools.test.ts`:
+  - a plain chat gets the tools and its first call creates the workspace;
+  - `off` means no tools;
+  - mentions reach the prompt;
+  - a start that fails and then succeeds recovers without a Reset;
+  - a lost just-bash workspace restarts;
+  - Docker down means a new workspace is just-bash;
+  - an existing Docker workspace keeps its id, provider and files through an outage.
+- `tools.test.ts`: the hash stamp still parses in code-ui, and an approved edit is refused after a user edit outside the hunk's context.
+- `workspace-context.test.ts`, `workspace-file.test.ts`, and a `run-transport.test.ts` case.
+
+**Checks:**
+- Gate: 82/82. Earlier runs timed out in `db` and `auth` tests under load average ~150; both pass alone.
+- E2E: the sandbox spec passes (4/4 with setup), and the full suite passes (25/25).
+
+**Left for later:**
+- 059: `getConversationSandbox`/panel reads could use `ensureWorkspace`. A row stuck in `provisioning` after a crash still only attaches.
+- 062 (composer): send `data-workspace-file` parts next to the `@path` text.
+- The model's `tools` capability isn't consulted before offering sandbox tools. `TurnResolverDeps.config` has no `providers`, and `file_search` works the same way today.
