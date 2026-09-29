@@ -311,6 +311,46 @@ describe("sandbox tools", () => {
     expect(await text(sandbox, "src/billing.ts")).toContain("return sum + 1;");
   });
 
+  it("tells onChanged about a write or edit that landed, and nothing else", async () => {
+    const sandbox = createMemorySandbox({ files: { "a.html": "a\n" }, id });
+    const changed: string[] = [];
+    let decision: ApprovalDecision | undefined;
+    const tools = createSandboxTools({
+      onChanged: (path) => {
+        changed.push(path);
+        return Promise.resolve();
+      },
+      reviewFor: () => decision && { decision },
+      sandbox,
+    });
+    await run(tools, "write", { content: "<p>hi</p>\n", path: "index.html" });
+    await run(tools, "edit", {
+      newString: "b",
+      oldString: "a",
+      path: "a.html",
+    });
+    expect(changed).toEqual(["index.html", "a.html"]);
+
+    // Unchanged, rejected, or failed: nothing landed.
+    await run(tools, "write", { content: "<p>hi</p>\n", path: "index.html" });
+    decision = { decision: "reject" };
+    await run(tools, "write", { content: "other\n", path: "index.html" });
+    decision = undefined;
+    await run(tools, "edit", {
+      newString: "c",
+      oldString: "missing",
+      path: "a.html",
+    });
+    expect(changed).toEqual(["index.html", "a.html"]);
+  });
+
+  it("points static pages away from the preview tool", () => {
+    const tools = createSandboxTools({ sandbox: createMemorySandbox({ id }) });
+    expect(tools.write?.description).toContain("need no server");
+    expect(tools.preview?.description).toContain("don't start a server");
+    expect(tools.preview?.description).toContain("4747");
+  });
+
   it("explains that previews need Docker", async () => {
     const tools = createSandboxTools({
       sandbox: await createJustBashSandbox({ id }),
