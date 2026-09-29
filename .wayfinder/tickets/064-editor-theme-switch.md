@@ -2,8 +2,8 @@
 id: "064"
 title: "Workspace editor text disappears after switching dark to light"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -46,3 +46,7 @@ Branch `t/064-editor-theme-switch`, not pushed. `status` stays `open`.
 - `e2e/README.md`: the echo ends with each workspace file the turn read in, as `[path: content]`.
 
 **Checks.** `gate.sh`: 82/82. E2E (`E2E_PORT=3491`): 32/32. Before/after screenshots of `/dev/sandbox` (dark, type a line, then light): the text is invisible before and readable after.
+
+## Resolution (2026-09-30, loop)
+
+Merged in [PR #54](https://github.com/connorwforsyth/openchat/pull/54). The editor applies Shiki `colorReplacements` (placeholder colours were near-transparent) and the host sets `color-scheme`. There's a unit test and an e2e theme-switch contrast test. e2e 32/32, gate 82/82.
