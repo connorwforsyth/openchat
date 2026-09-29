@@ -70,3 +70,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-09-28 · demo: sign-in from 127.0.0.1 failed (invalid origin) · added 054, started
 - 2026-09-28 · 054 closed · PR #44 · loopback origins · e2e 25/25, 82/82
 - 2026-09-29 · Connor asked for a template-inspired UI cleanup and a composer-first workspace (no terminal) · added 055–062; 026 waits on them
+- 2026-09-29 · 055 PR #45 opened (contract + server stubs, gate 82/82), waiting on Connor · 061 started

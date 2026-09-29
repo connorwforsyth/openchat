@@ -3,7 +3,7 @@ id: "061"
 title: "Composer file features (composer package only)"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: []
 ---
 

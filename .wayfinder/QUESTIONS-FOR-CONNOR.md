@@ -5,7 +5,7 @@ Collected by agents working the map, so you can answer them in one sitting. Each
 ## Waiting on you now
 
 1. **M1 demo ([026](tickets/026-m1-demo-gate.md)):** run the `PLAN.md` §11 M1 checks yourself and close the ticket, or list what fails. Closing it lets us chart the waves in a `/wayfinder` session.
-2. **Contract PR for workspace files ([055](tickets/055-contract-workspace-files.md)):** `sandbox.writeFile`, `importFile`, `deleteFile` and an `etag` on `readFile`, all additive. The loop opens the PR; you review and merge it. 059 and 060 wait on it.
+2. **Contract PR for workspace files ([055](tickets/055-contract-workspace-files.md)):** `sandbox.writeFile`, `importFile`, `deleteFile` and an `etag` on `readFile`, all additive. Open as [PR #45](https://github.com/connorwforsyth/openchat/pull/45), with server stubs so it builds on its own. Please review and merge. Also decide: keep `deleteFile.recursive`? And is it OK that `runOptions.sandbox: on` now means the same as `auto`? 059 and 060 wait on it.
 3. **Agent file changes in plain chats:** today `write`/`edit` always ask for approval. Suggested: creating a new file goes ahead without asking, and changing an existing file asks. *Default until you answer: keep asking.*
 4. **Theme preset (002):** the scaffold uses shadcn's default preset. When you've picked one on ui.shadcn.com/create, paste the preset code here and the loop runs `shadcn apply`.
 5. **Defaults below:** each item under "From the loop" has a default the loop already applied or will apply. Only answer the ones you disagree with.
