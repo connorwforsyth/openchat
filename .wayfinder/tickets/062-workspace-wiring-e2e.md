@@ -2,8 +2,8 @@
 id: "062"
 title: "Wire it together, plus e2e"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: ["058", "059", "060", "061"]
 ---
 
@@ -138,3 +138,7 @@ Branch `t/062-workspace-wiring-e2e`, not pushed. `status` stays `open`.
 - After switching the colour scheme at runtime (dark → light), the panel editor's text rendered invisible until the file was reopened (seen in screenshots; not investigated). It looks like the code editor's theme, which is outside this ticket.
 - `e2e/README.md` still describes the mock's echo without the mentioned files (not in Owns).
 - The composer lists at most what `listFiles` returns (recursive, no cap). A huge workspace means a big `@` list, although `filterMentions` shows 8 at most.
+
+## Resolution (2026-09-30, loop)
+
+Merged in [PR #53](https://github.com/connorwforsyth/openchat/pull/53). Composer ↔ workspace wiring (`@file`, `/new-file`, `/open`, `/preview`, attachments imported), Open buttons, a "Stopped" line, tree re-selection, a fix for editor typing firing shortcuts, and `workspace.spec.ts` (8 tests). e2e 31/31, gate 82/82. Left: the editor text goes invisible after a dark→light switch ([064](064-editor-theme-switch.md)); e2e README; the composer file list isn't capped.
