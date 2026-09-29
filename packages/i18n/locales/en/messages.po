@@ -114,6 +114,7 @@ msgstr "{suggestionCount, plural, one {# suggestion} other {# suggestions}}"
 msgid "{used} of {limit}"
 msgstr "{used} of {limit}"
 
+#: ../chat-ui/src/chat/chat-screen.tsx
 #: ../chat-ui/src/workspace/use-workspace-files.ts
 msgid "A file with that name already exists."
 msgstr "A file with that name already exists."
@@ -1134,8 +1135,8 @@ msgid "Enter an email address."
 msgstr "Enter an email address."
 
 #: ../composer/src/components/composer.tsx
-msgid "Enter sends and Shift+Enter adds a line. Type / for prompts and @ to mention someone."
-msgstr "Enter sends and Shift+Enter adds a line. Type / for prompts and @ to mention someone."
+msgid "Enter sends and Shift+Enter adds a line. Type / for commands and prompts, and @ to mention someone or a file."
+msgstr "Enter sends and Shift+Enter adds a line. Type / for commands and prompts, and @ to mention someone or a file."
 
 #: ../ui/src/components/ai-elements/tool.tsx
 msgid "Error"
@@ -2538,10 +2539,6 @@ msgstr "Sampled scoring is off: this server forbids it."
 msgid "Sandbox"
 msgstr "Sandbox"
 
-#: ../../apps/web/app/dev/sandbox/page.tsx
-msgid "Sandbox panel"
-msgstr "Sandbox panel"
-
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Sandboxes are turned off on this server."
 msgstr "Sandboxes are turned off on this server."
@@ -2879,6 +2876,10 @@ msgstr "Start dictation"
 msgid "Start over"
 msgstr "Start over"
 
+#: ../chat-ui/src/chat/chat-screen.tsx
+msgid "Start the app and open a preview"
+msgstr "Start the app and open a preview"
+
 #: ../library-ui/src/components/agent-form.tsx
 msgid "Starter {position}"
 msgstr "Starter {position}"
@@ -2903,6 +2904,10 @@ msgstr "Stop dictation"
 #: ../shortcuts/src/registry.ts
 msgid "Stop generating"
 msgstr "Stop generating"
+
+#: ../chat-ui/src/conversation/tool-status.tsx
+msgid "Stopped"
+msgstr "Stopped"
 
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "Stored encrypted and never shown again; only its last characters are."
@@ -3095,8 +3100,8 @@ msgid "The budget couldn't be saved. Try again."
 msgstr "The budget couldn't be saved. Try again."
 
 #: ../../apps/web/app/dev/sandbox/page.tsx
-msgid "The chat sandbox panel over a just-bash workspace that runs entirely in this browser tab: simulated bash, an in-memory filesystem, no server and no network. Reloading the page starts over."
-msgstr "The chat sandbox panel over a just-bash workspace that runs entirely in this browser tab: simulated bash, an in-memory filesystem, no server and no network. Reloading the page starts over."
+msgid "The chat's Workspace panel (files, editor, preview and artifacts) over a just-bash workspace that runs entirely in this browser tab: simulated bash, an in-memory filesystem, no server and no network. Reloading the page starts over."
+msgstr "The chat's Workspace panel (files, editor, preview and artifacts) over a just-bash workspace that runs entirely in this browser tab: simulated bash, an in-memory filesystem, no server and no network. Reloading the page starts over."
 
 #: ../composer/src/components/context-chip.tsx
 msgid "The context can't change after the first message."
@@ -3686,6 +3691,10 @@ msgstr "Workspace artifacts"
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Workspace contents"
 msgstr "Workspace contents"
+
+#: ../../apps/web/app/dev/sandbox/page.tsx
+msgid "Workspace panel"
+msgstr "Workspace panel"
 
 #: ../../apps/web/app/dev/ai-elements/demo.tsx
 msgid "Would send “{text}” with {fileCount, plural, one {# attachment} other {# attachments}}."

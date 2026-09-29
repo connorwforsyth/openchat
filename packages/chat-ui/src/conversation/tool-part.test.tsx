@@ -243,6 +243,22 @@ describe("other tools", () => {
     expect(open.getAttribute("target")).toBe("_blank");
   });
 
+  it("opens a preview in the app when the host can", async () => {
+    const onOpenPreview = vi.fn();
+    renderTool(
+      call("preview", { port: 3000 }),
+      success("preview", {
+        port: 3000,
+        status: "exposed",
+        url: "http://localhost:4100/",
+      }),
+      { onOpenPreview }
+    );
+    expect(screen.queryByRole("link", { name: "Open" })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Open" }));
+    expect(onOpenPreview).toHaveBeenCalledWith("http://localhost:4100/");
+  });
+
   it("searches files and the web", () => {
     renderTool(
       call("file_search", { query: "budget" }),

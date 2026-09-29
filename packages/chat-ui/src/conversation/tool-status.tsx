@@ -23,13 +23,14 @@ import {
   ToolInput,
   ToolOutput,
 } from "@workspace/ui/components/ai-elements/tool";
-import { buttonVariants } from "@workspace/ui/components/button";
+import { Button, buttonVariants } from "@workspace/ui/components/button";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@workspace/ui/components/collapsible";
 import { cn } from "@workspace/ui/lib/utils";
+import { useCallback } from "react";
 
 import type {
   ToolDetail,
@@ -141,10 +142,29 @@ function Details({
   }
 }
 
+function PreviewButton({
+  onOpen,
+  url,
+}: {
+  readonly onOpen: (url: string) => void;
+  readonly url: string;
+}) {
+  const open = useCallback(() => onOpen(url), [onOpen, url]);
+  return (
+    <Button onClick={open} size="xs" variant="ghost">
+      <MonitorIcon aria-hidden data-icon="inline-start" />
+      <Trans>Open</Trans>
+    </Button>
+  );
+}
+
 export function ToolStatus({
+  onOpenPreview,
   stopped = false,
   summary,
 }: {
+  /** Opens a preview in the app; without it, Open is a link to a new tab. */
+  readonly onOpenPreview?: (url: string) => void;
   /**
    * A running call whose message has stopped streaming: the run ended
    * without its result, so it reads "Stopped" instead of spinning forever.
@@ -185,7 +205,10 @@ export function ToolStatus({
             className="size-3.5 shrink-0 opacity-0 transition-[opacity,transform] duration-(--motion-fast) ease-motion-out group-hover:opacity-100 group-focus-visible:opacity-100 group-data-panel-open:rotate-180 group-data-panel-open:opacity-100"
           />
         </CollapsibleTrigger>
-        {summary.previewUrl ? (
+        {summary.previewUrl && onOpenPreview ? (
+          <PreviewButton onOpen={onOpenPreview} url={summary.previewUrl} />
+        ) : null}
+        {summary.previewUrl && !onOpenPreview ? (
           <a
             className={buttonVariants({ size: "xs", variant: "ghost" })}
             href={summary.previewUrl}

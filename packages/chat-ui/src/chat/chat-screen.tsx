@@ -6,7 +6,11 @@ import {
   type ComposerLoaderProps,
 } from "@workspace/composer/components/composer-loader";
 import { ContextSummary } from "@workspace/composer/components/context-chip";
-import type { ComposerValue, ContextOption } from "@workspace/composer/schemas";
+import type {
+  ComposerCommand,
+  ComposerValue,
+  ContextOption,
+} from "@workspace/composer/schemas";
 import type { ConversationId } from "@workspace/contract/schemas/common";
 import type { Participant } from "@workspace/contract/schemas/conversations";
 import type {
@@ -23,8 +27,10 @@ import {
   TooltipTrigger,
 } from "@workspace/ui/components/tooltip";
 import {
+  lazy,
   type ReactNode,
   type Ref,
+  Suspense,
   useCallback,
   useImperativeHandle,
   useMemo,
@@ -67,6 +73,7 @@ import { useShortcuts } from "../shortcuts/use-shortcuts";
 import { ChatSidebar, type ChatSidebarProps } from "../sidebar/chat-sidebar";
 import { LazyWorkspacePanel } from "../workspace/lazy-workspace-panel";
 import type { WorkspaceFilesSource } from "../workspace/model/client";
+import { toSandboxPath } from "../workspace/model/tree";
 import type { WorkspaceArtifacts } from "../workspace/workspace-panel";
 
 // The whole chat screen, presentational: the app shell with the sidebar,
@@ -94,8 +101,18 @@ export interface ChatScreenConversation {
 /** The chat's Workspace panel (060), controlled by the host. */
 export interface ChatScreenWorkspace {
   readonly artifacts: WorkspaceArtifacts;
+  /**
+   * Whether the workspace can serve a preview (a just-bash one can't): the
+   * composer offers `/preview` only then.
+   */
+  readonly canPreview?: boolean;
   readonly files: WorkspaceFilesSource;
   readonly onSelect: (selection: WorkspaceSelection | null) => void;
+  /**
+   * The workspace's files, relative to it (`src/a.ts`), for the composer's
+   * `@` mentions and `/open`.
+   */
+  readonly paths?: readonly string[];
   /** What the panel last had selected; the section it's on decides what shows. */
   readonly selection: WorkspaceSelection | null;
 }
@@ -142,6 +159,33 @@ export interface ChatScreenProps {
 type ChatScreenStreamingId = Message["id"] | null;
 
 const FOCUSABLE_INPUT = '[contenteditable="true"], textarea';
+
+// "New file" from the composer's `/new-file`: loaded the first time it's
+// asked for, like the panel it belongs with (D27).
+const NewFileDialog = lazy(() =>
+  import("../workspace/new-file-dialog").then((module) => ({
+    default: module.NewFileDialog,
+  }))
+);
+
+const FILE_COMMANDS: readonly ComposerCommand[] = ["new-file", "open"];
+const ALL_COMMANDS: readonly ComposerCommand[] = [...FILE_COMMANDS, "preview"];
+const WHITESPACE = /\s/;
+
+/**
+ * Paths the composer can offer: its `@` and `/` triggers are single words,
+ * so a path with a space in it can't be typed or matched.
+ */
+const composerPaths = (paths: readonly string[] | undefined) =>
+  (paths ?? []).filter((path) => !WHITESPACE.test(path));
+
+/** A composer value that says only `text`. */
+const textValue = (text: string): ComposerValue => ({
+  attachments: [],
+  mentions: [],
+  templateId: null,
+  text,
+});
 
 function ChatScreenBody({
   actions,
@@ -302,9 +346,27 @@ function ChatScreenBody({
     openFile,
     openPreview,
   ]);
+  // A preview line's Open shows the recorded preview in the panel; one the
+  // record doesn't have (yet) opens in a new tab, as a link would.
+  const openPreviewAt = useCallback(
+    (url: string) => {
+      if (preview) {
+        openPreview();
+      } else {
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
+    },
+    [openPreview, preview]
+  );
+  const chatWorkspace = files.kind === "chat";
   const conversationActions = useMemo(
-    () => ({ ...actions, onOpenArtifact: openArtifact, onOpenFile: openFile }),
-    [actions, openArtifact, openFile]
+    () => ({
+      ...actions,
+      onOpenArtifact: openArtifact,
+      onOpenFile: openFile,
+      ...(chatWorkspace ? { onOpenPreview: openPreviewAt } : {}),
+    }),
+    [actions, chatWorkspace, openArtifact, openFile, openPreviewAt]
   );
 
   const toggleWorkspace = useCallback(
@@ -312,25 +374,107 @@ function ChatScreenBody({
     [lastPanel, layout.panel, setPanel]
   );
 
+  // The composer's file commands (061) act on the panel; they exist once
+  // the chat does, since its first message creates the workspace.
+  const { disabled: composerDisabled, onSubmit } = composer;
+  const [newFile, setNewFile] = useState({ asked: false, open: false });
+  const setNewFileOpen = useCallback(
+    (open: boolean) => setNewFile({ asked: true, open }),
+    []
+  );
+  const alreadyExists = t`A file with that name already exists.`;
+  const startPreview = t`Start the app and open a preview`;
+  const createFile = useCallback(
+    async (path: string): Promise<string | null> => {
+      if (files.kind !== "chat") {
+        return null;
+      }
+      const written = await files.client.writeFile({
+        content: "",
+        ifMatch: null,
+        path: toSandboxPath(path),
+      });
+      if (!written.ok) {
+        return written.error.kind === "failed"
+          ? written.error.message
+          : alreadyExists;
+      }
+      files.onChanged();
+      openFile(path);
+      return null;
+    },
+    [alreadyExists, files, openFile]
+  );
+  const runCommand = useCallback(
+    (command: ComposerCommand, path?: string) => {
+      switch (command) {
+        case "new-file":
+          setNewFileOpen(true);
+          return;
+        case "open":
+          if (path) {
+            openFile(path);
+          } else {
+            setPanel("files");
+          }
+          return;
+        case "preview":
+          // Nothing to show yet: ask the agent to start one.
+          if (preview) {
+            openPreview();
+          } else {
+            onSubmit(textValue(startPreview));
+          }
+          return;
+        default:
+          return command satisfies never;
+      }
+    },
+    [
+      onSubmit,
+      openFile,
+      openPreview,
+      preview,
+      setNewFileOpen,
+      setPanel,
+      startPreview,
+    ]
+  );
+  const { canPreview = false, paths } = workspace;
+  const workspaceComposer = useMemo(
+    () =>
+      chatWorkspace
+        ? {
+            commands: canPreview ? ALL_COMMANDS : FILE_COMMANDS,
+            files: composerPaths(paths),
+            onCommand: runCommand,
+          }
+        : null,
+    [canPreview, chatWorkspace, paths, runCommand]
+  );
+
   // The context is chosen in the composer until the first message locks it;
   // after that it's a fact about the chat, shown in the Share menu.
   const { contextLocked } = conversation;
   const composerProps = useMemo<ComposerLoaderProps>(
-    () =>
-      contextLocked
-        ? composer
+    () => ({
+      ...composer,
+      ...workspaceComposer,
+      ...(contextLocked
+        ? {}
         : {
-            ...composer,
             context: conversation.context,
             contexts: conversation.contextOptions,
             onContextChange: conversation.onContextChange,
-          },
+          }),
+    }),
     [
       composer,
       contextLocked,
       conversation.context,
       conversation.contextOptions,
       conversation.onContextChange,
+      workspaceComposer,
     ]
   );
   const lockedContext = contextLocked ? (
@@ -341,17 +485,8 @@ function ChatScreenBody({
   ) : undefined;
 
   // A suggestion is sent as the first message, as if typed.
-  const { disabled: composerDisabled, onSubmit } = composer;
   const sendSuggestion = useCallback(
-    (prompt: string) => {
-      const value: ComposerValue = {
-        attachments: [],
-        mentions: [],
-        templateId: null,
-        text: prompt,
-      };
-      onSubmit(value);
-    },
+    (prompt: string) => onSubmit(textValue(prompt)),
     [onSubmit]
   );
 
@@ -496,6 +631,15 @@ function ChatScreenBody({
         <ComposerLoader {...composerProps} />
       </div>
       <ShortcutHelp onOpenChange={setHelpOpen} open={helpOpen} />
+      {newFile.asked && files.kind === "chat" ? (
+        <Suspense fallback={null}>
+          <NewFileDialog
+            onCreate={createFile}
+            onOpenChange={setNewFileOpen}
+            open={newFile.open}
+          />
+        </Suspense>
+      ) : null}
     </AppShell>
   );
 }

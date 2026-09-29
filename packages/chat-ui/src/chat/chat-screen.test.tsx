@@ -2,6 +2,7 @@ import { act, cleanup, screen, waitFor, within } from "@testing-library/react";
 import { contextOptionsFromMe } from "@workspace/composer/options";
 import { fixtureId, me, teamPlatform } from "@workspace/contract/fixtures";
 import type { ChatContext } from "@workspace/contract/schemas/tenancy";
+import { err, ok } from "@workspace/shared/result";
 import { createRef } from "react";
 import {
   afterEach,
@@ -23,6 +24,7 @@ import {
 import { localBranchPath } from "../model/branch";
 import { SHELL_LAYOUT_STORAGE_KEY } from "../shell/use-shell-layout";
 import { modKey, renderWithI18n } from "../testing/render";
+import type { WorkspaceClient } from "../workspace/model/client";
 
 import {
   ChatScreen,
@@ -399,6 +401,126 @@ describe("the Workspace panel (060)", () => {
     expect(
       await screen.findByRole("region", { name: "Workspace" })
     ).toBeTruthy();
+  });
+});
+
+const NEW_FILE = /New file/;
+const PREVIEW = /^Preview/;
+const OPEN_FILE = /Open file/;
+
+describe("composer file commands (062)", () => {
+  /** A workspace client whose writes all succeed; only writes are exercised. */
+  const writingClient = () => {
+    const fail = () => Promise.resolve(err("unused"));
+    return {
+      deleteFile: vi.fn(fail),
+      importFile: vi.fn(fail),
+      listFiles: vi.fn(() => Promise.resolve(ok([]))),
+      readFile: vi.fn(fail),
+      reset: vi.fn(fail),
+      writeFile: vi.fn(({ path: written }: { path: string }) =>
+        Promise.resolve(ok({ etag: "a".repeat(64), path: written, size: 0 }))
+      ),
+    } satisfies WorkspaceClient;
+  };
+
+  const inChat = (
+    overrides: Partial<ChatScreenProps["workspace"]> = {},
+    composer: Partial<ChatScreenProps["composer"]> = {}
+  ) => {
+    const base = props();
+    const client = writingClient();
+    const onChanged = vi.fn();
+    const onSelect = vi.fn();
+    const onSubmit = vi.fn();
+    renderWithI18n(
+      <ChatScreen
+        {...props({
+          composer: { onSubmit, ...composer },
+          workspace: {
+            ...base.workspace,
+            files: { client, kind: "chat", onChanged, sandbox: null },
+            onSelect,
+            ...overrides,
+          },
+        })}
+      />
+    );
+    return { client, onChanged, onSelect, onSubmit };
+  };
+
+  it("/new-file asks for a name, creates the file empty and opens it", async () => {
+    const { client, onChanged, onSelect } = inChat();
+    await userEvent.click(await editorReady());
+    await userEvent.keyboard("/new");
+    await screen.findByRole("option", { name: NEW_FILE });
+    await userEvent.keyboard("{Enter}");
+
+    const dialog = await screen.findByRole("dialog", { name: "New file" });
+    await userEvent.type(
+      within(dialog).getByLabelText("Name"),
+      "notes.md{Enter}"
+    );
+    await waitFor(() =>
+      expect(client.writeFile).toHaveBeenCalledWith({
+        content: "",
+        ifMatch: null,
+        path: "/work/notes.md",
+      })
+    );
+    await waitFor(() =>
+      expect(onSelect).toHaveBeenCalledWith({ kind: "file", path: "notes.md" })
+    );
+    expect(onChanged).toHaveBeenCalled();
+  });
+
+  it("/open lists the workspace's files, leaving out names with spaces", async () => {
+    const { onSelect } = inChat({ paths: ["src/app.ts", "my notes.md"] });
+    await userEvent.click(await editorReady());
+    await userEvent.keyboard("/open");
+    await screen.findByRole("option", { name: OPEN_FILE });
+    await userEvent.keyboard("{Enter}");
+    const files = await screen.findByRole("listbox", { name: "Files" });
+    expect(within(files).getAllByRole("option")).toHaveLength(1);
+    await userEvent.keyboard("{Enter}");
+    expect(onSelect).toHaveBeenCalledWith({ kind: "file", path: "src/app.ts" });
+  });
+
+  it("/preview asks the agent for one when nothing is recorded", async () => {
+    const { onSubmit } = inChat({ canPreview: true });
+    await userEvent.click(await editorReady());
+    await userEvent.keyboard("/prev");
+    await userEvent.click(await screen.findByRole("option", { name: PREVIEW }));
+    expect(onSubmit).toHaveBeenCalledWith({
+      attachments: [],
+      mentions: [],
+      templateId: null,
+      text: "Start the app and open a preview",
+    });
+  });
+
+  it("has no /preview on a workspace that can't serve one, and no commands before the chat exists", async () => {
+    inChat({ canPreview: false });
+    await userEvent.click(await editorReady());
+    await userEvent.keyboard("/");
+    await screen.findByRole("option", { name: NEW_FILE });
+    expect(screen.queryByRole("option", { name: PREVIEW })).toBeNull();
+    cleanup();
+
+    renderWithI18n(
+      <ChatScreen
+        {...newChat({
+          workspace: { ...props().workspace, files: { kind: "new-chat" } },
+        })}
+      />
+    );
+    await userEvent.click(await editorReady());
+    await userEvent.keyboard("/new");
+    // Nothing to list: no prompts here, and no commands yet.
+    await expect
+      .poll(() => screen.queryByRole("option", { name: NEW_FILE }))
+      .toBeNull();
+    expect(screen.queryByRole("listbox")).toBeNull();
   });
 });
 

@@ -31,7 +31,7 @@ export const ToolPart = memo(function ToolPartInner({
   /** Whether the message holding the call is still being written. */
   readonly streaming: boolean;
 }) {
-  const { onDecide } = useConversationActions();
+  const { onDecide, onOpenPreview } = useConversationActions();
   const summary = useMemo(() => toolSummary(call, result), [call, result]);
   const decide = useCallback(
     (decision: ApprovalDecision) => onDecide?.(call.toolCallId, decision),
@@ -44,6 +44,7 @@ export const ToolPart = memo(function ToolPartInner({
         <FileChangeCard change={summary.detail.change} />
       ) : (
         <ToolStatus
+          onOpenPreview={onOpenPreview}
           stopped={!streaming && summary.status === "running"}
           summary={summary}
         />
