@@ -5,6 +5,21 @@ an oRPC contract for the procedures, and the OpenAPI 3.1 document generated
 from both. Frozen for the M1 workstreams; changes follow the process at the
 end of this file.
 
+## Changes (2026-09-29, 055)
+
+The chat's Files workspace: every chat gets one, created silently on first
+use, and the composer and panel create, edit, import and delete files in it
+(no terminal in the UI). The server (059) and the web app (060) implement it.
+
+| Change | Who needs it | Compatibility |
+|---|---|---|
+| `sandbox.writeFile`: `POST /conversations/{conversationId}/sandbox/files`, `{ conversationId, path, content, encoding (utf8 by default), ifMatch? }` → `{ path, size, etag }`. `ifMatch: null` only creates (`CONFLICT` `already_exists`); an etag only replaces that version (`CONFLICT` `version_mismatch`); omitted, it overwrites. At most 5 MiB decoded (`SANDBOX_WRITE_MAX_BYTES`; over it is `BAD_REQUEST`). | The panel's editor and `/` file commands | New procedure. The server's `implement(contract)` router needs a handler before it typechecks. |
+| `sandbox.importFile`: `POST /conversations/{conversationId}/sandbox/imports`, `{ conversationId, fileId, path? }` → `{ path, size, etag }`. Copies an upload into the workspace; a taken path gets a free name, never a conflict. | Dropping or attaching files into the workspace | New procedure, as above. |
+| `sandbox.deleteFile`: `DELETE /conversations/{conversationId}/sandbox/files`, `{ conversationId, path, recursive (false by default) }` → 204. A non-empty directory without `recursive` is `CONFLICT` `not_empty`. The path goes in the body. | Deleting from the file tree | New procedure, as above. |
+| `readFile` output has `etag`: the lowercase hex SHA-256 of the file | Saving an edit only over the version that was read | New required output field: the server's `readFile` must compute it. Clients that ignore it are unaffected. |
+| The three new routes are keyed by conversation and can answer `FEATURE_DISABLED`; each creates the workspace on first use. `get` stays read-only. | A chat that never pressed "Create sandbox" | Additive. |
+| `runOptions.sandbox`: `auto` now means the file tools are on whenever sandboxes are enabled; `on` means the same; `off` withholds them for the turn. `exec` is documented as for the API and tests. | Plain chats getting file tools without a panel click | Documentation only; the schema is unchanged. Before, `auto` only used an existing sandbox. |
+
 ## Changes (2026-09-27, 042)
 
 Gaps found wiring the server (038) and the web app (039). All additive
@@ -54,7 +69,7 @@ Schemas, by file:
 | `feedback`, `keys`, `usage` | Thumbs feedback; provider keys (write-only secrets, scopes); transactions, summaries and budgets. |
 | `health` | The `meta.health` report: database and job-queue checks. |
 | `decider` | Decider questions, answers, state and the `decision_log` entry. The port itself is in `@workspace/ai`. |
-| `sandbox`, `search`, `meta`, `models` | Sandbox records and exec shapes; chat search and web search results; `me`, public config, model refs and picker options. |
+| `sandbox`, `search`, `meta`, `models` | Sandbox records, exec shapes and workspace file writes; chat search and web search results; `me`, public config, model refs and picker options. |
 
 Procedure groups: `conversations`, `messages`, `runs`, `library`, `mcp`,
 `orgs`, `teams`, `grants`, `shareLinks`, `files`, `artifacts`, `memory`,

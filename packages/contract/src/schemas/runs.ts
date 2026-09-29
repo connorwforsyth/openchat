@@ -153,6 +153,13 @@ const toggleSchema = z.enum(["auto", "on", "off"]);
 /** Per-turn switches from the composer. `auto` lets the Decider and agent config choose. */
 export const runOptionsSchema = z.object({
   reasoningEffort: modelParametersSchema.shape.reasoningEffort,
+  /**
+   * The chat's file tools (the Files workspace, 055). `auto` gives them to
+   * every turn whenever the instance has sandboxes enabled, creating the
+   * workspace on first use, so a plain chat never needs a "create" step
+   * first. `on` means the same and stays for older clients; `off` withholds
+   * them for this turn.
+   */
   sandbox: toggleSchema.default("auto"),
   webSearch: toggleSchema.default("auto"),
 });

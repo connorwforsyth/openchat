@@ -100,6 +100,60 @@ describe("contract", () => {
   });
 });
 
+describe("workspace file routes (055)", () => {
+  const route = (name: keyof typeof contract.sandbox) => {
+    const { errorMap, route: r } = contract.sandbox[name]["~orpc"];
+    return {
+      errors: Object.keys(errorMap).sort(),
+      method: r.method,
+      path: r.path,
+    };
+  };
+
+  it("writes, imports and deletes by conversation, so the workspace can start on first use", () => {
+    expect(route("writeFile")).toMatchObject({
+      method: "POST",
+      path: "/conversations/{conversationId}/sandbox/files",
+    });
+    expect(route("importFile")).toMatchObject({
+      method: "POST",
+      path: "/conversations/{conversationId}/sandbox/imports",
+    });
+    expect(route("deleteFile")).toMatchObject({
+      method: "DELETE",
+      path: "/conversations/{conversationId}/sandbox/files",
+    });
+    // Reading the workspace never creates it.
+    expect(route("get").method).toBe("GET");
+  });
+
+  it("can say the feature is off, and conflicts where a version or path can", () => {
+    expect(route("writeFile").errors).toEqual(
+      expect.arrayContaining(["CONFLICT", "FEATURE_DISABLED"])
+    );
+    expect(route("deleteFile").errors).toEqual(
+      expect.arrayContaining(["CONFLICT", "FEATURE_DISABLED"])
+    );
+    // A taken path gets a free name, so an import never conflicts.
+    expect(route("importFile").errors).toContain("FEATURE_DISABLED");
+    expect(route("importFile").errors).not.toContain("CONFLICT");
+  });
+
+  it("returns an etag with every read", () => {
+    const output = contract.sandbox.readFile["~orpc"].outputSchema;
+    const read = {
+      content: "hi",
+      encoding: "utf8",
+      path: "a.txt",
+      size: 2,
+    };
+    expect(output?.["~standard"].validate(read)).toHaveProperty("issues");
+    expect(
+      output?.["~standard"].validate({ ...read, etag: "a".repeat(64) })
+    ).not.toHaveProperty("issues");
+  });
+});
+
 describe("openapi.json", () => {
   const committedPath = fileURLToPath(
     new URL("../openapi.json", import.meta.url)
@@ -155,6 +209,24 @@ describe("openapi.json", () => {
       "GET /health",
       "GET /share/{token}",
     ]);
+  });
+
+  it("documents the workspace file routes", async () => {
+    const paths = (await generateOpenApi()).paths ?? {};
+    expect(
+      paths["/conversations/{conversationId}/sandbox/files"]?.post?.operationId
+    ).toBe("sandbox.writeFile");
+    expect(
+      paths["/conversations/{conversationId}/sandbox/files"]?.delete
+        ?.operationId
+    ).toBe("sandbox.deleteFile");
+    expect(
+      paths["/conversations/{conversationId}/sandbox/imports"]?.post
+        ?.operationId
+    ).toBe("sandbox.importFile");
+    expect(
+      JSON.stringify(paths["/sandboxes/{id}/file"]?.get?.responses?.["200"])
+    ).toContain('"etag"');
   });
 
   it("names shared shapes as components", async () => {

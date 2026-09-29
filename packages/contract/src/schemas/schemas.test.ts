@@ -69,6 +69,7 @@ const convId = conversation.id;
 const msgId = userMessage.id;
 const itemId = agentItem.id;
 const notUuid = "not-a-uuid";
+const etag = "a".repeat(64);
 
 const cases: Record<string, Cases> = {
   // common
@@ -1403,6 +1404,13 @@ const cases: Record<string, Cases> = {
   },
 
   // sandbox
+  "sandbox.deleteFileInputSchema": {
+    invalid: [{ conversationId: convId }, { conversationId: convId, path: "" }],
+    valid: [
+      { conversationId: convId, path: "notes.md" },
+      { conversationId: convId, path: "src", recursive: true },
+    ],
+  },
   "sandbox.execInputSchema": {
     invalid: [{ command: "" }, { command: "ls", timeoutMs: 0 }],
     valid: [{ command: "ls -la", cwd: "/work", env: { A: "1" } }],
@@ -1423,6 +1431,28 @@ const cases: Record<string, Cases> = {
   "sandbox.fileEntrySchema": {
     invalid: [{ modifiedAt: null, path: "a", size: 1, type: "socket" }],
     valid: [{ modifiedAt: null, path: "a.txt", size: 3, type: "file" }],
+  },
+  "sandbox.importFileInputSchema": {
+    invalid: [
+      { conversationId: convId },
+      { conversationId: convId, fileId: notUuid },
+      { conversationId: convId, fileId: file.id, path: "" },
+    ],
+    valid: [
+      { conversationId: convId, fileId: file.id },
+      { conversationId: convId, fileId: file.id, path: "data/report.pdf" },
+    ],
+  },
+  "sandbox.sandboxFileEtagSchema": {
+    invalid: ["", "A".repeat(64), "a".repeat(63), `"${"a".repeat(64)}"`],
+    valid: [etag],
+  },
+  "sandbox.sandboxFileWriteSchema": {
+    invalid: [
+      { path: "a.txt", size: 3 },
+      { etag, path: "a.txt", size: -1 },
+    ],
+    valid: [{ etag, path: "a.txt", size: 3 }],
   },
   "sandbox.sandboxLimitsSchema": {
     invalid: [{ cpu: 0, diskMb: null, memoryMb: 1, network: false }],
@@ -1446,6 +1476,30 @@ const cases: Record<string, Cases> = {
       { state: "provisioning" },
       { state: "ready" },
       { message: "OOM", state: "failed" },
+    ],
+  },
+  "sandbox.writeFileInputSchema": {
+    invalid: [
+      { content: "hi", path: "a.txt" },
+      { content: "hi", conversationId: convId, encoding: "hex", path: "a.txt" },
+      { content: "hi", conversationId: convId, ifMatch: "v1", path: "a.txt" },
+      {
+        content: "not base64!",
+        conversationId: convId,
+        encoding: "base64",
+        path: "a.bin",
+      },
+    ],
+    valid: [
+      { content: "hi\n", conversationId: convId, path: "a.txt" },
+      { content: "", conversationId: convId, ifMatch: null, path: "new.txt" },
+      {
+        content: "aGk=",
+        conversationId: convId,
+        encoding: "base64",
+        ifMatch: etag,
+        path: "a.bin",
+      },
     ],
   },
 
@@ -1804,6 +1858,50 @@ describe("file upload input", () => {
     expect(
       modules.files.uploadFileInputSchema.safeParse({ file: "a.txt" }).success
     ).toBe(false);
+  });
+});
+
+describe("workspace file writes", () => {
+  const { SANDBOX_WRITE_MAX_BYTES, writeFileInputSchema } = modules.sandbox;
+  const write = (content: string, encoding: "base64" | "utf8") =>
+    writeFileInputSchema.safeParse({
+      content,
+      conversationId: convId,
+      encoding,
+      path: "big.bin",
+    }).success;
+  // Base64 of `bytes` zero bytes, without building the buffer.
+  const base64Of = (bytes: number) => {
+    const tail = bytes % 3;
+    const full = "A".repeat(Math.floor(bytes / 3) * 4);
+    if (tail === 0) {
+      return full;
+    }
+    return tail === 1 ? `${full}AA==` : `${full}AAA=`;
+  };
+
+  it("caps the decoded size, not the encoded length", () => {
+    expect(write(base64Of(SANDBOX_WRITE_MAX_BYTES), "base64")).toBe(true);
+    expect(write(base64Of(SANDBOX_WRITE_MAX_BYTES + 1), "base64")).toBe(false);
+    expect(write("a".repeat(SANDBOX_WRITE_MAX_BYTES), "utf8")).toBe(true);
+    expect(write("a".repeat(SANDBOX_WRITE_MAX_BYTES + 1), "utf8")).toBe(false);
+  });
+
+  it("counts UTF-8 bytes, not characters", () => {
+    // "é" is two bytes, so half the cap in characters fills it.
+    const half = SANDBOX_WRITE_MAX_BYTES / 2;
+    expect(write("é".repeat(half), "utf8")).toBe(true);
+    expect(write("é".repeat(half + 1), "utf8")).toBe(false);
+  });
+
+  it("defaults to UTF-8 and leaves ifMatch unset (overwrite)", () => {
+    const parsed = writeFileInputSchema.parse({
+      content: "hi",
+      conversationId: convId,
+      path: "a.txt",
+    });
+    expect(parsed.encoding).toBe("utf8");
+    expect(parsed).not.toHaveProperty("ifMatch");
   });
 });
 
