@@ -1,19 +1,39 @@
 "use client";
 
-import { AgentIcon, FileTextIcon, UserIcon } from "@workspace/icons";
+import { useLingui } from "@lingui/react/macro";
+import {
+  AgentIcon,
+  EyeIcon,
+  FileIcon,
+  FileTextIcon,
+  PlusIcon,
+  UserIcon,
+} from "@workspace/icons";
 import { cn } from "@workspace/ui/lib/utils";
 import { type MouseEvent, useCallback, useEffect, useRef } from "react";
 
-import type { MentionCandidate, PromptOption } from "../schemas";
+import { candidateKey } from "../mentions";
+import type { SlashItem } from "../options";
+import type { ComposerCommand, MentionCandidate } from "../schemas";
 
 export type Suggestion =
-  | { readonly kind: "mention"; readonly candidate: MentionCandidate }
-  | { readonly kind: "prompt"; readonly prompt: PromptOption };
+  | SlashItem
+  | { readonly kind: "mention"; readonly candidate: MentionCandidate };
 
-export const suggestionKey = (suggestion: Suggestion): string =>
-  suggestion.kind === "prompt"
-    ? `prompt:${suggestion.prompt.id}`
-    : `${suggestion.candidate.kind}:${suggestion.candidate.id}`;
+export const suggestionKey = (suggestion: Suggestion): string => {
+  switch (suggestion.kind) {
+    case "command":
+      return `command:${suggestion.command}`;
+    case "file":
+      return `file:${suggestion.file.path}`;
+    case "mention":
+      return candidateKey(suggestion.candidate);
+    case "prompt":
+      return `prompt:${suggestion.prompt.id}`;
+    default:
+      return suggestion satisfies never;
+  }
+};
 
 export const optionId = (listboxId: string, index: number) =>
   `${listboxId}-option-${index}`;
@@ -33,41 +53,104 @@ export interface SuggestionMenuProps {
 // input only, and mousedown is cancelled to keep the caret where it was.
 const keepFocus = (event: MouseEvent) => event.preventDefault();
 
+const COMMAND_ICONS = {
+  "new-file": PlusIcon,
+  open: FileIcon,
+  preview: EyeIcon,
+} as const satisfies Record<ComposerCommand, unknown>;
+
 function SuggestionIcon({ suggestion }: { readonly suggestion: Suggestion }) {
-  if (suggestion.kind === "prompt") {
-    return <FileTextIcon aria-hidden />;
+  switch (suggestion.kind) {
+    case "command": {
+      const Icon = COMMAND_ICONS[suggestion.command];
+      return <Icon aria-hidden />;
+    }
+    case "file":
+      return <FileIcon aria-hidden />;
+    case "mention":
+      if (suggestion.candidate.kind === "file") {
+        return <FileIcon aria-hidden />;
+      }
+      return suggestion.candidate.kind === "agent" ? (
+        <AgentIcon aria-hidden />
+      ) : (
+        <UserIcon aria-hidden />
+      );
+    case "prompt":
+      return <FileTextIcon aria-hidden />;
+    default:
+      return suggestion satisfies never;
   }
-  return suggestion.candidate.kind === "agent" ? (
-    <AgentIcon aria-hidden />
-  ) : (
-    <UserIcon aria-hidden />
-  );
 }
 
-function SuggestionText({ suggestion }: { readonly suggestion: Suggestion }) {
-  if (suggestion.kind === "prompt") {
-    const { command } = suggestion.prompt.definition;
-    return (
-      <>
-        <span className="truncate">{suggestion.prompt.name}</span>
-        {command ? (
-          <span className="ms-auto shrink-0 font-mono text-muted-foreground text-xs">
-            /{command}
-          </span>
-        ) : null}
-      </>
-    );
-  }
+/** A name, with a quieter hint at the far end (a command, an email, a folder). */
+function Labelled({
+  hint,
+  label,
+  mono = false,
+}: {
+  readonly hint?: string;
+  readonly label: string;
+  readonly mono?: boolean;
+}) {
   return (
     <>
-      <span className="truncate">{suggestion.candidate.label}</span>
-      {suggestion.candidate.description ? (
-        <span className="ms-auto truncate text-muted-foreground text-xs">
-          {suggestion.candidate.description}
+      <span className="truncate">{label}</span>
+      {hint ? (
+        <span
+          className={cn(
+            "ms-auto text-muted-foreground text-xs",
+            mono ? "shrink-0 font-mono" : "truncate"
+          )}
+        >
+          {hint}
         </span>
       ) : null}
     </>
   );
+}
+
+function CommandText({ command }: { readonly command: ComposerCommand }) {
+  const { t } = useLingui();
+  const labels: Record<ComposerCommand, string> = {
+    "new-file": t`New file`,
+    open: t`Open file`,
+    preview: t`Preview`,
+  };
+  return <Labelled hint={`/${command}`} label={labels[command]} mono />;
+}
+
+function SuggestionText({ suggestion }: { readonly suggestion: Suggestion }) {
+  switch (suggestion.kind) {
+    case "command":
+      return <CommandText command={suggestion.command} />;
+    case "file":
+      return (
+        <Labelled
+          hint={suggestion.file.description}
+          label={suggestion.file.label}
+        />
+      );
+    case "mention":
+      return (
+        <Labelled
+          hint={suggestion.candidate.description}
+          label={suggestion.candidate.label}
+        />
+      );
+    case "prompt": {
+      const { command } = suggestion.prompt.definition;
+      return (
+        <Labelled
+          hint={command ? `/${command}` : undefined}
+          label={suggestion.prompt.name}
+          mono
+        />
+      );
+    }
+    default:
+      return suggestion satisfies never;
+  }
 }
 
 interface SuggestionOptionProps {

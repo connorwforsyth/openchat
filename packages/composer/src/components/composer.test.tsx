@@ -62,6 +62,10 @@ const EXPLAIN = /Explain/;
 const REVIEWER = /Reviewer/;
 const PLATFORM = /Platform/;
 const BO = /Bo/;
+const APP_TS = /app\.ts/;
+const NEW_FILE = /New file/;
+const OPEN_FILE = /Open file/;
+const PREVIEW = /Preview/;
 
 const renderComposer = (props: Partial<ComposerProps> = {}) => {
   const onSubmit = vi.fn<(value: ComposerValue) => void>();
@@ -251,6 +255,100 @@ describe("Composer", () => {
     expect(lastValue(onSubmit).mentions).toEqual([
       { end: 13, id: agentItem.id, kind: "agent", label: "Reviewer", start: 4 },
       { end: 23, id: userBo.id, kind: "user", label: "Bo", start: 20 },
+    ]);
+  });
+
+  it("mentions a workspace file and submits its path", async () => {
+    const { editor, onSubmit } = renderComposer({
+      files: ["src/app.ts", "README.md"],
+    });
+    await userEvent.click(editor);
+    await userEvent.keyboard("fix @app");
+    const option = await screen.findByRole("option", { name: APP_TS });
+    // The folder is the hint beside the name.
+    expect(option.textContent).toContain("src");
+    await userEvent.keyboard("{Enter}");
+    expect(editor.textContent).toBe("fix @app.ts ");
+
+    await userEvent.keyboard("{Enter}");
+    expect(lastValue(onSubmit).mentions).toEqual([
+      { end: 11, kind: "file", label: "app.ts", path: "src/app.ts", start: 4 },
+    ]);
+  });
+
+  it("opens a file from /open's list", async () => {
+    const onCommand = vi.fn();
+    const { editor } = renderComposer({
+      commands: ["new-file", "open", "preview"],
+      files: ["src/app.ts", "README.md"],
+      onCommand,
+    });
+    await userEvent.click(editor);
+    await userEvent.keyboard("/op");
+    await screen.findByRole("listbox", { name: "Commands" });
+    await userEvent.keyboard("{Enter}");
+
+    // The list is redrawn as the query changes, so each look finds it afresh.
+    const fileOptions = async () =>
+      within(
+        await screen.findByRole("listbox", { name: "Files" })
+      ).getAllByRole("option");
+    expect(await fileOptions()).toHaveLength(2);
+    expect(editor.textContent).toBe("/open:");
+    await userEvent.keyboard("read");
+    await waitFor(async () => expect(await fileOptions()).toHaveLength(1));
+    await userEvent.keyboard("{Enter}");
+    expect(onCommand).toHaveBeenCalledOnce();
+    expect(onCommand).toHaveBeenCalledWith("open", "README.md");
+    expect(editor.textContent).toBe("");
+    expect(screen.queryByRole("listbox")).toBeNull();
+  });
+
+  it("runs /new-file and /preview, and /open with no files to list", async () => {
+    const onCommand = vi.fn();
+    const { editor, onSubmit } = renderComposer({
+      commands: ["new-file", "open", "preview"],
+      onCommand,
+    });
+    await userEvent.click(editor);
+    await userEvent.keyboard("draft /new");
+    await screen.findByRole("option", { name: NEW_FILE });
+    await userEvent.keyboard("{Enter}");
+    expect(onCommand).toHaveBeenLastCalledWith("new-file");
+    expect(editor.textContent?.trim()).toBe("draft");
+
+    await userEvent.keyboard("/prev");
+    await userEvent.click(await screen.findByRole("option", { name: PREVIEW }));
+    expect(onCommand).toHaveBeenLastCalledWith("preview");
+
+    await userEvent.keyboard("/open");
+    await screen.findByRole("option", { name: OPEN_FILE });
+    await userEvent.keyboard("{Enter}");
+    expect(onCommand).toHaveBeenLastCalledWith("open");
+    expect(onCommand).toHaveBeenCalledTimes(3);
+    // Commands are actions; none of them was sent as a message.
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("offers only the commands the host handles", async () => {
+    const { editor, unmount } = renderComposer();
+    await userEvent.click(editor);
+    await userEvent.keyboard("/");
+    await screen.findByRole("listbox", { name: "Prompts" });
+    expect(screen.queryByRole("option", { name: NEW_FILE })).toBeNull();
+    expect(screen.queryByRole("option", { name: OPEN_FILE })).toBeNull();
+    expect(screen.queryByRole("option", { name: PREVIEW })).toBeNull();
+    unmount();
+
+    const second = renderComposer({ commands: ["preview"] });
+    await userEvent.click(second.editor);
+    await userEvent.keyboard("/");
+    const listbox = await screen.findByRole("listbox", { name: "Commands" });
+    const options = within(listbox).getAllByRole("option");
+    expect(options.map((option) => option.textContent)).toEqual([
+      "Preview/preview",
+      "Summarise/summarise",
+      "Explain/explain",
     ]);
   });
 

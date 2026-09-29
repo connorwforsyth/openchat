@@ -633,6 +633,10 @@ msgstr "Command palette"
 msgid "Command running"
 msgstr "Command running"
 
+#: ../composer/src/components/composer.tsx
+msgid "Commands"
+msgstr "Commands"
+
 #: ../code-ui/src/diff-view.tsx
 msgid "Comment for the agent on change {number}"
 msgstr "Comment for the agent on change {number}"
@@ -1090,6 +1094,7 @@ msgstr "files"
 
 #: ../chat-ui/src/sandbox/sandbox-panel.tsx
 #: ../code-ui/src/file-tree.tsx
+#: ../composer/src/components/composer.tsx
 #: ../library-ui/src/components/skill-form.tsx
 msgid "Files"
 msgstr "Files"
@@ -1623,6 +1628,10 @@ msgstr "New chat with {name}"
 msgid "New chats start here: it decides whose keys pay and where usage counts. You can change it in a chat until the first message."
 msgstr "New chats start here: it decides whose keys pay and where usage counts. You can change it in a chat until the first message."
 
+#: ../composer/src/components/suggestion-menu.tsx
+msgid "New file"
+msgstr "New file"
+
 #: ../../apps/web/app/(auth)/sign-in/page.tsx
 msgid "New here? <0>Create an account</0>"
 msgstr "New here? <0>Create an account</0>"
@@ -1786,6 +1795,10 @@ msgstr "Open artifact: {0}"
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Open external link?"
 msgstr "Open external link?"
+
+#: ../composer/src/components/suggestion-menu.tsx
+msgid "Open file"
+msgstr "Open file"
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Open link"
@@ -1978,6 +1991,7 @@ msgstr "Press keys…"
 #: ../chat-ui/src/artifacts/artifacts-panel.tsx
 #: ../chat-ui/src/sandbox/preview.tsx
 #: ../chat-ui/src/sandbox/sandbox-panel.tsx
+#: ../composer/src/components/suggestion-menu.tsx
 #: ../library-ui/src/components/prompt-form.tsx
 msgid "Preview"
 msgstr "Preview"

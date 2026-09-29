@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { menuKeyAction, moveActive } from "./triggers";
+import { menuKeyAction, moveActive, slashStage } from "./triggers";
 
 describe("menuKeyAction", () => {
   it("maps the menu keys", () => {
@@ -27,5 +27,14 @@ describe("moveActive", () => {
 
   it("stays at 0 for an empty list", () => {
     expect(moveActive(0, 0, "next")).toBe(0);
+  });
+});
+
+describe("slashStage", () => {
+  it("lists commands until /open: asks for a file", () => {
+    expect(slashStage("op")).toEqual({ query: "op", stage: "commands" });
+    expect(slashStage("open")).toEqual({ query: "open", stage: "commands" });
+    expect(slashStage("open:")).toEqual({ query: "", stage: "open" });
+    expect(slashStage("open:app")).toEqual({ query: "app", stage: "open" });
   });
 });

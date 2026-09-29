@@ -38,3 +38,22 @@ export const moveActive = (
   const step = direction === "next" ? 1 : -1;
   return (index + step + count) % count;
 };
+
+/**
+ * What `/` is listing. Choosing `/open` rewrites the trigger to `/open:`, so
+ * the same Suggestion keeps running and whatever follows filters the files;
+ * Backspace past the colon is back at the commands. (The query can't hold a
+ * `/` or a space, TipTap's rule for a single-word trigger, so a file is found
+ * by its name or part of its path.)
+ */
+export type SlashStage =
+  | { readonly query: string; readonly stage: "commands" }
+  | { readonly query: string; readonly stage: "open" };
+
+/** What `/open` leaves in the text: the trigger for the file list. */
+export const OPEN_TRIGGER = "open:";
+
+export const slashStage = (query: string): SlashStage =>
+  query.startsWith(OPEN_TRIGGER)
+    ? { query: query.slice(OPEN_TRIGGER.length), stage: "open" }
+    : { query, stage: "commands" };

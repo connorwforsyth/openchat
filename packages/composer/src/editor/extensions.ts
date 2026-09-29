@@ -10,7 +10,8 @@ import { UndoRedo } from "@tiptap/extensions";
 import { PluginKey } from "@tiptap/pm/state";
 import { Suggestion, type SuggestionOptions } from "@tiptap/suggestion";
 
-import type { MentionCandidate, PromptOption } from "../schemas";
+import type { SlashItem } from "../options";
+import type { MentionCandidate } from "../schemas";
 
 // The editor schema is deliberately small: paragraphs, hard breaks, inline
 // code and mentions. No headings, lists or links; a chat message is text,
@@ -22,11 +23,18 @@ import type { MentionCandidate, PromptOption } from "../schemas";
 export const slashPluginKey = new PluginKey("composerSlash");
 export const mentionPluginKey = new PluginKey("composerMention");
 
-/** What a mention node stores. `kind` is ours; Mention itself has id and label. */
-export type MentionAttrs = Pick<MentionCandidate, "id" | "kind" | "label">;
+/**
+ * What a mention node stores. `kind` is ours; Mention itself has id and
+ * label. A file's `id` is its workspace path.
+ */
+export interface MentionAttrs {
+  readonly id: string;
+  readonly kind: MentionCandidate["kind"];
+  readonly label: string;
+}
 
 export type SlashSuggestion = Omit<
-  SuggestionOptions<PromptOption, PromptOption>,
+  SuggestionOptions<SlashItem, SlashItem>,
   "editor" | "pluginKey"
 >;
 export type MentionSuggestion = Omit<
@@ -51,7 +59,10 @@ export interface ComposerExtensionOptions {
   readonly slash: SlashSuggestion;
 }
 
-/** `/` opens prompt templates. A plain Suggestion plugin: choosing inserts text, not a node. */
+/**
+ * `/` opens file commands and prompt templates. A plain Suggestion plugin:
+ * choosing inserts text or runs a command, never a node.
+ */
 const SlashCommand = Extension.create<{ suggestion: SlashSuggestion }>({
   addOptions() {
     return { suggestion: {} };

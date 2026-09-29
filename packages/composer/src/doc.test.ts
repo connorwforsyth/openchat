@@ -86,6 +86,24 @@ describe("serializeDoc", () => {
     );
   });
 
+  it("turns a file mention into a path token", () => {
+    const serialized = serializeDoc(
+      doc(paragraph(text("fix "), mention("src/app.ts", "app.ts", "file")))
+    );
+    expect(serialized).toEqual({
+      mentions: [
+        {
+          end: 11,
+          kind: "file",
+          label: "app.ts",
+          path: "src/app.ts",
+          start: 4,
+        },
+      ],
+      text: "fix @app.ts",
+    });
+  });
+
   it("keeps inline code's backticks", () => {
     expect(
       serializeDoc(doc(paragraph(text("run "), text("bun test", true)))).text

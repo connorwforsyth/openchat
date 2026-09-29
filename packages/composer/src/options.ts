@@ -10,13 +10,17 @@ import type {
   ChatContextType,
 } from "@workspace/contract/schemas/tenancy";
 
-import type {
-  AgentOption,
-  AgentSource,
-  ContextOption,
-  MentionCandidate,
-  PromptOption,
+import {
+  type AgentOption,
+  type AgentSource,
+  type ComposerCommand,
+  type ContextOption,
+  composerCommandSchema,
+  type FileCandidate,
+  type MentionCandidate,
+  type PromptOption,
 } from "./schemas";
+import { slashStage } from "./triggers";
 
 // Turning contract data into what the pickers and menus list. Pure, so the
 // grouping and matching rules are tested without rendering anything.
@@ -198,9 +202,66 @@ export const filterPrompts = (
 ): readonly PromptOption[] =>
   rank(prompts, query, (prompt) => [prompt.definition.command, prompt.name]);
 
-/** Candidates for `@query`: by label. */
+/**
+ * Candidates for `@query`: agents and people by label, then files by name or
+ * path. Files are ranked on their own so a workspace full of them never
+ * crowds the people out of the list.
+ */
 export const filterMentions = (
   candidates: readonly MentionCandidate[],
   query: string
-): readonly MentionCandidate[] =>
-  rank(candidates, query, (candidate) => [candidate.label]);
+): readonly MentionCandidate[] => [
+  ...rank(
+    candidates.filter((candidate) => candidate.kind !== "file"),
+    query,
+    (candidate) => [candidate.label]
+  ),
+  ...rank(
+    candidates.filter((candidate) => candidate.kind === "file"),
+    query,
+    (candidate) => [
+      candidate.label,
+      candidate.kind === "file" ? candidate.path : undefined,
+    ]
+  ),
+];
+
+/** A row in the `/` menu. */
+export type SlashItem =
+  | { readonly command: ComposerCommand; readonly kind: "command" }
+  | { readonly file: FileCandidate; readonly kind: "file" }
+  | { readonly kind: "prompt"; readonly prompt: PromptOption };
+
+export interface SlashSources {
+  /** The file commands the host handles; the rest aren't offered. */
+  readonly commands: readonly ComposerCommand[];
+  readonly files: readonly FileCandidate[];
+  readonly prompts: readonly PromptOption[];
+}
+
+/**
+ * The `/` menu for a query: the host's file commands (always in the same
+ * order), then prompt templates; or, after `/open`, the files to open.
+ */
+export const slashItems = (
+  query: string,
+  { commands, files, prompts }: SlashSources
+): readonly SlashItem[] => {
+  const stage = slashStage(query);
+  if (stage.stage === "open") {
+    return rank(files, stage.query, (file) => [file.label, file.path]).map(
+      (file): SlashItem => ({ file, kind: "file" })
+    );
+  }
+  const offered = composerCommandSchema.options.filter((command) =>
+    commands.includes(command)
+  );
+  return [
+    ...rank(offered, stage.query, (command) => [command]).map(
+      (command): SlashItem => ({ command, kind: "command" })
+    ),
+    ...filterPrompts(prompts, stage.query).map(
+      (prompt): SlashItem => ({ kind: "prompt", prompt })
+    ),
+  ];
+};
