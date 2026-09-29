@@ -2,8 +2,8 @@
 id: "058"
 title: "Tool calls as status lines and file-change cards"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -97,3 +97,7 @@ Built as specified. Commits `5239038` (the feature) and `96a592d` (keeps the run
 - **Unit tests:** `tool-summary.test.ts` (pure) and `tool-part.test.tsx` (browser mode) cover every tool kind, errors, the file-change counts, Open with and without `onOpenFile`, the preview link, MCP and raw expansion, and pending approval with Accept/Reject change N → Submit review. chat-ui: 131/131.
 - **Gate:** `gate.sh` is clean, `turbo typecheck lint test build` 82/82.
 - **E2E:** `E2E_PORT=3158 bun turbo test:e2e` 25/25. No spec needed a change.
+
+## Resolution (2026-09-29, loop)
+
+Merged in [PR #49](https://github.com/connorwforsyth/openchat/pull/49). `toolSummary`, quiet status lines, and file-change cards with Open (`actions.onOpenFile`). chat-ui 131/131, e2e 25/25, gate 82/82.

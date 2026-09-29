@@ -75,3 +75,9 @@ After trying the M1 demo, Connor asked for two things.
 - Fix: TipTap's suggestion briefly reports an empty list while loading, so an Enter in that gap submits instead of choosing. Ignore `loading` updates in `packages/composer/src/hooks/use-suggestion-menus.ts`, with a test.
 - Update the composer's screen-reader hint ("Type / for prompts and @ to mention someone") and `packages/composer/README.md` for the file features and the new context-chip placement.
 - Additional Owns: `packages/composer/src/hooks/use-suggestion-menus.ts`, `packages/composer/src/components/composer.tsx` (hint only), `packages/composer/README.md`.
+
+## Notes from 058 (also in scope here)
+- Wire `actions.onOpenFile(path)` to open the file in the Workspace panel; the path may be workspace-relative.
+- The preview line's Open currently opens a new tab; add `onOpenPreview` to open the in-app Preview item instead.
+- A tool call with no result, because its run failed or was cancelled, spins forever. Pass "message still streaming" from `message-row.tsx` into `ToolPart` so it settles to a neutral "Stopped" line. Additional Owns: `packages/chat-ui/src/conversation/message-row.tsx`, `tool-part.tsx`, `tool-status.tsx`.
+- Do a visual pass in the running app: 058's styling was only covered by e2e.
