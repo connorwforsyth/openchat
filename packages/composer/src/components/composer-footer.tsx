@@ -4,7 +4,7 @@ import { useLingui } from "@lingui/react/macro";
 import type { ModelOption } from "@workspace/contract/schemas/models";
 import type { RunTarget } from "@workspace/contract/schemas/runs";
 import type { ChatContext } from "@workspace/contract/schemas/tenancy";
-import { AttachIcon } from "@workspace/icons";
+import { ArrowUpIcon, AttachIcon } from "@workspace/icons";
 import {
   PromptInputButton,
   PromptInputFooter,
@@ -33,7 +33,11 @@ export interface ComposerFooterProps {
   readonly target: RunTarget | undefined;
 }
 
-/** Attach, the pickers, and send (or stop while a run is going). */
+/**
+ * The composer's bottom row (after shadcn's chatbot template): Attach and
+ * the model/agent picker at the start; the chat context (when there's one
+ * to show) and Send, or Stop while a run is going, at the end.
+ */
 export function ComposerFooter({
   agents,
   attachDisabled,
@@ -52,10 +56,11 @@ export function ComposerFooter({
 }: ComposerFooterProps) {
   const { t } = useLingui();
   return (
-    <PromptInputFooter>
+    <PromptInputFooter className="px-2 pb-2">
       <PromptInputTools className="min-w-0 flex-wrap">
         <PromptInputButton
           aria-label={t`Attach files`}
+          className="rounded-full"
           disabled={attachDisabled}
           onClick={onAttach}
         >
@@ -70,6 +75,8 @@ export function ComposerFooter({
             value={target}
           />
         ) : null}
+      </PromptInputTools>
+      <PromptInputTools className="min-w-0 justify-end">
         {context ? (
           <ContextChip
             disabled={disabled}
@@ -79,19 +86,26 @@ export function ComposerFooter({
             value={context}
           />
         ) : null}
+        {busy ? (
+          // A plain button, not submit: Enter in the textarea must never stop a run.
+          <PromptInputSubmit
+            aria-label={t`Stop`}
+            className="rounded-full"
+            disabled={onStop === undefined}
+            onClick={onStop}
+            status="streaming"
+            type="button"
+          />
+        ) : (
+          <PromptInputSubmit
+            aria-label={t`Send`}
+            className="rounded-full"
+            disabled={!canSubmit}
+          >
+            <ArrowUpIcon aria-hidden className="size-4" />
+          </PromptInputSubmit>
+        )}
       </PromptInputTools>
-      {busy ? (
-        // A plain button, not submit: Enter in the textarea must never stop a run.
-        <PromptInputSubmit
-          aria-label={t`Stop`}
-          disabled={onStop === undefined}
-          onClick={onStop}
-          status="streaming"
-          type="button"
-        />
-      ) : (
-        <PromptInputSubmit aria-label={t`Send`} disabled={!canSubmit} />
-      )}
     </PromptInputFooter>
   );
 }

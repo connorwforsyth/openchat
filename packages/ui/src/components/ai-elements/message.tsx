@@ -37,11 +37,16 @@ export type MessageProps = HTMLAttributes<HTMLDivElement> & {
   from: UIMessage["role"];
 };
 
+// The chat's message layout follows shadcn's chatbot template (MIT,
+// github.com/shadcn-ui/chatbot-template): the user's turn is a muted bubble
+// at the end of the column, at most 80% of its width; the assistant's is
+// plain prose across the column, with no avatars on either side.
+
 export const Message = ({ className, from, ...props }: MessageProps) => (
   <div
     className={cn(
-      "group flex w-full max-w-[95%] flex-col gap-2",
-      from === "user" ? "is-user ms-auto justify-end" : "is-assistant",
+      "group flex w-full min-w-0 flex-col gap-2",
+      from === "user" ? "is-user items-end" : "is-assistant",
       className
     )}
     {...props}
@@ -57,9 +62,9 @@ export const MessageContent = ({
 }: MessageContentProps) => (
   <div
     className={cn(
-      "flex w-fit min-w-0 max-w-full flex-col gap-2 overflow-hidden text-sm",
-      "group-[.is-user]:ms-auto group-[.is-user]:rounded-lg group-[.is-user]:bg-secondary group-[.is-user]:px-4 group-[.is-user]:py-3 group-[.is-user]:text-foreground",
-      "group-[.is-assistant]:text-foreground",
+      "wrap-break-word flex w-fit min-w-0 max-w-full flex-col gap-2 overflow-hidden text-foreground",
+      "group-[.is-user]:max-w-[80%] group-[.is-user]:rounded-3xl group-[.is-user]:bg-muted group-[.is-user]:px-4 group-[.is-user]:py-2.5 group-[.is-user]:text-[15px] group-[.is-user]:leading-relaxed",
+      "group-[.is-assistant]:text-[15px] group-[.is-assistant]:leading-[1.75]",
       className
     )}
     {...props}

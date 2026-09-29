@@ -97,6 +97,10 @@ afterEach(() => {
   cleanup();
 });
 
+const SANDBOX_PILL = /^Sandbox/;
+const ANY_CONTEXT_CHIP = /^Chat context/;
+const NOT_BLANK = /\S/;
+
 const header = () => {
   const element = document.querySelector<HTMLElement>(
     '[data-slot="app-header"]'
@@ -130,44 +134,139 @@ describe("header branch switcher", () => {
   });
 });
 
-describe("chat context chip", () => {
-  it("is locked after the first message", () => {
-    renderWithI18n(<ChatScreen {...props()} />);
-    const chip = header().getByRole("button", {
-      name: "Chat context: Platform, locked",
-    });
-    // Still focusable, so the tooltip can say why, but it opens no menu.
-    expect(chip.getAttribute("aria-disabled")).toBe("true");
-    expect(chip.getAttribute("aria-haspopup")).toBeNull();
+/** The live editor, once it has replaced the server-rendered shell. */
+const editorReady = () =>
+  waitFor(() => {
+    const found = document.querySelector<HTMLElement>(
+      '[contenteditable="true"]'
+    );
+    expect(found).not.toBeNull();
+    return found as HTMLElement;
   });
 
-  it("can change before the first message", async () => {
-    const onContextChange = vi.fn();
-    const base = props();
-    renderWithI18n(
-      <ChatScreen
-        {...props({
-          conversation: {
-            ...base.conversation,
-            contextLocked: false,
-            id: null,
-            onContextChange,
-            participants: [],
-            title: null,
-          },
-          messages: [],
-          siblings: [],
-        })}
-      />
+const composerFrame = () => {
+  const element = document.querySelector<HTMLElement>('[data-slot="composer"]');
+  if (!element) {
+    throw new Error("no composer");
+  }
+  return within(element);
+};
+
+const newChat = (overrides: Partial<ChatScreenProps> = {}) => {
+  const base = props();
+  return props({
+    conversation: {
+      ...base.conversation,
+      contextLocked: false,
+      id: null,
+      onContextChange: vi.fn(),
+      participants: [],
+      title: null,
+    },
+    messages: [],
+    siblings: [],
+    ...overrides,
+  });
+};
+
+describe("header (D14)", () => {
+  it("has at most four controls besides the title and branch switcher", async () => {
+    renderWithI18n(<ChatScreen {...props()} />);
+    // Collapsing the sidebar adds New chat: the busiest the header gets.
+    const mod = modKey();
+    await userEvent.keyboard(`{${mod}>}b{/${mod}}`);
+    const controls = header()
+      .getAllByRole("button")
+      .filter(
+        (button) =>
+          !(
+            button.closest('[role="group"]') ||
+            button.getAttribute("aria-label")?.startsWith("Rename chat")
+          )
+      );
+    const expected = ["Toggle sidebar", "New chat", "Share", "Workspace"];
+    expect(controls).toEqual(
+      expected.map((name) => header().getByRole("button", { name }))
     );
-    expect(screen.getByText("What are we working on?")).toBeTruthy();
+    // No sandbox pill, no separate Artifacts button.
+    expect(header().queryByRole("button", { name: SANDBOX_PILL })).toBeNull();
+    expect(
+      header().queryByRole("button", { name: "Artifacts panel" })
+    ).toBeNull();
+  });
+
+  it("toggles the workspace panel with one pressed button", async () => {
+    renderWithI18n(<ChatScreen {...props()} />);
+    const toggle = header().getByRole("button", { name: "Workspace" });
+    expect(toggle.getAttribute("aria-pressed")).toBe("false");
+    await userEvent.click(toggle);
+    expect(
+      await screen.findByRole("complementary", { name: "Side panel" })
+    ).toBeTruthy();
+    expect(toggle.getAttribute("aria-pressed")).toBe("true");
+    await userEvent.click(toggle);
+    expect(
+      screen.queryByRole("complementary", { name: "Side panel" })
+    ).toBeNull();
+  });
+});
+
+describe("chat context", () => {
+  it("shows in the Share menu once locked, not in the composer", async () => {
+    renderWithI18n(<ChatScreen {...props()} />);
+    await editorReady();
+    expect(
+      composerFrame().queryByRole("button", { name: ANY_CONTEXT_CHIP })
+    ).toBeNull();
+
+    await userEvent.click(header().getByRole("button", { name: "Share" }));
+    const group = await screen.findByRole("group", { name: "Chat context" });
+    expect(group.textContent).toContain("Platform");
+    // A fact about the chat now, not a choice.
+    expect(within(group).queryByRole("button")).toBeNull();
+    expect(within(group).queryByRole("menuitemradio")).toBeNull();
+  });
+
+  it("is chosen in the composer before the first message", async () => {
+    const screenProps = newChat();
+    renderWithI18n(<ChatScreen {...screenProps} />);
+    expect(screen.getByText("What can I help with?")).toBeTruthy();
+    await editorReady();
     await userEvent.click(
-      header().getByRole("button", { name: "Chat context: Platform" })
+      composerFrame().getByRole("button", { name: "Chat context: Platform" })
     );
     await userEvent.click(
       await screen.findByRole("menuitemradio", { name: "Personal" })
     );
-    expect(onContextChange).toHaveBeenCalledWith({ type: "personal" });
+    expect(screenProps.conversation.onContextChange).toHaveBeenCalledWith({
+      type: "personal",
+    });
+  });
+});
+
+describe("empty state", () => {
+  it("sends a suggestion as the first message", async () => {
+    const onSubmit = vi.fn();
+    renderWithI18n(<ChatScreen {...newChat({ composer: { onSubmit } })} />);
+    const suggestions = within(
+      screen.getByRole("list", { name: "Suggestions" })
+    ).getAllByRole("button");
+    expect(suggestions).toHaveLength(4);
+    await userEvent.click(suggestions[0] as HTMLElement);
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ attachments: [], mentions: [] })
+    );
+    expect(onSubmit.mock.lastCall?.[0].text).toMatch(NOT_BLANK);
+  });
+
+  it("offers no suggestions while the composer is disabled", () => {
+    renderWithI18n(
+      <ChatScreen
+        {...newChat({ composer: { disabled: true, onSubmit: vi.fn() } })}
+      />
+    );
+    expect(screen.getByText("What can I help with?")).toBeTruthy();
+    expect(screen.queryByRole("list", { name: "Suggestions" })).toBeNull();
   });
 });
 
@@ -180,13 +279,7 @@ describe("shortcuts", () => {
     expect(onNewChat).toHaveBeenCalledTimes(1);
 
     // Wait for the editor to replace the shell, so the click lands on it.
-    const editor = await waitFor(() => {
-      const found = document.querySelector<HTMLElement>(
-        '[contenteditable="true"]'
-      );
-      expect(found).not.toBeNull();
-      return found as HTMLElement;
-    });
+    const editor = await editorReady();
     await userEvent.click(editor);
     await userEvent.keyboard("n");
     expect(onNewChat).toHaveBeenCalledTimes(1);
@@ -340,13 +433,18 @@ describe("narrow screens", () => {
 
   it("shows the side panel as a bottom sheet, opened from the overflow menu", async () => {
     renderWithI18n(<ChatScreen {...props()} />);
-    // Share and the panel buttons move into the overflow menu.
+    // Share and the Workspace toggle move into the overflow menu.
     expect(header().queryByRole("button", { name: "Share" })).toBeNull();
+    expect(header().queryByRole("button", { name: "Workspace" })).toBeNull();
     await userEvent.click(
       header().getByRole("button", { name: "More actions" })
     );
+    // The locked context comes along.
+    expect(
+      (await screen.findByRole("group", { name: "Chat context" })).textContent
+    ).toContain("Platform");
     await userEvent.click(
-      await screen.findByRole("menuitemcheckbox", { name: "Artifacts panel" })
+      await screen.findByRole("menuitemcheckbox", { name: "Workspace" })
     );
     const panelSheet = within(await sheet("Side panel"));
     expect(

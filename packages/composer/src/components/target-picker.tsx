@@ -112,7 +112,7 @@ export function TargetPicker({
         render={
           <PromptInputButton
             aria-label={t`Model or agent: ${label}`}
-            className="max-w-48"
+            className="max-w-48 rounded-full text-muted-foreground hover:text-foreground aria-expanded:text-foreground"
             size="sm"
           />
         }

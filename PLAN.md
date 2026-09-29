@@ -349,10 +349,11 @@ Research against LibreChat `main` (v0.8.8-rc4, released 2026-09-20):
   - Can attach the clipboard, a screenshot or the frontmost file (with permission).
   - Tray / menu-bar icon.
 - **`AppHeader`** lives in `packages/chat-ui` with slots, plus a `platform` context (`web | mac | win | linux`):
-  - **Web:**
-    - Left: sidebar toggle.
-    - Centre: chat title + branch switcher.
-    - Right: **chat context chip**, participants/share, sandbox status.
+  - **Web** (slimmed on 2026-09-29, ticket 057; at most four controls besides the title and branch switcher):
+    - Start: sidebar toggle, New chat (only while the sidebar is collapsed), the chat title, then the branch switcher (only when the chat has branches).
+    - End: **Share**, with the participants' avatars on the button and, once the first message locks it, the chat context in its menu; then one **Workspace** toggle (`aria-pressed`) that opens the right panel.
+    - No sandbox pill and no Artifacts button: the sandbox's state lives in the panel. While the chat context can still change, its chip sits in the composer's bottom row.
+    - Narrow screens: Share, Workspace and the locked context move into one overflow menu.
     - The user menu lives in the sidebar footer.
   - **Mac:** `titleBarStyle: 'hiddenInset'`. The header is the draggable title bar (`app-region: drag`, with `no-drag` on controls).
     - Left: traffic lights → sidebar toggle → back/forward.

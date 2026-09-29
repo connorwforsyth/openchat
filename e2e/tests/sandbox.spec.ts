@@ -2,7 +2,12 @@ import { expect, type Page, test } from "@playwright/test";
 import type { ConversationId } from "@workspace/contract/schemas/common";
 
 import { apiFor, eventually } from "../support/api";
-import { conversationIdOf, expectReply, send } from "../support/chat";
+import {
+  conversationIdOf,
+  expectReply,
+  openWorkspace,
+  send,
+} from "../support/chat";
 import { storageStateFor } from "../support/users";
 
 const BASH_RESULT = /Tool result: .*from-the-agent/;
@@ -20,8 +25,7 @@ test.use({ storageState: storageStateFor("ada") });
 let conversationId: ConversationId;
 
 const openSandbox = async (page: Page) => {
-  const pill = page.getByRole("button", { name: "Sandbox: " });
-  await pill.click();
+  await openWorkspace(page, "Sandbox");
   return page.getByRole("region", { name: "Sandbox" });
 };
 

@@ -1,7 +1,14 @@
 import { expect, test } from "@playwright/test";
 
 import { apiFor, loadWorld } from "../support/api";
-import { conversationIdOf, expectReply, send } from "../support/chat";
+import {
+  composerReady,
+  contextChip,
+  conversationIdOf,
+  expectReply,
+  lockedContext,
+  send,
+} from "../support/chat";
 import { storageStateFor } from "../support/users";
 
 // PLAN.md §11 M1 step 4: switch the chat context to Platform before the
@@ -33,14 +40,11 @@ test("a Platform chat is paid by Platform's key, rolls up, and locks its context
   });
   const page = await benContext.newPage();
   await page.goto("/");
-  const contextButton = page.getByRole("button", {
-    name: "Chat context: Personal",
-  });
-  await contextButton.first().click();
+  // A new chat's context is chosen in the composer (D14).
+  await composerReady(page);
+  await contextChip(page, "Personal").click();
   await page.getByRole("menuitemradio", { name: "Platform" }).click();
-  await expect(
-    page.getByRole("button", { name: "Chat context: Platform" }).first()
-  ).toBeVisible();
+  await expect(contextChip(page, "Platform")).toBeVisible();
 
   // Pick the model only Platform's key can pay for.
   await page.getByRole("button", { name: "Model or agent:" }).click();
@@ -53,10 +57,13 @@ test("a Platform chat is paid by Platform's key, rolls up, and locks its context
   await expectReply(page, "Echo: Who pays for this?");
   const conversationId = await conversationIdOf(page);
 
-  // Locked: the context can't change after the first message.
-  await expect(
-    page.getByRole("button", { name: "Chat context: Platform, locked" }).first()
-  ).toBeDisabled();
+  // Locked: the context can't change after the first message. It leaves
+  // the composer and shows, read-only, in the header's Share menu.
+  await expect(contextChip(page, "Platform")).toBeHidden();
+  const locked = await lockedContext(page);
+  await expect(locked).toContainText("Platform");
+  await expect(locked.getByRole("menuitemradio")).toHaveCount(0);
+  await page.keyboard.press("Escape");
   const ben = await apiFor(benContext, baseURL ?? "");
   const chat = await ben.conversations.get({ id: conversationId });
   expect(chat.context).toEqual({ id: world.platform, type: "team" });

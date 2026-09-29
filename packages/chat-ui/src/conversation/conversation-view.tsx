@@ -106,7 +106,7 @@ export function ConversationView({
       <MessageScrollerProvider autoScroll key={conversationKey}>
         <MessageScroller className={className}>
           <MessageScrollerViewport aria-label={t`Conversation`}>
-            <MessageScrollerContent className="mx-auto w-full max-w-3xl px-4 pt-6 pb-10">
+            <MessageScrollerContent className="mx-auto w-full max-w-2xl gap-6 px-6 pt-6 pb-10">
               {rows.map((row, index) => {
                 const streaming = row.message.id === streamingMessageId;
                 const last = index === rows.length - 1;
@@ -139,7 +139,7 @@ export function ConversationView({
               ) : null}
             </MessageScrollerContent>
           </MessageScrollerViewport>
-          <MessageScrollerButton />
+          <MessageScrollerButton className="rounded-full shadow-sm" />
         </MessageScroller>
       </MessageScrollerProvider>
     </ConversationActionsProvider>

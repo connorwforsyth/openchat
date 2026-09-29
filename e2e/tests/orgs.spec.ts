@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { createOrg, createTeam } from "../support/admin";
 import { apiFor, loadWorld } from "../support/api";
+import { composerReady, contextChip } from "../support/chat";
 import { storageStateFor, users } from "../support/users";
 
 // Orgs from the UI (044, D17): anyone can make one from the account menu and
@@ -56,10 +57,8 @@ test("a second org from the account menu, a nested team tree, and switching betw
 
   // The new org is a chat context too (D17).
   await page.goto("/");
-  await page
-    .getByRole("button", { name: "Chat context: Personal" })
-    .first()
-    .click();
+  await composerReady(page);
+  await contextChip(page, "Personal").click();
   await expect(
     page.getByRole("menuitemradio", { name: "Beta Labs" })
   ).toBeVisible();

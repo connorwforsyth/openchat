@@ -70,6 +70,29 @@ function useContextLabel() {
   );
 }
 
+/**
+ * A context as a plain line (icon, name, lock), for where a locked context is
+ * shown rather than chosen: the chat header's Share menu (D14).
+ */
+export function ContextSummary({
+  options,
+  value,
+}: Pick<ContextChipProps, "options" | "value">) {
+  const labelFor = useContextLabel();
+  const key = contextKey(value);
+  const label = labelFor(
+    value,
+    options.find((option) => contextKey(option.context) === key)?.name
+  );
+  return (
+    <span className="flex min-w-0 items-center gap-2 [&_svg]:size-4 [&_svg]:shrink-0">
+      <ContextIconFor context={value} />
+      <span className="min-w-0 flex-1 truncate">{label}</span>
+      <LockIcon aria-hidden className="text-muted-foreground" />
+    </span>
+  );
+}
+
 /** Whose keys pay and where usage rolls up: Personal, a team or an org. */
 export function ContextChip({
   disabled,
@@ -108,7 +131,7 @@ export function ContextChip({
             <PromptInputButton
               aria-disabled
               aria-label={t`Chat context: ${label}, locked`}
-              className="text-muted-foreground"
+              className="rounded-full text-muted-foreground"
               size="sm"
             />
           }
@@ -129,7 +152,11 @@ export function ContextChip({
       <DropdownMenuTrigger
         disabled={disabled}
         render={
-          <PromptInputButton aria-label={t`Chat context: ${label}`} size="sm" />
+          <PromptInputButton
+            aria-label={t`Chat context: ${label}`}
+            className="rounded-full text-muted-foreground hover:text-foreground aria-expanded:text-foreground"
+            size="sm"
+          />
         }
       >
         <ContextIconFor context={value} />

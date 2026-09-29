@@ -1,7 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 
 import { BRAND_NAME } from "../support/brand";
-import { composer } from "../support/chat";
+import { chatHeader, composer, composerReady } from "../support/chat";
 import { clickHydrated } from "../support/hydration";
 import {
   LIBRARY_URL,
@@ -18,6 +18,7 @@ import { signIn, storageStateFor, users } from "../support/users";
 // rendered inside the one shell.
 
 const PERSISTED_KEY = "query-cache";
+const SANDBOX_PILL = /^Sandbox/;
 
 /** What idb-keyval's default store holds under the persisted cache's key. */
 const persistedCache = (page: Page) =>
@@ -183,6 +184,32 @@ test.describe("shell", () => {
     // Open it again for the specs that follow.
     await clickHydrated(page.getByRole("button", { name: "Toggle sidebar" }));
     await expect(sidebar).toBeVisible();
+  });
+
+  // D14 after ticket 057: the header ends with Share and one Workspace
+  // toggle (no sandbox pill, no Artifacts button), and a new chat opens on
+  // the template-style empty state with its suggestions.
+  test("the chat header keeps to Share and Workspace", async ({ page }) => {
+    await page.goto("/");
+    await composerReady(page);
+    await expect(page.getByText("What can I help with?")).toBeVisible();
+    await expect(
+      page.getByRole("list", { name: "Suggestions" }).getByRole("button")
+    ).toHaveCount(4);
+
+    const header = chatHeader(page);
+    await expect(header.getByRole("button", { name: "Share" })).toBeVisible();
+    await expect(
+      header.getByRole("button", { name: SANDBOX_PILL })
+    ).toHaveCount(0);
+    const workspace = header.getByRole("button", { name: "Workspace" });
+    await expect(workspace).toHaveAttribute("aria-pressed", "false");
+    await workspace.click();
+    await expect(workspace).toHaveAttribute("aria-pressed", "true");
+    const panel = page.getByRole("complementary", { name: "Side panel" });
+    await expect(panel).toBeVisible();
+    await workspace.click();
+    await expect(panel).toBeHidden();
   });
 
   // D18: the instance's name is `brand.name` from app.config.yaml (serve.ts
