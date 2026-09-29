@@ -2,8 +2,8 @@
 id: "065"
 title: "@ file list misses files that load after the last keystroke"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -76,3 +76,7 @@ items, so there was no "open" state to refresh.
 - Seen once: running only the file-chain tests on a fresh server (`-g`), the first `[tool:write]` approval sometimes
   sat at "Decision sent. Waiting for the agent…" past 30 s. It doesn't happen in the full suite, where earlier specs warm
   the server. It wasn't investigated.
+
+## Resolution (2026-09-30, loop)
+
+Merged in [PR #55](https://github.com/connorwforsyth/openchat/pull/55). An open `@` or `/open:` menu refilters when candidates change; the e2e now forces the race deterministically (45/45 on repeat). e2e 32/32, gate 82/82.

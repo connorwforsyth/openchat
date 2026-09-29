@@ -120,6 +120,7 @@ brief, and their findings land in `.context/research/`.
 - [Preview needs a listener](tickets/063-preview-requires-listener.md) ([PR #50](https://github.com/connorwforsyth/openchat/pull/50))
 - [Workspace wiring](tickets/062-workspace-wiring-e2e.md): `@file`, `/` commands, attachments into the workspace, e2e ([PR #53](https://github.com/connorwforsyth/openchat/pull/53))
 - [Editor theme switch](tickets/064-editor-theme-switch.md): editor text readable across theme changes ([PR #54](https://github.com/connorwforsyth/openchat/pull/54))
+- [Mention list race](tickets/065-mention-list-race.md) ([PR #55](https://github.com/connorwforsyth/openchat/pull/55))
 - [WS-shell](tickets/024-ws-shell.md): ⌘K palette, shortcut registry, settings and admin ([PR #20](https://github.com/connorwforsyth/openchat/pull/20))
 - [WS-libraries](tickets/017-ws-libraries.md): Agent/Prompt/Skill/MCP builders, sharing, publishing and library tabs ([PR #22](https://github.com/connorwforsyth/openchat/pull/22))
 - [M1 polish](tickets/031-m1-polish.md): motion audit + guard, narrow-screen layout, batched feedback lookups ([PR #24](https://github.com/connorwforsyth/openchat/pull/24))
