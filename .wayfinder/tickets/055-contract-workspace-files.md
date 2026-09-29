@@ -58,3 +58,12 @@ Each new route creates the workspace on first use. `get` stays read-only. `exec`
 **Done when:** the routes have tests, the OpenAPI output includes them, the PR touches nothing else, and there's a line in QUESTIONS-FOR-CONNOR.
 
 This PR changes `packages/contract`: the loop never merges it; Connor does.
+
+## Results
+
+Branch `t/055-contract-workspace-files`, commit `cd0c30f` (touches only `packages/contract/**`). Not pushed; Connor reviews and merges.
+
+- **Schemas** (`schemas/sandbox.ts`): `sandboxFileEncodingSchema` (`utf8 | base64`), `sandboxFileEtagSchema` (lowercase hex SHA-256), `SANDBOX_WRITE_MAX_BYTES` (5 MiB decoded, checked per encoding; over it is `BAD_REQUEST`), `writeFileInputSchema`, `sandboxFileWriteSchema` (`{ path, size, etag }`), `importFileInputSchema`, `deleteFileInputSchema`.
+- **Routes** (`routes/ops.ts`, `sandbox` group): `writeFile` `POST /conversations/{conversationId}/sandbox/files` (CONFLICT `already_exists` / `version_mismatch`, FEATURE_DISABLED); `importFile` `POST /conversations/{conversationId}/sandbox/imports` → 201 (FEATURE_DISABLED; a taken path gets a free name, never a conflict); `deleteFile` `DELETE /conversations/{conversationId}/sandbox/files` → 204, with an added `recursive` flag (default `false`; a non-empty directory without it is CONFLICT `not_empty`). `readFile` output gains `etag`. `exec` is described as for the API and tests. `runOptionsSchema.sandbox` now documents `auto` as file tools whenever sandboxes are enabled.
+- **Tests**: round-trip cases for every new schema, cap tests (decoded base64, UTF-8 bytes rather than characters), and contract tests for the paths, errors, the readFile etag and the OpenAPI operations. Contract: 1346 pass. `openapi.json` regenerated; Redocly lint passes. README has a "Changes (2026-09-29, 055)" table.
+- **Gate: fails, as expected, on `@workspace/server` typecheck** (and `web` typecheck/build, which depend on it). All three errors are in `packages/server`: `src/api/sandbox.ts:160` (`implement(contract)` needs handlers for `writeFile`, `importFile` and `deleteFile`), `:180` (`SandboxApi.readFile` returns no `etag`), and `src/server.ts:460` (follows from the first). Lint, check, guards and every test suite pass. This contract PR has to land together with the server stubs or implementation from 059.
