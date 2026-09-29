@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import { createApp, createPreviewApp } from "./app";
 import { createMemoryDocker } from "./docker-port.memory";
 import { createRunner, type RunnerConfig } from "./runner";
-import { selectRuntime } from "./spec";
+import { SANDBOX_LABEL, selectRuntime } from "./spec";
 
 const id = fixtureId("sandbox", 1);
 const conversationId = fixtureId("conversation", 1);
@@ -17,8 +17,11 @@ const token = "test-runner-token";
 const RUNNER = "http://runner.test";
 const SNAPSHOT_REF = /^sbx-snap-/;
 
-const setup = (overrides: Partial<RunnerConfig> = {}) => {
-  const fake = createMemoryDocker();
+/** A runner over `fake`; pass the same fake again to "restart" the runner. */
+const setup = (
+  overrides: Partial<RunnerConfig> = {},
+  fake = createMemoryDocker()
+) => {
   const choice = selectRuntime(["runc"], "auto");
   if (!choice.ok) {
     throw new Error("no runtime");
@@ -482,5 +485,128 @@ describe("runner through the docker client", () => {
       token: undefined,
     });
     expect((await tokenless.runnerStatus()).ok).toBe(false);
+  });
+});
+
+describe("the runner after a restart", () => {
+  const host = (sandbox: string, port: number) =>
+    `${sandbox}-${port}.sandbox.localhost:7071`;
+
+  /**
+   * A dev server in `sandbox`, reachable the way Docker routes: only from a
+   * container on the sandbox's own network.
+   */
+  const devServer =
+    (fake: ReturnType<typeof createMemoryDocker>, sandbox: string) => () =>
+      fake.networks.get(`sbx-${sandbox}`)?.members.has("runner")
+        ? Promise.resolve(new Response("<h1>hi</h1>"))
+        : Promise.reject(new TypeError("fetch failed"));
+
+  /** Creates sandboxes, then recreates the runner container and restarts it. */
+  const restarted = async (...ids: (typeof id)[]) => {
+    const before = setup();
+    for (const sandbox of ids) {
+      // biome-ignore lint/performance/noAwaitInLoops: one sandbox at a time.
+      await must(
+        before.factory.create({ conversationId, id: sandbox, limits })
+      );
+    }
+    before.fake.recreate("runner");
+    return setup({}, before.fake);
+  };
+
+  it("rejoins a sandbox's network on expose, so its preview answers", async () => {
+    const { factory, fake, runner } = await restarted(id);
+    expect(fake.networks.get(`sbx-${id}`)?.members.has("runner")).toBe(false);
+    const proxy = createPreviewApp({ fetch: devServer(fake, id), runner });
+
+    // What the server does on attach (067): expose the recorded ports again.
+    const sandbox = await must(factory.attach(id));
+    await Promise.all([
+      must(sandbox.exposePort(5173)),
+      must(sandbox.exposePort(5174)),
+    ]);
+    const response = await proxy.request("/", {
+      headers: { host: host(id, 5173) },
+    });
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe("<h1>hi</h1>");
+
+    // One join for both exposes and every request after them.
+    await proxy.request("/", { headers: { host: host(id, 5174) } });
+    await proxy.request("/", { headers: { host: host(id, 5173) } });
+    expect(
+      fake.connects.filter((call) => call === `sbx-${id} runner`)
+    ).toHaveLength(2); // the create, then the restart's one
+  });
+
+  it("rejoins running sandboxes' networks on startup, and only theirs", async () => {
+    const stopped = fixtureId("sandbox", 2);
+    const stranger = fixtureId("sandbox", 3);
+    const { fake, runner } = await restarted(id, stopped);
+    await fake.docker.stopContainer(`sbx-${stopped}`);
+    // Running and labelled with a sandbox id, but not the runner's.
+    await fake.docker.createNetwork({
+      Internal: true,
+      Labels: {},
+      Name: `sbx-${stranger}`,
+    });
+    await fake.docker.startContainer(
+      await fake.docker.createContainer({
+        Labels: { [SANDBOX_LABEL]: stranger },
+        name: `sbx-${stranger}`,
+      })
+    );
+
+    expect(await runner.recover()).toEqual({
+      ok: true,
+      value: { rejoined: 1, running: 1 },
+    });
+    const members = (sandbox: string) =>
+      fake.networks.get(`sbx-${sandbox}`)?.members.has("runner");
+    expect(members(id)).toBe(true);
+    expect(members(stopped)).toBe(false);
+    expect(members(stranger)).toBe(false);
+    // Exposed ports aren't restored: the server re-exposes what it recorded.
+    expect(await runner.previewTarget(id, 5173)).toBe(null);
+  });
+
+  it("says clearly when Docker won't let it join, then tries again", async () => {
+    const { factory, fake, logs } = await restarted(id);
+    const sandbox = await must(factory.attach(id));
+    fake.failNext("connectNetwork");
+    expect(await sandbox.exposePort(5173)).toEqual({
+      error: {
+        message:
+          "the sandbox host couldn't reach the sandbox's network, so previews can't load",
+        type: "unavailable",
+      },
+      ok: false,
+    });
+    expect(logs).toContain("docker: join the sandbox network failed");
+    expect((await sandbox.exposePort(5173)).ok).toBe(true);
+    expect(fake.networks.get(`sbx-${id}`)?.members.has("runner")).toBe(true);
+  });
+
+  it("answers 502 when the sandbox doesn't answer in time", async () => {
+    const { factory, runner } = setup();
+    const sandbox = await must(factory.create({ conversationId, id, limits }));
+    await must(sandbox.exposePort(5173));
+    // Like a SYN into a network the runner isn't on: nothing, ever.
+    const proxy = createPreviewApp({
+      answerTimeoutMs: 20,
+      fetch: (_input, init) =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () =>
+            reject(new DOMException("aborted", "AbortError"))
+          );
+        }),
+      runner,
+    });
+    const response = await proxy.request("/", {
+      headers: { host: host(id, 5173) },
+    });
+    expect(response.status).toBe(502);
+    expect(await response.text()).toBe("The preview isn't answering");
   });
 });

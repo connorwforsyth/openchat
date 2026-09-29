@@ -30,6 +30,8 @@ export const createMemoryDocker = ({
     { internal: boolean; members: Set<string> }
   >();
   const created: ContainerCreateOptions[] = [];
+  /** Every `connectNetwork` call, as `network container`. */
+  const connects: string[] = [];
   const pulled: string[] = [];
   let failNext: string | null = null;
   let counter = 0;
@@ -115,7 +117,12 @@ export const createMemoryDocker = ({
   const port: DockerPort = {
     connectNetwork: (network, container) => {
       guard("connectNetwork");
-      networks.get(network)?.members.add(container);
+      connects.push(`${network} ${container}`);
+      const found = networks.get(network);
+      if (!found) {
+        throw new Error(`network ${network} not found`);
+      }
+      found.members.add(container);
       return Promise.resolve();
     },
 
@@ -298,6 +305,7 @@ export const createMemoryDocker = ({
   };
 
   return {
+    connects,
     containers: () => [...containers.values()],
     created,
     docker: port,
@@ -307,6 +315,16 @@ export const createMemoryDocker = ({
     },
     networks,
     pulled,
+    /**
+     * `docker compose up --force-recreate` for a container outside this fake
+     * (the runner itself): the new container is on none of the old one's
+     * networks.
+     */
+    recreate: (container: string) => {
+      for (const network of networks.values()) {
+        network.members.delete(container);
+      }
+    },
     volumes,
   };
 };

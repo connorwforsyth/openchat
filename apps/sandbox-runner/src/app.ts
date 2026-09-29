@@ -273,6 +273,14 @@ const HOP_BY_HOP = [
   "host",
 ];
 
+/**
+ * How long the proxy waits for a sandbox to start answering (the response
+ * head, not the whole body). Without a limit, an address the runner can't
+ * reach hangs the request instead of failing (ticket 069). Generous, because
+ * a dev server may compile a page before it answers the first request.
+ */
+const PREVIEW_ANSWER_MS = 30_000;
+
 /** A `Vary` entry that already covers `Origin`. */
 const VARIES_BY_ORIGIN = /^(origin|\*)$/i;
 
@@ -310,9 +318,11 @@ export const previewCors = (
  * handles them with the same routing.
  */
 export const createPreviewApp = ({
+  answerTimeoutMs = PREVIEW_ANSWER_MS,
   fetch: fetchImpl = globalThis.fetch,
   runner,
 }: {
+  readonly answerTimeoutMs?: number;
   readonly fetch?: typeof fetch;
   readonly runner: Pick<Runner, "previewTarget">;
 }) => {
@@ -332,6 +342,10 @@ export const createPreviewApp = ({
     for (const name of HOP_BY_HOP) {
       headers.delete(name);
     }
+    // Aborts only while waiting for the answer: once it starts, the body
+    // streams for as long as it takes.
+    const abort = new AbortController();
+    const timer = setTimeout(() => abort.abort(), answerTimeoutMs);
     try {
       const response = await fetchImpl(
         `${upstream}${url.pathname}${url.search}`,
@@ -342,6 +356,7 @@ export const createPreviewApp = ({
           headers,
           method: c.req.method,
           redirect: "manual",
+          signal: abort.signal,
           // Needed by Node's fetch to stream a request body.
           ...({ duplex: "half" } as object),
         }
@@ -363,6 +378,8 @@ export const createPreviewApp = ({
       });
     } catch {
       return c.text("The preview isn't answering", 502);
+    } finally {
+      clearTimeout(timer);
     }
   });
   return app;
