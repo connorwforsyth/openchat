@@ -289,8 +289,17 @@ test("@hello.md puts the file's content in front of the model", async ({
   const input = composer(page);
   await composerReady(page);
   await input.click();
-  await input.pressSequentially("What is in @hello");
-  await expect(page.getByRole("option", { name: "hello.md" })).toBeVisible();
+  // The `@` list reads the workspace listing, which loads after the page; a
+  // query typed before it lands matches nothing until the next keystroke. A
+  // person types again; so does the test.
+  await expect(async () => {
+    await input.press("ControlOrMeta+a");
+    await input.press("Backspace");
+    await input.pressSequentially("What is in @hello");
+    await expect(page.getByRole("option", { name: "hello.md" })).toBeVisible({
+      timeout: 2000,
+    });
+  }).toPass();
   await input.press("Enter");
   await input.pressSequentially(" now");
   await input.press("Enter");
