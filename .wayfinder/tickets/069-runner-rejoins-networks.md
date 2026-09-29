@@ -2,8 +2,8 @@
 id: "069"
 title: "The runner rejoins sandbox networks after it restarts"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -92,3 +92,7 @@ Notes:
 - `openchat-sandbox-runner` (Connor's local image) hasn't been rebuilt. Rebuild it after merge, then
   `docker compose --profile sandbox up -d --force-recreate sandbox-runner`. That recreate is exactly the case this
   ticket fixes.
+
+## Resolution (2026-09-30, loop)
+
+Merged in [PR #58](https://github.com/connorwforsyth/openchat/pull/58). `joinNetwork` on use plus `recover()` at startup; the preview proxy times out at 30 s with a 502. Runner tests 45/45, real Docker checked, gate 82/82.

@@ -88,3 +88,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-09-30 · 068 closed · PR #56 · runner image rebuilt locally with the fix
 - 2026-09-30 · added 069 (runner rejoins sandbox networks after a restart; found while fixing Connor's preview)
 - 2026-09-30 · 067 closed · PR #57 · static preview + restore after runner restart · 82/82
+- 2026-09-30 · 069 closed · PR #58 · 82/82
