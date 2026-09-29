@@ -17,6 +17,8 @@ OpenAI-compatible mock model server. The app reaches it through its ordinary
 The mock's replies are steered by the message (see the comment at its top):
 `[slow]` streams slowly, `[tool:<name> <json>]` calls a tool, `remember …`
 calls `update_memory`, `[search:…]` calls `file_search`, anything else echoes.
+The echo ends with each workspace file the turn read in (an `@` mention or an
+attachment) as `[path: content]`, so a spec can see what reached the model.
 
 `accounts.setup.ts` runs first: the first sign-up (the admin), an org made
 from the account menu with a team tree, and two more people joining by the
