@@ -2,8 +2,8 @@
 id: "068"
 title: "Previews of compressed responses render blank"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -27,3 +27,7 @@ Connor (2026-09-30): the preview URL showed nothing in the browser. The preview 
 ## Results (2026-09-30, loop)
 
 `createPreviewApp` deletes `content-encoding` and `content-length` when the upstream response had an encoding. There's a unit test (fake decoded upstream), and runner tests pass 19/19. The runner image was rebuilt from host-built dist (Docker Desktop's registry proxy is hanging). Found alongside it: the runner forgets exposed ports on restart, so recorded previews 404; handed to 067 (re-expose on attach).
+
+## Resolution (2026-09-30, loop)
+
+Merged in [PR #56](https://github.com/connorwforsyth/openchat/pull/56).
