@@ -32,6 +32,11 @@ export interface ConversationActions {
   readonly onEdit?: (message: Message, text: string) => void;
   readonly onFeedback?: (input: FeedbackInput) => void;
   readonly onOpenArtifact?: (ref: ArtifactRefPart) => void;
+  /**
+   * Open a workspace file the agent created or edited, by the path its
+   * `write`/`edit` call used. Without it, file-change cards have no Open.
+   */
+  readonly onOpenFile?: (path: string) => void;
   /** Answer the user message behind this assistant message again. */
   readonly onRegenerate?: (message: Message) => void;
   /** Switch the branch to this sibling message. */

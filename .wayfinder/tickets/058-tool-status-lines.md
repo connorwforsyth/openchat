@@ -58,3 +58,42 @@ After trying the M1 demo, Connor asked for two things.
 - **Pending approvals** keep the per-hunk review, including the "Accept change N" labels.
 
 **Done when:** unit tests cover every tool kind, errors and pending approvals.
+
+## Results (2026-09-29, loop)
+
+Built as specified. Commits `5239038` (the feature) and `96a592d` (keeps the runtime `Trans` out of Lingui extraction).
+
+- **`model/tool-summary.ts`**: a pure `toolSummary(call, result)` returns `{ icon, status, label, errorText?, previewUrl?, detail }`.
+  - `status` is one of `awaiting | running | done | error | denied`.
+  - `label` is a Lingui `msg` descriptor. Its `code` value (a command, a path or a tool name) renders in code font.
+  - `detail` is `bash` (the command, plus the last 20 lines of stdout and stderr), `file-change` (the card's data) or `raw` (input and output JSON).
+  - Result shapes are parsed loosely with zod, mirroring `packages/sandbox/src/tools/tools.ts`, `web_search` and MCP's `isError`. An unknown shape still gets a line.
+
+  | Tool | Running / done | Error | Other |
+  |---|---|---|---|
+  | bash | Running `cmd` / Ran `cmd` (first line, cut to 60 chars) | Couldn't run `cmd`; a non-zero exit gives "`cmd` exited with code N" or "`cmd` timed out", with the last stderr line as the reason | |
+  | read | Reading / Read `path` | Couldn't read `path` | |
+  | write, edit | Writing / Editing `path`, then the card | Couldn't change `path` | "No changes to `path`"; every hunk rejected gives "Didn't change `path`" |
+  | preview | Opening / Opened a preview, with Open (a link to the URL, new tab) | Couldn't open a preview | |
+  | file_search | Searching / Searched your files | Couldn't search your files | |
+  | web_search | Searching / Searched the web | Couldn't search the web (also when the search is `unavailable`) | |
+  | MCP `server__tool` | Using / Used `tool` from server | Couldn't use … (also `isError`) | |
+  | anything else | Using / Used `name` | Couldn't use `name` | |
+
+  Every tool also has "Wants to …" (pending approval) and "Didn't …" (denied) labels.
+- **`conversation/tool-status.tsx`**: a muted line showing the icon and label.
+  - Failures are drawn in the destructive colour, with the reason inline.
+  - While a tool runs, a spinner turns (with reduced motion it pulses opacity instead; D28).
+  - The line is a Collapsible, closed by default and opening instantly. It shows the command and the end of its output for bash, and `ToolInput`/`ToolOutput` JSON for everything else.
+- **`conversation/file-change-card.tsx`**: shows Created or Edited, the path, and +/− counts.
+  - Counts come from the patch's hunk bodies only, so the `---` hash header doesn't count; `@@ -0,0` means the file was created.
+  - Only applied hunks are counted, and "N changes rejected" is shown when some were.
+  - An **Open** button calls `actions.onOpenFile(path)`; it's hidden when that action is absent.
+- **`actions.tsx`**: adds the optional `onOpenFile?: (path: string) => void`. **`tool-part.tsx`** picks the card or the line, and keeps `ApprovalCard` (per-hunk review) while approval is pending.
+- `approval.tsx` and `ai-elements/tool.tsx` are unchanged. The line reuses `ToolInput`/`ToolOutput` with `p-0`, so the dev demo still works. `messages.po` was re-extracted.
+
+### Verification
+
+- **Unit tests:** `tool-summary.test.ts` (pure) and `tool-part.test.tsx` (browser mode) cover every tool kind, errors, the file-change counts, Open with and without `onOpenFile`, the preview link, MCP and raw expansion, and pending approval with Accept/Reject change N → Submit review. chat-ui: 131/131.
+- **Gate:** `gate.sh` is clean, `turbo typecheck lint test build` 82/82.
+- **E2E:** `E2E_PORT=3158 bun turbo test:e2e` 25/25. No spec needed a change.
