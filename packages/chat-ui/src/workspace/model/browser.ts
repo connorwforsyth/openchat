@@ -2,6 +2,7 @@ import type {
   SandboxProvider,
   SandboxRecord,
 } from "@workspace/contract/schemas/sandbox";
+import { STATIC_PREVIEW_PORT } from "@workspace/sandbox/tools/static-preview";
 import { z } from "zod";
 
 // The Workspace panel's built-in browser (066) as data: which page it shows,
@@ -9,12 +10,6 @@ import { z } from "zod";
 // preview is cross-origin (D24), so the panel can never read where the frame
 // went; the address bar is what the panel navigated to, not what the frame
 // reports. Pure, so the rules are tested without rendering.
-
-/**
- * The port the server's built-in static file server listens on (067).
- * TODO(067): import the constant from `@workspace/sandbox` once 067 merges.
- */
-export const STATIC_PREVIEW_PORT = 4173;
 
 export type SandboxPreview = SandboxRecord["previews"][number];
 
@@ -87,6 +82,7 @@ export const workspaceFileOf = (pagePath: string): string => {
 const servers = (sources: PreviewSources): readonly SandboxPreview[] =>
   sources.provider === "just-bash" ? [] : sources.previews;
 
+/** The static-files preview (067): the record's preview on its reserved port. */
 const staticServer = (sources: PreviewSources) =>
   servers(sources).find((preview) => preview.port === STATIC_PREVIEW_PORT);
 

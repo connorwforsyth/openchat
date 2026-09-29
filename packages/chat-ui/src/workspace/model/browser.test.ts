@@ -1,3 +1,4 @@
+import { STATIC_PREVIEW_PORT } from "@workspace/sandbox/tools/static-preview";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -14,7 +15,6 @@ import {
   readAddress,
   renderedKind,
   resolveLink,
-  STATIC_PREVIEW_PORT,
   targetOf,
   workspaceFileOf,
 } from "./browser";
@@ -22,7 +22,7 @@ import {
 const agent = { port: 5173, url: "https://s-5173.preview.test/" };
 const staticFiles = {
   port: STATIC_PREVIEW_PORT,
-  url: "https://s-4173.preview.test/",
+  url: "https://s-4747.preview.test/",
 };
 
 const sources = (overrides: Partial<PreviewSources> = {}): PreviewSources => ({
