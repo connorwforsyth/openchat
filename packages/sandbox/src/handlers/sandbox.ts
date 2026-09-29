@@ -29,12 +29,14 @@ import { type AsyncResult, err, ok } from "@workspace/shared/result";
 import { z } from "zod";
 
 import type { OutputChunk, Sandbox, SandboxError } from "../ports/sandbox";
+import type { RestorableSandbox } from "../preview-restore";
 import type {
   ProviderEntry,
   SandboxIsolation,
   SandboxProviders,
 } from "../providers";
 import { toBase64 } from "../runner/protocol";
+import type { PreviewLog } from "../tools/static-preview";
 
 // The contract's `sandbox` group as plain functions over `{ db, session,
 // providers }` (D7); the API layer mounts them and maps errors to oRPC's
@@ -62,6 +64,8 @@ export interface SandboxHandlerDeps {
   readonly db: Db;
   /** The instance default (`sandbox.default`), when it's a configured provider. */
   readonly defaultProvider: SandboxProvider | null;
+  /** Where best-effort failures (the static preview) are reported; defaults to the console. */
+  readonly log?: PreviewLog;
   readonly providers: SandboxProviders;
   readonly session: Viewer;
 }
@@ -223,13 +227,49 @@ export const getConversationSandbox = async (
   // Refresh from the provider: the runner may have stopped it while idle.
   const sandbox = await live(deps, row);
   const status = sandbox.ok ? await sandbox.value.status() : undefined;
-  if (status?.ok && status.value.state !== row.state) {
-    const updated = await updateSandbox(deps.db, row.id, {
-      status: status.value,
-    });
-    return ok(toSandboxRecord(updated ?? row));
+  const current =
+    status?.ok && status.value.state !== row.state
+      ? ((await updateSandbox(deps.db, row.id, { status: status.value })) ??
+        row)
+      : row;
+  // Only a running one: exposing a port would start a stopped container.
+  if (sandbox.ok && status?.ok && status.value.state === "ready") {
+    const restored = await restoreRecordedPreviews(
+      deps,
+      sandbox.value,
+      current
+    );
+    return ok(toSandboxRecord(restored));
   }
-  return ok(toSandboxRecord(row));
+  return ok(toSandboxRecord(current));
+};
+
+/**
+ * Exposes the row's recorded previews on its live sandbox again, when its
+ * provider forgets them (see `preview-restore.ts`), and records any URL
+ * that moved. Returns the row as it now stands. Best effort: a port that
+ * won't expose is logged by the restorer and left as recorded.
+ */
+export const restoreRecordedPreviews = async (
+  deps: Pick<SandboxHandlerDeps, "db" | "providers">,
+  sandbox: RestorableSandbox,
+  row: SandboxRow
+): Promise<SandboxRow> => {
+  const restore = deps.providers.get(row.provider)?.restorePreviews;
+  if (!restore || row.previews.length === 0) {
+    return row;
+  }
+  const exposed = await restore(sandbox, row.previews);
+  const moved = exposed.filter(
+    (preview) =>
+      row.previews.find((recorded) => recorded.port === preview.port)?.url !==
+      preview.url
+  );
+  for (const preview of moved) {
+    // biome-ignore lint/performance/noAwaitInLoops: each rewrites the same row.
+    await recordPreview(deps.db, row.id, preview);
+  }
+  return moved.length > 0 ? ((await getSandbox(deps.db, row.id)) ?? row) : row;
 };
 
 export const createConversationSandbox = async (

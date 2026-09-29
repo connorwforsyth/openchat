@@ -15,7 +15,9 @@ import {
   type SnapshotStore,
 } from "./just-bash/snapshot-store";
 import type { SandboxError, SandboxFactory } from "./ports/sandbox";
+import { createPreviewRestorer, type PreviewRestorer } from "./preview-restore";
 import { createUnavailableFactory } from "./remote/stubs";
+import type { PreviewLog } from "./tools/static-preview";
 
 // The instance's sandbox providers, built once at boot from app config. Only
 // configured providers are present, so an empty config gives just-bash and
@@ -29,6 +31,11 @@ export interface ProviderEntry {
   readonly isolation: () => AsyncResult<SandboxIsolation, SandboxError>;
   /** Limits new sandboxes get from this provider. */
   readonly limits: SandboxLimits;
+  /**
+   * Exposes a sandbox's recorded previews again, for a provider whose host
+   * forgets them (the runner, on a restart). Absent: nothing to restore.
+   */
+  readonly restorePreviews?: PreviewRestorer;
 }
 
 export type SandboxProviders = ReadonlyMap<SandboxProvider, ProviderEntry>;
@@ -43,6 +50,8 @@ const JUST_BASH_LIMITS: SandboxLimits = {
 
 export interface ProvidersFromConfigOptions {
   readonly fetch?: typeof fetch;
+  /** Where best-effort preview failures are reported; defaults to the console. */
+  readonly log?: PreviewLog;
   /** Where just-bash workspaces persist; defaults to process memory. */
   readonly store?: SnapshotStore;
 }
@@ -51,6 +60,7 @@ export const sandboxProvidersFromConfig = (
   config: Pick<AppConfig, "features" | "sandbox">,
   {
     fetch,
+    log,
     store = createMemorySnapshotStore(),
   }: ProvidersFromConfigOptions = {}
 ): SandboxProviders => {
@@ -83,6 +93,7 @@ export const sandboxProvidersFromConfig = (
         memoryMb: docker.limits.memoryMb,
         network: docker.network,
       },
+      restorePreviews: createPreviewRestorer({ log }),
     });
   }
   const remote = [

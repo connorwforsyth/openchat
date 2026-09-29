@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import type {
   ConversationId,
+  SandboxId,
   UserId,
 } from "@workspace/contract/schemas/common";
 import {
@@ -27,6 +28,8 @@ import { createJustBashFactory } from "../just-bash/provider";
 import { createMemorySnapshotStore } from "../just-bash/snapshot-store";
 import { createMemorySandboxFactory } from "../ports/sandbox.memory";
 import type { ProviderEntry, SandboxProviders } from "../providers";
+import { createDockerLikeEntry, previewUrlFor } from "../testing/docker-like";
+import { STATIC_PREVIEW_PORT } from "../tools/static-preview";
 import { readSandboxFile } from "./sandbox";
 import {
   cleanUploadName,
@@ -591,5 +594,76 @@ describe("deleteWorkspaceFile", () => {
     expect(await getSandboxForConversation(deps.db, chat.id)).toMatchObject({
       state: "ready",
     });
+  });
+});
+
+describe("static pages (067)", () => {
+  const dockerSetup = async () => {
+    const docker = createDockerLikeEntry();
+    const context = await setup(
+      new Map([["docker", docker.entry]]) as SandboxProviders
+    );
+    const logged: string[] = [];
+    const deps: Deps = {
+      ...context.deps,
+      defaultProvider: "docker",
+      log: (message) => logged.push(message),
+    };
+    return { ...context, deps, host: docker.host, logged };
+  };
+
+  const previewsOf = async (deps: Deps, conversationId: ConversationId) =>
+    (await getSandboxForConversation(deps.db, conversationId))?.previews;
+
+  it("previews a page someone saves or imports", async () => {
+    const context = await dockerSetup();
+    const { chat, deps, host } = context;
+    expect((await write(deps, chat.id, "notes.md", "# hi")).ok).toBe(true);
+    expect(await previewsOf(deps, chat.id)).toEqual([]);
+
+    expect(
+      (await write(deps, chat.id, "site/index.html", "<h1>hi</h1>")).ok
+    ).toBe(true);
+    const row = await getSandboxForConversation(deps.db, chat.id);
+    expect(row?.previews).toEqual([
+      {
+        port: STATIC_PREVIEW_PORT,
+        url: previewUrlFor(row?.id as SandboxId, STATIC_PREVIEW_PORT),
+      },
+    ]);
+
+    const file = await upload(
+      context,
+      "page.html",
+      new TextEncoder().encode("<p>imported</p>")
+    );
+    expect(
+      (
+        await importWorkspaceFile(deps, {
+          conversationId: chat.id,
+          fileId: file.id,
+        })
+      ).ok
+    ).toBe(true);
+    expect(
+      host.commands.filter((command) => command.startsWith("nohup node"))
+    ).toHaveLength(1);
+  });
+
+  it("saves the page even when its preview fails, and logs why", async () => {
+    const { chat, deps, host, logged } = await dockerSetup();
+    host.failExpose = true;
+    const saved = await write(deps, chat.id, "index.html", "<h1>hi</h1>");
+    expect(saved.ok && saved.value.path).toBe("/work/index.html");
+    expect(await previewsOf(deps, chat.id)).toEqual([]);
+    expect(logged).toEqual([expect.stringContaining("static preview")]);
+  });
+
+  it("does nothing more on just-bash, which has no ports", async () => {
+    const { chat, deps } = await setup();
+    expect((await write(deps, chat.id, "index.html", "<h1>hi</h1>")).ok).toBe(
+      true
+    );
+    expect(await previewsOf(deps, chat.id)).toEqual([]);
   });
 });

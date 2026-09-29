@@ -28,6 +28,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createJustBashFactory } from "../just-bash/provider";
 import { createMemorySnapshotStore } from "../just-bash/snapshot-store";
 import type { ProviderEntry, SandboxProviders } from "../providers";
+import { createDockerLikeEntry, previewUrlFor } from "../testing/docker-like";
+import { STATIC_PREVIEW_PORT } from "../tools/static-preview";
 import { SANDBOX_TOOL_NAMES } from "../tools/tools";
 import {
   createTurnSandboxSource,
@@ -716,5 +718,95 @@ describe("providerForTurn", () => {
     expect(
       providerForTurn({ defaultProvider: null, providers: new Map() }, "docker")
     ).toBeNull();
+  });
+});
+
+describe("static pages (067)", () => {
+  const dockerTurn = async () => {
+    const docker = createDockerLikeEntry();
+    const deps = {
+      db: h.db,
+      defaultProvider: "docker" as const,
+      providers: new Map([["docker", docker.entry]]) as SandboxProviders,
+      sleep: () => Promise.resolve(),
+    };
+    const chat = await newChat();
+    const turn = await createTurnSandboxSource(deps)({
+      requested: "default",
+      reviews: new Map(),
+      run: {
+        context: { type: "personal" },
+        conversationId: chat.id,
+        createdBy: h.ownerId,
+        options: { sandbox: "auto", webSearch: "auto" },
+        runId: "00000000-0000-7000-8000-000000000005" as RunId,
+        target: MODEL,
+        userMessageId: "00000000-0000-7000-8000-000000000006" as never,
+      },
+    });
+    const call = (name: string, input: unknown) => {
+      const tool = turn?.tools[name] as unknown as {
+        execute: (input: unknown, options: object) => Promise<unknown>;
+      };
+      return tool.execute(input, { messages: [], toolCallId: name });
+    };
+    return { call, chat, deps, host: docker.host };
+  };
+
+  const started = (commands: readonly string[]) =>
+    commands.filter((command) => command.startsWith("nohup node"));
+
+  it("previews a page the agent writes, without a server of its own", async () => {
+    const { call, chat, host } = await dockerTurn();
+    await call("write", { content: "body {}", path: "style.css" });
+    expect(started(host.commands)).toEqual([]);
+
+    expect(
+      await call("write", { content: "<h1>hi</h1>", path: "index.html" })
+    ).toMatchObject({ status: "changed" });
+    const row = await getSandboxForConversation(h.db, chat.id);
+    expect(row?.previews).toEqual([
+      {
+        port: STATIC_PREVIEW_PORT,
+        url: previewUrlFor(row?.id as SandboxId, STATIC_PREVIEW_PORT),
+      },
+    ]);
+
+    await call("edit", {
+      newString: "hello",
+      oldString: "hi",
+      path: "index.html",
+    });
+    expect(started(host.commands)).toHaveLength(1);
+  });
+
+  it("keeps the write when the preview fails", async () => {
+    const { call, chat, host } = await dockerTurn();
+    host.failExpose = true;
+    expect(
+      await call("write", { content: "<h1>hi</h1>", path: "index.html" })
+    ).toMatchObject({ status: "changed" });
+    expect((await getSandboxForConversation(h.db, chat.id))?.previews).toEqual(
+      []
+    );
+  });
+
+  it("exposes the chat's previews again when the workspace is attached", async () => {
+    const { call, chat, deps, host } = await dockerTurn();
+    await call("write", { content: "<h1>hi</h1>", path: "index.html" });
+    const row = await getSandboxForConversation(h.db, chat.id);
+    if (!row) {
+      throw new Error("no workspace");
+    }
+    // The runner restarts and the idle stop ended the server.
+    host.exposed.clear();
+    host.listening.clear();
+    expect(
+      (await ensureWorkspace(deps, await viewer(), chat.id, "docker")).ok
+    ).toBe(true);
+    expect([...(host.exposed.get(row.id) ?? [])]).toEqual([
+      STATIC_PREVIEW_PORT,
+    ]);
+    expect(started(host.commands)).toHaveLength(2);
   });
 });

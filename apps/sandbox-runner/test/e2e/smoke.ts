@@ -14,6 +14,10 @@ import { setTimeout as sleep } from "node:timers/promises";
 import type { SandboxId } from "@workspace/contract/schemas/common";
 import { createDockerSandboxFactory } from "@workspace/sandbox/docker/client";
 import type { Sandbox, SandboxError } from "@workspace/sandbox/ports/sandbox";
+import {
+  ensureStaticPreview,
+  STATIC_PREVIEW_PORT,
+} from "@workspace/sandbox/tools/static-preview";
 import { newId } from "@workspace/shared/ids";
 import type { Result } from "@workspace/shared/result";
 import { z } from "zod";
@@ -30,6 +34,10 @@ const PREVIEW_ATTEMPTS = 30;
 const limits = { cpu: 1, diskMb: null, memoryMb: 512, network: false };
 
 const PREVIEW_ECHO = "hot reload";
+
+const STATIC_PAGE =
+  '<!doctype html><link rel="stylesheet" href="style.css"><h1>static</h1>\n';
+const STATIC_CSS = "h1 { color: rebeccapurple; }\n";
 // A module script, served like a dev server serves one: no CORS headers of
 // its own, which is what Vite does for an origin it doesn't know.
 const MODULE_PATH = "/main.js";
@@ -426,6 +434,59 @@ const main = async () => {
       PREVIEW_ECHO
     );
     check(refused === null, "a WebSocket to an unexposed port was let through");
+
+    log("static preview");
+    // 067: a page with no server of the agent's own, served from /work by
+    // the built-in static server on its reserved port.
+    await must("writeFile", sandbox.writeFile("site/index.html", STATIC_PAGE));
+    await must("writeFile", sandbox.writeFile("site/style.css", STATIC_CSS));
+    const staticPreview = await ensureStaticPreview(sandbox);
+    const exposedStatic = staticPreview.ok
+      ? staticPreview.value
+      : fail(`ensureStaticPreview: ${staticPreview.error}`);
+    check(
+      exposedStatic?.port === STATIC_PREVIEW_PORT,
+      `the static preview came back as ${JSON.stringify(exposedStatic)}`
+    );
+    const staticUrl = exposedStatic?.url ?? "";
+    const page = await waitForPreview(`${staticUrl}/site/`);
+    check(
+      page === STATIC_PAGE,
+      `the static preview answered ${JSON.stringify(page)}`
+    );
+    const css = await fetchPreview(`${staticUrl}/site/style.css`);
+    check(
+      css.ok &&
+        (await css.text()) === STATIC_CSS &&
+        css.headers.get("content-type") === "text/css; charset=utf-8",
+      `style.css came back ${css.status} as ${css.headers.get("content-type")}`
+    );
+    const climbed = await fetchPreview(`${staticUrl}/%2e%2e/etc/passwd`);
+    check(
+      climbed.status === 404,
+      `a path out of /work answered ${climbed.status}, expected 404`
+    );
+    await climbed.body?.cancel();
+    // Idempotent: a second call finds the server listening and starts none.
+    const again = await ensureStaticPreview(sandbox);
+    check(
+      again.ok && again.value?.url === staticUrl,
+      "a second ensureStaticPreview didn't reuse the running server"
+    );
+    // The slim image has no procps; `[s]` keeps this command out of its own count.
+    await expectOutput(
+      sandbox,
+      "grep -l '[s]tatic-preview.mjs' /proc/[0-9]*/cmdline 2>/dev/null | wc -l",
+      "1\n"
+    );
+    const inWork = await must(
+      "listFiles",
+      sandbox.listFiles(".", { recursive: true })
+    );
+    check(
+      !inWork.some((entry) => entry.path.includes("static-preview")),
+      "the static preview's script landed in /work"
+    );
 
     log("snapshot and restore");
     const snapshot = await must("snapshot", sandbox.snapshot());

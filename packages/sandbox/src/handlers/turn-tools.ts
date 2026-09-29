@@ -20,10 +20,15 @@ import type {
   TurnSandbox,
   WorkspaceRead,
 } from "@workspace/server/runs/sandbox";
-import { type AsyncResult, err } from "@workspace/shared/result";
+import { type AsyncResult, err, ok } from "@workspace/shared/result";
 
 import type { Sandbox, SandboxError } from "../ports/sandbox";
 import type { SandboxProviders } from "../providers";
+import {
+  isStaticPage,
+  type PreviewLog,
+  previewStaticPage,
+} from "../tools/static-preview";
 import {
   createSandboxTools,
   editInputSchema,
@@ -36,6 +41,7 @@ import {
   createConversationSandbox,
   recordPreview,
   resetSandbox,
+  restoreRecordedPreviews,
   type SandboxHandlerError,
 } from "./sandbox";
 
@@ -53,7 +59,11 @@ export interface TurnSandboxDeps {
   readonly db: Db;
   /** The instance default (`sandbox.default`), when it's a configured provider. */
   readonly defaultProvider: SandboxProvider | null;
+  /** Where best-effort failures (the static preview) are reported; defaults to the console. */
+  readonly log?: PreviewLog;
   readonly providers: SandboxProviders;
+  /** Waits between listener probes; tests pass one that doesn't. */
+  readonly sleep?: (ms: number) => Promise<void>;
 }
 
 const FALLBACK: SandboxProvider = "just-bash";
@@ -100,7 +110,8 @@ const describe = (error: SandboxHandlerError): string => {
  * every call in the turn; a failure is reported to each tool as its result,
  * and the next call starts again, as does one after the workspace was
  * destroyed under it (a Reset from the panel). A port it exposes is handed
- * to `onExposed`, so the panel can show it.
+ * to `onExposed`, so the panel can show it. `current` is the sandbox
+ * itself, for work that needs its id or provider.
  */
 const lazySandbox = (
   start: () => AsyncResult<Sandbox, SandboxError>,
@@ -108,7 +119,9 @@ const lazySandbox = (
     id: SandboxId,
     exposed: { readonly port: number; readonly url: string }
   ) => Promise<void>
-): ToolSandbox => {
+): ToolSandbox & {
+  readonly current: () => AsyncResult<Sandbox, SandboxError>;
+} => {
   let started: Promise<Awaited<ReturnType<typeof start>>> | undefined;
   const live = () => {
     const current = started ?? start();
@@ -132,6 +145,7 @@ const lazySandbox = (
     return result;
   };
   return {
+    current: () => using((sandbox) => Promise.resolve(ok(sandbox))),
     exec: (command, options) =>
       using((sandbox) => sandbox.exec(command, options)),
     exposePort: (port) =>
@@ -277,9 +291,14 @@ const resume = async (
     case "ready":
     case "stopped": {
       const attached = await attachTo(deps, row);
-      return attached.ok || !isGone(row, attached.error)
-        ? attached
-        : restart(deps, viewer, row);
+      if (attached.ok) {
+        // It's about to be used, so waking a stopped one here costs nothing.
+        await restoreRecordedPreviews(deps, attached.value, row);
+        return attached;
+      }
+      return isGone(row, attached.error)
+        ? restart(deps, viewer, row)
+        : attached;
     }
     default:
       return row.state satisfies never;
@@ -362,6 +381,10 @@ export const createTurnSandboxSource =
     if (!(provider && entry)) {
       return null;
     }
+    const record = (
+      id: SandboxId,
+      exposed: { readonly port: number; readonly url: string }
+    ) => recordPreview(deps.db, id, exposed);
     const sandbox = lazySandbox(
       async () =>
         ensureWorkspace(
@@ -370,13 +393,29 @@ export const createTurnSandboxSource =
           run.conversationId,
           provider
         ),
-      (id, exposed) => recordPreview(deps.db, id, exposed)
+      record
     );
+    /** A page the agent wrote previews without a server of its own (067). */
+    const onChanged = async (path: string) => {
+      if (!isStaticPage(path)) {
+        return;
+      }
+      // The change just landed, so this is the sandbox it landed in.
+      const current = await sandbox.current();
+      if (current.ok) {
+        await previewStaticPage(current.value, path, {
+          log: deps.log,
+          record,
+          sleep: deps.sleep,
+        });
+      }
+    };
     return {
       proposeEdits: (call) => proposal(sandbox, call),
       provider,
       readFile: workspaceRead(sandbox),
       tools: createSandboxTools({
+        onChanged,
         reviewFor: (toolCallId) => {
           const review = reviews.get(toolCallId);
           return (

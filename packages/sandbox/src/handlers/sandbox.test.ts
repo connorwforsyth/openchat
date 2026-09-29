@@ -20,6 +20,8 @@ import { createJustBashFactory } from "../just-bash/provider";
 import { createMemorySnapshotStore } from "../just-bash/snapshot-store";
 import { createMemorySandboxFactory } from "../ports/sandbox.memory";
 import type { ProviderEntry, SandboxProviders } from "../providers";
+import { createDockerLikeEntry, previewUrlFor } from "../testing/docker-like";
+import { STATIC_PREVIEW_PORT } from "../tools/static-preview";
 import { createSandboxExecJobHandler, SANDBOX_EXEC_JOB } from "./exec-job";
 import {
   createConversationSandbox,
@@ -29,6 +31,7 @@ import {
   getConversationSandbox,
   listSandboxFiles,
   readSandboxFile,
+  recordPreview,
   resetSandbox,
   type SandboxHandlerDeps,
 } from "./sandbox";
@@ -388,5 +391,105 @@ describe("sandbox exec job", () => {
         recursive: false,
       })
     ).toEqual(ok([]));
+  });
+});
+
+// The runner keeps exposed ports in memory only (see preview-restore.ts):
+// a restart leaves every recorded preview answering 404 until it's exposed
+// again, which a read of the running workspace now does.
+describe("previews after a runner restart", () => {
+  const dockerSetup = async () => {
+    let clock = 0;
+    const docker = createDockerLikeEntry({ now: () => clock });
+    const { chat, deps } = await setup(
+      new Map([["docker", docker.entry]]) as SandboxProviders
+    );
+    const created = await must(
+      createConversationSandbox(deps, {
+        conversationId: chat.id,
+        provider: "docker",
+      })
+    );
+    return {
+      advance: (ms: number) => {
+        clock += ms;
+      },
+      chat,
+      created,
+      deps,
+      host: docker.host,
+    };
+  };
+
+  it("exposes recorded ports again, at most once a minute", async () => {
+    const { advance, chat, created, deps, host } = await dockerSetup();
+    await must(exposeSandboxPort(deps, { id: created.id, port: 3000 }));
+    host.exposed.clear();
+
+    const read = await must(
+      getConversationSandbox(deps, { conversationId: chat.id })
+    );
+    expect(read?.previews.map((preview) => preview.port)).toEqual([3000]);
+    expect([...(host.exposed.get(created.id) ?? [])]).toEqual([3000]);
+    const calls = host.exposeCalls.get(created.id);
+
+    // The panel reads again: exposing counts as activity, so not every time.
+    host.exposed.clear();
+    await must(getConversationSandbox(deps, { conversationId: chat.id }));
+    expect(host.exposeCalls.get(created.id)).toBe(calls);
+
+    advance(60_000);
+    await must(getConversationSandbox(deps, { conversationId: chat.id }));
+    expect([...(host.exposed.get(created.id) ?? [])]).toEqual([3000]);
+  });
+
+  it("leaves a stopped workspace asleep", async () => {
+    const { chat, created, deps, host } = await dockerSetup();
+    await must(exposeSandboxPort(deps, { id: created.id, port: 3000 }));
+    const calls = host.exposeCalls.get(created.id);
+    host.exposed.clear();
+    host.stopped.add(created.id);
+    const read = await must(
+      getConversationSandbox(deps, { conversationId: chat.id })
+    );
+    expect(read?.status).toEqual({ state: "stopped" });
+    expect(host.exposeCalls.get(created.id)).toBe(calls);
+  });
+
+  it("brings the static preview's server back, and fixes a URL that moved", async () => {
+    const { chat, created, deps, host } = await dockerSetup();
+    await recordPreview(deps.db, created.id, {
+      port: STATIC_PREVIEW_PORT,
+      url: "http://old-origin.test",
+    });
+    const read = await must(
+      getConversationSandbox(deps, { conversationId: chat.id })
+    );
+    expect(
+      host.commands.filter((command) => command.startsWith("nohup node"))
+    ).toHaveLength(1);
+    expect(read?.previews).toEqual([
+      {
+        port: STATIC_PREVIEW_PORT,
+        url: previewUrlFor(created.id, STATIC_PREVIEW_PORT),
+      },
+    ]);
+  });
+
+  it("has nothing to restore on just-bash", async () => {
+    const { chat, deps } = await setup();
+    const created = await must(
+      createConversationSandbox(deps, { conversationId: chat.id })
+    );
+    await recordPreview(deps.db, created.id, {
+      port: 3000,
+      url: "http://preview.test:3000",
+    });
+    const read = await must(
+      getConversationSandbox(deps, { conversationId: chat.id })
+    );
+    expect(read?.previews).toEqual([
+      { port: 3000, url: "http://preview.test:3000" },
+    ]);
   });
 });

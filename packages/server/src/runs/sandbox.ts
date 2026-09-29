@@ -37,6 +37,8 @@ export const WORKSPACE_INSTRUCTIONS = [
   "The user sees those files in the Files panel next to this chat.",
   "Use the bash, read, write and edit tools to do the work yourself.",
   "Never ask the user to run commands; they have no terminal. Run them yourself with bash.",
+  "A static page (HTML with its CSS and JS) shows in the user's Preview panel as soon as you write the .html file, so don't start a server for one.",
+  "For an app that needs a dev server (Vite and the like), start it in the background bound to 0.0.0.0 and call preview with its port.",
 ].join(" ");
 
 /** Tools that change files: they ask unless the agent overrides them. */
