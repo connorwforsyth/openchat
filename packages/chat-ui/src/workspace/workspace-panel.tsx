@@ -46,6 +46,7 @@ import {
   type DragEvent,
   type ReactNode,
   useCallback,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -56,9 +57,21 @@ import {
 } from "../artifacts/artifact-view";
 import type { WorkspaceSelection } from "../model/workspace";
 import { FileView } from "./file-view";
+import {
+  type BrowserAction,
+  type BrowserHistory,
+  type FileMode,
+  isHtmlPath,
+  openingMode,
+  type PreviewRequest,
+  type PreviewSources,
+  renderedKind,
+} from "./model/browser";
 import type { WorkspaceFilesSource } from "./model/client";
 import { NewFileDialog } from "./new-file-dialog";
-import { WorkspacePreview } from "./preview";
+import { BrowserView } from "./preview";
+import { RenderedFile } from "./rendered-file";
+import { usePreviewHistory } from "./use-preview-history";
 import {
   type FilesView,
   staticFiles,
@@ -66,11 +79,12 @@ import {
 } from "./use-workspace-files";
 
 // The chat's Workspace panel (060, D7): one list beside one main area. The
-// list has the preview (when the agent recorded one), the Files tree and the
-// Artifacts; the main area shows whichever is selected. Files open in an
-// editor that saves as you go. There's no terminal and no port box: the
-// agent runs commands and starts previews; people prompt, drop and edit.
-// Load it through `LazyWorkspacePanel` (D27).
+// list has the Preview (a built-in browser, 066, whenever there's a server
+// or an HTML page to show), the Files tree and the Artifacts; the main area
+// shows whichever is selected. Files open in an editor that saves as you go;
+// HTML and Markdown files open rendered, with a Code toggle. There's no
+// terminal and no port box: the agent runs commands and starts previews;
+// people prompt, drop and edit. Load it through `LazyWorkspacePanel` (D27).
 
 export interface WorkspaceArtifacts {
   readonly artifacts: readonly Artifact[];
@@ -87,6 +101,8 @@ export interface WorkspacePanelProps {
   readonly className?: string;
   readonly files: WorkspaceFilesSource;
   readonly onSelect: (selection: WorkspaceSelection | null) => void;
+  /** A page the chat asks the Preview to show (`openPreview`, an `.html` write). */
+  readonly previewRequest?: PreviewRequest | null;
   /** Checks a preview answers before showing it; for tests. */
   readonly probePreview?: (url: string) => Promise<boolean>;
   /** `workspaceRevision` of the chat's messages. */
@@ -130,7 +146,9 @@ function WorkspaceLayout({
   artifacts,
   className,
   onSelect,
+  previewRequest,
   probePreview,
+  revision,
   selection,
   view,
 }: WorkspacePanelProps & { readonly view: FilesView }) {
@@ -139,6 +157,37 @@ function WorkspaceLayout({
   const [dragging, setDragging] = useState(false);
   const { actions, status } = view;
   const writable = actions !== null && status.kind === "ready";
+
+  const { paths, previews, provider } = view;
+  const sources = useMemo(
+    (): PreviewSources => ({
+      htmlPaths: (paths ?? []).filter(
+        (path) => !path.endsWith("/") && isHtmlPath(path)
+      ),
+      previews,
+      provider,
+    }),
+    [paths, previews, provider]
+  );
+  const preview = usePreviewHistory(sources, previewRequest);
+
+  // Rendered or Code, per file, for as long as the panel is open. A file
+  // that opens empty (a new one) opens as code: there's nothing to render.
+  const [modes, setModes] = useState<Readonly<Record<string, FileMode>>>({});
+  const { open } = view;
+  if (
+    open?.kind === "text" &&
+    open.opened === "" &&
+    modes[open.path] === undefined &&
+    renderedKind(open.path) !== null
+  ) {
+    setModes({ ...modes, [open.path]: "code" });
+  }
+  const setMode = useCallback(
+    (path: string, mode: FileMode) =>
+      setModes((current) => ({ ...current, [path]: mode })),
+    []
+  );
 
   const openNewFile = useCallback(() => setNewFileOpen(true), []);
   const importFiles = actions?.importFiles;
@@ -214,6 +263,7 @@ function WorkspaceLayout({
       <div className="grid min-h-0 flex-1 @lg:grid-cols-[12rem_minmax(0,1fr)] @lg:grid-rows-1 grid-rows-[minmax(0,16rem)_minmax(0,1fr)]">
         <WorkspaceList
           artifacts={artifacts.artifacts}
+          hasPreview={preview.history !== null}
           onNewFile={openNewFile}
           onSelect={onSelect}
           selection={selection}
@@ -223,10 +273,16 @@ function WorkspaceLayout({
         <div className="min-h-0 overflow-auto">
           <MainArea
             artifacts={artifacts}
+            modes={modes}
+            onModeChange={setMode}
+            onNavigate={preview.navigate}
             onNewFile={openNewFile}
             onSelect={onSelect}
+            previewHistory={preview.history}
             probePreview={probePreview}
+            revision={revision}
             selection={selection}
+            sources={sources}
             view={view}
             writable={writable}
           />
@@ -279,6 +335,7 @@ function ListItem({
 
 function WorkspaceList({
   artifacts,
+  hasPreview,
   onNewFile,
   onSelect,
   selection,
@@ -286,6 +343,7 @@ function WorkspaceList({
   writable,
 }: {
   readonly artifacts: readonly Artifact[];
+  readonly hasPreview: boolean;
   readonly onNewFile: () => void;
   readonly onSelect: (selection: WorkspaceSelection | null) => void;
   readonly selection: WorkspaceSelection | null;
@@ -293,7 +351,6 @@ function WorkspaceList({
   readonly writable: boolean;
 }) {
   const { t } = useLingui();
-  const { preview } = view;
   const shownArtifact =
     selection?.kind === "artifact"
       ? (selection.artifactId ?? artifacts[0]?.id)
@@ -319,12 +376,12 @@ function WorkspaceList({
       aria-label={t`Workspace contents`}
       className="flex min-h-0 flex-col gap-3 overflow-hidden @lg:border-e border-b @lg:border-b-0 p-2"
     >
-      {preview ? (
+      {hasPreview ? (
         <ul>
           <ListItem
             current={selection?.kind === "preview"}
             icon={<GlobeIcon aria-hidden />}
-            label={t`Preview · :${preview.port}`}
+            label={t`Preview`}
             onClick={selectPreview}
           />
         </ul>
@@ -591,18 +648,30 @@ function EmptyFiles({
 
 function MainArea({
   artifacts,
+  modes,
+  onModeChange,
+  onNavigate,
   onNewFile,
   onSelect,
+  previewHistory,
   probePreview,
+  revision,
   selection,
+  sources,
   view,
   writable,
 }: {
   readonly artifacts: WorkspaceArtifacts;
+  readonly modes: Readonly<Record<string, FileMode>>;
+  readonly onModeChange: (path: string, mode: FileMode) => void;
+  readonly onNavigate: (action: BrowserAction) => void;
   readonly onNewFile: () => void;
   readonly onSelect: (selection: WorkspaceSelection | null) => void;
+  readonly previewHistory: BrowserHistory | null;
   readonly probePreview?: (url: string) => Promise<boolean>;
+  readonly revision: number;
   readonly selection: WorkspaceSelection | null;
+  readonly sources: PreviewSources;
   readonly view: FilesView;
   readonly writable: boolean;
 }) {
@@ -610,7 +679,16 @@ function MainArea({
     (next: ArtifactSelection) => onSelect({ kind: "artifact", ...next }),
     [onSelect]
   );
-  const { actions, preview, status } = view;
+  const selectedPath = selection?.kind === "file" ? selection.path : null;
+  const changeMode = useCallback(
+    (mode: FileMode) => {
+      if (selectedPath) {
+        onModeChange(selectedPath, mode);
+      }
+    },
+    [onModeChange, selectedPath]
+  );
+  const { actions, readFile, status } = view;
 
   if (selection?.kind === "artifact") {
     const artifact =
@@ -627,26 +705,47 @@ function MainArea({
       />
     );
   }
-  if (selection?.kind === "preview" && preview) {
+  if (selection?.kind === "preview") {
     return (
-      <WorkspacePreview
-        key={preview.url}
-        preview={preview}
+      <BrowserView
+        history={previewHistory}
+        onNavigate={onNavigate}
         probe={probePreview}
+        readFile={readFile}
+        refreshKey={revision}
+        sources={sources}
       />
     );
   }
   if (selection?.kind === "file" && actions) {
-    return (
-      <FileView
-        file={view.open ?? { kind: "loading", path: selection.path }}
-        onDelete={actions.deleteOpen}
-        onEdit={actions.edit}
-        onOverwrite={actions.overwrite}
-        onReload={actions.reload}
-        onSave={actions.save}
-      />
-    );
+    const file = view.open ?? {
+      kind: "loading" as const,
+      path: selection.path,
+    };
+    const fileView = {
+      file,
+      onDelete: actions.deleteOpen,
+      onEdit: actions.edit,
+      onOverwrite: actions.overwrite,
+      onReload: actions.reload,
+      onSave: actions.save,
+    };
+    const kind = renderedKind(selection.path);
+    if (kind) {
+      return (
+        <RenderedFile
+          {...fileView}
+          kind={kind}
+          mode={openingMode(modes[selection.path], false)}
+          onModeChange={changeMode}
+          probe={probePreview}
+          readFile={readFile}
+          refreshKey={revision}
+          sources={sources}
+        />
+      );
+    }
+    return <FileView {...fileView} />;
   }
   if (status.kind === "off") {
     return (

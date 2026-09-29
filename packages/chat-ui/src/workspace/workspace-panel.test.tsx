@@ -222,7 +222,7 @@ afterEach(cleanup);
 describe("the list and the main area", () => {
   it("lists the preview, the files and the artifacts, and selects them", async () => {
     const { client } = fakeClient({
-      "/work/notes.md": { content: "# Notes\n", etag: V1 },
+      "/work/notes.txt": { content: "# Notes\n", etag: V1 },
     });
     const onSelect = vi.fn();
     renderWithI18n(
@@ -238,9 +238,7 @@ describe("the list and the main area", () => {
       />
     );
     const workspace = panel();
-    await userEvent.click(
-      workspace.getByRole("button", { name: "Preview · :5173" })
-    );
+    await userEvent.click(workspace.getByRole("button", { name: "Preview" }));
     expect(onSelect).toHaveBeenLastCalledWith({ kind: "preview" });
     const [first] = chatArtifacts;
     if (!first) {
@@ -273,7 +271,7 @@ describe("the list and the main area", () => {
 
   it("follows the open file in the tree, so a file can be opened again after an artifact", async () => {
     const { client } = fakeClient({
-      "/work/notes.md": { content: "# Notes\n", etag: V1 },
+      "/work/notes.txt": { content: "# Notes\n", etag: V1 },
     });
     const onSelect = vi.fn();
     const base = props({
@@ -284,10 +282,10 @@ describe("the list and the main area", () => {
     const view = renderWithI18n(
       <WorkspacePanel
         {...base}
-        selection={{ kind: "file", path: "notes.md" }}
+        selection={{ kind: "file", path: "notes.txt" }}
       />
     );
-    const row = await treeItem("notes.md");
+    const row = await treeItem("notes.txt");
     await waitFor(() =>
       expect(row().getAttribute("aria-selected")).toBe("true")
     );
@@ -305,7 +303,7 @@ describe("the list and the main area", () => {
     await press(row());
     expect(onSelect).toHaveBeenLastCalledWith({
       kind: "file",
-      path: "notes.md",
+      path: "notes.txt",
     });
   });
 
@@ -332,11 +330,11 @@ describe("the list and the main area", () => {
 });
 
 describe("the editor", () => {
-  const notes: WorkspaceSelection = { kind: "file", path: "notes.md" };
+  const notes: WorkspaceSelection = { kind: "file", path: "notes.txt" };
 
   it("saves after a pause with the version it read, then with the new one", async () => {
     const fake = fakeClient({
-      "/work/notes.md": { content: "hi\n", etag: V1 },
+      "/work/notes.txt": { content: "hi\n", etag: V1 },
     });
     const onChanged = vi.fn();
     renderWithI18n(
@@ -355,7 +353,7 @@ describe("the editor", () => {
     });
     expect(fake.writes[0]).toMatchObject({
       ifMatch: V1,
-      path: "/work/notes.md",
+      path: "/work/notes.txt",
     });
     expect(fake.writes[0]?.content).toContain("A");
     await waitFor(() => expect(panel().getByText("Saved")).toBeTruthy());
@@ -371,7 +369,7 @@ describe("the editor", () => {
 
   it("says when the agent changed the file first: Reload or Overwrite", async () => {
     const fake = fakeClient({
-      "/work/notes.md": { content: "hi\n", etag: V1 },
+      "/work/notes.txt": { content: "hi\n", etag: V1 },
     });
     renderWithI18n(
       <WorkspacePanel
@@ -379,7 +377,7 @@ describe("the editor", () => {
       />
     );
     const editor = await editable();
-    fake.agentWrites("/work/notes.md", "the agent's\n", V3);
+    fake.agentWrites("/work/notes.txt", "the agent's\n", V3);
     await userEvent.click(editor);
     await userEvent.keyboard("A");
     await userEvent.keyboard("{Control>}s{/Control}");
@@ -398,7 +396,7 @@ describe("the editor", () => {
 
   it("reloads to the agent's version on Reload", async () => {
     const fake = fakeClient({
-      "/work/notes.md": { content: "hi\n", etag: V1 },
+      "/work/notes.txt": { content: "hi\n", etag: V1 },
     });
     renderWithI18n(
       <WorkspacePanel
@@ -406,7 +404,7 @@ describe("the editor", () => {
       />
     );
     const editor = await editable();
-    fake.agentWrites("/work/notes.md", "the agent's\n", V3);
+    fake.agentWrites("/work/notes.txt", "the agent's\n", V3);
     await userEvent.click(editor);
     await userEvent.keyboard("A");
     await userEvent.keyboard("{Control>}s{/Control}");
@@ -422,7 +420,7 @@ describe("the editor", () => {
 
   it("deletes the open file after asking", async () => {
     const fake = fakeClient({
-      "/work/notes.md": { content: "hi\n", etag: V1 },
+      "/work/notes.txt": { content: "hi\n", etag: V1 },
     });
     const onSelect = vi.fn();
     renderWithI18n(
@@ -436,11 +434,11 @@ describe("the editor", () => {
     );
     await editable();
     await userEvent.click(
-      panel().getByRole("button", { name: "Delete notes.md" })
+      panel().getByRole("button", { name: "Delete notes.txt" })
     );
     await press(await screen.findByRole("button", { name: "Delete" }));
     await waitFor(() =>
-      expect(fake.client.deleteFile).toHaveBeenCalledWith("/work/notes.md")
+      expect(fake.client.deleteFile).toHaveBeenCalledWith("/work/notes.txt")
     );
     expect(onSelect).toHaveBeenLastCalledWith(null);
   });
@@ -574,17 +572,17 @@ describe("states", () => {
 describe("reloading as the agent works", () => {
   it("relists and reloads a clean file when the revision moves", async () => {
     const fake = fakeClient({
-      "/work/notes.md": { content: "v1\n", etag: V1 },
+      "/work/notes.txt": { content: "v1\n", etag: V1 },
     });
     const onChanged = vi.fn();
     const base = props({
       files: chatFiles(fake.client, ready, onChanged),
-      selection: { kind: "file", path: "notes.md" },
+      selection: { kind: "file", path: "notes.txt" },
     });
     const { rerender } = renderWithI18n(<WorkspacePanel {...base} />);
     await editable();
     const lists = fake.client.listFiles.mock.calls.length;
-    fake.agentWrites("/work/notes.md", "v2 from the agent\n", V3);
+    fake.agentWrites("/work/notes.txt", "v2 from the agent\n", V3);
 
     rerender(<WorkspacePanel {...base} revision={1} />);
     await waitFor(() =>
@@ -597,11 +595,11 @@ describe("reloading as the agent works", () => {
 
   it("leaves a file with unsaved edits alone", async () => {
     const fake = fakeClient({
-      "/work/notes.md": { content: "v1\n", etag: V1 },
+      "/work/notes.txt": { content: "v1\n", etag: V1 },
     });
     const base = props({
       files: chatFiles(fake.client),
-      selection: { kind: "file", path: "notes.md" },
+      selection: { kind: "file", path: "notes.txt" },
     });
     const { rerender } = renderWithI18n(<WorkspacePanel {...base} />);
     const editor = await editable();

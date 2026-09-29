@@ -20,7 +20,7 @@ import {
 } from "@workspace/ui/components/alert-dialog";
 import { Button } from "@workspace/ui/components/button";
 import { Skeleton } from "@workspace/ui/components/skeleton";
-import { useCallback, useState } from "react";
+import { type ReactNode, useCallback, useState } from "react";
 
 import type { OpenFile, SaveState } from "./model/editor";
 
@@ -30,6 +30,8 @@ import type { OpenFile, SaveState } from "./model/editor";
 
 export interface FileViewProps {
   readonly file: OpenFile;
+  /** Leads the header's actions: a rendered file's Preview/Code toggle. */
+  readonly modeToggle?: ReactNode;
   readonly onDelete: () => void;
   readonly onEdit: (text: string) => void;
   readonly onOverwrite: () => void;
@@ -108,6 +110,7 @@ function DeleteFile({
 
 export function FileView({
   file,
+  modeToggle,
   onDelete,
   onEdit,
   onOverwrite,
@@ -185,6 +188,7 @@ export function FileView({
             contents={file.opened}
             headerActions={
               <>
+                {modeToggle}
                 <span
                   aria-live="polite"
                   className="text-muted-foreground text-xs"
