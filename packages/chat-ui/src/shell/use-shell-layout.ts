@@ -6,9 +6,9 @@ import {
   clampPanelWidth,
   defaultShellLayout,
   parseShellLayout,
-  type RightPanel,
   type ShellLayout,
   togglePanel as togglePanelIn,
+  type WorkspaceSection,
 } from "../model/layout";
 
 export const SHELL_LAYOUT_STORAGE_KEY = "chat-ui:layout";
@@ -62,12 +62,12 @@ export const useShellLayout = (storageKey = SHELL_LAYOUT_STORAGE_KEY) => {
     []
   );
   const setPanel = useCallback(
-    (panel: RightPanel | null) =>
+    (panel: WorkspaceSection | null) =>
       setLayout((current) => ({ ...current, panel })),
     []
   );
   const togglePanel = useCallback(
-    (panel: RightPanel) =>
+    (panel: WorkspaceSection) =>
       setLayout((current) => togglePanelIn(current, panel)),
     []
   );

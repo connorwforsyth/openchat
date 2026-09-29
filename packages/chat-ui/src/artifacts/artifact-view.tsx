@@ -24,7 +24,6 @@ import {
   TabsList,
   TabsTrigger,
 } from "@workspace/ui/components/tabs";
-import { cn } from "@workspace/ui/lib/utils";
 import { useCallback, useMemo, useState } from "react";
 
 import { Markdown } from "../conversation/markdown";
@@ -37,9 +36,10 @@ import {
 import { ArtifactPreview, SrcdocPreview } from "./artifact-preview";
 import { isRuntimeKind } from "./runtime-protocol";
 
-// The Artifacts panel (D16, D27): the chat's artifacts, one at a time, with
-// its versions. Preview, source (CodeView) and what changed since the
-// previous version (DiffView). Load it through `LazyArtifactsPanel`; data
+// One artifact in the Workspace panel (D16, D27, 060): its preview, source
+// (CodeView) and what changed since the previous version (DiffView), with
+// its versions. Artifacts stay database rows rendered on their own origin
+// (D24), not workspace files; the panel lists them beside the files. Data
 // comes in as props, fetched by the host.
 
 export interface ArtifactSelection {
@@ -48,8 +48,9 @@ export interface ArtifactSelection {
   readonly versionId?: ArtifactVersionId;
 }
 
-export interface ArtifactsPanelProps {
-  readonly artifacts: readonly Artifact[];
+export interface ArtifactViewProps {
+  /** `undefined` when the chat has none. */
+  readonly artifact: Artifact | undefined;
   /** A message the host can show if loading versions failed. */
   readonly error?: string | null;
   readonly onSelect: (selection: ArtifactSelection) => void;
@@ -59,33 +60,29 @@ export interface ArtifactsPanelProps {
    * source only.
    */
   readonly runtimeOrigin?: string | null;
-  readonly selection: ArtifactSelection | null;
-  /** Versions of the selected artifact, oldest first; `undefined` while loading. */
+  /** The version shown; omitted, the latest. */
+  readonly versionId?: ArtifactVersionId;
+  /** Versions of the artifact, oldest first; `undefined` while loading. */
   readonly versions: readonly ArtifactVersion[] | undefined;
 }
 
 type View = "preview" | "code" | "changes";
 
-export function ArtifactsPanel({
-  artifacts,
+export function ArtifactView({
+  artifact,
   error,
   onSelect,
   runtimeOrigin = null,
-  selection,
+  versionId,
   versions,
-}: ArtifactsPanelProps) {
-  const { t } = useLingui();
-  const selected =
-    artifacts.find((artifact) => artifact.id === selection?.artifactId) ??
-    artifacts[0];
-
-  if (!selected) {
+}: ArtifactViewProps) {
+  if (!artifact) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center">
         <FileTextIcon aria-hidden className="size-6 text-muted-foreground" />
         <p className="max-w-64 text-muted-foreground text-sm">
           <Trans>
-            Nothing here yet. Code, pages and documents the agent makes in this
+            No artifacts yet. Code, pages and documents the agent makes in this
             chat show up here.
           </Trans>
         </p>
@@ -94,22 +91,7 @@ export function ArtifactsPanel({
   }
 
   return (
-    <section aria-label={t`Artifacts`} className="flex h-full min-h-0 flex-col">
-      {artifacts.length > 1 ? (
-        <ul
-          aria-label={t`Artifacts in this chat`}
-          className="flex flex-col gap-px border-b p-2"
-        >
-          {artifacts.map((artifact) => (
-            <ArtifactListItem
-              active={artifact.id === selected.id}
-              artifact={artifact}
-              key={artifact.id}
-              onSelect={onSelect}
-            />
-          ))}
-        </ul>
-      ) : null}
+    <div className="flex h-full min-h-0 flex-col">
       {error ? (
         <p className="p-3 text-destructive text-sm" role="alert">
           {error}
@@ -126,49 +108,15 @@ export function ArtifactsPanel({
       ) : null}
       {versions && versions.length > 0 ? (
         <ArtifactDetail
-          artifact={selected}
-          key={selected.id}
+          artifact={artifact}
+          key={artifact.id}
           onSelect={onSelect}
           runtimeOrigin={runtimeOrigin}
-          selection={selection}
+          versionId={versionId}
           versions={versions}
         />
       ) : null}
-    </section>
-  );
-}
-
-function ArtifactListItem({
-  active,
-  artifact,
-  onSelect,
-}: {
-  readonly active: boolean;
-  readonly artifact: Artifact;
-  readonly onSelect: (selection: ArtifactSelection) => void;
-}) {
-  const select = useCallback(
-    () => onSelect({ artifactId: artifact.id }),
-    [artifact.id, onSelect]
-  );
-  return (
-    <li>
-      <button
-        aria-current={active ? "true" : undefined}
-        className={cn(
-          "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-start text-sm outline-none transition-colors duration-(--motion-fast) hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50",
-          active && "bg-muted font-medium"
-        )}
-        onClick={select}
-        type="button"
-      >
-        <FileTextIcon
-          aria-hidden
-          className="size-4 shrink-0 text-muted-foreground"
-        />
-        <span className="truncate">{artifact.title}</span>
-      </button>
-    </li>
+    </div>
   );
 }
 
@@ -176,20 +124,20 @@ function ArtifactDetail({
   artifact,
   onSelect,
   runtimeOrigin,
-  selection,
+  versionId,
   versions,
 }: {
   readonly artifact: Artifact;
   readonly onSelect: (selection: ArtifactSelection) => void;
   readonly runtimeOrigin: string | null;
-  readonly selection: ArtifactSelection | null;
+  readonly versionId: ArtifactVersionId | undefined;
   readonly versions: readonly ArtifactVersion[];
 }) {
   const { t } = useLingui();
   const index = Math.max(
     0,
-    selection?.versionId
-      ? versions.findIndex((candidate) => candidate.id === selection.versionId)
+    versionId
+      ? versions.findIndex((candidate) => candidate.id === versionId)
       : versions.length - 1
   );
   const version = versions[index] ?? versions.at(-1);
