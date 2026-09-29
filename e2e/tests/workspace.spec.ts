@@ -1,6 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import type { ConversationId } from "@workspace/contract/schemas/common";
-
+import { openAccountMenu } from "../support/admin";
 import { apiFor, eventually } from "../support/api";
 import {
   composer,
@@ -10,7 +10,7 @@ import {
   openWorkspace,
   send,
 } from "../support/chat";
-import { storageStateFor } from "../support/users";
+import { storageStateFor, users } from "../support/users";
 
 const BASH_RESULT = /Tool result: .*from-the-agent/;
 const HI_RESULT = /Tool result: .*hi/;
@@ -18,6 +18,8 @@ const REVIEW_RESULT = /Tool result: .*Keep the last line as a number/;
 const RAN_LS = /^Ran ls/;
 const APPROVE = /^Approve/;
 const SAVED = /Saved/;
+const DARK = /\bdark\b/;
+const LIGHT = /\blight\b/;
 
 // The chat's workspace (PLAN.md D7, §11 M1 steps 6 and 7 without Docker):
 // every chat has one, made on first use (056) on just-bash here, shown in
@@ -39,6 +41,77 @@ let filesChat: ConversationId;
 /** The panel's editor, typed into as a person would (060). */
 const editorIn = (page: Page) =>
   page.locator('[data-slot="code-editor"] [contenteditable="true"]');
+
+/** Picks a theme from the account menu, as a person switches it. */
+const pickTheme = async (page: Page, theme: "Dark" | "Light" | "System") => {
+  await openAccountMenu(page, users.ada.name);
+  await page.getByRole("menuitemradio", { name: theme }).click();
+  await page.keyboard.press("Escape");
+};
+
+/**
+ * How the editor's text reads against its background: the lowest WCAG
+ * contrast ratio over every token on screen, and the colour scheme its
+ * shadow root renders in. Colours are composited on a canvas, so a nearly
+ * transparent token (064's placeholder colours) counts as the background.
+ */
+const editorLegibility = (page: Page) =>
+  page.locator('[data-slot="code-editor"] diffs-container').evaluate((host) => {
+    const pre = host.shadowRoot?.querySelector("pre");
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    if (!(pre && context)) {
+      return { contrast: 0, scheme: "", tokens: 0 };
+    }
+    const paint = (colors: string[]) => {
+      context.clearRect(0, 0, 1, 1);
+      for (const color of ["#fff", ...colors]) {
+        context.fillStyle = color;
+        context.fillRect(0, 0, 1, 1);
+      }
+      const [r = 0, g = 0, b = 0] = context.getImageData(0, 0, 1, 1).data;
+      const linear = (channel: number) => {
+        const value = channel / 255;
+        return value <= 0.040_45
+          ? value / 12.92
+          : ((value + 0.055) / 1.055) ** 2.4;
+      };
+      return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
+    };
+    const background = getComputedStyle(pre).backgroundColor;
+    const behind = paint([background]);
+    const tokens = [...pre.querySelectorAll("[data-line] span")].filter(
+      (token) => token.textContent?.trim()
+    );
+    const ratios = tokens.map((token) => {
+      const front = paint([background, getComputedStyle(token).color]);
+      const [light, dark] = front > behind ? [front, behind] : [behind, front];
+      return (light + 0.05) / (dark + 0.05);
+    });
+    return {
+      contrast: Math.min(...ratios),
+      scheme: getComputedStyle(pre).colorScheme,
+      tokens: tokens.length,
+    };
+  });
+
+// Large-text AA. The muted tokens (comments) sit near 4.5; 064's invisible
+// text measured about 1.
+const LEGIBLE = 3;
+
+/** Waits for the editor to read in `scheme`; a failure shows the measurement. */
+const expectLegible = (page: Page, scheme: "dark" | "light") =>
+  expect
+    .poll(
+      async () => {
+        const measured = await editorLegibility(page);
+        return measured.scheme === scheme && measured.contrast > LEGIBLE
+          ? "legible"
+          : measured;
+      },
+      { message: `the editor's text reads in ${scheme}` }
+    )
+    .toBe("legible");
 
 test("the agent's commands show as quiet lines, and the panel has files but no terminal", async ({
   page,
@@ -282,4 +355,37 @@ test("/new-file creates a file and opens it", async ({ baseURL, page }) => {
     recursive: true,
   });
   expect(listed.map((entry) => entry.path)).toContain("/work/todo.md");
+});
+
+test("the editor stays legible while the theme switches under an open file", async ({
+  page,
+}) => {
+  await page.goto(`/c/${filesChat}`);
+  const panel = await openWorkspace(page);
+  await panel.getByRole("treeitem", { name: "hello.md" }).click();
+  const editor = editorIn(page);
+  await expect(editor).toContainText("edited-by-hand");
+
+  await pickTheme(page, "Dark");
+  await expect(page.locator("html")).toHaveClass(DARK);
+  // A line the editor tokenizes itself, not the first render's highlighting.
+  await editor.click();
+  await page.keyboard.press("ControlOrMeta+End");
+  await page.keyboard.type("\ntyped-in-dark");
+  await expect(editor).toContainText("typed-in-dark");
+  await expectLegible(page, "dark");
+
+  // Dark to light with the file open: the switch 064 lost the text on.
+  await pickTheme(page, "Light");
+  await expect(page.locator("html")).toHaveClass(LIGHT);
+  await expectLegible(page, "light");
+
+  // System follows the device's preference, live.
+  await page.emulateMedia({ colorScheme: "dark" });
+  await pickTheme(page, "System");
+  await expect(page.locator("html")).toHaveClass(DARK);
+  await expectLegible(page, "dark");
+  await page.emulateMedia({ colorScheme: "light" });
+  await expect(page.locator("html")).toHaveClass(LIGHT);
+  await expectLegible(page, "light");
 });
