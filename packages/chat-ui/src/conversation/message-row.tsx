@@ -113,6 +113,7 @@ function Block({
           approvals={approvals}
           call={block.call}
           result={block.result}
+          streaming={streaming}
         />
       );
     case "memory":

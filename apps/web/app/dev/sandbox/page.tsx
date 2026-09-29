@@ -19,13 +19,14 @@ export default async function Page() {
     <main className="mx-auto flex min-h-svh max-w-5xl flex-col gap-6 p-6">
       <header className="flex flex-col gap-1">
         <h1 className="font-medium text-lg">
-          <Trans>Sandbox panel</Trans>
+          <Trans>Workspace panel</Trans>
         </h1>
         <p className="text-muted-foreground text-sm">
           <Trans>
-            The chat sandbox panel over a just-bash workspace that runs entirely
-            in this browser tab: simulated bash, an in-memory filesystem, no
-            server and no network. Reloading the page starts over.
+            The chat's Workspace panel (files, editor, preview and artifacts)
+            over a just-bash workspace that runs entirely in this browser tab:
+            simulated bash, an in-memory filesystem, no server and no network.
+            Reloading the page starts over.
           </Trans>
         </p>
       </header>

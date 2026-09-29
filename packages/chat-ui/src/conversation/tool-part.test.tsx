@@ -80,11 +80,17 @@ const changed = (
 const renderTool = (
   toolCall: ToolCallPart,
   result: ToolResultPart | undefined,
-  actions: ConversationActions = {}
+  actions: ConversationActions = {},
+  { streaming = true }: { readonly streaming?: boolean } = {}
 ) =>
   renderWithI18n(
     <ConversationActionsProvider actions={actions}>
-      <ToolPart approvals={[pendingEdit]} call={toolCall} result={result} />
+      <ToolPart
+        approvals={[pendingEdit]}
+        call={toolCall}
+        result={result}
+        streaming={streaming}
+      />
     </ConversationActionsProvider>
   );
 
@@ -107,6 +113,18 @@ describe("bash", () => {
     expect(toggle.textContent).toContain("ls -la…");
     expect(statusOf(toggle)).toBe("running");
     expect(toggle.querySelector(".motion-safe\\:animate-spin")).toBeTruthy();
+  });
+
+  it("says Stopped, without a spinner, once the message stopped with no result", async () => {
+    renderTool(bash, undefined, {}, { streaming: false });
+    const toggle = line("Stopped");
+    expect(statusOf(toggle)).toBe("stopped");
+    expect(toggle.className).not.toContain("text-destructive");
+    expect(toggle.querySelector(".motion-safe\\:animate-spin")).toBeNull();
+    await userEvent.click(toggle);
+    expect(screen.getByLabelText("Command and output").textContent).toContain(
+      "ls -la"
+    );
   });
 
   it("expands to the command and the end of its output", async () => {

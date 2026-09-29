@@ -73,8 +73,14 @@ export function ToolLabel({ label }: { readonly label: MessageDescriptor }) {
   return <TransRuntime id={label.id} message={label.message} values={values} />;
 }
 
-function StatusIcon({ summary }: { readonly summary: ToolSummary }) {
-  if (summary.status === "running") {
+function StatusIcon({
+  stopped,
+  summary,
+}: {
+  readonly stopped: boolean;
+  readonly summary: ToolSummary;
+}) {
+  if (summary.status === "running" && !stopped) {
     // Spins (a transform) while the tool runs; with reduced motion it
     // breathes instead, which is opacity only (D28).
     return (
@@ -135,12 +141,22 @@ function Details({
   }
 }
 
-export function ToolStatus({ summary }: { readonly summary: ToolSummary }) {
+export function ToolStatus({
+  stopped = false,
+  summary,
+}: {
+  /**
+   * A running call whose message has stopped streaming: the run ended
+   * without its result, so it reads "Stopped" instead of spinning forever.
+   */
+  readonly stopped?: boolean;
+  readonly summary: ToolSummary;
+}) {
   const failed = summary.status === "error";
   return (
     <Collapsible
       className="not-prose flex flex-col gap-2"
-      data-status={summary.status}
+      data-status={stopped ? "stopped" : summary.status}
     >
       <div className="flex min-w-0 items-center gap-1">
         <CollapsibleTrigger
@@ -151,9 +167,13 @@ export function ToolStatus({ summary }: { readonly summary: ToolSummary }) {
               : "text-muted-foreground hover:text-foreground"
           )}
         >
-          <StatusIcon summary={summary} />
+          <StatusIcon stopped={stopped} summary={summary} />
           <span className="min-w-0 truncate">
-            <ToolLabel label={summary.label} />
+            {stopped ? (
+              <Trans>Stopped</Trans>
+            ) : (
+              <ToolLabel label={summary.label} />
+            )}
           </span>
           {failed && summary.errorText ? (
             <span className="min-w-0 max-w-64 truncate text-xs opacity-80">
