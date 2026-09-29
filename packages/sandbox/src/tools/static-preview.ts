@@ -2,10 +2,10 @@ import type { SandboxId } from "@workspace/contract/schemas/common";
 import type { SandboxProvider } from "@workspace/contract/schemas/sandbox";
 import { type AsyncResult, err, ok } from "@workspace/shared/result";
 
-import { WORKDIR } from "./paths";
-import type { Sandbox, SandboxError } from "./ports/sandbox";
+import { WORKDIR } from "../paths";
+import type { Sandbox, SandboxError } from "../ports/sandbox";
+import { waitForListener } from "./listener";
 import { STATIC_PREVIEW_SERVER } from "./static-preview-server";
-import { waitForListener } from "./tools/listener";
 
 // Static pages preview without a server of the agent's own (067). When an
 // `.html` file lands in a workspace that can serve ports, a small file

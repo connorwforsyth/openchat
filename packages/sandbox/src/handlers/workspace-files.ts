@@ -22,7 +22,7 @@ import { z } from "zod";
 
 import { resolveSandboxPath, WORKDIR } from "../paths";
 import type { Sandbox, SandboxError } from "../ports/sandbox";
-import { previewStaticPage } from "../static-preview";
+import { previewStaticPage } from "../tools/static-preview";
 import {
   authorize,
   fromSandboxError,

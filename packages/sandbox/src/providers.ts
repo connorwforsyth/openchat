@@ -17,7 +17,7 @@ import {
 import type { SandboxError, SandboxFactory } from "./ports/sandbox";
 import { createPreviewRestorer, type PreviewRestorer } from "./preview-restore";
 import { createUnavailableFactory } from "./remote/stubs";
-import type { PreviewLog } from "./static-preview";
+import type { PreviewLog } from "./tools/static-preview";
 
 // The instance's sandbox providers, built once at boot from app config. Only
 // configured providers are present, so an empty config gives just-bash and

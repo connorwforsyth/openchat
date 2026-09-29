@@ -9,7 +9,7 @@ import {
   type PreviewLog,
   STATIC_PREVIEW_PORT,
   type StaticPreviewSandbox,
-} from "./static-preview";
+} from "./tools/static-preview";
 
 // The runner keeps the ports a sandbox exposed in memory, so after it
 // restarts every preview on the chat's row answers 404 until something

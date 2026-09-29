@@ -28,7 +28,7 @@ import {
   isStaticPage,
   type PreviewLog,
   previewStaticPage,
-} from "../static-preview";
+} from "../tools/static-preview";
 import {
   createSandboxTools,
   editInputSchema,

@@ -20,9 +20,9 @@ import { z } from "zod";
 
 import { WORKDIR } from "../paths";
 import type { OutputChunk, Sandbox, SandboxError } from "../ports/sandbox";
-import { STATIC_PREVIEW_PORT } from "../static-preview";
 import { wait, waitForListener } from "./listener";
 import { proposeEdit } from "./patch";
+import { STATIC_PREVIEW_PORT } from "./static-preview";
 
 // The agent's sandbox tools (D7) over any `Sandbox`: `bash`, `read`, `write`,
 // `edit` and `preview`. The user calls the sandbox the chat's workspace and

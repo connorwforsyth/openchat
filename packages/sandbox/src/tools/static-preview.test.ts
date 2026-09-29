@@ -15,8 +15,9 @@ import { fixtureId } from "@workspace/contract/fixtures";
 import type { SandboxId } from "@workspace/contract/schemas/common";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { createJustBashSandbox } from "./just-bash/provider";
-import { createMemorySandbox } from "./ports/sandbox.memory";
+import { createJustBashSandbox } from "../just-bash/provider";
+import { createMemorySandbox } from "../ports/sandbox.memory";
+import { createDockerLikeEntry, previewUrlFor } from "../testing/docker-like";
 import {
   ensureStaticPreview,
   isStaticPage,
@@ -25,7 +26,6 @@ import {
   STATIC_PREVIEW_SCRIPT_PATH,
 } from "./static-preview";
 import { STATIC_PREVIEW_SERVER } from "./static-preview-server";
-import { createDockerLikeEntry, previewUrlFor } from "./testing/docker-like";
 
 const id = fixtureId("sandbox", 1) as SandboxId;
 const noSleep = () => Promise.resolve();

@@ -28,8 +28,8 @@ import { createJustBashFactory } from "../just-bash/provider";
 import { createMemorySnapshotStore } from "../just-bash/snapshot-store";
 import { createMemorySandboxFactory } from "../ports/sandbox.memory";
 import type { ProviderEntry, SandboxProviders } from "../providers";
-import { STATIC_PREVIEW_PORT } from "../static-preview";
 import { createDockerLikeEntry, previewUrlFor } from "../testing/docker-like";
+import { STATIC_PREVIEW_PORT } from "../tools/static-preview";
 import { readSandboxFile } from "./sandbox";
 import {
   cleanUploadName,

@@ -36,7 +36,7 @@ import type {
   SandboxProviders,
 } from "../providers";
 import { toBase64 } from "../runner/protocol";
-import type { PreviewLog } from "../static-preview";
+import type { PreviewLog } from "../tools/static-preview";
 
 // The contract's `sandbox` group as plain functions over `{ db, session,
 // providers }` (D7); the API layer mounts them and maps errors to oRPC's
