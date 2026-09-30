@@ -3,8 +3,7 @@
 import { useEffect, useRef } from "react";
 
 import { usePlatform } from "../shell/platform";
-import { isEditableTarget } from "./editable";
-import { matchShortcut, type ShortcutId } from "./registry";
+import { isTypingEvent, matchShortcut, type ShortcutId } from "./registry";
 
 export type ShortcutHandlers = Partial<Record<ShortcutId, () => void>>;
 
@@ -37,10 +36,8 @@ export const useShortcuts = (
       if (!shortcut || shortcut.scope !== scope) {
         return;
       }
-      // The innermost target: a window listener sees an event from inside a
-      // shadow root (the Workspace panel's editor) as coming from its host.
-      const target = event.composedPath()[0] ?? event.target;
-      if (scope === "view" && isEditableTarget(target)) {
+      // Through shadow roots: the Workspace panel's editor is inside one.
+      if (scope === "view" && isTypingEvent(event)) {
         return;
       }
       const handler = latest.current.handlers[shortcut.id];

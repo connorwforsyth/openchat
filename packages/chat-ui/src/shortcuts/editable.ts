@@ -40,6 +40,16 @@ export const isEditableTarget = (target: EventTarget | null): boolean => {
   return target.closest(KEY_OWNING_WIDGETS) !== null;
 };
 
+/**
+ * The element a key press really came from. A listener on the window (or any
+ * ancestor of a shadow host) sees an event from inside a shadow root, such as
+ * the Workspace editor's, as coming from the host; the composed path still
+ * starts at the element that has focus (062, 070).
+ */
+export const keyTarget = (
+  event: Pick<Event, "composedPath" | "target">
+): EventTarget | null => event.composedPath()[0] ?? event.target;
+
 const APPLE = /Mac|iPhone|iPad|iPod/i;
 
 /** Apple platforms use ⌘ where others use Ctrl. */

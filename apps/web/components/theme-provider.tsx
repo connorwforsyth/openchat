@@ -1,5 +1,6 @@
 "use client";
 
+import { isTypingEvent } from "@workspace/chat-ui/shortcuts/registry";
 import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes";
 import { type ComponentProps, useEffect } from "react";
 
@@ -21,25 +22,12 @@ function ThemeProvider({
   );
 }
 
-function isTypingTarget(target: EventTarget | null) {
-  if (!(target instanceof HTMLElement)) {
-    return false;
-  }
-
-  return (
-    target.isContentEditable ||
-    target.tagName === "INPUT" ||
-    target.tagName === "TEXTAREA" ||
-    target.tagName === "SELECT"
-  );
-}
-
 function ThemeHotkey() {
   const { resolvedTheme, setTheme } = useTheme();
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if (event.defaultPrevented || event.repeat) {
+      if (event.defaultPrevented || event.repeat || event.isComposing) {
         return;
       }
 
@@ -51,7 +39,9 @@ function ThemeHotkey() {
         return;
       }
 
-      if (isTypingTarget(event.target)) {
+      // Through shadow roots: typing "d" in the Workspace editor (whose
+      // host is all `event.target` shows) used to flip the theme (070).
+      if (isTypingEvent(event)) {
         return;
       }
 

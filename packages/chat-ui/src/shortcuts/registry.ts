@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { isEditableTarget, keyTarget } from "./editable";
+
 // The chat shell's keyboard shortcuts (D10; ticket 009's Workspace keys), as
 // data. Ticket 024's `packages/shortcuts` absorbs this registry: keep the ids
 // stable, since the ⌘K palette, the `?` help, Kbd hints and (on desktop) menu
@@ -100,3 +102,13 @@ export const shortcutKeys = (
   }
   return [isApple ? "⌘" : "Ctrl", key];
 };
+
+/**
+ * True when a single-key shortcut must leave this key press alone: someone is
+ * typing (through shadow roots too, like the Workspace editor's) or a widget
+ * that owns its keys has focus. Hotkeys outside the registry (the web app's
+ * theme key) use it too.
+ */
+export const isTypingEvent = (
+  event: Pick<Event, "composedPath" | "target">
+): boolean => isEditableTarget(keyTarget(event));
