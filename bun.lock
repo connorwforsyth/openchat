@@ -539,6 +539,7 @@
       "name": "@workspace/sandbox",
       "version": "0.0.0",
       "dependencies": {
+        "@workspace/ai": "workspace:*",
         "@workspace/code-ui": "workspace:*",
         "@workspace/config": "workspace:*",
         "@workspace/contract": "workspace:*",
@@ -552,6 +553,7 @@
       },
       "devDependencies": {
         "@types/node": "catalog:",
+        "@workspace/mcp": "workspace:*",
         "@workspace/typescript-config": "workspace:*",
         "typescript": "catalog:",
         "vitest": "catalog:",
