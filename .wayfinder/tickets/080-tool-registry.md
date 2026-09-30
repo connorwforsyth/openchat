@@ -3,7 +3,7 @@ id: "080"
 title: "S2: a tool registry, one file per tool"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: ["079"]
 ---
 
@@ -12,7 +12,7 @@ blockedBy: ["079"]
 Stage of the eve assessment (`docs/proposals/2026-09-30-eve-assessment.md`): no migration to eve; adopt its patterns in
 our own packages. Connor agreed on 2026-09-30. Read that document's Evidence and "Recommended staged plan" sections first.
 
-**Wait for Connor's decisions on PRs #60, #63 and #65 before starting** (they edit `packages/sandbox/src/tools/tools.ts` and `server/src/runs/*`).
+Connor decided PRs #60, #63 and #65 on 2026-09-30 and they are merged, so this can start. It is stacked on 078 (PR #69) and 079 (PR #68), which are drafts.
 
 ## Done when
 

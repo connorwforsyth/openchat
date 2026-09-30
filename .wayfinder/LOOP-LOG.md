@@ -95,3 +95,6 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-09-30 · 072 closed · PR #63 · gate 82/82 · e2e 43/43
 - 2026-09-30 · 076 closed · PR #65 · gate 82/82 · e2e 44/44 · added 083 (just-bash in a worker thread)
 - 2026-09-30 · claimed 078 (S0) and 079 (S1); 080 and 081 follow; 082 waits for Connor
+- 2026-10-01 · 079 (S1) draft PR #68 · gate 82/82 · e2e 44/44 · prompt snapshot unchanged · waits for Connor
+- 2026-10-01 · 078 (S0) draft PR #69, stacked on #68 · gate 82/82 · e2e 48/48 · MCP tools in plain chats ask · waits for Connor
+- 2026-10-01 · claimed 080 (S2), stacked on #69
