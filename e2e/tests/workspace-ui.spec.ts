@@ -165,7 +165,7 @@ test("a narrow panel: the toolbar fits in one row and there's a way back to the 
   await expect(panel.getByRole("toolbar", { name: "Browser" })).toBeVisible();
 
   // Drag the panel's edge to 340px.
-  const handle = page.locator('[data-slot="resizable-handle"]');
+  const handle = page.getByRole("separator", { name: "Resize side panel" });
   const edge = await handle.boundingBox();
   const aside = await page
     .locator('aside[aria-label="Side panel"]')
