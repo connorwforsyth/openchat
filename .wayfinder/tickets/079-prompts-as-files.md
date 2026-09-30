@@ -52,9 +52,9 @@ our own packages. Connor agreed on 2026-09-30. Read that document's Evidence and
   exporting `WORKSPACE_INSTRUCTIONS` (the sandbox package's tests import it), now read from the fragment.
   `packages/ai/package.json` gains the `./prompts/*` export and the `prompts:generate` script. No new dependency.
 
-**Byte for byte.** `328dc01` adds `packages/server/src/runs/instructions.test.ts` on the unrefactored code: it runs a
+**Byte for byte.** `3174336` adds `packages/server/src/runs/instructions.test.ts` on the unrefactored code: it runs a
 turn through `createServices` (turn resolver + memory wrapper + executor + `runAgent`) and snapshots the system message
-the mock model receives, for the five turn types plus ten edge cases (15 snapshots). `dbccbf4` is the refactor; it does
+the mock model receives, for the five turn types plus ten edge cases (15 snapshots). `c4f73a5` is the refactor; it does
 not touch `__snapshots__/instructions.test.ts.snap` (`git diff 3174336 c4f73a5 -- packages/server/src/runs/__snapshots__`
 is empty) and the test passes.
 
