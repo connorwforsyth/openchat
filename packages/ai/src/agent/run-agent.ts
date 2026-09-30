@@ -7,6 +7,7 @@ import type { RunError } from "@workspace/contract/schemas/runs";
 import { type AsyncResult, err, ok } from "@workspace/shared/result";
 import {
   convertToModelMessages,
+  getToolOrDynamicToolName,
   isStepCount,
   isToolUIPart,
   type LanguageModel,
@@ -20,6 +21,12 @@ import {
 } from "ai";
 
 import { toRunError } from "../errors/run-error";
+import { ARTIFACT_REF_DATA } from "../messages/to-ui";
+import {
+  type ArtifactRef,
+  artifactRefOf,
+  isArtifactTool,
+} from "../tools/artifacts";
 import { callSettings } from "./call-settings";
 
 // The agent runner (D2, PLAN.md §8 step 3.5): one turn of a `ToolLoopAgent`
@@ -33,6 +40,11 @@ import { callSettings } from "./call-settings";
 // maps `decided` to `approval-responded`) and runs again; the SDK executes
 // approved calls, reports denied ones to the model, and continues the same
 // assistant message.
+//
+// Artifacts: a tool can't write parts into the stream, so when an artifact
+// tool's result arrives, its `data-artifact-ref` part is added here, right
+// after the call, both to the stream (the card shows while the answer is
+// still streaming) and to the outcome's message (the card is stored).
 
 export interface RunAgentInput {
   /** Tools whose names are listed here only; the rest stay defined but uncallable. */
@@ -110,6 +122,96 @@ export const awaitedCalls = (message: UIMessage): readonly AwaitedCall[] =>
       : []
   );
 
+type UIPart = UIMessage["parts"][number];
+
+const artifactPart = (ref: ArtifactRef) => ({
+  data: ref,
+  // One card per version: a replayed chunk replaces it instead of adding another.
+  id: ref.versionId,
+  type: `data-${ARTIFACT_REF_DATA}` as const,
+});
+
+const toolNameOf = (part: UIPart): string | undefined =>
+  isToolUIPart(part) ? getToolOrDynamicToolName(part) : undefined;
+
+const shownVersions = (parts: readonly UIPart[]): Set<unknown> =>
+  new Set(
+    parts.flatMap((part) =>
+      part.type === `data-${ARTIFACT_REF_DATA}`
+        ? [(part as { data?: { versionId?: unknown } }).data?.versionId]
+        : []
+    )
+  );
+
+/**
+ * The answer with an `artifact-ref` after each artifact tool call that
+ * saved one. A resumed answer already carries the earlier ones, so a
+ * version that has its card isn't given another. Pure.
+ */
+export const withArtifactRefs = (message: UIMessage): UIMessage => {
+  const shown = shownVersions(message.parts);
+  const parts = message.parts.flatMap((part): UIPart[] => {
+    const name = toolNameOf(part);
+    if (
+      !(name && isArtifactTool(name) && isToolUIPart(part)) ||
+      part.state !== "output-available"
+    ) {
+      return [part];
+    }
+    const ref = artifactRefOf(part.output);
+    if (!ref || shown.has(ref.versionId)) {
+      return [part];
+    }
+    shown.add(ref.versionId);
+    return [part, artifactPart(ref) as UIPart];
+  });
+  return parts.length === message.parts.length
+    ? message
+    : { ...message, parts };
+};
+
+/**
+ * Follows the chunks with each saved artifact's `data-artifact-ref`. A
+ * result chunk names only its call, so tool names come from the calls seen
+ * so far: the ones in `messages` (a resumed pass executes calls an earlier
+ * pass streamed) and the ones this stream starts.
+ */
+const artifactRefsInStream = (
+  messages: readonly UIMessage[]
+): TransformStream<UIMessageChunk, UIMessageChunk> => {
+  const names = new Map<string, string>();
+  for (const message of messages) {
+    for (const part of message.parts) {
+      const name = toolNameOf(part);
+      if (name && isToolUIPart(part)) {
+        names.set(part.toolCallId, name);
+      }
+    }
+  }
+  return new TransformStream({
+    transform: (chunk, controller) => {
+      controller.enqueue(chunk);
+      if (
+        chunk.type === "tool-input-start" ||
+        chunk.type === "tool-input-available"
+      ) {
+        names.set(chunk.toolCallId, chunk.toolName);
+        return;
+      }
+      if (
+        chunk.type !== "tool-output-available" ||
+        !isArtifactTool(names.get(chunk.toolCallId) ?? "")
+      ) {
+        return;
+      }
+      const ref = artifactRefOf(chunk.output);
+      if (ref) {
+        controller.enqueue(artifactPart(ref) as UIMessageChunk);
+      }
+    },
+  });
+};
+
 export const runAgent = async (
   input: RunAgentInput
 ): AsyncResult<AgentRun, RunError> => {
@@ -162,7 +264,7 @@ export const runAgent = async (
   const stream = result.toUIMessageStream({
     generateMessageId: input.generateMessageId,
     onEnd: ({ isAborted, responseMessage }) => {
-      const base = { message: responseMessage, usage };
+      const base = { message: withArtifactRefs(responseMessage), usage };
       if (failure) {
         settle({ ...base, error: failure, status: "failed" });
       } else if (isAborted || input.signal?.aborted) {
@@ -186,5 +288,8 @@ export const runAgent = async (
     sendSources: true,
   });
 
-  return ok({ outcome, stream });
+  return ok({
+    outcome,
+    stream: stream.pipeThrough(artifactRefsInStream(messages)),
+  });
 };

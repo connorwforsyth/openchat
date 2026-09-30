@@ -50,6 +50,17 @@ describe("appConfigSchema", () => {
     ).toBe(false);
   });
 
+  it("caps the agent loop at 20 steps unless told otherwise", () => {
+    expect(appConfigSchema.parse({}).limits.agentMaxSteps).toBe(20);
+    expect(
+      appConfigSchema.parse({ limits: { agentMaxSteps: 50 } }).limits
+        .agentMaxSteps
+    ).toBe(50);
+    expect(
+      appConfigSchema.safeParse({ limits: { agentMaxSteps: 0 } }).success
+    ).toBe(false);
+  });
+
   it("orders the risk thresholds", () => {
     expect(
       appConfigSchema.safeParse({

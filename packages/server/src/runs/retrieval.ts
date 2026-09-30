@@ -1,12 +1,14 @@
 import {
   FILE_SEARCH_TOOL,
   gateRetrieval,
+  WEB_SEARCH_TOOL,
 } from "@workspace/ai/decider/retrieval-gate";
 import type { Decider } from "@workspace/ai/ports/decider";
 import type { Embedder } from "@workspace/ai/ports/embedder";
 import type { RunStart } from "@workspace/ai/ports/run-executor";
 import type { DeciderState } from "@workspace/contract/schemas/decider";
 import type { AgentDefinition } from "@workspace/contract/schemas/library";
+import type { ModelRef } from "@workspace/contract/schemas/models";
 import type { Db } from "@workspace/db/client";
 import type { Tool, ToolApprovalStatus, ToolSet } from "ai";
 
@@ -74,6 +76,30 @@ export const withFileSearch = async <A extends ToolAgent>(
     },
     builtins: { [FILE_SEARCH_TOOL]: searchTool },
   };
+};
+
+/**
+ * `web_search` for a turn on `model` (D23), bound by the shell over
+ * `chooseWebSearch`: the provider's own search when the model has it,
+ * otherwise ours over the configured backend, otherwise `null`.
+ */
+export type WebSearchSource = (model: ModelRef) => Tool | null;
+
+/**
+ * The turn's `web_search`, unless the composer turned it off for this
+ * message. The Decider's gate (`gateTurnTools`) can still drop it; without
+ * a Decider the model decides for itself whether to search.
+ */
+export const webSearchTools = (
+  source: WebSearchSource | undefined,
+  run: Pick<RunStart, "options">,
+  model: ModelRef
+): Readonly<Record<string, Tool>> => {
+  if (!source || run.options.webSearch === "off") {
+    return {};
+  }
+  const tool = source(model);
+  return tool === null ? {} : { [WEB_SEARCH_TOOL]: tool };
 };
 
 const pick = <T>(

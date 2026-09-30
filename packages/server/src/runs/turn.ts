@@ -20,6 +20,7 @@ import type {
 import type { RunStart } from "@workspace/ai/ports/run-executor";
 import { composeInstructions } from "@workspace/ai/prompts/compose";
 import { BASE, FRAGMENTS } from "@workspace/ai/prompts/generated";
+import { ARTIFACT_TOOLS } from "@workspace/ai/tools/artifacts";
 import { resolveTools } from "@workspace/ai/tools/resolve";
 import { buildToolSet, type McpToolSource } from "@workspace/ai/tools/tool-set";
 import type { AppConfig } from "@workspace/config/schema";
@@ -31,6 +32,7 @@ import type {
 } from "@workspace/contract/schemas/common";
 import type { DeciderState } from "@workspace/contract/schemas/decider";
 import type { KeyScope } from "@workspace/contract/schemas/keys";
+import { agentDefinitionSchema } from "@workspace/contract/schemas/library";
 import {
   AUTO_MODEL,
   type ModelParameters,
@@ -60,6 +62,8 @@ import {
   gateTurnTools,
   type KnowledgeDeps,
   type RetrievalGateDeps,
+  type WebSearchSource,
+  webSearchTools,
   withFileSearch,
 } from "./retrieval";
 import {
@@ -131,7 +135,12 @@ export type TurnResolver = (
 ) => AsyncResult<Turn, RunError>;
 
 export interface TurnResolverDeps {
-  /** Built-in tools this instance serves (web search, file search, …), from their workstreams. */
+  /**
+   * The chat's artifact tools (`create_artifact`, `update_artifact`) for one
+   * run (078), bound to the database by `services.ts`.
+   */
+  readonly artifacts?: (run: RunStart) => Readonly<Record<string, Tool>>;
+  /** Built-in tools this instance serves, the same for every turn, from their workstreams. */
   readonly builtins?: Readonly<Record<string, Tool>>;
   readonly config: Pick<AppConfig, "models" | "policies"> &
     Partial<Pick<AppConfig, "decider">>;
@@ -153,6 +162,14 @@ export interface TurnResolverDeps {
   /** MCP tools as one user sees them (per-user OAuth connections); wins over `mcp`. */
   readonly mcpFor?: (userId: UserId) => McpToolSource;
   /**
+   * The MCP servers a user may use (`listUsableServers`), for plain chats
+   * (078); an agent gets the servers its version lists. Without it plain
+   * chats get no MCP tools.
+   */
+  readonly mcpServersFor?: (
+    userId: UserId
+  ) => Promise<readonly LibraryItemId[]>;
+  /**
    * The org's effective policy (`org_settings` clamped by the instance), for
    * the personal-key fallback. Without it the conservative default holds.
    */
@@ -172,6 +189,8 @@ export interface TurnResolverDeps {
    * gets `bash`, `read`, `write`, `edit` or `preview`.
    */
   readonly sandbox?: SandboxToolSource;
+  /** `web_search` for a turn's model (D23); without it no run searches the web. */
+  readonly webSearch?: WebSearchSource;
 }
 
 const unavailable = (provider: string | null): RunError => ({
@@ -319,6 +338,19 @@ export const createModelLoader = (
 /** Attachments one plain chat checks for before offering `file_search`. */
 const ATTACHMENT_PROBE = 1;
 
+/** What an agent's tools are planned with when its version says nothing. */
+const DEFAULT_APPROVALS =
+  agentDefinitionSchema.shape.approvals.parse(undefined);
+
+/**
+ * Artifact tools save something into the chat, so they ask, like the
+ * sandbox's file changes (`FILE_CHANGE_TOOLS`), unless an agent sets them
+ * to `auto` by name.
+ */
+const ARTIFACT_APPROVALS = Object.fromEntries(
+  ARTIFACT_TOOLS.map((name) => [name, "ask" as const])
+);
+
 export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
   const { db } = deps;
   const loadModel = createModelLoader(deps);
@@ -352,10 +384,8 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
    * read, so a chat without files isn't handed a tool it can't use.
    */
   const attachmentTools = async (
-    run: RunStart,
-    caller: ModelCaller,
-    { signal, state }: { signal?: AbortSignal; state: DeciderState }
-  ): Promise<Pick<Turn, "toolApproval" | "tools">> => {
+    run: RunStart
+  ): Promise<Readonly<Record<string, Tool>>> => {
     if (!deps.knowledge) {
       return {};
     }
@@ -371,13 +401,55 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
       knowledgeFileIds: [],
       tools: [FILE_SEARCH_TOOL],
     });
-    const gated = await gateTurnTools(
-      await gateFor(caller, signal),
-      run,
-      { toolApproval: {}, tools: { ...searchable.builtins } },
-      { signal, state }
+    return searchable.builtins;
+  };
+
+  /**
+   * A plain chat has no agent version to list MCP servers, so it gets every
+   * server its caller may use (078), planned as an agent that lists them
+   * with the default approvals would be: the same `resolveTools` and
+   * `buildToolSet`, so a server that's down is skipped and MCP tools ask
+   * (or don't) exactly as an agent's do. MCP is an extra: if the servers
+   * can't be listed, the turn goes ahead without them.
+   */
+  const chatMcpTools = async (
+    run: RunStart,
+    signal: AbortSignal | undefined
+  ): Promise<Pick<Turn, "toolApproval" | "tools">> => {
+    const mcp = deps.mcpFor?.(run.createdBy) ?? deps.mcp;
+    const ids = mcp
+      ? await deps.mcpServersFor?.(run.createdBy).catch(() => undefined)
+      : undefined;
+    if (!(mcp && ids && ids.length > 0)) {
+      return {};
+    }
+    const plan = resolveTools(
+      {
+        approvals: DEFAULT_APPROVALS,
+        mcpServers: ids.map((id) => ({ id })),
+        sandboxProvider: null,
+        tools: [],
+      },
+      { builtins: new Set(), modelSupportsTools: true },
+      { mcpServers: new Set(ids) }
     );
-    return { toolApproval: gated.toolApproval, tools: gated.tools };
+    const built = await buildToolSet(plan, { builtins: {}, mcp }, { signal });
+    return { toolApproval: built.toolApproval, tools: built.tools };
+  };
+
+  /** A plain chat's artifact tools: each call asks before it saves. */
+  const chatArtifactTools = (
+    run: RunStart
+  ): Pick<Turn, "toolApproval" | "tools"> => {
+    const tools = deps.artifacts?.(run);
+    return tools
+      ? {
+          toolApproval: Object.fromEntries(
+            Object.keys(tools).map((name) => [name, "user-approval" as const])
+          ),
+          tools: { ...tools },
+        }
+      : {};
   };
 
   /** The chat's sandbox for this turn, unless the composer turned it off. */
@@ -438,7 +510,11 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
     return workspaceContext(refs, (await sandbox())?.readFile);
   };
 
-  /** A plain model chat: the model, plus its attachments' and sandbox's tools. */
+  /**
+   * A plain model chat: the model, plus its sandbox's tools, the caller's
+   * MCP servers, the artifact tools, and retrieval (its attachments and the
+   * web) where the gate lets it through. Ours win a clash of names.
+   */
   const modelTurn = async (
     run: RunStart,
     target: Extract<RunStart["target"], { type: "model" }>,
@@ -449,9 +525,24 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
     if (!loaded.ok) {
       return loaded;
     }
-    const attached = await attachmentTools(run, caller, { signal, state });
     const sandbox = await chatSandboxTools(run, { reviews, signal });
-    const tools = { ...sandbox.tools, ...attached.tools };
+    const mcp = await chatMcpTools(run, signal);
+    const artifacts = chatArtifactTools(run);
+    const own = { ...mcp.tools, ...artifacts.tools, ...sandbox.tools };
+    const retrieval = {
+      ...webSearchTools(deps.webSearch, run, loaded.value.resolvedModel),
+      ...(await attachmentTools(run)),
+    };
+    const gated =
+      Object.keys(retrieval).length > 0
+        ? await gateTurnTools(
+            await gateFor(caller, signal),
+            run,
+            { toolApproval: {}, tools: retrieval },
+            { signal, state }
+          )
+        : { toolApproval: {}, tools: {} };
+    const tools = { ...own, ...gated.tools };
     const mentioned = await mentionedFiles(run, () =>
       Promise.resolve(sandbox.sandbox)
     );
@@ -468,7 +559,12 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
       parameters: target.parameters,
       ...loaded.value,
       proposeEdits: sandbox.proposeEdits,
-      toolApproval: { ...sandbox.toolApproval, ...attached.toolApproval },
+      toolApproval: {
+        ...mcp.toolApproval,
+        ...artifacts.toolApproval,
+        ...sandbox.toolApproval,
+        ...gated.toolApproval,
+      },
       tools: Object.keys(tools).length > 0 ? tools : undefined,
     });
   };
@@ -536,13 +632,24 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
     // to this requester, chat and agent.
     const builtins = {
       ...deps.builtins,
+      // An agent gets these when its version lists them by name.
+      ...webSearchTools(deps.webSearch, run, loaded.value.resolvedModel),
+      ...deps.artifacts?.(run),
       ...sandbox?.tools,
       ...searchable.builtins,
     };
-    const plan = resolveTools(
+    const planned =
       sandbox === null
         ? searchable.agent
-        : withSandboxTools(searchable.agent, sandbox),
+        : withSandboxTools(searchable.agent, sandbox);
+    const plan = resolveTools(
+      {
+        ...planned,
+        approvals: {
+          ...planned.approvals,
+          tools: { ...ARTIFACT_APPROVALS, ...planned.approvals.tools },
+        },
+      },
       {
         builtins: new Set(Object.keys(builtins)),
         modelSupportsTools: true,
