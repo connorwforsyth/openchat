@@ -37,6 +37,7 @@ import {
   updateMessage,
 } from "@workspace/db/queries/messages";
 import {
+  approvalIdsOf,
   getRun,
   listActiveRuns,
   listQueuedAfter,
@@ -1113,7 +1114,12 @@ export const createInProcessExecutor = (
       const { decided, fresh, resumed, row } = recorded.value;
       // Every client following the stream drops the decided cards now, not
       // when the tool's output lands (the SDK streams no response).
-      await announce(runId, decisionChunks(fresh));
+      if (fresh.length > 0) {
+        await announce(
+          runId,
+          decisionChunks(fresh, await approvalIdsOf(db, runId))
+        );
+      }
       if (!(resumed && row.assistantMessageId)) {
         return ok(undefined);
       }

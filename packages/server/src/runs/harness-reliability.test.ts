@@ -191,14 +191,24 @@ describe("deciding", () => {
     const chunks = chunksOf(
       await readEvents(await h.request(created.streamUrl))
     );
+    // Each response names its call by the id the SDK asked under.
+    const asked = new Map(
+      chunks.flatMap((c) =>
+        c.type === "tool-approval-request" && c.approvalId
+          ? [[c.approvalId, c.toolCallId]]
+          : []
+      )
+    );
     const responses = chunks.filter((c) => c.type === "tool-approval-response");
-    expect(responses.map((c) => [c.approvalId, c.approved])).toEqual([
+    expect(
+      responses.map((c) => [asked.get(c.approvalId ?? ""), c.approved])
+    ).toEqual([
       ["call-a", true],
       ["call-b", true],
     ]);
     // The response for call-b comes before the output its pass produced.
     const types = chunks.map(
-      (c) => `${c.type}:${c.toolCallId ?? c.approvalId ?? ""}`
+      (c) => `${c.type}:${c.toolCallId ?? asked.get(c.approvalId ?? "") ?? ""}`
     );
     expect(types.indexOf("tool-approval-response:call-b")).toBeLessThan(
       types.indexOf("tool-output-available:call-b")

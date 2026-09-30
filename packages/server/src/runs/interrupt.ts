@@ -1,5 +1,4 @@
 import {
-  approvalIdFor,
   approvalReason,
   type InterruptedBy,
   interruptedMessage,
@@ -48,16 +47,28 @@ export const sameDecision = (a: ApprovalDecision, b: ApprovalDecision) =>
  * someone else decided.
  */
 export const decisionChunks = (
-  decisions: readonly ToolApproval[]
+  decisions: readonly ToolApproval[],
+  /**
+   * The id each call was asked under in this stream (the SDK makes its own;
+   * a client finds the call by it). A call without one isn't announced: a
+   * response the client can't place would fail its whole stream.
+   */
+  approvalIds: ReadonlyMap<string, string>
 ): UIMessageChunk[] =>
-  decisions.map(({ decision, toolCallId }) => {
+  decisions.flatMap(({ decision, toolCallId }) => {
+    const approvalId = approvalIds.get(toolCallId);
+    if (!approvalId) {
+      return [];
+    }
     const reason = approvalReason(decision);
-    return {
-      approvalId: approvalIdFor(toolCallId),
-      approved: isApproved(decision),
-      ...(reason ? { reason } : {}),
-      type: "tool-approval-response",
-    };
+    return [
+      {
+        approvalId,
+        approved: isApproved(decision),
+        ...(reason ? { reason } : {}),
+        type: "tool-approval-response",
+      },
+    ];
   });
 
 /**

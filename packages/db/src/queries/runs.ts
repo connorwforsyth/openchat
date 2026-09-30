@@ -358,6 +358,40 @@ export const readRunChunks = async (
     .orderBy(asc(runChunk.seq))
     .limit(limit);
 
+/**
+ * The approval id each tool call was asked about under, from the stream's
+ * `tool-approval-request` chunks: the AI SDK generates its own, and a
+ * client matches a decision to its call by that id (072).
+ */
+export const approvalIdsOf = async (
+  db: Db,
+  runId: RunId
+): Promise<ReadonlyMap<string, string>> => {
+  const rows = await db
+    .select({ payload: runChunk.payload })
+    .from(runChunk)
+    .where(
+      and(
+        eq(runChunk.runId, runId),
+        sql`${runChunk.payload}->>'type' = 'tool-approval-request'`
+      )
+    )
+    .orderBy(asc(runChunk.seq));
+  return new Map(
+    rows.flatMap(({ payload }) => {
+      const request = approvalRequestSchema.safeParse(payload);
+      return request.success
+        ? [[request.data.toolCallId, request.data.approvalId] as const]
+        : [];
+    })
+  );
+};
+
+const approvalRequestSchema = z.object({
+  approvalId: z.string(),
+  toolCallId: z.string(),
+});
+
 /** Drops a finished run's chunks; the message holds the result. Returns how many went. */
 export const pruneRunChunks = async (db: Db, runId: RunId): Promise<number> => {
   const deleted = await db
