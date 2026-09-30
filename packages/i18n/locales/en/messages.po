@@ -2641,7 +2641,6 @@ msgid "Save the server to check its connection."
 msgstr "Save the server to check its connection."
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
-#: ../chat-ui/src/workspace/file-view.tsx
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "Saved"
 msgstr "Saved"
@@ -3558,6 +3557,9 @@ msgid "Unpin"
 msgstr "Unpin"
 
 #: ../chat-ui/src/workspace/file-view.tsx
+msgid "Unsaved"
+msgstr "Unsaved"
+
 #: ../library-ui/src/components/item-builder.tsx
 msgid "Unsaved changes"
 msgstr "Unsaved changes"
