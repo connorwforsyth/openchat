@@ -1285,6 +1285,11 @@ function EmptyFiles({
   );
 }
 
+/** The artifact's title, versions and tabs, in the view's one header row (075). */
+const artifactHeader = (content: ReactNode) => (
+  <ViewHeader>{content}</ViewHeader>
+);
+
 function MainArea({
   artifacts,
   focusView,
@@ -1358,24 +1363,17 @@ function MainArea({
       artifacts.artifacts.find((each) => each.id === selection.artifactId) ??
       artifacts.artifacts[0];
     return (
-      <>
-        {/* ArtifactView's own first row has the title and versions. */}
-        <ViewHeader>
-          <span className="text-muted-foreground text-sm">
-            <Trans>Artifact</Trans>
-          </span>
-        </ViewHeader>
-        <div className="flex min-h-0 flex-1 flex-col">
-          <ArtifactView
-            artifact={artifact}
-            error={artifacts.error}
-            onSelect={selectArtifact}
-            runtimeOrigin={artifacts.runtimeOrigin}
-            versionId={selection.versionId}
-            versions={artifacts.versions}
-          />
-        </div>
-      </>
+      <div className="flex min-h-0 flex-1 flex-col">
+        <ArtifactView
+          artifact={artifact}
+          error={artifacts.error}
+          header={artifactHeader}
+          onSelect={selectArtifact}
+          runtimeOrigin={artifacts.runtimeOrigin}
+          versionId={selection.versionId}
+          versions={artifacts.versions}
+        />
+      </div>
     );
   }
   if (selection?.kind === "preview") {

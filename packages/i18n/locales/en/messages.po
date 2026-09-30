@@ -358,10 +358,6 @@ msgstr "Archive"
 msgid "Archived “{title}”"
 msgstr "Archived “{title}”"
 
-#: ../chat-ui/src/workspace/workspace-panel.tsx
-msgid "Artifact"
-msgstr "Artifact"
-
 #: ../chat-ui/src/artifacts/artifact-view.tsx
 msgid "Artifact views"
 msgstr "Artifact views"
@@ -1724,6 +1720,10 @@ msgstr "Monthly"
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "More actions"
 msgstr "More actions"
+
+#: ../chat-ui/src/artifacts/artifact-view.tsx
+msgid "More artifact actions"
+msgstr "More artifact actions"
 
 #: ../chat-ui/src/workspace/preview.tsx
 msgid "More browser actions"
@@ -3652,6 +3652,10 @@ msgstr "Variables"
 #: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
 msgid "Version {number}"
 msgstr "Version {number}"
+
+#: ../chat-ui/src/artifacts/artifact-view.tsx
+msgid "Version {number} of {total}"
+msgstr "Version {number} of {total}"
 
 #: ../chat-ui/src/artifacts/artifact-view.tsx
 msgid "Versions"

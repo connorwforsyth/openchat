@@ -3,6 +3,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { ArtifactKind } from "@workspace/contract/schemas/message-parts";
 import { CircleAlertIcon } from "@workspace/icons";
+import { cn } from "@workspace/ui/lib/utils";
 import {
   useCallback,
   useEffect,
@@ -72,7 +73,7 @@ export function ArtifactPreview(props: ArtifactPreviewProps) {
     );
   }
   return (
-    <p className="text-muted-foreground text-sm" role="status">
+    <p className="p-4 text-muted-foreground text-sm" role="status">
       {unreachable ? (
         <Trans>
           The preview runtime isn't responding, so this artifact can't be
@@ -101,7 +102,8 @@ export function SrcdocPreview({
   const { t } = useLingui();
   return (
     <iframe
-      className="size-full min-h-80 rounded-lg border bg-background"
+      // Flush under the view's header row (075): the frame is the page.
+      className="block min-h-80 w-full flex-1 bg-background"
       referrerPolicy="no-referrer"
       sandbox="allow-scripts"
       srcDoc={frameDocument(kind, content)}
@@ -214,7 +216,7 @@ function RuntimePreview({
     return null;
   }
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-1 flex-col">
       {state.status === "error" ? <PreviewError error={state.error} /> : null}
       {state.status === "loading" ? (
         <span className="sr-only" role="status">
@@ -222,7 +224,11 @@ function RuntimePreview({
         </span>
       ) : null}
       <iframe
-        className="block min-h-80 w-full rounded-lg border bg-background"
+        // Until the page reports its height, it fills the view.
+        className={cn(
+          "block min-h-80 w-full bg-background",
+          height === null && "flex-1"
+        )}
         ref={frameRef}
         referrerPolicy="no-referrer"
         sandbox="allow-scripts"
@@ -265,7 +271,8 @@ function PreviewError({ error }: { readonly error: RuntimeError }) {
 
   return (
     <div
-      className="flex gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm"
+      // A strip over the frame, not a card: the view stays flush (075).
+      className="flex gap-2 bg-destructive/5 px-4 py-3 text-sm"
       role="alert"
     >
       <CircleAlertIcon
