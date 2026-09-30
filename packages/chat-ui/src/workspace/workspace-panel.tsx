@@ -985,9 +985,10 @@ function SearchOption({
       tabIndex={-1}
       title={match.path}
     >
-      <span className="shrink-0 truncate">{match.name}</span>
+      {/* The folder gives way first; a long name still ends in an ellipsis. */}
+      <span className="min-w-0 truncate">{match.name}</span>
       {match.directory ? (
-        <span className="min-w-0 truncate text-muted-foreground text-xs">
+        <span className="min-w-0 shrink-[4] truncate text-muted-foreground text-xs">
           {match.directory}
         </span>
       ) : null}
