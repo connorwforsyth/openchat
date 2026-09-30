@@ -1,0 +1,14 @@
+{
+  "extends": "@workspace/typescript-config/base.json",
+  "compilerOptions": {
+    // bun runs the source as it is and resolves like a bundler; no file
+    // extensions.
+    "lib": ["es2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "strictNullChecks": true
+  },
+  "include": ["."],
+  "exclude": ["node_modules"]
+}

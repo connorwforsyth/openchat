@@ -1,0 +1,24 @@
+{
+  "name": "@workspace/evals",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "evals": "bun src/cli.ts",
+    "lint": "ultracite check",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@workspace/client": "workspace:*",
+    "@workspace/contract": "workspace:*",
+    "@workspace/shared": "workspace:*",
+    "@workspace/typescript-config": "workspace:*",
+    "ai": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "web": "workspace:*",
+    "zod": "catalog:"
+  }
+}
