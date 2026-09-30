@@ -69,6 +69,19 @@ describe("run activity", () => {
     expect(waitingForPerson({ pending: [], sending: new Set() })).toBe(false);
   });
 
+  it("doesn't count a call a stopped run left, which has its result", () => {
+    const stopped = answer([
+      pendingCall("c1"),
+      {
+        output: { message: "Not run", status: "error" },
+        toolCallId: "c1",
+        toolName: "write",
+        type: "tool-result",
+      },
+    ]);
+    expect(waitingCalls([stopped])).toEqual([]);
+  });
+
   it("notices a call the waiting run asks about that the screen lacks", () => {
     expect(unseenApprovals([waiting], [answer([])])).toEqual(["c1"]);
     expect(unseenApprovals([waiting], [answer([pendingCall("c1")])])).toEqual(

@@ -55,15 +55,29 @@ export const runToFollow = (
 ): string | null | undefined =>
   runs ? (runs.find((run) => phaseOf(run) !== null)?.id ?? null) : undefined;
 
-/** Tool calls on screen still waiting for a decision. */
-export const waitingCalls = (messages: readonly Message[]): string[] =>
-  messages.flatMap((message) =>
+/**
+ * Tool calls on screen still waiting for a decision: asked about, and with
+ * no result yet (a stopped run's leftovers keep `pending` beside the result
+ * saying they never ran).
+ */
+export const waitingCalls = (messages: readonly Message[]): string[] => {
+  const answered = new Set(
+    messages.flatMap((message) =>
+      message.parts.flatMap((part) =>
+        part.type === "tool-result" ? [part.toolCallId] : []
+      )
+    )
+  );
+  return messages.flatMap((message) =>
     message.parts.flatMap((part) =>
-      part.type === "tool-call" && part.approval.state === "pending"
+      part.type === "tool-call" &&
+      part.approval.state === "pending" &&
+      !answered.has(part.toolCallId)
         ? [part.toolCallId]
         : []
     )
   );
+};
 
 /**
  * Whether the only thing going on is a change waiting for the person: a card

@@ -276,6 +276,7 @@ test("Stop while a change waits cancels the run, and the card goes everywhere", 
 
   await expect(cards(page)).toHaveCount(0);
   await expect(page.getByText(STOPPED_BY_YOU)).toBeVisible();
+  await expect(page.getByText(WAITING_NOTE)).toHaveCount(0);
   await expect(cards(tab)).toHaveCount(0);
   await expect(tab.getByText(STOPPED_BY_YOU)).toBeVisible();
   await eventually(
@@ -433,6 +434,7 @@ test("a new message while a change waits skips the change", async ({
   await expectReply(page, NEVER_MIND);
   await expect(cards(page)).toHaveCount(0);
   await expect(page.getByText(STOPPED_BY_YOU)).toBeVisible();
+  await expect(page.getByText(WAITING_NOTE)).toHaveCount(0);
   const statuses = await runStatuses(api, id);
   expect(statuses).toEqual(["succeeded", "cancelled"]);
   const sandbox = await api.sandbox.get({ conversationId: id });

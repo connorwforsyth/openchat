@@ -458,15 +458,7 @@ function RunError({
 
 /** Tool calls on screen that wait for a decision. Pure. */
 const pendingCallIds = (messages: readonly Message[]): string =>
-  messages
-    .flatMap((message) =>
-      message.parts.flatMap((part) =>
-        part.type === "tool-call" && part.approval.state === "pending"
-          ? [part.toolCallId]
-          : []
-      )
-    )
-    .join(" ");
+  waitingCalls(messages).join(" ");
 
 /**
  * A reply that pauses for approval does so mid-stream, and the stream
