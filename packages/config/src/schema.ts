@@ -195,6 +195,26 @@ const authSchema = z
     }
   });
 
+/**
+ * Micro-USD per million tokens: the same integer micro-USD as `costMicros`
+ * and budget limits (1 USD = 1_000_000), so `$3.00 per million tokens` is
+ * `3000000`. The cap ($1M per million tokens) keeps a row's cost inside a
+ * safe integer at any token count the database can hold.
+ */
+const priceMicrosSchema = z.int().min(0).max(1_000_000_000_000);
+
+/** What one model charges. No price ships built in: a wrong one is worse than none. */
+export const modelPriceSchema = z.strictObject({
+  /**
+   * Input tokens the provider read from its cache, where it reports them.
+   * Left out, they cost the same as any other input token.
+   */
+  cachedInputMicros: priceMicrosSchema.optional(),
+  inputMicros: priceMicrosSchema,
+  outputMicros: priceMicrosSchema,
+});
+export type ModelPrice = z.infer<typeof modelPriceSchema>;
+
 const modelsSchema = z
   .strictObject({
     /** Short names the UI shows instead of provider refs (`fast`, `strong`). */
@@ -239,6 +259,12 @@ const modelsSchema = z
       }),
     /** The model new chats start with; `null` picks the first available. */
     default: modelSelectorSchema.nullable().default(null),
+    /**
+     * Prices by `provider:modelId` ref (what an alias resolves to), used to
+     * fill `costMicros` on usage rows. A model that isn't listed is unpriced:
+     * its usage is recorded at cost 0 and counts toward no budget.
+     */
+    prices: z.record(modelRefSchema, modelPriceSchema).default({}),
   })
   .prefault({});
 
@@ -544,6 +570,10 @@ export const appConfigSchema = z
     };
     for (const [alias, ref] of Object.entries(config.models.aliases)) {
       checkSelector(ref, ["models", "aliases", alias]);
+    }
+    // A price under a misspelt ref would leave the real model unpriced, silently.
+    for (const ref of Object.keys(config.models.prices)) {
+      checkSelector(ref, ["models", "prices", ref]);
     }
     checkSelector(config.models.default, ["models", "default"]);
     checkSelector(config.models.auto.cheap, ["models", "auto", "cheap"]);

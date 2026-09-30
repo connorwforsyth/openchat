@@ -8,6 +8,7 @@
     "./load": "./src/load.ts",
     "./parse": "./src/parse.ts",
     "./policy": "./src/policy.ts",
+    "./prices": "./src/prices.ts",
     "./public": "./src/public.ts",
     "./schema": "./src/schema.ts",
     "./social": "./src/social.ts"
