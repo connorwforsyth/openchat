@@ -20,6 +20,11 @@ calls `update_memory`, `[search:…]` calls `file_search`, `[script:<name>]`
 plays a scripted multi-step turn (`SCRIPTS`, a step may call several tools;
 `harness.spec.ts` drives approvals, Stop and reloads with them), anything
 else echoes.
+The same config gives the app a web search backend and an instance MCP
+server, both local stand-ins started by `serve.ts` (`support/mock-search.ts`
+answers as SearXNG would; the MCP server is `@workspace/mcp`'s test fixture,
+with `echo`, `add` and `whoami`), so `tools.spec.ts` can have a plain chat
+search the web, call an MCP tool and make an artifact.
 The echo ends with each workspace file the turn read in (an `@` mention or an
 attachment) as `[path: content]`, so a spec can see what reached the model.
 

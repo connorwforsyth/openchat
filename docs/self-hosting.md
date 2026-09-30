@@ -136,6 +136,16 @@ services:
 An invalid file doesn't half-start: the API answers with the list of
 problems, and so does the log.
 
+`limits.agentMaxSteps` (default 20) caps how many model calls one turn may
+make: each round of tool calls is a step, and the agent is stopped when it
+reaches the cap. Raise it for long tool-heavy work, lower it to bound what a
+runaway turn can spend:
+
+```yaml
+limits:
+  agentMaxSteps: 40
+```
+
 ### Uploaded files
 
 Uploads go to the local file store, `storage.path` in `app.config.yaml`

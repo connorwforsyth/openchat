@@ -338,6 +338,14 @@ export const createModelLoader = (
 /** Attachments one plain chat checks for before offering `file_search`. */
 const ATTACHMENT_PROBE = 1;
 
+/**
+ * MCP tools one plain chat is offered at most. Nobody curated the list, as
+ * an agent's author does, and providers refuse a request with too many
+ * tools (OpenAI stops at 128), so the rest are left out rather than the
+ * turn failing.
+ */
+const CHAT_MCP_TOOL_LIMIT = 100;
+
 /** What an agent's tools are planned with when its version says nothing. */
 const DEFAULT_APPROVALS =
   agentDefinitionSchema.shape.approvals.parse(undefined);
@@ -434,7 +442,12 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
       { mcpServers: new Set(ids) }
     );
     const built = await buildToolSet(plan, { builtins: {}, mcp }, { signal });
-    return { toolApproval: built.toolApproval, tools: built.tools };
+    return {
+      toolApproval: built.toolApproval,
+      tools: Object.fromEntries(
+        Object.entries(built.tools).slice(0, CHAT_MCP_TOOL_LIMIT)
+      ),
+    };
   };
 
   /** A plain chat's artifact tools: each call asks before it saves. */
