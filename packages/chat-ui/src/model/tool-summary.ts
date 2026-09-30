@@ -1,5 +1,10 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
+import {
+  type InterruptedBy,
+  type Interruption,
+  interruptionOf,
+} from "@workspace/ai/messages/approval";
 import type { JsonValue } from "@workspace/contract/schemas/common";
 import type { IconName } from "@workspace/icons/names";
 import { z } from "zod";
@@ -24,6 +29,8 @@ export const toolStatusSchema = z.enum([
   "error",
   /** Rejected by the approver, or every proposed hunk was. */
   "denied",
+  /** Its run was stopped first: it never ran, or was killed mid-way (072). */
+  "stopped",
 ]);
 export type ToolStatus = z.infer<typeof toolStatusSchema>;
 
@@ -77,6 +84,8 @@ export interface ToolSummary {
   /** A preview's URL, for its Open button. */
   readonly previewUrl?: string;
   readonly status: ToolStatus;
+  /** Who stopped its run, for a `stopped` line. */
+  readonly stoppedBy?: InterruptedBy;
 }
 
 /** How long a command may be in the line before it's cut. */
@@ -199,11 +208,14 @@ const errorOf = (result: ToolResultPart | undefined): string | undefined => {
   }
 };
 
+/** A status a call reaches by itself; `stopped` comes from its run. */
+type LiveStatus = Exclude<ToolStatus, "stopped">;
+
 const statusOf = (
   call: ToolCallPart,
   result: ToolResultPart | undefined,
   errorText: string | undefined
-): ToolStatus => {
+): LiveStatus => {
   if (result) {
     if (result.output.status === "denied") {
       return "denied";
@@ -234,7 +246,11 @@ const rawDetail = (
   return { input: call.input, kind: "raw", output };
 };
 
-type Labels = Readonly<Record<ToolStatus, MessageDescriptor>>;
+/**
+ * A `stopped` line reads as what the call was doing (or wanted to do) when
+ * its run stopped, followed by who stopped it.
+ */
+type Labels = Readonly<Record<LiveStatus, MessageDescriptor>>;
 
 // Each label is its own literal so extraction finds it; `code` is the value
 // shown in code font.
@@ -433,8 +449,7 @@ const labelled = (
   };
 };
 
-/** The status line for a tool call and its result, if it has one yet. */
-export const toolSummary = (
+const summaryOf = (
   call: ToolCallPart,
   result: ToolResultPart | undefined
 ): ToolSummary => {
@@ -473,4 +488,40 @@ export const toolSummary = (
       return labelled(call, result, "ToolIcon", toolLabels(call.toolName));
     }
   }
+};
+
+/**
+ * A call its stopped run left behind: labelled with what it was about to do
+ * or doing, and for a killed command, what it had printed (072).
+ */
+const stoppedSummary = (
+  call: ToolCallPart,
+  interruption: Interruption
+): ToolSummary => {
+  const before = summaryOf(call, undefined);
+  const detail: ToolDetail =
+    before.detail.kind === "bash"
+      ? { ...before.detail, stdout: outputTail(interruption.partial ?? "") }
+      : before.detail;
+  return {
+    detail,
+    icon: before.icon,
+    label: before.label,
+    status: "stopped",
+    stoppedBy: interruption.by,
+  };
+};
+
+/** The status line for a tool call and its result, if it has one yet. */
+export const toolSummary = (
+  call: ToolCallPart,
+  result: ToolResultPart | undefined
+): ToolSummary => {
+  const interruption =
+    result?.output.status === "error"
+      ? interruptionOf(result.output.message)
+      : null;
+  return interruption
+    ? stoppedSummary(call, interruption)
+    : summaryOf(call, result);
 };

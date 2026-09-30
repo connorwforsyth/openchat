@@ -105,6 +105,18 @@ describe("pickPersisted", () => {
     ]);
   });
 
+  it("restores a conversation's messages as stale, so they refetch on mount", () => {
+    const me = query([["me", "get"], { type: "query" }]);
+    const messages = query(path("c1"), { updatedAt: 5 });
+    const [shell, restored] = pickPersisted(client([me, messages])).clientState
+      .queries;
+    expect(shell?.state.isInvalidated).toBe(false);
+    expect(restored?.state).toMatchObject({
+      dataUpdatedAt: 5,
+      isInvalidated: true,
+    });
+  });
+
   it("never keeps mutations", () => {
     const persisted = pickPersisted({
       ...client([]),

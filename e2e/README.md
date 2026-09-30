@@ -16,7 +16,10 @@ OpenAI-compatible mock model server. The app reaches it through its ordinary
 `openai-compatible` provider, like Ollama; no real provider is ever called.
 The mock's replies are steered by the message (see the comment at its top):
 `[slow]` streams slowly, `[tool:<name> <json>]` calls a tool, `remember …`
-calls `update_memory`, `[search:…]` calls `file_search`, anything else echoes.
+calls `update_memory`, `[search:…]` calls `file_search`, `[script:<name>]`
+plays a scripted multi-step turn (`SCRIPTS`, a step may call several tools;
+`harness.spec.ts` drives approvals, Stop and reloads with them), anything
+else echoes.
 The echo ends with each workspace file the turn read in (an `@` mention or an
 attachment) as `[path: content]`, so a spec can see what reached the model.
 

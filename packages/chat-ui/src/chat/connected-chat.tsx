@@ -1,9 +1,10 @@
 "use client";
 
-import { useLingui } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
   skipToken,
   useMutation,
+  useQueries,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
@@ -14,6 +15,7 @@ import {
   createQueryUtils,
   type QueryUtils,
 } from "@workspace/client/api";
+import type { RunCreated } from "@workspace/client/run-transport";
 import { useRunChat } from "@workspace/client/use-run-chat";
 import { contextOptionsFromMe } from "@workspace/composer/options";
 import type {
@@ -26,17 +28,23 @@ import type {
   ConversationId,
   FileId,
   MessageId,
+  RunId,
+  SandboxId,
 } from "@workspace/contract/schemas/common";
 import type { Conversation } from "@workspace/contract/schemas/conversations";
+import type { ApprovalDecision } from "@workspace/contract/schemas/message-parts";
 import type { Message } from "@workspace/contract/schemas/messages";
 import type { Me, PublicConfig } from "@workspace/contract/schemas/meta";
 import type { ModelOption } from "@workspace/contract/schemas/models";
 import type {
   PendingApproval,
+  Run,
   RunTarget,
 } from "@workspace/contract/schemas/runs";
 import type { SandboxRecord } from "@workspace/contract/schemas/sandbox";
 import type { ChatContext } from "@workspace/contract/schemas/tenancy";
+import { SquareIcon } from "@workspace/icons";
+import { Button } from "@workspace/ui/components/button";
 import type { FileUIPart, UIMessage } from "ai";
 import {
   type ReactNode,
@@ -48,9 +56,23 @@ import {
 } from "react";
 
 import type { ConversationActions } from "../conversation/actions";
+import {
+  type DecisionState,
+  type RunActivity,
+  RunActivityProvider,
+} from "../conversation/approval-state";
+import { staleEdits } from "../model/approval";
 import { newestLeafUnder, type TreeNode } from "../model/branch";
-import { mergeLive } from "../model/live-messages";
+import { type LiveMapping, mergeLive } from "../model/live-messages";
 import type { MemoryUpdate } from "../model/parts";
+import {
+  answerPhases,
+  runToFollow,
+  stoppableRun,
+  unseenApprovals,
+  waitingCalls,
+  waitingForPerson,
+} from "../model/run-activity";
 import {
   type WorkspaceSelection,
   workspacePath,
@@ -275,6 +297,7 @@ const useLiveTurn = ({
   conversationId,
   me,
   onFinish,
+  onRunCreated,
   stored,
   storedAt,
   target,
@@ -284,6 +307,7 @@ const useLiveTurn = ({
   readonly conversationId: ConversationId | null;
   readonly me: Me;
   readonly onFinish: () => void;
+  readonly onRunCreated: (run: RunCreated) => void;
   readonly stored: readonly Message[];
   /** When the stored branch was last fetched (`dataUpdatedAt`). */
   readonly storedAt: number;
@@ -302,6 +326,7 @@ const useLiveTurn = ({
     conversationId: conversationId ?? "new",
     initialMessages,
     onFinish,
+    onRunCreated,
     runFields: () => {
       const fields = fieldsRef.current;
       return fields.target
@@ -326,7 +351,7 @@ const useLiveTurn = ({
   const streamingMessageId = busy ? lastAnswer : null;
   // Until then the finished answer stays as streamed.
   const liveMessageId = busy || settling ? lastAnswer : null;
-  const cache = useRef(new WeakMap<UIMessage, Message>());
+  const cache = useRef(new WeakMap<UIMessage, LiveMapping>());
   const messages = useMemo(
     () =>
       conversationId
@@ -388,12 +413,37 @@ const useAskOnce = (
 
 function RunError({
   failed,
+  onStop,
   uploadFailed,
+  waiting,
 }: {
   readonly failed: boolean;
+  /** Stops the waiting answer (the composer offers Send while it waits). */
+  readonly onStop: () => void;
   readonly uploadFailed: boolean;
+  /** The answer waits for the person's decision on a change above. */
+  readonly waiting: boolean;
 }) {
   const { t } = useLingui();
+  if (waiting && !(uploadFailed || failed)) {
+    return (
+      <div
+        className="flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2 text-muted-foreground text-sm"
+        role="status"
+      >
+        <span>
+          <Trans>
+            Waiting for your approval above. Send a new message to skip the
+            pending change instead.
+          </Trans>
+        </span>
+        <Button onClick={onStop} size="sm" variant="outline">
+          <SquareIcon aria-hidden data-icon="inline-start" />
+          <Trans>Stop</Trans>
+        </Button>
+      </div>
+    );
+  }
   if (!(uploadFailed || failed)) {
     return null;
   }
@@ -408,15 +458,7 @@ function RunError({
 
 /** Tool calls on screen that wait for a decision. Pure. */
 const pendingCallIds = (messages: readonly Message[]): string =>
-  messages
-    .flatMap((message) =>
-      message.parts.flatMap((part) =>
-        part.type === "tool-call" && part.approval.state === "pending"
-          ? [part.toolCallId]
-          : []
-      )
-    )
-    .join(" ");
+  waitingCalls(messages).join(" ");
 
 /**
  * A reply that pauses for approval does so mid-stream, and the stream
@@ -429,15 +471,23 @@ const useApprovalsInSync = ({
   approvals,
   messages,
   onMissing,
+  unseen,
 }: {
   readonly approvals: readonly PendingApproval[] | undefined;
   readonly messages: readonly Message[];
   readonly onMissing: () => void;
+  /**
+   * Calls the waiting run asks about that the screen doesn't show (072,
+   * audit F2): a restored or stale copy of the answer, refetched the same
+   * way, the other way round.
+   */
+  readonly unseen: boolean;
 }) => {
   const pending = pendingCallIds(messages);
   const known = new Set(approvals?.map((approval) => approval.toolCallId));
   const missing =
-    pending !== "" && pending.split(" ").some((id) => !known.has(id));
+    unseen ||
+    (pending !== "" && pending.split(" ").some((id) => !known.has(id)));
   // The call can reach the screen a moment before the run records the pause,
   // so a fetch that still finds it running tries again, a few times.
   const [attempts, setAttempts] = useState(0);
@@ -473,9 +523,10 @@ const APPROVAL_SYNC_RETRY_MS = 500;
 const awaitingRunFor = async (
   client: ApiClient,
   conversationId: ConversationId,
-  toolCallId: string
+  toolCallId: string,
+  attempts = APPROVAL_SYNC_ATTEMPTS
 ): Promise<string | null> => {
-  for (let attempt = 0; attempt < APPROVAL_SYNC_ATTEMPTS; attempt += 1) {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
     if (attempt > 0) {
       // biome-ignore lint/performance/noAwaitInLoops: polling, one at a time on purpose.
       await new Promise((resolve) =>
@@ -734,6 +785,340 @@ const useWorkspaceInSync = (api: QueryUtils, messages: readonly Message[]) => {
   }, [api, queryClient, revision]);
 };
 
+/** Whether an API error is the server saying the request conflicts with the run's state. */
+const isConflict = (error: unknown): boolean =>
+  typeof error === "object" &&
+  error !== null &&
+  (error as { readonly code?: unknown }).code === "CONFLICT";
+
+/**
+ * Sends one decision to the run waiting on its call. The listed run can be
+ * missing (a call reaches the screen before the list has caught up with the
+ * pause, 066) or stale (it has moved on), so the server is asked which run
+ * waits on the call before a failure counts. A `conflict` is the server
+ * refusing: the call was decided otherwise, or the run ended.
+ */
+const submitDecision = async (
+  client: ApiClient,
+  {
+    conversationId,
+    decision,
+    runs,
+    toolCallId,
+  }: {
+    readonly conversationId: ConversationId | null;
+    readonly decision: ApprovalDecision;
+    readonly runs: readonly Run[] | undefined;
+    readonly toolCallId: string;
+  }
+): Promise<"sent" | "conflict" | "failed"> => {
+  const post = (id: string) =>
+    client.runs
+      .submitApprovals({
+        decisions: [{ decision, toolCallId }],
+        runId: id as RunId,
+      })
+      .then(
+        () => "sent" as const,
+        (error: unknown) =>
+          isConflict(error) ? ("conflict" as const) : ("failed" as const)
+      );
+  const ask = (attempts?: number) =>
+    conversationId
+      ? awaitingRunFor(client, conversationId, toolCallId, attempts)
+      : Promise.resolve(null);
+  const listed = runs?.find(
+    (run) =>
+      run.state.status === "awaiting_approval" &&
+      run.state.approvals.some((each) => each.toolCallId === toolCallId)
+  )?.id;
+  const runId = listed ?? (await ask());
+  if (!runId) {
+    return "failed";
+  }
+  const first = await post(runId);
+  if (first !== "conflict") {
+    return first;
+  }
+  const waiting = await ask(1);
+  return waiting && waiting !== runId ? post(waiting) : first;
+};
+
+/**
+ * Decisions this page sends, by call (072, audit F3 and F7). The state
+ * lives here, not in the card, so a card that remounts (a replayed stream,
+ * the stored copy replacing the live one) keeps it, and it lasts only
+ * until the server's copy of the call shows it decided: that, not this, is
+ * what hides the card. A failed decision says why and can be sent again.
+ */
+const useDecisions = ({
+  client,
+  conversationId,
+  onSent,
+  pending,
+  runs,
+}: {
+  readonly client: ApiClient;
+  readonly conversationId: ConversationId | null;
+  /** After the server took a decision: refetch, and follow the run on. */
+  readonly onSent: () => void;
+  /** Calls on screen still waiting for a decision. */
+  readonly pending: readonly string[];
+  readonly runs: readonly Run[] | undefined;
+}) => {
+  const [states, setStates] = useState<ReadonlyMap<string, DecisionState>>(
+    () => new Map()
+  );
+  const sent = useRef(new Map<string, ApprovalDecision>());
+  const latest = useRef({ conversationId, onSent, runs });
+  useEffect(() => {
+    latest.current = { conversationId, onSent, runs };
+  });
+  const setState = useCallback(
+    (toolCallId: string, state: DecisionState | null) =>
+      setStates((current) => {
+        const next = new Map(current);
+        if (state) {
+          next.set(toolCallId, state);
+        } else {
+          next.delete(toolCallId);
+        }
+        return next;
+      }),
+    []
+  );
+
+  const send = useCallback(
+    async (toolCallId: string, decision: ApprovalDecision) => {
+      sent.current.set(toolCallId, decision);
+      setState(toolCallId, { status: "sending" });
+      const outcome = await submitDecision(client, {
+        conversationId: latest.current.conversationId,
+        decision,
+        runs: latest.current.runs,
+        toolCallId,
+      });
+      if (outcome !== "sent") {
+        setState(toolCallId, { reason: outcome, status: "failed" });
+      }
+      latest.current.onSent();
+    },
+    [client, setState]
+  );
+
+  const decide = useCallback(
+    (toolCallId: string, decision: ApprovalDecision) => {
+      send(toolCallId, decision).catch(() =>
+        setState(toolCallId, { reason: "failed", status: "failed" })
+      );
+    },
+    [send, setState]
+  );
+  const retry = useCallback(
+    (toolCallId: string) => {
+      const decision = sent.current.get(toolCallId);
+      if (decision) {
+        decide(toolCallId, decision);
+      }
+    },
+    [decide]
+  );
+
+  // Once the screen no longer waits on a call, its decision is the
+  // server's to show; this page's note about it goes.
+  const waiting = pending.join(" ");
+  useEffect(() => {
+    const still = new Set(waiting.split(" "));
+    setStates((current) => {
+      const stale = [...current.keys()].filter((id) => !still.has(id));
+      if (stale.length === 0) {
+        return current;
+      }
+      const next = new Map(current);
+      for (const id of stale) {
+        next.delete(id);
+        sent.current.delete(id);
+      }
+      return next;
+    });
+  }, [waiting]);
+
+  return { decide, retry, states };
+};
+
+/** Whether an API error says the thing isn't there. */
+const isNotFound = (error: unknown): boolean =>
+  typeof error === "object" &&
+  error !== null &&
+  (error as { readonly code?: unknown }).code === "NOT_FOUND";
+
+/**
+ * Pending changes whose file changed since they were proposed (072, audit
+ * F12): each proposed file's current etag, read through the same query the
+ * Files panel reads it with, so a save there re-checks the card at once.
+ */
+const useStaleCalls = (
+  api: QueryUtils,
+  sandboxId: SandboxId | null,
+  approvals: readonly PendingApproval[] | undefined
+): ReadonlySet<string> => {
+  const paths = [
+    ...new Set(
+      (approvals ?? []).flatMap((approval) =>
+        (approval.edits ?? []).map((edit) => edit.path)
+      )
+    ),
+  ];
+  const reads = useQueries({
+    queries: paths.map((path) =>
+      api.sandbox.readFile.queryOptions({
+        input: sandboxId ? { id: sandboxId, path } : skipToken,
+        retry: false,
+        select: (file) => file.etag,
+      })
+    ),
+  });
+  const etags = new Map(
+    paths.flatMap((path, index): [string, string | null][] => {
+      const read = reads[index];
+      if (read?.data !== undefined) {
+        return [[path, read.data]];
+      }
+      return read?.error && isNotFound(read.error) ? [[path, null]] : [];
+    })
+  );
+  const stale = (approvals ?? []).flatMap((approval) =>
+    staleEdits(approval.edits ?? [], etags).length > 0
+      ? [approval.toolCallId]
+      : []
+  );
+  const key = stale.join(" ");
+  return useMemo(() => new Set(key ? key.split(" ") : []), [key]);
+};
+
+/**
+ * The conversation's runs as the chat drives them (072): which run a page
+ * opened mid-answer follows (a waiting one too, audit F10), the decisions
+ * this page sends, whether only a decision is awaited, and Stop.
+ */
+const useRunControls = ({
+  api,
+  chat,
+  client,
+  conversationId,
+  createdRunId,
+  messages,
+  refresh,
+  sandboxId,
+}: {
+  readonly api: QueryUtils;
+  readonly chat: ReturnType<typeof useRunChat>;
+  readonly client: ApiClient;
+  readonly conversationId: ConversationId | null;
+  /** The run this page started last, for Stop before the runs list has it. */
+  readonly createdRunId: { readonly current: RunId | null };
+  readonly messages: readonly Message[];
+  readonly refresh: () => void;
+  /** The chat's workspace, to check pending changes against its files. */
+  readonly sandboxId: SandboxId | null;
+}) => {
+  const { resumeStream, stop: stopReading } = chat;
+  // The same query `useChatQueries` makes; read whole for the run states.
+  const activeRuns = useQuery(
+    api.runs.list.queryOptions({
+      input: conversationId
+        ? { active: true, conversationId, limit: 5 }
+        : skipToken,
+    })
+  ).data?.items;
+  useFollowRunningReply({
+    conversationId,
+    resumeStream,
+    runningRunId: runToFollow(activeRuns),
+    status: chat.status,
+  });
+  const following = chat.status === "submitted" || chat.status === "streaming";
+  const followingRef = useRef(following);
+  followingRef.current = following;
+  const pending = useMemo(() => waitingCalls(messages), [messages]);
+  const decisions = useDecisions({
+    client,
+    conversationId,
+    onSent: useCallback(() => {
+      refresh();
+      // A page following the run's stream sees the answer carry on there,
+      // from where it is (the server announces the decision on it). One
+      // that isn't picks the run up again; the SDK rebuilds a resumed
+      // answer from an empty message, so that one replays from the start.
+      if (!followingRef.current) {
+        resumeStream().catch(ignore);
+      }
+    }, [refresh, resumeStream]),
+    pending,
+    runs: activeRuns,
+  });
+  const sending = useMemo(
+    () =>
+      new Set(
+        [...decisions.states].flatMap(([id, state]) =>
+          state.status === "sending" ? [id] : []
+        )
+      ),
+    [decisions.states]
+  );
+  const waiting = waitingForPerson({ pending, sending });
+
+  // Stop stops the run on the server (072, audit F4), not just this page's
+  // reading of it: a waiting answer's cards resolve as not run, a running
+  // command is killed, and the stream says so to every page before it
+  // ends. Only when that fails does this page stop reading on its own.
+  const activeRunsRef = useRef(activeRuns);
+  activeRunsRef.current = activeRuns;
+  const stop = useCallback(async () => {
+    const runId =
+      stoppableRun(activeRunsRef.current)?.id ?? createdRunId.current;
+    const cancelled = runId
+      ? await client.runs.cancel({ id: runId }).then(
+          () => true,
+          () => false
+        )
+      : false;
+    if (!cancelled) {
+      await stopReading().catch(ignore);
+    }
+    refresh();
+  }, [client, createdRunId, refresh, stopReading]);
+  const waitingRun = stoppableRun(activeRuns);
+  const stale = useStaleCalls(
+    api,
+    sandboxId,
+    waitingRun?.state.status === "awaiting_approval"
+      ? waitingRun.state.approvals
+      : undefined
+  );
+  const activity = useMemo(
+    (): RunActivity => ({
+      answers: answerPhases(activeRuns),
+      decisions: decisions.states,
+      onRetry: decisions.retry,
+      stale,
+    }),
+    [activeRuns, decisions.retry, decisions.states, stale]
+  );
+  return {
+    activity,
+    // While only a decision is awaited the composer sends: a new message
+    // skips the pending change (the note under the answer says so, and has
+    // Stop).
+    composerStatus: waiting ? ("ready" as const) : chat.status,
+    decisions,
+    stop,
+    /** Calls the waiting run asks about that the screen lacks (audit F2). */
+    unseen: !following && unseenApprovals(activeRuns, messages).length > 0,
+    waiting,
+  };
+};
+
 export function ConnectedChat({
   agents,
   artifactsRuntimeOrigin = null,
@@ -861,23 +1246,35 @@ export function ConnectedChat({
       watchTitle();
     }
   }, [refresh, watchTitle]);
+  // The run this page started last, for Stop before the runs list has it.
+  const createdRunId = useRef<RunId | null>(null);
+  const onRunCreated = useCallback((run: RunCreated) => {
+    createdRunId.current = run.runId;
+  }, []);
   const { chat, messages, streamingMessageId } = useLiveTurn({
     client,
     context,
     conversationId,
     me,
     onFinish,
+    onRunCreated,
     stored,
     storedAt: data.path.dataUpdatedAt,
     target,
   });
-  const { regenerate, resumeStream, sendMessage, setMessages } = chat;
-  useFollowRunningReply({
-    conversationId,
-    resumeStream,
-    runningRunId: data.runningRunId,
-    status: chat.status,
-  });
+  const { regenerate, sendMessage, setMessages } = chat;
+  const { activity, composerStatus, decisions, stop, unseen, waiting } =
+    useRunControls({
+      api,
+      chat,
+      client,
+      conversationId,
+      createdRunId,
+      messages,
+      refresh,
+      sandboxId: data.sandbox.data?.id ?? null,
+    });
+  const { stop: stopReading } = chat;
   const send = useCallback(
     (text: string, outgoing: Outgoing = NOTHING_ELSE) => {
       sendMessage(outgoingMessage(text, outgoing)).catch(ignore);
@@ -896,9 +1293,6 @@ export function ConnectedChat({
     target,
   });
 
-  const { mutate: decide } = useMutation(
-    api.runs.submitApprovals.mutationOptions()
-  );
   const { mutateAsync: revertMemory } = useMutation(
     api.memory.revert.mutationOptions()
   );
@@ -912,34 +1306,13 @@ export function ConnectedChat({
     api.conversations.setContext.mutationOptions({ onSettled: refresh })
   );
 
-  const runId = data.activeRun?.id;
   const nodes: readonly TreeNode[] = data.tree.data?.nodes ?? stored;
+  const { decide } = decisions;
   const actions = useMemo(
     (): ConversationActions => ({
       fileUrl,
       onClearFeedback: feedback.clear,
-      onDecide: (toolCallId, decision) => {
-        const sendDecision = (id: string) =>
-          decide(
-            { decisions: [{ decision, toolCallId }], runId: id },
-            {
-              onSettled: () => {
-                refresh();
-                // The run carries on server-side; follow its stream again.
-                resumeStream().catch(ignore);
-              },
-            }
-          );
-        if (runId) {
-          sendDecision(runId);
-        } else if (conversationId) {
-          awaitingRunFor(client, conversationId, toolCallId).then((id) => {
-            if (id) {
-              sendDecision(id);
-            }
-          }, ignore);
-        }
-      },
+      onDecide: decide,
       onEdit: (message, text) => {
         // An edit answers the same parent: send it from that point.
         const at = stored.findIndex((item) => item.id === message.id);
@@ -968,19 +1341,15 @@ export function ConnectedChat({
       },
     }),
     [
-      client,
       conversationId,
       decide,
       feedback.clear,
       feedback.set,
       nodes,
-      refresh,
       regenerate,
       rememberLeaf,
       replaceMemory,
-      resumeStream,
       revertMemory,
-      runId,
       send,
       setMessages,
       stored,
@@ -1012,12 +1381,19 @@ export function ConnectedChat({
   const copyLink = useCallback(async () => {
     await navigator.clipboard?.writeText(window.location.href);
   }, []);
+  const waitingRef = useRef(waiting);
+  waitingRef.current = waiting;
   const onSubmit = useCallback(
     (value: ComposerValue) => {
       setUploadFailed(false);
+      // A message sent while a change waits moves on without it: the
+      // server stops that answer, so this page stops following it first.
+      if (waitingRef.current) {
+        stopReading().catch(ignore);
+      }
       submit(value).catch(() => setUploadFailed(true));
     },
-    [submit]
+    [stopReading, submit]
   );
 
   useAskOnce(initialPrompt, conversationId, onSubmit);
@@ -1038,77 +1414,91 @@ export function ConnectedChat({
     data.activeRun?.state.status === "awaiting_approval"
       ? data.activeRun.state.approvals
       : undefined;
-  useApprovalsInSync({ approvals, messages, onMissing: refresh });
+  useApprovalsInSync({
+    approvals,
+    messages,
+    onMissing: refresh,
+    unseen,
+  });
   useWorkspaceInSync(api, messages);
   const current = data.conversation.data;
 
   return (
-    <ChatScreen
-      actions={actions}
-      brand={brand}
-      composer={{
-        agents,
-        attachmentLimits,
-        models,
-        onStop: chat.stop,
-        onSubmit,
-        onTargetChange,
-        status: chat.status,
-        target: target ?? undefined,
-      }}
-      conversation={{
-        context,
-        contextLocked: current?.contextLocked ?? false,
-        contextOptions,
-        id: conversationId,
-        onContextChange,
-        onCopyLink: copyLink,
-        onRename: conversationId ? onRename : undefined,
-        participants: data.participants.data ?? [],
-        title: current?.title ?? null,
-      }}
-      feedback={feedback.byMessage}
-      layout={layout}
-      messages={messages}
-      onNewChat={newChat}
-      onOpenPalette={onOpenPalette}
-      pendingApprovals={approvals}
-      platform={platform}
-      runError={
-        <RunError failed={Boolean(chat.error)} uploadFailed={uploadFailed} />
-      }
-      siblings={data.path.data?.siblings ?? []}
-      sidebar={{
-        ...sidebarActions,
-        account: {
-          onNewOrg,
-          onOpenAdmin,
-          onOpenSettings,
-          onSignOut,
-          onThemeChange,
-          theme,
-          user: me.user,
-        },
-        activeId: conversationId,
-        chats: data.chats.data?.items ?? [],
-        libraryHref,
-        onSelect: onNavigate,
-      }}
-      streamingMessageId={streamingMessageId}
-      workspace={{
-        artifacts: {
-          artifacts: data.artifacts.data ?? [],
-          error: data.versions.isError ? t`Couldn't load this artifact.` : null,
-          runtimeOrigin: artifactsRuntimeOrigin,
-          versions: data.versions.data,
-        },
-        canPreview: canPreviewOn(config, sandboxRecord),
-        files: workspaceFiles,
-        onSelect: setSelection,
-        paths: workspacePaths,
-        selection,
-      }}
-    />
+    <RunActivityProvider value={activity}>
+      <ChatScreen
+        actions={actions}
+        brand={brand}
+        composer={{
+          agents,
+          attachmentLimits,
+          models,
+          onStop: stop,
+          onSubmit,
+          onTargetChange,
+          status: composerStatus,
+          target: target ?? undefined,
+        }}
+        conversation={{
+          context,
+          contextLocked: current?.contextLocked ?? false,
+          contextOptions,
+          id: conversationId,
+          onContextChange,
+          onCopyLink: copyLink,
+          onRename: conversationId ? onRename : undefined,
+          participants: data.participants.data ?? [],
+          title: current?.title ?? null,
+        }}
+        feedback={feedback.byMessage}
+        layout={layout}
+        messages={messages}
+        onNewChat={newChat}
+        onOpenPalette={onOpenPalette}
+        pendingApprovals={approvals}
+        platform={platform}
+        runError={
+          <RunError
+            failed={Boolean(chat.error)}
+            onStop={stop}
+            uploadFailed={uploadFailed}
+            waiting={waiting}
+          />
+        }
+        siblings={data.path.data?.siblings ?? []}
+        sidebar={{
+          ...sidebarActions,
+          account: {
+            onNewOrg,
+            onOpenAdmin,
+            onOpenSettings,
+            onSignOut,
+            onThemeChange,
+            theme,
+            user: me.user,
+          },
+          activeId: conversationId,
+          chats: data.chats.data?.items ?? [],
+          libraryHref,
+          onSelect: onNavigate,
+        }}
+        streamingMessageId={streamingMessageId}
+        workspace={{
+          artifacts: {
+            artifacts: data.artifacts.data ?? [],
+            error: data.versions.isError
+              ? t`Couldn't load this artifact.`
+              : null,
+            runtimeOrigin: artifactsRuntimeOrigin,
+            versions: data.versions.data,
+          },
+          canPreview: canPreviewOn(config, sandboxRecord),
+          files: workspaceFiles,
+          onSelect: setSelection,
+          paths: workspacePaths,
+          selection,
+        }}
+      />
+    </RunActivityProvider>
   );
 }
 

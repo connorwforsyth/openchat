@@ -1,9 +1,15 @@
 import { fixtureId, userAda } from "@workspace/contract/fixtures";
+import type { MessagePart } from "@workspace/contract/schemas/message-parts";
 import type { UIMessage } from "ai";
 import { describe, expect, it } from "vitest";
 
 import { treeMessages } from "../fixtures";
-import { liveParts, liveTail, mergeLive } from "./live-messages";
+import {
+  type Decisions,
+  liveParts,
+  liveTail,
+  mergeLive,
+} from "./live-messages";
 
 const ui = (id: string, role: UIMessage["role"], text: string): UIMessage => ({
   id,
@@ -94,22 +100,140 @@ describe("mergeLive", () => {
   });
 });
 
-describe("liveParts", () => {
-  it("falls back to prose when a tool outcome isn't in the stream", () => {
+describe("mergeLive while a picked-up stream replays", () => {
+  const [question, answer] = treeMessages;
+  const context = {
+    authorId: userAda.id,
+    conversationId: question?.conversationId ?? fixtureId("conversation", 1),
+    now: "2026-09-30T10:00:00.000Z",
+  };
+
+  it("keeps the stored answer until the live copy has every call it has", () => {
+    if (!(question && answer)) {
+      throw new Error("fixture path is too short");
+    }
+    const call = {
+      approval: { requestedAt: context.now, state: "pending" as const },
+      input: {},
+      toolCallId: "c9",
+      toolName: "write",
+      type: "tool-call" as const,
+    };
+    const stored = [
+      question,
+      { ...answer, parts: [call], status: "partial" as const },
+    ];
+    const early = ui(answer.id, "assistant", "Replaying…");
+    expect(mergeLive(stored, [early], context, undefined, answer.id)[1]).toBe(
+      stored[1]
+    );
+    const caught: UIMessage = {
+      id: answer.id,
+      parts: [
+        {
+          approval: { id: "a9" },
+          input: {},
+          state: "approval-requested",
+          toolCallId: "c9",
+          type: "tool-write",
+        },
+      ],
+      role: "assistant",
+    };
     expect(
-      liveParts({
-        parts: [
-          { text: "Before", type: "text" },
-          {
-            approval: { approved: true, id: "c1" },
-            input: {},
-            output: 1,
-            state: "output-available",
-            toolCallId: "c1",
-            type: "tool-edit",
-          },
-        ],
-      })
-    ).toEqual([{ text: "Before", type: "text" }]);
+      mergeLive(stored, [caught], context, undefined, answer.id)[1]?.parts
+    ).toMatchObject([{ toolCallId: "c9", type: "tool-call" }]);
+  });
+});
+
+describe("liveParts", () => {
+  const decided: Decisions = new Map([
+    [
+      "c1",
+      {
+        decidedAt: "2026-09-30T10:00:00.000Z",
+        decidedBy: userAda.id,
+        decision: { decision: "approve" },
+      },
+    ],
+  ]);
+  // After the first approval the stream has the executed call (still
+  // carrying its approval) and the next call waiting (072, audit F1).
+  const executed = {
+    approval: { approved: true, id: "c1" },
+    input: { path: "index.html" },
+    output: { status: "changed" },
+    state: "output-available",
+    toolCallId: "c1",
+    type: "tool-write",
+  } as const;
+  const next = {
+    approval: { id: "c2" },
+    input: { path: "style.css" },
+    state: "approval-requested",
+    toolCallId: "c2",
+    type: "tool-write",
+  } as const;
+  const kinds = (parts: readonly MessagePart[]) =>
+    parts.map((part) =>
+      part.type === "tool-call"
+        ? `${part.toolCallId}:${part.approval.state}`
+        : part.type
+    );
+
+  it("keeps the next card after a decision, whether or not the stored answer has it yet", () => {
+    const parts = [{ text: "Before", type: "text" as const }, executed, next];
+    expect(kinds(liveParts({ parts }))).toEqual([
+      "text",
+      "c1:decided",
+      "tool-result",
+      "c2:pending",
+    ]);
+    const stored = liveParts({ parts }, decided);
+    expect(kinds(stored)).toEqual([
+      "text",
+      "c1:decided",
+      "tool-result",
+      "c2:pending",
+    ]);
+    expect(stored[1]).toMatchObject({ approval: { decidedBy: userAda.id } });
+  });
+
+  it("shows a call decided as soon as the server has the decision", () => {
+    const waiting = { ...next, approval: { id: "c1" }, toolCallId: "c1" };
+    expect(kinds(liveParts({ parts: [waiting] }))).toEqual(["c1:pending"]);
+    expect(kinds(liveParts({ parts: [waiting] }, decided))).toEqual([
+      "c1:decided",
+    ]);
+  });
+
+  it("drops a call that was stopped undecided of its approval, not of its result", () => {
+    const stopped = {
+      approval: { id: "c3" },
+      errorText: "Not run: the user stopped the agent instead of deciding.",
+      input: {},
+      state: "output-error",
+      toolCallId: "c3",
+      type: "tool-write",
+    } as const;
+    expect(liveParts({ parts: [stopped as never] })).toMatchObject([
+      { approval: { state: "not-required" }, type: "tool-call" },
+      { output: { status: "error" }, type: "tool-result" },
+    ]);
+  });
+
+  it("drops only the part that can't be mapped", () => {
+    expect(
+      kinds(
+        liveParts({
+          parts: [
+            { text: "Before", type: "text" },
+            // Not JSON: a part the contract can't store.
+            { ...executed, output: () => undefined } as never,
+            next,
+          ],
+        })
+      )
+    ).toEqual(["text", "c2:pending"]);
   });
 });

@@ -68,6 +68,10 @@ msgstr "{fileName} is larger than {limit}."
 msgid "{fileName} isn't a supported file type."
 msgstr "{fileName} isn't a supported file type."
 
+#: ../chat-ui/src/conversation/approval.tsx
+msgid "{files} changed after the agent proposed this, so the change can't be applied as shown."
+msgstr "{files} changed after the agent proposed this, so the change can't be applied as shown."
+
 #: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
 msgid "{length} of {max} characters"
 msgstr "{length} of {max} characters"
@@ -383,6 +387,10 @@ msgstr "Ask anything"
 #: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
 msgid "Ask before changing memory"
 msgstr "Ask before changing memory"
+
+#: ../chat-ui/src/conversation/approval.tsx
+msgid "Ask for an updated change"
+msgstr "Ask for an updated change"
 
 #: ../../apps/web/app/(auth)/_components/sign-up-form.tsx
 msgid "At least 8 characters."
@@ -2038,6 +2046,10 @@ msgstr "Optional. Shown in the version history."
 msgid "or"
 msgstr "or"
 
+#: ../chat-ui/src/conversation/approval.tsx
+msgid "Or send a new message: this change is skipped and the agent reads your message instead."
+msgstr "Or send a new message: this change is skipped and the agent reads your message instead."
+
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
 msgid "org"
 msgstr "org"
@@ -2533,6 +2545,7 @@ msgid "Result"
 msgstr "Result"
 
 #: ../../apps/web/app/dev/ai-elements/demo.tsx
+#: ../chat-ui/src/conversation/approval.tsx
 #: ../chat-ui/src/workspace/preview.tsx
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Retry"
@@ -2944,6 +2957,11 @@ msgstr "Static render of {file}"
 msgid "Status unavailable"
 msgstr "Status unavailable"
 
+#: ../chat-ui/src/conversation/message-row.tsx
+msgid "Still working on this answer…"
+msgstr "Still working on this answer…"
+
+#: ../chat-ui/src/chat/connected-chat.tsx
 #: ../composer/src/components/composer-footer.tsx
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Stop"
@@ -2960,6 +2978,10 @@ msgstr "Stop generating"
 #: ../chat-ui/src/conversation/tool-status.tsx
 msgid "Stopped"
 msgstr "Stopped"
+
+#: ../chat-ui/src/conversation/tool-status.tsx
+msgid "Stopped by you"
+msgstr "Stopped by you"
 
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "Stored encrypted and never shown again; only its last characters are."
@@ -3395,6 +3417,10 @@ msgstr "This server signs people in with single sign-on, and none is set up yet.
 msgid "This server's configuration forbids audit policies, so admins can't read chat content in any org."
 msgstr "This server's configuration forbids audit policies, so admins can't read chat content in any org."
 
+#: ../chat-ui/src/conversation/approval.tsx
+msgid "This was already decided, in another tab or by someone else, or the answer stopped."
+msgstr "This was already decided, in another tab or by someone else, or the answer stopped."
+
 #: ../../apps/web/app/dev/sandbox/demo.tsx
 msgid "This workspace can't do that."
 msgstr "This workspace can't do that."
@@ -3607,6 +3633,18 @@ msgstr "View fullscreen"
 #: ../chat-ui/src/header/share-menu.tsx
 msgid "Viewer"
 msgstr "Viewer"
+
+#: ../chat-ui/src/conversation/message-row.tsx
+msgid "Waiting for the answer before it…"
+msgstr "Waiting for the answer before it…"
+
+#: ../chat-ui/src/chat/connected-chat.tsx
+msgid "Waiting for your approval above. Send a new message to skip the pending change instead."
+msgstr "Waiting for your approval above. Send a new message to skip the pending change instead."
+
+#: ../chat-ui/src/conversation/message-row.tsx
+msgid "Waiting for your approval."
+msgstr "Waiting for your approval."
 
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Wants to change {code}"
@@ -3840,6 +3878,10 @@ msgstr "Your changes weren't saved, so they were undone."
 #: ../shortcuts/src/react/shortcuts-editor.tsx
 msgid "Your changes work now but couldn't be saved, so they'll reset when you reload."
 msgstr "Your changes work now but couldn't be saved, so they'll reset when you reload."
+
+#: ../chat-ui/src/conversation/approval.tsx
+msgid "Your decision didn't reach the server."
+msgstr "Your decision didn't reach the server."
 
 #: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
 msgid "Your memory"

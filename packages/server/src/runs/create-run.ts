@@ -244,6 +244,28 @@ const placeRun = async (
 };
 
 /**
+ * A turn sent while the answer it follows waits on approvals moves on
+ * without them (072): that answer stops as Stop would stop it, and its
+ * pending changes are never applied. Queued behind it instead, the turn
+ * would wait for as long as nobody decides, since nothing expires a pause.
+ * Someone who may send here may already press Stop, so this grants
+ * nothing new.
+ */
+const moveOnFromWaiting = async (
+  deps: CreateRunDeps,
+  actor: Actor,
+  { conversationId, input: turn }: CreateRunInput
+): Promise<void> => {
+  const anchor = turn.type === "message" ? turn.parentId : turn.userMessageId;
+  const tail = busyTail(await listActiveRuns(deps.db, conversationId), anchor);
+  if (tail?.status === "awaiting_approval") {
+    // A decision that resumed it a moment ago doesn't save it: the cancel
+    // stops that pass too.
+    await deps.executor.cancel(tail.id, actor.userId);
+  }
+};
+
+/**
  * Whether `actor` may answer with `target`: any model; an agent's published
  * version when they may `use` it (032); its draft (`draft: true`) only when
  * they may `edit` it (033).
@@ -308,6 +330,7 @@ export const createRun = async (
   if (!regenerating.ok) {
     return regenerating;
   }
+  await moveOnFromWaiting(deps, actor, input);
   const placed = await placeRun(db, actor, input, {
     agentDraft: draft.value !== null,
     context: context.value,

@@ -199,7 +199,13 @@ export const messageView = (
   const blocks: RenderBlock[] = [];
   const sources: SourcePart[] = [];
   parts.forEach((part, index) => {
-    const key = `${part.type}-${index}`;
+    // A tool call keeps its key when the message is rebuilt around it (a
+    // resumed stream, the stored copy replacing the live one), so its card
+    // stays mounted instead of coming back fresh (072).
+    const key =
+      part.type === "tool-call"
+        ? `tool-call-${part.toolCallId}`
+        : `${part.type}-${index}`;
     if (part.type === "source") {
       sources.push(part);
       return;

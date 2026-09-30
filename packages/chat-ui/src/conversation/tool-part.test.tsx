@@ -1,14 +1,17 @@
 import { cleanup, screen, within } from "@testing-library/react";
+import { interruptedMessage } from "@workspace/ai/messages/approval";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 
 import { pendingEdit } from "../fixtures";
+import { REPROPOSE_REASON } from "../model/approval";
 import type { ToolCallPart, ToolResultPart } from "../model/parts";
 import { renderWithI18n } from "../testing/render";
 import {
   type ConversationActions,
   ConversationActionsProvider,
 } from "./actions";
+import { type RunActivity, RunActivityProvider } from "./approval-state";
 import { ToolPart } from "./tool-part";
 
 // Diffs render synchronously here (ticket 037); see conversation-view.test.
@@ -21,6 +24,7 @@ const EXITED = /exited with code 1/;
 const USED_CREATE_ISSUE = /Used create_issue from github/;
 const USED_LOOKUP = /Used lookup/;
 const DECISION_SENT = /Decision sent/;
+const STOPPED_BY_YOU = /Stopped by you/;
 
 const call = (
   toolName: string,
@@ -81,17 +85,28 @@ const renderTool = (
   toolCall: ToolCallPart,
   result: ToolResultPart | undefined,
   actions: ConversationActions = {},
-  { streaming = true }: { readonly streaming?: boolean } = {}
+  {
+    activity = { answers: new Map(), decisions: new Map() },
+    running = false,
+    streaming = true,
+  }: {
+    readonly activity?: RunActivity;
+    readonly running?: boolean;
+    readonly streaming?: boolean;
+  } = {}
 ) =>
   renderWithI18n(
-    <ConversationActionsProvider actions={actions}>
-      <ToolPart
-        approvals={[pendingEdit]}
-        call={toolCall}
-        result={result}
-        streaming={streaming}
-      />
-    </ConversationActionsProvider>
+    <RunActivityProvider value={activity}>
+      <ConversationActionsProvider actions={actions}>
+        <ToolPart
+          approvals={[pendingEdit]}
+          call={toolCall}
+          result={result}
+          running={running}
+          streaming={streaming}
+        />
+      </ConversationActionsProvider>
+    </RunActivityProvider>
   );
 
 /** The status line's toggle, found by what it says. */
@@ -124,6 +139,31 @@ describe("bash", () => {
     await userEvent.click(toggle);
     expect(screen.getByLabelText("Command and output").textContent).toContain(
       "ls -la"
+    );
+  });
+
+  it("keeps spinning while its run goes on, though this page isn't following it", () => {
+    renderTool(bash, undefined, {}, { running: true, streaming: false });
+    expect(statusOf(line(RUNNING))).toBe("running");
+  });
+
+  it("says who stopped it, and keeps what it had printed", async () => {
+    renderTool(bash, {
+      output: {
+        message: interruptedMessage("user", true, "step 1\nstep 2"),
+        status: "error",
+      },
+      toolCallId: "call_bash",
+      toolName: "bash",
+      type: "tool-result",
+    });
+    const toggle = line(RUNNING);
+    expect(statusOf(toggle)).toBe("stopped");
+    expect(toggle.textContent).toContain("Stopped by you");
+    expect(toggle.className).not.toContain("text-destructive");
+    await userEvent.click(toggle);
+    expect(screen.getByLabelText("Command and output").textContent).toContain(
+      "step 2"
     );
   });
 
@@ -335,6 +375,115 @@ describe("approvals", () => {
       ],
     });
     expect(await screen.findByText(DECISION_SENT)).toBeTruthy();
+  });
+
+  it("keeps a decision that's on its way across a remount", () => {
+    const decided = { ...pending, toolCallId: pendingEdit.toolCallId };
+    renderTool(
+      decided,
+      undefined,
+      { onDecide: vi.fn() },
+      {
+        activity: {
+          answers: new Map(),
+          decisions: new Map([[pendingEdit.toolCallId, { status: "sending" }]]),
+        },
+      }
+    );
+    expect(screen.getByText(DECISION_SENT)).toBeTruthy();
+    // The card keeps its place, inert, so a double click can't land on the
+    // next card's buttons.
+    expect(
+      screen.getByRole("button", { name: "Approve all" }).closest("[inert]")
+    ).toBeTruthy();
+  });
+
+  it("says a decision failed, and sends it again on Retry", async () => {
+    const onRetry = vi.fn();
+    renderTool(
+      { ...pending, toolCallId: pendingEdit.toolCallId },
+      undefined,
+      { onDecide: vi.fn() },
+      {
+        activity: {
+          answers: new Map(),
+          decisions: new Map([
+            [pendingEdit.toolCallId, { reason: "failed", status: "failed" }],
+          ]),
+          onRetry,
+        },
+      }
+    );
+    expect(screen.getByRole("alert").textContent).toContain(
+      "didn't reach the server"
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(onRetry).toHaveBeenCalledWith(pendingEdit.toolCallId);
+  });
+
+  it("says when someone else decided first", () => {
+    renderTool(
+      { ...pending, toolCallId: pendingEdit.toolCallId },
+      undefined,
+      { onDecide: vi.fn() },
+      {
+        activity: {
+          answers: new Map(),
+          decisions: new Map([
+            [pendingEdit.toolCallId, { reason: "conflict", status: "failed" }],
+          ]),
+        },
+      }
+    );
+    expect(screen.getByRole("alert").textContent).toContain("already decided");
+    expect(screen.queryByRole("button", { name: "Approve all" })).toBeNull();
+  });
+
+  it("offers to ask again when the file changed since the change was proposed", async () => {
+    const onDecide = vi.fn();
+    renderTool(
+      { ...pending, toolCallId: pendingEdit.toolCallId },
+      undefined,
+      { onDecide },
+      {
+        activity: {
+          answers: new Map(),
+          decisions: new Map(),
+          stale: new Set([pendingEdit.toolCallId]),
+        },
+      }
+    );
+    expect(screen.getByRole("alert").textContent).toContain(
+      "changed after the agent proposed this"
+    );
+    expect(screen.queryByRole("button", { name: "Approve all" })).toBeNull();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Ask for an updated change" })
+    );
+    expect(onDecide).toHaveBeenCalledWith(pendingEdit.toolCallId, {
+      decision: "reject",
+      reason: REPROPOSE_REASON,
+    });
+  });
+
+  it("says a change its run skipped never ran", () => {
+    renderTool(
+      { ...pending, toolCallId: pendingEdit.toolCallId },
+      {
+        output: {
+          message: interruptedMessage("user", false),
+          status: "error",
+        },
+        toolCallId: pendingEdit.toolCallId,
+        toolName: "edit",
+        type: "tool-result",
+      },
+      { onDecide: vi.fn() }
+    );
+    const toggle = line(STOPPED_BY_YOU);
+    expect(toggle.textContent).toContain("Wants to change");
+    expect(statusOf(toggle)).toBe("stopped");
+    expect(screen.queryByRole("button", { name: "Approve all" })).toBeNull();
   });
 
   it("shows only the line to someone who can't decide", () => {

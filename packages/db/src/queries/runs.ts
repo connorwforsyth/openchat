@@ -127,6 +127,19 @@ export const getRun = async (
   return row ? ok(row) : err(notFound("run", id));
 };
 
+/**
+ * The run, locked until the transaction `db` belongs to ends (`SELECT …
+ * FOR UPDATE`): deciding approvals reads and rewrites the run's answer, and
+ * two decisions at once must not each overwrite the other's (072).
+ */
+export const lockRun = async (
+  db: Db,
+  id: RunId
+): AsyncResult<RunRow, NotFoundError> => {
+  const [row] = await db.select().from(run).where(eq(run.id, id)).for("update");
+  return row ? ok(row) : err(notFound("run", id));
+};
+
 /** Unfinished runs in a conversation, oldest first (the branch queue reads this). */
 export const listActiveRuns = (
   db: Db,
@@ -344,6 +357,40 @@ export const readRunChunks = async (
     .where(and(eq(runChunk.runId, runId), gt(runChunk.seq, after)))
     .orderBy(asc(runChunk.seq))
     .limit(limit);
+
+/**
+ * The approval id each tool call was asked about under, from the stream's
+ * `tool-approval-request` chunks: the AI SDK generates its own, and a
+ * client matches a decision to its call by that id (072).
+ */
+export const approvalIdsOf = async (
+  db: Db,
+  runId: RunId
+): Promise<ReadonlyMap<string, string>> => {
+  const rows = await db
+    .select({ payload: runChunk.payload })
+    .from(runChunk)
+    .where(
+      and(
+        eq(runChunk.runId, runId),
+        sql`${runChunk.payload}->>'type' = 'tool-approval-request'`
+      )
+    )
+    .orderBy(asc(runChunk.seq));
+  return new Map(
+    rows.flatMap(({ payload }) => {
+      const request = approvalRequestSchema.safeParse(payload);
+      return request.success
+        ? [[request.data.toolCallId, request.data.approvalId] as const]
+        : [];
+    })
+  );
+};
+
+const approvalRequestSchema = z.object({
+  approvalId: z.string(),
+  toolCallId: z.string(),
+});
 
 /** Drops a finished run's chunks; the message holds the result. Returns how many went. */
 export const pruneRunChunks = async (db: Db, runId: RunId): Promise<number> => {

@@ -158,9 +158,22 @@ function PreviewButton({
   );
 }
 
+/** Who stopped a call's run, after what it was doing. */
+function StoppedNote({ summary }: { readonly summary: ToolSummary }) {
+  return (
+    <span className="shrink-0 text-xs" data-stopped-by={summary.stoppedBy}>
+      {summary.stoppedBy === "user" ? (
+        <Trans>Stopped by you</Trans>
+      ) : (
+        <Trans>Stopped</Trans>
+      )}
+    </span>
+  );
+}
+
 export function ToolStatus({
   onOpenPreview,
-  stopped = false,
+  stopped: ended = false,
   summary,
 }: {
   /** Opens a preview in the app; without it, Open is a link to a new tab. */
@@ -173,6 +186,7 @@ export function ToolStatus({
   readonly summary: ToolSummary;
 }) {
   const failed = summary.status === "error";
+  const stopped = ended || summary.status === "stopped";
   return (
     <Collapsible
       className="not-prose flex flex-col gap-2"
@@ -189,12 +203,15 @@ export function ToolStatus({
         >
           <StatusIcon stopped={stopped} summary={summary} />
           <span className="min-w-0 truncate">
-            {stopped ? (
+            {ended ? (
               <Trans>Stopped</Trans>
             ) : (
               <ToolLabel label={summary.label} />
             )}
           </span>
+          {summary.status === "stopped" ? (
+            <StoppedNote summary={summary} />
+          ) : null}
           {failed && summary.errorText ? (
             <span className="min-w-0 max-w-64 truncate text-xs opacity-80">
               {summary.errorText}
