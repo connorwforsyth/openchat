@@ -100,3 +100,5 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-10-01 · claimed 080 (S2), stacked on #69
 - 2026-10-01 · 080 (S2) draft PR #70, stacked on #69 · gate 82/82 · e2e 48/48 · evals 18/18 · tool golden snapshot unchanged · waits for Connor
 - 2026-10-01 · 081 (S3) split into 084 (harness, deterministic), 085 (judge, live mode), 086 (prices), 087 (judge spike, needs Connor); claimed 084 and 086
+- 2026-10-01 · 086 (S3c) draft PR #71, stacked on #70 · gate 82/82 · budgets now bite once prices are set (documented)
+- 2026-10-01 · 084 (S3a) built · gate 85/85 · evals --strict: 62 cases, 52 pass, 9 expected failures, 1 skipped, ~44 s · added 088–093 for what the evals found
