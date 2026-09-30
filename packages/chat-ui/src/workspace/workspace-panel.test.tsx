@@ -11,12 +11,13 @@ import {
 import { sandbox as sandboxFixture } from "@workspace/contract/fixtures";
 import type { SandboxRecord } from "@workspace/contract/schemas/sandbox";
 import { err, ok } from "@workspace/shared/result";
-import type { ReactElement } from "react";
+import { type ReactElement, useState } from "react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 
 import { chatArtifacts } from "../fixtures";
 import type { WorkspaceSelection } from "../model/workspace";
+import { RightPanel } from "../shell/right-panel";
 import type {
   WorkspaceClient,
   WorkspaceFilesSource,
@@ -653,6 +654,9 @@ describe("the built-in browser (066)", () => {
     await userEvent.type(address(), `${typed}{Enter}`);
   };
 
+  const more = () =>
+    panel().getByRole("button", { name: "More browser actions" });
+
   it("drives a served page: the address bar, back, forward, reload, a new tab and a phone's width", async () => {
     const probe = vi.fn(() => Promise.resolve(true));
     renderWithI18n(
@@ -678,11 +682,15 @@ describe("the built-in browser (066)", () => {
       expect(frameSrc()).toBe("https://preview.example.test/about?tab=2")
     );
     expect(address().value).toBe("/about?tab=2");
+    // The quieter actions are in the toolbar's "…" menu (070).
+    await press(more());
     expect(
-      panel()
-        .getByRole("link", { name: "Open in a new tab" })
-        .getAttribute("href")
+      (
+        await screen.findByRole("menuitem", { name: "Open in a new tab" })
+      ).getAttribute("href")
     ).toBe("https://preview.example.test/about?tab=2");
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
 
     await userEvent.click(back);
     await waitFor(() =>
@@ -706,10 +714,11 @@ describe("the built-in browser (066)", () => {
     const width = () =>
       document.querySelector("[data-width]")?.getAttribute("data-width");
     expect(width()).toBe("desktop");
-    await userEvent.click(
-      panel().getByRole("button", { name: "Mobile width" })
+    await press(more());
+    await press(
+      await screen.findByRole("menuitemcheckbox", { name: "Mobile width" })
     );
-    expect(width()).toBe("mobile");
+    await waitFor(() => expect(width()).toBe("mobile"));
   });
 
   it("renders a page itself when nothing can serve it, labelled, with its CSS inlined and links followed", async () => {
@@ -739,9 +748,13 @@ describe("the built-in browser (066)", () => {
     expect(srcdoc).toContain("<h1>Home</h1>");
     expect(frame.getAttribute("sandbox")).not.toContain("allow-same-origin");
     expect(panel().getByText("Static render")).toBeTruthy();
+    await press(more());
+    await screen.findByRole("menuitemcheckbox", { name: "Mobile width" });
     expect(
-      panel().queryByRole("link", { name: "Open in a new tab" })
+      screen.queryByRole("menuitem", { name: "Open in a new tab" })
     ).toBeNull();
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
 
     // A link clicked in the page asks the panel for the page it points to.
     act(() =>
@@ -860,5 +873,168 @@ describe("rendered files (066)", () => {
     );
     expect(await editable()).toBeTruthy();
     expect(showAs("Code").getAttribute("aria-pressed")).toBe("true");
+  });
+});
+
+/** The panel with its selection held, as `ChatScreen` holds it. */
+function Selecting({
+  initial = null,
+  ...rest
+}: Omit<WorkspacePanelProps, "onSelect" | "selection"> & {
+  readonly initial?: WorkspaceSelection | null;
+}) {
+  const [selection, setSelection] = useState<WorkspaceSelection | null>(
+    initial
+  );
+  return (
+    <WorkspacePanel {...rest} onSelect={setSelection} selection={selection} />
+  );
+}
+
+/** The focused element, inside shadow roots too (the editor, the tree). */
+const focused = () => {
+  let active = document.activeElement;
+  while (active?.shadowRoot?.activeElement) {
+    active = active.shadowRoot.activeElement;
+  }
+  return active;
+};
+
+describe("the file search (070)", () => {
+  const files = {
+    "/work/notes.txt": { content: "notes\n", etag: V1 },
+    "/work/src/app.ts": { content: "export const app = 1;\n", etag: V1 },
+    "/work/src/util.ts": { content: "export const util = 2;\n", etag: V1 },
+  };
+  const search = () =>
+    panel().getByRole<HTMLInputElement>("combobox", { name: "Search files" });
+  const options = () =>
+    within(panel().getByRole("listbox", { name: "Files found" })).getAllByRole(
+      "option"
+    );
+  /** The path in the main area's header. */
+  const shown = () =>
+    document
+      .querySelector('[data-slot="workspace-header"] span[title]')
+      ?.getAttribute("title");
+
+  it("searches by name from '/', previews with ↓/↑ and opens with Enter, into the editor", async () => {
+    const { client } = fakeClient(files);
+    renderWithI18n(<Selecting {...props({ files: chatFiles(client) })} />);
+    await treeItem("notes.txt");
+
+    // "/" from anywhere in the panel that isn't a field.
+    panel().getByRole("button", { name: "New file" }).focus();
+    await userEvent.keyboard("/");
+    expect(document.activeElement).toBe(search());
+
+    await userEvent.keyboard("ts");
+    expect(panel().getByText("2 found")).toBeTruthy();
+    expect(options().map((option) => option.textContent)).toEqual([
+      "app.tssrc/",
+      "util.tssrc/",
+    ]);
+    // The results replace the tree.
+    expect(panel().queryByRole("tree")).toBeNull();
+
+    // ↓ previews the first, ↓ the next, and wraps; focus stays in the field.
+    await userEvent.keyboard("{ArrowDown}");
+    await waitFor(() => expect(shown()).toBe("src/app.ts"));
+    await userEvent.keyboard("{ArrowDown}");
+    await waitFor(() => expect(shown()).toBe("src/util.ts"));
+    expect(options()[1]?.getAttribute("aria-selected")).toBe("true");
+    expect(search().getAttribute("aria-activedescendant")).toBe(
+      options()[1]?.id
+    );
+    await userEvent.keyboard("{ArrowDown}");
+    expect(options()[0]?.getAttribute("aria-selected")).toBe("true");
+    expect(document.activeElement).toBe(search());
+
+    // Enter opens it and moves focus into its editor.
+    await userEvent.keyboard("{Enter}");
+    const editor = await editable();
+    await waitFor(() => expect(focused()).toBe(editor));
+    expect(shown()).toBe("src/app.ts");
+  });
+
+  it("says when nothing matches, and Escape clears back to the tree", async () => {
+    const { client } = fakeClient(files);
+    renderWithI18n(<Selecting {...props({ files: chatFiles(client) })} />);
+    const row = await treeItem("notes.txt");
+    await userEvent.click(search());
+    await userEvent.keyboard("zzz");
+    expect(panel().getByText("Nothing found")).toBeTruthy();
+    expect(options).toThrow();
+
+    await userEvent.keyboard("{Escape}");
+    expect(search().value).toBe("");
+    await waitFor(() =>
+      expect(focused()?.getAttribute("role")).toBe("treeitem")
+    );
+    expect(row()).toBeTruthy();
+  });
+});
+
+describe("a narrow panel (070)", () => {
+  it("shows the list or the file, with a way back to the list", async () => {
+    const { client } = fakeClient({
+      "/work/notes.txt": { content: "notes\n", etag: V1 },
+    });
+    renderWithI18n(
+      <div style={{ height: 700, width: 340 }}>
+        <Selecting
+          {...props({ files: chatFiles(client) })}
+          initial={{ kind: "file", path: "notes.txt" }}
+        />
+      </div>
+    );
+    // The file, full width; the list is out of the way.
+    expect(await editable()).toBeTruthy();
+    const nav = () =>
+      panel().queryByRole("navigation", { name: "Workspace contents" });
+    await waitFor(() => expect(nav()).toBeNull());
+
+    const back = () =>
+      panel().queryByRole("button", { name: "Back to the list" });
+    await userEvent.click(back() as HTMLElement);
+    expect(nav()).not.toBeNull();
+    // The file is out of the way now (kept, so it keeps its edits).
+    expect(back()).toBeNull();
+
+    // The same file opens again from the tree.
+    const row = await treeItem("notes.txt");
+    await press(row());
+    await waitFor(() => expect(nav()).toBeNull());
+    expect(back()).not.toBeNull();
+  });
+
+  it("keeps the Preview toolbar to one row at 340px: the rest is in its menu", async () => {
+    const { client } = fakeClient({
+      "/work/site/page.html": { content: "<h1>Page</h1>", etag: V1 },
+    });
+    renderWithI18n(
+      <div style={{ height: 700, width: 340 }}>
+        <RightPanel onClose={vi.fn()}>
+          <Selecting
+            {...props({ files: chatFiles(client) })}
+            initial={{ kind: "file", path: "site/page.html" }}
+          />
+        </RightPanel>
+      </div>
+    );
+    await panel().findByTitle("Static render of site/page.html");
+    // (The widths themselves are checked with the real styles, in
+    // e2e/tests/workspace-ui.spec.ts, and in model/toolbar.test.ts.)
+    // Back, the switch and Close stay; Forward and Reload are in the menu.
+    expect(panel().getByRole("button", { name: "Back" })).toBeTruthy();
+    expect(panel().getByRole("group", { name: "Show as" })).toBeTruthy();
+    expect(panel().getByRole("button", { name: "Close panel" })).toBeTruthy();
+    expect(panel().queryByRole("button", { name: "Reload" })).toBeNull();
+    expect(panel().queryByRole("button", { name: "Forward" })).toBeNull();
+    await press(panel().getByRole("button", { name: "More browser actions" }));
+    expect(
+      await screen.findByRole("menuitem", { name: "Reload" })
+    ).toBeTruthy();
+    expect(screen.getByRole("menuitem", { name: "Forward" })).toBeTruthy();
   });
 });

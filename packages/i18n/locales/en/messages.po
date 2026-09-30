@@ -43,6 +43,10 @@ msgstr "{code} exited with code {exitCode}"
 msgid "{code} timed out"
 msgstr "{code} timed out"
 
+#: ../chat-ui/src/workspace/workspace-panel.tsx
+msgid "{count, plural, one {# found} other {# found}}"
+msgstr "{count, plural, one {# found} other {# found}}"
+
 #: ../library-ui/src/components/library-index.tsx
 msgid "{count, plural, one {# item} other {# items}}"
 msgstr "{count, plural, one {# item} other {# items}}"
@@ -354,6 +358,10 @@ msgstr "Archive"
 msgid "Archived “{title}”"
 msgstr "Archived “{title}”"
 
+#: ../chat-ui/src/workspace/workspace-panel.tsx
+msgid "Artifact"
+msgstr "Artifact"
+
 #: ../chat-ui/src/artifacts/artifact-view.tsx
 msgid "Artifact views"
 msgstr "Artifact views"
@@ -439,6 +447,10 @@ msgstr "Back"
 #: ../library-ui/src/components/item-builder.tsx
 msgid "Back to the library"
 msgstr "Back to the library"
+
+#: ../chat-ui/src/workspace/view-header.tsx
+msgid "Back to the list"
+msgstr "Back to the list"
 
 #: ../chat-ui/src/conversation/feedback.tsx
 msgid "Bad answer"
@@ -652,7 +664,7 @@ msgstr "Close toast"
 
 #: ../chat-ui/src/artifacts/artifact-view.tsx
 #: ../chat-ui/src/conversation/artifact-card.tsx
-#: ../chat-ui/src/workspace/rendered-file.tsx
+#: ../chat-ui/src/workspace/mode-toggle.tsx
 msgid "Code"
 msgstr "Code"
 
@@ -1247,6 +1259,10 @@ msgstr "Files"
 msgid "Files are turned off on this server."
 msgstr "Files are turned off on this server."
 
+#: ../chat-ui/src/workspace/workspace-panel.tsx
+msgid "Files found"
+msgstr "Files found"
+
 #: ../composer/src/components/template-variables.tsx
 msgid "Fill in “{promptName}”"
 msgstr "Fill in “{promptName}”"
@@ -1678,10 +1694,6 @@ msgid "MMD"
 msgstr "MMD"
 
 #: ../chat-ui/src/workspace/preview.tsx
-msgid "Mobile"
-msgstr "Mobile"
-
-#: ../chat-ui/src/workspace/preview.tsx
 msgid "Mobile width"
 msgstr "Mobile width"
 
@@ -1712,6 +1724,10 @@ msgstr "Monthly"
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "More actions"
 msgstr "More actions"
+
+#: ../chat-ui/src/workspace/preview.tsx
+msgid "More browser actions"
+msgstr "More browser actions"
 
 #: ../composer/src/components/target-picker.tsx
 msgid "My agents"
@@ -1912,6 +1928,10 @@ msgstr "Not saved"
 #: ../chat-ui/src/workspace/new-file-dialog.tsx
 msgid "notes.md"
 msgstr "notes.md"
+
+#: ../chat-ui/src/workspace/workspace-panel.tsx
+msgid "Nothing found"
+msgstr "Nothing found"
 
 #: ../palette/src/command-palette.tsx
 msgid "Nothing found."
@@ -2196,6 +2216,10 @@ msgstr "Preset"
 msgid "Presets"
 msgstr "Presets"
 
+#: ../chat-ui/src/workspace/workspace-panel.tsx
+msgid "Press / to search"
+msgstr "Press / to search"
+
 #: ../shortcuts/src/react/shortcuts-editor.tsx
 msgid "Press keys…"
 msgstr "Press keys…"
@@ -2206,7 +2230,7 @@ msgstr "preview"
 
 #: ../chat-ui/src/artifacts/artifact-view.tsx
 #: ../chat-ui/src/conversation/file-change-card.tsx
-#: ../chat-ui/src/workspace/rendered-file.tsx
+#: ../chat-ui/src/workspace/mode-toggle.tsx
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 #: ../composer/src/components/suggestion-menu.tsx
 #: ../library-ui/src/components/prompt-form.tsx
@@ -2664,6 +2688,7 @@ msgstr "Search and commands"
 msgid "Search chats, agents and settings, or run an action"
 msgstr "Search chats, agents and settings, or run an action"
 
+#: ../chat-ui/src/workspace/workspace-panel.tsx
 #: ../code-ui/src/file-tree.tsx
 msgid "Search files"
 msgstr "Search files"
@@ -2802,7 +2827,7 @@ msgstr "show"
 msgid "Show"
 msgstr "Show"
 
-#: ../chat-ui/src/workspace/rendered-file.tsx
+#: ../chat-ui/src/workspace/mode-toggle.tsx
 msgid "Show as"
 msgstr "Show as"
 

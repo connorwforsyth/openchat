@@ -343,21 +343,25 @@ test("an edit typed in the panel's editor survives a reload", async ({
   await editor.click();
   await page.keyboard.press("ControlOrMeta+End");
   await page.keyboard.type("edited-by-hand");
+  await expect(editor).toContainText("edited-by-hand");
   await expect(panel.getByText(SAVED)).toBeVisible();
+  // "Saved" is also what an untouched file says: wait for the write itself,
+  // or the reload can beat the save the typing started (seen in 070).
+  const api = await apiFor(page, baseURL ?? "");
+  const sandbox = await api.sandbox.get({ conversationId: filesChat });
+  if (!sandbox) {
+    throw new Error("the chat has no workspace");
+  }
+  await eventually(
+    () => api.sandbox.readFile({ id: sandbox.id, path: "hello.md" }),
+    (file) => file.content.includes("edited-by-hand")
+  );
 
   await page.reload();
   const reopened = page.getByRole("region", { name: "Workspace" });
   await reopened.getByRole("treeitem", { name: "hello.md" }).click();
   await showCode(reopened);
   await expect(editorIn(page)).toContainText("edited-by-hand");
-
-  const api = await apiFor(page, baseURL ?? "");
-  const sandbox = await api.sandbox.get({ conversationId: filesChat });
-  if (!sandbox) {
-    throw new Error("the chat has no workspace");
-  }
-  const file = await api.sandbox.readFile({ id: sandbox.id, path: "hello.md" });
-  expect(file.content).toContain("edited-by-hand");
 });
 
 test("@hello.md puts the file's content in front of the model", async ({

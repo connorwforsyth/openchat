@@ -23,15 +23,22 @@ import { Skeleton } from "@workspace/ui/components/skeleton";
 import { type ReactNode, useCallback, useState } from "react";
 
 import type { OpenFile, SaveState } from "./model/editor";
+import { PathTitle, ViewHeader } from "./view-header";
 
 // The selected file in the panel's main area: an editor that saves as you
 // go, what it's doing about saving, and the conflict when the agent changed
-// the file first. Binary files and files over 1 MB are read-only.
+// the file first. Binary files and files over 1 MB are read-only. One header
+// row (the path, then the actions) over the editor, which sits flush in the
+// panel: no card inside it (070).
 
 export interface FileViewProps {
+  /** Move focus into the editor once it's ready (Enter in the file search). */
+  readonly autoFocus?: boolean;
   readonly file: OpenFile;
   /** Leads the header's actions: a rendered file's Preview/Code toggle. */
   readonly modeToggle?: ReactNode;
+  /** The editor took focus, as `autoFocus` asked. */
+  readonly onAutoFocus?: () => void;
   readonly onDelete: () => void;
   readonly onEdit: (text: string) => void;
   readonly onOverwrite: () => void;
@@ -109,43 +116,50 @@ function DeleteFile({
 }
 
 export function FileView({
+  autoFocus,
   file,
   modeToggle,
+  onAutoFocus,
   onDelete,
   onEdit,
   onOverwrite,
   onReload,
   onSave,
 }: FileViewProps) {
+  const header = (actions?: ReactNode) => (
+    <ViewHeader actions={actions}>
+      <PathTitle path={file.path} />
+    </ViewHeader>
+  );
   switch (file.kind) {
     case "loading":
       return (
-        <div aria-busy className="flex flex-col gap-2 p-3" role="status">
-          <span className="sr-only">
-            <Trans>Opening {file.path}…</Trans>
-          </span>
-          <Skeleton className="h-6 w-40" />
-          <Skeleton className="h-64 w-full" />
+        <div className="flex min-h-0 flex-1 flex-col">
+          {header()}
+          <div aria-busy className="flex flex-col gap-2 p-3" role="status">
+            <span className="sr-only">
+              <Trans>Opening {file.path}…</Trans>
+            </span>
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-4 w-64" />
+            <Skeleton className="h-4 w-52" />
+          </div>
         </div>
       );
     case "error":
       return (
-        <p className="p-4 text-destructive text-sm" role="alert">
-          {file.message}
-        </p>
+        <div className="flex min-h-0 flex-1 flex-col">
+          {header()}
+          <p className="p-4 text-destructive text-sm" role="alert">
+            {file.message}
+          </p>
+        </div>
       );
     case "binary":
       return (
-        <div className="flex flex-col gap-2 p-4">
-          <div className="flex items-center gap-2">
-            <span className="min-w-0 truncate font-mono text-xs">
-              {file.path}
-            </span>
-            <span className="ms-auto">
-              <DeleteFile onDelete={onDelete} path={file.path} />
-            </span>
-          </div>
-          <p className="text-muted-foreground text-sm">
+        <div className="flex min-h-0 flex-1 flex-col">
+          {header(<DeleteFile onDelete={onDelete} path={file.path} />)}
+          <p className="p-4 text-muted-foreground text-sm">
             <Trans>
               This is a binary file ({file.size} bytes), so it can't be shown or
               edited here.
@@ -155,9 +169,25 @@ export function FileView({
       );
     case "text":
       return (
-        <div className="flex h-full min-h-0 flex-col gap-2 p-2">
+        <div className="flex min-h-0 flex-1 flex-col">
+          {header(
+            <>
+              {modeToggle}
+              <span
+                aria-live="polite"
+                className="px-1 text-muted-foreground text-xs"
+              >
+                {file.readOnly ? (
+                  <Trans>Read-only: over 1 MB</Trans>
+                ) : (
+                  <SaveStatus save={file.save} />
+                )}
+              </span>
+              <DeleteFile onDelete={onDelete} path={file.path} />
+            </>
+          )}
           {file.save.status === "conflict" ? (
-            <Alert>
+            <Alert className="rounded-none border-x-0 border-t-0">
               <TriangleAlertIcon aria-hidden />
               <AlertTitle>
                 <Trans>Changed by the agent</Trans>
@@ -179,30 +209,17 @@ export function FileView({
             </Alert>
           ) : null}
           {file.save.status === "error" ? (
-            <p className="px-1 text-destructive text-sm" role="alert">
+            <p className="px-3 py-2 text-destructive text-sm" role="alert">
               {file.save.message}
             </p>
           ) : null}
           <CodeEditor
+            autoFocus={autoFocus}
             className="min-h-0 flex-1 overflow-auto"
             contents={file.opened}
-            headerActions={
-              <>
-                {modeToggle}
-                <span
-                  aria-live="polite"
-                  className="text-muted-foreground text-xs"
-                >
-                  {file.readOnly ? (
-                    <Trans>Read-only: over 1 MB</Trans>
-                  ) : (
-                    <SaveStatus save={file.save} />
-                  )}
-                </span>
-                <DeleteFile onDelete={onDelete} path={file.path} />
-              </>
-            }
+            header={false}
             key={`${file.path}#${file.loadCount}`}
+            onAutoFocus={onAutoFocus}
             onChange={onEdit}
             onSave={onSave}
             path={file.path}

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { isApplePlatform, isEditableTarget } from "./editable";
 import {
+  isTypingEvent,
   matchShortcut,
   shortcutIdSchema,
   shortcutKeys,
@@ -83,6 +84,52 @@ describe("isEditableTarget", () => {
     expect(isEditableTarget(document.createElement("button"))).toBe(false);
     expect(isEditableTarget(null)).toBe(false);
     editor.remove();
+  });
+});
+
+describe("isTypingEvent (single keys and the web app's theme key D)", () => {
+  /**
+   * What a window listener (the theme key's) decides for `key` pressed on
+   * `target`, and the target it's shown. Decided during dispatch, as a real
+   * listener does: the composed path is empty once dispatch is over.
+   */
+  const pressOn = (target: Element, key: string) => {
+    let seen: { target: EventTarget | null; typing: boolean } | null = null;
+    const listen = (event: Event) => {
+      seen = { target: event.target, typing: isTypingEvent(event) };
+    };
+    window.addEventListener("keydown", listen);
+    target.dispatchEvent(
+      new KeyboardEvent("keydown", { bubbles: true, composed: true, key })
+    );
+    window.removeEventListener("keydown", listen);
+    if (!seen) {
+      throw new Error("no keydown");
+    }
+    return seen as { target: EventTarget | null; typing: boolean };
+  };
+
+  it("sees typing inside a shadow root, where the target is only the host", () => {
+    // The Workspace editor: a contenteditable in the diffs host's shadow root.
+    const host = document.createElement("div");
+    const editor = document.createElement("div");
+    editor.contentEditable = "true";
+    host.attachShadow({ mode: "open" }).append(editor);
+    document.body.append(host);
+
+    const seen = pressOn(editor, "d");
+    expect(seen.target).toBe(host);
+    expect(isEditableTarget(seen.target)).toBe(false);
+    expect(seen.typing).toBe(true);
+    host.remove();
+  });
+
+  it("lets a key on a button or the page through", () => {
+    const button = document.createElement("button");
+    document.body.append(button);
+    expect(pressOn(button, "d").typing).toBe(false);
+    expect(pressOn(document.body, "d").typing).toBe(false);
+    button.remove();
   });
 });
 

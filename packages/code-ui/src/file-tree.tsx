@@ -19,8 +19,10 @@ import {
   type ChangeEvent,
   type CSSProperties,
   type KeyboardEvent,
+  type Ref,
   useCallback,
   useEffect,
+  useImperativeHandle,
   useRef,
 } from "react";
 
@@ -29,6 +31,27 @@ import { treeHostStyle } from "./theme/host-styles";
 import { useCodeThemeType } from "./theme/use-code-theme-type";
 
 export type { GitStatus, GitStatusEntry } from "@pierre/trees";
+
+/** What a host can do to the tree from outside. */
+export interface FileTreeHandle {
+  /** Moves focus to the selected row (else the current or first); false when there are no rows. */
+  readonly focus: () => boolean;
+}
+
+// Selection is the row's fill. The library also outlines the focused row,
+// which after a click is the selected one, so a selection read as fill plus
+// ring (070). Keep the ring for keyboard focus only.
+const TREE_CSS = `[data-type="item"]:not(:focus-visible)::before { outline-color: transparent; }`;
+
+// A flush tree sits straight on the host's surface: no card, and neither the
+// host nor the rows' backdrop (sticky folders, truncation fades) paints the
+// code theme's sidebar colour, which read as a grey slab (070).
+const FLUSH_STYLE = {
+  "--trees-bg-override": "var(--background)",
+  // Rows line up with the host's own list items.
+  "--trees-padding-inline-override": "8px",
+  backgroundColor: "var(--background)",
+} as CSSProperties;
 
 export interface FileTreeProps {
   /** Allows a drop; the tree only moves paths when this returns true. */
@@ -45,6 +68,7 @@ export interface FileTreeProps {
   readonly onSelectionChange?: (paths: readonly string[]) => void;
   /** Directory paths end with `/`; file paths don't. */
   readonly paths: readonly string[];
+  readonly ref?: Ref<FileTreeHandle>;
   /** Shows the search field. */
   readonly search?: boolean;
   /**
@@ -55,6 +79,11 @@ export interface FileTreeProps {
    */
   readonly selectedPath?: string | null;
   readonly style?: CSSProperties;
+  /**
+   * `card` (the default) frames the tree in its own bordered surface;
+   * `flush` leaves framing to the host (the Workspace panel's list).
+   */
+  readonly variant?: "card" | "flush";
 }
 
 /** Keeps the latest callback without recreating the tree model. */
@@ -81,9 +110,11 @@ export function FileTree({
   onRename,
   onSelectionChange,
   paths,
+  ref,
   search = true,
   selectedPath,
   style,
+  variant = "card",
 }: FileTreeProps) {
   const { t } = useLingui();
   const { scheme } = useCodeThemeType();
@@ -109,7 +140,26 @@ export function FileTree({
       ? { onRename: (event) => callbacks.current.onRename?.(event) }
       : false,
     stickyFolders: true,
+    unsafeCSS: TREE_CSS,
   });
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      focus: () => {
+        const root = model.getFileTreeContainer()?.shadowRoot;
+        const row =
+          root?.querySelector<HTMLElement>(
+            '[role="treeitem"][data-item-selected="true"]'
+          ) ??
+          root?.querySelector<HTMLElement>('[role="treeitem"][tabindex="0"]') ??
+          root?.querySelector<HTMLElement>('[role="treeitem"]');
+        row?.focus();
+        return Boolean(row);
+      },
+    }),
+    [model]
+  );
 
   // Later prop changes go through the model's methods.
   const firstPaths = useRef(paths);
@@ -153,9 +203,11 @@ export function FileTree({
   return (
     <div
       className={cn(
-        "flex min-h-0 flex-col overflow-hidden rounded-lg border bg-sidebar",
+        "flex min-h-0 flex-col overflow-hidden",
+        variant === "card" && "rounded-lg border bg-sidebar",
         className
       )}
+      data-variant={variant}
     >
       <TreeIconSprite onSprite={applySprite} />
       {search ? <TreeSearch model={model} /> : null}
@@ -163,7 +215,11 @@ export function FileTree({
         aria-label={label ?? t`Files`}
         className="min-h-0 flex-1"
         model={model}
-        style={{ ...treeHostStyle(scheme), ...style }}
+        style={{
+          ...treeHostStyle(scheme),
+          ...(variant === "flush" ? FLUSH_STYLE : null),
+          ...style,
+        }}
       />
     </div>
   );
