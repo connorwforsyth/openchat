@@ -115,7 +115,9 @@ const failed = (assertion: AssertionResult) => assertion.outcome === "failed";
 /**
  * A case's outcome from what it asserted. The worst thing wins: an error,
  * then a gate that failed without being expected to, then an expected
- * failure that passed, then one that failed, then a soft failure. A case
+ * failure that still fails (one marked assertion failing is enough: a gap
+ * half closed is still a gap), then one whose marked assertions all pass,
+ * then a soft failure. A case
  * that asserted nothing proves nothing, so it's an error, and one whose
  * every assertion was skipped is skipped.
  */
@@ -135,11 +137,11 @@ export const outcomeOf = (
   if (others.some((each) => each.severity === "gate" && failed(each))) {
     return "gate-failed";
   }
-  if (expected.some((each) => each.outcome === "passed")) {
-    return "unexpected-pass";
-  }
   if (expected.some(failed)) {
     return "expected-failure";
+  }
+  if (expected.some((each) => each.outcome === "passed")) {
+    return "unexpected-pass";
   }
   if (others.some((each) => each.severity === "soft" && failed(each))) {
     return "soft-failed";

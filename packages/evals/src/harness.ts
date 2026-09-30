@@ -266,6 +266,17 @@ const statusFrom = (cause: unknown): number | null => {
   return typeof status === "number" ? status : null;
 };
 
+const NO_SUCH_FILE = /no such file/i;
+
+/** The Files routes answer a missing path with a 404, or a 422 that says so. */
+const isMissingFile = (cause: unknown): boolean => {
+  const status = statusFrom(cause);
+  if (status === 404) {
+    return true;
+  }
+  return status === 422 && NO_SUCH_FILE.test(JSON.stringify(cause));
+};
+
 export const createHarness = (
   world: World
 ): { readonly control: HarnessControl; readonly harness: Harness } => {
@@ -594,7 +605,7 @@ export const createHarness = (
           ? file.content
           : Buffer.from(file.content, "base64").toString("latin1");
       } catch (cause) {
-        if (statusFrom(cause) === 404) {
+        if (isMissingFile(cause)) {
           return null;
         }
         throw cause;

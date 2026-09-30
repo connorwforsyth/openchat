@@ -61,6 +61,18 @@ describe("outcomeOf", () => {
     ).toBe("expected-failure");
   });
 
+  it("stays an expected failure while any marked assertion fails", () => {
+    expect(
+      outcomeOf(
+        [
+          assertion("passed", { expectedFailure: GAP }),
+          assertion("failed", { expectedFailure: GAP }),
+        ],
+        undefined
+      )
+    ).toBe("expected-failure");
+  });
+
   it("is an unexpected pass once the marked assertion passes", () => {
     expect(
       outcomeOf([assertion("passed", { expectedFailure: GAP })], undefined)
