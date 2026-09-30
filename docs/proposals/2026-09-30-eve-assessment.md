@@ -1,16 +1,16 @@
-# Assessment: should openchat's agent harness move to Vercel eve?
+# Assessment: should our agent harness move to Vercel eve?
 
 _Status (2026-09-30): Connor agreed with the recommendation (no eve migration; do stages S0–S4). Tickets 078–082. He also decided PRs #60, #63 (keeping cancel-on-send) and #65 (dev-only, worker thread later as ticket 083): all three are merged. S0 and S1 are in progress; S2 then S3 follow; S4 waits for his go-ahead._
 
 
 ## Context
 
-Connor asked (2026-09-30) whether refactoring openchat's chat and agent harness around Vercel's eve is worthwhile. The options are:
+Connor asked (2026-09-30) whether refactoring our chat and agent harness around Vercel's eve is worthwhile. The options are:
 1. a focused restructure of the current stack;
 2. selectively adopting eve patterns or components, especially evals, tools and system-prompt organisation;
 3. full adoption.
 
-**Hard constraint:** openchat must stay genuinely self-hostable with no Vercel account, and keep the portable oRPC/OpenAPI contract and the web, desktop, mobile and Swift direction.
+**Hard constraint:** the app must stay genuinely self-hostable with no Vercel account, and keep the portable oRPC/OpenAPI contract and the web, desktop, mobile and Swift direction.
 
 **Scope:** assessment and planning only. Nothing is implemented, merged or deployed, and the pending round-2 decisions stay open: PRs #60–#67, the permissions proposal, #63's cancel-on-send and #65's dev-only just-bash relaxation.
 
@@ -24,9 +24,9 @@ eve is a whole agent runtime, not a library:
 - Workflow-SDK durability;
 - its own approvals and sandbox.
 
-It duplicates subsystems openchat already has working and tested: durable runs, resumable SSE, Postgres, pg-boss, approvals, the sandbox runner, tenancy, BYOK and pgvector RAG. It is in **beta**, shipped **~50 releases a month** in 2026, and self-hosting it needs an experimental, beta-pinned Postgres world.
+It duplicates subsystems we already have working and tested: durable runs, resumable SSE, Postgres, pg-boss, approvals, the sandbox runner, tenancy, BYOK and pgvector RAG. It is in **beta**, shipped **~50 releases a month** in 2026, and self-hosting it needs an experimental, beta-pinned Postgres world.
 
-The real value for openchat is eve's **conventions**:
+The real value for us is eve's **conventions**:
 - file-based, layered instructions;
 - one-file-per-tool definitions with typed context;
 - skills loaded on demand;
@@ -71,7 +71,7 @@ Read at `vercel/eve@a7b0fb2`, latest commit 2026-09-30; npm `eve@0.68.0`, publis
 - A Postgres world needs `experimental.workflow.world: "@workflow/world-postgres"` pinned to `5.0.0-beta.x`. npm `latest` is 4.3.7 and incompatible. It uses graphile-worker.
 - CLI telemetry goes to Vercel unless disabled.
 
-### openchat today (main, plus the round-2 drafts)
+### Our stack today (main, plus the round-2 drafts)
 The architecture map, with file:line citations, is in the research notes. Key points:
 
 **Agent loop**
@@ -137,7 +137,7 @@ These overlap eve's approvals and durability almost entirely, so eve adoption wo
 
 ### Self-hosting matrix
 
-| Concern | openchat today | eve self-hosted |
+| Concern | Our stack today | eve self-hosted |
 |---|---|---|
 | Vercel account | Not required | Not required, but the defaults assume it |
 | Models | Direct providers, openai-compatible and Ollama; the Gateway is only an optional openai-compatible entry | Direct `LanguageModel`s work. String IDs, `auto`, the Jev judge and `auto()` approvals need Gateway unless replaced |
@@ -285,6 +285,6 @@ Each suite lists its **D** checks (deterministic, mock model, CI) and its **J** 
 2. **Judge quality (1 day)** before S3's live mode. Compare a direct provider's `evaluationModel()` and an Ollama model against 30 hand-labelled cases. Accept the judge if agreement is at least 80%.
 
 ## Verification (for this plan)
-- Every eve claim cites a URL or file at a pinned commit, and every openchat claim cites a path. Re-check eve's release, beta status and Postgres-world version before any go decision.
+- Every eve claim cites a URL or file at a pinned commit, and every claim about our code cites a path. Re-check eve's release, beta status and Postgres-world version before any go decision.
 - Each stage's go criteria are testable in the local gate: `gate.sh`, `bun turbo test:e2e`, and the new `bun run evals`.
 - Nothing in this plan changes `packages/contract` or merges round-2 PRs.
