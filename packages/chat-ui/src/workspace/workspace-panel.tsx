@@ -1010,7 +1010,7 @@ function SearchOption({
 
 /**
  * One line that gives way in the middle: the head ends in an ellipsis and
- * the tail stays, until there's no head left to give (then the tail does).
+ * the tail stays, unless the row is narrower than the tail alone.
  */
 function MiddleTruncated({
   className,
@@ -1025,7 +1025,9 @@ function MiddleTruncated({
       <span className="min-w-0 overflow-hidden text-ellipsis whitespace-pre">
         <Runs runs={text.head} />
       </span>
-      <span className="min-w-0 shrink-[0.001] overflow-hidden text-ellipsis whitespace-pre">
+      {/* Never shrinks (any shrinking at all shows an ellipsis); only a row
+          narrower than the tail itself cuts it, at its end. */}
+      <span className="max-w-full shrink-0 overflow-hidden text-ellipsis whitespace-pre">
         <Runs runs={text.tail} />
       </span>
     </span>
