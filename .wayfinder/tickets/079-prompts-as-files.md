@@ -61,7 +61,8 @@ is empty) and the test passes.
 **Verified.** `bun run check` clean. `bun turbo typecheck lint test build --continue`: 81 of 82 tasks pass.
 `bun turbo test:e2e`: 44 passed, no e2e file changed. The one failing task is `check:guards` (brand): 8 "OpenChat"
 literals in `docs/proposals/2026-09-30-eve-assessment.md`, which arrived on `main` in `9063afe` and is outside this
-ticket's Owns, so it's left alone. It fails the same way on `origin/main`.
+ticket's Owns, so it's left alone. That file is identical on `origin/main` and all 8 problems are in it, so `main` should fail the same
+way (not run there).
 
 **Left / to decide.**
 
