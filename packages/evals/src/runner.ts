@@ -19,9 +19,19 @@ import type { World } from "./world";
 
 const CASE_TIMEOUT_MS = 60_000;
 
+export type Mode = "deterministic" | "live";
+
+/** Why a live case isn't run in a deterministic run. */
+export const LIVE_ONLY =
+  "live only: it needs a real model and a judge (bun run evals --live)";
+
 export interface RunOptions {
   readonly caseTimeoutMs?: number;
   readonly judge?: Judge;
+  /** `deterministic` (the default) skips live cases; `live` runs only them. */
+  readonly mode?: Mode;
+  /** The model under test, for the report (`null` for the mock). */
+  readonly model?: string;
   /** Told as each case finishes, for progress output. */
   readonly onCase?: (suite: string, result: CaseResult) => void;
   readonly strict: boolean;
@@ -39,19 +49,32 @@ const timeout = (ms: number): Promise<never> =>
     ).unref();
   });
 
+/** The suites a run in `mode` reports: every case, or only the live ones. */
+export const suitesFor = (
+  suites: readonly Suite[],
+  mode: Mode
+): readonly Suite[] =>
+  mode === "deterministic"
+    ? suites
+    : suites.flatMap((suite) => {
+        const cases = suite.cases.filter((each) => each.live !== undefined);
+        return cases.length === 0 ? [] : [{ ...suite, cases }];
+      });
+
 export const runCase = async (
   each: EvalCase,
   options: RunOptions
 ): Promise<CaseResult> => {
   const started = performance.now();
   const { run } = each;
-  if (!run) {
+  const liveOnly = each.live !== undefined && options.mode !== "live";
+  if (!run || liveOnly) {
     return {
       assertions: [],
       durationMs: 0,
       name: each.name,
       outcome: "skipped",
-      reason: each.todo ?? "not written yet",
+      reason: liveOnly ? LIVE_ONLY : (each.todo ?? "not written yet"),
       turns: [],
     };
   }
@@ -101,7 +124,8 @@ export const runSuites = async (
   const startedAt = new Date();
   const started = performance.now();
   const results: SuiteResult[] = [];
-  for (const suite of suites) {
+  const mode = options.mode ?? "deterministic";
+  for (const suite of suitesFor(suites, mode)) {
     const suiteStarted = performance.now();
     const cases: CaseResult[] = [];
     for (const each of suite.cases) {
@@ -122,7 +146,8 @@ export const runSuites = async (
     durationMs: performance.now() - started,
     finishedAt: new Date().toISOString(),
     judge: options.judge?.name ?? null,
-    mode: "deterministic",
+    mode,
+    model: options.model ?? null,
     ok: holds(totals),
     startedAt: startedAt.toISOString(),
     strict: options.strict,

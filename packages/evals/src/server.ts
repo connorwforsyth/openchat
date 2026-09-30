@@ -76,17 +76,56 @@ const ready = async (baseUrl: string): Promise<boolean> => {
   }
 };
 
-export const startServer = async (port: number): Promise<RunningServer> => {
+/**
+ * Follows a server process until `/api/config` answers: keeps its output
+ * for `server.log`, and stops it (then `teardown`) when asked.
+ */
+export const superviseBoot = async (
+  child: ChildProcess,
+  baseUrl: string,
+  teardown: () => Promise<void> = () => Promise.resolve()
+): Promise<RunningServer> => {
+  let log = "";
+  const keep = (chunk: Buffer) => {
+    log = `${log}${chunk.toString("utf8")}`.slice(-LOG_LIMIT);
+  };
+  child.stdout?.on("data", keep);
+  child.stderr?.on("data", keep);
+  const stop = async () => {
+    await stopChild(child);
+    await teardown();
+  };
+
+  const deadline = Date.now() + BOOT_TIMEOUT_MS;
+  // biome-ignore lint/performance/noAwaitInLoops: polling is sequential by nature.
+  while (!(await ready(baseUrl))) {
+    if (child.exitCode !== null || child.signalCode !== null) {
+      await teardown();
+      throw new Error(
+        `the server exited while booting (is apps/web built? \`bun run evals\` builds it):\n${log.slice(-2000)}`
+      );
+    }
+    if (Date.now() > deadline) {
+      await stop();
+      throw new Error(
+        `the server didn't answer within ${BOOT_TIMEOUT_MS / 1000} s:\n${log.slice(-2000)}`
+      );
+    }
+    await sleep(250);
+  }
+  return { baseUrl, log: () => log, stop };
+};
+
+export const assertPortFree = async (port: number): Promise<void> => {
   if (!(await portIsFree(port))) {
     throw new Error(
       `port ${port} is in use; set EVALS_PORT (or --port) to a free one`
     );
   }
-  const baseUrl = `http://localhost:${port}`;
-  let log = "";
-  const keep = (chunk: Buffer) => {
-    log = `${log}${chunk.toString("utf8")}`.slice(-LOG_LIMIT);
-  };
+};
+
+export const startServer = async (port: number): Promise<RunningServer> => {
+  await assertPortFree(port);
   const child = spawn(process.execPath, [SERVE], {
     cwd: REPO_ROOT,
     // serve.ts passes the app only what it names; the port is all it needs
@@ -99,24 +138,5 @@ export const startServer = async (port: number): Promise<RunningServer> => {
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
-  child.stdout?.on("data", keep);
-  child.stderr?.on("data", keep);
-
-  const deadline = Date.now() + BOOT_TIMEOUT_MS;
-  // biome-ignore lint/performance/noAwaitInLoops: polling is sequential by nature.
-  while (!(await ready(baseUrl))) {
-    if (child.exitCode !== null || child.signalCode !== null) {
-      throw new Error(
-        `the server exited while booting (is apps/web built? \`bun run evals\` builds it):\n${log.slice(-2000)}`
-      );
-    }
-    if (Date.now() > deadline) {
-      await stopChild(child);
-      throw new Error(
-        `the server didn't answer within ${BOOT_TIMEOUT_MS / 1000} s:\n${log.slice(-2000)}`
-      );
-    }
-    await sleep(250);
-  }
-  return { baseUrl, log: () => log, stop: () => stopChild(child) };
+  return superviseBoot(child, `http://localhost:${port}`);
 };

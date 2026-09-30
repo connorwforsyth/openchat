@@ -6,7 +6,22 @@ import type { Harness } from "./harness";
 
 export type EvalContext = Assertions & Harness;
 
+/** What a live case is expected to call, for the pre-flight estimate. */
+export interface LiveEstimate {
+  /** Chats it starts (each gets a title, one more small model call). */
+  readonly chats: number;
+  /** Judged checks it makes. */
+  readonly judgeCalls: number;
+  /** Model calls across its turns (a turn with a tool call is two or more). */
+  readonly modelCalls: number;
+}
+
 export interface EvalCase {
+  /**
+   * Set for a case that needs a real model: it runs only under
+   * `--live`, and is reported as skipped in a deterministic run.
+   */
+  readonly live?: LiveEstimate;
   readonly name: string;
   /** Left out for a case that can't be written yet; `todo` says why. */
   readonly run?: (t: EvalContext) => Promise<void>;
@@ -32,6 +47,27 @@ export const evalCase = (
   run: (t: EvalContext) => Promise<void>,
   options: { readonly timeoutMs?: number } = {}
 ): EvalCase => ({ name, run, ...options });
+
+/**
+ * A case for a real model (`bun run evals --live`): plain prompts, soft
+ * checks and judged ones. Skipped, with the reason, in a deterministic run,
+ * where the mock would only echo it.
+ */
+export const liveCase = (
+  name: string,
+  run: (t: EvalContext) => Promise<void>,
+  {
+    chats = 1,
+    judgeCalls = 1,
+    modelCalls = 1,
+    timeoutMs,
+  }: Partial<LiveEstimate> & { readonly timeoutMs?: number } = {}
+): EvalCase => ({
+  live: { chats, judgeCalls, modelCalls },
+  name,
+  run,
+  ...(timeoutMs === undefined ? {} : { timeoutMs }),
+});
 
 /** A case that is owed: reported as skipped with `reason`, never dropped. */
 export const todo = (name: string, reason: string): EvalCase => ({

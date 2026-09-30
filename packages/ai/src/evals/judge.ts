@@ -79,6 +79,8 @@ export interface JudgeOptions {
   /** Retries of a failed call (a network error, a 5xx). Defaults to 1. */
   readonly maxRetries?: number;
   readonly model: LanguageModelV4;
+  /** For reports; `provider:modelId` by default. */
+  readonly name?: string;
   /** How long one verdict may take. Defaults to 60 s. */
   readonly timeoutMs?: number;
 }
@@ -135,12 +137,18 @@ export const judgePrompt = (request: JudgeRequest): string =>
     })),
   });
 
-const describe = (cause: unknown): string =>
-  cause instanceof Error ? cause.message : String(cause);
+/** An error's message on one line, short enough for a report. */
+const describe = (cause: unknown): string => {
+  const message = (cause instanceof Error ? cause.message : String(cause))
+    .replace(/\s+/g, " ")
+    .trim();
+  return message.length > 300 ? `${message.slice(0, 300)}…` : message;
+};
 
 export const createJudge = ({
   maxRetries = 1,
   model,
+  name = `${model.provider}:${model.modelId}`,
   timeoutMs = DEFAULT_TIMEOUT_MS,
 }: JudgeOptions): Judge => ({
   judge: async (request) => {
@@ -189,5 +197,5 @@ export const createJudge = ({
       return err({ message: describe(cause), type: "unavailable" });
     }
   },
-  name: `${model.provider}:${model.modelId}`,
+  name,
 });

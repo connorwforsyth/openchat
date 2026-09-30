@@ -114,6 +114,14 @@ describe("check", () => {
 });
 
 describe("judge", () => {
+  const verdict = (pass: boolean, reasoning: string) =>
+    ok({
+      pass,
+      reasoning,
+      score: pass ? 0.9 : 0.2,
+      usage: { inputTokens: 10, outputTokens: 5 },
+    });
+
   it("is skipped, never passed, when no judge is configured", async () => {
     const { assertions, log } = setup();
     assertions.judge("answers helpfully").soft();
@@ -121,18 +129,19 @@ describe("judge", () => {
       {
         kind: "judge",
         label: "judge: answers helpfully",
-        message: "no judge is configured (ticket 085)",
+        message:
+          "no judge is configured (bun run evals --live --judge <model>)",
         outcome: "skipped",
         severity: "soft",
       },
     ]);
   });
 
-  it("takes the verdict of the judge it is given", async () => {
+  it("takes the verdict, score and reasoning of the judge it is given", async () => {
     const judge: Judge = {
       judge: ({ criteria }) =>
         Promise.resolve(
-          ok({ pass: criteria.includes("polite"), reasoning: "it was curt" })
+          verdict(criteria.includes("polite"), `on "${criteria}"`)
         ),
       name: "fake",
     };
@@ -140,8 +149,67 @@ describe("judge", () => {
     assertions.judge("is polite").soft();
     assertions.judge("is thorough").soft();
     expect(await log.results()).toMatchObject([
-      { outcome: "passed" },
-      { message: "it was curt", outcome: "failed" },
+      { message: 'on "is polite"', outcome: "passed", score: 0.9 },
+      { message: 'on "is thorough"', outcome: "failed", score: 0.2 },
+    ]);
+  });
+
+  it("is soft unless the case says gate, and is counted once", async () => {
+    const judge: Judge = {
+      judge: () => Promise.resolve(verdict(false, "no")),
+      name: "fake",
+    };
+    const { assertions, log } = setup([], judge);
+    assertions.judge("left alone");
+    const gated = assertions.judge("gated");
+    gated.gate();
+    gated.soft();
+    expect(log.open()).toEqual([]);
+    const results = await log.results();
+    expect(results.map((result) => [result.label, result.severity])).toEqual([
+      ["judge: gated", "gate"],
+      ["judge: left alone", "soft"],
+    ]);
+  });
+
+  it("fails, never passes, when the judge can't decide", async () => {
+    const judge: Judge = {
+      judge: () =>
+        Promise.resolve({
+          error: { message: "no verdict within 60 s", type: "timeout" },
+          ok: false,
+        }),
+      name: "fake",
+    };
+    const { assertions, log } = setup([], judge);
+    assertions.judge("is polite");
+    expect(await log.results()).toMatchObject([
+      {
+        message: "the judge failed (timeout): no verdict within 60 s",
+        outcome: "failed",
+        severity: "soft",
+      },
+    ]);
+  });
+
+  it("hands the judge the transcript so far and the context", async () => {
+    const asked: unknown[] = [];
+    const judge: Judge = {
+      judge: (request) => {
+        asked.push(request);
+        return Promise.resolve(verdict(true, "ok"));
+      },
+      name: "fake",
+    };
+    const { assertions, log } = setup([], judge);
+    assertions.judge("sticks to the file", { context: "notes.md: 42" });
+    await log.results();
+    expect(asked).toMatchObject([
+      {
+        context: "notes.md: 42",
+        criteria: "sticks to the file",
+        transcript: [],
+      },
     ]);
   });
 });

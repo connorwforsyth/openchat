@@ -11,7 +11,9 @@
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "@workspace/ai": "workspace:*",
     "@workspace/client": "workspace:*",
+    "@workspace/config": "workspace:*",
     "@workspace/contract": "workspace:*",
     "@workspace/shared": "workspace:*",
     "@workspace/typescript-config": "workspace:*",
@@ -19,6 +21,7 @@
     "typescript": "catalog:",
     "vitest": "catalog:",
     "web": "workspace:*",
+    "yaml": "^2.9.1",
     "zod": "catalog:"
   }
 }
