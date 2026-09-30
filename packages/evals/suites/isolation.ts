@@ -234,27 +234,31 @@ export const isolation = defineSuite({
         t.check(got, "dee's requests for ben's upload")
           .matches(allRefused(Object.keys(got)))
           .gate();
-        t.check(
-          await dee.files.search({ query: "heliotrope budget" }),
-          "dee's search of the index"
-        )
-          .equals([])
+        // Other cases upload files too, so these are about this file: the
+        // index may answer with the searcher's own, never with ben's.
+        const hitFiles = async (
+          who: "ada" | "ben" | "dee",
+          fileIds?: readonly string[]
+        ) =>
+          (
+            await t.api(who).files.search({
+              ...(fileIds ? { fileIds: [...fileIds] } : {}),
+              limit: 50,
+              query: "heliotrope budget",
+            })
+          ).map((hit) => hit.fileId);
+        t.check(await hitFiles("dee"), "the files dee's search hits")
+          .not.includes(file.id)
           .gate();
         t.check(
-          await dee.files.search({
-            fileIds: [file.id],
-            query: "heliotrope budget",
-          }),
-          "dee's search of the index, naming ben's file"
+          await hitFiles("dee", [file.id]),
+          "the files dee's search hits, naming ben's file"
         )
           .equals([])
           .gate();
         // Same org as ben is not access either: the upload is ben's own.
-        t.check(
-          await t.api("ada").files.search({ query: "heliotrope budget" }),
-          "ada's search of the index"
-        )
-          .equals([])
+        t.check(await hitFiles("ada"), "the files ada's search hits")
+          .not.includes(file.id)
           .gate();
 
         // Controls.
@@ -264,10 +268,9 @@ export const isolation = defineSuite({
         )
           .equals(200)
           .gate();
-        const own = await t
-          .api("ben")
-          .files.search({ query: "heliotrope budget" });
-        t.check(own[0]?.fileId, "ben's first hit").equals(file.id).gate();
+        t.check(await hitFiles("ben"), "the files ben's search hits")
+          .includes(file.id)
+          .gate();
       },
       { timeoutMs: 90_000 }
     ),

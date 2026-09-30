@@ -1,5 +1,7 @@
 import type { Suite } from "../src/suite";
+import { approvals } from "./approvals";
 import { baseline } from "./baseline";
+import { files } from "./files";
 import { grounding } from "./grounding";
 import { injection } from "./injection";
 import { isolation } from "./isolation";
@@ -13,4 +15,6 @@ export const suites: readonly Suite[] = [
   multiTurn,
   injection,
   isolation,
+  approvals,
+  files,
 ];
