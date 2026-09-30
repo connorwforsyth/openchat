@@ -1,7 +1,7 @@
 "use client";
 
-import { Trans, useLingui } from "@lingui/react/macro";
-import { FileTree } from "@workspace/code-ui/file-tree";
+import { Plural, Trans, useLingui } from "@lingui/react/macro";
+import { FileTree, type FileTreeHandle } from "@workspace/code-ui/file-tree";
 import type {
   Artifact,
   ArtifactVersion,
@@ -14,6 +14,7 @@ import {
   PlusIcon,
   RefreshCwIcon,
   RotateCcwIcon,
+  SearchIcon,
   TriangleAlertIcon,
   UploadIcon,
 } from "@workspace/icons";
@@ -40,12 +41,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
+import { Kbd } from "@workspace/ui/components/kbd";
 import { cn } from "@workspace/ui/lib/utils";
 import {
   type ChangeEvent,
   type DragEvent,
+  type KeyboardEvent,
+  type MouseEvent,
   type ReactNode,
+  type RefObject,
   useCallback,
+  useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -56,6 +63,8 @@ import {
   ArtifactView,
 } from "../artifacts/artifact-view";
 import type { WorkspaceSelection } from "../model/workspace";
+import { ClosePanelButton, usePanelFrame } from "../shell/right-panel";
+import { isTypingEvent } from "../shortcuts/registry";
 import { FileView } from "./file-view";
 import {
   type BrowserAction,
@@ -68,15 +77,24 @@ import {
   renderedKind,
 } from "./model/browser";
 import type { WorkspaceFilesSource } from "./model/client";
+import {
+  committedMatch,
+  type FileMatch,
+  searchFiles,
+  searchTerms,
+  stepMatch,
+} from "./model/file-search";
 import { NewFileDialog } from "./new-file-dialog";
 import { BrowserView } from "./preview";
 import { RenderedFile } from "./rendered-file";
+import { useElementWidth } from "./use-element-width";
 import { usePreviewHistory } from "./use-preview-history";
 import {
   type FilesView,
   staticFiles,
   useWorkspaceFiles,
 } from "./use-workspace-files";
+import { BackToListProvider, headerRow, ViewHeader } from "./view-header";
 
 // The chat's Workspace panel (060, D7): one list beside one main area. The
 // list has the Preview (a built-in browser, 066, whenever there's a server
@@ -85,6 +103,21 @@ import {
 // HTML and Markdown files open rendered, with a Code toggle. There's no
 // terminal and no port box: the agent runs commands and starts previews;
 // people prompt, drop and edit. Load it through `LazyWorkspacePanel` (D27).
+//
+// 070 flattened it, after Connor's Zettelkasten: the surface is flush, each
+// column has one header row (the list's is the file search; the main area's
+// is the view's title and actions, then Close), and nothing inside is a card.
+// "/" searches the files by name; the results replace the tree. On a narrow
+// panel the list and the main area take turns, with a way back to the list.
+
+/** Below this width (the old `@lg`, 32rem) the list and the main area take turns. */
+const NARROW_BELOW = 512;
+
+/** Results shown at once; more would only be scrolled past. */
+const MAX_MATCHES = 200;
+
+/** Frames to wait for a lazily drawn target (the tree's rows) to take focus. */
+const FOCUS_FRAMES = 30;
 
 export interface WorkspaceArtifacts {
   readonly artifacts: readonly Artifact[];
@@ -142,6 +175,211 @@ function ChatWorkspacePanel(
 const hasFiles = (event: DragEvent) =>
   event.dataTransfer.types.includes("Files");
 
+/** One key per thing the main area can show, to tell selections apart. */
+const selectionKey = (selection: WorkspaceSelection | null): string | null => {
+  switch (selection?.kind) {
+    case undefined:
+      return null;
+    case "file":
+      return `file:${selection.path}`;
+    case "artifact":
+      return `artifact:${selection.artifactId ?? ""}`;
+    case "preview":
+      return "preview";
+    default:
+      return selection satisfies never;
+  }
+};
+
+interface Turn {
+  readonly key: string | null;
+  readonly previewing: string | null;
+  readonly view: "list" | "main";
+}
+
+/**
+ * Which half a narrow panel shows. A new selection shows the main area,
+ * except one the file search is only previewing (↓/↑), which keeps the list
+ * in view; Back to the list shows the list.
+ */
+function useTurns(selection: WorkspaceSelection | null) {
+  const key = selectionKey(selection);
+  const [turn, setTurn] = useState<Turn>(() => ({
+    key,
+    previewing: null,
+    view: key === null ? "list" : "main",
+  }));
+  if (turn.key !== key) {
+    setTurn({
+      key,
+      previewing: turn.previewing,
+      view: nextView(key, turn),
+    });
+  }
+  const showList = useCallback(
+    () => setTurn((current) => ({ ...current, view: "list" })),
+    []
+  );
+  const showMain = useCallback(
+    () =>
+      setTurn((current) => ({ ...current, previewing: null, view: "main" })),
+    []
+  );
+  const previewing = useCallback(
+    (path: string) =>
+      setTurn((current) => ({ ...current, previewing: `file:${path}` })),
+    []
+  );
+  const { view } = turn;
+  return useMemo(
+    () => ({ previewing, showList, showMain, view }),
+    [previewing, showList, showMain, view]
+  );
+}
+
+const nextView = (key: string | null, turn: Turn): Turn["view"] => {
+  if (key === null) {
+    return "list";
+  }
+  return key === turn.previewing ? turn.view : "main";
+};
+
+/**
+ * Calls `attempt` each frame until it succeeds (the tree draws its rows after
+ * it mounts), for a while at most. Returns a cancel.
+ */
+const whenReady = (attempt: () => boolean): (() => void) => {
+  let frame = 0;
+  let handle = 0;
+  const step = () => {
+    if (!attempt() && frame < FOCUS_FRAMES) {
+      frame += 1;
+      handle = requestAnimationFrame(step);
+    }
+  };
+  step();
+  return () => cancelAnimationFrame(handle);
+};
+
+function useFileDrop(
+  writable: boolean,
+  importFiles: ((files: readonly File[]) => void) | undefined
+) {
+  const [dragging, setDragging] = useState(false);
+  // Dropping files anywhere on the panel adds them to the workspace.
+  const onDragOver = useCallback(
+    (event: DragEvent<HTMLElement>) => {
+      if (writable && hasFiles(event)) {
+        event.preventDefault();
+        setDragging(true);
+      }
+    },
+    [writable]
+  );
+  const onDragLeave = useCallback((event: DragEvent<HTMLElement>) => {
+    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+      setDragging(false);
+    }
+  }, []);
+  const onDrop = useCallback(
+    (event: DragEvent<HTMLElement>) => {
+      setDragging(false);
+      if (writable && importFiles && hasFiles(event)) {
+        event.preventDefault();
+        importFiles([...event.dataTransfer.files]);
+      }
+    },
+    [importFiles, writable]
+  );
+  return { dragging, onDragLeave, onDragOver, onDrop };
+}
+
+/** The search field's state and keys (`model/file-search.ts` is the logic). */
+function useFileSearch({
+  onClear,
+  onOpen,
+  onPreview,
+  paths,
+}: {
+  readonly onClear: () => void;
+  readonly onOpen: (match: FileMatch) => void;
+  readonly onPreview: (match: FileMatch) => void;
+  readonly paths: readonly string[] | null;
+}) {
+  const [query, setQuery] = useState("");
+  const [active, setActive] = useState(-1);
+  const searching = searchTerms(query).length > 0;
+  const matches = useMemo(
+    () => searchFiles(paths ?? [], query).slice(0, MAX_MATCHES),
+    [paths, query]
+  );
+  const changeQuery = useCallback((next: string) => {
+    setQuery(next);
+    setActive(-1);
+  }, []);
+  const onChange = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => changeQuery(event.target.value),
+    [changeQuery]
+  );
+  const step = useCallback(
+    (delta: 1 | -1) => {
+      const next = stepMatch(active, matches.length, delta);
+      const match = matches[next];
+      if (match) {
+        setActive(next);
+        onPreview(match);
+      }
+    },
+    [active, matches, onPreview]
+  );
+  const onKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLInputElement>) => {
+      if (event.nativeEvent.isComposing) {
+        return;
+      }
+      switch (event.key) {
+        case "ArrowDown":
+        case "ArrowUp":
+          event.preventDefault();
+          step(event.key === "ArrowDown" ? 1 : -1);
+          return;
+        case "Enter": {
+          event.preventDefault();
+          const match = committedMatch(matches, active);
+          if (match) {
+            onOpen(match);
+          }
+          return;
+        }
+        case "Escape":
+          // The panel's own Escape (close) waits for the next one.
+          event.preventDefault();
+          changeQuery("");
+          onClear();
+          return;
+        default:
+          return;
+      }
+    },
+    [active, changeQuery, matches, onClear, onOpen, step]
+  );
+  return {
+    active,
+    matches,
+    onChange,
+    onKeyDown,
+    open: onOpen,
+    query,
+    searching,
+  };
+}
+
+type FocusRequest =
+  | { readonly kind: "search" }
+  | { readonly kind: "tree" }
+  /** Enter in the search: the editor (or a rendered file's view) once it's open. */
+  | { readonly kind: "view"; readonly path: string };
+
 function WorkspaceLayout({
   artifacts,
   className,
@@ -154,7 +392,6 @@ function WorkspaceLayout({
 }: WorkspacePanelProps & { readonly view: FilesView }) {
   const { t } = useLingui();
   const [newFileOpen, setNewFileOpen] = useState(false);
-  const [dragging, setDragging] = useState(false);
   const { actions, status } = view;
   const writable = actions !== null && status.kind === "ready";
 
@@ -189,50 +426,189 @@ function WorkspaceLayout({
     []
   );
 
-  const openNewFile = useCallback(() => setNewFileOpen(true), []);
-  const importFiles = actions?.importFiles;
+  // A narrow panel shows the list or the main area, not both.
+  const [measure, width] = useElementWidth<HTMLElement>();
+  const narrow = width > 0 && width < NARROW_BELOW;
+  const turn = useTurns(selection);
 
-  // Dropping files anywhere on the panel adds them to the workspace.
-  const onDragOver = useCallback(
-    (event: DragEvent<HTMLElement>) => {
-      if (writable && hasFiles(event)) {
-        event.preventDefault();
-        setDragging(true);
-      }
-    },
-    [writable]
-  );
-  const onDragLeave = useCallback((event: DragEvent<HTMLElement>) => {
-    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-      setDragging(false);
+  // Where focus goes next, once what it goes to is on screen.
+  const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null);
+  const searchInput = useRef<HTMLInputElement>(null);
+  const tree = useRef<FileTreeHandle>(null);
+  const main = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (focusRequest?.kind === "search") {
+      searchInput.current?.focus();
+      searchInput.current?.select();
+      setFocusRequest(null);
+    } else if (focusRequest?.kind === "tree") {
+      setFocusRequest(null);
+      return whenReady(() => tree.current?.focus() ?? false);
     }
-  }, []);
-  const onDrop = useCallback(
-    (event: DragEvent<HTMLElement>) => {
-      setDragging(false);
-      if (writable && importFiles && hasFiles(event)) {
-        event.preventDefault();
-        importFiles([...event.dataTransfer.files]);
-      }
+  }, [focusRequest]);
+
+  // Opening the panel put focus on its frame (`RightPanel`); move it on to
+  // the tree, once there is one, unless it went somewhere else meanwhile.
+  const panel = usePanelFrame();
+  const listed = paths !== null;
+  useEffect(() => {
+    const frame = panel?.frame.current;
+    if (!(frame && listed) || frame.ownerDocument.activeElement !== frame) {
+      return;
+    }
+    return whenReady(
+      () =>
+        frame.ownerDocument.activeElement !== frame ||
+        (tree.current?.focus() ?? false)
+    );
+  }, [listed, panel]);
+
+  // Picking something clears a pending Enter's focus request.
+  const select = useCallback(
+    (next: WorkspaceSelection | null) => {
+      setFocusRequest(null);
+      onSelect(next);
     },
-    [importFiles, writable]
+    [onSelect]
   );
+  const { showMain } = turn;
+  const activate = useCallback(
+    (next: WorkspaceSelection) => {
+      select(next);
+      showMain();
+    },
+    [select, showMain]
+  );
+
+  // The file search: ↓/↑ show a result without leaving the search (or the
+  // list, when narrow); Enter (or a click) opens it and moves focus into it;
+  // Escape clears it and goes back to the tree.
+  const { previewing } = turn;
+  const search = useFileSearch({
+    onClear: useCallback(() => setFocusRequest({ kind: "tree" }), []),
+    onOpen: useCallback(
+      (match: FileMatch) => {
+        activate({ kind: "file", path: match.path });
+        setFocusRequest({ kind: "view", path: match.path });
+      },
+      [activate]
+    ),
+    onPreview: useCallback(
+      (match: FileMatch) => {
+        setFocusRequest(null);
+        previewing(match.path);
+        onSelect({ kind: "file", path: match.path });
+      },
+      [onSelect, previewing]
+    ),
+    paths,
+  });
+
+  // "/" anywhere in the panel (not while typing) goes to the search.
+  const onKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLElement>) => {
+      if (
+        event.key !== "/" ||
+        event.defaultPrevented ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.altKey ||
+        isTypingEvent(event.nativeEvent)
+      ) {
+        return;
+      }
+      event.preventDefault();
+      turn.showList();
+      setFocusRequest({ kind: "search" });
+    },
+    [turn]
+  );
+
+  const openNewFile = useCallback(() => setNewFileOpen(true), []);
+  const drop = useFileDrop(writable, actions?.importFiles);
+
+  const showsList = !narrow || turn.view === "list";
+  const showsMain = !narrow || turn.view === "main";
+  const focusView =
+    focusRequest?.kind === "view" &&
+    focusRequest.path === selectionPath(selection)
+      ? focusRequest.path
+      : null;
+  const viewFocused = useCallback(() => setFocusRequest(null), []);
 
   return (
-    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: a drop target for files; "Upload files…" in the menu does the same from the keyboard.
+    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: a drop target for files ("Upload files…" in the menu does the same from the keyboard), and "/" to search from anywhere in it.
     <section
       aria-label={t`Workspace`}
       className={cn(
-        "@container relative flex h-full min-h-0 flex-col bg-background",
+        "relative flex h-full min-h-0 flex-col bg-background",
         className
       )}
-      data-dragging={dragging || undefined}
-      onDragLeave={onDragLeave}
-      onDragOver={onDragOver}
-      onDrop={onDrop}
+      data-dragging={drop.dragging || undefined}
+      data-narrow={narrow || undefined}
+      onDragLeave={drop.onDragLeave}
+      onDragOver={drop.onDragOver}
+      onDrop={drop.onDrop}
+      onKeyDown={onKeyDown}
+      ref={measure}
     >
+      <div className="flex min-h-0 flex-1">
+        <WorkspaceList
+          active={search.active}
+          artifacts={artifacts.artifacts}
+          className={narrow ? "flex-1" : "w-48 shrink-0 border-e"}
+          hasPreview={preview.history !== null}
+          hidden={!showsList}
+          matches={search.matches}
+          narrow={narrow}
+          onActivate={activate}
+          onNewFile={openNewFile}
+          onOpenMatch={search.open}
+          onQueryChange={search.onChange}
+          onSearchKeyDown={search.onKeyDown}
+          onShowMain={showMain}
+          query={search.query}
+          searchInput={searchInput}
+          searching={search.searching}
+          selection={selection}
+          tree={tree}
+          view={view}
+          writable={writable}
+        />
+        <BackToListProvider value={narrow ? turn.showList : null}>
+          {/* Hidden, not unmounted, on its turn off: the editor keeps its state. */}
+          <div
+            className="@container/view flex min-h-0 min-w-0 flex-1 flex-col outline-none"
+            hidden={!showsMain}
+            ref={main}
+            tabIndex={-1}
+          >
+            <MainArea
+              artifacts={artifacts}
+              focusView={focusView}
+              main={main}
+              modes={modes}
+              onModeChange={setMode}
+              onNavigate={preview.navigate}
+              onNewFile={openNewFile}
+              onSelect={select}
+              onViewFocused={viewFocused}
+              previewHistory={preview.history}
+              probePreview={probePreview}
+              revision={revision}
+              selection={selection}
+              sources={sources}
+              view={view}
+              writable={writable}
+            />
+          </div>
+        </BackToListProvider>
+      </div>
       {status.kind === "failed" && actions ? (
-        <Alert className="m-2 w-auto" variant="destructive">
+        <Alert
+          className="rounded-none border-x-0 border-b-0"
+          variant="destructive"
+        >
           <TriangleAlertIcon aria-hidden />
           <AlertTitle>
             <Trans>The workspace didn't start</Trans>
@@ -256,39 +632,11 @@ function WorkspaceLayout({
         </Alert>
       ) : null}
       {view.notice ? (
-        <p className="border-b px-3 py-2 text-destructive text-sm" role="alert">
+        <p className="border-t px-3 py-2 text-destructive text-sm" role="alert">
           {view.notice}
         </p>
       ) : null}
-      <div className="grid min-h-0 flex-1 @lg:grid-cols-[12rem_minmax(0,1fr)] @lg:grid-rows-1 grid-rows-[minmax(0,16rem)_minmax(0,1fr)]">
-        <WorkspaceList
-          artifacts={artifacts.artifacts}
-          hasPreview={preview.history !== null}
-          onNewFile={openNewFile}
-          onSelect={onSelect}
-          selection={selection}
-          view={view}
-          writable={writable}
-        />
-        <div className="min-h-0 overflow-auto">
-          <MainArea
-            artifacts={artifacts}
-            modes={modes}
-            onModeChange={setMode}
-            onNavigate={preview.navigate}
-            onNewFile={openNewFile}
-            onSelect={onSelect}
-            previewHistory={preview.history}
-            probePreview={probePreview}
-            revision={revision}
-            selection={selection}
-            sources={sources}
-            view={view}
-            writable={writable}
-          />
-        </div>
-      </div>
-      {dragging ? (
+      {drop.dragging ? (
         <div className="pointer-events-none absolute inset-2 flex items-center justify-center rounded-lg border-2 border-ring border-dashed bg-background/80 text-sm">
           <Trans>Drop to add to the workspace</Trans>
         </div>
@@ -303,6 +651,9 @@ function WorkspaceLayout({
     </section>
   );
 }
+
+const selectionPath = (selection: WorkspaceSelection | null): string | null =>
+  selection?.kind === "file" ? selection.path : null;
 
 function ListItem({
   current,
@@ -320,7 +671,7 @@ function ListItem({
       <button
         aria-current={current ? "true" : undefined}
         className={cn(
-          "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-start text-sm outline-none transition-colors duration-(--motion-fast) hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50 [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-muted-foreground",
+          "flex h-7 w-full items-center gap-2 rounded-md px-2 text-start text-sm outline-none transition-colors duration-(--motion-fast) hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50 [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-muted-foreground",
           current && "bg-muted font-medium"
         )}
         onClick={onClick}
@@ -333,104 +684,314 @@ function ListItem({
   );
 }
 
+/** A section's quiet label in the list. */
+function SectionLabel({ children }: { readonly children: ReactNode }) {
+  return (
+    <h3 className="px-2 py-1 font-medium text-muted-foreground text-xs">
+      {children}
+    </h3>
+  );
+}
+
 function WorkspaceList({
+  active,
   artifacts,
+  className,
   hasPreview,
+  hidden,
+  matches,
+  narrow,
+  onActivate,
   onNewFile,
-  onSelect,
+  onOpenMatch,
+  onQueryChange,
+  onSearchKeyDown,
+  onShowMain,
+  query,
+  searchInput,
+  searching,
   selection,
+  tree,
   view,
   writable,
 }: {
+  readonly active: number;
   readonly artifacts: readonly Artifact[];
+  readonly className?: string;
   readonly hasPreview: boolean;
+  /** A narrow panel showing the main area. */
+  readonly hidden: boolean;
+  readonly matches: readonly FileMatch[];
+  readonly narrow: boolean;
+  readonly onActivate: (selection: WorkspaceSelection) => void;
   readonly onNewFile: () => void;
-  readonly onSelect: (selection: WorkspaceSelection | null) => void;
+  readonly onOpenMatch: (match: FileMatch) => void;
+  readonly onQueryChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  readonly onSearchKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void;
+  readonly onShowMain: () => void;
+  readonly query: string;
+  readonly searchInput: RefObject<HTMLInputElement | null>;
+  readonly searching: boolean;
   readonly selection: WorkspaceSelection | null;
+  readonly tree: RefObject<FileTreeHandle | null>;
   readonly view: FilesView;
   readonly writable: boolean;
 }) {
   const { t } = useLingui();
+  const results = useId();
   const shownArtifact =
     selection?.kind === "artifact"
       ? (selection.artifactId ?? artifacts[0]?.id)
       : undefined;
 
-  // Directories expand in place; only files open.
+  // Directories expand in place; only files open. The tree also reports
+  // the selection it was given (the open file); that's not a pick.
+  const openPath = selection?.kind === "file" ? selection.path : null;
   const selectFile = useCallback(
     (selected: readonly string[]) => {
       const path = selected.at(-1);
-      if (path && !path.endsWith("/")) {
-        onSelect({ kind: "file", path });
+      if (path && !path.endsWith("/") && path !== openPath) {
+        onActivate({ kind: "file", path });
       }
     },
-    [onSelect]
+    [onActivate, openPath]
   );
   const selectPreview = useCallback(
-    () => onSelect({ kind: "preview" }),
-    [onSelect]
+    () => onActivate({ kind: "preview" }),
+    [onActivate]
   );
+  // On a narrow panel, the file that's already selected opens again from
+  // the tree too (the tree reports only changes of selection).
+  const onTreeActivate = useCallback(
+    (event: KeyboardEvent<HTMLElement> | MouseEvent<HTMLElement>) => {
+      if ("key" in event && event.key !== "Enter") {
+        return;
+      }
+      const row = event.nativeEvent
+        .composedPath()
+        .find(
+          (target): target is HTMLElement =>
+            target instanceof HTMLElement &&
+            target.dataset.itemType !== undefined
+        );
+      if (row?.dataset.itemType === "file") {
+        onShowMain();
+      }
+    },
+    [onShowMain]
+  );
+
+  const activeId = active >= 0 ? `${results}-${active}` : undefined;
+  useEffect(() => {
+    if (activeId) {
+      document.getElementById(activeId)?.scrollIntoView({ block: "nearest" });
+    }
+  }, [activeId]);
 
   return (
     <nav
       aria-label={t`Workspace contents`}
-      className="flex min-h-0 flex-col gap-3 overflow-hidden @lg:border-e border-b @lg:border-b-0 p-2"
+      className={cn("flex min-h-0 flex-col", className)}
+      hidden={hidden}
     >
-      {hasPreview ? (
-        <ul>
-          <ListItem
-            current={selection?.kind === "preview"}
-            icon={<GlobeIcon aria-hidden />}
-            label={t`Preview`}
-            onClick={selectPreview}
+      <div className={headerRow}>
+        {/* A search field that sits in the row: no frame, a ring on focus. */}
+        <div className="flex h-7 min-w-0 flex-1 items-center gap-1.5 rounded-md ps-1.5 pe-1 focus-within:ring-2 focus-within:ring-ring/50">
+          <SearchIcon
+            aria-hidden
+            className="size-4 shrink-0 text-muted-foreground"
           />
-        </ul>
-      ) : null}
-      <div className="flex min-h-0 flex-1 flex-col gap-1">
-        <div className="flex items-center gap-1 ps-2">
-          <h3 className="font-medium text-muted-foreground text-xs">
-            <Trans>Files</Trans>
-          </h3>
-          <Button
-            aria-label={t`New file`}
-            className="ms-auto"
-            disabled={!writable}
-            onClick={onNewFile}
-            size="icon-xs"
-            variant="ghost"
-          >
-            <PlusIcon aria-hidden />
-          </Button>
-          <WorkspaceMenu view={view} writable={writable} />
+          <input
+            aria-activedescendant={activeId}
+            aria-autocomplete="list"
+            aria-controls={searching ? results : undefined}
+            aria-expanded={searching}
+            aria-label={t`Search files`}
+            autoComplete="off"
+            className="h-7 w-full min-w-0 bg-transparent text-sm outline-none placeholder:text-muted-foreground [&::-webkit-search-cancel-button]:hidden"
+            disabled={view.paths === null}
+            onChange={onQueryChange}
+            onKeyDown={onSearchKeyDown}
+            placeholder={t`Search files`}
+            ref={searchInput}
+            role="combobox"
+            spellCheck={false}
+            type="search"
+            value={query}
+          />
+          {query ? null : (
+            <Kbd className="pointer-coarse:hidden" title={t`Press / to search`}>
+              /
+            </Kbd>
+          )}
         </div>
-        <FilesList
-          onSelectFiles={selectFile}
-          selectedPath={selection?.kind === "file" ? selection.path : null}
-          view={view}
-        />
+        {narrow ? <ClosePanelButton /> : null}
       </div>
-      <div className="flex max-h-[40%] shrink-0 flex-col gap-1 overflow-auto">
-        <h3 className="ps-2 font-medium text-muted-foreground text-xs">
-          <Trans>Artifacts</Trans>
-        </h3>
-        {artifacts.length === 0 ? (
-          <p className="px-2 text-muted-foreground text-xs">
-            <Trans>None yet</Trans>
-          </p>
-        ) : (
-          <ul aria-label={t`Artifacts in this chat`} className="flex flex-col">
-            {artifacts.map((artifact) => (
-              <ArtifactItem
-                artifact={artifact}
-                current={artifact.id === shownArtifact}
-                key={artifact.id}
-                onSelect={onSelect}
-              />
-            ))}
+      {searching ? (
+        <SearchResults
+          active={active}
+          id={results}
+          matches={matches}
+          onOpen={onOpenMatch}
+        />
+      ) : null}
+      {/* Hidden, not unmounted, while searching: the tree keeps its folds. */}
+      <div
+        className="flex min-h-0 flex-1 flex-col gap-3 p-2"
+        hidden={searching}
+      >
+        {hasPreview ? (
+          <ul>
+            <ListItem
+              current={selection?.kind === "preview"}
+              icon={<GlobeIcon aria-hidden />}
+              label={t`Preview`}
+              onClick={selectPreview}
+            />
           </ul>
-        )}
+        ) : null}
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="flex items-center gap-0.5">
+            <SectionLabel>
+              <Trans>Files</Trans>
+            </SectionLabel>
+            <Button
+              aria-label={t`New file`}
+              className="ms-auto"
+              disabled={!writable}
+              onClick={onNewFile}
+              size="icon-xs"
+              title={t`New file`}
+              variant="ghost"
+            >
+              <PlusIcon aria-hidden />
+            </Button>
+            <WorkspaceMenu view={view} writable={writable} />
+          </div>
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: the tree's rows are the controls; this only notices a row that was already selected being opened again. */}
+          {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: as above. */}
+          <div
+            className="flex min-h-0 flex-1 flex-col"
+            onClick={onTreeActivate}
+            onKeyDown={onTreeActivate}
+          >
+            <FilesList
+              onSelectFiles={selectFile}
+              selectedPath={selection?.kind === "file" ? selection.path : null}
+              tree={tree}
+              view={view}
+            />
+          </div>
+        </div>
+        <div className="flex max-h-[40%] shrink-0 flex-col overflow-auto">
+          <SectionLabel>
+            <Trans>Artifacts</Trans>
+          </SectionLabel>
+          {artifacts.length === 0 ? (
+            <p className="px-2 py-1 text-muted-foreground text-sm">
+              <Trans>None yet</Trans>
+            </p>
+          ) : (
+            <ul
+              aria-label={t`Artifacts in this chat`}
+              className="flex flex-col"
+            >
+              {artifacts.map((artifact) => (
+                <ArtifactItem
+                  artifact={artifact}
+                  current={artifact.id === shownArtifact}
+                  key={artifact.id}
+                  onSelect={onActivate}
+                />
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
     </nav>
+  );
+}
+
+/** The search's results, in place of the tree: one row per file. */
+function SearchResults({
+  active,
+  id,
+  matches,
+  onOpen,
+}: {
+  readonly active: number;
+  readonly id: string;
+  readonly matches: readonly FileMatch[];
+  readonly onOpen: (match: FileMatch) => void;
+}) {
+  const { t } = useLingui();
+  const count = matches.length;
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <p
+        aria-live="polite"
+        className="px-4 pt-2 pb-1 text-muted-foreground text-xs"
+      >
+        {count === 0 ? (
+          <Trans>Nothing found</Trans>
+        ) : (
+          <Plural one="# found" other="# found" value={count} />
+        )}
+      </p>
+      <div
+        aria-label={t`Files found`}
+        className="min-h-0 flex-1 overflow-auto px-2 pb-2"
+        id={id}
+        role="listbox"
+      >
+        {matches.map((match, index) => (
+          <SearchOption
+            active={index === active}
+            id={`${id}-${index}`}
+            key={match.path}
+            match={match}
+            onOpen={onOpen}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Keeps focus in the search field when a result is clicked.
+const keepFocus = (event: MouseEvent) => event.preventDefault();
+
+function SearchOption({
+  active,
+  id,
+  match,
+  onOpen,
+}: {
+  readonly active: boolean;
+  readonly id: string;
+  readonly match: FileMatch;
+  readonly onOpen: (match: FileMatch) => void;
+}) {
+  const open = useCallback(() => onOpen(match), [match, onOpen]);
+  return (
+    // biome-ignore lint/a11y/useKeyWithClickEvents: the search field owns the keys (↓/↑, Enter); focus stays there (aria-activedescendant).
+    <div
+      aria-selected={active}
+      className="flex h-7 cursor-default items-center gap-2 rounded-md px-2 text-sm hover:bg-muted aria-selected:bg-muted"
+      id={id}
+      onClick={open}
+      onMouseDown={keepFocus}
+      role="option"
+      tabIndex={-1}
+      title={match.path}
+    >
+      <span className="shrink-0 truncate">{match.name}</span>
+      {match.directory ? (
+        <span className="min-w-0 truncate text-muted-foreground text-xs">
+          {match.directory}
+        </span>
+      ) : null}
+    </div>
   );
 }
 
@@ -457,54 +1018,76 @@ function ArtifactItem({
   );
 }
 
+/** The list's states read like its rows: the same size, just quieter. */
+function ListNote({
+  children,
+  status = false,
+}: {
+  readonly children: ReactNode;
+  readonly status?: boolean;
+}) {
+  return (
+    <p
+      className="px-2 py-1 text-muted-foreground text-sm"
+      role={status ? "status" : undefined}
+    >
+      {children}
+    </p>
+  );
+}
+
 function FilesList({
   onSelectFiles,
   selectedPath,
+  tree,
   view,
 }: {
   readonly onSelectFiles: (paths: readonly string[]) => void;
   /** The open file; the tree follows it, so a file opened from the chat shows selected. */
   readonly selectedPath: string | null;
+  readonly tree: RefObject<FileTreeHandle | null>;
   readonly view: FilesView;
 }) {
   const { t } = useLingui();
   const { paths, status } = view;
   if (status.kind === "off") {
     return (
-      <p className="px-2 text-muted-foreground text-xs">
+      <ListNote>
         <Trans>Files are turned off on this server.</Trans>
-      </p>
+      </ListNote>
     );
   }
   if (status.kind === "starting") {
     return (
-      <p className="px-2 text-muted-foreground text-xs" role="status">
+      <ListNote status>
         <Trans>Starting the workspace…</Trans>
-      </p>
+      </ListNote>
     );
   }
   if (paths === null) {
     return (
-      <p className="px-2 text-muted-foreground text-xs" role="status">
+      <ListNote status>
         <Trans>Loading files…</Trans>
-      </p>
+      </ListNote>
     );
   }
   if (paths.length === 0) {
     return (
-      <p className="px-2 text-muted-foreground text-xs">
+      <ListNote>
         <Trans>No files yet</Trans>
-      </p>
+      </ListNote>
     );
   }
   return (
     <FileTree
-      className="min-h-0 flex-1 rounded-md border-0 bg-transparent"
+      className="-mx-2 min-h-0 flex-1"
       label={t`Files`}
       onSelectionChange={onSelectFiles}
       paths={paths}
+      ref={tree}
       search={false}
       selectedPath={selectedPath}
+      variant="flush"
     />
   );
 }
@@ -620,7 +1203,7 @@ function EmptyFiles({
   readonly writable: boolean;
 }) {
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
+    <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
       <FileIcon aria-hidden className="size-6 text-muted-foreground" />
       <p className="max-w-64 text-muted-foreground text-sm">
         {newChat ? (
@@ -648,11 +1231,14 @@ function EmptyFiles({
 
 function MainArea({
   artifacts,
+  focusView,
+  main,
   modes,
   onModeChange,
   onNavigate,
   onNewFile,
   onSelect,
+  onViewFocused,
   previewHistory,
   probePreview,
   revision,
@@ -662,11 +1248,15 @@ function MainArea({
   writable,
 }: {
   readonly artifacts: WorkspaceArtifacts;
+  /** The file Enter opened, until focus is in it. */
+  readonly focusView: string | null;
+  readonly main: RefObject<HTMLDivElement | null>;
   readonly modes: Readonly<Record<string, FileMode>>;
   readonly onModeChange: (path: string, mode: FileMode) => void;
   readonly onNavigate: (action: BrowserAction) => void;
   readonly onNewFile: () => void;
   readonly onSelect: (selection: WorkspaceSelection | null) => void;
+  readonly onViewFocused: () => void;
   readonly previewHistory: BrowserHistory | null;
   readonly probePreview?: (url: string) => Promise<boolean>;
   readonly revision: number;
@@ -681,28 +1271,55 @@ function MainArea({
   );
   const selectedPath = selection?.kind === "file" ? selection.path : null;
   const changeMode = useCallback(
-    (mode: FileMode) => {
+    (next: FileMode) => {
       if (selectedPath) {
-        onModeChange(selectedPath, mode);
+        onModeChange(selectedPath, next);
       }
     },
     [onModeChange, selectedPath]
   );
   const { actions, readFile, status } = view;
 
+  // A rendered file has no editor to focus: the view itself takes it, once
+  // the file is open (the editor focuses itself; see `FileView`).
+  const kind = selectedPath ? renderedKind(selectedPath) : null;
+  const mode = selectedPath
+    ? openingMode(modes[selectedPath], false)
+    : "rendered";
+  const opened = view.open?.kind === "text" ? view.open.path : null;
+  useEffect(() => {
+    if (focusView && kind && mode === "rendered" && opened === focusView) {
+      const target =
+        main.current?.querySelector<HTMLElement>("[data-view-focus]") ??
+        main.current;
+      target?.focus({ preventScroll: true });
+      onViewFocused();
+    }
+  }, [focusView, kind, main, mode, onViewFocused, opened]);
+
   if (selection?.kind === "artifact") {
     const artifact =
       artifacts.artifacts.find((each) => each.id === selection.artifactId) ??
       artifacts.artifacts[0];
     return (
-      <ArtifactView
-        artifact={artifact}
-        error={artifacts.error}
-        onSelect={selectArtifact}
-        runtimeOrigin={artifacts.runtimeOrigin}
-        versionId={selection.versionId}
-        versions={artifacts.versions}
-      />
+      <>
+        {/* ArtifactView's own first row has the title and versions. */}
+        <ViewHeader>
+          <span className="text-muted-foreground text-sm">
+            <Trans>Artifact</Trans>
+          </span>
+        </ViewHeader>
+        <div className="flex min-h-0 flex-1 flex-col">
+          <ArtifactView
+            artifact={artifact}
+            error={artifacts.error}
+            onSelect={selectArtifact}
+            runtimeOrigin={artifacts.runtimeOrigin}
+            versionId={selection.versionId}
+            versions={artifacts.versions}
+          />
+        </div>
+      </>
     );
   }
   if (selection?.kind === "preview") {
@@ -723,20 +1340,21 @@ function MainArea({
       path: selection.path,
     };
     const fileView = {
+      autoFocus: focusView === selection.path,
       file,
+      onAutoFocus: onViewFocused,
       onDelete: actions.deleteOpen,
       onEdit: actions.edit,
       onOverwrite: actions.overwrite,
       onReload: actions.reload,
       onSave: actions.save,
     };
-    const kind = renderedKind(selection.path);
     if (kind) {
       return (
         <RenderedFile
           {...fileView}
           kind={kind}
-          mode={openingMode(modes[selection.path], false)}
+          mode={mode}
           onModeChange={changeMode}
           probe={probePreview}
           readFile={readFile}
@@ -749,23 +1367,32 @@ function MainArea({
   }
   if (status.kind === "off") {
     return (
-      <p className="p-4 text-muted-foreground text-sm">
-        <Trans>Sandboxes are turned off on this server.</Trans>
-      </p>
+      <>
+        <ViewHeader />
+        <p className="p-4 text-muted-foreground text-sm">
+          <Trans>Sandboxes are turned off on this server.</Trans>
+        </p>
+      </>
     );
   }
   if (view.paths && view.paths.length > 0) {
     return (
-      <div className="flex h-full items-center justify-center p-6 text-muted-foreground text-sm">
-        <Trans>Select a file to open it.</Trans>
-      </div>
+      <>
+        <ViewHeader />
+        <div className="flex flex-1 items-center justify-center p-6 text-muted-foreground text-sm">
+          <Trans>Select a file to open it.</Trans>
+        </div>
+      </>
     );
   }
   return (
-    <EmptyFiles
-      newChat={status.kind === "new-chat"}
-      onNewFile={onNewFile}
-      writable={writable}
-    />
+    <>
+      <ViewHeader />
+      <EmptyFiles
+        newChat={status.kind === "new-chat"}
+        onNewFile={onNewFile}
+        writable={writable}
+      />
+    </>
   );
 }
