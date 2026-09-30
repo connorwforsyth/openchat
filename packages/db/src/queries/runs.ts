@@ -127,6 +127,19 @@ export const getRun = async (
   return row ? ok(row) : err(notFound("run", id));
 };
 
+/**
+ * The run, locked until the transaction `db` belongs to ends (`SELECT …
+ * FOR UPDATE`): deciding approvals reads and rewrites the run's answer, and
+ * two decisions at once must not each overwrite the other's (072).
+ */
+export const lockRun = async (
+  db: Db,
+  id: RunId
+): AsyncResult<RunRow, NotFoundError> => {
+  const [row] = await db.select().from(run).where(eq(run.id, id)).for("update");
+  return row ? ok(row) : err(notFound("run", id));
+};
+
 /** Unfinished runs in a conversation, oldest first (the branch queue reads this). */
 export const listActiveRuns = (
   db: Db,

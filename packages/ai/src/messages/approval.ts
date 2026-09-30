@@ -52,3 +52,68 @@ export const approvalReason = (
       return decision satisfies never;
   }
 };
+
+// A run that stops (Stop, a new message while a change waits, shutdown)
+// leaves some tool calls without a result: a change still waiting on a
+// person, or a command that was running. Each gets an error result, so the
+// answer reads as finished history (the next turn's model sees why nothing
+// happened) and every client drops the call's card or spinner (opencode's
+// `interrupted`, ticket 072). The text is what the model reads; clients
+// recognise it by its first line, never by parsing the rest.
+
+/** Who stopped the run a call belonged to. */
+export type InterruptedBy = "user" | "system";
+
+const INTERRUPTED = {
+  system: "Stopped before it finished: the server stopped the run.",
+  user: "Stopped by the user before it finished.",
+} as const satisfies Record<InterruptedBy, string>;
+
+const SKIPPED = {
+  system: "Not run: the server stopped the run before anyone decided.",
+  user: "Not run: the user stopped the agent instead of deciding.",
+} as const satisfies Record<InterruptedBy, string>;
+
+const OUTPUT_SO_FAR = "Output so far:";
+
+/**
+ * The error a stopped call is left with. `started` is whether it was
+ * running (a command gets its partial output) or still waiting on a
+ * decision (it never ran).
+ */
+export const interruptedMessage = (
+  by: InterruptedBy,
+  started: boolean,
+  partial?: string
+): string => {
+  const head = started ? INTERRUPTED[by] : SKIPPED[by];
+  return partial ? `${head}\n\n${OUTPUT_SO_FAR}\n${partial}` : head;
+};
+
+export interface Interruption {
+  readonly by: InterruptedBy;
+  /** What the call had printed when it was stopped, if anything. */
+  readonly partial: string | undefined;
+  /** Whether it had started running. */
+  readonly started: boolean;
+}
+
+/** Whether an error result is a stopped run's, and how. Pure. */
+export const interruptionOf = (message: string): Interruption | null => {
+  const [head = ""] = message.split("\n", 1);
+  const by = (["user", "system"] as const).find(
+    (who) => head === INTERRUPTED[who] || head === SKIPPED[who]
+  );
+  if (!by) {
+    return null;
+  }
+  const marker = message.indexOf(`\n${OUTPUT_SO_FAR}\n`);
+  return {
+    by,
+    partial:
+      marker === -1
+        ? undefined
+        : message.slice(marker + OUTPUT_SO_FAR.length + 2),
+    started: head === INTERRUPTED[by],
+  };
+};

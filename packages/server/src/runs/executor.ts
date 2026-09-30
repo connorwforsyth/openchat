@@ -14,7 +14,6 @@ import type {
 import { toolSources } from "@workspace/ai/rag/sources";
 import type {
   FileId,
-  JsonValue,
   MessageId,
   RunId,
   UserId,
@@ -42,6 +41,7 @@ import {
   listActiveRuns,
   listQueuedAfter,
   listRunsWithStatus,
+  lockRun,
   type RunRow,
   type RunTransition,
   requeueAfter,
@@ -50,7 +50,12 @@ import {
 } from "@workspace/db/queries/runs";
 import { newId } from "@workspace/shared/ids";
 import { err, ok, type Result } from "@workspace/shared/result";
-import { readUIMessageStream, type UIMessage, type UIMessageChunk } from "ai";
+import {
+  readUIMessageStream,
+  type ToolSet,
+  type UIMessage,
+  type UIMessageChunk,
+} from "ai";
 import { TransactionRollbackError } from "drizzle-orm";
 
 import {
@@ -58,6 +63,15 @@ import {
   type ModelAttachments,
   NO_ATTACHMENTS,
 } from "./attachments";
+import {
+  chunkJson,
+  decisionChunks,
+  interruptLeftovers,
+  newDecisions,
+  partialOutputOf,
+  streamedCalls,
+  withDecisions,
+} from "./interrupt";
 import type { ToolReview, ToolReviews } from "./sandbox";
 import {
   isTerminal,
@@ -143,8 +157,7 @@ const INTERRUPTED: RunError = {
   retryable: true,
 };
 
-const toJson = (chunk: UIMessageChunk): JsonValue =>
-  JSON.parse(JSON.stringify(chunk)) as JsonValue;
+const toJson = chunkJson;
 
 const deciderState = (messages: readonly Message[]): DeciderState => {
   const turns = messages
@@ -163,6 +176,16 @@ const deciderState = (messages: readonly Message[]): DeciderState => {
     input: last?.role === "user" ? last.text : "",
   };
 };
+
+/** What deciding did to a run. */
+interface RecordedDecisions {
+  readonly decided: ReadonlyMap<string, RecordedDecision>;
+  /** The decisions this call recorded (not the repeats). */
+  readonly fresh: readonly ToolApproval[];
+  /** The run, resumed, when every pending call is now decided. */
+  readonly resumed: RunRow | null;
+  readonly row: RunRow;
+}
 
 /** Proposed edits per paused call, as `PendingApproval.edits` carries them. */
 type EditsByCall = ReadonlyMap<string, readonly ProposedEdit[]>;
@@ -262,6 +285,72 @@ export const withCitations = (parts: readonly MessagePart[]): MessagePart[] => {
     return [part, ...cited];
   });
 };
+
+/** Each tool call's execution in one pass, by call id, as it settles. */
+type Executions = Map<string, Promise<unknown>>;
+
+/**
+ * The pass's tools, noting each execution in `executions`. A stopped run
+ * stops reading the agent at once, so a command killed by the abort
+ * reports what it had printed to nobody; this is where it's picked up.
+ */
+const watchExecutions = (
+  tools: ToolSet | undefined,
+  executions: Executions
+): ToolSet | undefined =>
+  tools &&
+  Object.fromEntries(
+    Object.entries(tools).map(([name, each]) => {
+      const { execute } = each;
+      if (!execute) {
+        return [name, each];
+      }
+      return [
+        name,
+        {
+          ...each,
+          execute: (input: unknown, options: { toolCallId: string }) => {
+            const result = (execute as (...args: unknown[]) => unknown)(
+              input,
+              options
+            );
+            if (result instanceof Promise) {
+              executions.set(options.toolCallId, result);
+            }
+            return result;
+          },
+        },
+      ];
+    })
+  );
+
+/** What each stopped execution had printed, waiting at most `graceMs`. */
+const partialOutputs = async (
+  executions: Executions,
+  graceMs: number
+): Promise<ReadonlyMap<string, string>> => {
+  const found = new Map<string, string>();
+  await Promise.race([
+    Promise.all(
+      [...executions].map(async ([toolCallId, execution]) => {
+        const text = partialOutputOf(await execution.catch(() => undefined));
+        if (text) {
+          found.set(toolCallId, text);
+        }
+      })
+    ),
+    new Promise((resolve) => setTimeout(resolve, graceMs)),
+  ]);
+  return found;
+};
+
+/** Tool calls in stored parts: an earlier pass streamed every one of them. */
+const callIdsIn = (parts: readonly MessagePart[]): Set<string> =>
+  new Set(
+    parts.flatMap((part) =>
+      part.type === "tool-call" ? [part.toolCallId] : []
+    )
+  );
 
 export const createInProcessExecutor = (
   deps: InProcessExecutorDeps
@@ -432,15 +521,62 @@ export const createInProcessExecutor = (
     }
   };
 
+  /**
+   * A stopped pass's answer: calls it left without a result (a change still
+   * waiting, a command the abort killed, with what it had printed) get a
+   * stopped one, announced on the stream so every client drops them.
+   */
+  const interruptPass = async (
+    runId: RunId,
+    parts: readonly MessagePart[],
+    pass: {
+      readonly before: readonly MessagePart[];
+      readonly executions: Executions;
+      readonly read: readonly UIMessageChunk[];
+    }
+  ): Promise<MessagePart[]> => {
+    const by = (cancelledBy.get(runId) ?? null) === null ? "system" : "user";
+    const streamed = new Set([
+      ...callIdsIn(pass.before),
+      ...streamedCalls(pass.read),
+    ]);
+    const stopped = interruptLeftovers(parts, {
+      by,
+      partial: await partialOutputs(pass.executions, OUTCOME_GRACE_MS),
+      streamed,
+    });
+    await announce(runId, stopped.chunks);
+    return stopped.parts;
+  };
+
+  /** Appends chunks to the run's stream, in order. */
+  const announce = async (
+    runId: RunId,
+    chunks: readonly UIMessageChunk[]
+  ): Promise<void> => {
+    for (const chunk of chunks) {
+      // biome-ignore lint/performance/noAwaitInLoops: the stream keeps call order anyway; this keeps errors per chunk.
+      const appended = await writer.append(runId, toJson(chunk));
+      if (!appended.ok) {
+        report("run stream write failed", appended.error);
+      }
+    }
+  };
+
   /** Stores what the agent produced and moves the run to where it ended up. */
   const settle = async (
     run: RunStart,
     assistantMessageId: MessageId,
     outcome: AgentOutcome,
-    turn: Turn
+    turn: Turn,
+    pass: {
+      readonly executions: Executions;
+      readonly read: readonly UIMessageChunk[];
+    }
   ) => {
     const stored = await getMessage(db, assistantMessageId);
-    const decisions = recordedDecisions(stored.ok ? stored.value.parts : []);
+    const before = stored.ok ? stored.value.parts : [];
+    const decisions = recordedDecisions(before);
     const mapped = fromUIMessage(outcome.message, {
       decisionFor: (toolCallId) => decisions.get(toolCallId),
       now,
@@ -448,7 +584,11 @@ export const createInProcessExecutor = (
     if (!mapped.ok) {
       report("couldn't store the answer's parts", mapped.error);
     }
-    const parts = mapped.ok ? withCitations(mapped.value) : [];
+    const cited = mapped.ok ? withCitations(mapped.value) : [];
+    const parts =
+      outcome.status === "cancelled"
+        ? await interruptPass(run.runId, cited, { ...pass, before })
+        : cited;
     const usage =
       outcome.usage.inputTokens + outcome.usage.outputTokens > 0
         ? outcome.usage
@@ -620,6 +760,7 @@ export const createInProcessExecutor = (
         run.createdBy,
         deps.attachments?.(turn.value.resolvedModel) ?? NO_ATTACHMENTS
       );
+      const executions: Executions = new Map();
       const agentRun = await runAgent({
         generateMessageId: () => assistantMessageId,
         instructions: turn.value.instructions,
@@ -630,7 +771,7 @@ export const createInProcessExecutor = (
         signal: controller.signal,
         timeoutMs: deps.timeoutMs,
         toolApproval: turn.value.toolApproval,
-        tools: turn.value.tools,
+        tools: watchExecutions(turn.value.tools, executions),
       });
       if (!agentRun.ok) {
         await failEarly(run, assistantMessageId, agentRun.error);
@@ -648,7 +789,10 @@ export const createInProcessExecutor = (
         controller.signal,
         uiMessages.at(-1)?.role === "assistant" ? uiMessages.at(-1) : undefined
       );
-      await settle(run, assistantMessageId, outcome, turn.value);
+      await settle(run, assistantMessageId, outcome, turn.value, {
+        executions,
+        read,
+      });
     } catch (cause) {
       report("run failed unexpectedly", cause);
       await failEarly(run, assistantMessageId, INTERNAL).catch(
@@ -735,16 +879,49 @@ export const createInProcessExecutor = (
     return ok(undefined);
   };
 
+  /**
+   * Cancels a run no pass is executing (queued, or waiting on approvals).
+   * A waiting run's pending calls resolve as not run: announced first,
+   * because a terminal run's stream takes nothing more, then stored in the
+   * same transaction as the cancel, so a decision racing it either lands
+   * first (the run resumes, and `cancel` stops that pass) or finds it
+   * cancelled.
+   */
   const cancelIdle = async (row: RunRow, by: UserId | null) => {
-    const cancelled = await transition(row.id, {
-      cancelledBy: by,
-      type: "cancel",
+    const interrupt = (parts: readonly MessagePart[]) =>
+      interruptLeftovers(parts, {
+        by: by === null ? "system" : "user",
+        streamed: callIdsIn(parts),
+      });
+    if (row.assistantMessageId) {
+      const answer = await getMessage(db, row.assistantMessageId);
+      await announce(
+        row.id,
+        interrupt(answer.ok ? answer.value.parts : []).chunks
+      );
+    }
+    const cancelled = await db.transaction(async (tx) => {
+      const moved = await transitionRun(
+        tx,
+        row.id,
+        { cancelledBy: by, type: "cancel" },
+        now()
+      );
+      if (!moved.ok) {
+        return null;
+      }
+      const answerId = moved.value.assistantMessageId;
+      if (answerId) {
+        const answer = await getMessage(tx, answerId);
+        await updateMessage(tx, answerId, {
+          parts: interrupt(answer.ok ? answer.value.parts : []).parts,
+          status: "partial",
+        });
+      }
+      return moved.value;
     });
     if (!cancelled) {
       return false;
-    }
-    if (row.assistantMessageId) {
-      await updateMessage(db, row.assistantMessageId, { status: "partial" });
     }
     if (row.status === "queued" && row.afterRunId) {
       // Keep the line: whoever waited on this run now waits on the one ahead.
@@ -757,6 +934,91 @@ export const createInProcessExecutor = (
     return true;
   };
 
+  /**
+   * Records decisions on the answer's calls, atomically: the run row stays
+   * locked from the read to the write, so two decisions at once can't each
+   * overwrite the other's, and resuming happens in the same transaction.
+   * A call already decided keeps its decision: the same one again is a
+   * no-op (a retry, a second tab), a different one is refused.
+   */
+  const recordDecisions = async (
+    runId: RunId,
+    decisions: readonly ToolApproval[],
+    by: UserId
+  ): Promise<Result<RecordedDecisions, RunExecutorError>> =>
+    db.transaction(async (tx) => {
+      const locked = await lockRun(tx, runId);
+      if (!locked.ok) {
+        return err({ runId, type: "not_found" as const });
+      }
+      const row = locked.value;
+      const refuse = () =>
+        err({ runId, status: row.status, type: "invalid_state" as const });
+      if (!row.assistantMessageId) {
+        return refuse();
+      }
+      const answer = await getMessage(tx, row.assistantMessageId);
+      if (!answer.ok) {
+        return err({
+          message: "the answer is gone",
+          type: "unavailable" as const,
+        });
+      }
+      const fresh = newDecisions(
+        recordedDecisions(answer.value.parts),
+        decisions
+      );
+      if (fresh === null) {
+        return refuse();
+      }
+      if (fresh.length === 0) {
+        return ok({
+          decided: recordedDecisions(answer.value.parts),
+          fresh,
+          resumed: null,
+          row,
+        });
+      }
+      return row.status === "awaiting_approval"
+        ? storeDecisions(tx, row, answer.value.parts, fresh, by)
+        : refuse();
+    });
+
+  /** Writes new decisions on a waiting run, and resumes it once none is pending. */
+  const storeDecisions = async (
+    tx: Db,
+    row: RunRow,
+    answer: readonly MessagePart[],
+    fresh: readonly ToolApproval[],
+    by: UserId
+  ): Promise<Result<RecordedDecisions, RunExecutorError>> => {
+    const pending = new Set((row.approvals ?? []).map((a) => a.toolCallId));
+    const unknown = fresh.find((d) => !pending.has(d.toolCallId));
+    if (unknown) {
+      return err({
+        runId: row.id,
+        toolCallId: unknown.toolCallId,
+        type: "unknown_tool_call",
+      });
+    }
+    const parts = withDecisions(answer, fresh, {
+      by,
+      decidedAt: now().toISOString(),
+    });
+    await updateMessage(tx, row.assistantMessageId as MessageId, { parts });
+    const decided = recordedDecisions(parts);
+    if (![...pending].every((id) => decided.has(id))) {
+      return ok({ decided, fresh, resumed: null, row });
+    }
+    const resumed = await transitionRun(tx, row.id, { type: "resume" }, now());
+    return ok({
+      decided,
+      fresh,
+      resumed: resumed.ok ? resumed.value : null,
+      row,
+    });
+  };
+
   return {
     cancel: async (runId, by) => {
       const found = await getRun(db, runId);
@@ -767,16 +1029,23 @@ export const createInProcessExecutor = (
       if (isTerminal(row.status)) {
         return err({ runId, status: row.status, type: "invalid_state" });
       }
-      const controller = active.get(runId);
-      if (controller) {
+      const abortPass = async () => {
+        const controller = active.get(runId);
+        if (!controller) {
+          return false;
+        }
         // The executing pass stores what it has, settles as cancelled and
         // closes the stream after its last chunk.
         cancelledBy.set(runId, by);
         controller.abort();
         await running.get(runId);
+        return true;
+      };
+      if ((await abortPass()) || (await cancelIdle(row, by))) {
         return ok(undefined);
       }
-      if (await cancelIdle(row, by)) {
+      // A decision resumed it between the two looks: stop that pass.
+      if (await abortPass()) {
         return ok(undefined);
       }
       const current = await getRun(db, runId);
@@ -837,54 +1106,15 @@ export const createInProcessExecutor = (
     start: startRun,
 
     submitApprovals: async (runId, decisions, by) => {
-      const found = await getRun(db, runId);
-      if (!found.ok) {
-        return err({ runId, type: "not_found" });
+      const recorded = await recordDecisions(runId, decisions, by);
+      if (!recorded.ok) {
+        return recorded;
       }
-      const row = found.value;
-      if (row.status !== "awaiting_approval" || !row.assistantMessageId) {
-        return err({ runId, status: row.status, type: "invalid_state" });
-      }
-      const pending = new Set((row.approvals ?? []).map((a) => a.toolCallId));
-      const unknown = decisions.find((d) => !pending.has(d.toolCallId));
-      if (unknown) {
-        return err({
-          runId,
-          toolCallId: unknown.toolCallId,
-          type: "unknown_tool_call",
-        });
-      }
-      const answer = await getMessage(db, row.assistantMessageId);
-      if (!answer.ok) {
-        return err({ message: "the answer is gone", type: "unavailable" });
-      }
-      const byCall = new Map<string, ToolApproval>(
-        decisions.map((d) => [d.toolCallId, d])
-      );
-      const decidedAt = now().toISOString();
-      const parts = answer.value.parts.map((part): MessagePart => {
-        const decision =
-          part.type === "tool-call" ? byCall.get(part.toolCallId) : undefined;
-        return part.type === "tool-call" && decision
-          ? {
-              ...part,
-              approval: {
-                decidedAt,
-                decidedBy: by,
-                decision: decision.decision,
-                state: "decided",
-              },
-            }
-          : part;
-      });
-      await updateMessage(db, row.assistantMessageId, { parts });
-      const decided = recordedDecisions(parts);
-      if (![...pending].every((id) => decided.has(id))) {
-        return ok(undefined);
-      }
-      const resumed = await transition(runId, { type: "resume" });
-      if (!resumed) {
-        // Someone else's decision resumed it first, or it was cancelled.
+      const { decided, fresh, resumed, row } = recorded.value;
+      // Every client following the stream drops the decided cards now, not
+      // when the tool's output lands (the SDK streams no response).
+      await announce(runId, decisionChunks(fresh));
+      if (!(resumed && row.assistantMessageId)) {
         return ok(undefined);
       }
       const controller = new AbortController();

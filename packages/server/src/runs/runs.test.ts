@@ -301,7 +301,8 @@ describe("POST /api/runs", () => {
     expect(types).toContain("tool-approval-request");
     expect(types).toContain("text-delta");
 
-    // Deciding again is a conflict: nothing is pending now.
+    // Deciding again the same way is a no-op (a retry, a second tab);
+    // deciding differently is a conflict: the first decision stands.
     const again = await h.request(`/api/runs/${created.runId}/approvals`, {
       json: {
         decisions: [
@@ -310,7 +311,14 @@ describe("POST /api/runs", () => {
       },
       method: "POST",
     });
-    expect(again.status).toBe(409);
+    expect(again.status).toBe(200);
+    const flipped = await h.request(`/api/runs/${created.runId}/approvals`, {
+      json: {
+        decisions: [{ decision: { decision: "reject" }, toolCallId: "call-1" }],
+      },
+      method: "POST",
+    });
+    expect(flipped.status).toBe(409);
   });
 
   it("cancels a waiting run and closes its stream", async () => {
