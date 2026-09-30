@@ -1,6 +1,6 @@
 # Round 2 report: harness reliability and workspace UX (2026-09-30)
 
-Everything in this round is a **draft PR for review. Nothing is merged or deployed.** Policy changes are a proposal only.
+This round went up as draft PRs for review. **Update (2026-09-30):** Connor decided three of them and they are merged: #60, #63 (keeping cancel-on-send) and #65 (dev-only relaxation; the worker thread is ticket 083). The rest (#61, #62, #64, #66, #67) are still drafts. Nothing is deployed. Policy changes are a proposal only.
 
 ## Evidence
 - **Harness audit:** [`audit-harness.md`](audit-harness.md). It traces the flow with file:line references, maps the run and tool-call state machine, and measures prompts with the mock model.
@@ -45,8 +45,8 @@ The requested e2e coverage is spread across the PRs:
 
 ## Decisions for Connor
 1. **Permissions:** the proposal (`docs/proposals/2026-09-30-agent-permissions.md`) has 9 open questions: the default preset, tighter `bash`, whether Reject stops the run, the contract changes, and more.
-2. **#63:** a new message sent while a change waits now cancels that answer, as Stop would, instead of queuing forever. OK?
-3. **#65:** accept the dev-only relaxation, or do the worker-thread isolation?
+2. ~~**#63:** a new message sent while a change waits now cancels that answer, as Stop would, instead of queuing forever. OK?~~ Decided: yes, merged.
+3. ~~**#65:** accept the dev-only relaxation, or do the worker-thread isolation?~~ Decided: dev-only now (merged), worker thread later (ticket 083).
 4. **"[" key:** should it toggle the sidebar, as in the Zettelkasten? It's "previous branch" today, which would move to Shift+[ / Shift+].
 
 ## Follow-ups found (not started)
