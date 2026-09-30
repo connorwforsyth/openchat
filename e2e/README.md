@@ -50,7 +50,9 @@ suite goes and printed at the end.
   migrations) and started with `node server.js`. It checks the image's
   contents without Docker.
 - `E2E_DEV=1` runs `next dev` instead, to debug a failure with React's
-  development warnings (slow: it compiles on demand).
+  development warnings (slow: it compiles on demand). `workspace.spec.ts`
+  under it is also the check that a just-bash command can't take `next dev`
+  down (076): `E2E_DEV=1 bunx playwright test e2e/tests/workspace.spec.ts`.
 
 ## Docker
 

@@ -1,10 +1,13 @@
 import { fixtureId } from "@workspace/contract/fixtures";
-import { describe, expect, it } from "vitest";
+import { Bash, DefenseInDepthBox } from "just-bash";
+import { afterEach, describe, expect, it } from "vitest";
 
 import type { Sandbox } from "../ports/sandbox";
+import { installHostAsyncHook } from "../testing/host-async-hook";
 import {
   createJustBashFactory,
   createJustBashSandbox,
+  defenseInDepthFor,
   liveKey,
 } from "./provider";
 import { createMemorySnapshotStore } from "./snapshot-store";
@@ -207,6 +210,62 @@ describe("just-bash SandboxFactory", () => {
     expect(written).toMatchObject({
       error: { type: "limit_exceeded" },
       ok: false,
+    });
+  });
+});
+
+// 076: `next dev` died mid tool call. React's development renderer times
+// every promise and timer from a process-wide async hook, which runs inside
+// the command's async context, where just-bash's defense-in-depth layer
+// throws; a throw from an async hook exits Node.
+describe("just-bash under a host's async hooks", () => {
+  /** Timers, pipes and loops: every kind of async work a command makes. */
+  const COMMAND =
+    "sleep 0.01; echo a | grep a | wc -l; for n in 1 2; do echo $n; done";
+  const OUTPUT = "1\n1\n2\n";
+
+  it("keeps the layer by default, which a dev-mode hook trips", async () => {
+    const sandbox = await createJustBashSandbox({ id });
+    using hook = installHostAsyncHook();
+    const result = await must(sandbox.exec(COMMAND));
+    expect(result.stdout).toBe(OUTPUT);
+    // Under React's hook, each of these would have exited the process.
+    expect(hook.thrown).toContain("SecurityViolationError");
+  });
+
+  it("runs cleanly under the hook with the layer off, as under next dev", async () => {
+    const sandbox = await createJustBashSandbox({ defenseInDepth: false, id });
+    using hook = installHostAsyncHook();
+    const result = await must(sandbox.exec(COMMAND));
+    expect(result.stdout).toBe(OUTPUT);
+    expect(hook.thrown).toEqual([]);
+  });
+
+  it("turns the layer off under next dev alone", () => {
+    expect(defenseInDepthFor({ NODE_ENV: "development" })).toBe(false);
+    expect(defenseInDepthFor({ NODE_ENV: "production" })).toBe(true);
+    expect(defenseInDepthFor({ NODE_ENV: "test" })).toBe(true);
+    expect(defenseInDepthFor({})).toBe(true);
+  });
+
+  describe("an interpreter that throws", () => {
+    afterEach(() => DefenseInDepthBox.resetInstance());
+
+    it("is the command's error, not a rejection", async () => {
+      // The layer is one per process: another Bash that set it up
+      // differently makes this one's exec throw.
+      DefenseInDepthBox.resetInstance();
+      await new Bash({
+        defenseInDepth: { auditMode: true, enabled: true },
+      }).exec("true");
+      const sandbox = await createJustBashSandbox({ id });
+      expect(await sandbox.exec("echo hi")).toMatchObject({
+        error: {
+          message: expect.stringContaining("conflict"),
+          type: "unavailable",
+        },
+        ok: false,
+      });
     });
   });
 });

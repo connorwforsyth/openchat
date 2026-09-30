@@ -14,6 +14,8 @@ import { storageStateFor, users } from "../support/users";
 
 const BASH_RESULT = /Tool result: .*from-the-agent/;
 const HI_RESULT = /Tool result: .*hi/;
+const STEPS_RESULT = /Tool result: .*step-1.*step-2/;
+const STILL_UP_RESULT = /Tool result: .*still-up/;
 const REVIEW_RESULT = /Tool result: .*Keep the last line as a number/;
 const RAN_LS = /^Ran ls/;
 const APPROVE = /^Approve/;
@@ -159,6 +161,24 @@ test("the agent runs bash in the chat's workspace", async ({ page }) => {
     '[tool:bash {"command": "echo from-the-agent > b.txt && cat a.txt b.txt"}]'
   );
   await expectReply(page, BASH_RESULT);
+});
+
+// Under `next dev` (E2E_DEV=1), React's development renderer hooks every
+// promise and timer, and those hooks once hit just-bash's defense-in-depth
+// layer and killed the server mid tool call (076). A timer, a pipe and a
+// loop cover the kinds of async work a command makes.
+test("a command with a timer, a pipe and a loop finishes, and the server keeps serving", async ({
+  page,
+}) => {
+  await page.goto(`/c/${shellChat}`);
+  await send(
+    page,
+    '[tool:bash {"command": "sleep 0.1; echo a | grep -c a; for n in 1 2; do echo step-$n; done"}]'
+  );
+  await expectReply(page, STEPS_RESULT);
+  expect((await page.request.get("/api/config")).ok()).toBe(true);
+  await send(page, '[tool:bash {"command": "echo still-up"}]');
+  await expectReply(page, STILL_UP_RESULT);
 });
 
 test("per-hunk review: a rejected hunk stays unapplied and the agent is told", async ({

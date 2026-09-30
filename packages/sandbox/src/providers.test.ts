@@ -4,6 +4,7 @@ import { fixtureId } from "@workspace/contract/fixtures";
 import { describe, expect, it } from "vitest";
 
 import { sandboxProvidersFromConfig } from "./providers";
+import { installHostAsyncHook } from "./testing/host-async-hook";
 
 const config = (text: string): AppConfig => {
   const result = parseConfig(text, {});
@@ -21,6 +22,36 @@ describe("sandboxProvidersFromConfig", () => {
       ok: true,
       value: "simulated",
     });
+  });
+
+  it("runs just-bash without its defense-in-depth layer under next dev, and says so (076)", async () => {
+    const logged: string[] = [];
+    const log = (message: string) => logged.push(message);
+    sandboxProvidersFromConfig(config(""), {
+      env: { NODE_ENV: "production" },
+      log,
+    });
+    expect(logged).toEqual([]);
+
+    const providers = sandboxProvidersFromConfig(config(""), {
+      env: { NODE_ENV: "development" },
+      log,
+    });
+    expect(logged).toEqual([expect.stringContaining("defense-in-depth")]);
+    const created = await providers.get("just-bash")?.factory.create({
+      conversationId: fixtureId("conversation", 1),
+      id: fixtureId("sandbox", 1),
+      limits: { cpu: 1, diskMb: 64, memoryMb: 256, network: false },
+    });
+    if (!created?.ok) {
+      throw new Error("no just-bash sandbox");
+    }
+    // React's development renderer hooks every promise and timer; nothing a
+    // command does may throw inside those hooks.
+    using hook = installHostAsyncHook();
+    const ran = await created.value.exec("sleep 0.01; echo hi");
+    expect(ran).toMatchObject({ ok: true, value: { stdout: "hi\n" } });
+    expect(hook.thrown).toEqual([]);
   });
 
   it("offers nothing when sandboxes are off", () => {
