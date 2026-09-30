@@ -1,15 +1,10 @@
 "use client";
 
-import { Trans, useLingui } from "@lingui/react/macro";
-import { CodeHeader } from "@workspace/code-ui/code-header";
-import {
-  ToggleGroup,
-  ToggleGroupItem,
-} from "@workspace/ui/components/toggle-group";
-import { type ReactNode, useCallback, useReducer } from "react";
+import { useCallback, useReducer } from "react";
 
 import { Markdown } from "../conversation/markdown";
 import { FileView, type FileViewProps } from "./file-view";
+import { ModeToggle, type ModeToggleProps } from "./mode-toggle";
 import {
   type BrowserAction,
   type BrowserHistory,
@@ -20,11 +15,13 @@ import {
 } from "./model/browser";
 import type { ReadStaticFile } from "./model/static-page";
 import { BrowserView } from "./preview";
+import { PathTitle, ViewHeader } from "./view-header";
 
 // A file that renders (066): an `.html` file shows in the built-in browser
 // at its own path, a Markdown file as prose with the app's message
-// renderer. Either has a Code toggle to the editor, which is the same one
-// every other file opens in.
+// renderer. Either has a Preview/Code toggle to the editor, which is the same
+// one every other file opens in. The toggle sits in the view's one header row
+// (070); it's two quiet segments, icons only when the row is short.
 
 export interface RenderedFileProps extends FileViewProps {
   readonly kind: "html" | "markdown";
@@ -34,44 +31,6 @@ export interface RenderedFileProps extends FileViewProps {
   readonly readFile: ReadStaticFile | null;
   readonly refreshKey: number | string;
   readonly sources: PreviewSources;
-}
-
-function ModeToggle({
-  mode,
-  onModeChange,
-}: {
-  readonly mode: FileMode;
-  readonly onModeChange: (mode: FileMode) => void;
-}) {
-  const { t } = useLingui();
-  const change = useCallback(
-    (value: unknown[]) => {
-      // A segmented control: pressing the shown mode keeps it.
-      const [next] = value;
-      if (next === "rendered" || next === "code") {
-        onModeChange(next);
-      }
-    },
-    [onModeChange]
-  );
-  return (
-    <ToggleGroup
-      aria-label={t`Show as`}
-      className="shrink-0"
-      onValueChange={change}
-      size="sm"
-      spacing={0}
-      value={[mode]}
-      variant="outline"
-    >
-      <ToggleGroupItem className="text-xs" value="rendered">
-        <Trans>Preview</Trans>
-      </ToggleGroupItem>
-      <ToggleGroupItem className="text-xs" value="code">
-        <Trans>Code</Trans>
-      </ToggleGroupItem>
-    </ToggleGroup>
-  );
 }
 
 const startAt = (path: string): BrowserHistory => ({
@@ -94,7 +53,7 @@ function HtmlFile({
   readonly readFile: ReadStaticFile | null;
   readonly refreshKey: number | string;
   readonly sources: PreviewSources;
-  readonly toggle: ReactNode;
+  readonly toggle: ModeToggleProps;
 }) {
   const [history, dispatch] = useReducer(
     (state: BrowserHistory, action: BrowserAction) =>
@@ -105,17 +64,18 @@ function HtmlFile({
   return (
     <BrowserView
       history={history}
+      modeToggle={toggle}
       onNavigate={dispatch}
       probe={probe}
       readFile={readFile}
       refreshKey={refreshKey}
       sources={sources}
-      toolbarEnd={toggle}
     />
   );
 }
 
 export function RenderedFile({
+  autoFocus,
   kind,
   mode,
   onModeChange,
@@ -137,10 +97,12 @@ export function RenderedFile({
     [onModeChange, onSave]
   );
   const toggle = <ModeToggle mode={mode} onModeChange={changeMode} />;
+  const toggleProps = { mode, onModeChange: changeMode };
   if (mode === "code" || file.kind === "binary" || file.kind === "error") {
     return (
       <FileView
         {...fileView}
+        autoFocus={autoFocus}
         modeToggle={file.kind === "text" ? toggle : undefined}
       />
     );
@@ -157,7 +119,7 @@ export function RenderedFile({
           file.kind === "text" ? `${refreshKey}:${file.etag}` : refreshKey
         }
         sources={sources}
-        toggle={toggle}
+        toggle={toggleProps}
       />
     );
   }
@@ -165,13 +127,13 @@ export function RenderedFile({
     return <FileView {...fileView} />;
   }
   return (
-    <div className="flex h-full min-h-0 flex-col p-2">
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border bg-background">
-        <CodeHeader actions={toggle} path={file.path} />
-        <article className="min-h-0 flex-1 overflow-auto px-6 py-5 text-sm leading-relaxed">
-          <Markdown>{file.draft}</Markdown>
-        </article>
-      </div>
+    <div className="flex min-h-0 flex-1 flex-col">
+      <ViewHeader actions={toggle}>
+        <PathTitle path={file.path} />
+      </ViewHeader>
+      <article className="min-h-0 flex-1 overflow-auto px-6 py-5 text-sm leading-relaxed">
+        <Markdown>{file.draft}</Markdown>
+      </article>
     </div>
   );
 }

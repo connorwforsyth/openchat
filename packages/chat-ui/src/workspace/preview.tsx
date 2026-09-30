@@ -4,11 +4,21 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
+  EllipsisIcon,
   ExternalLinkIcon,
+  FileIcon,
   GlobeIcon,
   RefreshCwIcon,
 } from "@workspace/icons";
-import { Button, buttonVariants } from "@workspace/ui/components/button";
+import { Button } from "@workspace/ui/components/button";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@workspace/ui/components/dropdown-menu";
 import {
   InputGroup,
   InputGroupAddon,
@@ -16,7 +26,6 @@ import {
   InputGroupText,
 } from "@workspace/ui/components/input-group";
 import { Spinner } from "@workspace/ui/components/spinner";
-import { Toggle } from "@workspace/ui/components/toggle";
 import { cn } from "@workspace/ui/lib/utils";
 import {
   type FormEvent,
@@ -27,7 +36,8 @@ import {
   useRef,
   useState,
 } from "react";
-
+import { ClosePanelButton, usePanelFrame } from "../shell/right-panel";
+import { ModeToggle, type ModeToggleProps } from "./mode-toggle";
 import {
   type BrowserAction,
   type BrowserHistory,
@@ -50,6 +60,9 @@ import {
   renderStaticPage,
   staticLinkMessageSchema,
 } from "./model/static-page";
+import { fitBrowserToolbar, type ToolbarFit } from "./model/toolbar";
+import { useElementWidth } from "./use-element-width";
+import { BackToList, headerRow, useBackToList } from "./view-header";
 
 // The Workspace panel's built-in browser (066): back, forward, reload, an
 // address bar, a mobile width and open in a new tab, over one page at a
@@ -58,13 +71,17 @@ import {
 // no access to the app, no top navigation, no app cookies. So the panel
 // can't read where a frame went; the address bar and history are the
 // panel's own. A workspace with no ports gets a static render of the HTML
-// file instead, labelled as one.
+// file instead, labelled as one. The toolbar is the view's one header row
+// (070): it never overflows, down to a 340px panel. What doesn't fit moves
+// into its "…" menu (`fitBrowserToolbar`).
 
 /** Frame sandboxing: scripts and forms run, the page stays opaque-origin. */
 const FRAME_SANDBOX = "allow-scripts allow-forms allow-popups allow-modals";
 
 export interface BrowserViewProps {
   readonly history: BrowserHistory | null;
+  /** A rendered file's Preview/Code switch, at the end of the toolbar. */
+  readonly modeToggle?: Omit<ModeToggleProps, "labels">;
   readonly onNavigate: (action: BrowserAction) => void;
   /** Whether a URL answers; the default checks from an opaque-origin frame. */
   readonly probe?: (url: string) => Promise<boolean>;
@@ -73,21 +90,26 @@ export interface BrowserViewProps {
   /** Moves when the agent may have changed files: static pages load again. */
   readonly refreshKey: number | string;
   readonly sources: PreviewSources;
-  /** Extra controls at the end of the toolbar (a file's Code toggle). */
-  readonly toolbarEnd?: ReactNode;
 }
 
 export function BrowserView({
   history,
+  modeToggle,
   onNavigate,
   probe = probePreview,
   readFile,
   refreshKey,
   sources,
-  toolbarEnd,
 }: BrowserViewProps) {
   const { t } = useLingui();
   const [mobile, setMobile] = useState(false);
+  const [toolbar, width] = useElementWidth<HTMLDivElement>();
+  const fit = fitBrowserToolbar({
+    backToList: useBackToList() !== null,
+    close: usePanelFrame() !== null,
+    toggle: modeToggle !== undefined,
+    width,
+  });
   const page = currentPage(history);
   const target = page ? targetOf(sources, page) : null;
   const loads = history?.loads ?? 0;
@@ -113,13 +135,16 @@ export function BrowserView({
     [onNavigate, target]
   );
 
+  const served = page && target?.kind === "server" ? target : null;
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col">
       <div
         aria-label={t`Browser`}
-        className="flex min-h-10 items-center gap-1 border-b bg-muted/40 px-2 py-1.5"
+        className={cn(headerRow, "gap-0.5")}
+        ref={toolbar}
         role="toolbar"
       >
+        <BackToList />
         <Button
           aria-label={t`Back`}
           disabled={!canGoBack(history)}
@@ -129,59 +154,54 @@ export function BrowserView({
         >
           <ArrowLeftIcon aria-hidden />
         </Button>
-        <Button
-          aria-label={t`Forward`}
-          disabled={!canGoForward(history)}
-          onClick={forward}
-          size="icon-sm"
-          variant="ghost"
-        >
-          <ArrowRightIcon aria-hidden />
-        </Button>
-        <Button
-          aria-label={t`Reload`}
-          disabled={!page}
-          onClick={reload}
-          size="icon-sm"
-          variant="ghost"
-        >
-          <RefreshCwIcon aria-hidden />
-        </Button>
+        {fit.forward ? (
+          <Button
+            aria-label={t`Forward`}
+            disabled={!canGoForward(history)}
+            onClick={forward}
+            size="icon-sm"
+            variant="ghost"
+          >
+            <ArrowRightIcon aria-hidden />
+          </Button>
+        ) : null}
+        {fit.reload ? (
+          <Button
+            aria-label={t`Reload`}
+            disabled={!page}
+            onClick={reload}
+            size="icon-sm"
+            variant="ghost"
+          >
+            <RefreshCwIcon aria-hidden />
+          </Button>
+        ) : null}
         <AddressBar
           // A navigation puts the page's path back in the bar.
           key={`${page?.path ?? ""}#${loads}`}
           onGo={go}
           path={page?.path ?? ""}
+          staticLabel={fit.staticLabel}
           target={target}
         />
-        <Toggle
-          aria-label={t`Mobile width`}
-          className="shrink-0 text-xs"
-          onPressedChange={setMobile}
-          pressed={mobile}
-          size="sm"
-          title={t`Show the page at a phone's width`}
-        >
-          <Trans>Mobile</Trans>
-        </Toggle>
-        {page && target?.kind === "server" ? (
-          <a
-            aria-label={t`Open in a new tab`}
-            className={cn(
-              buttonVariants({ size: "icon-sm", variant: "ghost" }),
-              "shrink-0"
-            )}
-            href={pageUrl(target.preview, page.path)}
-            rel="noopener noreferrer"
-            target="_blank"
-            title={t`Open in a new tab`}
-          >
-            <ExternalLinkIcon aria-hidden />
-          </a>
+        <BrowserMenu
+          canGoForward={canGoForward(history)}
+          fit={fit}
+          mobile={mobile}
+          newTab={served ? pageUrl(served.preview, page?.path ?? "/") : null}
+          onForward={forward}
+          onMobileChange={setMobile}
+          onReload={page ? reload : null}
+        />
+        {modeToggle ? (
+          <ModeToggle
+            {...modeToggle}
+            labels={fit.toggleLabels ? "shown" : "hidden"}
+          />
         ) : null}
-        {toolbarEnd}
+        <ClosePanelButton />
       </div>
-      <div className="flex min-h-0 flex-1 bg-muted/30">
+      <div className={cn("flex min-h-0 flex-1", mobile && "bg-muted/30")}>
         <div
           className={cn(
             "flex min-h-0 w-full flex-1 flex-col bg-background",
@@ -204,13 +224,89 @@ export function BrowserView({
   );
 }
 
+/** The toolbar's quieter actions, and whatever didn't fit in the row. */
+function BrowserMenu({
+  canGoForward: forwardEnabled,
+  fit,
+  mobile,
+  newTab,
+  onForward,
+  onMobileChange,
+  onReload,
+}: {
+  readonly canGoForward: boolean;
+  readonly fit: ToolbarFit;
+  readonly mobile: boolean;
+  /** The served page's own URL; `null` for a static render (no origin to open). */
+  readonly newTab: string | null;
+  readonly onForward: () => void;
+  readonly onMobileChange: (mobile: boolean) => void;
+  readonly onReload: (() => void) | null;
+}) {
+  const { t } = useLingui();
+  const moved = !(fit.forward && fit.reload);
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            aria-label={t`More browser actions`}
+            size="icon-sm"
+            variant="ghost"
+          />
+        }
+      >
+        <EllipsisIcon aria-hidden />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-52">
+        {fit.forward ? null : (
+          <DropdownMenuItem disabled={!forwardEnabled} onClick={onForward}>
+            <ArrowRightIcon aria-hidden />
+            <Trans>Forward</Trans>
+          </DropdownMenuItem>
+        )}
+        {fit.reload ? null : (
+          <DropdownMenuItem
+            disabled={!onReload}
+            onClick={onReload ?? undefined}
+          >
+            <RefreshCwIcon aria-hidden />
+            <Trans>Reload</Trans>
+          </DropdownMenuItem>
+        )}
+        {moved ? <DropdownMenuSeparator /> : null}
+        <DropdownMenuCheckboxItem
+          checked={mobile}
+          onCheckedChange={onMobileChange}
+          title={t`Show the page at a phone's width`}
+        >
+          <Trans>Mobile width</Trans>
+        </DropdownMenuCheckboxItem>
+        {newTab ? (
+          <DropdownMenuItem
+            render={
+              <a href={newTab} rel="noopener noreferrer" target="_blank" />
+            }
+          >
+            <ExternalLinkIcon aria-hidden />
+            <Trans>Open in a new tab</Trans>
+          </DropdownMenuItem>
+        ) : null}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function AddressBar({
   onGo,
   path,
+  staticLabel,
   target,
 }: {
   readonly onGo: (path: string) => void;
   readonly path: string;
+  /** Room for the words "Static render"; otherwise an icon says it. */
+  readonly staticLabel: boolean;
   readonly target: PageTarget | null;
 }) {
   const { t } = useLingui();
@@ -230,28 +326,37 @@ function AddressBar({
     },
     [onGo, target]
   );
+  // Escape puts the page's path back. With nothing to put back, it's the
+  // panel's: it leaves the field, and the next one closes the panel.
   const onKeyDown = useCallback(
     (event: KeyboardEvent<HTMLInputElement>) => {
-      if (event.key === "Escape" && input.current) {
+      if (
+        event.key === "Escape" &&
+        input.current &&
+        (input.current.value !== path || refused)
+      ) {
+        event.preventDefault();
         input.current.value = path;
         setRefused(false);
-        input.current.blur();
       }
     },
-    [path]
+    [path, refused]
   );
   const clearRefusal = useCallback(() => setRefused(false), []);
 
   return (
-    <form className="min-w-0 flex-1" onSubmit={submit}>
-      <InputGroup className="h-7 bg-background">
+    <form className="min-w-30 flex-1" onSubmit={submit}>
+      <InputGroup className="h-7 border-transparent bg-muted dark:bg-muted">
         <InputGroupAddon>
           {target?.kind === "static-render" ? (
             <InputGroupText
-              className="text-xs"
+              className="whitespace-nowrap text-xs"
               title={t`There's no server here, so the HTML file is shown as it is, with its local styles, scripts and images.`}
             >
-              <Trans>Static render</Trans>
+              <FileIcon aria-hidden />
+              <span className={staticLabel ? undefined : "sr-only"}>
+                <Trans>Static render</Trans>
+              </span>
             </InputGroupText>
           ) : (
             <InputGroupText className="font-mono text-xs">
