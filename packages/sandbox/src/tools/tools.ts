@@ -18,7 +18,7 @@ import {
 import { type Tool, tool } from "ai";
 import { z } from "zod";
 
-import { WORKDIR } from "../paths";
+import { resolveWorkspacePath, WORKDIR } from "../paths";
 import type { OutputChunk, Sandbox, SandboxError } from "../ports/sandbox";
 import { wait, waitForListener } from "./listener";
 import { proposeEdit } from "./patch";
@@ -34,6 +34,11 @@ import { STATIC_PREVIEW_PORT } from "./static-preview";
 // from, so a file the user edited while the change waited isn't
 // overwritten. Expected failures come back as `{ status: "error" }` outputs
 // the model can read, not throws.
+//
+// `read`, `write` and `edit` only touch files inside `/work` (D7), by the
+// same rule as the Files panel's routes (`resolveWorkspacePath`); anywhere
+// else is an error the model can correct. `bash` isn't held to it: the
+// sandbox itself is its boundary.
 
 export const SANDBOX_TOOL_NAMES = [
   "bash",
@@ -182,22 +187,47 @@ const describeError = (error: SandboxError): string => {
 
 const failure = (message: string) => ({ message, status: "error" as const });
 
+/**
+ * The workspace file a tool's `path` names, as an absolute path under
+ * `/work`, or a message saying how to name one. The model's own spelling
+ * stays in what it's shown (proposals, errors); the sandbox only ever gets
+ * the checked path.
+ */
+const workspaceFile = (path: string): Result<string, string> => {
+  const resolved = resolveWorkspacePath(path);
+  return resolved.ok
+    ? resolved
+    : err(
+        `${resolved.error.message} Paths must be inside ${WORKDIR}; relative paths resolve against it.`
+      );
+};
+
 const decoder = new TextDecoder("utf-8", { fatal: true });
 
-/** A file as text: missing is empty (for `write`), binary is an error. */
+/**
+ * The workspace file `path` names, as text: missing is empty (for `write`),
+ * binary or outside `/work` is an error. Also returns the checked path.
+ */
 const readText = async (
   sandbox: ToolSandbox,
   path: string,
   { missingIsEmpty }: { readonly missingIsEmpty: boolean }
-): AsyncResult<string, string> => {
-  const read = await sandbox.readFile(path);
+): AsyncResult<{ target: string; text: string }, string> => {
+  const target = workspaceFile(path);
+  if (!target.ok) {
+    return target;
+  }
+  const read = await sandbox.readFile(target.value);
   if (!read.ok) {
-    return missingIsEmpty && read.error.type === "not_found"
-      ? ok("")
-      : err(describeError(read.error));
+    if (read.error.type !== "not_found") {
+      return err(describeError(read.error));
+    }
+    return missingIsEmpty
+      ? ok({ target: target.value, text: "" })
+      : err(describeError({ ...read.error, path }));
   }
   try {
-    return ok(decoder.decode(read.value));
+    return ok({ target: target.value, text: decoder.decode(read.value) });
   } catch {
     return err(`${path} is not a UTF-8 text file`);
   }
@@ -210,23 +240,33 @@ type ChangeInput =
 const countOccurrences = (text: string, search: string): number =>
   text.split(search).length - 1;
 
+interface PlannedChange {
+  readonly after: string;
+  readonly before: string;
+  /** As the model wrote it, for the proposal it's shown. */
+  readonly path: string;
+  /** The checked path inside `/work` the change is written to. */
+  readonly target: string;
+}
+
 /** The file before and after a write or edit, without writing anything. */
 const planChange = async (
   sandbox: ToolSandbox,
   change: ChangeInput
-): AsyncResult<{ after: string; before: string; path: string }, string> => {
+): AsyncResult<PlannedChange, string> => {
   const { path } = change.input;
-  const before = await readText(sandbox, path, {
+  const read = await readText(sandbox, path, {
     missingIsEmpty: change.kind === "write",
   });
-  if (!before.ok) {
-    return before;
+  if (!read.ok) {
+    return read;
   }
+  const { target, text: before } = read.value;
   if (change.kind === "write") {
-    return ok({ after: change.input.content, before: before.value, path });
+    return ok({ after: change.input.content, before, path, target });
   }
   const { newString, oldString, replaceAll } = change.input;
-  const count = countOccurrences(before.value, oldString);
+  const count = countOccurrences(before, oldString);
   if (count === 0) {
     return err(`oldString was not found in ${path}`);
   }
@@ -236,9 +276,9 @@ const planChange = async (
     );
   }
   const after = replaceAll
-    ? before.value.split(oldString).join(newString)
-    : before.value.replace(oldString, () => newString);
-  return ok({ after, before: before.value, path });
+    ? before.split(oldString).join(newString)
+    : before.replace(oldString, () => newString);
+  return ok({ after, before, path, target });
 };
 
 const encoder = new TextEncoder();
@@ -352,7 +392,7 @@ export const applySandboxChange = async (
   if (!planned.ok) {
     return failure(planned.error);
   }
-  const { after, before, path } = planned.value;
+  const { after, before, path, target } = planned.value;
   // After an approval, the file must be the one the reviewer saw: the user
   // may have edited it in the Files panel while the change waited.
   const reviewedHash = review?.proposed && baseHashOf(review.proposed);
@@ -388,7 +428,7 @@ export const applySandboxChange = async (
     return stale;
   }
   if (applied.length > 0) {
-    const written = await sandbox.writeFile(path, next.value);
+    const written = await sandbox.writeFile(target, next.value);
     if (!written.ok) {
       return failure(describeError(written.error));
     }
@@ -528,13 +568,13 @@ export const createSandboxTools = ({
     }),
 
     read: tool({
-      description: `Read a text file from the workspace (${WORKDIR}, the user's Files panel), optionally a range of lines. Relative paths are relative to ${WORKDIR}.`,
+      description: `Read a text file from the workspace (${WORKDIR}, the user's Files panel), optionally a range of lines. Paths must be inside ${WORKDIR}; relative paths are relative to it.`,
       execute: async ({ limit, offset, path }) => {
         const text = await readText(sandbox, path, { missingIsEmpty: false });
         if (!text.ok) {
           return failure(text.error);
         }
-        const { content, total } = sliceLines(text.value, offset, limit);
+        const { content, total } = sliceLines(text.value.text, offset, limit);
         const truncated = content.length > MAX_READ_CHARS;
         return {
           content: truncated ? content.slice(0, MAX_READ_CHARS) : content,
