@@ -2,8 +2,8 @@
 id: "072"
 title: "Approval harness: live cards, idempotent decisions, real Stop, honest states"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -142,3 +142,7 @@ Branch `t/072-harness-reliability` (origin/main plus the audit's `[script:…]` 
 - `approvalIdsOf` reads the run's `tool-approval-request` chunks with a `jsonb` filter on every decision; fine at chat scale, but an index or caching the ids on the run row would help a very long run.
 - The measurement spec (`zz-audit-harness.spec.ts`, adapted from the audit's) isn't committed, like the audit's.
 - Nothing needs a contract change or a decision from Connor, except that the new-message behaviour (a message sent while a change waits skips it) is a product choice he may want to confirm.
+
+## Resolution (2026-09-30, loop)
+
+Merged on Connor's decision (2026-09-30), keeping cancel-on-send: a new message sent while a change waits cancels that answer. Verified on the rebased branch: gate 82/82, e2e 43/43. [PR #63](https://github.com/connorwforsyth/openchat/pull/63).

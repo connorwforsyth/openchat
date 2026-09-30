@@ -90,3 +90,8 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-09-30 · 067 closed · PR #57 · static preview + restore after runner restart · 82/82
 - 2026-09-30 · 069 closed · PR #58 · 82/82
 - 2026-09-30 · 066 closed · PR #59 · e2e 33/33 · only 026 (Connor) remains
+- 2026-09-30 · Connor decided: no eve migration, do stages S0–S4 (078–082, `docs/proposals/2026-09-30-eve-assessment.md`); merge #60, #63 (keep cancel-on-send), #65 (dev-only, worker later)
+- 2026-09-30 · 074 closed · PR #60 · gate 82/82
+- 2026-09-30 · 072 closed · PR #63 · gate 82/82 · e2e 43/43
+- 2026-09-30 · 076 closed · PR #65 · gate 82/82 · e2e 44/44 · added 083 (just-bash in a worker thread)
+- 2026-09-30 · claimed 078 (S0) and 079 (S1); 080 and 081 follow; 082 waits for Connor

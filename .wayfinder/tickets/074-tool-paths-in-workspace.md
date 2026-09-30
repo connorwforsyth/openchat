@@ -2,8 +2,8 @@
 id: "074"
 title: "Agent file tools stay inside /work, as D7 promises"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -54,3 +54,7 @@ Branch `t/074-tool-paths-in-workspace`, not merged.
   followed. The Files panel routes have the same gap. The run's `@`-mention reads (`workspaceRead` in
   `handlers/turn-tools.ts`, used by `server/runs/workspace-context.ts`) take the person's ref path through the loose
   resolver. That is their own sandbox, and `bash` reads anywhere anyway, but it could use `resolveWorkspacePath` too.
+
+## Resolution (2026-09-30, loop)
+
+Merged on Connor's decision (2026-09-30). Verified on the rebased branch: gate 82/82. Left: a symlink inside `/work` that points outside is still followed, and `@file` reads use the loose path resolver. [PR #60](https://github.com/connorwforsyth/openchat/pull/60).

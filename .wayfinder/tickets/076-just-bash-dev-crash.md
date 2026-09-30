@@ -2,8 +2,8 @@
 id: "076"
 title: "next dev crashes when just-bash runs (SecurityViolationError)"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -97,3 +97,7 @@ Options considered:
 - `E2E_PORT=3573 bun turbo test:e2e`: 34 passed.
 - Dev check: `E2E_DEV=1 E2E_PORT=3576 bunx playwright test e2e/tests/workspace.spec.ts` gives 12 passed, with the
   server up throughout (before the fix, it died on the first bash call).
+
+## Resolution (2026-09-30, loop)
+
+Merged on Connor's decision (2026-09-30): he accepted the dev-only relaxation of just-bash's defense-in-depth layer, with the worker-thread isolation as follow-up [083](083-just-bash-worker-thread.md). Verified on the rebased branch: gate 82/82, e2e 44/44. [PR #65](https://github.com/connorwforsyth/openchat/pull/65).
