@@ -55,18 +55,16 @@ our own packages. Connor agreed on 2026-09-30. Read that document's Evidence and
 **Byte for byte.** `328dc01` adds `packages/server/src/runs/instructions.test.ts` on the unrefactored code: it runs a
 turn through `createServices` (turn resolver + memory wrapper + executor + `runAgent`) and snapshots the system message
 the mock model receives, for the five turn types plus ten edge cases (15 snapshots). `dbccbf4` is the refactor; it does
-not touch `__snapshots__/instructions.test.ts.snap` (`git diff 328dc01 dbccbf4 -- packages/server/src/runs/__snapshots__`
+not touch `__snapshots__/instructions.test.ts.snap` (`git diff 3174336 c4f73a5 -- packages/server/src/runs/__snapshots__`
 is empty) and the test passes.
 
-**Verified.** `bun run check` clean. `bun turbo typecheck lint test build --continue`: 81 of 82 tasks pass.
-`bun turbo test:e2e`: 44 passed, no e2e file changed. The one failing task is `check:guards` (brand): 8 "OpenChat"
-literals in `docs/proposals/2026-09-30-eve-assessment.md`, which arrived on `main` in `9063afe` and is outside this
-ticket's Owns, so it's left alone. That file is identical on `origin/main` and all 8 problems are in it, so `main` should fail the same
-way (not run there).
+**Verified.** After rebasing onto `main` at `cb5b9fa` (which fixed a brand-guard failure in the eve assessment doc):
+gate 82/82 (`check`, `check:guards`, `typecheck lint test build`), and `bun turbo test:e2e` 44 passed on a quiet
+machine, with no e2e file changed. Two earlier e2e runs failed in `harness.spec.ts` while another ticket's suites ran
+on the same machine (load average 20–30, runs took 10 minutes instead of 3.5).
 
 **Left / to decide.**
 
-- The brand guard failure above needs a fix on `main` (move the doc under an excluded path, or reword it).
 - Memory is added by `withChatMemory`, a wrapper that only sees the turn's composed string, so its sections read
   `preceding` + `memory` rather than the full list. Carrying `sections` on `Turn` (for traces and S3's evals) means
   touching `ai/src/memory/turn.ts` and `runs/memory.ts`, which this ticket doesn't own.
