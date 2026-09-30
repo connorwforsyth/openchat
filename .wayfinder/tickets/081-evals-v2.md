@@ -12,7 +12,7 @@ blockedBy: ["080"]
 Stage of the eve assessment (`docs/proposals/2026-09-30-eve-assessment.md`): no migration to eve; adopt its patterns in
 our own packages. Connor agreed on 2026-09-30. Read that document's Evidence and "Recommended staged plan" sections first.
 
-**Needs PR #63's `[script:]` mock extension on main.**
+PR #63's `[script:]` mock extension is on `main` (2026-09-30).
 
 ## Done when
 
@@ -32,3 +32,12 @@ our own packages. Connor agreed on 2026-09-30. Read that document's Evidence and
 ## Owns
 
 `packages/evals/**` (new), `packages/ai/evals/**`, `packages/ai/src/evals/**` (judge), `packages/server/src/evals/run.ts`, `packages/config/src/schema.ts` (prices), `packages/server/src/runs/chat-context.ts` (cost), `e2e/support/**`, CI workflow and `turbo.json`.
+
+## Split
+
+More than a day of work, so it is split; this ticket closes when all four have closed.
+
+- [084](084-evals-harness-deterministic.md): the harness and the deterministic suites.
+- [085](085-evals-judge-and-live.md): the judge module and live mode.
+- [086](086-model-prices.md): the price table.
+- [087](087-judge-quality-spike.md): the judge-quality spike, which needs Connor (a local model or permission to spend).

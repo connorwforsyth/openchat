@@ -98,3 +98,5 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-10-01 · 079 (S1) draft PR #68 · gate 82/82 · e2e 44/44 · prompt snapshot unchanged · waits for Connor
 - 2026-10-01 · 078 (S0) draft PR #69, stacked on #68 · gate 82/82 · e2e 48/48 · MCP tools in plain chats ask · waits for Connor
 - 2026-10-01 · claimed 080 (S2), stacked on #69
+- 2026-10-01 · 080 (S2) draft PR #70, stacked on #69 · gate 82/82 · e2e 48/48 · evals 18/18 · tool golden snapshot unchanged · waits for Connor
+- 2026-10-01 · 081 (S3) split into 084 (harness, deterministic), 085 (judge, live mode), 086 (prices), 087 (judge spike, needs Connor); claimed 084 and 086
