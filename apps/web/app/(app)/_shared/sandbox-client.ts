@@ -1,5 +1,5 @@
 import type { WorkspaceClient } from "@workspace/chat-ui/workspace/model/client";
-import type { ApiClient } from "@workspace/client/api";
+import { type ApiClient, createApiClient } from "@workspace/client/api";
 import type { ConversationId } from "@workspace/contract/schemas/common";
 import { err, fromPromise, ok } from "@workspace/shared/result";
 
@@ -34,13 +34,35 @@ const conflictReason = (cause: unknown): string | null => {
   return typeof reason === "string" ? reason : null;
 };
 
+/**
+ * The app's client (same origin, the session cookie) with every request sent
+ * `keepalive`, for the editor's saves that must land after the page is gone
+ * (077). The shared client can't set `fetch` options per call, hence one of
+ * its own.
+ */
+const createKeepaliveClient = (): Pick<ApiClient, "sandbox"> =>
+  createApiClient({
+    batch: false,
+    fetch: (input, init) => fetch(input, { ...init, keepalive: true }),
+  });
+
 export const createApiSandboxClient = (
   client: Pick<ApiClient, "files" | "sandbox">,
   conversationId: ConversationId,
-  messages: SandboxErrorMessages
+  messages: SandboxErrorMessages,
+  keepaliveClient: () => Pick<ApiClient, "sandbox"> = createKeepaliveClient
 ): WorkspaceClient => {
   const describe = (cause: unknown): string =>
     codeOf(cause) === "FEATURE_DISABLED" ? messages.disabled : messages.failed;
+  // Made on the first keepalive save: never during a server render.
+  let outliving: Pick<ApiClient, "sandbox"> | null = null;
+  const writer = (wanted: boolean | undefined): Pick<ApiClient, "sandbox"> => {
+    if (!wanted) {
+      return client;
+    }
+    outliving ??= keepaliveClient();
+    return outliving;
+  };
   return {
     deleteFile: (path) =>
       fromPromise(async () => {
@@ -70,10 +92,10 @@ export const createApiSandboxClient = (
     readFile: (id, path) =>
       fromPromise(client.sandbox.readFile({ id, path }), describe),
     reset: (id) => fromPromise(client.sandbox.reset({ id }), describe),
-    writeFile: async ({ content, ifMatch, path }) => {
+    writeFile: async ({ content, ifMatch, keepalive, path }) => {
       try {
         return ok(
-          await client.sandbox.writeFile({
+          await writer(keepalive).sandbox.writeFile({
             content,
             conversationId,
             encoding: "utf8",
