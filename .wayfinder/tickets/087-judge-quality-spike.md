@@ -21,3 +21,7 @@ Before trusting judged scores: compare a judge against 30 hand-labelled cases an
 ## Owns
 
 `packages/evals/judge-spike/**`.
+
+## Deferred (2026-10-01)
+
+Connor chose to skip the spike for now. Judged checks stay soft and out of every gate until it runs.

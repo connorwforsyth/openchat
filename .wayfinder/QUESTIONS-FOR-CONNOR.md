@@ -56,4 +56,3 @@ Done: 009 and 010 prototypes, 042 contract PR (#31), Docker verification (045, P
 44. **Chat route bundle (039):** the chat route's first load (754 kB gzip) carries `ai`, `@ai-sdk/gateway`, zod locales and parse5 through chat-ui. Trim them? *Default: yes, after M1 (a lighter client-side message mapper).*
 45. **Secrets generated at first boot (040):** the Docker entrypoint writes random `BETTER_AUTH_SECRET`/`ENCRYPTION_KEY` into the data volume when they're empty, so the quick start needs no `.env` edits. OK? *Default: yes (documented in self-hosting).*
 
-- 087: the judge-quality spike needs a live model. Install Ollama (free, local), or say which provider key the loop may use and a spending cap?
