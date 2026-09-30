@@ -41,7 +41,7 @@ export const ToolPart = memo(function ToolPartInner({
   readonly streaming: boolean;
 }) {
   const { onDecide, onOpenPreview } = useConversationActions();
-  const { decisions, onRetry } = useRunActivity();
+  const { decisions, onRetry, stale } = useRunActivity();
   const summary = useMemo(() => toolSummary(call, result), [call, result]);
   const decide = useCallback(
     (decision: ApprovalDecision) => onDecide?.(call.toolCallId, decision),
@@ -68,6 +68,7 @@ export const ToolPart = memo(function ToolPartInner({
           edits={editsFor(approvals, call.toolCallId)}
           onDecide={decide}
           onRetry={onRetry ? retry : undefined}
+          stale={stale?.has(call.toolCallId) ?? false}
           state={decisions.get(call.toolCallId)}
           toolName={call.toolName}
         />

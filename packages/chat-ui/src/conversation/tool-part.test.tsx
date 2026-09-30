@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 
 import { pendingEdit } from "../fixtures";
+import { REPROPOSE_REASON } from "../model/approval";
 import type { ToolCallPart, ToolResultPart } from "../model/parts";
 import { renderWithI18n } from "../testing/render";
 import {
@@ -432,6 +433,33 @@ describe("approvals", () => {
     );
     expect(screen.getByRole("alert").textContent).toContain("already decided");
     expect(screen.queryByRole("button", { name: "Approve all" })).toBeNull();
+  });
+
+  it("offers to ask again when the file changed since the change was proposed", async () => {
+    const onDecide = vi.fn();
+    renderTool(
+      { ...pending, toolCallId: pendingEdit.toolCallId },
+      undefined,
+      { onDecide },
+      {
+        activity: {
+          answers: new Map(),
+          decisions: new Map(),
+          stale: new Set([pendingEdit.toolCallId]),
+        },
+      }
+    );
+    expect(screen.getByRole("alert").textContent).toContain(
+      "changed after the agent proposed this"
+    );
+    expect(screen.queryByRole("button", { name: "Approve all" })).toBeNull();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Ask for an updated change" })
+    );
+    expect(onDecide).toHaveBeenCalledWith(pendingEdit.toolCallId, {
+      decision: "reject",
+      reason: REPROPOSE_REASON,
+    });
   });
 
   it("says a change its run skipped never ran", () => {

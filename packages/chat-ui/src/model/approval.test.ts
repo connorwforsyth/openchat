@@ -1,7 +1,13 @@
 import type { ProposedEdit } from "@workspace/contract/schemas/runs";
 import { describe, expect, it } from "vitest";
 
-import { addEditReview, editsFor } from "./approval";
+import {
+  addEditReview,
+  baseHashOf,
+  EMPTY_FILE_HASH,
+  editsFor,
+  staleEdits,
+} from "./approval";
 
 const edit = (path: string, hunkId: string): ProposedEdit => ({
   hunks: [{ hunkId, newLines: 1, newStart: 1, oldLines: 1, oldStart: 1 }],
@@ -56,5 +62,49 @@ describe("editsFor", () => {
     expect(editsFor(approvals, "c1")).toHaveLength(1);
     expect(editsFor(approvals, "c2")).toEqual([]);
     expect(editsFor(undefined, "c1")).toEqual([]);
+  });
+});
+
+describe("staleEdits", () => {
+  const hash = (char: string) => char.repeat(64);
+  const stamped = (path: string, base: string | null): ProposedEdit => ({
+    hunks: [
+      { hunkId: "h1", newLines: 1, newStart: 1, oldLines: 1, oldStart: 1 },
+    ],
+    patch: `--- ${path}${base ? `\tsha256:${base}` : ""}\n+++ ${path}\n@@ -1 +1 @@\n-a\n+b\n`,
+    path,
+  });
+
+  it("names the files that changed since the change was proposed", () => {
+    const edits = [stamped("a.txt", hash("a")), stamped("b.txt", hash("b"))];
+    expect(baseHashOf(edits[0] as ProposedEdit)).toBe(hash("a"));
+    expect(
+      staleEdits(
+        edits,
+        new Map([
+          ["a.txt", hash("a")],
+          ["b.txt", hash("c")],
+        ])
+      )
+    ).toEqual(["b.txt"]);
+  });
+
+  it("treats a missing file as empty, and unknowns as unchanged", () => {
+    expect(
+      staleEdits(
+        [stamped("new.txt", EMPTY_FILE_HASH)],
+        new Map([["new.txt", null]])
+      )
+    ).toEqual([]);
+    expect(
+      staleEdits(
+        [stamped("new.txt", EMPTY_FILE_HASH)],
+        new Map([["new.txt", hash("d")]])
+      )
+    ).toEqual(["new.txt"]);
+    expect(staleEdits([stamped("x.txt", hash("a"))], new Map())).toEqual([]);
+    expect(
+      staleEdits([stamped("x.txt", null)], new Map([["x.txt", hash("z")]]))
+    ).toEqual([]);
   });
 });

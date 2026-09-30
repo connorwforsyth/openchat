@@ -25,6 +25,11 @@ export interface RunActivity {
   readonly decisions: ReadonlyMap<string, DecisionState>;
   /** Sends a failed decision again. */
   readonly onRetry?: (toolCallId: string) => void;
+  /**
+   * Pending changes whose file changed since they were proposed (072,
+   * audit F12): approving one can't apply, so the card says so.
+   */
+  readonly stale?: ReadonlySet<string>;
 }
 
 const NONE: RunActivity = { answers: new Map(), decisions: new Map() };

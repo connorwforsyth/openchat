@@ -4,6 +4,7 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import {
   skipToken,
   useMutation,
+  useQueries,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
@@ -28,6 +29,7 @@ import type {
   FileId,
   MessageId,
   RunId,
+  SandboxId,
 } from "@workspace/contract/schemas/common";
 import type { Conversation } from "@workspace/contract/schemas/conversations";
 import type { ApprovalDecision } from "@workspace/contract/schemas/message-parts";
@@ -59,6 +61,7 @@ import {
   type RunActivity,
   RunActivityProvider,
 } from "../conversation/approval-state";
+import { staleEdits } from "../model/approval";
 import { newestLeafUnder, type TreeNode } from "../model/branch";
 import { type LiveMapping, mergeLive } from "../model/live-messages";
 import type { MemoryUpdate } from "../model/parts";
@@ -951,6 +954,56 @@ const useDecisions = ({
   return { decide, retry, states };
 };
 
+/** Whether an API error says the thing isn't there. */
+const isNotFound = (error: unknown): boolean =>
+  typeof error === "object" &&
+  error !== null &&
+  (error as { readonly code?: unknown }).code === "NOT_FOUND";
+
+/**
+ * Pending changes whose file changed since they were proposed (072, audit
+ * F12): each proposed file's current etag, read through the same query the
+ * Files panel reads it with, so a save there re-checks the card at once.
+ */
+const useStaleCalls = (
+  api: QueryUtils,
+  sandboxId: SandboxId | null,
+  approvals: readonly PendingApproval[] | undefined
+): ReadonlySet<string> => {
+  const paths = [
+    ...new Set(
+      (approvals ?? []).flatMap((approval) =>
+        (approval.edits ?? []).map((edit) => edit.path)
+      )
+    ),
+  ];
+  const reads = useQueries({
+    queries: paths.map((path) =>
+      api.sandbox.readFile.queryOptions({
+        input: sandboxId ? { id: sandboxId, path } : skipToken,
+        retry: false,
+        select: (file) => file.etag,
+      })
+    ),
+  });
+  const etags = new Map(
+    paths.flatMap((path, index): [string, string | null][] => {
+      const read = reads[index];
+      if (read?.data !== undefined) {
+        return [[path, read.data]];
+      }
+      return read?.error && isNotFound(read.error) ? [[path, null]] : [];
+    })
+  );
+  const stale = (approvals ?? []).flatMap((approval) =>
+    staleEdits(approval.edits ?? [], etags).length > 0
+      ? [approval.toolCallId]
+      : []
+  );
+  const key = stale.join(" ");
+  return useMemo(() => new Set(key ? key.split(" ") : []), [key]);
+};
+
 /**
  * The conversation's runs as the chat drives them (072): which run a page
  * opened mid-answer follows (a waiting one too, audit F10), the decisions
@@ -964,6 +1017,7 @@ const useRunControls = ({
   createdRunId,
   messages,
   refresh,
+  sandboxId,
 }: {
   readonly api: QueryUtils;
   readonly chat: ReturnType<typeof useRunChat>;
@@ -973,6 +1027,8 @@ const useRunControls = ({
   readonly createdRunId: { readonly current: RunId | null };
   readonly messages: readonly Message[];
   readonly refresh: () => void;
+  /** The chat's workspace, to check pending changes against its files. */
+  readonly sandboxId: SandboxId | null;
 }) => {
   const { resumeStream, stop: stopReading } = chat;
   // The same query `useChatQueries` makes; read whole for the run states.
@@ -1040,13 +1096,22 @@ const useRunControls = ({
     }
     refresh();
   }, [client, createdRunId, refresh, stopReading]);
+  const waitingRun = stoppableRun(activeRuns);
+  const stale = useStaleCalls(
+    api,
+    sandboxId,
+    waitingRun?.state.status === "awaiting_approval"
+      ? waitingRun.state.approvals
+      : undefined
+  );
   const activity = useMemo(
     (): RunActivity => ({
       answers: answerPhases(activeRuns),
       decisions: decisions.states,
       onRetry: decisions.retry,
+      stale,
     }),
-    [activeRuns, decisions.retry, decisions.states]
+    [activeRuns, decisions.retry, decisions.states, stale]
   );
   return {
     activity,
@@ -1215,6 +1280,7 @@ export function ConnectedChat({
       createdRunId,
       messages,
       refresh,
+      sandboxId: data.sandbox.data?.id ?? null,
     });
   const { stop: stopReading } = chat;
   const send = useCallback(

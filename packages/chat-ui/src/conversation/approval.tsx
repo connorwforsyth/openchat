@@ -14,7 +14,11 @@ import { Button } from "@workspace/ui/components/button";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { type ChangeEvent, useCallback, useId, useState } from "react";
 
-import { addEditReview, type EditReviews } from "../model/approval";
+import {
+  addEditReview,
+  type EditReviews,
+  REPROPOSE_REASON,
+} from "../model/approval";
 import type { DecisionState } from "./approval-state";
 import { LazyDiffView } from "./lazy";
 
@@ -29,6 +33,12 @@ export interface ApprovalCardProps {
   /** Sends the decision that failed again. */
   readonly onRetry?: () => void;
   /**
+   * The file changed since the change was proposed, so approving it can't
+   * apply (the tool would refuse it): the card offers to ask the agent for
+   * the change on the file as it is now instead.
+   */
+  readonly stale?: boolean;
+  /**
    * The decision this page sent, until the server's copy shows the call
    * decided (072): kept by the host, by call, so it survives the card
    * remounting and a second click can't send another.
@@ -41,6 +51,7 @@ export function ApprovalCard({
   edits,
   onDecide,
   onRetry,
+  stale = false,
   state,
   toolName,
 }: ApprovalCardProps) {
@@ -110,6 +121,16 @@ export function ApprovalCard({
         <ClockIcon aria-hidden className="size-4" />
         <Trans>Decision sent. Waiting for the agent…</Trans>
       </p>
+    );
+  }
+
+  if (stale) {
+    return (
+      <StaleChange
+        decide={decide}
+        paths={edits.map((edit) => edit.path)}
+        toolName={toolName}
+      />
     );
   }
 
@@ -212,6 +233,54 @@ export function ApprovalCard({
           message instead.
         </Trans>
       </p>
+    </section>
+  );
+}
+
+/**
+ * A change proposed against a file that has changed since: it can't apply
+ * as shown, so rather than approve it (and have the agent ask again after
+ * a refusal) the person asks for it again on the file as it is, or rejects
+ * it.
+ */
+function StaleChange({
+  decide,
+  paths,
+  toolName,
+}: {
+  readonly decide: (decision: ApprovalDecision) => void;
+  readonly paths: readonly string[];
+  readonly toolName: string;
+}) {
+  const { t } = useLingui();
+  const files = paths.join(", ");
+  const repropose = useCallback(
+    () => decide({ decision: "reject", reason: REPROPOSE_REASON }),
+    [decide]
+  );
+  const reject = useCallback(() => decide({ decision: "reject" }), [decide]);
+  return (
+    <section
+      aria-label={t`Approval needed for ${toolName}`}
+      className="flex flex-col gap-3 rounded-lg border bg-muted/30 p-3"
+    >
+      <p className="flex items-start gap-2 text-sm" role="alert">
+        <CircleAlertIcon aria-hidden className="mt-0.5 size-4 shrink-0" />
+        <Trans>
+          {files} changed after the agent proposed this, so the change can't be
+          applied as shown.
+        </Trans>
+      </p>
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button onClick={reject} size="sm" variant="outline">
+          <XIcon aria-hidden data-icon="inline-start" />
+          <Trans>Reject</Trans>
+        </Button>
+        <Button onClick={repropose} size="sm">
+          <RefreshCwIcon aria-hidden data-icon="inline-start" />
+          <Trans>Ask for an updated change</Trans>
+        </Button>
+      </div>
     </section>
   );
 }

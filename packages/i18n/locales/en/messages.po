@@ -68,6 +68,10 @@ msgstr "{fileName} is larger than {limit}."
 msgid "{fileName} isn't a supported file type."
 msgstr "{fileName} isn't a supported file type."
 
+#: ../chat-ui/src/conversation/approval.tsx
+msgid "{files} changed after the agent proposed this, so the change can't be applied as shown."
+msgstr "{files} changed after the agent proposed this, so the change can't be applied as shown."
+
 #: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
 msgid "{length} of {max} characters"
 msgstr "{length} of {max} characters"
@@ -383,6 +387,10 @@ msgstr "Ask anything"
 #: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
 msgid "Ask before changing memory"
 msgstr "Ask before changing memory"
+
+#: ../chat-ui/src/conversation/approval.tsx
+msgid "Ask for an updated change"
+msgstr "Ask for an updated change"
 
 #: ../../apps/web/app/(auth)/_components/sign-up-form.tsx
 msgid "At least 8 characters."
