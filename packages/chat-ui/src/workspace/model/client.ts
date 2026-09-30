@@ -29,6 +29,11 @@ export interface WorkspaceWriteInput {
   readonly content: string;
   /** The version being replaced; `null` only creates; omitted overwrites. */
   readonly ifMatch?: SandboxFileEtag | null;
+  /**
+   * Send it so it lands even if the page goes away before the answer
+   * (`fetch`'s `keepalive`); only for small bodies (`fitsKeepalive`).
+   */
+  readonly keepalive?: boolean;
   readonly path: string;
 }
 
