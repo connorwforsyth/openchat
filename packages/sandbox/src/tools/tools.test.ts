@@ -344,6 +344,110 @@ describe("sandbox tools", () => {
     expect(changed).toEqual(["index.html", "a.html"]);
   });
 
+  describe("file tools stay inside /work (D7)", () => {
+    const outside = [
+      ["an absolute path elsewhere", "/etc/passwd"],
+      ["a relative climb", "../x"],
+      ["an absolute climb", "/work/../etc/passwd"],
+      ["a sibling sharing the prefix", "/workx/a"],
+      ["a NUL byte", "a\0b.txt"],
+      ["an empty path", ""],
+    ] as const;
+    const setup = () => {
+      const sandbox = createMemorySandbox({
+        files: {
+          "/etc/passwd": "root\n",
+          "/work/a.txt": "one\n",
+          "/workx/a": "sibling\n",
+          "/x": "x\n",
+        },
+        id,
+      });
+      const changed: string[] = [];
+      const tools = createSandboxTools({
+        onChanged: (path) => {
+          changed.push(path);
+          return Promise.resolve();
+        },
+        sandbox,
+      });
+      return { changed, sandbox, tools };
+    };
+    const refused = expect.objectContaining({
+      message: expect.stringContaining("Paths must be inside /work"),
+      status: "error",
+    });
+
+    it.each(outside)("read refuses %s", async (_why, path) => {
+      const { tools } = setup();
+      expect(await run(tools, "read", { path })).toEqual(refused);
+    });
+
+    it.each(outside)("write refuses %s", async (_why, path) => {
+      const { changed, sandbox, tools } = setup();
+      const before = new Map(sandbox.files());
+      expect(await run(tools, "write", { content: "owned\n", path })).toEqual(
+        refused
+      );
+      expect(sandbox.files()).toEqual(before);
+      expect(changed).toEqual([]);
+    });
+
+    it.each(outside)("edit refuses %s", async (_why, path) => {
+      const { changed, sandbox, tools } = setup();
+      const before = new Map(sandbox.files());
+      expect(
+        await run(tools, "edit", { newString: "owned", oldString: "r", path })
+      ).toEqual(refused);
+      expect(sandbox.files()).toEqual(before);
+      expect(changed).toEqual([]);
+    });
+
+    it.each(outside)(
+      "proposes nothing for review from %s",
+      async (_why, path) => {
+        const { sandbox } = setup();
+        expect(
+          await proposeSandboxChange(sandbox, {
+            input: { content: "owned\n", path },
+            kind: "write",
+          })
+        ).toEqual({
+          error: expect.stringContaining("Paths must be inside /work"),
+          ok: false,
+        });
+      }
+    );
+
+    it("still takes /work paths and relative ones", async () => {
+      const { changed, sandbox, tools } = setup();
+      expect(await run(tools, "read", { path: "/work/a.txt" })).toMatchObject({
+        content: "one\n",
+        path: "/work/a.txt",
+        status: "read",
+      });
+      expect(await run(tools, "read", { path: "a.txt" })).toMatchObject({
+        content: "one\n",
+        path: "a.txt",
+        status: "read",
+      });
+      expect(
+        await run(tools, "edit", {
+          newString: "two",
+          oldString: "one",
+          path: "/work/a.txt",
+        })
+      ).toMatchObject({ status: "changed" });
+      expect(
+        await run(tools, "write", { content: "b\n", path: "sub/../b.txt" })
+      ).toMatchObject({ status: "changed" });
+      expect(sandbox.files().get("/work/a.txt")).toBe("two\n");
+      expect(sandbox.files().get("/work/b.txt")).toBe("b\n");
+      // What the model wrote is what it's told about, not the resolved path.
+      expect(changed).toEqual(["/work/a.txt", "sub/../b.txt"]);
+    });
+  });
+
   it("points static pages away from the preview tool", () => {
     const tools = createSandboxTools({ sandbox: createMemorySandbox({ id }) });
     expect(tools.write?.description).toContain("need no server");

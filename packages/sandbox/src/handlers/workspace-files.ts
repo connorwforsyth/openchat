@@ -20,7 +20,7 @@ import {
 } from "@workspace/shared/result";
 import { z } from "zod";
 
-import { resolveSandboxPath, WORKDIR } from "../paths";
+import { isControlCharacter, resolveWorkspacePath, WORKDIR } from "../paths";
 import type { Sandbox, SandboxError } from "../ports/sandbox";
 import { previewStaticPage } from "../tools/static-preview";
 import {
@@ -39,8 +39,9 @@ import { ensureWorkspace, providerForTurn } from "./turn-tools";
 // chat whose workspace failed to start is brought back by the first save,
 // not by a Reset. Only the chat's owner and editors may change its files.
 //
-// Every path a person sends goes through `resolveWorkspacePath`: the agent
-// may roam its sandbox, but these routes only ever touch `/work`.
+// Every path a person sends goes through `resolveWorkspacePath` (in
+// `paths`, shared with the agent's file tools), so these routes only ever
+// touch `/work`.
 //
 // The version checks (`ifMatch`) read and then write, so two saves racing
 // through the same instant can both pass; the etag guards against the far
@@ -82,34 +83,6 @@ export interface WorkspaceImportDeps extends SandboxHandlerDeps {
 
 const invalid = (message: string) => err({ message, type: "invalid" as const });
 
-const isControl = (char: string): boolean => {
-  const code = char.codePointAt(0) ?? 0;
-  return code < 0x20 || (code >= 0x7f && code < 0xa0);
-};
-
-/**
- * `path` as an absolute path inside `/work`, or why it isn't one. Relative
- * paths resolve against `/work`; `..` may move around inside it but never
- * out; the workspace root itself isn't a file anyone can write or delete.
- * NUL and other control characters are refused outright, since no editor
- * or shell handles them in a name the same way.
- */
-export const resolveWorkspacePath = (
-  path: string
-): Result<string, { readonly message: string; readonly type: "invalid" }> => {
-  if (path.trim() === "") {
-    return invalid("A path is required.");
-  }
-  if ([...path].some(isControl)) {
-    return invalid("A path can't contain control characters.");
-  }
-  const resolved = resolveSandboxPath(path, WORKDIR);
-  if (!(resolved.ok && resolved.value.startsWith(`${WORKDIR}/`))) {
-    return invalid(`${path} is outside the workspace (${WORKDIR}).`);
-  }
-  return ok(resolved.value);
-};
-
 const encoder = new TextEncoder();
 const byteLength = (text: string) => encoder.encode(text).byteLength;
 
@@ -140,7 +113,7 @@ const fitName = (stem: string, suffix: string, extension: string): string => {
 export const cleanUploadName = (name: string): string => {
   const base = name.split(SLASHES).pop() ?? "";
   const printable = [...base]
-    .filter((char) => !isControl(char))
+    .filter((char) => !isControlCharacter(char))
     .join("")
     .trim();
   if (printable === "" || printable === "." || printable === "..") {

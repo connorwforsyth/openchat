@@ -36,7 +36,6 @@ import {
   deleteWorkspaceFile,
   importWorkspaceFile,
   JUST_BASH_FILE_MAX_BYTES,
-  resolveWorkspacePath,
   type WorkspaceImportDeps,
   writeWorkspaceFile,
 } from "./workspace-files";
@@ -141,33 +140,6 @@ const upload = async (
 const invalid = expect.objectContaining({
   error: expect.objectContaining({ type: "invalid" }),
   ok: false,
-});
-
-describe("resolveWorkspacePath", () => {
-  it("keeps paths inside /work", () => {
-    expect(resolveWorkspacePath("a.txt")).toEqual(ok("/work/a.txt"));
-    expect(resolveWorkspacePath("./src/../b.ts")).toEqual(ok("/work/b.ts"));
-    expect(resolveWorkspacePath("/work/src/c.ts")).toEqual(
-      ok("/work/src/c.ts")
-    );
-  });
-
-  it.each([
-    ["climbs out with ..", "../etc/passwd"],
-    ["climbs out from deeper", "src/../../etc/passwd"],
-    ["climbs past the root", "../../../../x"],
-    ["is absolute elsewhere", "/etc/passwd"],
-    ["only looks like the workdir", "/workspace/a.txt"],
-    ["leaves through an absolute ..", "/work/../etc/passwd"],
-    ["names the workspace itself", "/work"],
-    ["names the workspace relatively", "."],
-    ["has a NUL byte", "a.txt\0.png"],
-    ["has a newline", "a\nb.txt"],
-    ["is empty", ""],
-    ["is blank", "   "],
-  ])("refuses a path that %s", (_why, path) => {
-    expect(resolveWorkspacePath(path)).toMatchObject(invalid);
-  });
 });
 
 describe("cleanUploadName", () => {
