@@ -80,9 +80,12 @@ import type { WorkspaceFilesSource } from "./model/client";
 import {
   committedMatch,
   type FileMatch,
+  type MiddleText,
+  resultLabel,
   searchFiles,
   searchTerms,
   stepMatch,
+  type TextRun,
 } from "./model/file-search";
 import { NewFileDialog } from "./new-file-dialog";
 import { BrowserView } from "./preview";
@@ -833,6 +836,7 @@ function WorkspaceList({
           id={results}
           matches={matches}
           onOpen={onOpenMatch}
+          query={query}
         />
       ) : null}
       {/* Hidden, not unmounted, while searching: the tree keeps its folds. */}
@@ -918,13 +922,16 @@ function SearchResults({
   id,
   matches,
   onOpen,
+  query,
 }: {
   readonly active: number;
   readonly id: string;
   readonly matches: readonly FileMatch[];
   readonly onOpen: (match: FileMatch) => void;
+  readonly query: string;
 }) {
   const { t } = useLingui();
+  const terms = useMemo(() => searchTerms(query), [query]);
   const count = matches.length;
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -951,6 +958,7 @@ function SearchResults({
             key={match.path}
             match={match}
             onOpen={onOpen}
+            terms={terms}
           />
         ))}
       </div>
@@ -966,18 +974,21 @@ function SearchOption({
   id,
   match,
   onOpen,
+  terms,
 }: {
   readonly active: boolean;
   readonly id: string;
   readonly match: FileMatch;
   readonly onOpen: (match: FileMatch) => void;
+  readonly terms: readonly string[];
 }) {
   const open = useCallback(() => onOpen(match), [match, onOpen]);
+  const label = useMemo(() => resultLabel(match, terms), [match, terms]);
   return (
     // biome-ignore lint/a11y/useKeyWithClickEvents: the search field owns the keys (↓/↑, Enter); focus stays there (aria-activedescendant).
     <div
       aria-selected={active}
-      className="flex h-7 cursor-default items-center gap-2 rounded-md px-2 text-sm hover:bg-muted aria-selected:bg-muted"
+      className="flex min-h-7 cursor-default flex-col justify-center rounded-md px-2 py-1 text-sm hover:bg-muted aria-selected:bg-muted"
       id={id}
       onClick={open}
       onMouseDown={keepFocus}
@@ -985,14 +996,58 @@ function SearchOption({
       tabIndex={-1}
       title={match.path}
     >
-      {/* The folder gives way first; a long name still ends in an ellipsis. */}
-      <span className="min-w-0 truncate">{match.name}</span>
+      {/* The name first; its folder, quieter, under it (after the Zettelkasten's title, then snippet). */}
+      <MiddleTruncated text={label.name} />
       {match.directory ? (
-        <span className="min-w-0 shrink-[4] truncate text-muted-foreground text-xs">
-          {match.directory}
-        </span>
+        <MiddleTruncated
+          className="text-muted-foreground text-xs"
+          text={label.directory}
+        />
       ) : null}
     </div>
+  );
+}
+
+/**
+ * One line that gives way in the middle: the head ends in an ellipsis and
+ * the tail stays, unless the row is narrower than the tail alone.
+ */
+function MiddleTruncated({
+  className,
+  text,
+}: {
+  readonly className?: string;
+  readonly text: MiddleText;
+}) {
+  return (
+    <span className={cn("flex min-w-0", className)}>
+      {/* `whitespace-pre`, not `truncate`: a space where the two meet stays. */}
+      <span className="min-w-0 overflow-hidden text-ellipsis whitespace-pre">
+        <Runs runs={text.head} />
+      </span>
+      {/* Never shrinks (any shrinking at all shows an ellipsis); only a row
+          narrower than the tail itself cuts it, at its end. */}
+      <span className="max-w-full shrink-0 overflow-hidden text-ellipsis whitespace-pre">
+        <Runs runs={text.tail} />
+      </span>
+    </span>
+  );
+}
+
+/** What the query matched, marked. */
+function Runs({ runs }: { readonly runs: readonly TextRun[] }) {
+  return runs.map((run, index) =>
+    run.hit ? (
+      <mark
+        className="rounded-xs bg-primary/10 text-foreground"
+        // biome-ignore lint/suspicious/noArrayIndexKey: runs are positional and never reorder.
+        key={index}
+      >
+        {run.text}
+      </mark>
+    ) : (
+      run.text
+    )
   );
 }
 
@@ -1230,6 +1285,11 @@ function EmptyFiles({
   );
 }
 
+/** The artifact's title, versions and tabs, in the view's one header row (075). */
+const artifactHeader = (content: ReactNode) => (
+  <ViewHeader>{content}</ViewHeader>
+);
+
 function MainArea({
   artifacts,
   focusView,
@@ -1303,24 +1363,17 @@ function MainArea({
       artifacts.artifacts.find((each) => each.id === selection.artifactId) ??
       artifacts.artifacts[0];
     return (
-      <>
-        {/* ArtifactView's own first row has the title and versions. */}
-        <ViewHeader>
-          <span className="text-muted-foreground text-sm">
-            <Trans>Artifact</Trans>
-          </span>
-        </ViewHeader>
-        <div className="flex min-h-0 flex-1 flex-col">
-          <ArtifactView
-            artifact={artifact}
-            error={artifacts.error}
-            onSelect={selectArtifact}
-            runtimeOrigin={artifacts.runtimeOrigin}
-            versionId={selection.versionId}
-            versions={artifacts.versions}
-          />
-        </div>
-      </>
+      <div className="flex min-h-0 flex-1 flex-col">
+        <ArtifactView
+          artifact={artifact}
+          error={artifacts.error}
+          header={artifactHeader}
+          onSelect={selectArtifact}
+          runtimeOrigin={artifacts.runtimeOrigin}
+          versionId={selection.versionId}
+          versions={artifacts.versions}
+        />
+      </div>
     );
   }
   if (selection?.kind === "preview") {

@@ -1072,6 +1072,37 @@ describe("the file search (070)", () => {
     );
     expect(row()).toBeTruthy();
   });
+
+  it("leads each result with its name, keeps the name's distinguishing end and marks the query (075)", async () => {
+    const long = (n: number) =>
+      `/work/src/components/very-long-component-file-name-number-${n}.tsx`;
+    const { client } = fakeClient({
+      ...files,
+      [long(1)]: { content: "1\n", etag: V1 },
+      [long(7)]: { content: "7\n", etag: V1 },
+    });
+    renderWithI18n(<Selecting {...props({ files: chatFiles(client) })} />);
+    await treeItem("notes.txt");
+    await userEvent.click(search());
+    await userEvent.keyboard("comp 7");
+
+    const [row] = options();
+    expect(options()).toHaveLength(1);
+    // The name's line: a head that gives way, then the tail that stays.
+    const [name, folder] = Array.from(row?.children ?? []);
+    const [head, tail] = Array.from(name?.children ?? []);
+    expect(head?.textContent).toBe("very-long-component-file-name-");
+    expect(tail?.textContent).toBe("number-7.tsx");
+    // The folder, quieter, on the line under it.
+    expect(folder?.textContent).toBe("src/components/");
+    expect(folder?.className).toContain("text-muted-foreground");
+    // Every hit is marked, in the name and in the folder.
+    expect(
+      Array.from(row?.querySelectorAll("mark") ?? []).map(
+        (mark) => mark.textContent
+      )
+    ).toEqual(["comp", "7", "comp"]);
+  });
 });
 
 describe("a narrow panel (070)", () => {
