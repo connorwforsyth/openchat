@@ -2,15 +2,11 @@ import type { LibraryItemId } from "@workspace/contract/schemas/common";
 import { jsonValueSchema } from "@workspace/contract/schemas/common";
 import { toolNameSchema } from "@workspace/contract/schemas/message-parts";
 import type { AsyncResult } from "@workspace/shared/result";
-import {
-  jsonSchema,
-  type Tool,
-  type ToolApprovalStatus,
-  type ToolSet,
-  tool,
-} from "ai";
+import type { Tool, ToolApprovalStatus, ToolSet } from "ai";
 import { z } from "zod";
 
+import { clientToolDefinition, mcpToolDefinition } from "./registry/adapt";
+import { toAiSdkTool } from "./registry/to-ai-sdk";
 import { type ApprovalMode, approvalFor, type ToolPlan } from "./resolve";
 
 // The tool registry: one AI SDK `ToolSet` for a run, merged from
@@ -20,6 +16,9 @@ import { type ApprovalMode, approvalFor, type ToolPlan } from "./resolve";
 //   supplies the output, as desktop cowork and UI prompts do),
 // - MCP tools (ticket 018 fills `McpToolSource` over `@ai-sdk/mcp`).
 // Names are unique across the set; a later source never shadows an earlier one.
+//
+// Built-ins are written down in `registry/` (080) and arrive here already
+// bound; client and MCP tools are adapted into the same shape on the way in.
 
 export const clientToolSchema = z.object({
   description: z.string().max(10_000).optional(),
@@ -68,8 +67,8 @@ export interface BuiltToolSet {
 const toStatus = (mode: Exclude<ApprovalMode, "deny">): ToolApprovalStatus =>
   mode === "ask" ? "user-approval" : "not-applicable";
 
-export const clientTool = ({ description, inputSchema }: ClientTool): Tool =>
-  tool({ description, inputSchema: jsonSchema(inputSchema) });
+export const clientTool = (definition: ClientTool): Tool =>
+  toAiSdkTool(clientToolDefinition(definition));
 
 export const buildToolSet = async (
   plan: ToolPlan,
@@ -121,7 +120,11 @@ export const buildToolSet = async (
       continue;
     }
     for (const [name, value] of Object.entries(result.value)) {
-      add(name, value, approvalFor(plan, name));
+      add(
+        name,
+        toAiSdkTool(mcpToolDefinition(name, value)),
+        approvalFor(plan, name)
+      );
     }
   }
   if (!mcp) {

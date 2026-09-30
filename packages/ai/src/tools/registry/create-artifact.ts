@@ -1,0 +1,57 @@
+import { z } from "zod";
+
+import { artifactDirectiveSchema } from "../../../evals/artifacts/format";
+import {
+  type ArtifactPorts,
+  type ArtifactStore,
+  type ArtifactToolOutput,
+  artifactContentSchema,
+  artifactLanguageSchema,
+  artifactModelText,
+  artifactToolOutputSchema,
+  saveArtifact,
+} from "../artifact-content";
+import { defineTool, type ToolContext } from "./define";
+
+// `create_artifact` (078): saves a document, page or snippet as version 1
+// of a new artifact; the result carries the `artifact-ref` the answer shows
+// as a card. What the tools share is in `../artifact-content.ts`.
+
+export const createArtifactInputSchema = z.object({
+  content: artifactContentSchema,
+  language: artifactLanguageSchema,
+  title: artifactDirectiveSchema.shape.title.describe(
+    "A short title the user will recognise it by."
+  ),
+  type: artifactDirectiveSchema.shape.type.describe(
+    "html: one complete HTML document. react: one file with a default-exported component. svg: one <svg> element. mermaid: diagram source. markdown: a document. code: a file in any language."
+  ),
+});
+export type CreateArtifactInput = z.infer<typeof createArtifactInputSchema>;
+
+/** Applies a `create_artifact` call. Exposed for tests; the tool wraps it. */
+export const createArtifact = (
+  store: ArtifactStore,
+  input: CreateArtifactInput
+): Promise<ArtifactToolOutput> =>
+  saveArtifact(store, {
+    content: input.content,
+    kind: input.type,
+    language: input.language ?? null,
+    title: input.title,
+  });
+
+export const createArtifactTool = defineTool({
+  // Saving puts something in the chat that outlives the reply, so it asks
+  // first, like the workspace's file changes.
+  approval: "ask",
+  capability: "artifacts",
+  description:
+    "Create an artifact: a self-contained piece of work the user will want to keep, reuse or see rendered (a document, a web page, a React component, an SVG image, a Mermaid diagram or a code file). It opens beside the chat instead of filling the reply. Use it for substantial content; keep short snippets and explanations in the reply.",
+  execute: (input, { ports }: ToolContext<{ readonly ports: ArtifactPorts }>) =>
+    createArtifact(ports.store, input),
+  input: createArtifactInputSchema,
+  modelText: artifactModelText,
+  name: "create_artifact",
+  output: artifactToolOutputSchema,
+});
