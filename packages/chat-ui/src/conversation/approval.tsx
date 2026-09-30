@@ -112,17 +112,11 @@ export function ApprovalCard({
       </p>
     );
   }
-  if (state?.status === "sending" || (clicked && !failed)) {
-    return (
-      <p
-        className="flex items-center gap-2 text-muted-foreground text-sm"
-        role="status"
-      >
-        <ClockIcon aria-hidden className="size-4" />
-        <Trans>Decision sent. Waiting for the agent…</Trans>
-      </p>
-    );
-  }
+  // Sent, the card keeps its place and size, inert, until the server's
+  // copy of the call shows it decided: collapsing it at once scrolls the
+  // next card's buttons under the pointer, and a double click's second
+  // click would decide that one too.
+  const sending = state?.status === "sending" || (clicked && !failed);
 
   if (stale) {
     return (
@@ -137,102 +131,115 @@ export function ApprovalCard({
   const reviewed = Object.keys(reviews).length;
   return (
     <section
+      aria-busy={sending}
       aria-label={t`Approval needed for ${toolName}`}
       className="flex flex-col gap-3 rounded-lg border bg-muted/30 p-3"
     >
-      <p className="font-medium text-sm">
-        {edits.length > 0 ? (
-          <Trans>
-            The agent wants to change files. Review each change, or decide for
-            all of them.
-          </Trans>
-        ) : (
-          <Trans>The agent wants to run {toolName}.</Trans>
-        )}
-      </p>
-
-      {edits.map((edit) => (
-        <EditReview
-          edit={edit}
-          key={edit.path}
-          onReview={reviewFile}
-          reviewed={edit.path in reviews}
-        />
-      ))}
-      {edits.length > 1 ? (
-        <p aria-live="polite" className="text-muted-foreground text-xs">
-          <Trans>
-            {reviewed} of {edits.length} files reviewed
-          </Trans>
+      <div className="flex flex-col gap-3" inert={sending}>
+        <p className="font-medium text-sm">
+          {edits.length > 0 ? (
+            <Trans>
+              The agent wants to change files. Review each change, or decide for
+              all of them.
+            </Trans>
+          ) : (
+            <Trans>The agent wants to run {toolName}.</Trans>
+          )}
         </p>
-      ) : null}
 
-      {failed ? (
-        <div
-          className="flex flex-wrap items-center justify-between gap-2 text-destructive text-sm"
-          role="alert"
-        >
-          <span className="flex items-center gap-2">
-            <CircleAlertIcon aria-hidden className="size-4" />
-            <Trans>Your decision didn't reach the server.</Trans>
-          </span>
-          {onRetry ? (
-            <Button onClick={retry} size="sm" variant="outline">
-              <RefreshCwIcon aria-hidden data-icon="inline-start" />
-              <Trans>Retry</Trans>
-            </Button>
-          ) : null}
-        </div>
-      ) : null}
-
-      {rejecting ? (
-        <div className="flex flex-col gap-2">
-          <label className="text-sm" htmlFor={reasonId}>
-            <Trans>Why? (optional, sent to the agent)</Trans>
-          </label>
-          <Textarea
-            className="min-h-12 text-sm"
-            id={reasonId}
-            maxLength={4000}
-            onChange={onReason}
-            value={reason}
+        {edits.map((edit) => (
+          <EditReview
+            edit={edit}
+            key={edit.path}
+            onReview={reviewFile}
+            reviewed={edit.path in reviews}
           />
-          <div className="flex justify-end gap-2">
-            <Button onClick={cancelReject} size="sm" variant="ghost">
-              <Trans>Cancel</Trans>
-            </Button>
-            <Button onClick={reject} size="sm" variant="destructive">
+        ))}
+        {edits.length > 1 ? (
+          <p aria-live="polite" className="text-muted-foreground text-xs">
+            <Trans>
+              {reviewed} of {edits.length} files reviewed
+            </Trans>
+          </p>
+        ) : null}
+
+        {failed ? (
+          <div
+            className="flex flex-wrap items-center justify-between gap-2 text-destructive text-sm"
+            role="alert"
+          >
+            <span className="flex items-center gap-2">
+              <CircleAlertIcon aria-hidden className="size-4" />
+              <Trans>Your decision didn't reach the server.</Trans>
+            </span>
+            {onRetry ? (
+              <Button onClick={retry} size="sm" variant="outline">
+                <RefreshCwIcon aria-hidden data-icon="inline-start" />
+                <Trans>Retry</Trans>
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
+
+        {rejecting ? (
+          <div className="flex flex-col gap-2">
+            <label className="text-sm" htmlFor={reasonId}>
+              <Trans>Why? (optional, sent to the agent)</Trans>
+            </label>
+            <Textarea
+              className="min-h-12 text-sm"
+              id={reasonId}
+              maxLength={4000}
+              onChange={onReason}
+              value={reason}
+            />
+            <div className="flex justify-end gap-2">
+              <Button onClick={cancelReject} size="sm" variant="ghost">
+                <Trans>Cancel</Trans>
+              </Button>
+              <Button onClick={reject} size="sm" variant="destructive">
+                <XIcon aria-hidden data-icon="inline-start" />
+                <Trans>Reject</Trans>
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button onClick={startReject} size="sm" variant="outline">
               <XIcon aria-hidden data-icon="inline-start" />
-              <Trans>Reject</Trans>
+              {edits.length > 0 ? (
+                <Trans>Reject all</Trans>
+              ) : (
+                <Trans>Reject</Trans>
+              )}
+            </Button>
+            <Button onClick={approve} size="sm">
+              <CheckIcon aria-hidden data-icon="inline-start" />
+              {edits.length > 0 ? (
+                <Trans>Approve all</Trans>
+              ) : (
+                <Trans>Approve</Trans>
+              )}
             </Button>
           </div>
-        </div>
+        )}
+      </div>
+      {sending ? (
+        <p
+          className="flex items-center gap-2 text-muted-foreground text-xs"
+          role="status"
+        >
+          <ClockIcon aria-hidden className="size-3.5" />
+          <Trans>Decision sent. Waiting for the agent…</Trans>
+        </p>
       ) : (
-        <div className="flex flex-wrap justify-end gap-2">
-          <Button onClick={startReject} size="sm" variant="outline">
-            <XIcon aria-hidden data-icon="inline-start" />
-            {edits.length > 0 ? (
-              <Trans>Reject all</Trans>
-            ) : (
-              <Trans>Reject</Trans>
-            )}
-          </Button>
-          <Button onClick={approve} size="sm">
-            <CheckIcon aria-hidden data-icon="inline-start" />
-            {edits.length > 0 ? (
-              <Trans>Approve all</Trans>
-            ) : (
-              <Trans>Approve</Trans>
-            )}
-          </Button>
-        </div>
+        <p className="text-muted-foreground text-xs">
+          <Trans>
+            Or send a new message: this change is skipped and the agent reads
+            your message instead.
+          </Trans>
+        </p>
       )}
-      <p className="text-muted-foreground text-xs">
-        <Trans>
-          Or send a new message: this change is skipped and the agent reads your
-          message instead.
-        </Trans>
-      </p>
     </section>
   );
 }

@@ -391,7 +391,11 @@ describe("approvals", () => {
       }
     );
     expect(screen.getByText(DECISION_SENT)).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Approve all" })).toBeNull();
+    // The card keeps its place, inert, so a double click can't land on the
+    // next card's buttons.
+    expect(
+      screen.getByRole("button", { name: "Approve all" }).closest("[inert]")
+    ).toBeTruthy();
   });
 
   it("says a decision failed, and sends it again on Retry", async () => {
