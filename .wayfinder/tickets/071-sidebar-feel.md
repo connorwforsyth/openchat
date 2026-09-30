@@ -2,8 +2,8 @@
 id: "071"
 title: "Sidebar: ChatGPT-like rhythm, drag resize, collapse, persistence"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -120,3 +120,7 @@ Branch `t/071-sidebar-feel` (not merged). Gate green; `E2E_PORT=3543 bun turbo t
 - **After screenshots:** `.context/after/` in the t-071 worktree (not committed, like the before set): the 34 before
   names, plus `*-sidebar-collapsed-peek`, `*-sidebar-resize-handle-hover-crop`, `*-sidebar-resize-dragging-crop`,
   `*-sidebar-resized-340`.
+
+## Resolution (2026-10-01, loop)
+
+Merged on Connor's decision. Verified on the rebased branch: gate 82/82, e2e 50/50. [PR #62](https://github.com/connorwforsyth/openchat/pull/62).

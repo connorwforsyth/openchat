@@ -2,8 +2,8 @@
 id: "077"
 title: "Don't lose an edit typed just before a reload or close"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: ["070"]
 ---
 
@@ -42,3 +42,7 @@ Branch `t/077-flush-edits-on-leave`, stacked on `t/070-workspace-simplify` (draf
 **Checks.** `gate.sh`: 82/82 (the first run had a library-ui test fail under load; it passed alone, then the gate passed clean). `E2E_PORT=3583 bun turbo test:e2e`: 37/37.
 
 **Outside Owns:** `apps/web/app/(app)/_shared/sandbox-client.ts` (keepalive writes, allowed above); `packages/i18n/locales/en/messages.po` (extract).
+
+## Resolution (2026-10-01, loop)
+
+Merged on Connor's decision. Verified on the rebased branch: gate 82/82, e2e 54/54; #63's stale-file test now waits for the saved file, because this ticket removed the Saved label. [PR #66](https://github.com/connorwforsyth/openchat/pull/66).

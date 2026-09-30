@@ -2,8 +2,8 @@
 id: "070"
 title: "Workspace panel: flatter hierarchy, file search, focus"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -98,3 +98,7 @@ The 3 remaining borders in file views are the list/main divider and the two head
 **Checks.** `gate.sh`: 82/82. `E2E_PORT=3533 bun turbo test:e2e`: 37/37; workspace + workspace-ui specs 3/3 runs green.
 
 **Outside Owns:** none. (`next dev` crashes when just-bash runs, `SecurityViolationError` from its defense-in-depth; the audit's production-build server avoids it. Harness audit territory.)
+
+## Resolution (2026-10-01, loop)
+
+Merged on Connor's decision. Verified on the rebased branch: gate 82/82, e2e 54/54; the narrow-panel test now finds the side panel's handle by name, because #62 replaced the shared resizable handle. [PR #64](https://github.com/connorwforsyth/openchat/pull/64).

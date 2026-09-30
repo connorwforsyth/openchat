@@ -2,8 +2,8 @@
 id: "075"
 title: "Flatten the artifact view; search results show distinguishing names"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: ["070"]
 ---
 
@@ -56,3 +56,7 @@ The 3 remaining borders are the list/main divider and the two header hairlines, 
 **Checks.** `gate.sh`: 82/82. `E2E_PORT=3563 bun turbo test:e2e`: 37/37.
 
 **Outside Owns:** none edited. `ArtifactView` imports `useElementWidth` from `workspace/`.
+
+## Resolution (2026-10-01, loop)
+
+Merged on Connor's decision. Verified on the rebased branch: gate 82/82, e2e 54/54. [PR #67](https://github.com/connorwforsyth/openchat/pull/67).
