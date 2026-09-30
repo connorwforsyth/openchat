@@ -3,12 +3,19 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { ApprovalDecision } from "@workspace/contract/schemas/message-parts";
 import type { ProposedEdit } from "@workspace/contract/schemas/runs";
-import { CheckIcon, ClockIcon, XIcon } from "@workspace/icons";
+import {
+  CheckIcon,
+  CircleAlertIcon,
+  ClockIcon,
+  RefreshCwIcon,
+  XIcon,
+} from "@workspace/icons";
 import { Button } from "@workspace/ui/components/button";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { type ChangeEvent, useCallback, useId, useState } from "react";
 
 import { addEditReview, type EditReviews } from "../model/approval";
+import type { DecisionState } from "./approval-state";
 import { LazyDiffView } from "./lazy";
 
 // A tool call waiting on a person (D16). Plain tools get Approve / Reject
@@ -19,24 +26,45 @@ import { LazyDiffView } from "./lazy";
 export interface ApprovalCardProps {
   readonly edits: readonly ProposedEdit[];
   readonly onDecide: (decision: ApprovalDecision) => void;
+  /** Sends the decision that failed again. */
+  readonly onRetry?: () => void;
+  /**
+   * The decision this page sent, until the server's copy shows the call
+   * decided (072): kept by the host, by call, so it survives the card
+   * remounting and a second click can't send another.
+   */
+  readonly state?: DecisionState;
   readonly toolName: string;
 }
 
-export function ApprovalCard({ edits, onDecide, toolName }: ApprovalCardProps) {
+export function ApprovalCard({
+  edits,
+  onDecide,
+  onRetry,
+  state,
+  toolName,
+}: ApprovalCardProps) {
   const { t } = useLingui();
   const reasonId = useId();
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState("");
   const [reviews, setReviews] = useState<EditReviews>({});
-  const [sent, setSent] = useState(false);
+  // Hides the buttons between the click and the host's state arriving, so
+  // a double click sends once.
+  const [clicked, setClicked] = useState(false);
+  const failed = state?.status === "failed";
 
   const decide = useCallback(
     (decision: ApprovalDecision) => {
-      setSent(true);
+      setClicked(true);
       onDecide(decision);
     },
     [onDecide]
   );
+  const retry = useCallback(() => {
+    setClicked(true);
+    onRetry?.();
+  }, [onRetry]);
   const approve = useCallback(() => decide({ decision: "approve" }), [decide]);
   const startReject = useCallback(() => setRejecting(true), []);
   const cancelReject = useCallback(() => setRejecting(false), []);
@@ -62,7 +90,18 @@ export function ApprovalCard({ edits, onDecide, toolName }: ApprovalCardProps) {
     [decide, edits, reviews]
   );
 
-  if (sent) {
+  if (state?.status === "failed" && state.reason === "conflict") {
+    return (
+      <p className="flex items-center gap-2 text-sm" role="alert">
+        <CircleAlertIcon aria-hidden className="size-4" />
+        <Trans>
+          This was already decided, in another tab or by someone else, or the
+          answer stopped.
+        </Trans>
+      </p>
+    );
+  }
+  if (state?.status === "sending" || (clicked && !failed)) {
     return (
       <p
         className="flex items-center gap-2 text-muted-foreground text-sm"
@@ -107,6 +146,24 @@ export function ApprovalCard({ edits, onDecide, toolName }: ApprovalCardProps) {
         </p>
       ) : null}
 
+      {failed ? (
+        <div
+          className="flex flex-wrap items-center justify-between gap-2 text-destructive text-sm"
+          role="alert"
+        >
+          <span className="flex items-center gap-2">
+            <CircleAlertIcon aria-hidden className="size-4" />
+            <Trans>Your decision didn't reach the server.</Trans>
+          </span>
+          {onRetry ? (
+            <Button onClick={retry} size="sm" variant="outline">
+              <RefreshCwIcon aria-hidden data-icon="inline-start" />
+              <Trans>Retry</Trans>
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+
       {rejecting ? (
         <div className="flex flex-col gap-2">
           <label className="text-sm" htmlFor={reasonId}>
@@ -149,6 +206,12 @@ export function ApprovalCard({ edits, onDecide, toolName }: ApprovalCardProps) {
           </Button>
         </div>
       )}
+      <p className="text-muted-foreground text-xs">
+        <Trans>
+          Or send a new message: this change is skipped and the agent reads your
+          message instead.
+        </Trans>
+      </p>
     </section>
   );
 }

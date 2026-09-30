@@ -41,7 +41,9 @@ import {
   type RenderBlock,
   type ToolResultPart,
 } from "../model/parts";
+import type { AnswerPhase } from "../model/run-activity";
 import { useConversationActions } from "./actions";
+import { useRunActivity } from "./approval-state";
 import { ArtifactCard } from "./artifact-card";
 import { FeedbackButtons, type MessageFeedback } from "./feedback";
 import { FileParts } from "./file-parts";
@@ -96,10 +98,13 @@ function CopyAction({ text }: { readonly text: string }) {
 function Block({
   approvals,
   block,
+  running,
   streaming,
 }: {
   readonly approvals: readonly PendingApproval[] | undefined;
   readonly block: RenderBlock;
+  /** The answer's run is still going. */
+  readonly running: boolean;
   readonly streaming: boolean;
 }) {
   switch (block.kind) {
@@ -113,6 +118,7 @@ function Block({
           approvals={approvals}
           call={block.call}
           result={block.result}
+          running={running}
           streaming={streaming}
         />
       );
@@ -133,14 +139,37 @@ function Block({
   }
 }
 
-function StatusNote({ status }: { readonly status: Message["status"] }) {
+/**
+ * What the stored answer's status means for its run. A `partial` answer is
+ * one still being written, one waiting on a decision, or one that ended
+ * early; only the last says it stopped (072: answers still working read
+ * "stopped early" after a reload).
+ */
+function StatusNote({
+  phase,
+  status,
+}: {
+  readonly phase: AnswerPhase | undefined;
+  readonly status: Message["status"];
+}) {
   switch (status) {
     case "complete":
       return null;
     case "partial":
       return (
-        <p className="text-muted-foreground text-xs">
-          <Trans>This answer stopped early.</Trans>
+        <p className="text-muted-foreground text-xs" role="status">
+          {phase === undefined ? (
+            <Trans>This answer stopped early.</Trans>
+          ) : null}
+          {phase === "running" ? (
+            <Trans>Still working on this answer…</Trans>
+          ) : null}
+          {phase === "queued" ? (
+            <Trans>Waiting for the answer before it…</Trans>
+          ) : null}
+          {phase === "waiting" ? (
+            <Trans>Waiting for your approval.</Trans>
+          ) : null}
         </p>
       );
     case "error":
@@ -303,6 +332,7 @@ function AssistantMessage({
 }: MessageRowProps) {
   const { t } = useLingui();
   const { onRegenerate, onSelectBranch } = useConversationActions();
+  const phase = useRunActivity().answers.get(message.id);
   const view = useMemo(
     () =>
       messageView(
@@ -329,6 +359,7 @@ function AssistantMessage({
             approvals={approvals}
             block={block}
             key={block.key}
+            running={phase !== undefined}
             streaming={streaming}
           />
         ))}
@@ -338,7 +369,7 @@ function AssistantMessage({
           </p>
         ) : null}
         <Sources sources={view.sources} />
-        <StatusNote status={message.status} />
+        <StatusNote phase={phase} status={message.status} />
       </MessageContent>
       {streaming ? null : (
         <MessageToolbar className="-ms-1.5 mt-0 justify-start gap-1">

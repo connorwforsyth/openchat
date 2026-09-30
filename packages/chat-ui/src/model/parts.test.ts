@@ -90,7 +90,7 @@ describe("messageView", () => {
     ];
     const [block] = messageView(parts, indexToolResults([{ parts }])).blocks;
     expect(block).toEqual({
-      key: "tool-call-0",
+      key: "tool-call-m1",
       kind: "memory",
       update: {
         previousVersionId: fixtureId("memoryVersion", 1),
