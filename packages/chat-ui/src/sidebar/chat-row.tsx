@@ -20,7 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
 import { cn } from "@workspace/ui/lib/utils";
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useRef, useState } from "react";
 
 import { RenameInput } from "./rename-input";
 
@@ -49,10 +49,23 @@ export const ChatRow = memo(function ChatRowInner({
 }: ChatRowProps) {
   const { t } = useLingui();
   const [renaming, setRenaming] = useState(false);
+  // Rename waits for its menu to finish closing: the menu hands focus back
+  // as it goes, and an input focused before that would lose it at once.
+  const renameAfterClose = useRef(false);
   const title = chat.title ?? t`New chat`;
 
   const select = useCallback(() => onSelect(chat.id), [chat.id, onSelect]);
-  const startRename = useCallback(() => setRenaming(true), []);
+  const startRename = useCallback(() => {
+    renameAfterClose.current = true;
+  }, []);
+  const onMenuOpenChangeComplete = useCallback((open: boolean) => {
+    if (!open && renameAfterClose.current) {
+      renameAfterClose.current = false;
+      setRenaming(true);
+    }
+  }, []);
+  // Focus goes to the rename input, not back to a trigger it replaces.
+  const menuFinalFocus = useCallback(() => !renameAfterClose.current, []);
   const finishRename = useCallback(
     (next: string | null) => {
       setRenaming(false);
@@ -91,7 +104,7 @@ export const ChatRow = memo(function ChatRowInner({
       >
         <span className="truncate">{title}</span>
       </button>
-      <DropdownMenu>
+      <DropdownMenu onOpenChangeComplete={onMenuOpenChangeComplete}>
         <DropdownMenuTrigger
           render={
             <Button
@@ -104,7 +117,11 @@ export const ChatRow = memo(function ChatRowInner({
         >
           <EllipsisIcon aria-hidden />
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-44">
+        <DropdownMenuContent
+          align="start"
+          className="w-44"
+          finalFocus={menuFinalFocus}
+        >
           <DropdownMenuGroup>
             <DropdownMenuItem onClick={startRename}>
               <PencilIcon aria-hidden />
