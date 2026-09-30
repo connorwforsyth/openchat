@@ -1,7 +1,6 @@
 import { expect, type Page, type Request, test } from "@playwright/test";
 
 import {
-  composer,
   composerReady,
   expectReply,
   openAttachChooser,
@@ -82,15 +81,19 @@ test("the + menu attaches a file and switches web search on for the turn", async
     mimeType: "text/plain",
     name: "plus-notes.txt",
   });
-  await expect(
-    composer(page).getByRole("list", { name: "Attachments" })
-  ).toContainText("plus-notes.txt");
+  await expect(page.getByRole("list", { name: "Attachments" })).toContainText(
+    "plus-notes.txt"
+  );
 
   // By keyboard: open the menu, move to Web search, switch it on.
   await plusMenu(page).focus();
   await page.keyboard.press("Enter");
   const toggle = page.getByRole("menuitemcheckbox", { name: "Web search" });
   await expect(toggle).toHaveAttribute("aria-checked", "false");
+  // Opened from the keyboard, the menu starts on its first item.
+  await expect(
+    page.getByRole("menuitem", { name: "Attach files" })
+  ).toBeFocused();
   await page.keyboard.press("End");
   await expect(toggle).toBeFocused();
   await page.keyboard.press("Enter");
