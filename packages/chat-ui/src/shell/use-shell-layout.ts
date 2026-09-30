@@ -4,9 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 
 import {
   clampPanelWidth,
+  clampSidebarWidth,
   defaultShellLayout,
   parseShellLayout,
+  parseSidebarWidth,
   type ShellLayout,
+  SIDEBAR_WIDTH_STORAGE_KEY,
+  SIDEBAR_WIDTH_VAR,
   togglePanel as togglePanelIn,
   type WorkspaceSection,
 } from "../model/layout";
@@ -84,3 +88,34 @@ export const useShellLayout = (storageKey = SHELL_LAYOUT_STORAGE_KEY) => {
 };
 
 export type ShellLayoutState = ReturnType<typeof useShellLayout>;
+
+/**
+ * The sidebar's saved width (071). `null` until it's been read after mount,
+ * so server and client HTML agree; until then the shell sizes the sidebar
+ * from the `SIDEBAR_WIDTH_VAR` the app's pre-paint script set on `<html>`.
+ * Saving writes that variable too, so a shell mounted later (another page)
+ * starts at the new width rather than the one the page loaded with.
+ */
+export const useSidebarWidth = (storageKey = SIDEBAR_WIDTH_STORAGE_KEY) => {
+  const [width, setWidth] = useState<number | null>(null);
+
+  const apply = useCallback((next: number) => {
+    setWidth(next);
+    document.documentElement.style.setProperty(SIDEBAR_WIDTH_VAR, `${next}px`);
+  }, []);
+
+  useEffect(() => {
+    apply(parseSidebarWidth(readStored(storageKey)));
+  }, [apply, storageKey]);
+
+  const save = useCallback(
+    (next: number) => {
+      const clamped = clampSidebarWidth(next);
+      apply(clamped);
+      writeStored(storageKey, String(clamped));
+    },
+    [apply, storageKey]
+  );
+
+  return { save, width };
+};

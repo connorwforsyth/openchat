@@ -6,39 +6,58 @@ import {
   DrawerContent,
   DrawerTitle,
 } from "@workspace/ui/components/drawer";
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from "@workspace/ui/components/resizable";
+import { ResizeHandle } from "@workspace/ui/components/resizable";
 import { createToastManager, Toaster } from "@workspace/ui/components/toast";
 import { TooltipProvider } from "@workspace/ui/components/tooltip";
 import { cn } from "@workspace/ui/lib/utils";
 import {
-  type ComponentProps,
+  type KeyboardEvent,
   type ReactNode,
   useCallback,
+  useEffect,
+  useId,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 
-import { PANEL_MAX_WIDTH, PANEL_MIN_WIDTH } from "../model/layout";
+import {
+  fitShellColumns,
+  PANEL_DEFAULT_WIDTH,
+  PANEL_MIN_WIDTH,
+  RESIZE_KEY_STEP,
+  SIDEBAR_DEFAULT_WIDTH,
+  SIDEBAR_MIN_WIDTH,
+} from "../model/layout";
+import { usePeek } from "../sidebar/peek";
 import { type Platform, PlatformProvider } from "./platform";
 import { useNarrowScreen } from "./use-narrow-screen";
+import { useSidebarWidth } from "./use-shell-layout";
 
 // The chosen app shell (ticket 009: Classic sidebar + Workspace panels): a
 // collapsible sidebar, then the conversation column (header on top, content,
-// composer docked at the bottom), then an optional resizable right panel.
-// Below `md` the sidebar is a sheet from the start edge and the right panel a
-// bottom sheet (both modal: focus stays inside, Esc or a swipe closes them).
-// Layout only; what goes in each slot comes from the caller.
+// composer docked at the bottom), then an optional right panel. Both sides
+// resize from a handle on their edge (071), and the conversation keeps at
+// least `CENTRE_MIN_WIDTH`: the sidebar yields first, then the panel. A
+// collapsed sidebar peeks over the page from the start edge. Below `md` the
+// sidebar is a sheet from the start edge and the right panel a bottom sheet
+// (both modal: focus stays inside, Esc or a swipe closes them). Layout only;
+// what goes in each slot comes from the caller.
 
-type PanelSize = Parameters<
-  NonNullable<ComponentProps<typeof ResizablePanel>["onResize"]>
->[0];
-type LayoutChangedMeta = Parameters<
-  NonNullable<ComponentProps<typeof ResizablePanelGroup>["onLayoutChanged"]>
->[1];
+// The saved width is on `<html>` before React runs (the app's pre-paint
+// script), and a shell mounted later inherits the latest; 260px otherwise.
+const SIDEBAR_WIDTH_CLASS = "w-[var(--app-sidebar-width,260px)]";
+
+const subscribeToResize = (onChange: () => void) => {
+  window.addEventListener("resize", onChange);
+  return () => window.removeEventListener("resize", onChange);
+};
+const viewportWidth = () => document.documentElement.clientWidth;
+const noViewport = () => null;
+
+/** The window's width, following resizes; `null` on the server. */
+const useViewportWidth = (): number | null =>
+  useSyncExternalStore(subscribeToResize, viewportWidth, noViewport);
 
 export interface AppShellProps {
   /** The conversation column under the header: messages and composer. */
@@ -81,21 +100,61 @@ export function AppShell({
 }: AppShellProps) {
   const { t } = useLingui();
   const narrow = useNarrowScreen();
+  const viewport = useViewportWidth();
   // One toast queue per shell (undo toasts), not a module-level singleton.
   const [toastManager] = useState(createToastManager);
-  // Dragging reports every frame; only a finished, user-made resize is kept.
-  const dragged = useRef<number | null>(null);
-  const onPanelResize = useCallback((size: PanelSize) => {
-    dragged.current = size.inPixels;
-  }, []);
-  const onLayoutChanged = useCallback(
-    (_layout: unknown, meta: LayoutChangedMeta) => {
-      if (meta.isUserInteraction && dragged.current !== null) {
-        onPanelWidthChange?.(dragged.current);
-      }
+  const sidebarId = useId();
+  const panelId = useId();
+
+  // A drag moves these every frame; the saved widths change on release.
+  const savedSidebar = useSidebarWidth();
+  const [liveSidebar, setLiveSidebar] = useState<number | null>(null);
+  const [livePanel, setLivePanel] = useState<number | null>(null);
+  const columns = fitShellColumns({
+    panelOpen: panelOpen && !narrow,
+    panelWidth: livePanel ?? panelWidth,
+    sidebarOpen: sidebarOpen && !narrow,
+    sidebarWidth: liveSidebar ?? savedSidebar.width ?? SIDEBAR_DEFAULT_WIDTH,
+    viewport,
+  });
+  const { save: saveSidebar } = savedSidebar;
+  const endSidebarResize = useCallback(
+    (width: number) => {
+      saveSidebar(width);
+      setLiveSidebar(null);
+    },
+    [saveSidebar]
+  );
+  const endPanelResize = useCallback(
+    (width: number) => {
+      onPanelWidthChange?.(width);
+      setLivePanel(null);
     },
     [onPanelWidthChange]
   );
+
+  // Collapsed, or with no room to dock beside the open panel: it peeks.
+  const peekRef = useRef<HTMLElement>(null);
+  const peek = usePeek(peekRef, !narrow && columns.sidebar === null);
+  const closePeekOnEscape = useCallback(
+    (event: KeyboardEvent<HTMLElement>) => {
+      if (event.key === "Escape" && !event.defaultPrevented) {
+        peek.close();
+      }
+    },
+    [peek]
+  );
+
+  // Going back or forward closes the sheet, as picking a chat in it does.
+  useEffect(() => {
+    if (!sidebarSheetOpen) {
+      return;
+    }
+    const close = () => onSidebarSheetOpenChange(false);
+    window.addEventListener("popstate", close);
+    return () => window.removeEventListener("popstate", close);
+  }, [onSidebarSheetOpenChange, sidebarSheetOpen]);
+
   const onPanelSheetOpenChange = useCallback(
     (open: boolean) => {
       if (!open) {
@@ -118,50 +177,111 @@ export function AppShell({
             )}
             data-slot="app-shell"
           >
-            {sidebarOpen && !narrow ? (
-              <aside
-                aria-label={t`Chats`}
-                className="flex w-64 shrink-0 flex-col border-sidebar-border border-e bg-sidebar text-sidebar-foreground max-md:hidden"
+            {columns.sidebar === null ? null : (
+              <div
+                className="relative flex shrink-0 max-md:hidden"
                 data-slot="app-shell-sidebar"
+              >
+                <aside
+                  aria-label={t`Chats`}
+                  className={cn(
+                    SIDEBAR_WIDTH_CLASS,
+                    // Before the first measure, CSS keeps the conversation's
+                    // minimum; after it, the width is exact.
+                    "flex min-w-50 max-w-[max(12.5rem,calc(100vw-30rem))] flex-col bg-sidebar text-sidebar-foreground"
+                  )}
+                  id={sidebarId}
+                  style={
+                    savedSidebar.width === null
+                      ? undefined
+                      : { width: columns.sidebar }
+                  }
+                >
+                  {sidebar}
+                </aside>
+                <ResizeHandle
+                  aria-controls={sidebarId}
+                  aria-label={t`Resize sidebar`}
+                  defaultValue={SIDEBAR_DEFAULT_WIDTH}
+                  max={columns.sidebarMax}
+                  min={SIDEBAR_MIN_WIDTH}
+                  onResize={setLiveSidebar}
+                  onResizeEnd={endSidebarResize}
+                  resizes="before"
+                  step={RESIZE_KEY_STEP}
+                  value={columns.sidebar}
+                />
+              </div>
+            )}
+            <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
+              {header}
+              <main className="flex min-h-0 flex-1 flex-col">{children}</main>
+            </div>
+            {panelOpen && !narrow ? (
+              <div
+                className="relative flex shrink-0"
+                data-slot="app-shell-panel"
+              >
+                <ResizeHandle
+                  aria-controls={panelId}
+                  aria-label={t`Resize side panel`}
+                  defaultValue={PANEL_DEFAULT_WIDTH}
+                  max={columns.panelMax}
+                  min={PANEL_MIN_WIDTH}
+                  onResize={setLivePanel}
+                  onResizeEnd={endPanelResize}
+                  resizes="after"
+                  step={RESIZE_KEY_STEP}
+                  value={columns.panel}
+                />
+                <aside
+                  aria-label={t`Side panel`}
+                  className="flex h-full min-h-0 flex-col bg-background"
+                  id={panelId}
+                  style={{ width: columns.panel }}
+                >
+                  {panel}
+                </aside>
+              </div>
+            ) : null}
+          </div>
+          {!narrow && columns.sidebar === null ? (
+            <>
+              {/* The edge that shows the sidebar; below the header, so the
+                  header's own sidebar toggle stays clickable. */}
+              <div
+                aria-hidden
+                className="fixed start-0 top-12 bottom-0 z-30 pointer-coarse:hidden w-5 max-md:hidden"
+                data-slot="app-shell-sidebar-edge"
+                onPointerEnter={peek.enter}
+                onPointerLeave={peek.leave}
+              />
+              <aside
+                // Closed, it's out of reach entirely: no tab stops, not in
+                // the accessibility tree (inert alone isn't, everywhere).
+                aria-hidden={peek.open ? undefined : true}
+                aria-label={t`Chats`}
+                className={cn(
+                  SIDEBAR_WIDTH_CLASS,
+                  // Over the page, not beside it: nothing moves. It slides
+                  // in over --motion-base and leaves over --motion-exit;
+                  // reduced motion (--motion-travel: 0) only fades.
+                  "fixed inset-y-0 start-0 z-40 flex max-w-[calc(100vw-3rem)] flex-col border-sidebar-border border-e bg-sidebar text-sidebar-foreground shadow-lg max-md:hidden",
+                  "invisible translate-x-[calc(var(--peek-shift)*var(--motion-travel))] opacity-0 transition-[translate,opacity,visibility] duration-(--motion-exit) ease-motion-out [--peek-shift:-100%] rtl:[--peek-shift:100%]",
+                  "data-open:visible data-open:translate-x-0 data-open:opacity-100 data-open:duration-(--motion-base)"
+                )}
+                data-open={peek.open ? "" : undefined}
+                data-slot="app-shell-sidebar-peek"
+                inert={!peek.open}
+                onKeyDown={closePeekOnEscape}
+                onPointerEnter={peek.enter}
+                onPointerLeave={peek.leave}
+                ref={peekRef}
               >
                 {sidebar}
               </aside>
-            ) : null}
-            <ResizablePanelGroup
-              className="min-w-0 flex-1"
-              onLayoutChanged={onLayoutChanged}
-              orientation="horizontal"
-            >
-              <ResizablePanel id="conversation" minSize="360px">
-                <div className="flex h-full min-h-0 min-w-0 flex-col">
-                  {header}
-                  <main className="flex min-h-0 flex-1 flex-col">
-                    {children}
-                  </main>
-                </div>
-              </ResizablePanel>
-              {panelOpen && !narrow ? (
-                <>
-                  <ResizableHandle />
-                  <ResizablePanel
-                    defaultSize={`${panelWidth}px`}
-                    groupResizeBehavior="preserve-pixel-size"
-                    id="side-panel"
-                    maxSize={`${PANEL_MAX_WIDTH}px`}
-                    minSize={`${PANEL_MIN_WIDTH}px`}
-                    onResize={onPanelResize}
-                  >
-                    <aside
-                      aria-label={t`Side panel`}
-                      className="flex h-full min-h-0 flex-col bg-background"
-                    >
-                      {panel}
-                    </aside>
-                  </ResizablePanel>
-                </>
-              ) : null}
-            </ResizablePanelGroup>
-          </div>
+            </>
+          ) : null}
           {narrow ? (
             <>
               <Drawer
