@@ -58,3 +58,4 @@ Done: 009 and 010 prototypes, 042 contract PR (#31), Docker verification (045, P
 
 - 087: the judge-quality spike needs a live model. Install Ollama (free, local), or say which provider key the loop may use and a spending cap?
 - 078 (PR #69): native provider web search is reachable by default once web search is wired into runs. Keep on, or default `search.native` off?
+- 096: OK to add optional `description` and `provider` to `ModelOption` in `packages/contract` (additive), so the picker can show a line under each model?
