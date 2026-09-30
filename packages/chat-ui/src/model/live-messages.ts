@@ -187,6 +187,19 @@ export const liveMessage = (
   usage: null,
 });
 
+const callIds = (message: Pick<Message, "parts">): Set<string> =>
+  new Set(
+    message.parts.flatMap((part) =>
+      part.type === "tool-call" ? [part.toolCallId] : []
+    )
+  );
+
+/** Whether the live copy of an answer has every call the stored one has. */
+const caughtUp = (live: Message, stored: Message): boolean => {
+  const shown = callIds(live);
+  return [...callIds(stored)].every((id) => shown.has(id));
+};
+
 /** A live message's mapping, and the decisions it was mapped with. */
 export interface LiveMapping {
   readonly decided: string;
@@ -239,15 +252,18 @@ export const mergeLive = (
     ? live.find((message) => message.id === streamingId)
     : undefined;
   const stored = streaming
-    ? path.map((message) =>
-        message.id === streaming.id
-          ? {
-              ...mapLive(streaming, message.parentId),
-              createdAt: message.createdAt,
-              runId: message.runId,
-            }
-          : message
-      )
+    ? path.map((message) => {
+        if (message.id !== streaming.id) {
+          return message;
+        }
+        const mapped = mapLive(streaming, message.parentId);
+        // A page that picks a run up replays its stream from the start, so
+        // for a moment the live copy has fewer calls than the stored one:
+        // showing it would unmount a card and bring it straight back.
+        return caughtUp(mapped, message)
+          ? { ...mapped, createdAt: message.createdAt, runId: message.runId }
+          : message;
+      })
     : path;
   const tail = liveTail(new Set(path.map((message) => message.id)), live);
   if (tail.length === 0) {

@@ -100,6 +100,52 @@ describe("mergeLive", () => {
   });
 });
 
+describe("mergeLive while a picked-up stream replays", () => {
+  const [question, answer] = treeMessages;
+  const context = {
+    authorId: userAda.id,
+    conversationId: question?.conversationId ?? fixtureId("conversation", 1),
+    now: "2026-09-30T10:00:00.000Z",
+  };
+
+  it("keeps the stored answer until the live copy has every call it has", () => {
+    if (!(question && answer)) {
+      throw new Error("fixture path is too short");
+    }
+    const call = {
+      approval: { requestedAt: context.now, state: "pending" as const },
+      input: {},
+      toolCallId: "c9",
+      toolName: "write",
+      type: "tool-call" as const,
+    };
+    const stored = [
+      question,
+      { ...answer, parts: [call], status: "partial" as const },
+    ];
+    const early = ui(answer.id, "assistant", "Replaying…");
+    expect(mergeLive(stored, [early], context, undefined, answer.id)[1]).toBe(
+      stored[1]
+    );
+    const caught: UIMessage = {
+      id: answer.id,
+      parts: [
+        {
+          approval: { id: "a9" },
+          input: {},
+          state: "approval-requested",
+          toolCallId: "c9",
+          type: "tool-write",
+        },
+      ],
+      role: "assistant",
+    };
+    expect(
+      mergeLive(stored, [caught], context, undefined, answer.id)[1]?.parts
+    ).toMatchObject([{ toolCallId: "c9", type: "tool-call" }]);
+  });
+});
+
 describe("liveParts", () => {
   const decided: Decisions = new Map([
     [
