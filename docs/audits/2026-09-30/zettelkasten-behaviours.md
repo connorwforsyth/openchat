@@ -1,4 +1,4 @@
-# Connor's Zettelkasten: behaviours to translate into openchat
+# Connor's Zettelkasten: behaviours to translate into the app
 
 **Source:** the local checkout `/Users/connorforsyth/conductor/workspaces/connor-website/prague` (HEAD 5356476), read-only. Paths below are relative to it. The live site at https://connorforsyth.co/notes matches the code. Connor's own write-up is at https://connorforsyth.co/projects/zettelkasten (`content/projects/zettelkasten.mdx`, cited below as Z.mdx).
 

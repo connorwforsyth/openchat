@@ -172,7 +172,7 @@ Gaps:
 
 ### 2.1 Measurements (computed, 1440×900, light)
 
-| Property | openchat today | Source | ChatGPT (approximate reference, from memory, not measured) |
+| Property | The app today | Source | ChatGPT (approximate reference, from memory, not measured) |
 |---|---|---|---|
 | Width | **256 px fixed** (`w-64`) | app-shell.tsx:124 | about 260 px default |
 | Resizable | **No** (no handle; only the right panel resizes) | app-shell.tsx:121-129 | Not user-resizable in the main web app as far as I know; some clones allow about 200–400 px |
