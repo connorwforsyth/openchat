@@ -146,6 +146,77 @@ limits:
   agentMaxSteps: 40
 ```
 
+### Model prices and cost
+
+The app ships **no prices**: they change, they differ by contract and
+region, and a wrong built-in price would be worse than none. Until you set
+them, every usage row is recorded with its token counts and a cost of 0.
+To have Admin › Usage and budgets count money, list what your providers
+charge you under `models.prices`:
+
+```yaml
+models:
+  aliases:
+    fast: openai:gpt-4.1-mini
+  prices:
+    # micro-USD per million tokens: dollars per million tokens × 1000000
+    openai:gpt-4.1-mini:
+      inputMicros: 400000          # $0.40 per million input tokens
+      outputMicros: 1600000        # $1.60 per million output tokens
+      cachedInputMicros: 100000    # $0.10 per million cached input tokens
+    anthropic:claude-sonnet-4-5:
+      inputMicros: 3000000         # $3.00
+      outputMicros: 15000000       # $15.00
+```
+
+The numbers above only show the format. Take yours from your provider's
+price list or your invoice; the app never looks prices up anywhere.
+
+- **The key is the full `provider:modelId` ref**, the one an alias points
+  to and the one Admin › Usage lists, not the alias. Its provider has to be
+  under `providers`, so a misspelt provider fails at start. A misspelt model
+  id can't be caught: that model just stays unpriced.
+- **The unit** is whole micro-USD (1 USD = 1000000) per million tokens, the
+  same unit as `costMicros` on usage rows and `limitMicros` on budgets. Write
+  plain integers: `0.4`, `$0.40` and `400_000` are all refused. The app
+  assumes US dollars throughout (the admin pages print `$`). If you are
+  billed in another currency, convert the prices yourself, once; nothing
+  converts at run time.
+- **`cachedInputMicros` is optional.** Providers that report cache reads
+  count them inside the input tokens; those tokens are charged at this price
+  and the rest at `inputMicros`. Leave it out and cached tokens cost the same
+  as any other input. Cache *writes* aren't reported apart from input, so a
+  provider's surcharge for them isn't counted. Reasoning tokens are part of
+  the output tokens and are charged once, at `outputMicros`.
+- **Rounding:** `uncached input × inputMicros + cached input ×
+  cachedInputMicros + output × outputMicros`, summed exactly, divided by
+  1000000 and rounded half up to a whole micro-USD, once per recorded call
+  (a chat turn with several tool steps is one call). It's integer arithmetic
+  all the way, so totals never drift.
+- **A model with no entry is unpriced**: its calls cost 0 and spend no
+  budget. A usage row doesn't record whether its model had a price, so in
+  Admin › Usage a model with tokens and `$0.00` is either unpriced or
+  priced at 0 (as you might a local Ollama model, with `inputMicros: 0` and
+  `outputMicros: 0`); check it against this block.
+- **Prices apply from the restart that loads them.** Rows already recorded
+  keep the cost they were written with (0, before you set any), and changing
+  a price later doesn't re-cost history.
+- The same price applies whoever's key paid for the call (the instance's, an
+  org's or a person's own), and to chat turns, calls through `/api/llm` and
+  eval runs alike.
+
+> **Setting prices switches budgets on.** A budget (Admin › Usage) compares
+> what its user, team or org has spent this day, week or month with its
+> limit, and a *hard* budget refuses new runs (HTTP 402, "The budget for
+> this period is spent") once spend reaches it. While every call cost 0,
+> spend never moved, so a budget with a limit above 0 never refused anything.
+> From the first priced call it does. Before you add prices, look over the
+> budgets you already have: a limit that was entered as a placeholder will
+> now be enforced. The check runs before a run starts, so the run that
+> crosses the limit finishes and the next one is refused; unpriced models
+> still add nothing, but are refused like any other once the budget is
+> spent.
+
 ### Uploaded files
 
 Uploads go to the local file store, `storage.path` in `app.config.yaml`
