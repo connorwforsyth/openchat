@@ -40,6 +40,7 @@ import type { ComposerHandoff, ComposerProps } from "../props";
 import type {
   AttachmentLimits,
   AttachmentRejection,
+  FileCandidate,
   MentionCandidate,
   PromptOption,
 } from "../schemas";
@@ -109,11 +110,13 @@ export function Composer({
   onStop,
   onSubmit,
   onTargetChange,
+  onWebSearchChange,
   people = NONE,
   placeholder,
   prompts = NONE,
   status = "ready",
   target,
+  webSearch = false,
 }: EditorComposerProps) {
   const { t } = useLingui();
   const id = useId();
@@ -301,6 +304,33 @@ export function Composer({
       }
     },
     [choosePrompt, onCommand, slash.files.length]
+  );
+
+  // From the + menu: the same file mention `@` makes, at the caret.
+  const addWorkspaceFile = useCallback(
+    (file: FileCandidate) => {
+      editor
+        .chain()
+        .focus()
+        .insertContent([
+          {
+            attrs: { id: file.path, kind: "file", label: file.label },
+            type: "mention",
+          },
+          { text: " ", type: "text" },
+        ])
+        .run();
+    },
+    [editor]
+  );
+
+  // From the + menu: as if chosen from `/`, over whatever is selected.
+  const usePrompt = useCallback(
+    (prompt: PromptOption) => {
+      const { from, to } = editor.state.selection;
+      choosePrompt(editor, { from, to }, prompt);
+    },
+    [choosePrompt, editor]
   );
 
   const removeLastAttachment = useCallback(() => {
@@ -494,12 +524,18 @@ export function Composer({
           contextLocked={contextLocked}
           contexts={contexts}
           disabled={disabled}
+          files={slash.files}
           models={models}
+          onAddFile={addWorkspaceFile}
           onAttach={openFilePicker}
           onContextChange={onContextChange}
           onStop={onStop ? stop : undefined}
           onTargetChange={onTargetChange}
+          onUsePrompt={usePrompt}
+          onWebSearchChange={onWebSearchChange}
+          prompts={prompts}
           target={target}
+          webSearch={webSearch}
         />
       </InputGroup>
       <div aria-live="polite" className="sr-only">

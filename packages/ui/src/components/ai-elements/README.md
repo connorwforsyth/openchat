@@ -14,6 +14,7 @@ dependency. `apps/web/app/dev/ai-elements` renders each one with static data.
 | `reasoning.tsx` | Collapsible thinking with stream timing and auto-close. No shadcn counterpart. |
 | `tool.tsx` | Tool-call header, status badge, input and output, typed by the AI SDK's `ToolUIPart`. No shadcn counterpart. |
 | `prompt-input.tsx` | The composer: attachments (picker, paste, drop, previews), IME-safe Enter, model select, dictation, submit/stop by `ChatStatus`. shadcn's `InputGroup` is the frame it's built on, not a composer. |
+| `model-selector.tsx` | A searchable model dialog (Dialog + Command) with provider sections and marks; the composer's model/agent picker (094). shadcn has the parts, not the composition. |
 | `streamdown.tsx` | Ours, not upstream: hands Streamdown the registry's icons (D19) and Lingui strings (D12). |
 
 Deliberately **not** installed:
@@ -59,6 +60,24 @@ from the `base-nova` registry, so they were Base UI already.
 
 No Radix import or dependency remains in this package, and none reaches it
 transitively (`bun.lock` has no Radix packages).
+
+### `model-selector.tsx` (ticket 094)
+
+Copied from `packages/elements/src/model-selector.tsx` (MIT) and adapted:
+
+- Built on our Base UI `dialog` and the cmdk `command` already in this
+  package; no new dependency.
+- `ModelSelectorLogo` draws a neutral letter mark instead of loading
+  `models.dev/logos/<provider>.svg`: the page never fetches from a third-party
+  host, and `@workspace/icons` has no brand marks. `LogoGroup` targets the
+  mark rather than `<img>`.
+- `ModelSelectorContent` takes `command` props for the inner cmdk root (the
+  composer filters for itself with `shouldFilter: false` and controls the
+  highlighted row), a translated default title, no close button, and sits
+  near the top of the screen like the command palette, so a phone keyboard
+  doesn't cover the search field.
+- `ModelSelectorItem` aligns to the top, for rows with a second line.
+- `text-left` became `text-start`.
 
 ## Behaviour changes to know about
 

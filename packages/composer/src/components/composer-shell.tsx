@@ -41,9 +41,11 @@ export function ComposerShell({
   onContextChange,
   onHandoff,
   onTargetChange,
+  onWebSearchChange,
   placeholder,
   status = "ready",
   target,
+  webSearch = false,
 }: ComposerShellProps) {
   const { t } = useLingui();
 
@@ -88,12 +90,18 @@ export function ComposerShell({
           contextLocked={contextLocked}
           contexts={contexts}
           disabled={disabled}
+          files={NONE}
           models={models}
+          onAddFile={undefined}
           onAttach={noop}
           onContextChange={onContextChange}
           onStop={undefined}
           onTargetChange={onTargetChange}
+          onUsePrompt={undefined}
+          onWebSearchChange={onWebSearchChange}
+          prompts={NONE}
           target={target}
+          webSearch={webSearch}
         />
       </InputGroup>
       {failed ? (

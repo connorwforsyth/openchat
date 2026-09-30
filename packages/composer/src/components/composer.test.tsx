@@ -2,6 +2,7 @@ import { setupI18n } from "@lingui/core";
 import { I18nProvider } from "@lingui/react";
 import {
   cleanup,
+  fireEvent,
   render,
   screen,
   waitFor,
@@ -470,11 +471,122 @@ describe("Composer", () => {
     const alert = screen.getByRole("alert");
     expect(alert.textContent).toContain("doc.pdf isn't a supported file type.");
     expect(alert.textContent).toContain("big.png is larger than");
-    expect(screen.getByRole("button", { name: "Attach files" })).toHaveProperty(
-      "disabled",
-      true
+    await userEvent.click(
+      screen.getByRole("button", { name: "Add to message" })
     );
+    const attach = await screen.findByRole("menuitem", {
+      name: "Attach files",
+    });
+    expect(attach.getAttribute("aria-disabled")).toBe("true");
+    await userEvent.keyboard("{Escape}");
     expect(editor.textContent).toBe("");
+  });
+
+  it("attaches files from the + menu, by keyboard, and Escape returns to it", async () => {
+    const click = vi.spyOn(HTMLInputElement.prototype, "click");
+    renderComposer();
+    const plus = screen.getByRole("button", { name: "Add to message" });
+    plus.focus();
+    await userEvent.keyboard("{Enter}");
+    const attach = await screen.findByRole("menuitem", {
+      name: "Attach files",
+    });
+    // Home rather than trusting the first highlight: the unstyled menu can
+    // open under wherever an earlier test left the pointer.
+    await userEvent.keyboard("{End}{Home}");
+    await waitFor(() => expect(document.activeElement).toBe(attach));
+    await userEvent.keyboard("{Enter}");
+    expect(click).toHaveBeenCalled();
+    click.mockRestore();
+
+    plus.focus();
+    await userEvent.keyboard("{Enter}");
+    await screen.findByRole("menuitem", { name: "Attach files" });
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
+    expect(document.activeElement).toBe(plus);
+  });
+
+  it("adds a workspace file and uses a prompt from the + menu", async () => {
+    const { editor, onSubmit } = renderComposer({ files: ["src/app.ts"] });
+    await userEvent.click(
+      screen.getByRole("button", { name: "Add to message" })
+    );
+    await userEvent.click(
+      await screen.findByRole("menuitem", { name: "Add a workspace file" })
+    );
+    await userEvent.click(
+      await screen.findByRole("menuitem", { name: APP_TS })
+    );
+    await waitFor(() => expect(editor.textContent).toContain("@app.ts"));
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Add to message" })
+    );
+    await userEvent.click(
+      await screen.findByRole("menuitem", { name: "Use a prompt" })
+    );
+    await userEvent.click(
+      await screen.findByRole("menuitem", { name: SUMMARISE })
+    );
+    await waitFor(() =>
+      expect(editor.textContent).toContain("Summarise the thread above")
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Send" }));
+    const value = lastValue(onSubmit);
+    expect(value.mentions).toEqual([
+      expect.objectContaining({ kind: "file", path: "src/app.ts" }),
+    ]);
+    expect(value.templateId).toBe(summarise.id);
+  });
+
+  it("offers workspace files and prompts only when there are some", async () => {
+    renderComposer({ prompts: [] });
+    await userEvent.click(
+      screen.getByRole("button", { name: "Add to message" })
+    );
+    await screen.findByRole("menuitem", { name: "Attach files" });
+    expect(
+      screen.queryByRole("menuitem", { name: "Add a workspace file" })
+    ).toBeNull();
+    expect(screen.queryByRole("menuitem", { name: "Use a prompt" })).toBeNull();
+    // No web search on this instance: no switch.
+    expect(screen.queryByRole("menuitemcheckbox")).toBeNull();
+  });
+
+  it("switches web search from the + menu and off from its chip", async () => {
+    const onWebSearchChange = vi.fn();
+    const { rerender } = renderComposer({ onWebSearchChange });
+    await userEvent.click(
+      screen.getByRole("button", { name: "Add to message" })
+    );
+    const toggle = await screen.findByRole("menuitemcheckbox", {
+      name: "Web search",
+    });
+    expect(toggle.getAttribute("aria-checked")).toBe("false");
+    await userEvent.click(toggle);
+    expect(onWebSearchChange).toHaveBeenLastCalledWith(true);
+    await userEvent.keyboard("{Escape}");
+
+    rerender(
+      <I18nProvider i18n={i18n}>
+        <Composer
+          onSubmit={vi.fn()}
+          onWebSearchChange={onWebSearchChange}
+          webSearch
+        />
+      </I18nProvider>
+    );
+    const chip = screen.getByRole("button", {
+      name: "Web search is on. Turn it off",
+    });
+    expect(chip.getAttribute("aria-pressed")).toBe("true");
+    await userEvent.click(chip);
+    expect(onWebSearchChange).toHaveBeenLastCalledWith(false);
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", { name: "Add to message" })
+    );
   });
 
   it("picks a target and a context", async () => {
@@ -495,9 +607,8 @@ describe("Composer", () => {
     await userEvent.click(
       screen.getByRole("button", { name: "Model or agent: Auto" })
     );
-    await userEvent.click(
-      await screen.findByRole("menuitemradio", { name: REVIEWER })
-    );
+    await screen.findByRole("option", { name: REVIEWER });
+    await userEvent.keyboard("Reviewer{Enter}");
     expect(onTargetChange).toHaveBeenCalledWith({
       id: agentItem.id,
       type: "agent",
@@ -535,16 +646,14 @@ describe("Composer", () => {
     const team = await screen.findByRole("group", {
       name: "Team & org agents",
     });
-    expect(
-      within(team).getByRole("menuitemradio", { name: REVIEWER })
-    ).toBeTruthy();
+    expect(within(team).getByRole("option", { name: REVIEWER })).toBeTruthy();
     const fromOthers = screen.getByRole("group", { name: "Shared with me" });
     expect(
-      within(fromOthers).getByRole("menuitemradio", { name: "Ada's drafter" })
+      within(fromOthers).getByRole("option", { name: "Ada's drafter" })
     ).toBeTruthy();
-    await userEvent.click(
-      within(team).getByRole("menuitemradio", { name: REVIEWER })
-    );
+    // Unstyled in tests, Base UI's modal backdrop covers the popup for real
+    // pointer hit-testing, so the option is chosen with a dispatched click.
+    fireEvent.click(within(team).getByRole("option", { name: REVIEWER }));
     expect(onTargetChange).toHaveBeenCalledWith({
       id: agentItem.id,
       type: "agent",
@@ -563,10 +672,9 @@ describe("Composer", () => {
   it("disables everything when disabled", () => {
     const { editor } = renderComposer({ disabled: true });
     expect(editor.getAttribute("contenteditable")).toBe("false");
-    expect(screen.getByRole("button", { name: "Attach files" })).toHaveProperty(
-      "disabled",
-      true
-    );
+    expect(
+      screen.getByRole("button", { name: "Add to message" })
+    ).toHaveProperty("disabled", true);
     expect(screen.getByRole("button", { name: "Send" })).toHaveProperty(
       "disabled",
       true
