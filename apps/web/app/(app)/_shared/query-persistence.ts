@@ -102,9 +102,24 @@ export const pickPersisted = (client: PersistedClient): PersistedClient => {
   };
   return {
     ...client,
-    clientState: { mutations: [], queries: settled.filter(keep) },
+    clientState: {
+      mutations: [],
+      queries: settled.filter(keep).map(revalidated),
+    },
   };
 };
+
+/**
+ * A conversation's stored messages restore as stale, so they render at
+ * once and refetch on mount. Restored with their fetch time they'd count as
+ * fresh for `staleTime`, and a reload soon after activity would show an
+ * answer as it was minutes ago: no approval card, "stopped early" on one
+ * still running (072, audit F2). The shell's queries keep their age.
+ */
+const revalidated = (query: DehydratedQuery): DehydratedQuery =>
+  CONVERSATION_PATHS.has(pathOf(query.queryKey))
+    ? { ...query, state: { ...query.state, isInvalidated: true } }
+    : query;
 
 /**
  * An IndexedDB persister. Every storage call can fail (private windows,
