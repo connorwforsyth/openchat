@@ -106,3 +106,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 
 - 2026-10-01 · 085 draft PR #73, stacked on #72 · gate 85/85 · evals --strict 69 cases, 52 pass / 9 xfail / 8 skip · e2e 48/48 · no live calls made · 081 now waits only on 087 (Connor)
 - 2026-10-01 · Connor asked for a + menu and a searchable model dialog: added 094 (UI), 095 (model discovery, opt-in), 096 (descriptions, contract, needs approval); claimed 094 and 095
+- 2026-10-01 · Connor decided: 096 contract field approved (optional `description`, `provider` on `ModelOption`); dividers between provider sections; #69 keeps native web search on by default

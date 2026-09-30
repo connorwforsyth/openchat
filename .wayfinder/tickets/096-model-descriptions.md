@@ -1,15 +1,15 @@
 ---
 id: "096"
 title: "A short description under each model in the picker (needs a contract field)"
-labels: [wayfinder:grilling]
+labels: [wayfinder:build]
 status: open
-assignee: 
+assignee: loop
 blockedBy: ["094", "095"]
 ---
 
 ## Question
 
-Connor asked (2026-10-01) for a short description under each model so people know why they'd pick it. The picker gets its list from `meta.models`, whose `ModelOption` (`packages/contract/src/schemas/models.ts`) has no description or provider field, so this needs an additive contract change, which waits for Connor's explicit approval.
+Connor asked (2026-10-01) for a short description under each model so people know why they'd pick it. The picker gets its list from `meta.models`, whose `ModelOption` (`packages/contract/src/schemas/models.ts`) has no description or provider field, so this needs an additive contract change, Connor approved the additive contract change on 2026-10-01.
 
 ## Done when
 
