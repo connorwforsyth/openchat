@@ -35,19 +35,17 @@ prepareEditorColors();
 // CodeMirror or Monaco. It reports text as it changes and a save request on
 // ⌘S / Ctrl+S; when and how to save is the caller's business.
 
-// The provider's factory: each surface owns its editor (the diffs skill's
-// "edit with React" recipe forwards all three arguments).
-const createEditor: EditorFactory<undefined, undefined> = (
-  editorType,
-  options,
-  editStateKey
-) => new Editor(editorType, options, editStateKey);
-
 // Every session ends accepted: the caller already has the text from
 // `onChange`, and rejecting would flash the original back in on unmount.
 const accept = () => "accept" as const;
 
 export interface CodeEditorProps {
+  /**
+   * Focus the editor once it's ready (a file opened from the Workspace's
+   * search with Enter). `onAutoFocus` reports it happened, so the host can
+   * stop asking before a reload remounts the editor.
+   */
+  readonly autoFocus?: boolean;
   readonly className?: string;
   /**
    * The text the editor starts from. A new value (a reload) replaces
@@ -60,6 +58,7 @@ export interface CodeEditorProps {
   readonly headerActions?: ReactNode;
   /** Overrides the language inferred from `path`. */
   readonly language?: SupportedLanguages;
+  readonly onAutoFocus?: () => void;
   /** The editor's text after every change. */
   readonly onChange?: (text: string) => void;
   /** ⌘S / Ctrl+S inside the editor; the browser's save dialog is suppressed. */
@@ -71,13 +70,18 @@ export interface CodeEditorProps {
 
 const SAVE_KEY = "s";
 
-/** A file you can edit, with Shiki highlighting and the editor's undo stack. */
+/**
+ * A file you can edit, with Shiki highlighting and the editor's undo stack.
+ * It has no frame of its own: the host decides the surface around it (070).
+ */
 export function CodeEditor({
+  autoFocus = false,
   className,
   contents,
   header = true,
   headerActions,
   language,
+  onAutoFocus,
   onChange,
   onSave,
   path,
@@ -104,11 +108,47 @@ export function CodeEditor({
     [themeType]
   );
 
-  // The latest handler, without re-creating the editing session.
+  // The latest handlers, without re-creating the editing session.
   const changed = useRef(onChange);
+  const autoFocused = useRef(onAutoFocus);
   useEffect(() => {
     changed.current = onChange;
+    autoFocused.current = onAutoFocus;
   });
+
+  // The editor once its text is in the page, for focusing it: @pierre makes
+  // it through this factory (the diffs skill's "edit with React" recipe
+  // forwards all three arguments) and says when it's attached.
+  const [attached, setAttached] = useState<Editor<"file"> | null>(null);
+  const [createEditor] = useState(
+    (): EditorFactory<undefined, undefined> =>
+      (editorType, editorOptions, editStateKey) =>
+        new Editor(
+          editorType,
+          {
+            ...editorOptions,
+            onAttach: (editor, instance) => {
+              editorOptions?.onAttach?.(editor, instance);
+              setAttached(editor as Editor<"file">);
+            },
+          },
+          editStateKey
+        )
+  );
+  const root = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!autoFocus) {
+      return;
+    }
+    if (readOnly) {
+      root.current?.focus({ preventScroll: true });
+    } else if (attached) {
+      attached.focus({ preventScroll: true });
+    } else {
+      return;
+    }
+    autoFocused.current?.();
+  }, [attached, autoFocus, readOnly]);
   const onEditChange = useCallback(
     (event: EditorChangeEvent<"file", undefined, undefined>) =>
       changed.current?.(event.file.contents),
@@ -133,13 +173,12 @@ export function CodeEditor({
 
   return (
     <div
-      className={cn(
-        "overflow-hidden rounded-lg border bg-background",
-        className
-      )}
+      className={cn("overflow-hidden bg-background outline-none", className)}
       data-read-only={readOnly || undefined}
       data-slot="code-editor"
       onKeyDownCapture={onKeyDownCapture}
+      ref={root}
+      tabIndex={readOnly ? -1 : undefined}
     >
       {header ? <CodeHeader actions={headerActions} path={path} /> : null}
       <EditProvider createEditor={createEditor}>
