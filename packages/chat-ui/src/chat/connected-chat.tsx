@@ -49,7 +49,7 @@ import {
 
 import type { ConversationActions } from "../conversation/actions";
 import { newestLeafUnder, type TreeNode } from "../model/branch";
-import { mergeLive } from "../model/live-messages";
+import { type LiveMapping, mergeLive } from "../model/live-messages";
 import type { MemoryUpdate } from "../model/parts";
 import {
   type WorkspaceSelection,
@@ -326,7 +326,7 @@ const useLiveTurn = ({
   const streamingMessageId = busy ? lastAnswer : null;
   // Until then the finished answer stays as streamed.
   const liveMessageId = busy || settling ? lastAnswer : null;
-  const cache = useRef(new WeakMap<UIMessage, Message>());
+  const cache = useRef(new WeakMap<UIMessage, LiveMapping>());
   const messages = useMemo(
     () =>
       conversationId
