@@ -15,6 +15,8 @@
     "./decider/retrieval-gate": "./src/decider/retrieval-gate.ts",
     "./decider/risk": "./src/decider/risk.ts",
     "./errors/run-error": "./src/errors/run-error.ts",
+    "./evals/judge": "./src/evals/judge.ts",
+    "./evals/model": "./src/evals/model.ts",
     "./keys/key-store": "./src/keys/key-store.ts",
     "./keys/key-store.memory": "./src/keys/key-store.memory.ts",
     "./keys/resolve": "./src/keys/resolve.ts",
