@@ -2520,6 +2520,14 @@ msgstr "Reset zoom and pan"
 msgid "Resets {resets}"
 msgstr "Resets {resets}"
 
+#: ../chat-ui/src/shell/app-shell.tsx
+msgid "Resize side panel"
+msgstr "Resize side panel"
+
+#: ../chat-ui/src/shell/app-shell.tsx
+msgid "Resize sidebar"
+msgstr "Resize sidebar"
+
 #: ../ui/src/components/ai-elements/tool.tsx
 msgid "Responded"
 msgstr "Responded"

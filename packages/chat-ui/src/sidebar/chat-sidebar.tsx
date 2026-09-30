@@ -3,7 +3,6 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { ConversationId } from "@workspace/contract/schemas/common";
 import { LibraryIcon, NewChatIcon, SearchIcon } from "@workspace/icons";
-import { cn } from "@workspace/ui/lib/utils";
 import { type ReactNode, useCallback, useMemo } from "react";
 
 import { type DateGroup, groupChats } from "../model/date-groups";
@@ -33,8 +32,9 @@ export interface ChatSidebarProps {
   readonly onTogglePin: (id: ConversationId, pinned: boolean) => void;
 }
 
+// Same rhythm as the chat rows (071): 36px, 44px on touch.
 const navRowClass =
-  "flex h-8 w-full min-w-0 items-center gap-2 rounded-md px-2 text-start text-sm outline-none transition-colors duration-(--motion-fast) hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring [&_svg]:size-4 [&_svg]:shrink-0";
+  "flex h-9 w-full min-w-0 items-center gap-2 rounded-lg px-2 text-start text-sm outline-none transition-colors duration-(--motion-fast) hover:bg-sidebar-foreground/5 focus-visible:ring-2 focus-visible:ring-sidebar-ring pointer-coarse:h-11 [&_svg]:size-4 [&_svg]:shrink-0";
 
 function GroupHeading({ group }: { readonly group: DateGroup | "pinned" }) {
   switch (group) {
@@ -138,9 +138,7 @@ export function ChatSidebar({
               key={section.group}
             >
               <h3
-                className={cn(
-                  "px-2 pt-4 pb-1 font-medium text-muted-foreground text-xs"
-                )}
+                className="px-2 pt-5 pb-1.5 font-medium text-muted-foreground text-xs"
                 id={`chat-group-${section.group}`}
               >
                 <GroupHeading group={section.group} />
