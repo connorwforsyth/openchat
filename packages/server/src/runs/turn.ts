@@ -18,6 +18,8 @@ import type {
   ProviderRegistry,
 } from "@workspace/ai/ports/provider-registry";
 import type { RunStart } from "@workspace/ai/ports/run-executor";
+import { composeInstructions } from "@workspace/ai/prompts/compose";
+import { BASE, FRAGMENTS } from "@workspace/ai/prompts/generated";
 import { resolveTools } from "@workspace/ai/tools/resolve";
 import { buildToolSet, type McpToolSource } from "@workspace/ai/tools/tool-set";
 import type { AppConfig } from "@workspace/config/schema";
@@ -68,7 +70,6 @@ import {
   type SandboxToolSource,
   type ToolReviews,
   type TurnSandbox,
-  WORKSPACE_INSTRUCTIONS,
   withSandboxTools,
 } from "./sandbox";
 import { workspaceContext } from "./workspace-context";
@@ -454,14 +455,15 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
     const mentioned = await mentionedFiles(run, () =>
       Promise.resolve(sandbox.sandbox)
     );
-    const instructions = [
-      sandbox.sandbox ? WORKSPACE_INSTRUCTIONS : undefined,
-      mentioned,
-    ].filter((part) => part !== undefined);
+    const instructions = composeInstructions({
+      base: BASE,
+      dynamic: sandbox.sandbox ? [FRAGMENTS.workspace] : [],
+      mentions: mentioned,
+    });
     return ok({
       agent: null,
-      ...(instructions.length > 0
-        ? { instructions: instructions.join("\n\n") }
+      ...(instructions.sections.length > 0
+        ? { instructions: instructions.text }
         : {}),
       parameters: target.parameters,
       ...loaded.value,
@@ -570,9 +572,11 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
     return ok({
       ...loaded.value,
       agent: { id: target.id, versionId: version.value.id },
-      instructions: mentioned
-        ? [definition.instructions, mentioned].filter(Boolean).join("\n\n")
-        : definition.instructions,
+      instructions: composeInstructions({
+        agent: definition.instructions,
+        base: BASE,
+        mentions: mentioned,
+      }).text,
       parameters: definition.parameters,
       proposeEdits: sandbox?.proposeEdits,
       toolApproval: gated.toolApproval,

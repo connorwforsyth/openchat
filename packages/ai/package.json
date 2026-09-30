@@ -27,6 +27,7 @@
     "./messages/to-ui": "./src/messages/to-ui.ts",
     "./messages/workspace-file": "./src/messages/workspace-file.ts",
     "./ports/*": "./src/ports/*.ts",
+    "./prompts/*": "./src/prompts/*.ts",
     "./providers/capabilities": "./src/providers/capabilities.ts",
     "./providers/factory": "./src/providers/factory.ts",
     "./providers/registry": "./src/providers/registry.ts",
@@ -41,6 +42,7 @@
   "scripts": {
     "eval": "evalite run",
     "lint": "ultracite check",
+    "prompts:generate": "bun scripts/generate-prompts.ts && ultracite fix src/prompts/generated.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
