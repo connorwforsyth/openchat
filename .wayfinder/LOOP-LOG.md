@@ -104,3 +104,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-10-01 · 084 (S3a) built · gate 85/85 · evals --strict: 62 cases, 52 pass, 9 expected failures, 1 skipped, ~44 s · added 088–093 for what the evals found
 - 2026-10-01 · 084 draft PR #72, stacked on #70 · gate 85/85 · evals --strict 52 pass / 9 xfail / 1 skip · e2e 48/48; 086 e2e 48/48 (loop's run); claimed 085
 
+- 2026-10-01 · 085 draft PR #73, stacked on #72 · gate 85/85 · evals --strict 69 cases, 52 pass / 9 xfail / 8 skip · e2e 48/48 · no live calls made · 081 now waits only on 087 (Connor)
