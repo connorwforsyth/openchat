@@ -19,7 +19,8 @@ const STILL_UP_RESULT = /Tool result: .*still-up/;
 const REVIEW_RESULT = /Tool result: .*Keep the last line as a number/;
 const RAN_LS = /^Ran ls/;
 const APPROVE = /^Approve/;
-const SAVED = /Saved/;
+/** Anything the editor's save status could say. */
+const SAVE_WORDS = /^(Saved|Unsaved|Saving…)$/;
 const DARK = /\bdark\b/;
 const LIGHT = /\blight\b/;
 /** A workspace listing (`sandbox.listFiles`), batched or not. */
@@ -344,9 +345,11 @@ test("an edit typed in the panel's editor survives a reload", async ({
   await page.keyboard.press("ControlOrMeta+End");
   await page.keyboard.type("edited-by-hand");
   await expect(editor).toContainText("edited-by-hand");
-  await expect(panel.getByText(SAVED)).toBeVisible();
-  // "Saved" is also what an untouched file says: wait for the write itself,
-  // or the reload can beat the save the typing started (seen in 070).
+  await expect(panel.getByText("Unsaved")).toBeVisible();
+
+  // At once, well inside the pause before the save (077): leaving the page
+  // sends the edit with a request that outlives it.
+  await page.reload();
   const api = await apiFor(page, baseURL ?? "");
   const sandbox = await api.sandbox.get({ conversationId: filesChat });
   if (!sandbox) {
@@ -356,12 +359,12 @@ test("an edit typed in the panel's editor survives a reload", async ({
     () => api.sandbox.readFile({ id: sandbox.id, path: "hello.md" }),
     (file) => file.content.includes("edited-by-hand")
   );
-
-  await page.reload();
   const reopened = page.getByRole("region", { name: "Workspace" });
   await reopened.getByRole("treeitem", { name: "hello.md" }).click();
   await showCode(reopened);
   await expect(editorIn(page)).toContainText("edited-by-hand");
+  // Nothing to say about a file that's saved.
+  await expect(reopened.getByText(SAVE_WORDS)).toBeHidden();
 });
 
 test("@hello.md puts the file's content in front of the model", async ({
