@@ -45,8 +45,8 @@ Built on branch `t/078-harness-gaps` (not pushed, no PR yet). No `packages/contr
   them all), so such a turn uses the backend instead.
 - **MCP in plain chats.** `listUsableServers` (`packages/mcp/src/manager.ts`) lists the instance's servers, those owned by the
   user or a team or org they're in, and those granted to any of them: `canUseServer`'s rule as a list. `turn.ts`
-  (`chatMcpTools`) plans them through the same `resolveTools` + `buildToolSet` an agent uses, with the agent schema's default
-  approvals. A server that's down or needs sign-in is skipped. At most 100 MCP tools per plain chat.
+  (`chatMcpTools`) plans them through the same `resolveTools` + `buildToolSet` an agent uses, with every tool set to ask.
+  A server that's down or needs sign-in is skipped. At most 100 MCP tools per plain chat.
 - **Artifacts at runtime.** `packages/ai/src/tools/artifacts.ts`: `create_artifact` and `update_artifact` over an
   `ArtifactStore` port, bound per run in `services.ts` (`dbArtifactStore`, over `saveArtifactVersion` and `listArtifacts`).
   Content is validated by writing the call out as the `:::artifact` directive and reading it back with the eval's
@@ -57,7 +57,8 @@ Built on branch `t/078-harness-gaps` (not pushed, no PR yet). No `packages/contr
 **Approvals (nothing loosened)**
 
 - `web_search`: no prompt in plain chats, like `file_search`; an agent's own `approvals` apply in agents.
-- MCP tools in plain chats: what an agent that lists the server with default approvals gets today (`auto`, no prompt).
+- MCP tools in plain chats: **ask**, every call. A plain chat ran no MCP tool before, so nothing new runs without a
+  prompt. Agents are unchanged: their version's `approvals` decide, as before.
 - `create_artifact` / `update_artifact`: **ask**, in plain chats and in agents (unless an agent sets them to `auto` by name),
   the pattern `write`/`edit` follow. Every version waits for an Approve.
 
@@ -66,9 +67,11 @@ Built on branch `t/078-harness-gaps` (not pushed, no PR yet). No `packages/contr
 - Gate (`.tools/gate.sh`): `Tasks: 82 successful, 82 total`, no other output.
 - `E2E_PORT=3178 bun turbo test:e2e`: 48 passed, 0 failed, 0 skipped. New `e2e/tests/tools.spec.ts` (4 tests): a cited
   web search over a SearXNG stand-in (`e2e/support/mock-search.ts`), `webSearch: "off"`, an MCP tool call against
-  `@workspace/mcp`'s fixture server as an instance server, and an artifact created then updated (cards, panel, versions).
+  `@workspace/mcp`'s fixture server as an instance server (approval card, nothing run while it waits, then the result),
+  and an artifact created then updated (cards, panel, versions).
 - Unit and run-level tests: `packages/ai/src/tools/artifacts.test.ts`, `packages/server/src/runs/harness-gaps.test.ts`
-  (web search with citations, MCP for owner / grantee / org member / stranger, artifacts through approval, the step limit),
+  (web search with citations, MCP for owner / grantee / org member / stranger with the server uncalled until approval,
+  artifacts through approval, the step limit),
   `choose.test.ts`, `schema.test.ts`. ai 307, server 215, mcp 40, config 53, all passing.
 
 **Outside Owns** (both one line, neither in another ticket's paths)
@@ -80,8 +83,9 @@ Built on branch `t/078-harness-gaps` (not pushed, no PR yet). No `packages/contr
 
 - Should artifacts ask? They do, to match the most conservative comparable tool. Artifacts are versioned and render on a
   separate origin, so `auto` is defensible; it's a two-line change in `turn.ts`.
-- MCP tools in plain chats run without a prompt (the agent default). Every usable server is offered in every plain chat;
-  there is no per-chat switch and no Decider selection yet (D15 "context selection").
+- Should MCP tools in plain chats run without asking, per server or per tool? Today every call asks. That's a policy
+  change, so it belongs to the permissions proposal (ticket 073), not here. Every usable server is offered in every plain
+  chat; there is no per-chat switch and no Decider selection yet (D15 "context selection").
 - With default config, plain chats on Anthropic, OpenAI and Gemini 3 models now get the provider's native search
   (`features.webSearch` and `search.native` both default to true). The provider bills those searches to whichever key
   pays for the chat. Native search has no run-level test here (no real provider is ever called).

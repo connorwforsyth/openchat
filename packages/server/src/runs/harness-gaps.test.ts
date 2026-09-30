@@ -246,7 +246,7 @@ describe("web search in runs", () => {
 });
 
 describe("MCP in plain chats", () => {
-  it("offers the caller's servers, runs their tools, and keeps other people's away", async () => {
+  it("offers the caller's servers, runs a tool once approved, and keeps other people's away", async () => {
     const { db } = testDb;
     const [alice, carol, stranger] = await Promise.all([
       someone(),
@@ -299,7 +299,7 @@ describe("MCP in plain chats", () => {
       const model = scripted([
         () => toolCallStream("open__echo", { text: "hello from mcp" }),
       ]);
-      const { answerOf, say, services } = setup(model, {
+      const { answerOf, approve, say, services } = setup(model, {
         tools: {
           mcpFor: (id) => mcp.manager.toolSource(id),
           mcpServersFor: usable,
@@ -307,7 +307,20 @@ describe("MCP in plain chats", () => {
       });
       try {
         const { runId } = await say(userId, "Echo something.");
-        return { ...(await answerOf(runId)), model };
+        // Every MCP call in a plain chat waits for a person; until then
+        // the server hasn't been called.
+        const paused = await answerOf(runId);
+        const callsBefore = openServer.stats.toolCalls;
+        if (paused.run.status === "awaiting_approval") {
+          await approve(runId, userId);
+        }
+        return {
+          ...(await answerOf(runId)),
+          callsAfter: openServer.stats.toolCalls,
+          callsBefore,
+          model,
+          paused,
+        };
       } finally {
         await services.stop();
       }
@@ -316,17 +329,29 @@ describe("MCP in plain chats", () => {
     try {
       // The owner and the grantee get the instance's server and Alice's.
       for (const userId of [alice, carol]) {
+        const started = openServer.stats.toolCalls;
         // biome-ignore lint/performance/noAwaitInLoops: one chat at a time keeps the script simple.
-        const { answer, model, run } = await chat(userId);
+        const chatted = await chat(userId);
+        const { answer, callsAfter, callsBefore, model, paused, run } = chatted;
+        // It asked, and nothing ran until the answer was yes.
+        expect(paused.run.status).toBe("awaiting_approval");
+        expect(paused.run.approvals).toMatchObject([
+          { toolName: "open__echo" },
+        ]);
+        expect(callsBefore).toBe(started);
+        expect(callsAfter).toBe(started + 1);
         expect(run.status).toBe("succeeded");
         expect(offered(model)).toEqual(
           expect.arrayContaining(["notes__echo", "open__add", "open__echo"])
         );
-        // MCP tools run as an agent's do by default: without asking.
         expect(
           answer.parts.find((part) => part.type === "tool-call")
         ).toMatchObject({
-          approval: { state: "not-required" },
+          approval: {
+            decidedBy: userId,
+            decision: { decision: "approve" },
+            state: "decided",
+          },
           toolName: "open__echo",
         });
         expect(JSON.stringify(model.doStreamCalls[1]?.prompt)).toContain(

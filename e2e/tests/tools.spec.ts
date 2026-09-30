@@ -112,24 +112,37 @@ test("web search stays out of a turn the composer turned it off for", async ({
   ).toContain("Echo:");
 });
 
-test("a plain chat uses an MCP server without an agent that lists it", async ({
+test("a plain chat uses an MCP server without an agent that lists it, once the call is approved", async ({
   baseURL,
   page,
 }) => {
   await page.goto("/");
   await send(page, '[tool:e2e__echo {"text": "hello from the mock server"}]');
+  // Nobody picked this server for the chat, so the call asks first, and
+  // nothing has run while it waits.
+  const api = await apiFor(page, baseURL ?? "");
+  const conversationId = await conversationIdOf(page);
+  const card = page.locator(
+    'section[aria-label="Approval needed for e2e__echo"]'
+  );
+  await expect(card).toBeVisible();
+  const waiting = await api.messages.path({ conversationId });
+  const pending = waiting.messages.at(-1)?.parts ?? [];
+  expect(pending.find((part) => part.type === "tool-call")).toMatchObject({
+    approval: { state: "pending" },
+    toolName: "e2e__echo",
+  });
+  expect(pending.some((part) => part.type === "tool-result")).toBe(false);
+
+  await approve(page, "e2e__echo");
   const reply = await expectReply(page, "hello from the mock server");
   await expect(reply).toContainText("Tool result:");
   await expect(reply.getByText("Used echo from e2e")).toBeVisible();
 
-  const api = await apiFor(page, baseURL ?? "");
-  const path = await api.messages.path({
-    conversationId: await conversationIdOf(page),
-  });
+  const path = await api.messages.path({ conversationId });
   const parts = path.messages.at(-1)?.parts ?? [];
-  // As in an agent that lists the server with default approvals: no prompt.
   expect(parts.find((part) => part.type === "tool-call")).toMatchObject({
-    approval: { state: "not-required" },
+    approval: { decision: { decision: "approve" }, state: "decided" },
     toolName: "e2e__echo",
   });
   expect(parts.find((part) => part.type === "tool-result")).toMatchObject({

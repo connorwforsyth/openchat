@@ -32,7 +32,6 @@ import type {
 } from "@workspace/contract/schemas/common";
 import type { DeciderState } from "@workspace/contract/schemas/decider";
 import type { KeyScope } from "@workspace/contract/schemas/keys";
-import { agentDefinitionSchema } from "@workspace/contract/schemas/library";
 import {
   AUTO_MODEL,
   type ModelParameters,
@@ -346,10 +345,6 @@ const ATTACHMENT_PROBE = 1;
  */
 const CHAT_MCP_TOOL_LIMIT = 100;
 
-/** What an agent's tools are planned with when its version says nothing. */
-const DEFAULT_APPROVALS =
-  agentDefinitionSchema.shape.approvals.parse(undefined);
-
 /**
  * Artifact tools save something into the chat, so they ask, like the
  * sandbox's file changes (`FILE_CHANGE_TOOLS`), unless an agent sets them
@@ -414,11 +409,13 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
 
   /**
    * A plain chat has no agent version to list MCP servers, so it gets every
-   * server its caller may use (078), planned as an agent that lists them
-   * with the default approvals would be: the same `resolveTools` and
-   * `buildToolSet`, so a server that's down is skipped and MCP tools ask
-   * (or don't) exactly as an agent's do. MCP is an extra: if the servers
-   * can't be listed, the turn goes ahead without them.
+   * server its caller may use (078), through the same `resolveTools` and
+   * `buildToolSet` as an agent's, so a server that's down is skipped. Every
+   * call asks first: nobody chose these servers for this chat, as an
+   * agent's author does for a version, and a plain chat ran no MCP tool
+   * before, so nothing here runs without a person's say (whether some may
+   * is the permissions proposal's question, ticket 073). MCP is an extra:
+   * if the servers can't be listed, the turn goes ahead without them.
    */
   const chatMcpTools = async (
     run: RunStart,
@@ -433,7 +430,7 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
     }
     const plan = resolveTools(
       {
-        approvals: DEFAULT_APPROVALS,
+        approvals: { default: "ask", tools: {} },
         mcpServers: ids.map((id) => ({ id })),
         sandboxProvider: null,
         tools: [],
