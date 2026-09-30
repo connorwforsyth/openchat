@@ -18,6 +18,8 @@ import { z } from "zod";
 //   - a title request (the title job's instructions) → `Topic <first words>`;
 //   - after a tool result → `Tool result: <output>`;
 //   - `[tool:<name> <json>]` → a call to that tool when it's offered;
+//   - `[script:<name>]` → the steps of `SCRIPTS[name]`, one step per model
+//     call (a step may call several tools), then `Script <name> done…`;
 //   - `[search:<query>]` → a `file_search` call when it's offered;
 //   - `remember <fact>` → an `update_memory` call when it's offered;
 //   - `[slow]` → forty numbered words, one every SLOW_TOKEN_MS;
@@ -30,6 +32,10 @@ const SLOW_TOKENS = 40;
 const EMBEDDING_DIMENSIONS = 384;
 
 const TOOL_DIRECTIVE = /\[tool:([a-z_][a-z0-9_]*)\s+(\{.*\})\]/is;
+// Audit (t/audit-harness): `[script:<name>]` plays a scripted multi-step
+// sequence from SCRIPTS: step N is picked by how many assistant tool-call
+// turns follow the last user message, and a step may call several tools.
+const SCRIPT_DIRECTIVE = /\[script:([a-z0-9_-]+)\]/i;
 const SEARCH_DIRECTIVE = /\[search:([^\]]+)\]/i;
 const REMEMBER = /\bremember (?:that )?(.+)$/i;
 const TITLE_REQUEST = /short title for this conversation/i;
@@ -51,6 +57,7 @@ const messageSchema = z.looseObject({
     .union([z.string(), z.array(z.union([textPartSchema, z.looseObject({})]))])
     .nullish(),
   role: z.string(),
+  tool_calls: z.array(z.unknown()).nullish(),
 });
 
 const chatRequestSchema = z.looseObject({
@@ -72,9 +79,118 @@ type Message = z.infer<typeof messageSchema>;
 
 interface ToolReply {
   readonly args: string;
+  /** Extra calls in the same step (scripts). */
+  readonly more?: readonly { readonly args: string; readonly name: string }[];
   readonly name: string;
   readonly type: "tool";
 }
+
+interface Call {
+  readonly args: Record<string, unknown>;
+  readonly name: string;
+}
+const w = (path: string, content: string): Call => ({
+  args: { content, path },
+  name: "write",
+});
+const ed = (path: string, oldString: string, newString: string): Call => ({
+  args: { newString, oldString, path },
+  name: "edit",
+});
+const sh = (command: string): Call => ({ args: { command }, name: "bash" });
+const rd = (path: string): Call => ({ args: { path }, name: "read" });
+const HTML =
+  '<!doctype html><html><head><link rel="stylesheet" href="style.css"></head><body><h1 id="t">Site</h1><script src="script.js"></script></body></html>\n';
+const CSS = "body { font-family: sans-serif; }\nh1 { color: teal; }\n";
+const JS = "document.getElementById('t').textContent = 'Hello';\n";
+export const SCRIPTS: Record<string, readonly (readonly Call[])[]> = {
+  // (b) two edits to an existing file
+  edit2: [
+    [ed("notes.txt", "alpha", "ALPHA")],
+    [ed("notes.txt", "omega", "OMEGA")],
+  ],
+  // one write, for the probes
+  one: [[w("probe.txt", "probe\n")]],
+  // (d) re-read then rewrite a file the user edited
+  reread: [
+    [rd("doc.txt")],
+    [w("doc.txt", "rewritten by the agent\nkeeps: USER-EDIT\n")],
+  ],
+  // (d') a write proposed, (the user edits while it waits), then read + rewrite
+  rewrite: [
+    [w("doc.txt", "agent version\n")],
+    [rd("doc.txt")],
+    [w("doc.txt", "agent version after re-read\n")],
+  ],
+  // (c) scaffold: package.json, npm install, two sources, a test run
+  scaffold: [
+    [
+      w(
+        "proj/package.json",
+        '{"name":"proj","version":"1.0.0","scripts":{"test":"node test.js"}}\n'
+      ),
+    ],
+    [sh("cd proj && npm install")],
+    [w("proj/index.js", "export const add = (a, b) => a + b;\n")],
+    [
+      w(
+        "proj/test.js",
+        "import { add } from './index.js';\nif (add(1, 2) !== 3) throw new Error('bad');\nconsole.log('ok');\n"
+      ),
+    ],
+    [sh("cd proj && npm test")],
+  ],
+  // (a) three files, one per step, then a preview
+  site: [
+    [w("index.html", HTML)],
+    [w("style.css", CSS)],
+    [w("script.js", JS)],
+    [{ args: { port: 8080 }, name: "preview" }],
+  ],
+  // (a') the same three files in one step (parallel tool calls)
+  "site-batch": [
+    [w("index.html", HTML), w("style.css", CSS), w("script.js", JS)],
+    [{ args: { port: 8080 }, name: "preview" }],
+  ],
+  // a write, then a slow bash (cancel during a running tool)
+  slow: [[w("slow.txt", "slow\n")], [sh("sleep 20; echo done")]],
+};
+
+const toolTurnsSinceUser = (request: ChatRequest): number => {
+  const lastUser = request.messages.findLastIndex((m) => m.role === "user");
+  return request.messages
+    .slice(lastUser + 1)
+    .filter((m) => m.role === "assistant" && (m.tool_calls?.length ?? 0) > 0)
+    .length;
+};
+
+const scriptReply = (request: ChatRequest, userText: string): Reply | null => {
+  const name = SCRIPT_DIRECTIVE.exec(userText)?.[1];
+  const script = name ? SCRIPTS[name] : undefined;
+  if (!(name && script)) {
+    return null;
+  }
+  const index = toolTurnsSinceUser(request);
+  const step = script[index]?.filter((call) => offered(request, call.name));
+  if (!step || step.length === 0) {
+    const last = request.messages.at(-1);
+    const output =
+      last?.role === "tool"
+        ? textOf(last).replace(WHITESPACE_RUNS, " ").slice(0, 300)
+        : "";
+    return text(`Script ${name} done after ${index} steps. Last: ${output}`);
+  }
+  const [first, ...rest] = step;
+  return {
+    args: JSON.stringify(first?.args),
+    more: rest.map((call) => ({
+      args: JSON.stringify(call.args),
+      name: call.name,
+    })),
+    name: first?.name ?? "",
+    type: "tool",
+  };
+};
 
 type Reply =
   | {
@@ -163,6 +279,10 @@ export const replyFor = (request: ChatRequest): Reply => {
   if (TITLE_REQUEST.test(system)) {
     return text(titleFor(userText));
   }
+  const scripted = scriptReply(request, userText);
+  if (scripted) {
+    return scripted;
+  }
   if (last?.role === "tool") {
     const output = textOf(last).replace(WHITESPACE_RUNS, " ").slice(0, 2000);
     return text(`Tool result: ${output}`);
@@ -236,11 +356,21 @@ const embeddings = (response: ServerResponse, body: unknown) => {
   });
 };
 
-const toolCall = (reply: ToolReply, id: string) => ({
+const toolCall = (
+  reply: { readonly args: string; readonly name: string },
+  id: string
+) => ({
   function: { arguments: reply.args, name: reply.name },
   id: `call_${id}`,
   type: "function",
 });
+
+const toolCallsOf = (reply: ToolReply, id: string) => [
+  toolCall(reply, id),
+  ...(reply.more ?? []).map((call, index) =>
+    toolCall(call, `${id}_${index + 1}`)
+  ),
+];
 
 /** One answer as a single JSON body (`stream: false`, the title job). */
 const complete = (
@@ -252,7 +382,11 @@ const complete = (
   const message =
     reply.type === "text"
       ? { content: reply.text, role: "assistant" }
-      : { content: null, role: "assistant", tool_calls: [toolCall(reply, id)] };
+      : {
+          content: null,
+          role: "assistant",
+          tool_calls: toolCallsOf(reply, id),
+        };
   json(response, 200, {
     choices: [
       {
@@ -304,7 +438,12 @@ const stream = async (
     }
     send({}, "stop");
   } else {
-    send({ tool_calls: [{ ...toolCall(reply, id), index: 0 }] });
+    send({
+      tool_calls: toolCallsOf(reply, id).map((call, index) => ({
+        ...call,
+        index,
+      })),
+    });
     send({}, "tool_calls");
   }
   chunk({ choices: [], usage: USAGE });
