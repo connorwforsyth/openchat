@@ -64,18 +64,9 @@ describe("run activity", () => {
   it("waits for the person only while a card is up and nothing is on its way", () => {
     const pending = waitingCalls([answer([pendingCall("c1")])]);
     expect(pending).toEqual(["c1"]);
-    expect(
-      waitingForPerson({ pending, runs: [waiting], sending: new Set() })
-    ).toBe(true);
-    expect(
-      waitingForPerson({ pending, runs: [waiting], sending: new Set(["c1"]) })
-    ).toBe(false);
-    expect(
-      waitingForPerson({ pending, runs: [running], sending: new Set() })
-    ).toBe(false);
-    expect(
-      waitingForPerson({ pending: [], runs: [waiting], sending: new Set() })
-    ).toBe(false);
+    expect(waitingForPerson({ pending, sending: new Set() })).toBe(true);
+    expect(waitingForPerson({ pending, sending: new Set(["c1"]) })).toBe(false);
+    expect(waitingForPerson({ pending: [], sending: new Set() })).toBe(false);
   });
 
   it("notices a call the waiting run asks about that the screen lacks", () => {

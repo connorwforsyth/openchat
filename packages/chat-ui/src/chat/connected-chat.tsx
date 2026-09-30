@@ -1074,7 +1074,7 @@ const useRunControls = ({
       ),
     [decisions.states]
   );
-  const waiting = waitingForPerson({ pending, runs: activeRuns, sending });
+  const waiting = waitingForPerson({ pending, sending });
 
   // Stop stops the run on the server (072, audit F4), not just this page's
   // reading of it: a waiting answer's cards resolve as not run, a running

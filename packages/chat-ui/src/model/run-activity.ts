@@ -66,25 +66,22 @@ export const waitingCalls = (messages: readonly Message[]): string[] =>
   );
 
 /**
- * Whether the only thing going on is a change waiting for the person: a run
- * waits, a card is on screen, and no decision is on its way. The composer
- * then sends (a new message moves on from the waiting answer) instead of
- * offering only Stop.
+ * Whether the only thing going on is a change waiting for the person: a card
+ * is on screen and no decision is on its way. The composer then sends (a
+ * new message moves on from the waiting answer) instead of offering only
+ * Stop. The card says so, not the runs list, which can lag the stream by a
+ * refetch; if the run turns out to be still going, the server queues the
+ * message behind it as before.
  */
 export const waitingForPerson = ({
   pending,
-  runs,
   sending,
 }: {
   /** Calls on screen waiting for a decision. */
   readonly pending: readonly string[];
-  readonly runs: readonly Run[] | undefined;
   /** Calls whose decision this page is sending. */
   readonly sending: ReadonlySet<string>;
-}): boolean =>
-  stoppableRun(runs)?.state.status === "awaiting_approval" &&
-  pending.length > 0 &&
-  pending.every((id) => !sending.has(id));
+}): boolean => pending.length > 0 && pending.every((id) => !sending.has(id));
 
 /**
  * Calls the waiting run asks about that the screen doesn't show at all: a
