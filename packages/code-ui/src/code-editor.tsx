@@ -70,6 +70,9 @@ export interface CodeEditorProps {
 
 const SAVE_KEY = "s";
 
+/** How long (in frames) autoFocus waits for the editable text. */
+const FOCUS_FRAMES = 60;
+
 /**
  * A file you can edit, with Shiki highlighting and the editor's undo stack.
  * It has no frame of its own: the host decides the surface around it (070).
@@ -116,24 +119,18 @@ export function CodeEditor({
     autoFocused.current = onAutoFocus;
   });
 
-  // The editor once its text is in the page, for focusing it: @pierre makes
-  // it through this factory (the diffs skill's "edit with React" recipe
-  // forwards all three arguments) and says when it's attached.
-  const [attached, setAttached] = useState<Editor<"file"> | null>(null);
+  // The editor @pierre makes through this factory (the diffs skill's "edit
+  // with React" recipe forwards all three arguments), kept for focusing it.
+  // Its options pass through untouched: giving it an `onAttach` of our own
+  // made it drop the first keys typed after it attached.
+  const instance = useRef<Editor<"file"> | null>(null);
   const [createEditor] = useState(
     (): EditorFactory<undefined, undefined> =>
-      (editorType, editorOptions, editStateKey) =>
-        new Editor(
-          editorType,
-          {
-            ...editorOptions,
-            onAttach: (editor, instance) => {
-              editorOptions?.onAttach?.(editor, instance);
-              setAttached(editor as Editor<"file">);
-            },
-          },
-          editStateKey
-        )
+      (editorType, editorOptions, editStateKey) => {
+        const editor = new Editor(editorType, editorOptions, editStateKey);
+        instance.current = editor as Editor<"file">;
+        return editor;
+      }
   );
   const root = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -142,13 +139,34 @@ export function CodeEditor({
     }
     if (readOnly) {
       root.current?.focus({ preventScroll: true });
-    } else if (attached) {
-      attached.focus({ preventScroll: true });
-    } else {
+      autoFocused.current?.();
       return;
     }
-    autoFocused.current?.();
-  }, [attached, autoFocus, readOnly]);
+    // The editable text appears a few frames after mount. Focus it at the
+    // first line, so there's a caret to type at (focus alone leaves none),
+    // and stop once it has focus.
+    let frames = 0;
+    let handle = 0;
+    const step = () => {
+      const host = root.current?.querySelector("diffs-container");
+      const content = host?.shadowRoot?.querySelector(
+        '[contenteditable="true"]'
+      );
+      if (content && host?.shadowRoot?.activeElement === content) {
+        autoFocused.current?.();
+        return;
+      }
+      if (content) {
+        instance.current?.focus({ lineNumber: 1, preventScroll: true });
+      }
+      frames += 1;
+      if (frames < FOCUS_FRAMES) {
+        handle = requestAnimationFrame(step);
+      }
+    };
+    step();
+    return () => cancelAnimationFrame(handle);
+  }, [autoFocus, readOnly]);
   const onEditChange = useCallback(
     (event: EditorChangeEvent<"file", undefined, undefined>) =>
       changed.current?.(event.file.contents),
