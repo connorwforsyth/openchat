@@ -39,7 +39,6 @@ const RUNNING_SLEEP_4 = /^Running sleep 4/;
 const WOKE_UP = /woke-up/;
 const NEVER_MIND = /Echo: never mind, leave it/;
 const REWRITE_DONE = /Script rewrite done/;
-const SAVED = /Saved/;
 
 /** Approval cards on screen, not counting one whose decision is on its way. */
 const cards = (page: Page): Locator =>
@@ -468,7 +467,15 @@ test("a change whose file is edited meanwhile says so, and can be asked for agai
   await editor.click();
   await page.keyboard.press("ControlOrMeta+End");
   await page.keyboard.type("edited by hand");
-  await expect(panel.getByText(SAVED)).toBeVisible();
+  // A save that lands says nothing (077), so wait for the file itself.
+  const box = await api.sandbox.get({ conversationId: id });
+  await expect
+    .poll(
+      async () =>
+        (await api.sandbox.readFile({ id: box?.id ?? "", path: "doc.txt" }))
+          .content
+    )
+    .toContain("edited by hand");
 
   const card = cards(page).first();
   await expect(card.getByRole("alert")).toContainText(

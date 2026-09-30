@@ -11,13 +11,32 @@ import type { WorkspaceFileRead } from "./client";
 /** Saves wait for this long without typing (060). */
 export const SAVE_IDLE_MS = 800;
 
+/**
+ * A save says "Saving…" only once it has taken this long (077): a write that
+ * lands is not news, so a quick one never shows.
+ */
+export const SLOW_SAVE_MS = 1000;
+
 /** Bigger files open read-only: the editor keeps the whole text in memory. */
 export const MAX_EDITABLE_BYTES = 1024 * 1024;
+
+/**
+ * The most a save's body may be and still go out with `keepalive`, so it
+ * lands after the page is gone. Browsers allow 64 KiB of keepalive bodies in
+ * flight per page, shared with anything else the page sends that way; this
+ * leaves room for those.
+ */
+export const KEEPALIVE_MAX_BYTES = 48 * 1024;
 
 export type SaveState =
   | { readonly status: "saved" }
   | { readonly status: "dirty" }
-  | { readonly status: "saving"; readonly sent: string }
+  | {
+      readonly sent: string;
+      /** It's taken over `SLOW_SAVE_MS`: now it says so. */
+      readonly slow: boolean;
+      readonly status: "saving";
+    }
   /** The file changed since it was read; nothing saves until Reload or Overwrite. */
   | { readonly status: "conflict" }
   | { readonly message: string; readonly status: "error" };
@@ -56,6 +75,7 @@ export type OpenFileEvent =
     }
   | { readonly text: string; readonly type: "edited" }
   | { readonly sent: string; readonly type: "saving" }
+  | { readonly sent: string; readonly type: "save-slow" }
   | { readonly etag: SandboxFileEtag; readonly type: "saved" }
   | { readonly type: "conflict" }
   | { readonly message: string; readonly type: "save-failed" };
@@ -148,8 +168,14 @@ export const openFileReducer = (
     case "saving":
       return withText(state, (file) => ({
         ...file,
-        save: { sent: event.sent, status: "saving" },
+        save: { sent: event.sent, slow: false, status: "saving" },
       }));
+    case "save-slow":
+      return withText(state, (file) =>
+        file.save.status === "saving" && file.save.sent === event.sent
+          ? { ...file, save: { ...file.save, slow: true } }
+          : file
+      );
     case "saved":
       return withText(state, (file) => onSaved(file, event.etag));
     case "conflict":
@@ -173,6 +199,39 @@ export const shouldSave = (file: OpenFile | null): boolean =>
   !file.readOnly &&
   file.draft !== file.base &&
   (file.save.status === "dirty" || file.save.status === "error");
+
+const encoder = new TextEncoder();
+
+/**
+ * Whether a save of `content` fits `KEEPALIVE_MAX_BYTES`: its JSON body is
+ * mostly the text, escaped, plus the path and a version.
+ */
+export const fitsKeepalive = (content: string, path: string): boolean =>
+  encoder.encode(JSON.stringify({ content, path })).length + 128 <=
+  KEEPALIVE_MAX_BYTES;
+
+/**
+ * Whether the page can go away now without losing edits (077). Pending
+ * edits that fit a keepalive save are flushed as it goes, and a keepalive
+ * save in flight lands on its own. Anything else would be lost, so leaving
+ * warns: a conflict, a save too big for keepalive, or typing during a save
+ * (it can't be sent before the save in flight says which version it made).
+ */
+export const safeToLeave = (file: OpenFile | null): boolean => {
+  if (file?.kind !== "text" || !hasUnsavedEdits(file)) {
+    return true;
+  }
+  const { save } = file;
+  switch (save.status) {
+    case "dirty":
+    case "error":
+      return fitsKeepalive(file.draft, file.path);
+    case "saving":
+      return save.sent === file.draft && fitsKeepalive(save.sent, file.path);
+    default:
+      return false;
+  }
+};
 
 export type FileNameProblem = "empty" | "directory" | "outside";
 

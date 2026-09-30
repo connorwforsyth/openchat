@@ -23,7 +23,7 @@ import type {
   WorkspaceFilesSource,
   WorkspaceWriteError,
 } from "./model/client";
-import { SAVE_IDLE_MS } from "./model/editor";
+import { SAVE_IDLE_MS, SLOW_SAVE_MS } from "./model/editor";
 import { WorkspacePanel, type WorkspacePanelProps } from "./workspace-panel";
 
 // The Workspace panel (060) over a fake `WorkspaceClient`: the list and
@@ -32,6 +32,8 @@ import { WorkspacePanel, type WorkspacePanelProps } from "./workspace-panel";
 // failed states, reloading as the agent's tools settle, and the preview.
 
 const TURNED_OFF = /turned off/;
+/** Anything the editor's save status could say. */
+const SAVE_WORDS = /^(Saved|Unsaved|Saving…)$/;
 const V1 = "a".repeat(64);
 const V2 = "b".repeat(64);
 const V3 = "c".repeat(64);
@@ -53,6 +55,7 @@ const fakeClient = (initial: Record<string, FakeFile> = {}) => {
   const writes: {
     content: string;
     ifMatch: string | null | undefined;
+    keepalive: boolean | undefined;
     path: string;
   }[] = [];
   let nextEtag = V2;
@@ -94,13 +97,15 @@ const fakeClient = (initial: Record<string, FakeFile> = {}) => {
       ({
         content,
         ifMatch,
+        keepalive,
         path,
       }: {
         content: string;
         ifMatch?: string | null;
+        keepalive?: boolean;
         path: string;
       }) => {
-        writes.push({ content, ifMatch, path });
+        writes.push({ content, ifMatch, keepalive, path });
         const current = files.get(path);
         if (ifMatch === null && current) {
           return Promise.resolve(
@@ -347,17 +352,22 @@ describe("the editor", () => {
       />
     );
     const editor = await editable();
+    // An untouched file says nothing about saving.
+    expect(panel().queryByText(SAVE_WORDS)).toBeNull();
     await userEvent.click(editor);
     await userEvent.keyboard("A");
+    expect(panel().getByText("Unsaved")).toBeTruthy();
     await waitFor(() => expect(fake.writes).toHaveLength(1), {
       timeout: SAVE_IDLE_MS + 4000,
     });
     expect(fake.writes[0]).toMatchObject({
       ifMatch: V1,
+      keepalive: true,
       path: "/work/notes.txt",
     });
     expect(fake.writes[0]?.content).toContain("A");
-    await waitFor(() => expect(panel().getByText("Saved")).toBeTruthy());
+    // A save that lands is not news: the status just goes quiet.
+    await waitFor(() => expect(panel().queryByText(SAVE_WORDS)).toBeNull());
     expect(onChanged).toHaveBeenCalled();
 
     // ⌘S saves at once, over the version the last save made.
@@ -366,6 +376,95 @@ describe("the editor", () => {
     await userEvent.keyboard("{Control>}s{/Control}");
     await waitFor(() => expect(fake.writes).toHaveLength(2));
     expect(fake.writes[1]?.ifMatch).toBe(V2);
+  });
+
+  it("saves a pending edit at once when the page is hidden or left", async () => {
+    const fake = fakeClient({
+      "/work/notes.txt": { content: "hi\n", etag: V1 },
+    });
+    renderWithI18n(
+      <WorkspacePanel
+        {...props({ files: chatFiles(fake.client), selection: notes })}
+      />
+    );
+    const editor = await editable();
+    await userEvent.click(editor);
+    await userEvent.keyboard("A");
+    // A reload or close: no waiting for the pause, and sent to outlive the page.
+    window.dispatchEvent(new PageTransitionEvent("pagehide"));
+    expect(fake.writes).toHaveLength(1);
+    expect(fake.writes[0]).toMatchObject({ ifMatch: V1, keepalive: true });
+    expect(fake.writes[0]?.content).toContain("A");
+    // The save it started counts: a second event doesn't send it again.
+    window.dispatchEvent(new PageTransitionEvent("pagehide"));
+    expect(fake.writes).toHaveLength(1);
+    await waitFor(() => expect(panel().queryByText("Unsaved")).toBeNull());
+
+    // Another tab or app: the page is hidden, and may never come back.
+    await userEvent.click(editor);
+    await userEvent.keyboard("B");
+    const visibility = vi
+      .spyOn(document, "visibilityState", "get")
+      .mockReturnValue("hidden");
+    try {
+      document.dispatchEvent(new Event("visibilitychange"));
+    } finally {
+      visibility.mockRestore();
+    }
+    expect(fake.writes).toHaveLength(2);
+    expect(fake.writes[1]).toMatchObject({ ifMatch: V2, keepalive: true });
+    // Nothing pending: hiding it again sends nothing.
+    await waitFor(() => expect(panel().queryByText("Unsaved")).toBeNull());
+    window.dispatchEvent(new PageTransitionEvent("pagehide"));
+    expect(fake.writes).toHaveLength(2);
+  });
+
+  it("says Saving… only for a slow save, and asks before leaving edits it can't send", async () => {
+    const fake = fakeClient({
+      "/work/notes.txt": { content: "hi\n", etag: V1 },
+    });
+    let land: () => void = () => undefined;
+    const held = new Promise<void>((resolve) => {
+      land = resolve;
+    });
+    fake.client.writeFile.mockImplementationOnce(async ({ content, path }) => {
+      await held;
+      return ok({ etag: V2, path, size: content.length });
+    });
+    renderWithI18n(
+      <WorkspacePanel
+        {...props({ files: chatFiles(fake.client), selection: notes })}
+      />
+    );
+    const leave = () => {
+      const event = new Event("beforeunload", { cancelable: true });
+      window.dispatchEvent(event);
+      return event.defaultPrevented;
+    };
+    const editor = await editable();
+    await userEvent.click(editor);
+    await userEvent.keyboard("A");
+    // Pending, but the flush on leaving will send it.
+    expect(leave()).toBe(false);
+    await userEvent.keyboard("{Control>}s{/Control}");
+    await waitFor(() => expect(fake.client.writeFile).toHaveBeenCalled());
+    // Quick so far: still just "Unsaved".
+    expect(panel().getByText("Unsaved")).toBeTruthy();
+    expect(leave()).toBe(false);
+    expect(
+      await panel().findByText("Saving…", {}, { timeout: SLOW_SAVE_MS + 2000 })
+    ).toBeTruthy();
+
+    // Typed during the save: it can't go before the save says which
+    // version it made, so leaving now would lose it.
+    await userEvent.keyboard("B");
+    expect(leave()).toBe(true);
+    await act(async () => {
+      land();
+      await Promise.resolve();
+    });
+    await waitFor(() => expect(panel().queryByText("Saving…")).toBeNull());
+    expect(leave()).toBe(false);
   });
 
   it("says when the agent changed the file first: Reload or Overwrite", async () => {

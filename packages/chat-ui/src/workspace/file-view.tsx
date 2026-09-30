@@ -46,14 +46,17 @@ export interface FileViewProps {
   readonly onSave: () => void;
 }
 
+// A write that lands is not news; only failures speak (077). Saved says
+// nothing, a quick save stays "Unsaved" until it lands, and only a slow one
+// says "Saving…".
 function SaveStatus({ save }: { readonly save: SaveState }) {
   switch (save.status) {
     case "saved":
-      return <Trans>Saved</Trans>;
+      return null;
     case "dirty":
-      return <Trans>Unsaved changes</Trans>;
+      return <Trans>Unsaved</Trans>;
     case "saving":
-      return <Trans>Saving…</Trans>;
+      return save.slow ? <Trans>Saving…</Trans> : <Trans>Unsaved</Trans>;
     case "conflict":
       return <Trans>Not saved</Trans>;
     case "error":
