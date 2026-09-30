@@ -1011,7 +1011,14 @@ export const createInProcessExecutor = (
     if (![...pending].every((id) => decided.has(id))) {
       return ok({ decided, fresh, resumed: null, row });
     }
+    // Claimed before the resume can commit: a cancel arriving between the
+    // commit and the pass starting finds this and aborts the pass, rather
+    // than cancelling the row under a pass that then runs the tools anyway.
+    active.set(row.id, new AbortController());
     const resumed = await transitionRun(tx, row.id, { type: "resume" }, now());
+    if (!resumed.ok) {
+      active.delete(row.id);
+    }
     return ok({
       decided,
       fresh,
@@ -1107,7 +1114,13 @@ export const createInProcessExecutor = (
     start: startRun,
 
     submitApprovals: async (runId, decisions, by) => {
-      const recorded = await recordDecisions(runId, decisions, by);
+      const recorded = await recordDecisions(runId, decisions, by).catch(
+        (cause: unknown) => {
+          // The resume never committed: nothing is executing this run.
+          active.delete(runId);
+          throw cause;
+        }
+      );
       if (!recorded.ok) {
         return recorded;
       }
@@ -1120,11 +1133,10 @@ export const createInProcessExecutor = (
           decisionChunks(fresh, await approvalIdsOf(db, runId))
         );
       }
-      if (!(resumed && row.assistantMessageId)) {
+      const controller = active.get(runId);
+      if (!(resumed && row.assistantMessageId && controller)) {
         return ok(undefined);
       }
-      const controller = new AbortController();
-      active.set(runId, controller);
       const start = runStartFromRow(resumed);
       // Held in memory for this pass only: a crash mid-pass fails the run
       // (`recover`), so no later pass could need them.
