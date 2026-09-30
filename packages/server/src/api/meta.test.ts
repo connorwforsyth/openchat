@@ -70,9 +70,11 @@ const setup = (
   world: Awaited<ReturnType<typeof seedWorld>>,
   {
     config: overrides = {},
+    fetch,
     personalKeyFallback = false,
   }: {
     readonly config?: Partial<AppConfigInput>;
+    readonly fetch?: typeof globalThis.fetch;
     readonly personalKeyFallback?: boolean;
   } = {}
 ) => {
@@ -94,7 +96,7 @@ const setup = (
       },
     ]),
     orgPolicy: () => Promise.resolve({ personalKeyFallback }),
-    registry: buildRegistry(config),
+    registry: buildRegistry(config, { fetch }),
   }).meta;
 };
 
@@ -150,6 +152,48 @@ describe("meta.models", () => {
       as(world.alice.id)
     );
     expect(availability(fallback)).toMatchObject({ auto: true, fast: true });
+  });
+
+  it("discovers a provider's catalog with the context's own key only", async () => {
+    const world = await seedWorld();
+    const seen: string[] = [];
+    const fetch = ((_: RequestInfo | URL, init?: RequestInit) => {
+      const headers = new Headers(init?.headers);
+      seen.push(headers.get("authorization") ?? "none");
+      return Promise.resolve(
+        Response.json({
+          data: [{ id: "gpt-5-mini" }, { id: "gpt-test" }, { id: "o9" }],
+        })
+      );
+    }) as typeof globalThis.fetch;
+    const meta = setup(world, {
+      config: {
+        providers: {
+          ...baseConfig.providers,
+          openai: { discover: true, include: ["gpt-*"], models: ["gpt-test"] },
+        },
+      },
+      fetch,
+    });
+    // Personal: Alice has no OpenAI key, so the catalog isn't read.
+    const personal = await call(meta.models, {}, as(world.alice.id));
+    expect(availability(personal)["openai:gpt-test"]).toBe(false);
+    expect(personal.map((option) => option.selector)).not.toContain(
+      "openai:gpt-5-mini"
+    );
+    expect(seen).toEqual([]);
+    // Team: the team's key reads it, and the patterns narrow it.
+    const team = await call(
+      meta.models,
+      { contextId: world.team.id, contextType: "team" },
+      as(world.alice.id)
+    );
+    expect(availability(team)).toMatchObject({
+      "openai:gpt-5-mini": true,
+      "openai:gpt-test": true,
+    });
+    expect(team.map((option) => option.selector)).not.toContain("openai:o9");
+    expect(seen).toEqual(["Bearer sk-team-openai"]);
   });
 
   it("refuses contexts the caller isn't in or the instance disallows", async () => {

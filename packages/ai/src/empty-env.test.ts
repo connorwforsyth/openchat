@@ -40,7 +40,7 @@ describe("with an empty env", () => {
     const registry = buildRegistry(config, {
       fetch: () => Promise.reject(new Error("no network in tests")),
     });
-    expect(registry.listModels(new Set())).toEqual([]);
+    expect(await registry.listModels({})).toEqual([]);
     const decider = createDecider(config, { keys: {}, registry });
     const answer = await decider.decide(
       { facts: {}, history: [], input: "hi" },

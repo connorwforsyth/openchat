@@ -21,12 +21,12 @@ const key = (provider: string): ProviderCredentials => ({
 });
 
 describe("buildRegistry", () => {
-  it("boots on an empty config with the local Ollama default", () => {
+  it("boots on an empty config with the local Ollama default", async () => {
     const registry = registryFor();
     const model = registry.languageModel("ollama:llama3.2", undefined);
     expect(model.ok && model.value.modelId).toBe("llama3.2");
     expect(model.ok && model.value.provider).toMatch(OLLAMA);
-    expect(registry.listModels(new Set())).toEqual([]);
+    expect(await registry.listModels({})).toEqual([]);
   });
 
   it("needs a key for hosted providers and never borrows another's", () => {
@@ -105,7 +105,7 @@ describe("buildRegistry", () => {
     ).toMatchObject({ error: { type: "unsupported" }, ok: false });
   });
 
-  it("lists auto, aliases and configured models with availability", () => {
+  it("lists auto, aliases and configured models with availability", async () => {
     const registry = registryFor({
       models: {
         aliases: { fast: "ollama:qwen3", strong: "anthropic:claude-opus-5-5" },
@@ -119,14 +119,14 @@ describe("buildRegistry", () => {
         },
       },
     });
-    const options = registry.listModels(new Set());
+    const options = await registry.listModels({});
     expect(options.map((o) => [o.selector, o.available])).toEqual([
       ["auto", false],
       ["fast", true],
       ["strong", false],
       ["anthropic:claude-haiku-5", false],
     ]);
-    const keyed = registry.listModels(new Set(["anthropic"]));
+    const keyed = await registry.listModels({ anthropic: key("anthropic") });
     expect(keyed.every((o) => o.available)).toBe(true);
   });
 });

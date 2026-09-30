@@ -42,7 +42,31 @@ const secret = z.string().min(1);
 const providerInputSchema = z.strictObject({
   apiKey: secret.optional(),
   baseURL: z.url().optional(),
+  /**
+   * Offer every model the provider's catalog lists (its `/models`, or
+   * Ollama's tags), not only `models`. Off by default: whoever picks then
+   * decides what's spent, so narrow it with `include` / `exclude`.
+   */
+  discover: z.boolean().default(false),
+  /** How long a fetched catalog is reused, per provider and key. */
+  discoverTtlSeconds: z
+    .number()
+    .int()
+    .min(0)
+    .max(7 * 24 * 60 * 60)
+    .default(60 * 60),
+  /**
+   * Globs over model ids (`*` matches anything, `?` one character) that are
+   * never offered or run, even when `include` matches. `models` and alias
+   * targets stay valid regardless.
+   */
+  exclude: z.array(z.string().min(1)).default([]),
   headers: z.record(z.string(), z.string()).default({}),
+  /**
+   * Globs over model ids a chat may pick beyond `models` and aliases; empty
+   * means any. Applies to discovered models and to refs typed by hand.
+   */
+  include: z.array(z.string().min(1)).default([]),
   /** Model ids to offer in the picker, beyond aliases. */
   models: z.array(z.string().min(1)).default([]),
   /** Provider-specific settings (Bedrock `region`, Azure `resourceName`, …). */
@@ -86,6 +110,13 @@ const providersSchema = z
           code: "custom",
           message: "an openai-compatible provider needs a `baseURL`",
           path: [id, "baseURL"],
+        });
+      }
+      if (provider.discover && (type === "azure" || type === "bedrock")) {
+        context.addIssue({
+          code: "custom",
+          message: `${type} has no model catalog to discover; list its \`models\` instead`,
+          path: [id, "discover"],
         });
       }
       resolved[id] = { ...provider, type };

@@ -198,16 +198,30 @@ const loadModel = async (
   }
   const credentials = keys.value[provider];
   const model = deps.registry.languageModel(ref, credentials);
-  if (model.ok) {
-    return ok({ model: model.value, source: credentials?.source ?? null });
+  if (!model.ok) {
+    return err(
+      model.error.type === "missing_key"
+        ? { code: "PROVIDER_UNAVAILABLE", data: { provider } }
+        : validation([
+            { message: `"${ref}" can't take this request`, path: ["model"] },
+          ])
+    );
   }
-  return err(
-    model.error.type === "missing_key"
-      ? { code: "PROVIDER_UNAVAILABLE", data: { provider } }
-      : validation([
-          { message: `"${ref}" can't take this request`, path: ["model"] },
-        ])
-  );
+  // A ref outside the provider's patterns or catalog is refused (095).
+  const offered = await deps.registry.checkModel(ref, credentials);
+  if (!offered.ok) {
+    return err(
+      offered.error.type === "missing_key"
+        ? { code: "PROVIDER_UNAVAILABLE", data: { provider } }
+        : validation([
+            {
+              message: `"${ref}" isn't a model on this instance`,
+              path: ["model"],
+            },
+          ])
+    );
+  }
+  return ok({ model: model.value, source: credentials?.source ?? null });
 };
 
 const usageOf = (usage: unknown): LlmUsage | null => {

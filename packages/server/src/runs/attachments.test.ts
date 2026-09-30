@@ -1,5 +1,5 @@
 import { textStream } from "@workspace/ai/testing/mock-models";
-import type { AppConfig } from "@workspace/config/schema";
+import { type AppConfig, providerConfigSchema } from "@workspace/config/schema";
 import type {
   ConversationId,
   FileId,
@@ -139,14 +139,11 @@ describe("attachmentsForModel", () => {
 
 describe("attachmentsFor", () => {
   const providers: AppConfig["providers"] = {
-    anthropic: { headers: {}, models: [], options: {}, type: "anthropic" },
-    local: {
+    anthropic: providerConfigSchema.parse({ type: "anthropic" }),
+    local: providerConfigSchema.parse({
       baseURL: "http://localhost:11434/v1",
-      headers: {},
-      models: [],
-      options: {},
       type: "openai-compatible",
-    },
+    }),
   };
 
   it("goes by the model's provider", () => {
