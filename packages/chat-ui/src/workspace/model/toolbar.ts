@@ -17,7 +17,7 @@ export const TOOLBAR = {
   /** `px-2` on both sides. */
   padding: 16,
   /** "Static render" beside the address bar's icon. */
-  staticLabel: 88,
+  staticLabel: 80,
   /** The Preview/Code switch as two icons. */
   toggle: 60,
   /** What the words "Preview" and "Code" add to it. */
