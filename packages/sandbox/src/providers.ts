@@ -9,7 +9,7 @@ import { ok } from "@workspace/shared/result";
 import type { z } from "zod";
 
 import { createDockerSandboxFactory } from "./docker/client";
-import { createJustBashFactory } from "./just-bash/provider";
+import { createJustBashFactory, defenseInDepthFor } from "./just-bash/provider";
 import {
   createMemorySnapshotStore,
   type SnapshotStore,
@@ -17,7 +17,7 @@ import {
 import type { SandboxError, SandboxFactory } from "./ports/sandbox";
 import { createPreviewRestorer, type PreviewRestorer } from "./preview-restore";
 import { createUnavailableFactory } from "./remote/stubs";
-import type { PreviewLog } from "./tools/static-preview";
+import { consoleLog, type PreviewLog } from "./tools/static-preview";
 
 // The instance's sandbox providers, built once at boot from app config. Only
 // configured providers are present, so an empty config gives just-bash and
@@ -49,6 +49,8 @@ const JUST_BASH_LIMITS: SandboxLimits = {
 };
 
 export interface ProvidersFromConfigOptions {
+  /** Decides whether just-bash keeps its defense-in-depth layer (`defenseInDepthFor`). */
+  readonly env?: { readonly NODE_ENV?: string };
   readonly fetch?: typeof fetch;
   /** Where best-effort preview failures are reported; defaults to the console. */
   readonly log?: PreviewLog;
@@ -59,6 +61,7 @@ export interface ProvidersFromConfigOptions {
 export const sandboxProvidersFromConfig = (
   config: Pick<AppConfig, "features" | "sandbox">,
   {
+    env = process.env,
     fetch,
     log,
     store = createMemorySnapshotStore(),
@@ -68,8 +71,14 @@ export const sandboxProvidersFromConfig = (
   if (!config.features.sandboxes || config.sandbox.default === "none") {
     return providers;
   }
+  const defenseInDepth = defenseInDepthFor(env);
+  if (!defenseInDepth) {
+    (log ?? consoleLog)(
+      "just-bash runs without its defense-in-depth layer under `next dev`: React's development async hooks trip it. Production keeps it."
+    );
+  }
   providers.set("just-bash", {
-    factory: createJustBashFactory({ store }),
+    factory: createJustBashFactory({ defenseInDepth, store }),
     isolation: () => Promise.resolve(ok("simulated" as const)),
     limits: JUST_BASH_LIMITS,
   });

@@ -11,7 +11,12 @@ import {
   ok,
   type Result,
 } from "@workspace/shared/result";
-import { Bash, type IFileSystem, InMemoryFs } from "just-bash";
+import {
+  Bash,
+  type BashExecResult,
+  type IFileSystem,
+  InMemoryFs,
+} from "just-bash";
 
 import { capOutput } from "../output";
 import { resolveSandboxPath, WORKDIR } from "../paths";
@@ -42,10 +47,31 @@ const DEFAULT_TIMEOUT_MS = 60_000;
 const MAX_EXECUTION_MS = 10 * 60_000;
 const MIB = 1024 * 1024;
 
+/**
+ * Whether just-bash's defense-in-depth layer can run in this process. While
+ * a command runs it swaps dangerous globals (`performance`, `WeakRef`,
+ * `Error.prepareStackTrace`, `process.env`, …) for proxies that throw when
+ * reached from the command's async context. React's development server
+ * renderer, which `next dev` loads, installs a process-wide async hook that
+ * times every promise and timer with exactly those globals, and async hooks
+ * run in the context of whatever created the resource: a `sleep` in the
+ * sandbox reaches `Error.prepareStackTrace` through React. A throw from an
+ * async hook is fatal to Node, so the dev server died mid tool call (076).
+ * Setting `Error.prepareStackTrace` can't be excluded, so the layer is off
+ * under `next dev` alone; production (no such hook) and tests keep it. The
+ * sandbox itself doesn't change: an in-memory filesystem, no processes, no
+ * network, no JavaScript or Python.
+ */
+export const defenseInDepthFor = (env: {
+  readonly NODE_ENV?: string;
+}): boolean => env.NODE_ENV !== "development";
+
 /** The key a sandbox's live workspace is saved under. */
 export const liveKey = (id: SandboxId) => `live/${id}`;
 
 export interface JustBashSandboxOptions {
+  /** just-bash's defense-in-depth layer; on unless `defenseInDepthFor` says not. */
+  readonly defenseInDepth?: boolean;
   readonly id: SandboxId;
   /** The workspace to start from (a snapshot, or the last saved state). */
   readonly initial?: WorkspaceState;
@@ -91,7 +117,28 @@ const listDirectory = async (
   return listed.flat();
 };
 
+/**
+ * A failing command is an exit code; a throw means the interpreter itself
+ * gave up (a defense-in-depth violation, say). That's this command's error,
+ * for the agent to see, not the process's.
+ */
+const runBash = async (
+  bash: Bash,
+  command: string,
+  options: Parameters<Bash["exec"]>[1]
+): AsyncResult<BashExecResult, SandboxError> => {
+  try {
+    return ok(await bash.exec(command, options));
+  } catch (cause) {
+    return err({
+      message: cause instanceof Error ? cause.message : "the command failed",
+      type: "unavailable",
+    });
+  }
+};
+
 export const createJustBashSandbox = async ({
+  defenseInDepth = true,
   id,
   initial,
   limits,
@@ -107,6 +154,7 @@ export const createJustBashSandbox = async ({
   }
   const bash = new Bash({
     cwd: WORKDIR,
+    defenseInDepth,
     executionLimitProfile: "hardened",
     executionLimits: {
       maxExecutionTimeMs: MAX_EXECUTION_MS,
@@ -150,11 +198,15 @@ export const createJustBashSandbox = async ({
     const signal = options.signal
       ? AbortSignal.any([options.signal, timeout])
       : timeout;
-    const result = await bash.exec(command, {
+    const ran = await runBash(bash, command, {
       cwd: cwd.value,
       env: options.env ? { ...options.env } : undefined,
       signal,
     });
+    if (!ran.ok) {
+      return ran;
+    }
+    const result = ran.value;
     // just-bash doesn't stream, so the log gets each stream once, in order.
     if (result.stdout) {
       options.onOutput?.({ data: result.stdout, stream: "stdout" });
@@ -299,6 +351,8 @@ const loadState = async (
 };
 
 export interface JustBashFactoryOptions {
+  /** See `defenseInDepthFor`; on by default. */
+  readonly defenseInDepth?: boolean;
   readonly now?: () => Date;
   readonly store: SnapshotStore;
 }
@@ -308,6 +362,7 @@ export interface JustBashFactoryOptions {
  * process; `attach` rebuilds one from its saved workspace after a restart.
  */
 export const createJustBashFactory = ({
+  defenseInDepth,
   now,
   store,
 }: JustBashFactoryOptions): SandboxFactory => {
@@ -319,6 +374,7 @@ export const createJustBashFactory = ({
     initial: WorkspaceState | undefined
   ): AsyncResult<Sandbox, SandboxError> => {
     const sandbox = await createJustBashSandbox({
+      defenseInDepth,
       id,
       initial,
       limits,
