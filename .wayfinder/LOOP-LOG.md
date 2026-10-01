@@ -144,3 +144,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-10-02 · 127 merged (PR #97) · gate 93/93 · e2e 86/86 · claimed 128 (skill authoring tools)
 - 2026-10-02 · 118 merged (PR #98) · gate 93/93 · e2e 89/89 · desktop smoke 1/1 · claimed 119 (unsigned packaging)
 - 2026-10-02 · 128 merged (PR #99) · gate 93/93 · e2e 90/90 (rerun) · 125 built, awaiting Connor's contract approval and a full gate (next build OOM-killed under load) · 132 and 119 in progress
+- 2026-10-02 · 119 merged (PR #100) · gate 93/93 · e2e 90/90 · desktop smoke 1/1 · Desktop wave 116–119 done (120 cowork parked) · 125 rebased (README layer + .po), gate running; still needs Connor's contract approval
