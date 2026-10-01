@@ -103,6 +103,6 @@ All contract changes here are additive.
 
 1. **The line:** does the artifact-vs-file table match how you think of it?
 2. **Order:** library and Documents first, then plan mode, then Presentations, then Spreadsheets? Or plan mode first?
-3. **Where the library lives:** in the Library page as a new Artifacts tab next to agents and prompts, or a top-level item in the sidebar?
+3. ~~**Where the library lives:**~~ Decided (2026-10-01): its own Artifacts item in the sidebar; see the framework doc.
 4. **Contract:** OK to add the additive routes and fields above as each part is built? Each one would still be its own PR for you to review.
 5. **Plan mode:** wait for the permissions proposal (073) to settle its rule engine, or ship a narrow read-only preset now and fold it in later?

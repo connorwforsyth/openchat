@@ -132,10 +132,24 @@ The rules for a kind come from four layers. Later layers can **narrow** what ear
 
 The common thread is that a fixed stack and rules are what make an artifact render reliably and be shareable.
 
+## The Artifacts page (Connor, 2026-10-01)
+
+"There should be an artefacts navigation item that allows a user to view their created artefacts etc. and either register them in a chat, share them with others … maybe go to the chat that they came from?"
+
+- **Navigation:** **Artifacts** gets its own item in the sidebar, next to New chat, Search and Library.
+- **The page:** everything you made or that was shared with you, as a grid or a list.
+  - Filters: kind, made by me / shared with me, and recently updated.
+  - Search over title and content.
+  - Opening one shows the kind's full-page viewer and editor, with its version history.
+- **Use in a chat:** a "Use in chat" action, either into a new chat or into one you pick. It attaches the artifact by reference, the way an `@file` mention does, so the model sees its latest version and can make new versions of it from that chat. One artifact can be used from many chats, and each version records the chat that made it.
+- **Share:** uses the same grants as library items (agents, prompts) — user, team or org; viewer or editor — rather than chat access. That means an artifact **is owned by a person** (and optionally a team or org), not by its chat.
+- **Source chat:** "Made in …" links back to the chat that created it, shown only to people who can open that chat. Whether that's worth showing is an open question below.
+- **Data changes:** the artifact gets an owner and grants. Versions keep their `messageId`, and gain a `conversationId` so a version made from another chat is traceable.
+
 ## Suggested order
 
 1. **Framework and two kinds:** the kit, then Site (formalising today's html and react with checks and the theme) and Document (TipTap, structured edits). Migrate the existing kinds to definitions with no behaviour change, as S2 did for tools.
-2. **The library:** list, filter and search across chats.
+2. **The Artifacts page:** sidebar item, list, filter and search, use in chat, share (owner and grants).
 3. **Rule layers in config,** then templates.
 4. **Presentation,** then **Spreadsheet**.
 5. **Capabilities** such as an artifact calling the model, only with the permissions proposal settled.
@@ -148,4 +162,6 @@ The common thread is that a fixed stack and rules are what make an artifact rend
 4. **Network:** may a Site artifact ever fetch from the internet, say through an allowlist set by an admin, or never?
 5. **Person edits:** should a person's edit to an artifact ask for anything, or just save a new version?
 6. **Templates:** do you want them early (a landing page, a deck, a budget), or after the kinds settle?
-7. **Ownership:** an artifact belongs to its chat today. Should it be able to outlive or move out of its chat, like a library item, once it's in the library?
+7. ~~**Ownership:**~~ Decided (2026-10-01): artifacts are owned by a person and shared like library items, with their own Artifacts page in the sidebar.
+8. **Source chat:** show "Made in <chat>" on an artifact (only to people who can open that chat), or leave it out?
+9. **Use in chat:** when an artifact is used in a second chat and edited there, it's one artifact with versions from both chats. Or should using it in another chat make a copy?
