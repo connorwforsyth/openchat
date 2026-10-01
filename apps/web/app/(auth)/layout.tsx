@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { DesktopDragRegion } from "@/components/desktop-drag-region";
 import { getPublicConfig } from "@/lib/public-config";
 
 // Sign in, sign up and invitations: public pages, one centred card under the
@@ -12,6 +13,7 @@ export default async function AuthLayout({
   const config = await getPublicConfig();
   return (
     <main className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted/40 p-4">
+      <DesktopDragRegion />
       {config.ok ? (
         <p className="font-medium text-lg">{config.config.brand.name}</p>
       ) : null}

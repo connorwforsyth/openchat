@@ -622,6 +622,10 @@ msgstr "Changed by the agent"
 msgid "Changes"
 msgstr "Changes"
 
+#: ../../apps/desktop/src/main/menu.ts
+msgid "Chat"
+msgstr "Chat"
+
 #: ../chat-ui/src/header/context-control.tsx
 msgid "Chat context"
 msgstr "Chat context"

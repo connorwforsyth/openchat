@@ -35,6 +35,7 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useApi } from "@/app/(app)/_shared/api";
 import { canAdmin, useAppFrame } from "@/app/(app)/_shared/app-frame";
 import { Brand } from "@/app/(app)/_shared/brand";
+import { useShellPlatform } from "@/app/(app)/_shared/desktop";
 import { createApiSandboxClient } from "@/app/(app)/_shared/sandbox-client";
 import { useAfterBoot } from "@/app/(app)/_shared/use-after-boot";
 import { routeParams, routes } from "@/lib/routes";
@@ -311,6 +312,7 @@ export function ChatRoute({
   const conversationId = useConversationId();
   const { client, query } = useApi();
   const frame = useAppFrame();
+  const platform = useShellPlatform();
   const { chat, config, layout, me } = frame;
 
   const conversation = useQuery(
@@ -436,6 +438,7 @@ export function ChatRoute({
       onSignOut={frame.signOut}
       onTargetChange={changeTarget}
       onThemeChange={frame.setTheme}
+      platform={platform}
       sandboxClient={sandboxClient}
       sendTarget={sendTarget}
       target={target}

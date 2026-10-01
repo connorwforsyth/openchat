@@ -2,6 +2,7 @@ import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { z } from "zod";
 
+import { shortcutIdSchema as idSchema } from "./ids";
 import { keyComboSchema } from "./keys";
 
 // The one shortcut registry (D10). Every consumer reads it: the React hooks,
@@ -9,23 +10,9 @@ import { keyComboSchema } from "./keys";
 // Electron menu accelerators. Ids are stable API: 015's shell binds them and
 // users' recorded overrides are stored against them, so rename none.
 
-export const shortcutIdSchema = z.enum([
-  "palette.open",
-  "help",
-  "settings.open",
-  "sidebar.toggle",
-  "chat.new",
-  "chat.next",
-  "chat.prev",
-  "composer.focus",
-  "branch.prev",
-  "branch.next",
-  "run.stop",
-  "model.switch",
-  "reply.copy",
-  "panel.sandbox",
-  "panel.artifacts",
-]);
+// The ids live in their own module, without Lingui, so the desktop shell's
+// sandboxed preload can parse menu commands against them.
+export const shortcutIdSchema = idSchema;
 export type ShortcutId = z.infer<typeof shortcutIdSchema>;
 
 /**

@@ -84,6 +84,38 @@ describe("useShortcut", () => {
     expect(onNew).not.toHaveBeenCalled();
   });
 
+  it("runs on the desktop shell's menu command, even while typing", async () => {
+    const listeners = new Set<(command: unknown) => void>();
+    Object.assign(window, {
+      desktop: {
+        onMenuCommand: (listener: (command: unknown) => void) => {
+          listeners.add(listener);
+          return () => listeners.delete(listener);
+        },
+        platform: "mac",
+      },
+    });
+    const send = (command: string) => {
+      for (const listener of listeners) {
+        listener(command);
+      }
+    };
+    try {
+      const onNew = vi.fn();
+      const onPalette = vi.fn();
+      const { unmount } = wrap(<Bound onNew={onNew} onPalette={onPalette} />);
+      await userEvent.click(screen.getByRole("textbox", { name: "Title" }));
+      send("chat.new");
+      send("help");
+      expect(onNew).toHaveBeenCalledTimes(1);
+      expect(onPalette).not.toHaveBeenCalled();
+      unmount();
+      expect(listeners.size).toBe(0);
+    } finally {
+      Reflect.deleteProperty(window, "desktop");
+    }
+  });
+
   it("shows ⌘ or Ctrl in Kbd hints by platform", () => {
     const { unmount } = wrap(<ShortcutKbd id="palette.open" />);
     expect(document.body.textContent).toContain("⌘K");

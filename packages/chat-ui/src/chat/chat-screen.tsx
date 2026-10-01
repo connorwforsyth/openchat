@@ -651,7 +651,6 @@ function ChatScreenBody({
           />
         </>
       }
-      underWindowControls={!layout.sidebarOpen}
     />
   );
 

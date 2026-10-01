@@ -35,8 +35,37 @@ needs the system-browser PKCE flow (`@better-auth/electron`), a follow-up.
 
 **Knowing it's in the shell.** The server's pages get `window.desktop`
 (`platform`, `onMenuCommand`) and a `DesktopShell/<version>` token at the end
-of the user agent. The web app doesn't use either yet; 117 adapts the title
-bar.
+of the user agent. The web app reads the bridge through
+`@workspace/shortcuts/desktop` (`useDesktopPlatform`, `onDesktopMenuCommand`);
+in a browser there's no bridge and nothing changes.
+
+## Native chrome (117)
+
+- **Menus from the shortcut registry.** `src/main/menu.ts` places registry
+  ids in the File, View, Chat and Help menus (and the app menu on macOS).
+  Labels are the registry's descriptions, accelerators come from
+  `@workspace/shortcuts/electron`, and a click sends the id to the page over
+  `desktop:menu-command`. On the page, `useShortcut` (and the chat screen's
+  own `useShortcuts`) run the same handler as the keys, so every bound
+  shortcut works from the menu with no extra wiring. The page sees a key
+  press first and claims the ones it handles, so nothing runs twice.
+  Single-key shortcuts (N, J, /) get no accelerator, since it would fire
+  while typing; their items work by click. `OFF_MENU` lists the shortcuts
+  with no item and why (stop and copy-last-reply: the web app doesn't bind
+  them yet), and a test keeps every registry id in a menu or in that list.
+- **Title bar (macOS).** The main window is `titleBarStyle: 'hiddenInset'`
+  with the traffic lights centred in the 48px header. The web app's header
+  (and the sidebar's top row while the sidebar is docked) is the drag region,
+  with `no-drag` on its controls, and leaves 80px for the lights. Sign-in
+  pages get a drag strip along the top. Windows and Linux keep the native
+  frame for now (122: macOS first), so the page lays out as on the web.
+- **Window state.** The main window's bounds and maximised state are saved
+  to `settings.json` half a second after a move or resize, and on close. A
+  saved spot whose top strip is no longer on any display is dropped (the
+  size is kept), so an unplugged monitor never strands the window.
+- **Not yet:** the tray / menu-bar item waits for Quick AI (118) and the
+  app icon (119). The menu shows the registry's default keys, not a
+  person's recorded overrides (those live in the web app's settings).
 
 ## Security (`PLAN.md` D24)
 
@@ -81,13 +110,16 @@ bun turbo test:desktop                                # the Electron smoke test 
 ## Tests
 
 - `bun turbo test --filter=desktop`: the pure core in Node (URL parsing,
-  navigation and permission rules, settings, the instance check, the menu).
+  navigation and permission rules, settings, the instance check, the menus
+  from the registry, window placement).
 - `bun turbo test:desktop`: `e2e/desktop/smoke.spec.ts`, a separate task
   (not part of `test` or `test:e2e`). It builds `apps/web` and this app,
   starts the e2e server (`e2e/support/serve.ts`) on port 3190
   (`E2E_DESKTOP_PORT`), launches the built app with Playwright's
   `_electron.launch` and goes through the first-run screen, the web app's
-  sign-in as a seeded user, a chat with the mock model's reply, and the
-  navigation and permission locks. `e2e/desktop/run.ts` skips it, passing,
+  sign-in as a seeded user, a chat with the mock model's reply, the
+  navigation and permission locks, and (117) the title bar's drag regions,
+  menu commands reaching the web app (sidebar, palette, new chat) and the
+  window's bounds being saved. `e2e/desktop/run.ts` skips it, passing,
   off macOS or without the electron package. A window opens on screen while
   it runs.
