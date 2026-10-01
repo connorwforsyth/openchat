@@ -1,0 +1,3 @@
+# Generated icons (scripts/brand-assets.ts) and packaged artifacts (bun run desktop:package).
+/.brand/
+/release/

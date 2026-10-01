@@ -1,8 +1,8 @@
-// The menu bar icon (118): a placeholder until ticket 119 brings the
-// brand's icon. Drawn here rather than shipped as a file, so there's no
-// asset to package yet: a speech bubble's outline, black on transparent,
-// which macOS uses as a template image (it recolours it for light and dark
-// menu bars and the highlighted state).
+// The menu bar icon's fallback (118): drawn here, for a build whose .brand/
+// has no template image (119 makes one from the brand's logo). A speech
+// bubble's outline, black on transparent, which macOS uses as a template
+// image (it recolours it for light and dark menu bars and the highlighted
+// state).
 
 /** The icon's size in points; macOS menu bar icons are 16–18pt. */
 export const TRAY_ICON_POINTS = 16;

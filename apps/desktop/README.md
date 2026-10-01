@@ -91,9 +91,31 @@ in a browser there's no bridge and nothing changes.
   `/quick` afresh next time. `hideQuickAi` on the bridge is honoured only
   from the Quick AI window's own page.
 - **Menu bar icon (macOS):** New chat, Quick AI, Show Window, Quit. Its
-  icon is a placeholder speech bubble drawn in code
-  (`src/main/tray-icon.ts`) as a template image; 119 replaces it with the
-  brand's.
+  icon is a template image made from the brand's logo (119, below); the
+  speech bubble drawn in `src/main/tray-icon.ts` is the fallback when
+  there's none.
+
+## Brand, packaging and updates (119)
+
+- **Brand.** The app's name, app ID, URL scheme and icon come from the
+  `brand:` block of `app.config.yaml` (`scripts/brand.ts`), with fallbacks
+  (`local.<name>.desktop`, no scheme, a neutral placeholder icon).
+  `bun run brand` (before every build and dev run) writes `.brand/`: the
+  icons (`.icns`, `.ico`, PNGs, the menu bar's template image, all rendered
+  from the logo with resvg) and `build.json`, which electron-vite writes
+  into main as `__DESKTOP_BUILD__` (`src/main/build-info.ts`). Main sets
+  the app's name and its userData folder from it, so a dev run is named
+  like the packaged app (settings move from `…/desktop` to `…/<name>`).
+  macOS's bold menu bar title in a dev run is still the Electron bundle's.
+- **Packaging** (`scripts/package.ts`, config in
+  `scripts/builder-config.ts`): electron-builder, with only the bundles
+  staged into `app.asar`. macOS dmg + zip (arm64 and x64), Windows NSIS,
+  Linux AppImage. Fuses: no `RunAsNode`, `NODE_OPTIONS` or `--inspect`;
+  ASAR integrity checked and the app loaded only from it. Unsigned, re-signed
+  ad hoc on Apple Silicon; signing turns on with `CSC_*` variables.
+- **Auto-update** (`src/main/updates.ts`): electron-updater from GitHub
+  Releases, off unless packaged with `DESKTOP_AUTO_UPDATE=1` and
+  `DESKTOP_UPDATE_REPO`; off, the updater module is never loaded.
 
 ## Security (`PLAN.md` D24)
 
@@ -134,9 +156,10 @@ bun turbo test:desktop                                # the Electron smoke test 
   `settings.json`.
 - `bun run desktop:build` writes the three bundles to `dist/` (main and the
   preloads bundle their dependencies; workspace packages are TypeScript
-  source). Run the result with `bunx electron apps/desktop`. Packaging,
-  icons, the brand's app name and signing are ticket 119; until then the dev
-  app is called "Electron" in the menu bar.
+  source). Run the result with `bunx electron apps/desktop`.
+- `bun run desktop:package` makes an unsigned app and installers for this
+  machine in `release/`; `bun run package:smoke` (in this folder) launches
+  the result and quits it. See below and `docs/desktop.md`.
 - The Electron binary downloads on first use (Electron 44 fetches it
   lazily, into `node_modules/electron/dist`).
 
@@ -146,7 +169,9 @@ bun turbo test:desktop                                # the Electron smoke test 
   navigation and permission rules, settings, the instance check, the menus
   from the registry, window placement; for 118 the Quick AI shortcut's
   parsing and registration, its window's placement and height, its
-  navigation rule, the tray menu and icon).
+  navigation rule, the tray menu and icon; for 119 the brand's reading and
+  fallbacks, the electron-builder config and signing switches, the PNG, ICO
+  and ICNS writers, the menu bar template from a logo, and the update rule).
 - `bun turbo test:desktop`: `e2e/desktop/smoke.spec.ts`, a separate task
   (not part of `test` or `test:e2e`). It builds `apps/web` and this app,
   starts the e2e server (`e2e/support/serve.ts`) on port 3190

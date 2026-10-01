@@ -27,7 +27,7 @@ export default defineProject({
   ],
   test: {
     hookTimeout: 60_000,
-    include: ["src/**/*.test.ts"],
+    include: ["src/**/*.test.ts", "scripts/**/*.test.ts"],
     name: "desktop",
     // Loaded CI runners are several times slower than a laptop (ticket 035).
     testTimeout: 30_000,
