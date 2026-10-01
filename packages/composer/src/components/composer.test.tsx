@@ -26,6 +26,7 @@ import {
   composerValueSchema,
   type PromptOption,
 } from "../schemas";
+import type { ModelVariant } from "../variants";
 import { Composer, type ComposerProps, READY_MARK } from "./composer";
 
 // No catalog: macros keep their source messages outside production, so the
@@ -717,12 +718,24 @@ describe("Composer's thinking level and fast mode (105)", () => {
   ];
 
   const changes = vi.fn<(target: RunTarget) => void>();
+  const variants = vi.fn<(variant: ModelVariant) => void>();
 
-  function Harness({ initial }: { readonly initial: RunTarget }) {
+  function Harness({
+    initial,
+    sendsOptions,
+  }: {
+    readonly initial: RunTarget;
+    readonly sendsOptions: boolean;
+  }) {
     const [target, setTarget] = useState(initial);
+    const [variant, setVariant] = useState<ModelVariant>({});
     const change = useCallback((next: RunTarget) => {
       changes(next);
       setTarget(next);
+    }, []);
+    const vary = useCallback((next: ModelVariant) => {
+      variants(next);
+      setVariant(next);
     }, []);
     return (
       <I18nProvider i18n={i18n}>
@@ -739,6 +752,7 @@ describe("Composer's thinking level and fast mode (105)", () => {
           onContextChange={vi.fn()}
           onSubmit={vi.fn()}
           onTargetChange={change}
+          {...(sendsOptions ? { onVariantChange: vary, variant } : {})}
           onWebSearchChange={vi.fn()}
           recentsKey="user-1"
           target={target}
@@ -747,8 +761,13 @@ describe("Composer's thinking level and fast mode (105)", () => {
     );
   }
 
-  const renderHarness = (selector = "openai:o4-mini") =>
-    render(<Harness initial={{ model: selector, type: "model" }} />);
+  const renderHarness = (selector = "openai:o4-mini", sendsOptions = true) =>
+    render(
+      <Harness
+        initial={{ model: selector, type: "model" }}
+        sendsOptions={sendsOptions}
+      />
+    );
 
   const thinking = () => screen.queryByRole("button", { name: THINKING });
 
@@ -769,9 +788,17 @@ describe("Composer's thinking level and fast mode (105)", () => {
     await waitFor(() => expect(screen.queryByRole("listbox")).toBeNull());
   };
 
+  const openPlus = async () => {
+    await userEvent.click(
+      screen.getByRole("button", { name: "Add to message" })
+    );
+    await screen.findByRole("menuitemcheckbox", { name: "Web search" });
+  };
+
   beforeEach(() => {
     localStorage.clear();
     changes.mockClear();
+    variants.mockClear();
   });
 
   it("puts the + menu and context first, and thinking and the model by Send", () => {
@@ -800,14 +827,12 @@ describe("Composer's thinking level and fast mode (105)", () => {
     expect(thinking()).toBeTruthy();
   });
 
-  it("sends a level as the target's reasoning effort, or picks its folded entry", async () => {
+  it("sends a provider level as the run's reasoning, and a folded one as its entry", async () => {
     renderHarness();
     await chooseLevel(LOW);
-    expect(changes).toHaveBeenLastCalledWith({
-      model: "openai:o4-mini",
-      parameters: { reasoningEffort: "low" },
-      type: "model",
-    });
+    expect(variants).toHaveBeenLastCalledWith({ reasoning: "low" });
+    // The target itself is untouched: the level doesn't stick to the chat.
+    expect(changes).not.toHaveBeenCalled();
     expect(thinking()?.getAttribute("aria-label")).toBe("Thinking: Low");
     // High is the catalog's own o4-mini-high entry.
     await chooseLevel(HIGH);
@@ -815,13 +840,19 @@ describe("Composer's thinking level and fast mode (105)", () => {
       model: "openai:o4-mini-high",
       type: "model",
     });
+    expect(variants).toHaveBeenLastCalledWith({});
     expect(
       screen.getByRole("button", { name: "Model or agent: o4-mini" })
     ).toBeTruthy();
   });
 
-  it("lists a level the server can't take yet, disabled, with the reason", async () => {
-    renderHarness("openai:gpt-6");
+  it("offers every level the provider takes, and none of its own without run options", async () => {
+    const { unmount } = renderHarness("openai:gpt-6");
+    await chooseLevel(EXTRA_HIGH);
+    expect(variants).toHaveBeenLastCalledWith({ reasoning: "xhigh" });
+    unmount();
+
+    renderHarness("openai:gpt-6", false);
     await userEvent.click(thinking() as HTMLElement);
     const xhigh = await screen.findByRole("menuitemradio", {
       name: EXTRA_HIGH,
@@ -833,9 +864,7 @@ describe("Composer's thinking level and fast mode (105)", () => {
   it("switches fast mode in the + menu, apart from the level, and off from its chip", async () => {
     renderHarness();
     await chooseLevel(HIGH);
-    await userEvent.click(
-      screen.getByRole("button", { name: "Add to message" })
-    );
+    await openPlus();
     await userEvent.click(
       await screen.findByRole("menuitemcheckbox", { name: "Fast mode" })
     );
@@ -862,22 +891,27 @@ describe("Composer's thinking level and fast mode (105)", () => {
     );
   });
 
-  it("offers fast mode only for a model with a fast variant or tier", async () => {
-    renderHarness("acme:plain");
+  it("asks for a provider's fast tier as the run's fast option", async () => {
+    renderHarness("openai:gpt-6");
+    await openPlus();
     await userEvent.click(
-      screen.getByRole("button", { name: "Add to message" })
+      await screen.findByRole("menuitemcheckbox", { name: FAST_MODE })
     );
-    await screen.findByRole("menuitemcheckbox", { name: "Web search" });
+    expect(variants).toHaveBeenLastCalledWith({ fast: true });
+    expect(changes).not.toHaveBeenCalled();
+  });
+
+  it("offers fast mode only for a model with a fast variant or tier", async () => {
+    renderHarness("acme:plain", false);
+    await openPlus();
     expect(
       screen.queryByRole("menuitemcheckbox", { name: FAST_MODE })
     ).toBeNull();
     await userEvent.keyboard("{Escape}");
 
-    // GPT-6 has OpenAI's priority tier, which needs a run option first.
+    // GPT-6 has OpenAI's priority tier, which needs run options.
     await pickModel("Plain", GPT_6);
-    await userEvent.click(
-      screen.getByRole("button", { name: "Add to message" })
-    );
+    await openPlus();
     const fast = await screen.findByRole("menuitemcheckbox", {
       name: FAST_MODE,
     });
@@ -893,14 +927,24 @@ describe("Composer's thinking level and fast mode (105)", () => {
       model: "openai:gpt-6",
       type: "model",
     });
+    expect(variants).toHaveBeenLastCalledWith({});
     await pickModel("GPT-6", O4_MINI);
-    expect(changes).toHaveBeenLastCalledWith({
-      model: "openai:o4-mini",
-      parameters: { reasoningEffort: "medium" },
-      type: "model",
-    });
+    expect(variants).toHaveBeenLastCalledWith({ reasoning: "medium" });
     expect(
       JSON.parse(localStorage.getItem("composer:model-variants:user-1") ?? "[]")
     ).toEqual([["openai:o4-mini", { fast: false, level: "medium" }]]);
+  });
+
+  it("puts a remembered level back when the model comes back another way", async () => {
+    localStorage.setItem(
+      "composer:model-variants:user-1",
+      JSON.stringify([["openai:o4-mini", { fast: false, level: "low" }]])
+    );
+    renderHarness();
+    await waitFor(() =>
+      expect(variants).toHaveBeenLastCalledWith({ reasoning: "low" })
+    );
+    expect(changes).not.toHaveBeenCalled();
+    expect(thinking()?.getAttribute("aria-label")).toBe("Thinking: Low");
   });
 });

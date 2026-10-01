@@ -110,6 +110,7 @@ export function Composer({
   onStop,
   onSubmit,
   onTargetChange,
+  onVariantChange,
   onWebSearchChange,
   people = NONE,
   placeholder,
@@ -117,6 +118,7 @@ export function Composer({
   recentsKey,
   status = "ready",
   target,
+  variant,
   webSearch = false,
 }: EditorComposerProps) {
   const { t } = useLingui();
@@ -533,10 +535,12 @@ export function Composer({
           onStop={onStop ? stop : undefined}
           onTargetChange={onTargetChange}
           onUsePrompt={usePrompt}
+          onVariantChange={onVariantChange}
           onWebSearchChange={onWebSearchChange}
           prompts={prompts}
           recentsKey={recentsKey}
           target={target}
+          variant={variant}
           webSearch={webSearch}
         />
       </InputGroup>

@@ -20,6 +20,7 @@ import type {
   FileCandidate,
   PromptOption,
 } from "../schemas";
+import type { ModelVariant } from "../variants";
 import { ContextChip } from "./context-chip";
 import { PlusMenu } from "./plus-menu";
 import { TargetPicker } from "./target-picker";
@@ -42,10 +43,12 @@ export interface ComposerFooterProps {
   readonly onStop: (() => void) | undefined;
   readonly onTargetChange: ((target: RunTarget) => void) | undefined;
   readonly onUsePrompt: ((prompt: PromptOption) => void) | undefined;
+  readonly onVariantChange: ((variant: ModelVariant) => void) | undefined;
   readonly onWebSearchChange: ((on: boolean) => void) | undefined;
   readonly prompts: readonly PromptOption[];
   readonly recentsKey: string | undefined;
   readonly target: RunTarget | undefined;
+  readonly variant: ModelVariant | undefined;
   readonly webSearch: boolean;
 }
 
@@ -73,10 +76,12 @@ export function ComposerFooter({
   onStop,
   onTargetChange,
   onUsePrompt,
+  onVariantChange,
   onWebSearchChange,
   prompts,
   recentsKey,
   target,
+  variant,
   webSearch,
 }: ComposerFooterProps) {
   const { t } = useLingui();
@@ -84,8 +89,10 @@ export function ComposerFooter({
   const variants = useModelVariants({
     models,
     onTargetChange,
+    onVariantChange,
     recentsKey,
     target,
+    variant,
   });
   const { setFast } = variants;
   // A chip goes away as it's switched off; focus goes back to the + menu

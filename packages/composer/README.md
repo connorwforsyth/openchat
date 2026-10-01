@@ -14,6 +14,7 @@ import { ComposerLoader } from "@workspace/composer/components/composer-loader";
   agents={agents}              // LibraryItem-shaped: picker + @mentions
   models={models}              // meta.listModels output; Auto is always offered
   target={target} onTargetChange={setTarget}
+  variant={variant} onVariantChange={setVariant}   // the run's reasoning and fast options
   webSearch={on} onWebSearchChange={setOn}   // only where the instance has web search
   context={context} contexts={contextOptionsFromMe(me, allowed)}
   contextLocked={hasMessages} onContextChange={setContext}
@@ -93,15 +94,19 @@ provider key, never into an entry that's folded itself; `-mini`, `-nano` and
 sizes are other models.
 
 The thinking control (`components/thinking-control.tsx`) shows for a model
-the server says reasons, or one with a folded thinking entry. Its levels come
-from what the installed AI SDK provider maps the `reasoning` call setting to
-(`providerLevels`). Off, Low, Medium and High go out as the model target's
-`parameters.reasoningEffort`, which the server already hands the AI SDK; a
-folded level picks its entry instead. Levels the contract can't carry yet
-(Minimal, Extra high, Max) are listed, disabled, "Needs server support".
-Fast mode picks the folded fast entry; a provider's own fast tier (OpenAI
-priority, Anthropic fast mode) shows disabled for the same reason. Both are
-remembered per model in local storage under `recentsKey`.
+the server says reasons, or one with a folded thinking entry. Its levels are
+the ones the provider takes, from the tables the server sends them by
+(`@workspace/ai/providers/reasoning`). A folded level picks its entry; any
+other level goes to the host as `variant.reasoning` through
+`onVariantChange`, and the host sends it as the run's `options.reasoning`.
+Fast mode picks the folded fast entry, or sets `variant.fast` for a
+provider's own tier (OpenAI priority, Anthropic fast mode, both billed at a
+higher rate), sent as `options.fast`. Neither touches the target's
+`parameters`, so neither sticks to the conversation's default target. A host
+that leaves out `onVariantChange` gets only the folded entries; the provider's
+levels and tiers show disabled, "Needs server support". Both choices are
+remembered per model in local storage under `recentsKey`, and put back when a
+model comes back another way (the palette, a reload).
 
 ## Layout
 

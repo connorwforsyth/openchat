@@ -300,6 +300,7 @@
         "@tiptap/pm": "catalog:",
         "@tiptap/react": "catalog:",
         "@tiptap/suggestion": "catalog:",
+        "@workspace/ai": "workspace:*",
         "@workspace/contract": "workspace:*",
         "@workspace/i18n": "workspace:*",
         "@workspace/icons": "workspace:*",

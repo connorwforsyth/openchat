@@ -2,7 +2,7 @@ import { userParts } from "@workspace/client/run-transport";
 import type { UIMessage } from "ai";
 import { describe, expect, it } from "vitest";
 
-import { outgoingMessage } from "./connected-chat";
+import { outgoingMessage, turnOptions } from "./connected-chat";
 
 // What a turn sends: attachments and text as before, plus a
 // `data-workspace-file` part per mentioned file (062), which the run
@@ -45,5 +45,21 @@ describe("outgoingMessage", () => {
       { data: { path: "hello.md" }, name: "workspace-file", type: "data" },
       { data: { path: "notes.md" }, name: "workspace-file", type: "data" },
     ]);
+  });
+});
+
+describe("turnOptions (105)", () => {
+  it("leaves the run's options out when everything is at its default", () => {
+    expect(turnOptions(false, {})).toBeUndefined();
+  });
+
+  it("sends web search, the thinking level and the fast tier", () => {
+    expect(turnOptions(true, {})).toEqual({ sandbox: "auto", webSearch: "on" });
+    expect(turnOptions(false, { fast: true, reasoning: "low" })).toEqual({
+      fast: true,
+      reasoning: "low",
+      sandbox: "auto",
+      webSearch: "auto",
+    });
   });
 });

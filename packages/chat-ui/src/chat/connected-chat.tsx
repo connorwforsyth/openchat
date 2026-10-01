@@ -25,6 +25,7 @@ import type {
   ComposerAttachment,
   ComposerValue,
 } from "@workspace/composer/schemas";
+import type { ModelVariant } from "@workspace/composer/variants";
 import type {
   ConversationId,
   FileId,
@@ -40,6 +41,7 @@ import type { ModelOption } from "@workspace/contract/schemas/models";
 import type {
   PendingApproval,
   Run,
+  RunOptions,
   RunTarget,
 } from "@workspace/contract/schemas/runs";
 import type { SandboxRecord } from "@workspace/contract/schemas/sandbox";
@@ -263,6 +265,24 @@ const mentionedFiles = (value: ComposerValue): string[] =>
 const webSearchOn = (config: PublicConfig, on: boolean): boolean =>
   on && config.features.webSearch === true;
 
+/**
+ * The turn's switches for the run's `options`: web search, the thinking
+ * level and fast tier (105). Left out when all are at their defaults, so
+ * the Decider and the provider choose. Pure.
+ */
+export const turnOptions = (
+  webSearch: boolean,
+  variant: ModelVariant
+): RunOptions | undefined =>
+  webSearch || variant.reasoning || variant.fast
+    ? {
+        sandbox: "auto",
+        webSearch: webSearch ? "on" : "auto",
+        ...(variant.reasoning ? { reasoning: variant.reasoning } : {}),
+        ...(variant.fast ? { fast: true } : {}),
+      }
+    : undefined;
+
 /** The composer's web search switch, offered only where the instance has it (D18 `features`). */
 const webSearchSwitch = (
   config: PublicConfig,
@@ -316,6 +336,7 @@ const useLiveTurn = ({
   stored,
   storedAt,
   target,
+  variant,
   webSearch,
 }: {
   readonly client: ApiClient;
@@ -328,6 +349,8 @@ const useLiveTurn = ({
   /** When the stored branch was last fetched (`dataUpdatedAt`). */
   readonly storedAt: number;
   readonly target: RunTarget | null;
+  /** The chosen model's thinking level and fast tier (105). */
+  readonly variant: ModelVariant;
   /** Switched on in the composer's + menu: search the web this turn. */
   readonly webSearch: boolean;
 }) => {
@@ -335,9 +358,9 @@ const useLiveTurn = ({
     () => toUIMessages(stored, { fileUrl }),
     [stored]
   );
-  const fieldsRef = useRef({ context, target, webSearch });
+  const fieldsRef = useRef({ context, target, variant, webSearch });
   useEffect(() => {
-    fieldsRef.current = { context, target, webSearch };
+    fieldsRef.current = { context, target, variant, webSearch };
   });
   const chat = useRunChat({
     client,
@@ -347,12 +370,11 @@ const useLiveTurn = ({
     onRunCreated,
     runFields: () => {
       const fields = fieldsRef.current;
+      const options = turnOptions(fields.webSearch, fields.variant);
       return {
         context: fields.context,
-        // Off means "let the Decider choose" (`auto`), as before the switch.
-        ...(fields.webSearch
-          ? { options: { sandbox: "auto", webSearch: "on" } as const }
-          : {}),
+        // Web search off means "let the Decider choose" (`auto`).
+        ...(options ? { options } : {}),
         ...(fields.target ? { target: fields.target } : {}),
       };
     },
@@ -1180,6 +1202,9 @@ export function ConnectedChat({
   );
   const [uploadFailed, setUploadFailed] = useState(false);
   const [webSearch, setWebSearch] = useState(false);
+  // The chosen model's thinking level and fast tier (105); the composer
+  // remembers them per model and sets them as the model changes.
+  const [variant, setVariant] = useState<ModelVariant>({});
   const titleWatch = useTitleWatch(conversationId);
 
   const data = useChatQueries(api, {
@@ -1285,6 +1310,7 @@ export function ConnectedChat({
     stored,
     storedAt: data.path.dataUpdatedAt,
     target,
+    variant,
     webSearch: webSearchOn(config, webSearch),
   });
   const { regenerate, sendMessage, setMessages } = chat;
@@ -1460,11 +1486,13 @@ export function ConnectedChat({
           onStop: stop,
           onSubmit,
           onTargetChange,
+          onVariantChange: setVariant,
           // "Recently used" in the picker is each person's own (099).
           recentsKey: me.user.id,
           ...webSearchSwitch(config, webSearch, setWebSearch),
           status: composerStatus,
           target: target ?? undefined,
+          variant,
         }}
         conversation={{
           context,

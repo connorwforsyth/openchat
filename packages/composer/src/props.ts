@@ -17,6 +17,7 @@ import type {
   PromptOption,
   WorkspacePath,
 } from "./schemas";
+import type { ModelVariant } from "./variants";
 
 // Props shared by the shell, the loader and the editor. A types-only module,
 // so importing it never pulls the editor into a bundle.
@@ -61,6 +62,13 @@ export interface ComposerProps {
   readonly onSubmit: (value: ComposerValue) => void;
   readonly onTargetChange?: (target: RunTarget) => void;
   /**
+   * The thinking level or fast mode changed for the chosen model (105).
+   * Pass it to offer the provider's own levels and fast tier; the host sends
+   * `variant` as the run's `options.reasoning` and `options.fast`. Left out,
+   * only catalog entries folded into a model (`-high`, `-fast`) can be had.
+   */
+  readonly onVariantChange?: (variant: ModelVariant) => void;
+  /**
    * Web search was switched on or off in the + menu. Pass it only when the
    * instance has web search (`features.webSearch`); left out, the switch
    * isn't offered. The host sends it as the run's `options.webSearch`.
@@ -79,6 +87,8 @@ export interface ComposerProps {
   readonly status?: ComposerStatus;
   /** The model/agent picker shows when this and `onTargetChange` are set. */
   readonly target?: RunTarget;
+  /** The next message's thinking level and fast tier (see `onVariantChange`). */
+  readonly variant?: ModelVariant;
   /** Whether web search is on for the next message (see `onWebSearchChange`). */
   readonly webSearch?: boolean;
 }
