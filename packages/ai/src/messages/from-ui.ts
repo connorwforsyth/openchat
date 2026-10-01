@@ -97,6 +97,18 @@ const callApproval = (
   });
 };
 
+/**
+ * The call's input. A call the SDK refused (bad input, or a tool the run
+ * doesn't have) ends as `output-error` with what the model sent in
+ * `rawInput` and no `input`, which is still what the call was.
+ */
+const inputOf = (part: ToolPart): unknown => {
+  if (part.state !== "output-error" || part.input !== undefined) {
+    return part.input;
+  }
+  return "rawInput" in part ? (part.rawInput ?? null) : null;
+};
+
 const toolParts = (
   part: ToolPart,
   options: FromUIOptions
@@ -111,7 +123,7 @@ const toolParts = (
   const toolName = getToolOrDynamicToolName(part);
   const call = {
     approval: approval.value,
-    input: part.input,
+    input: inputOf(part),
     providerExecuted: part.providerExecuted,
     providerMetadata: part.callProviderMetadata,
     toolCallId: part.toolCallId,
