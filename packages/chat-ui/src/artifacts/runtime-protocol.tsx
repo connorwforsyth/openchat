@@ -1,3 +1,4 @@
+import { REACT_IMPORTS } from "@workspace/artifacts-kit/kinds/react";
 import { artifactKindSchema } from "@workspace/contract/schemas/message-parts";
 import { err, ok, type Result } from "@workspace/shared/result";
 import { z } from "zod";
@@ -27,10 +28,11 @@ export const isRuntimeKind = (kind: string): kind is RuntimeKind =>
   runtimeKindSchema.safeParse(kind).success;
 
 /**
- * What a React artifact may import. The runtime bundles these, so previews
- * need no network (D24); anything else fails with an `import` error.
+ * What a React artifact may import: the React kind's list
+ * (`@workspace/artifacts-kit`). The runtime bundles these, so previews need
+ * no network (D24); anything else fails with an `import` error.
  */
-export const RUNTIME_IMPORTS = ["react", "react-dom"] as const;
+export const RUNTIME_IMPORTS = REACT_IMPORTS;
 
 export const runtimeThemeSchema = z.enum(["light", "dark"]);
 export type RuntimeTheme = z.infer<typeof runtimeThemeSchema>;
