@@ -25,7 +25,7 @@ export const brands = {
   deepseek: { mark: "deepseek", name: "DeepSeek" },
   fireworks: { mark: "fireworks", name: "Fireworks" },
   gateway: { mark: "vercel", name: "Gateway" },
-  google: { mark: "gemini", name: "Google" },
+  google: { mark: "google", name: "Google" },
   groq: { mark: "groq", name: "Groq" },
   huggingface: { mark: "huggingface", name: "Hugging Face" },
   meta: { mark: "meta", name: "Meta" },

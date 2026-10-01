@@ -50,13 +50,18 @@ const VENDOR = /^([a-z][a-z0-9_-]{0,63})\/./i;
  * vendor after the colon (`gateway:anthropic/claude-haiku-4.5` is
  * `anthropic`); otherwise it's the configured provider's key.
  */
+/** Aggregators' other names for one vendor, so they share a group (`meta-llama` is OpenRouter's `meta`). */
+const SAME_VENDOR: Readonly<Record<string, string>> = { "meta-llama": "meta" };
+
 export const vendorOf = (ref: ModelRef): string | undefined => {
   const parsed = parseModelRef(ref);
   if (!parsed) {
     return;
   }
-  const vendor = VENDOR.exec(parsed.modelId)?.[1];
-  return vendor === undefined ? parsed.provider : vendor.toLowerCase();
+  const vendor = VENDOR.exec(parsed.modelId)?.[1]?.toLowerCase();
+  return vendor === undefined
+    ? parsed.provider
+    : (SAME_VENDOR[vendor] ?? vendor);
 };
 
 // ---- The preview card's facts (099). Pure; unknown stays absent. ----
