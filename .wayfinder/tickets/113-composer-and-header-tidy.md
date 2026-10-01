@@ -2,8 +2,8 @@
 id: "113"
 title: "Composer and header tidy: model then level, no Default, no icons, context out of the way, sidebar toggle in the sidebar"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -55,3 +55,7 @@ Built on `t/112-picker-position` (after 112's two commits), not pushed.
 - **Outside Owns:** `apps/web/app/dev/composer/demo.tsx` (dropped the composer's context props, which no longer exist) and `page-shell.tsx`/its test (so the other pages match). `packages/composer/README.md` updated.
 - **Tests:** composer (order, Medium default and sends nothing, remembered level now Low, context tests removed), variants (no `default` level, `default: true` marker, old stored `default` parses), reasoning (default per provider), chat-screen (three header controls, toggle in the sidebar while open, context in the header as a menu or locked text, hidden for Personal only, gone from Share/overflow), page-shell. e2e: `contextChip` → `contextControl` in the header, `lockedContext` → locked header text; composer spec expects model, level, Send with Echo at Medium and GPT-5.2 at Off; shell spec checks no header border, no New chat, toggle in the sidebar.
 - **Verified:** gate 85/85, `evals --strict: ok`; e2e 70 passed on port 3272. Screenshots (light/dark, 1440 and 375) in `/private/tmp/claude-501/113-screens/`.
+
+## Resolution (2026-10-01, loop)
+
+Merged with 112 as [PR #88](https://github.com/connorwforsyth/openchat/pull/88): gate 85/85, evals --strict ok, e2e 70/70.
