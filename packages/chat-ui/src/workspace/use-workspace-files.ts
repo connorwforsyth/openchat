@@ -41,6 +41,13 @@ export interface FilesActions {
   /** Empties the workspace; `undefined` when there's none yet. */
   readonly reset: (() => void) | undefined;
   readonly save: () => void;
+  /**
+   * "Save as site" (125): resolves to what fails the site checks, or `null`
+   * once saved; `undefined` where the host can't save artifacts.
+   */
+  readonly saveAsSite:
+    | ((path: string, title: string) => Promise<readonly string[] | null>)
+    | undefined;
 }
 
 export interface FilesView {
@@ -206,6 +213,22 @@ export const useWorkspaceFiles = ({
     changed();
   }, [changed, client, id, onSelectFile]);
 
+  const saveSite = client.saveAsSite;
+  const saveAsSite = useCallback(
+    async (path: string, title: string) => {
+      if (!saveSite) {
+        return null;
+      }
+      const saved = await saveSite({ path, title });
+      if (saved.ok) {
+        changed();
+        return null;
+      }
+      return saved.error;
+    },
+    [changed, saveSite]
+  );
+
   const status = ((): FilesStatus => {
     switch (sandbox?.status.state) {
       case "provisioning":
@@ -232,6 +255,7 @@ export const useWorkspaceFiles = ({
       reload: opened.reload,
       reset: id ? () => swallow(reset()) : undefined,
       save: opened.save,
+      saveAsSite: saveSite ? saveAsSite : undefined,
     },
     notice: notice ?? tree.error,
     open: opened.file,

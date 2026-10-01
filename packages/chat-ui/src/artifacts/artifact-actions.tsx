@@ -20,6 +20,7 @@ import type {
 import {
   CopyIcon,
   EllipsisIcon,
+  GlobeIcon,
   MessageSquareIcon,
   NewChatIcon,
   PencilIcon,
@@ -65,10 +66,12 @@ import {
 import { type ChangeEvent, type FormEvent, useCallback, useState } from "react";
 
 import { SIDEBAR_LIST_INPUT } from "../chat/use-chat-data";
+import { PublishDialog } from "./publish-dialog";
 
 // An artifact's actions (124), the same from its row on the Artifacts page
 // and from its full-page view: Use in chat, Share, Rename, Go to chat,
-// Duplicate, Delete. Each asks for what it needs in a dialog of its own.
+// Duplicate, Delete, and for a site its owner's Publish (125). Each asks for
+// what it needs in a dialog of its own.
 
 /** Where things are, named by the app (chat-ui doesn't know its routes). */
 export interface ArtifactLinks {
@@ -76,7 +79,7 @@ export interface ArtifactLinks {
   readonly navigate: (href: string) => void;
 }
 
-type Dialogs = "delete" | "rename" | "share" | "use" | null;
+type Dialogs = "delete" | "publish" | "rename" | "share" | "use" | null;
 
 export interface ArtifactMenuProps {
   readonly api: QueryUtils;
@@ -134,6 +137,8 @@ export function ArtifactMenu({
   const openShare = useCallback(() => setOpen("share"), []);
   const openRename = useCallback(() => setOpen("rename"), []);
   const openDelete = useCallback(() => setOpen("delete"), []);
+  const openPublish = useCallback(() => setOpen("publish"), []);
+  const publishable = owner && artifact.kind === "site";
   const goToChat = useCallback(
     () => links.navigate(links.chat(artifact.conversationId)),
     [artifact.conversationId, links]
@@ -171,6 +176,15 @@ export function ArtifactMenu({
               <ShareIcon aria-hidden />
               <Trans>Share</Trans>
             </DropdownMenuItem>
+            {publishable ? (
+              <DropdownMenuItem
+                disabled={artifact.latestVersionId === null}
+                onClick={openPublish}
+              >
+                <GlobeIcon aria-hidden />
+                <Trans>Publish</Trans>
+              </DropdownMenuItem>
+            ) : null}
             {canEdit ? (
               <DropdownMenuItem onClick={openRename}>
                 <PencilIcon aria-hidden />
@@ -218,6 +232,14 @@ export function ArtifactMenu({
         onOpenChange={close}
         open={open === "share"}
       />
+      {publishable ? (
+        <PublishDialog
+          api={api}
+          artifact={artifact}
+          onOpenChange={close}
+          open={open === "publish"}
+        />
+      ) : null}
       <UseInChatDialog
         api={api}
         artifact={artifact}

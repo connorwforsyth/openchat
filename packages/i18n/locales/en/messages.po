@@ -158,6 +158,10 @@ msgstr "~{0} words"
 msgid "A file with that name already exists."
 msgstr "A file with that name already exists."
 
+#: ../chat-ui/src/workspace/save-site-dialog.tsx
+msgid "A folder of plain HTML, CSS and JavaScript, with an index.html, becomes a site you can preview and publish. Build an app first and save the folder it builds to."
+msgstr "A folder of plain HTML, CSS and JavaScript, with an index.html, becomes a site you can preview and publish. Build an app first and save the folder it builds to."
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "A member"
 msgstr "A member"
@@ -377,6 +381,9 @@ msgstr "Annotation attached"
 #: ../../apps/desktop/src/main/quick-shortcut.ts
 msgid "Another app is using {keys}, so it can't open Quick AI."
 msgstr "Another app is using {keys}, so it can't open Quick AI."
+#: ../chat-ui/src/artifacts/publish-dialog.tsx
+msgid "Anyone with the link can see this site. It shows the version you published until you publish again."
+msgstr "Anyone with the link can see this site. It shows the version you published until you publish again."
 
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "API key"
@@ -859,6 +866,7 @@ msgid "Conversation, message, reasoning and tool"
 msgstr "Conversation, message, reasoning and tool"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
+#: ../chat-ui/src/artifacts/publish-dialog.tsx
 #: ../chat-ui/src/conversation/message-row.tsx
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Copied"
@@ -874,6 +882,7 @@ msgstr "Copy"
 msgid "Copy code"
 msgstr "Copy code"
 
+#: ../chat-ui/src/artifacts/publish-dialog.tsx
 #: ../chat-ui/src/header/overflow-menu.tsx
 #: ../chat-ui/src/header/share-menu.tsx
 #: ../library-ui/src/components/share-dialog.tsx
@@ -1267,6 +1276,10 @@ msgstr "Document"
 msgid "Documents, pages and diagrams from your chats, and ones shared with you."
 msgstr "Documents, pages and diagrams from your chats, and ones shared with you."
 
+#: ../chat-ui/src/workspace/save-site-dialog.tsx
+msgid "Done"
+msgstr "Done"
+
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Download diagram"
 msgstr "Download diagram"
@@ -1535,6 +1548,10 @@ msgstr "Focus the composer"
 msgid "Focus the message box"
 msgstr "Focus the message box"
 
+#: ../chat-ui/src/workspace/save-site-dialog.tsx
+msgid "Folder"
+msgstr "Folder"
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "For"
 msgstr "For"
@@ -1699,6 +1716,10 @@ msgstr "Invite people…"
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 msgid "Invite someone"
 msgstr "Invite someone"
+
+#: ../chat-ui/src/workspace/save-site-dialog.tsx
+msgid "It can't be saved as a site yet:"
+msgstr "It can't be saved as a site yet:"
 
 #: ../library-ui/src/components/item-builder.tsx
 msgid "It couldn't be created. Try again."
@@ -2472,6 +2493,10 @@ msgstr "Open the command palette"
 msgid "Open the library"
 msgstr "Open the library"
 
+#: ../chat-ui/src/artifacts/publish-dialog.tsx
+msgid "Open the published site"
+msgstr "Open the published site"
+
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Opened a preview"
 msgstr "Opened a preview"
@@ -2808,6 +2833,7 @@ msgstr "Provider keys that pay for this org's chats. Secrets are never shown aga
 msgid "providers"
 msgstr "providers"
 
+#: ../chat-ui/src/artifacts/publish-dialog.tsx
 #: ../library-ui/src/components/badges.tsx
 #: ../library-ui/src/components/share-dialog.tsx
 msgid "Public link"
@@ -2817,9 +2843,16 @@ msgstr "Public link"
 msgid "Public links are turned off on this instance."
 msgstr "Public links are turned off on this instance."
 
+#: ../chat-ui/src/artifacts/artifact-actions.tsx
+#: ../chat-ui/src/artifacts/publish-dialog.tsx
 #: ../library-ui/src/components/item-builder.tsx
 msgid "Publish"
 msgstr "Publish"
+
+#. placeholder {0}: artifact.title
+#: ../chat-ui/src/artifacts/publish-dialog.tsx
+msgid "Publish {0}"
+msgstr "Publish {0}"
 
 #: ../library-ui/src/components/publish-dialog.tsx
 msgid "Publish {name}"
@@ -2828,6 +2861,10 @@ msgstr "Publish {name}"
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "Publish gate"
 msgstr "Publish gate"
+
+#: ../chat-ui/src/artifacts/publish-dialog.tsx
+msgid "Publish latest version"
+msgstr "Publish latest version"
 
 #: ../library-ui/src/components/publish-dialog.tsx
 msgid "Publish to library"
@@ -2869,6 +2906,13 @@ msgstr "Publishing is blocked when evals regress."
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Publishing the skill {name}"
 msgstr "Publishing the skill {name}"
+#: ../chat-ui/src/artifacts/publish-dialog.tsx
+msgid "Publishing isn't available on this instance."
+msgstr "Publishing isn't available on this instance."
+
+#: ../chat-ui/src/artifacts/publish-dialog.tsx
+msgid "Publishing makes a public link to this site. Anyone with the link can see it, without signing in."
+msgstr "Publishing makes a public link to this site. Anyone with the link can see it, without signing in."
 
 #: ../library-ui/src/components/publish-dialog.tsx
 msgid "Put a copy in a team or org library. The library owns it and you maintain it."
@@ -3175,6 +3219,14 @@ msgstr "Sandboxes are turned off on this server."
 msgid "Save"
 msgstr "Save"
 
+#: ../chat-ui/src/workspace/save-site-dialog.tsx
+msgid "Save as site"
+msgstr "Save as site"
+
+#: ../chat-ui/src/workspace/workspace-panel.tsx
+msgid "Save as site…"
+msgstr "Save as site…"
+
 #: ../library-ui/src/components/item-builder.tsx
 msgid "Save draft"
 msgstr "Save draft"
@@ -3191,6 +3243,10 @@ msgstr "Save the server to check its connection."
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "Saved"
 msgstr "Saved"
+
+#: ../chat-ui/src/workspace/save-site-dialog.tsx
+msgid "Saved \"{saved}\". It's with this chat's artifacts, and on your Artifacts page."
+msgstr "Saved \"{saved}\". It's with this chat's artifacts, and on your Artifacts page."
 
 #: ../../apps/web/app/(app)/(pages)/settings/_components/appearance-settings.tsx
 msgid "Saved in this browser."
@@ -3467,6 +3523,10 @@ msgstr "Single keys work when you're not typing in a text field."
 #: ../chat-ui/src/model/artifact-kinds.ts
 msgid "Site"
 msgstr "Site"
+
+#: ../chat-ui/src/workspace/save-site-dialog.tsx
+msgid "site (the whole workspace if empty)"
+msgstr "site (the whole workspace if empty)"
 
 #: ../library-ui/src/components/kind.tsx
 msgid "Skill"
@@ -3962,6 +4022,10 @@ msgstr "The server's configuration file has problems. An administrator can find 
 msgid "The server's streamable HTTP or SSE endpoint."
 msgstr "The server's streamable HTTP or SSE endpoint."
 
+#: ../chat-ui/src/artifacts/publish-dialog.tsx
+msgid "The site couldn't be published. Try again."
+msgstr "The site couldn't be published. Try again."
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
 msgid "The team couldn't be created. Try again."
 msgstr "The team couldn't be created. Try again."
@@ -4134,6 +4198,10 @@ msgstr "This server signs people in with single sign-on, and none is set up yet.
 msgid "This server's configuration forbids audit policies, so admins can't read chat content in any org."
 msgstr "This server's configuration forbids audit policies, so admins can't read chat content in any org."
 
+#: ../chat-ui/src/artifacts/publish-dialog.tsx
+msgid "This version can't be published yet:"
+msgstr "This version can't be published yet:"
+
 #: ../chat-ui/src/conversation/approval.tsx
 msgid "This was already decided, in another tab or by someone else, or the answer stopped."
 msgstr "This was already decided, in another tab or by someone else, or the answer stopped."
@@ -4152,6 +4220,7 @@ msgid "Thought for a few seconds"
 msgstr "Thought for a few seconds"
 
 #: ../chat-ui/src/artifacts/artifact-actions.tsx
+#: ../chat-ui/src/workspace/save-site-dialog.tsx
 msgid "Title"
 msgstr "Title"
 
@@ -4248,6 +4317,10 @@ msgstr "Unknown agent"
 #: ../library-ui/src/components/version-history.tsx
 msgid "Unpin"
 msgstr "Unpin"
+
+#: ../chat-ui/src/artifacts/publish-dialog.tsx
+msgid "Unpublish"
+msgstr "Unpublish"
 
 #: ../chat-ui/src/workspace/file-view.tsx
 msgid "Unsaved"

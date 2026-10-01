@@ -1430,11 +1430,12 @@ export function ConnectedChat({
   }, [api, queryClient]);
 
   // Every change the Workspace panel makes goes back through `sandbox.get`,
-  // so the panel and everything else read one record (060).
+  // so the panel and everything else read one record (060). A folder saved
+  // as a site (125) is a new artifact, so the chat's artifacts refetch too.
   const onWorkspaceChanged = useCallback(() => {
-    queryClient
-      .invalidateQueries({ queryKey: api.sandbox.key() })
-      .catch(ignore);
+    for (const key of [api.sandbox.key(), api.artifacts.key()]) {
+      queryClient.invalidateQueries({ queryKey: key }).catch(ignore);
+    }
   }, [api, queryClient]);
   const sandboxRecord = data.sandbox.data ?? null;
   const workspaceFiles = useMemo((): WorkspaceFilesSource => {
