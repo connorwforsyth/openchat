@@ -98,7 +98,7 @@ export const ModelSelectorContent = ({
   ...props
 }: ModelSelectorContentProps) => (
   <DialogPortal>
-    <DialogOverlay className="bg-black/25 dark:bg-black/55" />
+    <DialogOverlay className="bg-scrim" />
     <DialogPrimitive.Popup
       aria-label={title}
       className={cn(
