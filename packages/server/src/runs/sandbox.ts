@@ -1,4 +1,5 @@
 import type { RunStart } from "@workspace/ai/ports/run-executor";
+import { FRAGMENTS } from "@workspace/ai/prompts/generated";
 import type { ToolAgent } from "@workspace/ai/tools/resolve";
 import type { JsonValue } from "@workspace/contract/schemas/common";
 import type { ApprovalDecision } from "@workspace/contract/schemas/message-parts";
@@ -30,16 +31,9 @@ export const SANDBOX_TOOLS = [
 /**
  * What a plain chat's model is told about its workspace. The user has no
  * terminal (D7), so a model that asks them to run something leaves them
- * stuck.
+ * stuck. The words are in `@workspace/ai`'s `prompts/fragments/workspace.md`.
  */
-export const WORKSPACE_INSTRUCTIONS = [
-  "You have a workspace: a sandboxed machine whose files live in /work.",
-  "The user sees those files in the Files panel next to this chat.",
-  "Use the bash, read, write and edit tools to do the work yourself.",
-  "Never ask the user to run commands; they have no terminal. Run them yourself with bash.",
-  "A static page (HTML with its CSS and JS) shows in the user's Preview panel as soon as you write the .html file, so don't start a server for one.",
-  "For an app that needs a dev server (Vite and the like), start it in the background bound to 0.0.0.0 and call preview with its port.",
-].join(" ");
+export const WORKSPACE_INSTRUCTIONS = FRAGMENTS.workspace.text;
 
 /** Tools that change files: they ask unless the agent overrides them. */
 export const FILE_CHANGE_TOOLS = ["write", "edit"] as const;

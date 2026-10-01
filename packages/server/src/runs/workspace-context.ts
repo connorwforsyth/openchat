@@ -1,4 +1,6 @@
 import type { WorkspaceFileRef } from "@workspace/ai/messages/workspace-file";
+import { FRAGMENTS } from "@workspace/ai/prompts/generated";
+import { fillPrompt } from "@workspace/ai/prompts/template";
 
 import type { WorkspaceRead } from "./sandbox";
 
@@ -7,7 +9,10 @@ import type { WorkspaceRead } from "./sandbox";
 // so the turn resolves them here into text for its instructions: a small
 // text file goes in whole, as it is in the workspace now, and anything else
 // becomes a short note pointing the model at `read`. Like attachments, a
-// mention never fails the turn.
+// mention never fails the turn. The wrappers and notes are in
+// `@workspace/ai`'s `prompts/fragments/mentions.md`.
+
+const { parts } = FRAGMENTS.mentions;
 
 /** Largest file inlined whole; bigger ones are left to `read`. */
 export const INLINE_MAX_BYTES = 32 * 1024;
@@ -23,11 +28,11 @@ const attribute = (value: string): string =>
     .replaceAll('"', "&quot;")
     .replaceAll("<", "&lt;");
 
-const note = (path: string, text: string): string =>
-  `<workspace-file path="${attribute(path)}" omitted="true">${text}</workspace-file>`;
+const note = (path: string, reason: string): string =>
+  fillPrompt(parts.omitted, { path: attribute(path), reason });
 
 const inline = (path: string, content: string): string =>
-  `<workspace-file path="${attribute(path)}">\n${content}\n</workspace-file>`;
+  fillPrompt(parts.inline, { content, path: attribute(path) });
 
 const decode = (bytes: Uint8Array): string | null => {
   try {
@@ -49,7 +54,7 @@ export const resolveWorkspaceFiles = async (
   let budget = INLINE_BUDGET_BYTES;
   for (const { path } of refs) {
     if (!read) {
-      blocks.push(note(path, "The workspace is off for this message."));
+      blocks.push(note(path, parts.workspaceOff));
       continue;
     }
     // biome-ignore lint/performance/noAwaitInLoops: a message names a handful of files, and the budget goes in mention order.
@@ -59,8 +64,8 @@ export const resolveWorkspaceFiles = async (
         note(
           path,
           file.error.type === "not_found"
-            ? "No such file in the workspace."
-            : `The workspace couldn't be read: ${file.error.message}`
+            ? parts.notFound
+            : fillPrompt(parts.unreadable, { message: file.error.message })
         )
       );
       continue;
@@ -73,8 +78,8 @@ export const resolveWorkspaceFiles = async (
         note(
           path,
           size > INLINE_MAX_BYTES || size > budget
-            ? `The file is ${size} bytes, too large to include here. Use the read tool to read it, a range of lines at a time.`
-            : "The file isn't UTF-8 text, so it isn't shown. Inspect it with bash if you need to."
+            ? fillPrompt(parts.tooLarge, { size: String(size) })
+            : parts.notText
         )
       );
       continue;
@@ -94,8 +99,5 @@ export const workspaceContext = async (
     return;
   }
   const blocks = await resolveWorkspaceFiles(refs, read);
-  return [
-    "The user's latest message mentions these files from the workspace. They are shown as they are now:",
-    ...blocks,
-  ].join("\n\n");
+  return [parts.intro, ...blocks].join("\n\n");
 };
