@@ -132,3 +132,47 @@ describe("ArtifactView's one header row (075)", () => {
     expect(screen.getByText(NO_ARTIFACTS)).toBeTruthy();
   });
 });
+
+describe("ArtifactView editing a plan (106)", () => {
+  const editing = (overrides = {}) => ({
+    artifactId: artifactPlan.id,
+    onApprove: vi.fn(),
+    onCancel: vi.fn(),
+    ...overrides,
+  });
+
+  it("shows the latest version in an editor and approves it unchanged", async () => {
+    const plan = editing();
+    renderAt(900, { editing: plan });
+    const box = screen.getByRole("textbox", { name: "Plan, in Markdown" });
+    expect((box as HTMLTextAreaElement).value).toBe(
+      planVersions?.at(-1)?.content
+    );
+    expect(screen.queryByRole("tablist")).toBeNull();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Approve the plan" })
+    );
+    expect(plan.onApprove).toHaveBeenCalledWith(undefined);
+  });
+
+  it("approves with the edits, or cancels", async () => {
+    const plan = editing();
+    renderAt(900, { editing: plan });
+    const box = screen.getByRole("textbox", { name: "Plan, in Markdown" });
+    await userEvent.fill(box, "# Plan: smaller\n\n## Goal\nLess.");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Approve the plan" })
+    );
+    expect(plan.onApprove).toHaveBeenCalledWith(
+      "# Plan: smaller\n\n## Goal\nLess."
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(plan.onCancel).toHaveBeenCalled();
+  });
+
+  it("is the usual view for any other artifact", () => {
+    renderAt(900, { editing: editing({ artifactId: artifactPage.id }) });
+    expect(screen.queryByRole("textbox")).toBeNull();
+    expect(screen.getByRole("tablist")).toBeTruthy();
+  });
+});

@@ -50,6 +50,7 @@ import { FileParts } from "./file-parts";
 import { LazyReasoning } from "./lazy";
 import { Markdown } from "./markdown";
 import { MemoryNote } from "./memory-note";
+import { PlanApprovalNote, PlanCard } from "./plan-card";
 import { Sources } from "./sources";
 import { ThinkingLabel } from "./thinking";
 import { ToolPart } from "./tool-part";
@@ -134,6 +135,10 @@ function Block({
           <Trans>Annotation attached</Trans>
         </p>
       );
+    case "plan":
+      return <PlanCard plan={block.plan} />;
+    case "plan-approval":
+      return <PlanApprovalNote approval={block.approval} />;
     default:
       return block satisfies never;
   }
@@ -268,6 +273,9 @@ function UserMessage({
   const files = view.blocks.flatMap((block) =>
     block.kind === "files" ? [block] : []
   );
+  const approvals = view.blocks.flatMap((block) =>
+    block.kind === "plan-approval" ? [block] : []
+  );
   const startEdit = useCallback(() => setEditing(true), []);
   const cancel = useCallback(() => setEditing(false), []);
   const save = useCallback(
@@ -298,6 +306,11 @@ function UserMessage({
               </BubbleContent>
             </Bubble>
           ) : null}
+          {approvals.map((block) => (
+            <div className="ms-auto" key={block.key}>
+              <PlanApprovalNote approval={block.approval} />
+            </div>
+          ))}
           <MessageToolbar className="mt-0 justify-end gap-1 opacity-0 pointer-coarse:opacity-100 focus-within:opacity-100 group-hover:opacity-100">
             <BranchSwitcher info={siblings} onSelect={onSelectBranch ?? noop} />
             <MessageActions>

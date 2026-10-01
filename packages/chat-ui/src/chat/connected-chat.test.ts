@@ -63,3 +63,21 @@ describe("turnOptions (105)", () => {
     });
   });
 });
+
+describe("turnOptions with plan mode (106)", () => {
+  it("asks for a planning run, and nothing else changes", () => {
+    expect(turnOptions(false, {}, true)).toEqual({
+      mode: "plan",
+      sandbox: "auto",
+      webSearch: "auto",
+    });
+    expect(turnOptions(true, { fast: true }, true)).toEqual({
+      fast: true,
+      mode: "plan",
+      sandbox: "auto",
+      webSearch: "on",
+    });
+    // Off, the mode is left out: a normal run.
+    expect(turnOptions(true, {}, false)).not.toHaveProperty("mode");
+  });
+});

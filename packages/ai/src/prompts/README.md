@@ -7,7 +7,9 @@ this order by `composeInstructions` (`compose.ts`):
 2. The agent's own instructions. These stay a database row (the agent
    version's `instructions`); they are not a file here.
 3. Fragments the turn calls for: `fragments/workspace.md` when a plain chat
-   has a workspace.
+   has a workspace; `fragments/plan.md`'s `planning` part instead of it for a
+   planning run (plan mode, 106), and its `approved` part, holding the plan,
+   for a run that approves one.
 4. `fragments/mentions.md`: the `@file` mentions in the message being answered.
 5. `fragments/memory.md`: the user's memory file, in a private chat.
 

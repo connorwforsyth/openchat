@@ -4,6 +4,7 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import {
   AttachIcon,
   FileIcon,
+  FileTextIcon,
   GlobeIcon,
   LibraryIcon,
   PlusIcon,
@@ -40,9 +41,13 @@ export interface PlusMenuProps {
   readonly onAddFile: ((file: FileCandidate) => void) | undefined;
   readonly onAttach: () => void;
   readonly onFastChange?: (on: boolean) => void;
+  /** Plan mode (106); left out, the switch isn't offered. */
+  readonly onPlanChange?: ((on: boolean) => void) | undefined;
   readonly onUsePrompt: ((prompt: PromptOption) => void) | undefined;
   /** Left out when the instance has no web search: the item isn't offered. */
   readonly onWebSearchChange: ((on: boolean) => void) | undefined;
+  /** Whether the next message plans rather than builds. */
+  readonly plan?: boolean;
   readonly prompts: readonly PromptOption[];
   readonly triggerRef?: Ref<HTMLButtonElement>;
   readonly webSearch: boolean;
@@ -92,8 +97,9 @@ const SUBMENU_CLASS = "max-h-72 w-64 max-w-[calc(100vw-2rem)]";
 /**
  * The composer's + menu: things to add to the next message. Attach files is
  * always first; a workspace file and a prompt appear when there are some to
- * pick; web search is a switch for the instance that has it, and fast mode
- * one for a model that has a fast variant. Base UI's menu
+ * pick; plan mode is a switch (a read-only planning run, 106), web search
+ * one for the instance that has it, and fast mode one for a model that has
+ * a fast variant. Base UI's menu
  * gives it arrow keys, type-ahead, and Escape back to the + button.
  */
 export function PlusMenu({
@@ -104,8 +110,10 @@ export function PlusMenu({
   onAddFile,
   onAttach,
   onFastChange,
+  onPlanChange,
   onUsePrompt,
   onWebSearchChange,
+  plan = false,
   prompts,
   triggerRef,
   webSearch,
@@ -115,6 +123,10 @@ export function PlusMenu({
   const switchWebSearch = useCallback(
     (on: boolean) => onWebSearchChange?.(on),
     [onWebSearchChange]
+  );
+  const switchPlan = useCallback(
+    (on: boolean) => onPlanChange?.(on),
+    [onPlanChange]
   );
   const switchFast = useCallback(
     (on: boolean) => onFastChange?.(on),
@@ -169,7 +181,20 @@ export function PlusMenu({
           </DropdownMenuSub>
         ) : null}
         {/* Skills join here once they run in chats (S4, ticket 082). */}
-        {onWebSearchChange || offerFast ? <DropdownMenuSeparator /> : null}
+        {onPlanChange || onWebSearchChange || offerFast ? (
+          <DropdownMenuSeparator />
+        ) : null}
+        {onPlanChange ? (
+          <DropdownMenuCheckboxItem checked={plan} onCheckedChange={switchPlan}>
+            <FileTextIcon aria-hidden />
+            <span className="flex min-w-0 flex-col">
+              <Trans>Plan</Trans>
+              <span className="text-muted-foreground text-xs">
+                <Trans>Look first, change nothing</Trans>
+              </span>
+            </span>
+          </DropdownMenuCheckboxItem>
+        ) : null}
         {onWebSearchChange ? (
           <DropdownMenuCheckboxItem
             checked={webSearch}

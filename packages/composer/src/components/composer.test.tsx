@@ -77,6 +77,9 @@ const O4_MINI = /^o4-mini/;
 const EXTRA_HIGH = /Extra high/;
 const FAST_MODE = /Fast mode/;
 
+/** The + menu's Plan switch, named with its hint. */
+const PLAN_ITEM = /^Plan/;
+
 const renderComposer = (props: Partial<ComposerProps> = {}) => {
   const onSubmit = vi.fn<(value: ComposerValue) => void>();
   const result = render(
@@ -593,6 +596,36 @@ describe("Composer", () => {
     expect(chip.getAttribute("aria-pressed")).toBe("true");
     await userEvent.click(chip);
     expect(onWebSearchChange).toHaveBeenLastCalledWith(false);
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", { name: "Add to message" })
+    );
+  });
+
+  it("switches plan mode from the + menu and off from its chip (106)", async () => {
+    const onPlanChange = vi.fn();
+    const { rerender } = renderComposer({ onPlanChange });
+    await userEvent.click(
+      screen.getByRole("button", { name: "Add to message" })
+    );
+    const toggle = await screen.findByRole("menuitemcheckbox", {
+      name: PLAN_ITEM,
+    });
+    expect(toggle.getAttribute("aria-checked")).toBe("false");
+    await userEvent.click(toggle);
+    expect(onPlanChange).toHaveBeenLastCalledWith(true);
+    await userEvent.keyboard("{Escape}");
+
+    rerender(
+      <I18nProvider i18n={i18n}>
+        <Composer onPlanChange={onPlanChange} onSubmit={vi.fn()} plan />
+      </I18nProvider>
+    );
+    const chip = screen.getByRole("button", {
+      name: "Plan mode is on. Turn it off",
+    });
+    expect(chip.getAttribute("aria-pressed")).toBe("true");
+    await userEvent.click(chip);
+    expect(onPlanChange).toHaveBeenLastCalledWith(false);
     expect(document.activeElement).toBe(
       screen.getByRole("button", { name: "Add to message" })
     );

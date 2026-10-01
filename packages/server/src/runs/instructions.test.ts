@@ -114,6 +114,8 @@ interface TurnCase {
     readonly mode?: "auto" | "propose";
   };
   readonly mentions?: readonly string[];
+  /** A planning run (106). */
+  readonly plan?: boolean;
   readonly workspace?: boolean;
 }
 
@@ -201,6 +203,7 @@ const systemPromptOf = async (turn: TurnCase): Promise<string | null> => {
         ],
         type: "message",
       },
+      ...(turn.plan ? { options: { mode: "plan" } } : {}),
       target:
         turn.agent === undefined
           ? MODEL
@@ -323,5 +326,20 @@ describe("the system prompt, where the layers meet", () => {
     expect(
       await systemPromptOf({ agent: "  ", memory: { content: MEMORY } })
     ).toMatchSnapshot("blank, with memory");
+  });
+
+  // Plan mode (106): the plan fragment takes the workspace fragment's place,
+  // since that one tells the model to write. Other turns don't change.
+  it("planning run, in a chat with a workspace and memory, and for an agent", async () => {
+    expect(
+      await systemPromptOf({
+        memory: { content: MEMORY },
+        plan: true,
+        workspace: true,
+      })
+    ).toMatchSnapshot("plain chat");
+    expect(await systemPromptOf({ agent: AGENT, plan: true })).toMatchSnapshot(
+      "agent"
+    );
   });
 });

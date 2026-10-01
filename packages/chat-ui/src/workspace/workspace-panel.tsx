@@ -62,6 +62,7 @@ import {
   type ArtifactSelection,
   ArtifactView,
 } from "../artifacts/artifact-view";
+import type { PlanEditing } from "../artifacts/plan-editor";
 import type { WorkspaceSelection } from "../model/workspace";
 import { usePanelFrame } from "../shell/right-panel";
 import { isTypingEvent } from "../shortcuts/registry";
@@ -149,6 +150,8 @@ const FOCUS_FRAMES = 30;
 
 export interface WorkspaceArtifacts {
   readonly artifacts: readonly Artifact[];
+  /** A plan being edited (106), shown as its editor when it's selected. */
+  readonly editing?: PlanEditing | null;
   /** A message the host can show if loading versions failed. */
   readonly error?: string | null;
   /** The artifact runtime's origin (`ARTIFACTS_ORIGIN`, D24). */
@@ -1721,6 +1724,7 @@ function MainArea({
       <div className="flex min-h-0 flex-1 flex-col">
         <ArtifactView
           artifact={artifact}
+          editing={artifacts.editing}
           error={artifacts.error}
           header={artifactHeader}
           onSelect={selectArtifact}

@@ -62,6 +62,15 @@ export const FRAGMENTS = {
     },
     source: "fragments/mentions.md",
   },
+  plan: {
+    parts: {
+      approved:
+        "The user approved this plan. Carry it out now, following it as written; if something in it turns out to be wrong, say so and adjust. Your changes still go through the usual approvals.\n\n<approved-plan>\n{{plan}}\n</approved-plan>",
+      planning:
+        "This turn is for planning only. The user switched on plan mode: you can look, but you can't change anything. You have no tools that write, edit, create artifacts or save memory, and bash runs only read-only commands (ls, cat, head, tail, wc, rg, grep, find, and git status, log, diff or show), one at a time, with no pipes, redirects, chaining or substitution. Anything else is refused.\n\nFirst investigate: read the relevant files (the chat's workspace is in /work), search, and check what's there before you decide anything. Then answer with the plan itself, in Markdown, starting with a one-line title as a level-one heading (`# …`) and then these sections:\n\n## Goal\nWhat will be true when this is done, in a sentence or two.\n\n## Steps\nA numbered list of concrete steps, in order.\n\n## Files to touch\nEach file to create or change, and what changes in it.\n\n## Risks\nWhat could go wrong or break, and how to check it didn't.\n\n## Open questions\nWhat you need the user to decide. Write \"None\" if there's nothing.\n\nThe plan is saved as a document the user can edit. Nothing is built until they approve it, and every change still asks for their approval then.",
+    },
+    source: "fragments/plan.md",
+  },
   workspace: {
     source: "fragments/workspace.md",
     text: "You have a workspace: a sandboxed machine whose files live in /work. The user sees those files in the Files panel next to this chat. Use the bash, read, write and edit tools to do the work yourself. Never ask the user to run commands; they have no terminal. Run them yourself with bash. A static page (HTML with its CSS and JS) shows in the user's Preview panel as soon as you write the .html file, so don't start a server for one. For an app that needs a dev server (Vite and the like), start it in the background bound to 0.0.0.0 and call preview with its port.",

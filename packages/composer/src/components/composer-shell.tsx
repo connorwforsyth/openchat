@@ -36,10 +36,12 @@ export function ComposerShell({
   failed = false,
   models = NONE,
   onHandoff,
+  onPlanChange,
   onTargetChange,
   onVariantChange,
   onWebSearchChange,
   placeholder,
+  plan = false,
   recentsKey,
   status = "ready",
   target,
@@ -90,11 +92,13 @@ export function ComposerShell({
           models={models}
           onAddFile={undefined}
           onAttach={noop}
+          onPlanChange={onPlanChange}
           onStop={undefined}
           onTargetChange={onTargetChange}
           onUsePrompt={undefined}
           onVariantChange={onVariantChange}
           onWebSearchChange={onWebSearchChange}
+          plan={plan}
           prompts={NONE}
           recentsKey={recentsKey}
           target={target}

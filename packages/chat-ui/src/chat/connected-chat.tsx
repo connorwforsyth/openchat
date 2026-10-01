@@ -15,7 +15,7 @@ import {
   createQueryUtils,
   type QueryUtils,
 } from "@workspace/client/api";
-import type { RunCreated } from "@workspace/client/run-transport";
+import { type RunCreated, userParts } from "@workspace/client/run-transport";
 import { useRunChat } from "@workspace/client/use-run-chat";
 import { contextOptionsFromMe } from "@workspace/composer/options";
 import type { ComposerProps } from "@workspace/composer/props";
@@ -64,10 +64,17 @@ import {
   type RunActivity,
   RunActivityProvider,
 } from "../conversation/approval-state";
+import { PlanStatusProvider } from "../conversation/plan-card";
 import { staleEdits } from "../model/approval";
 import { newestLeafUnder, type TreeNode } from "../model/branch";
 import { type LiveMapping, mergeLive } from "../model/live-messages";
 import type { MemoryUpdate } from "../model/parts";
+import {
+  approvedPlanIds,
+  type PlanRef,
+  planApprovalMessage,
+  planApprovalParts,
+} from "../model/plan";
 import {
   answerPhases,
   runToFollow,
@@ -274,21 +281,43 @@ const webSearchOn = (config: PublicConfig, on: boolean): boolean =>
 
 /**
  * The turn's switches for the run's `options`: web search, the thinking
- * level and fast tier (105). Left out when all are at their defaults, so
- * the Decider and the provider choose. Pure.
+ * level and fast tier (105), and plan mode (106). Left out when all are at
+ * their defaults, so the Decider and the provider choose. Pure.
  */
 export const turnOptions = (
   webSearch: boolean,
-  variant: ModelVariant
+  variant: ModelVariant,
+  plan = false
 ): RunOptions | undefined =>
-  webSearch || variant.reasoning || variant.fast
+  webSearch || variant.reasoning || variant.fast || plan
     ? {
         sandbox: "auto",
         webSearch: webSearch ? "on" : "auto",
         ...(variant.reasoning ? { reasoning: variant.reasoning } : {}),
         ...(variant.fast ? { fast: true } : {}),
+        ...(plan ? { mode: "plan" as const } : {}),
       }
     : undefined;
+
+/** A run's stored parts from a sent message: the usual ones, and a plan approval (106). */
+const sentParts = (message: UIMessage) => [
+  ...userParts(message),
+  ...planApprovalParts(message),
+];
+
+/**
+ * Plan mode's switch (106), with a ref the run's fields read when a message
+ * goes, so approving a plan can turn it off for that very message.
+ */
+const usePlanSwitch = () => {
+  const [on, setOn] = useState(false);
+  const ref = useRef(false);
+  const set = useCallback((next: boolean) => {
+    ref.current = next;
+    setOn(next);
+  }, []);
+  return { on, ref, set };
+};
 
 /** The composer's web search switch, offered only where the instance has it (D18 `features`). */
 const webSearchSwitch = (
@@ -340,6 +369,7 @@ const useLiveTurn = ({
   me,
   onFinish,
   onRunCreated,
+  plan,
   stored,
   storedAt,
   target,
@@ -352,6 +382,8 @@ const useLiveTurn = ({
   readonly me: Me;
   readonly onFinish: () => void;
   readonly onRunCreated: (run: RunCreated) => void;
+  /** Plan mode, read as each message goes (106). */
+  readonly plan: { readonly current: boolean };
   readonly stored: readonly Message[];
   /** When the stored branch was last fetched (`dataUpdatedAt`). */
   readonly storedAt: number;
@@ -377,7 +409,11 @@ const useLiveTurn = ({
     onRunCreated,
     runFields: () => {
       const fields = fieldsRef.current;
-      const options = turnOptions(fields.webSearch, fields.variant);
+      const options = turnOptions(
+        fields.webSearch,
+        fields.variant,
+        plan.current
+      );
       return {
         context: fields.context,
         // Web search off means "let the Decider choose" (`auto`).
@@ -385,6 +421,7 @@ const useLiveTurn = ({
         ...(fields.target ? { target: fields.target } : {}),
       };
     },
+    toParts: sentParts,
   });
   const { messages: live, setMessages, status } = chat;
   const busy = status === "submitted" || status === "streaming";
@@ -1217,6 +1254,12 @@ export function ConnectedChat({
   );
   const [uploadFailed, setUploadFailed] = useState(false);
   const [webSearch, setWebSearch] = useState(false);
+  const plan = usePlanSwitch();
+  // A plan open in the panel's editor, and plans set aside (106).
+  const [editingPlan, setEditingPlan] = useState<PlanRef | null>(null);
+  const [discardedPlans, setDiscardedPlans] = useState<
+    ReadonlySet<PlanRef["artifactId"]>
+  >(() => new Set());
   // The chosen model's thinking level and fast tier (105); the composer
   // remembers them per model and sets them as the model changes.
   const [variant, setVariant] = useState<ModelVariant>({});
@@ -1244,6 +1287,7 @@ export function ConnectedChat({
     setShownId(conversationId);
     setLeafId(undefined);
     setSelection(null);
+    setEditingPlan(null);
     feedback.reset();
   }
 
@@ -1322,6 +1366,7 @@ export function ConnectedChat({
     me,
     onFinish,
     onRunCreated,
+    plan: plan.ref,
     stored,
     storedAt: data.path.dataUpdatedAt,
     target: outgoingTarget,
@@ -1346,6 +1391,25 @@ export function ConnectedChat({
       sendMessage(outgoingMessage(text, outgoing)).catch(ignore);
     },
     [sendMessage]
+  );
+  // Approving a plan (106): a normal run (plan mode off for it, and after)
+  // whose message carries the approval, and the edited plan if it changed.
+  const approvePlan = useCallback(
+    (approved: PlanRef, content?: string) => {
+      plan.set(false);
+      setEditingPlan(null);
+      if (waiting) {
+        stopReading().catch(ignore);
+      }
+      sendMessage(
+        planApprovalMessage(
+          t`Go ahead with the plan: ${approved.title}`,
+          approved,
+          content
+        )
+      ).catch(ignore);
+    },
+    [plan, sendMessage, stopReading, t, waiting]
   );
   const submit = useFirstSend({
     api,
@@ -1377,13 +1441,26 @@ export function ConnectedChat({
   const actions = useMemo(
     (): ConversationActions => ({
       fileUrl,
+      onApprovePlan: (approved) => approvePlan(approved),
       onClearFeedback: feedback.clear,
       onDecide: decide,
+      onDiscardPlan: (discarded) => {
+        setDiscardedPlans((before) =>
+          new Set(before).add(discarded.artifactId)
+        );
+        setEditingPlan((editing) =>
+          editing?.artifactId === discarded.artifactId ? null : editing
+        );
+      },
       onEdit: (message, text) => {
         // An edit answers the same parent: send it from that point.
         const at = stored.findIndex((item) => item.id === message.id);
         setMessages(toUIMessages(stored.slice(0, at), { fileUrl }));
         send(text);
+      },
+      onEditPlan: (editing) => {
+        setEditingPlan(editing);
+        setSelection({ artifactId: editing.artifactId, kind: "artifact" });
       },
       onFeedback: feedback.set,
       onRegenerate: (message) => {
@@ -1407,6 +1484,7 @@ export function ConnectedChat({
       },
     }),
     [
+      approvePlan,
       conversationId,
       decide,
       feedback.clear,
@@ -1488,87 +1566,114 @@ export function ConnectedChat({
   });
   useWorkspaceInSync(api, messages);
   const current = data.conversation.data;
+  const planStatus = useMemo(
+    () => ({
+      approved: approvedPlanIds(messages),
+      busy: composerStatus === "submitted" || composerStatus === "streaming",
+      discarded: discardedPlans,
+    }),
+    [composerStatus, discardedPlans, messages]
+  );
+  const planEditing = useMemo(
+    () =>
+      editingPlan
+        ? {
+            artifactId: editingPlan.artifactId,
+            busy:
+              composerStatus === "submitted" || composerStatus === "streaming",
+            onApprove: (content: string | undefined) =>
+              approvePlan(editingPlan, content),
+            onCancel: () => setEditingPlan(null),
+          }
+        : null,
+    [approvePlan, composerStatus, editingPlan]
+  );
 
   return (
     <RunActivityProvider value={activity}>
-      <ChatScreen
-        actions={actions}
-        brand={brand}
-        composer={{
-          agents,
-          attachmentLimits,
-          models,
-          onStop: stop,
-          onSubmit,
-          onTargetChange,
-          onVariantChange: setVariant,
-          // "Recently used" in the picker is each person's own (099).
-          recentsKey: me.user.id,
-          ...webSearchSwitch(config, webSearch, setWebSearch),
-          status: composerStatus,
-          target: target ?? undefined,
-          variant,
-        }}
-        conversation={{
-          context,
-          contextLocked: current?.contextLocked ?? false,
-          contextOptions,
-          id: conversationId,
-          onContextChange,
-          onCopyLink: copyLink,
-          onRename: conversationId ? onRename : undefined,
-          participants: data.participants.data ?? [],
-          title: current?.title ?? null,
-        }}
-        feedback={feedback.byMessage}
-        layout={layout}
-        messages={messages}
-        onNewChat={newChat}
-        onOpenPalette={onOpenPalette}
-        pendingApprovals={approvals}
-        platform={platform}
-        runError={
-          <RunError
-            failed={Boolean(chat.error)}
-            onStop={stop}
-            uploadFailed={uploadFailed}
-            waiting={waiting}
-          />
-        }
-        siblings={data.path.data?.siblings ?? []}
-        sidebar={{
-          ...sidebarActions,
-          account: {
-            onNewOrg,
-            onOpenAdmin,
-            onOpenSettings,
-            onSignOut,
-            onThemeChange,
-            theme,
-            user: me.user,
-          },
-          activeId: conversationId,
-          chats: data.chats.data?.items ?? [],
-          libraryHref,
-          onSelect: onNavigate,
-        }}
-        streamingMessageId={streamingMessageId}
-        workspace={{
-          artifacts: {
-            artifacts: data.artifacts.data ?? [],
-            error: data.versions.isError
-              ? t`Couldn't load this artifact.`
-              : null,
-            runtimeOrigin: artifactsRuntimeOrigin,
-            versions: data.versions.data,
-          },
-          canPreview: canPreviewOn(config, sandboxRecord),
-          files: workspaceFiles,
-          onSelect: setSelection,
-          paths: workspacePaths,
-          selection,
-        }}
-      />
+      <PlanStatusProvider value={planStatus}>
+        <ChatScreen
+          actions={actions}
+          brand={brand}
+          composer={{
+            agents,
+            attachmentLimits,
+            models,
+            onPlanChange: plan.set,
+            onStop: stop,
+            onSubmit,
+            onTargetChange,
+            onVariantChange: setVariant,
+            // "Recently used" in the picker is each person's own (099).
+            recentsKey: me.user.id,
+            ...webSearchSwitch(config, webSearch, setWebSearch),
+            plan: plan.on,
+            status: composerStatus,
+            target: target ?? undefined,
+            variant,
+          }}
+          conversation={{
+            context,
+            contextLocked: current?.contextLocked ?? false,
+            contextOptions,
+            id: conversationId,
+            onContextChange,
+            onCopyLink: copyLink,
+            onRename: conversationId ? onRename : undefined,
+            participants: data.participants.data ?? [],
+            title: current?.title ?? null,
+          }}
+          feedback={feedback.byMessage}
+          layout={layout}
+          messages={messages}
+          onNewChat={newChat}
+          onOpenPalette={onOpenPalette}
+          pendingApprovals={approvals}
+          platform={platform}
+          runError={
+            <RunError
+              failed={Boolean(chat.error)}
+              onStop={stop}
+              uploadFailed={uploadFailed}
+              waiting={waiting}
+            />
+          }
+          siblings={data.path.data?.siblings ?? []}
+          sidebar={{
+            ...sidebarActions,
+            account: {
+              onNewOrg,
+              onOpenAdmin,
+              onOpenSettings,
+              onSignOut,
+              onThemeChange,
+              theme,
+              user: me.user,
+            },
+            activeId: conversationId,
+            chats: data.chats.data?.items ?? [],
+            libraryHref,
+            onSelect: onNavigate,
+          }}
+          streamingMessageId={streamingMessageId}
+          workspace={{
+            artifacts: {
+              artifacts: data.artifacts.data ?? [],
+              editing: planEditing,
+              error: data.versions.isError
+                ? t`Couldn't load this artifact.`
+                : null,
+              runtimeOrigin: artifactsRuntimeOrigin,
+              versions: data.versions.data,
+            },
+            canPreview: canPreviewOn(config, sandboxRecord),
+            files: workspaceFiles,
+            onSelect: setSelection,
+            paths: workspacePaths,
+            selection,
+          }}
+        />
+      </PlanStatusProvider>
     </RunActivityProvider>
   );
 }

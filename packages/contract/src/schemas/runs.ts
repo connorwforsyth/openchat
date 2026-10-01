@@ -169,9 +169,17 @@ export const reasoningLevelSchema = z.enum([
 export type ReasoningLevel = z.infer<typeof reasoningLevelSchema>;
 
 /**
+ * What kind of turn this is (106). `plan` is a read-only planning run: the
+ * server withholds every writing tool, refuses a direct call to one, allows
+ * only read-only shell commands, and the reply is a plan saved as an
+ * artifact. Absent means a normal turn.
+ */
+export const runModeSchema = z.enum(["plan"]);
+export type RunMode = z.infer<typeof runModeSchema>;
+
+/**
  * Per-turn switches from the composer. `auto` lets the Decider and agent
- * config choose; an absent field leaves the provider's default. (Plan mode,
- * 106, adds a `mode` here.)
+ * config choose; an absent field leaves the provider's default.
  */
 export const runOptionsSchema = z.object({
   /**
@@ -180,6 +188,8 @@ export const runOptionsSchema = z.object({
    * doesn't. A catalog's separate `-fast` model is picked as a target instead.
    */
   fast: z.boolean().optional(),
+  /** `plan` for a read-only planning run (106); absent means a normal turn. */
+  mode: runModeSchema.optional(),
   /** The thinking level (105); wins over `reasoningEffort` when both are set. */
   reasoning: reasoningLevelSchema.optional(),
   /** The older, narrower level; prefer `reasoning`. */

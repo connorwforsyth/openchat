@@ -103,6 +103,7 @@ export function Composer({
   onAttachmentsChange,
   onAttachmentsRejected,
   onCommand,
+  onPlanChange,
   onStop,
   onSubmit,
   onTargetChange,
@@ -110,6 +111,7 @@ export function Composer({
   onWebSearchChange,
   people = NONE,
   placeholder,
+  plan = false,
   prompts = NONE,
   recentsKey,
   status = "ready",
@@ -524,11 +526,13 @@ export function Composer({
           models={models}
           onAddFile={addWorkspaceFile}
           onAttach={openFilePicker}
+          onPlanChange={onPlanChange}
           onStop={onStop ? stop : undefined}
           onTargetChange={onTargetChange}
           onUsePrompt={usePrompt}
           onVariantChange={onVariantChange}
           onWebSearchChange={onWebSearchChange}
+          plan={plan}
           prompts={prompts}
           recentsKey={recentsKey}
           target={target}

@@ -73,6 +73,8 @@ import {
   streamedCalls,
   withDecisions,
 } from "./interrupt";
+import { savePlan } from "./plan-artifact";
+import { planTurn } from "./plan-mode";
 import type { ToolReview, ToolReviews } from "./sandbox";
 import {
   isTerminal,
@@ -564,6 +566,21 @@ export const createInProcessExecutor = (
     }
   };
 
+  /** A finished plan, saved as its artifact (106); the answer stands if that fails. */
+  const withSavedPlan = async (
+    run: RunStart,
+    assistantMessageId: MessageId,
+    parts: readonly MessagePart[]
+  ): Promise<readonly MessagePart[]> => {
+    const saved = await savePlan(db, run, assistantMessageId, parts).catch(
+      (cause: unknown) => err(cause)
+    );
+    if (!saved.ok) {
+      report("couldn't save the plan", saved.error);
+    }
+    return saved.ok ? saved.value : parts;
+  };
+
   /** Stores what the agent produced and moves the run to where it ended up. */
   const settle = async (
     run: RunStart,
@@ -586,10 +603,14 @@ export const createInProcessExecutor = (
       report("couldn't store the answer's parts", mapped.error);
     }
     const cited = mapped.ok ? withCitations(mapped.value) : [];
-    const parts =
+    const answered =
       outcome.status === "cancelled"
         ? await interruptPass(run.runId, cited, { ...pass, before })
         : cited;
+    const parts =
+      outcome.status === "succeeded" && run.options.mode === "plan"
+        ? await withSavedPlan(run, assistantMessageId, answered)
+        : answered;
     const usage =
       outcome.usage.inputTokens + outcome.usage.outputTokens > 0
         ? outcome.usage
@@ -746,15 +767,20 @@ export const createInProcessExecutor = (
         await failEarly(run, assistantMessageId, INTERNAL);
         return;
       }
-      const turn = await deps.resolveTurn(run, {
+      const resolved = await deps.resolveTurn(run, {
         reviews,
         signal: controller.signal,
         state: deciderState(messages),
       });
-      if (!turn.ok) {
-        await failEarly(run, assistantMessageId, turn.error);
+      if (!resolved.ok) {
+        await failEarly(run, assistantMessageId, resolved.error);
         return;
       }
+      // A planning run reads and never writes (106): held here, on every
+      // pass, after every wrapper has added its tools.
+      const turn = ok(
+        run.options.mode === "plan" ? planTurn(resolved.value) : resolved.value
+      );
       await setRunResolvedModel(db, run.runId, turn.value.resolvedModel);
       const forModel = await attachmentsForModel(
         messages,

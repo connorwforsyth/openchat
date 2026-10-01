@@ -15,6 +15,7 @@ import {
 import type { z } from "zod";
 
 import type { ArtifactRefPart, MemoryUpdate } from "../model/parts";
+import type { PlanRef } from "../model/plan";
 
 export type FeedbackInput = z.input<typeof setFeedbackInputSchema>;
 
@@ -25,11 +26,17 @@ export type FeedbackInput = z.input<typeof setFeedbackInputSchema>;
 export interface ConversationActions {
   /** Where an uploaded file's bytes are served, for images and links. */
   readonly fileUrl?: (fileId: FileId) => string;
+  /** Approve a plan (106): a normal run carrying its latest version. */
+  readonly onApprovePlan?: (plan: PlanRef) => void;
   readonly onClearFeedback?: (messageId: MessageId) => void;
   /** Approve, reject or per-hunk review a pending tool call (D16). */
   readonly onDecide?: (toolCallId: string, decision: ApprovalDecision) => void;
+  /** Set a plan aside without building it (106). */
+  readonly onDiscardPlan?: (plan: PlanRef) => void;
   /** Edit a user message: its new text becomes a sibling branch (D25). */
   readonly onEdit?: (message: Message, text: string) => void;
+  /** Open a plan in the panel's editor (106). */
+  readonly onEditPlan?: (plan: PlanRef) => void;
   readonly onFeedback?: (input: FeedbackInput) => void;
   readonly onOpenArtifact?: (ref: ArtifactRefPart) => void;
   /**
