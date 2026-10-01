@@ -171,7 +171,6 @@ test("the model makes an artifact, then a second version, each once approved", a
   await card.click();
   const panel = page.getByRole("region", { name: "Workspace" });
   await expect(panel.getByRole("heading", { name: "Trip plan" })).toBeVisible();
-  await expect(panel.getByText("v1 of 1")).toBeVisible();
   await expect(panel.getByText("Day one: the harbour.")).toBeVisible();
 
   const [artifact] = await api.artifacts.list({ conversationId });
@@ -187,12 +186,13 @@ test("the model makes an artifact, then a second version, each once approved", a
   const cards = page.getByRole("button", { name: "Open artifact: Trip plan" });
   await expect(cards).toHaveCount(2);
   await cards.last().click();
-  await expect(panel.getByText("v2 of 2")).toBeVisible();
   await expect(
     panel.getByText("Day one: the harbour. Day two: the hills.")
   ).toBeVisible();
 
   // One artifact, two versions, each pointing at the answer that made it.
+  // (The panel shows the pager only when its header has room — 075 — so the
+  // versions are counted here rather than read off the header.)
   expect(await api.artifacts.list({ conversationId })).toHaveLength(1);
   const versions = await api.artifacts.listVersions({ id: artifact?.id ?? "" });
   expect(versions.map((version) => version.number)).toEqual([1, 2]);
