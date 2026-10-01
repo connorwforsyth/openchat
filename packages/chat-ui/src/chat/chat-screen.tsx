@@ -738,6 +738,7 @@ function ChatScreenBody({
       <FilePreviewContext.Provider value={chatWorkspace ? previewFile : null}>
         <ConversationView
           actions={conversationActions}
+          agents={composer.agents}
           conversationKey={conversation.id ?? "new"}
           empty={
             <EmptyState
@@ -747,6 +748,7 @@ function ChatScreenBody({
           error={runError}
           feedback={feedback}
           messages={messages}
+          models={composer.models}
           pendingApprovals={pendingApprovals}
           siblings={siblings}
           streamingMessageId={streamingMessageId}

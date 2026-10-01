@@ -2605,6 +2605,10 @@ msgstr "Remove starter {position}"
 msgid "Remove this key?"
 msgstr "Remove this key?"
 
+#: ../chat-ui/src/conversation/switch-marker.tsx
+msgid "Removed agent"
+msgstr "Removed agent"
+
 #: ../chat-ui/src/sidebar/chat-row.tsx
 msgid "Rename"
 msgstr "Rename"
@@ -3173,6 +3177,18 @@ msgstr "Switch model"
 #: ../palette/src/context-actions.ts
 msgid "Switch model to {label}"
 msgstr "Switch model to {label}"
+
+#: ../chat-ui/src/conversation/switch-marker.tsx
+msgid "Switched to {agentName}"
+msgstr "Switched to {agentName}"
+
+#: ../chat-ui/src/conversation/switch-marker.tsx
+msgid "Switched to {agentName} with {modelLabel}"
+msgstr "Switched to {agentName} with {modelLabel}"
+
+#: ../chat-ui/src/conversation/switch-marker.tsx
+msgid "Switched to {modelLabel}"
+msgstr "Switched to {modelLabel}"
 
 #: ../../apps/web/app/(app)/(pages)/settings/_components/appearance-settings.tsx
 #: ../chat-ui/src/sidebar/account-menu.tsx
