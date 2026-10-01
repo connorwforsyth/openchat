@@ -22,6 +22,12 @@ describe("toPublicConfig", () => {
     ).toBe(true);
   });
 
+  it("keeps the server-side linkPreviews flag out of the public flags (101)", () => {
+    const result = toPublicConfig(config("features: { linkPreviews: false }"));
+    expect(result.features).not.toHaveProperty("linkPreviews");
+    expect(publicConfigSchema.safeParse(result).success).toBe(true);
+  });
+
   it("lists sign-in providers without their secrets", () => {
     const text = [
       "auth:",

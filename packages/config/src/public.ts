@@ -1,4 +1,7 @@
-import type { PublicConfig } from "@workspace/contract/schemas/meta";
+import {
+  featureFlagSchema,
+  type PublicConfig,
+} from "@workspace/contract/schemas/meta";
 import type { SandboxProvider } from "@workspace/contract/schemas/sandbox";
 
 import type { Env } from "./parse";
@@ -52,7 +55,11 @@ export const toPublicConfig = (
       logoUrl: config.brand.logo,
       name: config.brand.name,
     },
-    features: config.features,
+    // The public flags only: `linkPreviews` is server-side (101), and the
+    // contract's record takes exactly the public ones.
+    features: Object.fromEntries(
+      featureFlagSchema.options.map((flag) => [flag, config.features[flag]])
+    ) as PublicConfig["features"],
     limits: {
       memoryMaxChars: config.limits.memoryMaxChars,
       uploadMaxMb: config.limits.uploadMaxMb,
