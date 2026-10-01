@@ -573,9 +573,8 @@ msgstr "Can't reach the server"
 
 #: ../../apps/web/app/(app)/_shared/confirm.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
-#: ../chat-ui/src/artifacts/plan-editor.tsx
-
 #: ../chat-ui/src/artifacts/artifact-actions.tsx
+#: ../chat-ui/src/artifacts/plan-editor.tsx
 #: ../chat-ui/src/conversation/approval.tsx
 #: ../chat-ui/src/conversation/message-row.tsx
 #: ../chat-ui/src/workspace/file-view.tsx
@@ -3505,10 +3504,6 @@ msgstr "That change couldn't be saved. Try again."
 msgid "That change didn't go through, so it was undone."
 msgstr "That change didn't go through, so it was undone."
 
-#: ../../apps/desktop/src/renderer/setup-screen.tsx
-msgid "That doesn't look like a web address."
-msgstr "That doesn't look like a web address."
-
 #: ../chat-ui/src/artifacts/artifact-actions.tsx
 msgid "That change didn't go through."
 msgstr "That change didn't go through."
@@ -3516,6 +3511,10 @@ msgstr "That change didn't go through."
 #: ../chat-ui/src/artifacts/artifact-actions.tsx
 msgid "That didn't work. Try again."
 msgstr "That didn't work. Try again."
+
+#: ../../apps/desktop/src/renderer/setup-screen.tsx
+msgid "That doesn't look like a web address."
+msgstr "That doesn't look like a web address."
 
 #: ../library-ui/src/components/fields.tsx
 msgid "That doesn't look right."
