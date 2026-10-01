@@ -12,9 +12,9 @@ describe("messageTarget (111)", () => {
     expect(
       messageTarget({
         chatDefault: undefined,
+        chatLoading: true,
         chosen: null,
         fallback: auto,
-        openChatLoading: true,
         userDefault: parrot,
       })
     ).toBeNull();
@@ -24,9 +24,9 @@ describe("messageTarget (111)", () => {
     expect(
       messageTarget({
         chatDefault: echo,
+        chatLoading: false,
         chosen: null,
         fallback: auto,
-        openChatLoading: false,
         userDefault: parrot,
       })
     ).toEqual(echo);
@@ -36,9 +36,9 @@ describe("messageTarget (111)", () => {
     expect(
       messageTarget({
         chatDefault: undefined,
+        chatLoading: true,
         chosen: parrot,
         fallback: null,
-        openChatLoading: true,
         userDefault: undefined,
       })
     ).toEqual(parrot);
@@ -48,18 +48,18 @@ describe("messageTarget (111)", () => {
     expect(
       messageTarget({
         chatDefault: undefined,
+        chatLoading: false,
         chosen: null,
         fallback: null,
-        openChatLoading: false,
         userDefault: undefined,
       })
     ).toBeNull();
     expect(
       messageTarget({
         chatDefault: undefined,
+        chatLoading: false,
         chosen: null,
         fallback: echo,
-        openChatLoading: false,
         userDefault: undefined,
       })
     ).toEqual(echo);

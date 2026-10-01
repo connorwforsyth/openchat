@@ -1171,6 +1171,12 @@ const useRunControls = ({
   };
 };
 
+/** What a message carries: `sendTarget` when the host gave one (111), else the shown target. */
+const targetToSend = (
+  sendTarget: RunTarget | null | undefined,
+  target: RunTarget | null
+): RunTarget | null => (sendTarget === undefined ? target : sendTarget);
+
 export function ConnectedChat({
   agents,
   artifactsRuntimeOrigin = null,
@@ -1199,7 +1205,7 @@ export function ConnectedChat({
   target = null,
   theme,
 }: ConnectedChatProps) {
-  const outgoingTarget = sendTarget === undefined ? target : sendTarget;
+  const outgoingTarget = targetToSend(sendTarget, target);
   const { t } = useLingui();
   const api = useMemo(() => createQueryUtils(client), [client]);
   const queryClient = useQueryClient();

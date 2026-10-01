@@ -338,9 +338,9 @@ export function ChatRoute({
   // What a message carries: never a guess made while things load (111).
   const sendTarget = messageTarget({
     chatDefault: conversation.data?.defaultTarget,
+    chatLoading: Boolean(conversationId) && !conversation.data,
     chosen: chat.target,
     fallback: models.data ? fallbackTarget : null,
-    openChatLoading: Boolean(conversationId) && !conversation.data,
     userDefault: settings.data?.defaultTarget,
   });
 

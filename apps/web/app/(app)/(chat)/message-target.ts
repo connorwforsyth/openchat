@@ -8,12 +8,12 @@ import type { RunTarget } from "@workspace/contract/schemas/runs";
 export interface MessageTargetInput {
   /** The open chat's own target, once loaded. */
   readonly chatDefault: RunTarget | null | undefined;
+  /** A chat whose details haven't loaded yet. */
+  readonly chatLoading: boolean;
   /** The last pick in this tab, if any. */
   readonly chosen: RunTarget | null | undefined;
   /** The guess from the model list, once that list has loaded. */
   readonly fallback: RunTarget | null;
-  /** An open chat whose details haven't loaded yet. */
-  readonly openChatLoading: boolean;
   /** The person's own default, from settings. */
   readonly userDefault: RunTarget | null | undefined;
 }
@@ -22,7 +22,7 @@ export const messageTarget = ({
   chatDefault,
   chosen,
   fallback,
-  openChatLoading,
+  chatLoading,
   userDefault,
 }: MessageTargetInput): RunTarget | null =>
-  chatDefault ?? chosen ?? (openChatLoading ? null : (userDefault ?? fallback));
+  chatDefault ?? chosen ?? (chatLoading ? null : (userDefault ?? fallback));
