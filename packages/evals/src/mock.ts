@@ -15,6 +15,12 @@ export const call = (name: string, args: Record<string, unknown>): Call => ({
   name,
 });
 
+/** A call the mock makes even though the turn doesn't offer that tool. */
+export const unofferedCall = (
+  name: string,
+  args: Record<string, unknown>
+): Call => ({ args, name, unoffered: true });
+
 /**
  * A message that makes the mock play `steps`, one per model call: a step is
  * one tool call, or several made at once. After the last step it answers

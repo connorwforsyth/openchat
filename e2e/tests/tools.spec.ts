@@ -22,6 +22,7 @@ test.use({ storageState: storageStateFor("ada") });
 const APPROVE = /^Approve( all)?$/;
 const SAVED_V1 = /Tool result: Saved "Trip plan" as version 1/;
 const SAVED_V2 = /Tool result: Saved "Trip plan" as version 2/;
+const UNKNOWN_TOOL_DONE = /Script unknown-tool done after 1 steps\./;
 
 /** Approves the one call the run is waiting on. */
 const approve = async (page: Page, toolName: string) => {
@@ -208,4 +209,37 @@ test("the model makes an artifact, then a second version, each once approved", a
   await expect(
     page.getByRole("button", { name: "Open artifact: Trip plan" })
   ).toHaveCount(2);
+});
+
+test("a call to a tool the chat doesn't have is an error the model reads, and it still answers (131)", async ({
+  baseURL,
+  page,
+}) => {
+  // The mock calls `frobnicate`, which no turn offers, then answers with
+  // what it was told. The run doesn't fail: the call ends in an error.
+  await page.goto("/");
+  await send(page, "[script:unknown-tool]");
+  const reply = await expectReply(page, UNKNOWN_TOOL_DONE);
+  await expect(reply).toContainText("unavailable tool 'frobnicate'");
+  await expect(reply.getByText("Couldn't use frobnicate")).toBeVisible();
+  await expect(page.getByText("This answer stopped early.")).toHaveCount(0);
+
+  // Stored as the call the model made, with its error, and shown the same
+  // way after a reload.
+  const api = await apiFor(page, baseURL ?? "");
+  const conversationId = await conversationIdOf(page);
+  const parts =
+    (await api.messages.path({ conversationId })).messages.at(-1)?.parts ?? [];
+  expect(parts.find((part) => part.type === "tool-call")).toMatchObject({
+    input: { path: "notes.txt" },
+    toolName: "frobnicate",
+  });
+  expect(parts.find((part) => part.type === "tool-result")).toMatchObject({
+    output: { status: "error" },
+    toolName: "frobnicate",
+  });
+  await page.reload();
+  await expect(
+    assistantMessages(page).last().getByText("Couldn't use frobnicate")
+  ).toBeVisible();
 });

@@ -8,12 +8,16 @@ import { type AsyncResult, err, ok } from "@workspace/shared/result";
 import {
   convertToModelMessages,
   getToolOrDynamicToolName,
+  InvalidToolInputError,
   isStepCount,
   isToolUIPart,
   type LanguageModel,
   type LanguageModelUsage,
   type ModelMessage,
+  NoSuchToolError,
   type ToolApprovalStatus,
+  ToolCallRepairError,
+  type ToolCallRepairFunction,
   ToolLoopAgent,
   type ToolSet,
   type UIMessage,
@@ -45,6 +49,14 @@ import { callSettings } from "./call-settings";
 // tool's result arrives, its `data-artifact-ref` part is added here, right
 // after the call, both to the stream (the card shows while the answer is
 // still streaming) and to the outcome's message (the card is stored).
+//
+// Calls the run can't make: a call to a tool the run doesn't have (left out
+// of `tools` or `activeTools`, as plan mode does) or with input that fails
+// the tool's schema is no reason to end the run. The SDK already answers
+// such a call with a tool error and goes on to the next step; the model
+// reads the error and can correct itself, within `maxSteps`. What this file
+// adds is keeping those errors out of the run's own: `onError` sees them
+// too, and only the others fail the run.
 
 export interface RunAgentInput {
   /** Tools whose names are listed here only; the rest stay defined but uncallable. */
@@ -63,6 +75,12 @@ export interface RunAgentInput {
   readonly timeoutMs?: number;
   readonly toolApproval?: Readonly<Record<string, ToolApprovalStatus>>;
   readonly tools?: ToolSet;
+  /**
+   * Why a tool the model may still try isn't in this run, by name (plan mode
+   * withholds `write`). The model reads it as that call's error, in place of
+   * the SDK's "unavailable tool" with the list of the ones it has.
+   */
+  readonly unavailableTools?: Readonly<Record<string, string>>;
 }
 
 export interface AwaitedCall {
@@ -212,6 +230,31 @@ const artifactRefsInStream = (
   });
 };
 
+/** A call the SDK refused before running anything: an unknown tool or bad input. */
+const isToolCallError = (error: unknown): error is Error =>
+  NoSuchToolError.isInstance(error) ||
+  InvalidToolInputError.isInstance(error) ||
+  ToolCallRepairError.isInstance(error);
+
+/**
+ * Repairs nothing; gives a withheld tool's error its reason. The SDK
+ * rethrows the error it passed in when a repair returns null, and that
+ * error's text is what the model reads, so the reason has to go on it.
+ */
+const explainUnavailable =
+  (
+    reasons: Readonly<Record<string, string>>
+  ): ToolCallRepairFunction<ToolSet> =>
+  ({ error }) => {
+    if (
+      NoSuchToolError.isInstance(error) &&
+      Object.hasOwn(reasons, error.toolName)
+    ) {
+      error.message = reasons[error.toolName] ?? error.message;
+    }
+    return Promise.resolve(null);
+  };
+
 export const runAgent = async (
   input: RunAgentInput
 ): AsyncResult<AgentRun, RunError> => {
@@ -232,6 +275,9 @@ export const runAgent = async (
 
   let usage: TokenUsage = { inputTokens: 0, outputTokens: 0 };
   let failure: RunError | undefined;
+  // A refused call reaches `onError` twice: as the error (the call's chunk)
+  // and then as its text (the result's chunk). Both are the call's, not the run's.
+  const toolCallErrors = new Map<string, string>();
   let settle: (outcome: AgentOutcome) => void = () => undefined;
   const outcome = new Promise<AgentOutcome>((resolve) => {
     settle = resolve;
@@ -242,6 +288,9 @@ export const runAgent = async (
     activeTools: input.activeTools ? [...input.activeTools] : undefined,
     instructions: input.instructions,
     model: input.model,
+    repairToolCall: input.unavailableTools
+      ? explainUnavailable(input.unavailableTools)
+      : undefined,
     stopWhen: isStepCount(input.maxSteps ?? DEFAULT_MAX_STEPS),
     toolApproval: input.toolApproval,
     tools: input.tools,
@@ -279,7 +328,18 @@ export const runAgent = async (
       }
     },
     // The chunk the client sees; the full error goes to traces, not the stream.
+    // A refused call's error is the SDK's own text about the call (no
+    // provider body in it), so it's shown as that call's error.
     onError: (error) => {
+      if (isToolCallError(error)) {
+        toolCallErrors.set(String(error), error.message);
+        return error.message;
+      }
+      const ofCall =
+        typeof error === "string" ? toolCallErrors.get(error) : undefined;
+      if (ofCall !== undefined) {
+        return ofCall;
+      }
       failure ??= toRunError(error);
       return failure.message;
     },

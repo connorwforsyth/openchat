@@ -19,7 +19,8 @@ import type { Turn } from "./turn";
 // has added its tools), not in the client and not only in the prompt:
 // - a tool that isn't known to be read-only is left out, so the model never
 //   sees it, and a call to it is a call to no tool: the loop runs nothing
-//   and the run fails, as it does for any tool name it doesn't know;
+//   and answers it with a tool error saying it isn't available while
+//   planning, which the model reads before it goes on (131);
 // - `bash` stays, but checks each command against a short list of read-only
 //   programs before the sandbox runs it, and hands the sandbox the words it
 //   checked, quoted, so the shell can't read them any other way.
@@ -283,14 +284,21 @@ const planTool = (name: string, candidate: Tool): Tool | null => {
   return isReadOnlyMcp(name, candidate) ? candidate : null;
 };
 
-type PlannedTurn = Pick<Turn, "proposeEdits" | "toolApproval" | "tools">;
+type PlannedTurn = Pick<
+  Turn,
+  "proposeEdits" | "toolApproval" | "tools" | "unavailableTools"
+>;
+
+/** What the model reads when it calls a tool a planning run left out. */
+export const planUnavailable = (name: string): string =>
+  `\`${name}\` isn't available while planning. Plan mode only reads; finish the plan, and the change can be made once it's approved.`;
 
 /**
  * A turn as a planning run gets it: only the tools that read, `bash` held
  * to read-only commands, every approval as it was (planning makes nothing
  * automatic), and no edits to propose. Everything else is left out, so the
- * model never sees it, and the agent loop refuses a call to it as a call
- * to no tool (which ends the run, as any unknown tool does). Pure.
+ * model never sees it, and named in `unavailableTools`, so a call to it
+ * comes back as a tool error saying why, and the run goes on. Pure.
  */
 export const planTurn = <T extends PlannedTurn>(turn: T): T & PlannedTurn => {
   if (!turn.tools) {
@@ -298,9 +306,11 @@ export const planTurn = <T extends PlannedTurn>(turn: T): T & PlannedTurn => {
   }
   const tools: ToolSet = {};
   const toolApproval: Record<string, ToolApprovalStatus> = {};
+  const unavailableTools: Record<string, string> = {};
   for (const [name, each] of Object.entries(turn.tools)) {
     const kept = planTool(name, each);
     if (!kept) {
+      unavailableTools[name] = planUnavailable(name);
       continue;
     }
     tools[name] = kept;
@@ -314,6 +324,7 @@ export const planTurn = <T extends PlannedTurn>(turn: T): T & PlannedTurn => {
     proposeEdits: undefined,
     toolApproval,
     tools: Object.keys(tools).length > 0 ? tools : undefined,
+    unavailableTools,
   };
 };
 

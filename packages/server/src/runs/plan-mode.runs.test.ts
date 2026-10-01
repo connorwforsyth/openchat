@@ -22,10 +22,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
 import { createHarness, type Harness } from "../testing/harness";
-import { PLAN_REFUSED } from "./plan-mode";
+import { PLAN_REFUSED, planUnavailable } from "./plan-mode";
 
 // Plan mode through real runs (106): the server withholds every writing
-// tool from a planning run and refuses a call to one, holds bash to
+// tool from a planning run and answers a call to one with a tool error (131), holds bash to
 // read-only commands, saves the plan as an artifact, and a later run
 // carries the approved version without approving anything else for it.
 
@@ -226,7 +226,7 @@ describe("a planning run's tools", () => {
   });
 
   it.each(["write", "edit", "update_memory", "create_artifact"])(
-    "refuse a direct call to %s: nothing runs and no plan is saved",
+    "answer a direct call to %s with a tool error, run nothing, and still save the plan (131)",
     async (name) => {
       h = await createHarness();
       const model = scripted([
@@ -241,9 +241,31 @@ describe("a planning run's tools", () => {
       for (const spy of Object.values(spies)) {
         expect(spy.execute).not.toHaveBeenCalled();
       }
-      // A call to no tool ends the run, as it does for any unknown name.
-      expect(run.state.status).toBe("failed");
-      expect(await listArtifacts(h.db, chat)).toEqual([]);
+      // The model read why, and went on to write the plan.
+      expect(run.state.status).toBe("succeeded");
+      expect(model.doStreamCalls).toHaveLength(2);
+      expect(JSON.stringify(model.doStreamCalls[1]?.prompt)).toContain(
+        `${name}\` isn't available while planning`
+      );
+      const answer = await getMessage(
+        h.db,
+        run.assistantMessageId as MessageId
+      );
+      const parts = answer.ok ? answer.value.parts : [];
+      expect(parts.find((part) => part.type === "tool-call")).toMatchObject({
+        toolCallId: "w1",
+        toolName: name,
+      });
+      expect(parts.find((part) => part.type === "tool-result")).toMatchObject({
+        output: { message: planUnavailable(name), status: "error" },
+        toolCallId: "w1",
+      });
+      const [artifact, ...others] = await listArtifacts(h.db, chat);
+      expect(others).toEqual([]);
+      expect(artifact).toMatchObject({
+        kind: "markdown",
+        title: "Plan: Add a dark theme",
+      });
     }
   );
 

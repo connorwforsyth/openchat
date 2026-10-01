@@ -245,6 +245,96 @@ describe("web search in runs", () => {
   });
 });
 
+describe("a call the run can't make (131)", () => {
+  const source = () => {
+    const backend = createMemorySearchBackend([]);
+    const config = testConfig();
+    return (model: string) => {
+      const choice = chooseWebSearch({ backend, config, model });
+      return choice.kind === "none" ? null : choice.tool;
+    };
+  };
+  /** The answer's tool call and its result, as stored. */
+  const callAndResult = (parts: readonly { readonly type: string }[]) =>
+    parts.filter(
+      (part) => part.type === "tool-call" || part.type === "tool-result"
+    );
+
+  it("answers a call to a withheld tool with an error, and the run goes on", async () => {
+    const model = scripted([
+      () => toolCallStream(WEB_SEARCH_TOOL, { query: "postgres 18" }),
+    ]);
+    const { answerOf, say, services } = setup(model, {
+      tools: { webSearch: source() },
+    });
+    try {
+      const { runId } = await say(await someone(), "No searching.", {
+        options: { webSearch: "off" },
+      });
+      const { answer, run } = await answerOf(runId);
+      expect(offered(model)).not.toContain(WEB_SEARCH_TOOL);
+      expect(run.status).toBe("succeeded");
+      expect(model.doStreamCalls).toHaveLength(2);
+      expect(JSON.stringify(model.doStreamCalls[1]?.prompt)).toContain(
+        `unavailable tool '${WEB_SEARCH_TOOL}'`
+      );
+      expect(callAndResult(answer.parts)).toEqual([
+        expect.objectContaining({
+          input: { query: "postgres 18" },
+          toolName: WEB_SEARCH_TOOL,
+          type: "tool-call",
+        }),
+        expect.objectContaining({
+          output: {
+            message: expect.stringContaining(
+              `unavailable tool '${WEB_SEARCH_TOOL}'`
+            ),
+            status: "error",
+          },
+          type: "tool-result",
+        }),
+      ]);
+      expect(answer.parts.at(-1)).toMatchObject({
+        text: "Done.",
+        type: "text",
+      });
+    } finally {
+      await services.stop();
+    }
+  });
+
+  it("answers input that doesn't fit the schema with an error the model can correct", async () => {
+    const model = scripted([
+      () => toolCallStream(WEB_SEARCH_TOOL, { query: 42 }),
+    ]);
+    const { answerOf, say, services } = setup(model, {
+      tools: { webSearch: source() },
+    });
+    try {
+      const { runId } = await say(await someone(), "Search for 42.");
+      const { answer, run } = await answerOf(runId);
+      expect(run.status).toBe("succeeded");
+      expect(JSON.stringify(model.doStreamCalls[1]?.prompt)).toContain(
+        `Invalid input for tool ${WEB_SEARCH_TOOL}`
+      );
+      expect(callAndResult(answer.parts)).toEqual([
+        expect.objectContaining({ input: { query: 42 }, type: "tool-call" }),
+        expect.objectContaining({
+          output: {
+            message: expect.stringContaining(
+              `Invalid input for tool ${WEB_SEARCH_TOOL}`
+            ),
+            status: "error",
+          },
+          type: "tool-result",
+        }),
+      ]);
+    } finally {
+      await services.stop();
+    }
+  });
+});
+
 describe("MCP in plain chats", () => {
   it("offers the caller's servers, runs a tool once approved, and keeps other people's away", async () => {
     const { db } = testDb;

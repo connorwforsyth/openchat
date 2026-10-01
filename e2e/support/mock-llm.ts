@@ -20,7 +20,8 @@ import { z } from "zod";
 //   - `[tool:<name> <json>]` → a call to that tool when it's offered
 //     (`web_search`, an MCP tool such as `e2e__echo`, `create_artifact`, …);
 //   - `[script:<name>]` → the steps of `SCRIPTS[name]`, one step per model
-//     call (a step may call several tools), then `Script <name> done…`;
+//     call (a step may call several tools), then `Script <name> done…`; a
+//     step's calls are made only for offered tools, unless marked `unoffered`;
 //   - `[plan:<base64url>]` → the same, with the steps in the message itself
 //     (`planDirective` writes one), then `Plan done…`: for `packages/evals`,
 //     whose cases play a model that does exactly what they say;
@@ -127,6 +128,8 @@ interface ToolReply {
 const callSchema = z.object({
   args: z.record(z.string(), z.unknown()),
   name: z.string().min(1),
+  /** Made even when the turn doesn't offer the tool: a model that calls one it wasn't given (131). */
+  unoffered: z.literal(true).optional(),
 });
 const planSchema = z.array(z.array(callSchema).min(1)).min(1);
 
@@ -218,6 +221,10 @@ export const SCRIPTS: Record<string, readonly (readonly Call[])[]> = {
   ],
   // a write, then a slow bash (cancel during a running tool)
   slow: [[w("slow.txt", "slow\n")], [sh("sleep 20; echo done")]],
+  // a tool nobody offered (the model made it up), then the answer (131)
+  "unknown-tool": [
+    [{ args: { path: "notes.txt" }, name: "frobnicate", unoffered: true }],
+  ],
 };
 
 const toolTurnsSinceUser = (request: ChatRequest): number => {
@@ -235,7 +242,9 @@ const stepsReply = (
   label: string
 ): Reply => {
   const index = toolTurnsSinceUser(request);
-  const step = steps[index]?.filter((call) => offered(request, call.name));
+  const step = steps[index]?.filter(
+    (call) => call.unoffered || offered(request, call.name)
+  );
   if (!step || step.length === 0) {
     const last = request.messages.at(-1);
     const output =

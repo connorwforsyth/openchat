@@ -158,6 +158,224 @@ describe("runAgent", () => {
     );
   });
 
+  describe("a call the run can't make is a tool error the model reads", () => {
+    const tools = {
+      read: tool({
+        execute: ({ path }: { path: string }) => `read ${path}`,
+        inputSchema: z.object({ path: z.string() }),
+      }),
+    };
+    /** First a call, then whatever the model says after reading its result. */
+    const callThenAnswer = (toolName: string, input: unknown) => {
+      let calls = 0;
+      return new MockLanguageModelV4({
+        doStream: () => {
+          calls += 1;
+          return Promise.resolve(
+            calls === 1
+              ? toolCallStream(toolName, input)
+              : textStream("Recovered.")
+          );
+        },
+      });
+    };
+    /** What the model was told about the call, in the step after it. */
+    const toolErrorSeen = (model: MockLanguageModelV4): unknown =>
+      model.doStreamCalls[1]?.prompt
+        .flatMap((message) =>
+          message.role === "tool" ? [...message.content] : []
+        )
+        .find((part) => part.type === "tool-result")?.output;
+
+    it("tells the model a tool it doesn't have isn't there, and goes on", async () => {
+      const model = callThenAnswer("frobnicate", { path: "a.txt" });
+      const run = await runAgent({
+        messages: [user("frobnicate a.txt")],
+        model,
+        tools,
+      });
+      if (!run.ok) {
+        throw new Error(run.error.message);
+      }
+      const chunks = await readAll(run.value.stream);
+      const outcome = await run.value.outcome;
+
+      expect(outcome.status).toBe("succeeded");
+      expect(model.doStreamCalls).toHaveLength(2);
+      expect(toolErrorSeen(model)).toEqual({
+        type: "error-text",
+        value: expect.stringContaining("unavailable tool 'frobnicate'"),
+      });
+      expect(chunks.map((chunk) => chunk.type)).not.toContain("error");
+      expect(outcome.message.parts).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            errorText: expect.stringContaining(
+              "unavailable tool 'frobnicate'. Available tools: read."
+            ),
+            state: "output-error",
+            toolCallId: "call-1",
+          }),
+          expect.objectContaining({ text: "Recovered.", type: "text" }),
+        ])
+      );
+    });
+
+    it("gives the reason a withheld tool isn't available", async () => {
+      const model = callThenAnswer("write", { path: "a.txt" });
+      const run = await runAgent({
+        messages: [user("write a.txt")],
+        model,
+        tools,
+        unavailableTools: { write: "`write` isn't available while planning." },
+      });
+      if (!run.ok) {
+        throw new Error(run.error.message);
+      }
+      await readAll(run.value.stream);
+      const outcome = await run.value.outcome;
+      expect(outcome.status).toBe("succeeded");
+      expect(toolErrorSeen(model)).toEqual({
+        type: "error-text",
+        value: expect.stringContaining(
+          "`write` isn't available while planning."
+        ),
+      });
+      expect(outcome.message.parts).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            errorText: "`write` isn't available while planning.",
+            state: "output-error",
+          }),
+        ])
+      );
+    });
+
+    it("treats a tool left out of activeTools the same way", async () => {
+      const model = callThenAnswer("read", { path: "a.txt" });
+      const run = await runAgent({
+        activeTools: [],
+        messages: [user("read a.txt")],
+        model,
+        tools,
+      });
+      if (!run.ok) {
+        throw new Error(run.error.message);
+      }
+      await readAll(run.value.stream);
+      expect((await run.value.outcome).status).toBe("succeeded");
+      expect(toolErrorSeen(model)).toEqual({
+        type: "error-text",
+        value: expect.stringContaining("unavailable tool 'read'"),
+      });
+    });
+
+    it("tells the model its arguments don't fit, so it can correct them", async () => {
+      const model = callThenAnswer("read", { path: 42 });
+      const run = await runAgent({
+        messages: [user("read 42")],
+        model,
+        tools,
+      });
+      if (!run.ok) {
+        throw new Error(run.error.message);
+      }
+      await readAll(run.value.stream);
+      const outcome = await run.value.outcome;
+      expect(outcome.status).toBe("succeeded");
+      expect(toolErrorSeen(model)).toEqual({
+        type: "error-text",
+        value: expect.stringContaining("Invalid input for tool read"),
+      });
+      expect(outcome.message.parts).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            errorText: expect.stringContaining("Invalid input for tool read"),
+            state: "output-error",
+          }),
+        ])
+      );
+    });
+
+    it("stores the failed call with its input and error, and the next turn builds from it", async () => {
+      const first = await runAgent({
+        messages: [user("read 42")],
+        model: callThenAnswer("read", { path: 42 }),
+        tools,
+      });
+      if (!first.ok) {
+        throw new Error(first.error.message);
+      }
+      await readAll(first.value.stream);
+      const answer = await first.value.outcome;
+      const stored = fromUIMessage(answer.message, {
+        decisionFor: () => undefined,
+        now: () => new Date("2026-10-02T10:00:00Z"),
+      });
+      if (!stored.ok) {
+        throw new Error(stored.error.type);
+      }
+      expect(stored.value).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            input: { path: 42 },
+            toolName: "read",
+            type: "tool-call",
+          }),
+          expect.objectContaining({
+            output: {
+              message: expect.stringContaining("Invalid input for tool read"),
+              status: "error",
+            },
+            type: "tool-result",
+          }),
+        ])
+      );
+
+      const history = toUIMessages(
+        [
+          {
+            id: "u1",
+            parts: [{ text: "read 42", type: "text" }],
+            role: "user",
+          },
+          { id: "a1", parts: stored.value, role: "assistant" },
+          {
+            id: "u2",
+            parts: [{ text: "and again", type: "text" }],
+            role: "user",
+          },
+        ],
+        { fileUrl }
+      );
+      const model = new MockLanguageModelV4({ doStream: textStream("Sure.") });
+      const second = await runAgent({ messages: history, model, tools });
+      if (!second.ok) {
+        throw new Error(second.error.message);
+      }
+      await readAll(second.value.stream);
+      expect((await second.value.outcome).status).toBe("succeeded");
+    });
+
+    it("stops a model that keeps calling a missing tool at the step limit", async () => {
+      const model = new MockLanguageModelV4({
+        doStream: () => Promise.resolve(toolCallStream("frobnicate", {})),
+      });
+      const run = await runAgent({
+        maxSteps: 3,
+        messages: [user("loop")],
+        model,
+        tools,
+      });
+      if (!run.ok) {
+        throw new Error(run.error.message);
+      }
+      await readAll(run.value.stream);
+      expect((await run.value.outcome).status).toBe("succeeded");
+      expect(model.doStreamCalls).toHaveLength(3);
+    });
+  });
+
   it("fails with a safe error when the provider does", async () => {
     const model = new MockLanguageModelV4({
       doStream: () => Promise.reject(new Error("upstream said sk-live-secret")),

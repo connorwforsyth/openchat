@@ -109,6 +109,11 @@ export interface Turn {
   readonly resolvedModel: ModelRef;
   readonly toolApproval?: Readonly<Record<string, ToolApprovalStatus>>;
   readonly tools?: ToolSet;
+  /**
+   * Tools the turn withheld, with why (plan mode, 106): a call to one is
+   * answered with the reason, as a tool error the model reads (131).
+   */
+  readonly unavailableTools?: Readonly<Record<string, string>>;
 }
 
 /** Who is asking and in which chat context: what key resolution needs. */
