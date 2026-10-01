@@ -5,10 +5,12 @@ import {
   toolCallStream,
   usage,
 } from "@workspace/ai/testing/mock-models";
+import type { RunId } from "@workspace/contract/schemas/common";
 import type { Conversation } from "@workspace/contract/schemas/conversations";
 import type { MessagePart } from "@workspace/contract/schemas/message-parts";
 import type { BranchPath } from "@workspace/contract/schemas/messages";
 import type { CreateRunOutput, Run } from "@workspace/contract/schemas/runs";
+import { approvalIdsOf } from "@workspace/db/queries/runs";
 import { tool } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -370,6 +372,168 @@ describe("stopping", () => {
     expect((await getRun(first.runId)).state.status).toBe("cancelled");
     expect((await getRun(second.runId)).state.status).toBe("succeeded");
     expect(execute).not.toHaveBeenCalled();
+  });
+});
+
+/** A promise and the function that settles it, for holding a pass open. */
+const gate = () => {
+  const opening: { open?: () => void } = {};
+  const opened = new Promise<void>((resolve) => {
+    opening.open = resolve;
+  });
+  return { open: () => opening.open?.(), opened };
+};
+
+/**
+ * One write the model asks for, its pass held open after the card went
+ * out: in the model's stream (`hold: "stream"`, the step hasn't finished)
+ * or while the pass settles (`hold: "settle"`, the outcome is in and the
+ * patch is being proposed). Either way the run is still `running`.
+ */
+const heldWrite = (hold: "settle" | "stream") => {
+  const execute = vi.fn(({ path }: { path: string }) => `wrote ${path}`);
+  const held = gate();
+  const call = {
+    input: JSON.stringify({ path: "a.txt" }),
+    toolCallId: "call-a",
+    toolName: "write_file",
+    type: "tool-call",
+  } as const;
+  const done = {
+    finishReason: { raw: "tool_calls", unified: "tool-calls" },
+    type: "finish",
+    usage: usage(),
+  } as const;
+  h.nextTurn({
+    model: new MockLanguageModelV4({
+      doStream: () =>
+        hold === "settle"
+          ? Promise.resolve(
+              streamOf([{ type: "stream-start", warnings: [] }, call, done])
+            )
+          : Promise.resolve({
+              stream: new ReadableStream({
+                pull: async (controller) => {
+                  await held.opened;
+                  controller.enqueue(done);
+                  controller.close();
+                },
+                start: (controller) => {
+                  controller.enqueue({ type: "stream-start", warnings: [] });
+                  controller.enqueue(call);
+                },
+              }),
+            }),
+    }),
+    proposeEdits:
+      hold === "settle" ? () => held.opened.then(() => undefined) : undefined,
+    toolApproval: { write_file: "user-approval" },
+    tools: {
+      write_file: tool({
+        execute,
+        inputSchema: z.object({ path: z.string() }),
+      }),
+    },
+  });
+  return { execute, release: held.open };
+};
+
+describe("a new message in the gap before a run pauses (133)", () => {
+  for (const hold of ["stream", "settle"] as const) {
+    it(`moves on when the card is out but the pass hasn't paused (held in ${hold})`, async () => {
+      const { execute, release } = heldWrite(hold);
+      const chat = await newConversation();
+      const first = await send(chat.id, "write a file");
+      // The card is on the stream, so a client can show it; the run hasn't
+      // paused yet.
+      await vi.waitFor(
+        async () => {
+          expect(
+            (await approvalIdsOf(h.db, first.runId as RunId)).size
+          ).toBeGreaterThan(0);
+        },
+        { interval: 5, timeout: 5000 }
+      );
+      const asked = await getRun(first.runId);
+      expect(asked.state.status).toBe("running");
+
+      h.nextTurn({
+        model: new MockLanguageModelV4({ doStream: textStream("Sure.") }),
+      });
+      const sending = send(
+        chat.id,
+        "never mind, leave it",
+        asked.assistantMessageId
+      );
+      // However the pass ends, it ends after the new message arrived.
+      setTimeout(release, 20);
+      const second = await sending;
+      await h.services.executor.idle();
+
+      expect((await getRun(first.runId)).state).toMatchObject({
+        status: "cancelled",
+      });
+      expect((await getRun(second.runId)).state.status).toBe("succeeded");
+      expect(execute).not.toHaveBeenCalled();
+      // The change it asked for is answered as stopped by the sender.
+      const answer = (await pathOf(chat.id)).messages.find(
+        (message) => message.id === asked.assistantMessageId
+      );
+      const results = (answer?.parts ?? []).flatMap((part) =>
+        part.type === "tool-result" && part.output.status === "error"
+          ? [interruptionOf(part.output.message)?.by]
+          : []
+      );
+      expect(results).toEqual(["user"]);
+    });
+  }
+
+  it("still queues a message sent while a decided change runs", async () => {
+    const execute = vi.fn(({ path }: { path: string }) => `wrote ${path}`);
+    const tools = {
+      write_file: tool({
+        execute,
+        inputSchema: z.object({ path: z.string() }),
+      }),
+    };
+    const toolApproval = { write_file: "user-approval" } as const;
+    h.nextTurn({
+      model: new MockLanguageModelV4({
+        doStream: () =>
+          Promise.resolve(toolCallStream("write_file", { path: "a.txt" })),
+      }),
+      toolApproval,
+      tools,
+    });
+    const held = gate();
+    h.nextTurn({
+      model: new MockLanguageModelV4({
+        doStream: async () => {
+          await held.opened;
+          return textStream("Done.");
+        },
+      }),
+      toolApproval,
+      tools,
+    });
+    const chat = await newConversation();
+    const first = await send(chat.id, "write a file");
+    await h.services.executor.idle();
+    await decide(first.runId, [{ decision: approve, toolCallId: "call-1" }]);
+    const resumed = await getRun(first.runId);
+    expect(resumed.state.status).toBe("running");
+
+    h.nextTurn({
+      model: new MockLanguageModelV4({ doStream: textStream("Next.") }),
+    });
+    // The card was answered: this is an ordinary turn behind a busy branch.
+    const second = await send(chat.id, "and then?", resumed.assistantMessageId);
+    expect(second.status).toBe("queued");
+    held.open();
+    await h.services.executor.idle();
+    expect((await getRun(first.runId)).state.status).toBe("succeeded");
+    expect((await getRun(second.runId)).state.status).toBe("succeeded");
+    expect(execute).toHaveBeenCalledTimes(1);
   });
 });
 
