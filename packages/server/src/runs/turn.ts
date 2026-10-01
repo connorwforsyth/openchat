@@ -18,8 +18,10 @@ import type {
   ProviderRegistry,
 } from "@workspace/ai/ports/provider-registry";
 import type { RunStart } from "@workspace/ai/ports/run-executor";
+import type { PromptFile } from "@workspace/ai/prompts/codegen";
 import { composeInstructions } from "@workspace/ai/prompts/compose";
 import { BASE, FRAGMENTS } from "@workspace/ai/prompts/generated";
+import { fillPrompt } from "@workspace/ai/prompts/template";
 import { identityOf } from "@workspace/ai/providers/reasoning";
 import type { DiscoveringRegistry } from "@workspace/ai/providers/registry";
 import {
@@ -63,6 +65,7 @@ import type { Tool, ToolApprovalStatus, ToolSet } from "ai";
 import { actorFor } from "../context";
 import { canUseLibraryItem } from "../library/router";
 import { draftFor } from "./drafts";
+import { approvedPlanFor } from "./plan-artifact";
 import {
   gateTurnTools,
   type KnowledgeDeps,
@@ -587,6 +590,24 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
   };
 
   /**
+   * Plan mode's instructions (106): a planning run is told it only reads
+   * and what its plan must hold; a run that approves a plan gets the
+   * version approved. Nothing for any other run, so its prompt is as before.
+   */
+  const planInstructions = async (
+    run: RunStart
+  ): Promise<readonly PromptFile[]> => {
+    const { parts, source } = FRAGMENTS.plan;
+    if (run.options.mode === "plan") {
+      return [{ source, text: parts.planning }];
+    }
+    const approved = await approvedPlanFor(db, run);
+    return approved === undefined
+      ? []
+      : [{ source, text: fillPrompt(parts.approved, { plan: approved }) }];
+  };
+
+  /**
    * A plain model chat: the model, plus its sandbox's tools, the caller's
    * MCP servers, the artifact tools, and retrieval (its attachments and the
    * web) where the gate lets it through. Ours win a clash of names.
@@ -622,9 +643,14 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
     const mentioned = await mentionedFiles(run, () =>
       Promise.resolve(sandbox.sandbox)
     );
+    const planning = run.options.mode === "plan";
     const instructions = composeInstructions({
       base: BASE,
-      dynamic: sandbox.sandbox ? [FRAGMENTS.workspace] : [],
+      // A planning run's own fragment says what it may do in the workspace.
+      dynamic: [
+        ...(sandbox.sandbox && !planning ? [FRAGMENTS.workspace] : []),
+        ...(await planInstructions(run)),
+      ],
       mentions: mentioned,
     });
     // The run's thinking level and fast mode (105), where the model takes them.
@@ -773,6 +799,7 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
       instructions: composeInstructions({
         agent: definition.instructions,
         base: BASE,
+        dynamic: await planInstructions(run),
         mentions: mentioned,
       }).text,
       parameters: definition.parameters,

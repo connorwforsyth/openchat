@@ -8,6 +8,7 @@ import {
   runOptionsSchema,
 } from "@workspace/contract/schemas/runs";
 import type { Db } from "@workspace/db/client";
+import { getArtifact } from "@workspace/db/queries/artifacts";
 import {
   type ConversationView,
   getConversation,
@@ -31,6 +32,8 @@ import {
   storeContext,
 } from "./chat-context";
 import { canEditAgent, draftFor } from "./drafts";
+import { pinPlanApproval } from "./plan-artifact";
+import { PLAN_APPROVAL_DATA, planApprovalOf } from "./plan-mode";
 import { runStartFromRow } from "./state";
 
 // `POST /api/runs` (PLAN.md §8 steps 1–2): check, persist the user message,
@@ -174,6 +177,43 @@ const checkRegenerate = async (
         path: ["input", "userMessageId"],
         type: "invalid",
       });
+};
+
+const badApproval = (message: string): CreateRunError => ({
+  message,
+  path: ["input", "parts"],
+  type: "invalid",
+});
+
+/**
+ * A message approving a plan (106) must name a plan in this conversation:
+ * a markdown artifact here, with at most one approval and edits no longer
+ * than a plan may be.
+ */
+const checkPlanApproval = async (
+  db: Db,
+  conversationId: ConversationView["id"],
+  { input: turn }: CreateRunInput
+): Promise<Result<void, CreateRunError>> => {
+  if (turn.type !== "message") {
+    return ok(undefined);
+  }
+  const approvals = turn.parts.filter(
+    (part) => part.type === "data" && part.name === PLAN_APPROVAL_DATA
+  );
+  if (approvals.length === 0) {
+    return ok(undefined);
+  }
+  const approval = planApprovalOf(turn.parts);
+  if (approvals.length > 1 || !approval) {
+    return err(badApproval("That isn't a plan approval."));
+  }
+  const plan = await getArtifact(db, approval.artifactId);
+  return plan.ok &&
+    plan.value.conversationId === conversationId &&
+    plan.value.kind === "markdown"
+    ? ok(undefined)
+    : err(badApproval("That plan isn't in this conversation."));
 };
 
 /**
@@ -330,6 +370,10 @@ export const createRun = async (
   if (!regenerating.ok) {
     return regenerating;
   }
+  const approving = await checkPlanApproval(db, conversation.id, input);
+  if (!approving.ok) {
+    return approving;
+  }
   await moveOnFromWaiting(deps, actor, input);
   const placed = await placeRun(db, actor, input, {
     agentDraft: draft.value !== null,
@@ -345,6 +389,14 @@ export const createRun = async (
   }
 
   let { run } = placed;
+  if (placed.created && input.input.type === "message") {
+    // Before the run starts, so its turn reads the version approved.
+    await pinPlanApproval(db, {
+      conversationId: run.conversationId,
+      id: run.userMessageId,
+      parts: input.input.parts,
+    });
+  }
   if (placed.created) {
     const started = await deps.executor.start(runStartFromRow(run));
     if (started.ok) {
