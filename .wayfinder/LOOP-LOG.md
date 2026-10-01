@@ -123,3 +123,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-10-01 · Connor approved run options `reasoning`/`fast` (105) and `mode: "plan"`; plan lives as a chat reply and a Document artifact: added and claimed 106 (after 105)
 - 2026-10-01 · Connor answered the open questions (see QUESTIONS-FOR-CONNOR.md, 'Answered 2026-10-01'); merging the review stack starts
 - 2026-10-01 · added and claimed 107 (model/agent markers); added 108 (agents apart from models, proposal first)
+- 2026-10-01 · merged #68, #69 (artifact e2e fixed for 075's pager), #70, #71 after re-checks · 105 draft PR #84 · 107 draft PR · added 109 (answers record their agent and model early)
