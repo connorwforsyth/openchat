@@ -1,4 +1,6 @@
 import {
+  type ArtifactPermission,
+  artifactPermissionSchema,
   type FilePurpose,
   filePurposeSchema,
 } from "@workspace/contract/schemas/files";
@@ -26,11 +28,14 @@ import {
   createdAt,
   idColumn,
   idRef,
+  instant,
   oneOf,
+  principalIdRef,
   updatedAt,
   vector,
 } from "./columns";
 import { skillVersion } from "./library";
+import { PRINCIPAL_TYPES } from "./tenancy";
 
 // Files, RAG chunks and artifacts (PLAN.md §8 RAG).
 
@@ -179,11 +184,19 @@ export const artifact = pgTable(
     messageId: idRef("message_id", "message")
       .notNull()
       .references(() => message.id, { onDelete: "cascade" }),
+    /**
+     * Who owns it (124): the person whose chat made it. It's shared through
+     * `artifact_grant`, not through the chat.
+     */
+    ownerId: idRef("owner_id", "user")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
     title: text("title").notNull(),
     updatedAt: updatedAt(),
   },
   (t) => [
     index("artifact_conversation_idx").on(t.conversationId),
+    index("artifact_owner_idx").on(t.ownerId, t.updatedAt),
     check("artifact_kind", oneOf(t.kind, artifactKindSchema.options)),
   ]
 );
@@ -195,6 +208,13 @@ export const artifactVersion = pgTable(
       .notNull()
       .references(() => artifact.id, { onDelete: "cascade" }),
     content: text("content").notNull(),
+    /**
+     * The chat that made this version (124): the artifact's own, or one it
+     * was used in ("Use in chat").
+     */
+    conversationId: idRef("conversation_id", "conversation")
+      .notNull()
+      .references(() => conversation.id, { onDelete: "cascade" }),
     createdAt: createdAt(),
     id: idColumn("artifactVersion"),
     /** For `code` artifacts: a Shiki language id. */
@@ -208,5 +228,89 @@ export const artifactVersion = pgTable(
   (t) => [
     uniqueIndex("artifact_version_number_uidx").on(t.artifactId, t.number),
     check("artifact_version_number_positive", sql`${t.number} >= 1`),
+  ]
+);
+
+/**
+ * A share on an artifact (124): `viewer` or `editor` for a user, a team
+ * (and its sub-teams) or an org. Like `resource_grant`, but with a foreign
+ * key, so deleting the artifact takes its shares with it.
+ */
+export const artifactGrant = pgTable(
+  "artifact_grant",
+  {
+    artifactId: idRef("artifact_id", "artifact")
+      .notNull()
+      .references(() => artifact.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+    grantedBy: idRef("granted_by", "user")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    id: idColumn("grant"),
+    permission: text("permission").$type<ArtifactPermission>().notNull(),
+    principalId: principalIdRef("principal_id").notNull(),
+    principalType: text("principal_type")
+      .$type<(typeof PRINCIPAL_TYPES)[number]>()
+      .notNull(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    // Re-sharing with a principal replaces the level, so one row per pair.
+    uniqueIndex("artifact_grant_principal_uidx").on(
+      t.artifactId,
+      t.principalType,
+      t.principalId
+    ),
+    index("artifact_grant_held_by_idx").on(t.principalType, t.principalId),
+    check(
+      "artifact_grant_permission",
+      oneOf(t.permission, artifactPermissionSchema.options)
+    ),
+    check(
+      "artifact_grant_principal_type",
+      oneOf(t.principalType, PRINCIPAL_TYPES)
+    ),
+  ]
+);
+
+/** When each person last opened an artifact, for the page's "Viewed …" (124). */
+export const artifactView = pgTable(
+  "artifact_view",
+  {
+    artifactId: idRef("artifact_id", "artifact")
+      .notNull()
+      .references(() => artifact.id, { onDelete: "cascade" }),
+    userId: idRef("user_id", "user")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    viewedAt: instant("viewed_at").notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.artifactId, t.userId] }),
+    index("artifact_view_user_idx").on(t.userId, t.viewedAt),
+  ]
+);
+
+/**
+ * An artifact used in a chat other than its own ("Use in chat", 124): that
+ * chat's model sees its latest version and can version it.
+ */
+export const artifactUse = pgTable(
+  "artifact_use",
+  {
+    addedBy: idRef("added_by", "user")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    artifactId: idRef("artifact_id", "artifact")
+      .notNull()
+      .references(() => artifact.id, { onDelete: "cascade" }),
+    conversationId: idRef("conversation_id", "conversation")
+      .notNull()
+      .references(() => conversation.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.artifactId, t.conversationId] }),
+    index("artifact_use_conversation_idx").on(t.conversationId),
   ]
 );
