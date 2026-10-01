@@ -2438,12 +2438,13 @@ msgstr "Open file"
 msgid "Open in a new tab"
 msgstr "Open in a new tab"
 
-#: ../../apps/web/app/(quick)/quick/quick-screen.tsx
-msgid "Open in the app"
-msgstr "Open in the app"
 #: ../chat-ui/src/conversation/skill-card.tsx
 msgid "Open in Library"
 msgstr "Open in Library"
+
+#: ../../apps/web/app/(quick)/quick/quick-screen.tsx
+msgid "Open in the app"
+msgstr "Open in the app"
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Open link"
