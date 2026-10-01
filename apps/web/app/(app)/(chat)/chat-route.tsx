@@ -413,6 +413,7 @@ export function ChatRoute({
   return (
     <ConnectedChat
       agents={agents}
+      artifactsHref={routes.artifacts}
       artifactsRuntimeOrigin={artifactsRuntimeOrigin}
       brand={<Brand config={config} />}
       client={client}

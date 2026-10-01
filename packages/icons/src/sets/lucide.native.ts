@@ -42,8 +42,10 @@ import {
   KeyRound,
   Languages,
   Layers,
+  LayoutGrid,
   Library,
   Link,
+  List,
   Loader,
   Loader2,
   LoaderCircle,
@@ -74,6 +76,7 @@ import {
   Search,
   Send,
   Settings,
+  Shapes,
   Share,
   Shield,
   Sparkles,
@@ -165,6 +168,9 @@ export const GitBranchIcon: NativeIcon = GitBranch;
 export const GlobeIcon: NativeIcon = Globe;
 export const ImageIcon: NativeIcon = Image;
 export const LayersIcon: NativeIcon = Layers;
+export const LayoutGridIcon: NativeIcon = LayoutGrid;
+export const ListIcon: NativeIcon = List;
+export const ShapesIcon: NativeIcon = Shapes;
 export const LockIcon: NativeIcon = Lock;
 export const MessageSquareIcon: NativeIcon = MessageSquare;
 export const MonitorIcon: NativeIcon = Monitor;

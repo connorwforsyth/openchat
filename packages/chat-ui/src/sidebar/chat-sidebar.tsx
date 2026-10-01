@@ -2,7 +2,12 @@
 
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { ConversationId } from "@workspace/contract/schemas/common";
-import { LibraryIcon, NewChatIcon, SearchIcon } from "@workspace/icons";
+import {
+  LibraryIcon,
+  NewChatIcon,
+  SearchIcon,
+  ShapesIcon,
+} from "@workspace/icons";
 import { type ReactNode, useCallback, useMemo } from "react";
 
 import { type DateGroup, groupChats } from "../model/date-groups";
@@ -14,6 +19,8 @@ import { ChatRow, type SidebarChat } from "./chat-row";
 export interface ChatSidebarProps {
   readonly account: AccountMenuProps;
   readonly activeId: ConversationId | null;
+  /** Where the Artifacts page lives (124); a plain link. */
+  readonly artifactsHref?: string;
   /** The org or brand at the top of the sidebar. */
   readonly brand?: ReactNode;
   readonly chats: readonly SidebarChat[];
@@ -59,6 +66,7 @@ function GroupHeading({ group }: { readonly group: DateGroup | "pinned" }) {
 export function ChatSidebar({
   account,
   activeId,
+  artifactsHref,
   brand,
   chats,
   libraryHref,
@@ -121,6 +129,14 @@ export function ChatSidebar({
             </span>
             <ShortcutHint id="palette.open" />
           </button>
+        ) : null}
+        {artifactsHref ? (
+          <a className={navRowClass} href={artifactsHref}>
+            <ShapesIcon aria-hidden />
+            <span className="flex-1">
+              <Trans>Artifacts</Trans>
+            </span>
+          </a>
         ) : null}
         {libraryHref ? (
           <a className={navRowClass} href={libraryHref}>

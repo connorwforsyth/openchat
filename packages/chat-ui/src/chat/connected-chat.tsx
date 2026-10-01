@@ -107,6 +107,8 @@ import { useChatQueries, useConversationUpdate } from "./use-chat-data";
 export interface ConnectedChatProps {
   /** Agents the caller can use, for the composer's picker (`target` and `onTargetChange`). */
   readonly agents?: readonly AgentOption[];
+  /** Where the Artifacts page lives (124). */
+  readonly artifactsHref?: string;
   /**
    * The artifact runtime's origin (`ARTIFACTS_ORIGIN`, D24), normalised with
    * `runtimeOriginFrom`. Omitted or `null`, previews fall back to `srcdoc`.
@@ -1219,6 +1221,7 @@ export function ConnectedChat({
   artifactsRuntimeOrigin = null,
   brand,
   client,
+  artifactsHref,
   config,
   conversationId,
   draftContext: draftContextProp,
@@ -1651,6 +1654,7 @@ export function ConnectedChat({
               user: me.user,
             },
             activeId: conversationId,
+            artifactsHref,
             chats: data.chats.data?.items ?? [],
             libraryHref,
             onSelect: onNavigate,
