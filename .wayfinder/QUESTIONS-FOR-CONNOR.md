@@ -80,3 +80,5 @@ Done: 009 and 010 prototypes, 042 contract PR (#31), Docker verification (045, P
   - The voice proposal (104) goes next.
   - Start merging the review stack.
 - **Contract:** Connor approved optional `reasoning`, `fast` and `mode` on run options.
+
+- 122 (Desktop): M1 sign-off? instance URL only or also a local server? macOS first or all three? unsigned builds until accounts exist (Apple USD 99/yr)? order shell → chrome → Quick AI → packaging → cowork?

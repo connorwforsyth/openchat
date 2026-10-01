@@ -129,3 +129,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-10-01 · Connor's UI feedback: 112 (picker centred, scrim, no tick) on t/112; added 113 (composer/header tidy) on the same branch
 - 2026-10-01 · 112 + 113 merged (PR #88) · picker centred over a scrim, no tick; model then level, no Default, context beside the title, sidebar toggle in the sidebar
 - 2026-10-02 · 114 merged (aliases show as their model, vendor flush right) · e2e 70/70 · added 115 (flaky harness reload test)
+- 2026-10-02 · Connor: start plan mode (106 claimed), Desktop and the artifacts framework · drafted Desktop tickets 116–121 and decisions 122
