@@ -1,5 +1,6 @@
 import {
   type Call,
+  resultArg as mockResultArg,
   type Plan,
   planDirective,
 } from "../../../e2e/support/mock-llm";
@@ -14,6 +15,12 @@ export const call = (name: string, args: Record<string, unknown>): Call => ({
   args,
   name,
 });
+
+/**
+ * An argument the mock fills in from the latest tool result in the turn:
+ * what follows `<key>: ` there (an id an earlier step's tool made).
+ */
+export const resultArg = (key: string): string => mockResultArg(key);
 
 /** A call the mock makes even though the turn doesn't offer that tool. */
 export const unofferedCall = (

@@ -27,7 +27,9 @@ const call = (
   input: ToolCallPart["input"],
   pending = false
 ): ToolCallPart => ({
-  approval: pending ? { state: "pending" } : { state: "approved" },
+  approval: pending
+    ? { requestedAt: "2026-10-02T00:00:00.000Z", state: "pending" }
+    : { state: "not-required" },
   input,
   toolCallId: `call_${toolName}`,
   toolName,
