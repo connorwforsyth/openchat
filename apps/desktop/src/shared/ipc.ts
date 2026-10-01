@@ -1,3 +1,4 @@
+import { shortcutIdSchema } from "@workspace/shortcuts/ids";
 import { z } from "zod";
 
 import { instanceUrlErrorSchema } from "./instance-url";
@@ -17,15 +18,11 @@ export const platformOf = (nodePlatform: string): Platform => {
 };
 
 /**
- * Commands the native menu sends to the page. Empty until the menus come
- * from the shortcut registry (117); the channel and the parsing are here so
- * the bridge doesn't change shape then.
+ * Commands the native menu sends to the page: shortcut ids, since the menus
+ * are generated from the shortcut registry (117). The page runs a command as
+ * if its shortcut were pressed, so nothing is named twice.
  */
-export const menuCommandSchema = z.enum([
-  "new-chat",
-  "open-palette",
-  "toggle-sidebar",
-]);
+export const menuCommandSchema = shortcutIdSchema;
 export type MenuCommand = z.infer<typeof menuCommandSchema>;
 
 /** Added to the user agent of the instance's pages, so the web app can tell it's in the shell. */

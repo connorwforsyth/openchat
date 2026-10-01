@@ -1,39 +1,135 @@
 import { createI18n } from "@workspace/i18n/catalog";
+import {
+  getShortcut,
+  type ShortcutId,
+  shortcutIdSchema,
+} from "@workspace/shortcuts/registry";
+import type { MenuItemConstructorOptions } from "electron";
 import { describe, expect, it, vi } from "vitest";
 
-import { menuTemplate } from "./menu";
+import type { Platform } from "../shared/ipc";
+import { type MenuActions, menuTemplate, OFF_MENU } from "./menu";
 
 const i18n = createI18n("en");
 
+const build = (platform: Platform, actions: Partial<MenuActions> = {}) =>
+  menuTemplate({
+    actions: { changeInstance: vi.fn(), runShortcut: vi.fn(), ...actions },
+    appName: "Shell",
+    i18n,
+    platform,
+  });
+
+const submenu = (item: MenuItemConstructorOptions | undefined) =>
+  Array.isArray(item?.submenu) ? item.submenu : [];
+
+/** Every item in the template, menus and their items, depth first. */
+const flatten = (
+  items: readonly MenuItemConstructorOptions[]
+): MenuItemConstructorOptions[] =>
+  items.flatMap((item) => [item, ...flatten(submenu(item))]);
+
+const findItem = (
+  items: readonly MenuItemConstructorOptions[],
+  id: string
+): MenuItemConstructorOptions | undefined =>
+  flatten(items).find((item) => item.id === id);
+
+/** Clicks an item the way the menu would, minus Electron's arguments. */
+const click = (item: MenuItemConstructorOptions | undefined) => {
+  const handler = item?.click as (() => void) | undefined;
+  handler?.();
+};
+
 describe("menuTemplate", () => {
-  it("puts Change Server in the app menu on macOS", () => {
-    const changeInstance = vi.fn();
-    const [appMenu, ...rest] = menuTemplate({
-      actions: { changeInstance },
-      appName: "Shell",
-      i18n,
-      platform: "mac",
-    });
+  it("puts Settings and Change Server in the app menu on macOS", () => {
+    const [appMenu, ...rest] = build("mac");
     expect(appMenu?.label).toBe("Shell");
-    const items = Array.isArray(appMenu?.submenu) ? appMenu.submenu : [];
-    const item = items.find((entry) => entry.id === "change-instance");
-    expect(item?.label).toBe("Change Server…");
-    expect(rest.map((menu) => menu.role)).toEqual([
+    const ids = submenu(appMenu).map((entry) => entry.id);
+    expect(ids).toContain("settings.open");
+    expect(ids).toContain("change-instance");
+    expect(rest.map((menu) => menu.role ?? menu.id)).toEqual([
+      "fileMenu",
       "editMenu",
       "viewMenu",
+      "chat-menu",
       "windowMenu",
+      "help",
     ]);
   });
 
-  it("puts it in the File menu elsewhere", () => {
-    const [file] = menuTemplate({
-      actions: { changeInstance: vi.fn() },
-      appName: "Shell",
-      i18n,
-      platform: "win",
-    });
+  it("puts them in the File menu elsewhere", () => {
+    const [file] = build("win");
     expect(file?.role).toBe("fileMenu");
-    const items = Array.isArray(file?.submenu) ? file.submenu : [];
-    expect(items[0]?.id).toBe("change-instance");
+    expect(submenu(file).map((entry) => entry.id ?? entry.role)).toEqual([
+      "chat.new",
+      undefined,
+      "settings.open",
+      "change-instance",
+      undefined,
+      "quit",
+    ]);
+  });
+
+  it("calls Change Server", () => {
+    const changeInstance = vi.fn();
+    const item = findItem(build("mac", { changeInstance }), "change-instance");
+    expect(item?.label).toBe("Change Server…");
+    click(item);
+    expect(changeInstance).toHaveBeenCalledOnce();
+  });
+
+  it.each(["mac", "win", "linux"] as const)(
+    "offers every registry shortcut on %s, or says why not",
+    (platform) => {
+      const ids = new Set(flatten(build(platform)).map((item) => item.id));
+      for (const id of shortcutIdSchema.options) {
+        expect(
+          ids.has(id) !== OFF_MENU.has(id),
+          `${id}: in a menu or in OFF_MENU, not both`
+        ).toBe(true);
+      }
+    }
+  );
+
+  it("labels items with the registry's descriptions and keys", () => {
+    const menu = build("mac");
+    const palette = findItem(menu, "palette.open");
+    expect(palette?.label).toBe("Open the command palette");
+    expect(palette?.accelerator).toBe("CommandOrControl+K");
+    expect(findItem(menu, "sidebar.toggle")?.accelerator).toBe(
+      "CommandOrControl+B"
+    );
+    expect(findItem(menu, "settings.open")?.accelerator).toBe(
+      "CommandOrControl+,"
+    );
+    expect(findItem(menu, "model.switch")?.accelerator).toBe(
+      "CommandOrControl+."
+    );
+    expect(findItem(menu, "help")?.label).toBe(
+      i18n._(getShortcut("help").description)
+    );
+  });
+
+  it("gives single-key shortcuts no accelerator", () => {
+    const menu = build("mac");
+    for (const id of ["chat.new", "chat.next", "composer.focus", "help"]) {
+      const item = findItem(menu, id);
+      expect(item).toBeDefined();
+      expect(item).not.toHaveProperty("accelerator");
+    }
+  });
+
+  it("sends the shortcut's id when an item is clicked", () => {
+    const runShortcut = vi.fn<(id: ShortcutId) => void>();
+    const menu = build("mac", { runShortcut });
+    for (const id of ["chat.new", "palette.open", "sidebar.toggle"]) {
+      click(findItem(menu, id));
+    }
+    expect(runShortcut.mock.calls).toEqual([
+      ["chat.new"],
+      ["palette.open"],
+      ["sidebar.toggle"],
+    ]);
   });
 });

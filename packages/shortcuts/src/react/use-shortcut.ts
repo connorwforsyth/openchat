@@ -1,7 +1,9 @@
 "use client";
 
 import { type RawHotkey, useHotkeys } from "@tanstack/react-hotkeys";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
+
+import { onDesktopMenuCommand } from "../desktop";
 
 import {
   comboKeycaps,
@@ -20,6 +22,8 @@ export interface UseShortcutOptions {
   /** Off while, say, a dialog owns the keyboard. Defaults to on. */
   readonly enabled?: boolean;
 }
+
+const noop = () => undefined;
 
 const toRawHotkey = (combo: string): RawHotkey | null => {
   const parsed = parseCombo(combo);
@@ -40,22 +44,32 @@ const toRawHotkey = (combo: string): RawHotkey | null => {
 /**
  * Runs `handler` when any of the shortcut's live combos is pressed. Single
  * keys are ignored while focus is in a text field or the composer; combos
- * with ⌘/Ctrl/Alt (and Escape) work everywhere.
+ * with ⌘/Ctrl/Alt (and Escape) work everywhere. In the desktop shell the
+ * native menu's item for the shortcut runs it too (117), whatever has focus:
+ * a menu click is never typing.
  */
 export const useShortcut = (
   id: ShortcutId,
-  handler: (event: KeyboardEvent) => void,
+  handler: () => void,
   { enabled = true }: UseShortcutOptions = {}
 ): void => {
   const { bindings, platform } = useShortcuts();
   const combos = bindings.get(id) ?? [];
+  const latest = useRef(handler);
+  useEffect(() => {
+    latest.current = handler;
+  });
+  useEffect(
+    () => (enabled ? onDesktopMenuCommand(id, () => latest.current()) : noop),
+    [enabled, id]
+  );
   useHotkeys(
     combos.flatMap((combo) => {
       const hotkey = toRawHotkey(combo);
       return hotkey
         ? [
             {
-              callback: (event: KeyboardEvent) => handler(event),
+              callback: () => handler(),
               hotkey,
               options: {
                 // Another shortcut on the same keys in a disjoint scope is fine.

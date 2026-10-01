@@ -8,9 +8,11 @@ import {
   SearchIcon,
   ShapesIcon,
 } from "@workspace/icons";
+import { cn } from "@workspace/ui/lib/utils";
 import { type ReactNode, useCallback, useMemo } from "react";
 
 import { type DateGroup, groupChats } from "../model/date-groups";
+import { usePlatform } from "../shell/platform";
 import { useUndoToast } from "../shell/use-undo-toast";
 import { ShortcutHint } from "../shortcuts/shortcut-hint";
 import { AccountMenu, type AccountMenuProps } from "./account-menu";
@@ -62,6 +64,9 @@ function GroupHeading({ group }: { readonly group: DateGroup | "pinned" }) {
   }
 }
 
+const WINDOW_CONTROLS_ROW =
+  "select-none ps-20 [-webkit-app-region:drag] [app-region:drag] [&_:is(a,button,[role=button])]:[-webkit-app-region:no-drag] [&_:is(a,button,[role=button])]:[app-region:no-drag]";
+
 /** The Classic sidebar (ticket 009): actions, chats by date, account footer. */
 export function ChatSidebar({
   account,
@@ -81,6 +86,7 @@ export function ChatSidebar({
   toggle,
 }: ChatSidebarProps) {
   const { t } = useLingui();
+  const { platform } = usePlatform();
   const showUndo = useUndoToast();
   const grouped = useMemo(
     () => groupChats(chats, now ?? new Date()),
@@ -108,7 +114,15 @@ export function ChatSidebar({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex h-12 shrink-0 items-center gap-2 ps-3 pe-2">
+      <div
+        className={cn(
+          "flex h-12 shrink-0 items-center gap-2 ps-3 pe-2",
+          // In the desktop app on macOS the traffic lights sit here (117):
+          // leave them room, and let the row drag the window like the header.
+          platform === "mac" && WINDOW_CONTROLS_ROW
+        )}
+        data-slot="chat-sidebar-top"
+      >
         <div className="flex min-w-0 flex-1 items-center gap-2">{brand}</div>
         {toggle}
       </div>

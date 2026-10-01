@@ -7,6 +7,7 @@ import {
   ipcMain,
   Menu,
   net,
+  screen,
   session,
   shell,
 } from "electron";
@@ -17,6 +18,7 @@ import {
   type CurrentInstance,
   channels,
   connectInputSchema,
+  menuCommandSchema,
   platformOf,
 } from "../shared/ipc";
 import { parseDesktopEnv } from "./env";
@@ -35,6 +37,7 @@ import {
   settingsPath,
   writeSettings,
 } from "./settings";
+import { placeWindow, windowStateOf } from "./window-state";
 
 // The desktop shell (ticket 116). Instance URL only (122): the main window
 // shows the instance's own web app, signed in with its own cookies in a
@@ -45,6 +48,12 @@ import {
 const env = parseDesktopEnv(process.env);
 const platform = platformOf(process.platform);
 const INSTANCE_PARTITION = "persist:instance";
+const MAIN_WINDOW = {
+  defaults: { height: 860, width: 1280 },
+  minimum: { height: 480, width: 720 },
+} as const;
+/** How long the window rests after a move or resize before its bounds are saved. */
+const SAVE_BOUNDS_MS = 500;
 
 const preload = (name: "instance" | "setup") =>
   fileURLToPath(new URL(`../preload/${name}.cjs`, import.meta.url));
@@ -78,6 +87,18 @@ const main = async () => {
 
   const path = settingsPath(app.getPath("userData"));
   let settings: Settings = await readSettings(path);
+  // One write at a time: the window's bounds and a new instance can both
+  // change settings, and each write goes through the same temporary file.
+  let saving: Promise<void> = Promise.resolve();
+  const saveSettings = (change: Partial<Settings>) => {
+    settings = { ...settings, ...change };
+    const next = settings;
+    saving = saving
+      .then(() => writeSettings(path, next))
+      .catch((cause: unknown) => {
+        console.error("[desktop] couldn't save settings:", cause);
+      });
+  };
   // `DESKTOP_INSTANCE_URL` wins for this run only; it's never saved.
   const preset = env.DESKTOP_INSTANCE_URL
     ? await checkInstance(env.DESKTOP_INSTANCE_URL, net.fetch)
@@ -146,16 +167,54 @@ const main = async () => {
       mainWindow.focus();
       return;
     }
+    const placement = placeWindow({
+      ...MAIN_WINDOW,
+      saved: settings.window,
+      workAreas: [
+        screen.getPrimaryDisplay().workArea,
+        ...screen.getAllDisplays().map((display) => display.workArea),
+      ],
+    });
     const window = new BrowserWindow({
-      height: 860,
-      minHeight: 480,
-      minWidth: 720,
+      ...placement.bounds,
+      minHeight: MAIN_WINDOW.minimum.height,
+      minWidth: MAIN_WINDOW.minimum.width,
       show: false,
       title: instance?.name ?? "",
+      // macOS (117, D14): no title bar, the traffic lights inset over the
+      // web app's header, which drags the window and leaves them room.
+      // Windows and Linux keep the native frame until their custom bar.
+      ...(platform === "mac"
+        ? {
+            titleBarStyle: "hiddenInset" as const,
+            trafficLightPosition: { x: 16, y: 17 },
+          }
+        : {}),
       webPreferences: webPreferences("instance", INSTANCE_PARTITION),
-      width: 1280,
     });
     mainWindow = window;
+    if (placement.maximized) {
+      window.maximize();
+    }
+    // Remember where it was, once it settles and when it closes.
+    let boundsTimer: NodeJS.Timeout | undefined;
+    const saveBounds = () => {
+      clearTimeout(boundsTimer);
+      if (!(window.isDestroyed() || window.isFullScreen())) {
+        saveSettings({
+          window: windowStateOf(window.getNormalBounds(), window.isMaximized()),
+        });
+      }
+    };
+    const saveBoundsSoon = () => {
+      clearTimeout(boundsTimer);
+      boundsTimer = setTimeout(saveBounds, SAVE_BOUNDS_MS);
+    };
+    window.on("resize", saveBoundsSoon);
+    window.on("move", saveBoundsSoon);
+    window.on("maximize", saveBoundsSoon);
+    window.on("unmaximize", saveBoundsSoon);
+    window.on("close", saveBounds);
     guardContents(window.webContents, origin, {
       openExternal,
       openInMain: (url) => {
@@ -205,8 +264,8 @@ const main = async () => {
       const result = await checkInstance(input.data.url, net.fetch);
       if (result.ok) {
         instance = result.value;
-        settings = { ...settings, instance: result.value };
-        await writeSettings(path, settings);
+        saveSettings({ instance: result.value });
+        await saving;
         openInstance(result.value.origin);
         // After the reply is on its way, so the page sees it.
         setImmediate(() => setupWindow?.close());
@@ -218,7 +277,17 @@ const main = async () => {
   Menu.setApplicationMenu(
     Menu.buildFromTemplate(
       menuTemplate({
-        actions: { changeInstance: openSetup },
+        actions: {
+          changeInstance: openSetup,
+          // To the instance's page, which runs it as its shortcut. Nothing
+          // to do while only the setup screen is open.
+          runShortcut: (id) => {
+            mainWindow?.webContents.send(
+              channels.menuCommand,
+              menuCommandSchema.parse(id)
+            );
+          },
+        },
         appName: app.name,
         i18n: i18nForSystem(app.getPreferredSystemLanguages()),
         platform,

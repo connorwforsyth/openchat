@@ -1,9 +1,15 @@
 "use client";
 
+import { onDesktopMenuCommand } from "@workspace/shortcuts/desktop";
 import { useEffect, useRef } from "react";
 
 import { usePlatform } from "../shell/platform";
-import { isTypingEvent, matchShortcut, type ShortcutId } from "./registry";
+import {
+  isTypingEvent,
+  matchShortcut,
+  type ShortcutId,
+  shortcutIdSchema,
+} from "./registry";
 
 export type ShortcutHandlers = Partial<Record<ShortcutId, () => void>>;
 
@@ -12,7 +18,8 @@ export type ShortcutHandlers = Partial<Record<ShortcutId, () => void>>;
  * always sees the latest handlers, so callers can pass inline functions
  * without re-subscribing. View shortcuts are skipped while focus is in
  * something editable (or a menu or dialog, which own their keys); global
- * ones (⌘B, ⌘K) always run.
+ * ones (⌘B, ⌘K) always run. In the desktop shell the native menu's item for
+ * a shortcut runs its handler too (117), wherever focus is.
  */
 export const useShortcuts = (
   handlers: ShortcutHandlers,
@@ -53,9 +60,15 @@ export const useShortcuts = (
     const onBubble = (event: KeyboardEvent) => handle(event, "view");
     window.addEventListener("keydown", onCapture, { capture: true });
     window.addEventListener("keydown", onBubble);
+    const fromMenu = shortcutIdSchema.options.map((id) =>
+      onDesktopMenuCommand(id, () => latest.current.handlers[id]?.())
+    );
     return () => {
       window.removeEventListener("keydown", onCapture, { capture: true });
       window.removeEventListener("keydown", onBubble);
+      for (const unsubscribe of fromMenu) {
+        unsubscribe();
+      }
     };
   }, [enabled]);
 };

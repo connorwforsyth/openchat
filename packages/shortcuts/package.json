@@ -8,6 +8,7 @@
     "./*": "./src/*.ts",
     "./ports/*": "./src/ports/*.ts",
     "./react/*": "./src/react/*.tsx",
+    "./react/use-desktop": "./src/react/use-desktop.ts",
     "./react/use-shortcut": "./src/react/use-shortcut.ts"
   },
   "scripts": {

@@ -4,6 +4,7 @@ import { cn } from "@workspace/ui/lib/utils";
 import type { ReactNode } from "react";
 
 import { usePlatform } from "../shell/platform";
+import { useSidebarDocked } from "../shell/sidebar-toggle";
 
 // The top bar (D14), with no rule under it (113). The chat puts everything
 // in two slots: start (the sidebar toggle while the sidebar is collapsed,
@@ -19,8 +20,9 @@ export interface AppHeaderProps {
   readonly start?: ReactNode;
   /**
    * The header sits under the OS window controls (macOS traffic lights at
-   * the start, Windows/Linux overlay buttons at the end), e.g. when the
-   * sidebar that usually hosts them is collapsed.
+   * the start, Windows/Linux overlay buttons at the end). By default it does
+   * whenever the sidebar, which otherwise hosts them, isn't docked beside it:
+   * collapsed, squeezed out by the panel, or a narrow screen's sheet.
    */
   readonly underWindowControls?: boolean;
 }
@@ -39,9 +41,11 @@ export function AppHeader({
   className,
   end,
   start,
-  underWindowControls = true,
+  underWindowControls,
 }: AppHeaderProps) {
   const { platform } = usePlatform();
+  const docked = useSidebarDocked();
+  const covered = underWindowControls ?? !docked;
   const desktop = platform !== "web";
   return (
     <header
@@ -52,7 +56,7 @@ export function AppHeader({
         center === undefined
           ? "grid-cols-[minmax(0,1fr)_auto]"
           : "grid-cols-[auto_minmax(0,1fr)_auto]",
-        underWindowControls && platformClass[platform],
+        covered && platformClass[platform],
         // The bar drags the window; anything you can click opts out.
         desktop &&
           "select-none [-webkit-app-region:drag] [app-region:drag] [&_:is(a,button,input,select,textarea,[role=button],[role=tab])]:[-webkit-app-region:no-drag] [&_:is(a,button,input,select,textarea,[role=button],[role=tab])]:[app-region:no-drag]",

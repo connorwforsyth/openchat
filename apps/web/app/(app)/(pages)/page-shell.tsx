@@ -19,6 +19,7 @@ import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { useApi } from "@/app/(app)/_shared/api";
 import { canAdmin, useAppFrame } from "@/app/(app)/_shared/app-frame";
 import { Brand } from "@/app/(app)/_shared/brand";
+import { useShellPlatform } from "@/app/(app)/_shared/desktop";
 import { routes } from "@/lib/routes";
 
 // Library, settings and admin inside the app shell (009): the same sidebar
@@ -48,6 +49,7 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
   const { query } = useApi();
   const frame = useAppFrame();
   const { layout, me } = frame;
+  const platform = useShellPlatform();
   const [sheetOpen, setSheetOpen] = useState(false);
   const chats = useQuery(
     query.conversations.list.queryOptions({ input: SIDEBAR_LIST_INPUT })
@@ -109,7 +111,6 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
       // The sidebar toggle is here only while the sidebar isn't docked;
       // otherwise it's in the sidebar's top row (113).
       start={sidebarToggle("header")}
-      underWindowControls={!layout.layout.sidebarOpen}
     />
   );
 
@@ -121,6 +122,7 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
       panel={null}
       panelOpen={false}
       panelWidth={layout.layout.panelWidth}
+      platform={platform}
       sidebar={
         <ChatSidebar
           {...sidebarActions}

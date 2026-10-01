@@ -3,6 +3,8 @@ import { dirname, join } from "node:path";
 
 import { z } from "zod";
 
+import { windowStateSchema } from "./window-state";
+
 // What the shell remembers between launches, in its userData directory.
 // Parsed on read: a hand-edited or older file falls back to defaults rather
 // than crashing boot.
@@ -12,10 +14,12 @@ export const settingsSchema = z.object({
     .object({ name: z.string(), origin: z.url() })
     .nullable()
     .default(null),
+  /** The main window's last bounds (117). An unreadable value is dropped, not fatal. */
+  window: windowStateSchema.nullable().catch(null).default(null),
 });
 export type Settings = z.infer<typeof settingsSchema>;
 
-const DEFAULTS: Settings = { instance: null };
+const DEFAULTS: Settings = { instance: null, window: null };
 
 export const settingsPath = (userData: string): string =>
   join(userData, "settings.json");
