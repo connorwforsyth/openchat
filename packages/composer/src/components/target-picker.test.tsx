@@ -274,9 +274,9 @@ describe("TargetPicker", () => {
     expect(optionNames().filter((name) => name?.startsWith("o4-mini"))).toEqual(
       ["o4-miniOpenAI"]
     );
-    expect(screen.getByRole("option", { name: O4_MINI }).dataset.checked).toBe(
-      "true"
-    );
+    expect(
+      screen.getByRole("option", { name: O4_MINI }).getAttribute("aria-current")
+    ).toBe("true");
   });
 
   it("starts on the current choice and moves with the arrow keys", async () => {

@@ -81,9 +81,9 @@ export type ModelSelectorContentProps = Omit<
 };
 
 /**
- * A modal overlay, centred across the screen, with the search and list on
- * one card and the highlighted row's preview on another beside it, or
- * below it under 640px (105; 099 anchored it to the trigger). Its top edge
+ * A modal overlay over a dimmed page (112). The list is centred on the
+ * screen and the highlighted row's preview card hangs off its right edge,
+ * or sits below it under 640px (105; 099 anchored it to the trigger). Its top edge
  * stays put, so the panel doesn't jump as a search shortens the list, and
  * sits near the top on a phone so the keyboard doesn't cover the search.
  * It appears at once and fades out (D28: the keyboard drives it). Focus
@@ -98,25 +98,26 @@ export const ModelSelectorContent = ({
   ...props
 }: ModelSelectorContentProps) => (
   <DialogPortal>
-    <DialogOverlay className="bg-foreground/5 supports-backdrop-filter:backdrop-blur-none" />
+    <DialogOverlay className="bg-black/25 dark:bg-black/55" />
     <DialogPrimitive.Popup
       aria-label={title}
       className={cn(
-        "data-closed:fade-out-0 fixed inset-x-0 top-[max(1rem,8vh)] z-50 mx-auto w-max max-w-[calc(100vw-2rem)] outline-hidden duration-(--motion-exit) data-closed:animate-out sm:top-[18vh]",
+        "data-closed:fade-out-0 fixed inset-x-0 top-[max(1rem,8vh)] z-50 mx-auto w-[min(28rem,calc(100vw-2rem))] outline-hidden duration-(--motion-exit) data-closed:animate-out sm:top-[18vh]",
         className
       )}
       data-slot="model-selector-content"
       {...props}
     >
       <PreviewPane
+        className="relative"
         onValueChange={command?.onValueChange}
         value={command?.value}
       >
-        <PreviewPaneList className="w-[min(28rem,calc(100vw-2rem))] flex-none overflow-hidden rounded-xl bg-popover shadow-lg ring-1 ring-foreground/10">
+        <PreviewPaneList className="w-full flex-none overflow-hidden rounded-xl bg-popover shadow-lg ring-1 ring-foreground/10">
           <BoundCommand command={command}>{children}</BoundCommand>
         </PreviewPaneList>
         {preview ? (
-          <PreviewPaneContent className="shadow-lg">
+          <PreviewPaneContent className="shadow-lg sm:absolute sm:top-0 sm:left-full sm:ml-2">
             {preview}
           </PreviewPaneContent>
         ) : null}

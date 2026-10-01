@@ -125,7 +125,7 @@ function ChoiceRow({
       : undefined;
   return (
     <ModelSelectorItem
-      data-checked={choice.key === current}
+      aria-current={choice.key === current ? "true" : undefined}
       disabled={!choice.available}
       onSelect={onChoose}
       value={value}
@@ -429,7 +429,7 @@ export function TargetPicker({
       node: (
         <ModelSelectorGroup>
           <ModelSelectorItem
-            data-checked={currentKey === AUTO_KEY}
+            aria-current={currentKey === AUTO_KEY ? "true" : undefined}
             disabled={!groups.autoAvailable}
             onSelect={choose}
             value={AUTO_KEY}
