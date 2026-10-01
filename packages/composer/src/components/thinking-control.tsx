@@ -107,7 +107,10 @@ export function ThinkingControl({
       >
         <ReasoningIcon aria-hidden />
         <span className="max-sm:sr-only">{label}</span>
-        <ChevronDownIcon aria-hidden className="size-3.5 opacity-60" />
+        <ChevronDownIcon
+          aria-hidden
+          className="size-3.5 opacity-60 max-sm:hidden"
+        />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-auto min-w-48" side="top">
         <DropdownMenuGroup>

@@ -101,7 +101,7 @@ export function ComposerFooter({
   const picking = target !== undefined && onTargetChange !== undefined;
   return (
     <PromptInputFooter className="gap-1 px-2 pb-2">
-      <PromptInputTools className="min-w-0 flex-wrap">
+      <PromptInputTools className="min-w-0 shrink-0">
         <PlusMenu
           attachDisabled={attachDisabled}
           disabled={disabled}

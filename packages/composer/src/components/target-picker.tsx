@@ -503,14 +503,17 @@ export function TargetPicker({
         render={
           <PromptInputButton
             aria-label={t`Model or agent: ${label}`}
-            className="max-w-48 rounded-full text-muted-foreground hover:text-foreground aria-expanded:text-foreground"
+            className="min-w-0 max-w-48 shrink rounded-full text-muted-foreground hover:text-foreground aria-expanded:text-foreground max-sm:max-w-36"
             size="sm"
           />
         }
       >
         {triggerIcon}
         <span className="truncate">{label}</span>
-        <ChevronDownIcon aria-hidden className="size-3.5 opacity-60" />
+        <ChevronDownIcon
+          aria-hidden
+          className="size-3.5 opacity-60 max-sm:hidden"
+        />
       </ModelSelectorTrigger>
       <ModelSelectorContent
         command={{
