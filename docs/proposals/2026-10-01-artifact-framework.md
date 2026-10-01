@@ -154,6 +154,16 @@ The common thread is that a fixed stack and rules are what make an artifact rend
   - **Grid view:** thumbnails large.
   - **Mobile:** the list only; the kind cards scroll sideways.
   - **"Viewed …" needs a per-person last-viewed time.** That's a small table (`artifact_view`: artifact, user, viewed_at), written when an artifact is opened.
+- **Reference: Claude's document view (opened from the Artifacts page):**
+  - **Full-page editor.** The top bar has the title with a menu at the left, and **Chat**, comments and **Share** (with a lock while private) at the right.
+  - **Toolbar:** document tabs ("Tab 1" ▾), then insert table, image and checklist, and a + menu for more blocks.
+  - **The page:** a serif title, then chips for the date and the author (an @mention), then headings, bullets and checkboxes. It is a real rich-text document, not rendered Markdown.
+  - **What it implies for us:**
+    - The Document kind needs a full-page editor route (`/artifacts/<id>`) as well as the panel view.
+    - **Chat** opens a side chat bound to that artifact ("Use in chat", from the artifact's side). Edits from that chat land as new versions while you watch.
+    - **Comments** are D16's Annotate pins, applied to documents.
+    - A document can have **tabs** (several pages in one artifact).
+    - Inline **chips** (date, @person) are TipTap nodes we already have in the composer (mentions).
 - **Data changes:** the artifact gets an owner and grants. Versions keep their `messageId`, and gain a `conversationId` so a version made from another chat is traceable.
 
 ## Suggested order
