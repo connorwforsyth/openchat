@@ -113,3 +113,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-10-01 · 096 draft PR #77 (stacked on #75, contract: two optional fields, approved) · gate 82/82 · e2e 56 · 098 draft PR #78 · gate 82/82 · e2e 55
 - 2026-10-01 · Connor asked for a Raycast-style model picker (logos, bare names, provider on the right, a preview card): added 099; approved additive contract fields for the card and vendored brand SVGs; claimed 099 (stacked on #77)
 - 2026-10-01 · 097 draft PR #79 · gate 82/82 · e2e 59 (second run; first had one load failure)
+- 2026-10-01 · Connor reported ⌘K search not working and flashing; the loop recorded it (no prefix matches, results cleared per keystroke, empty Chats heading, Enter stuck on Ask AI): added and claimed 100
