@@ -6,7 +6,7 @@ import type { Metadata, Viewport } from "next";
 import "@workspace/ui/globals.css";
 import { cn } from "@workspace/ui/lib/utils";
 import { ThemeProvider } from "@/components/theme-provider";
-import { fontMono, fontSans } from "@/lib/fonts";
+import { fontClasses } from "@/lib/fonts";
 import { requestLocale } from "@/lib/i18n";
 import { getPublicConfig } from "@/lib/public-config";
 
@@ -29,16 +29,18 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const locale = await requestLocale();
+  const [locale, config] = await Promise.all([
+    requestLocale(),
+    getPublicConfig(),
+  ]);
   initLingui(locale);
 
   return (
     <html
       className={cn(
         "antialiased",
-        fontMono.variable,
         "font-sans",
-        fontSans.variable
+        fontClasses(config.ok ? config.fonts : undefined)
       )}
       lang={locale}
       suppressHydrationWarning

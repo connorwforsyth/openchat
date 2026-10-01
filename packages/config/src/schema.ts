@@ -492,6 +492,23 @@ export const iconsSchema = z
 
 export type IconsConfig = z.infer<typeof iconsSchema>;
 
+/**
+ * The interface fonts, picked from the ones the web app bundles (fonts are
+ * never downloaded at build or run time). Read when a page renders, so a
+ * change applies on restart. Scripts outside Latin fall back to system fonts
+ * for every choice but Geist.
+ */
+export const fontsSchema = z
+  .strictObject({
+    mono: z.enum(["geist-mono", "jetbrains-mono"]).default("geist-mono"),
+    sans: z
+      .enum(["geist", "inter", "ibm-plex-sans", "figtree", "manrope"])
+      .default("geist"),
+  })
+  .prefault({});
+
+export type FontsConfig = z.infer<typeof fontsSchema>;
+
 const observabilitySchema = z
   .strictObject({
     /** OpenTelemetry export of AI SDK traces (D21). Off (`null`) by default. */
@@ -609,6 +626,7 @@ export const appConfigSchema = z
     decider: deciderSchema,
     embeddings: embeddingsSchema,
     features: featuresSchema,
+    fonts: fontsSchema,
     icons: iconsSchema,
     limits: limitsSchema,
     mcp: mcpSchema,

@@ -11,6 +11,20 @@ describe("appConfigSchema", () => {
     expect([...set.options]).toEqual([...iconSetIds]);
   });
 
+  it("defaults to Geist and accepts the bundled fonts", () => {
+    expect(appConfigSchema.parse({}).fonts).toEqual({
+      mono: "geist-mono",
+      sans: "geist",
+    });
+    expect(appConfigSchema.parse({ fonts: { sans: "inter" } }).fonts).toEqual({
+      mono: "geist-mono",
+      sans: "inter",
+    });
+    expect(
+      appConfigSchema.safeParse({ fonts: { sans: "comic-sans" } }).success
+    ).toBe(false);
+  });
+
   it("round-trips its own output", () => {
     const parsed = appConfigSchema.parse({});
     expect(appConfigSchema.parse(JSON.parse(JSON.stringify(parsed)))).toEqual(
