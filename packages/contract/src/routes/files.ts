@@ -6,17 +6,25 @@ import {
   artifactVersionIdSchema,
   conversationIdSchema,
   fileIdSchema,
+  grantIdSchema,
   pageOf,
 } from "../schemas/common";
 import {
+  artifactDetailSchema,
+  artifactGrantSchema,
+  artifactListItemSchema,
   artifactSchema,
   artifactVersionSchema,
   fileSchema,
   fileSearchHitSchema,
   fileSearchInputSchema,
   fileUrlSchema,
+  listAllArtifactsInputSchema,
   listFilesInputSchema,
+  renameArtifactInputSchema,
+  shareArtifactInputSchema,
   uploadFileInputSchema,
+  useArtifactInputSchema,
 } from "../schemas/files";
 import { authed } from "./base";
 
@@ -74,7 +82,41 @@ export const files = {
     .output(fileSchema),
 };
 
+const byArtifact = z.object({ id: artifactIdSchema });
+
 export const artifacts = {
+  delete: authed
+    .route({
+      description:
+        "The owner only: deletes the artifact, every version and its shares.",
+      method: "DELETE",
+      path: "/artifacts/{id}",
+      successStatus: 204,
+      summary: "Delete an artifact",
+    })
+    .input(byArtifact)
+    .output(z.void()),
+  detail: authed
+    .route({
+      description:
+        "The Artifacts page's full view (124): the artifact as its list row, and every version, oldest first. Open to the owner, people it's shared with, and whoever can read the chat that made it.",
+      method: "GET",
+      path: "/artifacts/{id}/detail",
+      summary: "Get an artifact with its versions",
+    })
+    .input(byArtifact)
+    .output(artifactDetailSchema),
+  duplicate: authed
+    .route({
+      description:
+        "Copies the latest version into a new artifact the caller owns, unshared.",
+      method: "POST",
+      path: "/artifacts/{id}/duplicate",
+      successStatus: 201,
+      summary: "Duplicate an artifact",
+    })
+    .input(byArtifact)
+    .output(artifactListItemSchema),
   get: authed
     .route({
       method: "GET",
@@ -95,12 +137,33 @@ export const artifacts = {
     .output(artifactVersionSchema),
   list: authed
     .route({
+      description:
+        "The chat's own artifacts, then those used in it from elsewhere (124).",
       method: "GET",
       path: "/conversations/{conversationId}/artifacts",
       summary: "List artifacts in a conversation",
     })
     .input(z.object({ conversationId: conversationIdSchema }))
     .output(z.array(artifactSchema)),
+  listAll: authed
+    .route({
+      description:
+        "The Artifacts page (124): artifacts the caller owns or that were shared with them, across chats, most recently viewed first.",
+      method: "GET",
+      path: "/artifacts",
+      summary: "List my artifacts",
+    })
+    .input(listAllArtifactsInputSchema)
+    .output(pageOf(artifactListItemSchema)),
+  listGrants: authed
+    .route({
+      description: "Anyone who can see the artifact sees who it's shared with.",
+      method: "GET",
+      path: "/artifacts/{id}/grants",
+      summary: "List an artifact's shares",
+    })
+    .input(byArtifact)
+    .output(z.array(artifactGrantSchema)),
   listVersions: authed
     .route({
       description: "Every version, oldest first, for the before/after diff.",
@@ -110,4 +173,56 @@ export const artifacts = {
     })
     .input(z.object({ id: artifactIdSchema }))
     .output(z.array(artifactVersionSchema)),
+  markViewed: authed
+    .route({
+      description:
+        'Records that the caller opened it now, for the page\'s "Viewed …" and its order.',
+      method: "POST",
+      path: "/artifacts/{id}/viewed",
+      successStatus: 204,
+      summary: "Mark an artifact viewed",
+    })
+    .input(byArtifact)
+    .output(z.void()),
+  rename: authed
+    .route({
+      description: "The owner, or an `editor`.",
+      method: "PATCH",
+      path: "/artifacts/{id}",
+      summary: "Rename an artifact",
+    })
+    .input(renameArtifactInputSchema)
+    .output(artifactListItemSchema),
+  share: authed
+    .route({
+      description:
+        "The owner only: grants a user, team (and its sub-teams) or org `viewer` or `editor`. Re-sharing replaces the level.",
+      method: "POST",
+      path: "/artifacts/{id}/grants",
+      successStatus: 201,
+      summary: "Share an artifact",
+    })
+    .input(shareArtifactInputSchema)
+    .output(artifactGrantSchema),
+  unshare: authed
+    .route({
+      description: "The owner, or the person a share was made to, dropping it.",
+      method: "DELETE",
+      path: "/artifacts/{id}/grants/{grantId}",
+      successStatus: 204,
+      summary: "Remove a share",
+    })
+    .input(z.object({ grantId: grantIdSchema, id: artifactIdSchema }))
+    .output(z.void()),
+  use: authed
+    .route({
+      description:
+        '"Use in chat" (124): attaches the artifact to a chat the caller can write to. That chat\'s model sees its latest version and, for the owner or an `editor`, can make new versions of it.',
+      method: "POST",
+      path: "/artifacts/{id}/use",
+      successStatus: 204,
+      summary: "Use an artifact in a chat",
+    })
+    .input(useArtifactInputSchema)
+    .output(z.void()),
 };

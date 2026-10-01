@@ -9,6 +9,8 @@ import {
   participantStateSchema,
 } from "./schemas/conversations";
 import {
+  artifactGrantSchema,
+  artifactListItemSchema,
   artifactSchema,
   artifactVersionSchema,
   fileSchema,
@@ -231,6 +233,8 @@ const llmProxyPath: OpenAPI.PathItemObject = {
 const commonSchemas = {
   ApprovalDecision: { schema: approvalDecisionSchema },
   Artifact: { schema: artifactSchema },
+  ArtifactGrant: { schema: artifactGrantSchema },
+  ArtifactListItem: { schema: artifactListItemSchema },
   ArtifactVersion: { schema: artifactVersionSchema },
   Budget: { schema: budgetSchema },
   ChatContext: { schema: chatContextSchema },
