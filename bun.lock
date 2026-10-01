@@ -146,6 +146,7 @@
         "@opentelemetry/exporter-trace-otlp-http": "catalog:",
         "@opentelemetry/resources": "catalog:",
         "@opentelemetry/sdk-trace-base": "catalog:",
+        "@workspace/artifacts-kit": "workspace:*",
         "@workspace/config": "workspace:*",
         "@workspace/contract": "workspace:*",
         "@workspace/shared": "workspace:*",
@@ -159,6 +160,22 @@
         "@workspace/typescript-config": "workspace:*",
         "evalite": "catalog:",
         "msw": "catalog:",
+        "typescript": "catalog:",
+        "vitest": "catalog:",
+      },
+    },
+    "packages/artifacts-kit": {
+      "name": "@workspace/artifacts-kit",
+      "version": "0.0.0",
+      "dependencies": {
+        "@workspace/contract": "workspace:*",
+        "@workspace/icons": "workspace:*",
+        "@workspace/shared": "workspace:*",
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@types/node": "catalog:",
+        "@workspace/typescript-config": "workspace:*",
         "typescript": "catalog:",
         "vitest": "catalog:",
       },
@@ -1676,6 +1693,8 @@
     "@workflow/serde": ["@workflow/serde@4.1.0", "", {}, "sha512-pav4F2BoirECWR7Nf1TKt+2eETcBj7jj4cBefQ8VXQCA6NPkaKeLfj/zMgi+3zYV5ZIBT4GuUiphsj0/b9hPQQ=="],
 
     "@workspace/ai": ["@workspace/ai@workspace:packages/ai"],
+
+    "@workspace/artifacts-kit": ["@workspace/artifacts-kit@workspace:packages/artifacts-kit"],
 
     "@workspace/auth": ["@workspace/auth@workspace:packages/auth"],
 

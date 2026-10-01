@@ -1,3 +1,4 @@
+import type { ArtifactKindRegistry } from "@workspace/artifacts-kit/registry";
 import { z } from "zod";
 
 import { artifactDirectiveSchema } from "../../../evals/artifacts/format";
@@ -15,7 +16,9 @@ import { defineTool, type ToolContext } from "./define";
 
 // `create_artifact` (078): saves a document, page or snippet as version 1
 // of a new artifact; the result carries the `artifact-ref` the answer shows
-// as a card. What the tools share is in `../artifact-content.ts`.
+// as a card. The content is checked by its kind's definition
+// (`@workspace/artifacts-kit`, 123) first, and nothing is saved if a check
+// fails. What the tools share is in `../artifact-content.ts`.
 
 export const createArtifactInputSchema = z.object({
   content: artifactContentSchema,
@@ -32,14 +35,19 @@ export type CreateArtifactInput = z.infer<typeof createArtifactInputSchema>;
 /** Applies a `create_artifact` call. Exposed for tests; the tool wraps it. */
 export const createArtifact = (
   store: ArtifactStore,
-  input: CreateArtifactInput
+  input: CreateArtifactInput,
+  kinds?: ArtifactKindRegistry
 ): Promise<ArtifactToolOutput> =>
-  saveArtifact(store, {
-    content: input.content,
-    kind: input.type,
-    language: input.language ?? null,
-    title: input.title,
-  });
+  saveArtifact(
+    store,
+    {
+      content: input.content,
+      kind: input.type,
+      language: input.language ?? null,
+      title: input.title,
+    },
+    kinds
+  );
 
 export const createArtifactTool = defineTool({
   // Saving puts something in the chat that outlives the reply, so it asks
@@ -49,7 +57,7 @@ export const createArtifactTool = defineTool({
   description:
     "Create an artifact: a self-contained piece of work the user will want to keep, reuse or see rendered (a document, a web page, a React component, an SVG image, a Mermaid diagram or a code file). It opens beside the chat instead of filling the reply. Use it for substantial content; keep short snippets and explanations in the reply.",
   execute: (input, { ports }: ToolContext<{ readonly ports: ArtifactPorts }>) =>
-    createArtifact(ports.store, input),
+    createArtifact(ports.store, input, ports.kinds),
   input: createArtifactInputSchema,
   modelText: artifactModelText,
   name: "create_artifact",

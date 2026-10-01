@@ -1,3 +1,4 @@
+import type { ArtifactKindRegistry } from "@workspace/artifacts-kit/registry";
 import { artifactIdSchema } from "@workspace/contract/schemas/common";
 import { z } from "zod";
 
@@ -16,8 +17,9 @@ import {
 import { defineTool, type ToolContext } from "./define";
 
 // `update_artifact` (078): the whole content again, saved as the artifact's
-// next version; earlier versions are kept. What the tools share is in
-// `../artifact-content.ts`.
+// next version; earlier versions are kept. The content is checked by the
+// artifact's kind (`@workspace/artifacts-kit`, 123), and nothing is saved if
+// a check fails. What the tools share is in `../artifact-content.ts`.
 
 export const updateArtifactInputSchema = z.object({
   artifactId: artifactIdSchema.describe(
@@ -34,7 +36,8 @@ export type UpdateArtifactInput = z.infer<typeof updateArtifactInputSchema>;
 /** Applies an `update_artifact` call: the whole content again, as the next version. */
 export const updateArtifact = async (
   store: ArtifactStore,
-  input: UpdateArtifactInput
+  input: UpdateArtifactInput,
+  kinds?: ArtifactKindRegistry
 ): Promise<ArtifactToolOutput> => {
   let existing: readonly StoredArtifact[];
   try {
@@ -51,13 +54,17 @@ export const updateArtifact = async (
   if (!current) {
     return { artifacts: [...existing], status: "not_found" };
   }
-  return saveArtifact(store, {
-    artifactId: current.artifactId,
-    content: input.content,
-    kind: current.kind,
-    language: input.language ?? null,
-    title: input.title ?? current.title,
-  });
+  return saveArtifact(
+    store,
+    {
+      artifactId: current.artifactId,
+      content: input.content,
+      kind: current.kind,
+      language: input.language ?? null,
+      title: input.title ?? current.title,
+    },
+    kinds
+  );
 };
 
 export const updateArtifactTool = defineTool({
@@ -67,7 +74,7 @@ export const updateArtifactTool = defineTool({
   description:
     "Replace an artifact's content, saved as its next version; earlier versions are kept. Pass the complete new content, not a diff.",
   execute: (input, { ports }: ToolContext<{ readonly ports: ArtifactPorts }>) =>
-    updateArtifact(ports.store, input),
+    updateArtifact(ports.store, input, ports.kinds),
   input: updateArtifactInputSchema,
   modelText: artifactModelText,
   name: "update_artifact",
