@@ -45,14 +45,14 @@ Packages depend in one direction: `sandbox` → `server` → `mcp` → `ai`. So
 | What | Where |
 |---|---|
 | `defineTool`, `ToolContext`, `toAiSdkTool`, the adapters, `createToolRegistry` | here |
-| `file_search`, `web_search`, `update_memory`, `create_artifact`, `update_artifact`, `load_skill` | here, one file each |
+| `file_search`, `web_search`, `update_memory`, `create_artifact`, `update_artifact`, `load_skill`, `create_skill`, `update_skill`, `publish_skill` | here, one file each |
 | `bash`, `read`, `write`, `edit`, `preview` | `packages/sandbox/src/tools/defs/`, one file each |
-| The registry of all eleven (`builtinTools`) | `packages/sandbox/src/tools/registry.ts` |
+| The registry of all fourteen (`builtinTools`) | `packages/sandbox/src/tools/registry.ts` |
 
 The sandbox tools need the `Sandbox` port and the `/work` path rule, which
 live in `@workspace/sandbox`. That package is also the first one that can see
 every built-in, so the whole registry is assembled there. `index.ts` here
-holds `aiBuiltinTools`, the six this package can see.
+holds `aiBuiltinTools`, the nine this package can see.
 
 Files are kebab-case (`file-search.ts` for `file_search`) because the lint
 rule says so. `index.ts` builds a map; it isn't a barrel. To bind a tool,
@@ -66,6 +66,10 @@ What two tools share sits beside the definitions, not in them:
   A failed check is an `invalid` result the model reads, and nothing is
   saved. `artifact-golden.test.ts` here pins the two tools and which content
   each kind accepts.
+- `skill-authoring.ts` for the three skill tools (128): their schemas, the
+  `SkillAuthoringPorts` the server binds (`server/src/library/skill-authoring.ts`,
+  which runs the Library's own handlers as the person), and the text the
+  model reads. `skill-tools.ts` binds all three to one run's ports.
 - `workspace.ts` and `file-change.ts` in the sandbox package for its five.
 
 `file_search`'s search and schemas stay in `rag/file-search.ts`, which the
@@ -83,6 +87,8 @@ does today when nobody has said otherwise:
 | `create_artifact`, `update_artifact` | `ask` | `ARTIFACT_APPROVALS` in `server/src/runs/turn.ts` |
 | `file_search`, `web_search` | `auto` | The plain chat gives them no approval entry |
 | `update_memory` | `auto` | `withMemory`; a user in `propose` mode is asked |
+| `create_skill`, `update_skill` | `ask` | `chatSkillTools` and `SKILL_APPROVALS` in `server/src/runs/turn.ts`; an agent may set them to `auto` |
+| `publish_skill` | `ask` | The same; the turn holds it to `ask` even under an agent that says `auto` |
 | `load_skill` | `auto` | `skillTools` in `server/src/runs/skills.ts`; it only reads skills the turn was given |
 | MCP tools | `ask` | `chatMcpTools`; an agent's own approvals apply instead |
 | Client tools | `auto` | `buildToolSet`; the client decides for itself |

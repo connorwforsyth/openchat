@@ -1,9 +1,12 @@
 import { createArtifactTool } from "./create-artifact";
+import { createSkillTool } from "./create-skill";
 import type { AnyToolDefinition, ToolCapability } from "./define";
 import { fileSearch } from "./file-search";
 import { loadSkillTool } from "./load-skill";
+import { publishSkillTool } from "./publish-skill";
 import { updateArtifactTool } from "./update-artifact";
 import { updateMemoryTool } from "./update-memory";
+import { updateSkillTool } from "./update-skill";
 import { webSearch } from "./web-search";
 
 // The registry (080): definitions by name, and the one place to read each
@@ -61,6 +64,9 @@ export const AI_BUILTIN_TOOLS = [
   createArtifactTool,
   updateArtifactTool,
   loadSkillTool,
+  createSkillTool,
+  updateSkillTool,
+  publishSkillTool,
 ] as const;
 
 export const aiBuiltinTools =

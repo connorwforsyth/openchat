@@ -42,6 +42,7 @@ import {
   createKnowledgeJobs,
   type KnowledgeJobs,
 } from "@workspace/server/knowledge/ingestion";
+import { skillAuthoringTools } from "@workspace/server/library/skill-authoring";
 import { createMemoryJobQueue } from "@workspace/server/ports/job-queue.memory";
 import { withChatMemory } from "@workspace/server/runs/memory";
 import {
@@ -224,6 +225,7 @@ const toolsOfTurn = async (
       defaultProvider: "just-bash",
       providers: justBash(),
     }),
+    skillAuthoring: skillAuthoringTools({ db }),
     webSearch: (ref) => {
       const choice = chooseWebSearch({ backend, config, model: ref });
       return choice.kind === "none" ? null : choice.tool;
@@ -356,6 +358,9 @@ const publishedAgent = async (
       "web_search",
       "create_artifact",
       "update_artifact",
+      "create_skill",
+      "update_skill",
+      "publish_skill",
     ],
   };
   const { item } = await createVersionedItem(testDb.db, "agent", {
@@ -422,7 +427,14 @@ describe("the tools a run can be given", () => {
           builder,
           await publishedAgent(builder, {
             default: "ask",
-            tools: { create_artifact: "auto", write: "auto" },
+            // An agent can make creating a skill automatic, never
+            // publishing one (128).
+            tools: {
+              create_artifact: "auto",
+              create_skill: "auto",
+              publish_skill: "auto",
+              write: "auto",
+            },
           }),
           { attachment: false }
         )
@@ -456,6 +468,7 @@ describe("the tools a run can be given", () => {
     expect(names(golden.plainChat)).toEqual([
       "bash",
       "create_artifact",
+      "create_skill",
       "edit",
       "file_search",
       "load_skill",
@@ -463,9 +476,11 @@ describe("the tools a run can be given", () => {
       "open__echo",
       "open__whoami",
       "preview",
+      "publish_skill",
       "read",
       "update_artifact",
       "update_memory",
+      "update_skill",
       "web_search",
       "write",
     ]);

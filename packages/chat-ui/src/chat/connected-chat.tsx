@@ -86,6 +86,7 @@ import {
   waitingCalls,
   waitingForPerson,
 } from "../model/run-activity";
+import { skillRevision } from "../model/skill-authoring";
 import {
   type WorkspaceSelection,
   workspacePath,
@@ -903,6 +904,26 @@ const useWorkspaceInSync = (api: QueryUtils, messages: readonly Message[]) => {
   }, [api, queryClient, revision]);
 };
 
+/**
+ * A skill tool settled (128): the library changed under the chat, so the
+ * composer's skills (and any open Library list) refetch. A skill published
+ * here is in the + menu and `/` straight away.
+ */
+const useLibraryInSync = (api: QueryUtils, messages: readonly Message[]) => {
+  const queryClient = useQueryClient();
+  const revision = skillRevision(messages);
+  const seen = useRef(revision);
+  useEffect(() => {
+    if (seen.current === revision) {
+      return;
+    }
+    seen.current = revision;
+    queryClient
+      .invalidateQueries({ queryKey: api.library.key() })
+      .catch(ignore);
+  }, [api, queryClient, revision]);
+};
+
 /** Whether an API error is the server saying the request conflicts with the run's state. */
 const isConflict = (error: unknown): boolean =>
   typeof error === "object" &&
@@ -1472,6 +1493,9 @@ export function ConnectedChat({
   const actions = useMemo(
     (): ConversationActions => ({
       fileUrl,
+      ...(libraryHref
+        ? { libraryItemHref: (id) => `${libraryHref}/${id}` }
+        : {}),
       onApprovePlan: (approved) => approvePlan(approved),
       onClearFeedback: feedback.clear,
       onDecide: decide,
@@ -1520,6 +1544,7 @@ export function ConnectedChat({
       decide,
       feedback.clear,
       feedback.set,
+      libraryHref,
       nodes,
       regenerate,
       rememberLeaf,
@@ -1596,6 +1621,7 @@ export function ConnectedChat({
     unseen,
   });
   useWorkspaceInSync(api, messages);
+  useLibraryInSync(api, messages);
   const current = data.conversation.data;
   const planStatus = useMemo(
     () => ({

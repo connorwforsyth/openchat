@@ -86,6 +86,10 @@ msgstr "{fileName} is larger than {limit}."
 msgid "{fileName} isn't a supported file type."
 msgstr "{fileName} isn't a supported file type."
 
+#: ../chat-ui/src/conversation/skill-card.tsx
+msgid "{files, plural, one {# file} other {# files}}"
+msgstr "{files, plural, one {# file} other {# files}}"
+
 #: ../chat-ui/src/conversation/approval.tsx
 msgid "{files} changed after the agent proposed this, so the change can't be applied as shown."
 msgstr "{files} changed after the agent proposed this, so the change can't be applied as shown."
@@ -106,6 +110,10 @@ msgstr "{maxFiles, plural, one {{fileName} wasn't added: you can attach # file.}
 #: ../chat-ui/src/conversation/sources.tsx
 msgid "{name}, page {0}"
 msgstr "{name}, page {0}"
+
+#: ../chat-ui/src/conversation/skill-card.tsx
+msgid "{name}'s library"
+msgstr "{name}'s library"
 
 #: ../chat-ui/src/artifacts/artifact-actions.tsx
 msgid "{ownerName} (owner)"
@@ -269,6 +277,10 @@ msgstr "Add to message"
 #: ../chat-ui/src/workspace/preview.tsx
 msgid "Address"
 msgstr "Address"
+
+#: ../chat-ui/src/conversation/skill-card.tsx
+msgid "Adds or replaces files"
+msgstr "Adds or replaces files"
 
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/admin-index.tsx
@@ -627,13 +639,34 @@ msgstr "Change shortcuts"
 msgid "Changed {code}"
 msgstr "Changed {code}"
 
+#: ../chat-ui/src/conversation/skill-card.tsx
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Changed a skill"
+msgstr "Changed a skill"
+
 #: ../chat-ui/src/workspace/file-view.tsx
 msgid "Changed by the agent"
 msgstr "Changed by the agent"
 
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Changed the skill {name}"
+msgstr "Changed the skill {name}"
+
 #: ../chat-ui/src/artifacts/artifact-view.tsx
 msgid "Changes"
 msgstr "Changes"
+
+#: ../chat-ui/src/conversation/skill-card.tsx
+msgid "Changes to SKILL.md"
+msgstr "Changes to SKILL.md"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Changing a skill"
+msgstr "Changing a skill"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Changing the skill {name}"
+msgstr "Changing the skill {name}"
 
 #: ../../apps/desktop/src/main/menu.ts
 msgid "Chat"
@@ -882,9 +915,25 @@ msgstr "Cost"
 msgid "Couldn't change {code}"
 msgstr "Couldn't change {code}"
 
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Couldn't change a skill"
+msgstr "Couldn't change a skill"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Couldn't change the skill {name}"
+msgstr "Couldn't change the skill {name}"
+
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "Couldn't check"
 msgstr "Couldn't check"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Couldn't create a skill"
+msgstr "Couldn't create a skill"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Couldn't create the skill {name}"
+msgstr "Couldn't create the skill {name}"
 
 #: ../chat-ui/src/chat/connected-chat.tsx
 msgid "Couldn't load this artifact."
@@ -893,6 +942,14 @@ msgstr "Couldn't load this artifact."
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Couldn't open a preview"
 msgstr "Couldn't open a preview"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Couldn't publish a skill"
+msgstr "Couldn't publish a skill"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Couldn't publish the skill {name}"
+msgstr "Couldn't publish the skill {name}"
 
 #: ../../apps/desktop/src/renderer/setup-screen.tsx
 msgid "Couldn't reach that server. Check the address and your connection."
@@ -995,6 +1052,23 @@ msgstr "Created {code}"
 #: ../chat-ui/src/conversation/file-change-card.tsx
 msgid "Created {path}"
 msgstr "Created {path}"
+
+#: ../chat-ui/src/conversation/skill-card.tsx
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Created a skill"
+msgstr "Created a skill"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Created the skill {name}"
+msgstr "Created the skill {name}"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Creating a skill"
+msgstr "Creating a skill"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Creating the skill {name}"
+msgstr "Creating the skill {name}"
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "CSV"
@@ -1113,8 +1187,32 @@ msgid "Didn't change {code}"
 msgstr "Didn't change {code}"
 
 #: ../chat-ui/src/model/tool-summary.ts
+msgid "Didn't change a skill"
+msgstr "Didn't change a skill"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Didn't change the skill {name}"
+msgstr "Didn't change the skill {name}"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Didn't create a skill"
+msgstr "Didn't create a skill"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Didn't create the skill {name}"
+msgstr "Didn't create the skill {name}"
+
+#: ../chat-ui/src/model/tool-summary.ts
 msgid "Didn't open a preview"
 msgstr "Didn't open a preview"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Didn't publish a skill"
+msgstr "Didn't publish a skill"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Didn't publish the skill {name}"
+msgstr "Didn't publish the skill {name}"
 
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Didn't read {code}"
@@ -1209,6 +1307,10 @@ msgstr "Download table as Markdown"
 #: ../library-ui/src/components/version-history.tsx
 msgid "Draft"
 msgstr "Draft"
+
+#: ../chat-ui/src/conversation/skill-card.tsx
+msgid "Draft · v{version}"
+msgstr "Draft · v{version}"
 
 #: ../chat-ui/src/conversation/empty-state.tsx
 msgid "Draft a document"
@@ -1541,6 +1643,10 @@ msgstr "Import"
 msgid "Import file"
 msgstr "Import file"
 
+#: ../chat-ui/src/conversation/skill-card.tsx
+msgid "In <0/>"
+msgstr "In <0/>"
+
 #: ../library-ui/src/components/badges.tsx
 msgid "In a library"
 msgstr "In a library"
@@ -1613,6 +1719,14 @@ msgstr "It's removed from this chat's workspace for you and the agent. This can'
 #: ../library-ui/src/components/library-index.tsx
 msgid "Items published to your teams and orgs show up here."
 msgstr "Items published to your teams and orgs show up here."
+
+#: ../chat-ui/src/conversation/skill-card.tsx
+msgid "Its draft becomes the next version, which anyone it's shared with gets."
+msgstr "Its draft becomes the next version, which anyone it's shared with gets."
+
+#: ../chat-ui/src/conversation/skill-card.tsx
+msgid "Its next version is published, and a copy goes into that library, which owns it with you as a maintainer. Everyone in it can use it."
+msgstr "Its next version is published, and a copy goes into that library, which owns it with you as a maintainer. Everyone in it can use it."
 
 #: ../chat-ui/src/artifacts/artifact-actions.tsx
 #: ../library-ui/src/components/confirm-delete.tsx
@@ -2029,6 +2143,10 @@ msgstr "New chat with {name}"
 msgid "New chats start here: it decides whose keys pay and where usage counts. You can change it in a chat until the first message."
 msgstr "New chats start here: it decides whose keys pay and where usage counts. You can change it in a chat until the first message."
 
+#: ../chat-ui/src/conversation/skill-card.tsx
+msgid "New description: {description}"
+msgstr "New description: {description}"
+
 #: ../chat-ui/src/workspace/new-file-dialog.tsx
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 #: ../composer/src/components/suggestion-menu.tsx
@@ -2038,6 +2156,10 @@ msgstr "New file"
 #: ../../apps/web/app/(auth)/sign-in/page.tsx
 msgid "New here? <0>Create an account</0>"
 msgstr "New here? <0>Create an account</0>"
+
+#: ../chat-ui/src/conversation/skill-card.tsx
+msgid "New instructions (SKILL.md)"
+msgstr "New instructions (SKILL.md)"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
 msgid "New name for {name}"
@@ -2187,6 +2309,10 @@ msgstr "Not shared with anyone yet."
 msgid "Not with Fast mode"
 msgstr "Not with Fast mode"
 
+#: ../chat-ui/src/conversation/skill-card.tsx
+msgid "Notes: {notes}"
+msgstr "Notes: {notes}"
+
 #: ../chat-ui/src/workspace/new-file-dialog.tsx
 msgid "notes.md"
 msgstr "notes.md"
@@ -2311,6 +2437,10 @@ msgstr "Open file"
 #: ../chat-ui/src/workspace/preview.tsx
 msgid "Open in a new tab"
 msgstr "Open in a new tab"
+
+#: ../chat-ui/src/conversation/skill-card.tsx
+msgid "Open in Library"
+msgstr "Open in Library"
 
 #: ../../apps/web/app/(quick)/quick/quick-screen.tsx
 msgid "Open in the app"
@@ -2699,9 +2829,26 @@ msgstr "Publish to library"
 msgid "Publish v{nextVersion}"
 msgstr "Publish v{nextVersion}"
 
+#: ../chat-ui/src/conversation/skill-card.tsx
+msgid "Published · v{version}"
+msgstr "Published · v{version}"
+
+#: ../chat-ui/src/conversation/skill-card.tsx
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Published a skill"
+msgstr "Published a skill"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Published the skill {name}"
+msgstr "Published the skill {name}"
+
 #: ../library-ui/src/components/badges.tsx
 msgid "Published v{version}"
 msgstr "Published v{version}"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Publishing a skill"
+msgstr "Publishing a skill"
 
 #: ../library-ui/src/components/publish-dialog.tsx
 msgid "Publishing failed, so nothing changed."
@@ -2710,6 +2857,10 @@ msgstr "Publishing failed, so nothing changed."
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "Publishing is blocked when evals regress."
 msgstr "Publishing is blocked when evals regress."
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Publishing the skill {name}"
+msgstr "Publishing the skill {name}"
 
 #: ../library-ui/src/components/publish-dialog.tsx
 msgid "Put a copy in a team or org library. The library owns it and you maintain it."
@@ -2867,6 +3018,10 @@ msgstr "Remove this key?"
 #: ../chat-ui/src/conversation/switch-marker.tsx
 msgid "Removed agent"
 msgstr "Removed agent"
+
+#: ../chat-ui/src/conversation/skill-card.tsx
+msgid "Removes files"
+msgstr "Removes files"
 
 #: ../chat-ui/src/artifacts/artifact-actions.tsx
 #: ../chat-ui/src/sidebar/chat-row.tsx
@@ -3308,6 +3463,14 @@ msgstr "Skill"
 msgid "Skill files"
 msgstr "Skill files"
 
+#: ../chat-ui/src/conversation/skill-card.tsx
+msgid "Skill: {name}"
+msgstr "Skill: {name}"
+
+#: ../chat-ui/src/conversation/skill-card.tsx
+msgid "SKILL.md is unchanged."
+msgstr "SKILL.md is unchanged."
+
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
 msgid "skills"
 msgstr "skills"
@@ -3634,13 +3797,41 @@ msgstr "That's too long."
 msgid "That's too many."
 msgstr "That's too many."
 
+#: ../chat-ui/src/conversation/skill-card.tsx
+msgid "the {name} org library"
+msgstr "the {name} org library"
+
+#: ../chat-ui/src/conversation/skill-card.tsx
+msgid "the {name} team library"
+msgstr "the {name} team library"
+
 #: ../../apps/web/app/dev/code/demo.tsx
 msgid "The accepted changes couldn't be applied."
 msgstr "The accepted changes couldn't be applied."
 
+#: ../chat-ui/src/conversation/skill-card.tsx
+msgid "The agent wants to change a skill's draft, and name it {name}."
+msgstr "The agent wants to change a skill's draft, and name it {name}."
+
+#: ../chat-ui/src/conversation/skill-card.tsx
+msgid "The agent wants to change a skill's draft."
+msgstr "The agent wants to change a skill's draft."
+
 #: ../chat-ui/src/conversation/approval.tsx
 msgid "The agent wants to change files. Review each change, or decide for all of them."
 msgstr "The agent wants to change files. Review each change, or decide for all of them."
+
+#: ../chat-ui/src/conversation/skill-card.tsx
+msgid "The agent wants to create the skill {name} as a draft in your library."
+msgstr "The agent wants to create the skill {name} as a draft in your library."
+
+#: ../chat-ui/src/conversation/skill-card.tsx
+msgid "The agent wants to publish the skill {skillName} in your library."
+msgstr "The agent wants to publish the skill {skillName} in your library."
+
+#: ../chat-ui/src/conversation/skill-card.tsx
+msgid "The agent wants to publish the skill {skillName} to <0/>."
+msgstr "The agent wants to publish the skill {skillName} to <0/>."
 
 #: ../chat-ui/src/conversation/approval.tsx
 msgid "The agent wants to run {toolName}."
@@ -4209,8 +4400,32 @@ msgid "Wants to change {code}"
 msgstr "Wants to change {code}"
 
 #: ../chat-ui/src/model/tool-summary.ts
+msgid "Wants to change a skill"
+msgstr "Wants to change a skill"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Wants to change the skill {name}"
+msgstr "Wants to change the skill {name}"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Wants to create a skill"
+msgstr "Wants to create a skill"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Wants to create the skill {name}"
+msgstr "Wants to create the skill {name}"
+
+#: ../chat-ui/src/model/tool-summary.ts
 msgid "Wants to open a preview"
 msgstr "Wants to open a preview"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Wants to publish a skill"
+msgstr "Wants to publish a skill"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Wants to publish the skill {name}"
+msgstr "Wants to publish the skill {name}"
 
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Wants to read {code}"
@@ -4292,6 +4507,10 @@ msgstr "What went wrong? (optional)"
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "What would you like to know?"
 msgstr "What would you like to know?"
+
+#: ../chat-ui/src/conversation/skill-card.tsx
+msgid "What's published doesn't change until it's published."
+msgstr "What's published doesn't change until it's published."
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "When a team or org chat has no key of its own, use the member's personal key."
@@ -4458,6 +4677,10 @@ msgstr "Your decision didn't reach the server."
 #: ../chat-ui/src/artifacts/plan-editor.tsx
 msgid "Your edits are saved as a new version when you approve."
 msgstr "Your edits are saved as a new version when you approve."
+
+#: ../chat-ui/src/conversation/skill-card.tsx
+msgid "your library"
+msgstr "your library"
 
 #: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
 msgid "Your memory"

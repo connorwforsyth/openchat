@@ -4,6 +4,7 @@ import {
   clientToolDefinition,
   mcpToolDefinition,
 } from "@workspace/ai/tools/registry/adapt";
+import { SKILL_AUTHORING_TOOLS } from "@workspace/ai/tools/registry/skill-authoring";
 import {
   chatSandboxApproval,
   FILE_CHANGE_TOOLS,
@@ -32,13 +33,16 @@ describe("the built-in tool registry", () => {
     expect([...builtinTools.names].sort()).toEqual([
       "bash",
       "create_artifact",
+      "create_skill",
       "edit",
       "file_search",
       "load_skill",
       "preview",
+      "publish_skill",
       "read",
       "update_artifact",
       "update_memory",
+      "update_skill",
       "web_search",
       "write",
     ]);
@@ -74,7 +78,7 @@ describe("the built-in tool registry", () => {
       .filter(([, approval]) => approval === "ask")
       .map(([name]) => name);
     expect(asking.sort()).toEqual(
-      [...FILE_CHANGE_TOOLS, ...ARTIFACT_TOOLS].sort()
+      [...FILE_CHANGE_TOOLS, ...ARTIFACT_TOOLS, ...SKILL_AUTHORING_TOOLS].sort()
     );
   });
 

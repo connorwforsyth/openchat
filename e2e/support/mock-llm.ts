@@ -25,6 +25,10 @@ import { z } from "zod";
 //   - `[plan:<base64url>]` → the same, with the steps in the message itself
 //     (`planDirective` writes one), then `Plan done…`: for `packages/evals`,
 //     whose cases play a model that does exactly what they say;
+//   - in a script's or plan's arguments, a string `$result:<key>` becomes
+//     what follows `<key>: ` in the latest tool result since the user spoke
+//     (`resultArg` writes one): the id an earlier step's tool made, as a
+//     model would copy it (the skill tools say `skillId: <id>`, 128);
 //   - `[show:system]` / `[show:history]` → the request's instructions, or its
 //     messages one per line (`historyOf`), so a case can check what the
 //     server put in front of the model;
@@ -136,6 +140,54 @@ const planSchema = z.array(z.array(callSchema).min(1)).min(1);
 export type Call = z.infer<typeof callSchema>;
 /** The steps of a scripted turn: each is the tool calls of one model call. */
 export type Plan = readonly (readonly Call[])[];
+
+const RESULT_ARG = /^\$result:([A-Za-z][\w-]*)$/;
+
+/** An argument the mock fills from the latest tool result: what follows `<key>: ` there. */
+export const resultArg = (key: string): string => `$result:${key}`;
+
+/** The tool results since the user last spoke, newest first. */
+const resultsSinceUser = (request: ChatRequest): string[] => {
+  const lastUser = request.messages.findLastIndex((m) => m.role === "user");
+  return request.messages
+    .slice(lastUser + 1)
+    .filter((m) => m.role === "tool")
+    .map((m) => textOf(m))
+    .reverse();
+};
+
+/** `args` with each `$result:<key>` string replaced from the results so far. */
+const fillResults = (
+  request: ChatRequest,
+  args: Record<string, unknown>
+): Record<string, unknown> => {
+  const fill = (value: unknown): unknown => {
+    if (typeof value === "string") {
+      const key = RESULT_ARG.exec(value)?.[1];
+      if (!key) {
+        return value;
+      }
+      // `key` is word characters and dashes only, so it needs no escaping.
+      const pattern = new RegExp(`${key}: (\\S+)`, "g");
+      for (const result of resultsSinceUser(request)) {
+        for (const [, found] of result.matchAll(pattern)) {
+          return found;
+        }
+      }
+      return value;
+    }
+    if (Array.isArray(value)) {
+      return value.map(fill);
+    }
+    if (value && typeof value === "object") {
+      return Object.fromEntries(
+        Object.entries(value).map(([k, v]) => [k, fill(v)])
+      );
+    }
+    return value;
+  };
+  return fill(args) as Record<string, unknown>;
+};
 
 /** `[plan:…]` for a message: the mock plays `plan` as it plays a `SCRIPTS` entry. */
 export const planDirective = (plan: Plan): string =>
@@ -255,9 +307,9 @@ const stepsReply = (
   }
   const [first, ...rest] = step;
   return {
-    args: JSON.stringify(first?.args),
+    args: JSON.stringify(fillResults(request, first?.args ?? {})),
     more: rest.map((call) => ({
-      args: JSON.stringify(call.args),
+      args: JSON.stringify(fillResults(request, call.args)),
       name: call.name,
     })),
     name: first?.name ?? "",

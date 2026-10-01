@@ -1,5 +1,5 @@
 import { mockResults } from "../../../e2e/support/mock-search";
-import { call, plan, unofferedCall } from "../src/mock";
+import { call, plan, resultArg, unofferedCall } from "../src/mock";
 import { defineSuite, evalCase, liveCase } from "../src/suite";
 import {
   callOf,
@@ -298,6 +298,102 @@ export const tools = defineSuite({
         t.check(await t.readFile("a.txt"), "a.txt")
           .equals(null)
           .gate();
+      }
+    ),
+
+    evalCase(
+      "skill tools (128): create and publish each wait for approval and land in the library; someone else's skill is a tool error",
+      async (t) => {
+        const name = "Eval standup notes";
+        const api = t.api("ben");
+        const mineNamed = async () =>
+          (
+            await api.library.list({
+              kind: "skill",
+              limit: 10,
+              query: name,
+              tab: "mine",
+            })
+          ).items;
+        let turn = await t.send(
+          plan(
+            call("create_skill", {
+              description: "Turns updates into standup notes.",
+              instructions: "Write three bullets: done, doing, blocked.",
+              name,
+            }),
+            call("publish_skill", {
+              skillId: resultArg("skillId"),
+              skillName: name,
+            })
+          ),
+          { as: "ben" }
+        );
+        try {
+          t.check(turn.status, "run status").equals("awaiting_approval").gate();
+          t.check(
+            turn.pending.map((each) => each.toolName),
+            "what waits first"
+          )
+            .equals(["create_skill"])
+            .gate();
+          t.check(await mineNamed(), "Ben's skills before Approve")
+            .equals([])
+            .gate();
+
+          turn = await t.approve({ as: "ben" });
+          t.check(
+            turn.pending.map((each) => each.toolName),
+            "what waits next"
+          )
+            .equals(["publish_skill"])
+            .gate();
+          const [draft] = await mineNamed();
+          t.check(draft?.latestVersionId ?? null, "published before Approve")
+            .equals(null)
+            .gate();
+
+          turn = await t.approve({ as: "ben" });
+          t.check(turn.status, "run status").equals("succeeded").gate();
+          t.check(endOf(callOf(turn, "publish_skill")), "how publish ended")
+            .equals("success")
+            .gate();
+          const [live] = await mineNamed();
+          t.check(live?.latestVersionNumber ?? null, "the published version")
+            .equals(1)
+            .gate();
+
+          // Dee can't see Ben's skill: her approved edit is refused with a
+          // reason the model reads, and nothing changes.
+          const dee = await t.send(
+            plan(
+              call("update_skill", {
+                name: "Dee's now",
+                skillId: live?.id ?? "",
+              })
+            ),
+            { as: "dee", chat: await t.newChat({ as: "dee" }) }
+          );
+          t.check(dee.status, "Dee's run").equals("awaiting_approval").gate();
+          const refused = await t.approve({ as: "dee" });
+          t.check(
+            endOf(callOf(refused, "update_skill")),
+            "how Dee's edit ended"
+          )
+            .equals("tool-error")
+            .gate();
+          t.check(refused.text, "what the model was told")
+            .includes("No skill with that id that the person can see")
+            .gate();
+          t.check((await mineNamed())[0]?.name ?? null, "the skill's name")
+            .equals(name)
+            .gate();
+        } finally {
+          for (const item of await mineNamed()) {
+            // biome-ignore lint/performance/noAwaitInLoops: one skill, maybe two.
+            await api.library.delete({ id: item.id });
+          }
+        }
       }
     ),
 

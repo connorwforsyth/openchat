@@ -1,6 +1,10 @@
 "use client";
 
-import type { FileId, MessageId } from "@workspace/contract/schemas/common";
+import type {
+  FileId,
+  LibraryItemId,
+  MessageId,
+} from "@workspace/contract/schemas/common";
 import type { setFeedbackInputSchema } from "@workspace/contract/schemas/feedback";
 import type { ApprovalDecision } from "@workspace/contract/schemas/message-parts";
 import type { Message } from "@workspace/contract/schemas/messages";
@@ -26,6 +30,11 @@ export type FeedbackInput = z.input<typeof setFeedbackInputSchema>;
 export interface ConversationActions {
   /** Where an uploaded file's bytes are served, for images and links. */
   readonly fileUrl?: (fileId: FileId) => string;
+  /**
+   * A library item's page, for a skill card's "Open in Library" (128).
+   * Without it, the card has no link.
+   */
+  readonly libraryItemHref?: (id: LibraryItemId) => string;
   /** Approve a plan (106): a normal run carrying its latest version. */
   readonly onApprovePlan?: (plan: PlanRef) => void;
   readonly onClearFeedback?: (messageId: MessageId) => void;

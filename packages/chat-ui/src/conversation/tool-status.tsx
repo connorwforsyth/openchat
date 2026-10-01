@@ -15,6 +15,7 @@ import {
   MonitorIcon,
   PencilIcon,
   SearchIcon,
+  SparklesIcon,
   TerminalIcon,
   ToolIcon,
   WrenchIcon,
@@ -50,6 +51,7 @@ export const toolIcons: Readonly<Record<ToolIconName, Icon>> = {
   MonitorIcon,
   PencilIcon,
   SearchIcon,
+  SparklesIcon,
   TerminalIcon,
   ToolIcon,
   WrenchIcon,
@@ -134,8 +136,9 @@ function Details({
           />
         </div>
       );
-    // A finished change renders as its card, never as a line.
+    // A finished change or skill renders as its card, never as a line.
     case "file-change":
+    case "skill":
       return null;
     default:
       return detail satisfies never;

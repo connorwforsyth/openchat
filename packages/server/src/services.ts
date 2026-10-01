@@ -24,6 +24,7 @@ import {
   registerJobs,
 } from "./jobs/registry";
 import { testChatJobHandlers } from "./jobs/test-chats";
+import { skillAuthoringTools } from "./library/skill-authoring";
 import type { JobQueue } from "./ports/job-queue";
 import type { Storage } from "./ports/storage";
 import { attachmentsFor, uploadReader } from "./runs/attachments";
@@ -75,6 +76,11 @@ export interface ServicesOptions {
   readonly resolveTurn?: TurnResolver;
   /** Uploads, for attachments a model reads as file parts (044). */
   readonly storage?: Storage;
+  /**
+   * What `file.storage_driver` records for `storage`; with it, a skill the
+   * model writes (128) can bundle text files.
+   */
+  readonly storageDriver?: "local" | "s3";
   readonly tools?: Pick<
     TurnResolverDeps,
     | "builtins"
@@ -115,6 +121,19 @@ export const createServices = (options: ServicesOptions): Services => {
   const turnDeps = {
     artifacts: (run: RunStart) => createArtifactTools(dbArtifactStore(db, run)),
     attachedArtifacts: (run: RunStart) => attachedArtifactsSection(db, run),
+    // The library's own rules, as the run's creator (128).
+    skillAuthoring: skillAuthoringTools({
+      db,
+      now: options.now,
+      ...(options.storage && options.storageDriver
+        ? {
+            uploads: {
+              driver: options.storageDriver,
+              storage: options.storage,
+            },
+          }
+        : {}),
+    }),
     ...(options.storage
       ? { skillFiles: skillFileReader(db, options.storage) }
       : {}),

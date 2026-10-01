@@ -323,8 +323,11 @@ describe("a planning run's turn, resolved for real", () => {
     await send(h, other, [text("Build it")]);
     expect(offered(builder)).toEqual([
       "create_artifact",
+      "create_skill",
+      "publish_skill",
       "update_artifact",
       "update_memory",
+      "update_skill",
     ]);
     expect(systemOf(builder)).not.toContain("planning only");
     expect(systemOf(builder)).not.toContain("approved-plan");
@@ -387,8 +390,11 @@ describe("approving a plan", () => {
     expect(run.options?.mode).toBeUndefined();
     expect(offered(model)).toEqual([
       "create_artifact",
+      "create_skill",
+      "publish_skill",
       "update_artifact",
       "update_memory",
+      "update_skill",
     ]);
     const versions = await listArtifactVersions(h.db, plan.artifactId);
     expect(versions.map((version) => version.content)).toEqual([PLAN, edited]);
