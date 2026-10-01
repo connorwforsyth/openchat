@@ -47,3 +47,42 @@ Connor approved (2026-10-01):
 ## Owns
 
 `packages/contract/src/schemas/models.ts` (these fields only), `packages/ai/src/providers/**`, `packages/config/src/schema.ts` (`models.ratings`), `packages/server/src/api/meta.ts`, `packages/icons/**`, `packages/ui/src/components/**` (new `preview-pane`, the vendored model selector), `packages/composer/src/**`, `docs/self-hosting.md`, `e2e/tests/composer.spec.ts`, `e2e/support/**`.
+
+## Results (2026-10-01, loop)
+
+Built on `t/099-model-picker` (from `t/096-model-descriptions`). Not pushed.
+
+- **Contract (additive, approved).** `ModelOption` gains optional `displayName`, `cost` (`{ tier: 1–5, input?, output? }`, prices in micro-USD per million tokens) and `ratings` (`{ speed?, intelligence? }`, 1–5), with helper schemas `modelTierSchema`, `modelCostSchema`, `modelRatingsSchema`. `capabilities` already covered `vision`, `tools` and `reasoning`, so it's unchanged. `openapi.json` regenerated. Round-trip cases for the new schemas, a contract test that the 099 fields survive `meta.models`' output schema, and one that the 096 shape still parses.
+- **Server** (`packages/ai/src/providers/{catalog,describe,registry}.ts`). The catalog parser keeps prices (gateway `pricing.input/output`, OpenRouter `prompt/completion`, USD per token; a negative price counts as unknown) and traits (gateway tags mean yes; OpenRouter's `supported_parameters` and `input_modalities` mean yes or no; Google's `thinking`). `listModels` fills:
+  - `displayName`: the catalog's name, minus OpenRouter's `Vendor: ` prefix, else `tidyModelName(id)` ("Claude 3.5 Sonnet", "GPT-4o Mini", "Llama3.2 3B");
+  - `cost`: from catalog prices only, tiered on a 3:1 blended price (≤$0.50, $2.50, $8, $20 per million tokens, then 5). There's no `models.prices` on this branch;
+  - `ratings`: only from the new `models.ratings` config (alias beats ref, checked at boot, `auto` refused; `bun run setup` prunes stale entries the way it prunes descriptions);
+  - `capabilities`: the provider's, minus anything the catalog denies, plus `reasoning` when the catalog confirms it. Vision and files are never added from a catalog, because the provider config decides whether images are sent.
+
+  Nothing unknown is filled in. `meta.ts` needed no change.
+- **Logos.** `@lobehub/icons-static-svg` 1.95.1 (MIT) is a devDependency of `packages/icons`, pinned in the root catalog. `bun run icons:generate` copies the monochrome paths of the marks listed in `src/brands/brands.ts` into the checked-in `src/brands/marks.generated.ts`. That list is the one place for vendor display names and marks: 34 ids, 26 marks. A fixed colour, gradient or stroke fails the generator. `brands.test.ts` fails when the generated file is stale against the installed package. `LICENSE` and `NOTICE` sit beside it. The marks are exposed as `@workspace/icons/brands` (`BrandMark`, `brandName`, `hasBrandMark`). Nothing reads the network or node_modules at runtime. To update: bump the catalog version, `bun install`, `bun run icons:generate`, review the diff.
+- **PreviewPane** (`packages/ui/src/components/preview-pane.tsx`, README in `packages/ui/README.md`). It shows a side card for a list's active item, controlled or uncontrolled. `usePreviewPane().bind` wires any list that reports its active value (cmdk's `value`/`onValueChange`). The card sits beside the list from 640px and below it under 640px. `packages/ui` tests now run in Vitest browser mode.
+- **Picker.** The vendored `model-selector.tsx` is now a Base UI Popover that opens above the trigger, with list and card laid out by `PreviewPane`. New parts: `ModelSelectorVendor` and `ModelSelectorPreview{Title,Meter,Row,Section,Note}`. The meter is drawn bars over an sr-only `<meter>`. `target-picker.tsx` has these sections:
+  - **Recently used:** the last 3 picks, per `recentsKey` (the chat passes `me.user.id`), kept in memory when storage throws.
+  - **Auto:** only when the server lists it.
+  - **One section per vendor:** rows show logo, display name without the prefix, the vendor muted at the end, the 096 line, and disabled rows with their reason.
+  - **Agents.**
+
+  The card shows the name, Speed, Intelligence and Cost bars when known (otherwise "No ratings or prices for …"), Context in words and tokens, Vision, Tool use and Reasoning, and the description. An agent's card shows its own description.
+- **Tests.**
+  - icons: 95, of which `brands.test.ts` is 8.
+  - contract: 1373.
+  - ai: 361, of which `preview.test.ts` is 25.
+  - server `meta.test.ts`: +1.
+  - setup `plan.test.ts`: +1.
+  - ui: 8, of which PreviewPane is 6.
+  - composer: 118. The picker has 13, including logo fallback, bare names and vendors, card by keyboard and pointer, recents, and blocked storage.
+
+  e2e `composer.spec.ts` gains a test: open the picker, the card shows Echo's 128K context, ArrowDown moves the card to Parrot's, Enter picks it and sends with target `mock:parrot`, and the next opening lists Parrot under Recently used. The e2e mock provider now uses `discover: true`, and its `/models` names and prices `echo` and adds `parrot`.
+- **Verified.** `gate.sh` 82/82. `E2E_PORT=3202 bun turbo test:e2e`: 56 passed and 1 failed, `memory.spec` "nothing is saved from a shared chat" (known to fail under load); it passes on its own, so 57/57. Screenshots (not committed) are in `/private/tmp/claude-501/099-screens/`: light and dark at full and partial data, an agent, the letter mark with a disabled row, and 375px. They were taken from `/dev/composer` with a temporary richer model list, since reverted.
+- **Outside Owns, needed:** `packages/chat-ui/src/chat/connected-chat.tsx` (one line: `recentsKey: me.user.id`), `packages/setup/src/config-file.ts` (prunes stale ratings), root `package.json` catalog and `bun.lock`, and `packages/i18n` catalog.
+
+Open:
+- "Reasoning unsupported" can't be shown truthfully. `capabilities` lists only what's supported, and a missing entry can just mean nobody said. The server knows when a catalog denies reasoning, but the contract has nowhere to put it. An optional `unsupported` list (or similar) would need approval; `ModelSelectorPreviewRow` already has a `muted` style for it.
+- Google maps to the Gemini sparkle rather than the "G". It's one line in `brands.ts`.
+- Picker search doesn't match the vendor display names of vendors listed only by id (e.g. `meta-llama` and `meta` are separate groups). This is unchanged from 096.

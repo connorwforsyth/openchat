@@ -160,7 +160,7 @@ export const targetPicker = (page: Page, label?: string): Locator =>
   });
 
 /**
- * Picks what answers from the composer's picker dialog: `name` in the
+ * Picks what answers from the composer's picker panel: `name` in the
  * section labelled `group` ("My agents", "Shared with me", "Team & org
  * agents", or a provider).
  */

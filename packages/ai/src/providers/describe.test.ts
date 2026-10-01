@@ -44,6 +44,9 @@ describe("vendorOf", () => {
     expect(vendorOf("openrouter:OpenAI/gpt-5")).toBe("openai");
     expect(vendorOf("anthropic:claude-opus-5-5")).toBe("anthropic");
     expect(vendorOf("ollama:llama3.2:latest")).toBe("ollama");
+    // One vendor under two aggregators' names shares one group (Connor, 2026-10-01).
+    expect(vendorOf("openrouter:meta-llama/llama-4-maverick")).toBe("meta");
+    expect(vendorOf("gateway:meta/llama-4-maverick")).toBe("meta");
   });
 });
 

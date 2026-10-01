@@ -1,10 +1,16 @@
 import { setupI18n } from "@lingui/core";
 import { I18nProvider } from "@lingui/react";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { agentItem, fixtureId } from "@workspace/contract/fixtures";
 import type { ModelOption } from "@workspace/contract/schemas/models";
 import type { RunTarget } from "@workspace/contract/schemas/runs";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 
 import type { AgentOption } from "../schemas";
@@ -30,39 +36,69 @@ const MODELS: readonly ModelOption[] = [
   option("auto", null, "Auto"),
   {
     ...option("strong", "anthropic:claude-opus-5-5", "strong"),
+    capabilities: ["tools", "vision", "reasoning"],
+    contextWindow: 200_000,
+    cost: { input: 5_000_000, output: 25_000_000, tier: 4 },
     description: "Hard problems and long documents",
+    displayName: "Claude Opus 5.5",
+    provider: "anthropic",
+    ratings: { intelligence: 5, speed: 2 },
+  },
+  {
+    ...option("fast", "anthropic:claude-haiku-5", "fast", false),
+    displayName: "Claude Haiku 5",
     provider: "anthropic",
   },
-  option("fast", "anthropic:claude-haiku-5", "fast", false),
-  option("gateway:openai/gpt-6", "gateway:openai/gpt-6", "openai/gpt-6"),
+  // An older server: no display name or vendor, so the label's prefix goes.
+  {
+    ...option("gateway:openai/gpt-6", "gateway:openai/gpt-6", "openai/gpt-6"),
+    contextWindow: 400_000,
+  },
+  {
+    ...option("acme:rocket-1", "acme:rocket-1", "rocket-1"),
+    displayName: "Rocket 1",
+    provider: "acme",
+  },
 ];
 
 const FAST = /^fast/;
 const STRONG = /^strong/;
+const GPT = /^gpt-6/;
+const ROCKET = /^Rocket 1/;
+const REVIEWER = /^Reviewer/;
+const AUTO = /^Auto/;
 
 const AGENTS: readonly AgentOption[] = [
   { ...agentItem, source: "mine" },
   {
     ...agentItem,
+    description: "",
     id: fixtureId("libraryItem", 41),
     name: "Ada's drafter",
     source: "shared",
   },
 ];
 
-const renderPicker = (value: RunTarget = { model: "auto", type: "model" }) => {
+const renderPicker = (
+  value: RunTarget = { model: "auto", type: "model" },
+  {
+    models = MODELS,
+    recentsKey = "user-1",
+  }: { models?: readonly ModelOption[]; recentsKey?: string } = {}
+) => {
   const onChange = vi.fn<(target: RunTarget) => void>();
-  render(
+  const view = render(
     <I18nProvider i18n={i18n}>
       <TargetPicker
         agents={AGENTS}
-        models={MODELS}
+        models={models}
         onChange={onChange}
+        recentsKey={recentsKey}
         value={value}
       />
     </I18nProvider>
   );
-  return { onChange };
+  return { onChange, view };
 };
 
 const open = async (name: string) => {
@@ -75,34 +111,76 @@ const open = async (name: string) => {
 const optionNames = () =>
   screen.getAllByRole("option").map((each) => each.textContent?.trim());
 
+const card = () =>
+  document.querySelector<HTMLElement>("[data-slot=preview-pane-content]");
+
+const groupHeadings = () =>
+  [...document.querySelectorAll("[cmdk-group]")].map(
+    (group) => group.querySelector("[cmdk-group-heading]")?.textContent ?? ""
+  );
+
+const vendorOf = (name: RegExp) =>
+  screen
+    .getByRole("option", { name })
+    .querySelector("[data-slot=model-selector-vendor]")?.textContent;
+
+beforeEach(() => {
+  localStorage.clear();
+});
+
 afterEach(() => {
   cleanup();
+  vi.restoreAllMocks();
 });
 
 describe("TargetPicker", () => {
   it("lists Auto, then each provider, then agents, with a divider between sections", async () => {
     renderPicker();
     await open("Model or agent: Auto");
-    const groups = [...document.querySelectorAll("[cmdk-group]")].map(
-      (group) => group.querySelector("[cmdk-group-heading]")?.textContent ?? ""
-    );
-    expect(groups).toEqual([
+    expect(groupHeadings()).toEqual([
       "",
       "Anthropic",
       "OpenAI",
+      "acme",
       "My agents",
       "Shared with me",
     ]);
-    expect(screen.getAllByRole("separator")).toHaveLength(groups.length - 1);
+    expect(screen.getAllByRole("separator")).toHaveLength(
+      groupHeadings().length - 1
+    );
     // Auto says what it does; an alias shows the model behind it.
     expect(optionNames()[0]).toContain(
       "Picks a fast or strong model for each message"
     );
     expect(screen.getByRole("option", { name: STRONG }).textContent).toContain(
-      "claude-opus-5-5"
+      "Claude Opus 5.5"
     );
-    // A ref's label already is its model: no second name beside it.
-    expect(screen.getByRole("option", { name: "openai/gpt-6" })).toBeTruthy();
+  });
+
+  it("names rows without the vendor prefix, with the vendor at the end (099)", async () => {
+    renderPicker();
+    await open("Model or agent: Auto");
+    expect(screen.getByRole("option", { name: GPT }).textContent).not.toContain(
+      "openai/"
+    );
+    expect(vendorOf(GPT)).toBe("OpenAI");
+    expect(vendorOf(ROCKET)).toBe("acme");
+    // Agents have no vendor.
+    expect(vendorOf(REVIEWER)).toBeUndefined();
+  });
+
+  it("draws the vendor's logo, or a letter mark for one it doesn't know (099)", async () => {
+    renderPicker();
+    await open("Model or agent: Auto");
+    const logo = (name: RegExp) =>
+      screen
+        .getByRole("option", { name })
+        .querySelector<HTMLElement>("[data-slot=model-selector-logo]");
+    expect(logo(STRONG)?.dataset.brand).toBe("anthropic");
+    expect(logo(STRONG)?.querySelector("svg path")).toBeTruthy();
+    expect(logo(GPT)?.dataset.brand).toBe("openai");
+    expect(logo(ROCKET)?.dataset.brand).toBeUndefined();
+    expect(logo(ROCKET)?.textContent).toBe("a");
   });
 
   it("shows a model's description under its name, and finds it by it (096)", async () => {
@@ -113,12 +191,6 @@ describe("TargetPicker", () => {
       (span) => span.textContent === "Hard problems and long documents"
     );
     expect(line).toBeTruthy();
-    // Options without one have no second line: just the mark and the name.
-    expect(
-      screen
-        .getByRole("option", { name: "openai/gpt-6" })
-        .querySelectorAll(".text-xs")
-    ).toHaveLength(0);
     await userEvent.keyboard("long documents");
     await waitFor(() => expect(optionNames()).toHaveLength(1));
     expect(optionNames()[0]).toContain("strong");
@@ -137,7 +209,7 @@ describe("TargetPicker", () => {
     const trigger = await open("Model or agent: Auto");
     await userEvent.keyboard("gpt");
     await waitFor(() => expect(optionNames()).toHaveLength(1));
-    expect(optionNames()[0]).toContain("openai/gpt-6");
+    expect(optionNames()[0]).toContain("gpt-6");
 
     // Provider names match too: every Anthropic model, in any word order.
     const search = screen.getByRole("combobox", { name: "Models and agents" });
@@ -183,5 +255,119 @@ describe("TargetPicker", () => {
       model: "gateway:openai/gpt-6",
       type: "model",
     });
+  });
+
+  it("hides Auto when the server doesn't offer it", async () => {
+    renderPicker(
+      { model: "strong", type: "model" },
+      { models: MODELS.filter((model) => model.selector !== "auto") }
+    );
+    await open("Model or agent: strong");
+    expect(groupHeadings()[0]).toBe("Anthropic");
+    expect(screen.queryByRole("option", { name: AUTO })).toBeNull();
+  });
+});
+
+describe("TargetPicker's preview card (099)", () => {
+  it("follows the highlighted row by keyboard", async () => {
+    renderPicker({ model: "strong", type: "model" });
+    await open("Model or agent: strong");
+    await waitFor(() =>
+      expect(card()?.textContent).toContain("Claude Opus 5.5")
+    );
+    // Full data: the three bars, context, capabilities and the description.
+    const meters = [...(card()?.querySelectorAll("meter") ?? [])];
+    expect(meters.map((meter) => meter.getAttribute("aria-label"))).toEqual([
+      "Speed",
+      "Intelligence",
+      "Cost",
+    ]);
+    expect(meters.map((meter) => meter.value)).toEqual([2, 5, 4]);
+    const text = card()?.textContent ?? "";
+    for (const part of [
+      "~150K words",
+      "200K tokens",
+      "Vision",
+      "Tool use",
+      "Reasoning",
+      "Hard problems and long documents",
+    ]) {
+      expect(text).toContain(part);
+    }
+
+    await userEvent.keyboard("{ArrowDown}");
+    await waitFor(() => expect(card()?.textContent).toContain("gpt-6"));
+    // Partial data: no bars, so it says so; the context it does know.
+    expect(card()?.querySelectorAll("meter")).toHaveLength(0);
+    expect(card()?.textContent).toContain("No ratings or prices for gpt-6");
+    expect(card()?.textContent).toContain("400K tokens");
+    expect(card()?.textContent).not.toContain("Vision");
+  });
+
+  it("follows the pointer too, and shows an agent's own description", async () => {
+    renderPicker();
+    await open("Model or agent: Auto");
+    await waitFor(() =>
+      expect(card()?.textContent).toContain("Picks a fast or strong model")
+    );
+    fireEvent.pointerMove(screen.getByRole("option", { name: ROCKET }));
+    await waitFor(() => expect(card()?.textContent).toContain("Rocket 1"));
+    fireEvent.pointerMove(screen.getByRole("option", { name: REVIEWER }));
+    await waitFor(() =>
+      expect(card()?.textContent).toBe("ReviewerReviews diffs hunk by hunk.")
+    );
+  });
+});
+
+describe("TargetPicker's Recently used (099)", () => {
+  const pick = async (name: RegExp) => {
+    await open("Model or agent: Auto");
+    await userEvent.click(screen.getByRole("option", { name }));
+    await waitFor(() => expect(screen.queryByRole("listbox")).toBeNull());
+  };
+
+  it("remembers the last three picks per user, newest first", async () => {
+    const { view } = renderPicker();
+    await pick(STRONG);
+    await pick(GPT);
+    await pick(REVIEWER);
+    await pick(ROCKET);
+    await open("Model or agent: Auto");
+    expect(groupHeadings()[0]).toBe("Recently used");
+    const recent = document.querySelector("[cmdk-group]");
+    expect(
+      [...(recent?.querySelectorAll("[cmdk-item]") ?? [])].map((row) =>
+        row.getAttribute("data-value")
+      )
+    ).toEqual([
+      "recent:model:acme:rocket-1",
+      `recent:agent:${agentItem.id}`,
+      "recent:model:gateway:openai/gpt-6",
+    ]);
+    expect(
+      JSON.parse(localStorage.getItem("composer:recent-targets:user-1") ?? "[]")
+    ).toHaveLength(3);
+    // Searching hides the section: a match shows once, in its own group.
+    await userEvent.keyboard("rocket");
+    await waitFor(() => expect(optionNames()).toHaveLength(1));
+    view.unmount();
+
+    // Someone else on this browser has their own list.
+    renderPicker(undefined, { recentsKey: "user-2" });
+    await open("Model or agent: Auto");
+    expect(groupHeadings()).not.toContain("Recently used");
+  });
+
+  it("works for the session when storage is blocked", async () => {
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    renderPicker();
+    await pick(STRONG);
+    await open("Model or agent: Auto");
+    expect(groupHeadings()[0]).toBe("Recently used");
   });
 });

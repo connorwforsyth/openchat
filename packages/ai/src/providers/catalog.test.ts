@@ -113,6 +113,7 @@ describe("fetchCatalog", () => {
           description: "Fast and cheap.",
           id: "anthropic/claude-haiku-4.5",
           name: "Claude Haiku 4.5",
+          pricing: { input: 1_000_000 },
         },
         {
           contextWindow: 131_072,

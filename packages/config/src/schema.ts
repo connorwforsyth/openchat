@@ -246,6 +246,8 @@ export const modelPriceSchema = z.strictObject({
 });
 export type ModelPrice = z.infer<typeof modelPriceSchema>;
 
+const ratingSchema = z.int().min(1).max(5);
+
 const modelsSchema = z
   .strictObject({
     /** Short names the UI shows instead of provider refs (`fast`, `strong`). */
@@ -304,6 +306,27 @@ const modelsSchema = z
      * its usage is recorded at cost 0 and counts toward no budget.
      */
     prices: z.record(modelRefSchema, modelPriceSchema).default({}),
+    /**
+     * How fast and how capable a model is, 1 (least) to 5 (most), for the
+     * picker's preview bars (099), keyed by alias or `provider:model` ref
+     * (`strong: { speed: 3, intelligence: 5 }`). Nothing is guessed: a model
+     * with no rating shows no bar. The alias's rating beats its ref's.
+     */
+    ratings: z
+      .record(
+        modelSelectorSchema,
+        z
+          .strictObject({
+            intelligence: ratingSchema.optional(),
+            speed: ratingSchema.optional(),
+          })
+          .refine(
+            (rating) =>
+              rating.intelligence !== undefined || rating.speed !== undefined,
+            "rate `speed`, `intelligence` or both"
+          )
+      )
+      .default({}),
   })
   .prefault({});
 
@@ -624,6 +647,17 @@ export const appConfigSchema = z
         });
       } else {
         checkSelector(selector, ["models", "descriptions", selector]);
+      }
+    }
+    for (const selector of Object.keys(config.models.ratings)) {
+      if (selector === AUTO_MODEL) {
+        context.addIssue({
+          code: "custom",
+          message: "`auto` picks a model per message; rate its models instead",
+          path: ["models", "ratings", selector],
+        });
+      } else {
+        checkSelector(selector, ["models", "ratings", selector]);
       }
     }
     checkSelector(config.models.default, ["models", "default"]);

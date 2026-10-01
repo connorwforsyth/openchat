@@ -43,6 +43,7 @@ export function ComposerShell({
   onTargetChange,
   onWebSearchChange,
   placeholder,
+  recentsKey,
   status = "ready",
   target,
   webSearch = false,
@@ -100,6 +101,7 @@ export function ComposerShell({
           onUsePrompt={undefined}
           onWebSearchChange={onWebSearchChange}
           prompts={NONE}
+          recentsKey={recentsKey}
           target={target}
           webSearch={webSearch}
         />

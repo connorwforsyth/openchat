@@ -42,6 +42,7 @@ export interface ComposerFooterProps {
   readonly onUsePrompt: ((prompt: PromptOption) => void) | undefined;
   readonly onWebSearchChange: ((on: boolean) => void) | undefined;
   readonly prompts: readonly PromptOption[];
+  readonly recentsKey: string | undefined;
   readonly target: RunTarget | undefined;
   readonly webSearch: boolean;
 }
@@ -71,6 +72,7 @@ export function ComposerFooter({
   onUsePrompt,
   onWebSearchChange,
   prompts,
+  recentsKey,
   target,
   webSearch,
 }: ComposerFooterProps) {
@@ -118,6 +120,7 @@ export function ComposerFooter({
             disabled={disabled}
             models={models}
             onChange={onTargetChange}
+            recentsKey={recentsKey}
             value={target}
           />
         ) : null}

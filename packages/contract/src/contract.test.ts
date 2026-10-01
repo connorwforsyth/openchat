@@ -277,3 +277,46 @@ describe("model options (096)", () => {
     ).toHaveProperty("issues");
   });
 });
+
+describe("model options (099)", () => {
+  const output = contract.meta.models["~orpc"].outputSchema;
+  const option = {
+    available: true,
+    capabilities: ["tools", "vision", "reasoning"],
+    contextWindow: 200_000,
+    description: "Quick everyday answers",
+    label: "fast",
+    provider: "anthropic",
+    selector: "fast",
+    target: "anthropic:claude-haiku-4-5",
+  };
+
+  it("keeps the preview card's fields through the response schema", async () => {
+    const full = {
+      ...option,
+      cost: { input: 1_000_000, output: 5_000_000, tier: 2 },
+      displayName: "Claude Haiku 4.5",
+      ratings: { intelligence: 3, speed: 5 },
+    };
+    expect(await output?.["~standard"].validate([full])).toEqual({
+      value: [full],
+    });
+  });
+
+  it("still accepts the 096 shape without them", async () => {
+    expect(await output?.["~standard"].validate([option])).toEqual({
+      value: [option],
+    });
+  });
+
+  it("refuses a tier off the 1–5 scale", async () => {
+    expect(
+      await output?.["~standard"].validate([{ ...option, cost: { tier: 0 } }])
+    ).toHaveProperty("issues");
+    expect(
+      await output?.["~standard"].validate([
+        { ...option, ratings: { speed: 6 } },
+      ])
+    ).toHaveProperty("issues");
+  });
+});

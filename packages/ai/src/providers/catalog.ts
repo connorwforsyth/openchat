@@ -16,6 +16,25 @@ import { type FetchFunction, isKeyless } from "./factory";
 // model call in that context would use (D17); the key goes in a header,
 // never the URL, and neither is ever part of an error or a log line.
 
+/** What a catalog says a model costs, in micro-USD per million tokens (099). */
+export const catalogPricingSchema = z.object({
+  input: z.int().min(0).optional(),
+  output: z.int().min(0).optional(),
+});
+export type CatalogPricing = z.infer<typeof catalogPricingSchema>;
+
+/**
+ * What a catalog says a model can or can't do (099): `true` or `false` only
+ * where it says so; a missing key is unknown.
+ */
+export const catalogTraitsSchema = z.object({
+  files: z.boolean().optional(),
+  reasoning: z.boolean().optional(),
+  tools: z.boolean().optional(),
+  vision: z.boolean().optional(),
+});
+export type CatalogTraits = z.infer<typeof catalogTraitsSchema>;
+
 /** One model a catalog lists, with whatever it says about it (096 shows some). */
 export const catalogModelSchema = z.object({
   contextWindow: z.int().min(1).nullable(),
@@ -23,6 +42,10 @@ export const catalogModelSchema = z.object({
   id: z.string().min(1),
   /** The provider's display name, when it gives one. */
   name: z.string().nullable(),
+  /** Absent when it lists no price. */
+  pricing: catalogPricingSchema.optional(),
+  /** Absent when it says nothing about capabilities. */
+  traits: catalogTraitsSchema.optional(),
 });
 export type CatalogModel = z.infer<typeof catalogModelSchema>;
 
@@ -93,8 +116,84 @@ const entry = (
     contextWindow = null,
     description = null,
     name = null,
+    pricing,
+    traits,
   }: Partial<CatalogModel>
-): CatalogModel => ({ contextWindow, description, id, name });
+): CatalogModel => ({
+  contextWindow,
+  description,
+  id,
+  name,
+  ...(pricing === undefined || Object.keys(pricing).length === 0
+    ? {}
+    : { pricing }),
+  ...(traits === undefined || Object.keys(traits).length === 0
+    ? {}
+    : { traits }),
+});
+
+// Gateways price per token in USD, as a string (`"0.000003"`) or a number.
+// A negative price is OpenRouter's "varies"; anything unreadable is unknown.
+const perToken = z
+  .union([z.string(), z.number()])
+  .optional()
+  .catch(undefined)
+  .transform((value) => {
+    const usd = typeof value === "string" ? Number(value) : value;
+    return usd !== undefined && Number.isFinite(usd) && usd >= 0
+      ? Math.round(usd * 1e12)
+      : undefined;
+  });
+
+const pricingOf = (
+  input: number | undefined,
+  output: number | undefined
+): CatalogPricing => ({
+  ...(input === undefined ? {} : { input }),
+  ...(output === undefined ? {} : { output }),
+});
+
+const strings = z.array(z.string()).optional().catch(undefined);
+
+/**
+ * What an OpenAI-style entry says it can do. The Vercel AI Gateway tags what
+ * a model does (`tool-use`, `vision`, `reasoning`, `file-input`), so a tag
+ * means yes and its absence says nothing. OpenRouter lists every parameter
+ * and input a model takes, so there a missing one means no.
+ */
+const openAiTraits = (model: {
+  architecture?: { input_modalities?: string[] | undefined } | undefined;
+  supported_parameters?: string[] | undefined;
+  tags?: string[] | undefined;
+}): CatalogTraits => {
+  const traits: CatalogTraits = {};
+  const { tags } = model;
+  if (tags) {
+    if (tags.includes("tool-use")) {
+      traits.tools = true;
+    }
+    if (tags.includes("vision")) {
+      traits.vision = true;
+    }
+    if (tags.includes("reasoning")) {
+      traits.reasoning = true;
+    }
+    if (tags.includes("file-input")) {
+      traits.files = true;
+    }
+  }
+  const parameters = model.supported_parameters;
+  if (parameters) {
+    traits.tools = parameters.includes("tools");
+    traits.reasoning = parameters.includes("reasoning");
+  }
+  const inputs = model.architecture?.input_modalities;
+  if (inputs) {
+    traits.vision = inputs.includes("image");
+    traits.files = inputs.includes("file");
+  }
+  return traits;
+};
 
 // Types a gateway lists that aren't chat models (the Vercel AI Gateway says
 // `embedding` / `image`; Together says `embedding`, `image`, `audio`, …).
@@ -103,11 +202,26 @@ const CHAT_TYPES = new Set(["chat", "code", "language"]);
 const openAiList = z.object({
   data: z.array(
     z.looseObject({
+      architecture: z
+        .looseObject({ input_modalities: strings })
+        .optional()
+        .catch(undefined),
       context_length: positive,
       context_window: positive,
       description: text,
       id: z.string().min(1),
       name: text,
+      pricing: z
+        .looseObject({
+          completion: perToken,
+          input: perToken,
+          output: perToken,
+          prompt: perToken,
+        })
+        .optional()
+        .catch(undefined),
+      supported_parameters: strings,
+      tags: strings,
       type: z.string().optional().catch(undefined),
     })
   ),
@@ -131,6 +245,7 @@ const googleList = z.object({
       inputTokenLimit: positive,
       name: z.string().min(1),
       supportedGenerationMethods: z.array(z.string()).optional(),
+      thinking: z.boolean().optional().catch(undefined),
     })
   ),
 });
@@ -157,6 +272,11 @@ export const parseCatalog = (
                 contextWindow: model.context_window ?? model.context_length,
                 description: model.description,
                 name: model.name,
+                pricing: pricingOf(
+                  model.pricing?.input ?? model.pricing?.prompt,
+                  model.pricing?.output ?? model.pricing?.completion
+                ),
+                traits: openAiTraits(model),
               })
             )
         : null;
@@ -186,6 +306,10 @@ export const parseCatalog = (
                 contextWindow: model.inputTokenLimit,
                 description: model.description,
                 name: model.displayName,
+                traits:
+                  model.thinking === undefined
+                    ? undefined
+                    : { reasoning: model.thinking },
               })
             )
         : null;

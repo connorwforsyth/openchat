@@ -37,6 +37,7 @@ export default defineProject({
       "@workspace/ui > @base-ui/react/dialog",
       "@workspace/ui > @base-ui/react/input",
       "@workspace/ui > @base-ui/react/menu",
+      "@workspace/ui > @base-ui/react/popover",
       "@workspace/ui > @base-ui/react/preview-card",
       "@workspace/ui > @base-ui/react/select",
       "@workspace/ui > @base-ui/react/tooltip",

@@ -12,7 +12,7 @@
   },
   "scripts": {
     "lint": "ultracite check",
-    "test": "vitest run",
+    "test": "bun ../../scripts/ci/browser-lock.ts vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -37,10 +37,14 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@testing-library/dom": "catalog:",
+    "@testing-library/react": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "@vitest/browser-playwright": "catalog:",
     "@workspace/typescript-config": "workspace:*",
+    "playwright": "catalog:",
     "tailwindcss": "^4",
     "typescript": "catalog:",
     "vitest": "catalog:"

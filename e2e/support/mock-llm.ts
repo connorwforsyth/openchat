@@ -542,7 +542,27 @@ export const startMockLlm = async (port = 0): Promise<MockLlm> => {
   const handle = async (request: IncomingMessage, response: ServerResponse) => {
     const { pathname } = new URL(request.url ?? "/", "http://mock");
     if (request.method === "GET" && pathname.endsWith("/models")) {
-      json(response, 200, { data: [{ id: "echo", object: "model" }] });
+      // The catalog a discovering provider reads (095), with the metadata
+      // the picker's preview card shows (099), in the Vercel AI Gateway's
+      // shape. `parrot` is only offered through discovery.
+      json(response, 200, {
+        data: [
+          {
+            context_window: 128_000,
+            id: "echo",
+            name: "Echo",
+            object: "model",
+            pricing: { input: "0.000001", output: "0.000004" },
+            tags: ["tool-use"],
+          },
+          {
+            context_window: 32_000,
+            id: "parrot",
+            name: "Parrot",
+            object: "model",
+          },
+        ],
+      });
       return;
     }
     if (request.method !== "POST") {

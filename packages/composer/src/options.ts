@@ -9,6 +9,7 @@ import type {
   ChatContext,
   ChatContextType,
 } from "@workspace/contract/schemas/tenancy";
+import { brandName } from "@workspace/icons/brands";
 
 import {
   type AgentOption,
@@ -33,6 +34,8 @@ export const targetKey = (target: RunTarget): string =>
   target.type === "agent" ? `agent:${target.id}` : `model:${target.model}`;
 
 export interface TargetChoice {
+  /** The agent a row picks, for its preview card. */
+  readonly agent?: AgentOption;
   readonly available: boolean;
   /** A one-line "why pick this", shown under the label when there is one (096). */
   readonly description?: string;
@@ -42,10 +45,18 @@ export interface TargetChoice {
    */
   readonly detail?: string;
   readonly key: string;
+  /**
+   * The row's name: an alias as written, else the model's display name
+   * without a vendor prefix ("Claude Opus 4", not `anthropic/claude-opus-4`).
+   */
   readonly label: string;
+  /** The model a row picks, for its preview card (099). */
+  readonly model?: ModelOption;
   /** Everything the picker's search matches on, lowercased. */
   readonly search: string;
   readonly target: RunTarget;
+  /** Who makes the model (`anthropic`); `""` when that's unknown. */
+  readonly vendor?: string;
 }
 
 export interface AgentGroup {
@@ -69,33 +80,18 @@ export interface TargetGroups {
   readonly agents: readonly TargetChoice[];
   /** Whether `auto` can run in this context; its label is the composer's to translate. */
   readonly autoAvailable: boolean;
+  /** Whether the server offers `auto` at all (`models.auto.enabled`). */
+  readonly autoOffered: boolean;
   /** Models by provider, in the order the server first listed each provider. */
   readonly providers: readonly ProviderGroup[];
 }
 
-// Display names for vendors whose ids don't capitalise into their names.
-// Cosmetic only: grouping and routing never depend on this list (D3), and an
-// id it doesn't know shows as written.
-const VENDOR_NAMES: Readonly<Record<string, string>> = {
-  anthropic: "Anthropic",
-  cohere: "Cohere",
-  deepseek: "DeepSeek",
-  gateway: "Gateway",
-  google: "Google",
-  groq: "Groq",
-  meta: "Meta",
-  mistral: "Mistral",
-  moonshotai: "Moonshot AI",
-  ollama: "Ollama",
-  openai: "OpenAI",
-  openrouter: "OpenRouter",
-  perplexity: "Perplexity",
-  xai: "xAI",
-};
-
-/** A vendor id as people know it: `openai` is OpenAI. */
-export const providerLabel = (provider: string): string =>
-  VENDOR_NAMES[provider] ?? provider;
+/**
+ * A vendor id as people know it: `openai` is OpenAI. The names live with the
+ * logos in `@workspace/icons/brands`; an id it doesn't know shows as written.
+ * Cosmetic only: grouping and routing never depend on it (D3).
+ */
+export const providerLabel = (provider: string): string => brandName(provider);
 
 const VENDOR = /^([a-z][a-z0-9_-]{0,63})\/./i;
 
@@ -124,27 +120,39 @@ const searchText = (parts: readonly (string | undefined)[]): string =>
     .join(" ")
     .toLowerCase();
 
+/**
+ * A model's name without the vendor before a `/` (`openai/gpt-6` is
+ * `gpt-6`): the section heading and the row's end already say who makes it.
+ * For servers older than 099, which send no `displayName`.
+ */
+export const bareModelName = (label: string): string =>
+  label.slice(label.lastIndexOf("/") + 1) || label;
+
+/** What a model's row is called: its display name, else its bare label. */
+export const modelName = (model: ModelOption): string =>
+  model.displayName?.trim() || bareModelName(model.label);
+
 const modelChoice = (model: ModelOption, vendor: string): TargetChoice => {
   const target: RunTarget = { model: model.selector, type: "model" };
   const ref = model.target ?? model.selector;
   const modelId = parseModelRef(ref)?.modelId;
-  // An alias (`strong`) says nothing about which model answers; the ref's
-  // model id does. A ref's own label already is its model id.
+  const isAlias = parseModelRef(model.selector) === undefined;
+  // An alias (`strong`) says nothing about which model answers, so the
+  // model's name sits muted beside it; a ref's row is the model's name.
+  const named = model.displayName?.trim() || modelId;
   const detail =
-    parseModelRef(model.selector) === undefined &&
-    modelId !== undefined &&
-    modelId !== model.label
-      ? modelId
-      : undefined;
+    isAlias && named !== undefined && named !== model.label ? named : undefined;
   const description = model.description?.trim() || undefined;
   return {
     available: model.available,
     ...(description === undefined ? {} : { description }),
     ...(detail === undefined ? {} : { detail }),
     key: targetKey(target),
-    label: model.label,
+    label: isAlias ? model.label : modelName(model),
+    model,
     search: searchText([
       model.label,
+      model.displayName,
       description,
       model.selector,
       model.target ?? undefined,
@@ -152,12 +160,14 @@ const modelChoice = (model: ModelOption, vendor: string): TargetChoice => {
       providerLabel(vendor),
     ]),
     target,
+    vendor,
   };
 };
 
 const agentChoice = (agent: AgentOption): TargetChoice => {
   const target: RunTarget = { id: agent.id, type: "agent" };
   return {
+    agent,
     available: true,
     key: targetKey(target),
     label: agent.name,
@@ -207,6 +217,7 @@ export const buildTargetGroups = (
     agents: agentGroups.flatMap((group) => group.choices),
     autoAvailable:
       models.find((model) => model.selector === AUTO_MODEL)?.available ?? true,
+    autoOffered: models.some((model) => model.selector === AUTO_MODEL),
     providers: providers.map((group) => ({
       ...group,
       label: providerLabel(group.provider),
@@ -278,6 +289,55 @@ export const findTargetChoice = (
     ...groups.providers.flatMap((group) => group.choices),
   ].find((choice) => choice.key === key);
 };
+
+// Roughly how many English words a token holds, for the card's context row.
+const WORDS_PER_TOKEN = 0.75;
+
+/**
+ * A context window for the preview card, compact in `locale`: 200000
+ * tokens is "200K", about "150K" words.
+ */
+export const contextSize = (
+  tokens: number,
+  locale: string
+): { readonly tokens: string; readonly words: string } => {
+  const format = new Intl.NumberFormat(locale, {
+    maximumFractionDigits: 1,
+    notation: "compact",
+  });
+  return {
+    tokens: format.format(tokens),
+    words: format.format(Math.round(tokens * WORDS_PER_TOKEN)),
+  };
+};
+
+/** How many recent picks the picker remembers and shows. */
+export const RECENT_LIMIT = 3;
+
+/** `keys` with `key` moved to the front, at most `RECENT_LIMIT` long. */
+export const rememberRecent = (
+  keys: readonly string[],
+  key: string,
+  limit = RECENT_LIMIT
+): readonly string[] =>
+  [key, ...keys.filter((each) => each !== key)].slice(0, limit);
+
+/**
+ * The remembered picks the picker still offers, newest first: a model since
+ * removed or an agent since unshared drops out. Auto is its own row, so it
+ * isn't repeated here.
+ */
+export const recentChoices = (
+  groups: TargetGroups,
+  keys: readonly string[]
+): readonly TargetChoice[] =>
+  keys.flatMap((key) => {
+    const choice = [
+      ...groups.providers.flatMap((group) => group.choices),
+      ...groups.agents,
+    ].find((each) => each.key === key);
+    return choice ? [choice] : [];
+  });
 
 export const isAutoTarget = (target: RunTarget): boolean =>
   target.type === "model" && target.model === AUTO_MODEL;

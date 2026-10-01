@@ -14,7 +14,7 @@ dependency. `apps/web/app/dev/ai-elements` renders each one with static data.
 | `reasoning.tsx` | Collapsible thinking with stream timing and auto-close. No shadcn counterpart. |
 | `tool.tsx` | Tool-call header, status badge, input and output, typed by the AI SDK's `ToolUIPart`. No shadcn counterpart. |
 | `prompt-input.tsx` | The composer: attachments (picker, paste, drop, previews), IME-safe Enter, model select, dictation, submit/stop by `ChatStatus`. shadcn's `InputGroup` is the frame it's built on, not a composer. |
-| `model-selector.tsx` | A searchable model dialog (Dialog + Command) with provider sections and marks; the composer's model/agent picker (094). shadcn has the parts, not the composition. |
+| `model-selector.tsx` | A searchable model panel (Popover + Command) with provider sections, vendor logos and a preview card for the highlighted row; the composer's model/agent picker (094, 099). shadcn has the parts, not the composition. |
 | `streamdown.tsx` | Ours, not upstream: hands Streamdown the registry's icons (D19) and Lingui strings (D12). |
 
 Deliberately **not** installed:
@@ -65,18 +65,28 @@ transitively (`bun.lock` has no Radix packages).
 
 Copied from `packages/elements/src/model-selector.tsx` (MIT) and adapted:
 
-- Built on our Base UI `dialog` and the cmdk `command` already in this
-  package; no new dependency.
-- `ModelSelectorLogo` draws a neutral letter mark instead of loading
-  `models.dev/logos/<provider>.svg`: the page never fetches from a third-party
-  host, and `@workspace/icons` has no brand marks. `LogoGroup` targets the
-  mark rather than `<img>`.
+- Built on Base UI's `popover` (094 used our `dialog`; 099 anchored it to
+  the trigger, opening above it like Raycast's picker) and the cmdk
+  `command` already in this package; no new dependency.
 - `ModelSelectorContent` takes `command` props for the inner cmdk root (the
   composer filters for itself with `shouldFilter: false` and controls the
-  highlighted row), a translated default title, no close button, and sits
-  near the top of the screen like the command palette, so a phone keyboard
-  doesn't cover the search field.
+  highlighted row), a required `title` (the panel's accessible name) and a
+  `preview` render function. It lays the list and the card out with
+  `PreviewPane` (`../preview-pane.tsx`), so the card follows the highlighted
+  row by keyboard as well as pointer, and moves below the list under 640px.
+  No close button: Escape and an outside click close it, and focus goes back
+  to the trigger. It appears at once and fades out (D28).
+- `ModelSelectorLogo` takes the vendor id and draws its monochrome mark from
+  `@workspace/icons/brands` (generated from lobe-icons, MIT; nothing is
+  fetched), or a neutral letter mark for a vendor that list doesn't know.
+  Upstream loads `models.dev/logos/<provider>.svg` at runtime.
+- Added `ModelSelectorVendor` (the vendor, muted at the row's end) and the
+  card's parts: `ModelSelectorPreviewTitle`, `…PreviewMeter` (a five-step
+  bar over a visually hidden `<meter>`), `…PreviewRow`, `…PreviewSection`
+  and `…PreviewNote`.
 - `ModelSelectorItem` aligns to the top, for rows with a second line.
+- `ModelSelectorDialog` (upstream's `CommandDialog` wrapper) was dropped; the
+  panel replaces it.
 - `text-left` became `text-start`.
 
 ## Behaviour changes to know about

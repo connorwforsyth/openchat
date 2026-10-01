@@ -11,17 +11,22 @@ import { describe, expect, it } from "vitest";
 import { fileCandidate } from "./mentions";
 import {
   AUTO_TARGET,
+  bareModelName,
   buildTargetGroups,
   contextKey,
   contextOptionsFromMe,
+  contextSize,
   filterMentions,
   filterPrompts,
   filterTargetGroups,
   findTargetChoice,
   isAutoTarget,
   matchesSearch,
+  modelName,
   modelVendor,
   providerLabel,
+  recentChoices,
+  rememberRecent,
   slashItems,
   targetKey,
 } from "./options";
@@ -171,13 +176,109 @@ describe("model vendors", () => {
         group.choices.map((choice) => choice.label),
       ])
     ).toEqual([
-      ["Anthropic", ["strong", "gateway:anthropic/claude-haiku-4.5"]],
-      ["Google", ["gateway:google/gemini-3-pro"]],
+      // A ref's row drops the vendor its section and row end already say.
+      ["Anthropic", ["strong", "claude-haiku-4.5"]],
+      ["Google", ["gemini-3-pro"]],
     ]);
     // An alias shows the model it stands for; a ref doesn't repeat itself.
     expect(groups.providers[0]?.choices.map((choice) => choice.detail)).toEqual(
       ["claude-opus-5-5", undefined]
     );
+  });
+});
+
+describe("model names (099)", () => {
+  it("drops the vendor prefix, preferring the server's display name", () => {
+    expect(bareModelName("anthropic/claude-opus-4")).toBe("claude-opus-4");
+    expect(bareModelName("echo")).toBe("echo");
+    expect(
+      modelName({
+        ...model("gateway:openai/gpt-6", "gateway:openai/gpt-6"),
+        label: "openai/gpt-6",
+      })
+    ).toBe("gpt-6");
+    expect(
+      modelName({
+        ...model("gateway:openai/gpt-6", "gateway:openai/gpt-6"),
+        displayName: "GPT-6",
+      })
+    ).toBe("GPT-6");
+  });
+
+  it("labels a ref by its name and an alias as written, its model beside it", () => {
+    const groups = buildTargetGroups(
+      [
+        {
+          ...model("strong", "anthropic:claude-opus-5-5"),
+          displayName: "Claude Opus 5.5",
+        },
+        {
+          ...model("anthropic:claude-haiku-5", "anthropic:claude-haiku-5"),
+          displayName: "Claude Haiku 5",
+        },
+      ],
+      []
+    );
+    const [strong, haiku] = groups.providers[0]?.choices ?? [];
+    expect([strong?.label, strong?.detail]).toEqual([
+      "strong",
+      "Claude Opus 5.5",
+    ]);
+    expect([haiku?.label, haiku?.detail]).toEqual([
+      "Claude Haiku 5",
+      undefined,
+    ]);
+    // The display name is searchable, and the choice keeps its model.
+    expect(haiku?.search).toContain("claude haiku 5");
+    expect(haiku?.model?.selector).toBe("anthropic:claude-haiku-5");
+    expect(haiku?.vendor).toBe("anthropic");
+  });
+
+  it("names vendors from the brand list, and unknown ones as written", () => {
+    expect(providerLabel("x-ai")).toBe("xAI");
+    expect(providerLabel("meta-llama")).toBe("Meta");
+    expect(providerLabel("acme")).toBe("acme");
+  });
+
+  it("offers Auto only when the server lists it", () => {
+    expect(buildTargetGroups(modelOptions, []).autoOffered).toBe(true);
+    expect(
+      buildTargetGroups([model("openai:gpt-6", "openai:gpt-6")], []).autoOffered
+    ).toBe(false);
+  });
+});
+
+describe("contextSize (099)", () => {
+  it("is compact, in tokens and roughly in words", () => {
+    expect(contextSize(200_000, "en")).toEqual({
+      tokens: "200K",
+      words: "150K",
+    });
+    expect(contextSize(1_048_576, "en").tokens).toBe("1M");
+  });
+});
+
+describe("recent picks (099)", () => {
+  it("keeps the newest three, without repeats", () => {
+    let keys: readonly string[] = [];
+    for (const key of ["a", "b", "a", "c", "d"]) {
+      keys = rememberRecent(keys, key);
+    }
+    expect(keys).toEqual(["d", "c", "a"]);
+  });
+
+  it("drops picks the list no longer offers", () => {
+    const groups = buildTargetGroups(
+      [model("openai:gpt-6", "openai:gpt-6")],
+      [agentItem]
+    );
+    expect(
+      recentChoices(groups, [
+        "model:openai:gone",
+        `agent:${agentItem.id}`,
+        "model:openai:gpt-6",
+      ]).map((choice) => choice.key)
+    ).toEqual([`agent:${agentItem.id}`, "model:openai:gpt-6"]);
   });
 });
 

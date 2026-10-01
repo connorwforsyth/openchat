@@ -74,17 +74,48 @@ export const modelCapabilitySchema = z.enum([
   "web-search",
 ]);
 
+/** A 1–5 step on the picker's bars: 1 is the least (slowest, cheapest), 5 the most. */
+export const modelTierSchema = z.int().min(1).max(5);
+
+/**
+ * What a model costs (099): a tier for the bar, and the prices it came from
+ * when the provider's catalog lists them, in micro-USD per million tokens
+ * (`3_000_000` is $3 per million).
+ */
+export const modelCostSchema = z.object({
+  input: z.int().min(0).optional(),
+  output: z.int().min(0).optional(),
+  tier: modelTierSchema,
+});
+export type ModelCost = z.infer<typeof modelCostSchema>;
+
+/** How fast and how capable a model is, as the instance's config rates it (099). */
+export const modelRatingsSchema = z.object({
+  intelligence: modelTierSchema.optional(),
+  speed: modelTierSchema.optional(),
+});
+export type ModelRatings = z.infer<typeof modelRatingsSchema>;
+
 /** A model offered in the picker for the caller's current context. */
 export const modelOptionSchema = z.object({
   /** Whether a key is available in this context (D17); unavailable ones show disabled. */
   available: z.boolean(),
+  /** What it can do, as far as the provider or its catalog says. */
   capabilities: z.array(modelCapabilitySchema),
   contextWindow: z.int().min(1).nullable(),
+  /** Absent when no price is known (099). */
+  cost: modelCostSchema.optional(),
   /**
    * One short line on why you'd pick it (096): the config's, else the
    * provider catalog's. Absent when neither says; `auto`'s is the UI's own.
    */
   description: z.string().optional(),
+  /**
+   * The model's name as people say it (099), without a vendor prefix: the
+   * provider catalog's (`Claude Opus 4`), else tidied from the model id.
+   * Absent for `auto`.
+   */
+  displayName: z.string().min(1).optional(),
   /** The label shown in the picker. */
   label: z.string(),
   /**
@@ -93,6 +124,8 @@ export const modelOptionSchema = z.object({
    * ref's provider. Absent for `auto`.
    */
   provider: providerIdSchema.optional(),
+  /** Only what the config's `models.ratings` says (099); never guessed. */
+  ratings: modelRatingsSchema.optional(),
   /** What to send back: the alias if there is one, else the ref. */
   selector: modelSelectorSchema,
   /** The ref an alias resolves to; `null` for `auto`. */

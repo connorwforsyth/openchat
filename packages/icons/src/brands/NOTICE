@@ -1,0 +1,8 @@
+The brand marks in `marks.generated.ts` are generated from
+@lobehub/icons-static-svg (https://github.com/lobehub/lobe-icons),
+Copyright (c) 2023 LobeHub, under the MIT License in `LICENSE` beside this
+file. Only the monochrome marks listed in `brands.ts` are copied, as SVG
+path data; nothing else from the package ships.
+
+The marks are the trademarks of their owners. They identify whose model a
+row is; they don't imply endorsement.
