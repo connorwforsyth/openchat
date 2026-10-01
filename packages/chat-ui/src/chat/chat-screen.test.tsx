@@ -1,5 +1,6 @@
 import { act, cleanup, screen, waitFor, within } from "@testing-library/react";
 import { contextOptionsFromMe } from "@workspace/composer/options";
+import type { ComposerValue } from "@workspace/composer/schemas";
 import {
   fixtureId,
   me,
@@ -9,7 +10,7 @@ import {
 import type { Message } from "@workspace/contract/schemas/messages";
 import type { ChatContext } from "@workspace/contract/schemas/tenancy";
 import { err, ok } from "@workspace/shared/result";
-import { createRef, useState } from "react";
+import { createRef, useCallback, useMemo, useState } from "react";
 import {
   afterEach,
   beforeAll,
@@ -283,6 +284,86 @@ describe("empty state", () => {
     );
     expect(screen.getByText("What can I help with?")).toBeTruthy();
     expect(screen.queryByRole("list", { name: "Suggestions" })).toBeNull();
+  });
+});
+
+const dock = () => {
+  const element = document.querySelector<HTMLElement>(
+    '[data-slot="composer-dock"]'
+  );
+  if (!element) {
+    throw new Error("no composer dock");
+  }
+  return element;
+};
+
+// 098: centred on a new chat, at the bottom from the first send on.
+describe("composer placement", () => {
+  it("is centred on a new chat, with the greeting and suggestions", () => {
+    renderWithI18n(<ChatScreen {...newChat()} />);
+    expect(dock().dataset.placement).toBe("center");
+    expect(within(dock()).getByText("What can I help with?")).toBeTruthy();
+    expect(
+      within(dock()).getByRole("list", { name: "Suggestions" })
+    ).toBeTruthy();
+  });
+
+  it("is at the bottom of a chat that has started, before its messages load", () => {
+    const base = newChat();
+    renderWithI18n(
+      <ChatScreen
+        {...base}
+        conversation={{ ...base.conversation, id: path.conversationId }}
+      />
+    );
+    expect(dock().dataset.placement).toBe("bottom");
+    expect(screen.queryByText("What can I help with?")).toBeNull();
+  });
+
+  it("moves down on the first send, keeping focus, and back for a new chat", async () => {
+    const onSubmit = vi.fn();
+    const base = newChat({ composer: { onSubmit } });
+    const chatId = path.conversationId;
+    let routed = false;
+    function Host() {
+      const [id, setId] = useState<typeof chatId | null>(null);
+      routed = id !== null;
+      const composer = useMemo(
+        () => ({
+          onSubmit: (value: ComposerValue) => {
+            onSubmit(value);
+            // The host creates the chat and routes to it a moment later.
+            setTimeout(() => setId(chatId), 50);
+          },
+        }),
+        []
+      );
+      const startNewChat = useCallback(() => setId(null), []);
+      return (
+        <ChatScreen
+          {...base}
+          composer={composer}
+          conversation={{ ...base.conversation, id }}
+          onNewChat={startNewChat}
+        />
+      );
+    }
+    renderWithI18n(<Host />);
+    const editor = await editorReady();
+    await userEvent.click(editor);
+    await userEvent.keyboard("Hello");
+    await userEvent.keyboard("{Enter}");
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    // At once, before the chat has its address.
+    expect(dock().dataset.placement).toBe("bottom");
+    expect(dock().contains(document.activeElement)).toBe(true);
+    await waitFor(() => expect(routed).toBe(true));
+    expect(dock().dataset.placement).toBe("bottom");
+    expect(dock().contains(document.activeElement)).toBe(true);
+
+    const [startNew] = screen.getAllByRole("button", { name: "New chat" });
+    await userEvent.click(startNew as HTMLElement);
+    expect(dock().dataset.placement).toBe("center");
   });
 });
 
