@@ -15,6 +15,12 @@
       "dependsOn": ["^i18n:compile", "^icons:select"],
       "persistent": true
     },
+    "desktop:dev": {
+      "cache": false,
+      "dependsOn": ["^i18n:compile", "^icons:select"],
+      "passThroughEnv": ["DESKTOP_INSTANCE_URL", "DESKTOP_USER_DATA"],
+      "persistent": true
+    },
     "lint": {
       "dependsOn": ["//#check:guards"]
     },
@@ -46,6 +52,11 @@
       "cache": false,
       "dependsOn": ["^build"],
       "passThroughEnv": ["CI", "E2E_DEV", "E2E_PORT", "E2E_STANDALONE"]
+    },
+    "test:desktop": {
+      "cache": false,
+      "dependsOn": ["^build"],
+      "passThroughEnv": ["CI", "E2E_DESKTOP_PORT"]
     },
     "eval": {
       "outputs": []

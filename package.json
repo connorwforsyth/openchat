@@ -98,7 +98,10 @@
       "typescript": "^5.9.0",
       "unpdf": "^1.8.1",
       "vitest": "^5.0.2",
-      "zod": "^4.4.3"
+      "zod": "^4.4.3",
+      "electron": "44.5.1",
+      "electron-vite": "6.0.0-beta.5",
+      "vite": "^8.3.1"
     }
   },
   "scripts": {
@@ -107,6 +110,8 @@
     "check:guards": "bun scripts/ci/cli.ts",
     "db:generate": "turbo run db:generate",
     "db:migrate": "turbo run db:migrate",
+    "desktop:build": "turbo run build --filter=desktop",
+    "desktop:dev": "turbo run desktop:dev --filter=desktop",
     "dev": "turbo run dev",
     "eval": "turbo run eval",
     "evals": "turbo run evals --",
@@ -120,6 +125,7 @@
     "prepare": "lefthook install",
     "setup": "bun packages/setup/src/main.ts",
     "test": "turbo run test",
+    "test:desktop": "turbo run test:desktop",
     "test:e2e": "turbo run test:e2e",
     "test:guards": "vitest run --project guards",
     "typecheck": "turbo run typecheck",

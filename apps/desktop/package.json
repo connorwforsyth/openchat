@@ -1,0 +1,41 @@
+{
+  "name": "desktop",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./dist/main/index.js",
+  "scripts": {
+    "build": "electron-vite build",
+    "desktop:dev": "electron-vite dev",
+    "lint": "ultracite check",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lingui/core": "catalog:",
+    "@lingui/react": "catalog:",
+    "@workspace/contract": "workspace:*",
+    "@workspace/i18n": "workspace:*",
+    "@workspace/shared": "workspace:*",
+    "@workspace/ui": "workspace:*",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@babel/core": "catalog:",
+    "@lingui/babel-plugin-lingui-macro": "catalog:",
+    "@lingui/conf": "catalog:",
+    "@rolldown/plugin-babel": "catalog:",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@workspace/typescript-config": "workspace:*",
+    "electron": "catalog:",
+    "electron-vite": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  }
+}

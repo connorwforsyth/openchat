@@ -1,0 +1,12 @@
+{
+  "extends": "@workspace/typescript-config/react-library.json",
+  "compilerOptions": {
+    // Bundled by electron-vite (main, preloads and the setup page), and
+    // workspace packages are TypeScript source, so resolve like a bundler.
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "types": ["node", "vite/client"]
+  },
+  "include": ["."],
+  "exclude": ["node_modules", "dist"]
+}
