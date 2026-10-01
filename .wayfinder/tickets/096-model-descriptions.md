@@ -2,8 +2,8 @@
 id: "096"
 title: "A short description under each model in the picker (needs a contract field)"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: ["094", "095"]
 ---
 
@@ -35,3 +35,7 @@ Built on `t/096-model-descriptions` (from `t/095-model-discovery` with `t/094-co
 - **Verified.** `gate.sh`: check clean, guards ok, `turbo typecheck lint test build` 82/82. `E2E_PORT=3196 bun turbo test:e2e`: 56 passed.
 
 Open: the example's `strong: Hard problems and long documents` survives when setup points `strong` at a small local model (it describes the role, not the model). Anthropic's, OpenAI's and Ollama's catalogs have no descriptions, so only config lines show for them.
+
+## Resolution (2026-10-01, loop)
+
+Merged on Connor's go-ahead ("happy to start merging"), after a rebase and the full local gate (incl. `evals --strict`) and e2e on the rebased branch. [PR #77](https://github.com/connorwforsyth/openchat/pull/77).

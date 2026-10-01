@@ -2,8 +2,8 @@
 id: "099"
 title: "Model picker: brand logos, bare names, and a preview card with each model's details"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: ["096"]
 ---
 
@@ -86,3 +86,7 @@ Open:
 - "Reasoning unsupported" can't be shown truthfully. `capabilities` lists only what's supported, and a missing entry can just mean nobody said. The server knows when a catalog denies reasoning, but the contract has nowhere to put it. An optional `unsupported` list (or similar) would need approval; `ModelSelectorPreviewRow` already has a `muted` style for it.
 - Google maps to the Gemini sparkle rather than the "G". It's one line in `brands.ts`.
 - Picker search doesn't match the vendor display names of vendors listed only by id (e.g. `meta-llama` and `meta` are separate groups). This is unchanged from 096.
+
+## Resolution (2026-10-01, loop)
+
+Merged on Connor's go-ahead ("happy to start merging"), after a rebase and the full local gate (incl. `evals --strict`) and e2e on the rebased branch. [PR #81](https://github.com/connorwforsyth/openchat/pull/81).

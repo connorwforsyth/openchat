@@ -2,8 +2,8 @@
 id: "080"
 title: "S2: a tool registry, one file per tool"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: ["079"]
 ---
 
@@ -81,3 +81,7 @@ Built on `t/080-tool-registry`, stacked on 078 and 079 (unmerged drafts #69 and 
 - `update_memory`'s default is `auto`, the default memory mode. A user in `propose` mode is asked, as before; that stays a user setting applied by `withMemory`.
 - `capability` is descriptive. `resolveTools` still gets its sets from the turn resolver.
 - Client tools reach a tool set only through `buildToolSet`; no run passes any today, so the snapshot takes that one from `buildToolSet` directly.
+
+## Resolution (2026-10-01, loop)
+
+Merged on Connor's go-ahead ("happy to start merging"), after a rebase and the full local gate (incl. `evals --strict`) and e2e on the rebased branch. [PR #70](https://github.com/connorwforsyth/openchat/pull/70).

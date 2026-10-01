@@ -2,8 +2,8 @@
 id: "098"
 title: "A new chat has its composer in the middle of the page"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -64,3 +64,7 @@ Connor asked (2026-10-01): on a new chat the composer should sit centred on the 
   emulate it); 40% down on a phone keeps the composer above a typical
   keyboard on a 812px-tall screen. PR #74's + menu lives inside the composer,
   so it moves with it; nothing here touches its files.
+
+## Resolution (2026-10-01, loop)
+
+Merged on Connor's go-ahead ("happy to start merging"), after a rebase and the full local gate (incl. `evals --strict`) and e2e on the rebased branch. [PR #78](https://github.com/connorwforsyth/openchat/pull/78).

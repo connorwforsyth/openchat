@@ -2,7 +2,7 @@
 id: "085"
 title: "S3b: a pluggable judge and live mode"
 labels: [wayfinder:build]
-status: open
+status: closed
 assignee: 
 blockedBy: ["084"]
 ---
@@ -69,3 +69,7 @@ nor provider keys arrive; documented to use `bun packages/evals/src/cli.ts --liv
 change, outside Owns). Wiring `judgeModel` in services needs a config key (e.g. `evals.judgeModel`, a schema change).
 Cost estimate once 086 merges. The first real run and judge quality are 087. No hostile-web-result live case (the
 search stand-in only echoes the query).
+
+## Resolution (2026-10-01, loop)
+
+Merged on Connor's go-ahead ("happy to start merging"), after a rebase and the full local gate (incl. `evals --strict`) and e2e on the rebased branch. [PR #73](https://github.com/connorwforsyth/openchat/pull/73).

@@ -2,8 +2,8 @@
 id: "097"
 title: "Workspace panel: the browser on top, the files below"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -74,3 +74,7 @@ Branch `t/097-workspace-split` (on `origin/main` 2d5fa1e), not pushed; `status` 
 2. `ResizeHandle` (packages/ui) could take an `orientation`, so the sidebar's handle and this divider are one component.
 3. Maximised state is per panel visit; only the divider's position is saved. Should a maximised half survive closing the panel?
 4. An HTML file opened wide always shows its code below. Is that the right default, or should the files half fold away for an HTML file until someone asks for its code?
+
+## Resolution (2026-10-01, loop)
+
+Merged on Connor's go-ahead ("happy to start merging"), after a rebase and the full local gate (incl. `evals --strict`) and e2e on the rebased branch. [PR #79](https://github.com/connorwforsyth/openchat/pull/79).

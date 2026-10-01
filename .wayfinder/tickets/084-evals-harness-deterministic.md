@@ -2,8 +2,8 @@
 id: "084"
 title: "S3a: a black-box eval harness over our own API, deterministic mode"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: ["080"]
 ---
 
@@ -61,3 +61,7 @@ unescaped); a write through a symlinked directory fails the run and leaves the c
 Skipped: hostile MCP tool description (needs a fixture in `packages/mcp`).
 
 **Left:** 085 (judge, live mode); adding `bun run evals --strict` to `gate.sh`; `bun.lock` changed for the new workspace.
+
+## Resolution (2026-10-01, loop)
+
+Merged on Connor's go-ahead ("happy to start merging"), after a rebase and the full local gate (incl. `evals --strict`) and e2e on the rebased branch. [PR #72](https://github.com/connorwforsyth/openchat/pull/72).

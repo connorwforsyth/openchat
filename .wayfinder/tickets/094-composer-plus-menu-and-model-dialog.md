@@ -2,8 +2,8 @@
 id: "094"
 title: "Composer: a + menu, and a searchable model dialog grouped by provider"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -32,3 +32,7 @@ Built on branch `t/094-composer-plus-menu` (not pushed).
 - **Tests:** composer vitest 85 → 101 (options +8, new `target-picker.test.tsx` 5, composer +4, two picker tests moved from menu radios to dialog options). E2E: new `e2e/tests/composer.spec.ts` (2: dialog search + keyboard pick + send with target checked on the request; + menu attach + keyboard web-search switch with `options.webSearch` checked on the request, and off again). Selectors changed: `e2e/support/chat.ts` `pickTarget` (dialog `option` instead of `menuitemradio`, plus new `plusMenu`/`openAttachChooser` helpers), `e2e/tests/context.spec.ts` (uses `pickTarget` instead of its own menu clicks), `e2e/tests/files.spec.ts` and `e2e/tests/workspace.spec.ts` (Attach via the + menu). `packages/composer/vitest.config.ts` pre-bundles `@base-ui/react/dialog` and `cmdk`.
 - **Verified:** `gate.sh` 82/82; e2e 46 tests pass (in the full runs under load, `memory.spec` "shared chat" and `workspace.spec` per-hunk review each failed once and passed re-run alone; `composer.spec` passes 13/13 with `--repeat-each=6`). Screenshots (not committed) in `/private/tmp/claude-501/094-screens/` (before/after, light/dark, desktop/375).
 - **Open:** real provider marks (needs brand SVGs Connor is happy to ship in `@workspace/icons`); whether the web-search switch should be off=`auto` (as built) or offer a forced `off`; whether it should reset per chat; `/dev/composer` doesn't show files or web search (apps/web isn't owned here).
+
+## Resolution (2026-10-01, loop)
+
+Merged on Connor's go-ahead ("happy to start merging"), after a rebase and the full local gate (incl. `evals --strict`) and e2e on the rebased branch. [PR #74](https://github.com/connorwforsyth/openchat/pull/74).

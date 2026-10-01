@@ -2,8 +2,8 @@
 id: "100"
 title: "⌘K search: prefix matches, no flashing, Enter opens the top result"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -59,3 +59,7 @@ Branch `t/100-palette-search`: three commits (db, palette, e2e) plus this note. 
   - `e2e/tests/palette.spec.ts` (Ben's account). It records every animation frame while typing "que", then "tz", then backspacing twice. It asserts that no frame has an empty group, and that the chat never leaves the list once it has appeared. Then Enter opens it. It fails on `main` (no match for "que") and passes here.
 - **Verify.** Gate 82/82. `bun turbo test:e2e` 55/55 on port 3206.
 - **Probe.** Before this change, the loop's probe on `main` showed an empty "Chats" heading (`groups=Chats|Ask AI items=1`) on every key of "quexyz". With a message-only match (title "Untitled chat" or "Topic Notes on the"), the hit appeared at "query", vanished at "quer" and "que", and the selection stayed on "Ask AI". After the change there are no empty groups. The message hit stays while backspacing to "que" and is selected. "quex" drops it at once without waiting for the server. Fast typing (90ms per key, debounce 150ms) still searches once at the pause; the e2e test covers "que" found by the server.
+
+## Resolution (2026-10-01, loop)
+
+Merged on Connor's go-ahead ("happy to start merging"), after a rebase and the full local gate (incl. `evals --strict`) and e2e on the rebased branch. [PR #80](https://github.com/connorwforsyth/openchat/pull/80).

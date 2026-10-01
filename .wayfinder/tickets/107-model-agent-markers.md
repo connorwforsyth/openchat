@@ -2,8 +2,8 @@
 id: "107"
 title: "A marker in the chat where the model or agent changes"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: ["099"]
 ---
 
@@ -33,3 +33,7 @@ Connor (2026-10-01): when you switch models in a chat, show a marker in the conv
 - **Found:** the server never stores an answer's agent. `executor.ts` `claim` inserts the answer without `agent`, and `updateMessage` can't set one, so `message.agent` is always `null` on real answers (only a fork copy carries it). Agent markers therefore show only once that's fixed (a server/db change, outside this ticket). Also `message.agent_id` is `onDelete: set null`, so a hard-deleted agent comes back as no agent (a model marker), not "Removed agent"; "Removed agent" shows for an agent the viewer can no longer use. And `model` is written when the answer settles, so a marker appears as the answer finishes, not as it starts.
 - **Tests.** `switches.test.ts` (9: no change, first answer, model change once, switching back, agent change, both change, new version of the same agent, agent → model, unknown live answer) and `switch-marker.test.tsx` (6: one marker before the changed answer and outside the message, agent with muted model, removed agent, branch switching through the real branch switcher, model naming via list/alias and tidied fallback). chat-ui 338/338. e2e `chat-markers.spec.ts`: echo → Parrot → Parrot → Echo shows exactly two markers, `user-select: none`, two after reload.
 - **Verified.** `gate.sh` 82/82. `E2E_PORT=3232 bun turbo test:e2e`: 57 passed, 1 failed: `memory.spec` "nothing is saved from a shared chat", the known under-load failure (099); it passes on its own (3/3). Screenshots (not committed) in `/private/tmp/claude-501/107-screens/`: desktop and 375px, light and dark, from the e2e server; the agent's answer had its `agent` set on the API responses for the shot, since the server doesn't store it.
+
+## Resolution (2026-10-01, loop)
+
+Merged on Connor's go-ahead ("happy to start merging"), after a rebase and the full local gate (incl. `evals --strict`) and e2e on the rebased branch. [PR #85](https://github.com/connorwforsyth/openchat/pull/85).

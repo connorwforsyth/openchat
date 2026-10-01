@@ -124,3 +124,5 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-10-01 · Connor answered the open questions (see QUESTIONS-FOR-CONNOR.md, 'Answered 2026-10-01'); merging the review stack starts
 - 2026-10-01 · added and claimed 107 (model/agent markers); added 108 (agents apart from models, proposal first)
 - 2026-10-01 · merged #68, #69 (artifact e2e fixed for 075's pager), #70, #71 after re-checks · 105 draft PR #84 · 107 draft PR · added 109 (answers record their agent and model early)
+- 2026-10-01 · merged #68–#81, #84, #85, #78, #79, #80 after rebases, each with gate, evals and e2e; fixed six cross-PR breaks on the way · found and fixed a regression (111, PR #87: guessed `auto` target) · paused for Connor
+- 2026-10-01 · still drafts: #82 (link previews) and #83 (timing marks), both needing a hand merge of e2e/support/serve.ts with #69's mock search; #86 (server-seeded chat, awaiting his timing call); #61 and #76 (docs)

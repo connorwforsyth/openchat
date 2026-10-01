@@ -2,8 +2,8 @@
 id: "078"
 title: "S0: close the harness gaps the audit found"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -94,3 +94,7 @@ Built on branch `t/078-harness-gaps` (not pushed, no PR yet). No `packages/contr
 - The Agent Builder doesn't list the artifact tools, so an agent only gets them if its definition names them.
 - No prompt tells the model when to make an artifact beyond the tools' descriptions (S1 / ticket 079's territory).
 - `app.config.example.yaml` doesn't show `agentMaxSteps`: `packages/setup` snapshots that file, which is outside Owns.
+
+## Resolution (2026-10-01, loop)
+
+Merged on Connor's go-ahead ("happy to start merging"), after a rebase and the full local gate (incl. `evals --strict`) and e2e on the rebased branch. [PR #69](https://github.com/connorwforsyth/openchat/pull/69).

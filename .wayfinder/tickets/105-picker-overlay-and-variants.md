@@ -2,8 +2,8 @@
 id: "105"
 title: "Model picker as an overlay next to Send, plainer rows, and a separate variant picker"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: ["099"]
 ---
 
@@ -109,3 +109,7 @@ Connor approved the run options, and the coordinator committed the contract as `
 
   It also now waits for the footer to settle. The one-shot read of the footer could fail before the models loaded, which is the likely cause of the coordinator's 1.9s failure. It passed 3/3 alone.
 - **Verified.** `turbo typecheck lint test build`: 82/82. Under load, chat-ui failed once inside the gate and passes alone. `E2E_PORT=3224 bun turbo test:e2e`: 58/58.
+
+## Resolution (2026-10-01, loop)
+
+Merged on Connor's go-ahead ("happy to start merging"), after a rebase and the full local gate (incl. `evals --strict`) and e2e on the rebased branch. [PR #84](https://github.com/connorwforsyth/openchat/pull/84).

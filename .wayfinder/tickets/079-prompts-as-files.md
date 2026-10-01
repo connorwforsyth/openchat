@@ -2,8 +2,8 @@
 id: "079"
 title: "S1: instructions as layered files"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -74,3 +74,7 @@ on the same machine (load average 20–30, runs took 10 minutes instead of 3.5).
   prompt change for a later ticket.
 - Still inline, outside Owns: `ai/src/decider/{auto-route,questions,language-model-evaluator}.ts`,
   `ai/src/title/generate-title.ts` and tool descriptions (S2's registry is the natural home for those).
+
+## Resolution (2026-10-01, loop)
+
+Merged on Connor's go-ahead ("happy to start merging"), after a rebase and the full local gate (incl. `evals --strict`) and e2e on the rebased branch. [PR #68](https://github.com/connorwforsyth/openchat/pull/68).

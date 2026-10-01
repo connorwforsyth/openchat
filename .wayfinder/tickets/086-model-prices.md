@@ -2,8 +2,8 @@
 id: "086"
 title: "S3c: a price table so cost is real"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: ["080"]
 ---
 
@@ -89,3 +89,7 @@ unpriced, cached, zero usage, very large counts, schema refusals), 5 in
 `packages/server/src/runs/cost.test.ts` (priced run is non-zero, unpriced is
 0, the proxy, two budget cases), and the eval-run test now asserts its rows'
 cost.
+
+## Resolution (2026-10-01, loop)
+
+Merged on Connor's go-ahead ("happy to start merging"), after a rebase and the full local gate (incl. `evals --strict`) and e2e on the rebased branch. [PR #71](https://github.com/connorwforsyth/openchat/pull/71).

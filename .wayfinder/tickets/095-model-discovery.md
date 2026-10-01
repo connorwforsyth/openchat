@@ -2,8 +2,8 @@
 id: "095"
 title: "Offer every model a provider serves, restricted by admin patterns"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -36,3 +36,7 @@ Built on `t/095-model-discovery` (not pushed).
 - **Tests**: `catalog.test.ts`, `patterns.test.ts`, `registry-discovery.test.ts` (33, fake `fetch` only), `server/src/runs/model-check.test.ts` (6, loader refusal), `meta.test.ts` (+1: catalog read with the team's key only). Gate 82/82; `bun turbo test:e2e` 44/44 (two earlier full runs under load had `memory.spec` "shared chat" and a workspace per-hunk spec fail; both pass alone and the next full run passed).
 - Outside Owns, needed for the signature change: `packages/ai/src/llm-proxy/handle.ts`, `packages/server/src/keys/verify.ts`, `packages/server/src/server.ts` (passes `log`), and test fixtures in `server/src/runs/attachments.test.ts`, `config/src/parse.test.ts`.
 - **Open**: `keyedProviders` in `keys/resolve.ts` is now used only by its test. Without `discover`, hand-typed refs outside `models` still run (as before 095) unless `include`/`exclude` is set; tightening that would change existing instances. No e2e spec added (the mock already serves `/models`, but adding a discovering provider would add picker options that 094's specs are changing).
+
+## Resolution (2026-10-01, loop)
+
+Merged on Connor's go-ahead ("happy to start merging"), after a rebase and the full local gate (incl. `evals --strict`) and e2e on the rebased branch. [PR #75](https://github.com/connorwforsyth/openchat/pull/75).
