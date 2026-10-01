@@ -1,4 +1,9 @@
 import { runAgent } from "@workspace/ai/agent/run-agent";
+import {
+  createJudge,
+  type JudgeError,
+  type JudgeVerdict,
+} from "@workspace/ai/evals/judge";
 import { type ModelPrices, usageCost } from "@workspace/config/prices";
 import type {
   JsonValue,
@@ -6,7 +11,10 @@ import type {
   UserId,
 } from "@workspace/contract/schemas/common";
 import type { AgentDefinition } from "@workspace/contract/schemas/library";
-import type { TokenUsage } from "@workspace/contract/schemas/models";
+import type {
+  ModelSelector,
+  TokenUsage,
+} from "@workspace/contract/schemas/models";
 import type { Db } from "@workspace/db/client";
 import {
   createEvalRun,
@@ -23,7 +31,7 @@ import {
 import { getVersion } from "@workspace/db/queries/library";
 import { recordTransaction } from "@workspace/db/queries/usage";
 import { newId } from "@workspace/shared/ids";
-import { err, ok } from "@workspace/shared/result";
+import { err, ok, type Result } from "@workspace/shared/result";
 import type { UIMessageChunk } from "ai";
 import { z } from "zod";
 
@@ -41,9 +49,10 @@ import type { ModelLoader } from "../runs/turn";
 // their Personal context, and the usage is recorded there like a chat's.
 //
 // Scorers follow the dev evals' core (`packages/ai/evals/core/scorers.ts`):
-// pass/fail predicates, 1 or 0, with the reason in the details. A case with
-// a rubric and nothing deterministic to check is stored unscored until the
-// LLM judge lands with the rest of Agents+.
+// pass/fail predicates, 1 or 0, with the reason in the details. A case's
+// rubric is scored by the LLM judge (`@workspace/ai/evals/judge`, 085) when
+// a judge model is configured, and stored unscored otherwise; a judge that
+// fails is stored as an error, unscored, never as a pass.
 
 /** A case's input: the user's message, as text or `{ prompt }`. */
 export const evalCaseInputSchema = z.union([
@@ -82,10 +91,48 @@ const scored = (
   scorer,
 });
 
+/** The judge's verdict on a case's rubric, when a judge was asked. */
+export type RubricVerdict = Result<JudgeVerdict, JudgeError>;
+
+const judged = (
+  caseId: EvalCaseRow["id"],
+  output: string,
+  verdict: RubricVerdict | undefined
+): NewEvalResult => {
+  if (!verdict) {
+    return {
+      caseId,
+      details: { skipped: "the LLM judge isn't available yet" },
+      output,
+      passed: null,
+      score: null,
+      scorer: LLM_JUDGE_SCORER,
+    };
+  }
+  return verdict.ok
+    ? {
+        caseId,
+        details: { reasoning: verdict.value.reasoning },
+        output,
+        passed: verdict.value.pass,
+        score: verdict.value.score,
+        scorer: LLM_JUDGE_SCORER,
+      }
+    : {
+        caseId,
+        details: { error: verdict.error.message, type: verdict.error.type },
+        output,
+        passed: null,
+        score: null,
+        scorer: LLM_JUDGE_SCORER,
+      };
+};
+
 /** The scores for one case's answer. Pure. */
 export const scoreEvalCase = (
   item: Pick<EvalCaseRow, "expected" | "id" | "rubric">,
-  output: string
+  output: string,
+  rubricVerdict?: RubricVerdict
 ): NewEvalResult[] => {
   const results: NewEvalResult[] = [];
   if (item.expected !== null) {
@@ -123,14 +170,7 @@ export const scoreEvalCase = (
     }
   }
   if (item.rubric) {
-    results.push({
-      caseId: item.id,
-      details: { skipped: "the LLM judge isn't available yet" },
-      output,
-      passed: null,
-      score: null,
-      scorer: LLM_JUDGE_SCORER,
-    });
+    results.push(judged(item.id, output, rubricVerdict));
   }
   return results;
 };
@@ -143,6 +183,8 @@ export const casePassed = (results: readonly NewEvalResult[]): boolean => {
 
 export interface EvalJobDeps {
   readonly db: Db;
+  /** Judges rubric cases, paid like the answers; without one they're stored unscored. */
+  readonly judgeModel?: ModelSelector;
   readonly loadModel: ModelLoader;
   readonly now?: () => Date;
   /** `models.prices`, to cost each case's usage; without it every case costs 0. */
@@ -244,6 +286,42 @@ export const createEvalJobHandlers = (deps: EvalJobDeps): JobHandlers => {
         };
   };
 
+  /** The judge's verdict on an answer's rubric; `undefined` without a rubric or a judge model. */
+  const judgeRubric = async (
+    userId: UserId,
+    rubric: string | null,
+    prompt: string,
+    text: string,
+    signal: AbortSignal
+  ): Promise<RubricVerdict | undefined> => {
+    if (!(rubric && deps.judgeModel)) {
+      return;
+    }
+    const loaded = await deps.loadModel(
+      { context: { type: "personal" }, userId },
+      deps.judgeModel,
+      { signal, state: { facts: {}, history: [], input: prompt } }
+    );
+    if (!loaded.ok) {
+      return err({ message: loaded.error.message, type: "unavailable" });
+    }
+    const verdict = await createJudge({ model: loaded.value.model }).judge({
+      criteria: rubric,
+      signal,
+      transcript: [{ message: prompt, reply: text }],
+    });
+    if (verdict.ok) {
+      const { inputTokens = 0, outputTokens = 0 } = verdict.value.usage;
+      await recordUsage(userId, loaded.value.resolvedModel, {
+        inputTokens,
+        outputTokens,
+      }).catch((cause: unknown) =>
+        report("couldn't record judge usage", cause)
+      );
+    }
+    return verdict;
+  };
+
   const runCases = async (
     run: EvalRunRow,
     userId: UserId,
@@ -295,7 +373,17 @@ export const createEvalJobHandlers = (deps: EvalJobDeps): JobHandlers => {
         );
       }
       const results = reply.ok
-        ? scoreEvalCase(item, reply.text)
+        ? scoreEvalCase(
+            item,
+            reply.text,
+            await judgeRubric(
+              userId,
+              item.rubric,
+              input.data,
+              reply.text,
+              signal
+            )
+          )
         : [
             {
               caseId: item.id,

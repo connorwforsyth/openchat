@@ -1,6 +1,6 @@
 import { mockResults } from "../../../e2e/support/mock-search";
 import { call, plan } from "../src/mock";
-import { defineSuite, evalCase } from "../src/suite";
+import { defineSuite, evalCase, liveCase } from "../src/suite";
 import {
   callOf,
   chatOf,
@@ -263,6 +263,41 @@ export const tools = defineSuite({
           .equals([])
           .gate();
       }
+    ),
+
+    // Live only: tool choice when the prompt doesn't name a tool.
+    liveCase(
+      "live: 'what did I write down?' looks in the workspace instead of guessing",
+      async (t) => {
+        await writeFile(
+          t,
+          "notes.md",
+          "- buy oat milk\n- call the plumber on Tuesday\n"
+        );
+        const turn = await t.send("What did I write down in my notes?");
+        t.check(turn.status, "run status").equals("succeeded").soft();
+        t.notCalledTool("write").soft();
+        t.notCalledTool("edit").soft();
+        t.judge(
+          "The assistant looked in the workspace (for example by reading notes.md) rather than guessing or saying it can't see files, and its answer reports what the notes say: oat milk and the plumber on Tuesday."
+        );
+      },
+      { modelCalls: 3 }
+    ),
+
+    liveCase(
+      "live: a question about something recent searches the web",
+      async (t) => {
+        const turn = await t.send(
+          "Is there any news this week about the Bluebird open-source project? Check online."
+        );
+        t.check(turn.status, "run status").equals("succeeded").soft();
+        t.notCalledTool("bash").soft();
+        t.judge(
+          "Asked for current information online, the assistant used web search (web_search) rather than answering from memory alone, and its answer reports only what the search results say."
+        );
+      },
+      { modelCalls: 2 }
     ),
   ],
   name: "tools",

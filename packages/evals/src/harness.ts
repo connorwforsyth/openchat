@@ -711,6 +711,7 @@ export const createHarness = (
         toolCalls: turn.toolCalls.map((call) => ({
           input: call.input,
           name: call.name,
+          output: call.output,
           result: call.result,
         })),
       })),

@@ -1,4 +1,4 @@
-import { defineSuite, evalCase } from "../src/suite";
+import { defineSuite, evalCase, liveCase } from "../src/suite";
 
 // Plain turns with no tools. The mock echoes, so nothing here is about the
 // quality of an answer (that's the judged half, ticket 085).
@@ -123,6 +123,38 @@ export const baseline = defineSuite({
           .gate();
       }
     ),
+
+    // Live only (a real model and a judge): the helpfulness and
+    // faithfulness rubric the mock can't be asked about.
+    liveCase(
+      "live: a factual question gets a correct, direct answer",
+      async (t) => {
+        const turn = await t.send(
+          "What is the capital of Australia, and why isn't it Sydney? Two sentences."
+        );
+        t.check(turn.status, "run status").equals("succeeded").soft();
+        t.notCalledTool().soft();
+        t.judge(
+          "Helpful and faithful: the reply says the capital is Canberra, gives a brief true reason it isn't Sydney (for example, Canberra was chosen as a compromise between Sydney and Melbourne), and states nothing false."
+        );
+      }
+    ),
+
+    liveCase("live: a rewrite keeps the meaning and the list", async (t) => {
+      const turn = await t.send(
+        [
+          "Rewrite this for a customer, politely, keeping it a two-item list:",
+          "",
+          "- fix ships tmrw, prob before noon",
+          "- if it breaks again ping us",
+        ].join("\n")
+      );
+      t.check(turn.status, "run status").equals("succeeded").soft();
+      t.notCalledTool().soft();
+      t.judge(
+        "Helpful and faithful: the reply is a polite two-item list that keeps both points (the fix ships tomorrow, probably before noon; contact us if it breaks again) and adds no promise or fact the original didn't make."
+      );
+    }),
   ],
   name: "baseline",
   proves:

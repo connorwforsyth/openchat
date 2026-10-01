@@ -1,5 +1,5 @@
 import { SHOW_SYSTEM } from "../src/mock";
-import { defineSuite, evalCase } from "../src/suite";
+import { defineSuite, evalCase, liveCase } from "../src/suite";
 import { callOf, uploadPdf, writeFile } from "./support";
 
 // Grounding is mostly a judged question (are the claims supported?). The
@@ -137,6 +137,28 @@ export const grounding = defineSuite({
             content: before.content,
           });
         }
+      }
+    ),
+
+    // Live only: are the claims supported by what the model was given?
+    liveCase(
+      "live: an @file answer claims nothing the file doesn't say",
+      async (t) => {
+        const launch = [
+          "Project Bluebird launches on 14 March.",
+          "The launch owner is Priya.",
+          "The budget has not been approved yet.",
+        ].join("\n");
+        await writeFile(t, "launch.md", `${launch}\n`);
+        const turn = await t.send(
+          "When does Bluebird launch, who owns it, and what is the budget?",
+          { mentions: ["launch.md"] }
+        );
+        t.check(turn.status, "run status").equals("succeeded").soft();
+        t.judge(
+          "No claim is unsupported by the context: the reply gives 14 March and Priya, and says the budget isn't approved or isn't stated, without inventing a figure or any other detail.",
+          { context: `launch.md:\n${launch}` }
+        );
       }
     ),
   ],

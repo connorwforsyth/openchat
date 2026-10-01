@@ -25,6 +25,8 @@ export const assertionResultSchema = z.object({
   /** Why it failed or was skipped. */
   message: z.string().optional(),
   outcome: z.enum(["passed", "failed", "skipped"]),
+  /** A judged check's score, 0 to 1. */
+  score: z.number().min(0).max(1).optional(),
   severity: z.enum(["gate", "soft"]),
 });
 export type AssertionResult = z.infer<typeof assertionResultSchema>;
@@ -99,7 +101,10 @@ export const reportSchema = z.object({
   finishedAt: z.iso.datetime(),
   /** The judge's name, or `null` when judged checks were skipped. */
   judge: z.string().nullable(),
-  mode: z.literal("deterministic"),
+  /** `deterministic` (the mock model) or `live` (a real one; only live cases). */
+  mode: z.enum(["deterministic", "live"]),
+  /** The model under test in a live run; `null` for the mock. */
+  model: z.string().nullable(),
   /** Whether the run counts as failed (what the exit code says under `--strict`). */
   ok: z.boolean(),
   startedAt: z.iso.datetime(),
@@ -253,7 +258,8 @@ export const summaryOf = (report: Report): string =>
     "",
     `${report.totals.cases} cases: ${totalsLine(report.totals)} in ${(report.durationMs / 1000).toFixed(1)} s`,
     `${report.totals.checks.passed + report.totals.checks.failed + report.totals.checks.skipped} checks: ${report.totals.checks.passed} passed, ${report.totals.checks.failed} failed, ${report.totals.checks.skipped} skipped`,
+    ...(report.model === null ? [] : [`Model: ${report.model}`]),
     report.judge === null
-      ? "No judge is configured (ticket 085): judged checks are skipped, never passed."
+      ? "No judge: judged checks are skipped, never passed (they run with --live --judge <model>)."
       : `Judge: ${report.judge}`,
   ].join("\n");

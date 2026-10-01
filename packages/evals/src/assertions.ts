@@ -64,8 +64,15 @@ export interface Assertions {
   readonly calledTool: (name: string, args?: Matcher, scope?: Scope) => Verdict;
   /** `label` says what the value is, for the report. */
   readonly check: (actual: unknown, label?: string) => Check;
-  /** A model-judged check; skipped when no judge is configured. */
-  readonly judge: (criteria: string) => Verdict;
+  /**
+   * A model-judged check, soft unless `.gate()` says otherwise; skipped when
+   * no judge is configured. `context` is the material the answer should
+   * rest on (a file the case wrote), which the transcript doesn't show.
+   */
+  readonly judge: (
+    criteria: string,
+    options?: { readonly context?: string }
+  ) => Verdict;
   /** The model didn't call `name`, or any tool when `name` is left out. */
   readonly notCalledTool: (name?: string, scope?: Scope) => Verdict;
 }
@@ -80,6 +87,7 @@ export interface AssertionLog {
 interface Evaluated {
   readonly message?: string;
   readonly outcome: AssertionResult["outcome"];
+  readonly score?: number;
 }
 
 export interface AssertionSources {
@@ -112,6 +120,8 @@ export const createAssertions = (
 ): { readonly assertions: Assertions; readonly log: AssertionLog } => {
   const counted: Promise<AssertionResult>[] = [];
   const open = new Set<string>();
+  /** Judged checks the case didn't count: they count as soft. */
+  const uncounted: (() => void)[] = [];
 
   const verdict = (
     kind: AssertionResult["kind"],
@@ -141,6 +151,7 @@ export const createAssertions = (
               ? {}
               : { message: result.message }),
             outcome: result.outcome,
+            ...(result.score === undefined ? {} : { score: result.score }),
             severity,
           }))
         );
@@ -204,22 +215,56 @@ export const createAssertions = (
       });
     },
     check: (actual, label = "value") => check(actual, label, false),
-    judge: (criteria) => {
+    judge: (criteria, options = {}) => {
+      // Read now: the verdict is about the case up to this line.
       const transcript = sources.transcript();
-      return verdict("judge", `judge: ${criteria}`, async () => {
+      const label = `judge: ${criteria}`;
+      const built = verdict("judge", label, async (): Promise<Evaluated> => {
         const { judge } = sources;
         if (!judge) {
           return {
-            message: "no judge is configured (ticket 085)",
+            message:
+              "no judge is configured (bun run evals --live --judge <model>)",
             outcome: "skipped",
           };
         }
-        const verdictOf = await judge.judge({ criteria, transcript });
+        const verdictOf = await judge.judge({
+          criteria,
+          ...(options.context === undefined
+            ? {}
+            : { context: options.context }),
+          transcript,
+        });
         if (!verdictOf.ok) {
-          return fail(`the judge failed: ${verdictOf.error.message}`);
+          // A judge that couldn't decide never passes a check.
+          return fail(
+            `the judge failed (${verdictOf.error.type}): ${verdictOf.error.message}`
+          );
         }
-        return verdictOf.value.pass ? pass : fail(verdictOf.value.reasoning);
+        const { pass: held, reasoning, score } = verdictOf.value;
+        return {
+          message: reasoning,
+          outcome: held ? "passed" : "failed",
+          score,
+        };
       });
+      // Soft by default: a judged check needs no `.soft()` to be counted.
+      open.delete(label);
+      let done = false;
+      const once =
+        (count: Verdict["gate"]): Verdict["gate"] =>
+        (countOptions) => {
+          if (!done) {
+            done = true;
+            count(countOptions);
+          }
+        };
+      const counts: Verdict = {
+        gate: once(built.gate),
+        soft: once(built.soft),
+      };
+      uncounted.push(() => counts.soft());
+      return counts;
     },
     notCalledTool: (name, scope) => {
       const calls = scope?.in.toolCalls ?? sources.calls();
@@ -245,6 +290,14 @@ export const createAssertions = (
 
   return {
     assertions,
-    log: { open: () => [...open], results: () => Promise.all(counted) },
+    log: {
+      open: () => [...open],
+      results: () => {
+        for (const count of uncounted.splice(0)) {
+          count();
+        }
+        return Promise.all(counted);
+      },
+    },
   };
 };

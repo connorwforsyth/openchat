@@ -1,4 +1,8 @@
-import { textStream } from "@workspace/ai/testing/mock-models";
+import {
+  generated,
+  textStream,
+  usage,
+} from "@workspace/ai/testing/mock-models";
 import type {
   LibraryItemId,
   LibraryVersionId,
@@ -23,7 +27,12 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { enqueueJob } from "../jobs/registry";
 import { createHarness, type Harness } from "../testing/harness";
-import { casePassed, enqueueEvalRun, scoreEvalCase } from "./run";
+import {
+  casePassed,
+  createEvalJobHandlers,
+  enqueueEvalRun,
+  scoreEvalCase,
+} from "./run";
 
 // `eval.run` (041): a dataset against an agent version through the job
 // queue, scores stored per case and scorer, the tally on the run. The
@@ -61,19 +70,21 @@ beforeEach(async () => {
 
 afterEach(() => h.close());
 
-const publishedVersion = async (): Promise<{
+const publishedVersion = async (
+  harness: Harness = h
+): Promise<{
   agentId: LibraryItemId;
   versionId: LibraryVersionId;
 }> => {
-  const { item } = await createVersionedItem(h.db, "agent", {
-    createdBy: h.ownerId,
+  const { item } = await createVersionedItem(harness.db, "agent", {
+    createdBy: harness.ownerId,
     definition,
     name: "Geographer",
-    owner: { id: h.ownerId, type: "user" },
+    owner: { id: harness.ownerId, type: "user" },
   });
   const published = expectOk(
-    await publishDraft(h.db, "agent", item.id as LibraryItemId, {
-      publishedBy: h.ownerId,
+    await publishDraft(harness.db, "agent", item.id as LibraryItemId, {
+      publishedBy: harness.ownerId,
     })
   );
   return {
@@ -162,6 +173,95 @@ describe("eval.run", () => {
   });
 });
 
+describe("eval.run with a judge model", () => {
+  // The same job with `judgeModel` set, as services would pass it once a
+  // judge is configured: rubric cases are judged by the LLM judge (085).
+  const judgedRun = async (judgeText: string) => {
+    const judge = new MockLanguageModelV4({
+      doGenerate: generated([{ text: judgeText, type: "text" }], usage(40, 12)),
+    });
+    const harness = await createHarness({
+      models: {
+        "test:agent": new MockLanguageModelV4({
+          doStream: [textStream("Blue")],
+        }),
+        "test:judge": judge,
+      },
+    });
+    try {
+      const { agentId, versionId } = await publishedVersion(harness);
+      const dataset = await createEvalDataset(harness.db, {
+        agentId,
+        createdBy: harness.ownerId,
+        name: "Sky",
+      });
+      await addEvalCases(harness.db, dataset.id, [
+        { input: "Colour of the sky?", rubric: "Names a colour." },
+      ]);
+      const run = await createEvalRun(harness.db, {
+        agentVersionId: versionId,
+        createdBy: harness.ownerId,
+        datasetId: dataset.id,
+      });
+      const handlers = createEvalJobHandlers({
+        db: harness.db,
+        judgeModel: "test:judge",
+        loadModel: harness.services.loadModel,
+      });
+      await handlers["eval.run"]?.(
+        { data: { evalRunId: run.id } } as never,
+        new AbortController().signal
+      );
+      const spent = await harness.db
+        .select()
+        .from(transaction)
+        .where(eq(transaction.userId, harness.ownerId));
+      return {
+        finished: await getEvalRun(harness.db, run.id),
+        judge,
+        results: await listEvalResults(harness.db, run.id),
+        spent,
+      };
+    } finally {
+      await harness.close();
+    }
+  };
+
+  it("scores a rubric with the judge's verdict, score and reasoning", async () => {
+    const { finished, judge, results, spent } = await judgedRun(
+      JSON.stringify({ reasoning: "It says blue.", score: 9, verdict: "pass" })
+    );
+    expect(results).toMatchObject([
+      {
+        details: { reasoning: "It says blue." },
+        passed: true,
+        score: 0.9,
+        scorer: "llm-judge",
+      },
+    ]);
+    expect(finished).toMatchObject({ passed: 1, total: 1 });
+    // The judge read the rubric and the answer.
+    const prompt = JSON.stringify(judge.doGenerateCalls[0]?.prompt);
+    expect(prompt).toContain("Names a colour.");
+    expect(prompt).toContain("Blue");
+    // The answer and the verdict are both the requester's usage.
+    expect(spent).toHaveLength(2);
+  });
+
+  it("stores a judge that answers nonsense as an error, not a pass", async () => {
+    const { finished, results } = await judgedRun("Looks good to me!");
+    expect(results).toMatchObject([
+      {
+        details: { type: "invalid_verdict" },
+        passed: null,
+        score: null,
+        scorer: "llm-judge",
+      },
+    ]);
+    expect(finished).toMatchObject({ passed: 0, total: 1 });
+  });
+});
+
 describe("scoring", () => {
   const id = "01a0de5f-bf67-7628-9db6-f0c96ff5586c" as never;
 
@@ -187,5 +287,28 @@ describe("scoring", () => {
     expect(
       casePassed(scoreEvalCase({ expected: "x", id, rubric: "Kind." }, "x"))
     ).toBe(true);
+  });
+
+  it("keeps a judge's verdict, and never passes a judge error", () => {
+    const item = { expected: null, id, rubric: "Kind." };
+    const verdict = {
+      pass: false,
+      reasoning: "Curt.",
+      score: 0.2,
+      usage: { inputTokens: 1, outputTokens: 1 },
+    };
+    expect(
+      scoreEvalCase(item, "x", { ok: true, value: verdict })
+    ).toMatchObject([
+      { details: { reasoning: "Curt." }, passed: false, score: 0.2 },
+    ]);
+    const failed = scoreEvalCase(item, "x", {
+      error: { message: "no verdict within 60 s", type: "timeout" },
+      ok: false,
+    });
+    expect(failed).toMatchObject([
+      { details: { type: "timeout" }, passed: null, score: null },
+    ]);
+    expect(casePassed(failed)).toBe(false);
   });
 });

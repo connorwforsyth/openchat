@@ -53,7 +53,13 @@
     "evals": {
       "cache": false,
       "dependsOn": ["^build"],
-      "passThroughEnv": ["CI", "EVALS_PORT"]
+      "passThroughEnv": [
+        "CI",
+        "EVALS_PORT",
+        "CONFIG_PATH",
+        "*_API_KEY",
+        "*_BASE_URL"
+      ]
     },
     "db:generate": {
       "cache": false

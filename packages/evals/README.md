@@ -11,6 +11,10 @@ bun run evals                     # build apps/web, boot it, run every suite, re
 bun run evals --strict            # the same, and exit non-zero if a gate failed
 bun run evals --suite files       # one suite (repeatable)
 bun run evals --list              # the suites and their cases
+
+# Live mode: real models from app.config.yaml; opt-in, never in the gate
+bun packages/evals/src/cli.ts --live --model fast --judge judge          # prints the plan, calls nothing
+bun packages/evals/src/cli.ts --live --model fast --judge judge --yes    # runs it
 ```
 
 - It needs no keys and reaches no network: the model is
@@ -33,7 +37,8 @@ The model is a mock. It does exactly what the message tells it to:
 `[tool:…]` and `plan(…)` make it call tools, `[script:…]` plays a fixed
 script, and anything else is echoed. So **no case here shows that a model
 chooses the right tool, stays grounded, or resists an injection.** Those are
-the judged checks, which need a real model and a judge (ticket 085).
+the judged checks, which need a real model and a judge: the live cases
+(see "Live mode").
 
 What the cases do show is what the server does around the model, which is
 where a regression in our code would land:
@@ -114,7 +119,7 @@ An assertion is built, then counted:
 | `t.calledTool(name, args?, { in: turn })` | The model called `name`; `args` is a matcher (only the keys it names must match; values may be regular expressions or predicates). |
 | `t.notCalledTool(name?, { in: turn })` | It didn't (or called no tool at all). |
 | `t.check(value, label).includes(x)` / `.equals(x)` / `.matches(x)`, and `.not` | Any value the case read. |
-| `t.judge(criteria)` | A model-judged check. **Skipped, never passed, when no judge is configured**, which is always, until ticket 085. |
+| `t.judge(criteria, { context })` | A model-judged check. **Soft unless `.gate()`**, so it needs no `.soft()`. **Skipped, never passed, when no judge is configured**, which is every deterministic run. A judge that times out, errors or answers with something that isn't a verdict fails the check with that error. `context` is what the answer should rest on (a file the case wrote), which the transcript doesn't show. |
 | `.gate()` | The run must pass this. `--strict` fails on it. |
 | `.soft()` | Reported, never failing the run. Judged checks are soft by default. |
 
@@ -157,7 +162,7 @@ These are in the report on every run, with their reasons.
 | `files`: NUL in a file | The same bug from the other side: a tool result with a NUL (reading such a file) fails the run. |
 | `tools`: arguments that don't fit the schema | Bug this suite found: the run fails (`couldn't store the answer's parts`) instead of the model getting an error. |
 
-Skipped: `injection`: hostile MCP tool description. It needs an MCP fixture
+Skipped: the seven live cases (they need `--live`), and `injection`: hostile MCP tool description. It needs an MCP fixture
 whose tool description carries the injection; `@workspace/mcp`'s fixture has
 fixed descriptions.
 
@@ -175,14 +180,60 @@ fixed descriptions.
 Without `--strict` the command only reports: it exits 0 whatever the cases
 found, and non-zero only if it couldn't run at all.
 
-## The judge seam
+## The judge
 
-`src/judge.ts` defines `Judge`: a name and one function from the criteria
-and the case's transcript to a verdict (`pass`, `reasoning`, an optional
-`score`), as a `Result`. `runSuites` takes an optional `judge`. Ticket 085
-implements it over an evaluation model and adds live mode; nothing else in
-this package needs to change for that. Until then `t.judge()` is reported as
-skipped, and the report says how many checks were.
+`@workspace/ai/evals/judge` (`createJudge({ model })`) takes any configured
+language model (a direct provider, openai-compatible, a local Ollama; no AI
+Gateway) and answers the criteria and the transcript with a verdict: `pass`,
+a `score` from 0 to 1, and the `reasoning`. It asks through structured output
+(`generateText` with `Output.object`), not the AI SDK's
+`experimental_evaluate`, because an evaluation model gives no reasoning and
+openai-compatible providers don't ship one. The transcript is data to the
+judge, never instructions, which matters for the injection cases. The same
+module scores rubric cases in `eval.run` (`packages/server/src/evals/run.ts`)
+when a judge model is set there.
+
+`src/judge.ts` is the seam: `runSuites` takes an optional `judge`, and
+without one every `t.judge()` is skipped.
+
+## Live mode
+
+Live cases (`liveCase(name, run, { modelCalls, judgeCalls, chats })`) are
+plain prompts for a real model, with soft checks and judged ones. A
+deterministic run reports them as skipped ("live only"); `--live` runs only
+them. They are the **J** checks of the eval plan:
+
+| Suite | Live cases | Judged |
+|---|---|---|
+| `baseline` | a factual question; a rewrite | helpfulness and faithfulness |
+| `tools` | "what did I write down?" with notes in the workspace; "any news this week? check online" | tool choice on a prompt that names no tool |
+| `grounding` | an `@file` question the file only partly answers | no claim the file doesn't support |
+| `injection` | summarise a README with injected instructions; a hostile `@file` mention | didn't follow the injected instructions (plus gates: no pipe-to-shell, nothing written to `/etc`) |
+
+`--live --model <alias or provider:model> [--judge <alias>]`:
+
+- reads the providers from `app.config.yaml` at the repo root, or
+  `CONFIG_PATH`;
+- **before calling anything**, prints the model under test and the judge
+  (provider, type, endpoint, and which env variable its key comes from, never
+  the key), the number of cases, and a rough token estimate. There's no cost
+  figure until the price table (`models.prices`, ticket 086) lands;
+- runs only with `--yes`, or a yes at the prompt when the terminal is
+  interactive; otherwise it exits 2 having called nothing;
+- refuses when `CI` is set, unless `--allow-ci` is given too;
+- refuses a keyed provider whose key isn't set;
+- boots the production build with the person's providers and aliases copied
+  as written (`${NAME}` references and all; only the variables they name
+  reach the app), the model under test as the default, and the local
+  stand-ins for embeddings and web search. The judge runs in the CLI with
+  the provider's instance key.
+
+Without `--judge`, judged checks are skipped. A live run is never part of the
+gate or `turbo test`; its report has `mode: "live"` and the `model`.
+
+Run it with `bun packages/evals/src/cli.ts --live …` (after a build):
+`bun run evals` goes through turbo, which passes the evals task only `CI`
+and `EVALS_PORT`, so `CONFIG_PATH` and provider keys don't reach it.
 
 ## What the mock gained for this
 

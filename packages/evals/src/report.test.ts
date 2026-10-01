@@ -122,6 +122,7 @@ const report = (cases: readonly CaseResult[]): Report => {
     finishedAt: "2026-10-01T00:00:01.000Z",
     judge: null,
     mode: "deterministic",
+    model: null,
     ok: holds(totals),
     startedAt: "2026-10-01T00:00:00.000Z",
     strict: true,
