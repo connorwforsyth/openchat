@@ -134,3 +134,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-10-02 · 101 merged (PR #82) · e2e 74/74
 - 2026-10-02 · Connor: M1 signed off (026 closed); Desktop: instance URL only, macOS first, unsigned for now, cowork parked; claimed 116
 - 2026-10-02 · 123 merged (PR #90) · gate 88/88 · e2e 74/74 · golden snapshots unchanged · claimed 124
+- 2026-10-02 · Connor: skills in chats (127, contract field approved) and skill authoring tools (128); 082 is now compaction only, parked

@@ -81,3 +81,8 @@ Done: 009 and 010 prototypes, 042 contract PR (#31), Docker verification (045, P
   - Start merging the review stack.
 - **Contract:** Connor approved optional `reasoning`, `fast` and `mode` on run options.
 
+
+## Answered 2026-10-02 (skills)
+
+- Skills in chats: yes. Pick from the + menu and from `/`; agents load theirs on demand. The contract field for picked skills is approved (ticket 127).
+- Also wanted: create, edit and publish skills from a chat (ticket 128). Compaction stays parked (082).

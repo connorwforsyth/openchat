@@ -1,6 +1,6 @@
 ---
 id: "082"
-title: "S4 (optional): skills on demand and context compaction"
+title: "S4: context compaction (skills moved to 127 and 128)"
 labels: [wayfinder:build]
 status: open
 assignee:
@@ -23,3 +23,7 @@ Only if S1–S3 land well; confirm with Connor first.
 ## Owns
 
 `packages/ai/src/{tools/registry,prompts,agent}/**`, `packages/library-ui/**` (skills), tests.
+
+## Update 2026-10-02
+
+Connor asked for skills in chats now. Skills are split out into 127 (pick, load, `load_skill`) and 128 (create, edit and publish tools). This ticket keeps compaction only, which stays parked until asked.
