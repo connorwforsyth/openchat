@@ -2,7 +2,10 @@ import {
   type ModelRef,
   parseModelRef,
 } from "@workspace/contract/schemas/models";
-import type { ReasoningLevel } from "@workspace/contract/schemas/runs";
+import {
+  type ReasoningLevel,
+  reasoningLevelSchema,
+} from "@workspace/contract/schemas/runs";
 
 import { vendorOf } from "./describe";
 
@@ -123,6 +126,81 @@ export const reasoningLevels = ({
     default:
       return ["low", "medium", "high"];
   }
+};
+
+// What a model does with no `reasoning` sent, from the installed SDK
+// providers' docs and the makers' own (113). The composer shows it as the
+// level in use until someone picks another, and picking it sends nothing.
+// Anthropic: thinking is off unless asked for, except on models that always
+// think (effort defaults to medium on Opus 5.5, high elsewhere) and Sonnet
+// 5, which thinks by default (the SDK sends `disabled` for that reason).
+const ANTHROPIC_DEFAULT_MEDIUM = /claude-opus-5-5/;
+const ANTHROPIC_THINKS_BY_DEFAULT = /claude-sonnet-5/;
+// OpenAI: `medium` (the SDK's documented default), except GPT-5.1 and
+// GPT-5.2, which OpenAI documents as defaulting to `none` (their Codex
+// models keep medium).
+const OPENAI_DEFAULT_NONE = /^gpt-5-[12](?!\d)(?!.*codex)/;
+// Gemini 2.5 Flash-Lite doesn't think unless asked; the rest of 2.5 think
+// dynamically, nearest a medium budget. Gemini 3 defaults to `high`.
+const GEMINI_FLASH_LITE = /^gemini-2-5-flash-lite/;
+
+const anthropicDefault = (id: string): ReasoningLevel => {
+  if (ANTHROPIC_DEFAULT_MEDIUM.test(id)) {
+    return "medium";
+  }
+  return ANTHROPIC_ALWAYS_THINKS.test(id) ||
+    ANTHROPIC_THINKS_BY_DEFAULT.test(id)
+    ? "high"
+    : "off";
+};
+
+const googleDefault = (id: string): ReasoningLevel => {
+  if (GEMINI_2.test(id)) {
+    return GEMINI_FLASH_LITE.test(id) ? "off" : "medium";
+  }
+  return "high";
+};
+
+const preferredDefault = (vendor: string, id: string): ReasoningLevel => {
+  switch (vendor) {
+    case "anthropic":
+      return anthropicDefault(id);
+    case "openai":
+      return OPENAI_DEFAULT_NONE.test(id) ? "off" : "medium";
+    case "google":
+      return googleDefault(id);
+    case "deepseek":
+      return "high";
+    default:
+      // OpenAI's `reasoning_effort` convention, which defaults to medium.
+      return "medium";
+  }
+};
+
+const LEVEL_ORDER = reasoningLevelSchema.options;
+
+/**
+ * The level a reasoning model thinks at when the run sends no `reasoning`:
+ * the provider's own default, as one of `reasoningLevels` (the nearest one
+ * when the default isn't a level it lists).
+ */
+export const defaultReasoningLevel = (
+  identity: ModelIdentity
+): ReasoningLevel => {
+  const levels = reasoningLevels(identity);
+  const wanted = preferredDefault(
+    identity.vendor,
+    bareModelId(identity.modelId)
+  );
+  if (levels.includes(wanted)) {
+    return wanted;
+  }
+  const at = LEVEL_ORDER.indexOf(wanted);
+  const distance = (level: ReasoningLevel) =>
+    Math.abs(LEVEL_ORDER.indexOf(level) - at);
+  return levels.reduce((best, level) =>
+    distance(level) < distance(best) ? level : best
+  );
 };
 
 // OpenAI models the SDK sends `serviceTier: "priority"` for (its
