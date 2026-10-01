@@ -86,6 +86,20 @@ describe("parseHead", () => {
     expect(parsed.description?.length).toBeLessThanOrEqual(500);
   });
 
+  it("caps by UTF-16 length without splitting a surrogate pair", () => {
+    const html = `<head><title>${"😀".repeat(400)}</title></head>`;
+    const { title } = parseHead(html, new URL("https://x.example.test/"));
+    expect(title?.length).toBeLessThanOrEqual(300);
+    expect(title?.endsWith("😀…")).toBe(true);
+  });
+
+  it("drops image URLs too long to sign", () => {
+    const html = `<head><meta property="og:image" content="/${"a".repeat(3000)}.png"></head>`;
+    expect(
+      parseHead(html, new URL("https://x.example.test/")).image
+    ).toBeUndefined();
+  });
+
   it("drops images and icons that aren't http(s)", () => {
     const html = `<head>
       <meta property="og:image" content="data:image/png;base64,AAAA">

@@ -427,6 +427,23 @@ describe("safeFetch limits", () => {
     expect(Date.now() - started).toBeLessThan(2000);
   });
 
+  it("times out a body that trickles in, within the same deadline", async () => {
+    const fixture = await serve((_request, response) => {
+      response.setHeader("content-type", "text/html");
+      response.write("<html><head>");
+      const drip = setInterval(() => response.write(" "), 50);
+      response.on("close", () => clearInterval(drip));
+    });
+    const started = Date.now();
+    const result = await safeFetch(
+      `${fixture.origin}/`,
+      HTML,
+      deps({ allowOrigins: new Set([fixture.origin]), timeoutMs: 400 })
+    );
+    expect(result).toMatchObject({ error: { type: "timeout" }, ok: false });
+    expect(Date.now() - started).toBeLessThan(2000);
+  });
+
   it("decodes a gzipped body, capping the decoded bytes", async () => {
     const fixture = await serve((_request, response) => {
       response.writeHead(200, {

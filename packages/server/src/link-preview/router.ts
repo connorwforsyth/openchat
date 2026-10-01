@@ -1,6 +1,7 @@
 import { implement, ORPCError } from "@orpc/server";
 import { contract } from "@workspace/contract/contract";
 import { baseErrors, featureError } from "@workspace/contract/errors";
+import { linkPreviewSchema } from "@workspace/contract/schemas/link-preview";
 
 import type { RequestContext } from "../context";
 import type { RateLimiter } from "./rate-limit";
@@ -68,11 +69,15 @@ export const createLinkPreviewRouter = ({
     linkPreviews: {
       get: signedIn.linkPreviews.get.handler(async ({ context, input }) => {
         limit(limits.previews, context.userId);
-        const preview = await service.preview(input.url);
-        if (!preview) {
+        // Checked here too: a page that slips past the parser's caps is
+        // "no preview", not a 500.
+        const preview = linkPreviewSchema.safeParse(
+          await service.preview(input.url)
+        );
+        if (!preview.success) {
           throw notFound();
         }
-        return preview;
+        return preview.data;
       }),
 
       image: signedIn.linkPreviews.image.handler(async ({ context, input }) => {

@@ -1,7 +1,10 @@
 import { createHash } from "node:crypto";
 
 import type { LinkPreview } from "@workspace/contract/schemas/link-preview";
-import { LINK_PREVIEW_IMAGE_TYPES } from "@workspace/contract/schemas/link-preview";
+import {
+  LINK_PREVIEW_IMAGE_TYPES,
+  LINK_PREVIEW_LIMITS,
+} from "@workspace/contract/schemas/link-preview";
 import type { AsyncResult } from "@workspace/shared/result";
 
 import { createLruCache, type TtlCache } from "./cache";
@@ -142,7 +145,9 @@ export const createLinkPreviewService = ({
     return {
       ...head,
       fetchedAt: now().toISOString(),
-      finalUrl: finalUrl.href,
+      // A redirect can land somewhere longer than the contract allows.
+      finalUrl:
+        finalUrl.href.length <= LINK_PREVIEW_LIMITS.url ? finalUrl.href : url,
       url,
     };
   };

@@ -93,6 +93,7 @@ const TAGS = /<[^>]*>/g;
 // biome-ignore lint/suspicious/noControlCharactersInRegex: stripping them is the point
 const CONTROL = /[\u0000-\u001f\u007f-\u009f​-‏‪-‮]/g;
 const SPACES = /\s+/g;
+const HIGH_SURROGATE = /[\ud800-\udbff]/;
 
 /** Plain text, at most `max` characters. */
 const cleanText = (raw: string | undefined, max: number) => {
@@ -107,13 +108,15 @@ const cleanText = (raw: string | undefined, max: number) => {
   if (text === "") {
     return;
   }
-  const chars = [...text];
-  return chars.length > max
-    ? `${chars
-        .slice(0, max - 1)
-        .join("")
-        .trimEnd()}…`
-    : text;
+  if (text.length <= max) {
+    return text;
+  }
+  // The contract caps UTF-16 length; don't split a surrogate pair.
+  let cut = text.slice(0, max - 1);
+  if (HIGH_SURROGATE.test(cut.at(-1) ?? "")) {
+    cut = cut.slice(0, -1);
+  }
+  return `${cut.trimEnd()}…`;
 };
 
 // --- the tokenizer ---
@@ -248,7 +251,9 @@ const resolveHttp = (
   }
   try {
     const url = new URL(decodeEntities(trimmed), base);
-    return url.protocol === "http:" || url.protocol === "https:"
+    const http = url.protocol === "http:" || url.protocol === "https:";
+    // Longer ones wouldn't fit a signed image path.
+    return http && url.href.length <= LINK_PREVIEW_LIMITS.url
       ? url.href
       : undefined;
   } catch {
