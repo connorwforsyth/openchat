@@ -166,7 +166,8 @@ export function SplitHandle({
       aria-valuenow={Math.round(value * 100)}
       className={cn(
         // Takes no height of its own: 4px either side of the edge it sits on.
-        "relative z-20 -my-1 h-2 shrink-0 cursor-row-resize touch-none select-none outline-none",
+        // Under the side panel's own handle (z-20) where the two cross.
+        "relative z-10 -my-1 h-2 shrink-0 cursor-row-resize touch-none select-none outline-none",
         "before:pointer-events-none before:absolute before:inset-x-0 before:top-1 before:h-px before:bg-border before:transition-colors before:duration-(--motion-fast)",
         "hover:before:bg-foreground/40 focus-visible:before:h-0.5 focus-visible:before:bg-ring data-dragging:before:bg-foreground/60",
         className
