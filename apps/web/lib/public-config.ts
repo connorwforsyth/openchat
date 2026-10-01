@@ -1,6 +1,5 @@
 import { loadConfig } from "@workspace/config/load";
 import { toPublicConfig } from "@workspace/config/public";
-import type { FontsConfig } from "@workspace/config/schema";
 import type { PublicConfig } from "@workspace/contract/schemas/meta";
 
 // The public slice of `app.config.yaml` (what `GET /api/config` serves),
@@ -9,12 +8,7 @@ import type { PublicConfig } from "@workspace/contract/schemas/meta";
 // restart (D18), the same as for the API.
 
 export type PublicConfigResult =
-  | {
-      readonly config: PublicConfig;
-      /** Server-only: the fonts the root layout applies. */
-      readonly fonts: FontsConfig;
-      readonly ok: true;
-    }
+  | { readonly config: PublicConfig; readonly ok: true }
   /** The file is invalid; the server log has the details. */
   | { readonly ok: false };
 
@@ -24,11 +18,7 @@ const load = async (): Promise<PublicConfigResult> => {
   try {
     const loaded = await loadConfig();
     return loaded.ok
-      ? {
-          config: toPublicConfig(loaded.value.config, process.env),
-          fonts: loaded.value.config.fonts,
-          ok: true,
-        }
+      ? { config: toPublicConfig(loaded.value.config, process.env), ok: true }
       : { ok: false };
   } catch {
     // An unreadable file (permissions, a directory) is a bad config too.

@@ -80,8 +80,10 @@ embeddings: { model: openai:text-embedding-3-small }
 # ICON_STYLE, ICON_WEIGHT and ICON_FILL override it (a Docker image's build args).
 icons: { set: lucide }      # e.g. { set: material, style: rounded, weight: 400, fill: false }
 
-# Interface fonts, all bundled (nothing is downloaded); applies on restart.
-# sans: geist | inter | ibm-plex-sans | figtree | manrope; mono: geist-mono | jetbrains-mono
+# Interface fonts, from npm (nothing is downloaded). Compiled in like icons:
+# only the chosen pair ships; `bun dev` picks a change up on restart.
+# sans: geist | inter | open-sans | ibm-plex-sans | figtree | manrope
+# mono: geist-mono | jetbrains-mono
 fonts: { sans: geist, mono: geist-mono }
 
 observability: { otlp: null, recordContent: false }   # otlp: { endpoint: "${OTEL_EXPORTER_OTLP_ENDPOINT}" }; recordContent puts prompts on spans

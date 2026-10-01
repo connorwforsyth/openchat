@@ -5,14 +5,20 @@
   "globalDependencies": ["tsconfig.json", "biome.jsonc"],
   "tasks": {
     "build": {
-      "dependsOn": ["^build", "typecheck", "^i18n:compile", "^icons:select"],
+      "dependsOn": [
+        "^build",
+        "typecheck",
+        "^i18n:compile",
+        "^icons:select",
+        "fonts:select"
+      ],
       "env": ["NEXT_OUTPUT"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
     "dev": {
       "cache": false,
-      "dependsOn": ["^i18n:compile", "^icons:select"],
+      "dependsOn": ["^i18n:compile", "^icons:select", "fonts:select"],
       "persistent": true
     },
     "desktop:dev": {
@@ -31,7 +37,8 @@
         "i18n:compile",
         "^i18n:compile",
         "icons:select",
-        "^icons:select"
+        "^icons:select",
+        "fonts:select"
       ]
     },
     "test": {
@@ -84,6 +91,16 @@
     },
     "i18n:extract": {
       "cache": false
+    },
+    "fonts:select": {
+      "env": ["CONFIG_PATH"],
+      "inputs": [
+        "scripts/fonts-select.ts",
+        "lib/font-catalog.ts",
+        "app.config.yaml",
+        "$TURBO_ROOT$/packages/config/src/schema.ts"
+      ],
+      "outputs": ["lib/fonts.selected.ts"]
     },
     "icons:select": {
       "env": [

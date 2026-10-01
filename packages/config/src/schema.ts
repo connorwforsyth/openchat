@@ -493,16 +493,24 @@ export const iconsSchema = z
 export type IconsConfig = z.infer<typeof iconsSchema>;
 
 /**
- * The interface fonts, picked from the ones the web app bundles (fonts are
- * never downloaded at build or run time). Read when a page renders, so a
- * change applies on restart. Scripts outside Latin fall back to system fonts
- * for every choice but Geist.
+ * The interface fonts (apps/web/lib/font-catalog.ts). Compiled in like the
+ * icon set: `fonts:select` in apps/web reads this block at build time (and on
+ * every `bun dev`), so only the chosen fonts ship and a change needs a
+ * rebuild. `FONT_SANS` and `FONT_MONO` override it (Docker build args).
+ * Scripts outside Latin fall back to system fonts for every choice but Geist.
  */
 export const fontsSchema = z
   .strictObject({
     mono: z.enum(["geist-mono", "jetbrains-mono"]).default("geist-mono"),
     sans: z
-      .enum(["geist", "inter", "ibm-plex-sans", "figtree", "manrope"])
+      .enum([
+        "geist",
+        "inter",
+        "open-sans",
+        "ibm-plex-sans",
+        "figtree",
+        "manrope",
+      ])
       .default("geist"),
   })
   .prefault({});

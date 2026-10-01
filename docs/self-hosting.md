@@ -414,6 +414,21 @@ to `docker build` as `--build-arg ICON_SET=material` and so on. Outside
 Docker, `bun run build` reads the `icons` block itself (from `CONFIG_PATH`, or
 `apps/web/app.config.yaml`), and these variables override it.
 
+### Fonts
+
+The interface fonts are compiled in the same way, but only from the `fonts`
+block of `app.config.yaml` (there are no build args for them):
+
+```yaml
+fonts: { sans: inter, mono: jetbrains-mono }
+```
+
+Sans: `geist` (default), `inter`, `open-sans`, `ibm-plex-sans`, `figtree`,
+`manrope`. Mono: `geist-mono` (default), `jetbrains-mono`. Only the chosen
+pair ships. For a Docker image, put the file at `apps/web/app.config.yaml` in
+the build context before `docker compose up -d --build`; outside Docker,
+`bun run build` and `bun dev` read it themselves.
+
 ## Optional services
 
 Each is a compose profile; start it alongside the rest.
