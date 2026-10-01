@@ -7,6 +7,7 @@
   "exports": {
     "./artifacts/*": "./src/artifacts/*.tsx",
     "./chat/*": "./src/chat/*.tsx",
+    "./chat/seed": "./src/chat/seed.ts",
     "./chat/use-chat-data": "./src/chat/use-chat-data.ts",
     "./conversation/*": "./src/conversation/*.tsx",
     "./fixtures": "./src/fixtures.ts",

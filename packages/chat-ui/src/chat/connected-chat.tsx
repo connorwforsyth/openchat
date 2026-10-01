@@ -33,7 +33,7 @@ import type {
 } from "@workspace/contract/schemas/common";
 import type { Conversation } from "@workspace/contract/schemas/conversations";
 import type { ApprovalDecision } from "@workspace/contract/schemas/message-parts";
-import type { Message } from "@workspace/contract/schemas/messages";
+import type { BranchPath, Message } from "@workspace/contract/schemas/messages";
 import type { Me, PublicConfig } from "@workspace/contract/schemas/meta";
 import type { ModelOption } from "@workspace/contract/schemas/models";
 import type {
@@ -87,6 +87,7 @@ import type {
 } from "../workspace/model/client";
 import { toTreePaths } from "../workspace/model/tree";
 import { ChatScreen } from "./chat-screen";
+import { activeRunsInput, type SeededBranch } from "./seed";
 import { useBranchFeedback } from "./use-branch-feedback";
 import { useChatQueries, useConversationUpdate } from "./use-chat-data";
 
@@ -140,6 +141,12 @@ export interface ConnectedChatProps {
    * tells the two apart).
    */
   readonly sandboxClient: WorkspaceClient | null;
+  /**
+   * The branch a server rendering this page read for `conversationId`
+   * (ticket 103). Shown until the path query has it; pass it only for the
+   * chat it was read for.
+   */
+  readonly seededBranch?: SeededBranch;
   /** What answers: a model or an agent. Omitted, the server's default does. */
   readonly target?: RunTarget | null;
   readonly theme: Theme;
@@ -1026,9 +1033,7 @@ const useRunControls = ({
   // The same query `useChatQueries` makes; read whole for the run states.
   const activeRuns = useQuery(
     api.runs.list.queryOptions({
-      input: conversationId
-        ? { active: true, conversationId, limit: 5 }
-        : skipToken,
+      input: conversationId ? activeRunsInput(conversationId) : skipToken,
     })
   ).data?.items;
   useFollowRunningReply({
@@ -1143,6 +1148,7 @@ export function ConnectedChat({
   onThemeChange,
   platform,
   sandboxClient,
+  seededBranch,
   target = null,
   theme,
 }: ConnectedChatProps) {
@@ -1464,6 +1470,7 @@ export function ConnectedChat({
             waiting={waiting}
           />
         }
+        seededBranch={untilFetched(seededBranch, leafId, data.path.data)}
         siblings={data.path.data?.siblings ?? []}
         sidebar={{
           ...sidebarActions,
@@ -1503,3 +1510,14 @@ export function ConnectedChat({
 }
 
 const NO_MESSAGES: readonly Message[] = [];
+
+/**
+ * The server's branch (ticket 103) until the first one arrives on the
+ * default leaf; never over a branch someone switched to.
+ */
+const untilFetched = (
+  seeded: SeededBranch | undefined,
+  leafId: MessageId | undefined,
+  fetched: BranchPath | undefined
+): SeededBranch | undefined =>
+  leafId === undefined && fetched === undefined ? seeded : undefined;

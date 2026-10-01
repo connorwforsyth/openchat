@@ -31,7 +31,7 @@ import type { RunTarget } from "@workspace/contract/schemas/runs";
 import type { ChatContext } from "@workspace/contract/schemas/tenancy";
 import type { PaletteContext } from "@workspace/palette/context-actions";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useApi } from "@/app/(app)/_shared/api";
 import { canAdmin, useAppFrame } from "@/app/(app)/_shared/app-frame";
 import { Brand } from "@/app/(app)/_shared/brand";
@@ -39,6 +39,7 @@ import { createApiSandboxClient } from "@/app/(app)/_shared/sandbox-client";
 import { useAfterBoot } from "@/app/(app)/_shared/use-after-boot";
 import { routeParams, routes } from "@/lib/routes";
 
+import { useChatSeed } from "./chat-seed";
 import {
   AGENT_TABS,
   contextForOwner,
@@ -397,6 +398,12 @@ export function ChatRoute({
     [client, config.features.sandboxes, conversationId, t]
   );
 
+  // The server's read of the chat this screen opened on (ticket 103): only
+  // that one, so a later visit never shows it in place of a fresh fetch.
+  const filedSeed = useChatSeed(conversationId);
+  const [opened] = useState(() => ({ id: conversationId, seed: filedSeed }));
+  const seed = opened.id === conversationId ? opened.seed : undefined;
+
   if (conversationId === undefined) {
     // Not an id: the page renders the 404.
     return null;
@@ -427,6 +434,7 @@ export function ChatRoute({
       onTargetChange={changeTarget}
       onThemeChange={frame.setTheme}
       sandboxClient={sandboxClient}
+      seededBranch={seed}
       target={target}
       theme={frame.theme}
     />
