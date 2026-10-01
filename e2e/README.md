@@ -28,6 +28,13 @@ search the web, call an MCP tool and make an artifact.
 The echo ends with each workspace file the turn read in (an `@` mention or an
 attachment) as `[path: content]`, so a spec can see what reached the model.
 
+`support/fixture-site.ts` is a small web site on loopback: SearXNG's JSON
+search and pages with Open Graph tags, a favicon and an image, for
+`link-previews.spec.ts`. The server may fetch it only because serve.ts sets
+the test-only `LINK_PREVIEW_TEST_ALLOW_ORIGINS` to its exact origin; every
+other private address stays refused. Set `LINK_PREVIEW_SCREENSHOTS=<dir>`
+to have that spec save light and dark, desktop and 375px screenshots.
+
 `accounts.setup.ts` runs first: the first sign-up (the admin), an org made
 from the account menu with a team tree, and two more people joining by the
 invite links the members page shows. The specs build on the browser state and

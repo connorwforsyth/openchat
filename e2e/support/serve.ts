@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 import { startMcpFixture } from "@workspace/mcp/testing/fixture-server";
 
 import { BRAND_NAME } from "./brand";
+import { recordFixtureOrigin, startFixtureSite } from "./fixture-site";
 import { startMockLlm } from "./mock-llm";
 import { startMockSearch } from "./mock-search";
 
@@ -25,6 +26,8 @@ import { startMockSearch } from "./mock-search";
 // app.config.yaml whose providers point at the mock model server (and whose
 // web search backend and one instance MCP server are local stand-ins too,
 // for tools.spec.ts), and loopback as a trusted proxy (for proxy.spec.ts).
+// A fixture web site (support/fixture-site.ts) serves pages that link
+// previews fetch, allowlisted by a test-only variable (101).
 //
 // `E2E_STANDALONE=1` runs the server the Docker image runs instead: the
 // `standalone` build (`NEXT_OUTPUT=standalone next build`), laid out as
@@ -45,6 +48,8 @@ interface Mocks {
   readonly mcp: string;
   /** The SearXNG stand-in. */
   readonly search: string;
+  /** The fixture web site link previews fetch (101). */
+  readonly site: string;
 }
 
 const config = ({ files, llm: baseURL, mcp, search }: Mocks) => `version: 1
@@ -114,11 +119,13 @@ const standaloneServer = async (dir: string): Promise<Launch> => {
 
 const main = async () => {
   const dir = await mkdtemp(join(tmpdir(), "e2e-server-"));
-  const [llm, search, mcp] = await Promise.all([
+  const [llm, search, mcp, site] = await Promise.all([
     startMockLlm(),
     startMockSearch(),
     startMcpFixture(),
+    startFixtureSite(),
   ]);
+  await recordFixtureOrigin(site.origin);
   const configPath = join(dir, "app.config.yaml");
   await writeFile(
     configPath,
@@ -127,6 +134,7 @@ const main = async () => {
       llm: llm.baseUrl,
       mcp: mcp.url,
       search: search.url,
+      site: site.origin,
     })
   );
   const launch = process.env.E2E_STANDALONE
@@ -144,6 +152,10 @@ const main = async () => {
         CONFIG_PATH: configPath,
         ENCRYPTION_KEY: randomBytes(32).toString("base64"),
         HOME: process.env.HOME,
+        // TEST ONLY: the fixture site is on loopback, which link previews
+        // refuse; this lets exactly its origin through (101). The server
+        // honours it in production only because BETTER_AUTH_URL is loopback.
+        LINK_PREVIEW_TEST_ALLOW_ORIGINS: site.origin,
         NEXT_TELEMETRY_DISABLED: "1",
         NODE_ENV: process.env.E2E_DEV ? "development" : "production",
         PATH: process.env.PATH,
@@ -162,7 +174,7 @@ const main = async () => {
     }
     stopping = true;
     child.kill("SIGTERM");
-    await Promise.all([llm.close(), search.close(), mcp.close()]);
+    await Promise.all([llm.close(), search.close(), mcp.close(), site.close()]);
     await rm(dir, { force: true, recursive: true });
     process.exit(code);
   };
