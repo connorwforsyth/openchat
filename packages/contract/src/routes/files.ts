@@ -13,6 +13,7 @@ import {
   artifactDetailSchema,
   artifactGrantSchema,
   artifactListItemSchema,
+  artifactPublicationSchema,
   artifactSchema,
   artifactVersionSchema,
   fileSchema,
@@ -21,12 +22,14 @@ import {
   fileUrlSchema,
   listAllArtifactsInputSchema,
   listFilesInputSchema,
+  publishedArtifactSchema,
   renameArtifactInputSchema,
+  saveWorkspaceArtifactInputSchema,
   shareArtifactInputSchema,
   uploadFileInputSchema,
   useArtifactInputSchema,
 } from "../schemas/files";
-import { authed } from "./base";
+import { authed, open } from "./base";
 
 const byId = z.object({ id: fileIdSchema });
 
@@ -184,6 +187,38 @@ export const artifacts = {
     })
     .input(byArtifact)
     .output(z.void()),
+  publication: authed
+    .route({
+      description:
+        "The artifact's public link (125), or `null` while it isn't published. Anyone who can see the artifact sees it.",
+      method: "GET",
+      path: "/artifacts/{id}/publication",
+      summary: "Get an artifact's public link",
+    })
+    .input(byArtifact)
+    .output(artifactPublicationSchema.nullable()),
+  publish: authed
+    .errors(featureError)
+    .route({
+      description:
+        "The owner only, for kinds that can be published (a Site, 125): publishes the latest version to a public link on the artifact runtime's origin. Publishing again keeps the link and moves it to the latest version. `FEATURE_DISABLED` (`publicLinks`) when the instance doesn't allow public links or has no artifact runtime; `VALIDATION` when the kind can't be published or the version fails its checks.",
+      method: "POST",
+      path: "/artifacts/{id}/publication",
+      summary: "Publish an artifact",
+    })
+    .input(byArtifact)
+    .output(artifactPublicationSchema),
+  published: open
+    .errors(featureError)
+    .route({
+      description:
+        "Public and read-only: what a published link serves (125), for the artifact runtime to build and show. Unpublished or unknown tokens are `NOT_FOUND`.",
+      method: "GET",
+      path: "/published/{token}",
+      summary: "Open a published artifact",
+    })
+    .input(z.object({ token: z.string().min(22).max(128) }))
+    .output(publishedArtifactSchema),
   rename: authed
     .route({
       description: "The owner, or an `editor`.",
@@ -193,6 +228,18 @@ export const artifacts = {
     })
     .input(renameArtifactInputSchema)
     .output(artifactListItemSchema),
+  saveFromWorkspace: authed
+    .errors(featureError)
+    .route({
+      description:
+        "\"Save as artifact\" (125): the files under a folder of the chat's workspace become a new artifact of `kind` that the caller owns, made in that chat. `VALIDATION` lists what fails the kind's checks; nothing is saved then. Needs write access to the chat.",
+      method: "POST",
+      path: "/conversations/{conversationId}/sandbox/artifacts",
+      successStatus: 201,
+      summary: "Save a workspace folder as an artifact",
+    })
+    .input(saveWorkspaceArtifactInputSchema)
+    .output(artifactSchema),
   share: authed
     .route({
       description:
@@ -204,6 +251,17 @@ export const artifacts = {
     })
     .input(shareArtifactInputSchema)
     .output(artifactGrantSchema),
+  unpublish: authed
+    .route({
+      description:
+        "The owner only: takes the public link down. Its URL stops working, and publishing again makes a new one.",
+      method: "DELETE",
+      path: "/artifacts/{id}/publication",
+      successStatus: 204,
+      summary: "Unpublish an artifact",
+    })
+    .input(byArtifact)
+    .output(z.void()),
   unshare: authed
     .route({
       description: "The owner, or the person a share was made to, dropping it.",

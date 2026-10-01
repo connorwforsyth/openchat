@@ -116,7 +116,15 @@
             "description": "artifact id (UUIDv7)"
           },
           "kind": {
-            "enum": ["code", "html", "react", "markdown", "svg", "mermaid"],
+            "enum": [
+              "code",
+              "html",
+              "react",
+              "markdown",
+              "svg",
+              "mermaid",
+              "site"
+            ],
             "type": "string"
           },
           "latestVersionId": {
@@ -207,7 +215,15 @@
             "description": "artifact id (UUIDv7)"
           },
           "kind": {
-            "enum": ["code", "html", "react", "markdown", "svg", "mermaid"],
+            "enum": [
+              "code",
+              "html",
+              "react",
+              "markdown",
+              "svg",
+              "mermaid",
+              "site"
+            ],
             "type": "string"
           },
           "latestVersionId": {
@@ -2838,7 +2854,15 @@
                 "description": "artifact id (UUIDv7)"
               },
               "kind": {
-                "enum": ["code", "html", "react", "markdown", "svg", "mermaid"],
+                "enum": [
+                  "code",
+                  "html",
+                  "react",
+                  "markdown",
+                  "svg",
+                  "mermaid",
+                  "site"
+                ],
                 "type": "string"
               },
               "title": {
@@ -5933,7 +5957,15 @@
             "name": "kind",
             "in": "query",
             "schema": {
-              "enum": ["code", "html", "react", "markdown", "svg", "mermaid"],
+              "enum": [
+                "code",
+                "html",
+                "react",
+                "markdown",
+                "svg",
+                "mermaid",
+                "site"
+              ],
               "type": "string"
             },
             "allowEmptyValue": true,
@@ -6391,6 +6423,689 @@
                   "oneOf": [
                     {
                       "$ref": "#/components/schemas/FORBIDDENError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/NOT_FOUNDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "422",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/VALIDATIONError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "429",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/RATE_LIMITEDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/artifacts/{id}/publication": {
+      "get": {
+        "operationId": "artifacts.publication",
+        "summary": "Get an artifact's public link",
+        "description": "The artifact's public link (125), or `null` while it isn't published. Anyone who can see the artifact sees it.",
+        "tags": ["Artifacts"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "artifact id (UUIDv7)"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "artifactId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "description": "artifact id (UUIDv7)"
+                        },
+                        "publishedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "publishedBy": {
+                          "type": "string",
+                          "format": "uuid",
+                          "description": "user id (UUIDv7)"
+                        },
+                        "token": {
+                          "type": "string",
+                          "minLength": 22,
+                          "maxLength": 128
+                        },
+                        "url": {
+                          "type": "string",
+                          "format": "uri"
+                        },
+                        "versionId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "description": "artifactVersion id (UUIDv7)"
+                        }
+                      },
+                      "required": [
+                        "artifactId",
+                        "publishedAt",
+                        "publishedBy",
+                        "token",
+                        "url",
+                        "versionId"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/UNAUTHORIZEDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/FORBIDDENError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/NOT_FOUNDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "422",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/VALIDATIONError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "429",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/RATE_LIMITEDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "artifacts.publish",
+        "summary": "Publish an artifact",
+        "description": "The owner only, for kinds that can be published (a Site, 125): publishes the latest version to a public link on the artifact runtime's origin. Publishing again keeps the link and moves it to the latest version. `FEATURE_DISABLED` (`publicLinks`) when the instance doesn't allow public links or has no artifact runtime; `VALIDATION` when the kind can't be published or the version fails its checks.",
+        "tags": ["Artifacts"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "artifact id (UUIDv7)"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "artifactId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "description": "artifact id (UUIDv7)"
+                    },
+                    "publishedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "publishedBy": {
+                      "type": "string",
+                      "format": "uuid",
+                      "description": "user id (UUIDv7)"
+                    },
+                    "token": {
+                      "type": "string",
+                      "minLength": 22,
+                      "maxLength": 128
+                    },
+                    "url": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "versionId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "description": "artifactVersion id (UUIDv7)"
+                    }
+                  },
+                  "required": [
+                    "artifactId",
+                    "publishedAt",
+                    "publishedBy",
+                    "token",
+                    "url",
+                    "versionId"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/UNAUTHORIZEDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/FORBIDDENError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/FEATURE_DISABLEDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/NOT_FOUNDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "422",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/VALIDATIONError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "429",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/RATE_LIMITEDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "artifacts.unpublish",
+        "summary": "Unpublish an artifact",
+        "description": "The owner only: takes the public link down. Its URL stops working, and publishing again makes a new one.",
+        "tags": ["Artifacts"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "artifact id (UUIDv7)"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No content."
+          },
+          "401": {
+            "description": "401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/UNAUTHORIZEDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/FORBIDDENError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/NOT_FOUNDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "422",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/VALIDATIONError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "429",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/RATE_LIMITEDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/published/{token}": {
+      "get": {
+        "operationId": "artifacts.published",
+        "summary": "Open a published artifact",
+        "description": "Public and read-only: what a published link serves (125), for the artifact runtime to build and show. Unpublished or unknown tokens are `NOT_FOUND`.",
+        "tags": ["Artifacts"],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 22,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "content": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "enum": [
+                        "code",
+                        "html",
+                        "react",
+                        "markdown",
+                        "svg",
+                        "mermaid",
+                        "site"
+                      ],
+                      "type": "string"
+                    },
+                    "publishedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "title": {
+                      "type": "string",
+                      "maxLength": 200
+                    }
+                  },
+                  "required": ["content", "kind", "publishedAt", "title"]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/FEATURE_DISABLEDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/NOT_FOUNDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "429",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/RATE_LIMITEDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/conversations/{conversationId}/sandbox/artifacts": {
+      "post": {
+        "operationId": "artifacts.saveFromWorkspace",
+        "summary": "Save a workspace folder as an artifact",
+        "description": "\"Save as artifact\" (125): the files under a folder of the chat's workspace become a new artifact of `kind` that the caller owns, made in that chat. `VALIDATION` lists what fails the kind's checks; nothing is saved then. Needs write access to the chat.",
+        "tags": ["Artifacts"],
+        "parameters": [
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "conversation id (UUIDv7)"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "enum": ["site"],
+                    "type": "string"
+                  },
+                  "path": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096
+                  },
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                },
+                "required": ["kind", "path", "title"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Artifact"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/UNAUTHORIZEDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/FORBIDDENError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/FEATURE_DISABLEDError"
                     },
                     {
                       "$ref": "#/components/schemas/UndefinedError"
@@ -16062,6 +16777,18 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "artifacts": {
+                      "type": "object",
+                      "properties": {
+                        "siteOrigins": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "required": ["siteOrigins"]
+                    },
                     "auth": {
                       "type": "object",
                       "properties": {
@@ -16203,6 +16930,7 @@
                     }
                   },
                   "required": [
+                    "artifacts",
                     "auth",
                     "brand",
                     "features",

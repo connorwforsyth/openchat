@@ -207,6 +207,7 @@ describe("openapi.json", () => {
     expect(open.sort()).toEqual([
       "GET /config",
       "GET /health",
+      "GET /published/{token}",
       "GET /share/{token}",
     ]);
   });
