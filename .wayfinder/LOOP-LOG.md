@@ -119,3 +119,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-10-01 · from performance.dev/chatgpt, Connor chose: added and claimed 102 (prepare while typing) and 103 (server-seeded chat); added 104 (voice mode, proposal first)
 - 2026-10-01 · 099 draft PR, stacked on #77 · gate 82/82 · e2e 57/57 on a private port (the loop's earlier failure came from a shared default e2e port)
 - 2026-10-01 · 101 draft PR · gate 82/82 · e2e 58/58 (private port)
+- 2026-10-01 · Connor's picker feedback: added and claimed 105 (overlay next to Send, plainer rows, variant picker); the reasoning-level contract field is not approved yet
