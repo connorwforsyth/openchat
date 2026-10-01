@@ -1,3 +1,4 @@
+import { type ModelPrices, usageCost } from "@workspace/config/prices";
 import type { budgetExceededDataSchema } from "@workspace/contract/errors";
 import type { OrgId, TeamId } from "@workspace/contract/schemas/common";
 import type {
@@ -116,11 +117,13 @@ export const budgetCheck =
 
 /**
  * Records a finished run's model usage against the user and the context.
- * Cost is zero until model prices land in config (the usage workstream);
- * the tokens are what the balances will be recomputed from.
+ * The cost is the turn's tokens at the resolved model's price in
+ * `models.prices`; a model with no price there is recorded at 0, so it
+ * counts toward no budget. Whoever's key paid, the cost is the same.
  */
 export const recordRunUsage = async (
   db: Db,
+  prices: ModelPrices,
   { run, turn, usage }: RunSettled
 ): Promise<void> => {
   if (!(usage && turn)) {
@@ -133,7 +136,7 @@ export const recordRunUsage = async (
   }
   await recordTransaction(db, {
     context,
-    costMicros: 0,
+    costMicros: usageCost(prices, turn.resolvedModel, usage).costMicros,
     kind: "chat",
     model: turn.resolvedModel,
     orgId: charged.orgId,

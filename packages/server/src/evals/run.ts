@@ -1,4 +1,5 @@
 import { runAgent } from "@workspace/ai/agent/run-agent";
+import { type ModelPrices, usageCost } from "@workspace/config/prices";
 import type {
   JsonValue,
   LibraryVersionId,
@@ -144,6 +145,8 @@ export interface EvalJobDeps {
   readonly db: Db;
   readonly loadModel: ModelLoader;
   readonly now?: () => Date;
+  /** `models.prices`, to cost each case's usage; without it every case costs 0. */
+  readonly prices?: ModelPrices;
   readonly report?: (message: string, cause: unknown) => void;
 }
 
@@ -196,7 +199,7 @@ export const createEvalJobHandlers = (deps: EvalJobDeps): JobHandlers => {
     }
     await recordTransaction(db, {
       context: context.value,
-      costMicros: 0,
+      costMicros: usageCost(deps.prices ?? {}, model, usage).costMicros,
       kind: "chat",
       model,
       orgId: charged.orgId,

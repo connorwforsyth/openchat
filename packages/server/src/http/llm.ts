@@ -7,6 +7,7 @@ import {
   type LlmUsageEvent,
   llmProxyResponse,
 } from "@workspace/ai/llm-proxy/handle";
+import { usageCost } from "@workspace/config/prices";
 import type { LlmUsage } from "@workspace/contract/schemas/llm";
 import { llmProxyRequestSchema } from "@workspace/contract/schemas/llm";
 import type { TokenUsage } from "@workspace/contract/schemas/models";
@@ -76,15 +77,20 @@ const usageRecorder =
       if (!charged) {
         return;
       }
+      const tokens = tokenUsageOf(usage);
       await recordTransaction(deps.db, {
         context,
-        // Zero until model prices land in config, as for runs.
-        costMicros: 0,
+        // Priced from `models.prices`, as for runs; 0 when the model has no price.
+        costMicros: usageCost(
+          deps.config.models.prices,
+          event.resolvedModel,
+          tokens
+        ).costMicros,
         kind: "chat",
         model: event.resolvedModel,
         orgId: charged.orgId,
         paidBy: event.source ?? { type: "instance" },
-        usage: tokenUsageOf(usage),
+        usage: tokens,
         userId: actor.userId,
       });
     };

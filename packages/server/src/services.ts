@@ -154,8 +154,8 @@ export const createServices = (options: ServicesOptions): Services => {
   const streams = createPostgresStreamChannel({ db, listen: options.listen });
 
   const afterRun = async (event: RunSettled) => {
-    await recordRunUsage(db, event).catch((cause: unknown) =>
-      report("couldn't record usage", cause)
+    await recordRunUsage(db, config.models.prices, event).catch(
+      (cause: unknown) => report("couldn't record usage", cause)
     );
     if (!jobs) {
       return;
@@ -224,7 +224,13 @@ export const createServices = (options: ServicesOptions): Services => {
     jobHandlers: {
       ...jobHandlers,
       ...testChatJobHandlers({ db, now: options.now }),
-      ...createEvalJobHandlers({ db, loadModel, now: options.now, report }),
+      ...createEvalJobHandlers({
+        db,
+        loadModel,
+        now: options.now,
+        prices: config.models.prices,
+        report,
+      }),
     },
     loadModel,
     memory,

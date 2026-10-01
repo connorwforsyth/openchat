@@ -50,7 +50,13 @@ beforeEach(async () => {
   model = new MockLanguageModelV4({
     doStream: [textStream("Paris"), textStream("Berlin"), textStream("Blue")],
   });
-  h = await createHarness({ models: { "test:agent": model } });
+  h = await createHarness({
+    models: { "test:agent": model },
+    // $1 in and $2 out per million tokens.
+    prices: {
+      "test:agent": { inputMicros: 1_000_000, outputMicros: 2_000_000 },
+    },
+  });
 });
 
 afterEach(() => h.close());
@@ -130,6 +136,8 @@ describe("eval.run", () => {
       .from(transaction)
       .where(eq(transaction.userId, h.ownerId));
     expect(spent).toHaveLength(3);
+    // Each case used 10 tokens in and 5 out, at the agent's model's price.
+    expect(spent.map((row) => row.costMicros)).toEqual([20, 20, 20]);
   });
 
   it("fails a run with no one to run it as, without calling a model", async () => {

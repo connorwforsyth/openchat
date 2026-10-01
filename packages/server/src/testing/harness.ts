@@ -5,6 +5,7 @@ import type {
 import { createMemoryProviderRegistry } from "@workspace/ai/ports/provider-registry.memory";
 import { usage } from "@workspace/ai/testing/mock-models";
 import { parseConfig } from "@workspace/config/parse";
+import type { ModelPrices } from "@workspace/config/prices";
 import type { AppConfig } from "@workspace/config/schema";
 import type { UserId } from "@workspace/contract/schemas/common";
 import {
@@ -41,7 +42,7 @@ import {
 export const USER_HEADER = "x-test-user";
 
 /** The configured defaults, plus a model the memory registry serves for titles. */
-export const testConfig = (): AppConfig => {
+export const testConfig = (prices: ModelPrices = {}): AppConfig => {
   const parsed = parseConfig("", {});
   if (!parsed.ok) {
     throw new Error("the default config doesn't parse");
@@ -50,7 +51,7 @@ export const testConfig = (): AppConfig => {
   // and the test provider lives only in the memory registry.
   return {
     ...parsed.value,
-    models: { ...parsed.value.models, default: "test:title" },
+    models: { ...parsed.value.models, default: "test:title", prices },
   };
 };
 
@@ -148,6 +149,8 @@ const listenFor = (testDb: TestDb): Listen => {
 export interface HarnessOptions {
   /** More models the registry serves, by ref (the `test` provider is keyless). */
   readonly models?: Readonly<Record<string, LanguageModelV4>>;
+  /** `models.prices` for the test provider's models; none are priced otherwise. */
+  readonly prices?: ModelPrices;
   /**
    * Resolve turns for real (`createTurnResolver`: agents, drafts, tools)
    * over `models`, instead of the scripted `nextTurn` queue.
@@ -168,7 +171,7 @@ export const createHarness = async (
   const turns: TurnScript[] = [];
   const jobs = createMemoryJobQueue<Jobs>();
   const services = createServices({
-    config: testConfig(),
+    config: testConfig(options.prices),
     db,
     jobs,
     listen: listenFor(testDb),
