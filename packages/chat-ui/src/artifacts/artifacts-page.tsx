@@ -1,7 +1,7 @@
 "use client";
 
 import { Trans, useLingui } from "@lingui/react/macro";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
 import type { QueryUtils } from "@workspace/client/api";
 import type { ArtifactId } from "@workspace/contract/schemas/common";
 import type {
@@ -302,11 +302,11 @@ function KindFilter({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuRadioGroup onValueChange={change} value={value}>
-          <DropdownMenuRadioItem value="all">
+          <DropdownMenuRadioItem closeOnClick value="all">
             <Trans>All kinds</Trans>
           </DropdownMenuRadioItem>
           {artifactKinds.map((each) => (
-            <DropdownMenuRadioItem key={each} value={each}>
+            <DropdownMenuRadioItem closeOnClick key={each} value={each}>
               {i18n._(artifactKindLabels[each])}
             </DropdownMenuRadioItem>
           ))}
@@ -350,6 +350,8 @@ function ArtifactList({
         query: query === "" ? undefined : query,
         scope,
       }),
+      // A new filter keeps the old rows up until its own arrive.
+      placeholderData: keepPreviousData,
     })
   );
   const { fetchNextPage } = list;
