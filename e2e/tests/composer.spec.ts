@@ -232,7 +232,11 @@ test("the thinking level and fast mode sit apart, and go out with the run (105)"
 
   // Back on Echo, its level is remembered.
   await targetPicker(page, "Parrot").click();
+  await expect(dialog.getByRole("combobox")).toBeFocused();
   await page.keyboard.type("mock echo");
+  await expect(dialog.getByRole("option")).toHaveCount(1);
   await page.keyboard.press("Enter");
+  await expect(dialog).toBeHidden();
+  await expect(targetPicker(page, "Echo")).toBeVisible();
   await expect(thinking).toHaveAccessibleName("Thinking: Low");
 });
