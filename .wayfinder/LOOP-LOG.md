@@ -137,3 +137,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-10-02 · Connor: skills in chats (127, contract field approved) and skill authoring tools (128); 082 is now compaction only, parked
 - 2026-10-02 · 116 merged (PR #91) · gate 92/92 · e2e 74/74 · added 130 (icons yaml-only) and 131 (tool errors fail runs) · 106 and 129 in verification
 - 2026-10-02 · 129 merged (PR #92) · gate 93/93 · e2e 74/74 ×3 · added 132 (flaky composer thinking/fast test)
+- 2026-10-02 · 106 merged (PR #93) · gate 93/93 (forced, clean) · e2e 75/75 · chat-ui unit tests flake only under load (logged on 132) · 131 resumed to wire plan mode · 124 rebased (conflicts in connected-chat and the .po resolved), verifying

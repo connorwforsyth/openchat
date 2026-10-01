@@ -2,7 +2,7 @@
 id: "106"
 title: "Plan mode: a read-only planning run, a plan you can edit, then Approve to build"
 labels: [wayfinder:build]
-status: open
+status: closed
 assignee: loop
 blockedBy: []
 ---

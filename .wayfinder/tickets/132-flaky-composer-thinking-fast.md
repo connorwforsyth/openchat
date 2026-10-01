@@ -15,3 +15,7 @@ blockedBy: []
 
 - Root cause found by instrumenting the failing run (trace on failure). Fix the app if it's a reset race; otherwise fix the test's waits.
 - The spec passes in 20 repeats under parallel load (`--repeat-each`).
+
+## Also (2026-10-02)
+
+`@workspace/chat-ui#test` failed in the gate under heavy load on 106 (3 runs) and on 124 (once), then passed alone and on clean runs (395/395). Find which test it is when fixing this one.
