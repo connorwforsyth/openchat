@@ -83,6 +83,35 @@ path in any variant. `sets.test.ts` checks the committed data covers every
 mapped symbol in every variant, so a name mapped without regenerating fails
 the tests (and `icons:select`).
 
+## Brand marks
+
+`@workspace/icons/brands` draws vendor logos for the model picker (099):
+`<BrandMark brand="anthropic" className="size-4" />`, plus `brandName(id)`
+(`openai` is "OpenAI") and `hasBrandMark(id)`. They sit outside the
+vocabulary above because a brand's mark is the same whichever set is chosen.
+An id with no mark renders nothing, so the caller draws its own fallback (the
+picker's letter mark).
+
+- `src/brands/brands.ts` is the one list: vendor id (as refs spell it, so
+  `meta-llama` and `x-ai` too) to display name and mark.
+- The marks come from [`@lobehub/icons-static-svg`](https://github.com/lobehub/lobe-icons)
+  (MIT, `LICENSE` and `NOTICE` in `src/brands/`), a devDependency pinned in the
+  root catalog. `bun run icons:generate` copies the monochrome
+  (`currentColor`) path data of just the listed marks into
+  `src/brands/marks.generated.ts`, which is checked in: nothing reads the
+  package or the network at runtime, and Next, Vitest and bun import it
+  without a loader. A mark with a fixed colour, a gradient or a stroke fails
+  the generator rather than being half-copied.
+- `src/brands/brands.test.ts` fails when the generated file disagrees with the
+  installed package or the list.
+
+To add a vendor, add a line to `brands.ts` (the mark is a file name in the
+package's `icons/` folder, without `-color` or `-text`) and run
+`bun run icons:generate`. To update the marks: bump
+`@lobehub/icons-static-svg` in the root `package.json` catalog, `bun install`,
+`bun run icons:generate`, and review the diff of `marks.generated.ts` (a
+redrawn mark shows as changed path data; a removed one fails the generator).
+
 ## Codemod
 
 `bun run icons:codemod [globs…]` rewrites `from "lucide-react"` to

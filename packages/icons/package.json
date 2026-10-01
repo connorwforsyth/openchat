@@ -6,11 +6,13 @@
   "type": "module",
   "exports": {
     ".": "./src/selected.ts",
+    "./brands": "./src/brands/brand-mark.tsx",
     "./names": "./src/names.ts",
     "./native": "./src/selected.native.ts"
   },
   "scripts": {
     "icons:gaps": "bun scripts/gaps.ts",
+    "icons:generate": "bun scripts/brands.ts",
     "icons:select": "bun scripts/select.ts",
     "icons:vendor": "bun scripts/vendor.ts",
     "postinstall": "bun scripts/select.ts",
@@ -25,10 +27,13 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@lobehub/icons-static-svg": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
     "@workspace/config": "workspace:*",
     "@workspace/typescript-config": "workspace:*",
+    "react-dom": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   },
