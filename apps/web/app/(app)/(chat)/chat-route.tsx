@@ -39,6 +39,7 @@ import { createApiSandboxClient } from "@/app/(app)/_shared/sandbox-client";
 import { useAfterBoot } from "@/app/(app)/_shared/use-after-boot";
 import { routeParams, routes } from "@/lib/routes";
 
+import { messageTarget } from "./message-target";
 import {
   AGENT_TABS,
   contextForOwner,
@@ -334,6 +335,14 @@ export function ChatRoute({
     chat.target ??
     settings.data?.defaultTarget ??
     fallbackTarget;
+  // What a message carries: never a guess made while things load (111).
+  const sendTarget = messageTarget({
+    chatDefault: conversation.data?.defaultTarget,
+    chatLoading: Boolean(conversationId) && !conversation.data,
+    chosen: chat.target,
+    fallback: models.data ? fallbackTarget : null,
+    userDefault: settings.data?.defaultTarget,
+  });
 
   const contextOptions = useMemo(
     () => contextOptionsFromMe(me, config.policies.chatContexts),
@@ -427,6 +436,7 @@ export function ChatRoute({
       onTargetChange={changeTarget}
       onThemeChange={frame.setTheme}
       sandboxClient={sandboxClient}
+      sendTarget={sendTarget}
       target={target}
       theme={frame.theme}
     />

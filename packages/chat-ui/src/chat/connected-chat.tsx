@@ -143,6 +143,13 @@ export interface ConnectedChatProps {
    * tells the two apart).
    */
   readonly sandboxClient: WorkspaceClient | null;
+  /**
+   * What goes out with a message, when it differs from what the picker
+   * shows: `null` while the chat's own target is still loading, so the
+   * server answers with the chat's default rather than a guess (111).
+   * Omitted, `target` goes out.
+   */
+  readonly sendTarget?: RunTarget | null;
   /** What answers: a model or an agent. Omitted, the server's default does. */
   readonly target?: RunTarget | null;
   readonly theme: Theme;
@@ -1164,6 +1171,12 @@ const useRunControls = ({
   };
 };
 
+/** What a message carries: `sendTarget` when the host gave one (111), else the shown target. */
+const targetToSend = (
+  sendTarget: RunTarget | null | undefined,
+  target: RunTarget | null
+): RunTarget | null => (sendTarget === undefined ? target : sendTarget);
+
 export function ConnectedChat({
   agents,
   artifactsRuntimeOrigin = null,
@@ -1188,9 +1201,11 @@ export function ConnectedChat({
   onThemeChange,
   platform,
   sandboxClient,
+  sendTarget,
   target = null,
   theme,
 }: ConnectedChatProps) {
+  const outgoingTarget = targetToSend(sendTarget, target);
   const { t } = useLingui();
   const api = useMemo(() => createQueryUtils(client), [client]);
   const queryClient = useQueryClient();
@@ -1309,7 +1324,7 @@ export function ConnectedChat({
     onRunCreated,
     stored,
     storedAt: data.path.dataUpdatedAt,
-    target,
+    target: outgoingTarget,
     variant,
     webSearch: webSearchOn(config, webSearch),
   });
@@ -1341,7 +1356,7 @@ export function ConnectedChat({
     onNavigate,
     onWorkspaceChanged,
     send,
-    target,
+    target: outgoingTarget,
   });
 
   const { mutateAsync: revertMemory } = useMutation(
