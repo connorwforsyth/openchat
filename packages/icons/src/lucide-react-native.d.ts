@@ -109,4 +109,5 @@ declare module "lucide-react-native" {
   export const X: LucideIcon;
   export const ZoomIn: LucideIcon;
   export const ZoomOut: LucideIcon;
+  export const Zap: LucideIcon;
 }
