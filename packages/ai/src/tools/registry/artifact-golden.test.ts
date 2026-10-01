@@ -167,6 +167,7 @@ const BASES: Readonly<Record<ArtifactKind, string>> = {
   markdown: "# Notes",
   mermaid: "graph TD",
   react: "export default 1",
+  site: '{"files": {"index.html": "<p>hi</p>"}}',
   svg: "<svg></svg>",
 };
 

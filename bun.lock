@@ -214,6 +214,7 @@
       "name": "@workspace/artifacts-kit",
       "version": "0.0.0",
       "dependencies": {
+        "@workspace/config": "workspace:*",
         "@workspace/contract": "workspace:*",
         "@workspace/icons": "workspace:*",
         "@workspace/shared": "workspace:*",

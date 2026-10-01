@@ -17,6 +17,7 @@ export const artifactKindLabels: Readonly<
   markdown: msg`Document`,
   mermaid: msg`Diagram`,
   react: msg`React component`,
+  site: msg`Site`,
   svg: msg`SVG image`,
 };
 

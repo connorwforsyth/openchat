@@ -11,6 +11,7 @@
     "./prices": "./src/prices.ts",
     "./public": "./src/public.ts",
     "./schema": "./src/schema.ts",
+    "./sites": "./src/sites.ts",
     "./social": "./src/social.ts"
   },
   "scripts": {

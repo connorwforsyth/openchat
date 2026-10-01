@@ -52,6 +52,7 @@ const me: Me = {
 };
 
 const config: PublicConfig = {
+  artifacts: { siteOrigins: [] },
   auth: { providers: [], signup: "invite" },
   brand: { faviconUrl: null, logoUrl: null, name: "Test Chat" },
   features: {

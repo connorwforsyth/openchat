@@ -6,6 +6,7 @@ import { htmlKind } from "./kinds/html";
 import { markdownKind } from "./kinds/markdown";
 import { mermaidKind } from "./kinds/mermaid";
 import { reactKind } from "./kinds/react";
+import { siteKind } from "./kinds/site/kind";
 import { svgKind } from "./kinds/svg";
 import { createArtifactKindRegistry } from "./registry";
 
@@ -19,6 +20,8 @@ export const builtinKindDefinitions = {
   markdown: markdownKind,
   mermaid: mermaidKind,
   react: reactKind,
+  // The defaults; an instance's settings make its own (`instanceArtifactKinds`).
+  site: siteKind(),
   svg: svgKind,
 } as const satisfies Readonly<Record<ArtifactKind, ArtifactKindDefinition>>;
 

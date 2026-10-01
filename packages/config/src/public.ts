@@ -39,7 +39,10 @@ export const toPublicConfig = (
 ): PublicConfig => {
   const sandboxProviders = availableSandboxProviders(config);
   const { sandbox } = config;
+  const { site } = config.artifacts.kinds;
   return {
+    // The runtime builds a site's CSP from these (125); none while sites are off.
+    artifacts: { siteOrigins: site.enabled ? site.allowedOrigins : [] },
     auth: {
       providers: [
         ...config.auth.oidc.map(({ id, name }) => ({ id, name })),

@@ -3463,6 +3463,11 @@ msgstr "Sign-in isn't available on this server right now. An administrator needs
 msgid "Single keys work when you're not typing in a text field."
 msgstr "Single keys work when you're not typing in a text field."
 
+#: ../chat-ui/src/conversation/artifact-card.tsx
+#: ../chat-ui/src/model/artifact-kinds.ts
+msgid "Site"
+msgstr "Site"
+
 #: ../library-ui/src/components/kind.tsx
 msgid "Skill"
 msgstr "Skill"
