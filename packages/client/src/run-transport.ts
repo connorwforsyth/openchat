@@ -1,3 +1,4 @@
+import { SKILLS_DATA, skillsDataSchema } from "@workspace/ai/messages/skills";
 import {
   WORKSPACE_FILE_DATA,
   workspaceFileRefSchema,
@@ -11,6 +12,7 @@ import type { UserMessagePart } from "@workspace/contract/schemas/message-parts"
 import type {
   CreateRunInput,
   CreateRunOutput,
+  PickedSkill,
 } from "@workspace/contract/schemas/runs";
 import type { ChatTransport, UIMessage, UIMessageChunk } from "ai";
 
@@ -99,6 +101,32 @@ export const userParts = (message: UIMessage): UserMessagePart[] =>
   });
 
 /**
+ * The skills picked for a message (127), from its `data-skills` part, as
+ * the run's `input.skills`. The server checks them and keeps its own record
+ * on the stored message; the part itself is never sent as one. Pure.
+ */
+export const pickedSkills = (message: UIMessage): PickedSkill[] => {
+  const seen = new Set<string>();
+  return message.parts.flatMap((part): PickedSkill[] => {
+    if (part.type !== `data-${SKILLS_DATA}`) {
+      return [];
+    }
+    const parsed = skillsDataSchema.safeParse(
+      (part as { readonly data?: unknown }).data
+    );
+    return parsed.success
+      ? parsed.data.skills.flatMap(({ id, versionId }) => {
+          if (seen.has(id)) {
+            return [];
+          }
+          seen.add(id);
+          return [{ id, ...(versionId ? { versionId } : {}) }];
+        })
+      : [];
+  });
+};
+
+/**
  * The turn `useChat` asks for, as a run input. A new message follows the
  * one before it; a regenerate answers the user message before the answer
  * being replaced. Pure.
@@ -115,9 +143,11 @@ export const turnFor = (
       return null;
     }
     const parent = messages.at(-2);
+    const skills = pickedSkills(last);
     return {
       parentId: (parent?.id ?? null) as MessageId | null,
       parts: toParts(last),
+      ...(skills.length > 0 ? { skills } : {}),
       type: "message",
     };
   }

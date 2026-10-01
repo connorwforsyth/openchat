@@ -18,7 +18,12 @@ import {
 import { useCallback, useRef } from "react";
 
 import { useModelVariants } from "../hooks/use-model-variants";
-import type { AgentOption, FileCandidate, PromptOption } from "../schemas";
+import type {
+  AgentOption,
+  FileCandidate,
+  PromptOption,
+  SkillOption,
+} from "../schemas";
 import type { ModelVariant } from "../variants";
 import { PlusMenu } from "./plus-menu";
 import { TargetPicker } from "./target-picker";
@@ -33,6 +38,7 @@ export interface ComposerFooterProps {
   readonly files: readonly FileCandidate[];
   readonly models: readonly ModelOption[];
   readonly onAddFile: ((file: FileCandidate) => void) | undefined;
+  readonly onAddSkill?: ((skill: SkillOption) => void) | undefined;
   readonly onAttach: () => void;
   readonly onPlanChange?: ((on: boolean) => void) | undefined;
   readonly onStop: (() => void) | undefined;
@@ -43,6 +49,8 @@ export interface ComposerFooterProps {
   readonly plan?: boolean;
   readonly prompts: readonly PromptOption[];
   readonly recentsKey: string | undefined;
+  /** Skills the + menu offers (127), less those already picked. */
+  readonly skills?: readonly SkillOption[];
   readonly target: RunTarget | undefined;
   readonly variant: ModelVariant | undefined;
   readonly webSearch: boolean;
@@ -64,6 +72,7 @@ export function ComposerFooter({
   files,
   models,
   onAddFile,
+  onAddSkill,
   onAttach,
   onPlanChange,
   onStop,
@@ -74,6 +83,7 @@ export function ComposerFooter({
   plan = false,
   prompts,
   recentsKey,
+  skills,
   target,
   variant,
   webSearch,
@@ -113,6 +123,7 @@ export function ComposerFooter({
           fast={picking ? variants.fast : undefined}
           files={files}
           onAddFile={onAddFile}
+          onAddSkill={onAddSkill}
           onAttach={onAttach}
           onFastChange={setFast}
           onPlanChange={onPlanChange}
@@ -120,6 +131,7 @@ export function ComposerFooter({
           onWebSearchChange={onWebSearchChange}
           plan={plan}
           prompts={prompts}
+          skills={skills}
           triggerRef={plusRef}
           webSearch={webSearch}
         />

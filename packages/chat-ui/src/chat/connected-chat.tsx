@@ -8,6 +8,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+import { SKILLS_DATA } from "@workspace/ai/messages/skills";
 import { toUIMessages } from "@workspace/ai/messages/to-ui";
 import { WORKSPACE_FILE_DATA } from "@workspace/ai/messages/workspace-file";
 import {
@@ -24,6 +25,8 @@ import type {
   AttachmentLimits,
   ComposerAttachment,
   ComposerValue,
+  PickedSkillOption,
+  SkillOption,
 } from "@workspace/composer/schemas";
 import type { ModelVariant } from "@workspace/composer/variants";
 import type {
@@ -159,6 +162,8 @@ export interface ConnectedChatProps {
    * Omitted, `target` goes out.
    */
   readonly sendTarget?: RunTarget | null;
+  /** Skills the caller can use (127), for the composer's + menu and `/`. */
+  readonly skills?: readonly SkillOption[];
   /** What answers: a model or an agent. Omitted, the server's default does. */
   readonly target?: RunTarget | null;
   readonly theme: Theme;
@@ -243,6 +248,8 @@ const importToWorkspace = async (
 /** What a turn sends besides its text. */
 interface Outgoing {
   readonly files: FileUIPart[];
+  /** Skills picked for the message (127), sent as a `data-skills` part. */
+  readonly skills?: readonly PickedSkillOption[];
   /** Workspace files the message mentions, sent as `data-workspace-file` parts (056). */
   readonly workspaceFiles: readonly string[];
 }
@@ -252,13 +259,16 @@ const NOTHING_ELSE: Outgoing = { files: [], workspaceFiles: [] };
 /**
  * The message `useChat` sends: its attachments, its text, then a
  * `data-workspace-file` part per mentioned workspace file, which the server
- * reads into the turn when it starts. Pure.
+ * reads into the turn when it starts, and a `data-skills` part with the
+ * skills picked for it (127), which the run transport sends as
+ * `input.skills` and the chat shows until the stored message replaces it.
+ * Pure.
  */
 export const outgoingMessage = (
   text: string,
-  { files, workspaceFiles }: Outgoing
+  { files, skills = [], workspaceFiles }: Outgoing
 ) =>
-  workspaceFiles.length === 0
+  workspaceFiles.length === 0 && skills.length === 0
     ? { files, text }
     : {
         parts: [
@@ -268,6 +278,16 @@ export const outgoingMessage = (
             data: { path },
             type: `data-${WORKSPACE_FILE_DATA}` as const,
           })),
+          ...(skills.length > 0
+            ? [
+                {
+                  data: {
+                    skills: skills.map(({ id, name }) => ({ id, name })),
+                  },
+                  type: `data-${SKILLS_DATA}` as const,
+                },
+              ]
+            : []),
         ],
       };
 
@@ -497,7 +517,13 @@ const useAskOnce = (
     }
     if (prompt && asked.current !== prompt) {
       asked.current = prompt;
-      submit({ attachments: [], mentions: [], templateId: null, text: prompt });
+      submit({
+        attachments: [],
+        mentions: [],
+        skills: [],
+        templateId: null,
+        text: prompt,
+      });
     }
   }, [conversationId, prompt, submit]);
 };
@@ -764,6 +790,7 @@ const useFirstSend = ({
       }
       const outgoing: Outgoing = {
         files: uploaded.map((each) => each.part),
+        skills: value.skills,
         workspaceFiles: [...mentionedFiles(value), ...imported],
       };
       if (conversationId) {
@@ -1242,6 +1269,7 @@ export function ConnectedChat({
   platform,
   sandboxClient,
   sendTarget,
+  skills,
   target = null,
   theme,
 }: ConnectedChatProps) {
@@ -1611,6 +1639,7 @@ export function ConnectedChat({
             recentsKey: me.user.id,
             ...webSearchSwitch(config, webSearch, setWebSearch),
             plan: plan.on,
+            skills,
             status: composerStatus,
             target: target ?? undefined,
             variant,

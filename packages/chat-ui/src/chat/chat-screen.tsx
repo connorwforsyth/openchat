@@ -200,6 +200,7 @@ const pathOfUrl = (url: string): string => {
 const textValue = (text: string): ComposerValue => ({
   attachments: [],
   mentions: [],
+  skills: [],
   templateId: null,
   text,
 });

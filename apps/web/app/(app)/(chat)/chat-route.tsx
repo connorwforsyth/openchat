@@ -14,7 +14,7 @@ import {
   contextKey,
   contextOptionsFromMe,
 } from "@workspace/composer/options";
-import type { ContextOption } from "@workspace/composer/schemas";
+import type { ContextOption, SkillOption } from "@workspace/composer/schemas";
 import {
   type ConversationId,
   conversationIdSchema,
@@ -47,6 +47,7 @@ import {
   type UsableAgents,
   usableAgents,
 } from "./usable-agents";
+import { usableSkills } from "./usable-skills";
 
 // The chat screen over the API (015's `ConnectedChat`), wired to the app:
 // the router owns the address, the frame owns the layout, the palette and
@@ -198,6 +199,40 @@ const combineAgentLists = (
         }))
       )
     : NO_AGENTS;
+
+const NO_SKILLS: readonly SkillOption[] = [];
+
+/**
+ * Skills for the composer's + menu and `/` (127): published skills from the
+ * three library tabs, like agents. Fetched once the composer is up (D27).
+ */
+const useSkillsForPicker = (enabled: boolean): readonly SkillOption[] => {
+  const { query } = useApi();
+  return useQueries({
+    combine: combineSkillLists,
+    queries: AGENT_TABS.map((tab) =>
+      query.library.list.queryOptions({
+        enabled,
+        input: { kind: "skill", limit: AGENT_LIST_LIMIT, tab },
+      })
+    ),
+  });
+};
+
+/** One list per tab, in `AGENT_TABS` order, into the composer's skills. */
+const combineSkillLists = (
+  lists: readonly {
+    readonly data?: { readonly items: readonly LibraryItem[] };
+  }[]
+): readonly SkillOption[] =>
+  lists.some((list) => list.data)
+    ? usableSkills(
+        AGENT_TABS.map((source, index) => ({
+          items: lists[index]?.data?.items ?? [],
+          source,
+        }))
+      )
+    : NO_SKILLS;
 
 /** `/?agent=<id>` ("Use in chat" in the library) starts the new chat with that agent. */
 const useAgentParam = (
@@ -354,6 +389,7 @@ export function ChatRoute({
   const { agents, owners } = useAgentsForPicker(
     booted || target.type === "agent"
   );
+  const skills = useSkillsForPicker(booted);
   const changeContext = useContextChange(conversationId ?? null);
   const changeTarget = useTargetChange({
     contextOptions,
@@ -441,6 +477,7 @@ export function ChatRoute({
       platform={platform}
       sandboxClient={sandboxClient}
       sendTarget={sendTarget}
+      skills={skills}
       target={target}
       theme={frame.theme}
     />

@@ -89,3 +89,26 @@ describe("composeInstructions", () => {
     expect(composeInstructions({ memory: "## Memory" }).text).toBe("## Memory");
   });
 });
+
+describe("composeInstructions with skills (127)", () => {
+  it("puts skills after the agent and before the turn's fragments, each with its source", () => {
+    const composed = composeInstructions({
+      agent: "Be terse.",
+      dynamic: [FRAGMENTS.workspace],
+      skills: [
+        { source: "skill:a@1", text: "Skill A." },
+        { source: "fragments/skills.md", text: "" },
+      ],
+    });
+    expect(
+      composed.sections.map(({ layer, source }) => [layer, source])
+    ).toEqual([
+      ["agent", "agent"],
+      ["skills", "skill:a@1"],
+      ["dynamic", "fragments/workspace.md"],
+    ]);
+    expect(composed.text).toBe(
+      `Be terse.\n\nSkill A.\n\n${FRAGMENTS.workspace.text}`
+    );
+  });
+});

@@ -17,6 +17,10 @@
       "name": "file_search"
     },
     {
+      "approval": "not-applicable",
+      "name": "load_skill"
+    },
+    {
       "approval": "user-approval",
       "name": "open__add"
     },
@@ -782,6 +786,161 @@
             ]
           }
         }
+      }
+    },
+    {
+      "approval": "not-applicable",
+      "customModelOutput": true,
+      "model": {
+        "type": "function",
+        "name": "load_skill",
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "path": {
+              "description": "A file the skill bundles, by its path; leave out to get the skill's instructions and file list.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "skill": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "The skill's name, as your instructions list it."
+            }
+          },
+          "required": [
+            "skill"
+          ],
+          "additionalProperties": false
+        },
+        "description": "Load one of your skills: its instructions and the files it bundles. Pass a path as well to read one of those files."
+      },
+      "name": "load_skill",
+      "outputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "files": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "instructions": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "const": "loaded"
+              }
+            },
+            "required": [
+              "files",
+              "instructions",
+              "name",
+              "status"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "content": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "path": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "const": "file"
+              },
+              "truncated": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "content",
+              "name",
+              "path",
+              "status",
+              "truncated"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "available": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "status": {
+                "type": "string",
+                "const": "not_found"
+              }
+            },
+            "required": [
+              "available",
+              "status"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "files": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "name": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "const": "no_such_file"
+              }
+            },
+            "required": [
+              "files",
+              "name",
+              "status"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "message": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "const": "unreadable"
+              }
+            },
+            "required": [
+              "message",
+              "status"
+            ],
+            "additionalProperties": false
+          }
+        ]
       }
     },
     {
@@ -2535,6 +2694,161 @@
             ]
           }
         }
+      }
+    },
+    {
+      "approval": "not-applicable",
+      "customModelOutput": true,
+      "model": {
+        "type": "function",
+        "name": "load_skill",
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "path": {
+              "description": "A file the skill bundles, by its path; leave out to get the skill's instructions and file list.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "skill": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "The skill's name, as your instructions list it."
+            }
+          },
+          "required": [
+            "skill"
+          ],
+          "additionalProperties": false
+        },
+        "description": "Load one of your skills: its instructions and the files it bundles. Pass a path as well to read one of those files."
+      },
+      "name": "load_skill",
+      "outputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "files": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "instructions": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "const": "loaded"
+              }
+            },
+            "required": [
+              "files",
+              "instructions",
+              "name",
+              "status"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "content": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "path": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "const": "file"
+              },
+              "truncated": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "content",
+              "name",
+              "path",
+              "status",
+              "truncated"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "available": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "status": {
+                "type": "string",
+                "const": "not_found"
+              }
+            },
+            "required": [
+              "available",
+              "status"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "files": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "name": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "const": "no_such_file"
+              }
+            },
+            "required": [
+              "files",
+              "name",
+              "status"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "message": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "const": "unreadable"
+              }
+            },
+            "required": [
+              "message",
+              "status"
+            ],
+            "additionalProperties": false
+          }
+        ]
       }
     },
     {

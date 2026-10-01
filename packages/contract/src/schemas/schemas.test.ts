@@ -1462,6 +1462,10 @@ const cases: Record<string, Cases> = {
         ? runAwaitingApproval.state.approvals
         : [],
   },
+  "runs.pickedSkillSchema": {
+    invalid: [{}, { id: "not-an-id" }, { id: itemId, versionId: "v1" }],
+    valid: [{ id: itemId }, { id: itemId, versionId: agentVersion.id }],
+  },
   "runs.proposedEditSchema": {
     invalid: [{ hunks: [], patch: "", path: "a" }],
     valid: [
@@ -1503,11 +1507,24 @@ const cases: Record<string, Cases> = {
         parts: [{ text: "x", type: "reasoning" }],
         type: "message",
       },
+      {
+        parentId: null,
+        parts: [{ text: "x", type: "text" }],
+        skills: [{ id: "nope" }],
+        type: "message",
+      },
     ],
     valid: [
       {
         parentId: msgId,
         parts: [{ text: "edit", type: "text" }],
+        type: "message",
+      },
+      // Skills picked for the message (127).
+      {
+        parentId: null,
+        parts: [{ text: "use it", type: "text" }],
+        skills: [{ id: itemId }, { id: itemId, versionId: agentVersion.id }],
         type: "message",
       },
     ],

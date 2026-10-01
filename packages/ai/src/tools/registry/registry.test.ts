@@ -139,6 +139,7 @@ describe("the built-ins written in this package", () => {
     expect(aiBuiltinTools.approvals).toEqual({
       create_artifact: "ask",
       file_search: "auto",
+      load_skill: "auto",
       update_artifact: "ask",
       update_memory: "auto",
       web_search: "auto",

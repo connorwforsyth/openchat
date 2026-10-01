@@ -2,12 +2,18 @@ import type { JSONContent } from "@tiptap/core";
 import type { LibraryItemId } from "@workspace/contract/schemas/common";
 
 import { serializeDoc } from "./doc";
-import type { ComposerAttachment, ComposerValue } from "./schemas";
+import type {
+  ComposerAttachment,
+  ComposerValue,
+  PickedSkillOption,
+} from "./schemas";
 
 export interface ComposerDraft {
   readonly attachments: readonly ComposerAttachment[];
   /** The editor's document (`editor.getJSON()`). */
   readonly doc: JSONContent;
+  /** Skills picked for the message (127); left out, none. */
+  readonly skills?: readonly PickedSkillOption[];
   readonly templateId: LibraryItemId | null;
 }
 
@@ -17,6 +23,7 @@ export const buildComposerValue = (draft: ComposerDraft): ComposerValue => {
   return {
     attachments: [...draft.attachments],
     mentions: [...mentions],
+    skills: (draft.skills ?? []).map(({ id, name }) => ({ id, name })),
     // A template the user has since erased entirely no longer describes the text.
     templateId: text === "" ? null : draft.templateId,
     text,

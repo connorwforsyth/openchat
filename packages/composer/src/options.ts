@@ -20,6 +20,7 @@ import {
   type FileCandidate,
   type MentionCandidate,
   type PromptOption,
+  type SkillOption,
 } from "./schemas";
 import { slashStage } from "./triggers";
 import {
@@ -473,26 +474,37 @@ export const filterMentions = (
   ),
 ];
 
+/** Skills for `/query` (127): by name, then description. */
+export const filterSkills = (
+  skills: readonly SkillOption[],
+  query: string
+): readonly SkillOption[] =>
+  rank(skills, query, (skill) => [skill.name, skill.description]);
+
 /** A row in the `/` menu. */
 export type SlashItem =
   | { readonly command: ComposerCommand; readonly kind: "command" }
   | { readonly file: FileCandidate; readonly kind: "file" }
-  | { readonly kind: "prompt"; readonly prompt: PromptOption };
+  | { readonly kind: "prompt"; readonly prompt: PromptOption }
+  | { readonly kind: "skill"; readonly skill: SkillOption };
 
 export interface SlashSources {
   /** The file commands the host handles; the rest aren't offered. */
   readonly commands: readonly ComposerCommand[];
   readonly files: readonly FileCandidate[];
   readonly prompts: readonly PromptOption[];
+  /** Skills to pick (127), less those already on the message. */
+  readonly skills?: readonly SkillOption[];
 }
 
 /**
  * The `/` menu for a query: the host's file commands (always in the same
- * order), then prompt templates; or, after `/open`, the files to open.
+ * order), then prompt templates, then skills (127); or, after `/open`, the
+ * files to open.
  */
 export const slashItems = (
   query: string,
-  { commands, files, prompts }: SlashSources
+  { commands, files, prompts, skills = [] }: SlashSources
 ): readonly SlashItem[] => {
   const stage = slashStage(query);
   if (stage.stage === "open") {
@@ -510,5 +522,17 @@ export const slashItems = (
     ...filterPrompts(prompts, stage.query).map(
       (prompt): SlashItem => ({ kind: "prompt", prompt })
     ),
+    ...filterSkills(skills, stage.query).map(
+      (skill): SlashItem => ({ kind: "skill", skill })
+    ),
   ];
 };
+
+/** `skills` without the ones already picked. Pure. */
+export const unpickedSkills = (
+  skills: readonly SkillOption[],
+  picked: readonly { readonly id: SkillOption["id"] }[]
+): readonly SkillOption[] =>
+  picked.length === 0
+    ? skills
+    : skills.filter((skill) => !picked.some((each) => each.id === skill.id));

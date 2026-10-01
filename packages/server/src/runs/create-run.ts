@@ -1,3 +1,4 @@
+import type { SkillUse } from "@workspace/ai/messages/skills";
 import type { RunExecutor } from "@workspace/ai/ports/run-executor";
 import type { MessageId, RunId } from "@workspace/contract/schemas/common";
 import type { ModelSelector } from "@workspace/contract/schemas/models";
@@ -34,6 +35,7 @@ import {
 import { canEditAgent, draftFor } from "./drafts";
 import { pinPlanApproval } from "./plan-artifact";
 import { PLAN_APPROVAL_DATA, planApprovalOf } from "./plan-mode";
+import { partsWithSkills, resolvePickedSkills } from "./skills";
 import { runStartFromRow } from "./state";
 
 // `POST /api/runs` (PLAN.md §8 steps 1–2): check, persist the user message,
@@ -217,6 +219,49 @@ const checkPlanApproval = async (
 };
 
 /**
+ * The skills picked for a new message (127): each must be one the sender
+ * may use, with a published version. A regenerate reuses its message's.
+ */
+const checkSkills = async (
+  db: Db,
+  actor: Actor,
+  { input: turn }: CreateRunInput
+): Promise<Result<readonly SkillUse[], CreateRunError>> => {
+  if (turn.type !== "message" || !turn.skills?.length) {
+    return ok([]);
+  }
+  const resolved = await resolvePickedSkills(db, actor.userId, turn.skills);
+  return resolved.ok
+    ? resolved
+    : err({
+        message: resolved.error.message,
+        path: ["input", "skills", String(resolved.error.index)],
+        type: "invalid",
+      });
+};
+
+/**
+ * What the turn's input names must be right: the message a regenerate
+ * answers, a plan approval, the skills picked (127, resolved for storing).
+ */
+const checkTurn = async (
+  db: Db,
+  actor: Actor,
+  conversationId: ConversationView["id"],
+  input: CreateRunInput
+): Promise<Result<readonly SkillUse[], CreateRunError>> => {
+  const regenerating = await checkRegenerate(db, conversationId, input);
+  if (!regenerating.ok) {
+    return regenerating;
+  }
+  const approving = await checkPlanApproval(db, conversationId, input);
+  if (!approving.ok) {
+    return approving;
+  }
+  return await checkSkills(db, actor, input);
+};
+
+/**
  * Persists the turn and its run in one transaction, queued behind the
  * branch's busy run if there is one. `undefined` when the message it
  * follows isn't in the conversation. A retried idempotency key returns the
@@ -229,6 +274,8 @@ const placeRun = async (
   resolved: {
     readonly agentDraft: boolean;
     readonly context: StoredContext;
+    /** The message's picked skills, checked (127). */
+    readonly skills: readonly SkillUse[];
     readonly target: RunTarget;
   }
 ): Promise<Placed | undefined> => {
@@ -249,7 +296,7 @@ const placeRun = async (
           parentId: tail
             ? (tail.assistantMessageId ?? tail.userMessageId)
             : turn.parentId,
-          parts: turn.parts,
+          parts: partsWithSkills(turn.parts, resolved.skills),
           role: "user",
         });
         if (!inserted.ok) {
@@ -366,18 +413,15 @@ export const createRun = async (
     return err({ data: budget.error, type: "budget_exceeded" });
   }
 
-  const regenerating = await checkRegenerate(db, conversation.id, input);
-  if (!regenerating.ok) {
-    return regenerating;
-  }
-  const approving = await checkPlanApproval(db, conversation.id, input);
-  if (!approving.ok) {
-    return approving;
+  const skills = await checkTurn(db, actor, conversation.id, input);
+  if (!skills.ok) {
+    return skills;
   }
   await moveOnFromWaiting(deps, actor, input);
   const placed = await placeRun(db, actor, input, {
     agentDraft: draft.value !== null,
     context: context.value,
+    skills: skills.value,
     target,
   });
   if (!placed) {

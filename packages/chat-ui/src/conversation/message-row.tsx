@@ -51,6 +51,7 @@ import { LazyReasoning } from "./lazy";
 import { Markdown } from "./markdown";
 import { MemoryNote } from "./memory-note";
 import { PlanApprovalNote, PlanCard } from "./plan-card";
+import { SkillsNote } from "./skills-note";
 import { Sources } from "./sources";
 import { ThinkingLabel } from "./thinking";
 import { ToolPart } from "./tool-part";
@@ -139,6 +140,8 @@ function Block({
       return <PlanCard plan={block.plan} />;
     case "plan-approval":
       return <PlanApprovalNote approval={block.approval} />;
+    case "skills":
+      return <SkillsNote skills={block.skills} />;
     default:
       return block satisfies never;
   }
@@ -276,6 +279,9 @@ function UserMessage({
   const approvals = view.blocks.flatMap((block) =>
     block.kind === "plan-approval" ? [block] : []
   );
+  const skills = view.blocks.flatMap((block) =>
+    block.kind === "skills" ? [block] : []
+  );
   const startEdit = useCallback(() => setEditing(true), []);
   const cancel = useCallback(() => setEditing(false), []);
   const save = useCallback(
@@ -309,6 +315,11 @@ function UserMessage({
           {approvals.map((block) => (
             <div className="ms-auto" key={block.key}>
               <PlanApprovalNote approval={block.approval} />
+            </div>
+          ))}
+          {skills.map((block) => (
+            <div className="ms-auto" key={block.key}>
+              <SkillsNote skills={block.skills} />
             </div>
           ))}
           <MessageToolbar className="mt-0 justify-end gap-1 opacity-0 pointer-coarse:opacity-100 focus-within:opacity-100 group-hover:opacity-100">

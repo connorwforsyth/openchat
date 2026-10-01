@@ -34,6 +34,7 @@ describe("the built-in tool registry", () => {
       "create_artifact",
       "edit",
       "file_search",
+      "load_skill",
       "preview",
       "read",
       "update_artifact",

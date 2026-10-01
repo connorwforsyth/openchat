@@ -50,6 +50,26 @@ export const promptOptionSchema = libraryItemSchema
 export type PromptOption = z.infer<typeof promptOptionSchema>;
 
 /**
+ * A skill the composer offers (127): the listing fields of a library item.
+ * Picked from the + menu or `/`, it rides with the next message as a chip,
+ * and the host sends it as the run's `input.skills`.
+ */
+export const skillOptionSchema = libraryItemSchema
+  .pick({ description: true, id: true, name: true })
+  .extend({
+    /** Where it comes from, as for agents; left out, it isn't grouped. */
+    source: agentSourceSchema.optional(),
+  });
+export type SkillOption = z.infer<typeof skillOptionSchema>;
+
+/** A skill on the message being written: what a chip shows and the host sends. */
+export const pickedSkillOptionSchema = skillOptionSchema.pick({
+  id: true,
+  name: true,
+});
+export type PickedSkillOption = z.infer<typeof pickedSkillOptionSchema>;
+
+/**
  * A chat context the chip offers. `name` labels teams and orgs; Personal is
  * labelled by the composer so it's translated.
  */
@@ -161,6 +181,8 @@ export const composerValueSchema = z.object({
   attachments: z.array(composerAttachmentSchema),
   /** In text order, non-overlapping. */
   mentions: z.array(mentionTokenSchema),
+  /** Skills picked for this message (127), in the order picked. */
+  skills: z.array(pickedSkillOptionSchema),
   /** The prompt template the text started from, if any. */
   templateId: libraryItemIdSchema.nullable(),
   /** Trimmed. May be empty when there are attachments. */

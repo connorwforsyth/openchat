@@ -175,7 +175,14 @@ interface Seen {
 const toolsOfTurn = async (
   userId: UserId,
   target: RunTarget,
-  { attachment }: { readonly attachment: boolean }
+  {
+    attachment,
+    skill,
+  }: {
+    readonly attachment: boolean;
+    /** A skill picked for the message (127), which brings `load_skill`. */
+    readonly skill?: LibraryItemId;
+  }
 ): Promise<readonly Seen[]> => {
   const { db } = testDb;
   const config = testConfig();
@@ -272,6 +279,7 @@ const toolsOfTurn = async (
       input: {
         parentId: null,
         parts: [{ text: "Hello.", type: "text" }],
+        ...(skill ? { skills: [{ id: skill }] } : {}),
         type: "message",
       },
       target,
@@ -304,7 +312,25 @@ const toolsOfTurn = async (
   }
 };
 
-/** An agent that names every built-in and the instance's MCP server. */
+/** A published skill of `ownerId`'s (127): picked, or attached to an agent. */
+const publishedSkill = async (ownerId: UserId): Promise<LibraryItemId> => {
+  const { item } = await createVersionedItem(testDb.db, "skill", {
+    createdBy: ownerId,
+    definition: { kind: "skill", skillMd: "Answer in haiku." },
+    name: "Haiku",
+    owner: { id: ownerId, type: "user" },
+  });
+  const id = item.id as LibraryItemId;
+  expectOk(
+    await publishDraft(testDb.db, "skill", id, { publishedBy: ownerId })
+  );
+  return id;
+};
+
+/**
+ * An agent that names every built-in and the instance's MCP server, and
+ * has a skill, which brings `load_skill`.
+ */
 const publishedAgent = async (
   ownerId: UserId,
   approvals: AgentDefinition["approvals"]
@@ -319,7 +345,7 @@ const publishedAgent = async (
     model: MODEL,
     parameters: {},
     sandboxProvider: "just-bash",
-    skills: [],
+    skills: [{ id: await publishedSkill(ownerId) }],
     tools: [
       "bash",
       "read",
@@ -409,11 +435,11 @@ describe("the tools a run can be given", () => {
       ),
       clientTools: await clientTools(),
       // A plain chat: its workspace, the web, its attachments, the caller's
-      // MCP servers, artifacts and memory.
+      // MCP servers, artifacts and memory, and a skill picked for the message.
       plainChat: await toolsOfTurn(
         chatter,
         { model: MODEL, type: "model" },
-        { attachment: true }
+        { attachment: true, skill: await publishedSkill(chatter) }
       ),
       // The same chat for someone whose memory edits are proposed first.
       plainChatMemoryProposed: (
@@ -432,6 +458,7 @@ describe("the tools a run can be given", () => {
       "create_artifact",
       "edit",
       "file_search",
+      "load_skill",
       "open__add",
       "open__echo",
       "open__whoami",

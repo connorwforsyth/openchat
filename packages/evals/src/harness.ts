@@ -13,6 +13,7 @@ import type {
 import type { Message } from "@workspace/contract/schemas/messages";
 import type {
   PendingApproval,
+  PickedSkill,
   Run,
   RunOptions,
   RunStatus,
@@ -93,6 +94,8 @@ export interface SendOptions {
   readonly parentId?: MessageId | null;
   /** The composer's per-turn switches. */
   readonly run?: Partial<RunOptions>;
+  /** Skills picked for the message (127), as the composer's chips send them. */
+  readonly skills?: readonly PickedSkill[];
   /** `false` returns as soon as the run exists, without waiting for it to stop moving. */
   readonly wait?: boolean;
 }
@@ -476,7 +479,12 @@ export const createHarness = (
         : options.parentId;
     const created = await session.api.runs.create({
       conversationId,
-      input: { parentId, parts, type: "message" },
+      input: {
+        parentId,
+        parts,
+        ...(options.skills ? { skills: [...options.skills] } : {}),
+        type: "message",
+      },
       ...(options.run ? { options: options.run } : {}),
     });
     const record = track(session, created, message);

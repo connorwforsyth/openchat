@@ -140,6 +140,69 @@ export const grounding = defineSuite({
       }
     ),
 
+    evalCase(
+      "picked skill: its SKILL.md is in the instructions, kept with the message, and only a usable one is taken",
+      async (t) => {
+        const marker = "MARKER-EVAL-SKILL";
+        const skillMd = (body: string) =>
+          `---\nname: changelog\ndescription: Writes a changelog.\n---\n\n${body}\n`;
+        const api = t.api("ben");
+        const mine = await api.library.create({
+          definition: {
+            files: [],
+            kind: "skill",
+            skillMd: skillMd(`Group changes by area. ${marker}`),
+          },
+          name: "Changelog",
+        });
+        const theirs = await t.api("dee").library.create({
+          definition: { files: [], kind: "skill", skillMd: skillMd("Nope.") },
+          name: "Dee's skill",
+        });
+        try {
+          await api.library.publishVersion({ id: mine.id });
+          await t.api("dee").library.publishVersion({ id: theirs.id });
+
+          const turn = await t.send(SHOW_SYSTEM, {
+            as: "ben",
+            skills: [{ id: mine.id }],
+          });
+          t.check(turn.status, "run status").equals("succeeded").gate();
+          t.check(turn.text, "the instructions")
+            .includes('The user picked the skill "Changelog"')
+            .gate();
+          t.check(turn.text, "the instructions").includes(marker).gate();
+          // The frontmatter is the library's, not the model's.
+          t.check(turn.text, "the instructions")
+            .not.includes("name: changelog")
+            .gate();
+          const sent = await api.messages.get({ id: turn.userMessageId });
+          t.check(
+            sent.parts.find((part) => part.type === "data"),
+            "the message's record of its skills"
+          )
+            .matches({
+              data: { skills: [{ id: mine.id, name: "Changelog" }] },
+              name: "skills",
+            })
+            .gate();
+
+          // Another person's private skill: refused, and nothing runs.
+          t.check(
+            await t.statusOf(() =>
+              t.send(SHOW_SYSTEM, { as: "ben", skills: [{ id: theirs.id }] })
+            ),
+            "picking someone else's private skill"
+          )
+            .equals(422)
+            .gate();
+        } finally {
+          await api.library.delete({ id: mine.id });
+          await t.api("dee").library.delete({ id: theirs.id });
+        }
+      }
+    ),
+
     // Live only: are the claims supported by what the model was given?
     liveCase(
       "live: an @file answer claims nothing the file doesn't say",
@@ -164,5 +227,5 @@ export const grounding = defineSuite({
   ],
   name: "grounding",
   proves:
-    "What an answer should be grounded in is delivered to the model: an attached PDF is parsed, indexed and found by file_search with its file name and page, and the answer stores a citation to it; an @file mention puts the file's current content in the instructions (and a missing one is a note, not a failure); the memory file is in the next private chat's instructions. Whether a model then sticks to it is the judged half.",
+    "What an answer should be grounded in is delivered to the model: an attached PDF is parsed, indexed and found by file_search with its file name and page, and the answer stores a citation to it; an @file mention puts the file's current content in the instructions (and a missing one is a note, not a failure); the memory file is in the next private chat's instructions; a skill picked for a message puts its SKILL.md in the instructions, is kept with the message, and is refused unless the sender may use it. Whether a model then sticks to it is the judged half.",
 });

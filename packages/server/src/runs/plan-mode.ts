@@ -25,8 +25,16 @@ import type { Turn } from "./turn";
 //   programs before the sandbox runs it, and hands the sandbox the words it
 //   checked, quoted, so the shell can't read them any other way.
 
-/** Built-in tools a planning run keeps: they read and search, nothing else. */
-export const PLAN_READ_TOOLS = ["read", "file_search", "web_search"] as const;
+/**
+ * Built-in tools a planning run keeps: they read and search, nothing else.
+ * `load_skill` (127) only reads a skill the turn was given.
+ */
+export const PLAN_READ_TOOLS = [
+  "read",
+  "file_search",
+  "web_search",
+  "load_skill",
+] as const;
 
 const BASH = "bash";
 

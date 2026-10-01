@@ -19255,6 +19255,26 @@
                               "$ref": "#/components/schemas/UserMessagePart"
                             }
                           },
+                          "skills": {
+                            "type": "array",
+                            "maxItems": 20,
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "format": "uuid",
+                                  "description": "libraryItem id (UUIDv7)"
+                                },
+                                "versionId": {
+                                  "type": "string",
+                                  "format": "uuid",
+                                  "description": "libraryVersion id (UUIDv7)"
+                                }
+                              },
+                              "required": ["id"]
+                            }
+                          },
                           "type": {
                             "const": "message"
                           }

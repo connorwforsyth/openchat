@@ -27,6 +27,7 @@ describe("buildComposerValue", () => {
         ],
         type: "doc",
       },
+      skills: [{ id: templateId, name: "Haiku" }],
       templateId,
     });
     expect(value).toEqual({
@@ -34,6 +35,7 @@ describe("buildComposerValue", () => {
       mentions: [
         { end: 8, id: userAda.id, kind: "user", label: "Ada", start: 4 },
       ],
+      skills: [{ id: templateId, name: "Haiku" }],
       templateId,
       text: "hey @Ada",
     });
@@ -62,6 +64,7 @@ describe("composerValueSchema", () => {
       composerValueSchema.safeParse({
         attachments: [{ file: "a.txt", id: "1" }],
         mentions: [],
+        skills: [],
         templateId: null,
         text: "",
       }).success
