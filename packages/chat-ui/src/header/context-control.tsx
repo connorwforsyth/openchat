@@ -75,7 +75,7 @@ export const showsContext = (
 
 // Quiet: muted, small, no border, as tall as the title's button.
 const QUIET =
-  "h-7 min-w-0 max-w-40 shrink-0 gap-1.5 px-2 font-normal text-muted-foreground text-sm max-sm:max-w-28 [&_svg]:size-3.5 [&_svg]:shrink-0";
+  "h-7 min-w-0 max-w-40 shrink-0 gap-1.5 px-2 font-normal text-muted-foreground text-sm [&_svg]:size-3.5 [&_svg]:shrink-0";
 
 /**
  * Whose keys pay and where usage rolls up (D17): Personal, a team or an org,

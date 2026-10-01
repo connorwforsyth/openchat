@@ -8,6 +8,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@workspace/ui/components/tooltip";
+import { cn } from "@workspace/ui/lib/utils";
 import {
   createContext,
   type ReactNode,
@@ -66,7 +67,13 @@ export function SidebarToggle({
           <Button
             aria-expanded={expanded}
             aria-label={t`Toggle sidebar`}
-            className="shrink-0"
+            // Quiet: it says open or closed by where it sits, not by a fill.
+            className={cn(
+              "shrink-0 aria-expanded:bg-transparent",
+              placement === "sidebar"
+                ? "text-muted-foreground hover:bg-sidebar-foreground/5 hover:text-sidebar-foreground aria-expanded:text-muted-foreground aria-expanded:hover:bg-sidebar-foreground/5 aria-expanded:hover:text-sidebar-foreground dark:hover:bg-sidebar-foreground/5"
+                : "aria-expanded:hover:bg-muted"
+            )}
             onClick={onToggle}
             size="icon-sm"
             variant="ghost"
