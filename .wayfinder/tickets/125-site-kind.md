@@ -2,8 +2,8 @@
 id: "125"
 title: "Sites: a constrained site kind with swappable stacks, and publishing"
 labels: [wayfinder:build]
-status: open
-assignee: 
+status: in-progress
+assignee: loop
 blockedBy: ["123"]
 ---
 

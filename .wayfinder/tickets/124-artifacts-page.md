@@ -2,7 +2,7 @@
 id: "124"
 title: "The Artifacts page: a sidebar item, list, filters, use in chat, share"
 labels: [wayfinder:build]
-status: in-progress
+status: closed
 assignee: loop
 blockedBy: ["123"]
 ---

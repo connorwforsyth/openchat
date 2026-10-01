@@ -2,8 +2,8 @@
 id: "127"
 title: "Skills in chats: pick from the + menu or /, load into the turn, load_skill for agents"
 labels: [wayfinder:build]
-status: open
-assignee:
+status: in-progress
+assignee: loop
 blockedBy: ["106"]
 ---
 
