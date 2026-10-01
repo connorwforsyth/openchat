@@ -100,12 +100,16 @@ export const providerLabel = (provider: string): string =>
 const VENDOR = /^([a-z][a-z0-9_-]{0,63})\/./i;
 
 /**
- * Who makes a model, from its ref. A ref through an aggregator names the
- * vendor after the colon (`gateway:anthropic/claude-haiku-4.5`), so that
+ * Who makes a model: the server's `provider` when it sends one (096), else
+ * read from the ref, for older servers. A ref through an aggregator names
+ * the vendor after the colon (`gateway:anthropic/claude-haiku-4.5`), so that
  * vendor wins over the configured provider key; otherwise the key is it.
  * `""` for an option with no ref.
  */
 export const modelVendor = (model: ModelOption): string => {
+  if (model.provider !== undefined && model.provider !== "") {
+    return model.provider;
+  }
   const ref = parseModelRef(model.target ?? model.selector);
   if (ref === undefined) {
     return "";
@@ -132,13 +136,16 @@ const modelChoice = (model: ModelOption, vendor: string): TargetChoice => {
     modelId !== model.label
       ? modelId
       : undefined;
+  const description = model.description?.trim() || undefined;
   return {
     available: model.available,
+    ...(description === undefined ? {} : { description }),
     ...(detail === undefined ? {} : { detail }),
     key: targetKey(target),
     label: model.label,
     search: searchText([
       model.label,
+      description,
       model.selector,
       model.target ?? undefined,
       vendor,
