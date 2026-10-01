@@ -109,3 +109,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-10-01 · Connor decided: 096 contract field approved (optional `description`, `provider` on `ModelOption`); dividers between provider sections; #69 keeps native web search on by default
 - 2026-10-01 · Connor: skip the judge spike (087 deferred); turn Auto off (local config only; the code default is already off)
 - 2026-10-01 · Connor: merge the UI drafts · 071 PR #62, 070 PR #64, 077 PR #66, 075 PR #67 merged · gate 82/82 and e2e 50–54 on each rebased branch · two tests fixed for the interactions
+- 2026-10-01 · 094 draft PR #74 (gate 82/82, e2e 56) · 095 draft PR #75 (gate 82/82, e2e 54) · added 097 (browser above files) and 098 (centred new-chat composer); claimed 096, 097, 098
