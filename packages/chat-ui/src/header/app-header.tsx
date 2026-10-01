@@ -5,8 +5,9 @@ import type { ReactNode } from "react";
 
 import { usePlatform } from "../shell/platform";
 
-// The top bar (D14). The chat puts everything in two slots: start (sidebar
-// toggle, New chat, title, branch switcher) and end (Share, Workspace). Pages
+// The top bar (D14), with no rule under it (113). The chat puts everything
+// in two slots: start (the sidebar toggle while the sidebar is collapsed,
+// title, context, branch switcher) and end (Share, Workspace). Pages
 // with a centred title, like the library, add a centre slot. On desktop it
 // doubles as the window's title bar: the whole bar drags the window, controls
 // opt out, and it leaves room for the OS window controls.
@@ -45,7 +46,7 @@ export function AppHeader({
   return (
     <header
       className={cn(
-        "grid h-12 shrink-0 items-center gap-2 border-b px-2",
+        "grid h-12 shrink-0 items-center gap-2 px-2",
         // Without a centre the start slot takes the room, so a long title
         // truncates instead of pushing the end slot off screen.
         center === undefined

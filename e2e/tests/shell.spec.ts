@@ -199,6 +199,20 @@ test.describe("shell", () => {
 
     const header = chatHeader(page);
     await expect(header.getByRole("button", { name: "Share" })).toBeVisible();
+    // 113: no rule under it, no New chat, and the sidebar's toggle in the
+    // sidebar's own top row while it's open.
+    await expect(header).toHaveCSS("border-bottom-width", "0px");
+    await expect(header.getByRole("button", { name: "New chat" })).toHaveCount(
+      0
+    );
+    await expect(
+      header.getByRole("button", { name: "Toggle sidebar" })
+    ).toHaveCount(0);
+    await expect(
+      page
+        .getByRole("complementary", { name: "Chats" })
+        .getByRole("button", { name: "Toggle sidebar" })
+    ).toBeVisible();
     await expect(
       header.getByRole("button", { name: SANDBOX_PILL })
     ).toHaveCount(0);

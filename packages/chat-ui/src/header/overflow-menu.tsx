@@ -18,16 +18,12 @@ import {
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
 import { useToastManager } from "@workspace/ui/components/toast";
-import { type ReactNode, useCallback } from "react";
-
-import { LockedContextGroup } from "./share-menu";
+import { useCallback } from "react";
 
 /** How long "Link copied" stays: long enough to read. */
 const COPIED_TOAST_MS = 2000;
 
 export interface HeaderOverflowMenuProps {
-  /** The chat's context once it's locked, as in the Share menu. */
-  readonly lockedContext?: ReactNode;
   readonly onCopyLink?: () => Promise<void> | void;
   readonly onInvite?: () => void;
   readonly onToggleWorkspace: () => void;
@@ -38,11 +34,10 @@ export interface HeaderOverflowMenuProps {
 
 /**
  * The header's end on a narrow screen, where Share and the Workspace toggle
- * don't fit beside the title: both in one menu, plus the locked context.
+ * don't fit beside the title: both in one menu.
  * Needs the shell's toast provider.
  */
 export function HeaderOverflowMenu({
-  lockedContext,
   onCopyLink,
   onInvite,
   onToggleWorkspace,
@@ -98,12 +93,6 @@ export function HeaderOverflowMenu({
                 </DropdownMenuItem>
               ) : null}
             </DropdownMenuGroup>
-          </>
-        ) : null}
-        {lockedContext ? (
-          <>
-            <DropdownMenuSeparator />
-            <LockedContextGroup>{lockedContext}</LockedContextGroup>
           </>
         ) : null}
       </DropdownMenuContent>

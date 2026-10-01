@@ -1,4 +1,5 @@
 import {
+  defaultReasoningLevel,
   hasFastTier,
   reasoningLevels,
 } from "@workspace/ai/providers/reasoning";
@@ -20,12 +21,12 @@ import { z } from "zod";
 // the rules are tested without rendering anything.
 
 /**
- * A thinking level. `default` sends nothing, so the provider's default
- * applies; `on` is a folded `-thinking` entry, for a model whose only
- * choice is thinking or not. The rest are the run's `reasoning` levels.
+ * A thinking level. `on` is a folded `-thinking` entry, for a model whose
+ * only choice is thinking or not. The rest are the run's `reasoning`
+ * levels. There's no "default": the level the provider uses when nothing
+ * is sent is shown as itself (113).
  */
 export const thinkingLevelSchema = z.enum([
-  "default",
   "off",
   "on",
   "minimal",
@@ -180,6 +181,18 @@ export const providerLevels = (
     : undefined;
 
 /**
+ * The level the provider uses for a reasoning model when the run sends no
+ * `reasoning` (113); `undefined` for a model the server doesn't say reasons.
+ */
+export const providerDefaultLevel = (
+  model: ModelOption,
+  vendor: string
+): ReasoningLevel | undefined =>
+  model.capabilities.includes("reasoning")
+    ? defaultReasoningLevel(identity(model, vendor))
+    : undefined;
+
+/**
  * Whether the model's maker has a fast tier for it (OpenAI priority,
  * Anthropic fast mode), billed at a higher rate.
  */
@@ -196,6 +209,12 @@ export type LevelBlock = "fast" | "server" | "unavailable";
 
 export interface LevelChoice {
   readonly blocked?: LevelBlock;
+  /**
+   * What the model does with nothing sent: the provider's default level,
+   * or the base model when its thinking is a catalog entry. Choosing it
+   * sends no `reasoning`, so it's never blocked.
+   */
+  readonly default?: true;
   readonly level: ThinkingLevel;
   /** The model this level runs, when it's a folded entry of its own. */
   readonly model?: ModelOption;
@@ -270,25 +289,37 @@ export const thinkingLevels = (
       ...(blocked ? { blocked } : {}),
     };
   });
-  const own = (provider ?? []).flatMap((level): LevelChoice[] =>
-    folded.some((variant) => variant.level === level)
+  const fallback = providerDefaultLevel(family.base, vendor);
+  const own = (provider ?? []).flatMap((level): LevelChoice[] => {
+    if (level === fallback) {
+      return [{ default: true, level }];
+    }
+    return folded.some((variant) => variant.level === level)
       ? []
-      : [{ level, ...(sends ? {} : { blocked: "server" as const }) }]
-  );
+      : [{ level, ...(sends ? {} : { blocked: "server" as const }) }];
+  });
   // Without provider levels, the base model is the "off" choice.
   const base: LevelChoice[] =
-    provider === undefined ? [{ level: "off" }] : [{ level: "default" }];
-  return [...base, ...own, ...folded].sort(byLevel);
+    provider === undefined ? [{ default: true, level: "off" }] : [];
+  const kept = folded.filter((variant) => variant.level !== fallback);
+  return [...base, ...own, ...kept].sort(byLevel);
 };
 
-/** What the person chose for a model: a thinking level and fast mode. */
+/**
+ * What the person chose for a model: fast mode, and a thinking level if
+ * they picked one (none means the provider's default). A level remembered
+ * as `default` before 113 reads as none.
+ */
 export const variantChoiceSchema = z.object({
   fast: z.boolean(),
-  level: thinkingLevelSchema,
+  level: z.preprocess(
+    (level) => (level === "default" ? undefined : level),
+    thinkingLevelSchema.optional()
+  ),
 });
 export type VariantChoice = z.infer<typeof variantChoiceSchema>;
 
-export const DEFAULT_CHOICE: VariantChoice = { fast: false, level: "default" };
+export const DEFAULT_CHOICE: VariantChoice = { fast: false };
 
 /** The family a model target belongs to, folded entries included. */
 export const familyOf = (
@@ -314,9 +345,10 @@ export const choiceOfTarget = (
   const folded = family.thinking.find(
     (each) => each.model.selector === target.model
   );
+  const level = folded?.level ?? variant.reasoning;
   return {
     fast: family.fast?.selector === target.model || variant.fast === true,
-    level: folded?.level ?? variant.reasoning ?? "default",
+    ...(level ? { level } : {}),
   };
 };
 
@@ -348,8 +380,11 @@ export const targetForChoice = (
   const fast = fastMode(family, vendor, sends);
   const tier =
     choice.fast && fast !== undefined && !fast.model && !fast.blocked;
+  // The provider's default goes out as nothing, so it stays the provider's.
   const reasoning =
-    offered && !offered.model && providerLevels(family.base, vendor)
+    offered &&
+    !(offered.model || offered.default) &&
+    providerLevels(family.base, vendor)
       ? reasoningOf(offered.level)
       : undefined;
   return {
@@ -362,4 +397,4 @@ export const targetForChoice = (
 };
 
 const reasoningOf = (level: ThinkingLevel): ReasoningLevel | undefined =>
-  level === "default" || level === "on" ? undefined : level;
+  level === "on" ? undefined : level;

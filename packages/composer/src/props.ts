@@ -1,9 +1,6 @@
 import type { ModelOption } from "@workspace/contract/schemas/models";
 import type { RunTarget } from "@workspace/contract/schemas/runs";
-import type {
-  ChatContext,
-  UserSummary,
-} from "@workspace/contract/schemas/tenancy";
+import type { UserSummary } from "@workspace/contract/schemas/tenancy";
 
 import type {
   AgentOption,
@@ -13,7 +10,6 @@ import type {
   ComposerCommand,
   ComposerStatus,
   ComposerValue,
-  ContextOption,
   PromptOption,
   WorkspacePath,
 } from "./schemas";
@@ -32,10 +28,6 @@ export interface ComposerProps {
    * `onCommand`. Left out, `/` lists prompts only.
    */
   readonly commands?: readonly ComposerCommand[];
-  /** The chat context chip shows when this is set. */
-  readonly context?: ChatContext;
-  readonly contextLocked?: boolean;
-  readonly contexts?: readonly ContextOption[];
   readonly disabled?: boolean;
   /**
    * Workspace files (`src/app.ts`), offered by `@` after agents and people,
@@ -56,7 +48,6 @@ export interface ComposerProps {
    * `files` to choose from.
    */
   readonly onCommand?: (command: ComposerCommand, path?: WorkspacePath) => void;
-  readonly onContextChange?: (context: ChatContext) => void;
   /** Stops the current run. The stop button shows while `status` is busy. */
   readonly onStop?: () => void;
   readonly onSubmit: (value: ComposerValue) => void;

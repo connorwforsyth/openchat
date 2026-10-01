@@ -1,6 +1,6 @@
 "use client";
 
-import { Trans, useLingui } from "@lingui/react/macro";
+import { Trans } from "@lingui/react/macro";
 import { useQuery } from "@tanstack/react-query";
 import {
   SIDEBAR_LIST_INPUT,
@@ -8,17 +8,11 @@ import {
 } from "@workspace/chat-ui/chat/use-chat-data";
 import { AppHeader } from "@workspace/chat-ui/header/app-header";
 import { AppShell } from "@workspace/chat-ui/shell/app-shell";
+import { SidebarToggle } from "@workspace/chat-ui/shell/sidebar-toggle";
 import { useNarrowScreen } from "@workspace/chat-ui/shell/use-narrow-screen";
 import { ChatSidebar } from "@workspace/chat-ui/sidebar/chat-sidebar";
 import type { ConversationId } from "@workspace/contract/schemas/common";
-import { NewChatIcon, PanelLeftIcon } from "@workspace/icons";
 import { useShortcut } from "@workspace/shortcuts/react/use-shortcut";
-import { Button } from "@workspace/ui/components/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@workspace/ui/components/tooltip";
 import { usePathname, useRouter } from "next/navigation";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
 
@@ -45,7 +39,6 @@ const SectionTitle = ({ pathname }: { readonly pathname: string }) => {
 };
 
 export function PageShell({ children }: { readonly children: ReactNode }) {
-  const { t } = useLingui();
   const router = useRouter();
   const pathname = usePathname();
   const narrow = useNarrowScreen();
@@ -96,6 +89,13 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
     [update]
   );
 
+  const sidebarToggle = (where: "header" | "sidebar") => (
+    <SidebarToggle
+      expanded={narrow ? sheetOpen : layout.layout.sidebarOpen}
+      onToggle={toggleChats}
+      placement={where}
+    />
+  );
   const header = (
     <AppHeader
       center={
@@ -103,47 +103,9 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
           <SectionTitle pathname={pathname} />
         </span>
       }
-      start={
-        <>
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <Button
-                  aria-expanded={narrow ? sheetOpen : layout.layout.sidebarOpen}
-                  aria-label={t`Toggle sidebar`}
-                  onClick={toggleChats}
-                  size="icon-sm"
-                  variant="ghost"
-                />
-              }
-            >
-              <PanelLeftIcon aria-hidden />
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-              <Trans>Toggle sidebar</Trans>
-            </TooltipContent>
-          </Tooltip>
-          {layout.layout.sidebarOpen && !narrow ? null : (
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <Button
-                    aria-label={t`New chat`}
-                    onClick={newChat}
-                    size="icon-sm"
-                    variant="ghost"
-                  />
-                }
-              >
-                <NewChatIcon aria-hidden />
-              </TooltipTrigger>
-              <TooltipContent side="bottom">
-                <Trans>New chat</Trans>
-              </TooltipContent>
-            </Tooltip>
-          )}
-        </>
-      }
+      // The sidebar toggle is here only while the sidebar isn't docked;
+      // otherwise it's in the sidebar's top row (113).
+      start={sidebarToggle("header")}
       underWindowControls={!layout.layout.sidebarOpen}
     />
   );
@@ -178,6 +140,7 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
           onNewChat={newChat}
           onOpenPalette={openPalette}
           onSelect={selectChat}
+          toggle={sidebarToggle("sidebar")}
         />
       }
       sidebarOpen={layout.layout.sidebarOpen}

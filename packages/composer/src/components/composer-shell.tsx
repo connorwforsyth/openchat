@@ -32,13 +32,9 @@ const noop = () => undefined;
 export function ComposerShell({
   agents = NONE,
   className,
-  context,
-  contextLocked,
-  contexts = NONE,
   disabled = false,
   failed = false,
   models = NONE,
-  onContextChange,
   onHandoff,
   onTargetChange,
   onVariantChange,
@@ -89,15 +85,11 @@ export function ComposerShell({
           attachDisabled={disabled}
           busy={status === "submitted" || status === "streaming"}
           canSubmit={false}
-          context={context}
-          contextLocked={contextLocked}
-          contexts={contexts}
           disabled={disabled}
           files={NONE}
           models={models}
           onAddFile={undefined}
           onAttach={noop}
-          onContextChange={onContextChange}
           onStop={undefined}
           onTargetChange={onTargetChange}
           onUsePrompt={undefined}

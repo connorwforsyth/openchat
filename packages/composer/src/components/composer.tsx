@@ -84,7 +84,7 @@ export const READY_MARK = "composer:ready";
 
 /**
  * The prompt composer: a TipTap editor with `/` templates and `@` mentions,
- * files, the model/agent picker and the chat context chip. It owns only the
+ * files, the model/agent picker and its thinking level. It owns only the
  * draft; everything else arrives as props and leaves through callbacks, so
  * any surface (a chat, Quick AI, an agent's test chat) can host it.
  *
@@ -96,9 +96,6 @@ export function Composer({
   attachmentLimits = NO_LIMITS,
   className,
   commands = NONE,
-  context,
-  contextLocked,
-  contexts = NONE,
   disabled = false,
   files: workspaceFiles = NONE,
   handoff,
@@ -106,7 +103,6 @@ export function Composer({
   onAttachmentsChange,
   onAttachmentsRejected,
   onCommand,
-  onContextChange,
   onStop,
   onSubmit,
   onTargetChange,
@@ -523,15 +519,11 @@ export function Composer({
           attachDisabled={disabled || files.atLimit}
           busy={busy}
           canSubmit={canSubmit}
-          context={context}
-          contextLocked={contextLocked}
-          contexts={contexts}
           disabled={disabled}
           files={slash.files}
           models={models}
           onAddFile={addWorkspaceFile}
           onAttach={openFilePicker}
-          onContextChange={onContextChange}
           onStop={onStop ? stop : undefined}
           onTargetChange={onTargetChange}
           onUsePrompt={usePrompt}

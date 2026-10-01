@@ -12,7 +12,6 @@ import {
   agentItem,
   fixtureId,
   modelOptions,
-  teamPlatform,
   userAda,
   userBo,
 } from "@workspace/contract/fixtures";
@@ -64,7 +63,6 @@ const explain: PromptOption = {
 const SUMMARISE = /Summarise/;
 const EXPLAIN = /Explain/;
 const REVIEWER = /Reviewer/;
-const PLATFORM = /Platform/;
 const BO = /Bo/;
 const APP_TS = /app\.ts/;
 const NEW_FILE = /New file/;
@@ -600,17 +598,10 @@ describe("Composer", () => {
     );
   });
 
-  it("picks a target and a context", async () => {
+  it("picks a target", async () => {
     const onTargetChange = vi.fn();
-    const onContextChange = vi.fn();
     renderComposer({
-      context: { type: "personal" },
-      contexts: [
-        { context: { type: "personal" } },
-        { context: { id: teamPlatform.id, type: "team" }, name: "Platform" },
-      ],
       models: modelOptions,
-      onContextChange,
       onTargetChange,
       target: { model: "auto", type: "model" },
     });
@@ -623,17 +614,6 @@ describe("Composer", () => {
     expect(onTargetChange).toHaveBeenCalledWith({
       id: agentItem.id,
       type: "agent",
-    });
-
-    await userEvent.click(
-      screen.getByRole("button", { name: "Chat context: Personal" })
-    );
-    await userEvent.click(
-      await screen.findByRole("menuitemradio", { name: PLATFORM })
-    );
-    expect(onContextChange).toHaveBeenCalledWith({
-      id: teamPlatform.id,
-      type: "team",
     });
   });
 
@@ -669,15 +649,6 @@ describe("Composer", () => {
       id: agentItem.id,
       type: "agent",
     });
-  });
-
-  it("shows a locked context without a menu", () => {
-    renderComposer({ context: { type: "personal" }, contextLocked: true });
-    const chip = screen.getByRole("button", {
-      name: "Chat context: Personal, locked",
-    });
-    expect(chip.getAttribute("aria-disabled")).toBe("true");
-    expect(chip.getAttribute("aria-haspopup")).toBeNull();
   });
 
   it("disables everything when disabled", () => {
@@ -740,16 +711,7 @@ describe("Composer's thinking level and fast mode (105)", () => {
     return (
       <I18nProvider i18n={i18n}>
         <Composer
-          context={{ type: "personal" }}
-          contexts={[
-            { context: { type: "personal" } },
-            {
-              context: { id: teamPlatform.id, type: "team" },
-              name: "Platform",
-            },
-          ]}
           models={MODELS}
-          onContextChange={vi.fn()}
           onSubmit={vi.fn()}
           onTargetChange={change}
           {...(sendsOptions ? { onVariantChange: vary, variant } : {})}
@@ -801,7 +763,7 @@ describe("Composer's thinking level and fast mode (105)", () => {
     variants.mockClear();
   });
 
-  it("puts the + menu and context first, and thinking and the model by Send", () => {
+  it("puts the + menu first, then the model, its thinking level and Send (113)", () => {
     renderHarness();
     const footer = screen
       .getByRole("button", { name: "Send" })
@@ -813,9 +775,8 @@ describe("Composer's thinking level and fast mode (105)", () => {
       .map((button) => button.getAttribute("aria-label"));
     expect(names).toEqual([
       "Add to message",
-      "Chat context: Personal",
-      "Thinking: Default",
       "Model or agent: o4-mini",
+      "Thinking: Medium",
       "Send",
     ]);
   });
@@ -919,9 +880,27 @@ describe("Composer's thinking level and fast mode (105)", () => {
     expect(fast.textContent).toContain("Needs server support");
   });
 
+  it("shows the provider's default level, and sends nothing for it (113)", async () => {
+    renderHarness();
+    expect(thinking()?.getAttribute("aria-label")).toBe("Thinking: Medium");
+    await userEvent.click(thinking() as HTMLElement);
+    const levels = await screen.findAllByRole("menuitemradio");
+    expect(levels.map((level) => level.textContent)).toEqual([
+      "Low",
+      "Medium",
+      "High",
+    ]);
+    await userEvent.keyboard("{Escape}");
+    await chooseLevel(LOW);
+    expect(variants).toHaveBeenLastCalledWith({ reasoning: "low" });
+    await chooseLevel(MEDIUM);
+    expect(variants).toHaveBeenLastCalledWith({});
+    expect(thinking()?.getAttribute("aria-label")).toBe("Thinking: Medium");
+  });
+
   it("remembers each model's level per person", async () => {
     renderHarness();
-    await chooseLevel(MEDIUM);
+    await chooseLevel(LOW);
     await pickModel("o4-mini", GPT_6);
     expect(changes).toHaveBeenLastCalledWith({
       model: "openai:gpt-6",
@@ -929,10 +908,10 @@ describe("Composer's thinking level and fast mode (105)", () => {
     });
     expect(variants).toHaveBeenLastCalledWith({});
     await pickModel("GPT-6", O4_MINI);
-    expect(variants).toHaveBeenLastCalledWith({ reasoning: "medium" });
+    expect(variants).toHaveBeenLastCalledWith({ reasoning: "low" });
     expect(
       JSON.parse(localStorage.getItem("composer:model-variants:user-1") ?? "[]")
-    ).toEqual([["openai:o4-mini", { fast: false, level: "medium" }]]);
+    ).toEqual([["openai:o4-mini", { fast: false, level: "low" }]]);
   });
 
   it("puts a remembered level back when the model comes back another way", async () => {

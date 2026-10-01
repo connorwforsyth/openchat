@@ -3,7 +3,12 @@ import { MockLanguageModelV4 } from "ai/test";
 import { describe, expect, it } from "vitest";
 
 import { generated } from "../testing/mock-models";
-import { hasFastTier, identityOf, reasoningLevels } from "./reasoning";
+import {
+  defaultReasoningLevel,
+  hasFastTier,
+  identityOf,
+  reasoningLevels,
+} from "./reasoning";
 import { runSettings, withRunSettings } from "./run-settings";
 
 const levels = (vendor: string, modelId: string) =>
@@ -76,6 +81,43 @@ describe("reasoningLevels", () => {
     ]);
     expect(levels("deepseek", "deepseek-v4")).toEqual(["off", "low", "high"]);
     expect(levels("qwen", "qwen3-235b")).toEqual(["low", "medium", "high"]);
+  });
+});
+
+describe("defaultReasoningLevel", () => {
+  const fallback = (vendor: string, modelId: string) =>
+    defaultReasoningLevel({ modelId, vendor });
+
+  it("is what the provider does when nothing is sent", () => {
+    expect(fallback("anthropic", "claude-sonnet-4-5")).toBe("off");
+    expect(fallback("anthropic", "claude-opus-5")).toBe("off");
+    expect(fallback("anthropic", "claude-sonnet-5")).toBe("high");
+    expect(fallback("anthropic", "anthropic/claude-opus-5.5")).toBe("medium");
+    expect(fallback("anthropic", "claude-fable-5-1")).toBe("high");
+    expect(fallback("openai", "o4-mini")).toBe("medium");
+    expect(fallback("openai", "gpt-5")).toBe("medium");
+    expect(fallback("openai", "gpt-5.1")).toBe("off");
+    expect(fallback("openai", "gpt-5.2")).toBe("off");
+    expect(fallback("openai", "gpt-5.1-codex")).toBe("medium");
+    expect(fallback("openai", "gpt-6")).toBe("medium");
+    expect(fallback("google", "gemini-2.5-flash-lite")).toBe("off");
+    expect(fallback("google", "gemini-2.5-pro")).toBe("medium");
+    expect(fallback("google", "gemini-3-pro")).toBe("high");
+    expect(fallback("deepseek", "deepseek-v4")).toBe("high");
+    expect(fallback("qwen", "qwen3-235b")).toBe("medium");
+  });
+
+  it("is always one of the model's levels", () => {
+    for (const [vendor, modelId] of [
+      ["anthropic", "claude-opus-5.5"],
+      ["openai", "gpt-6-sol"],
+      ["google", "gemini-2.5-pro"],
+      ["deepseek", "deepseek-r2"],
+    ] as const) {
+      expect(reasoningLevels({ modelId, vendor })).toContain(
+        fallback(vendor, modelId)
+      );
+    }
   });
 });
 

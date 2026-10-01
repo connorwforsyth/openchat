@@ -582,18 +582,17 @@ msgstr "Changed by the agent"
 msgid "Changes"
 msgstr "Changes"
 
-#: ../chat-ui/src/header/share-menu.tsx
-#: ../composer/src/components/context-chip.tsx
+#: ../chat-ui/src/header/context-control.tsx
 msgid "Chat context"
 msgstr "Chat context"
 
-#: ../composer/src/components/context-chip.tsx
+#: ../chat-ui/src/header/context-control.tsx
+msgid "Chat context:"
+msgstr "Chat context:"
+
+#: ../chat-ui/src/header/context-control.tsx
 msgid "Chat context: {label}"
 msgstr "Chat context: {label}"
-
-#: ../composer/src/components/context-chip.tsx
-msgid "Chat context: {label}, locked"
-msgstr "Chat context: {label}, locked"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "Chat contexts"
@@ -744,10 +743,6 @@ msgstr "context"
 #: ../composer/src/components/target-picker.tsx
 msgid "Context"
 msgstr "Context"
-
-#: ../../apps/web/app/dev/composer/demo.tsx
-msgid "Context locked"
-msgstr "Context locked"
 
 #: ../../apps/web/app/(auth)/_components/social-buttons.tsx
 msgid "Continue with {name}"
@@ -958,7 +953,6 @@ msgstr "Decision sent to the agent"
 msgid "Decision sent. Waiting for the agent…"
 msgstr "Decision sent. Waiting for the agent…"
 
-#: ../composer/src/components/thinking-control.tsx
 #: ../library-ui/src/components/prompt-form.tsx
 msgid "Default"
 msgstr "Default"
@@ -1866,8 +1860,6 @@ msgid "New"
 msgstr "New"
 
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
-#: ../../apps/web/app/(app)/(pages)/page-shell.tsx
-#: ../chat-ui/src/chat/chat-screen.tsx
 #: ../chat-ui/src/header/chat-title.tsx
 #: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
 #: ../chat-ui/src/sidebar/chat-row.tsx
@@ -2213,7 +2205,7 @@ msgstr "Organisation: {0}"
 msgid "Organisations you run"
 msgstr "Organisations you run"
 
-#: ../composer/src/components/context-chip.tsx
+#: ../chat-ui/src/header/context-control.tsx
 msgid "Organization"
 msgstr "Organization"
 
@@ -2276,7 +2268,7 @@ msgstr "permissions"
 #: ../../apps/web/app/(app)/(chat)/chat-route.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 #: ../../apps/web/app/(app)/(pages)/settings/_components/profile-settings.tsx
-#: ../composer/src/components/context-chip.tsx
+#: ../chat-ui/src/header/context-control.tsx
 msgid "Personal"
 msgstr "Personal"
 
@@ -3215,7 +3207,7 @@ msgstr "team"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
-#: ../composer/src/components/context-chip.tsx
+#: ../chat-ui/src/header/context-control.tsx
 msgid "Team"
 msgstr "Team"
 
@@ -3357,10 +3349,6 @@ msgstr "The budget couldn't be saved. Try again."
 #: ../../apps/web/app/dev/sandbox/page.tsx
 msgid "The chat's Workspace panel (files, editor, preview and artifacts) over a just-bash workspace that runs entirely in this browser tab: simulated bash, an in-memory filesystem, no server and no network. Reloading the page starts over."
 msgstr "The chat's Workspace panel (files, editor, preview and artifacts) over a just-bash workspace that runs entirely in this browser tab: simulated bash, an in-memory filesystem, no server and no network. Reloading the page starts over."
-
-#: ../composer/src/components/context-chip.tsx
-msgid "The context can't change after the first message."
-msgstr "The context can't change after the first message."
 
 #: ../../apps/web/app/dev/chat/demo.tsx
 msgid "The demo workspace couldn't do that."
@@ -3627,8 +3615,7 @@ msgstr "Thought for a few seconds"
 msgid "Today"
 msgstr "Today"
 
-#: ../../apps/web/app/(app)/(pages)/page-shell.tsx
-#: ../chat-ui/src/chat/chat-screen.tsx
+#: ../chat-ui/src/shell/sidebar-toggle.tsx
 #: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
 msgid "Toggle sidebar"
 msgstr "Toggle sidebar"
@@ -3974,7 +3961,7 @@ msgstr "While this is on, every member sees “Admins of this org can read this 
 msgid "Who's in this org and what they can manage."
 msgstr "Who's in this org and what they can manage."
 
-#: ../chat-ui/src/header/share-menu.tsx
+#: ../chat-ui/src/header/context-control.tsx
 msgid "Whose keys and budget this chat uses. It can't change after the first message."
 msgstr "Whose keys and budget this chat uses. It can't change after the first message."
 
