@@ -1,11 +1,13 @@
 "use client";
 
 import { useLingui } from "@lingui/react/macro";
+import type { AgentOption } from "@workspace/composer/schemas";
 import type { MessageId } from "@workspace/contract/schemas/common";
 import type {
   Message,
   SiblingInfo,
 } from "@workspace/contract/schemas/messages";
+import type { ModelOption } from "@workspace/contract/schemas/models";
 import type { PendingApproval } from "@workspace/contract/schemas/runs";
 import {
   MessageScroller,
@@ -25,9 +27,13 @@ import {
 } from "./actions";
 import type { MessageFeedback } from "./feedback";
 import { MessageRow } from "./message-row";
+import { SwitchMarker } from "./switch-marker";
+import { answerSwitches } from "./switches";
 
 export interface ConversationViewProps {
   readonly actions: ConversationActions;
+  /** The caller's agents, to name the agent a marker switches to (107). */
+  readonly agents?: readonly AgentOption[];
   readonly className?: string;
   /** Changes when a different chat opens, resetting scroll. */
   readonly conversationKey: string;
@@ -38,6 +44,8 @@ export interface ConversationViewProps {
   readonly feedback?: Readonly<Record<string, MessageFeedback>>;
   /** The branch being shown, root first (`messages.path`). */
   readonly messages: readonly Message[];
+  /** The model list, to name the model a marker switches to (107). */
+  readonly models?: readonly ModelOption[];
   /** Approvals the current run waits on, with any proposed edits. */
   readonly pendingApprovals?: readonly PendingApproval[];
   readonly siblings: readonly SiblingInfo[];
@@ -46,6 +54,8 @@ export interface ConversationViewProps {
 }
 
 const NO_RESULTS: readonly ToolResultPart[] = [];
+const NO_AGENTS: readonly AgentOption[] = [];
+const NO_MODELS: readonly ModelOption[] = [];
 
 /**
  * The conversation (D27): not virtualised (conversations are short and
@@ -54,12 +64,14 @@ const NO_RESULTS: readonly ToolResultPart[] = [];
  */
 export function ConversationView({
   actions,
+  agents = NO_AGENTS,
   className,
   conversationKey,
   empty,
   error,
   feedback,
   messages,
+  models = NO_MODELS,
   pendingApprovals,
   siblings,
   streamingMessageId = null,
@@ -69,6 +81,8 @@ export function ConversationView({
     () => messages.filter((message) => message.role !== "system"),
     [messages]
   );
+  // Markers follow the branch shown: `messages` is the active path.
+  const switches = useMemo(() => answerSwitches(visible), [visible]);
   const siblingsById = useMemo(
     () => new Map(siblings.map((info) => [info.messageId, info])),
     [siblings]
@@ -120,17 +134,26 @@ export function ConversationView({
               {rows.map((row, index) => {
                 const streaming = row.message.id === streamingMessageId;
                 const last = index === rows.length - 1;
+                const change = switches.get(row.message.id);
                 return (
                   <MessageScrollerItem
                     // The live row must always lay out, or streaming text
                     // would size against a placeholder.
                     className={cn(
-                      (streaming || last) && "[content-visibility:visible]"
+                      (streaming || last) && "[content-visibility:visible]",
+                      change && "flex flex-col gap-6"
                     )}
                     key={row.message.id}
                     messageId={row.message.id}
                     scrollAnchor={row.message.role === "user"}
                   >
+                    {change ? (
+                      <SwitchMarker
+                        agents={agents}
+                        models={models}
+                        value={change}
+                      />
+                    ) : null}
                     <MessageRow
                       approvals={row.approvals}
                       feedback={feedback?.[row.message.id]}

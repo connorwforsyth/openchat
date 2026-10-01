@@ -31,6 +31,7 @@
     "./ports/*": "./src/ports/*.ts",
     "./prompts/*": "./src/prompts/*.ts",
     "./providers/capabilities": "./src/providers/capabilities.ts",
+    "./providers/describe": "./src/providers/describe.ts",
     "./providers/factory": "./src/providers/factory.ts",
     "./providers/reasoning": "./src/providers/reasoning.ts",
     "./providers/registry": "./src/providers/registry.ts",

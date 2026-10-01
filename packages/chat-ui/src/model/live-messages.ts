@@ -260,8 +260,16 @@ export const mergeLive = (
         // A page that picks a run up replays its stream from the start, so
         // for a moment the live copy has fewer calls than the stored one:
         // showing it would unmount a card and bring it straight back.
+        // Who answers is the stored copy's: the stream doesn't say, and the
+        // switch marker (107) reads it.
         return caughtUp(mapped, message)
-          ? { ...mapped, createdAt: message.createdAt, runId: message.runId }
+          ? {
+              ...mapped,
+              agent: message.agent,
+              createdAt: message.createdAt,
+              model: message.model,
+              runId: message.runId,
+            }
           : message;
       })
     : path;
