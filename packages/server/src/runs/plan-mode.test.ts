@@ -7,6 +7,7 @@ import {
   planApprovalOf,
   planTitle,
   planTurn,
+  planUnavailable,
 } from "./plan-mode";
 
 // Plan mode (106): a planning run can read, never write. These are the
@@ -237,6 +238,17 @@ describe("planTurn", () => {
     expect(Object.keys(planned.toolApproval ?? {}).sort()).toEqual(kept);
     // Nothing changes files, so nothing is proposed.
     expect(planned.proposeEdits).toBeUndefined();
+  });
+
+  it("names every tool it left out, with why, for the model to read (131)", () => {
+    const left = Object.keys(tools)
+      .filter((name) => !(name in (planned.tools ?? {})))
+      .sort();
+    expect(Object.keys(planned.unavailableTools ?? {}).sort()).toEqual(left);
+    expect(planned.unavailableTools?.write).toBe(planUnavailable("write"));
+    expect(planUnavailable("write")).toContain(
+      "`write` isn't available while planning"
+    );
   });
 
   it("keeps each tool's approval as it was: nothing becomes automatic", () => {

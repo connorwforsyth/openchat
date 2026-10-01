@@ -799,6 +799,7 @@ export const createInProcessExecutor = (
         timeoutMs: deps.timeoutMs,
         toolApproval: turn.value.toolApproval,
         tools: watchExecutions(turn.value.tools, executions),
+        unavailableTools: turn.value.unavailableTools,
       });
       if (!agentRun.ok) {
         await failEarly(run, assistantMessageId, agentRun.error);
