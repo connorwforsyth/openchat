@@ -4,7 +4,7 @@ title: "Plan mode: a read-only planning run, a plan you can edit, then Approve t
 labels: [wayfinder:build]
 status: open
 assignee: loop
-blockedBy: ["105"]
+blockedBy: []
 ---
 
 ## Question
@@ -12,7 +12,7 @@ blockedBy: ["105"]
 Connor asked for a plan mode, like Claude Code's. It is designed in `docs/proposals/2026-10-01-files-artifacts-plan-mode.md` (PR #76).
 
 His decisions (2026-10-01):
-- **Contract:** approved an optional `mode: "plan"` on run options (additive), beside 105's `reasoning` and `fast`.
+- **Contract:** approved an optional `mode: "plan"` on run options (additive), beside 105's `reasoning` and `fast` (now on main). His words: "Yes, add optional reasoning, fast and mode to run options in packages/contract". Also: "plan mode keen to start" (2026-10-02).
 - **Where the plan lives:** both, as a reply in the chat **and** as a Document artifact.
 - **Enforcement:** he didn't choose, so the loop's default applies: a narrow built-in read-only rule now, folded into the permissions proposal (073) later.
 
