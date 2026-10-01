@@ -48,6 +48,12 @@ export interface ComposerProps {
    * `files` to choose from.
    */
   readonly onCommand?: (command: ComposerCommand, path?: WorkspacePath) => void;
+  /**
+   * Plan mode was switched on or off in the + menu (106). Pass it to offer
+   * the switch; the host sends it as the run's `options.mode: "plan"`, a
+   * read-only planning run.
+   */
+  readonly onPlanChange?: (on: boolean) => void;
   /** Stops the current run. The stop button shows while `status` is busy. */
   readonly onStop?: () => void;
   readonly onSubmit: (value: ComposerValue) => void;
@@ -68,6 +74,8 @@ export interface ComposerProps {
   /** People `@` can mention. */
   readonly people?: readonly UserSummary[];
   readonly placeholder?: string;
+  /** Whether the next message plans rather than builds (see `onPlanChange`). */
+  readonly plan?: boolean;
   /** Templates `/` offers. */
   readonly prompts?: readonly PromptOption[];
   /**

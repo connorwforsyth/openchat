@@ -3,7 +3,12 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { ModelOption } from "@workspace/contract/schemas/models";
 import type { RunTarget } from "@workspace/contract/schemas/runs";
-import { ArrowUpIcon, GlobeIcon, ZapIcon } from "@workspace/icons";
+import {
+  ArrowUpIcon,
+  FileTextIcon,
+  GlobeIcon,
+  ZapIcon,
+} from "@workspace/icons";
 import {
   PromptInputButton,
   PromptInputFooter,
@@ -29,11 +34,13 @@ export interface ComposerFooterProps {
   readonly models: readonly ModelOption[];
   readonly onAddFile: ((file: FileCandidate) => void) | undefined;
   readonly onAttach: () => void;
+  readonly onPlanChange?: ((on: boolean) => void) | undefined;
   readonly onStop: (() => void) | undefined;
   readonly onTargetChange: ((target: RunTarget) => void) | undefined;
   readonly onUsePrompt: ((prompt: PromptOption) => void) | undefined;
   readonly onVariantChange: ((variant: ModelVariant) => void) | undefined;
   readonly onWebSearchChange: ((on: boolean) => void) | undefined;
+  readonly plan?: boolean;
   readonly prompts: readonly PromptOption[];
   readonly recentsKey: string | undefined;
   readonly target: RunTarget | undefined;
@@ -43,7 +50,7 @@ export interface ComposerFooterProps {
 
 /**
  * The composer's bottom row (after shadcn's chatbot template). At the
- * start: the + menu, and web search and fast mode while they're on. At the
+ * start: the + menu, and plan mode, web search and fast mode while they're on. At the
  * end: the model/agent picker, then its thinking level when it has one,
  * then Send (or Stop while a run is going) (105, 113). The chat context
  * lives in the chat header, not here (113).
@@ -58,11 +65,13 @@ export function ComposerFooter({
   models,
   onAddFile,
   onAttach,
+  onPlanChange,
   onStop,
   onTargetChange,
   onUsePrompt,
   onVariantChange,
   onWebSearchChange,
+  plan = false,
   prompts,
   recentsKey,
   target,
@@ -86,6 +95,10 @@ export function ComposerFooter({
     onWebSearchChange?.(false);
     plusRef.current?.focus();
   }, [onWebSearchChange]);
+  const turnOffPlan = useCallback(() => {
+    onPlanChange?.(false);
+    plusRef.current?.focus();
+  }, [onPlanChange]);
   const turnOffFast = useCallback(() => {
     setFast(false);
     plusRef.current?.focus();
@@ -102,12 +115,29 @@ export function ComposerFooter({
           onAddFile={onAddFile}
           onAttach={onAttach}
           onFastChange={setFast}
+          onPlanChange={onPlanChange}
           onUsePrompt={onUsePrompt}
           onWebSearchChange={onWebSearchChange}
+          plan={plan}
           prompts={prompts}
           triggerRef={plusRef}
           webSearch={webSearch}
         />
+        {plan && onPlanChange ? (
+          <PromptInputButton
+            aria-label={t`Plan mode is on. Turn it off`}
+            aria-pressed
+            className="rounded-full text-foreground"
+            disabled={disabled}
+            onClick={turnOffPlan}
+            size="sm"
+          >
+            <FileTextIcon aria-hidden />
+            <span className="max-sm:sr-only">
+              <Trans>Plan</Trans>
+            </span>
+          </PromptInputButton>
+        ) : null}
         {webSearch && onWebSearchChange ? (
           <PromptInputButton
             aria-label={t`Web search is on. Turn it off`}

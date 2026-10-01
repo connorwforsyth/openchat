@@ -12,6 +12,14 @@ import type { Message } from "@workspace/contract/schemas/messages";
 import type { ToolUIPart } from "ai";
 import { z } from "zod";
 
+import {
+  PLAN_DATA,
+  type PlanApprovalRef,
+  type PlanRef,
+  planApprovalOf,
+  planRefSchema,
+} from "./plan";
+
 // How a message's stored parts (partsVersion 1) become what the conversation
 // renders. Tool calls and their results are separate parts joined by
 // `toolCallId`, possibly in different messages (a result can land after an
@@ -136,6 +144,12 @@ export type RenderBlock =
       readonly key: string;
       readonly kind: "annotation";
       readonly part: AnnotationRefPart;
+    }
+  | { readonly key: string; readonly kind: "plan"; readonly plan: PlanRef }
+  | {
+      readonly approval: PlanApprovalRef;
+      readonly key: string;
+      readonly kind: "plan-approval";
     };
 
 export interface MessageView {
@@ -143,6 +157,23 @@ export interface MessageView {
   /** Citations, shown once under the message. */
   readonly sources: readonly SourcePart[];
 }
+
+/** Data parts the chat shows: memory notes, and plan mode's card and approvals (106). */
+const dataBlock = (
+  part: Extract<MessagePart, { type: "data" }>,
+  key: string
+): RenderBlock | null => {
+  if (part.name === "memory-update") {
+    const parsed = memoryUpdateSchema.safeParse(part.data);
+    return parsed.success ? { key, kind: "memory", update: parsed.data } : null;
+  }
+  if (part.name === PLAN_DATA) {
+    const parsed = planRefSchema.safeParse(part.data);
+    return parsed.success ? { key, kind: "plan", plan: parsed.data } : null;
+  }
+  const approval = planApprovalOf(part.name, part.data);
+  return approval ? { approval, key, kind: "plan-approval" } : null;
+};
 
 const blockFor = (
   part: MessagePart,
@@ -170,15 +201,8 @@ const blockFor = (
       return { key, kind: "artifact", part };
     case "annotation-ref":
       return { key, kind: "annotation", part };
-    case "data": {
-      if (part.name !== "memory-update") {
-        return null;
-      }
-      const parsed = memoryUpdateSchema.safeParse(part.data);
-      return parsed.success
-        ? { key, kind: "memory", update: parsed.data }
-        : null;
-    }
+    case "data":
+      return dataBlock(part, key);
     // Rendered elsewhere (files are grouped, sources listed once, results
     // joined to their calls) or not at all (step boundaries).
     case "file":

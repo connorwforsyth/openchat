@@ -49,6 +49,7 @@ import {
 import { useElementWidth } from "../workspace/use-element-width";
 import { ArtifactPreview, SrcdocPreview } from "./artifact-preview";
 import { fitArtifactHeader } from "./header-fit";
+import { type PlanEditing, PlanEditor } from "./plan-editor";
 import { isRuntimeKind } from "./runtime-protocol";
 
 // One artifact in the Workspace panel (D16, D27, 060): its preview, source
@@ -71,6 +72,11 @@ export interface ArtifactSelection {
 export interface ArtifactViewProps {
   /** `undefined` when the chat has none. */
   readonly artifact: Artifact | undefined;
+  /**
+   * A plan being edited (106): when it's this artifact, the view is its
+   * editor instead of its tabs.
+   */
+  readonly editing?: PlanEditing | null;
   /** A message the host can show if loading versions failed. */
   readonly error?: string | null;
   /**
@@ -100,6 +106,7 @@ const plainHeader = (content: ReactNode) => (
 
 export function ArtifactView({
   artifact,
+  editing = null,
   error,
   header = plainHeader,
   onSelect,
@@ -124,6 +131,18 @@ export function ArtifactView({
     );
   }
 
+  const latest = versions?.at(-1);
+  if (editing?.artifactId === artifact.id && latest) {
+    return (
+      <PlanEditor
+        editing={editing}
+        header={header}
+        initial={latest.content}
+        key={latest.id}
+        title={artifact.title}
+      />
+    );
+  }
   if (versions && versions.length > 0) {
     return (
       <ArtifactDetail

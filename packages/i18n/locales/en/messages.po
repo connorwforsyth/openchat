@@ -365,13 +365,23 @@ msgstr "Appearance"
 msgid "Approval needed for {toolName}"
 msgstr "Approval needed for {toolName}"
 
+#: ../chat-ui/src/artifacts/plan-editor.tsx
 #: ../chat-ui/src/conversation/approval.tsx
+#: ../chat-ui/src/conversation/plan-card.tsx
 msgid "Approve"
 msgstr "Approve"
 
 #: ../chat-ui/src/conversation/approval.tsx
 msgid "Approve all"
 msgstr "Approve all"
+
+#: ../chat-ui/src/artifacts/plan-editor.tsx
+msgid "Approve the plan"
+msgstr "Approve the plan"
+
+#: ../chat-ui/src/conversation/plan-card.tsx
+msgid "Approved the plan"
+msgstr "Approved the plan"
 
 #: ../chat-ui/src/sidebar/chat-row.tsx
 msgid "Archive"
@@ -539,6 +549,7 @@ msgstr "Can't reach the server"
 
 #: ../../apps/web/app/(app)/_shared/confirm.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
+#: ../chat-ui/src/artifacts/plan-editor.tsx
 #: ../chat-ui/src/conversation/approval.tsx
 #: ../chat-ui/src/conversation/message-row.tsx
 #: ../chat-ui/src/workspace/file-view.tsx
@@ -1083,6 +1094,10 @@ msgstr "Diff layout"
 msgid "Disabled"
 msgstr "Disabled"
 
+#: ../chat-ui/src/conversation/plan-card.tsx
+msgid "Discard"
+msgstr "Discard"
+
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "Disconnect"
 msgstr "Disconnect"
@@ -1154,6 +1169,7 @@ msgid "Duplicate to my library"
 msgstr "Duplicate to my library"
 
 #: ../chat-ui/src/conversation/message-row.tsx
+#: ../chat-ui/src/conversation/plan-card.tsx
 #: ../library-ui/src/components/share-dialog.tsx
 msgid "Edit"
 msgstr "Edit"
@@ -1181,6 +1197,10 @@ msgstr "Edited {path}"
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Editing {code}"
 msgstr "Editing {code}"
+
+#: ../chat-ui/src/artifacts/plan-editor.tsx
+msgid "Editing {title}"
+msgstr "Editing {title}"
 
 #: ../chat-ui/src/header/share-menu.tsx
 msgid "Editor"
@@ -1363,6 +1383,11 @@ msgstr "General"
 #: ../chat-ui/src/workspace/new-file-dialog.tsx
 msgid "Give the file a name."
 msgstr "Give the file a name."
+
+#. placeholder {0}: approved.title
+#: ../chat-ui/src/chat/connected-chat.tsx
+msgid "Go ahead with the plan: {0}"
+msgstr "Go ahead with the plan: {0}"
 
 #: ../../apps/web/app/(auth)/invite/[token]/page.tsx
 msgid "Go to sign in"
@@ -1654,6 +1679,10 @@ msgstr "locale"
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "Locked by server config"
 msgstr "Locked by server config"
+
+#: ../composer/src/components/plus-menu.tsx
+msgid "Look first, change nothing"
+msgstr "Look first, change nothing"
 
 #: ../composer/src/components/thinking-control.tsx
 msgid "Low"
@@ -2156,6 +2185,11 @@ msgstr "Open in a new tab"
 msgid "Open link"
 msgstr "Open link"
 
+#. placeholder {0}: plan.title
+#: ../chat-ui/src/conversation/plan-card.tsx
+msgid "Open plan: {0}"
+msgstr "Open plan: {0}"
+
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
 #: ../shortcuts/src/registry.ts
 msgid "Open settings"
@@ -2319,9 +2353,39 @@ msgstr "Pin this version"
 msgid "Pinned"
 msgstr "Pinned"
 
+#: ../composer/src/components/composer-footer.tsx
+#: ../composer/src/components/plus-menu.tsx
+msgid "Plan"
+msgstr "Plan"
+
+#: ../chat-ui/src/conversation/plan-card.tsx
+msgid "Plan · Approved"
+msgstr "Plan · Approved"
+
+#: ../chat-ui/src/conversation/plan-card.tsx
+msgid "Plan · Set aside"
+msgstr "Plan · Set aside"
+
+#: ../chat-ui/src/conversation/plan-card.tsx
+msgid "Plan · Waiting for your approval"
+msgstr "Plan · Waiting for your approval"
+
+#: ../composer/src/components/composer-footer.tsx
+msgid "Plan mode is on. Turn it off"
+msgstr "Plan mode is on. Turn it off"
+
 #: ../chat-ui/src/conversation/empty-state.tsx
 msgid "Plan something"
 msgstr "Plan something"
+
+#: ../chat-ui/src/artifacts/plan-editor.tsx
+msgid "Plan, in Markdown"
+msgstr "Plan, in Markdown"
+
+#. placeholder {0}: plan.title
+#: ../chat-ui/src/conversation/plan-card.tsx
+msgid "Plan: {0}"
+msgstr "Plan: {0}"
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "PNG"
@@ -4135,6 +4199,10 @@ msgstr "Your changes work now but couldn't be saved, so they'll reset when you r
 #: ../chat-ui/src/conversation/approval.tsx
 msgid "Your decision didn't reach the server."
 msgstr "Your decision didn't reach the server."
+
+#: ../chat-ui/src/artifacts/plan-editor.tsx
+msgid "Your edits are saved as a new version when you approve."
+msgstr "Your edits are saved as a new version when you approve."
 
 #: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
 msgid "Your memory"
