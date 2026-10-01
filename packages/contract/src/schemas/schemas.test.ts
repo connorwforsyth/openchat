@@ -1354,6 +1354,16 @@ const cases: Record<string, Cases> = {
         options: { fast: true, reasoning: "low" },
         target: { model: "anthropic:claude-opus-5-5", type: "model" },
       },
+      // A read-only planning run (106).
+      {
+        conversationId: convId,
+        input: {
+          parentId: null,
+          parts: [{ text: "plan it", type: "text" }],
+          type: "message",
+        },
+        options: { mode: "plan" },
+      },
     ],
   },
   "runs.createRunOutputSchema": {
@@ -1433,12 +1443,19 @@ const cases: Record<string, Cases> = {
       },
     ],
   },
+  "runs.runModeSchema": {
+    invalid: ["normal", "PLAN", "", null],
+    valid: ["plan"],
+  },
   "runs.runOptionsSchema": {
     invalid: [
       { webSearch: "yes" },
       { reasoning: "none" },
       { reasoning: "on" },
       { fast: "yes" },
+      { mode: "build" },
+      { mode: "" },
+      { mode: null },
     ],
     valid: [
       // The shape before 105 still parses.
@@ -1446,6 +1463,9 @@ const cases: Record<string, Cases> = {
       { reasoningEffort: "high", sandbox: "off" },
       { fast: true, reasoning: "xhigh" },
       { fast: false, reasoning: "off", webSearch: "on" },
+      // Plan mode (106); absent means a normal turn.
+      { mode: "plan" },
+      { fast: true, mode: "plan", reasoning: "high", webSearch: "on" },
     ],
   },
   "runs.runSchema": {
@@ -1455,6 +1475,7 @@ const cases: Record<string, Cases> = {
         state: { approvals: [], startedAt: t, status: "awaiting_approval" },
       },
       { ...runAwaitingApproval, options: { reasoning: "turbo" } },
+      { ...runAwaitingApproval, options: { mode: "act" } },
     ],
     valid: [
       // Before 105: no options.
@@ -1467,6 +1488,10 @@ const cases: Record<string, Cases> = {
           sandbox: "auto",
           webSearch: "auto",
         },
+      },
+      {
+        ...runAwaitingApproval,
+        options: { mode: "plan", sandbox: "auto", webSearch: "auto" },
       },
     ],
   },
