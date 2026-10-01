@@ -33,7 +33,6 @@ describe("the runtime's renderers", () => {
   it("have nothing for a kind the runtime doesn't take", () => {
     expect(rendererFor("markdown")).toBeNull();
     expect(rendererFor("code")).toBeNull();
-    expect(rendererFor("site")).toBeNull();
   });
 
   it("let React import what the protocol says it may", () => {

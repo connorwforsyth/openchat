@@ -132,6 +132,10 @@ services:
       # The app origins allowed to embed it (comma-separated); unset allows
       # any localhost port, for development.
       ARTIFACTS_APP_ORIGINS: ${ARTIFACTS_APP_ORIGINS:-}
+      # The app, as this container reaches it (125): published sites and the
+      # sites' public origins (artifacts.kinds.site) come from its API.
+      # Unset, published links don't load and sites load nothing from outside.
+      ARTIFACTS_API_ORIGIN: ${ARTIFACTS_API_ORIGIN:-}
     ports:
       - "127.0.0.1:${ARTIFACTS_PORT:-3910}:3910"
 

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "bun run build:public && bun build src/server.ts --target=node --outfile=dist/server.js",
-    "build:public": "bun build ./index.html --outdir=dist/public --production --splitting",
+    "build:public": "bun build ./index.html ./site.html --outdir=dist/public --production --splitting",
     "dev": "bun src/server.ts --watch",
     "lint": "ultracite check",
     "start": "node dist/server.js",
@@ -15,11 +15,14 @@
   "dependencies": {
     "@workspace/artifacts-kit": "workspace:*",
     "@workspace/chat-ui": "workspace:*",
+    "@workspace/contract": "workspace:*",
     "@workspace/shared": "workspace:*",
+    "@workspace/ui": "workspace:*",
     "mermaid": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "sucrase": "catalog:",
+    "tailwindcss": "^4",
     "zod": "catalog:"
   },
   "devDependencies": {

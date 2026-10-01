@@ -232,7 +232,7 @@ function RuntimePreview({
         ref={frameRef}
         referrerPolicy="no-referrer"
         sandbox="allow-scripts"
-        src={runtimeUrl(runtimeOrigin, parentOrigin)}
+        src={runtimeUrl(runtimeOrigin, parentOrigin, kind)}
         style={height === null ? undefined : { height }}
         title={t`Preview of ${title}`}
       />

@@ -20,6 +20,9 @@ export const runtimeKindSchema = artifactKindSchema.extract([
   "html",
   "mermaid",
   "react",
+  // On its own page (`site.html`), whose CSP lets in the instance's public
+  // origins (125).
+  "site",
   "svg",
 ]);
 export type RuntimeKind = z.infer<typeof runtimeKindSchema>;
@@ -198,9 +201,17 @@ export const runtimeOriginFrom = (value: string | undefined): string | null => {
   return parsed.ok ? parsed.value : null;
 };
 
-/** The URL the panel loads: the runtime, told which origin will talk to it. */
-export const runtimeUrl = (runtimeOrigin: string, parentOrigin: string) =>
-  `${runtimeOrigin}/?${new URLSearchParams({ parent: parentOrigin })}`;
+/**
+ * The URL the panel loads: the runtime, told which origin will talk to it.
+ * Sites (125) have a page of their own, because their CSP differs: it lets
+ * in the instance's public origins, which no other kind may reach.
+ */
+export const runtimeUrl = (
+  runtimeOrigin: string,
+  parentOrigin: string,
+  kind?: RuntimeKind
+) =>
+  `${runtimeOrigin}/${kind === "site" ? "site.html" : ""}?${new URLSearchParams({ parent: parentOrigin })}`;
 
 /** The runtime's view of `runtimeUrl`: the parent origin it should trust. */
 export const parentOriginFrom = (
