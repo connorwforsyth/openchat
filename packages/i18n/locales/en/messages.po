@@ -381,6 +381,7 @@ msgstr "Annotation attached"
 #: ../../apps/desktop/src/main/quick-shortcut.ts
 msgid "Another app is using {keys}, so it can't open Quick AI."
 msgstr "Another app is using {keys}, so it can't open Quick AI."
+
 #: ../chat-ui/src/artifacts/publish-dialog.tsx
 msgid "Anyone with the link can see this site. It shows the version you published until you publish again."
 msgstr "Anyone with the link can see this site. It shows the version you published until you publish again."
@@ -2903,9 +2904,6 @@ msgstr "Publishing failed, so nothing changed."
 msgid "Publishing is blocked when evals regress."
 msgstr "Publishing is blocked when evals regress."
 
-#: ../chat-ui/src/model/tool-summary.ts
-msgid "Publishing the skill {name}"
-msgstr "Publishing the skill {name}"
 #: ../chat-ui/src/artifacts/publish-dialog.tsx
 msgid "Publishing isn't available on this instance."
 msgstr "Publishing isn't available on this instance."
@@ -2913,6 +2911,10 @@ msgstr "Publishing isn't available on this instance."
 #: ../chat-ui/src/artifacts/publish-dialog.tsx
 msgid "Publishing makes a public link to this site. Anyone with the link can see it, without signing in."
 msgstr "Publishing makes a public link to this site. Anyone with the link can see it, without signing in."
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Publishing the skill {name}"
+msgstr "Publishing the skill {name}"
 
 #: ../library-ui/src/components/publish-dialog.tsx
 msgid "Put a copy in a team or org library. The library owns it and you maintain it."
