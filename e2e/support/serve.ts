@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import { existsSync } from "node:fs";
 import { cp, mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
+import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -28,6 +29,11 @@ import { startMockSearch } from "./mock-search";
 // for tools.spec.ts), and loopback as a trusted proxy (for proxy.spec.ts).
 // A fixture web site (support/fixture-site.ts) serves pages that link
 // previews fetch, allowlisted by a test-only variable (101).
+//
+// The artifact runtime (apps/artifacts, built by `^build`) runs beside it on
+// its own origin (127.0.0.1 rather than localhost, and its own port), so
+// artifacts preview there, and sites publish there (125). Public links are
+// on, which publishing a site needs.
 //
 // `E2E_STANDALONE=1` runs the server the Docker image runs instead: the
 // `standalone` build (`NEXT_OUTPUT=standalone next build`), laid out as
@@ -72,6 +78,8 @@ search: { backend: searxng, searxng: { url: "${search}" } }
 # An instance MCP server, which every chat may use.
 mcp: { servers: [{ name: e2e, url: "${mcp}" }] }
 limits: { requestsPerMinute: 1000 }
+# Publishing a site is a public link (125).
+features: { publicLinks: true }
 `;
 
 interface Launch {
@@ -117,6 +125,46 @@ const standaloneServer = async (dir: string): Promise<Launch> => {
   return { args: [join(server, "server.js")], cwd: server };
 };
 
+/** A port nothing is listening on, from the OS. */
+const freePort = () =>
+  new Promise<number>((done, fail) => {
+    const probe = createServer();
+    probe.once("error", fail);
+    probe.listen(0, "127.0.0.1", () => {
+      const address = probe.address();
+      probe.close(() =>
+        typeof address === "object" && address
+          ? done(address.port)
+          : fail(new Error("no port"))
+      );
+    });
+  });
+
+/** The built artifact runtime, talking to the app for published sites. */
+const startRuntime = async () => {
+  const server = join(root, "apps/artifacts/dist/server.js");
+  if (!existsSync(server)) {
+    throw new Error(
+      "no artifact runtime build: run `bun run build` in apps/artifacts"
+    );
+  }
+  const runtimePort = await freePort();
+  const runtime = spawn(
+    process.execPath.endsWith("bun") ? "node" : process.execPath,
+    [server],
+    {
+      env: {
+        ARTIFACTS_API_ORIGIN: `http://localhost:${port}`,
+        ARTIFACTS_HOST: "127.0.0.1",
+        ARTIFACTS_PORT: String(runtimePort),
+        PATH: process.env.PATH,
+      },
+      stdio: "inherit",
+    }
+  );
+  return { origin: `http://127.0.0.1:${runtimePort}`, process: runtime };
+};
+
 const main = async () => {
   const dir = await mkdtemp(join(tmpdir(), "e2e-server-"));
   const [llm, search, mcp, site] = await Promise.all([
@@ -126,6 +174,7 @@ const main = async () => {
     startFixtureSite(),
   ]);
   await recordFixtureOrigin(site.origin);
+  const runtime = await startRuntime();
   const configPath = join(dir, "app.config.yaml");
   await writeFile(
     configPath,
@@ -147,6 +196,7 @@ const main = async () => {
     {
       cwd: launch.cwd,
       env: {
+        ARTIFACTS_ORIGIN: runtime.origin,
         BETTER_AUTH_SECRET: randomBytes(32).toString("base64"),
         BETTER_AUTH_URL: `http://localhost:${port}`,
         CONFIG_PATH: configPath,
@@ -174,6 +224,7 @@ const main = async () => {
     }
     stopping = true;
     child.kill("SIGTERM");
+    runtime.process.kill("SIGTERM");
     await Promise.all([llm.close(), search.close(), mcp.close(), site.close()]);
     await rm(dir, { force: true, recursive: true });
     process.exit(code);
