@@ -25,6 +25,7 @@ import {
   type MemoryJobQueue,
 } from "../ports/job-queue.memory";
 import type { SandboxToolSource } from "../runs/sandbox";
+import type { RunTimings } from "../runs/timing";
 import type { Turn } from "../runs/turn";
 import { createServices, registerCoreJobs, type Services } from "../services";
 import {
@@ -155,6 +156,8 @@ export interface HarnessOptions {
   readonly realTurns?: boolean;
   /** Sandbox tools for real turns (the sandbox package binds its own over this database). */
   readonly sandbox?: (db: TestDb["db"]) => SandboxToolSource;
+  /** Where the run timing marks go (ticket 102). */
+  readonly timings?: RunTimings;
   readonly titleModel?: LanguageModelV4;
 }
 
@@ -197,6 +200,7 @@ export const createHarness = async (
             })
           );
         },
+    timings: options.timings,
     tools: options.sandbox ? { sandbox: options.sandbox(db) } : undefined,
   });
   await registerCoreJobs(jobs, services);

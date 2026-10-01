@@ -32,6 +32,7 @@ import {
   type RunSettled,
 } from "./runs/executor";
 import { type MemorySettings, withChatMemory } from "./runs/memory";
+import type { RunTimings } from "./runs/timing";
 import {
   createModelLoader,
   createTurnResolver,
@@ -68,6 +69,8 @@ export interface ServicesOptions {
   readonly resolveTurn?: TurnResolver;
   /** Uploads, for attachments a model reads as file parts (044). */
   readonly storage?: Storage;
+  /** Server timing marks on the way to a run's first token (ticket 102). */
+  readonly timings?: RunTimings;
   readonly tools?: Pick<
     TurnResolverDeps,
     | "builtins"
@@ -102,6 +105,7 @@ export const createServices = (options: ServicesOptions): Services => {
     db,
     keyStore,
     registry: options.registry,
+    timings: options.timings,
   };
   const loadModel = createModelLoader(turnDeps);
   const streams = createPostgresStreamChannel({ db, listen: options.listen });
@@ -148,6 +152,7 @@ export const createServices = (options: ServicesOptions): Services => {
       { db, report, settings: memory }
     ),
     timeoutMs: config.limits.runTimeoutSeconds * 1000,
+    timings: options.timings,
     writer: streams,
   });
 
@@ -185,6 +190,7 @@ export const createServices = (options: ServicesOptions): Services => {
       await streams.stop();
     },
     streams,
+    timings: options.timings,
   };
 };
 

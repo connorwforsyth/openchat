@@ -29,6 +29,9 @@ import { startMockLlm } from "./mock-llm";
 // a failure with React's development warnings.
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+// The server's run timing marks (ticket 102), read by print-timings.ts
+// through `readServerTimings` (timings.ts names the same file).
+const serverTimings = join(root, "e2e/test-results/server-timings.jsonl");
 const web = join(root, "apps/web");
 const port = Number(process.env.E2E_PORT ?? 3100);
 
@@ -95,6 +98,7 @@ const standaloneServer = async (dir: string): Promise<Launch> => {
 const main = async () => {
   const dir = await mkdtemp(join(tmpdir(), "e2e-server-"));
   const llm = await startMockLlm();
+  await rm(serverTimings, { force: true });
   const configPath = join(dir, "app.config.yaml");
   await writeFile(configPath, config(llm.baseUrl, join(dir, "files")));
   const launch = process.env.E2E_STANDALONE
@@ -117,6 +121,7 @@ const main = async () => {
         PATH: process.env.PATH,
         PORT: String(port),
         // The specs stand in for a proxy on this machine (proxy.spec.ts).
+        RUN_TIMINGS_FILE: serverTimings,
         TRUSTED_PROXIES: "127.0.0.1, ::1",
       },
       stdio: "inherit",

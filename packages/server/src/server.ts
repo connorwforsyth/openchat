@@ -1,4 +1,6 @@
 import { createHmac } from "node:crypto";
+import { appendFile, mkdir } from "node:fs/promises";
+import { dirname } from "node:path";
 
 import type { AnyRouter } from "@orpc/server";
 import { createDecider } from "@workspace/ai/decider/from-config";
@@ -56,6 +58,7 @@ import { createSearchHandlers } from "./knowledge/search";
 import { createLibraryRouter } from "./library/router";
 import type { Storage } from "./ports/storage";
 import type { SandboxToolSource } from "./runs/sandbox";
+import type { RunTimings } from "./runs/timing";
 import {
   createServices,
   registerCoreJobs,
@@ -297,6 +300,26 @@ const noQueue = {
     }),
 };
 
+/**
+ * `RUN_TIMINGS_FILE`: append each run's timing marks (ticket 102) to this
+ * file as JSON lines. For measuring, as the e2e suite does; unset in
+ * production, where nothing is recorded.
+ */
+const runTimingsFromEnv = (
+  env: Env,
+  report: Report
+): RunTimings | undefined => {
+  const file = env.RUN_TIMINGS_FILE?.trim();
+  if (!file) {
+    return;
+  }
+  return (mark) => {
+    mkdir(dirname(file), { recursive: true })
+      .then(() => appendFile(file, `${JSON.stringify(mark)}\n`))
+      .catch((cause: unknown) => report("couldn't record a run timing", cause));
+  };
+};
+
 export const createServerFromEnv = async (
   options: ServerFromEnvOptions
 ): Promise<Server> => {
@@ -407,6 +430,7 @@ export const createServerFromEnv = async (
     registry,
     report,
     storage: storage.storage,
+    timings: runTimingsFromEnv(env, report),
     tools: {
       decider,
       knowledge: embedder ? { embedder } : undefined,
