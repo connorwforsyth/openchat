@@ -21,6 +21,7 @@
     "@orpc/server": "catalog:",
     "@orpc/zod": "catalog:",
     "@workspace/ai": "workspace:*",
+    "@workspace/artifacts-kit": "workspace:*",
     "@workspace/auth": "workspace:*",
     "@workspace/config": "workspace:*",
     "@workspace/contract": "workspace:*",
