@@ -314,3 +314,28 @@ export const artifactUse = pgTable(
     index("artifact_use_conversation_idx").on(t.conversationId),
   ]
 );
+
+/**
+ * A published artifact (125): its public link's token and the version the
+ * link serves. One per artifact; publishing again moves it to the latest
+ * version and keeps the token, and unpublishing deletes the row, so the
+ * link stops working. Deleting the artifact takes it with it.
+ */
+export const artifactPublication = pgTable(
+  "artifact_publication",
+  {
+    artifactId: idRef("artifact_id", "artifact")
+      .primaryKey()
+      .references(() => artifact.id, { onDelete: "cascade" }),
+    publishedAt: instant("published_at").notNull().defaultNow(),
+    publishedBy: idRef("published_by", "user")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    /** Unguessable; the only credential the link needs. */
+    token: text("token").notNull(),
+    versionId: idRef("version_id", "artifactVersion")
+      .notNull()
+      .references(() => artifactVersion.id, { onDelete: "cascade" }),
+  },
+  (t) => [uniqueIndex("artifact_publication_token_uidx").on(t.token)]
+);

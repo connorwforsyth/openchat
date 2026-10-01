@@ -34,10 +34,11 @@ import {
 import type { Db } from "../client";
 import { type NotFoundError, notFound } from "../errors";
 import { user } from "../schema/auth";
-import { conversation } from "../schema/chat";
+import { conversation, message } from "../schema/chat";
 import {
   artifact,
   artifactGrant,
+  artifactPublication,
   artifactUse,
   artifactVersion,
   artifactView,
@@ -178,6 +179,11 @@ export interface NewArtifactVersion {
   readonly language?: string | null;
   /** The message that produced this version. */
   readonly messageId: MessageId;
+  /**
+   * Who owns a new artifact; its chat's owner when left out (124), as for
+   * what a chat's model makes. "Save as artifact" (125) passes the person.
+   */
+  readonly ownerId?: UserId;
   readonly title: string;
 }
 
@@ -241,7 +247,7 @@ export const saveArtifactVersion = (
           conversationId: input.conversationId,
           kind: input.kind,
           messageId: input.messageId,
-          ownerId: chat.ownerId,
+          ownerId: input.ownerId ?? chat.ownerId,
           title: input.title,
         })
         .returning();
@@ -704,4 +710,106 @@ export const conversationOwners = async (
     .from(conversation)
     .where(inArray(conversation.id, [...new Set(ids)]));
   return new Map(rows.map((row) => [row.id, row.ownerId]));
+};
+
+// Publishing (125): one public link per artifact, serving one version.
+
+export type ArtifactPublicationRow = typeof artifactPublication.$inferSelect;
+
+export const getArtifactPublication = async (
+  db: Db,
+  artifactId: ArtifactId
+): Promise<ArtifactPublicationRow | null> => {
+  const [row] = await db
+    .select()
+    .from(artifactPublication)
+    .where(eq(artifactPublication.artifactId, artifactId));
+  return row ?? null;
+};
+
+/**
+ * Publishes `versionId`. Publishing again moves the link to it and keeps
+ * the token, so the URL people have keeps working.
+ */
+export const publishArtifactVersion = async (
+  db: Db,
+  input: {
+    readonly artifactId: ArtifactId;
+    readonly publishedBy: UserId;
+    readonly token: string;
+    readonly versionId: ArtifactVersionId;
+  },
+  at: Date = new Date()
+): Promise<ArtifactPublicationRow> => {
+  const [row] = await db
+    .insert(artifactPublication)
+    .values({ ...input, publishedAt: at })
+    .onConflictDoUpdate({
+      set: {
+        publishedAt: at,
+        publishedBy: input.publishedBy,
+        versionId: input.versionId,
+      },
+      target: artifactPublication.artifactId,
+    })
+    .returning();
+  if (!row) {
+    throw new Error("upsert returned no row");
+  }
+  return row;
+};
+
+/** Takes the link down; publishing again makes a new token. */
+export const unpublishArtifact = async (
+  db: Db,
+  artifactId: ArtifactId
+): Promise<void> => {
+  await db
+    .delete(artifactPublication)
+    .where(eq(artifactPublication.artifactId, artifactId));
+};
+
+/** What a published link serves, by its token; `null` for an unknown one. */
+export const getPublishedArtifact = async (
+  db: Db,
+  token: string
+): Promise<{
+  readonly content: string;
+  readonly kind: ArtifactKind;
+  readonly publishedAt: Date;
+  readonly title: string;
+} | null> => {
+  const [row] = await db
+    .select({
+      content: artifactVersion.content,
+      kind: artifact.kind,
+      publishedAt: artifactPublication.publishedAt,
+      title: artifact.title,
+    })
+    .from(artifactPublication)
+    .innerJoin(artifact, eq(artifact.id, artifactPublication.artifactId))
+    .innerJoin(
+      artifactVersion,
+      eq(artifactVersion.id, artifactPublication.versionId)
+    )
+    .where(eq(artifactPublication.token, token));
+  return row ?? null;
+};
+
+/**
+ * The chat's newest message, which a version saved outside a run ("Save
+ * as artifact", 125) records as the one it came from; `null` in an empty
+ * chat.
+ */
+export const newestMessageIn = async (
+  db: Db,
+  conversationId: ConversationId
+): Promise<MessageId | null> => {
+  const [row] = await db
+    .select({ id: message.id })
+    .from(message)
+    .where(eq(message.conversationId, conversationId))
+    .orderBy(desc(message.createdAt), desc(message.id))
+    .limit(1);
+  return row?.id ?? null;
 };
