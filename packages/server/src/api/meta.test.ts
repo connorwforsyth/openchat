@@ -196,6 +196,55 @@ describe("meta.models", () => {
     expect(seen).toEqual(["Bearer sk-team-openai"]);
   });
 
+  it("sends descriptions and vendors through the response schema (096)", async () => {
+    const world = await seedWorld();
+    const fetch = (() =>
+      Promise.resolve(
+        Response.json({
+          data: [
+            { description: "Catalog: gpt-5-mini.", id: "gpt-5-mini" },
+            { description: "Catalog: loses to config.", id: "gpt-test" },
+          ],
+        })
+      )) as unknown as typeof globalThis.fetch;
+    const meta = setup(world, {
+      config: {
+        models: {
+          ...baseConfig.models,
+          descriptions: {
+            fast: "Quick everyday answers",
+            "openai:gpt-test": "Configured",
+          },
+        },
+        providers: {
+          ...baseConfig.providers,
+          openai: { discover: true, models: ["gpt-test"] },
+        },
+      },
+      fetch,
+    });
+    // `call` validates the output against the contract, so a field the
+    // schema didn't declare would be stripped here.
+    const models = await call(
+      meta.models,
+      { contextId: world.team.id, contextType: "team" },
+      as(world.alice.id)
+    );
+    const by = Object.fromEntries(
+      models.map((option) => [
+        option.selector,
+        [option.provider ?? null, option.description ?? null],
+      ])
+    );
+    expect(by).toEqual({
+      auto: [null, null],
+      fast: ["anthropic", "Quick everyday answers"],
+      "ollama:llama-test": ["ollama", null],
+      "openai:gpt-5-mini": ["openai", "Catalog: gpt-5-mini."],
+      "openai:gpt-test": ["openai", "Configured"],
+    });
+  });
+
   it("refuses contexts the caller isn't in or the instance disallows", async () => {
     const world = await seedWorld();
     const meta = setup(world);

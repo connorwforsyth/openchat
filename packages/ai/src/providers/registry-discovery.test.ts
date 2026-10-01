@@ -107,7 +107,9 @@ describe("model discovery", () => {
         available: true,
         capabilities: ["tools"],
         contextWindow: 200_000,
+        description: "Fast and cheap.",
         label: "fast",
+        provider: "anthropic",
         selector: "fast",
         target: "gateway:anthropic/claude-haiku-4.5",
       },
@@ -116,6 +118,7 @@ describe("model discovery", () => {
         capabilities: ["tools"],
         contextWindow: null,
         label: "openai/gpt-4.1",
+        provider: "openai",
         selector: "gateway:openai/gpt-4.1",
         target: "gateway:openai/gpt-4.1",
       },
@@ -124,6 +127,7 @@ describe("model discovery", () => {
         capabilities: ["tools"],
         contextWindow: 1_000_000,
         label: "anthropic/claude-sonnet-4.5",
+        provider: "anthropic",
         selector: "gateway:anthropic/claude-sonnet-4.5",
         target: "gateway:anthropic/claude-sonnet-4.5",
       },
@@ -132,12 +136,13 @@ describe("model discovery", () => {
         capabilities: ["tools"],
         contextWindow: null,
         label: "openai/gpt-5-mini",
+        provider: "openai",
         selector: "gateway:openai/gpt-5-mini",
         target: "gateway:openai/gpt-5-mini",
       },
     ]);
     expect(calls).toEqual(["https://gateway.example/v1/models"]);
-    // The metadata stays on the server side for 096.
+    // Names stay on the server side; descriptions are in the list (096).
     const catalog = await registry.catalog("gateway", key("gateway"));
     expect(
       catalog?.find((model) => model.id === "anthropic/claude-haiku-4.5")
