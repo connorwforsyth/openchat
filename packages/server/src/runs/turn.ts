@@ -71,6 +71,7 @@ import {
   WORKSPACE_INSTRUCTIONS,
   withSandboxTools,
 } from "./sandbox";
+import { markRun, type RunTimings } from "./timing";
 import { workspaceContext } from "./workspace-context";
 
 // What a run answers with (PLAN.md §8 steps 3.2–3.4): the target resolved to
@@ -171,6 +172,8 @@ export interface TurnResolverDeps {
    * gets `bash`, `read`, `write`, `edit` or `preview`.
    */
   readonly sandbox?: SandboxToolSource;
+  /** Server timing marks (ticket 102); left out, nothing is recorded. */
+  readonly timings?: RunTimings;
 }
 
 const unavailable = (provider: string | null): RunError => ({
@@ -321,6 +324,8 @@ const ATTACHMENT_PROBE = 1;
 export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
   const { db } = deps;
   const loadModel = createModelLoader(deps);
+  const mark = (run: RunStart, phase: Parameters<typeof markRun>[2]) =>
+    markRun(deps.timings, run.runId, phase);
 
   /**
    * The retrieval gate for this caller: the configured one, or the Decider
@@ -445,15 +450,19 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
   ): AsyncResult<Turn, RunError> => {
     const caller = { context: run.context, userId: run.createdBy };
     const loaded = await loadModel(caller, target.model, { signal, state });
+    mark(run, "turn.model");
     if (!loaded.ok) {
       return loaded;
     }
     const attached = await attachmentTools(run, caller, { signal, state });
+    mark(run, "turn.gate");
     const sandbox = await chatSandboxTools(run, { reviews, signal });
+    mark(run, "turn.workspace");
     const tools = { ...sandbox.tools, ...attached.tools };
     const mentioned = await mentionedFiles(run, () =>
       Promise.resolve(sandbox.sandbox)
     );
+    mark(run, "turn.mentions");
     const instructions = [
       sandbox.sandbox ? WORKSPACE_INSTRUCTIONS : undefined,
       mentioned,
@@ -507,6 +516,7 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
     const version = draft.value
       ? ok(draft.value)
       : await resolvePublishedVersion(db, "agent", target.id, target.versionId);
+    mark(run, "turn.agent");
     if (!version.ok) {
       return err({
         code: "internal",
@@ -516,6 +526,7 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
     }
     const { definition } = version.value;
     const loaded = await loadModel(caller, definition.model, { signal, state });
+    mark(run, "turn.model");
     if (!loaded.ok) {
       return loaded;
     }
@@ -530,6 +541,7 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
     const sandbox = definition.sandboxProvider
       ? await sandboxFor(run, definition.sandboxProvider, { reviews, signal })
       : null;
+    mark(run, "turn.workspace");
     // The per-turn `file_search` wins over a static one: only it is scoped
     // to this requester, chat and agent.
     const builtins = {
@@ -554,12 +566,14 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
       { builtins, mcp: deps.mcpFor?.(run.createdBy) ?? deps.mcp },
       { signal }
     );
+    mark(run, "turn.tools");
     const gated = await gateTurnTools(
       await gateFor(caller, signal),
       run,
       toolSet,
       { signal, state }
     );
+    mark(run, "turn.gate");
     // An agent without sandbox tools still reads mentions from a workspace
     // the chat already has.
     const mentioned = await mentionedFiles(run, () =>
@@ -567,6 +581,7 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
         ? Promise.resolve(sandbox)
         : sandboxFor(run, null, { reviews, signal })
     );
+    mark(run, "turn.mentions");
     return ok({
       ...loaded.value,
       agent: { id: target.id, versionId: version.value.id },

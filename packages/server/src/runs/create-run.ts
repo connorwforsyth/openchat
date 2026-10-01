@@ -32,6 +32,7 @@ import {
 } from "./chat-context";
 import { canEditAgent, draftFor } from "./drafts";
 import { runStartFromRow } from "./state";
+import { pendingMarks, type RunTimings } from "./timing";
 
 // `POST /api/runs` (PLAN.md §8 steps 1–2): check, persist the user message,
 // create the run, and hand it to the executor, or queue it behind the run
@@ -56,6 +57,8 @@ export interface CreateRunDeps {
   /** `models.default` from app.config.yaml: the target when neither the run nor the chat names one. */
   readonly defaultModel: ModelSelector | null;
   readonly executor: RunExecutor;
+  /** Server timing marks (ticket 102); left out, nothing is recorded. */
+  readonly timings?: RunTimings;
 }
 
 export const streamUrlFor = (runId: RunId): string =>
@@ -290,6 +293,8 @@ export const createRun = async (
   input: CreateRunInput
 ): Promise<Result<CreateRunOutput, CreateRunError>> => {
   const { db } = deps;
+  const marks = pendingMarks(deps.timings);
+  marks.mark("run.received");
   const found = await getConversation(db, input.conversationId, actor);
   if (!found.ok) {
     return err({ type: "not_found" });
@@ -326,6 +331,7 @@ export const createRun = async (
     return err({ data: budget.error, type: "budget_exceeded" });
   }
 
+  marks.mark("run.checked");
   const regenerating = await checkRegenerate(db, conversation.id, input);
   if (!regenerating.ok) {
     return regenerating;
@@ -346,6 +352,8 @@ export const createRun = async (
 
   let { run } = placed;
   if (placed.created) {
+    marks.mark("run.placed");
+    marks.flush(run.id);
     const started = await deps.executor.start(runStartFromRow(run));
     if (started.ok) {
       const state = await deps.executor.getState(run.id);

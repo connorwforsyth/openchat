@@ -4,7 +4,7 @@ import {
   conversationIdSchema,
 } from "@workspace/contract/schemas/common";
 
-import { recordTiming } from "./timings";
+import { recordSendPhases, recordTiming, watchRequests } from "./timings";
 
 // Driving the chat screen the way a person does: type in the composer,
 // press Enter, watch the reply stream in.
@@ -58,8 +58,12 @@ export const send = async (
   await input.click();
   await input.pressSequentially(text);
   if (measure) {
+    await watchRequests(page);
     await page.evaluate((token) => {
-      const holder = window as unknown as { __firstToken?: Promise<number> };
+      const holder = window as unknown as {
+        __firstToken?: Promise<number>;
+        __sentAt?: number;
+      };
       holder.__firstToken = new Promise<number>((resolve) => {
         let start = 0;
         document.addEventListener(
@@ -67,6 +71,7 @@ export const send = async (
           (event) => {
             if (event.key === "Enter") {
               start = performance.now();
+              holder.__sentAt = start;
             }
           },
           { capture: true, once: true }
@@ -104,6 +109,10 @@ export const send = async (
         (window as unknown as { __firstToken: Promise<number> }).__firstToken
     );
     await recordTiming("first token", latency, measure.where);
+    const sentAt = await page.evaluate(
+      () => (window as unknown as { __sentAt: number }).__sentAt
+    );
+    await recordSendPhases(page, sentAt, measure.where);
   }
 };
 

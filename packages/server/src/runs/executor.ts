@@ -80,6 +80,7 @@ import {
   runStartFromRow,
   runStateFromRow,
 } from "./state";
+import { markRun, type RunTimings } from "./timing";
 import type { Turn, TurnResolver } from "./turn";
 
 // The in-process RunExecutor (D4, PLAN.md §8 "Chat run"). The run row is the
@@ -126,6 +127,8 @@ export interface InProcessExecutorDeps {
   readonly resolveTurn: TurnResolver;
   /** Wall clock for one pass of the agent loop (`limits.runTimeoutSeconds`). */
   readonly timeoutMs?: number;
+  /** Server timing marks (ticket 102); left out, nothing is recorded. */
+  readonly timings?: RunTimings;
   readonly writer: RunStreamWriter;
 }
 
@@ -656,12 +659,17 @@ export const createInProcessExecutor = (
     signal.addEventListener("abort", onAbort, { once: true });
     const chunks: UIMessageChunk[] = [];
     const appends: Promise<Result<number, unknown>>[] = [];
+    let texted = false;
     try {
       for (;;) {
         // biome-ignore lint/performance/noAwaitInLoops: chunks are copied in order.
         const next = await reader.read().catch(() => ({ done: true as const }));
         if (next.done) {
           break;
+        }
+        if (!texted && next.value.type === "text-delta") {
+          texted = true;
+          markRun(deps.timings, runId, "agent.first-text");
         }
         chunks.push(next.value);
         appends.push(writer.append(runId, toJson(next.value)));
@@ -742,6 +750,7 @@ export const createInProcessExecutor = (
   ): Promise<void> => {
     try {
       const messages = await loadBranch(run, leafId);
+      markRun(deps.timings, run.runId, "turn.branch");
       if (!messages) {
         await failEarly(run, assistantMessageId, INTERNAL);
         return;
@@ -751,6 +760,7 @@ export const createInProcessExecutor = (
         signal: controller.signal,
         state: deciderState(messages),
       });
+      markRun(deps.timings, run.runId, "turn.resolved");
       if (!turn.ok) {
         await failEarly(run, assistantMessageId, turn.error);
         return;
@@ -774,6 +784,7 @@ export const createInProcessExecutor = (
         toolApproval: turn.value.toolApproval,
         tools: watchExecutions(turn.value.tools, executions),
       });
+      markRun(deps.timings, run.runId, "agent.called");
       if (!agentRun.ok) {
         await failEarly(run, assistantMessageId, agentRun.error);
         return;
@@ -873,6 +884,7 @@ export const createInProcessExecutor = (
       active.delete(run.runId);
       return claimed;
     }
+    markRun(deps.timings, run.runId, "run.started");
     track(
       run.runId,
       execute(run, claimed.value, run.userMessageId, controller)

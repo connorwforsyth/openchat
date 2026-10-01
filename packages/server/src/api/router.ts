@@ -48,6 +48,7 @@ import { type CreateRunError, createRun, mayRun } from "../runs/create-run";
 import { pinnedDraft } from "../runs/drafts";
 import type { MemorySettings } from "../runs/memory";
 import { queuePosition, toRun } from "../runs/state";
+import type { RunTimings } from "../runs/timing";
 import { createFeedbackRouter } from "./feedback";
 import {
   toConversation,
@@ -72,6 +73,8 @@ export interface ApiServices {
   /** The memory feature's switch and size cap (022). */
   readonly memory: MemorySettings;
   readonly streams: StreamChannel;
+  /** Server timing marks on the way to a run's first token (ticket 102). */
+  readonly timings?: RunTimings;
 }
 
 interface Issue {
@@ -484,6 +487,7 @@ export const createChatRouter = (services: ApiServices) => {
           db,
           defaultModel: services.defaultModel,
           executor,
+          timings: services.timings,
         },
         context.actor,
         input

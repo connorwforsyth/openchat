@@ -16,6 +16,7 @@ import {
   type SessionResolver,
 } from "./context";
 import { problem } from "./http/problem";
+import { markRun } from "./runs/timing";
 import { runStreamResponse } from "./stream/sse";
 
 // The HTTP app (D26): Hono as a thin adapter over the oRPC contract, served
@@ -127,6 +128,7 @@ export const createApp = ({
     if (!(await services.access(actor, run.value.conversationId, "read"))) {
       return problem(404, "NOT_FOUND", "Not found.");
     }
+    markRun(services.timings, run.value.id, "stream.opened");
     return runStreamResponse(services.streams, run.value.id, c.req.raw);
   });
 
