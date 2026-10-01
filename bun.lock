@@ -380,6 +380,22 @@
         "vitest": "catalog:",
       },
     },
+    "packages/evals": {
+      "name": "@workspace/evals",
+      "version": "0.0.0",
+      "devDependencies": {
+        "@types/node": "catalog:",
+        "@workspace/client": "workspace:*",
+        "@workspace/contract": "workspace:*",
+        "@workspace/shared": "workspace:*",
+        "@workspace/typescript-config": "workspace:*",
+        "ai": "catalog:",
+        "typescript": "catalog:",
+        "vitest": "catalog:",
+        "web": "workspace:*",
+        "zod": "catalog:",
+      },
+    },
     "packages/i18n": {
       "name": "@workspace/i18n",
       "version": "0.0.0",
@@ -1664,6 +1680,8 @@
     "@workspace/db": ["@workspace/db@workspace:packages/db"],
 
     "@workspace/e2e": ["@workspace/e2e@workspace:e2e"],
+
+    "@workspace/evals": ["@workspace/evals@workspace:packages/evals"],
 
     "@workspace/i18n": ["@workspace/i18n@workspace:packages/i18n"],
 

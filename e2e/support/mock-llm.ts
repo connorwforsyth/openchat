@@ -21,6 +21,12 @@ import { z } from "zod";
 //     (`web_search`, an MCP tool such as `e2e__echo`, `create_artifact`, …);
 //   - `[script:<name>]` → the steps of `SCRIPTS[name]`, one step per model
 //     call (a step may call several tools), then `Script <name> done…`;
+//   - `[plan:<base64url>]` → the same, with the steps in the message itself
+//     (`planDirective` writes one), then `Plan done…`: for `packages/evals`,
+//     whose cases play a model that does exactly what they say;
+//   - `[show:system]` / `[show:history]` → the request's instructions, or its
+//     messages one per line (`historyOf`), so a case can check what the
+//     server put in front of the model;
 //   - `[search:<query>]` → a `file_search` call when it's offered;
 //   - `remember <fact>` → an `update_memory` call when it's offered;
 //   - `[slow]` → forty numbered words, one every SLOW_TOKEN_MS;
@@ -37,6 +43,10 @@ const TOOL_DIRECTIVE = /\[tool:([a-z_][a-z0-9_]*)\s+(\{.*\})\]/is;
 // sequence from SCRIPTS: step N is picked by how many assistant tool-call
 // turns follow the last user message, and a step may call several tools.
 const SCRIPT_DIRECTIVE = /\[script:([a-z0-9_-]+)\]/i;
+// `packages/evals`: a script carried in the message, as base64url JSON (no
+// `]` in it, whatever the arguments hold), and a look at the request.
+const PLAN_DIRECTIVE = /\[plan:([A-Za-z0-9_-]+)\]/;
+const SHOW_DIRECTIVE = /\[show:(system|history)\]/i;
 const SEARCH_DIRECTIVE = /\[search:([^\]]+)\]/i;
 const REMEMBER = /\bremember (?:that )?(.+)$/i;
 const TITLE_REQUEST = /short title for this conversation/i;
@@ -86,10 +96,35 @@ interface ToolReply {
   readonly type: "tool";
 }
 
-interface Call {
-  readonly args: Record<string, unknown>;
-  readonly name: string;
-}
+const callSchema = z.object({
+  args: z.record(z.string(), z.unknown()),
+  name: z.string().min(1),
+});
+const planSchema = z.array(z.array(callSchema).min(1)).min(1);
+
+export type Call = z.infer<typeof callSchema>;
+/** The steps of a scripted turn: each is the tool calls of one model call. */
+export type Plan = readonly (readonly Call[])[];
+
+/** `[plan:…]` for a message: the mock plays `plan` as it plays a `SCRIPTS` entry. */
+export const planDirective = (plan: Plan): string =>
+  `[plan:${Buffer.from(JSON.stringify(plan)).toString("base64url")}]`;
+
+const planOf = (userText: string): Plan | null => {
+  const encoded = PLAN_DIRECTIVE.exec(userText)?.[1];
+  if (!encoded) {
+    return null;
+  }
+  try {
+    const parsed = planSchema.safeParse(
+      JSON.parse(Buffer.from(encoded, "base64url").toString("utf8"))
+    );
+    return parsed.success ? parsed.data : null;
+  } catch {
+    return null;
+  }
+};
+
 const w = (path: string, content: string): Call => ({
   args: { content, path },
   name: "write",
@@ -165,21 +200,21 @@ const toolTurnsSinceUser = (request: ChatRequest): number => {
     .length;
 };
 
-const scriptReply = (request: ChatRequest, userText: string): Reply | null => {
-  const name = SCRIPT_DIRECTIVE.exec(userText)?.[1];
-  const script = name ? SCRIPTS[name] : undefined;
-  if (!(name && script)) {
-    return null;
-  }
+/** Step N of `steps` (N tool turns since the user spoke), then a closing line. */
+const stepsReply = (
+  request: ChatRequest,
+  steps: Plan,
+  label: string
+): Reply => {
   const index = toolTurnsSinceUser(request);
-  const step = script[index]?.filter((call) => offered(request, call.name));
+  const step = steps[index]?.filter((call) => offered(request, call.name));
   if (!step || step.length === 0) {
     const last = request.messages.at(-1);
     const output =
       last?.role === "tool"
         ? textOf(last).replace(WHITESPACE_RUNS, " ").slice(0, 300)
         : "";
-    return text(`Script ${name} done after ${index} steps. Last: ${output}`);
+    return text(`${label} done after ${index} steps. Last: ${output}`);
   }
   const [first, ...rest] = step;
   return {
@@ -191,6 +226,16 @@ const scriptReply = (request: ChatRequest, userText: string): Reply | null => {
     name: first?.name ?? "",
     type: "tool",
   };
+};
+
+const scriptReply = (request: ChatRequest, userText: string): Reply | null => {
+  const name = SCRIPT_DIRECTIVE.exec(userText)?.[1];
+  const script = name ? SCRIPTS[name] : undefined;
+  if (name && script) {
+    return stepsReply(request, script, `Script ${name}`);
+  }
+  const plan = planOf(userText);
+  return plan ? stepsReply(request, plan, "Plan") : null;
 };
 
 type Reply =
@@ -268,6 +313,35 @@ const toolCallFor = (
   return null;
 };
 
+const toolCallSchema = z.looseObject({
+  function: z.looseObject({ arguments: z.string(), name: z.string() }),
+});
+
+/** Longest tool output `historyOf` repeats, so a big read stays one line. */
+const HISTORY_OUTPUT_CHARS = 500;
+
+/**
+ * The request's messages after the instructions, one per line: `role: text`,
+ * a tool call as `name(arguments)`. What the server sent as the conversation
+ * so far, for `[show:history]`.
+ */
+export const historyOf = (request: ChatRequest): string =>
+  request.messages
+    .filter((message) => message.role !== "system")
+    .map((message) => {
+      const calls = (message.tool_calls ?? []).flatMap((call) => {
+        const parsed = toolCallSchema.safeParse(call);
+        return parsed.success
+          ? [`${parsed.data.function.name}(${parsed.data.function.arguments})`]
+          : [];
+      });
+      const said = textOf(message)
+        .replace(WHITESPACE_RUNS, " ")
+        .slice(0, HISTORY_OUTPUT_CHARS);
+      return `${message.role}: ${[said, ...calls].filter(Boolean).join(" ")}`;
+    })
+    .join("\n");
+
 export const replyFor = (request: ChatRequest): Reply => {
   const system = request.messages
     .filter((message) => message.role === "system")
@@ -287,6 +361,13 @@ export const replyFor = (request: ChatRequest): Reply => {
   if (last?.role === "tool") {
     const output = textOf(last).replace(WHITESPACE_RUNS, " ").slice(0, 2000);
     return text(`Tool result: ${output}`);
+  }
+  const show = SHOW_DIRECTIVE.exec(userText)?.[1]?.toLowerCase();
+  if (show === "system") {
+    return text(`System: ${system}`);
+  }
+  if (show === "history") {
+    return text(`History:\n${historyOf(request)}`);
   }
   const call = toolCallFor(request, userText);
   if (call) {

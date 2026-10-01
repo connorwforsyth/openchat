@@ -50,6 +50,11 @@
     "eval": {
       "outputs": []
     },
+    "evals": {
+      "cache": false,
+      "dependsOn": ["^build"],
+      "passThroughEnv": ["CI", "EVALS_PORT"]
+    },
     "db:generate": {
       "cache": false
     },

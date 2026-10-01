@@ -11,6 +11,8 @@ coverage/
 .context/tmp/
 playwright-report/
 test-results/
+# `bun run evals` writes its reports here (packages/evals).
+.evals/
 next-env.d.ts
 # The embedded database (PGlite) and other local state `bun dev` keeps.
 .data/
