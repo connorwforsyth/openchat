@@ -1,8 +1,10 @@
+import { SKILL_AUTHORING_TOOLS } from "@workspace/ai/tools/registry/skill-authoring";
 import type { Tool } from "ai";
 import { describe, expect, it, vi } from "vitest";
 
 import {
   checkPlanCommand,
+  PLAN_READ_TOOLS,
   PLAN_REFUSED,
   planApprovalOf,
   planTitle,
@@ -249,6 +251,27 @@ describe("planTurn", () => {
     expect(planUnavailable("write")).toContain(
       "`write` isn't available while planning"
     );
+  });
+
+  it("withholds the skill tools (128): they write to the library, even with a reading tool's name in their own", () => {
+    const authoring = planTurn({
+      toolApproval: {},
+      tools: {
+        create_skill: fakeTool(),
+        load_skill: fakeTool(),
+        publish_skill: fakeTool(),
+        update_skill: fakeTool(),
+      },
+    });
+    expect(Object.keys(authoring.tools ?? {})).toEqual(["load_skill"]);
+    expect(authoring.unavailableTools).toEqual({
+      create_skill: planUnavailable("create_skill"),
+      publish_skill: planUnavailable("publish_skill"),
+      update_skill: planUnavailable("update_skill"),
+    });
+    for (const name of SKILL_AUTHORING_TOOLS) {
+      expect(PLAN_READ_TOOLS).not.toContain(name);
+    }
   });
 
   it("keeps each tool's approval as it was: nothing becomes automatic", () => {

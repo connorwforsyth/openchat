@@ -5,6 +5,12 @@ import {
   type Interruption,
   interruptionOf,
 } from "@workspace/ai/messages/approval";
+import {
+  isSkillAuthoringTool,
+  type SkillAuthoringOutput,
+  type SkillAuthoringTool,
+  skillAuthoringOutputSchema,
+} from "@workspace/ai/tools/registry/skill-authoring";
 import type { JsonValue } from "@workspace/contract/schemas/common";
 import type { IconName } from "@workspace/icons/names";
 import { z } from "zod";
@@ -43,6 +49,7 @@ export type ToolIconName = Extract<
   | "MonitorIcon"
   | "PencilIcon"
   | "SearchIcon"
+  | "SparklesIcon"
   | "TerminalIcon"
   | "ToolIcon"
   | "WrenchIcon"
@@ -69,6 +76,12 @@ export type ToolDetail =
       readonly stdout: string;
     }
   | { readonly change: FileChange; readonly kind: "file-change" }
+  | {
+      readonly kind: "skill";
+      /** What a skill tool saved or published (128), for the skill card. */
+      readonly result: Exclude<SkillAuthoringOutput, { status: "error" }>;
+      readonly tool: SkillAuthoringTool;
+    }
   | {
       readonly input: JsonValue;
       readonly kind: "raw";
@@ -310,6 +323,62 @@ const mcpLabels = (code: string, server: string): Labels => ({
   running: msg`Using ${code} from ${server}`,
 });
 
+// A skill's name isn't code: it's a plain value (`name`), not `code`.
+const skillLabels = (tool: SkillAuthoringTool, name: string): Labels => {
+  switch (tool) {
+    case "create_skill":
+      return name
+        ? {
+            awaiting: msg`Wants to create the skill ${name}`,
+            denied: msg`Didn't create the skill ${name}`,
+            done: msg`Created the skill ${name}`,
+            error: msg`Couldn't create the skill ${name}`,
+            running: msg`Creating the skill ${name}`,
+          }
+        : {
+            awaiting: msg`Wants to create a skill`,
+            denied: msg`Didn't create a skill`,
+            done: msg`Created a skill`,
+            error: msg`Couldn't create a skill`,
+            running: msg`Creating a skill`,
+          };
+    case "update_skill":
+      return name
+        ? {
+            awaiting: msg`Wants to change the skill ${name}`,
+            denied: msg`Didn't change the skill ${name}`,
+            done: msg`Changed the skill ${name}`,
+            error: msg`Couldn't change the skill ${name}`,
+            running: msg`Changing the skill ${name}`,
+          }
+        : {
+            awaiting: msg`Wants to change a skill`,
+            denied: msg`Didn't change a skill`,
+            done: msg`Changed a skill`,
+            error: msg`Couldn't change a skill`,
+            running: msg`Changing a skill`,
+          };
+    case "publish_skill":
+      return name
+        ? {
+            awaiting: msg`Wants to publish the skill ${name}`,
+            denied: msg`Didn't publish the skill ${name}`,
+            done: msg`Published the skill ${name}`,
+            error: msg`Couldn't publish the skill ${name}`,
+            running: msg`Publishing the skill ${name}`,
+          }
+        : {
+            awaiting: msg`Wants to publish a skill`,
+            denied: msg`Didn't publish a skill`,
+            done: msg`Published a skill`,
+            error: msg`Couldn't publish a skill`,
+            running: msg`Publishing a skill`,
+          };
+    default:
+      return tool satisfies never;
+  }
+};
+
 const toolLabels = (code: string): Labels => ({
   awaiting: msg`Wants to use ${code}`,
   denied: msg`Didn't use ${code}`,
@@ -449,6 +518,35 @@ const labelled = (
   };
 };
 
+const skillInputSchema = z.looseObject({
+  name: z.string().optional(),
+  skillName: z.string().optional(),
+});
+
+const skillSummary = (
+  call: ToolCallPart,
+  result: ToolResultPart | undefined,
+  tool: SkillAuthoringTool
+): ToolSummary => {
+  const parsed = skillAuthoringOutputSchema.safeParse(successValue(result));
+  const saved =
+    parsed.success && parsed.data.status !== "error" ? parsed.data : null;
+  const input = skillInputSchema.safeParse(call.input);
+  const name =
+    saved?.skill.name ??
+    (input.success ? (input.data.skillName ?? input.data.name) : undefined) ??
+    "";
+  const summary = labelled(
+    call,
+    result,
+    "SparklesIcon",
+    skillLabels(tool, name)
+  );
+  return saved && summary.status === "done"
+    ? { ...summary, detail: { kind: "skill", result: saved, tool } }
+    : summary;
+};
+
 const summaryOf = (
   call: ToolCallPart,
   result: ToolResultPart | undefined
@@ -478,6 +576,9 @@ const summaryOf = (
     case "web_search":
       return labelled(call, result, "GlobeIcon", webSearchLabels);
     default: {
+      if (isSkillAuthoringTool(call.toolName)) {
+        return skillSummary(call, result, call.toolName);
+      }
       // MCP tools are `server__tool`; the server part never contains `__`.
       const split = call.toolName.indexOf(MCP_SEPARATOR);
       if (split > 0) {

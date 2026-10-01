@@ -29,6 +29,10 @@ import {
   withRunSettings,
 } from "@workspace/ai/providers/run-settings";
 import { ARTIFACT_TOOLS } from "@workspace/ai/tools/artifacts";
+import {
+  PUBLISH_SKILL_TOOL,
+  SKILL_AUTHORING_TOOLS,
+} from "@workspace/ai/tools/registry/skill-authoring";
 import { resolveTools } from "@workspace/ai/tools/resolve";
 import { buildToolSet, type McpToolSource } from "@workspace/ai/tools/tool-set";
 import type { AppConfig } from "@workspace/config/schema";
@@ -221,6 +225,12 @@ export interface TurnResolverDeps {
    * gets `bash`, `read`, `write`, `edit` or `preview`.
    */
   readonly sandbox?: SandboxToolSource;
+  /**
+   * `create_skill`, `update_skill` and `publish_skill` for one run (128),
+   * acting as its creator through the library's own rules; bound by
+   * `services.ts`. Without it no run writes skills.
+   */
+  readonly skillAuthoring?: (run: RunStart) => Readonly<Record<string, Tool>>;
   /**
    * A skill's bundled file by upload id (127), for `load_skill`; the turn
    * has already settled access to the skill. Without it files can't be read.
@@ -440,6 +450,15 @@ const ARTIFACT_APPROVALS = Object.fromEntries(
   ARTIFACT_TOOLS.map((name) => [name, "ask" as const])
 );
 
+/**
+ * The skill tools change the person's library, so creating and editing ask
+ * unless an agent sets them to `auto` by name; publishing changes what
+ * other people get, so it always asks, whatever the agent says.
+ */
+const SKILL_APPROVALS = Object.fromEntries(
+  SKILL_AUTHORING_TOOLS.map((name) => [name, "ask" as const])
+);
+
 export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
   const { db } = deps;
   const loadModel = createModelLoader(deps);
@@ -548,6 +567,21 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
       : {};
   };
 
+  /** A plain chat's skill tools (128): each call asks before it changes the library. */
+  const chatSkillTools = (
+    run: RunStart
+  ): Pick<Turn, "toolApproval" | "tools"> => {
+    const tools = deps.skillAuthoring?.(run);
+    return tools
+      ? {
+          toolApproval: Object.fromEntries(
+            Object.keys(tools).map((name) => [name, "user-approval" as const])
+          ),
+          tools: { ...tools },
+        }
+      : {};
+  };
+
   /** The chat's sandbox for this turn, unless the composer turned it off. */
   const sandboxFor = async (
     run: RunStart,
@@ -645,7 +679,13 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
     const sandbox = await chatSandboxTools(run, { reviews, signal });
     const mcp = await chatMcpTools(run, signal);
     const artifacts = chatArtifactTools(run);
-    const own = { ...mcp.tools, ...artifacts.tools, ...sandbox.tools };
+    const authoring = chatSkillTools(run);
+    const own = {
+      ...mcp.tools,
+      ...artifacts.tools,
+      ...authoring.tools,
+      ...sandbox.tools,
+    };
     const retrieval = {
       ...webSearchTools(deps.webSearch, run, loaded.value.resolvedModel),
       ...(await attachmentTools(run)),
@@ -703,6 +743,7 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
       toolApproval: {
         ...mcp.toolApproval,
         ...artifacts.toolApproval,
+        ...authoring.toolApproval,
         ...sandbox.toolApproval,
         ...gated.toolApproval,
         ...skills.toolApproval,
@@ -777,6 +818,7 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
       // An agent gets these when its version lists them by name.
       ...webSearchTools(deps.webSearch, run, loaded.value.resolvedModel),
       ...deps.artifacts?.(run),
+      ...deps.skillAuthoring?.(run),
       ...sandbox?.tools,
       ...searchable.builtins,
     };
@@ -789,7 +831,12 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
         ...planned,
         approvals: {
           ...planned.approvals,
-          tools: { ...ARTIFACT_APPROVALS, ...planned.approvals.tools },
+          tools: {
+            ...ARTIFACT_APPROVALS,
+            ...SKILL_APPROVALS,
+            ...planned.approvals.tools,
+            [PUBLISH_SKILL_TOOL]: "ask",
+          },
         },
       },
       {

@@ -138,10 +138,13 @@ describe("the built-ins written in this package", () => {
   it("are registered under the names runs offer them by, with today's defaults", () => {
     expect(aiBuiltinTools.approvals).toEqual({
       create_artifact: "ask",
+      create_skill: "ask",
       file_search: "auto",
       load_skill: "auto",
+      publish_skill: "ask",
       update_artifact: "ask",
       update_memory: "auto",
+      update_skill: "ask",
       web_search: "auto",
     });
     for (const definition of aiBuiltinTools.definitions) {

@@ -453,6 +453,7 @@ export const createServerFromEnv = async (
     registry,
     report,
     storage: storage.storage,
+    storageDriver: storage.driver,
     tools: {
       // Whether an OpenAI-compatible model reasons, from its catalog (105).
       catalog: discovers(registry) ? registry.catalog : undefined,

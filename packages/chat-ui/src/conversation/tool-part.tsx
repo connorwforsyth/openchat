@@ -1,5 +1,6 @@
 "use client";
 
+import { isSkillAuthoringTool } from "@workspace/ai/tools/registry/skill-authoring";
 import type { ApprovalDecision } from "@workspace/contract/schemas/message-parts";
 import type { PendingApproval } from "@workspace/contract/schemas/runs";
 import { memo, useCallback, useMemo } from "react";
@@ -11,6 +12,7 @@ import { useConversationActions } from "./actions";
 import { ApprovalCard } from "./approval";
 import { useRunActivity } from "./approval-state";
 import { FileChangeCard } from "./file-change-card";
+import { SkillApprovalSubject, SkillCard } from "./skill-card";
 import { ToolStatus } from "./tool-status";
 
 /**
@@ -56,7 +58,12 @@ export const ToolPart = memo(function ToolPartInner({
     <div className="flex flex-col gap-2">
       {summary.detail.kind === "file-change" ? (
         <FileChangeCard change={summary.detail.change} />
-      ) : (
+      ) : null}
+      {summary.detail.kind === "skill" ? (
+        <SkillCard detail={summary.detail} />
+      ) : null}
+      {summary.detail.kind === "file-change" ||
+      summary.detail.kind === "skill" ? null : (
         <ToolStatus
           onOpenPreview={onOpenPreview}
           stopped={!(streaming || running) && summary.status === "running"}
@@ -70,6 +77,11 @@ export const ToolPart = memo(function ToolPartInner({
           onRetry={onRetry ? retry : undefined}
           stale={stale?.has(call.toolCallId) ?? false}
           state={decisions.get(call.toolCallId)}
+          subject={
+            isSkillAuthoringTool(call.toolName) ? (
+              <SkillApprovalSubject input={call.input} tool={call.toolName} />
+            ) : undefined
+          }
           toolName={call.toolName}
         />
       ) : null}

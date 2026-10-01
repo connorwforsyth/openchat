@@ -12,7 +12,13 @@ import {
 } from "@workspace/icons";
 import { Button } from "@workspace/ui/components/button";
 import { Textarea } from "@workspace/ui/components/textarea";
-import { type ChangeEvent, useCallback, useId, useState } from "react";
+import {
+  type ChangeEvent,
+  type ReactNode,
+  useCallback,
+  useId,
+  useState,
+} from "react";
 
 import {
   addEditReview,
@@ -44,6 +50,11 @@ export interface ApprovalCardProps {
    * remounting and a second click can't send another.
    */
   readonly state?: DecisionState;
+  /**
+   * What the call will do, in place of "The agent wants to run …", for a
+   * tool whose input says more than its name (the skill tools, 128).
+   */
+  readonly subject?: ReactNode;
   readonly toolName: string;
 }
 
@@ -53,6 +64,7 @@ export function ApprovalCard({
   onRetry,
   stale = false,
   state,
+  subject,
   toolName,
 }: ApprovalCardProps) {
   const { t } = useLingui();
@@ -136,16 +148,20 @@ export function ApprovalCard({
       className="flex flex-col gap-3 rounded-lg border bg-muted/30 p-3"
     >
       <div className="flex flex-col gap-3" inert={sending}>
-        <p className="font-medium text-sm">
-          {edits.length > 0 ? (
-            <Trans>
-              The agent wants to change files. Review each change, or decide for
-              all of them.
-            </Trans>
-          ) : (
-            <Trans>The agent wants to run {toolName}.</Trans>
-          )}
-        </p>
+        {subject && edits.length === 0 ? (
+          subject
+        ) : (
+          <p className="font-medium text-sm">
+            {edits.length > 0 ? (
+              <Trans>
+                The agent wants to change files. Review each change, or decide
+                for all of them.
+              </Trans>
+            ) : (
+              <Trans>The agent wants to run {toolName}.</Trans>
+            )}
+          </p>
+        )}
 
         {edits.map((edit) => (
           <EditReview
