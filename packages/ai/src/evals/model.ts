@@ -84,6 +84,8 @@ export const evalLanguageModel = (
       return err(`provider "${error.provider}" isn't configured`);
     case "unknown_model":
       return err(`"${error.selector}" isn't a model ref`);
+    case "not_offered":
+      return err(`"${error.selector}" isn't offered on this instance`);
     case "unsupported":
       return err(error.message);
     default:
