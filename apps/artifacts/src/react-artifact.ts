@@ -1,7 +1,5 @@
-import {
-  RUNTIME_IMPORTS,
-  type RuntimeError,
-} from "@workspace/chat-ui/artifacts/runtime-protocol";
+import { reactKind } from "@workspace/artifacts-kit/kinds/react";
+import type { RuntimeError } from "@workspace/chat-ui/artifacts/runtime-protocol";
 import { err, flatMap, ok, type Result } from "@workspace/shared/result";
 // biome-ignore lint/performance/noNamespaceImport: artifacts get the whole module, as `import * as React` would give them.
 import * as React from "react";
@@ -23,7 +21,8 @@ import * as jsxRuntime from "./jsx-runtime";
 // React artifacts: TSX in, a mounted component out. Sucrase strips types and
 // compiles JSX and ES imports to CommonJS in a few milliseconds, small enough
 // to ship to the frame (esbuild-wasm is ~10 MB). Imports resolve against a
-// fixed table of bundled modules, never the network.
+// fixed table of bundled modules, never the network. Which modules is the
+// React kind's to say (`render.imports` in `@workspace/artifacts-kit`).
 
 export interface CompiledArtifact {
   readonly code: string;
@@ -65,7 +64,7 @@ export const artifactModules: Readonly<Record<string, unknown>> = {
 
 // The JSX runtimes are the transform's, not the author's to ask for.
 const allowed = new Set<string>([
-  ...RUNTIME_IMPORTS,
+  ...(reactKind.render.imports ?? []),
   "react/jsx-dev-runtime",
   "react/jsx-runtime",
 ]);

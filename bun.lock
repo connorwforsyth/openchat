@@ -21,6 +21,7 @@
       "name": "artifacts",
       "version": "0.0.1",
       "dependencies": {
+        "@workspace/artifacts-kit": "workspace:*",
         "@workspace/chat-ui": "workspace:*",
         "@workspace/shared": "workspace:*",
         "mermaid": "catalog:",

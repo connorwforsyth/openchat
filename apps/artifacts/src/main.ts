@@ -8,13 +8,15 @@ import {
   readHostMessage,
 } from "@workspace/chat-ui/artifacts/runtime-protocol";
 
-import { parseSvg, renderHtml, type Teardown } from "./documents";
+import type { Teardown } from "./documents";
 import { runtimeError } from "./errors";
+import { rendererFor } from "./renderers";
 
 // The artifact runtime (D24): the page the artifacts panel loads in a
 // sandboxed iframe on this separate origin. It says `ready`, then renders
 // whatever artifact the embedding page posts, reporting `rendered`, `error`
-// and its content height back. React and Mermaid load on first use.
+// and its content height back. Each kind is drawn by the renderer its
+// definition names (`./renderers`, 123).
 
 const root = document.getElementById("root");
 const parent = parentOriginFrom(window.location.search);
@@ -47,59 +49,20 @@ const start = (container: HTMLElement, parentOrigin: string) => {
     document.documentElement.style.colorScheme = request.theme;
     document.title = request.title;
 
-    switch (request.kind) {
-      case "html": {
-        teardown = renderHtml(container, request.code, {
-          onError: (error) => fail(request, error),
-          onLoad: () => done(request),
-        });
-        return;
-      }
-      case "svg": {
-        const svg = parseSvg(request.code);
-        if (svg.ok) {
-          container.append(svg.value);
-          done(request);
-        } else {
-          fail(request, svg.error);
-        }
-        return;
-      }
-      case "mermaid": {
-        const { renderMermaid } = await import("./mermaid");
-        const svg = await renderMermaid(request.code, request.theme);
-        if (!isCurrent(request)) {
-          return;
-        }
-        if (svg.ok) {
-          // Mermaid sanitises its own output (`securityLevel: "strict"`).
-          container.innerHTML = svg.value;
-          done(request);
-        } else {
-          fail(request, svg.error);
-        }
-        return;
-      }
-      case "react": {
-        const { loadReactArtifact, mountReactArtifact } = await import(
-          "./react-artifact"
-        );
-        if (!isCurrent(request)) {
-          return;
-        }
-        const element = loadReactArtifact(request.code, request.fileName);
-        if (!element.ok) {
-          fail(request, element.error);
-          return;
-        }
-        teardown = mountReactArtifact(container, element.value, (error) =>
-          fail(request, error)
-        );
-        done(request);
-        return;
-      }
-      default:
-        return request.kind satisfies never;
+    const renderer = rendererFor(request.kind);
+    if (!renderer) {
+      return;
+    }
+    const undo = await renderer(container, request, {
+      done: () => done(request),
+      fail: (error) => fail(request, error),
+      isCurrent: () => isCurrent(request),
+    });
+    if (isCurrent(request)) {
+      teardown = undo;
+    } else {
+      // Superseded while it rendered: the newer render cleared the page.
+      undo?.();
     }
   };
 
