@@ -144,6 +144,16 @@ The common thread is that a fixed stack and rules are what make an artifact rend
 - **Use in a chat:** a "Use in chat" action, either into a new chat or into one you pick. It attaches the artifact by reference, the way an `@file` mention does, so the model sees its latest version and can make new versions of it from that chat. One artifact can be used from many chats, and each version records the chat that made it.
 - **Share:** uses the same grants as library items (agents, prompts) — user, team or org; viewer or editor — rather than chat access. That means an artifact **is owned by a person** (and optionally a team or org), not by its chat.
 - **Source chat:** "Made in …" links back to the chat that created it, shown only to people who can open that chat. Whether that's worth showing is an open question below.
+- **References Connor shared (2026-10-01):**
+  - **Claude's Artifacts page:** a serif page title; tabs All / Yours / Shared with you; search, grid/list and filter icons at the right; a "Make something new" row of kind cards (Document, Presentation, Design, each marked Beta); then a list grouped by date (Today, Yesterday, a date, a month). Each row has a kind icon, the title, a visibility mark (lock = private, globe = public), "Viewed 2h ago" and a ⋯ menu.
+  - **ChatGPT's Sites page:** a title with a one-line subtitle ("Turn your ideas into live websites"); grid/list toggle, search and a primary **Create** button; tabs Owned by you / Shared with you; a table with a thumbnail, name and date, a "Shared with" column (Only you), an open-in-new-tab arrow and ⋯.
+- **Our page, taking the best of both:**
+  - **Header:** "Artifacts" title, then tabs **All / Yours / Shared with you**, with search, grid/list and a kind filter at the right.
+  - **Make something new:** one card per enabled kind (Document, Presentation, Site, …), with Beta marks from the kind definition. Picking one starts a new chat with that kind's template and instructions, as Claude does. No separate blank editor first.
+  - **The list:** grouped by date (Today, Yesterday, dates, months), sorted by **last viewed by you**. Each row: kind icon, or a **thumbnail** for Sites and Presentations, rendered by the runtime and cached; the title; a visibility mark (Only you / shared / public link); "Viewed …"; open in new tab; and ⋯ (Use in chat, Share, Rename, Go to chat, Duplicate, Delete).
+  - **Grid view:** thumbnails large.
+  - **Mobile:** the list only; the kind cards scroll sideways.
+  - **"Viewed …" needs a per-person last-viewed time.** That's a small table (`artifact_view`: artifact, user, viewed_at), written when an artifact is opened.
 - **Data changes:** the artifact gets an owner and grants. Versions keep their `messageId`, and gain a `conversationId` so a version made from another chat is traceable.
 
 ## Suggested order
