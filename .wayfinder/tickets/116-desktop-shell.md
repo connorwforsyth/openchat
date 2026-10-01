@@ -2,7 +2,7 @@
 id: "116"
 title: "Desktop shell: an electron-vite app that runs the chat against a server"
 labels: [wayfinder:build]
-status: open
+status: closed
 assignee: loop
 blockedBy: []
 ---
