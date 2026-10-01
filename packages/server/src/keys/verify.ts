@@ -46,8 +46,13 @@ export const createRegistryVerifier =
     { timeoutMs = 15_000 }: { readonly timeoutMs?: number } = {}
   ): VerifyKey =>
   async (credentials, options = {}) => {
-    const target = registry
-      .listModels(new Set([credentials.provider]))
+    // With `discover: true` this reads the catalog with the key being
+    // checked, so a provider with no `models` still has one to try.
+    const listed = await registry.listModels(
+      { [credentials.provider]: credentials },
+      { signal: options.signal }
+    );
+    const target = listed
       .map((option) => option.target)
       .find(
         (ref) =>

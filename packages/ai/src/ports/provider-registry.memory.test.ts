@@ -73,8 +73,8 @@ describe("memory ProviderRegistry", () => {
     expect(registry.embeddingModel("ollama:llama3.2").ok).toBe(false);
   });
 
-  it("marks picker options available by key", () => {
-    const options = registry.listModels(new Set(["anthropic"]));
+  it("marks picker options available by key", async () => {
+    const options = await registry.listModels({ anthropic: key("anthropic") });
     expect(options.map((o) => [o.selector, o.available])).toEqual([
       ["fast", true],
       ["strong", true],
@@ -82,7 +82,7 @@ describe("memory ProviderRegistry", () => {
       ["ollama:llama3.2", true],
     ]);
     expect(
-      registry.listModels(new Set()).find((o) => o.selector === "strong")
+      (await registry.listModels({})).find((o) => o.selector === "strong")
         ?.available
     ).toBe(false);
   });

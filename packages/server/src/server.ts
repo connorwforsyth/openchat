@@ -373,7 +373,7 @@ export const createServerFromEnv = async (
   const resolveSession =
     options.resolveSession ?? (auth ? sessionResolverFor(auth) : signedOut);
 
-  const registry = options.registry ?? buildRegistry(config);
+  const registry = options.registry ?? buildRegistry(config, { log });
   // Secrets at rest (D24): provider keys and MCP header secrets. A missing
   // key in production only stops new secrets being stored.
   const keyRing = loadKeyRing(env, { warn: log });

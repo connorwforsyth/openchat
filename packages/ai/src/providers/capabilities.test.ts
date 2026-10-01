@@ -6,7 +6,16 @@ import { acceptsFile, providerCapabilities } from "./capabilities";
 const provider = (
   type: ProviderConfig["type"],
   options: Record<string, string> = {}
-): ProviderConfig => ({ headers: {}, models: [], options, type });
+): ProviderConfig => ({
+  discover: false,
+  discoverTtlSeconds: 3600,
+  exclude: [],
+  headers: {},
+  include: [],
+  models: [],
+  options,
+  type,
+});
 
 describe("providerCapabilities", () => {
   it("native providers read images and PDFs", () => {

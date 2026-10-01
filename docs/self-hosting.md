@@ -216,6 +216,54 @@ price list or your invoice; the app never looks prices up anywhere.
 > crosses the limit finishes and the next one is refused; unpriced models
 > still add nothing, but are refused like any other once the budget is
 > spent.
+### Offering every model a provider serves
+
+By default the model picker offers `auto`, your `models.aliases` and each
+provider's `models` list, nothing else. To offer everything a provider
+serves, turn on `discover` for it, and narrow the list with `include` and
+`exclude`: whoever picks a model then decides what it costs.
+
+```yaml
+providers:
+  # The Vercel AI Gateway, as an openai-compatible provider.
+  gateway:
+    type: openai-compatible
+    baseURL: https://ai-gateway.vercel.sh/v1
+    apiKey: ${AI_GATEWAY_API_KEY}   # an instance key; or leave it out and
+    options: { keyless: "false" }   # let teams and users bring their own
+    discover: true
+    include: ["anthropic/*", "openai/gpt-5*", "google/gemini-2.5-*"]
+    exclude: ["*-pro"]
+    models: [openai/gpt-4.1]        # always offered, whatever the patterns say
+    discoverTtlSeconds: 3600        # the default
+  # A local Ollama: every model you've pulled, minus the embedding ones.
+  ollama:
+    type: openai-compatible
+    baseURL: http://localhost:11434/v1
+    discover: true
+    exclude: ["*embed*"]
+```
+
+- **Where the list comes from.** An `openai-compatible` provider's
+  `{baseURL}/models`; Ollama's `/api/tags` (for a provider named `ollama`,
+  or any with `options: { catalog: ollama }`); and the list-models APIs of
+  `anthropic`, `openai` and `google`. `azure` and `bedrock` have no catalog:
+  list their `models` instead.
+- **Whose key reads it.** The same key that would pay for a chat in that
+  context (an instance key where the policy allows, or the team's, org's or
+  user's), so a context never sees a catalog it couldn't use. Without a key,
+  nothing is fetched and the provider's models show as unavailable, as before.
+- **Patterns.** Globs over the model id: `*` matches anything (slashes
+  included), `?` one character. A model is offered when it matches `include`
+  (or `include` is empty) and doesn't match `exclude`. Models under `models`,
+  alias targets, `models.default` and the `auto` ends are always offered.
+- **Runs follow the same rule.** The server refuses a run whose model its
+  provider's patterns or catalog leave out, not just the picker. `include`
+  and `exclude` also apply to a provider without `discover`.
+- **Caching and failures.** Each provider's catalog is cached per key for
+  `discoverTtlSeconds` and fetched with a 5 second timeout. If it doesn't
+  answer, that provider offers (and runs) only its configured models, the log
+  says so once, and it's tried again a minute later.
 
 ### Uploaded files
 

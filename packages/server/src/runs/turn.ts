@@ -200,6 +200,12 @@ const unavailable = (provider: string | null): RunError => ({
   retryable: false,
 });
 
+const notOffered = (ref: string): RunError => ({
+  code: "provider_unavailable",
+  message: `${ref} isn't offered on this instance.`,
+  retryable: false,
+});
+
 const keyContextFor = async (
   db: Db,
   { context, userId }: ModelCaller
@@ -324,13 +330,26 @@ export const createModelLoader = (
     const provider = parseModelRef(ref.value)?.provider ?? ref.value;
     const credentials: ProviderCredentials | undefined = keys[provider];
     const model = registry.languageModel(ref.value, credentials);
-    return model.ok
-      ? ok({
-          model: model.value,
-          paidBy: credentials?.source ?? null,
-          resolvedModel: ref.value,
-        })
-      : err(unavailable(provider));
+    if (!model.ok) {
+      return err(unavailable(provider));
+    }
+    // The picker hides what a provider's patterns or catalog leave out; a
+    // selector sent anyway is refused here (095).
+    const offered = await registry.checkModel(ref.value, credentials, {
+      signal,
+    });
+    if (!offered.ok) {
+      return err(
+        offered.error.type === "not_offered"
+          ? notOffered(ref.value)
+          : unavailable(provider)
+      );
+    }
+    return ok({
+      model: model.value,
+      paidBy: credentials?.source ?? null,
+      resolvedModel: ref.value,
+    });
   };
 };
 

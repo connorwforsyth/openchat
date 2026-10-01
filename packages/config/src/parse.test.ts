@@ -36,7 +36,12 @@ describe("parseConfig defaults", () => {
     expect(config.providers).toEqual({
       ollama: {
         baseURL: "http://localhost:11434/v1",
+        // Discovery is opt-in (095): the default Ollama lists nothing extra.
+        discover: false,
+        discoverTtlSeconds: 3600,
+        exclude: [],
         headers: {},
+        include: [],
         models: [],
         options: {},
         type: "openai-compatible",

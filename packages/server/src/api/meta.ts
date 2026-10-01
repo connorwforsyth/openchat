@@ -1,10 +1,6 @@
 import { implement, ORPCError } from "@orpc/server";
 import type { KeyStore } from "@workspace/ai/keys/key-store";
-import {
-  type KeyContext,
-  keyedProviders,
-  resolveChatKeys,
-} from "@workspace/ai/keys/resolve";
+import { type KeyContext, resolveChatKeys } from "@workspace/ai/keys/resolve";
 import type { ProviderRegistry } from "@workspace/ai/ports/provider-registry";
 import { orgRoleOf } from "@workspace/auth/resources";
 import type { Env } from "@workspace/config/parse";
@@ -166,10 +162,11 @@ export const createMetaRouter = (deps: MetaDeps) => {
       );
       // A store that can't be read leaves only keyless providers available,
       // which is what a run would find too.
+      // A discovering provider's catalog is read with the same keys.
       return [
-        ...deps.registry.listModels(
-          keys.ok ? keyedProviders(keys.value) : new Set()
-        ),
+        ...(await deps.registry.listModels(keys.ok ? keys.value : {}, {
+          signal,
+        })),
       ];
     }),
   };

@@ -51,6 +51,15 @@ export const createMemoryProviderRegistry = ({
   };
 
   return {
+    // Every ref it knows is offered; there's no catalog to check against.
+    checkModel: (ref) => {
+      const provider = parseModelRef(ref)?.provider;
+      return Promise.resolve(
+        provider && providers.has(provider)
+          ? ok(ref)
+          : err({ provider: provider ?? ref, type: "unknown_provider" })
+      );
+    },
     embeddingModel: (ref, credentials) => {
       const provider = parseModelRef(ref)?.provider;
       const checked = check(ref, provider, credentials?.provider === provider);
@@ -73,10 +82,10 @@ export const createMemoryProviderRegistry = ({
       return model ? ok(model) : err({ selector: ref, type: "unknown_model" });
     },
 
-    listModels: (keyedProviders) => {
+    listModels: (keys) => {
       const available = (ref: ModelRef) => {
         const provider = parseModelRef(ref)?.provider ?? "";
-        return keylessSet.has(provider) || keyedProviders.has(provider);
+        return keylessSet.has(provider) || provider in keys;
       };
       const aliased: ModelOption[] = Object.entries(aliases).map(
         ([alias, ref]) => ({
@@ -96,7 +105,7 @@ export const createMemoryProviderRegistry = ({
         selector: ref,
         target: ref,
       }));
-      return [...aliased, ...direct];
+      return Promise.resolve([...aliased, ...direct]);
     },
 
     resolve: (selector) => {
