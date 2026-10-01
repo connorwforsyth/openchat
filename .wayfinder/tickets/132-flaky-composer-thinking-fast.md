@@ -2,7 +2,7 @@
 id: "132"
 title: "Flaky e2e: composer.spec 'the thinking level and fast mode sit apart' (105)"
 labels: [wayfinder:build]
-status: open
+status: closed
 assignee:
 blockedBy: []
 ---

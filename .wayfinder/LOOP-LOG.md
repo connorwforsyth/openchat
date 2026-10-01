@@ -147,3 +147,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-10-02 · 119 merged (PR #100) · gate 93/93 · e2e 90/90 · desktop smoke 1/1 · Desktop wave 116–119 done (120 cowork parked) · 125 rebased (README layer + .po), gate running; still needs Connor's contract approval
 - 2026-10-02 · 132 fixed (real reset race in chat-route: a late chat read overrode the person's pick; 35/121 → 0/121 under load), verifying · added 133 (approval-gap server race) and 134 (dropped second send)
 - 2026-10-02 · Connor: Quick AI should feel native: just a strip, translucent, no hints, no scrollbar (135)
+- 2026-10-02 · 132 merged (PR #101) · e2e 91/91 · 35/121 → 0/121 under load
