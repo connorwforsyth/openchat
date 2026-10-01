@@ -2,7 +2,7 @@
 id: "129"
 title: "Swap interface fonts from app.config.yaml"
 labels: [wayfinder:build]
-status: in-progress
+status: closed
 assignee: loop
 blockedBy: []
 ---
