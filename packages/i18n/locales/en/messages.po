@@ -566,6 +566,10 @@ msgstr "Change {number} accepted"
 msgid "Change {number} rejected"
 msgstr "Change {number} rejected"
 
+#: ../../apps/desktop/src/main/menu.ts
+msgid "Change Server…"
+msgstr "Change Server…"
+
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
 msgid "Change shortcuts"
 msgstr "Change shortcuts"
@@ -720,9 +724,14 @@ msgstr "Completed"
 msgid "Composer"
 msgstr "Composer"
 
+#: ../../apps/desktop/src/renderer/setup-screen.tsx
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "Connect"
 msgstr "Connect"
+
+#: ../../apps/desktop/src/renderer/setup-screen.tsx
+msgid "Connect to your server"
+msgstr "Connect to your server"
 
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "Connected · {count} tools"
@@ -829,6 +838,10 @@ msgstr "Couldn't load this artifact."
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Couldn't open a preview"
 msgstr "Couldn't open a preview"
+
+#: ../../apps/desktop/src/renderer/setup-screen.tsx
+msgid "Couldn't reach that server. Check the address and your connection."
+msgstr "Couldn't reach that server. Check the address and your connection."
 
 #: ../../apps/web/app/(auth)/_components/auth-problem.tsx
 msgid "Couldn't reach the server. Check your connection and try again."
@@ -1195,6 +1208,10 @@ msgstr "Enter an email address."
 msgid "Enter sends and Shift+Enter adds a line. Type / for commands and prompts, and @ to mention someone or a file."
 msgstr "Enter sends and Shift+Enter adds a line. Type / for commands and prompts, and @ to mention someone or a file."
 
+#: ../../apps/desktop/src/renderer/setup-screen.tsx
+msgid "Enter your server's address."
+msgstr "Enter your server's address."
+
 #: ../ui/src/components/ai-elements/tool.tsx
 msgid "Error"
 msgstr "Error"
@@ -1403,6 +1420,10 @@ msgstr "hotkeys"
 #: ../../apps/web/app/(app)/(pages)/settings/appearance/page.tsx
 msgid "How the app looks on this device."
 msgstr "How the app looks on this device."
+
+#: ../../apps/desktop/src/renderer/setup-screen.tsx
+msgid "https://chat.example.com"
+msgstr "https://chat.example.com"
 
 #: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../ui/src/components/ai-elements/message.tsx
@@ -2895,6 +2916,10 @@ msgstr "Sending a message saves your changes to the draft first."
 msgid "Sending the edit starts a new branch; the original stays."
 msgstr "Sending the edit starts a new branch; the original stays."
 
+#: ../../apps/desktop/src/renderer/setup-screen.tsx
+msgid "Server address"
+msgstr "Server address"
+
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "Server config"
 msgstr "Server config"
@@ -3261,6 +3286,10 @@ msgstr "Testing what's on screen; save to keep it."
 msgid "Thanks! What was good? (optional)"
 msgstr "Thanks! What was good? (optional)"
 
+#: ../../apps/desktop/src/renderer/setup-screen.tsx
+msgid "That address answered, but it isn't a chat server."
+msgstr "That address answered, but it isn't a chat server."
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
 #: ../../apps/web/app/(app)/(pages)/settings/_components/profile-settings.tsx
@@ -3270,6 +3299,10 @@ msgstr "That change couldn't be saved. Try again."
 #: ../library-ui/src/components/share-dialog.tsx
 msgid "That change didn't go through, so it was undone."
 msgstr "That change didn't go through, so it was undone."
+
+#: ../../apps/desktop/src/renderer/setup-screen.tsx
+msgid "That doesn't look like a web address."
+msgstr "That doesn't look like a web address."
 
 #: ../library-ui/src/components/fields.tsx
 msgid "That doesn't look right."
@@ -3338,6 +3371,10 @@ msgstr "The agent wants to run {toolName}."
 #: ../chat-ui/src/chat/connected-chat.tsx
 msgid "The answer failed. Try again, or regenerate it."
 msgstr "The answer failed. Try again, or regenerate it."
+
+#: ../../apps/desktop/src/renderer/setup-screen.tsx
+msgid "The app signs in to the same server you use in the browser."
+msgstr "The app signs in to the same server you use in the browser."
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/audit-policy.tsx
 msgid "The audit policy couldn't be changed. Try again."
@@ -3757,6 +3794,10 @@ msgstr "Use a prompt"
 msgid "Use an email address from an approved domain."
 msgstr "Use an email address from an approved domain."
 
+#: ../../apps/desktop/src/renderer/setup-screen.tsx
+msgid "Use an https:// address. Plain http:// only works for this computer."
+msgstr "Use an https:// address. Plain http:// only works for this computer."
+
 #: ../library-ui/src/components/item-builder.tsx
 #: ../library-ui/src/components/library-index.tsx
 msgid "Use in chat"
@@ -4029,6 +4070,10 @@ msgstr "Yesterday"
 #: ../library-ui/src/components/badges.tsx
 msgid "You"
 msgstr "You"
+
+#: ../../apps/desktop/src/renderer/setup-screen.tsx
+msgid "You can change it later from the app menu."
+msgstr "You can change it later from the app menu."
 
 #: ../library-ui/src/components/item-builder.tsx
 msgid "You can use this, but not see how it's set up"

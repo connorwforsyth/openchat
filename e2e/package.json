@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "lint": "ultracite check",
+    "test:desktop": "bun desktop/run.ts",
     "test:e2e": "playwright test --config ../playwright.config.ts",
     "typecheck": "tsc --noEmit"
   },
@@ -15,6 +16,7 @@
     "@workspace/contract": "workspace:*",
     "@workspace/mcp": "workspace:*",
     "@workspace/typescript-config": "workspace:*",
+    "desktop": "workspace:*",
     "typescript": "catalog:",
     "web": "workspace:*",
     "zod": "catalog:"
