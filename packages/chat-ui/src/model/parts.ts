@@ -1,3 +1,8 @@
+import {
+  SKILLS_DATA,
+  type SkillUse,
+  skillsDataSchema,
+} from "@workspace/ai/messages/skills";
 import { memoryVersionIdSchema } from "@workspace/contract/schemas/common";
 import type {
   annotationRefPartSchema,
@@ -147,6 +152,11 @@ export type RenderBlock =
     }
   | { readonly key: string; readonly kind: "plan"; readonly plan: PlanRef }
   | {
+      readonly key: string;
+      readonly kind: "skills";
+      readonly skills: readonly SkillUse[];
+    }
+  | {
       readonly approval: PlanApprovalRef;
       readonly key: string;
       readonly kind: "plan-approval";
@@ -158,11 +168,20 @@ export interface MessageView {
   readonly sources: readonly SourcePart[];
 }
 
-/** Data parts the chat shows: memory notes, and plan mode's card and approvals (106). */
+/**
+ * Data parts the chat shows: memory notes, plan mode's card and approvals
+ * (106), and the skills a message used (127).
+ */
 const dataBlock = (
   part: Extract<MessagePart, { type: "data" }>,
   key: string
 ): RenderBlock | null => {
+  if (part.name === SKILLS_DATA) {
+    const parsed = skillsDataSchema.safeParse(part.data);
+    return parsed.success
+      ? { key, kind: "skills", skills: parsed.data.skills }
+      : null;
+  }
   if (part.name === "memory-update") {
     const parsed = memoryUpdateSchema.safeParse(part.data);
     return parsed.success ? { key, kind: "memory", update: parsed.data } : null;

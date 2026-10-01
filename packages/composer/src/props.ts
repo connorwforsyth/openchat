@@ -11,6 +11,7 @@ import type {
   ComposerStatus,
   ComposerValue,
   PromptOption,
+  SkillOption,
   WorkspacePath,
 } from "./schemas";
 import type { ModelVariant } from "./variants";
@@ -83,6 +84,13 @@ export interface ComposerProps {
    * signed-in user's id. Left out, they're per browser.
    */
   readonly recentsKey?: string;
+  /**
+   * Skills the person can use (127): offered from the + menu and from `/`.
+   * A picked one shows as a chip and goes out with the message
+   * (`ComposerValue.skills`), for the host to send as the run's
+   * `input.skills`.
+   */
+  readonly skills?: readonly SkillOption[];
   readonly status?: ComposerStatus;
   /** The model/agent picker shows when this and `onTargetChange` are set. */
   readonly target?: RunTarget;

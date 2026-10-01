@@ -8,6 +8,7 @@ import {
   GlobeIcon,
   LibraryIcon,
   PlusIcon,
+  SparklesIcon,
   ZapIcon,
 } from "@workspace/icons";
 import {
@@ -25,7 +26,7 @@ import {
 } from "@workspace/ui/components/dropdown-menu";
 import { type Ref, useCallback } from "react";
 
-import type { FileCandidate, PromptOption } from "../schemas";
+import type { FileCandidate, PromptOption, SkillOption } from "../schemas";
 import type { FastMode } from "../variants";
 
 export interface PlusMenuProps {
@@ -39,6 +40,8 @@ export interface PlusMenuProps {
   /** Workspace files to add to the message, as `/open` lists them. */
   readonly files: readonly FileCandidate[];
   readonly onAddFile: ((file: FileCandidate) => void) | undefined;
+  /** Puts a skill on the message (127); left out, skills aren't offered. */
+  readonly onAddSkill?: ((skill: SkillOption) => void) | undefined;
   readonly onAttach: () => void;
   readonly onFastChange?: (on: boolean) => void;
   /** Plan mode (106); left out, the switch isn't offered. */
@@ -49,6 +52,8 @@ export interface PlusMenuProps {
   /** Whether the next message plans rather than builds. */
   readonly plan?: boolean;
   readonly prompts: readonly PromptOption[];
+  /** Skills to pick, less those already on the message. */
+  readonly skills?: readonly SkillOption[];
   readonly triggerRef?: Ref<HTMLButtonElement>;
   readonly webSearch: boolean;
 }
@@ -91,13 +96,37 @@ function PromptItem({
   );
 }
 
+function SkillItem({
+  onChoose,
+  skill,
+}: {
+  readonly onChoose: (skill: SkillOption) => void;
+  readonly skill: SkillOption;
+}) {
+  const choose = useCallback(() => onChoose(skill), [onChoose, skill]);
+  return (
+    <PromptInputActionMenuItem label={skill.name} onClick={choose}>
+      <span className="flex min-w-0 flex-col">
+        <span className="truncate">{skill.name}</span>
+        {skill.description ? (
+          <span className="truncate text-muted-foreground text-xs">
+            {skill.description}
+          </span>
+        ) : null}
+      </span>
+    </PromptInputActionMenuItem>
+  );
+}
+
+const NO_SKILLS: readonly SkillOption[] = [];
+
 // Long lists scroll inside their submenu rather than past the screen.
 const SUBMENU_CLASS = "max-h-72 w-64 max-w-[calc(100vw-2rem)]";
 
 /**
  * The composer's + menu: things to add to the next message. Attach files is
- * always first; a workspace file and a prompt appear when there are some to
- * pick; plan mode is a switch (a read-only planning run, 106), web search
+ * always first; a workspace file, a prompt and a skill (127) appear when
+ * there are some to pick; plan mode is a switch (a read-only planning run, 106), web search
  * one for the instance that has it, and fast mode one for a model that has
  * a fast variant. Base UI's menu
  * gives it arrow keys, type-ahead, and Escape back to the + button.
@@ -108,6 +137,7 @@ export function PlusMenu({
   fast,
   files,
   onAddFile,
+  onAddSkill,
   onAttach,
   onFastChange,
   onPlanChange,
@@ -115,6 +145,7 @@ export function PlusMenu({
   onWebSearchChange,
   plan = false,
   prompts,
+  skills = NO_SKILLS,
   triggerRef,
   webSearch,
 }: PlusMenuProps) {
@@ -135,6 +166,7 @@ export function PlusMenu({
   const offerFast = fast !== undefined && onFastChange !== undefined;
   const offerFiles = onAddFile !== undefined && files.length > 0;
   const offerPrompts = onUsePrompt !== undefined && prompts.length > 0;
+  const offerSkills = onAddSkill !== undefined && skills.length > 0;
   return (
     <PromptInputActionMenu>
       <PromptInputActionMenuTrigger
@@ -180,7 +212,19 @@ export function PlusMenu({
             </DropdownMenuSubContent>
           </DropdownMenuSub>
         ) : null}
-        {/* Skills join here once they run in chats (S4, ticket 082). */}
+        {offerSkills ? (
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              <SparklesIcon aria-hidden />
+              <Trans>Skills</Trans>
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className={SUBMENU_CLASS}>
+              {skills.map((skill) => (
+                <SkillItem key={skill.id} onChoose={onAddSkill} skill={skill} />
+              ))}
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        ) : null}
         {onPlanChange || onWebSearchChange || offerFast ? (
           <DropdownMenuSeparator />
         ) : null}

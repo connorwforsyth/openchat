@@ -35,6 +35,7 @@ import {
   type SlashItem,
   type SlashSources,
   slashItems,
+  unpickedSkills,
 } from "../options";
 import type { ComposerHandoff, ComposerProps } from "../props";
 import type {
@@ -42,13 +43,16 @@ import type {
   AttachmentRejection,
   FileCandidate,
   MentionCandidate,
+  PickedSkillOption,
   PromptOption,
+  SkillOption,
 } from "../schemas";
 import { OPEN_TRIGGER } from "../triggers";
 import { buildComposerValue, hasContent } from "../value";
 import { type PromptVariable, resolvePromptVariables } from "../variables";
 import { AttachmentList, RejectionMessage } from "./attachment-list";
 import { ComposerFooter } from "./composer-footer";
+import { SkillList } from "./skill-list";
 import { EDITOR_CLASS, FRAME_CLASS } from "./styles";
 import { optionId, SuggestionMenu } from "./suggestion-menu";
 import { TemplateVariables } from "./template-variables";
@@ -114,6 +118,7 @@ export function Composer({
   plan = false,
   prompts = NONE,
   recentsKey,
+  skills: offeredSkills = NONE,
   status = "ready",
   target,
   variant,
@@ -129,6 +134,14 @@ export function Composer({
   const [templateId, setTemplateId] = useState<LibraryItemId | null>(null);
   const [pendingTemplate, setPendingTemplate] =
     useState<PendingTemplate | null>(null);
+  // Skills picked for the next message (127), in the order picked.
+  const [pickedSkills, setPickedSkills] = useState<
+    readonly PickedSkillOption[]
+  >([]);
+  const skillsToPick = useMemo(
+    () => unpickedSkills(offeredSkills, pickedSkills),
+    [offeredSkills, pickedSkills]
+  );
 
   const files = useAttachments({
     disabled,
@@ -147,8 +160,9 @@ export function Composer({
       commands,
       files: workspaceFiles.map(fileCandidate),
       prompts,
+      skills: skillsToPick,
     }),
-    [commands, prompts, workspaceFiles]
+    [commands, prompts, skillsToPick, workspaceFiles]
   );
 
   const busy = status === "submitted" || status === "streaming";
@@ -245,13 +259,41 @@ export function Composer({
       buildComposerValue({
         attachments: files.attachments,
         doc: editor.getJSON(),
+        skills: pickedSkills,
         templateId,
       })
     );
     editor.commands.clearContent(true);
     setTemplateId(null);
+    setPickedSkills([]);
     files.clear();
-  }, [canSubmit, editor, files, onSubmit, templateId]);
+  }, [canSubmit, editor, files, onSubmit, pickedSkills, templateId]);
+
+  // A skill rides with the message as a chip (127), from + or `/`.
+  const addSkill = useCallback((skill: SkillOption) => {
+    setPickedSkills((picked) =>
+      picked.some((each) => each.id === skill.id)
+        ? picked
+        : [...picked, { id: skill.id, name: skill.name }]
+    );
+  }, []);
+
+  const removeSkill = useCallback(
+    (skillId: PickedSkillOption["id"]) => {
+      setPickedSkills((picked) => picked.filter((each) => each.id !== skillId));
+      // The chip and its button are gone; keep focus in the composer.
+      editor.commands.focus();
+    },
+    [editor]
+  );
+
+  const pickSkill = useCallback(
+    (skill: SkillOption) => {
+      addSkill(skill);
+      editor.commands.focus();
+    },
+    [addSkill, editor]
+  );
 
   const choosePrompt = useCallback(
     (current: Editor, range: Range, prompt: PromptOption) => {
@@ -300,11 +342,16 @@ export function Composer({
           current.chain().focus().deleteRange(range).run();
           onCommand?.("open", item.file.path);
           return;
+        case "skill":
+          // The skill becomes a chip; its `/query` isn't words to send.
+          current.chain().focus().deleteRange(range).run();
+          addSkill(item.skill);
+          return;
         default:
           return item satisfies never;
       }
     },
-    [choosePrompt, onCommand, slash.files.length]
+    [addSkill, choosePrompt, onCommand, slash.files.length]
   );
 
   // From the + menu: the same file mention `@` makes, at the caret.
@@ -458,6 +505,8 @@ export function Composer({
     files: t`Files`,
     mentions: t`Mention`,
     prompts: t`Prompts`,
+    "prompts-skills": t`Prompts and skills`,
+    skills: t`Skills`,
   };
   const suggestionCount = menus.menu?.items.length ?? 0;
 
@@ -503,8 +552,13 @@ export function Composer({
             variables={pendingTemplate.variables}
           />
         ) : null}
-        {files.attachments.length > 0 ? (
-          <PromptInputHeader className="cursor-default">
+        {files.attachments.length > 0 || pickedSkills.length > 0 ? (
+          <PromptInputHeader className="cursor-default flex-col items-start gap-1.5">
+            <SkillList
+              disabled={disabled}
+              onRemove={removeSkill}
+              skills={pickedSkills}
+            />
             <AttachmentList
               attachments={files.attachments}
               disabled={disabled}
@@ -525,6 +579,7 @@ export function Composer({
           files={slash.files}
           models={models}
           onAddFile={addWorkspaceFile}
+          onAddSkill={pickSkill}
           onAttach={openFilePicker}
           onPlanChange={onPlanChange}
           onStop={onStop ? stop : undefined}
@@ -535,6 +590,7 @@ export function Composer({
           plan={plan}
           prompts={prompts}
           recentsKey={recentsKey}
+          skills={skillsToPick}
           target={target}
           variant={variant}
           webSearch={webSearch}
@@ -552,8 +608,8 @@ export function Composer({
       <RejectionAlert rejections={files.rejections} />
       <p className="sr-only" id={hintId}>
         <Trans>
-          Enter sends and Shift+Enter adds a line. Type / for commands and
-          prompts, and @ to mention someone or a file.
+          Enter sends and Shift+Enter adds a line. Type / for commands, prompts
+          and skills, and @ to mention someone or a file.
         </Trans>
       </p>
     </form>

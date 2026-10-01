@@ -1,6 +1,7 @@
 import { createArtifactTool } from "./create-artifact";
 import type { AnyToolDefinition, ToolCapability } from "./define";
 import { fileSearch } from "./file-search";
+import { loadSkillTool } from "./load-skill";
 import { updateArtifactTool } from "./update-artifact";
 import { updateMemoryTool } from "./update-memory";
 import { webSearch } from "./web-search";
@@ -59,6 +60,7 @@ export const AI_BUILTIN_TOOLS = [
   updateMemoryTool,
   createArtifactTool,
   updateArtifactTool,
+  loadSkillTool,
 ] as const;
 
 export const aiBuiltinTools =

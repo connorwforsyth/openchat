@@ -24,6 +24,7 @@ import {
   type ComposerValue,
   composerValueSchema,
   type PromptOption,
+  type SkillOption,
 } from "../schemas";
 import type { ModelVariant } from "../variants";
 import { Composer, type ComposerProps, READY_MARK } from "./composer";
@@ -59,6 +60,17 @@ const explain: PromptOption = {
   name: "Explain",
 };
 
+const haiku: SkillOption = {
+  description: "Answers in haiku",
+  id: fixtureId("libraryItem", 40),
+  name: "Haiku",
+};
+const releaseNotes: SkillOption = {
+  description: "Groups changes by area",
+  id: fixtureId("libraryItem", 41),
+  name: "Release notes",
+};
+
 // Options' accessible names include their hints (`/summarise`, emails).
 const SUMMARISE = /Summarise/;
 const EXPLAIN = /Explain/;
@@ -76,6 +88,10 @@ const MEDIUM = /^Medium/;
 const O4_MINI = /^o4-mini/;
 const EXTRA_HIGH = /Extra high/;
 const FAST_MODE = /Fast mode/;
+
+/** Skills in the + menu, named with their descriptions. */
+const HAIKU_ITEM = /^Haiku/;
+const RELEASE_ITEM = /^Release notes/;
 
 /** The + menu's Plan switch, named with its hint. */
 const PLAN_ITEM = /^Plan/;
@@ -132,6 +148,7 @@ describe("Composer", () => {
     expect(lastValue(onSubmit)).toEqual({
       attachments: [],
       mentions: [],
+      skills: [],
       templateId: null,
       text: "Hello\nthere",
     });
@@ -553,6 +570,74 @@ describe("Composer", () => {
     expect(value.templateId).toBe(summarise.id);
   });
 
+  it("puts a skill on the message from the + menu, as a chip that sends with it (127)", async () => {
+    const { editor, onSubmit } = renderComposer({
+      skills: [haiku, releaseNotes],
+    });
+    await userEvent.click(
+      screen.getByRole("button", { name: "Add to message" })
+    );
+    await userEvent.click(
+      await screen.findByRole("menuitem", { name: "Skills" })
+    );
+    await userEvent.click(
+      await screen.findByRole("menuitem", { name: HAIKU_ITEM })
+    );
+    const chips = await screen.findByRole("list", { name: "Skills" });
+    expect(chips.textContent).toContain("Haiku");
+    expect(document.activeElement).toBe(editor);
+
+    // Picked once: it isn't offered again.
+    await userEvent.click(
+      screen.getByRole("button", { name: "Add to message" })
+    );
+    await userEvent.click(
+      await screen.findByRole("menuitem", { name: "Skills" })
+    );
+    await screen.findByRole("menuitem", { name: RELEASE_ITEM });
+    expect(screen.queryByRole("menuitem", { name: HAIKU_ITEM })).toBeNull();
+    await userEvent.keyboard("{Escape}{Escape}");
+
+    await userEvent.click(editor);
+    await userEvent.keyboard("A poem please{Enter}");
+    expect(lastValue(onSubmit)).toMatchObject({
+      skills: [{ id: haiku.id, name: "Haiku" }],
+      text: "A poem please",
+    });
+    // The next message starts without it.
+    expect(screen.queryByRole("list", { name: "Skills" })).toBeNull();
+  });
+
+  it("picks a skill from /, and its chip comes off with ×", async () => {
+    const { editor, onSubmit } = renderComposer({
+      skills: [haiku, releaseNotes],
+    });
+    await userEvent.click(editor);
+    await userEvent.keyboard("/release");
+    const listbox = await screen.findByRole("listbox", { name: "Skills" });
+    expect(listbox.textContent).toContain("Release notes");
+    await userEvent.keyboard("{Enter}");
+    await screen.findByRole("list", { name: "Skills" });
+    // The `/query` became the chip; it isn't text to send.
+    expect(editor.textContent).toBe("");
+
+    await userEvent.keyboard("/");
+    const both = await screen.findByRole("listbox", {
+      name: "Prompts and skills",
+    });
+    expect(both.textContent).toContain("Haiku");
+    expect(both.textContent).not.toContain("Release notes");
+    await userEvent.keyboard("{Escape}");
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Remove skill Release notes" })
+    );
+    expect(screen.queryByRole("list", { name: "Skills" })).toBeNull();
+    expect(document.activeElement).toBe(editor);
+    await userEvent.keyboard("{Backspace}hi{Enter}");
+    expect(lastValue(onSubmit).skills).toEqual([]);
+  });
+
   it("offers workspace files and prompts only when there are some", async () => {
     renderComposer({ prompts: [] });
     await userEvent.click(
@@ -563,6 +648,7 @@ describe("Composer", () => {
       screen.queryByRole("menuitem", { name: "Add a workspace file" })
     ).toBeNull();
     expect(screen.queryByRole("menuitem", { name: "Use a prompt" })).toBeNull();
+    expect(screen.queryByRole("menuitem", { name: "Skills" })).toBeNull();
     // No web search on this instance: no switch.
     expect(screen.queryByRole("menuitemcheckbox")).toBeNull();
   });

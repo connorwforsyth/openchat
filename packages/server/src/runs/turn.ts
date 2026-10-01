@@ -84,6 +84,7 @@ import {
   type TurnSandbox,
   withSandboxTools,
 } from "./sandbox";
+import { type SkillFileReader, skillTurnParts, turnSkills } from "./skills";
 import { workspaceContext } from "./workspace-context";
 
 // What a run answers with (PLAN.md §8 steps 3.2–3.4): the target resolved to
@@ -220,6 +221,11 @@ export interface TurnResolverDeps {
    * gets `bash`, `read`, `write`, `edit` or `preview`.
    */
   readonly sandbox?: SandboxToolSource;
+  /**
+   * A skill's bundled file by upload id (127), for `load_skill`; the turn
+   * has already settled access to the skill. Without it files can't be read.
+   */
+  readonly skillFiles?: SkillFileReader;
   /** `web_search` for a turn's model (D23); without it no run searches the web. */
   readonly webSearch?: WebSearchSource;
 }
@@ -653,7 +659,10 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
             { signal, state }
           )
         : { toolApproval: {}, tools: {} };
-    const tools = { ...own, ...gated.tools };
+    // Skills picked for the message (127): instructions, and `load_skill`
+    // for the files they bundle.
+    const skills = skillTurnParts(await turnSkills(db, run), deps.skillFiles);
+    const tools = { ...own, ...gated.tools, ...skills.tools };
     const mentioned = await mentionedFiles(run, () =>
       Promise.resolve(sandbox.sandbox)
     );
@@ -666,6 +675,7 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
         ...(await planInstructions(run)),
       ],
       mentions: mentioned,
+      skills: skills.sections,
     });
     // The run's thinking level and fast mode (105), where the model takes them.
     const { reasons, ...model } = loaded.value;
@@ -695,6 +705,7 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
         ...artifacts.toolApproval,
         ...sandbox.toolApproval,
         ...gated.toolApproval,
+        ...skills.toolApproval,
       },
       tools: Object.keys(tools).length > 0 ? tools : undefined,
     });
@@ -807,6 +818,12 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
         ? Promise.resolve(sandbox)
         : sandboxFor(run, null, { reviews, signal })
     );
+    // The agent's own skills, listed for it to load (127), and any picked
+    // for the message, whole.
+    const skills = skillTurnParts(
+      await turnSkills(db, run, definition.skills),
+      deps.skillFiles
+    );
     return ok({
       ...loaded.value,
       agent: { id: target.id, versionId: version.value.id },
@@ -815,11 +832,12 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
         base: BASE,
         dynamic: await planInstructions(run),
         mentions: mentioned,
+        skills: skills.sections,
       }).text,
       parameters: definition.parameters,
       proposeEdits: sandbox?.proposeEdits,
-      toolApproval: gated.toolApproval,
-      tools: gated.tools,
+      toolApproval: { ...gated.toolApproval, ...skills.toolApproval },
+      tools: { ...gated.tools, ...skills.tools },
     });
   };
 };

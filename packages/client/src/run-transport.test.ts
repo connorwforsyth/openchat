@@ -3,7 +3,12 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { ApiClient } from "./api";
 import { isRunStreamError, readRunStream, splitSse } from "./run-stream";
-import { createRunTransport, turnFor, userParts } from "./run-transport";
+import {
+  createRunTransport,
+  pickedSkills,
+  turnFor,
+  userParts,
+} from "./run-transport";
 import { reconcileId } from "./use-run-chat";
 
 // The client half of resumable runs, against a scripted server: no network.
@@ -144,6 +149,34 @@ describe("turnFor", () => {
       turnFor("submit-message", [user("tmp", "first")], undefined)
     ).toMatchObject({
       parentId: null,
+    });
+  });
+
+  it("sends the skills picked for a message, once each, without the part (127)", () => {
+    const id = "11111111-1111-4111-8111-111111111111";
+    const message = {
+      id: "tmp",
+      parts: [
+        { text: "use it", type: "text" as const },
+        {
+          data: {
+            skills: [
+              { id, name: "Haiku" },
+              { id, name: "Haiku" },
+            ],
+          },
+          type: "data-skills" as const,
+        },
+        { data: { skills: "nope" }, type: "data-skills" as const },
+      ],
+      role: "user" as const,
+    };
+    expect(pickedSkills(message)).toEqual([{ id }]);
+    expect(turnFor("submit-message", [message], undefined)).toEqual({
+      parentId: null,
+      parts: [{ text: "use it", type: "text" }],
+      skills: [{ id }],
+      type: "message",
     });
   });
 

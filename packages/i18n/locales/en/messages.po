@@ -65,6 +65,10 @@ msgstr "{count, plural, one {# item} other {# items}}"
 msgid "{count, plural, one {# knowledge file wasn't copied} other {# knowledge files weren't copied}}"
 msgstr "{count, plural, one {# knowledge file wasn't copied} other {# knowledge files weren't copied}}"
 
+#: ../chat-ui/src/conversation/skills-note.tsx
+msgid "{count, plural, one {Used the skill {names}} other {Used the skills {names}}}"
+msgstr "{count, plural, one {Used the skill {names}} other {Used the skills {names}}}"
+
 #: ../code-ui/src/diff-view.tsx
 msgid "{deletions, plural, one {# line removed} other {# lines removed}}"
 msgstr "{deletions, plural, one {# line removed} other {# lines removed}}"
@@ -1271,8 +1275,8 @@ msgid "Enter an email address."
 msgstr "Enter an email address."
 
 #: ../composer/src/components/composer.tsx
-msgid "Enter sends and Shift+Enter adds a line. Type / for commands and prompts, and @ to mention someone or a file."
-msgstr "Enter sends and Shift+Enter adds a line. Type / for commands and prompts, and @ to mention someone or a file."
+msgid "Enter sends and Shift+Enter adds a line. Type / for commands, prompts and skills, and @ to mention someone or a file."
+msgstr "Enter sends and Shift+Enter adds a line. Type / for commands, prompts and skills, and @ to mention someone or a file."
 
 #: ../../apps/desktop/src/renderer/setup-screen.tsx
 msgid "Enter your server's address."
@@ -2614,6 +2618,10 @@ msgstr "prompts"
 msgid "Prompts"
 msgstr "Prompts"
 
+#: ../composer/src/components/composer.tsx
+msgid "Prompts and skills"
+msgstr "Prompts and skills"
+
 #: ../../apps/web/app/dev/code/demo.tsx
 msgid "Proposed edit"
 msgstr "Proposed edit"
@@ -2800,6 +2808,10 @@ msgstr "Remove key"
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 msgid "Remove member"
 msgstr "Remove member"
+
+#: ../composer/src/components/skill-list.tsx
+msgid "Remove skill {name}"
+msgstr "Remove skill {name}"
 
 #: ../library-ui/src/components/agent-form.tsx
 msgid "Remove starter {position}"
@@ -3253,6 +3265,9 @@ msgstr "Skill files"
 msgid "skills"
 msgstr "skills"
 
+#: ../composer/src/components/composer.tsx
+#: ../composer/src/components/plus-menu.tsx
+#: ../composer/src/components/skill-list.tsx
 #: ../library-ui/src/components/agent-form.tsx
 #: ../library-ui/src/components/kind.tsx
 msgid "Skills"

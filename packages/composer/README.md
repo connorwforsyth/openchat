@@ -71,8 +71,15 @@ are some; *Web search*, a switch, only when the host passes
 `onWebSearchChange` (the chat does when `features.webSearch` is on, and sends
 `options.webSearch: "on"` for turns while it's on); and *Fast mode*, a
 switch, only when the chosen model has a fast variant. While a switch is on,
-its chip beside + turns it off. Skills join the menu once they run in chats
-(082).
+its chip beside + turns it off.
+
+*Skills* (127) lists the `skills` the host passes (the chat passes the
+person's published skills: theirs, shared with them, and their libraries').
+`/` offers them too, after the prompts. Choosing one, from either, puts a
+chip on the message (the `/query` text goes); its × takes it off, and a
+skill already on the message isn't offered again. The picks go out as
+`ComposerValue.skills` (`{ id, name }`, in the order picked), which the chat
+sends as the run's `input.skills`, and the chips clear with the message.
 
 The picker (`components/target-picker.tsx`) is a search overlay, AI
 Elements' model selector on a dialog: sections for Recently used, Auto, each

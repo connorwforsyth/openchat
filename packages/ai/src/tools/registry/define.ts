@@ -72,6 +72,7 @@ export type ToolCapability =
   | "knowledge"
   | "memory"
   | "sandbox"
+  | "skills"
   | "web_search";
 
 /** Where a definition came from. */

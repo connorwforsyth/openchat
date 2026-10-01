@@ -140,6 +140,22 @@ describe("messageView", () => {
       undefined
     );
   });
+
+  it("reads the skills a message used, stored or still on its way (127)", () => {
+    const id = fixtureId("libraryItem", 1);
+    const parts: MessagePart[] = [
+      { text: "a poem", type: "text" },
+      {
+        data: { skills: [{ id, name: "Haiku" }] },
+        name: "skills",
+        type: "data",
+      },
+      { data: { skills: [] }, name: "skills", type: "data" },
+    ];
+    const view = messageView(parts, new Map());
+    expect(view.blocks.map((block) => block.kind)).toEqual(["text", "skills"]);
+    expect(view.blocks[1]).toMatchObject({ skills: [{ id, name: "Haiku" }] });
+  });
 });
 
 describe("toolViewState", () => {

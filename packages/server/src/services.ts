@@ -38,6 +38,7 @@ import {
   type RunSettled,
 } from "./runs/executor";
 import { type MemorySettings, withChatMemory } from "./runs/memory";
+import { skillFileReader } from "./runs/skills";
 import {
   createModelLoader,
   createTurnResolver,
@@ -86,6 +87,7 @@ export interface ServicesOptions {
     | "orgPolicy"
     | "routeAuto"
     | "sandbox"
+    | "skillFiles"
     | "webSearch"
   >;
 }
@@ -113,6 +115,9 @@ export const createServices = (options: ServicesOptions): Services => {
   const turnDeps = {
     artifacts: (run: RunStart) => createArtifactTools(dbArtifactStore(db, run)),
     attachedArtifacts: (run: RunStart) => attachedArtifactsSection(db, run),
+    ...(options.storage
+      ? { skillFiles: skillFileReader(db, options.storage) }
+      : {}),
     ...options.tools,
     config,
     db,

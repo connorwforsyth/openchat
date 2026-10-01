@@ -7,6 +7,7 @@ import {
   FileIcon,
   FileTextIcon,
   PlusIcon,
+  SparklesIcon,
   UserIcon,
 } from "@workspace/icons";
 import { cn } from "@workspace/ui/lib/utils";
@@ -30,6 +31,8 @@ export const suggestionKey = (suggestion: Suggestion): string => {
       return candidateKey(suggestion.candidate);
     case "prompt":
       return `prompt:${suggestion.prompt.id}`;
+    case "skill":
+      return `skill:${suggestion.skill.id}`;
     default:
       return suggestion satisfies never;
   }
@@ -78,6 +81,8 @@ function SuggestionIcon({ suggestion }: { readonly suggestion: Suggestion }) {
       );
     case "prompt":
       return <FileTextIcon aria-hidden />;
+    case "skill":
+      return <SparklesIcon aria-hidden />;
     default:
       return suggestion satisfies never;
   }
@@ -148,6 +153,13 @@ function SuggestionText({ suggestion }: { readonly suggestion: Suggestion }) {
         />
       );
     }
+    case "skill":
+      return (
+        <Labelled
+          hint={suggestion.skill.description || undefined}
+          label={suggestion.skill.name}
+        />
+      );
     default:
       return suggestion satisfies never;
   }

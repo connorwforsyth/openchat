@@ -26,6 +26,7 @@
     "./memory/*": "./src/memory/*.ts",
     "./messages/approval": "./src/messages/approval.ts",
     "./messages/from-ui": "./src/messages/from-ui.ts",
+    "./messages/skills": "./src/messages/skills.ts",
     "./messages/to-ui": "./src/messages/to-ui.ts",
     "./messages/workspace-file": "./src/messages/workspace-file.ts",
     "./ports/*": "./src/ports/*.ts",

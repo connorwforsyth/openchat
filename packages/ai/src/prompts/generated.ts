@@ -71,6 +71,18 @@ export const FRAGMENTS = {
     },
     source: "fragments/plan.md",
   },
+  skills: {
+    parts: {
+      available:
+        "You have these skills. When one fits the task, call the `{{tool}}` tool with its name to read its instructions and the files it bundles, then follow them:\n{{skills}}",
+      entry: "- {{name}}: {{description}}",
+      files:
+        "The skill \"{{name}}\" bundles these files. Read one with the `{{tool}}` tool, passing the skill's name and the file's path:\n{{files}}",
+      picked:
+        'The user picked the skill "{{name}}" for this message. Follow its instructions:\n\n<skill name="{{name}}">\n{{instructions}}\n</skill>',
+    },
+    source: "fragments/skills.md",
+  },
   workspace: {
     source: "fragments/workspace.md",
     text: "You have a workspace: a sandboxed machine whose files live in /work. The user sees those files in the Files panel next to this chat. Use the bash, read, write and edit tools to do the work yourself. Never ask the user to run commands; they have no terminal. Run them yourself with bash. A static page (HTML with its CSS and JS) shows in the user's Preview panel as soon as you write the .html file, so don't start a server for one. For an app that needs a dev server (Vite and the like), start it in the background bound to 0.0.0.0 and call preview with its port.",

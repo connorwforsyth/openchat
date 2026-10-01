@@ -653,6 +653,7 @@ describe("composer file commands (062)", () => {
     expect(onSubmit).toHaveBeenCalledWith({
       attachments: [],
       mentions: [],
+      skills: [],
       templateId: null,
       text: "Start the app and open a preview",
     });

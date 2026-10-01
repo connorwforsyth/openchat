@@ -6,12 +6,16 @@ this order by `composeInstructions` (`compose.ts`):
 1. `base/NN-*.md`: what every turn gets, concatenated in filename order.
 2. The agent's own instructions. These stay a database row (the agent
    version's `instructions`); they are not a file here.
-3. Fragments the turn calls for: `fragments/workspace.md` when a plain chat
+3. Skills (127), from `fragments/skills.md`: each skill picked for the
+   message, its `SKILL.md` wrapped in `<skill>` (source
+   `skill:<itemId>@<versionId>`), and for an agent with skills attached, the
+   list of their names and descriptions it loads them from with `load_skill`.
+4. Fragments the turn calls for: `fragments/workspace.md` when a plain chat
    has a workspace; `fragments/plan.md`'s `planning` part instead of it for a
    planning run (plan mode, 106), and its `approved` part, holding the plan,
    for a run that approves one.
-4. `fragments/mentions.md`: the `@file` mentions in the message being answered.
-5. `fragments/memory.md`: the user's memory file, in a private chat.
+5. `fragments/mentions.md`: the `@file` mentions in the message being answered.
+6. `fragments/memory.md`: the user's memory file, in a private chat.
 
 Layers are joined by one blank line, and a layer with no text is left out.
 `composeInstructions` returns the final string and the sections it was built

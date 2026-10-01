@@ -18,6 +18,7 @@ import {
   contextSize,
   filterMentions,
   filterPrompts,
+  filterSkills,
   filterTargetGroups,
   findTargetChoice,
   isAutoTarget,
@@ -29,8 +30,9 @@ import {
   rememberRecent,
   slashItems,
   targetKey,
+  unpickedSkills,
 } from "./options";
-import type { MentionCandidate, PromptOption } from "./schemas";
+import type { MentionCandidate, PromptOption, SkillOption } from "./schemas";
 
 const model = (
   selector: string,
@@ -449,6 +451,8 @@ describe("slashItems", () => {
           return `/${item.command}`;
         case "file":
           return item.file.path;
+        case "skill":
+          return `skill:${item.skill.name}`;
         default:
           return item.prompt.name;
       }
@@ -478,5 +482,58 @@ describe("slashItems", () => {
     expect(
       kinds(slashItems("open:read", { commands: ["open"], files, prompts }))
     ).toEqual(["README.md"]);
+  });
+
+  it("lists skills after prompts, matched by name or description (127)", () => {
+    const skills = [
+      skill(31, "Haiku", "Short poems"),
+      skill(32, "Release notes"),
+    ];
+    expect(
+      kinds(slashItems("", { commands: ["new-file"], files, prompts, skills }))
+    ).toEqual([
+      "/new-file",
+      "New feature",
+      "skill:Haiku",
+      "skill:Release notes",
+    ]);
+    expect(
+      kinds(slashItems("poem", { commands: [], files, prompts, skills }))
+    ).toEqual(["skill:Haiku"]);
+    expect(
+      kinds(slashItems("open:", { commands: ["open"], files, prompts, skills }))
+    ).toEqual(["src/app.ts", "README.md"]);
+  });
+});
+
+const skill = (n: number, name: string, description = ""): SkillOption => ({
+  description,
+  id: fixtureId("libraryItem", n),
+  name,
+});
+
+describe("skills (127)", () => {
+  const skills = [
+    skill(31, "Haiku", "Short poems"),
+    skill(32, "Release notes", "Group changes by area"),
+  ];
+
+  it("finds a skill by its name or its description", () => {
+    expect(filterSkills(skills, "").map((each) => each.name)).toEqual([
+      "Haiku",
+      "Release notes",
+    ]);
+    expect(filterSkills(skills, "group").map((each) => each.name)).toEqual([
+      "Release notes",
+    ]);
+  });
+
+  it("leaves out the skills already on the message", () => {
+    expect(unpickedSkills(skills, [])).toBe(skills);
+    expect(
+      unpickedSkills(skills, [{ id: fixtureId("libraryItem", 31) }]).map(
+        (each) => each.name
+      )
+    ).toEqual(["Release notes"]);
   });
 });

@@ -1,8 +1,9 @@
 import type { PromptFile } from "./codegen";
 
 // A turn's instructions, layered (the eve pattern, ticket 079): the base
-// files first, then the agent's own instructions (a database row), then the
-// fragments this turn calls for, the `@file` mentions and the memory file.
+// files first, then the agent's own instructions (a database row), then its
+// skills (127), the fragments this turn calls for, the `@file` mentions and
+// the memory file.
 // Each section keeps where it came from, so a trace or an eval can say which
 // file put a sentence in front of the model.
 
@@ -10,13 +11,18 @@ export type InstructionLayer =
   | "preceding"
   | "base"
   | "agent"
+  | "skills"
   | "dynamic"
   | "mentions"
   | "memory";
 
 export interface InstructionSection {
   readonly layer: InstructionLayer;
-  /** A file under `src/prompts` (`fragments/memory.md`), or `agent`/`preceding` for text that isn't from one. */
+  /**
+   * A file under `src/prompts` (`fragments/memory.md`), `agent`/`preceding`
+   * for text that isn't from one, or `skill:<itemId>@<versionId>` for a
+   * picked skill's `SKILL.md`.
+   */
   readonly source: string;
   readonly text: string;
 }
@@ -38,6 +44,11 @@ export interface ComposeInput {
    * which only has the turn's composed string to go on.
    */
   readonly preceding?: string;
+  /**
+   * Skills (127): each picked skill's instructions, and the list an agent
+   * loads its own from (`skillSections`), each with its own source.
+   */
+  readonly skills?: readonly PromptFile[];
 }
 
 export interface ComposedInstructions {
@@ -78,6 +89,9 @@ export const composeInstructions = (
       section("base", source, text)
     ),
     ...section("agent", "agent", input.agent),
+    ...(input.skills ?? []).flatMap(({ source, text }) =>
+      section("skills", source, text)
+    ),
     ...(input.dynamic ?? []).flatMap(({ source, text }) =>
       section("dynamic", source, text)
     ),

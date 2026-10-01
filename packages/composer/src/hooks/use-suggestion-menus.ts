@@ -18,7 +18,13 @@ import { menuKeyAction, moveActive, slashStage } from "../triggers";
 // it, and answers the plugin's key events. Focus never leaves the editor.
 
 /** What the open menu lists, which names it. */
-export type MenuList = "commands" | "files" | "mentions" | "prompts";
+export type MenuList =
+  | "commands"
+  | "files"
+  | "mentions"
+  | "prompts"
+  | "prompts-skills"
+  | "skills";
 
 export interface OpenMenu {
   readonly char: "/" | "@";
@@ -59,7 +65,16 @@ const slashList = (query: string, items: readonly SlashItem[]): MenuList => {
   if (slashStage(query).stage === "open") {
     return "files";
   }
-  return items.some((item) => item.kind === "command") ? "commands" : "prompts";
+  if (items.some((item) => item.kind === "command")) {
+    return "commands";
+  }
+  const skills = items.some((item) => item.kind === "skill");
+  if (!skills) {
+    return "prompts";
+  }
+  return items.some((item) => item.kind === "prompt")
+    ? "prompts-skills"
+    : "skills";
 };
 
 const slashMenu = (props: SuggestionProps<SlashItem, SlashItem>): OpenMenu => ({

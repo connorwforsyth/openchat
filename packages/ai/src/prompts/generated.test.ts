@@ -26,6 +26,7 @@ describe("generated.ts", () => {
       "memory",
       "mentions",
       "plan",
+      "skills",
       "workspace",
     ]);
   });

@@ -45,14 +45,14 @@ Packages depend in one direction: `sandbox` → `server` → `mcp` → `ai`. So
 | What | Where |
 |---|---|
 | `defineTool`, `ToolContext`, `toAiSdkTool`, the adapters, `createToolRegistry` | here |
-| `file_search`, `web_search`, `update_memory`, `create_artifact`, `update_artifact` | here, one file each |
+| `file_search`, `web_search`, `update_memory`, `create_artifact`, `update_artifact`, `load_skill` | here, one file each |
 | `bash`, `read`, `write`, `edit`, `preview` | `packages/sandbox/src/tools/defs/`, one file each |
-| The registry of all ten (`builtinTools`) | `packages/sandbox/src/tools/registry.ts` |
+| The registry of all eleven (`builtinTools`) | `packages/sandbox/src/tools/registry.ts` |
 
 The sandbox tools need the `Sandbox` port and the `/work` path rule, which
 live in `@workspace/sandbox`. That package is also the first one that can see
 every built-in, so the whole registry is assembled there. `index.ts` here
-holds `aiBuiltinTools`, the five this package can see.
+holds `aiBuiltinTools`, the six this package can see.
 
 Files are kebab-case (`file-search.ts` for `file_search`) because the lint
 rule says so. `index.ts` builds a map; it isn't a barrel. To bind a tool,
@@ -83,6 +83,7 @@ does today when nobody has said otherwise:
 | `create_artifact`, `update_artifact` | `ask` | `ARTIFACT_APPROVALS` in `server/src/runs/turn.ts` |
 | `file_search`, `web_search` | `auto` | The plain chat gives them no approval entry |
 | `update_memory` | `auto` | `withMemory`; a user in `propose` mode is asked |
+| `load_skill` | `auto` | `skillTools` in `server/src/runs/skills.ts`; it only reads skills the turn was given |
 | MCP tools | `ask` | `chatMcpTools`; an agent's own approvals apply instead |
 | Client tools | `auto` | `buildToolSet`; the client decides for itself |
 
