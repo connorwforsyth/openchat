@@ -26,7 +26,14 @@ import {
   CommandShortcut,
 } from "@workspace/ui/components/command";
 import { Spinner } from "@workspace/ui/components/spinner";
-import { type ReactNode, useCallback, useMemo, useState } from "react";
+import {
+  type KeyboardEvent,
+  type ReactNode,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import type { ChatResult } from "./chats";
 import { buildContextActions, type PaletteContext } from "./context-actions";
@@ -67,6 +74,20 @@ export interface CommandPaletteProps {
 }
 
 const LIMIT = { actions: 8, library: 6, settings: 5 } as const;
+
+// cmdk's own keys for moving the selection (its `vimBindings` add ⌃N/⌃P/⌃J/⌃K).
+const NAVIGATION_KEYS = new Set(["ArrowDown", "ArrowUp", "End", "Home"]);
+const VIM_KEYS = new Set(["j", "k", "n", "p"]);
+const movesSelection = (event: KeyboardEvent): boolean =>
+  NAVIGATION_KEYS.has(event.key) || (event.ctrlKey && VIM_KEYS.has(event.key));
+
+interface Selection {
+  /** Set once the person moves the selection themselves (keys or pointer). */
+  readonly moved: boolean;
+  readonly value: string;
+}
+
+const UNMOVED: Selection = { moved: false, value: "" };
 
 const KindIcon = ({ kind }: { readonly kind: PaletteLibraryItem["kind"] }) => {
   switch (kind) {
@@ -234,9 +255,19 @@ export const CommandPalette = ({
   settings = [],
 }: CommandPaletteProps) => {
   const { i18n, t } = useLingui();
-  const [query, setQuery] = useState("");
+  const [query, setQueryState] = useState("");
   const trimmed = query.trim();
   const searching = trimmed.length > 0;
+  const [selection, setSelection] = useState<Selection>(UNMOVED);
+  // True while cmdk handles a key or pointer move of the person's: only then
+  // is its value change theirs. Its own picks (first item on mount or on a
+  // new search) are ignored: the selection rule below decides those.
+  const personMoving = useRef(false);
+
+  const setQuery = useCallback((next: string) => {
+    setQueryState(next);
+    setSelection(UNMOVED);
+  }, []);
 
   const setOpen = useCallback(
     (next: boolean) => {
@@ -245,11 +276,11 @@ export const CommandPalette = ({
       }
       onOpenChange(next);
     },
-    [onOpenChange]
+    [onOpenChange, setQuery]
   );
   useShortcut("palette.open", () => setOpen(!open));
 
-  const { chats, serverStatus } = usePaletteSearch({
+  const { chats, showSearching } = usePaletteSearch({
     cachedChats: open ? cachedChats : () => [],
     query: open ? query : "",
     searchChats,
@@ -295,6 +326,46 @@ export const CommandPalette = ({
 
   const close = useCallback(() => setOpen(false), [setOpen]);
 
+  // The selection rule (ticket 100): the first item is selected whenever the
+  // query changes or results arrive, until the person moves the selection;
+  // from then on it stays where they put it (while that item is listed).
+  // So Enter opens the top result even when a chat lands above "Ask AI".
+  const values = [
+    ...rankedActions
+      .filter((action) => !action.disabled)
+      .map((action) => action.id),
+    ...chats.map((chat) => `chat:${chat.id}`),
+    ...rankedLibrary.map(({ item }) => `library:${item.id}`),
+    ...rankedSettings.map((entry) => entry.id),
+    ...(searching ? ["ask-ai"] : []),
+  ];
+  const selected =
+    selection.moved && values.includes(selection.value)
+      ? selection.value
+      : (values[0] ?? "");
+
+  const markPersonMoving = useCallback(() => {
+    personMoving.current = true;
+    // cmdk changes the value synchronously inside this same event.
+    queueMicrotask(() => {
+      personMoving.current = false;
+    });
+  }, []);
+  const onKeyDownCapture = useCallback(
+    (event: KeyboardEvent) => {
+      if (movesSelection(event)) {
+        markPersonMoving();
+      }
+    },
+    [markPersonMoving]
+  );
+  const onValueChange = useCallback((value: string) => {
+    // biome-ignore lint/suspicious/noUnnecessaryConditions: set by the capture handlers above, in the same event, before cmdk calls this.
+    if (personMoving.current) {
+      setSelection({ moved: true, value });
+    }
+  }, []);
+
   return (
     <CommandDialog
       className="data-closed:animate-none data-open:animate-none"
@@ -303,12 +374,28 @@ export const CommandPalette = ({
       open={open}
       title={t`Command palette`}
     >
-      <Command loop shouldFilter={false}>
-        <CommandInput
-          onValueChange={setQuery}
-          placeholder={t`Search or type a command…`}
-          value={query}
-        />
+      <Command
+        loop
+        onKeyDownCapture={onKeyDownCapture}
+        onPointerMoveCapture={markPersonMoving}
+        onValueChange={onValueChange}
+        shouldFilter={false}
+        value={selected}
+      >
+        <div className="relative">
+          <CommandInput
+            onValueChange={setQuery}
+            placeholder={t`Search or type a command…`}
+            value={query}
+          />
+          {/* Quiet and late: a spinner in the input row once a search has
+              run ~300ms, never a row in the list (ticket 100). */}
+          {showSearching ? (
+            <div className="pointer-events-none absolute inset-y-0 end-3 flex items-center pt-1 text-muted-foreground">
+              <Spinner aria-label={t`Searching messages…`} />
+            </div>
+          ) : null}
+        </div>
         <CommandList>
           <CommandEmpty>
             <Trans>Nothing found.</Trans>
@@ -335,7 +422,7 @@ export const CommandPalette = ({
               ))}
             </CommandGroup>
           ) : null}
-          {chats.length > 0 || serverStatus === "searching" ? (
+          {chats.length > 0 ? (
             <CommandGroup heading={searching ? t`Chats` : t`Recent chats`}>
               {chats.map((chat) => (
                 <ChatItem
@@ -345,15 +432,6 @@ export const CommandPalette = ({
                   onSelectChat={onSelectChat}
                 />
               ))}
-              {serverStatus === "searching" ? (
-                <div
-                  aria-live="polite"
-                  className="flex items-center gap-2 px-2 py-1.5 text-muted-foreground text-xs"
-                >
-                  <Spinner />
-                  <Trans>Searching messages…</Trans>
-                </div>
-              ) : null}
             </CommandGroup>
           ) : null}
           {rankedLibrary.length > 0 ? (

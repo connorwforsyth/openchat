@@ -2,7 +2,7 @@ import type { ConversationId } from "@workspace/contract/schemas/common";
 import type { SearchHit } from "@workspace/contract/schemas/search";
 
 import type { CachedChat } from "./items";
-import { rankEntries } from "./rank";
+import { foldText, rankEntries, scoreEntry } from "./rank";
 
 // ⌘K chat search (D28): cached conversations answer on the first keystroke;
 // the server's full-text results (titles and message bodies) arrive later and
@@ -87,4 +87,47 @@ export const mergeChatResults = (
       })
     );
   return [...enriched, ...fromServer].slice(0, Math.max(limit, cached.length));
+};
+
+const WORD = /[\p{L}\p{N}]+/gu;
+const WHITESPACE = /\s+/u;
+
+/**
+ * Server hits from an earlier query, kept while the next search runs so the
+ * list doesn't empty on every keystroke (ticket 100). A hit stays only if
+ * every word typed still starts a word of its title or snippet (the last
+ * word as a prefix, like the server reads it; `-word` is skipped), and the
+ * survivors are re-ranked by how well they answer the new text.
+ */
+export const staleHitsFor = (
+  query: string,
+  hits: readonly SearchHit[]
+): readonly SearchHit[] => {
+  const terms = foldText(query)
+    .split(WHITESPACE)
+    .filter((term) => term.length > 0 && !term.startsWith("-"))
+    .flatMap((term) => term.match(WORD) ?? []);
+  if (terms.length === 0) {
+    return [];
+  }
+  return hits
+    .map((hit) => {
+      const text = `${hit.title ?? ""} ${hit.snippet}`;
+      const words = foldText(text).match(WORD) ?? [];
+      const matches = terms.every((term) =>
+        words.some((word) => word.startsWith(term))
+      );
+      return {
+        hit,
+        // Words can match across title and snippet, which `scoreEntry` (one
+        // field at a time) may score 0; such a hit still matches.
+        score: matches
+          ? 0.01 +
+            scoreEntry(query, { subtitle: hit.snippet, title: hit.title ?? "" })
+          : 0,
+      };
+    })
+    .filter(({ score }) => score > 0)
+    .sort((a, b) => b.score - a.score || b.hit.rank - a.hit.rank)
+    .map(({ hit, score }) => ({ ...hit, rank: score }));
 };
