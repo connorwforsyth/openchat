@@ -1,0 +1,37 @@
+{
+  "imports": {
+    "react": "allowed",
+    "react-dom": "allowed",
+    "react-dom/client": "import",
+    "react-dom/server": "import",
+    "react/jsx-runtime": "allowed",
+    "react/jsx-dev-runtime": "allowed",
+    "React": "import",
+    "react/": "import",
+    "lucide-react": "import",
+    "recharts": "import",
+    "lodash": "import",
+    "./Button": "import",
+    "https://esm.sh/react": "import",
+    "node:fs": "import",
+    "constructor": "import",
+    "__proto__": "import",
+    "hasOwnProperty": "import"
+  },
+  "modules": [
+    "react",
+    "react-dom",
+    "react/jsx-dev-runtime",
+    "react/jsx-runtime"
+  ],
+  "runtimeImports": [
+    "react",
+    "react-dom"
+  ],
+  "runtimeKinds": [
+    "html",
+    "mermaid",
+    "react",
+    "svg"
+  ]
+}
