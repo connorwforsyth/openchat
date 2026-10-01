@@ -36,7 +36,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { ClosePanelButton, usePanelFrame } from "../shell/right-panel";
+import { usePanelFrame } from "../shell/right-panel";
 import { ModeToggle, type ModeToggleProps } from "./mode-toggle";
 import {
   type BrowserAction,
@@ -62,7 +62,13 @@ import {
 } from "./model/static-page";
 import { fitBrowserToolbar, type ToolbarFit } from "./model/toolbar";
 import { useElementWidth } from "./use-element-width";
-import { BackToList, headerRow, useBackToList } from "./view-header";
+import {
+  BackToList,
+  headerRow,
+  RowEndActions,
+  useBackToList,
+  useRowEnd,
+} from "./view-header";
 
 // The Workspace panel's built-in browser (066): back, forward, reload, an
 // address bar, a mobile width and open in a new tab, over one page at a
@@ -104,9 +110,12 @@ export function BrowserView({
   const { t } = useLingui();
   const [mobile, setMobile] = useState(false);
   const [toolbar, width] = useElementWidth<HTMLDivElement>();
+  const rowEnd = useRowEnd();
+  const inPanel = usePanelFrame() !== null;
   const fit = fitBrowserToolbar({
     backToList: useBackToList() !== null,
-    close: usePanelFrame() !== null,
+    close: rowEnd.close && inPanel,
+    maximise: rowEnd.maximise !== null,
     toggle: modeToggle !== undefined,
     width,
   });
@@ -199,7 +208,7 @@ export function BrowserView({
             labels={fit.toggleLabels ? "shown" : "hidden"}
           />
         ) : null}
-        <ClosePanelButton />
+        <RowEndActions />
       </div>
       <div className={cn("flex min-h-0 flex-1", mobile && "bg-muted/30")}>
         <div

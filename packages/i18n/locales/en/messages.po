@@ -492,6 +492,7 @@ msgid "Branches"
 msgstr "Branches"
 
 #: ../chat-ui/src/workspace/preview.tsx
+#: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Browser"
 msgstr "Browser"
 
@@ -1670,6 +1671,13 @@ msgstr "Matches"
 #: ../composer/src/components/thinking-control.tsx
 msgid "Max"
 msgstr "Max"
+#: ../chat-ui/src/workspace/workspace-panel.tsx
+msgid "Maximise the browser"
+msgstr "Maximise the browser"
+
+#: ../chat-ui/src/workspace/workspace-panel.tsx
+msgid "Maximise the files"
+msgstr "Maximise the files"
 
 #: ../library-ui/src/components/kind.tsx
 msgid "MCP server"
@@ -2666,11 +2674,16 @@ msgstr "Resize side panel"
 msgid "Resize sidebar"
 msgstr "Resize sidebar"
 
+#: ../chat-ui/src/workspace/workspace-panel.tsx
+msgid "Resize the browser"
+msgstr "Resize the browser"
+
 #: ../ui/src/components/ai-elements/tool.tsx
 msgid "Responded"
 msgstr "Responded"
 
 #: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
+#: ../chat-ui/src/workspace/view-header.tsx
 msgid "Restore"
 msgstr "Restore"
 

@@ -139,16 +139,15 @@ test("file search: '/' to search, ↓ to preview, Enter into the editor, Preview
   await expect(searchIn(panel)).toHaveValue("");
   await expect(panel.getByRole("tree")).toBeVisible();
 
-  // An HTML file opens rendered, with Preview/Code in its one header row.
+  // An HTML file opens in the browser on top and its code below (097), so
+  // there's no Preview/Code switch.
   await searchIn(panel).fill("index");
   await page.keyboard.press("Enter");
-  const showAs = panel.getByRole("group", { name: "Show as" });
   await expect(
     panel.frameLocator("iframe").getByRole("heading", { name: "Site" })
   ).toBeVisible();
-  await showAs.getByRole("button", { name: "Code" }).click();
   await expect(editorIn(page)).toContainText("Site");
-  await showAs.getByRole("button", { name: "Preview" }).click();
+  await expect(panel.getByRole("group", { name: "Show as" })).toHaveCount(0);
   await expect(panel.getByRole("textbox", { name: "Address" })).toHaveValue(
     "/index.html"
   );

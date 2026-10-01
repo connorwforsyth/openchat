@@ -24,6 +24,7 @@ import type {
   WorkspaceWriteError,
 } from "./model/client";
 import { SAVE_IDLE_MS, SLOW_SAVE_MS } from "./model/editor";
+import { SPLIT_STORAGE_KEY } from "./model/split";
 import { WorkspacePanel, type WorkspacePanelProps } from "./workspace-panel";
 
 // The Workspace panel (060) over a fake `WorkspaceClient`: the list and
@@ -226,7 +227,7 @@ beforeAll(async () => {
 afterEach(cleanup);
 
 describe("the list and the main area", () => {
-  it("lists the preview, the files and the artifacts, and selects them", async () => {
+  it("lists the files and the artifacts under the browser, and selects them", async () => {
     const { client } = fakeClient({
       "/work/notes.txt": { content: "# Notes\n", etag: V1 },
     });
@@ -244,8 +245,9 @@ describe("the list and the main area", () => {
       />
     );
     const workspace = panel();
-    await userEvent.click(workspace.getByRole("button", { name: "Preview" }));
-    expect(onSelect).toHaveBeenLastCalledWith({ kind: "preview" });
+    // The browser is its own half, on top (097): the list has no Preview.
+    expect(workspace.getByRole("region", { name: "Browser" })).toBeTruthy();
+    expect(workspace.queryByRole("button", { name: "Preview" })).toBeNull();
     const [first] = chatArtifacts;
     if (!first) {
       throw new Error("fixture artifacts");
@@ -835,9 +837,9 @@ describe("the built-in browser (066)", () => {
       selection: { kind: "preview" },
     });
     const view = renderWithI18n(<WorkspacePanel {...base} />);
-    // The list offers the Preview as soon as there's a page.
+    // The browser shows as soon as there's a page.
     expect(
-      await panel().findByRole("button", { name: "Preview" })
+      await panel().findByRole("region", { name: "Browser" })
     ).toBeTruthy();
     const frame = await panel().findByTitle<HTMLIFrameElement>(
       "Static render of index.html"
@@ -908,7 +910,7 @@ describe("rendered files (066)", () => {
       { name: mode }
     );
 
-  it("opens an .html file in the browser at its path, with a Code toggle", async () => {
+  it("opens an .html file in the browser at its path, and its code below (097)", async () => {
     const { client } = fakeClient({
       "/work/site/page.html": { content: "<h1>Page</h1>", etag: V1 },
     });
@@ -926,13 +928,10 @@ describe("rendered files (066)", () => {
       panel().getByRole<HTMLInputElement>("textbox", { name: "Address" }).value
     ).toBe("/site/page.html");
 
-    await userEvent.click(showAs("Code"));
+    // Both at once, so no Preview/Code switch.
     expect(await editable()).toBeTruthy();
-    expect(panel().queryByTitle("Static render of site/page.html")).toBeNull();
-    await userEvent.click(showAs("Preview"));
-    expect(
-      await panel().findByTitle("Static render of site/page.html")
-    ).toBeTruthy();
+    expect(panel().getByTitle("Static render of site/page.html")).toBeTruthy();
+    expect(panel().queryByRole("group", { name: "Show as" })).toBeNull();
   });
 
   it("renders Markdown as prose, with a Code toggle to the editor", async () => {
@@ -1166,5 +1165,227 @@ describe("a narrow panel (070)", () => {
       await screen.findByRole("menuitem", { name: "Reload" })
     ).toBeTruthy();
     expect(screen.getByRole("menuitem", { name: "Forward" })).toBeTruthy();
+  });
+});
+
+describe("the browser over the files (097)", () => {
+  const served: SandboxRecord = {
+    ...ready,
+    previews: [{ port: 5173, url: "https://preview.example.test/" }],
+  };
+  const files = {
+    "/work/index.html": { content: "<h1>Home</h1>", etag: V1 },
+    "/work/notes.txt": { content: "notes\n", etag: V1 },
+  };
+  const browser = () => panel().queryByRole("region", { name: "Browser" });
+  const nav = () =>
+    panel().queryByRole("navigation", { name: "Workspace contents" });
+  const divider = () =>
+    panel().getByRole("separator", { name: "Resize the browser" });
+  /** Visible, as `hidden` leaves it in the DOM but off screen. */
+  const shown = (element: HTMLElement | null) =>
+    element !== null && element.closest("[hidden]") === null;
+
+  afterEach(() => window.localStorage.removeItem(SPLIT_STORAGE_KEY));
+
+  it("shows only the files while there's nothing to preview", async () => {
+    const { client } = fakeClient({
+      "/work/notes.txt": { content: "notes\n", etag: V1 },
+    });
+    renderWithI18n(
+      <RightPanel onClose={vi.fn()}>
+        <Selecting {...props({ files: chatFiles(client) })} />
+      </RightPanel>
+    );
+    await treeItem("notes.txt");
+    expect(browser()).toBeNull();
+    expect(panel().queryByRole("separator")).toBeNull();
+    expect(
+      panel().queryByRole("button", { name: "Maximise the files" })
+    ).toBeNull();
+    expect(
+      panel().getAllByRole("button", { name: "Close panel" })
+    ).toHaveLength(1);
+  });
+
+  it("stacks the browser over the files, with one Close, at the top", async () => {
+    const { client } = fakeClient(files);
+    renderWithI18n(
+      <div style={{ height: 800, width: 900 }}>
+        <RightPanel onClose={vi.fn()}>
+          <Selecting
+            {...props({
+              files: chatFiles(client, served),
+              probePreview: () => Promise.resolve(true),
+            })}
+            initial={{ kind: "file", path: "notes.txt" }}
+          />
+        </RightPanel>
+      </div>
+    );
+    expect(await editable()).toBeTruthy();
+    const top = browser();
+    expect(shown(top)).toBe(true);
+    const toolbar = panel().getByRole("toolbar", { name: "Browser" });
+    // Above the list and the open file.
+    const below = document.querySelector('[data-slot="workspace-files"]');
+    expect(
+      toolbar.getBoundingClientRect().bottom <=
+        (below?.getBoundingClientRect().top ?? 0)
+    ).toBe(true);
+    const closes = panel().getAllByRole("button", { name: "Close panel" });
+    expect(closes).toHaveLength(1);
+    expect(toolbar.contains(closes[0] ?? null)).toBe(true);
+    expect(divider().getAttribute("aria-valuenow")).toBe("50");
+  });
+
+  it("moves the divider by key, saves it, and double-click puts it back", async () => {
+    const { client } = fakeClient(files);
+    const view = renderWithI18n(
+      <div style={{ height: 800, width: 900 }}>
+        <Selecting {...props({ files: chatFiles(client) })} />
+      </div>
+    );
+    await treeItem("notes.txt");
+    const handle = divider();
+    const top = () => browser()?.getBoundingClientRect().height ?? 0;
+    const before = top();
+    handle.focus();
+    await userEvent.keyboard("{ArrowDown}{ArrowDown}");
+    await waitFor(() => expect(top()).toBeGreaterThan(before + 20));
+    const saved = Number(window.localStorage.getItem(SPLIT_STORAGE_KEY));
+    expect(saved).toBeGreaterThan(0.5);
+    expect(Number(handle.getAttribute("aria-valuenow"))).toBeGreaterThan(50);
+
+    // A panel opened later starts where it was left.
+    view.unmount();
+    renderWithI18n(
+      <div style={{ height: 800, width: 900 }}>
+        <Selecting {...props({ files: chatFiles(client) })} />
+      </div>
+    );
+    await treeItem("notes.txt");
+    expect(divider().getAttribute("aria-valuenow")).toBe(
+      String(Math.round(saved * 100))
+    );
+
+    // The DOM way: Playwright's hit test doesn't reach the 8px strip here.
+    act(() => {
+      divider().dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
+    });
+    await waitFor(() =>
+      expect(divider().getAttribute("aria-valuenow")).toBe("50")
+    );
+    expect(window.localStorage.getItem(SPLIT_STORAGE_KEY)).toBe("0.5");
+  });
+
+  it("maximises either half, and a pick brings back the half it shows in", async () => {
+    const { client } = fakeClient(files);
+    renderWithI18n(
+      <div style={{ height: 800, width: 900 }}>
+        <Selecting {...props({ files: chatFiles(client) })} />
+      </div>
+    );
+    const row = await treeItem("notes.txt");
+    const maxBrowser = panel().getByRole("button", {
+      name: "Maximise the browser",
+    });
+    await userEvent.click(maxBrowser);
+    expect(maxBrowser.getAttribute("aria-pressed")).toBe("true");
+    expect(shown(nav())).toBe(false);
+    expect(panel().queryByRole("separator")).toBeNull();
+    await userEvent.click(maxBrowser);
+    expect(shown(nav())).toBe(true);
+
+    await userEvent.click(
+      panel().getByRole("button", { name: "Maximise the files" })
+    );
+    expect(shown(browser())).toBe(false);
+    // The way to the browser while it's out of view.
+    expect(panel().getByRole("button", { name: "Preview" })).toBeTruthy();
+    await userEvent.click(
+      panel().getByRole("button", { name: "Maximise the files" })
+    );
+    expect(shown(browser())).toBe(true);
+
+    // Maximised, the browser gives way to a file someone opens.
+    await userEvent.click(maxBrowser);
+    expect(shown(nav())).toBe(false);
+    await press(row());
+    await waitFor(() => expect(shown(nav())).toBe(true));
+    expect(await editable()).toBeTruthy();
+  });
+
+  it("keeps the open file below when the chat shows the Preview", async () => {
+    const { client } = fakeClient(files);
+    const base = props({ files: chatFiles(client) });
+    const view = renderWithI18n(
+      <WorkspacePanel
+        {...base}
+        selection={{ kind: "file", path: "notes.txt" }}
+      />
+    );
+    expect(await editable()).toBeTruthy();
+    view.rerender(<WorkspacePanel {...base} selection={{ kind: "preview" }} />);
+    expect(await editable()).toBeTruthy();
+    expect(
+      document
+        .querySelector('[data-slot="workspace-header"] span[title]')
+        ?.getAttribute("title")
+    ).toBe("notes.txt");
+  });
+
+  it("takes turns on a narrow panel: the browser, the list, then the browser again", async () => {
+    const { client } = fakeClient(files);
+    renderWithI18n(
+      <div style={{ height: 700, width: 360 }}>
+        <RightPanel onClose={vi.fn()}>
+          <Selecting
+            {...props({ files: chatFiles(client) })}
+            initial={{ kind: "preview" }}
+          />
+        </RightPanel>
+      </div>
+    );
+    await panel().findByTitle("Static render of index.html");
+    await waitFor(() => expect(shown(nav())).toBe(false));
+    expect(shown(browser())).toBe(true);
+    expect(panel().queryByRole("separator")).toBeNull();
+    expect(
+      panel().queryByRole("button", { name: "Maximise the browser" })
+    ).toBeNull();
+
+    await userEvent.click(
+      panel().getByRole("button", { name: "Back to the list" })
+    );
+    expect(shown(nav())).toBe(true);
+    expect(shown(browser())).toBe(false);
+    await userEvent.click(panel().getByRole("button", { name: "Preview" }));
+    expect(shown(browser())).toBe(true);
+    expect(shown(nav())).toBe(false);
+  });
+
+  it("switches an HTML file between its page and its code when taking turns", async () => {
+    const { client } = fakeClient(files);
+    renderWithI18n(
+      <div style={{ height: 700, width: 360 }}>
+        <Selecting
+          {...props({ files: chatFiles(client) })}
+          initial={{ kind: "file", path: "index.html" }}
+        />
+      </div>
+    );
+    await panel().findByTitle("Static render of index.html");
+    const showAs = (mode: "Preview" | "Code") =>
+      within(panel().getByRole("group", { name: "Show as" })).getByRole(
+        "button",
+        { name: mode }
+      );
+    await userEvent.click(showAs("Code"));
+    const editor = await editable();
+    await waitFor(() => expect(shown(editor)).toBe(true));
+    expect(shown(browser())).toBe(false);
+    await userEvent.click(showAs("Preview"));
+    await waitFor(() => expect(shown(browser())).toBe(true));
   });
 });

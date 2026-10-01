@@ -63,17 +63,18 @@ import {
   ArtifactView,
 } from "../artifacts/artifact-view";
 import type { WorkspaceSelection } from "../model/workspace";
-import { ClosePanelButton, usePanelFrame } from "../shell/right-panel";
+import { usePanelFrame } from "../shell/right-panel";
 import { isTypingEvent } from "../shortcuts/registry";
 import { FileView } from "./file-view";
+import { ModeToggle } from "./mode-toggle";
 import {
   type BrowserAction,
-  type BrowserHistory,
   type FileMode,
   isHtmlPath,
   openingMode,
   type PreviewRequest,
   type PreviewSources,
+  pagePathOf,
   renderedKind,
 } from "./model/browser";
 import type { WorkspaceFilesSource } from "./model/client";
@@ -87,17 +88,35 @@ import {
   stepMatch,
   type TextRun,
 } from "./model/file-search";
+import {
+  type Maximised,
+  maximisedAfter,
+  type PaneLayout,
+  paneLayout,
+  SPLIT_DEFAULT,
+  type TurnView,
+  viewOf,
+} from "./model/split";
 import { NewFileDialog } from "./new-file-dialog";
 import { BrowserView } from "./preview";
 import { RenderedFile } from "./rendered-file";
-import { useElementWidth } from "./use-element-width";
+import { SplitHandle } from "./split-handle";
+import { useElementHeight, useElementWidth } from "./use-element-width";
 import { usePreviewHistory } from "./use-preview-history";
+import { useSplit } from "./use-split";
 import {
   type FilesView,
   staticFiles,
   useWorkspaceFiles,
 } from "./use-workspace-files";
-import { BackToListProvider, headerRow, ViewHeader } from "./view-header";
+import {
+  BackToListProvider,
+  headerRow,
+  type RowEnd,
+  RowEndActions,
+  RowEndProvider,
+  ViewHeader,
+} from "./view-header";
 
 // The chat's Workspace panel (060, D7): one list beside one main area. The
 // list has the Preview (a built-in browser, 066, whenever there's a server
@@ -112,9 +131,15 @@ import { BackToListProvider, headerRow, ViewHeader } from "./view-header";
 // is the view's title and actions, then Close), and nothing inside is a card.
 // "/" searches the files by name; the results replace the tree. On a narrow
 // panel the list and the main area take turns, with a way back to the list.
-
-/** Below this width (the old `@lg`, 32rem) the list and the main area take turns. */
-const NARROW_BELOW = 512;
+//
+// 097 split it, as Connor asked: the browser on top, the files (the list and
+// the open file) below, with a divider between them that remembers where it
+// was left (`model/split.ts` has the rules). The browser isn't there until
+// there's something to show, and opens by itself when there is. Either half
+// can be maximised. An HTML file shows in the browser and its code below.
+// On a panel too narrow to stack them, the halves take turns, as the list
+// and the file do: the list's Preview leads to the browser, and the browser
+// leads back to the list.
 
 /** Results shown at once; more would only be scrolled past. */
 const MAX_MATCHES = 200;
@@ -149,19 +174,51 @@ export interface WorkspacePanelProps {
 
 export function WorkspacePanel(props: WorkspacePanelProps) {
   const { files } = props;
+  const filesSelection = useFilesSelection(props.selection);
   return files.kind === "chat" ? (
-    <ChatWorkspacePanel {...props} files={files} />
+    <ChatWorkspacePanel
+      {...props}
+      files={files}
+      filesSelection={filesSelection}
+    />
   ) : (
-    <WorkspaceLayout {...props} view={staticFiles(files.kind)} />
+    <WorkspaceLayout
+      {...props}
+      filesSelection={filesSelection}
+      view={staticFiles(files.kind)}
+    />
   );
 }
 
+/**
+ * What the files half shows. The Preview is in the other half now, so
+ * picking it (or the chat opening it) leaves the open file where it was.
+ */
+function useFilesSelection(
+  selection: WorkspaceSelection | null
+): WorkspaceSelection | null {
+  const own = selection?.kind === "preview" ? null : selection;
+  const [held, setHeld] = useState(own);
+  if (
+    selection?.kind !== "preview" &&
+    selectionKey(held) !== selectionKey(own)
+  ) {
+    setHeld(own);
+  }
+  return selection?.kind === "preview" ? held : own;
+}
+
+interface LayoutProps extends WorkspacePanelProps {
+  /** The files half's selection: `selection`, or what it was before the Preview. */
+  readonly filesSelection: WorkspaceSelection | null;
+}
+
 function ChatWorkspacePanel(
-  props: WorkspacePanelProps & {
+  props: LayoutProps & {
     readonly files: Extract<WorkspaceFilesSource, { kind: "chat" }>;
   }
 ) {
-  const { files, onSelect, revision, selection } = props;
+  const { files, filesSelection, onSelect, revision } = props;
   const onSelectFile = useCallback(
     (path: string | null) => onSelect(path ? { kind: "file", path } : null),
     [onSelect]
@@ -170,7 +227,7 @@ function ChatWorkspacePanel(
     files,
     onSelectFile,
     revision,
-    selectedPath: selection?.kind === "file" ? selection.path : null,
+    selectedPath: selectionPath(filesSelection),
   });
   return <WorkspaceLayout {...props} view={view} />;
 }
@@ -196,36 +253,53 @@ const selectionKey = (selection: WorkspaceSelection | null): string | null => {
 
 interface Turn {
   readonly key: string | null;
+  readonly maximised: Maximised;
   readonly previewing: string | null;
-  readonly view: "list" | "main";
+  /** The chat's last request for a page (`previewRequest.id`). */
+  readonly request: number | null;
+  readonly view: TurnView;
 }
 
 /**
- * Which half a narrow panel shows. A new selection shows the main area,
- * except one the file search is only previewing (↓/↑), which keeps the list
- * in view; Back to the list shows the list.
+ * Which half (and, narrow, which column) shows, and which half is
+ * maximised. A new selection shows what it asks for (`viewOf`), except one
+ * the file search is only previewing (↓/↑), which keeps the list in view;
+ * Back to the list shows the list. A page the chat asks for shows the
+ * browser. A pick also restores a maximised half that would hide it.
  */
-function useTurns(selection: WorkspaceSelection | null) {
+function usePanes(
+  selection: WorkspaceSelection | null,
+  request: number | null,
+  asked: TurnView
+) {
   const key = selectionKey(selection);
   const [turn, setTurn] = useState<Turn>(() => ({
     key,
+    maximised: null,
     previewing: null,
-    view: key === null ? "list" : "main",
+    request,
+    view: asked,
   }));
-  if (turn.key !== key) {
+  if (turn.key !== key || turn.request !== request) {
+    const requested = turn.request !== request && request !== null;
     setTurn({
       key,
+      maximised: maximisedAfter(
+        turn.maximised,
+        requested ? { kind: "preview" } : selection
+      ),
       previewing: turn.previewing,
-      view: nextView(key, turn),
+      request,
+      view: nextView(key, asked, requested, turn),
     });
   }
   const showList = useCallback(
     () => setTurn((current) => ({ ...current, view: "list" })),
     []
   );
-  const showMain = useCallback(
-    () =>
-      setTurn((current) => ({ ...current, previewing: null, view: "main" })),
+  const show = useCallback(
+    (next: TurnView) =>
+      setTurn((current) => ({ ...current, previewing: null, view: next })),
     []
   );
   const previewing = useCallback(
@@ -233,18 +307,34 @@ function useTurns(selection: WorkspaceSelection | null) {
       setTurn((current) => ({ ...current, previewing: `file:${path}` })),
     []
   );
-  const { view } = turn;
+  const maximise = useCallback(
+    (half: "browser" | "files") =>
+      setTurn((current) => ({
+        ...current,
+        maximised: current.maximised === half ? null : half,
+      })),
+    []
+  );
+  const { maximised, view } = turn;
   return useMemo(
-    () => ({ previewing, showList, showMain, view }),
-    [previewing, showList, showMain, view]
+    () => ({ maximise, maximised, previewing, show, showList, view }),
+    [maximise, maximised, previewing, show, showList, view]
   );
 }
 
-const nextView = (key: string | null, turn: Turn): Turn["view"] => {
+const nextView = (
+  key: string | null,
+  asked: TurnView,
+  requested: boolean,
+  turn: Turn
+): TurnView => {
+  if (requested) {
+    return "browser";
+  }
   if (key === null) {
     return "list";
   }
-  return key === turn.previewing ? turn.view : "main";
+  return key === turn.previewing ? turn.view : asked;
 };
 
 /**
@@ -383,62 +473,15 @@ type FocusRequest =
   /** Enter in the search: the editor (or a rendered file's view) once it's open. */
   | { readonly kind: "view"; readonly path: string };
 
-function WorkspaceLayout({
-  artifacts,
-  className,
-  onSelect,
-  previewRequest,
-  probePreview,
-  revision,
-  selection,
-  view,
-}: WorkspacePanelProps & { readonly view: FilesView }) {
-  const { t } = useLingui();
-  const [newFileOpen, setNewFileOpen] = useState(false);
-  const { actions, status } = view;
-  const writable = actions !== null && status.kind === "ready";
-
-  const { paths, previews, provider } = view;
-  const sources = useMemo(
-    (): PreviewSources => ({
-      htmlPaths: (paths ?? []).filter(
-        (path) => !path.endsWith("/") && isHtmlPath(path)
-      ),
-      previews,
-      provider,
-    }),
-    [paths, previews, provider]
-  );
-  const preview = usePreviewHistory(sources, previewRequest);
-
-  // Rendered or Code, per file, for as long as the panel is open. A file
-  // that opens empty (a new one) opens as code: there's nothing to render.
-  const [modes, setModes] = useState<Readonly<Record<string, FileMode>>>({});
-  const { open } = view;
-  if (
-    open?.kind === "text" &&
-    open.opened === "" &&
-    modes[open.path] === undefined &&
-    renderedKind(open.path) !== null
-  ) {
-    setModes({ ...modes, [open.path]: "code" });
-  }
-  const setMode = useCallback(
-    (path: string, mode: FileMode) =>
-      setModes((current) => ({ ...current, [path]: mode })),
-    []
-  );
-
-  // A narrow panel shows the list or the main area, not both.
-  const [measure, width] = useElementWidth<HTMLElement>();
-  const narrow = width > 0 && width < NARROW_BELOW;
-  const turn = useTurns(selection);
-
+/**
+ * Where focus goes next, once what it goes to is on screen; and opening the
+ * panel moves focus from its frame into the tree once there is one.
+ */
+function usePanelFocus(listed: boolean) {
   // Where focus goes next, once what it goes to is on screen.
   const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null);
   const searchInput = useRef<HTMLInputElement>(null);
   const tree = useRef<FileTreeHandle>(null);
-  const main = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (focusRequest?.kind === "search") {
       searchInput.current?.focus();
@@ -453,7 +496,6 @@ function WorkspaceLayout({
   // Opening the panel put focus on its frame (`RightPanel`); move it on to
   // the tree, once there is one, unless it went somewhere else meanwhile.
   const panel = usePanelFrame();
-  const listed = paths !== null;
   useEffect(() => {
     const frame = panel?.frame.current;
     if (!(frame && listed) || frame.ownerDocument.activeElement !== frame) {
@@ -466,147 +508,180 @@ function WorkspaceLayout({
     );
   }, [listed, panel]);
 
-  // Picking something clears a pending Enter's focus request.
-  const select = useCallback(
-    (next: WorkspaceSelection | null) => {
-      setFocusRequest(null);
-      onSelect(next);
-    },
-    [onSelect]
-  );
-  const { showMain } = turn;
-  const activate = useCallback(
-    (next: WorkspaceSelection) => {
-      select(next);
-      showMain();
-    },
-    [select, showMain]
-  );
+  return { focusRequest, searchInput, setFocusRequest, tree };
+}
 
-  // The file search: ↓/↑ show a result without leaving the search (or the
-  // list, when narrow); Enter (or a click) opens it and moves focus into it;
-  // Escape clears it and goes back to the tree.
-  const { previewing } = turn;
-  const search = useFileSearch({
-    onClear: useCallback(() => setFocusRequest({ kind: "tree" }), []),
-    onOpen: useCallback(
-      (match: FileMatch) => {
-        activate({ kind: "file", path: match.path });
-        setFocusRequest({ kind: "view", path: match.path });
-      },
-      [activate]
-    ),
-    onPreview: useCallback(
-      (match: FileMatch) => {
-        setFocusRequest(null);
-        previewing(match.path);
-        onSelect({ kind: "file", path: match.path });
-      },
-      [onSelect, previewing]
-    ),
-    paths,
-  });
+/**
+ * Rendered or Code, per file, for as long as the panel is open. A file that
+ * opens empty (a new one) opens as code: there's nothing to render.
+ */
+function useModes(open: FilesView["open"]) {
+  const [modes, setModes] = useState<Readonly<Record<string, FileMode>>>({});
+  if (
+    open?.kind === "text" &&
+    open.opened === "" &&
+    modes[open.path] === undefined &&
+    renderedKind(open.path) !== null
+  ) {
+    setModes({ ...modes, [open.path]: "code" });
+  }
+  const setMode = useCallback(
+    (path: string, mode: FileMode) =>
+      setModes((current) => ({ ...current, [path]: mode })),
+    []
+  );
+  return { modes, setMode };
+}
 
-  // "/" anywhere in the panel (not while typing) goes to the search.
-  const onKeyDown = useCallback(
-    (event: KeyboardEvent<HTMLElement>) => {
-      if (
-        event.key !== "/" ||
-        event.defaultPrevented ||
-        event.metaKey ||
-        event.ctrlKey ||
-        event.altKey ||
-        isTypingEvent(event.nativeEvent)
-      ) {
+/**
+ * An HTML file opens in the browser, at its own path, and its code below:
+ * the browser goes there when the file is picked, and reads it again when
+ * a save changes its version.
+ */
+function useHtmlPage(
+  filesSelection: WorkspaceSelection | null,
+  navigate: (action: BrowserAction) => void,
+  open: FilesView["open"]
+) {
+  const htmlPath =
+    filesSelection?.kind === "file" && isHtmlPath(filesSelection.path)
+      ? filesSelection.path
+      : null;
+  const showFile = useCallback(
+    (path: string) =>
+      navigate({
+        page: { path: pagePathOf(path), port: null },
+        type: "navigate",
+      }),
+    [navigate]
+  );
+  // Once per pick: going elsewhere in the browser afterwards is the person's.
+  const shownFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (htmlPath !== shownFor.current) {
+      shownFor.current = htmlPath;
+      if (htmlPath) {
+        showFile(htmlPath);
+      }
+    }
+  }, [htmlPath, showFile]);
+  const htmlVersion =
+    open?.kind === "text" && open.path === htmlPath ? open.etag : "";
+  return { htmlPath, htmlVersion, showFile };
+}
+
+/**
+ * Taking turns, an HTML file's page and its code are a Preview/Code switch
+ * apart, as before the split; `null` when there's no such switch.
+ */
+function usePageMode({
+  htmlPath,
+  save,
+  setMode,
+  show,
+  showFile,
+}: {
+  /** The open HTML file, when the halves take turns. */
+  readonly htmlPath: string | null;
+  readonly save: (() => void) | undefined;
+  readonly setMode: (path: string, mode: FileMode) => void;
+  readonly show: (view: TurnView) => void;
+  readonly showFile: (path: string) => void;
+}): ((mode: FileMode) => void) | null {
+  const change = useCallback(
+    (mode: FileMode) => {
+      if (!htmlPath) {
         return;
       }
-      event.preventDefault();
-      turn.showList();
-      setFocusRequest({ kind: "search" });
+      setMode(htmlPath, mode);
+      if (mode === "rendered") {
+        // Edits not saved yet would be missing from the page.
+        save?.();
+        showFile(htmlPath);
+      }
+      show(mode === "rendered" ? "browser" : "main");
     },
-    [turn]
+    [htmlPath, save, setMode, show, showFile]
   );
+  return htmlPath ? change : null;
+}
 
-  const openNewFile = useCallback(() => setNewFileOpen(true), []);
-  const drop = useFileDrop(writable, actions?.importFiles);
+/** Each half's header row ends with its Maximise; only the top one with Close. */
+function useRowEnds(
+  layout: PaneLayout,
+  maximise: (half: "browser" | "files") => void,
+  maximised: Maximised
+): { readonly browser: RowEnd; readonly files: RowEnd } {
+  const { t } = useLingui();
+  const { browser: browserShown, maximisable } = layout;
+  return useMemo(
+    () => ({
+      browser: {
+        close: true,
+        maximise: maximisable
+          ? {
+              label: t`Maximise the browser`,
+              onToggle: () => maximise("browser"),
+              pressed: maximised === "browser",
+            }
+          : null,
+      },
+      files: {
+        close: !browserShown,
+        maximise: maximisable
+          ? {
+              label: t`Maximise the files`,
+              onToggle: () => maximise("files"),
+              pressed: maximised === "files",
+            }
+          : null,
+      },
+    }),
+    [browserShown, maximisable, maximise, maximised, t]
+  );
+}
 
-  const showsList = !narrow || turn.view === "list";
-  const showsMain = !narrow || turn.view === "main";
-  const focusView =
-    focusRequest?.kind === "view" &&
-    focusRequest.path === selectionPath(selection)
-      ? focusRequest.path
-      : null;
-  const viewFocused = useCallback(() => setFocusRequest(null), []);
-
+/** The browser half: its share of the height, or all of it, or hidden. */
+function BrowserPane({
+  backToList,
+  children,
+  flex,
+  hidden,
+  id,
+  rowEnd,
+}: {
+  readonly backToList: (() => void) | null;
+  readonly children: ReactNode;
+  readonly flex: string;
+  readonly hidden: boolean;
+  readonly id: string;
+  readonly rowEnd: RowEnd;
+}) {
+  const { t } = useLingui();
   return (
-    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: a drop target for files ("Upload files…" in the menu does the same from the keyboard), and "/" to search from anywhere in it.
-    <section
-      aria-label={t`Workspace`}
-      className={cn(
-        "relative flex h-full min-h-0 flex-col bg-background",
-        className
-      )}
-      data-dragging={drop.dragging || undefined}
-      data-narrow={narrow || undefined}
-      onDragLeave={drop.onDragLeave}
-      onDragOver={drop.onDragOver}
-      onDrop={drop.onDrop}
-      onKeyDown={onKeyDown}
-      ref={measure}
-    >
-      <div className="flex min-h-0 flex-1">
-        <WorkspaceList
-          active={search.active}
-          artifacts={artifacts.artifacts}
-          className={narrow ? "flex-1" : "w-48 shrink-0 border-e"}
-          hasPreview={preview.history !== null}
-          hidden={!showsList}
-          matches={search.matches}
-          narrow={narrow}
-          onActivate={activate}
-          onNewFile={openNewFile}
-          onOpenMatch={search.open}
-          onQueryChange={search.onChange}
-          onSearchKeyDown={search.onKeyDown}
-          onShowMain={showMain}
-          query={search.query}
-          searchInput={searchInput}
-          searching={search.searching}
-          selection={selection}
-          tree={tree}
-          view={view}
-          writable={writable}
-        />
-        <BackToListProvider value={narrow ? turn.showList : null}>
-          {/* Hidden, not unmounted, on its turn off: the editor keeps its state. */}
-          <div
-            className="@container/view flex min-h-0 min-w-0 flex-1 flex-col outline-none"
-            hidden={!showsMain}
-            ref={main}
-            tabIndex={-1}
-          >
-            <MainArea
-              artifacts={artifacts}
-              focusView={focusView}
-              main={main}
-              modes={modes}
-              onModeChange={setMode}
-              onNavigate={preview.navigate}
-              onNewFile={openNewFile}
-              onSelect={select}
-              onViewFocused={viewFocused}
-              previewHistory={preview.history}
-              probePreview={probePreview}
-              revision={revision}
-              selection={selection}
-              sources={sources}
-              view={view}
-              writable={writable}
-            />
-          </div>
-        </BackToListProvider>
-      </div>
+    <RowEndProvider value={rowEnd}>
+      <BackToListProvider value={backToList}>
+        {/* Hidden, not unmounted, while the files have the height: the page stays loaded. */}
+        <section
+          aria-label={t`Browser`}
+          className="@container/view flex min-h-30 min-w-0 flex-col"
+          data-slot="workspace-browser"
+          hidden={hidden}
+          id={id}
+          style={{ flex }}
+        >
+          {children}
+        </section>
+      </BackToListProvider>
+    </RowEndProvider>
+  );
+}
+
+/** Failures speak, at the foot of the panel so the header rows stay aligned. */
+function PanelStatus({ view }: { readonly view: FilesView }) {
+  const { actions, status } = view;
+  return (
+    <>
       {status.kind === "failed" && actions ? (
         <Alert
           className="rounded-none border-x-0 border-b-0"
@@ -639,6 +714,283 @@ function WorkspaceLayout({
           {view.notice}
         </p>
       ) : null}
+    </>
+  );
+}
+
+/** What the browser can show: the workspace's pages and the agent's servers. */
+function usePreviewSources(view: FilesView): PreviewSources {
+  const { paths, previews, provider } = view;
+  return useMemo(
+    () => ({
+      htmlPaths: (paths ?? []).filter(
+        (path) => !path.endsWith("/") && isHtmlPath(path)
+      ),
+      previews,
+      provider,
+    }),
+    [paths, previews, provider]
+  );
+}
+
+function WorkspaceLayout({
+  artifacts,
+  className,
+  filesSelection,
+  onSelect,
+  previewRequest,
+  probePreview,
+  revision,
+  selection,
+  view,
+}: LayoutProps & { readonly view: FilesView }) {
+  const { t } = useLingui();
+  const [newFileOpen, setNewFileOpen] = useState(false);
+  const { actions, status } = view;
+  const writable = actions !== null && status.kind === "ready";
+
+  const { paths } = view;
+  const sources = usePreviewSources(view);
+  const preview = usePreviewHistory(sources, previewRequest);
+
+  const { open } = view;
+  const { modes, setMode } = useModes(open);
+
+  // The halves, and on a narrow panel whose turn it is.
+  const [measure, width] = useElementWidth<HTMLElement>();
+  const [measureHeight, height] = useElementHeight<HTMLDivElement>();
+  const panes = usePanes(
+    selection,
+    previewRequest?.id ?? null,
+    viewOf(selection, modes)
+  );
+  const hasPreview = preview.history !== null;
+  const layout = paneLayout({
+    filesSelected: filesSelection !== null,
+    hasPreview,
+    maximised: panes.maximised,
+    view: panes.view,
+    width,
+  });
+  const { listAlone } = layout;
+  const split = useSplit();
+  const browserId = useId();
+
+  const { navigate } = preview;
+  const { htmlPath, htmlVersion, showFile } = useHtmlPage(
+    filesSelection,
+    navigate,
+    open
+  );
+
+  const { focusRequest, searchInput, setFocusRequest, tree } = usePanelFocus(
+    paths !== null
+  );
+  const main = useRef<HTMLDivElement>(null);
+
+  // Picking something clears a pending Enter's focus request.
+  const select = useCallback(
+    (next: WorkspaceSelection | null) => {
+      setFocusRequest(null);
+      onSelect(next);
+    },
+    [onSelect, setFocusRequest]
+  );
+  const { show } = panes;
+  const activate = useCallback(
+    (next: WorkspaceSelection) => {
+      select(next);
+      show(viewOf(next, modes));
+    },
+    [modes, select, show]
+  );
+  // The list's own way back to what's open, on a narrow panel.
+  const showOpen = useCallback(
+    () => show(viewOf(filesSelection, modes)),
+    [filesSelection, modes, show]
+  );
+
+  // The file search: ↓/↑ show a result without leaving the search (or the
+  // list, when narrow); Enter (or a click) opens it and moves focus into it;
+  // Escape clears it and goes back to the tree.
+  const { previewing } = panes;
+  const search = useFileSearch({
+    onClear: useCallback(
+      () => setFocusRequest({ kind: "tree" }),
+      [setFocusRequest]
+    ),
+    onOpen: useCallback(
+      (match: FileMatch) => {
+        // Into its code: an HTML file's page is already in the browser.
+        select({ kind: "file", path: match.path });
+        show("main");
+        setFocusRequest({ kind: "view", path: match.path });
+      },
+      [select, show, setFocusRequest]
+    ),
+    onPreview: useCallback(
+      (match: FileMatch) => {
+        setFocusRequest(null);
+        previewing(match.path);
+        onSelect({ kind: "file", path: match.path });
+      },
+      [onSelect, previewing, setFocusRequest]
+    ),
+    paths,
+  });
+
+  // "/" anywhere in the panel (not while typing) goes to the search.
+  const { showList } = panes;
+  const onKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLElement>) => {
+      if (
+        event.key !== "/" ||
+        event.defaultPrevented ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.altKey ||
+        isTypingEvent(event.nativeEvent)
+      ) {
+        return;
+      }
+      event.preventDefault();
+      showList();
+      setFocusRequest({ kind: "search" });
+    },
+    [showList, setFocusRequest]
+  );
+
+  const openNewFile = useCallback(() => setNewFileOpen(true), []);
+  const drop = useFileDrop(writable, actions?.importFiles);
+
+  const focusView =
+    focusRequest?.kind === "view" &&
+    focusRequest.path === selectionPath(filesSelection)
+      ? focusRequest.path
+      : null;
+  const viewFocused = useCallback(
+    () => setFocusRequest(null),
+    [setFocusRequest]
+  );
+
+  const rowEnds = useRowEnds(layout, panes.maximise, panes.maximised);
+
+  const pageMode = usePageMode({
+    htmlPath: layout.turns ? htmlPath : null,
+    save: actions?.save,
+    setMode,
+    show,
+    showFile,
+  });
+
+  return (
+    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: a drop target for files ("Upload files…" in the menu does the same from the keyboard), and "/" to search from anywhere in it.
+    <section
+      aria-label={t`Workspace`}
+      className={cn(
+        "relative flex h-full min-h-0 flex-col bg-background",
+        className
+      )}
+      data-dragging={drop.dragging || undefined}
+      data-narrow={listAlone || undefined}
+      onDragLeave={drop.onDragLeave}
+      onDragOver={drop.onDragOver}
+      onDrop={drop.onDrop}
+      onKeyDown={onKeyDown}
+      ref={measure}
+    >
+      <div className="flex min-h-0 flex-1 flex-col" ref={measureHeight}>
+        {hasPreview ? (
+          <BrowserPane
+            backToList={layout.turns ? showList : null}
+            flex={layout.files ? `0 1 ${split.fraction * 100}%` : "1 1 0%"}
+            hidden={!layout.browser}
+            id={browserId}
+            rowEnd={rowEnds.browser}
+          >
+            <BrowserView
+              history={preview.history}
+              modeToggle={
+                pageMode
+                  ? { mode: "rendered", onModeChange: pageMode }
+                  : undefined
+              }
+              onNavigate={navigate}
+              probe={probePreview}
+              readFile={view.readFile}
+              refreshKey={`${revision}:${htmlVersion}`}
+              sources={sources}
+            />
+          </BrowserPane>
+        ) : null}
+        {layout.divider ? (
+          <SplitHandle
+            aria-controls={browserId}
+            aria-label={t`Resize the browser`}
+            defaultValue={SPLIT_DEFAULT}
+            height={height}
+            onResize={split.setLive}
+            onResizeEnd={split.save}
+            value={split.fraction}
+          />
+        ) : null}
+        <RowEndProvider value={rowEnds.files}>
+          <div
+            className="flex min-h-30 flex-1"
+            data-slot="workspace-files"
+            hidden={!layout.files}
+          >
+            <WorkspaceList
+              active={search.active}
+              artifacts={artifacts.artifacts}
+              className={listAlone ? "flex-1" : "w-48 shrink-0 border-e"}
+              hidden={!layout.list}
+              matches={search.matches}
+              narrow={listAlone}
+              onActivate={activate}
+              onNewFile={openNewFile}
+              onOpenMatch={search.open}
+              onQueryChange={search.onChange}
+              onSearchKeyDown={search.onKeyDown}
+              onShowOpen={showOpen}
+              previewCurrent={selection?.kind === "preview"}
+              previewItem={hasPreview && !layout.browser}
+              query={search.query}
+              searchInput={searchInput}
+              searching={search.searching}
+              selection={filesSelection}
+              tree={tree}
+              view={view}
+              writable={writable}
+            />
+            <BackToListProvider value={listAlone ? showList : null}>
+              {/* Hidden, not unmounted, on its turn off: the editor keeps its state. */}
+              <div
+                className="@container/view flex min-h-0 min-w-0 flex-1 flex-col outline-none"
+                hidden={!layout.main}
+                ref={main}
+                tabIndex={-1}
+              >
+                <MainArea
+                  artifacts={artifacts}
+                  focusView={focusView}
+                  main={main}
+                  modes={modes}
+                  onModeChange={setMode}
+                  onNewFile={openNewFile}
+                  onPageMode={pageMode}
+                  onSelect={select}
+                  onViewFocused={viewFocused}
+                  selection={filesSelection}
+                  view={view}
+                  writable={writable}
+                />
+              </div>
+            </BackToListProvider>
+          </div>
+        </RowEndProvider>
+      </div>
+      <PanelStatus view={view} />
       {drop.dragging ? (
         <div className="pointer-events-none absolute inset-2 flex items-center justify-center rounded-lg border-2 border-ring border-dashed bg-background/80 text-sm">
           <Trans>Drop to add to the workspace</Trans>
@@ -700,7 +1052,6 @@ function WorkspaceList({
   active,
   artifacts,
   className,
-  hasPreview,
   hidden,
   matches,
   narrow,
@@ -709,7 +1060,9 @@ function WorkspaceList({
   onOpenMatch,
   onQueryChange,
   onSearchKeyDown,
-  onShowMain,
+  onShowOpen,
+  previewCurrent,
+  previewItem,
   query,
   searchInput,
   searching,
@@ -721,7 +1074,6 @@ function WorkspaceList({
   readonly active: number;
   readonly artifacts: readonly Artifact[];
   readonly className?: string;
-  readonly hasPreview: boolean;
   /** A narrow panel showing the main area. */
   readonly hidden: boolean;
   readonly matches: readonly FileMatch[];
@@ -731,7 +1083,12 @@ function WorkspaceList({
   readonly onOpenMatch: (match: FileMatch) => void;
   readonly onQueryChange: (event: ChangeEvent<HTMLInputElement>) => void;
   readonly onSearchKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void;
-  readonly onShowMain: () => void;
+  /** Shows what's open again, on a narrow panel. */
+  readonly onShowOpen: () => void;
+  /** The Preview is what the chat last picked. */
+  readonly previewCurrent: boolean;
+  /** The way to the browser, when it isn't on screen (its turn, or maximised files). */
+  readonly previewItem: boolean;
   readonly query: string;
   readonly searchInput: RefObject<HTMLInputElement | null>;
   readonly searching: boolean;
@@ -778,10 +1135,10 @@ function WorkspaceList({
             target.dataset.itemType !== undefined
         );
       if (row?.dataset.itemType === "file") {
-        onShowMain();
+        onShowOpen();
       }
     },
-    [onShowMain]
+    [onShowOpen]
   );
 
   const activeId = active >= 0 ? `${results}-${active}` : undefined;
@@ -828,7 +1185,7 @@ function WorkspaceList({
             </Kbd>
           )}
         </div>
-        {narrow ? <ClosePanelButton /> : null}
+        {narrow ? <RowEndActions /> : null}
       </div>
       {searching ? (
         <SearchResults
@@ -844,10 +1201,10 @@ function WorkspaceList({
         className="flex min-h-0 flex-1 flex-col gap-3 p-2"
         hidden={searching}
       >
-        {hasPreview ? (
+        {previewItem ? (
           <ul>
             <ListItem
-              current={selection?.kind === "preview"}
+              current={previewCurrent}
               icon={<GlobeIcon aria-hidden />}
               label={t`Preview`}
               onClick={selectPreview}
@@ -1296,15 +1653,11 @@ function MainArea({
   main,
   modes,
   onModeChange,
-  onNavigate,
   onNewFile,
+  onPageMode,
   onSelect,
   onViewFocused,
-  previewHistory,
-  probePreview,
-  revision,
   selection,
-  sources,
   view,
   writable,
 }: {
@@ -1314,15 +1667,13 @@ function MainArea({
   readonly main: RefObject<HTMLDivElement | null>;
   readonly modes: Readonly<Record<string, FileMode>>;
   readonly onModeChange: (path: string, mode: FileMode) => void;
-  readonly onNavigate: (action: BrowserAction) => void;
   readonly onNewFile: () => void;
+  /** Taking turns: an HTML file's switch to its page in the browser. */
+  readonly onPageMode: ((mode: FileMode) => void) | null;
   readonly onSelect: (selection: WorkspaceSelection | null) => void;
   readonly onViewFocused: () => void;
-  readonly previewHistory: BrowserHistory | null;
-  readonly probePreview?: (url: string) => Promise<boolean>;
-  readonly revision: number;
+  /** The files half's selection (the Preview is in the other half). */
   readonly selection: WorkspaceSelection | null;
-  readonly sources: PreviewSources;
   readonly view: FilesView;
   readonly writable: boolean;
 }) {
@@ -1339,11 +1690,15 @@ function MainArea({
     },
     [onModeChange, selectedPath]
   );
-  const { actions, readFile, status } = view;
+  const { actions, status } = view;
 
   // A rendered file has no editor to focus: the view itself takes it, once
-  // the file is open (the editor focuses itself; see `FileView`).
-  const kind = selectedPath ? renderedKind(selectedPath) : null;
+  // the file is open (the editor focuses itself; see `FileView`). An HTML
+  // file renders in the browser half: here it's code.
+  const kind =
+    selectedPath && renderedKind(selectedPath) === "markdown"
+      ? "markdown"
+      : null;
   const mode = selectedPath
     ? openingMode(modes[selectedPath], false)
     : "rendered";
@@ -1376,18 +1731,6 @@ function MainArea({
       </div>
     );
   }
-  if (selection?.kind === "preview") {
-    return (
-      <BrowserView
-        history={previewHistory}
-        onNavigate={onNavigate}
-        probe={probePreview}
-        readFile={readFile}
-        refreshKey={revision}
-        sources={sources}
-      />
-    );
-  }
   if (selection?.kind === "file" && actions) {
     const file = view.open ?? {
       kind: "loading" as const,
@@ -1405,19 +1748,19 @@ function MainArea({
     };
     if (kind) {
       return (
-        <RenderedFile
-          {...fileView}
-          kind={kind}
-          mode={mode}
-          onModeChange={changeMode}
-          probe={probePreview}
-          readFile={readFile}
-          refreshKey={revision}
-          sources={sources}
-        />
+        <RenderedFile {...fileView} mode={mode} onModeChange={changeMode} />
       );
     }
-    return <FileView {...fileView} />;
+    return (
+      <FileView
+        {...fileView}
+        modeToggle={
+          onPageMode && file.kind === "text" ? (
+            <ModeToggle mode="code" onModeChange={onPageMode} />
+          ) : undefined
+        }
+      />
+    );
   }
   if (status.kind === "off") {
     return (
