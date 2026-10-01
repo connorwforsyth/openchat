@@ -1,3 +1,6 @@
+import { builtinArtifactKinds } from "@workspace/artifacts-kit/builtin";
+import { TEXT_MAX_CHARS } from "@workspace/artifacts-kit/kinds/text";
+import type { ArtifactKindRegistry } from "@workspace/artifacts-kit/registry";
 import {
   type ArtifactId,
   artifactIdSchema,
@@ -10,7 +13,7 @@ import {
 import type { AsyncResult } from "@workspace/shared/result";
 import { z } from "zod";
 
-import { parseArtifacts } from "../../evals/artifacts/format";
+import { artifactDirectiveSchema } from "../../evals/artifacts/format";
 
 // Artifacts at runtime (078): `create_artifact` and `update_artifact` save a
 // document, page or snippet as a numbered version (the store is a port over
@@ -19,16 +22,18 @@ import { parseArtifacts } from "../../evals/artifacts/format";
 // itself, so the agent runner lifts the ref out of the result with
 // `artifactRefOf`, as the executor does for citations (`toolSources`).
 //
-// What counts as a valid artifact is the `:::artifact` format's business
-// (`evals/artifacts/format.ts`): the call is written out as that directive
-// and read back with the eval's strict reader, so the tool and the eval
-// agree on every fixture.
+// What counts as a valid artifact is its kind's business: each kind is a
+// definition in `@workspace/artifacts-kit` (123), and a save runs that
+// kind's checks. A failed check is an `invalid` result the model reads and
+// can fix, and nothing is saved. The title follows the `:::artifact`
+// directive's rule (`evals/artifacts/format.ts`), and the kinds' checks
+// agree with the eval's strict reader on every fixture (`artifacts.test.ts`).
 //
 // This is what `create_artifact` and `update_artifact` share; each tool is
 // written down in its own file in `registry/` (080).
 
-/** Larger than any page or document worth reading in a side panel. */
-const MAX_CONTENT_CHARS = 400_000;
+/** The text kinds' limit (`@workspace/artifacts-kit`). */
+const MAX_CONTENT_CHARS = TEXT_MAX_CHARS;
 
 export const artifactContentSchema = z
   .string()
@@ -103,9 +108,9 @@ const LINE_BREAKS = /\s+/g;
 
 /**
  * The call as the `:::artifact` directive a model would write in a reply,
- * for the strict reader. A fence line inside the content would end the
- * block early, so those are indented; the reader only judges the result,
- * and what's saved is the content as given.
+ * for the eval's strict reader; tests use it to hold the kinds' checks to
+ * that reader. A fence line inside the content would end the block early,
+ * so those are indented; the reader only judges the result.
  */
 export const asDirective = (artifact: {
   readonly content: string;
@@ -123,22 +128,40 @@ export const asDirective = (artifact: {
     ":::",
   ].join("\n");
 
-const LINE_PREFIX = /^line \d+: /;
-
-/** Why the content isn't a valid artifact of its type; empty when it is. Pure. */
-export const artifactProblems = (
-  artifact: Parameters<typeof asDirective>[0]
-): readonly string[] =>
-  parseArtifacts(asDirective(artifact)).problems.map((problem) =>
-    problem.replace(LINE_PREFIX, "")
+/**
+ * Why the title isn't one an artifact can have; empty when it is. Titles are
+ * read as the directive writes them (quotes swapped, line breaks folded).
+ */
+const titleProblems = (title: string): readonly string[] => {
+  const parsed = artifactDirectiveSchema.shape.title.safeParse(
+    title.replaceAll('"', "'").replace(LINE_BREAKS, " ")
   );
+  return parsed.success
+    ? []
+    : parsed.error.issues.map((issue) => `title ${issue.message}`);
+};
+
+/**
+ * Why the content isn't a valid artifact of its type; empty when it is.
+ * A bad title is reported alone; otherwise the kind's checks run. Pure.
+ */
+export const artifactProblems = (
+  artifact: Parameters<typeof asDirective>[0],
+  kinds: ArtifactKindRegistry = builtinArtifactKinds
+): readonly string[] => {
+  const title = titleProblems(artifact.title);
+  return title.length > 0
+    ? title
+    : kinds.check(artifact.type, artifact.content);
+};
 
 /** Saves valid content through the store; every failure is a result the model reads. */
 export const saveArtifact = async (
   store: ArtifactStore,
-  input: NewArtifactContent
+  input: NewArtifactContent,
+  kinds: ArtifactKindRegistry = builtinArtifactKinds
 ): Promise<ArtifactToolOutput> => {
-  const problems = artifactProblems({ ...input, type: input.kind });
+  const problems = artifactProblems({ ...input, type: input.kind }, kinds);
   if (problems.length > 0) {
     return { problems: [...problems], status: "invalid" };
   }
@@ -178,5 +201,10 @@ export const artifactModelText = (output: ArtifactToolOutput): string => {
 
 /** The store the artifact tools are bound to for one run. */
 export interface ArtifactPorts {
+  /**
+   * The kinds a save is checked against; the built-in ones when left out.
+   * Where the instance, an org or an agent will narrow the rules.
+   */
+  readonly kinds?: ArtifactKindRegistry;
   readonly store: ArtifactStore;
 }

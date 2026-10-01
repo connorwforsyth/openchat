@@ -1,3 +1,4 @@
+import type { ArtifactKindRegistry } from "@workspace/artifacts-kit/registry";
 import type { Tool } from "ai";
 import { z } from "zod";
 
@@ -45,17 +46,21 @@ export const ARTIFACT_TOOLS = [
   UPDATE_ARTIFACT_TOOL,
 ] as const;
 
-/** The chat's artifact tools over its store, keyed by the names in `ARTIFACT_TOOLS`. */
+/**
+ * The chat's artifact tools over its store, keyed by the names in
+ * `ARTIFACT_TOOLS`. Saves are checked against `kinds`, the built-in kinds
+ * when left out.
+ */
 export const createArtifactTools = (
-  store: ArtifactStore
-): Readonly<Record<(typeof ARTIFACT_TOOLS)[number], Tool>> => ({
-  [CREATE_ARTIFACT_TOOL]: toAiSdkTool(createArtifactTool, {
-    ports: { store },
-  }),
-  [UPDATE_ARTIFACT_TOOL]: toAiSdkTool(updateArtifactTool, {
-    ports: { store },
-  }),
-});
+  store: ArtifactStore,
+  kinds?: ArtifactKindRegistry
+): Readonly<Record<(typeof ARTIFACT_TOOLS)[number], Tool>> => {
+  const ports = kinds ? { kinds, store } : { store };
+  return {
+    [CREATE_ARTIFACT_TOOL]: toAiSdkTool(createArtifactTool, { ports }),
+    [UPDATE_ARTIFACT_TOOL]: toAiSdkTool(updateArtifactTool, { ports }),
+  };
+};
 
 const savedSchema = z.object({
   artifact: artifactRefSchema,

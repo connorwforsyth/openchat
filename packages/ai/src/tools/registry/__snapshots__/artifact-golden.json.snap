@@ -1,0 +1,2875 @@
+{
+  "definitions": [
+    {
+      "approval": "ask",
+      "capability": "artifacts",
+      "name": "create_artifact"
+    },
+    {
+      "approval": "ask",
+      "capability": "artifacts",
+      "name": "update_artifact"
+    }
+  ],
+  "kinds": [
+    "code",
+    "html",
+    "react",
+    "markdown",
+    "svg",
+    "mermaid"
+  ],
+  "prompt": {
+    "composed": {
+      "sections": [],
+      "text": ""
+    },
+    "fragment": {
+      "source": "fragments/artifacts.md",
+      "text": ""
+    }
+  },
+  "tools": [
+    {
+      "customModelOutput": true,
+      "description": "Create an artifact: a self-contained piece of work the user will want to keep, reuse or see rendered (a document, a web page, a React component, an SVG image, a Mermaid diagram or a code file). It opens beside the chat instead of filling the reply. Use it for substantial content; keep short snippets and explanations in the reply.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 400000,
+            "description": "The artifact's complete content, with no surrounding code fence."
+          },
+          "language": {
+            "description": "For type \"code\": the language, as a code fence names it (ts, python, sql).",
+            "type": "string",
+            "pattern": "^[\\w+-]{1,32}$"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "A short title the user will recognise it by."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "code",
+              "html",
+              "react",
+              "markdown",
+              "svg",
+              "mermaid"
+            ],
+            "description": "html: one complete HTML document. react: one file with a default-exported component. svg: one <svg> element. mermaid: diagram source. markdown: a document. code: a file in any language."
+          }
+        },
+        "required": [
+          "content",
+          "title",
+          "type"
+        ],
+        "additionalProperties": false
+      },
+      "name": "create_artifact",
+      "outputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "artifact": {
+                "type": "object",
+                "properties": {
+                  "artifactId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "description": "artifact id (UUIDv7)"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "code",
+                      "html",
+                      "react",
+                      "markdown",
+                      "svg",
+                      "mermaid"
+                    ]
+                  },
+                  "title": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "versionId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "description": "artifactVersion id (UUIDv7)"
+                  }
+                },
+                "required": [
+                  "artifactId",
+                  "kind",
+                  "title",
+                  "versionId"
+                ],
+                "additionalProperties": false
+              },
+              "status": {
+                "type": "string",
+                "const": "saved"
+              },
+              "version": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "artifact",
+              "status",
+              "version"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "problems": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "status": {
+                "type": "string",
+                "const": "invalid"
+              }
+            },
+            "required": [
+              "problems",
+              "status"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "artifacts": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "artifactId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "description": "artifact id (UUIDv7)"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "code",
+                        "html",
+                        "react",
+                        "markdown",
+                        "svg",
+                        "mermaid"
+                      ]
+                    },
+                    "title": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "artifactId",
+                    "kind",
+                    "title"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "status": {
+                "type": "string",
+                "const": "not_found"
+              }
+            },
+            "required": [
+              "artifacts",
+              "status"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "message": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "const": "unavailable"
+              }
+            },
+            "required": [
+              "message",
+              "status"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    {
+      "customModelOutput": true,
+      "description": "Replace an artifact's content, saved as its next version; earlier versions are kept. Pass the complete new content, not a diff.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "artifactId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "description": "The artifactId create_artifact returned."
+          },
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 400000,
+            "description": "The artifact's complete content, with no surrounding code fence."
+          },
+          "language": {
+            "description": "For type \"code\": the language, as a code fence names it (ts, python, sql).",
+            "type": "string",
+            "pattern": "^[\\w+-]{1,32}$"
+          },
+          "title": {
+            "description": "A new title; leave out to keep the current one.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "artifactId",
+          "content"
+        ],
+        "additionalProperties": false
+      },
+      "name": "update_artifact",
+      "outputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "artifact": {
+                "type": "object",
+                "properties": {
+                  "artifactId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "description": "artifact id (UUIDv7)"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "code",
+                      "html",
+                      "react",
+                      "markdown",
+                      "svg",
+                      "mermaid"
+                    ]
+                  },
+                  "title": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "versionId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "description": "artifactVersion id (UUIDv7)"
+                  }
+                },
+                "required": [
+                  "artifactId",
+                  "kind",
+                  "title",
+                  "versionId"
+                ],
+                "additionalProperties": false
+              },
+              "status": {
+                "type": "string",
+                "const": "saved"
+              },
+              "version": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "artifact",
+              "status",
+              "version"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "problems": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "status": {
+                "type": "string",
+                "const": "invalid"
+              }
+            },
+            "required": [
+              "problems",
+              "status"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "artifacts": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "artifactId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "description": "artifact id (UUIDv7)"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "code",
+                        "html",
+                        "react",
+                        "markdown",
+                        "svg",
+                        "mermaid"
+                      ]
+                    },
+                    "title": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "artifactId",
+                    "kind",
+                    "title"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "status": {
+                "type": "string",
+                "const": "not_found"
+              }
+            },
+            "required": [
+              "artifacts",
+              "status"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "message": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "const": "unavailable"
+              }
+            },
+            "required": [
+              "message",
+              "status"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    }
+  ],
+  "validation": {
+    "created": {
+      "recorded counter-button": {
+        "code": "saved",
+        "html": "saved",
+        "react": "saved",
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        }
+      },
+      "recorded landing-page": {
+        "code": "saved",
+        "html": "saved",
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        }
+      },
+      "recorded serve-page": {
+        "code": "saved",
+        "html": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        }
+      },
+      "recorded oauth-login": {
+        "code": "saved",
+        "html": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": "saved"
+      },
+      "recorded sun-icon": {
+        "code": "saved",
+        "html": "saved",
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": "saved",
+        "mermaid": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        }
+      },
+      "a fence first": {
+        "code": "saved",
+        "html": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "react": "saved",
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        }
+      },
+      "a lone close": {
+        "code": "saved",
+        "html": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        }
+      },
+      "an open directive": {
+        "code": "saved",
+        "html": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        }
+      },
+      "angle brackets": {
+        "code": "saved",
+        "html": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        }
+      },
+      "blank lines": {
+        "code": {
+          "problems": [
+            "content isn't a valid code artifact"
+          ],
+          "status": "invalid"
+        },
+        "html": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": {
+          "problems": [
+            "content isn't a valid markdown artifact"
+          ],
+          "status": "invalid"
+        },
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        }
+      },
+      "carriage returns": {
+        "code": "saved",
+        "html": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": "saved"
+      },
+      "classDiagram glued": {
+        "code": "saved",
+        "html": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        }
+      },
+      "default export no space": {
+        "code": "saved",
+        "html": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        }
+      },
+      "default export spaced": {
+        "code": "saved",
+        "html": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "react": "saved",
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        }
+      },
+      "default export, newline": {
+        "code": "saved",
+        "html": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "react": "saved",
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        }
+      },
+      "doctype only": {
+        "code": "saved",
+        "html": "saved",
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        }
+      },
+      "empty string": {
+        "code": {
+          "problems": [
+            "content isn't a valid code artifact"
+          ],
+          "status": "invalid"
+        },
+        "html": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": {
+          "problems": [
+            "content isn't a valid markdown artifact"
+          ],
+          "status": "invalid"
+        },
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        }
+      },
+      "html comment": {
+        "code": "saved",
+        "html": "saved",
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        }
+      },
+      "indented svg": {
+        "code": "saved",
+        "html": "saved",
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": "saved",
+        "mermaid": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        }
+      },
+      "markdown with fences and directives": {
+        "code": "saved",
+        "html": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        }
+      },
+      "mermaid graph": {
+        "code": "saved",
+        "html": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": "saved"
+      },
+      "mermaid flowchart": {
+        "code": "saved",
+        "html": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": "saved"
+      },
+      "mermaid sequenceDiagram": {
+        "code": "saved",
+        "html": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": "saved"
+      },
+      "mermaid classDiagram": {
+        "code": "saved",
+        "html": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": "saved"
+      },
+      "mermaid stateDiagram": {
+        "code": "saved",
+        "html": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": "saved"
+      },
+      "mermaid erDiagram": {
+        "code": "saved",
+        "html": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": "saved"
+      },
+      "mermaid gantt": {
+        "code": "saved",
+        "html": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": "saved"
+      },
+      "mermaid pie": {
+        "code": "saved",
+        "html": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": "saved"
+      },
+      "mermaid mindmap": {
+        "code": "saved",
+        "html": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": "saved"
+      },
+      "mermaid timeline": {
+        "code": "saved",
+        "html": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": "saved"
+      },
+      "mermaid journey": {
+        "code": "saved",
+        "html": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        }
+      },
+      "mermaid gitGraph": {
+        "code": "saved",
+        "html": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        }
+      },
+      "mermaid stateDiagram-v2": {
+        "code": "saved",
+        "html": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": "saved"
+      },
+      "mermaid after a fence": {
+        "code": "saved",
+        "html": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        }
+      },
+      "mermaid indented": {
+        "code": "saved",
+        "html": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": "saved"
+      },
+      "named export only": {
+        "code": "saved",
+        "html": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        }
+      },
+      "one word": {
+        "code": "saved",
+        "html": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        }
+      },
+      "react element default": {
+        "code": "saved",
+        "html": "saved",
+        "react": "saved",
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        }
+      },
+      "spaces only": {
+        "code": {
+          "problems": [
+            "content isn't a valid code artifact"
+          ],
+          "status": "invalid"
+        },
+        "html": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": {
+          "problems": [
+            "content isn't a valid markdown artifact"
+          ],
+          "status": "invalid"
+        },
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        }
+      },
+      "svg after text": {
+        "code": "saved",
+        "html": "saved",
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        }
+      },
+      "svg in a fence": {
+        "code": "saved",
+        "html": "saved",
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        }
+      },
+      "svg self closing": {
+        "code": "saved",
+        "html": "saved",
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        }
+      },
+      "svg trailing text": {
+        "code": "saved",
+        "html": "saved",
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        }
+      },
+      "svg uppercase": {
+        "code": "saved",
+        "html": "saved",
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        }
+      },
+      "svg with attributes": {
+        "code": "saved",
+        "html": "saved",
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": "saved",
+        "mermaid": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        }
+      },
+      "tab only": {
+        "code": {
+          "problems": [
+            "content isn't a valid code artifact"
+          ],
+          "status": "invalid"
+        },
+        "html": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": {
+          "problems": [
+            "content isn't a valid markdown artifact"
+          ],
+          "status": "invalid"
+        },
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        }
+      },
+      "tag uppercase": {
+        "code": "saved",
+        "html": "saved",
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        }
+      },
+      "tag with digit": {
+        "code": "saved",
+        "html": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        }
+      },
+      "text then a tag": {
+        "code": "saved",
+        "html": "saved",
+        "react": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        }
+      },
+      "trailing fence line": {
+        "code": "saved",
+        "html": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "react": "saved",
+        "markdown": "saved",
+        "svg": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        }
+      }
+    },
+    "titled": {
+      "200 characters": "saved",
+      "201 characters": {
+        "problems": [
+          "title Too big: expected string to have <=200 characters"
+        ],
+        "status": "invalid"
+      },
+      "201 with a double space": "saved",
+      "a brace": "saved",
+      "a newline": "saved",
+      "attributes inside": "saved",
+      "empty": {
+        "problems": [
+          "title Too small: expected string to have >=1 characters"
+        ],
+        "status": "invalid"
+      },
+      "plain": "saved",
+      "quotes": "saved",
+      "spaces only": {
+        "problems": [
+          "title Too small: expected string to have >=1 characters"
+        ],
+        "status": "invalid"
+      },
+      "surrounding spaces": "saved",
+      "tabs and newlines only": {
+        "problems": [
+          "title Too small: expected string to have >=1 characters"
+        ],
+        "status": "invalid"
+      },
+      "empty, with bad content": {
+        "problems": [
+          "title Too small: expected string to have >=1 characters"
+        ],
+        "status": "invalid"
+      }
+    },
+    "updated": {
+      "code": {
+        "recorded counter-button": "saved",
+        "recorded landing-page": "saved",
+        "recorded serve-page": "saved",
+        "recorded oauth-login": "saved",
+        "recorded sun-icon": "saved",
+        "a fence first": "saved",
+        "a lone close": "saved",
+        "an open directive": "saved",
+        "angle brackets": "saved",
+        "blank lines": {
+          "problems": [
+            "content isn't a valid code artifact"
+          ],
+          "status": "invalid"
+        },
+        "carriage returns": "saved",
+        "classDiagram glued": "saved",
+        "default export no space": "saved",
+        "default export spaced": "saved",
+        "default export, newline": "saved",
+        "doctype only": "saved",
+        "empty string": {
+          "problems": [
+            "content isn't a valid code artifact"
+          ],
+          "status": "invalid"
+        },
+        "html comment": "saved",
+        "indented svg": "saved",
+        "markdown with fences and directives": "saved",
+        "mermaid graph": "saved",
+        "mermaid flowchart": "saved",
+        "mermaid sequenceDiagram": "saved",
+        "mermaid classDiagram": "saved",
+        "mermaid stateDiagram": "saved",
+        "mermaid erDiagram": "saved",
+        "mermaid gantt": "saved",
+        "mermaid pie": "saved",
+        "mermaid mindmap": "saved",
+        "mermaid timeline": "saved",
+        "mermaid journey": "saved",
+        "mermaid gitGraph": "saved",
+        "mermaid stateDiagram-v2": "saved",
+        "mermaid after a fence": "saved",
+        "mermaid indented": "saved",
+        "named export only": "saved",
+        "one word": "saved",
+        "react element default": "saved",
+        "spaces only": {
+          "problems": [
+            "content isn't a valid code artifact"
+          ],
+          "status": "invalid"
+        },
+        "svg after text": "saved",
+        "svg in a fence": "saved",
+        "svg self closing": "saved",
+        "svg trailing text": "saved",
+        "svg uppercase": "saved",
+        "svg with attributes": "saved",
+        "tab only": {
+          "problems": [
+            "content isn't a valid code artifact"
+          ],
+          "status": "invalid"
+        },
+        "tag uppercase": "saved",
+        "tag with digit": "saved",
+        "text then a tag": "saved",
+        "trailing fence line": "saved"
+      },
+      "html": {
+        "recorded counter-button": "saved",
+        "recorded landing-page": "saved",
+        "recorded serve-page": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "recorded oauth-login": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "recorded sun-icon": "saved",
+        "a fence first": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "a lone close": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "an open directive": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "angle brackets": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "blank lines": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "carriage returns": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "classDiagram glued": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "default export no space": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "default export spaced": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "default export, newline": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "doctype only": "saved",
+        "empty string": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "html comment": "saved",
+        "indented svg": "saved",
+        "markdown with fences and directives": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid graph": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid flowchart": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid sequenceDiagram": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid classDiagram": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid stateDiagram": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid erDiagram": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid gantt": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid pie": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid mindmap": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid timeline": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid journey": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid gitGraph": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid stateDiagram-v2": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid after a fence": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid indented": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "named export only": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "one word": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "react element default": "saved",
+        "spaces only": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "svg after text": "saved",
+        "svg in a fence": "saved",
+        "svg self closing": "saved",
+        "svg trailing text": "saved",
+        "svg uppercase": "saved",
+        "svg with attributes": "saved",
+        "tab only": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "tag uppercase": "saved",
+        "tag with digit": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        },
+        "text then a tag": "saved",
+        "trailing fence line": {
+          "problems": [
+            "content isn't a valid html artifact"
+          ],
+          "status": "invalid"
+        }
+      },
+      "markdown": {
+        "recorded counter-button": "saved",
+        "recorded landing-page": "saved",
+        "recorded serve-page": "saved",
+        "recorded oauth-login": "saved",
+        "recorded sun-icon": "saved",
+        "a fence first": "saved",
+        "a lone close": "saved",
+        "an open directive": "saved",
+        "angle brackets": "saved",
+        "blank lines": {
+          "problems": [
+            "content isn't a valid markdown artifact"
+          ],
+          "status": "invalid"
+        },
+        "carriage returns": "saved",
+        "classDiagram glued": "saved",
+        "default export no space": "saved",
+        "default export spaced": "saved",
+        "default export, newline": "saved",
+        "doctype only": "saved",
+        "empty string": {
+          "problems": [
+            "content isn't a valid markdown artifact"
+          ],
+          "status": "invalid"
+        },
+        "html comment": "saved",
+        "indented svg": "saved",
+        "markdown with fences and directives": "saved",
+        "mermaid graph": "saved",
+        "mermaid flowchart": "saved",
+        "mermaid sequenceDiagram": "saved",
+        "mermaid classDiagram": "saved",
+        "mermaid stateDiagram": "saved",
+        "mermaid erDiagram": "saved",
+        "mermaid gantt": "saved",
+        "mermaid pie": "saved",
+        "mermaid mindmap": "saved",
+        "mermaid timeline": "saved",
+        "mermaid journey": "saved",
+        "mermaid gitGraph": "saved",
+        "mermaid stateDiagram-v2": "saved",
+        "mermaid after a fence": "saved",
+        "mermaid indented": "saved",
+        "named export only": "saved",
+        "one word": "saved",
+        "react element default": "saved",
+        "spaces only": {
+          "problems": [
+            "content isn't a valid markdown artifact"
+          ],
+          "status": "invalid"
+        },
+        "svg after text": "saved",
+        "svg in a fence": "saved",
+        "svg self closing": "saved",
+        "svg trailing text": "saved",
+        "svg uppercase": "saved",
+        "svg with attributes": "saved",
+        "tab only": {
+          "problems": [
+            "content isn't a valid markdown artifact"
+          ],
+          "status": "invalid"
+        },
+        "tag uppercase": "saved",
+        "tag with digit": "saved",
+        "text then a tag": "saved",
+        "trailing fence line": "saved"
+      },
+      "mermaid": {
+        "recorded counter-button": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "recorded landing-page": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "recorded serve-page": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "recorded oauth-login": "saved",
+        "recorded sun-icon": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "a fence first": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "a lone close": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "an open directive": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "angle brackets": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "blank lines": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "carriage returns": "saved",
+        "classDiagram glued": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "default export no space": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "default export spaced": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "default export, newline": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "doctype only": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "empty string": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "html comment": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "indented svg": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown with fences and directives": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid graph": "saved",
+        "mermaid flowchart": "saved",
+        "mermaid sequenceDiagram": "saved",
+        "mermaid classDiagram": "saved",
+        "mermaid stateDiagram": "saved",
+        "mermaid erDiagram": "saved",
+        "mermaid gantt": "saved",
+        "mermaid pie": "saved",
+        "mermaid mindmap": "saved",
+        "mermaid timeline": "saved",
+        "mermaid journey": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid gitGraph": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid stateDiagram-v2": "saved",
+        "mermaid after a fence": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid indented": "saved",
+        "named export only": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "one word": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "react element default": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "spaces only": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "svg after text": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "svg in a fence": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "svg self closing": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "svg trailing text": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "svg uppercase": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "svg with attributes": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "tab only": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "tag uppercase": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "tag with digit": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "text then a tag": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "trailing fence line": {
+          "problems": [
+            "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        }
+      },
+      "react": {
+        "recorded counter-button": "saved",
+        "recorded landing-page": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "recorded serve-page": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "recorded oauth-login": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "recorded sun-icon": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "a fence first": "saved",
+        "a lone close": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "an open directive": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "angle brackets": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "blank lines": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "carriage returns": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "classDiagram glued": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "default export no space": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "default export spaced": "saved",
+        "default export, newline": "saved",
+        "doctype only": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "empty string": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "html comment": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "indented svg": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "markdown with fences and directives": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid graph": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid flowchart": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid sequenceDiagram": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid classDiagram": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid stateDiagram": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid erDiagram": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid gantt": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid pie": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid mindmap": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid timeline": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid journey": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid gitGraph": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid stateDiagram-v2": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid after a fence": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid indented": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "named export only": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "one word": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "react element default": "saved",
+        "spaces only": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "svg after text": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "svg in a fence": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "svg self closing": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "svg trailing text": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "svg uppercase": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "svg with attributes": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "tab only": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "tag uppercase": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "tag with digit": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "text then a tag": {
+          "problems": [
+            "content isn't a valid react artifact"
+          ],
+          "status": "invalid"
+        },
+        "trailing fence line": "saved"
+      },
+      "svg": {
+        "recorded counter-button": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "recorded landing-page": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "recorded serve-page": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "recorded oauth-login": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "recorded sun-icon": "saved",
+        "a fence first": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "a lone close": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "an open directive": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "angle brackets": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "blank lines": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "carriage returns": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "classDiagram glued": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "default export no space": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "default export spaced": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "default export, newline": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "doctype only": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "empty string": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "html comment": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "indented svg": "saved",
+        "markdown with fences and directives": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid graph": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid flowchart": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid sequenceDiagram": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid classDiagram": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid stateDiagram": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid erDiagram": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid gantt": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid pie": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid mindmap": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid timeline": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid journey": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid gitGraph": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid stateDiagram-v2": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid after a fence": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "mermaid indented": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "named export only": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "one word": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "react element default": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "spaces only": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "svg after text": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "svg in a fence": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "svg self closing": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "svg trailing text": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "svg uppercase": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "svg with attributes": "saved",
+        "tab only": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "tag uppercase": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "tag with digit": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "text then a tag": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        },
+        "trailing fence line": {
+          "problems": [
+            "content isn't a valid svg artifact"
+          ],
+          "status": "invalid"
+        }
+      }
+    }
+  }
+}

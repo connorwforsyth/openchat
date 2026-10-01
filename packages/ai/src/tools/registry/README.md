@@ -60,7 +60,12 @@ import its own file, which keeps its types.
 
 What two tools share sits beside the definitions, not in them:
 
-- `../artifact-content.ts` for the two artifact tools.
+- `../artifact-content.ts` for the two artifact tools. What an artifact of
+  each kind may contain is not theirs to say: each kind is a definition in
+  `@workspace/artifacts-kit` (ticket 123), and a save runs that kind's checks.
+  A failed check is an `invalid` result the model reads, and nothing is
+  saved. `artifact-golden.test.ts` here pins the two tools and which content
+  each kind accepts.
 - `workspace.ts` and `file-change.ts` in the sandbox package for its five.
 
 `file_search`'s search and schemas stay in `rag/file-search.ts`, which the

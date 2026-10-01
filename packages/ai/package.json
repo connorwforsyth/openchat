@@ -67,6 +67,7 @@
     "@opentelemetry/exporter-trace-otlp-http": "catalog:",
     "@opentelemetry/resources": "catalog:",
     "@opentelemetry/sdk-trace-base": "catalog:",
+    "@workspace/artifacts-kit": "workspace:*",
     "@workspace/config": "workspace:*",
     "@workspace/contract": "workspace:*",
     "@workspace/shared": "workspace:*",
