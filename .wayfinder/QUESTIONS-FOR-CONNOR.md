@@ -86,3 +86,11 @@ Done: 009 and 010 prototypes, 042 contract PR (#31), Docker verification (045, P
 
 - Skills in chats: yes. Pick from the + menu and from `/`; agents load theirs on demand. The contract field for picked skills is approved (ticket 127).
 - Also wanted: create, edit and publish skills from a chat (ticket 128). Compaction stays parked (082).
+
+## Open (2026-10-02, from 124 and 127), defaults proposed
+
+- 124: deleting a chat deletes its artifacts, duplicates included. Default: keep for now and revisit with Sites.
+- 124: an artifact made in a shared chat belongs to the chat's owner. Default: keep.
+- 127: a shared agent's attached skills are readable by people who can use the agent. Default: allow.
+- 127: editing a message drops its skills. Default: keep them (small follow-up).
+- 127: `/` in the real chat lists no prompt templates (never wired). Default: wire them (small follow-up).

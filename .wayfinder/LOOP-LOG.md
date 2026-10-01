@@ -141,3 +141,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-10-02 · 124 merged (PR #94) · gate 93/93 · e2e 83/83 · claimed 125 (Sites) and 127 (skills in chats) · local app moved to main
 - 2026-10-02 · 131 merged (PR #95; closes 090) · gate 93/93 · e2e 84/84 · 117 re-verifying after rebase onto #94
 - 2026-10-02 · 117 merged (PR #96) · gate 93/93 · e2e 83/83 · desktop smoke 1/1 · claimed 118 (Quick AI + tray)
+- 2026-10-02 · 127 merged (PR #97) · gate 93/93 · e2e 86/86 · claimed 128 (skill authoring tools)
