@@ -129,6 +129,24 @@ describe("model vendors", () => {
     expect(modelVendor(model("mystery", null))).toBe("");
   });
 
+  it("takes the server's provider when it sends one (096)", () => {
+    // The server knows better than the ref: a vendor it named wins.
+    expect(
+      modelVendor({ ...model("house", "custom:llama-x"), provider: "meta" })
+    ).toBe("meta");
+    const groups = buildTargetGroups(
+      [
+        { ...model("house", "custom:llama-x"), provider: "meta" },
+        model("custom:other", "custom:other"),
+      ],
+      []
+    );
+    expect(groups.providers.map((group) => group.label)).toEqual([
+      "Meta",
+      "custom",
+    ]);
+  });
+
   it("names known vendors and leaves the rest as written", () => {
     expect(providerLabel("openai")).toBe("OpenAI");
     expect(providerLabel("xai")).toBe("xAI");
@@ -202,6 +220,14 @@ describe("filterTargetGroups", () => {
     expect(labels("review")).toEqual(["Reviewer"]);
     expect(labels("picks")).toEqual(["Auto"]);
     expect(labels("nothing-like-it")).toEqual([]);
+  });
+
+  it("matches a model's description, and carries it to the choice (096)", () => {
+    expect(labels("hard problems")).toEqual(["Strong"]);
+    const strong = groups.providers[0]?.choices[0];
+    expect(strong?.description).toBe("Hard problems and long documents");
+    // No description, no empty second line.
+    expect(groups.providers[0]?.choices[1]).not.toHaveProperty("description");
   });
 
   it("drops groups left empty", () => {

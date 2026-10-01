@@ -291,6 +291,14 @@ const modelsSchema = z
     /** The model new chats start with; `null` picks the first available. */
     default: modelSelectorSchema.nullable().default(null),
     /**
+     * A short "why pick this" under a model in the picker, keyed by alias or
+     * `provider:model` ref (`fast: Quick everyday answers`). Beats what a
+     * provider's catalog says; kept to one line of about 120 characters.
+     */
+    descriptions: z
+      .record(modelSelectorSchema, z.string().trim().min(1))
+      .default({}),
+    /**
      * Prices by `provider:modelId` ref (what an alias resolves to), used to
      * fill `costMicros` on usage rows. A model that isn't listed is unpriced:
      * its usage is recorded at cost 0 and counts toward no budget.
@@ -605,6 +613,18 @@ export const appConfigSchema = z
     // A price under a misspelt ref would leave the real model unpriced, silently.
     for (const ref of Object.keys(config.models.prices)) {
       checkSelector(ref, ["models", "prices", ref]);
+    }
+    for (const selector of Object.keys(config.models.descriptions)) {
+      if (selector === AUTO_MODEL) {
+        context.addIssue({
+          code: "custom",
+          message:
+            "`auto`'s description is built in; describe its models instead",
+          path: ["models", "descriptions", selector],
+        });
+      } else {
+        checkSelector(selector, ["models", "descriptions", selector]);
+      }
     }
     checkSelector(config.models.default, ["models", "default"]);
     checkSelector(config.models.auto.cheap, ["models", "auto", "cheap"]);

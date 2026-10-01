@@ -80,8 +80,19 @@ export const modelOptionSchema = z.object({
   available: z.boolean(),
   capabilities: z.array(modelCapabilitySchema),
   contextWindow: z.int().min(1).nullable(),
+  /**
+   * One short line on why you'd pick it (096): the config's, else the
+   * provider catalog's. Absent when neither says; `auto`'s is the UI's own.
+   */
+  description: z.string().optional(),
   /** The label shown in the picker. */
   label: z.string(),
+  /**
+   * Who makes the model, for grouping and its mark (096): the vendor an
+   * aggregator ref names (`gateway:anthropic/…` is `anthropic`), else the
+   * ref's provider. Absent for `auto`.
+   */
+  provider: providerIdSchema.optional(),
   /** What to send back: the alias if there is one, else the ref. */
   selector: modelSelectorSchema,
   /** The ref an alias resolves to; `null` for `auto`. */

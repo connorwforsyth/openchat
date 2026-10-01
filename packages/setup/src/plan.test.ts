@@ -152,6 +152,9 @@ describe("re-running", () => {
     );
     const config = switched.config ?? "";
     expect(config).not.toContain("anthropic:");
+    // A description goes with its alias; one whose alias stays, stays.
+    expect(config).not.toContain("Quick everyday answers");
+    expect(config).toContain("strong: Hard problems and long documents");
     expect(parseConfig(config, parseEnv(switched.env ?? "")).ok).toBe(true);
     // The key stays in .env: deselecting a provider doesn't delete a secret.
     expect(parseEnv(switched.env ?? "").ANTHROPIC_API_KEY).toBe(

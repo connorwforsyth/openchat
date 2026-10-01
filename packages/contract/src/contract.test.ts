@@ -243,3 +243,37 @@ describe("openapi.json", () => {
     );
   });
 });
+
+describe("model options (096)", () => {
+  const output = contract.meta.models["~orpc"].outputSchema;
+  const option = {
+    available: true,
+    capabilities: ["tools"],
+    contextWindow: null,
+    label: "fast",
+    selector: "fast",
+    target: "anthropic:claude-haiku-4-5",
+  };
+
+  it("keeps a description and provider through the response schema", async () => {
+    const described = {
+      ...option,
+      description: "Quick everyday answers",
+      provider: "anthropic",
+    };
+    expect(await output?.["~standard"].validate([described])).toEqual({
+      value: [described],
+    });
+  });
+
+  it("still accepts options without them, as older servers send", async () => {
+    expect(await output?.["~standard"].validate([option])).toEqual({
+      value: [option],
+    });
+    expect(
+      await output?.["~standard"].validate([
+        { ...option, provider: "Not An Id" },
+      ])
+    ).toHaveProperty("issues");
+  });
+});

@@ -168,6 +168,20 @@ const resolves = (doc: Document, selector: unknown): boolean => {
   return selector in readRecord(doc, ["models", "aliases"]);
 };
 
+/**
+ * Descriptions (096) stay unless what they describe has gone: the config
+ * refuses one for a model it can't find.
+ */
+const pruneDescriptions = (doc: Document): void => {
+  for (const selector of Object.keys(
+    readRecord(doc, ["models", "descriptions"])
+  )) {
+    if (selector === "auto" || !resolves(doc, selector)) {
+      remove(doc, ["models", "descriptions", selector]);
+    }
+  }
+};
+
 const applyModels = (doc: Document, answers: Answers): void => {
   const models = { fast: answers.fastModel, strong: answers.strongModel };
   for (const [alias, ref] of Object.entries(models)) {
@@ -188,6 +202,7 @@ const applyModels = (doc: Document, answers: Answers): void => {
   if (!doc.hasIn(["models", "aliases"])) {
     doc.setIn(["models", "aliases"], flowMap(doc, {}));
   }
+  pruneDescriptions(doc);
 
   let defaultModel: string | null = null;
   if (models.strong) {

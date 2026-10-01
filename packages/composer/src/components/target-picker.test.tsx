@@ -28,7 +28,11 @@ const option = (
 
 const MODELS: readonly ModelOption[] = [
   option("auto", null, "Auto"),
-  option("strong", "anthropic:claude-opus-5-5", "strong"),
+  {
+    ...option("strong", "anthropic:claude-opus-5-5", "strong"),
+    description: "Hard problems and long documents",
+    provider: "anthropic",
+  },
   option("fast", "anthropic:claude-haiku-5", "fast", false),
   option("gateway:openai/gpt-6", "gateway:openai/gpt-6", "openai/gpt-6"),
 ];
@@ -99,6 +103,25 @@ describe("TargetPicker", () => {
     );
     // A ref's label already is its model: no second name beside it.
     expect(screen.getByRole("option", { name: "openai/gpt-6" })).toBeTruthy();
+  });
+
+  it("shows a model's description under its name, and finds it by it (096)", async () => {
+    renderPicker();
+    await open("Model or agent: Auto");
+    const strong = screen.getByRole("option", { name: STRONG });
+    const line = [...strong.querySelectorAll("span")].find(
+      (span) => span.textContent === "Hard problems and long documents"
+    );
+    expect(line).toBeTruthy();
+    // Options without one have no second line: just the mark and the name.
+    expect(
+      screen
+        .getByRole("option", { name: "openai/gpt-6" })
+        .querySelectorAll(".text-xs")
+    ).toHaveLength(0);
+    await userEvent.keyboard("long documents");
+    await waitFor(() => expect(optionNames()).toHaveLength(1));
+    expect(optionNames()[0]).toContain("strong");
   });
 
   it("keeps options without a key visible, disabled, with the reason", async () => {

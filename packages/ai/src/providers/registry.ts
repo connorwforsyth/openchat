@@ -29,6 +29,7 @@ import {
   describeCatalogError,
   fetchCatalog,
 } from "./catalog";
+import { oneLine, vendorOf } from "./describe";
 import {
   createProvider,
   isKeyless,
@@ -96,7 +97,7 @@ export const buildRegistry = (
   config: RegistryConfig,
   options: RegistryOptions = {}
 ): DiscoveringRegistry => {
-  const { aliases } = config.models;
+  const { aliases, descriptions } = config.models;
   const now = options.now ?? Date.now;
   const log = options.log ?? (() => undefined);
 
@@ -332,6 +333,27 @@ export const buildRegistry = (
     return [...autoOption, ...aliased, ...direct];
   };
 
+  /**
+   * An option's description and vendor (096). The config's description,
+   * by selector then by the ref it resolves to, beats the catalog's.
+   */
+  const described = (
+    option: ModelOption,
+    catalogs: ReadonlyMap<ModelRef, CatalogModel>
+  ): ModelOption => {
+    const { target } = option;
+    const description =
+      oneLine(descriptions[option.selector]) ??
+      (target ? oneLine(descriptions[target]) : undefined) ??
+      (target ? oneLine(catalogs.get(target)?.description) : undefined);
+    const provider = target ? vendorOf(target) : undefined;
+    return {
+      ...option,
+      ...(description === undefined ? {} : { description }),
+      ...(provider === undefined ? {} : { provider }),
+    };
+  };
+
   return {
     catalog,
 
@@ -377,7 +399,7 @@ export const buildRegistry = (
       const configured = configuredOptions(keyedProviders);
       const catalogs = await discovered(keys);
       if (catalogs.size === 0) {
-        return configured;
+        return configured.map((option) => described(option, catalogs));
       }
       // What a catalog says about a configured model fills its context window.
       const withWindows = configured.map((option) => {
@@ -408,7 +430,9 @@ export const buildRegistry = (
             target: ref,
           })
         );
-      return [...withWindows, ...extra];
+      return [...withWindows, ...extra].map((option) =>
+        described(option, catalogs)
+      );
     },
 
     resolve,
