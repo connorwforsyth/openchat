@@ -61,8 +61,9 @@ const MODELS: readonly ModelOption[] = [
   },
 ];
 
-const FAST = /^fast/;
-const STRONG = /^strong/;
+// An alias's row reads as the model it names (114).
+const FAST = /^Claude Haiku 5/;
+const STRONG = /^Claude Opus 5\.5/;
 const GPT = /^gpt-6/;
 const ROCKET = /^Rocket 1/;
 const REVIEWER = /^Reviewer/;
@@ -151,11 +152,12 @@ describe("TargetPicker", () => {
       groupHeadings().length - 1
     );
     // Auto's row is just its name (its card says what it does); an alias
-    // shows the model behind it.
+    // shows as the model behind it, not as the alias (114).
     expect(optionNames()[0]).toBe("Auto");
-    expect(screen.getByRole("option", { name: STRONG }).textContent).toContain(
-      "Claude Opus 5.5"
-    );
+    expect(optionNames()[1]).toBe("Claude Opus 5.5Anthropic");
+    expect(
+      screen.getByRole("option", { name: STRONG }).textContent
+    ).not.toContain("strong");
   });
 
   it("names rows without the vendor prefix, with the vendor at the end (099)", async () => {
@@ -197,7 +199,20 @@ describe("TargetPicker", () => {
     expect(vendor?.className).toContain("text-muted-foreground");
     await userEvent.keyboard("long documents");
     await waitFor(() => expect(optionNames()).toHaveLength(1));
-    expect(optionNames()[0]).toContain("strong");
+    expect(optionNames()[0]).toContain("Claude Opus 5.5");
+  });
+
+  it("finds an alias's row by the alias, and sends the alias (114)", async () => {
+    const { onChange } = renderPicker();
+    await open("Model or agent: Auto");
+    await userEvent.keyboard("strong");
+    // Auto matches too: its own words say it picks a fast or strong model.
+    await waitFor(() =>
+      expect(optionNames()).toEqual(["Auto", "Claude Opus 5.5Anthropic"])
+    );
+    // No CSS loads here, so the backdrop would swallow a real pointer.
+    fireEvent.click(screen.getByRole("option", { name: STRONG }));
+    expect(onChange).toHaveBeenCalledWith({ model: "strong", type: "model" });
   });
 
   it("keeps options without a key visible, disabled, with the reason", async () => {
@@ -281,13 +296,13 @@ describe("TargetPicker", () => {
 
   it("starts on the current choice and moves with the arrow keys", async () => {
     const { onChange } = renderPicker({ model: "strong", type: "model" });
-    await open("Model or agent: strong");
+    await open("Model or agent: Claude Opus 5.5");
     const selected = () =>
       screen
         .getAllByRole("option")
         .find((each) => each.getAttribute("aria-selected") === "true")
         ?.textContent;
-    await waitFor(() => expect(selected()).toContain("strong"));
+    await waitFor(() => expect(selected()).toContain("Claude Opus 5.5"));
     // Down skips the disabled `fast` and lands on OpenAI's model.
     await userEvent.keyboard("{ArrowDown}{Enter}");
     expect(onChange).toHaveBeenCalledWith({
@@ -301,7 +316,7 @@ describe("TargetPicker", () => {
       { model: "strong", type: "model" },
       { models: MODELS.filter((model) => model.selector !== "auto") }
     );
-    await open("Model or agent: strong");
+    await open("Model or agent: Claude Opus 5.5");
     expect(groupHeadings()[0]).toBe("Anthropic");
     expect(screen.queryByRole("option", { name: AUTO })).toBeNull();
   });
@@ -310,7 +325,7 @@ describe("TargetPicker", () => {
 describe("TargetPicker's preview card (099)", () => {
   it("follows the highlighted row by keyboard", async () => {
     renderPicker({ model: "strong", type: "model" });
-    await open("Model or agent: strong");
+    await open("Model or agent: Claude Opus 5.5");
     await waitFor(() =>
       expect(card()?.textContent).toContain("Claude Opus 5.5")
     );

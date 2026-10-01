@@ -95,8 +95,8 @@ describe("buildTargetGroups", () => {
       [
         "anthropic",
         [
-          ["Strong", true],
-          ["fast", false],
+          ["Claude Opus 5.5", true],
+          ["claude-haiku-5", false],
         ],
       ],
       ["openai", [["openai:gpt-6", true]]],
@@ -116,7 +116,7 @@ describe("buildTargetGroups", () => {
     ).toBe("Reviewer");
     expect(
       findTargetChoice(groups, { model: "strong", type: "model" })?.label
-    ).toBe("Strong");
+    ).toBe("Claude Opus 5.5");
     expect(findTargetChoice(groups, AUTO_TARGET)).toBeUndefined();
   });
 });
@@ -177,13 +177,10 @@ describe("model vendors", () => {
       ])
     ).toEqual([
       // A ref's row drops the vendor its section and row end already say.
-      ["Anthropic", ["strong", "claude-haiku-4.5"]],
+      // An alias with no display name reads as the model id it names (114).
+      ["Anthropic", ["claude-opus-5-5", "claude-haiku-4.5"]],
       ["Google", ["gemini-3-pro"]],
     ]);
-    // An alias shows the model it stands for; a ref doesn't repeat itself.
-    expect(groups.providers[0]?.choices.map((choice) => choice.detail)).toEqual(
-      ["claude-opus-5-5", undefined]
-    );
   });
 });
 
@@ -205,7 +202,7 @@ describe("model names (099)", () => {
     ).toBe("GPT-6");
   });
 
-  it("labels a ref by its name and an alias as written, its model beside it", () => {
+  it("labels a ref and an alias alike by the model's name (114)", () => {
     const groups = buildTargetGroups(
       [
         {
@@ -220,14 +217,14 @@ describe("model names (099)", () => {
       []
     );
     const [strong, haiku] = groups.providers[0]?.choices ?? [];
-    expect([strong?.label, strong?.detail]).toEqual([
-      "strong",
-      "Claude Opus 5.5",
-    ]);
-    expect([haiku?.label, haiku?.detail]).toEqual([
-      "Claude Haiku 5",
-      undefined,
-    ]);
+    // An alias shows as the model it names, with nothing beside it; it
+    // still sends the alias, so chats saved with it keep working.
+    expect(strong?.label).toBe("Claude Opus 5.5");
+    expect(strong).not.toHaveProperty("detail");
+    expect(strong?.target).toEqual({ model: "strong", type: "model" });
+    expect(strong?.search).toContain("strong");
+    expect(haiku?.label).toBe("Claude Haiku 5");
+    expect(haiku).not.toHaveProperty("detail");
     // The display name is searchable, and the choice keeps its model.
     expect(haiku?.search).toContain("claude haiku 5");
     expect(haiku?.model?.selector).toBe("anthropic:claude-haiku-5");
@@ -307,24 +304,27 @@ describe("filterTargetGroups", () => {
   it("lists everything for an empty query", () => {
     expect(labels("  ")).toEqual([
       "Auto",
-      "Strong",
-      "fast",
+      "Claude Opus 5.5",
+      "claude-haiku-5",
       "openai:gpt-6",
       "Reviewer",
     ]);
   });
 
   it("matches label, alias, ref and provider, every word in any order", () => {
-    expect(labels("haiku")).toEqual(["fast"]);
-    expect(labels("Anthropic")).toEqual(["Strong", "fast"]);
-    expect(labels("opus anth")).toEqual(["Strong"]);
+    expect(labels("haiku")).toEqual(["claude-haiku-5"]);
+    expect(labels("Anthropic")).toEqual(["Claude Opus 5.5", "claude-haiku-5"]);
+    expect(labels("opus anth")).toEqual(["Claude Opus 5.5"]);
+    // An alias still finds the model it names (114).
+    expect(labels("strong")).toEqual(["Claude Opus 5.5"]);
+    expect(labels("fast")).toEqual(["claude-haiku-5"]);
     expect(labels("review")).toEqual(["Reviewer"]);
     expect(labels("picks")).toEqual(["Auto"]);
     expect(labels("nothing-like-it")).toEqual([]);
   });
 
   it("matches a model's description, and carries it to the choice (096)", () => {
-    expect(labels("hard problems")).toEqual(["Strong"]);
+    expect(labels("hard problems")).toEqual(["Claude Opus 5.5"]);
     const strong = groups.providers[0]?.choices[0];
     expect(strong?.description).toBe("Hard problems and long documents");
     // No description, no empty second line.
