@@ -1,20 +1,16 @@
 "use client";
 
 import { Trans, useLingui } from "@lingui/react/macro";
-import { ExternalLinkIcon, FileTextIcon } from "@workspace/icons";
+import { FileTextIcon } from "@workspace/icons";
 
 import type { SourcePart } from "../model/parts";
 import { useConversationActions } from "./actions";
+import { UrlSourceChip } from "./link-preview";
 
-const hostOf = (url: string): string => {
-  try {
-    return new URL(url).host;
-  } catch {
-    return url;
-  }
-};
-
-/** The citations a message used: web pages and chunks of uploaded files. */
+/**
+ * The citations a message used: web pages (with favicon and a preview card,
+ * 101) and chunks of uploaded files.
+ */
 export function Sources({
   sources,
 }: {
@@ -35,21 +31,13 @@ export function Sources({
           const { source } = part;
           const number = index + 1;
           if (source.kind === "url") {
-            const label = source.title ?? hostOf(source.url);
             return (
               <li key={part.id}>
-                <a
-                  className="flex max-w-64 items-center gap-1.5 rounded-md border px-2 py-1 text-xs transition-colors duration-(--motion-fast) hover:bg-muted"
-                  href={source.url}
-                  rel="noopener noreferrer"
-                  target="_blank"
-                >
-                  <span className="text-muted-foreground tabular-nums">
-                    {number}
-                  </span>
-                  <span className="truncate">{label}</span>
-                  <ExternalLinkIcon aria-hidden className="size-3 shrink-0" />
-                </a>
+                <UrlSourceChip
+                  number={number}
+                  title={source.title}
+                  url={source.url}
+                />
               </li>
             );
           }
