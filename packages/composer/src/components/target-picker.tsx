@@ -251,7 +251,7 @@ function ModelPreview({
           <span className="text-muted-foreground">
             <Trans>Context</Trans>
           </span>
-          <span className="ms-auto flex items-baseline gap-1.5 tabular-nums">
+          <span className="ms-auto flex items-baseline gap-1.5 whitespace-nowrap tabular-nums">
             <span className="text-muted-foreground">
               <Trans>~{size.words} words</Trans>
             </span>

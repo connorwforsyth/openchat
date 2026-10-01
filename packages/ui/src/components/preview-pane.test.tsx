@@ -126,7 +126,7 @@ describe("PreviewPane", () => {
       expect.arrayContaining(["flex-col", "sm:flex-row", "sm:items-start"])
     );
     expect(card()?.className.split(" ")).toEqual(
-      expect.arrayContaining(["w-full", "sm:w-56"])
+      expect.arrayContaining(["w-full", "sm:w-60"])
     );
   });
 

@@ -135,7 +135,7 @@ export function PreviewPaneContent({
   return (
     <div
       className={cn(
-        "flex w-full shrink-0 flex-col gap-3 rounded-xl bg-popover p-3 text-popover-foreground text-xs shadow-md ring-1 ring-foreground/10 sm:w-56",
+        "flex w-full shrink-0 flex-col gap-3 rounded-xl bg-popover p-3 text-popover-foreground text-xs shadow-md ring-1 ring-foreground/10 sm:w-60",
         className
       )}
       data-slot="preview-pane-content"
