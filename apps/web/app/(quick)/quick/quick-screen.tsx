@@ -1,0 +1,344 @@
+"use client";
+
+import { Trans, useLingui } from "@lingui/react/macro";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { Markdown } from "@workspace/chat-ui/conversation/markdown";
+import { ThinkingLabel } from "@workspace/chat-ui/conversation/thinking";
+import type { RunCreated } from "@workspace/client/run-transport";
+import { useRunChat } from "@workspace/client/use-run-chat";
+import { ComposerLoader } from "@workspace/composer/components/composer-loader";
+import type {
+  AttachmentLimits,
+  ComposerValue,
+} from "@workspace/composer/schemas";
+import type { ConversationId, RunId } from "@workspace/contract/schemas/common";
+import type { RunTarget } from "@workspace/contract/schemas/runs";
+import type { ChatContext } from "@workspace/contract/schemas/tenancy";
+import { ExternalLinkIcon } from "@workspace/icons";
+import { readDesktopBridge } from "@workspace/shortcuts/desktop";
+import { comboKeycaps } from "@workspace/shortcuts/keys";
+import { useDetectedPlatform } from "@workspace/shortcuts/react/context";
+import { useDesktopPlatform } from "@workspace/shortcuts/react/use-desktop";
+import { Button } from "@workspace/ui/components/button";
+import { Kbd, KbdGroup } from "@workspace/ui/components/kbd";
+import {
+  type KeyboardEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+
+import { useApi } from "@/app/(app)/_shared/api";
+import { routes } from "@/lib/routes";
+
+// Quick AI (118): the composer, and the reply to what was asked, compactly.
+// The desktop app shows this page in a small floating window (the shell
+// sizes the window to the page). Every send starts a new chat. ⏎ answers
+// here; ⌘⏎ (Ctrl+Enter elsewhere) opens the chat in the app's main window
+// once its run has started, where the reply carries on. Escape hides the
+// window. In a browser the page
+// works too: ⌘⏎ goes to the chat.
+
+const PERSONAL: ChatContext = { type: "personal" };
+
+// Text only, for now: attachments need the app's upload and workspace
+// handling, which the full chat screen has.
+const NO_ATTACHMENTS: AttachmentLimits = { maxFiles: 0 };
+
+const ignore = () => undefined;
+
+interface QuickAsk {
+  readonly conversationId: ConversationId;
+  /** ⌘⏎: hand the chat to the main window once its run exists. */
+  readonly openInApp: boolean;
+  readonly target: RunTarget | null;
+  readonly text: string;
+}
+
+/**
+ * Goes to the chat. In the desktop app the Quick AI window never leaves
+ * `/quick`: the shell shows the chat in the main window instead. In a
+ * browser this tab goes there.
+ */
+const goToChat = (id: ConversationId) => {
+  window.location.assign(routes.chat(id));
+};
+
+type ChatMessage = ReturnType<typeof useRunChat>["messages"][number];
+
+/** The reply's text so far: its text parts, in order. Pure. */
+export const replyText = (message: ChatMessage | undefined): string =>
+  message?.role === "assistant"
+    ? message.parts
+        .flatMap((part) => (part.type === "text" ? [part.text] : []))
+        .join("\n\n")
+    : "";
+
+/** Menus that take Escape for themselves: the composer's suggestions, the + menu. */
+const OPEN_MENU = '[data-slot="composer-suggestions"], [role="menu"]';
+
+/** Focuses the composer's editor, once it's on the page. */
+const focusComposer = () => {
+  document
+    .querySelector<HTMLElement>('[data-slot="composer"] [role="textbox"]')
+    ?.focus();
+};
+
+/**
+ * One ask: sends `text` to the new chat as soon as it mounts and shows the
+ * reply as it streams. Keyed by the chat, so the next ask starts afresh.
+ */
+function QuickTurn({
+  ask,
+  onBusyChange,
+  onHandedOff,
+  onStopReady,
+}: {
+  readonly ask: QuickAsk;
+  readonly onBusyChange: (busy: boolean) => void;
+  /** The chat went to the main window; this ask is done here. */
+  readonly onHandedOff: () => void;
+  /** Hands the composer a way to stop this ask's run. */
+  readonly onStopReady: (stop: (() => void) | null) => void;
+}) {
+  const { client } = useApi();
+  // The run this ask started, for Stop.
+  const run = useRef<{ id: RunId | null }>({ id: null });
+  const onRunCreated = useCallback(
+    (created: RunCreated) => {
+      run.current.id = created.runId;
+      if (ask.openInApp) {
+        goToChat(ask.conversationId);
+        onHandedOff();
+      }
+    },
+    [ask, onHandedOff]
+  );
+  const chat = useRunChat({
+    client,
+    conversationId: ask.conversationId,
+    onRunCreated,
+    runFields: () => ({
+      context: PERSONAL,
+      ...(ask.target ? { target: ask.target } : {}),
+    }),
+  });
+  const { error, messages, sendMessage, status, stop } = chat;
+
+  // Once, though development mounts effects twice.
+  const sentTo = useRef<ConversationId | null>(null);
+  useEffect(() => {
+    if (sentTo.current !== ask.conversationId) {
+      sentTo.current = ask.conversationId;
+      sendMessage({ text: ask.text }).catch(ignore);
+    }
+  }, [ask.conversationId, ask.text, sendMessage]);
+
+  const busy = status === "submitted" || status === "streaming";
+  useEffect(() => {
+    onBusyChange(busy);
+  }, [busy, onBusyChange]);
+  useEffect(() => {
+    onStopReady(() => {
+      const { id } = run.current;
+      // Stops the run on the server, as the chat screen's Stop does.
+      if (id !== null) {
+        client.runs.cancel({ id }).catch(ignore);
+      }
+      stop().catch(ignore);
+    });
+    return () => onStopReady(null);
+  }, [client, onStopReady, stop]);
+
+  const open = useCallback(
+    () => goToChat(ask.conversationId),
+    [ask.conversationId]
+  );
+
+  if (ask.openInApp) {
+    return (
+      <p className="px-1 text-muted-foreground text-sm">
+        <Trans>Opening the chat in the app…</Trans>
+      </p>
+    );
+  }
+  const reply = replyText(messages.at(-1));
+  return (
+    <section
+      aria-label={ask.text}
+      className="flex min-h-0 flex-col gap-2"
+      data-slot="quick-turn"
+    >
+      <p className="truncate px-1 text-muted-foreground text-sm">{ask.text}</p>
+      <div
+        aria-busy={busy}
+        aria-live="polite"
+        className="max-h-[26rem] overflow-y-auto px-1 text-sm leading-relaxed"
+        data-slot="quick-reply"
+      >
+        {reply === "" && busy ? <ThinkingLabel /> : null}
+        {reply === "" ? null : (
+          <Markdown streaming={status === "streaming"}>{reply}</Markdown>
+        )}
+        {error ? (
+          <p className="text-destructive" role="alert">
+            <Trans>The reply didn't finish. Open the chat to try again.</Trans>
+          </p>
+        ) : null}
+      </div>
+      <div className="flex justify-end">
+        <Button onClick={open} size="sm" variant="ghost">
+          <ExternalLinkIcon />
+          <Trans>Open in the app</Trans>
+        </Button>
+      </div>
+    </section>
+  );
+}
+
+function Keys({ combo }: { readonly combo: string }) {
+  const platform = useDetectedPlatform();
+  return (
+    <KbdGroup>
+      {comboKeycaps(combo, platform).map((key) => (
+        <Kbd key={key}>{key}</Kbd>
+      ))}
+    </KbdGroup>
+  );
+}
+
+export function QuickScreen() {
+  const { t } = useLingui();
+  const inShell = useDesktopPlatform() !== null;
+  const { query } = useApi();
+  const settings = useQuery(query.me.settings.queryOptions());
+  const { mutateAsync: createChat, isPending: creating } = useMutation(
+    query.conversations.create.mutationOptions()
+  );
+  const [ask, setAsk] = useState<QuickAsk | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [stopRun, setStopRun] = useState<(() => void) | null>(null);
+  // Whether the Enter that sends was ⌘⏎ (or Ctrl+Enter): read when the
+  // composer submits, which happens inside that key's handler.
+  const openInApp = useRef(false);
+
+  const onKeyDownCapture = useCallback((event: KeyboardEvent) => {
+    if (event.key === "Enter") {
+      openInApp.current = event.metaKey || event.ctrlKey;
+    }
+  }, []);
+
+  const onSubmit = useCallback(
+    (value: ComposerValue) => {
+      const toApp = openInApp.current;
+      openInApp.current = false;
+      // The person's own default; without one the server picks (111).
+      const target = settings.data?.defaultTarget ?? null;
+      setFailed(false);
+      createChat({
+        context: PERSONAL,
+        ...(target ? { defaultTarget: target } : {}),
+      }).then(
+        (created) =>
+          setAsk({
+            conversationId: created.id,
+            openInApp: toApp,
+            target,
+            text: value.text,
+          }),
+        () => setFailed(true)
+      );
+    },
+    [createChat, settings.data?.defaultTarget]
+  );
+
+  const handedOff = useCallback(() => {
+    // The main window has the chat now; this window is ready for the next.
+    setAsk(null);
+    setBusy(false);
+  }, []);
+  const onStopReady = useCallback((stop: (() => void) | null) => {
+    setStopRun(() => stop);
+  }, []);
+
+  // In the desktop app: Escape hides the window, unless a menu is open (it
+  // takes Escape for itself; the editor marks every Escape handled, so
+  // `defaultPrevented` can't tell); and the composer has focus each time the
+  // window comes back.
+  useEffect(() => {
+    const hideQuickAi = readDesktopBridge(window)?.hideQuickAi;
+    if (!hideQuickAi) {
+      return;
+    }
+    const onKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape" && !document.querySelector(OPEN_MENU)) {
+        hideQuickAi();
+      }
+    };
+    // Captured, so a menu that closes on this Escape still counts as open.
+    window.addEventListener("keydown", onKeyDown, { capture: true });
+    window.addEventListener("focus", focusComposer);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown, { capture: true });
+      window.removeEventListener("focus", focusComposer);
+    };
+  }, []);
+
+  let status: "ready" | "submitted" | "streaming" = "ready";
+  if (creating) {
+    status = "submitted";
+  } else if (busy) {
+    status = "streaming";
+  }
+
+  return (
+    <main
+      className="flex flex-col gap-3 p-3"
+      data-slot="quick"
+      onKeyDownCapture={onKeyDownCapture}
+    >
+      <h1 className="sr-only">
+        <Trans>Quick AI</Trans>
+      </h1>
+      <ComposerLoader
+        attachmentLimits={NO_ATTACHMENTS}
+        onStop={stopRun ?? undefined}
+        onSubmit={onSubmit}
+        placeholder={t`Ask anything`}
+        status={status}
+      />
+      {failed ? (
+        <p className="px-1 text-destructive text-sm" role="alert">
+          <Trans>
+            Couldn't start a chat. Check your connection and try again.
+          </Trans>
+        </p>
+      ) : null}
+      {ask ? (
+        <QuickTurn
+          ask={ask}
+          key={ask.conversationId}
+          onBusyChange={setBusy}
+          onHandedOff={handedOff}
+          onStopReady={onStopReady}
+        />
+      ) : (
+        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 px-1 text-muted-foreground text-xs">
+          <span className="flex items-center gap-1">
+            <Keys combo="Enter" /> <Trans>Ask here</Trans>
+          </span>
+          <span className="flex items-center gap-1">
+            <Keys combo="Mod+Enter" /> <Trans>Open in the app</Trans>
+          </span>
+          {inShell ? (
+            <span className="flex items-center gap-1">
+              <Keys combo="Escape" /> <Trans>Close</Trans>
+            </span>
+          ) : null}
+        </p>
+      )}
+    </main>
+  );
+}

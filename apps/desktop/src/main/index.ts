@@ -3,13 +3,17 @@ import { fileURLToPath } from "node:url";
 import {
   app,
   BrowserWindow,
+  dialog,
+  globalShortcut,
   type IpcMainInvokeEvent,
   ipcMain,
   Menu,
+  nativeImage,
   net,
   screen,
   session,
   shell,
+  Tray,
 } from "electron";
 
 import { parseInstanceUrl } from "../shared/instance-url";
@@ -18,13 +22,22 @@ import {
   type CurrentInstance,
   channels,
   connectInputSchema,
+  type MenuCommand,
   menuCommandSchema,
   platformOf,
 } from "../shared/ipc";
 import { parseDesktopEnv } from "./env";
 import { i18nForSystem } from "./i18n";
 import { checkInstance } from "./instance";
-import { menuTemplate } from "./menu";
+import { menuTemplate, trayMenuTemplate } from "./menu";
+import { createQuickAi } from "./quick-ai";
+import {
+  applyQuickShortcut,
+  parseQuickShortcut,
+  type QuickShortcut,
+  type QuickShortcutSetting,
+  registrationMessage,
+} from "./quick-shortcut";
 import {
   guardContents,
   guardEveryContents,
@@ -37,13 +50,16 @@ import {
   settingsPath,
   writeSettings,
 } from "./settings";
+import { drawTrayIcon } from "./tray-icon";
 import { placeWindow, windowStateOf } from "./window-state";
 
 // The desktop shell (ticket 116). Instance URL only (122): the main window
 // shows the instance's own web app, signed in with its own cookies in a
 // persistent partition. The one local page is the first-run screen that asks
-// which instance to use. Electron's wiring lives here; the rules it applies
-// are pure functions in src/shared and src/main.
+// which instance to use. Quick AI (118) is a second, floating window on the
+// instance's `/quick` page, opened by a global shortcut, the menus or the
+// menu bar icon. Electron's wiring lives here; the rules it applies are pure
+// functions in src/shared and src/main.
 
 const env = parseDesktopEnv(process.env);
 const platform = platformOf(process.platform);
@@ -235,14 +251,68 @@ const main = async () => {
     );
     window.on("closed", () => {
       mainWindow = null;
+      // The hidden Quick AI window would otherwise keep the app running
+      // where closing the last window quits it.
+      if (platform !== "mac" && !setupWindow) {
+        app.quit();
+      }
     });
     window.loadURL(target).catch(() => undefined);
+  };
+
+  /** Brings the main window forward, showing `target` when given (118). */
+  const showMain = (target?: string) => {
+    const current = origin();
+    if (!current) {
+      openSetup();
+      return;
+    }
+    if (!mainWindow) {
+      openInstance(target ?? current);
+      return;
+    }
+    if (target) {
+      mainWindow.loadURL(target).catch(() => undefined);
+    }
+    if (mainWindow.isMinimized()) {
+      mainWindow.restore();
+    }
+    mainWindow.show();
+    mainWindow.focus();
+  };
+
+  const quick = createQuickAi({
+    openExternal,
+    openInMain: showMain,
+    origin,
+    platform,
+    webPreferences: webPreferences("instance", INSTANCE_PARTITION),
+  });
+  // Before an instance is chosen there's nothing to ask: the setup screen.
+  const toggleQuick = () => {
+    if (origin()) {
+      quick.toggle();
+    } else {
+      openSetup();
+    }
   };
 
   const fromSetup = (event: IpcMainInvokeEvent) =>
     setupWindow !== null &&
     event.sender === setupWindow.webContents &&
     event.senderFrame === event.sender.mainFrame;
+
+  // Escape on the Quick AI page. Only that window's own page may hide it.
+  ipcMain.on(channels.quickHide, (event) => {
+    const window = quick.window();
+    if (
+      window !== null &&
+      event.sender === window.webContents &&
+      event.senderFrame === event.sender.mainFrame
+    ) {
+      quick.hide();
+    }
+  });
 
   ipcMain.handle(channels.setupCurrent, (event): CurrentInstance => {
     if (!fromSetup(event)) {
@@ -266,6 +336,8 @@ const main = async () => {
         instance = result.value;
         saveSettings({ instance: result.value });
         await saving;
+        // The Quick AI page belonged to the old instance.
+        quick.destroy();
         openInstance(result.value.origin);
         // After the reply is on its way, so the page sees it.
         setImmediate(() => setupWindow?.close());
@@ -274,26 +346,125 @@ const main = async () => {
     }
   );
 
-  Menu.setApplicationMenu(
-    Menu.buildFromTemplate(
-      menuTemplate({
-        actions: {
-          changeInstance: openSetup,
-          // To the instance's page, which runs it as its shortcut. Nothing
-          // to do while only the setup screen is open.
-          runShortcut: (id) => {
-            mainWindow?.webContents.send(
-              channels.menuCommand,
-              menuCommandSchema.parse(id)
-            );
+  const i18n = i18nForSystem(app.getPreferredSystemLanguages());
+  // To the instance's page, which runs it as its shortcut. Nothing to do
+  // while only the setup screen is open.
+  const runShortcut = (id: MenuCommand) => {
+    mainWindow?.webContents.send(
+      channels.menuCommand,
+      menuCommandSchema.parse(id)
+    );
+  };
+
+  // The global shortcut (118). One that can't be had (another app holds
+  // it, or settings.json names something unusable) is reported once, and
+  // Quick AI stays on the menus and the menu bar icon.
+  let registered: QuickShortcut | null = null;
+  const takeQuickShortcut = (setting: QuickShortcutSetting): QuickShortcut => {
+    const next = parseQuickShortcut(setting);
+    const outcome = applyQuickShortcut({
+      next,
+      onPress: toggleQuick,
+      port: {
+        register: (accelerator, onPress) =>
+          globalShortcut.register(accelerator, onPress),
+        unregister: (accelerator) => globalShortcut.unregister(accelerator),
+      },
+      previous: registered,
+    });
+    registered = outcome.kind === "registered" ? next : null;
+    const message = registrationMessage(outcome, { i18n, platform });
+    if (message) {
+      dialog
+        .showMessageBox({ ...message, type: "warning" })
+        .catch(() => undefined);
+    }
+    return next;
+  };
+  let quickShortcut = takeQuickShortcut(settings.quickAi.shortcut);
+
+  // The menu bar icon (macOS, 117 and 118). A placeholder drawing until the
+  // brand's icon (119).
+  let tray: Tray | null = null;
+  let trayMenu: Menu | null = null;
+  if (platform === "mac") {
+    const image = nativeImage.createEmpty();
+    for (const scaleFactor of [1, 2]) {
+      const bitmap = drawTrayIcon(scaleFactor);
+      image.addRepresentation(bitmap);
+    }
+    image.setTemplateImage(true);
+    tray = new Tray(image);
+    tray.setToolTip(instance?.name ?? app.name);
+  }
+
+  const buildMenus = () => {
+    Menu.setApplicationMenu(
+      Menu.buildFromTemplate(
+        menuTemplate({
+          actions: {
+            changeInstance: openSetup,
+            runShortcut,
+            setQuickShortcut,
+            toggleQuick,
           },
-        },
-        appName: app.name,
-        i18n: i18nForSystem(app.getPreferredSystemLanguages()),
-        platform,
-      })
-    )
-  );
+          appName: app.name,
+          i18n,
+          platform,
+          quickShortcut,
+        })
+      )
+    );
+    if (tray) {
+      trayMenu = Menu.buildFromTemplate(
+        trayMenuTemplate({
+          actions: {
+            newChat: () => {
+              const open = mainWindow !== null;
+              showMain();
+              if (open) {
+                runShortcut("chat.new");
+              }
+            },
+            quit: () => app.quit(),
+            showWindow: () => showMain(),
+            toggleQuick,
+          },
+          i18n,
+          quickShortcut,
+        })
+      );
+      tray.setContextMenu(trayMenu);
+    }
+  };
+  function setQuickShortcut(setting: QuickShortcutSetting) {
+    quickShortcut = takeQuickShortcut(setting);
+    saveSettings({ quickAi: { shortcut: setting } });
+    buildMenus();
+  }
+  buildMenus();
+
+  if (env.DESKTOP_TEST_HOOKS) {
+    Object.assign(globalThis, {
+      __desktopTest: {
+        quickShortcut: () =>
+          registered?.kind === "on" ? registered.accelerator : null,
+        // A shortcut the menu doesn't offer, as settings.json could name.
+        setQuickShortcut,
+        trayMenu: () => trayMenu,
+      },
+    });
+  }
+
+  // Quitting closes every window; the Quick AI window would only hide.
+  app.on("before-quit", () => {
+    quick.destroy();
+  });
+  // A global shortcut outlives nothing: released however the app ends.
+  app.on("will-quit", () => {
+    globalShortcut.unregisterAll();
+    tray?.destroy();
+  });
 
   app.on("second-instance", () => {
     const window = mainWindow ?? setupWindow;
