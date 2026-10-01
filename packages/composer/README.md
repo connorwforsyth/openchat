@@ -87,8 +87,8 @@ model id it stands for; an option without a key stays, disabled, saying so.
 
 `variants.ts` folds a catalog entry that's only a mode of another listed
 model into it: the suffixes `:thinking`, `-thinking`, `-reasoning` and
-`-high` become a thinking level, and `-fast`, `-instant` and `-turbo` fast
-mode (`openai:o4-mini-high` is o4-mini's High; `gateway:anthropic/claude-opus-5-fast`
+`-high` become a thinking level, and `-fast`, `-highspeed`, `-ultraspeed`,
+`-instant` and `-turbo` fast mode (`openai:o4-mini-high` is o4-mini's High; `gateway:anthropic/claude-opus-5-fast`
 is Opus 5's fast mode). Only refs fold, only into a listed ref with the same
 provider key, never into an entry that's folded itself; `-mini`, `-nano` and
 sizes are other models.

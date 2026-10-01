@@ -3,11 +3,11 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import {
   AttachIcon,
-  ClockIcon,
   FileIcon,
   GlobeIcon,
   LibraryIcon,
   PlusIcon,
+  ZapIcon,
 } from "@workspace/icons";
 import {
   PromptInputActionMenu,
@@ -185,7 +185,7 @@ export function PlusMenu({
             disabled={fast.blocked !== undefined}
             onCheckedChange={switchFast}
           >
-            <ClockIcon aria-hidden />
+            <ZapIcon aria-hidden />
             <span className="flex min-w-0 flex-col">
               <Trans>Fast mode</Trans>
               {fast.blocked === "server" ? (

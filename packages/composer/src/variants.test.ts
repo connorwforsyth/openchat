@@ -92,6 +92,46 @@ describe("foldModelVariants", () => {
     expect(folded.baseOf.get("openai:o4-mini-high")).toBe("openai:o4-mini");
   });
 
+  it("folds the gateway's -highspeed and -ultraspeed like -fast", () => {
+    const folded = foldModelVariants([
+      model("gateway:zai/glm-5.3"),
+      model("gateway:zai/glm-5.3-highspeed"),
+      model("gateway:openai/gpt-5.6-sol"),
+      model("gateway:openai/gpt-5.6-sol-ultraspeed"),
+      // Only when the base is listed.
+      model("gateway:minimax/m3-highspeed"),
+    ]);
+    expect(folded.models.map((each) => each.selector)).toEqual([
+      "gateway:zai/glm-5.3",
+      "gateway:openai/gpt-5.6-sol",
+      "gateway:minimax/m3-highspeed",
+    ]);
+    expect(folded.families.get("gateway:zai/glm-5.3")?.fast?.selector).toBe(
+      "gateway:zai/glm-5.3-highspeed"
+    );
+    expect(
+      folded.families.get("gateway:openai/gpt-5.6-sol")?.fast?.selector
+    ).toBe("gateway:openai/gpt-5.6-sol-ultraspeed");
+  });
+
+  it("takes the first listed fast entry when a model has several", () => {
+    const folded = foldModelVariants([
+      model("gateway:openai/gpt-6"),
+      model("gateway:openai/gpt-6-fast"),
+      model("gateway:openai/gpt-6-ultraspeed"),
+    ]);
+    expect(folded.models.map((each) => each.selector)).toEqual([
+      "gateway:openai/gpt-6",
+    ]);
+    expect(folded.families.get("gateway:openai/gpt-6")?.fast?.selector).toBe(
+      "gateway:openai/gpt-6-fast"
+    );
+    // The other still finds the model by search, and maps back to it.
+    expect(folded.baseOf.get("gateway:openai/gpt-6-ultraspeed")).toBe(
+      "gateway:openai/gpt-6"
+    );
+  });
+
   it("keeps other models apart: minis, nanos, sizes, and a mode without its base", () => {
     const models = [
       model("openai:gpt-6"),

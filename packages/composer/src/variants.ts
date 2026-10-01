@@ -48,7 +48,14 @@ const THINKING_SUFFIXES: readonly (readonly [string, ThinkingLevel])[] = [
   ["-reasoning", "on"],
   ["-high", "high"],
 ];
-const FAST_SUFFIXES: readonly string[] = ["-fast", "-instant", "-turbo"];
+// `-highspeed` and `-ultraspeed` are the gateway's names for a fast tier.
+const FAST_SUFFIXES: readonly string[] = [
+  "-fast",
+  "-highspeed",
+  "-ultraspeed",
+  "-instant",
+  "-turbo",
+];
 
 export interface ThinkingVariant {
   readonly level: ThinkingLevel;
@@ -58,7 +65,7 @@ export interface ThinkingVariant {
 /** A model with the entries that are only a mode of it. */
 export interface ModelFamily {
   readonly base: ModelOption;
-  /** A folded fast entry (`-fast`, `-instant`, `-turbo`). */
+  /** A folded fast entry (`-fast`, `-highspeed`, `-ultraspeed`, `-instant`, `-turbo`). */
   readonly fast?: ModelOption;
   /** Folded thinking entries, each the level that picks it. */
   readonly thinking: readonly ThinkingVariant[];

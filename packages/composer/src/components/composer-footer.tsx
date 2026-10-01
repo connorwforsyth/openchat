@@ -4,7 +4,7 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import type { ModelOption } from "@workspace/contract/schemas/models";
 import type { RunTarget } from "@workspace/contract/schemas/runs";
 import type { ChatContext } from "@workspace/contract/schemas/tenancy";
-import { ArrowUpIcon, ClockIcon, GlobeIcon } from "@workspace/icons";
+import { ArrowUpIcon, GlobeIcon, ZapIcon } from "@workspace/icons";
 import {
   PromptInputButton,
   PromptInputFooter,
@@ -147,7 +147,7 @@ export function ComposerFooter({
             onClick={turnOffFast}
             size="sm"
           >
-            <ClockIcon aria-hidden />
+            <ZapIcon aria-hidden />
             <span className="max-sm:sr-only">
               <Trans>Fast</Trans>
             </span>

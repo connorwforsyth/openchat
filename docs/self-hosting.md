@@ -348,8 +348,8 @@ as the run's `reasoning` and `fast` options (visible later on the run).
   the provider's default applies.
 - **Catalog modes fold in.** A catalog entry that's only a mode of another
   listed model (`o4-mini-high`, `claude-3.7-sonnet:thinking`,
-  `claude-opus-5-fast`, and the `-thinking`, `-reasoning`, `-instant` and
-  `-turbo` suffixes) isn't listed separately: it becomes that model's
+  `claude-opus-5-fast`, and the `-thinking`, `-reasoning`, `-highspeed`,
+  `-ultraspeed`, `-instant` and `-turbo` suffixes) isn't listed separately: it becomes that model's
   thinking level or its Fast mode.
 - **Fast mode** uses OpenAI's priority processing (`serviceTier: priority`,
   GPT-4 and later and o3 and later, not nano or chat models) or Anthropic's

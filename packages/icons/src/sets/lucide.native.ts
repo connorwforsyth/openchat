@@ -93,6 +93,7 @@ import {
   Wallet,
   Wrench,
   X,
+  Zap,
   ZoomIn,
   ZoomOut,
 } from "lucide-react-native";
@@ -176,6 +177,7 @@ export const UsersIcon: NativeIcon = Users;
 export const AtSignIcon: NativeIcon = AtSign;
 export const Building2Icon: NativeIcon = Building2;
 export const WrenchIcon: NativeIcon = Wrench;
+export const ZapIcon: NativeIcon = Zap;
 export const HistoryIcon: NativeIcon = History;
 export const KeyboardIcon: NativeIcon = Keyboard;
 export const KeyRoundIcon: NativeIcon = KeyRound;
