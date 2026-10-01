@@ -153,6 +153,12 @@ export interface TurnResolverDeps {
    * run (078), bound to the database by `services.ts`.
    */
   readonly artifacts?: (run: RunStart) => Readonly<Record<string, Tool>>;
+  /**
+   * Artifacts used in the run's chat from elsewhere ("Use in chat", 124),
+   * as an instructions section beside the `@file` mentions; `undefined`
+   * when there are none.
+   */
+  readonly attachedArtifacts?: (run: RunStart) => Promise<string | undefined>;
   /** Built-in tools this instance serves, the same for every turn, from their workstreams. */
   readonly builtins?: Readonly<Record<string, Tool>>;
   /**
@@ -583,10 +589,13 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
   ): Promise<string | undefined> => {
     const message = await getMessage(db, run.userMessageId);
     const refs = message.ok ? workspaceFileRefs(message.value.parts) : [];
-    if (refs.length === 0) {
-      return;
-    }
-    return workspaceContext(refs, (await sandbox())?.readFile);
+    const files =
+      refs.length === 0
+        ? undefined
+        : await workspaceContext(refs, (await sandbox())?.readFile);
+    // Artifacts used in this chat from elsewhere ride along like mentions (124).
+    const attached = await deps.attachedArtifacts?.(run);
+    return [files, attached].filter(Boolean).join("\n\n") || undefined;
   };
 
   /**

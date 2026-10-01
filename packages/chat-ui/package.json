@@ -31,6 +31,7 @@
     "@streamdown/math": "1.0.2",
     "@tanstack/react-query": "catalog:",
     "@workspace/ai": "workspace:*",
+    "@workspace/artifacts-kit": "workspace:*",
     "@workspace/client": "workspace:*",
     "@workspace/code-ui": "workspace:*",
     "@workspace/composer": "workspace:*",

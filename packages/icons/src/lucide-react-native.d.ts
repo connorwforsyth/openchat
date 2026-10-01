@@ -64,6 +64,9 @@ declare module "lucide-react-native" {
   export const Image: LucideIcon;
   export const Info: LucideIcon;
   export const Layers: LucideIcon;
+  export const LayoutGrid: LucideIcon;
+  export const List: LucideIcon;
+  export const Shapes: LucideIcon;
   export const Link: LucideIcon;
   export const Loader: LucideIcon;
   export const Loader2: LucideIcon;

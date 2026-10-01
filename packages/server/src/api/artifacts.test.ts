@@ -177,3 +177,200 @@ describe("artifacts procedures", () => {
     );
   });
 });
+
+describe("the Artifacts page (124)", () => {
+  const router = () =>
+    createArtifactsRouter({ access: grantAccess(db), db }).artifacts;
+
+  it("lists what you own and what's shared with you, and records views", async () => {
+    const artifacts = router();
+    const { first, owner, stranger } = await seedArtifact();
+    const { id } = first.artifact;
+
+    const mine = await call(artifacts.listAll, { scope: "mine" }, as(owner.id));
+    expect(mine.items).toEqual([
+      expect.objectContaining({
+        access: "owner",
+        canGoToChat: true,
+        id,
+        ownerId: owner.id,
+        viewedAt: null,
+        visibility: "private",
+      }),
+    ]);
+    expect((await call(artifacts.listAll, {}, as(stranger.id))).items).toEqual(
+      []
+    );
+    await expect(
+      call(artifacts.detail, { id }, as(stranger.id))
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+
+    // A viewer share: listed under "shared", readable, but no chat to open.
+    const grant = await call(
+      artifacts.share,
+      {
+        id,
+        permission: "viewer",
+        principal: { id: stranger.id, type: "user" },
+      },
+      as(owner.id)
+    );
+    const shared = await call(
+      artifacts.listAll,
+      { scope: "shared" },
+      as(stranger.id)
+    );
+    expect(shared.items).toEqual([
+      expect.objectContaining({
+        access: "viewer",
+        canGoToChat: false,
+        id,
+        visibility: "shared",
+      }),
+    ]);
+    const detail = await call(artifacts.detail, { id }, as(stranger.id));
+    expect(detail.versions.map((version) => version.content)).toEqual([
+      "v1",
+      "v2",
+    ]);
+    expect(await call(artifacts.listGrants, { id }, as(stranger.id))).toEqual([
+      expect.objectContaining({ id: grant.id, permission: "viewer" }),
+    ]);
+
+    await call(artifacts.markViewed, { id }, as(stranger.id));
+    const viewed = await call(artifacts.listAll, {}, as(stranger.id));
+    expect(viewed.items[0]?.viewedAt).not.toBeNull();
+
+    // A viewer can't rename, delete or share it.
+    await expect(
+      call(artifacts.rename, { id, title: "Mine now" }, as(stranger.id))
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(
+      call(artifacts.delete, { id }, as(stranger.id))
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(
+      call(
+        artifacts.share,
+        {
+          id,
+          permission: "editor",
+          principal: { id: stranger.id, type: "user" },
+        },
+        as(stranger.id)
+      )
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+    // They can drop the share made to them.
+    await call(artifacts.unshare, { grantId: grant.id, id }, as(stranger.id));
+    await expect(
+      call(artifacts.get, { id }, as(stranger.id))
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+
+  it("filters by kind and search, and refuses a bad cursor", async () => {
+    const artifacts = router();
+    const { owner } = await seedArtifact();
+    expect(
+      (await call(artifacts.listAll, { kind: "html" }, as(owner.id))).items
+    ).toEqual([]);
+    expect(
+      (await call(artifacts.listAll, { query: "v2" }, as(owner.id))).items
+    ).toHaveLength(1);
+    expect(
+      (await call(artifacts.listAll, { query: "v1" }, as(owner.id))).items
+    ).toHaveLength(0);
+    await expect(
+      call(artifacts.listAll, { cursor: "nope" }, as(owner.id))
+    ).rejects.toMatchObject({ code: "VALIDATION" });
+  });
+
+  it("renames for an editor, duplicates for a viewer, deletes for the owner", async () => {
+    const artifacts = router();
+    const { first, owner, stranger } = await seedArtifact();
+    const { id } = first.artifact;
+    await call(
+      artifacts.share,
+      {
+        id,
+        permission: "editor",
+        principal: { id: stranger.id, type: "user" },
+      },
+      as(owner.id)
+    );
+    const renamed = await call(
+      artifacts.rename,
+      { id, title: "Release notes" },
+      as(stranger.id)
+    );
+    expect(renamed).toMatchObject({ access: "editor", title: "Release notes" });
+
+    const copy = await call(artifacts.duplicate, { id }, as(stranger.id));
+    expect(copy).toMatchObject({
+      access: "owner",
+      ownerId: stranger.id,
+      title: "Release notes (copy)",
+      visibility: "private",
+    });
+    expect(
+      (await call(artifacts.detail, { id: copy.id }, as(stranger.id))).versions
+    ).toEqual([expect.objectContaining({ content: "v2", number: 1 })]);
+
+    await expect(
+      call(artifacts.delete, { id }, as(stranger.id))
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await call(artifacts.delete, { id }, as(owner.id));
+    await expect(
+      call(artifacts.get, { id }, as(owner.id))
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+
+  it("won't share with yourself or into an org you're not in", async () => {
+    const artifacts = router();
+    const { first, owner, stranger } = await seedArtifact();
+    const elsewhere = await seedOrg(db, stranger.id);
+    const { id } = first.artifact;
+    for (const principal of [
+      { id: owner.id, type: "user" as const },
+      { id: elsewhere.id, type: "org" as const },
+    ]) {
+      // biome-ignore lint/performance/noAwaitInLoops: one refusal at a time.
+      await expect(
+        call(
+          artifacts.share,
+          { id, permission: "viewer", principal },
+          as(owner.id)
+        )
+      ).rejects.toMatchObject({ code: "VALIDATION" });
+    }
+  });
+
+  it("uses an artifact in another chat, which then lists and can version it", async () => {
+    const artifacts = router();
+    const { first, owner, stranger } = await seedArtifact();
+    const { id } = first.artifact;
+    const personal = await seedOrg(db, owner.id, { isPersonal: true });
+    const other = await createConversation(db, {
+      context: { id: personal.id, type: "personal" },
+      ownerId: owner.id,
+    });
+
+    // Someone who can't write to that chat can't attach anything to it.
+    await call(
+      artifacts.share,
+      {
+        id,
+        permission: "viewer",
+        principal: { id: stranger.id, type: "user" },
+      },
+      as(owner.id)
+    );
+    await expect(
+      call(artifacts.use, { conversationId: other.id, id }, as(stranger.id))
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+
+    await call(artifacts.use, { conversationId: other.id, id }, as(owner.id));
+    expect(
+      await call(artifacts.list, { conversationId: other.id }, as(owner.id))
+    ).toEqual([expect.objectContaining({ id })]);
+  });
+});

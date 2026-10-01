@@ -6,6 +6,7 @@ import {
   conversationIdSchema,
   fileChunkIdSchema,
   fileIdSchema,
+  grantIdSchema,
   messageIdSchema,
   pageInputSchema,
   timestampSchema,
@@ -13,6 +14,7 @@ import {
 } from "./common";
 import { artifactKindSchema } from "./message-parts";
 import { modelRefSchema } from "./models";
+import { principalSchema } from "./tenancy";
 
 // Files, RAG and artifacts (PLAN.md §8 RAG). Uploads land in storage (local
 // volume or S3-compatible), then a pg-boss job parses, chunks and embeds them.
@@ -94,6 +96,11 @@ export const artifactSchema = z.object({
   latestVersionId: artifactVersionIdSchema.nullable(),
   /** The message that created it. */
   messageId: messageIdSchema,
+  /**
+   * Who owns it (124): the person whose chat made it. Sharing is the
+   * owner's, through the artifact's own grants, not the chat's.
+   */
+  ownerId: userIdSchema,
   title: z.string().max(200),
   updatedAt: timestampSchema,
 });
@@ -102,6 +109,11 @@ export type Artifact = z.infer<typeof artifactSchema>;
 export const artifactVersionSchema = z.object({
   artifactId: artifactIdSchema,
   content: z.string(),
+  /**
+   * The chat that made this version (124). An artifact used in another chat
+   * gets versions from there too, so this can differ from the artifact's.
+   */
+  conversationId: conversationIdSchema,
   createdAt: timestampSchema,
   id: artifactVersionIdSchema,
   /** For `code` artifacts: a Shiki language id. */
@@ -111,3 +123,82 @@ export const artifactVersionSchema = z.object({
   number: z.int().min(1),
 });
 export type ArtifactVersion = z.infer<typeof artifactVersionSchema>;
+
+// The Artifacts page (124): everything you made or that was shared with
+// you, across chats. An artifact is owned by a person and shared like a
+// chat, with `viewer` or `editor` grants to a user, team or org.
+
+/** A grant's level on an artifact: see it, or also change it. */
+export const artifactPermissionSchema = z.enum(["viewer", "editor"]);
+export type ArtifactPermission = z.infer<typeof artifactPermissionSchema>;
+
+/** The caller's own access: the owner's, or the strongest grant they hold. */
+export const artifactAccessSchema = z.enum(["owner", "editor", "viewer"]);
+export type ArtifactAccess = z.infer<typeof artifactAccessSchema>;
+
+/** Who can see it besides the owner: no one yet, or someone it was shared with. */
+export const artifactVisibilitySchema = z.enum(["private", "shared"]);
+export type ArtifactVisibility = z.infer<typeof artifactVisibilitySchema>;
+
+/** One row of the Artifacts page. */
+export const artifactListItemSchema = artifactSchema.extend({
+  access: artifactAccessSchema,
+  /** Whether the caller can open the chat that made it ("Go to chat"). */
+  canGoToChat: z.boolean(),
+  ownerName: z.string(),
+  /** When the caller last opened it; `null` if they never have. */
+  viewedAt: timestampSchema.nullable(),
+  visibility: artifactVisibilitySchema,
+});
+export type ArtifactListItem = z.infer<typeof artifactListItemSchema>;
+
+/** `all`: yours and shared with you; `mine`: yours; `shared`: others' shared with you. */
+export const artifactScopeSchema = z.enum(["all", "mine", "shared"]);
+export type ArtifactScope = z.infer<typeof artifactScopeSchema>;
+
+/** Sorted by when the caller last viewed each, then by its last change. */
+export const listAllArtifactsInputSchema = pageInputSchema.extend({
+  kind: artifactKindSchema.optional(),
+  /** Matches the title and the latest version's content. */
+  query: z.string().trim().max(200).optional(),
+  scope: artifactScopeSchema.default("all"),
+});
+export type ListAllArtifactsInput = z.input<typeof listAllArtifactsInputSchema>;
+
+/** The full-page view: the artifact and every version, oldest first. */
+export const artifactDetailSchema = z.object({
+  artifact: artifactListItemSchema,
+  versions: z.array(artifactVersionSchema),
+});
+export type ArtifactDetail = z.infer<typeof artifactDetailSchema>;
+
+export const renameArtifactInputSchema = z.object({
+  id: artifactIdSchema,
+  title: z.string().trim().min(1).max(200),
+});
+
+/** A share on one artifact. */
+export const artifactGrantSchema = z.object({
+  createdAt: timestampSchema,
+  grantedBy: userIdSchema,
+  id: grantIdSchema,
+  permission: artifactPermissionSchema,
+  principal: principalSchema,
+});
+export type ArtifactGrant = z.infer<typeof artifactGrantSchema>;
+
+/** Re-sharing with the same principal replaces its level. */
+export const shareArtifactInputSchema = z.object({
+  id: artifactIdSchema,
+  permission: artifactPermissionSchema,
+  principal: principalSchema,
+});
+
+/**
+ * "Use in chat": attaches the artifact to a chat by reference, so that
+ * chat's model sees its latest version and can make new versions of it.
+ */
+export const useArtifactInputSchema = z.object({
+  conversationId: conversationIdSchema,
+  id: artifactIdSchema,
+});

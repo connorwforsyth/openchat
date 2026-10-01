@@ -28,6 +28,7 @@ export const config = {
   matcher: [
     "/",
     "/c/:path*",
+    "/artifacts/:path*",
     "/library/:path*",
     "/settings/:path*",
     "/admin/:path*",

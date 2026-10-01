@@ -1,3 +1,4 @@
+import { builtinKindDefinitions } from "@workspace/artifacts-kit/builtin";
 import type { ArtifactKind } from "@workspace/contract/schemas/message-parts";
 import type { ProposedEdit } from "@workspace/contract/schemas/runs";
 import { structuredPatch } from "diff";
@@ -5,15 +6,12 @@ import { structuredPatch } from "diff";
 // Artifacts panel helpers (D16): a file name for each artifact so CodeView
 // picks a language, the before/after diff between two versions as the same
 // `ProposedEdit` shape DiffView reviews, and which kinds preview in a frame.
+// What differs per kind (its file extension, how the panel shows it) comes
+// from the kind's definition in `@workspace/artifacts-kit` (124).
 
-const extensionByKind: Readonly<Record<ArtifactKind, string>> = {
-  code: "txt",
-  html: "html",
-  markdown: "md",
-  mermaid: "mmd",
-  react: "tsx",
-  svg: "svg",
-};
+/** The kind's first export's extension; `txt` for a kind that has none. */
+const extensionOf = (kind: ArtifactKind): string =>
+  builtinKindDefinitions[kind].export[0]?.extension ?? "txt";
 
 // Shiki language ids that don't double as a file extension.
 const extensionByLanguage: Readonly<Record<string, string>> = {
@@ -45,7 +43,7 @@ export const artifactFileName = (
   const extension =
     kind === "code" && language
       ? (extensionByLanguage[language] ?? language)
-      : extensionByKind[kind];
+      : extensionOf(kind);
   return `${base}.${extension}`;
 };
 
@@ -87,20 +85,17 @@ export const versionEdit = (
 export type ArtifactPreviewKind = "frame" | "markdown" | "none";
 
 export const previewKind = (kind: ArtifactKind): ArtifactPreviewKind => {
-  switch (kind) {
-    case "html":
-    case "svg":
-      return "frame";
+  const { panel } = builtinKindDefinitions[kind].render;
+  switch (panel) {
+    case "frame":
     case "markdown":
-      return "markdown";
-    // React needs a bundler in the frame, and Mermaid a renderer; both
-    // arrive with the artifact runtime (ticket 025). Until then: source only.
-    case "react":
-    case "mermaid":
-    case "code":
+      return panel;
+    // React needs a bundler in the frame, and Mermaid a renderer; the panel
+    // leaves both to the artifact runtime and shows the source here.
+    case "source":
       return "none";
     default:
-      return kind satisfies never;
+      return panel satisfies never;
   }
 };
 

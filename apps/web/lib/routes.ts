@@ -1,4 +1,5 @@
 import type {
+  ArtifactId,
   ConversationId,
   LibraryItemId,
   MessageId,
@@ -28,6 +29,8 @@ export const routes = {
   admin: "/admin",
   adminOrg: (orgId: OrgId, section = "policies") =>
     `/admin/${orgId}/${section}`,
+  artifact: (id: ArtifactId) => `/artifacts/${id}`,
+  artifacts: "/artifacts",
   askAi: (prompt: string) => withQuery("/", { [routeParams.askAi]: prompt }),
   chat: (id: ConversationId, messageId: MessageId | null = null) =>
     messageId ? `/c/${id}#${messageId}` : `/c/${id}`,

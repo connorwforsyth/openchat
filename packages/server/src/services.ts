@@ -5,19 +5,14 @@ import {
 } from "@workspace/ai/keys/key-store.memory";
 import type { ProviderRegistry } from "@workspace/ai/ports/provider-registry";
 import type { RunStart } from "@workspace/ai/ports/run-executor";
-import {
-  type ArtifactStore,
-  createArtifactTools,
-} from "@workspace/ai/tools/artifacts";
+import { createArtifactTools } from "@workspace/ai/tools/artifacts";
 import type { AppConfig } from "@workspace/config/schema";
 import type { Db } from "@workspace/db/client";
-import {
-  listArtifacts,
-  saveArtifactVersion,
-} from "@workspace/db/queries/artifacts";
-import { getRun } from "@workspace/db/queries/runs";
-import { err, ok } from "@workspace/shared/result";
 
+import {
+  attachedArtifactsSection,
+  dbArtifactStore,
+} from "./api/artifacts-context";
 import type { ApiServices } from "./api/router";
 import { type ConversationAccess, grantAccess } from "./context";
 import { createEvalJobHandlers } from "./evals/run";
@@ -105,38 +100,10 @@ export interface Services extends ApiServices {
   readonly streams: PostgresStreamChannel;
 }
 
-/**
- * The `ArtifactStore` port for one run over `@workspace/db`: the run's chat
- * is the only one it reads or writes, and each version points at the answer
- * being written. The run was claimed before any tool runs, so that answer
- * exists.
- */
-export const dbArtifactStore = (db: Db, run: RunStart): ArtifactStore => ({
-  list: async () =>
-    (await listArtifacts(db, run.conversationId)).map((row) => ({
-      artifactId: row.id,
-      kind: row.kind,
-      title: row.title,
-    })),
-  save: async (input) => {
-    const row = await getRun(db, run.runId);
-    const saved = await saveArtifactVersion(db, {
-      ...input,
-      conversationId: run.conversationId,
-      messageId:
-        (row.ok ? row.value.assistantMessageId : null) ?? run.userMessageId,
-    });
-    return saved.ok
-      ? ok({
-          artifactId: saved.value.artifact.id,
-          kind: saved.value.artifact.kind,
-          title: saved.value.artifact.title,
-          version: saved.value.version.number,
-          versionId: saved.value.version.id,
-        })
-      : err({ type: "not_found" as const });
-  },
-});
+// The run's artifact store moved beside the artifacts API (124); kept
+// exported from here for the callers that import it.
+// biome-ignore lint/performance/noBarrelFile: one name, kept where callers expect it.
+export { dbArtifactStore } from "./api/artifacts-context";
 
 export const createServices = (options: ServicesOptions): Services => {
   const { config, db, jobs } = options;
@@ -145,6 +112,7 @@ export const createServices = (options: ServicesOptions): Services => {
     options.keyStore ?? createMemoryKeyStore(instanceKeysFromConfig(config));
   const turnDeps = {
     artifacts: (run: RunStart) => createArtifactTools(dbArtifactStore(db, run)),
+    attachedArtifacts: (run: RunStart) => attachedArtifactsSection(db, run),
     ...options.tools,
     config,
     db,

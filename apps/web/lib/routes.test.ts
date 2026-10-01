@@ -46,5 +46,7 @@ describe("routes", () => {
     );
     expect(routes.signUpForInvite("tok")).toBe("/sign-up?invite=tok");
     expect(routes.libraryNew("agent")).toBe("/library/new/agent");
+    const artifact = fixtureId("artifact", 3);
+    expect(routes.artifact(artifact)).toBe(`/artifacts/${artifact}`);
   });
 });

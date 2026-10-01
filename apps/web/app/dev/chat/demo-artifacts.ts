@@ -1,5 +1,5 @@
 import { chatArtifacts } from "@workspace/chat-ui/fixtures";
-import { conversation, fixtureId } from "@workspace/contract/fixtures";
+import { conversation, fixtureId, userAda } from "@workspace/contract/fixtures";
 import type {
   Artifact,
   ArtifactVersion,
@@ -26,6 +26,7 @@ const artifact = (
   kind,
   latestVersionId: fixtureId("artifactVersion", n + versions - 1),
   messageId,
+  ownerId: userAda.id,
   title,
   updatedAt: at(4 + versions),
 });
@@ -38,6 +39,7 @@ const version = (
 ): ArtifactVersion => ({
   artifactId: owner.id,
   content,
+  conversationId: owner.conversationId,
   createdAt: at(4 + number),
   id: fixtureId("artifactVersion", n),
   language: null,

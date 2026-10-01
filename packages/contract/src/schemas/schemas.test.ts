@@ -72,6 +72,40 @@ const itemId = agentItem.id;
 const notUuid = "not-a-uuid";
 const etag = "a".repeat(64);
 
+const artifactVersionRow = {
+  artifactId: fixtureId("artifact", 1),
+  content: "<p>hi</p>",
+  conversationId: convId,
+  createdAt: t,
+  id: fixtureId("artifactVersion", 1),
+  language: null,
+  messageId: msgId,
+  number: 1,
+};
+const artifactRow = {
+  access: "owner",
+  canGoToChat: true,
+  conversationId: convId,
+  createdAt: t,
+  id: fixtureId("artifact", 1),
+  kind: "markdown",
+  latestVersionId: fixtureId("artifactVersion", 1),
+  messageId: msgId,
+  ownerId: uid,
+  ownerName: "Ada",
+  title: "Trip plan",
+  updatedAt: t,
+  viewedAt: null,
+  visibility: "private",
+};
+const artifactGrant = {
+  createdAt: t,
+  grantedBy: uid,
+  id: fixtureId("grant", 1),
+  permission: "viewer",
+  principal: { id: uid, type: "user" },
+};
+
 const cases: Record<string, Cases> = {
   // common
   "common.descriptionSchema": {
@@ -265,6 +299,21 @@ const cases: Record<string, Cases> = {
   },
 
   // files
+  "files.artifactDetailSchema": {
+    invalid: [{ artifact: artifactRow, versions: [{ number: 0 }] }],
+    valid: [{ artifact: artifactRow, versions: [artifactVersionRow] }],
+  },
+  "files.artifactGrantSchema": {
+    invalid: [{ ...artifactGrant, permission: "use" }],
+    valid: [artifactGrant],
+  },
+  "files.artifactListItemSchema": {
+    invalid: [{ ...artifactRow, visibility: "public" }],
+    valid: [
+      artifactRow,
+      { ...artifactRow, access: "viewer", viewedAt: t, visibility: "shared" },
+    ],
+  },
   "files.artifactSchema": {
     invalid: [{ conversationId: convId }],
     valid: [
@@ -275,6 +324,7 @@ const cases: Record<string, Cases> = {
         kind: "html",
         latestVersionId: fixtureId("artifactVersion", 1),
         messageId: msgId,
+        ownerId: uid,
         title: "Page",
         updatedAt: t,
       },
@@ -285,6 +335,7 @@ const cases: Record<string, Cases> = {
         kind: "code",
         latestVersionId: null,
         messageId: msgId,
+        ownerId: uid,
         title: "Script",
         updatedAt: t,
       },
@@ -292,17 +343,7 @@ const cases: Record<string, Cases> = {
   },
   "files.artifactVersionSchema": {
     invalid: [{ artifactId: fixtureId("artifact", 1), number: 0 }],
-    valid: [
-      {
-        artifactId: fixtureId("artifact", 1),
-        content: "<p>hi</p>",
-        createdAt: t,
-        id: fixtureId("artifactVersion", 1),
-        language: null,
-        messageId: msgId,
-        number: 1,
-      },
-    ],
+    valid: [artifactVersionRow],
   },
   "files.fileSchema": { invalid: [{ ...file, size: -1 }], valid: [file] },
   "files.fileSearchHitSchema": {
@@ -344,9 +385,37 @@ const cases: Record<string, Cases> = {
     invalid: [{ expiresAt: t, url: "nope" }],
     valid: [{ expiresAt: t, url: "https://files.example.test/a?sig=1" }],
   },
+  "files.listAllArtifactsInputSchema": {
+    invalid: [{ scope: "everyone" }, { kind: "pdf" }],
+    valid: [{}, { kind: "markdown", query: "trip", scope: "shared" }],
+  },
   "files.listFilesInputSchema": {
     invalid: [{ purpose: "avatar" }],
     valid: [{}, { conversationId: convId, purpose: "knowledge" }],
+  },
+  "files.renameArtifactInputSchema": {
+    invalid: [{ id: fixtureId("artifact", 1), title: "  " }],
+    valid: [{ id: fixtureId("artifact", 1), title: "Trip plan" }],
+  },
+  "files.shareArtifactInputSchema": {
+    invalid: [
+      {
+        id: fixtureId("artifact", 1),
+        permission: "edit",
+        principal: { id: uid, type: "user" },
+      },
+    ],
+    valid: [
+      {
+        id: fixtureId("artifact", 1),
+        permission: "editor",
+        principal: { id: uid, type: "user" },
+      },
+    ],
+  },
+  "files.useArtifactInputSchema": {
+    invalid: [{ id: fixtureId("artifact", 1) }],
+    valid: [{ conversationId: convId, id: fixtureId("artifact", 1) }],
   },
 
   // grants

@@ -85,6 +85,7 @@ export const artifactPlan: Artifact = {
   kind: "markdown",
   latestVersionId: fixtureId("artifactVersion", 12),
   messageId: id(8),
+  ownerId: userAda.id,
   title: "search-migration-plan.md",
   updatedAt: minute(12),
 };
@@ -96,6 +97,7 @@ export const artifactPage: Artifact = {
   kind: "html",
   latestVersionId: fixtureId("artifactVersion", 21),
   messageId: id(4),
+  ownerId: userAda.id,
   title: "benchmark.html",
   updatedAt: minute(4),
 };
@@ -108,6 +110,7 @@ export const artifactVersions: Readonly<
       artifactId: artifactPage.id,
       content:
         "<!doctype html><html><body style=\"font-family:system-ui;padding:1rem\"><h1>Search benchmark</h1><table><tr><th>Engine</th><th>p95</th></tr><tr><td>Postgres FTS</td><td>38 ms</td></tr><tr><td>Meilisearch</td><td>6 ms</td></tr></table><script>document.body.append(' Rendered at ' + new Date().toLocaleTimeString())</script></body></html>",
+      conversationId,
       createdAt: minute(4),
       id: fixtureId("artifactVersion", 21),
       language: null,
@@ -120,6 +123,7 @@ export const artifactVersions: Readonly<
       artifactId: artifactPlan.id,
       content:
         "# Search migration\n\n## Phase 1 (Q1)\n\n- `pg_trgm` on `subject`\n- Weighted `ts_rank_cd`\n\n## Phase 2 (Q2)\n\n- Outbox to Meilisearch worker\n- Search box behind a flag\n",
+      conversationId,
       createdAt: minute(8),
       id: fixtureId("artifactVersion", 11),
       language: null,
@@ -130,6 +134,7 @@ export const artifactVersions: Readonly<
       artifactId: artifactPlan.id,
       content:
         "# Search migration\n\n## Phase 1 (Q1)\n\n- `pg_trgm` on `subject`\n- Weighted `ts_rank_cd` (A: subject, B: body)\n\n## Phase 2 (Q2)\n\n- Outbox to Meilisearch worker, batched every 2 s\n- Search box behind a flag\n- Reindex job for backfills\n",
+      conversationId,
       createdAt: minute(12),
       id: fixtureId("artifactVersion", 12),
       language: null,
