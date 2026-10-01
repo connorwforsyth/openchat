@@ -51,8 +51,9 @@ const config = ({ files, llm: baseURL, mcp, search }: Mocks) => `version: 1
 brand: { name: ${BRAND_NAME} }
 auth: { signup: invite }
 providers:
-  # Keyless, like a local Ollama: every context can use it.
-  mock: { type: openai-compatible, baseURL: "${baseURL}", models: [echo] }
+  # Keyless, like a local Ollama: every context can use it. Its catalog
+  # adds parrot and the metadata the picker's preview card shows (099).
+  mock: { type: openai-compatible, baseURL: "${baseURL}", models: [echo], discover: true }
   # Needs a key from the chat context (D17), for the key-payer check.
   paid: { type: openai-compatible, baseURL: "${baseURL}", models: [echo], options: { keyless: "false" } }
 models:
