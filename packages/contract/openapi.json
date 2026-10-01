@@ -4860,6 +4860,10 @@
       "name": "Library"
     },
     {
+      "description": "Previews of cited pages, fetched by the server, and their images.",
+      "name": "Link previews"
+    },
+    {
       "description": "Live state of MCP servers in the library.",
       "name": "MCP"
     },
@@ -11711,6 +11715,389 @@
                   "oneOf": [
                     {
                       "$ref": "#/components/schemas/CONFLICTError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "422",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/VALIDATIONError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "429",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/RATE_LIMITEDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/link-preview": {
+      "get": {
+        "operationId": "linkPreviews.get",
+        "summary": "Preview a link",
+        "description": "The page's title, description, site name, image and favicon, from its `og:*`, `twitter:*` and `<head>` tags. Fetched by the server (private networks refused) and cached; `image.url` and `icon` are paths on this API.",
+        "tags": ["Link previews"],
+        "parameters": [
+          {
+            "name": "url",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 2048,
+              "format": "uri"
+            },
+            "allowEmptyValue": true,
+            "allowReserved": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "description": {
+                      "type": "string",
+                      "maxLength": 500
+                    },
+                    "fetchedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "finalUrl": {
+                      "type": "string",
+                      "maxLength": 2048,
+                      "format": "uri"
+                    },
+                    "icon": {
+                      "type": "string",
+                      "maxLength": 8192,
+                      "pattern": "^\\/[^/\\\\]"
+                    },
+                    "image": {
+                      "type": "object",
+                      "properties": {
+                        "alt": {
+                          "type": "string",
+                          "maxLength": 300
+                        },
+                        "height": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 9007199254740991
+                        },
+                        "url": {
+                          "type": "string",
+                          "maxLength": 8192,
+                          "pattern": "^\\/[^/\\\\]"
+                        },
+                        "width": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": ["url"]
+                    },
+                    "siteName": {
+                      "type": "string",
+                      "maxLength": 100
+                    },
+                    "title": {
+                      "type": "string",
+                      "maxLength": 300
+                    },
+                    "url": {
+                      "type": "string",
+                      "maxLength": 2048,
+                      "format": "uri"
+                    }
+                  },
+                  "required": ["fetchedAt", "finalUrl", "url"]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/UNAUTHORIZEDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/FORBIDDENError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/FEATURE_DISABLEDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/NOT_FOUNDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "422",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/VALIDATIONError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "429",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/RATE_LIMITEDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/link-preview/image": {
+      "get": {
+        "operationId": "linkPreviews.image",
+        "summary": "Get a link preview image",
+        "description": "A preview's image or favicon, by the signed `src` a preview gave. Only addresses a preview produced are served (it's not a proxy); raster images under 2 MB, never SVG.",
+        "tags": ["Link previews"],
+        "parameters": [
+          {
+            "name": "src",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 8192
+            },
+            "allowEmptyValue": true,
+            "allowReserved": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "cache-control": {
+                "schema": {
+                  "type": "string"
+                },
+                "required": true
+              },
+              "content-disposition": {
+                "schema": {
+                  "type": "string"
+                },
+                "required": true
+              },
+              "content-security-policy": {
+                "schema": {
+                  "type": "string"
+                },
+                "required": true
+              },
+              "cross-origin-resource-policy": {
+                "schema": {
+                  "const": "same-origin"
+                },
+                "required": true
+              },
+              "x-content-type-options": {
+                "schema": {
+                  "const": "nosniff"
+                },
+                "required": true
+              }
+            },
+            "content": {
+              "image/avif": {
+                "schema": {
+                  "type": "string",
+                  "contentMediaType": "image/avif"
+                }
+              },
+              "image/bmp": {
+                "schema": {
+                  "type": "string",
+                  "contentMediaType": "image/bmp"
+                }
+              },
+              "image/gif": {
+                "schema": {
+                  "type": "string",
+                  "contentMediaType": "image/gif"
+                }
+              },
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "contentMediaType": "image/jpeg"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "contentMediaType": "image/png"
+                }
+              },
+              "image/vnd.microsoft.icon": {
+                "schema": {
+                  "type": "string",
+                  "contentMediaType": "image/vnd.microsoft.icon"
+                }
+              },
+              "image/webp": {
+                "schema": {
+                  "type": "string",
+                  "contentMediaType": "image/webp"
+                }
+              },
+              "image/x-icon": {
+                "schema": {
+                  "type": "string",
+                  "contentMediaType": "image/x-icon"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "anyOf": []
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/UNAUTHORIZEDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/FORBIDDENError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/FEATURE_DISABLEDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/NOT_FOUNDError"
                     },
                     {
                       "$ref": "#/components/schemas/UndefinedError"
