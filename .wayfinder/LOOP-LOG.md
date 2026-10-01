@@ -115,3 +115,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-10-01 · 097 draft PR #79 · gate 82/82 · e2e 59 (second run; first had one load failure)
 - 2026-10-01 · Connor reported ⌘K search not working and flashing; the loop recorded it (no prefix matches, results cleared per keystroke, empty Chats heading, Enter stuck on Ask AI): added and claimed 100
 - 2026-10-01 · Connor asked for favicons and OG preview cards on sources; approved a read-only link-preview route in the contract: added and claimed 101
+- 2026-10-01 · 100 draft PR #80 · gate 82/82 · e2e 55 (second run; first failed under load avg 60) · in the local preview
