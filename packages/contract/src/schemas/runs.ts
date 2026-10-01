@@ -233,6 +233,17 @@ export const runSchema = z.object({
 export type Run = z.infer<typeof runSchema>;
 
 /**
+ * A skill picked in the composer for one message (127): a library skill the
+ * sender may use, at its latest published version unless one is pinned.
+ */
+export const pickedSkillSchema = z.object({
+  id: libraryItemIdSchema,
+  /** Pin a published version; omitted means the latest published one. */
+  versionId: libraryVersionIdSchema.optional(),
+});
+export type PickedSkill = z.infer<typeof pickedSkillSchema>;
+
+/**
  * What the turn is. `message` adds a user message under `parentId` (`null` for
  * the first message; editing a message is a new sibling under the same
  * parent). `regenerate` answers an existing user message again, adding a
@@ -242,6 +253,12 @@ export const runInputSchema = z.discriminatedUnion("type", [
   z.object({
     parentId: messageIdSchema.nullable(),
     parts: z.array(userMessagePartSchema).min(1).max(100),
+    /**
+     * Skills picked for this message (127). Each one's instructions join the
+     * turn's; they're kept with the message, so its history shows them and
+     * a regenerate uses them again. Absent means none.
+     */
+    skills: z.array(pickedSkillSchema).max(20).optional(),
     type: z.literal("message"),
   }),
   z.object({ type: z.literal("regenerate"), userMessageId: messageIdSchema }),
