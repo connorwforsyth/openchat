@@ -2,7 +2,7 @@
 id: "123"
 title: "Artifact framework: kinds as definitions, today's kinds moved onto it"
 labels: [wayfinder:build]
-status: open
+status: closed
 assignee: loop
 blockedBy: []
 ---

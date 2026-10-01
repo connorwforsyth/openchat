@@ -2,8 +2,8 @@
 id: "124"
 title: "The Artifacts page: a sidebar item, list, filters, use in chat, share"
 labels: [wayfinder:build]
-status: open
-assignee: 
+status: in-progress
+assignee: loop
 blockedBy: ["123"]
 ---
 
@@ -26,3 +26,8 @@ Design: the "Artifacts page" section of the framework doc (after Claude's Artifa
 ## Owns
 
 `packages/contract/**` (these routes), `packages/db/**` (artifact owner/grants, views), `packages/server/src/api/artifacts*`, `packages/chat-ui/**` (page, view), `apps/web/app/(app)/(pages)/artifacts/**`, e2e.
+
+## Carried over from 123 (PR #90)
+
+- Kind labels in `packages/artifacts-kit` are plain English; this page needs them translated (e.g. a Lingui map in chat-ui keyed by kind).
+- chat-ui still has its own copies of per-kind data (extensions, preview kinds, `RUNTIME_IMPORTS`); move it onto the kit's definitions here.
