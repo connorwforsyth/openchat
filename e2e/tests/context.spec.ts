@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 import { apiFor, loadWorld } from "../support/api";
 import {
   composerReady,
-  contextChip,
+  contextControl,
   conversationIdOf,
   expectReply,
   lockedContext,
@@ -41,11 +41,11 @@ test("a Platform chat is paid by Platform's key, rolls up, and locks its context
   });
   const page = await benContext.newPage();
   await page.goto("/");
-  // A new chat's context is chosen in the composer (D14).
+  // A new chat's context is chosen beside the header's title (D14, 113).
   await composerReady(page);
-  await contextChip(page, "Personal").click();
+  await contextControl(page, "Personal").click();
   await page.getByRole("menuitemradio", { name: "Platform" }).click();
-  await expect(contextChip(page, "Platform")).toBeVisible();
+  await expect(contextControl(page, "Platform")).toBeVisible();
 
   // Pick the model only Platform's key can pay for.
   await pickTarget(page, { group: "paid", name: "echo" });
@@ -54,13 +54,10 @@ test("a Platform chat is paid by Platform's key, rolls up, and locks its context
   await expectReply(page, "Echo: Who pays for this?");
   const conversationId = await conversationIdOf(page);
 
-  // Locked: the context can't change after the first message. It leaves
-  // the composer and shows, read-only, in the header's Share menu.
-  await expect(contextChip(page, "Platform")).toBeHidden();
-  const locked = await lockedContext(page);
-  await expect(locked).toContainText("Platform");
-  await expect(locked.getByRole("menuitemradio")).toHaveCount(0);
-  await page.keyboard.press("Escape");
+  // Locked: the context can't change after the first message. It stays by
+  // the title, as text.
+  await expect(contextControl(page, "Platform")).toBeHidden();
+  await expect(lockedContext(page)).toContainText("Platform");
   const ben = await apiFor(benContext, baseURL ?? "");
   const chat = await ben.conversations.get({ id: conversationId });
   expect(chat.context).toEqual({ id: world.platform, type: "team" });

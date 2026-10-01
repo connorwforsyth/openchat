@@ -190,8 +190,9 @@ test("the thinking level and fast mode sit apart, and go out with the run (105)"
 }) => {
   await page.goto("/");
   await composerReady(page);
-  // The trigger sits by Send, the thinking control just before it (once
-  // the models have loaded and the chat has settled on Echo).
+  // The model, then its thinking level, then Send (113), once the models
+  // have loaded and the chat has settled on Echo. No "Default": the level
+  // shown is what Echo does with nothing sent.
   const end = page.getByRole("button", { name: "Send" }).locator("..");
   await expect
     .poll(() =>
@@ -201,7 +202,7 @@ test("the thinking level and fast mode sit apart, and go out with the run (105)"
           buttons.map((button) => button.getAttribute("aria-label"))
         )
     )
-    .toEqual(["Thinking: Default", "Model or agent: Echo", "Send"]);
+    .toEqual(["Model or agent: Echo", "Thinking: Medium", "Send"]);
 
   // Echo reasons: Low goes out as the run's reasoning, not on the target.
   const thinking = page.getByRole("button", { name: THINKING });
@@ -234,9 +235,10 @@ test("the thinking level and fast mode sit apart, and go out with the run (105)"
     await expect(dialog).toBeHidden();
   };
   await pick("Echo", "gpt-5.2");
-  await expect(thinking).toHaveAccessibleName("Thinking: Default");
+  // GPT-5.2 thinks at none unless asked (113).
+  await expect(thinking).toHaveAccessibleName("Thinking: Off");
   await thinking.click();
-  await page.getByRole("menuitemradio", { name: "Off" }).click();
+  await page.getByRole("menuitemradio", { name: "Low" }).click();
   await plusMenu(page).click();
   await page.getByRole("menuitemcheckbox", { name: "Fast mode" }).click();
   await page.keyboard.press("Escape");
@@ -246,7 +248,7 @@ test("the thinking level and fast mode sit apart, and go out with the run (105)"
   await expect(fastChip).toBeVisible();
   const tier = await nextRunBody(page, () => send(page, "Fast and plain"));
   expect(tier.target).toEqual({ model: "mock:openai/gpt-5.2", type: "model" });
-  expect(tier.options).toMatchObject({ fast: true, reasoning: "off" });
+  expect(tier.options).toMatchObject({ fast: true, reasoning: "low" });
   await expectReply(page, "Echo: Fast and plain");
 
   // Parrot doesn't reason, and its catalog fast entry is its Fast mode.

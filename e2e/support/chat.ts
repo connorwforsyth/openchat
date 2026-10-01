@@ -124,20 +124,16 @@ export const chatHeader = (page: Page): Locator =>
   page.locator('[data-slot="app-header"]');
 
 /**
- * The composer's chat context chip, showing `label`. It's there only until
- * the first message locks the context; wait for `composerReady` before
- * opening it, or the menu goes with the shell.
+ * The chat context control by the header's title (113), showing `label`:
+ * a menu until the first message locks the context. Only someone in a team
+ * or org has one.
  */
-export const contextChip = (page: Page, label: string): Locator =>
-  page
-    .locator('[data-slot="composer"]')
-    .getByRole("button", { name: `Chat context: ${label}` });
+export const contextControl = (page: Page, label: string): Locator =>
+  chatHeader(page).getByRole("button", { name: `Chat context: ${label}` });
 
-/** Opens the header's Share menu and returns its locked "Chat context" group. */
-export const lockedContext = async (page: Page): Promise<Locator> => {
-  await chatHeader(page).getByRole("button", { name: "Share" }).click();
-  return page.getByRole("group", { name: "Chat context" });
-};
+/** The header's chat context once it's locked: text, not a menu (113). */
+export const lockedContext = (page: Page): Locator =>
+  chatHeader(page).locator('[data-slot="chat-context"][data-locked]');
 
 /**
  * Opens the chat's Workspace panel from the header (060: one panel with the
