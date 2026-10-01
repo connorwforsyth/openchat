@@ -2,8 +2,8 @@
 id: "119"
 title: "Desktop packaging and auto-update"
 labels: [wayfinder:build]
-status: open
-assignee:
+status: in-progress
+assignee: loop
 blockedBy: ["116"]
 ---
 

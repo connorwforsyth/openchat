@@ -2,7 +2,7 @@
 id: "118"
 title: "Desktop Quick AI: a global-shortcut window"
 labels: [wayfinder:build]
-status: in-progress
+status: closed
 assignee: loop
 blockedBy: ["116"]
 ---

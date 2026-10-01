@@ -142,3 +142,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-10-02 · 131 merged (PR #95; closes 090) · gate 93/93 · e2e 84/84 · 117 re-verifying after rebase onto #94
 - 2026-10-02 · 117 merged (PR #96) · gate 93/93 · e2e 83/83 · desktop smoke 1/1 · claimed 118 (Quick AI + tray)
 - 2026-10-02 · 127 merged (PR #97) · gate 93/93 · e2e 86/86 · claimed 128 (skill authoring tools)
+- 2026-10-02 · 118 merged (PR #98) · gate 93/93 · e2e 89/89 · desktop smoke 1/1 · claimed 119 (unsigned packaging)
