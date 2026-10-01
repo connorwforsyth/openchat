@@ -2,7 +2,7 @@
 id: "128"
 title: "Create, edit and publish skills from a chat (tools)"
 labels: [wayfinder:build]
-status: in-progress
+status: closed
 assignee: loop
 blockedBy: ["127"]
 ---
