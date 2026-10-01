@@ -117,3 +117,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-10-01 · Connor asked for favicons and OG preview cards on sources; approved a read-only link-preview route in the contract: added and claimed 101
 - 2026-10-01 · 100 draft PR #80 · gate 82/82 · e2e 55 (second run; first failed under load avg 60) · in the local preview
 - 2026-10-01 · from performance.dev/chatgpt, Connor chose: added and claimed 102 (prepare while typing) and 103 (server-seeded chat); added 104 (voice mode, proposal first)
+- 2026-10-01 · 099 draft PR, stacked on #77 · gate 82/82 · e2e 57/57 on a private port (the loop's earlier failure came from a shared default e2e port)
