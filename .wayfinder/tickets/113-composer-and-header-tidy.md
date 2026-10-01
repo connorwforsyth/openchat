@@ -37,3 +37,21 @@ Connor (2026-10-01), looking at the local app:
 ## Owns
 
 `packages/composer/src/**`, `packages/ai/src/providers/reasoning.ts` (default levels), `packages/chat-ui/src/{chat,shell,sidebar}/**` (header, toggle, context control), `packages/ui/src/components/ai-elements/model-selector.tsx`, `packages/i18n/locales/**`, `e2e/**` (selectors).
+
+## Results (2026-10-01, loop)
+
+Built on `t/112-picker-position` (after 112's two commits), not pushed.
+
+- **Composer footer** (`packages/composer`): + menu and chips at the start; then the model trigger (name only, no provider mark or icon), the thinking level (a word, no brain icon), Send.
+- **No Default level.** `defaultReasoningLevel` in `packages/ai/src/providers/reasoning.ts` gives each reasoning model's level with nothing sent, always one of `reasoningLevels`. The control shows it when nothing is chosen; choosing it sends no `reasoning`. A choice remembered as `default` reads as none.
+  - Anthropic: Off; Opus 5.5 Medium (SDK docs: effort defaults to medium); Fable 5 and 5.1 High (always think; effort defaults to high); Sonnet 5 High (the SDK notes it thinks by default).
+  - OpenAI: Medium (SDK docs); GPT-5.1 and GPT-5.2 Off (OpenAI documents `none` as their default); their Codex models Medium.
+  - Google: Gemini 3 High; Gemini 2.5 Medium (dynamic thinking, nearest level); 2.5 Flash-Lite Off.
+  - DeepSeek High; anyone else Medium (OpenAI's `reasoning_effort` convention).
+  - Uncertain: Sonnet 5 and Fable 5/5.1 (effort level inferred from "high for most models"), GPT-5.1/5.2 (from OpenAI's docs, not the SDK's), GPT-6 family (SDK's general "medium"), Gemini 2.5's dynamic budget, DeepSeek, and the catch-all.
+- **Chat context** leaves the composer for a quiet control beside the chat title (`packages/chat-ui/src/header/context-control.tsx`): a menu until the first message, text with a lock after; shown only when the person has a team or org (or the chat is in one). It's gone from the Share and overflow menus. New chats still start Personal.
+- **Sidebar toggle** (`shell/sidebar-toggle.tsx`): in the sidebar's top row while it's docked; at the start of the header when it isn't (collapsed, squeezed out by the panel, a phone's sheet). The header's New chat is gone. Same in the library/settings/admin shell (`apps/web/app/(app)/(pages)/page-shell.tsx`).
+- **Header**: no bottom border (`AppHeader`, so every page).
+- **Outside Owns:** `apps/web/app/dev/composer/demo.tsx` (dropped the composer's context props, which no longer exist) and `page-shell.tsx`/its test (so the other pages match). `packages/composer/README.md` updated.
+- **Tests:** composer (order, Medium default and sends nothing, remembered level now Low, context tests removed), variants (no `default` level, `default: true` marker, old stored `default` parses), reasoning (default per provider), chat-screen (three header controls, toggle in the sidebar while open, context in the header as a menu or locked text, hidden for Personal only, gone from Share/overflow), page-shell. e2e: `contextChip` → `contextControl` in the header, `lockedContext` → locked header text; composer spec expects model, level, Send with Echo at Medium and GPT-5.2 at Off; shell spec checks no header border, no New chat, toggle in the sidebar.
+- **Verified:** gate 85/85, `evals --strict: ok`; e2e 70 passed on port 3272. Screenshots (light/dark, 1440 and 375) in `/private/tmp/claude-501/113-screens/`.
