@@ -31,7 +31,7 @@ import type { RunTarget } from "@workspace/contract/schemas/runs";
 import type { ChatContext } from "@workspace/contract/schemas/tenancy";
 import type { PaletteContext } from "@workspace/palette/context-actions";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useApi } from "@/app/(app)/_shared/api";
 import { canAdmin, useAppFrame } from "@/app/(app)/_shared/app-frame";
 import { Brand } from "@/app/(app)/_shared/brand";
@@ -40,7 +40,7 @@ import { createApiSandboxClient } from "@/app/(app)/_shared/sandbox-client";
 import { useAfterBoot } from "@/app/(app)/_shared/use-after-boot";
 import { routeParams, routes } from "@/lib/routes";
 
-import { messageTarget } from "./message-target";
+import { messageTarget, shownTarget } from "./message-target";
 import {
   AGENT_TABS,
   contextForOwner,
@@ -253,6 +253,11 @@ const useAgentParam = (
  * existing one it becomes the chat's default, so the chat continues with it
  * after a reload. An agent from a team or org library also moves a chat that
  * hasn't started yet into that team or org (D17).
+ *
+ * `pickedHere` is the last pick in the open chat (132). It wins over the
+ * chat's details, which can arrive after it still naming the old model: the
+ * chat loading when it was picked, or a refetch that started before the
+ * update (after a turn, or the previous pick's).
  */
 const useTargetChange = ({
   contextOptions,
@@ -278,7 +283,13 @@ const useTargetChange = ({
     })
   );
   const locked = conversation?.contextLocked ?? false;
-  return useCallback(
+  const [picked, setPicked] = useState<{
+    readonly id: ConversationId;
+    readonly target: RunTarget;
+  } | null>(null);
+  const pickedHere =
+    picked && picked.id === conversationId ? picked.target : undefined;
+  const changeTarget = useCallback(
     (next: RunTarget) => {
       setTarget(next);
       const suggested =
@@ -291,6 +302,7 @@ const useTargetChange = ({
       if (!conversationId) {
         return;
       }
+      setPicked({ id: conversationId, target: next });
       queryClient.setQueryData<Conversation>(
         query.conversations.get.queryKey({ input: { id: conversationId } }),
         (current) => (current ? { ...current, defaultTarget: next } : current)
@@ -309,6 +321,7 @@ const useTargetChange = ({
       update,
     ]
   );
+  return { changeTarget, pickedHere };
 };
 
 /** Changing the chat context: the draft's, or (until it locks) the chat's. */
@@ -365,38 +378,47 @@ export function ChatRoute({
     () => defaultTargetFor(models.data ?? NO_MODELS),
     [models.data]
   );
-  // An open chat continues with its own agent or model (044); a new one
-  // with the last pick, then the user's default.
-  const target: RunTarget =
-    conversation.data?.defaultTarget ??
-    chat.target ??
-    settings.data?.defaultTarget ??
-    fallbackTarget;
-  // What a message carries: never a guess made while things load (111).
-  const sendTarget = messageTarget({
-    chatDefault: conversation.data?.defaultTarget,
-    chatLoading: Boolean(conversationId) && !conversation.data,
-    chosen: chat.target,
-    fallback: models.data ? fallbackTarget : null,
-    userDefault: settings.data?.defaultTarget,
-  });
-
   const contextOptions = useMemo(
     () => contextOptionsFromMe(me, config.policies.chatContexts),
     [config.policies.chatContexts, me]
   );
   const booted = useAfterBoot();
+  const chatDefault = conversation.data?.defaultTarget;
+  // Before the target, whose pick needs the agents' owners: a pick of an
+  // agent here also set `chat.target`.
   const { agents, owners } = useAgentsForPicker(
-    booted || target.type === "agent"
+    booted ||
+      (chatDefault ?? chat.target ?? settings.data?.defaultTarget)?.type ===
+        "agent"
   );
   const skills = useSkillsForPicker(booted);
   const changeContext = useContextChange(conversationId ?? null);
-  const changeTarget = useTargetChange({
+  const { changeTarget, pickedHere } = useTargetChange({
     contextOptions,
     conversation: conversation.data,
     conversationId: conversationId ?? null,
     onContextChange: changeContext,
     owners,
+  });
+
+  // A pick made in the open chat first (132); then the chat's own agent or
+  // model (044); a new chat goes on with the last pick, then the user's
+  // default.
+  const target = shownTarget({
+    chatDefault,
+    chosen: chat.target,
+    fallback: fallbackTarget,
+    pickedHere,
+    userDefault: settings.data?.defaultTarget,
+  });
+  // What a message carries: never a guess made while things load (111).
+  const sendTarget = messageTarget({
+    chatDefault,
+    chatLoading: Boolean(conversationId) && !conversation.data,
+    chosen: chat.target,
+    fallback: models.data ? fallbackTarget : null,
+    pickedHere,
+    userDefault: settings.data?.defaultTarget,
   });
 
   // "Use in chat": the library links here with the agent to start with.
