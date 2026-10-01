@@ -92,11 +92,17 @@ const startQueries = (
     pick: (seeded: ChatSeed) => T,
     fetchItself: (signal: AbortSignal) => Promise<T>
   ) => {
+    // The query keeps this function for its later refetches (an
+    // invalidation refetches with the query's own options), so the seed
+    // answers once and every fetch after it asks the API.
+    let seeded: Promise<ChatSeed | null> | null = settled(seed);
     queryClient
       .prefetchQuery({
         queryFn: async ({ signal }) => {
-          const seeded = await settled(seed);
-          return seeded ? pick(seeded) : fetchItself(signal);
+          const first = seeded;
+          seeded = null;
+          const answer = first ? await first : null;
+          return answer ? pick(answer) : fetchItself(signal);
         },
         queryKey,
       })

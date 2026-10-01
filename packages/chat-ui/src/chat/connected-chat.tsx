@@ -593,20 +593,35 @@ const useSettling = ({
  * reloaded mid-reply, PLAN.md §11 M1 step 3) follows that run's stream.
  * Checked once per opened chat, when its active runs first load: a run this
  * page started itself is already being followed (the chat isn't idle).
+ *
+ * The run may have ended since the runs were read: the server's read for a
+ * page it rendered (ticket 103) is older than the page's hydration. Then
+ * there's no stream to follow, and the chat is read again instead, so it
+ * doesn't keep showing a run that's over.
  */
 const useFollowRunningReply = ({
   conversationId,
+  onNothingToFollow,
   resumeStream,
   runningRunId,
   status,
 }: {
   readonly conversationId: ConversationId | null;
+  readonly onNothingToFollow: () => void;
   readonly resumeStream: () => Promise<void>;
   readonly runningRunId: string | null | undefined;
   readonly status: "submitted" | "streaming" | "ready" | "error";
 }) => {
   const idle = status === "ready" || status === "error";
   const checked = useRef<ConversationId | null>(null);
+  // Whether the stream asked for since started: `resumeStream` settles
+  // straight away when the server has no stream for the chat.
+  const streamed = useRef(false);
+  if (!idle) {
+    streamed.current = true;
+  }
+  const nothingToFollow = useRef(onNothingToFollow);
+  nothingToFollow.current = onNothingToFollow;
   useEffect(() => {
     if (
       !conversationId ||
@@ -617,10 +632,21 @@ const useFollowRunningReply = ({
     }
     checked.current = conversationId;
     if (runningRunId && idle) {
-      resumeStream().catch(ignore);
+      streamed.current = false;
+      resumeStream()
+        .then(() => {
+          if (!didStream(streamed)) {
+            nothingToFollow.current();
+          }
+        })
+        .catch(ignore);
     }
   }, [conversationId, idle, resumeStream, runningRunId]);
 };
+
+/** Read when the resume settles, after renders that may have set it. */
+const didStream = (streamed: { readonly current: boolean }): boolean =>
+  streamed.current;
 
 /** A new chat is created on first send; the send happens once it's routed to. */
 const useFirstSend = ({
@@ -1038,6 +1064,7 @@ const useRunControls = ({
   ).data?.items;
   useFollowRunningReply({
     conversationId,
+    onNothingToFollow: refresh,
     resumeStream,
     runningRunId: runToFollow(activeRuns),
     status: chat.status,
