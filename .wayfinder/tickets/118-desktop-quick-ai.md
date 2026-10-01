@@ -2,8 +2,8 @@
 id: "118"
 title: "Desktop Quick AI: a global-shortcut window"
 labels: [wayfinder:build]
-status: open
-assignee:
+status: in-progress
+assignee: loop
 blockedBy: ["116"]
 ---
 

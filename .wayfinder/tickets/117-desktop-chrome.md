@@ -2,7 +2,7 @@
 id: "117"
 title: "Desktop native chrome: title bar, menus from the shortcut registry, tray"
 labels: [wayfinder:build]
-status: open
+status: closed
 assignee:
 blockedBy: ["116"]
 ---
