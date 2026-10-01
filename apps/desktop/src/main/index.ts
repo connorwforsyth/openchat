@@ -127,7 +127,9 @@ const main = async () => {
         app.quit();
       }
     });
-    if (env.ELECTRON_RENDERER_URL) {
+    // The dev server only in development: a packaged app never takes its
+    // setup page (and that page's bridge) from the environment.
+    if (env.ELECTRON_RENDERER_URL && !app.isPackaged) {
       window.loadURL(env.ELECTRON_RENDERER_URL).catch(() => undefined);
     } else {
       window
