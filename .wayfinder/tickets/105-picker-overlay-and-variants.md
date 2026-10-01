@@ -77,3 +77,35 @@ Open:
 - The level and fast-tier tables live in the composer, because `ModelOption` has nowhere to carry them. They would be better reported by the server.
 - Fast mode uses `ClockIcon`; a `FastIcon` (lucide Zap) in `@workspace/icons` would read better.
 - `-highspeed` / `-ultraspeed` gateway ids aren't folded.
+
+## Results, run options (2026-10-01, loop)
+
+Connor approved the run options, and the coordinator committed the contract as `bacfe1f`: `runOptions.reasoning` and `fast`, and `Run.options`. This round wires the server and the composer to it. `packages/contract` wasn't touched again, and `mode` is left for 106.
+
+- **Server.**
+  - `packages/ai/src/providers/reasoning.ts` holds each maker's levels and fast tiers. It's pure and the composer shares it.
+  - `run-settings.ts` maps the options onto the model:
+    - `reasoning` goes to the AI SDK's `reasoning` setting, with `off` becoming `none`.
+    - `fast` goes to OpenAI `serviceTier: "priority"` or Anthropic `speed: "fast"`, and only where the model has that tier.
+  - A level or tier the model doesn't take is dropped rather than refused.
+  - On an OpenAI-compatible provider, a level is sent only when the catalog says the model reasons. The model loader asks a discovering registry's catalog to find out.
+  - The model turn wraps the model with `wrapLanguageModel`.
+  - `toRun` returns the stored options.
+  - Max isn't offered anywhere: the SDK's portable setting stops at `xhigh`.
+- **Composer.**
+  - Levels and the fast tier now reach the host through `onVariantChange`, and the chat sends them as `options.reasoning` / `options.fast`. Nothing goes in `target.parameters` any more, so nothing sticks to the conversation's `defaultTarget`.
+  - All provider levels and tiers are now offered. A host without `onVariantChange` still shows them disabled, marked "Needs server support".
+  - A remembered level comes back when the model is chosen another way, such as from the palette or after a reload.
+- **Docs.** `docs/self-hosting.md` has a new "Thinking levels and fast mode" section. It notes that priority and fast tiers are billed at a higher rate.
+- **Tests.**
+  - ai: `reasoning.test.ts` (9) covers the levels per maker, the fast tiers, the mapping, dropping, the catalog gate, and `withRunSettings` on a mock model.
+  - server: `run-options.test.ts` (4) covers the round trip, OpenAI and Anthropic calls on mock models, and dropping. `model-check` gained one test for the catalog saying a model reasons.
+  - composer: 143. chat-ui: 325, including 2 for `turnOptions`.
+  - e2e: the 105 test now checks:
+    - Low going out as `options.reasoning`, with the target untouched;
+    - Off plus Fast mode on GPT-5.2 going out as options;
+    - Parrot's folded fast entry;
+    - Echo's level being remembered.
+
+  It also now waits for the footer to settle. The one-shot read of the footer could fail before the models loaded, which is the likely cause of the coordinator's 1.9s failure. It passed 3/3 alone.
+- **Verified.** `turbo typecheck lint test build`: 82/82. Under load, chat-ui failed once inside the gate and passes alone. `E2E_PORT=3224 bun turbo test:e2e`: 58/58.
