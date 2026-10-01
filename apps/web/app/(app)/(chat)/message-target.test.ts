@@ -1,7 +1,7 @@
 import type { RunTarget } from "@workspace/contract/schemas/runs";
 import { describe, expect, it } from "vitest";
 
-import { messageTarget } from "./message-target";
+import { messageTarget, shownTarget } from "./message-target";
 
 const echo: RunTarget = { model: "mock:echo", type: "model" };
 const parrot: RunTarget = { model: "mock:parrot", type: "model" };
@@ -63,5 +63,65 @@ describe("messageTarget (111)", () => {
         userDefault: undefined,
       })
     ).toEqual(echo);
+  });
+});
+
+describe("a pick in the open chat wins over its late details (132)", () => {
+  const gpt: RunTarget = { model: "mock:openai/gpt-5.2", type: "model" };
+
+  it("sends the pick, though the chat's details still say the old model", () => {
+    expect(
+      messageTarget({
+        chatDefault: echo,
+        chatLoading: false,
+        chosen: gpt,
+        fallback: auto,
+        pickedHere: gpt,
+        userDefault: parrot,
+      })
+    ).toEqual(gpt);
+  });
+
+  it("sends the pick while the chat is still loading", () => {
+    expect(
+      messageTarget({
+        chatDefault: undefined,
+        chatLoading: true,
+        chosen: gpt,
+        fallback: null,
+        pickedHere: gpt,
+        userDefault: undefined,
+      })
+    ).toEqual(gpt);
+  });
+
+  it("shows the pick over the chat's details, and those over a pick in another chat", () => {
+    expect(
+      shownTarget({
+        chatDefault: echo,
+        chosen: gpt,
+        fallback: auto,
+        pickedHere: gpt,
+        userDefault: parrot,
+      })
+    ).toEqual(gpt);
+    expect(
+      shownTarget({
+        chatDefault: echo,
+        chosen: gpt,
+        fallback: auto,
+        pickedHere: undefined,
+        userDefault: parrot,
+      })
+    ).toEqual(echo);
+    expect(
+      shownTarget({
+        chatDefault: undefined,
+        chosen: undefined,
+        fallback: auto,
+        pickedHere: undefined,
+        userDefault: undefined,
+      })
+    ).toEqual(auto);
   });
 });

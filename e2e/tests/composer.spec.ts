@@ -1,6 +1,7 @@
 import { expect, type Page, type Request, test } from "@playwright/test";
 
 import {
+  chatHeader,
   composerReady,
   expectReply,
   openAttachChooser,
@@ -18,6 +19,7 @@ test.use({ storageState: storageStateFor("ada") });
 
 const PARROT = /Parrot/;
 const THINKING = /^Thinking:/;
+const CHAT_DETAILS = /\/api\/conversations\/[0-9a-f-]{36}(\?.*)?$/;
 
 const isCreateRun = (request: Request) =>
   request.method() === "POST" &&
@@ -269,4 +271,96 @@ test("the thinking level and fast mode sit apart, and go out with the run (105)"
   await pick("Parrot", "mock echo");
   await expect(targetPicker(page, "Echo")).toBeVisible();
   await expect(thinking).toHaveAccessibleName("Thinking: Low");
+});
+
+/**
+ * Holds the open chat's details (`GET /api/conversations/:id`) and its
+ * updates (`PATCH`), so a test can land them in the order a slow
+ * connection might. A held read answers with the chat as it was when the
+ * read was made, titled `marker` so the test can see it has landed.
+ */
+const holdChatDetails = async (page: Page) => {
+  let marker: string | null = null;
+  const reads: (() => void)[] = [];
+  const updates: (() => void)[] = [];
+  const wait = (queue: (() => void)[]) =>
+    new Promise<void>((resolve) => {
+      queue.push(resolve);
+    });
+  await page.route(CHAT_DETAILS, async (route) => {
+    const method = route.request().method();
+    const title = marker;
+    if (method === "GET" && title !== null) {
+      const response = await route.fetch();
+      const chat = (await response.json()) as Record<string, unknown>;
+      await wait(reads);
+      // The page may have given up on it by then; that's fine.
+      await route
+        .fulfill({ json: { ...chat, title }, response })
+        .catch(() => undefined);
+      return;
+    }
+    if (method === "PATCH" && title !== null) {
+      await wait(updates);
+    }
+    await route.fallback();
+  });
+  const release = (queue: (() => void)[]) => {
+    for (const each of queue.splice(0)) {
+      each();
+    }
+  };
+  return {
+    held: () => reads.length,
+    /** Holds reads and updates from now on. */
+    hold: (title: string) => {
+      marker = title;
+    },
+    /** Lands the reads held so far, and waits for the page to show them. */
+    landReads: async () => {
+      release(reads);
+      await expect(chatHeader(page)).toContainText(marker ?? "");
+    },
+    /** Stops holding, and lets everything held through. */
+    releaseAll: () => {
+      marker = null;
+      release(reads);
+      release(updates);
+    },
+  };
+};
+
+test("a model picked while the chat's details load stays picked (132)", async ({
+  page,
+}) => {
+  const details = await holdChatDetails(page);
+  const thinking = page.getByRole("button", { name: THINKING });
+  const dialog = page.getByRole("dialog", { name: "Choose a model or agent" });
+
+  // A new chat on Echo, whose details (read as it starts, and again while
+  // the title is awaited) land only after GPT-5.2 is picked, still saying
+  // Echo; the pick's update lands after them.
+  await page.goto("/");
+  await composerReady(page);
+  await expect(targetPicker(page, "Echo")).toBeVisible();
+  details.hold("Read before the pick");
+  await send(page, "Before the pick");
+  await expectReply(page, "Echo: Before the pick");
+  await expect.poll(details.held).toBeGreaterThan(0);
+  await targetPicker(page, "Echo").click();
+  await expect(dialog.getByRole("combobox")).toBeFocused();
+  await page.keyboard.type("gpt-5.2");
+  await expect(dialog.getByRole("option")).toHaveCount(1);
+  await page.keyboard.press("Enter");
+  await expect(dialog).toBeHidden();
+  await expect(targetPicker(page, "GPT-5.2")).toBeVisible();
+  await details.landReads();
+  // The pick stands, with GPT-5.2's own level, not Echo's.
+  await expect(targetPicker(page, "GPT-5.2")).toBeVisible();
+  await expect(thinking).toHaveAccessibleName("Thinking: Off");
+  details.releaseAll();
+  const turn = await nextRunBody(page, () => send(page, "After the pick"));
+  expect(turn.target).toEqual({ model: "mock:openai/gpt-5.2", type: "model" });
+  expect(turn.options).toBeUndefined();
+  await expectReply(page, "Echo: After the pick");
 });

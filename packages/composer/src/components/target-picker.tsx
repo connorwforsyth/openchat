@@ -320,7 +320,9 @@ export function TargetPicker({
   const agentGroupLabel = useAgentGroupLabel();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [highlighted, setHighlighted] = useState("");
+  // The row the person moved to, by key or pointer; until they move, the
+  // highlight is the current choice's (below).
+  const [moved, setMoved] = useState<string | null>(null);
   const [recentKeys, rememberRecent] = useRecentTargets(recentsKey);
   const groups = useMemo(
     () => buildTargetGroups(models, agents),
@@ -363,22 +365,23 @@ export function TargetPicker({
     [groups, onChange, rememberRecent]
   );
 
-  const handleOpenChange = useCallback(
-    (next: boolean) => {
-      setOpen(next);
-      if (next) {
-        // Each opening starts from the whole list, on the current choice:
-        // its recent row when it has one, so it's in view at the top.
-        setQuery("");
-        setHighlighted(
-          recents.some((choice) => choice.key === currentKey)
-            ? `${RECENT_PREFIX}${currentKey}`
-            : currentKey
-        );
-      }
-    },
-    [currentKey, recents]
-  );
+  // Each opening starts from the whole list, on the current choice: its
+  // recent row when it has one, so it's in view at the top. It follows the
+  // choice until the person moves (132): opened while the model list loads,
+  // the choice is still a guess, and the one the list settles on replaces it.
+  const highlighted =
+    moved ??
+    (recents.some((choice) => choice.key === currentKey)
+      ? `${RECENT_PREFIX}${currentKey}`
+      : currentKey);
+
+  const handleOpenChange = useCallback((next: boolean) => {
+    setOpen(next);
+    if (next) {
+      setQuery("");
+      setMoved(null);
+    }
+  }, []);
 
   const preview = useCallback(
     (active: string): ReactNode => {
@@ -504,7 +507,7 @@ export function TargetPicker({
         command={{
           label: t`Models and agents`,
           loop: true,
-          onValueChange: setHighlighted,
+          onValueChange: setMoved,
           shouldFilter: false,
           value: highlighted,
         }}

@@ -358,6 +358,43 @@ describe("TargetPicker's preview card (099)", () => {
     expect(card()?.textContent).not.toContain("Vision");
   });
 
+  it("follows the current choice the model list settles on, until the person moves (132)", async () => {
+    // Opened before the list loads: the choice is the guess, Auto.
+    const { onChange, view } = renderPicker(
+      { model: "auto", type: "model" },
+      { models: [] }
+    );
+    await open("Model or agent: Auto");
+    await waitFor(() =>
+      expect(card()?.textContent).toContain("Picks a fast or strong model")
+    );
+    const settle = (value: RunTarget) =>
+      view.rerender(
+        <I18nProvider i18n={i18n}>
+          <TargetPicker
+            agents={AGENTS}
+            models={MODELS}
+            onChange={onChange}
+            recentsKey="user-1"
+            value={value}
+          />
+        </I18nProvider>
+      );
+    settle({ model: "strong", type: "model" });
+    await waitFor(() =>
+      expect(card()?.textContent).toContain("Claude Opus 5.5")
+    );
+    // Once the person has moved, a change of choice leaves them there.
+    await userEvent.keyboard("{ArrowDown}");
+    await waitFor(() => expect(card()?.textContent).toContain("gpt-6"));
+    settle({ model: "acme:rocket-1", type: "model" });
+    await userEvent.keyboard("{Enter}");
+    expect(onChange).toHaveBeenCalledWith({
+      model: "gateway:openai/gpt-6",
+      type: "model",
+    });
+  });
+
   it("follows the pointer too, and shows an agent's own description", async () => {
     renderPicker();
     await open("Model or agent: Auto");
