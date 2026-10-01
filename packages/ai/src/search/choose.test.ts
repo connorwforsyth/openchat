@@ -78,6 +78,23 @@ describe("chooseWebSearch", () => {
     }
   });
 
+  it("keeps Gemini 2's search away from a turn with function tools", () => {
+    const google = config({ providers: { ...providers, google: {} } });
+    const turn = (model: string, withFunctionTools: boolean) =>
+      chooseWebSearch({
+        backend,
+        config: google,
+        model,
+        withFunctionTools,
+      }).kind;
+    // Alone, the provider's search is fine; with function tools the
+    // provider would drop them, so ours is used instead.
+    expect(turn("google:gemini-2.5-flash", false)).toBe("native");
+    expect(turn("google:gemini-2.5-flash", true)).toBe("tool");
+    expect(turn("google:gemini-3-pro", true)).toBe("native");
+    expect(turn("anthropic:claude-sonnet-4-5", true)).toBe("native");
+  });
+
   it("offers nothing without a backend or with the feature off", () => {
     expect(
       chooseWebSearch({

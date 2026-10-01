@@ -13,6 +13,10 @@ import type {
   McpConnectionStatus,
   McpTool,
 } from "@workspace/contract/schemas/library";
+import type { Db } from "@workspace/db/client";
+import { listGrantsForPrincipals } from "@workspace/db/queries/grants";
+import { listMcpServers } from "@workspace/db/queries/library";
+import { loadPrincipals } from "@workspace/db/queries/teams";
 import {
   type AsyncResult,
   err,
@@ -149,6 +153,42 @@ export interface McpManager {
   /** The `McpToolSource` for one user's run (`buildToolSet`). */
   readonly toolSource: (userId: UserId) => McpToolSource;
 }
+
+export interface UsableServersDeps {
+  /** `undefined` without a database: only instance servers exist then. */
+  readonly db?: Db;
+  /** The servers from app.config.yaml (`ServerRegistry.instanceServers`). */
+  readonly instanceServers: readonly Pick<McpServerConfig, "id">[];
+}
+
+/**
+ * Every server `userId` may `use`, for a plain chat, which has no agent
+ * version to name them (078): the instance's, those owned by the user or by
+ * a team or org they're in, and those shared with any of them. It's
+ * `canUseServer`'s rule (`handlers.ts`) turned into a list, no wider: an
+ * agent still gets only the servers its version lists.
+ */
+export const listUsableServers = async (
+  { db, instanceServers }: UsableServersDeps,
+  userId: UserId
+): Promise<readonly LibraryItemId[]> => {
+  const instance = instanceServers.map((server) => server.id);
+  if (!db) {
+    return instance;
+  }
+  const principals = await loadPrincipals(db, userId);
+  const [owned, granted] = await Promise.all([
+    Promise.all(principals.map((principal) => listMcpServers(db, principal))),
+    listGrantsForPrincipals(db, principals, { resourceType: "mcp_server" }),
+  ]);
+  return [
+    ...new Set([
+      ...instance,
+      ...owned.flat().map((row) => row.id),
+      ...granted.map((grant) => grant.resourceId as LibraryItemId),
+    ]),
+  ];
+};
 
 interface Live {
   readonly client: MCPClient;

@@ -24,6 +24,7 @@ import { createWebSearchTool } from "./web-search-tool";
 const CLAUDE_WITHOUT_SEARCH = /^claude-(instant|2|3-(opus|sonnet|haiku))/;
 const OPENAI_WITH_SEARCH = /^(gpt-4o|gpt-4\.1|gpt-5|o3|o4)/;
 const GEMINI_WITH_SEARCH = /^gemini-(2|3)/;
+const GEMINI_2 = /^gemini-2/;
 
 /** Searches allowed per turn with native search; ours is bounded by the step limit. */
 const NATIVE_MAX_USES = 5;
@@ -54,6 +55,17 @@ export const supportsNativeWebSearch = (
       return providerType satisfies never;
   }
 };
+
+/**
+ * Whether the provider's search can share a request with function tools.
+ * Gemini before 3 can't: given both, the provider keeps its search and
+ * drops every function tool, which would cost the turn its workspace.
+ */
+export const nativeSearchMixesWithTools = (
+  providerType: ProviderType,
+  modelId: string
+): boolean =>
+  providerType !== "google" || !GEMINI_2.test(modelId.toLowerCase());
 
 const nativeTool = (
   providerType: ProviderType,
@@ -102,6 +114,8 @@ export interface ChooseWebSearchInput {
   /** The org's policy on top of `search.native`; it can only narrow it. */
   readonly nativeAllowed?: boolean;
   readonly safeSearch?: boolean;
+  /** The turn has function tools of its own (sandbox, MCP, …). */
+  readonly withFunctionTools?: boolean;
 }
 
 export const chooseWebSearch = ({
@@ -111,6 +125,7 @@ export const chooseWebSearch = ({
   model,
   nativeAllowed = true,
   safeSearch,
+  withFunctionTools = false,
 }: ChooseWebSearchInput): WebSearchChoice => {
   if (!config.features.webSearch) {
     return { kind: "none", reason: "disabled" };
@@ -124,7 +139,9 @@ export const chooseWebSearch = ({
     providerType &&
     config.search.native &&
     nativeAllowed &&
-    supportsNativeWebSearch(providerType, parsed.modelId)
+    supportsNativeWebSearch(providerType, parsed.modelId) &&
+    (!withFunctionTools ||
+      nativeSearchMixesWithTools(providerType, parsed.modelId))
   ) {
     const tool = nativeTool(providerType, locale);
     if (tool) {

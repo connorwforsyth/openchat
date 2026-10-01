@@ -10,6 +10,8 @@ import type { ProviderRegistry } from "@workspace/ai/ports/provider-registry";
 import { buildRegistry } from "@workspace/ai/providers/registry";
 import { createEmbedder } from "@workspace/ai/rag/embedder";
 import { REINDEX_EMBEDDINGS_JOB } from "@workspace/ai/rag/ingest";
+import { chooseWebSearch } from "@workspace/ai/search/choose";
+import { createSearchBackend } from "@workspace/ai/search/from-config";
 import { startTelemetry } from "@workspace/ai/telemetry/otel";
 import { authRouter } from "@workspace/auth/handlers";
 import type { HandlerContext } from "@workspace/auth/handlers/context";
@@ -25,6 +27,7 @@ import type { Db } from "@workspace/db/client";
 import { logDecision } from "@workspace/db/queries/decisions";
 import { createMcp } from "@workspace/mcp/create";
 import { loadKeyRing } from "@workspace/mcp/crypto";
+import { listUsableServers } from "@workspace/mcp/manager";
 
 import { createArtifactsRouter } from "./api/artifacts";
 import { createDecisionsRouter } from "./api/decisions";
@@ -55,6 +58,7 @@ import { createKnowledgeJobs } from "./knowledge/ingestion";
 import { createSearchHandlers } from "./knowledge/search";
 import { createLibraryRouter } from "./library/router";
 import type { Storage } from "./ports/storage";
+import type { WebSearchSource } from "./runs/retrieval";
 import type { SandboxToolSource } from "./runs/sandbox";
 import {
   createServices,
@@ -255,6 +259,38 @@ const embedderFor = (
   return null;
 };
 
+/**
+ * `web_search` for runs (D23): the provider's own search when the turn's
+ * model has it and `search.native` allows, otherwise ours over the
+ * configured backend. A backend that's named but can't be built (no key,
+ * no URL) is reported once and leaves only native search.
+ */
+const webSearchFor = (
+  config: AppConfig,
+  env: Env,
+  report: Report
+): WebSearchSource | undefined => {
+  if (!config.features.webSearch) {
+    return;
+  }
+  const backend = createSearchBackend(config, { env });
+  if (!backend.ok && backend.error.backend !== "none") {
+    report(`web search has no backend: ${backend.error.message}`, null);
+  }
+  return (model) => {
+    const choice = chooseWebSearch({
+      backend: backend.ok ? backend.value : null,
+      config,
+      model,
+      // Every turn has function tools beside it: the workspace's, the
+      // artifact tools, memory. Search that can't share a request with
+      // them (Gemini 2's) gives way to ours.
+      withFunctionTools: true,
+    });
+    return choice.kind === "none" ? null : choice.tool;
+  };
+};
+
 /** Registers every job, puts the schedules on, and queues boot-time work. */
 const startBackgroundWork = async ({
   db,
@@ -411,8 +447,15 @@ export const createServerFromEnv = async (
       decider,
       knowledge: embedder ? { embedder } : undefined,
       mcpFor: (userId) => mcp.manager.toolSource(userId),
+      // Plain chats: every server the caller may use (078).
+      mcpServersFor: (userId) =>
+        listUsableServers(
+          { db, instanceServers: mcp.registry.instanceServers },
+          userId
+        ),
       orgPolicy,
       sandbox: sandbox?.turnTools,
+      webSearch: webSearchFor(config, env, report),
       ...options.tools,
     },
   });

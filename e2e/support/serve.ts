@@ -7,8 +7,11 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { startMcpFixture } from "@workspace/mcp/testing/fixture-server";
+
 import { BRAND_NAME } from "./brand";
 import { startMockLlm } from "./mock-llm";
+import { startMockSearch } from "./mock-search";
 
 // Playwright's `webServer`: the production build of apps/web as `next start`
 // serves it, on an otherwise empty environment, so the app boots the way
@@ -19,8 +22,9 @@ import { startMockLlm } from "./mock-llm";
 //
 // The only things set are what production refuses to run without (a
 // generated auth secret and encryption key, fresh per run), an
-// app.config.yaml whose providers point at the mock model server, and
-// loopback as a trusted proxy (for proxy.spec.ts).
+// app.config.yaml whose providers point at the mock model server (and whose
+// web search backend and one instance MCP server are local stand-ins too,
+// for tools.spec.ts), and loopback as a trusted proxy (for proxy.spec.ts).
 //
 // `E2E_STANDALONE=1` runs the server the Docker image runs instead: the
 // `standalone` build (`NEXT_OUTPUT=standalone next build`), laid out as
@@ -32,7 +36,18 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const web = join(root, "apps/web");
 const port = Number(process.env.E2E_PORT ?? 3100);
 
-const config = (baseURL: string, files: string) => `version: 1
+interface Mocks {
+  /** Where uploads are stored. */
+  readonly files: string;
+  /** The mock model server's OpenAI-compatible base URL. */
+  readonly llm: string;
+  /** The MCP fixture server's endpoint (tools: echo, add, whoami). */
+  readonly mcp: string;
+  /** The SearXNG stand-in. */
+  readonly search: string;
+}
+
+const config = ({ files, llm: baseURL, mcp, search }: Mocks) => `version: 1
 brand: { name: ${BRAND_NAME} }
 auth: { signup: invite }
 providers:
@@ -46,6 +61,10 @@ decider: { adapter: none }
 embeddings: { model: mock:embed, dimensions: 384 }
 sandbox: { default: just-bash }
 storage: { driver: local, path: "${files}" }
+# Web search without a real search engine: the SearXNG backend on a stand-in.
+search: { backend: searxng, searxng: { url: "${search}" } }
+# An instance MCP server, which every chat may use.
+mcp: { servers: [{ name: e2e, url: "${mcp}" }] }
 limits: { requestsPerMinute: 1000 }
 `;
 
@@ -94,9 +113,21 @@ const standaloneServer = async (dir: string): Promise<Launch> => {
 
 const main = async () => {
   const dir = await mkdtemp(join(tmpdir(), "e2e-server-"));
-  const llm = await startMockLlm();
+  const [llm, search, mcp] = await Promise.all([
+    startMockLlm(),
+    startMockSearch(),
+    startMcpFixture(),
+  ]);
   const configPath = join(dir, "app.config.yaml");
-  await writeFile(configPath, config(llm.baseUrl, join(dir, "files")));
+  await writeFile(
+    configPath,
+    config({
+      files: join(dir, "files"),
+      llm: llm.baseUrl,
+      mcp: mcp.url,
+      search: search.url,
+    })
+  );
   const launch = process.env.E2E_STANDALONE
     ? await standaloneServer(dir)
     : await nextServer(dir);
@@ -130,7 +161,7 @@ const main = async () => {
     }
     stopping = true;
     child.kill("SIGTERM");
-    await llm.close();
+    await Promise.all([llm.close(), search.close(), mcp.close()]);
     await rm(dir, { force: true, recursive: true });
     process.exit(code);
   };

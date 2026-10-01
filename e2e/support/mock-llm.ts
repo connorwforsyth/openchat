@@ -17,7 +17,8 @@ import { z } from "zod";
 // Replies are deterministic and steered by the last user message:
 //   - a title request (the title job's instructions) → `Topic <first words>`;
 //   - after a tool result → `Tool result: <output>`;
-//   - `[tool:<name> <json>]` → a call to that tool when it's offered;
+//   - `[tool:<name> <json>]` → a call to that tool when it's offered
+//     (`web_search`, an MCP tool such as `e2e__echo`, `create_artifact`, …);
 //   - `[script:<name>]` → the steps of `SCRIPTS[name]`, one step per model
 //     call (a step may call several tools), then `Script <name> done…`;
 //   - `[search:<query>]` → a `file_search` call when it's offered;

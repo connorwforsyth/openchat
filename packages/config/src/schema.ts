@@ -433,6 +433,12 @@ const budgetDefaultSchema = z.strictObject({
 
 const limitsSchema = z
   .strictObject({
+    /**
+     * Model calls one turn may make before the agent loop is stopped: each
+     * round of tool calls is a step. A resumed turn (after an approval)
+     * starts counting again.
+     */
+    agentMaxSteps: z.int().min(1).max(200).default(20),
     /** Defaults for principals without their own budget row. */
     budgets: z
       .strictObject({
