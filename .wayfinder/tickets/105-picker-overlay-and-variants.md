@@ -32,3 +32,48 @@ Connor's feedback on 099's picker (2026-10-01):
 ## Owns
 
 `packages/composer/src/**`, `packages/ui/src/components/ai-elements/model-selector.tsx` and `preview-pane.tsx`, `packages/ai/src/providers/**` (folding variants, if done on the server), `e2e/tests/composer.spec.ts`, `e2e/support/**`.
+
+## Results (2026-10-01, loop)
+
+Built on `t/105-picker-variants` (from `t/099-model-picker`). Not pushed. No `packages/contract` change.
+
+- **Overlay** (`packages/ui/.../model-selector.tsx`). The picker is a Base UI Dialog again. It's centred horizontally with a fixed top edge: 8vh on a phone, 18vh from 640px. The top edge stays put so the panel doesn't jump while a search shortens the list. The `PreviewPane` card sits beside the list, or below it under 640px. Focus starts in the search, and Escape or a click on the backdrop returns focus to the trigger.
+- **Footer.** At the start: the + menu, the Search and Fast chips while they're on, and the context chip. At the end: the thinking control, then the model trigger, then Send/Stop. At 375px the context chip and thinking control are icon-only, and the trigger truncates the model name.
+- **Rows.** Each row is one line: logo, name, and the vendor (or an alias's model) at the same size, muted. The 096 description moved to the card only, and search still matches it. Auto's row is just its name.
+- **Folding** (`packages/composer/src/variants.ts`). An entry folds into a listed model when it's a ref (aliases never fold), its base is the same ref without the suffix, and that base isn't folded itself.
+  - `:thinking`, `-thinking` and `-reasoning` become the level "On".
+  - `-high` becomes "High".
+  - `-fast`, `-instant` and `-turbo` become fast mode.
+  - Examples: `openai:o4-mini-high` becomes o4-mini's High; `openrouter:anthropic/claude-3.7-sonnet:thinking` becomes its On; `gateway:anthropic/claude-opus-5-fast` becomes Opus 5's fast mode.
+  - `-mini`, `-nano`, sizes, a mode whose base isn't listed, and a mode under another provider key stay separate rows.
+- **Thinking control** (`components/thinking-control.tsx`). It shows when the server says the model reasons, or when the model has a folded thinking entry.
+  - Its levels follow the installed AI SDK providers' mapping of the `reasoning` setting (`providerLevels`).
+  - Off, Low, Medium and High take effect today. They go out as the model target's existing `parameters.reasoningEffort`, which the server already passes to the AI SDK as `reasoning` (`packages/ai/src/agent/call-settings.ts`).
+  - A folded level picks its own entry instead.
+  - Minimal, Extra high and Max are listed but disabled, marked "Needs server support".
+- **Fast mode.** It's a + menu switch, separate from the thinking level, and picks the folded fast entry. While it's on, folded thinking levels show "Not with Fast mode". A provider's own fast tier (OpenAI priority from GPT-4/o3, Anthropic `speed: fast` on Opus 4.6) shows disabled, marked "Needs server support".
+- **Memory.** Both choices are remembered per model in local storage under `recentsKey`.
+- **Tests.**
+  - composer: 142 (+24).
+    - `variants.test.ts`: folding rules, each provider's levels, fast tiers, and the target each choice makes.
+    - Picker: overlay focus and modality, one-line rows, folded entries.
+    - Composer: footer order, the thinking control's visibility and choices, unavailable levels, fast mode and its chip, and per-model memory.
+  - e2e `composer.spec.ts`:
+    - The 099 test now checks the overlay is centred with focus in its search.
+    - A new 105 test checks the footer order, Low sent as `reasoningEffort`, Fast mode sending `mock:parrot-fast`, and Echo's level being remembered.
+    - The mock catalog marks Echo as reasoning and adds `parrot-fast`.
+- **Verified.**
+  - `bun run check` and guards are clean, and typecheck, lint and build all pass.
+  - Under parallel load, a different untouched package's tests failed on each run: importers, db, chat-ui and server. Each passes on its own.
+  - `E2E_PORT=3224 bun turbo test:e2e`: 57 passed, 1 failed. The failure is `sidebar.spec` "the conversation keeps 480px". Its `getByRole("button", { name: "Workspace" })` also matches "Workspace actions" once the panel has loaded. That's a timing race, and it also fails on the 099 base when the panel has had time to load.
+  - Screenshots are in `/private/tmp/claude-501/105-screens/` (light, dark, 375px; footer, thinking menu, overlay, + menu with Fast mode, Fast on). They were taken from `/dev/composer` with a temporary richer model list, since reverted.
+
+Open:
+- Run options for a thinking level and fast mode. The proposed contract diff is in `/private/tmp/claude-501/105-screens/proposed-contract.diff`:
+  - `runOptions.reasoning` (off, minimal, low, medium, high, xhigh, max) and `runOptions.fast`;
+  - `Run.options`.
+
+  With those, the disabled levels and provider fast tiers can be switched on. The server would map them per provider: `reasoning` through the AI SDK, and fast as `openai.serviceTier: "priority"` or `anthropic.speed: "fast"`.
+- The level and fast-tier tables live in the composer, because `ModelOption` has nowhere to carry them. They would be better reported by the server.
+- Fast mode uses `ClockIcon`; a `FastIcon` (lucide Zap) in `@workspace/icons` would read better.
+- `-highspeed` / `-ultraspeed` gateway ids aren't folded.
