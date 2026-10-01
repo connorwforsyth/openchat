@@ -128,8 +128,10 @@ export const pinPlanApproval = async (
 
 /**
  * The approved plan's text for the run answering `userMessageId`: the
- * version its approval was pinned to. `undefined` when the message approves
- * nothing, or the version is gone.
+ * version its approval was pinned to. A run that starts before the pin
+ * lands (a queued run started the moment the one ahead ended) reads the
+ * edits the message carries, or else the plan's latest version.
+ * `undefined` when the message approves nothing, or the plan is gone.
  */
 export const approvedPlanFor = async (
   db: Db,
@@ -137,17 +139,20 @@ export const approvedPlanFor = async (
 ): Promise<string | undefined> => {
   const message = await getMessage(db, run.userMessageId);
   const approval = message.ok ? planApprovalOf(message.value.parts) : null;
-  if (!approval?.versionId) {
+  if (!approval) {
     return;
   }
   const artifact = await getArtifact(db, approval.artifactId);
   if (!artifact.ok || artifact.value.conversationId !== run.conversationId) {
     return;
   }
-  const version = await getArtifactVersion(
-    db,
-    approval.artifactId,
-    approval.versionId
-  );
+  if (!approval.versionId && approval.content !== undefined) {
+    return approval.content;
+  }
+  const versionId = approval.versionId ?? artifact.value.latestVersionId;
+  if (!versionId) {
+    return;
+  }
+  const version = await getArtifactVersion(db, approval.artifactId, versionId);
   return version.ok ? version.value.content : undefined;
 };
