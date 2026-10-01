@@ -71,6 +71,11 @@ export interface ComposerProps {
   readonly placeholder?: string;
   /** Templates `/` offers. */
   readonly prompts?: readonly PromptOption[];
+  /**
+   * Whose "Recently used" models and agents the picker remembers, like the
+   * signed-in user's id. Left out, they're per browser.
+   */
+  readonly recentsKey?: string;
   readonly status?: ComposerStatus;
   /** The model/agent picker shows when this and `onTargetChange` are set. */
   readonly target?: RunTarget;

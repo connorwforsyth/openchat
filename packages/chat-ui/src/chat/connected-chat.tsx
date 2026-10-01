@@ -1460,6 +1460,8 @@ export function ConnectedChat({
           onStop: stop,
           onSubmit,
           onTargetChange,
+          // "Recently used" in the picker is each person's own (099).
+          recentsKey: me.user.id,
           ...webSearchSwitch(config, webSearch, setWebSearch),
           status: composerStatus,
           target: target ?? undefined,

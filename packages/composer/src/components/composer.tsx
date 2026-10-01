@@ -114,6 +114,7 @@ export function Composer({
   people = NONE,
   placeholder,
   prompts = NONE,
+  recentsKey,
   status = "ready",
   target,
   webSearch = false,
@@ -534,6 +535,7 @@ export function Composer({
           onUsePrompt={usePrompt}
           onWebSearchChange={onWebSearchChange}
           prompts={prompts}
+          recentsKey={recentsKey}
           target={target}
           webSearch={webSearch}
         />

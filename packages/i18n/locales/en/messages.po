@@ -18,6 +18,16 @@ msgstr "- I prefer pnpm over npm\n"
 msgid "{0} is outside the workspace"
 msgstr "{0} is outside the workspace"
 
+#. placeholder {0}: meter.value
+#: ../composer/src/components/target-picker.tsx
+msgid "{0} of 5"
+msgstr "{0} of 5"
+
+#. placeholder {0}: size.tokens
+#: ../composer/src/components/target-picker.tsx
+msgid "{0} tokens"
+msgstr "{0} tokens"
+
 #. placeholder {0}: error.path
 #: ../../apps/web/app/dev/sandbox/demo.tsx
 msgid "{0}: no such file or directory"
@@ -121,6 +131,11 @@ msgstr "{suggestionCount, plural, one {# suggestion} other {# suggestions}}"
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "{used} of {limit}"
 msgstr "{used} of {limit}"
+
+#. placeholder {0}: size.words
+#: ../composer/src/components/target-picker.tsx
+msgid "~{0} words"
+msgstr "~{0} words"
 
 #: ../chat-ui/src/chat/chat-screen.tsx
 #: ../chat-ui/src/workspace/use-workspace-files.ts
@@ -649,10 +664,6 @@ msgstr "Choose a library"
 msgid "Choose a longer password (at least 8 characters)."
 msgstr "Choose a longer password (at least 8 characters)."
 
-#: ../ui/src/components/ai-elements/model-selector.tsx
-msgid "Choose a model"
-msgstr "Choose a model"
-
 #: ../composer/src/components/target-picker.tsx
 msgid "Choose a model or agent"
 msgstr "Choose a model or agent"
@@ -729,6 +740,10 @@ msgstr "Connection"
 msgid "context"
 msgstr "context"
 
+#: ../composer/src/components/target-picker.tsx
+msgid "Context"
+msgstr "Context"
+
 #: ../../apps/web/app/dev/composer/demo.tsx
 msgid "Context locked"
 msgstr "Context locked"
@@ -799,6 +814,7 @@ msgid "Copy the last reply"
 msgstr "Copy the last reply"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
+#: ../composer/src/components/target-picker.tsx
 msgid "Cost"
 msgstr "Cost"
 
@@ -1414,6 +1430,10 @@ msgstr "Inside"
 msgid "Instructions"
 msgstr "Instructions"
 
+#: ../composer/src/components/target-picker.tsx
+msgid "Intelligence"
+msgstr "Intelligence"
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 msgid "Invite"
 msgstr "Invite"
@@ -1904,6 +1924,10 @@ msgstr "No label"
 #: ../../apps/web/app/(app)/(pages)/admin/_components/admin-index.tsx
 msgid "No orgs to manage"
 msgstr "No orgs to manage"
+
+#: ../composer/src/components/target-picker.tsx
+msgid "No ratings or prices for {name}"
+msgstr "No ratings or prices for {name}"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "No regressions"
@@ -2424,12 +2448,17 @@ msgid "Reading {code}"
 msgstr "Reading {code}"
 
 #: ../chat-ui/src/conversation/lazy.tsx
+#: ../composer/src/components/target-picker.tsx
 msgid "Reasoning"
 msgstr "Reasoning"
 
 #: ../palette/src/command-palette.tsx
 msgid "Recent chats"
 msgstr "Recent chats"
+
+#: ../composer/src/components/target-picker.tsx
+msgid "Recently used"
+msgstr "Recently used"
 
 #: ../shortcuts/src/react/shortcuts-editor.tsx
 msgid "Record"
@@ -2965,6 +2994,10 @@ msgstr "Sources"
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "Space-separated. Leave empty for the server's defaults."
 msgstr "Space-separated. Leave empty for the server's defaults."
+
+#: ../composer/src/components/target-picker.tsx
+msgid "Speed"
+msgstr "Speed"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "Spend this month"
@@ -3530,6 +3563,10 @@ msgstr "Too many attempts. Wait a few seconds and try again."
 msgid "Too many files. Some were not added."
 msgstr "Too many files. Some were not added."
 
+#: ../composer/src/components/target-picker.tsx
+msgid "Tool use"
+msgstr "Tool use"
+
 #: ../library-ui/src/components/agent-form.tsx
 msgid "Tools"
 msgstr "Tools"
@@ -3709,6 +3746,10 @@ msgstr "View fullscreen"
 #: ../chat-ui/src/header/share-menu.tsx
 msgid "Viewer"
 msgstr "Viewer"
+
+#: ../composer/src/components/target-picker.tsx
+msgid "Vision"
+msgstr "Vision"
 
 #: ../chat-ui/src/conversation/message-row.tsx
 msgid "Waiting for the answer before it…"
