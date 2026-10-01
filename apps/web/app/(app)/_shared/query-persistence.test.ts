@@ -8,6 +8,7 @@ import {
   gatePersister,
   pickPersisted,
   RECENT_CONVERSATIONS,
+  skipFetching,
 } from "./query-persistence";
 
 type Query = PersistedClient["clientState"]["queries"][number];
@@ -162,5 +163,34 @@ describe("gatePersister", () => {
     expect(inner.stored()).toBeUndefined();
     await gated.persistClient(client([query([["me", "get"], {}])]));
     expect(inner.stored()).toBeUndefined();
+  });
+});
+
+describe("skipFetching", () => {
+  it("restores everything but the queries the page is already fetching", async () => {
+    const seeded = query(path("c1"));
+    const other = query(path("c2"));
+    const me = query([["me", "get"], {}]);
+    const persister: Persister = {
+      persistClient: () => undefined,
+      removeClient: () => undefined,
+      restoreClient: () => client([seeded, other, me]),
+    };
+    const restored = await skipFetching(
+      persister,
+      (hash) => hash === seeded.queryHash
+    ).restoreClient();
+    expect(restored && keys(restored)).toEqual([other.queryHash, me.queryHash]);
+  });
+
+  it("restores nothing when nothing is stored", async () => {
+    const persister: Persister = {
+      persistClient: () => undefined,
+      removeClient: () => undefined,
+      restoreClient: () => undefined,
+    };
+    expect(
+      await skipFetching(persister, () => true).restoreClient()
+    ).toBeUndefined();
   });
 });

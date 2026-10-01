@@ -18,6 +18,8 @@ import type {
 } from "@workspace/contract/schemas/conversations";
 import type { z } from "zod";
 
+import { activeRunsInput } from "./seed";
+
 // The queries and mutations behind `ConnectedChat`, split out so each piece
 // reads on its own. Keys come from the contract through
 // `@orpc/tanstack-query` (D11).
@@ -70,9 +72,7 @@ export const useChatQueries = (
   );
   const runs = useQuery(
     api.runs.list.queryOptions({
-      input: conversationId
-        ? { active: true, conversationId, limit: 5 }
-        : skipToken,
+      input: conversationId ? activeRunsInput(conversationId) : skipToken,
     })
   );
   const artifacts = useQuery(

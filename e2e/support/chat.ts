@@ -12,11 +12,14 @@ import { recordTiming } from "./timings";
 export const composer = (page: Page): Locator =>
   page.getByRole("textbox", { name: "Message" });
 
+// Visible rows only: a chat's rows that stream in after the page's shell
+// sit in a hidden copy until React reveals them (ticket 103), and by then
+// the page may have rendered its own.
 export const assistantMessages = (page: Page): Locator =>
-  page.locator(".is-assistant[data-message-id]");
+  page.locator(".is-assistant[data-message-id]").filter({ visible: true });
 
 export const userMessages = (page: Page): Locator =>
-  page.locator(".is-user[data-message-id]");
+  page.locator(".is-user[data-message-id]").filter({ visible: true });
 
 const CHAT_PATH = /\/c\/([0-9a-f-]{36})/;
 

@@ -27,10 +27,12 @@ import {
   TooltipTrigger,
 } from "@workspace/ui/components/tooltip";
 import {
+  type ComponentProps,
   lazy,
   type ReactNode,
   type Ref,
   Suspense,
+  use,
   useCallback,
   useEffect,
   useImperativeHandle,
@@ -88,6 +90,7 @@ import {
 import type { WorkspaceFilesSource } from "../workspace/model/client";
 import { toSandboxPath } from "../workspace/model/tree";
 import type { WorkspaceArtifacts } from "../workspace/workspace-panel";
+import type { SeededBranch } from "./seed";
 
 // The whole chat screen, presentational: the app shell with the sidebar,
 // header, conversation, docked composer and the Workspace panel (files,
@@ -161,6 +164,12 @@ export interface ChatScreenProps {
   readonly platform?: Platform;
   /** A run-level error to show after the last message. */
   readonly runError?: ReactNode;
+  /**
+   * The branch the server read (ticket 103), shown while `messages` is still
+   * empty. The conversation waits for it under its own Suspense boundary, so
+   * the rest of the screen, the composer first, doesn't (D27).
+   */
+  readonly seededBranch?: SeededBranch;
   readonly siblings: readonly SiblingInfo[];
   readonly sidebar: Omit<
     ChatSidebarProps,
@@ -226,6 +235,7 @@ function ChatScreenBody({
   pendingApprovals,
   platform = "web",
   runError,
+  seededBranch,
   sidebar,
   siblings,
   streamingMessageId = null,
@@ -736,21 +746,24 @@ function ChatScreenBody({
       sidebarSheetOpen={sidebarSheetOpen}
     >
       <FilePreviewContext.Provider value={chatWorkspace ? previewFile : null}>
-        <ConversationView
-          actions={conversationActions}
-          conversationKey={conversation.id ?? "new"}
-          empty={
-            <EmptyState
-              onSuggestion={composerDisabled ? undefined : sendSuggestion}
-            />
-          }
-          error={runError}
-          feedback={feedback}
-          messages={messages}
-          pendingApprovals={pendingApprovals}
-          siblings={siblings}
-          streamingMessageId={streamingMessageId}
-        />
+        <Suspense fallback={<div className="flex-1" />}>
+          <SeededConversation
+            actions={conversationActions}
+            conversationKey={conversation.id ?? "new"}
+            empty={
+              <EmptyState
+                onSuggestion={composerDisabled ? undefined : sendSuggestion}
+              />
+            }
+            error={runError}
+            feedback={feedback}
+            messages={messages}
+            pendingApprovals={pendingApprovals}
+            seededBranch={seededBranch}
+            siblings={siblings}
+            streamingMessageId={streamingMessageId}
+          />
+        </Suspense>
       </FilePreviewContext.Provider>
       <div
         className="mx-auto w-full max-w-2xl shrink-0 px-6 pb-[max(--spacing(4),env(safe-area-inset-bottom))]"
@@ -773,6 +786,31 @@ function ChatScreenBody({
 }
 
 const noop = () => undefined;
+
+/**
+ * The conversation, or while the screen has no messages yet, the branch the
+ * server read (ticket 103). The server renders it into the page's HTML as
+ * soon as it has it, and hydration renders the same rows, so nothing moves
+ * when the query takes over with the same branch.
+ */
+function SeededConversation({
+  messages,
+  seededBranch,
+  siblings,
+  ...props
+}: ComponentProps<typeof ConversationView> & {
+  readonly seededBranch: SeededBranch | undefined;
+}) {
+  const seeded =
+    seededBranch && messages.length === 0 ? use(seededBranch) : null;
+  return (
+    <ConversationView
+      {...props}
+      messages={seeded?.path.messages ?? messages}
+      siblings={seeded?.path.siblings ?? siblings}
+    />
+  );
+}
 
 /**
  * The chat screen. The platform wraps everything so the shortcut hook, which

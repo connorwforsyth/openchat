@@ -53,6 +53,7 @@ import {
   createIdbPersister,
   gatePersister,
   PERSIST_MAX_AGE_MS,
+  skipFetching,
 } from "./query-persistence";
 import { SHELL_LAYOUT_KEY, SIDEBAR_ATTRIBUTE } from "./shell-prepaint";
 import { useAfterBoot } from "./use-after-boot";
@@ -377,9 +378,13 @@ export const AppFrame = ({
   const [persister] = useState(() => {
     const meKey = createQueryUtils(client).me.get.queryKey();
     // Read at each write, so a policy change applies without a reload.
-    return gatePersister(
-      createIdbPersister(),
-      () => queryClient.getQueryData<Me>(meKey)?.persistClientCache ?? false
+    return skipFetching(
+      gatePersister(
+        createIdbPersister(),
+        () => queryClient.getQueryData<Me>(meKey)?.persistClientCache ?? false
+      ),
+      (hash) =>
+        queryClient.getQueryCache().get(hash)?.state.fetchStatus === "fetching"
     );
   });
   const [authClient] = useState(() => createWebAuthClient());

@@ -1,4 +1,4 @@
-import { createApiClient } from "@workspace/client/api";
+import { type ApiClient, createApiClient } from "@workspace/client/api";
 import type { Me } from "@workspace/contract/schemas/meta";
 import { getSessionCookie } from "better-auth/cookies";
 import { headers } from "next/headers";
@@ -46,6 +46,31 @@ const statusOf = (error: unknown): number | null =>
     ? error.status
     : null;
 
+/**
+ * The API as the caller, over loopback with their cookie: everything it
+ * answers went through the same session and access checks as the browser's
+ * request would. `null` with no session cookie, or inside one of our own
+ * loopback requests. Once per request.
+ */
+export const getServerApi = cache(async (): Promise<ApiClient | null> => {
+  const requestHeaders = await headers();
+  if (
+    !getSessionCookie(requestHeaders) ||
+    requestHeaders.has(LOOPBACK_HEADER)
+  ) {
+    return null;
+  }
+  const cookie = requestHeaders.get("cookie") ?? "";
+  return createApiClient({
+    baseUrl: loopbackOrigin(),
+    headers: () => ({ cookie, [LOOPBACK_HEADER]: "1" }),
+  });
+});
+
+/** A signal for one loopback call: long enough for a cold compile, never a hang. */
+export const loopbackSignal = (): AbortSignal =>
+  AbortSignal.timeout(LOOPBACK_TIMEOUT_MS);
+
 /** Once per request; the root layout (locale) and the app layout share it. */
 export const getViewer = cache(async (): Promise<ServerViewer> => {
   const requestHeaders = await headers();
@@ -53,18 +78,12 @@ export const getViewer = cache(async (): Promise<ServerViewer> => {
   if (!getSessionCookie(requestHeaders)) {
     return { kind: "signed_out" };
   }
-  if (requestHeaders.has(LOOPBACK_HEADER)) {
+  const client = await getServerApi();
+  if (!client) {
     return { kind: "unknown" };
   }
-  const cookie = requestHeaders.get("cookie") ?? "";
-  const client = createApiClient({
-    baseUrl: loopbackOrigin(),
-    headers: () => ({ cookie, [LOOPBACK_HEADER]: "1" }),
-  });
   try {
-    const me = await client.me.get(undefined, {
-      signal: AbortSignal.timeout(LOOPBACK_TIMEOUT_MS),
-    });
+    const me = await client.me.get(undefined, { signal: loopbackSignal() });
     return { kind: "signed_in", me };
   } catch (error) {
     return statusOf(error) === 401

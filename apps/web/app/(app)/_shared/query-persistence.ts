@@ -184,3 +184,36 @@ export const gatePersister = (
     await persister.removeClient();
   },
 });
+
+/**
+ * A persister whose restored copy never replaces what the page is already
+ * fetching: `fetching(hash)` says whether a query is in flight. The chat a
+ * page was rendered for is (ticket 103), from the server's own read, which
+ * is newer than anything on disk; restored over it, an older copy of the
+ * chat would show until that read lands.
+ */
+export const skipFetching = (
+  persister: Persister,
+  fetching: (queryHash: string) => boolean
+): Persister => ({
+  persistClient: (client) => persister.persistClient(client),
+  removeClient: () => persister.removeClient(),
+  restoreClient: async () => {
+    const restored = await persister.restoreClient();
+    return restored && withoutFetching(restored, fetching);
+  },
+});
+
+/** `client` without the queries `fetching` says are in flight. Pure. */
+export const withoutFetching = (
+  client: PersistedClient,
+  fetching: (queryHash: string) => boolean
+): PersistedClient => ({
+  ...client,
+  clientState: {
+    ...client.clientState,
+    queries: client.clientState.queries.filter(
+      (query) => !fetching(query.queryHash)
+    ),
+  },
+});

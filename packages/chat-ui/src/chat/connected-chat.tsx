@@ -33,7 +33,7 @@ import type {
 } from "@workspace/contract/schemas/common";
 import type { Conversation } from "@workspace/contract/schemas/conversations";
 import type { ApprovalDecision } from "@workspace/contract/schemas/message-parts";
-import type { Message } from "@workspace/contract/schemas/messages";
+import type { BranchPath, Message } from "@workspace/contract/schemas/messages";
 import type { Me, PublicConfig } from "@workspace/contract/schemas/meta";
 import type { ModelOption } from "@workspace/contract/schemas/models";
 import type {
@@ -87,6 +87,7 @@ import type {
 } from "../workspace/model/client";
 import { toTreePaths } from "../workspace/model/tree";
 import { ChatScreen } from "./chat-screen";
+import { activeRunsInput, type SeededBranch } from "./seed";
 import { useBranchFeedback } from "./use-branch-feedback";
 import { useChatQueries, useConversationUpdate } from "./use-chat-data";
 
@@ -140,6 +141,12 @@ export interface ConnectedChatProps {
    * tells the two apart).
    */
   readonly sandboxClient: WorkspaceClient | null;
+  /**
+   * The branch a server rendering this page read for `conversationId`
+   * (ticket 103). Shown until the path query has it; pass it only for the
+   * chat it was read for.
+   */
+  readonly seededBranch?: SeededBranch;
   /** What answers: a model or an agent. Omitted, the server's default does. */
   readonly target?: RunTarget | null;
   readonly theme: Theme;
@@ -586,20 +593,35 @@ const useSettling = ({
  * reloaded mid-reply, PLAN.md §11 M1 step 3) follows that run's stream.
  * Checked once per opened chat, when its active runs first load: a run this
  * page started itself is already being followed (the chat isn't idle).
+ *
+ * The run may have ended since the runs were read: the server's read for a
+ * page it rendered (ticket 103) is older than the page's hydration. Then
+ * there's no stream to follow, and the chat is read again instead, so it
+ * doesn't keep showing a run that's over.
  */
 const useFollowRunningReply = ({
   conversationId,
+  onNothingToFollow,
   resumeStream,
   runningRunId,
   status,
 }: {
   readonly conversationId: ConversationId | null;
+  readonly onNothingToFollow: () => void;
   readonly resumeStream: () => Promise<void>;
   readonly runningRunId: string | null | undefined;
   readonly status: "submitted" | "streaming" | "ready" | "error";
 }) => {
   const idle = status === "ready" || status === "error";
   const checked = useRef<ConversationId | null>(null);
+  // Whether the stream asked for since started: `resumeStream` settles
+  // straight away when the server has no stream for the chat.
+  const streamed = useRef(false);
+  if (!idle) {
+    streamed.current = true;
+  }
+  const nothingToFollow = useRef(onNothingToFollow);
+  nothingToFollow.current = onNothingToFollow;
   useEffect(() => {
     if (
       !conversationId ||
@@ -610,10 +632,21 @@ const useFollowRunningReply = ({
     }
     checked.current = conversationId;
     if (runningRunId && idle) {
-      resumeStream().catch(ignore);
+      streamed.current = false;
+      resumeStream()
+        .then(() => {
+          if (!didStream(streamed)) {
+            nothingToFollow.current();
+          }
+        })
+        .catch(ignore);
     }
   }, [conversationId, idle, resumeStream, runningRunId]);
 };
+
+/** Read when the resume settles, after renders that may have set it. */
+const didStream = (streamed: { readonly current: boolean }): boolean =>
+  streamed.current;
 
 /** A new chat is created on first send; the send happens once it's routed to. */
 const useFirstSend = ({
@@ -1026,13 +1059,12 @@ const useRunControls = ({
   // The same query `useChatQueries` makes; read whole for the run states.
   const activeRuns = useQuery(
     api.runs.list.queryOptions({
-      input: conversationId
-        ? { active: true, conversationId, limit: 5 }
-        : skipToken,
+      input: conversationId ? activeRunsInput(conversationId) : skipToken,
     })
   ).data?.items;
   useFollowRunningReply({
     conversationId,
+    onNothingToFollow: refresh,
     resumeStream,
     runningRunId: runToFollow(activeRuns),
     status: chat.status,
@@ -1143,6 +1175,7 @@ export function ConnectedChat({
   onThemeChange,
   platform,
   sandboxClient,
+  seededBranch,
   target = null,
   theme,
 }: ConnectedChatProps) {
@@ -1464,6 +1497,7 @@ export function ConnectedChat({
             waiting={waiting}
           />
         }
+        seededBranch={untilFetched(seededBranch, leafId, data.path.data)}
         siblings={data.path.data?.siblings ?? []}
         sidebar={{
           ...sidebarActions,
@@ -1503,3 +1537,14 @@ export function ConnectedChat({
 }
 
 const NO_MESSAGES: readonly Message[] = [];
+
+/**
+ * The server's branch (ticket 103) until the first one arrives on the
+ * default leaf; never over a branch someone switched to.
+ */
+const untilFetched = (
+  seeded: SeededBranch | undefined,
+  leafId: MessageId | undefined,
+  fetched: BranchPath | undefined
+): SeededBranch | undefined =>
+  leafId === undefined && fetched === undefined ? seeded : undefined;
