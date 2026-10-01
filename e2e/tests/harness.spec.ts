@@ -289,7 +289,12 @@ test("Stop while a change waits cancels the run, and the card goes everywhere", 
   await page.reload();
   // Clicks before the page has hydrated do nothing.
   await composerReady(page);
-  await expect(page.getByText(STOPPED_BY_YOU)).toBeVisible();
+  // Visible only: when the server's rows stream in after the shell, React
+  // keeps a hidden copy until it reveals them, and the page may already have
+  // rendered its own (ticket 103).
+  await expect(
+    page.getByText(STOPPED_BY_YOU).filter({ visible: true })
+  ).toBeVisible();
   await expect(cards(page)).toHaveCount(0);
   await other.close();
 });

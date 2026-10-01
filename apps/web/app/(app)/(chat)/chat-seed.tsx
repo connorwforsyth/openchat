@@ -8,6 +8,7 @@ import {
   createContext,
   type ReactNode,
   useContext,
+  useEffect,
   useLayoutEffect,
   useState,
 } from "react";
@@ -39,6 +40,13 @@ export type ChatSeedPromise = Promise<ChatSeed | null>;
 
 interface Seeds {
   readonly byChat: Map<ConversationId, ChatSeedPromise>;
+  /**
+   * Set once the page has hydrated. Only a seed from the page's own load
+   * counts: on a client navigation the server's read races what this page
+   * is doing (the first message of a chat it just created), and the screen
+   * fetches for itself as it always has.
+   */
+  readonly hydrated: { current: boolean };
   /** Seeds already started in the query cache, once each. */
   readonly started: WeakSet<ChatSeedPromise>;
 }
@@ -51,8 +59,15 @@ export function ChatSeedsProvider({
   readonly children: ReactNode;
 }) {
   const [seeds] = useState(
-    (): Seeds => ({ byChat: new Map(), started: new WeakSet() })
+    (): Seeds => ({
+      byChat: new Map(),
+      hydrated: { current: false },
+      started: new WeakSet(),
+    })
   );
+  useEffect(() => {
+    seeds.hydrated.current = true;
+  }, [seeds]);
   return (
     <SeedsContext.Provider value={seeds}>{children}</SeedsContext.Provider>
   );
@@ -128,7 +143,7 @@ export const startQueries = (
 
 /**
  * Files the page's seed for the screen and starts the chat's queries from
- * it. Renders nothing. Filing happens during render, as the screen reads it
+ * it, on the page's own load only. Renders nothing. Filing happens during render, as the screen reads it
  * in the same pass. The queries start in a layout effect: after hydration,
  * so the screen hydrates against the same empty cache the server rendered
  * with (its rows come from the seed itself), and before any passive effect,
@@ -144,9 +159,12 @@ export function ChatSeedFiler({
   const seeds = useContext(SeedsContext);
   const queryClient = useQueryClient();
   const api = useApi();
-  seeds?.byChat.set(conversationId, seed);
+  if (seeds && !seeds.hydrated.current) {
+    seeds.byChat.set(conversationId, seed);
+  }
   useLayoutEffect(() => {
-    if (seeds && !seeds.started.has(seed)) {
+    // Before the provider's own effect marks the page hydrated.
+    if (seeds && !seeds.hydrated.current && !seeds.started.has(seed)) {
       seeds.started.add(seed);
       startQueries(queryClient, api, conversationId, seed);
     }

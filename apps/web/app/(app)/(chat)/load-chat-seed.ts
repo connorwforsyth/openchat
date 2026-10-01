@@ -1,5 +1,6 @@
 import { activeRunsInput } from "@workspace/chat-ui/chat/seed";
 import type { ConversationId } from "@workspace/contract/schemas/common";
+import { headers } from "next/headers";
 
 import { getServerApi, getViewer, loopbackSignal } from "@/lib/server-session";
 
@@ -18,6 +19,11 @@ export const loadChatSeed = async (
   // After the layout's own lookup, never alongside it: the shell (and so
   // the first byte) waits on that one, and the database answers one query
   // at a time, so reading the chat first would delay the whole page.
+  // A client navigation (Next's `RSC` request) gets nothing: the screen
+  // only takes a seed from the page's own load (`chat-seed.tsx`).
+  if ((await headers()).get("rsc") === "1") {
+    return null;
+  }
   const viewer = await getViewer();
   const api = await getServerApi();
   if (!api || viewer.kind !== "signed_in") {
