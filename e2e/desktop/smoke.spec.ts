@@ -7,6 +7,8 @@ import {
   type ElectronApplication,
   _electron as electron,
   expect,
+  type Page,
+  type TestInfo,
   test,
 } from "@playwright/test";
 
@@ -18,6 +20,15 @@ import {
   send,
 } from "../support/chat";
 import { hydrated } from "../support/hydration";
+import {
+  buttonNames,
+  numberedLines,
+  quickFooter,
+  quickRoot,
+  scrollbarsThatCouldShow,
+  seeThrough,
+  typeLines,
+} from "../support/quick";
 import { CHAT_URL, HOME_URL, QUICK_URL, SIGN_IN_URL } from "../support/urls";
 import { users } from "../support/users";
 import { desktopBaseUrl } from "./port";
@@ -32,7 +43,9 @@ import { desktopBaseUrl } from "./port";
 // bar; the window's bounds are remembered. Ticket 118: Quick AI, opened from
 // the menu bar icon and the app menu (a global shortcut can't be pressed
 // here), answers in its own window or hands the chat to the main one; its
-// shortcut is registered, reported when taken, and released on quit.
+// shortcut is registered, reported when taken, and released on quit. Ticket
+// 135: the window is a translucent strip with no scrollbar, photographed
+// idle and with a reply, light and dark.
 
 /**
  * The Quick AI shortcut for this run: one nobody uses, so the test never
@@ -118,9 +131,79 @@ const externalOpens = (app: ElectronApplication) =>
     () => (globalThis as unknown as { __opened: string[] }).__opened
   );
 
+/**
+ * Sizes the Quick AI window to its page, as Chromium's preferred-size report
+ * does outside a test (Playwright's driving stops the report, so the test
+ * plays it with the page's own height). Returns that height.
+ */
+const fitQuick = async (app: ElectronApplication, quick: Page) => {
+  const height = await quickRoot(quick).evaluate((root) =>
+    Math.ceil(root.getBoundingClientRect().height)
+  );
+  await app.evaluate(({ BrowserWindow }, preferred) => {
+    const window = BrowserWindow.getAllWindows().find((each) =>
+      each.webContents.getURL().endsWith("/quick")
+    );
+    window?.webContents.emit(
+      "preferred-size-changed",
+      {},
+      { height: preferred, width: window.getBounds().width }
+    );
+  }, height);
+  await expect
+    .poll(async () => (await quickWindow(app))?.bounds.height)
+    .toBe(height);
+  return height;
+};
+
+const DARK_CLASS = /\bdark\b/;
+const NOT_DARK_CLASS = /^(?!.*\bdark\b)/;
+
+/** Switches the system's light or dark, which the page and the material follow. */
+const setScheme = async (
+  app: ElectronApplication,
+  quick: Page,
+  scheme: "dark" | "light"
+) => {
+  await app.evaluate(({ nativeTheme }, source) => {
+    nativeTheme.themeSource = source;
+  }, scheme);
+  // Playwright pins the page's colour scheme; let it follow, as the app does.
+  await quick.emulateMedia({ colorScheme: scheme });
+  await expect(quick.locator("html")).toHaveClass(
+    scheme === "dark" ? DARK_CLASS : NOT_DARK_CLASS
+  );
+};
+
+/**
+ * Photographs the Quick AI window's page as the window shows it (its
+ * contents, transparent where the native material shows through; the
+ * material itself is drawn by macOS, outside the page), for a person to
+ * look at. Saved with the test's results and attached to its report.
+ */
+const photograph = async (
+  app: ElectronApplication,
+  testInfo: TestInfo,
+  name: string
+) => {
+  const png = await app.evaluate(async ({ BrowserWindow }) => {
+    const window = BrowserWindow.getAllWindows().find((each) =>
+      each.webContents.getURL().endsWith("/quick")
+    );
+    const image = await window?.webContents.capturePage();
+    return image?.toPNG().toString("base64") ?? "";
+  });
+  const path = testInfo.outputPath(`quick-${name}.png`);
+  await writeFile(path, Buffer.from(png, "base64"));
+  await testInfo.attach(`quick-${name}`, {
+    contentType: "image/png",
+    path,
+  });
+};
+
 test("first run, sign-in and a chat in the desktop shell", async ({
   request,
-}) => {
+}, testInfo) => {
   // The seeded account: the first sign-up on a fresh server.
   const signUp = await request.post(
     `${desktopBaseUrl}/api/auth/sign-up/email`,
@@ -312,10 +395,19 @@ test("first run, sign-in and a chat in the desktop shell", async ({
     const shown = await quickWindow(app);
     expect(shown).toMatchObject({ alwaysOnTop: true, resizable: false });
     if (shown) {
+      // Launcher-wide, centred across and a little above the middle: a
+      // third of the room (inside the margins) above its tallest.
       const { bounds, workArea } = shown;
+      expect(bounds.width).toBe(720);
       expect(
         Math.abs(
           bounds.x + bounds.width / 2 - (workArea.x + workArea.width / 2)
+        )
+      ).toBeLessThanOrEqual(1);
+      const tallest = Math.min(560, workArea.height - 32);
+      expect(
+        Math.abs(
+          bounds.y - (workArea.y + 16 + (workArea.height - 32 - tallest) / 3)
         )
       ).toBeLessThanOrEqual(1);
     }
@@ -326,26 +418,42 @@ test("first run, sign-in and a chat in the desktop shell", async ({
     await expect(quick.locator('[data-slot="app-header"]')).toHaveCount(0);
     const heightBefore = shown?.bounds.height ?? 0;
 
+    // A strip (135): the input and Send, no hints, no scrollbar, on the
+    // window's translucent material (the page's own background is gone).
+    await composerReady(quick);
+    expect(await buttonNames(quickRoot(quick))).toEqual(["Send"]);
+    await expect(quickRoot(quick).locator("kbd")).toHaveCount(0);
+    await expect(quickFooter(quick)).toHaveCount(0);
+    expect(await scrollbarsThatCouldShow(quick)).toEqual([]);
+    expect(await seeThrough(quick)).toBe(true);
+    // The strip alone is as tall as the window gets small.
+    expect(await fitQuick(app, quick)).toBeLessThanOrEqual(64);
+    for (const scheme of ["light", "dark"] as const) {
+      // biome-ignore lint/performance/noAwaitInLoops: one window, one scheme at a time.
+      await setScheme(app, quick, scheme);
+      expect(await seeThrough(quick)).toBe(true);
+      await photograph(app, testInfo, `idle-${scheme}`);
+    }
+
     // Send: a new chat, answered here, compactly.
     await send(quick, "Quick hello from the menu bar");
     const reply = quick.locator('[data-slot="quick-reply"]');
     await expect(reply).toContainText("Echo: Quick hello from the menu bar");
     await expect(quick).toHaveURL(QUICK_URL);
+    await expect(quickFooter(quick)).toContainText("Open in the app");
+    expect(await scrollbarsThatCouldShow(quick)).toEqual([]);
     // The window follows the page's height. (Chromium reports it, but not
     // while Playwright drives the page, so the report is played here.)
-    await app.evaluate(({ BrowserWindow }) => {
-      const window = BrowserWindow.getAllWindows().find((each) =>
-        each.webContents.getURL().endsWith("/quick")
-      );
-      window?.webContents.emit(
-        "preferred-size-changed",
-        {},
-        { height: 300, width: 680 }
-      );
+    const withReply = await fitQuick(app, quick);
+    expect(withReply).toBeGreaterThan(64);
+    for (const scheme of ["light", "dark"] as const) {
+      // biome-ignore lint/performance/noAwaitInLoops: one window, one scheme at a time.
+      await setScheme(app, quick, scheme);
+      await photograph(app, testInfo, `reply-${scheme}`);
+    }
+    await app.evaluate(({ nativeTheme }) => {
+      nativeTheme.themeSource = "system";
     });
-    await expect
-      .poll(async () => (await quickWindow(app))?.bounds.height)
-      .toBe(300);
 
     // Links from it leave the way the main window's do.
     await quick.evaluate(() => {
@@ -380,6 +488,28 @@ test("first run, sign-in and a chat in the desktop shell", async ({
     await expect.poll(() => quickVisible(app)).toBe(true);
     await expect(quick).toHaveURL(QUICK_URL);
     await expect(quick.locator('[data-slot="quick-turn"]')).toHaveCount(0);
+
+    // A long question and its long reply: the input stops growing, the
+    // window stops at its cap, and the reply scrolls, all with no scrollbar.
+    await composerReady(quick);
+    await composer(quick).click();
+    await typeLines(composer(quick), numberedLines("Quick line", 30));
+    expect(await scrollbarsThatCouldShow(quick)).toEqual([]);
+    await composer(quick).press("Enter");
+    await expect(reply).toContainText("Quick line 30");
+    expect(await fitQuick(app, quick)).toBeLessThanOrEqual(560);
+    expect(
+      await reply.evaluate((node) => node.scrollHeight > node.clientHeight)
+    ).toBe(true);
+    expect(await scrollbarsThatCouldShow(quick)).toEqual([]);
+    for (const scheme of ["light", "dark"] as const) {
+      // biome-ignore lint/performance/noAwaitInLoops: one window, one scheme at a time.
+      await setScheme(app, quick, scheme);
+      await photograph(app, testInfo, `long-${scheme}`);
+    }
+    await app.evaluate(({ nativeTheme }) => {
+      nativeTheme.themeSource = "system";
+    });
     await composer(quick).press("Escape");
     await expect.poll(() => quickVisible(app)).toBe(false);
 

@@ -53,7 +53,7 @@ import { type PromptVariable, resolvePromptVariables } from "../variables";
 import { AttachmentList, RejectionMessage } from "./attachment-list";
 import { ComposerFooter } from "./composer-footer";
 import { SkillList } from "./skill-list";
-import { EDITOR_CLASS, FRAME_CLASS } from "./styles";
+import { LOOKS } from "./styles";
 import { optionId, SuggestionMenu } from "./suggestion-menu";
 import { TemplateVariables } from "./template-variables";
 
@@ -97,6 +97,7 @@ export const READY_MARK = "composer:ready";
  */
 export function Composer({
   agents = NONE,
+  appearance = "default",
   attachmentLimits = NO_LIMITS,
   className,
   commands = NONE,
@@ -125,6 +126,7 @@ export function Composer({
   webSearch = false,
 }: EditorComposerProps) {
   const { t } = useLingui();
+  const look = LOOKS[appearance];
   const id = useId();
   const listboxId = `${id}-suggestions`;
   const hintId = `${id}-hint`;
@@ -192,7 +194,7 @@ export function Composer({
           "aria-describedby": hintId,
           "aria-label": t`Message`,
           "aria-multiline": "true",
-          class: EDITOR_CLASS,
+          class: look.editor,
           "data-slot": "input-group-control",
           role: "textbox",
         },
@@ -540,7 +542,7 @@ export function Composer({
       ) : null}
       <InputGroup
         className={cn(
-          FRAME_CLASS,
+          look.frame,
           drop.dragging && "border-ring ring-3 ring-ring/50"
         )}
       >
@@ -572,6 +574,7 @@ export function Composer({
         />
         <ComposerFooter
           agents={agents}
+          appearance={appearance}
           attachDisabled={disabled || files.atLimit}
           busy={busy}
           canSubmit={canSubmit}

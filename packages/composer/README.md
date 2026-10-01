@@ -52,6 +52,14 @@ command names in and gets tokens and calls out.
   it calls `onCommand("open")` at once. Leave `commands` out and `/` lists
   prompts only.
 
+## Strip
+
+`appearance="strip"` (Quick AI, 135) lays the composer out as one bare row:
+the input in larger type and Send, with no + menu, picker or frame, so the
+host's surface shows through. The input grows to about five lines, then
+scrolls with its scrollbar hidden. The host adds anything around it (Quick
+AI's icon). It's read once, when the composer mounts.
+
 ## Bottom row
 
 At the start: the **+** menu, and the *Search* and *Fast* chips while those

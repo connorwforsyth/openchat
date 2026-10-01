@@ -10,7 +10,7 @@ import { type FormEvent, type SyntheticEvent, useCallback } from "react";
 
 import type { ComposerHandoff, ComposerProps } from "../props";
 import { ComposerFooter } from "./composer-footer";
-import { FRAME_CLASS, SHELL_INPUT_CLASS } from "./styles";
+import { LOOKS } from "./styles";
 
 export interface ComposerShellProps extends ComposerProps {
   /** The editor chunk failed to load; say so instead of waiting forever. */
@@ -31,6 +31,7 @@ const noop = () => undefined;
  */
 export function ComposerShell({
   agents = NONE,
+  appearance = "default",
   className,
   disabled = false,
   failed = false,
@@ -49,6 +50,7 @@ export function ComposerShell({
   webSearch = false,
 }: ComposerShellProps) {
   const { t } = useLingui();
+  const look = LOOKS[appearance];
 
   const report = useCallback(
     (event: SyntheticEvent<HTMLTextAreaElement>) => {
@@ -69,10 +71,10 @@ export function ComposerShell({
       data-slot="composer"
       onSubmit={ignoreSubmit}
     >
-      <InputGroup className={FRAME_CLASS}>
+      <InputGroup className={look.frame}>
         <InputGroupTextarea
           aria-label={t`Message`}
-          className={cn(SHELL_INPUT_CLASS, disabled && "opacity-50")}
+          className={cn(look.shellInput, disabled && "opacity-50")}
           onBlur={report}
           onFocus={report}
           onInput={report}
@@ -84,6 +86,7 @@ export function ComposerShell({
         />
         <ComposerFooter
           agents={agents}
+          appearance={appearance}
           attachDisabled={disabled}
           busy={status === "submitted" || status === "streaming"}
           canSubmit={false}

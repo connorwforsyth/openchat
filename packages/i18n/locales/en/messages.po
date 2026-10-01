@@ -458,12 +458,15 @@ msgstr "Ask AI"
 msgid "Ask AI: “{prompt}”"
 msgstr "Ask AI: “{prompt}”"
 
-#: ../../apps/web/app/(quick)/quick/quick-screen.tsx
 #: ../../apps/web/app/dev/chat/demo.tsx
 #: ../composer/src/components/composer-shell.tsx
 #: ../composer/src/components/composer.tsx
 msgid "Ask anything"
 msgstr "Ask anything"
+
+#: ../../apps/web/app/(quick)/quick/quick-screen.tsx
+msgid "Ask anything…"
+msgstr "Ask anything…"
 
 #: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
 msgid "Ask before changing memory"
@@ -472,10 +475,6 @@ msgstr "Ask before changing memory"
 #: ../chat-ui/src/conversation/approval.tsx
 msgid "Ask for an updated change"
 msgstr "Ask for an updated change"
-
-#: ../../apps/web/app/(quick)/quick/quick-screen.tsx
-msgid "Ask here"
-msgstr "Ask here"
 
 #: ../../apps/web/app/(auth)/_components/sign-up-form.tsx
 msgid "At least 8 characters."
@@ -762,7 +761,6 @@ msgstr "Choose a model or agent"
 msgid "Click to rename"
 msgstr "Click to rename"
 
-#: ../../apps/web/app/(quick)/quick/quick-screen.tsx
 #: ../ui/src/components/ai-elements/streamdown.tsx
 #: ../ui/src/components/dialog.tsx
 msgid "Close"

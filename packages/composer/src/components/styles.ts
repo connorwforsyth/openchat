@@ -1,3 +1,5 @@
+import type { ComposerAppearance } from "../props";
+
 // Class lists the shell and the editor share, so swapping one for the other
 // doesn't move a pixel.
 
@@ -24,9 +26,33 @@ const INPUT_BOX =
 export const SHELL_INPUT_CLASS =
   "field-sizing-content max-h-48 min-h-16 px-3.5 pt-3 pb-2";
 
-/** The ProseMirror element. The placeholder is TipTap's `data-placeholder` on the empty first paragraph. */
-export const EDITOR_CLASS = [
-  INPUT_BOX,
+// The strip (135): one bare row, no frame, field or focus ring, so the host's
+// surface (Quick AI's translucent window) is the background. Larger text, one
+// 28px line plus padding tall, growing to about five lines and then
+// scrolling with the scrollbar hidden.
+/**
+ * The frame in a strip: a row, the input then Send, both at the end. As tall
+ * as the input (InputGroup is one control high), and it stays clear and
+ * opaque while Send is disabled (InputGroup greys a group with a disabled
+ * control in it).
+ */
+export const STRIP_FRAME_CLASS = [
+  "h-auto items-end gap-0 rounded-none border-0 bg-transparent shadow-none dark:bg-transparent",
+  "has-disabled:bg-transparent has-disabled:opacity-100 dark:has-disabled:bg-transparent",
+  "has-[[data-slot=input-group-control]:focus-visible]:border-transparent",
+  "has-[[data-slot=input-group-control]:focus-visible]:ring-0",
+].join(" ");
+
+const STRIP_INPUT_BOX =
+  "no-scrollbar min-h-15 max-h-44 w-full flex-1 px-1 py-4 text-lg leading-7 md:text-lg";
+
+/** Added to the shell's InputGroupTextarea in a strip. */
+export const SHELL_STRIP_INPUT_CLASS = `field-sizing-content ${STRIP_INPUT_BOX}`;
+
+/** Holds Send at the end of a strip, centred on the first line. */
+export const STRIP_SEND_CLASS = "flex shrink-0 pe-3 pb-4";
+
+const EDITOR_BEHAVIOUR = [
   "overflow-y-auto break-words outline-none",
   "[&_.is-editor-empty:first-child]:before:pointer-events-none",
   "[&_.is-editor-empty:first-child]:before:float-start",
@@ -34,3 +60,30 @@ export const EDITOR_CLASS = [
   "[&_.is-editor-empty:first-child]:before:text-muted-foreground",
   "[&_.is-editor-empty:first-child]:before:content-[attr(data-placeholder)]",
 ].join(" ");
+
+/** The ProseMirror element. The placeholder is TipTap's `data-placeholder` on the empty first paragraph. */
+export const EDITOR_CLASS = `${INPUT_BOX} ${EDITOR_BEHAVIOUR}`;
+
+/** The ProseMirror element in a strip. */
+export const STRIP_EDITOR_CLASS = `${STRIP_INPUT_BOX} ${EDITOR_BEHAVIOUR}`;
+
+/** The class lists for each appearance: the frame, the editor and the shell's textarea. */
+export const LOOKS: Record<
+  ComposerAppearance,
+  {
+    readonly editor: string;
+    readonly frame: string;
+    readonly shellInput: string;
+  }
+> = {
+  default: {
+    editor: EDITOR_CLASS,
+    frame: FRAME_CLASS,
+    shellInput: SHELL_INPUT_CLASS,
+  },
+  strip: {
+    editor: STRIP_EDITOR_CLASS,
+    frame: STRIP_FRAME_CLASS,
+    shellInput: SHELL_STRIP_INPUT_CLASS,
+  },
+};

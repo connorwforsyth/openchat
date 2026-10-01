@@ -18,6 +18,7 @@ import {
 import { useCallback, useRef } from "react";
 
 import { useModelVariants } from "../hooks/use-model-variants";
+import type { ComposerAppearance } from "../props";
 import type {
   AgentOption,
   FileCandidate,
@@ -26,11 +27,14 @@ import type {
 } from "../schemas";
 import type { ModelVariant } from "../variants";
 import { PlusMenu } from "./plus-menu";
+import { STRIP_SEND_CLASS } from "./styles";
 import { TargetPicker } from "./target-picker";
 import { ThinkingControl } from "./thinking-control";
 
 export interface ComposerFooterProps {
   readonly agents: readonly AgentOption[];
+  /** A strip has Send alone (135). */
+  readonly appearance?: ComposerAppearance;
   readonly attachDisabled: boolean;
   readonly busy: boolean;
   readonly canSubmit: boolean;
@@ -61,10 +65,11 @@ export interface ComposerFooterProps {
  * start: the + menu, and plan mode, web search and fast mode while they're on. At the
  * end: the model/agent picker, then its thinking level when it has one,
  * then Send (or Stop while a run is going) (105, 113). The chat context
- * lives in the chat header, not here (113).
+ * lives in the chat header, not here (113). A strip has Send alone (135).
  */
 export function ComposerFooter({
   agents,
+  appearance = "default",
   attachDisabled,
   busy,
   canSubmit,
@@ -114,6 +119,13 @@ export function ComposerFooter({
     plusRef.current?.focus();
   }, [setFast]);
   const picking = target !== undefined && onTargetChange !== undefined;
+  if (appearance === "strip") {
+    return (
+      <div className={STRIP_SEND_CLASS}>
+        <SendButton busy={busy} canSubmit={canSubmit} onStop={onStop} />
+      </div>
+    );
+  }
   return (
     <PromptInputFooter className="gap-1 px-2 pb-2">
       <PromptInputTools className="min-w-0 shrink-0">
@@ -200,26 +212,36 @@ export function ComposerFooter({
             value={variants.level}
           />
         ) : null}
-        {busy ? (
-          // A plain button, not submit: Enter in the textarea must never stop a run.
-          <PromptInputSubmit
-            aria-label={t`Stop`}
-            className="rounded-full"
-            disabled={onStop === undefined}
-            onClick={onStop}
-            status="streaming"
-            type="button"
-          />
-        ) : (
-          <PromptInputSubmit
-            aria-label={t`Send`}
-            className="rounded-full"
-            disabled={!canSubmit}
-          >
-            <ArrowUpIcon aria-hidden className="size-4" />
-          </PromptInputSubmit>
-        )}
+        <SendButton busy={busy} canSubmit={canSubmit} onStop={onStop} />
       </PromptInputTools>
     </PromptInputFooter>
+  );
+}
+
+/** Send, or Stop while a run is going: the footer's last button, and a strip's only one. */
+function SendButton({
+  busy,
+  canSubmit,
+  onStop,
+}: Pick<ComposerFooterProps, "busy" | "canSubmit" | "onStop">) {
+  const { t } = useLingui();
+  return busy ? (
+    // A plain button, not submit: Enter in the textarea must never stop a run.
+    <PromptInputSubmit
+      aria-label={t`Stop`}
+      className="rounded-full"
+      disabled={onStop === undefined}
+      onClick={onStop}
+      status="streaming"
+      type="button"
+    />
+  ) : (
+    <PromptInputSubmit
+      aria-label={t`Send`}
+      className="rounded-full"
+      disabled={!canSubmit}
+    >
+      <ArrowUpIcon aria-hidden className="size-4" />
+    </PromptInputSubmit>
   );
 }
