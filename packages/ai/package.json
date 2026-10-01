@@ -36,7 +36,9 @@
     "./telemetry/*": "./src/telemetry/*.ts",
     "./testing/mock-models": "./src/testing/mock-models.ts",
     "./title/generate-title": "./src/title/generate-title.ts",
+    "./tools/artifact-content": "./src/tools/artifact-content.ts",
     "./tools/artifacts": "./src/tools/artifacts.ts",
+    "./tools/registry/*": "./src/tools/registry/*.ts",
     "./tools/resolve": "./src/tools/resolve.ts",
     "./tools/tool-set": "./src/tools/tool-set.ts"
   },
