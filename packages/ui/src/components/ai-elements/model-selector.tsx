@@ -1,11 +1,11 @@
 "use client";
 
 // AI Elements' model selector (MIT, vercel/ai-elements
-// `packages/elements/src/model-selector.tsx`), on our Base UI popover and
-// cmdk command, with a preview card beside the list (099). See this
+// `packages/elements/src/model-selector.tsx`), on our Base UI dialog and
+// cmdk command, with a preview card beside the list (099, 105). See this
 // folder's README for what changed from upstream.
 
-import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
+import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { BrandMark, hasBrandMark } from "@workspace/icons/brands";
 import {
   Command,
@@ -17,6 +17,7 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from "@workspace/ui/components/command";
+import { DialogOverlay, DialogPortal } from "@workspace/ui/components/dialog";
 import {
   PreviewPane,
   PreviewPaneContent,
@@ -26,16 +27,16 @@ import {
 import { cn } from "@workspace/ui/lib/utils";
 import type { ComponentProps, ReactNode } from "react";
 
-export type ModelSelectorProps = PopoverPrimitive.Root.Props;
+export type ModelSelectorProps = DialogPrimitive.Root.Props;
 
 export const ModelSelector = (props: ModelSelectorProps) => (
-  <PopoverPrimitive.Root data-slot="model-selector" {...props} />
+  <DialogPrimitive.Root data-slot="model-selector" {...props} />
 );
 
-export type ModelSelectorTriggerProps = PopoverPrimitive.Trigger.Props;
+export type ModelSelectorTriggerProps = DialogPrimitive.Trigger.Props;
 
 export const ModelSelectorTrigger = (props: ModelSelectorTriggerProps) => (
-  <PopoverPrimitive.Trigger data-slot="model-selector-trigger" {...props} />
+  <DialogPrimitive.Trigger data-slot="model-selector-trigger" {...props} />
 );
 
 type CommandProps = Omit<ComponentProps<typeof Command>, "children">;
@@ -63,75 +64,65 @@ function BoundCommand({
 }
 
 export type ModelSelectorContentProps = Omit<
-  PopoverPrimitive.Popup.Props,
+  DialogPrimitive.Popup.Props,
   "children" | "title"
-> &
-  Pick<
-    PopoverPrimitive.Positioner.Props,
-    "align" | "alignOffset" | "side" | "sideOffset"
-  > & {
-    readonly children: ReactNode;
-    /**
-     * Props for the inner cmdk root (`shouldFilter`, `loop`, …). Its
-     * `value` / `onValueChange` are the highlighted row, which the preview
-     * card follows.
-     */
-    readonly command?: CommandProps;
-    /** The card for the highlighted row's value; `null` shows none. */
-    readonly preview?: (value: string) => ReactNode;
-    /** The panel's accessible name. */
-    readonly title: string;
-  };
+> & {
+  readonly children: ReactNode;
+  /**
+   * Props for the inner cmdk root (`shouldFilter`, `loop`, …). Its
+   * `value` / `onValueChange` are the highlighted row, which the preview
+   * card follows.
+   */
+  readonly command?: CommandProps;
+  /** The card for the highlighted row's value; `null` shows none. */
+  readonly preview?: (value: string) => ReactNode;
+  /** The dialog's accessible name. */
+  readonly title: string;
+};
 
 /**
- * A floating panel anchored to the trigger (above it by default, like
- * Raycast's), with the search and list on one card and the highlighted
- * row's preview on another beside it, or below it on a narrow screen. It
- * appears at once and fades out (D28: the keyboard drives it). Focus starts
- * in the search field and goes back to the trigger when it closes.
+ * A modal overlay, centred across the screen, with the search and list on
+ * one card and the highlighted row's preview on another beside it, or
+ * below it under 640px (105; 099 anchored it to the trigger). Its top edge
+ * stays put, so the panel doesn't jump as a search shortens the list, and
+ * sits near the top on a phone so the keyboard doesn't cover the search.
+ * It appears at once and fades out (D28: the keyboard drives it). Focus
+ * starts in the search field and goes back to the trigger when it closes.
  */
 export const ModelSelectorContent = ({
-  align = "start",
-  alignOffset = 0,
   children,
   className,
   command,
   preview,
-  side = "top",
-  sideOffset = 8,
   title,
   ...props
 }: ModelSelectorContentProps) => (
-  <PopoverPrimitive.Portal>
-    <PopoverPrimitive.Positioner
-      align={align}
-      alignOffset={alignOffset}
-      className="isolate z-50"
-      collisionPadding={8}
-      side={side}
-      sideOffset={sideOffset}
+  <DialogPortal>
+    <DialogOverlay className="bg-foreground/5 supports-backdrop-filter:backdrop-blur-none" />
+    <DialogPrimitive.Popup
+      aria-label={title}
+      className={cn(
+        "data-closed:fade-out-0 fixed inset-x-0 top-[max(1rem,8vh)] z-50 mx-auto w-max max-w-[calc(100vw-2rem)] outline-hidden duration-(--motion-exit) data-closed:animate-out sm:top-[18vh]",
+        className
+      )}
+      data-slot="model-selector-content"
+      {...props}
     >
-      <PopoverPrimitive.Popup
-        aria-label={title}
-        className={cn(
-          "data-closed:fade-out-0 outline-hidden duration-(--motion-exit) data-closed:animate-out",
-          className
-        )}
-        data-slot="model-selector-content"
-        {...props}
+      <PreviewPane
+        onValueChange={command?.onValueChange}
+        value={command?.value}
       >
-        <PreviewPane
-          onValueChange={command?.onValueChange}
-          value={command?.value}
-        >
-          <PreviewPaneList className="w-[min(26rem,calc(100vw-2rem))] flex-none overflow-hidden rounded-xl shadow-md ring-1 ring-foreground/10">
-            <BoundCommand command={command}>{children}</BoundCommand>
-          </PreviewPaneList>
-          {preview ? <PreviewPaneContent>{preview}</PreviewPaneContent> : null}
-        </PreviewPane>
-      </PopoverPrimitive.Popup>
-    </PopoverPrimitive.Positioner>
-  </PopoverPrimitive.Portal>
+        <PreviewPaneList className="w-[min(28rem,calc(100vw-2rem))] flex-none overflow-hidden rounded-xl bg-popover shadow-lg ring-1 ring-foreground/10">
+          <BoundCommand command={command}>{children}</BoundCommand>
+        </PreviewPaneList>
+        {preview ? (
+          <PreviewPaneContent className="shadow-lg">
+            {preview}
+          </PreviewPaneContent>
+        ) : null}
+      </PreviewPane>
+    </DialogPrimitive.Popup>
+  </DialogPortal>
 );
 
 export type ModelSelectorInputProps = ComponentProps<typeof CommandInput>;
@@ -151,7 +142,7 @@ export const ModelSelectorList = ({
 }: ModelSelectorListProps) => (
   <CommandList
     className={cn(
-      "max-h-[min(22rem,40vh)] sm:max-h-[min(24rem,55vh)]",
+      "max-h-[min(22rem,40vh)] sm:max-h-[min(24rem,50vh)]",
       className
     )}
     {...props}
@@ -176,7 +167,8 @@ export const ModelSelectorItem = ({
   className,
   ...props
 }: ModelSelectorItemProps) => (
-  // Room for a second line; the mark, vendor and checkmark stay on the first.
+  // Room for a second line (a reason it's unavailable); the mark, vendor and
+  // checkmark stay on the first.
   <CommandItem className={cn("items-start rounded-md", className)} {...props} />
 );
 
@@ -260,19 +252,26 @@ export const ModelSelectorName = ({
   className,
   ...props
 }: ModelSelectorNameProps) => (
-  <span className={cn("flex-1 truncate text-start", className)} {...props} />
+  <span
+    className={cn("flex-1 truncate text-start", className)}
+    data-slot="model-selector-name"
+    {...props}
+  />
 );
 
 export type ModelSelectorVendorProps = ComponentProps<"span">;
 
-/** Who makes the row's model, muted at the row's end. */
+/**
+ * Who makes the row's model at the row's end: the name's size, set apart
+ * only by its muted colour (105).
+ */
 export const ModelSelectorVendor = ({
   className,
   ...props
 }: ModelSelectorVendorProps) => (
   <span
     className={cn(
-      "ms-auto shrink-0 ps-2 text-muted-foreground text-xs leading-5",
+      "ms-auto shrink-0 ps-2 text-muted-foreground leading-5",
       className
     )}
     data-slot="model-selector-vendor"
