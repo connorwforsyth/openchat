@@ -133,6 +133,93 @@ describe("CommandPalette", () => {
     );
   });
 
+  it("never shows an empty Chats group; a slow search spins in the input row", async () => {
+    let resolve: (hits: readonly SearchHit[]) => void = () => undefined;
+    const searchChats = vi.fn(
+      (_query: string, _signal: AbortSignal) =>
+        new Promise<readonly SearchHit[]>((onResolve) => {
+          resolve = onResolve;
+        })
+    );
+    renderPalette({ cachedChats: () => [], searchChats });
+    await openPalette();
+    await userEvent.keyboard("zebra");
+    await waitFor(() => expect(searchChats.mock.lastCall?.[0]).toBe("zebra"));
+    // The spinner comes late (~300ms) and sits beside the input, not in the list.
+    const spinner = await screen.findByLabelText("Searching messages…");
+    expect(spinner.closest("[cmdk-list]")).toBeNull();
+    expect(screen.queryByText("Chats")).toBeNull();
+    expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual([
+      "Ask AI: “zebra”",
+    ]);
+    resolve([]);
+    await waitFor(() =>
+      expect(screen.queryByLabelText("Searching messages…")).toBeNull()
+    );
+    expect(screen.queryByText("Chats")).toBeNull();
+  });
+
+  it("selects the top result as results arrive, until the person moves it", async () => {
+    const answers: ((hits: readonly SearchHit[]) => void)[] = [];
+    const searchChats = vi.fn(
+      (_query: string, _signal: AbortSignal) =>
+        new Promise<readonly SearchHit[]>((onResolve) => {
+          answers.push(onResolve);
+        })
+    );
+    const deployNow = vi.fn();
+    const onAskAi = vi.fn();
+    renderPalette({
+      actions: [
+        paletteAction(
+          { id: "deploy", section: "actions", title: "Deploy now" },
+          deployNow
+        ),
+      ],
+      cachedChats: () => [],
+      onAskAi,
+      searchChats,
+    });
+    await openPalette();
+    const selected = () =>
+      screen
+        .getAllByRole("option")
+        .find((o) => o.getAttribute("aria-selected") === "true")?.textContent;
+
+    await userEvent.keyboard("deploy");
+    expect(selected()).toBe("Deploy now");
+    // The person moves down to Ask AI before the server answers…
+    await userEvent.keyboard("{ArrowDown}");
+    expect(selected()).toBe("Ask AI: “deploy”");
+    await waitFor(() => expect(searchChats.mock.lastCall?.[0]).toBe("deploy"));
+    answers.at(-1)?.([serverHit]);
+    await screen.findByText("Infra questions");
+    // …and a chat landing between them doesn't take the selection away.
+    expect(selected()).toBe("Ask AI: “deploy”");
+
+    // A new query starts over: the first item is selected again.
+    await userEvent.keyboard("{Backspace}");
+    expect(screen.getByText("Infra questions")).toBeTruthy();
+    expect(selected()).toBe("Deploy now");
+    await userEvent.keyboard("{Enter}");
+    expect(deployNow).toHaveBeenCalledTimes(1);
+    expect(onAskAi).not.toHaveBeenCalled();
+  });
+
+  it("Enter opens a chat the server found above Ask AI", async () => {
+    const searchChats = vi.fn(async () => [serverHit]);
+    const onSelectChat = vi.fn();
+    renderPalette({ cachedChats: () => [], onSelectChat, searchChats });
+    await openPalette();
+    await userEvent.keyboard("blue");
+    await screen.findByText("Infra questions");
+    await userEvent.keyboard("{Enter}");
+    expect(onSelectChat).toHaveBeenCalledWith(
+      fixtureId("conversation", 2),
+      fixtureId("message", 2)
+    );
+  });
+
   it("offers Ask AI with the typed text", async () => {
     const onAskAi = vi.fn();
     renderPalette({ onAskAi });
