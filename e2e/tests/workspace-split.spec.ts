@@ -34,7 +34,7 @@ const heightOf = async (locator: Locator) =>
   Math.round((await locator.boundingBox())?.height ?? 0);
 
 /** Opens the chat with its panel, the page loaded on top. */
-const openChat = async (page: Page) => {
+const openPanel = async (page: Page) => {
   await page.goto(chatPath);
   await composerReady(page);
   const panel = await openWorkspace(page);
@@ -62,7 +62,7 @@ test("a chat with a page and a file", async ({ page }) => {
 test("the browser sits over the files, and a file opens below while the page stays", async ({
   page,
 }) => {
-  const panel = await openChat(page);
+  const panel = await openPanel(page);
   const browser = browserOf(panel);
   const list = listOf(panel);
   await expect(list).toBeVisible();
@@ -90,7 +90,7 @@ test("the browser sits over the files, and a file opens below while the page sta
 test("the divider drags, and a reload keeps where it was left", async ({
   page,
 }) => {
-  const panel = await openChat(page);
+  const panel = await openPanel(page);
   const browser = browserOf(panel);
   const divider = dividerOf(page);
   const before = await heightOf(browser);
@@ -127,7 +127,7 @@ test("the divider drags, and a reload keeps where it was left", async ({
 });
 
 test("either half maximises and restores", async ({ page }) => {
-  const panel = await openChat(page);
+  const panel = await openPanel(page);
   const browser = browserOf(panel);
   const list = listOf(panel);
   const maxBrowser = panel.getByRole("button", {
@@ -151,7 +151,7 @@ test("either half maximises and restores", async ({ page }) => {
 });
 
 test("a narrow panel shows one half at a time", async ({ page }) => {
-  const panel = await openChat(page);
+  const panel = await openPanel(page);
   // Drag the side panel's edge to 360px, under the 420px the halves stack at.
   const handle = page.getByRole("separator", { name: "Resize side panel" });
   const edge = await handle.boundingBox();
