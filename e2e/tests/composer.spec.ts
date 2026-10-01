@@ -28,7 +28,11 @@ const nextRunBody = async (page: Page, act: () => Promise<void>) => {
   const request = page.waitForRequest(isCreateRun);
   await act();
   return (await request).postDataJSON() as {
-    readonly options?: { readonly webSearch?: string };
+    readonly options?: {
+      readonly fast?: boolean;
+      readonly reasoning?: string;
+      readonly webSearch?: string;
+    };
     readonly target?: {
       readonly model?: string;
       readonly parameters?: { readonly reasoningEffort?: string };
@@ -186,57 +190,77 @@ test("the thinking level and fast mode sit apart, and go out with the run (105)"
 }) => {
   await page.goto("/");
   await composerReady(page);
-  // The trigger sits by Send, the thinking control just before it.
+  // The trigger sits by Send, the thinking control just before it (once
+  // the models have loaded and the chat has settled on Echo).
   const end = page.getByRole("button", { name: "Send" }).locator("..");
-  expect(
-    await end
-      .getByRole("button")
-      .evaluateAll((buttons) =>
-        buttons.map((button) => button.getAttribute("aria-label"))
-      )
-  ).toEqual(["Thinking: Default", "Model or agent: Echo", "Send"]);
+  await expect
+    .poll(() =>
+      end
+        .getByRole("button")
+        .evaluateAll((buttons) =>
+          buttons.map((button) => button.getAttribute("aria-label"))
+        )
+    )
+    .toEqual(["Thinking: Default", "Model or agent: Echo", "Send"]);
 
-  // Echo reasons: Low goes out as the target's reasoning effort.
+  // Echo reasons: Low goes out as the run's reasoning, not on the target.
   const thinking = page.getByRole("button", { name: THINKING });
   await thinking.click();
   await page.getByRole("menuitemradio", { name: "Low" }).click();
   await expect(thinking).toHaveAccessibleName("Thinking: Low");
   await expect(thinking).toBeFocused();
   const body = await nextRunBody(page, () => send(page, "Think a little"));
-  expect(body.target).toEqual({
-    model: "mock:echo",
-    parameters: { reasoningEffort: "low" },
-    type: "model",
+  expect(body.target).toEqual({ model: "mock:echo", type: "model" });
+  expect(body.options).toEqual({
+    reasoning: "low",
+    sandbox: "auto",
+    webSearch: "auto",
   });
   await expectReply(page, "Echo: Think a little");
 
-  // Parrot is listed once; its catalog fast entry is the + menu's Fast mode.
-  await targetPicker(page).click();
+  // GPT-5.2's maker has a fast tier: Fast mode goes out as the run's fast
+  // option, beside its own level.
   const dialog = page.getByRole("dialog", { name: "Choose a model or agent" });
-  await page.keyboard.type("parrot");
-  await expect(dialog.getByRole("option")).toHaveCount(1);
-  await page.keyboard.press("Enter");
-  await expect(dialog).toBeHidden();
-  // Parrot doesn't reason: no thinking control.
-  await expect(thinking).toBeHidden();
+  const pick = async (from: string, search: string) => {
+    await targetPicker(page, from).click();
+    await expect(dialog.getByRole("combobox")).toBeFocused();
+    await page.keyboard.type(search);
+    await expect(dialog.getByRole("option")).toHaveCount(1);
+    await page.keyboard.press("Enter");
+    await expect(dialog).toBeHidden();
+  };
+  await pick("Echo", "gpt-5.2");
+  await expect(thinking).toHaveAccessibleName("Thinking: Default");
+  await thinking.click();
+  await page.getByRole("menuitemradio", { name: "Off" }).click();
   await plusMenu(page).click();
   await page.getByRole("menuitemcheckbox", { name: "Fast mode" }).click();
   await page.keyboard.press("Escape");
-  await expect(
-    page.getByRole("button", { name: "Fast mode is on. Turn it off" })
-  ).toBeVisible();
+  const fastChip = page.getByRole("button", {
+    name: "Fast mode is on. Turn it off",
+  });
+  await expect(fastChip).toBeVisible();
+  const tier = await nextRunBody(page, () => send(page, "Fast and plain"));
+  expect(tier.target).toEqual({ model: "mock:openai/gpt-5.2", type: "model" });
+  expect(tier.options).toMatchObject({ fast: true, reasoning: "off" });
+  await expectReply(page, "Echo: Fast and plain");
+
+  // Parrot doesn't reason, and its catalog fast entry is its Fast mode.
+  await pick("GPT-5.2", "parrot");
+  await expect(thinking).toBeHidden();
+  await expect(fastChip).toBeHidden();
+  await plusMenu(page).click();
+  await page.getByRole("menuitemcheckbox", { name: "Fast mode" }).click();
+  await page.keyboard.press("Escape");
+  await expect(fastChip).toBeVisible();
   await expect(targetPicker(page, "Parrot")).toBeVisible();
   const fast = await nextRunBody(page, () => send(page, "Quickly now"));
   expect(fast.target).toEqual({ model: "mock:parrot-fast", type: "model" });
+  expect(fast.options).toBeUndefined();
   await expectReply(page, "Echo: Quickly now");
 
   // Back on Echo, its level is remembered.
-  await targetPicker(page, "Parrot").click();
-  await expect(dialog.getByRole("combobox")).toBeFocused();
-  await page.keyboard.type("mock echo");
-  await expect(dialog.getByRole("option")).toHaveCount(1);
-  await page.keyboard.press("Enter");
-  await expect(dialog).toBeHidden();
+  await pick("Parrot", "mock echo");
   await expect(targetPicker(page, "Echo")).toBeVisible();
   await expect(thinking).toHaveAccessibleName("Thinking: Low");
 });

@@ -545,8 +545,8 @@ export const startMockLlm = async (port = 0): Promise<MockLlm> => {
       // The catalog a discovering provider reads (095), with the metadata
       // the picker's preview card shows (099), in the Vercel AI Gateway's
       // shape. `parrot` is only offered through discovery; `parrot-fast` is
-      // its fast mode, which the picker folds into it (105), and Echo
-      // reasons, so it has thinking levels.
+      // its fast mode, which the picker folds into it (105), Echo reasons,
+      // so it has thinking levels, and GPT-5.2's maker has a fast tier.
       json(response, 200, {
         data: [
           {
@@ -568,6 +568,14 @@ export const startMockLlm = async (port = 0): Promise<MockLlm> => {
             id: "parrot-fast",
             name: "Parrot Fast",
             object: "model",
+          },
+          // Through a gateway, a model whose maker has a fast tier (105).
+          {
+            context_window: 400_000,
+            id: "openai/gpt-5.2",
+            name: "GPT-5.2",
+            object: "model",
+            tags: ["reasoning"],
           },
         ],
       });
