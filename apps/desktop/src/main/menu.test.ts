@@ -8,16 +8,34 @@ import type { MenuItemConstructorOptions } from "electron";
 import { describe, expect, it, vi } from "vitest";
 
 import type { Platform } from "../shared/ipc";
-import { type MenuActions, menuTemplate, OFF_MENU } from "./menu";
+import {
+  type MenuActions,
+  menuTemplate,
+  OFF_MENU,
+  trayMenuTemplate,
+} from "./menu";
+import { parseQuickShortcut, type QuickShortcut } from "./quick-shortcut";
 
 const i18n = createI18n("en");
+const altSpace = parseQuickShortcut("Alt+Space");
 
-const build = (platform: Platform, actions: Partial<MenuActions> = {}) =>
+const build = (
+  platform: Platform,
+  actions: Partial<MenuActions> = {},
+  quickShortcut: QuickShortcut = altSpace
+) =>
   menuTemplate({
-    actions: { changeInstance: vi.fn(), runShortcut: vi.fn(), ...actions },
+    actions: {
+      changeInstance: vi.fn(),
+      runShortcut: vi.fn(),
+      setQuickShortcut: vi.fn(),
+      toggleQuick: vi.fn(),
+      ...actions,
+    },
     appName: "Shell",
     i18n,
     platform,
+    quickShortcut,
   });
 
 const submenu = (item: MenuItemConstructorOptions | undefined) =>
@@ -63,6 +81,8 @@ describe("menuTemplate", () => {
     expect(file?.role).toBe("fileMenu");
     expect(submenu(file).map((entry) => entry.id ?? entry.role)).toEqual([
       "chat.new",
+      "quick-ai",
+      "quick-shortcut",
       undefined,
       "settings.open",
       "change-instance",
@@ -131,5 +151,87 @@ describe("menuTemplate", () => {
       ["palette.open"],
       ["sidebar.toggle"],
     ]);
+  });
+
+  it("opens Quick AI from the app menu, showing its global shortcut", () => {
+    const toggleQuick = vi.fn();
+    const [appMenu] = build("mac", { toggleQuick });
+    const item = submenu(appMenu).find((entry) => entry.id === "quick-ai");
+    expect(item).toMatchObject({
+      accelerator: "Alt+Space",
+      label: "Quick AI",
+      // The global shortcut is main's; the menu only shows it.
+      registerAccelerator: false,
+    });
+    click(item);
+    expect(toggleQuick).toHaveBeenCalledOnce();
+  });
+
+  it("shows no accelerator for Quick AI without a shortcut", () => {
+    const item = findItem(
+      build("mac", {}, parseQuickShortcut(null)),
+      "quick-ai"
+    );
+    expect(item).not.toHaveProperty("accelerator");
+  });
+
+  it("offers the shortcut presets, the current one checked", () => {
+    const setQuickShortcut = vi.fn();
+    const menu = build("mac", { setQuickShortcut });
+    const choices = submenu(findItem(menu, "quick-shortcut")).filter(
+      (entry) => entry.type === "radio"
+    );
+    expect(choices.map((entry) => [entry.label, entry.checked])).toEqual([
+      ["⌥Space", true],
+      ["⌃Space", false],
+      ["⌘⌥Space", false],
+      ["⌘⇧Space", false],
+      ["No Shortcut", false],
+    ]);
+    click(findItem(menu, "quick-shortcut:Mod+Shift+Space"));
+    click(findItem(menu, "quick-shortcut:off"));
+    expect(setQuickShortcut.mock.calls).toEqual([["Mod+Shift+Space"], [null]]);
+  });
+
+  it("adds a shortcut from the settings file to the choices", () => {
+    const custom = parseQuickShortcut("Ctrl+Alt+K");
+    const choices = submenu(
+      findItem(build("win", {}, custom), "quick-shortcut")
+    );
+    expect(
+      choices.filter((entry) => entry.checked).map((entry) => entry.label)
+    ).toEqual(["Ctrl+Alt+K"]);
+  });
+
+  it("checks No Shortcut when the setting can't be used", () => {
+    const invalid = parseQuickShortcut("Hyper+Q");
+    expect(findItem(build("mac", {}, invalid), "quick-shortcut:off")).toEqual(
+      expect.objectContaining({ checked: true })
+    );
+  });
+});
+
+describe("trayMenuTemplate", () => {
+  it("offers New chat, Quick AI, Show Window and Quit", () => {
+    const actions = {
+      newChat: vi.fn(),
+      quit: vi.fn(),
+      showWindow: vi.fn(),
+      toggleQuick: vi.fn(),
+    };
+    const menu = trayMenuTemplate({ actions, i18n, quickShortcut: altSpace });
+    expect(menu.map((item) => item.label ?? item.type)).toEqual([
+      "New chat",
+      "Quick AI",
+      "Show Window",
+      "separator",
+      "Quit",
+    ]);
+    for (const item of menu) {
+      click(item);
+    }
+    for (const action of Object.values(actions)) {
+      expect(action).toHaveBeenCalledOnce();
+    }
   });
 });

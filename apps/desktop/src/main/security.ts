@@ -1,9 +1,10 @@
 import type { Session, WebContents } from "electron";
 import { USER_AGENT_TOKEN } from "../shared/ipc";
 import { decideNavigation, decidePermission } from "../shared/navigation";
+import type { QuickNavigation } from "../shared/quick";
 
 // D24 for the shell. Every window is sandboxed with context isolation and no
-// Node (src/main/windows.ts); these hooks keep each one on its own content.
+// Node (src/main/index.ts); these hooks keep each one on its own content.
 
 /** Which instance a window belongs to, read when a decision is made (it can change). */
 export type OriginSource = () => string | null;
@@ -16,6 +17,16 @@ export interface SecurityPorts {
 }
 
 /**
+ * Where a window's navigation may go. The main window's rule is
+ * `decideNavigation`; the Quick AI window's also sends the rest of the
+ * instance to the main window (`main`, 118).
+ */
+export type NavigationRule = (
+  target: string,
+  instanceOrigin: string | null
+) => QuickNavigation;
+
+/**
  * Locks a window's top-level navigation to its instance: other http(s) and
  * mailto links open in the system browser, anything else is dropped.
  * Subframes (artifact and preview iframes, D24) are the web app's business:
@@ -24,19 +35,22 @@ export interface SecurityPorts {
 export const guardContents = (
   contents: WebContents,
   origin: OriginSource,
-  ports: SecurityPorts
+  ports: SecurityPorts,
+  decide: NavigationRule = decideNavigation
 ) => {
   const route = (
     url: string,
     event: { readonly preventDefault: () => void }
   ) => {
-    const decision = decideNavigation(url, origin());
+    const decision = decide(url, origin());
     if (decision === "allow") {
       return;
     }
     event.preventDefault();
     if (decision === "external") {
       ports.openExternal(url);
+    } else if (decision === "main") {
+      ports.openInMain(url);
     }
   };
   contents.on("will-navigate", (event) => route(event.url, event));
@@ -46,8 +60,8 @@ export const guardContents = (
     }
   });
   contents.setWindowOpenHandler(({ url }) => {
-    const decision = decideNavigation(url, origin());
-    if (decision === "allow") {
+    const decision = decide(url, origin());
+    if (decision === "allow" || decision === "main") {
       ports.openInMain(url);
     } else if (decision === "external") {
       ports.openExternal(url);

@@ -276,11 +276,13 @@ const Frame = ({
   config,
   me,
   onSignOut,
+  surfaces,
 }: {
   readonly children: ReactNode;
   readonly config: PublicConfig;
   readonly me: Me;
   readonly onSignOut: () => void;
+  readonly surfaces: boolean;
 }) => {
   const layout = useSharedShellLayout();
   const { setTheme, theme } = useFrameTheme();
@@ -336,7 +338,7 @@ const Frame = ({
   return (
     <AppFrameContext.Provider value={value}>
       {children}
-      {booted ? <GlobalSurfaces /> : null}
+      {booted && surfaces ? <GlobalSurfaces /> : null}
       {newOrg.dialog}
     </AppFrameContext.Provider>
   );
@@ -346,11 +348,17 @@ export const AppFrame = ({
   children,
   config,
   initialMe,
+  surfaces = true,
 }: {
   readonly children: ReactNode;
   readonly config: PublicConfig;
   /** From the server when it could ask; the browser asks otherwise. */
   readonly initialMe: Me | null;
+  /**
+   * The palette, the `?` dialog and the shortcuts every page shares. Quick
+   * AI's page (118) goes without: it's one page in a window of its own.
+   */
+  readonly surfaces?: boolean;
 }) => {
   const [client] = useState(() => createApiClient());
   const [queryClient] = useState(() => {
@@ -420,7 +428,12 @@ export const AppFrame = ({
         <ShortcutsProvider store={store}>
           <SignedIn>
             {(me) => (
-              <Frame config={config} me={me} onSignOut={signOut}>
+              <Frame
+                config={config}
+                me={me}
+                onSignOut={signOut}
+                surfaces={surfaces}
+              >
                 {children}
               </Frame>
             )}

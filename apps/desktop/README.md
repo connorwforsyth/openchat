@@ -34,8 +34,8 @@ sends to the system browser, so they don't complete in the app yet: that
 needs the system-browser PKCE flow (`@better-auth/electron`), a follow-up.
 
 **Knowing it's in the shell.** The server's pages get `window.desktop`
-(`platform`, `onMenuCommand`) and a `DesktopShell/<version>` token at the end
-of the user agent. The web app reads the bridge through
+(`platform`, `onMenuCommand`, `hideQuickAi`) and a `DesktopShell/<version>`
+token at the end of the user agent. The web app reads the bridge through
 `@workspace/shortcuts/desktop` (`useDesktopPlatform`, `onDesktopMenuCommand`);
 in a browser there's no bridge and nothing changes.
 
@@ -63,15 +63,44 @@ in a browser there's no bridge and nothing changes.
   to `settings.json` half a second after a move or resize, and on close. A
   saved spot whose top strip is no longer on any display is dropped (the
   size is kept), so an unplugged monitor never strands the window.
-- **Not yet:** the tray / menu-bar item waits for Quick AI (118) and the
-  app icon (119). The menu shows the registry's default keys, not a
-  person's recorded overrides (those live in the web app's settings).
+- **Not yet:** the menu shows the registry's default keys, not a person's
+  recorded overrides (those live in the web app's settings).
+
+## Quick AI and the menu bar icon (118)
+
+- **Quick AI** is a small floating window (frameless, always on top, a
+  panel over full-screen apps on macOS), centred on the display under the
+  pointer. It shows the instance's own `/quick` page: the composer alone,
+  in the same signed-in session. **⏎** starts a new chat and shows the
+  streaming reply in the window; **⌘⏎** starts it and opens the chat in the
+  main window once the run exists, where the reply carries on. **Escape**
+  or clicking elsewhere hides it; a reply keeps streaming while it's hidden.
+  The window's height follows the page (Electron's preferred-size mode),
+  between the composer alone and 560px.
+- **Opening it:** a global shortcut, **Quick AI** in the app menu (File
+  menu off macOS) and the menu bar icon. The shortcut is ⌥Space unless
+  `settings.json` says otherwise, in the web app's notation
+  (`"quickAi": { "shortcut": "Mod+Shift+Space" }`, `null` for none), or
+  **Quick AI Shortcut** in the menu picks one of a few. A shortcut another
+  app holds, or one that would swallow a key (no ⌘, Ctrl or ⌥), is
+  reported in a dialog and Quick AI stays on the menus. Every global
+  shortcut is released on quit.
+- **Locks:** the main window's (D24), plus one: the Quick AI window stays
+  on `/quick`. The rest of the instance (a chat after ⌘⏎, sign-in when the
+  session has gone) opens in the main window, and the Quick AI window loads
+  `/quick` afresh next time. `hideQuickAi` on the bridge is honoured only
+  from the Quick AI window's own page.
+- **Menu bar icon (macOS):** New chat, Quick AI, Show Window, Quit. Its
+  icon is a placeholder speech bubble drawn in code
+  (`src/main/tray-icon.ts`) as a template image; 119 replaces it with the
+  brand's.
 
 ## Security (`PLAN.md` D24)
 
-- Every window: `contextIsolation`, `sandbox` (and `app.enableSandbox()`),
-  no `nodeIntegration`, no `webviewTag` (and `will-attach-webview` is
-  refused), `navigateOnDragDrop: false`, `safeDialogs`.
+- Every window, Quick AI's too: `contextIsolation`, `sandbox` (and
+  `app.enableSandbox()`), no `nodeIntegration`, no `webviewTag` (and
+  `will-attach-webview` is refused), `navigateOnDragDrop: false`,
+  `safeDialogs`.
 - Top-level navigation stays on the instance's origin. `window.open` to the
   instance loads in the main window; other `http(s)` and `mailto` links open
   in the system browser (`shell.openExternal`); every other scheme is
@@ -98,7 +127,11 @@ bun turbo test:desktop                                # the Electron smoke test 
 
 - `DESKTOP_INSTANCE_URL` connects to that server for one run without saving
   it. `DESKTOP_USER_DATA` keeps settings and the session in another
-  directory (tests, or two copies side by side).
+  directory (tests, or two copies side by side). `DESKTOP_TEST_HOOKS=1` is
+  for the smoke test only.
+- A run registers the Quick AI shortcut (⌥Space by default). To keep a dev
+  run off it, set `"quickAi": { "shortcut": null }` in that run's
+  `settings.json`.
 - `bun run desktop:build` writes the three bundles to `dist/` (main and the
   preloads bundle their dependencies; workspace packages are TypeScript
   source). Run the result with `bunx electron apps/desktop`. Packaging,
@@ -111,7 +144,9 @@ bun turbo test:desktop                                # the Electron smoke test 
 
 - `bun turbo test --filter=desktop`: the pure core in Node (URL parsing,
   navigation and permission rules, settings, the instance check, the menus
-  from the registry, window placement).
+  from the registry, window placement; for 118 the Quick AI shortcut's
+  parsing and registration, its window's placement and height, its
+  navigation rule, the tray menu and icon).
 - `bun turbo test:desktop`: `e2e/desktop/smoke.spec.ts`, a separate task
   (not part of `test` or `test:e2e`). It builds `apps/web` and this app,
   starts the e2e server (`e2e/support/serve.ts`) on port 3190
@@ -120,6 +155,11 @@ bun turbo test:desktop                                # the Electron smoke test 
   sign-in as a seeded user, a chat with the mock model's reply, the
   navigation and permission locks, and (117) the title bar's drag regions,
   menu commands reaching the web app (sidebar, palette, new chat) and the
-  window's bounds being saved. `e2e/desktop/run.ts` skips it, passing,
+  window's bounds being saved; and (118) Quick AI opened from the menu bar
+  icon and the app menu (a global shortcut can't be pressed in a test): a
+  reply in the window, Escape, ⌘⏎ handing the chat to the main window, the
+  shortcut registered from `settings.json`, reported when taken, changed
+  from the menu and released on quit. It sets an unused shortcut
+  (⌃⌥⇧F12), so it never takes a key from the person at the machine. `e2e/desktop/run.ts` skips it, passing,
   off macOS or without the electron package. A window opens on screen while
   it runs.

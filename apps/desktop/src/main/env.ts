@@ -5,6 +5,12 @@ import { z } from "zod";
 export const desktopEnvSchema = z.object({
   /** Connect to this instance on launch instead of the remembered one (`desktop:dev`). Not saved. */
   DESKTOP_INSTANCE_URL: z.string().min(1).optional(),
+  /**
+   * Tests only (e2e/desktop): puts hooks on `globalThis.__desktopTest` in
+   * main: the menu bar icon's menu (a tray menu can't be read back) and
+   * setting the Quick AI shortcut directly.
+   */
+  DESKTOP_TEST_HOOKS: z.literal("1").optional().catch(undefined),
   /** Keep settings and the session here instead of the OS default (tests, side-by-side runs). */
   DESKTOP_USER_DATA: z.string().min(1).optional(),
   /** Set by `electron-vite dev`: the setup page's dev server. */

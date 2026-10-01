@@ -37,6 +37,16 @@ describe("readDesktopBridge", () => {
     expect(readDesktopBridge(fakeShell("win"))?.platform).toBe("win");
   });
 
+  it("offers hiding the Quick AI window where the shell has it", () => {
+    expect(readDesktopBridge(fakeShell())?.hideQuickAi).toBeNull();
+    const hideQuickAi = vi.fn();
+    const shell = fakeShell();
+    readDesktopBridge({
+      desktop: { ...shell.desktop, hideQuickAi },
+    })?.hideQuickAi?.();
+    expect(hideQuickAi).toHaveBeenCalledOnce();
+  });
+
   it("passes on registry ids only", () => {
     const shell = fakeShell();
     const listener = vi.fn();

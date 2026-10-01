@@ -31,6 +31,8 @@ export const USER_AGENT_TOKEN = "DesktopShell";
 export const channels = {
   /** main → instance page: a `MenuCommand`. */
   menuCommand: "desktop:menu-command",
+  /** Quick AI page → main: hide its window (Escape, 118). No payload. */
+  quickHide: "desktop:quick-hide",
   /** setup page → main: an instance URL to check and connect to. */
   setupConnect: "setup:connect",
   /** setup page → main: the instance currently connected, if any. */

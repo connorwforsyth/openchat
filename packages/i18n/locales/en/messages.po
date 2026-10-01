@@ -362,6 +362,10 @@ msgstr "An org needs at least one owner. Make someone else an owner first."
 msgid "Annotation attached"
 msgstr "Annotation attached"
 
+#: ../../apps/desktop/src/main/quick-shortcut.ts
+msgid "Another app is using {keys}, so it can't open Quick AI."
+msgstr "Another app is using {keys}, so it can't open Quick AI."
+
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "API key"
 msgstr "API key"
@@ -442,6 +446,7 @@ msgstr "Ask AI"
 msgid "Ask AI: “{prompt}”"
 msgstr "Ask AI: “{prompt}”"
 
+#: ../../apps/web/app/(quick)/quick/quick-screen.tsx
 #: ../../apps/web/app/dev/chat/demo.tsx
 #: ../composer/src/components/composer-shell.tsx
 #: ../composer/src/components/composer.tsx
@@ -455,6 +460,10 @@ msgstr "Ask before changing memory"
 #: ../chat-ui/src/conversation/approval.tsx
 msgid "Ask for an updated change"
 msgstr "Ask for an updated change"
+
+#: ../../apps/web/app/(quick)/quick/quick-screen.tsx
+msgid "Ask here"
+msgstr "Ask here"
 
 #: ../../apps/web/app/(auth)/_components/sign-up-form.tsx
 msgid "At least 8 characters."
@@ -720,6 +729,7 @@ msgstr "Choose a model or agent"
 msgid "Click to rename"
 msgstr "Click to rename"
 
+#: ../../apps/web/app/(quick)/quick/quick-screen.tsx
 #: ../ui/src/components/ai-elements/streamdown.tsx
 #: ../ui/src/components/dialog.tsx
 msgid "Close"
@@ -915,6 +925,10 @@ msgstr "Couldn't search the web"
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Couldn't search your files"
 msgstr "Couldn't search your files"
+
+#: ../../apps/web/app/(quick)/quick/quick-screen.tsx
+msgid "Couldn't start a chat. Check your connection and try again."
+msgstr "Couldn't start a chat. Check your connection and try again."
 
 #: ../chat-ui/src/conversation/memory-note.tsx
 msgid "Couldn't undo. Try again."
@@ -2125,6 +2139,10 @@ msgstr "No regressions"
 msgid "No sandbox"
 msgstr "No sandbox"
 
+#: ../../apps/desktop/src/main/menu.ts
+msgid "No Shortcut"
+msgstr "No Shortcut"
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 msgid "No team"
 msgstr "No team"
@@ -2294,6 +2312,10 @@ msgstr "Open file"
 msgid "Open in a new tab"
 msgstr "Open in a new tab"
 
+#: ../../apps/web/app/(quick)/quick/quick-screen.tsx
+msgid "Open in the app"
+msgstr "Open in the app"
+
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Open link"
 msgstr "Open link"
@@ -2328,6 +2350,10 @@ msgstr "Opening {0}…"
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Opening a preview"
 msgstr "Opening a preview"
+
+#: ../../apps/web/app/(quick)/quick/quick-screen.tsx
+msgid "Opening the chat in the app…"
+msgstr "Opening the chat in the app…"
 
 #: ../code-ui/src/diff-view.tsx
 msgid "Optional: tell the agent why"
@@ -2688,6 +2714,23 @@ msgstr "Publishing is blocked when evals regress."
 #: ../library-ui/src/components/publish-dialog.tsx
 msgid "Put a copy in a team or org library. The library owns it and you maintain it."
 msgstr "Put a copy in a team or org library. The library owns it and you maintain it."
+
+#: ../../apps/desktop/src/main/menu.ts
+#: ../../apps/web/app/(quick)/quick/quick-screen.tsx
+msgid "Quick AI"
+msgstr "Quick AI"
+
+#: ../../apps/desktop/src/main/quick-shortcut.ts
+msgid "Quick AI is still in the menu bar and the app menu. Choose another shortcut under Quick AI Shortcut."
+msgstr "Quick AI is still in the menu bar and the app menu. Choose another shortcut under Quick AI Shortcut."
+
+#: ../../apps/desktop/src/main/menu.ts
+msgid "Quick AI Shortcut"
+msgstr "Quick AI Shortcut"
+
+#: ../../apps/desktop/src/main/menu.ts
+msgid "Quit"
+msgstr "Quit"
 
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Ran {code}"
@@ -3230,6 +3273,10 @@ msgstr "Show the workspace"
 msgid "Show the workspace artifacts"
 msgstr "Show the workspace artifacts"
 
+#: ../../apps/desktop/src/main/menu.ts
+msgid "Show Window"
+msgstr "Show Window"
+
 #: ../chat-ui/src/shell/app-shell.tsx
 msgid "Side panel"
 msgstr "Side panel"
@@ -3690,6 +3737,14 @@ msgstr "The preview runtime isn't responding, so this artifact can't be previewe
 #: ../../apps/web/app/dev/composer/page.tsx
 msgid "The prompt composer with contract fixtures. Type / for a prompt template or @ to mention someone; sending fakes a short run you can stop. Nothing here calls a model."
 msgstr "The prompt composer with contract fixtures. Type / for a prompt template or @ to mention someone; sending fakes a short run you can stop. Nothing here calls a model."
+
+#: ../../apps/desktop/src/main/quick-shortcut.ts
+msgid "The Quick AI shortcut \"{combo}\" in settings.json isn't one that can be used. It needs ⌘, Ctrl or ⌥ and a key, like Alt+Space."
+msgstr "The Quick AI shortcut \"{combo}\" in settings.json isn't one that can be used. It needs ⌘, Ctrl or ⌥ and a key, like Alt+Space."
+
+#: ../../apps/web/app/(quick)/quick/quick-screen.tsx
+msgid "The reply didn't finish. Open the chat to try again."
+msgstr "The reply didn't finish. Open the chat to try again."
 
 #: ../../apps/web/app/(auth)/_components/auth-problem.tsx
 msgid "The server couldn't finish that. Try again in a moment; if it keeps happening, an administrator can check the server's log."

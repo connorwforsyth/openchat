@@ -42,6 +42,8 @@ export const routes = {
   library: "/library",
   libraryItem: (id: LibraryItemId) => `/library/${id}`,
   libraryNew: (kind: LibraryKind) => `/library/new/${kind}`,
+  /** Quick AI (118): the composer alone, for the desktop app's floating window. */
+  quick: "/quick",
   settings: (section = "profile") => `/settings/${section}`,
   signIn: "/sign-in",
   signInThen: (next: string) =>

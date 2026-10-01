@@ -3,6 +3,10 @@ import { dirname, join } from "node:path";
 
 import { z } from "zod";
 
+import {
+  DEFAULT_QUICK_SHORTCUT,
+  quickShortcutSettingSchema,
+} from "./quick-shortcut";
 import { windowStateSchema } from "./window-state";
 
 // What the shell remembers between launches, in its userData directory.
@@ -14,12 +18,27 @@ export const settingsSchema = z.object({
     .object({ name: z.string(), origin: z.url() })
     .nullable()
     .default(null),
+  /**
+   * Quick AI (118). `shortcut` is the global shortcut that opens it, in the
+   * web app's notation (`Alt+Space`), or `null` for none. A value that
+   * isn't a combo is kept as written, so main can say what's wrong with it.
+   */
+  quickAi: z
+    .object({
+      shortcut: quickShortcutSettingSchema.catch(DEFAULT_QUICK_SHORTCUT),
+    })
+    .catch({ shortcut: DEFAULT_QUICK_SHORTCUT })
+    .default({ shortcut: DEFAULT_QUICK_SHORTCUT }),
   /** The main window's last bounds (117). An unreadable value is dropped, not fatal. */
   window: windowStateSchema.nullable().catch(null).default(null),
 });
 export type Settings = z.infer<typeof settingsSchema>;
 
-const DEFAULTS: Settings = { instance: null, window: null };
+const DEFAULTS: Settings = {
+  instance: null,
+  quickAi: { shortcut: DEFAULT_QUICK_SHORTCUT },
+  window: null,
+};
 
 export const settingsPath = (userData: string): string =>
   join(userData, "settings.json");

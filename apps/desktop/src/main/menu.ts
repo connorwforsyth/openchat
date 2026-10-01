@@ -5,6 +5,12 @@ import { getShortcut, type ShortcutId } from "@workspace/shortcuts/registry";
 import type { MenuItemConstructorOptions } from "electron";
 
 import type { Platform } from "../shared/ipc";
+import {
+  QUICK_SHORTCUT_PRESETS,
+  type QuickShortcut,
+  type QuickShortcutSetting,
+  shortcutLabel,
+} from "./quick-shortcut";
 
 // The native menus (117, D14): the app's own items come from the shortcut
 // registry, so their labels are the registry's descriptions and their
@@ -23,7 +29,110 @@ export interface MenuActions {
   readonly changeInstance: () => void;
   /** Sends a shortcut's command to the instance's page. */
   readonly runShortcut: (id: ShortcutId) => void;
+  /** Saves and registers another Quick AI shortcut, or none (118). */
+  readonly setQuickShortcut: (setting: QuickShortcutSetting) => void;
+  /** Shows or hides the Quick AI window (118). */
+  readonly toggleQuick: () => void;
 }
+
+/**
+ * The Quick AI items (118): the window itself, showing its global shortcut,
+ * and a choice of shortcut. The settings file can name one the menu doesn't
+ * offer; it shows as checked alongside the presets.
+ */
+const quickItems = ({
+  actions,
+  i18n,
+  platform,
+  quickShortcut,
+}: {
+  readonly actions: MenuActions;
+  readonly i18n: I18n;
+  readonly platform: Platform;
+  readonly quickShortcut: QuickShortcut;
+}): MenuItemConstructorOptions[] => {
+  const current = quickShortcut.kind === "on" ? quickShortcut.combo : null;
+  const combos =
+    current && !QUICK_SHORTCUT_PRESETS.includes(current)
+      ? [...QUICK_SHORTCUT_PRESETS, current]
+      : QUICK_SHORTCUT_PRESETS;
+  return [
+    {
+      ...(quickShortcut.kind === "on"
+        ? {
+            accelerator: quickShortcut.accelerator,
+            // Shown for the person; main registers it as a global shortcut.
+            registerAccelerator: false,
+          }
+        : {}),
+      click: actions.toggleQuick,
+      id: "quick-ai",
+      label: i18n._(msg`Quick AI`),
+    },
+    {
+      id: "quick-shortcut",
+      label: i18n._(msg`Quick AI Shortcut`),
+      submenu: [
+        ...combos.map(
+          (combo): MenuItemConstructorOptions => ({
+            checked: combo === current,
+            click: () => actions.setQuickShortcut(combo),
+            id: `quick-shortcut:${combo}`,
+            label: shortcutLabel(combo, platform),
+            type: "radio",
+          })
+        ),
+        { type: "separator" },
+        {
+          checked: quickShortcut.kind !== "on",
+          click: () => actions.setQuickShortcut(null),
+          id: "quick-shortcut:off",
+          label: i18n._(msg`No Shortcut`),
+          type: "radio",
+        },
+      ],
+    },
+  ];
+};
+
+export interface TrayActions {
+  readonly newChat: () => void;
+  readonly quit: () => void;
+  readonly showWindow: () => void;
+  readonly toggleQuick: () => void;
+}
+
+/** The menu bar icon's menu (117, 118): New chat, Quick AI, Show window, Quit. */
+export const trayMenuTemplate = ({
+  actions,
+  i18n,
+  quickShortcut,
+}: {
+  readonly actions: TrayActions;
+  readonly i18n: I18n;
+  readonly quickShortcut: QuickShortcut;
+}): MenuItemConstructorOptions[] => [
+  {
+    click: actions.newChat,
+    id: "tray:new-chat",
+    label: i18n._(getShortcut("chat.new").description),
+  },
+  {
+    ...(quickShortcut.kind === "on"
+      ? { accelerator: quickShortcut.accelerator, registerAccelerator: false }
+      : {}),
+    click: actions.toggleQuick,
+    id: "tray:quick-ai",
+    label: i18n._(msg`Quick AI`),
+  },
+  {
+    click: actions.showWindow,
+    id: "tray:show-window",
+    label: i18n._(msg`Show Window`),
+  },
+  { type: "separator" },
+  { click: actions.quit, id: "tray:quit", label: i18n._(msg`Quit`) },
+];
 
 /**
  * Registry shortcuts with no menu item, and why. Every other id has one (a
@@ -40,11 +149,13 @@ export const menuTemplate = ({
   appName,
   i18n,
   platform,
+  quickShortcut,
 }: {
   readonly actions: MenuActions;
   readonly appName: string;
   readonly i18n: I18n;
   readonly platform: Platform;
+  readonly quickShortcut: QuickShortcut;
 }): MenuItemConstructorOptions[] => {
   const shortcut = (id: ShortcutId): MenuItemConstructorOptions => {
     const accelerator = electronAccelerator(id);
@@ -62,6 +173,7 @@ export const menuTemplate = ({
     label: i18n._(msg`Change Server…`),
   };
   const mac = platform === "mac";
+  const quick = quickItems({ actions, i18n, platform, quickShortcut });
 
   const file: MenuItemConstructorOptions = {
     role: "fileMenu",
@@ -69,6 +181,7 @@ export const menuTemplate = ({
       ? [shortcut("chat.new"), separator, { role: "close" }]
       : [
           shortcut("chat.new"),
+          ...quick,
           separator,
           shortcut("settings.open"),
           changeInstance,
@@ -134,6 +247,8 @@ export const menuTemplate = ({
         separator,
         shortcut("settings.open"),
         changeInstance,
+        separator,
+        ...quick,
         separator,
         { role: "services" },
         separator,

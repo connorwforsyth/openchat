@@ -32,5 +32,6 @@ export const config = {
     "/library/:path*",
     "/settings/:path*",
     "/admin/:path*",
+    "/quick",
   ],
 };
