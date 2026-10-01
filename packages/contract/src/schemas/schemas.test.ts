@@ -50,6 +50,7 @@ const modules = {
   health: await import("./health"),
   keys: await import("./keys"),
   library: await import("./library"),
+  linkPreview: await import("./link-preview"),
   llm: await import("./llm"),
   memory: await import("./memory"),
   messageParts: await import("./message-parts"),
@@ -777,6 +778,70 @@ const cases: Record<string, Cases> = {
       { id: itemId },
       { definition: reviewerDefinition, icon: null, id: itemId },
     ],
+  },
+  // link previews (101)
+  "linkPreview.linkPreviewImageInputSchema": {
+    invalid: [{}, { src: "" }, { src: "x".repeat(8193) }],
+    valid: [{ src: "eyJ1IjoiaHR0cHM6Ly9hLnRlc3QvYS5wbmcifQ.c2ln" }],
+  },
+  "linkPreview.linkPreviewImagePathSchema": {
+    invalid: [
+      "https://evil.test/a.png",
+      "//evil.test/a.png",
+      "/\\evil.test/a.png",
+      "javascript:alert(1)",
+      "",
+    ],
+    valid: ["/api/link-preview/image?src=abc.def"],
+  },
+  "linkPreview.linkPreviewInputSchema": {
+    invalid: [
+      { url: "ftp://example.test/" },
+      { url: "javascript:alert(1)" },
+      { url: "file:///etc/passwd" },
+      { url: `https://example.test/${"a".repeat(2048)}` },
+      {},
+    ],
+    valid: [{ url: "https://example.test/post?id=1" }],
+  },
+  "linkPreview.linkPreviewSchema": {
+    invalid: [
+      { fetchedAt: t, finalUrl: "https://a.test/", url: "nope" },
+      {
+        fetchedAt: t,
+        finalUrl: "https://a.test/",
+        image: { url: "https://cdn.test/og.png" },
+        url: "https://a.test/",
+      },
+      {
+        fetchedAt: t,
+        finalUrl: "https://a.test/",
+        title: "x".repeat(301),
+        url: "https://a.test/",
+      },
+    ],
+    valid: [
+      { fetchedAt: t, finalUrl: "https://a.test/", url: "http://a.test/" },
+      {
+        description: "A page about things.",
+        fetchedAt: t,
+        finalUrl: "https://a.test/post",
+        icon: "/api/link-preview/image?src=icon.sig",
+        image: {
+          alt: "A picture",
+          height: 630,
+          url: "/api/link-preview/image?src=image.sig",
+          width: 1200,
+        },
+        siteName: "A Site",
+        title: "A post",
+        url: "https://a.test/p",
+      },
+    ],
+  },
+  "linkPreview.linkPreviewUrlSchema": {
+    invalid: ["data:text/html,hi", "mailto:a@b.test", "/relative"],
+    valid: ["https://example.test/", "http://example.test:8080/a?b#c"],
   },
 
   // llm

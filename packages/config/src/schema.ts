@@ -543,7 +543,9 @@ const limitsSchema = z
   })
   .prefault({});
 
-const featureDefaults: Record<z.infer<typeof featureFlagSchema>, boolean> = {
+type FeatureFlag = z.infer<typeof featureFlagSchema>;
+
+const featureDefaults: Record<FeatureFlag, boolean> = {
   fileUploads: true,
   importers: true,
   memory: true,
@@ -553,10 +555,28 @@ const featureDefaults: Record<z.infer<typeof featureFlagSchema>, boolean> = {
   webSearch: true,
 };
 
+/** Each public flag, optional: unset ones take `featureDefaults`. */
+const publicFlagShape = Object.fromEntries(
+  featureFlagSchema.options.map((flag) => [flag, z.boolean().optional()])
+) as Record<FeatureFlag, z.ZodOptional<z.ZodBoolean>>;
+
 const featuresSchema = z
-  .partialRecord(featureFlagSchema, z.boolean())
-  .default({})
-  .transform((features) => ({ ...featureDefaults, ...features }));
+  .strictObject({
+    ...publicFlagShape,
+    /**
+     * Source chips show the site's favicon and a preview card, fetched by
+     * the server (101). Off: chips show the host, and nothing is fetched.
+     * Server-side only, so it isn't one of the public feature flags.
+     */
+    linkPreviews: z.boolean().default(true),
+  })
+  .prefault({})
+  .transform(({ linkPreviews, ...flags }) => {
+    const set = Object.fromEntries(
+      Object.entries(flags).filter(([, value]) => value !== undefined)
+    ) as Partial<Record<FeatureFlag, boolean>>;
+    return { ...featureDefaults, ...set, linkPreviews };
+  });
 
 const mcpSchema = z
   .strictObject({

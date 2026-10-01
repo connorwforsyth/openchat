@@ -59,9 +59,17 @@ describe("parseConfig defaults", () => {
     expect(config.embeddings.model).toBeNull();
     expect(config.features.publicLinks).toBe(false);
     expect(config.features.importers).toBe(true);
+    expect(config.features.linkPreviews).toBe(true);
     expect(config.observability.otlp).toBeNull();
     expect(config.observability.recordContent).toBe(false);
     expect(config.policies.persistClientCache).toBe("allowed");
+  });
+
+  it("turns link previews off, and refuses unknown feature flags (101)", () => {
+    const config = expectOk("features: { linkPreviews: false }");
+    expect(config.features.linkPreviews).toBe(false);
+    expect(config.features.webSearch).toBe(true);
+    expect(parseConfig("features: { linkPreview: false }", {}).ok).toBe(false);
   });
 
   it("treats a comment-only file as empty", () => {

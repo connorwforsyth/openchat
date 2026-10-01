@@ -51,6 +51,11 @@ describe("createServerFromEnv", () => {
     expect(run.status).toBe(401);
     const unknown = await server.app.request("/api/nothing-here");
     expect(unknown.status).toBe(404);
+    // Link previews are mounted, and need a signed-in user (101).
+    const preview = await server.app.request(
+      "/api/link-preview?url=https%3A%2F%2Fexample.test%2F"
+    );
+    expect(preview.status).toBe(401);
     await server.stop();
   }, 60_000);
 

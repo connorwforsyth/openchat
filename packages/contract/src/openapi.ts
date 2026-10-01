@@ -60,6 +60,8 @@ const tags = Object.entries({
   Files: "Uploads, ingestion and semantic file search.",
   Keys: "Org, team and user provider keys (write-only).",
   Library: "Agents, prompts, skills, MCP servers and presets.",
+  "Link previews":
+    "Previews of cited pages, fetched by the server, and their images.",
   MCP: "Live state of MCP servers in the library.",
   Memory: "The user's Markdown memory file and its versions.",
   Messages: "The message tree and branches.",

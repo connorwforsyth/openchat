@@ -4,6 +4,7 @@ import { feedback, keys, me, memory, meta } from "./routes/account";
 import { conversations } from "./routes/conversations";
 import { artifacts, files } from "./routes/files";
 import { library, mcp } from "./routes/library";
+import { linkPreviews } from "./routes/link-preview";
 import { messages } from "./routes/messages";
 import { decisions, sandbox, search, usage } from "./routes/ops";
 import { runs } from "./routes/runs";
@@ -24,6 +25,7 @@ export const contract = {
   grants: oc.tag("Sharing").router(grants),
   keys: oc.tag("Keys").router(keys),
   library: oc.tag("Library").router(library),
+  linkPreviews: oc.tag("Link previews").router(linkPreviews),
   mcp: oc.tag("MCP").router(mcp),
   me: oc.tag("Account").router(me),
   memory: oc.tag("Memory").router(memory),

@@ -366,6 +366,35 @@ under `./.data` or `./data`, uploads survive `web` being recreated. Anywhere
 else needs a volume of its own. For S3-compatible storage (S3, R2, MinIO),
 see the `storage` block in `app.config.example.yaml`.
 
+### Link previews
+
+A web source in an answer shows the site's favicon, and hovering it shows a
+card with the page's title, description and image (its Open Graph tags).
+The server fetches these, never the reader's browser, so citing a site
+doesn't tell it who read the answer. Images are served from this instance's
+own `/api/link-preview/image` route, which only serves addresses a preview
+signed with a key derived from `BETTER_AUTH_SECRET`.
+
+The fetcher only reaches the open internet: it resolves each name and
+refuses private, loopback, link-local (including cloud metadata at
+`169.254.169.254`), CGNAT, multicast and reserved addresses, over IPv4 and
+IPv6, on every redirect (at most 3), and connects to the address it checked.
+It reads http(s) on the default ports only, gives up after 5 seconds, reads
+at most 1 MB of a page's HTML and 2 MB of an image, and never serves SVG.
+Previews are cached in memory for a day (failures for an hour) and limited
+per user.
+
+To turn previews off, so nothing is fetched and sources show their host:
+
+```yaml
+features:
+  linkPreviews: false
+```
+
+`LINK_PREVIEW_TEST_ALLOW_ORIGINS` exists only for the end-to-end tests (it
+lets them preview a fixture site on loopback). Don't set it: it's ignored in
+production unless the instance itself is served from loopback.
+
 ### Icon set
 
 The icon set is compiled into the image, so the `icons` block of a mounted

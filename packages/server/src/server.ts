@@ -60,6 +60,7 @@ import { createFileHandlers } from "./knowledge/files";
 import { createKnowledgeJobs } from "./knowledge/ingestion";
 import { createSearchHandlers } from "./knowledge/search";
 import { createLibraryRouter } from "./library/router";
+import { linkPreviewsFromEnv } from "./link-preview/from-env";
 import type { Storage } from "./ports/storage";
 import type { WebSearchSource } from "./runs/retrieval";
 import type { SandboxToolSource } from "./runs/sandbox";
@@ -542,6 +543,7 @@ export const createServerFromEnv = async (
         search: createSearchHandlers({ db }),
       }),
       ...createMcpRouter({ db, manager: mcp.manager }),
+      ...linkPreviewsFromEnv({ config, env, log }),
       ...createSandboxRouter({ api: sandbox?.api ?? disabledSandboxApi, db }),
       ...(auth ? authRouter : {}),
       ...options.routers,

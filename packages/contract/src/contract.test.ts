@@ -320,3 +320,28 @@ describe("model options (099)", () => {
     ).toHaveProperty("issues");
   });
 });
+
+describe("link preview routes (101)", () => {
+  it("are signed-in GETs that can say the feature is off", () => {
+    for (const name of ["get", "image"] as const) {
+      const { errorMap, route } = contract.linkPreviews[name]["~orpc"];
+      expect(route.method).toBe("GET");
+      expect(Object.keys(errorMap)).toEqual(
+        expect.arrayContaining(["FEATURE_DISABLED", "UNAUTHORIZED"])
+      );
+    }
+    expect(contract.linkPreviews.get["~orpc"].route.path).toBe("/link-preview");
+    expect(contract.linkPreviews.image["~orpc"].route.path).toBe(
+      "/link-preview/image"
+    );
+  });
+
+  it("documents the image route as raster images only, with inert headers", async () => {
+    const image = (await generateOpenApi()).paths?.["/link-preview/image"]?.get
+      ?.responses?.["200"];
+    const content = image && "content" in image ? image.content : {};
+    expect(Object.keys(content ?? {})).not.toContain("image/svg+xml");
+    expect(Object.keys(content ?? {})).toContain("image/png");
+    expect(JSON.stringify(image)).toContain("x-content-type-options");
+  });
+});

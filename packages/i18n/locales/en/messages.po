@@ -2105,6 +2105,7 @@ msgid "Only the owner, so far."
 msgstr "Only the owner, so far."
 
 #: ../chat-ui/src/conversation/file-change-card.tsx
+#: ../chat-ui/src/conversation/link-preview.tsx
 #: ../chat-ui/src/conversation/tool-status.tsx
 msgid "Open"
 msgstr "Open"
@@ -2223,6 +2224,10 @@ msgstr "Overwrite"
 #: ../library-ui/src/components/badges.tsx
 msgid "Owner"
 msgstr "Owner"
+
+#: ../chat-ui/src/conversation/link-preview.tsx
+msgid "Page: {name}"
+msgstr "Page: {name}"
 
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
 msgid "panel"

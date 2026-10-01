@@ -5,6 +5,18 @@ an oRPC contract for the procedures, and the OpenAPI 3.1 document generated
 from both. Frozen for the M1 workstreams; changes follow the process at the
 end of this file.
 
+## Changes (2026-10-01, 101)
+
+Link previews for URL sources: each source chip shows the site's favicon and
+a card with the page's OG preview. The server fetches the page, so the
+reader's browser never contacts a cited site. Connor approved the route
+(2026-10-01); nothing else in the contract changed.
+
+| Change | Who needs it | Compatibility |
+|---|---|---|
+| `linkPreviews.get`: `GET /link-preview?url=` (signed in, http(s) only) → `{ url, finalUrl, title?, description?, siteName?, image?: { url, width?, height?, alt? }, icon?, fetchedAt }`. `image.url` and `icon` are paths on this API (`/api/link-preview/image?src=…`), never third-party URLs. `NOT_FOUND` when there's no preview (blocked address, timeout, not HTML); `FEATURE_DISABLED` when `features.linkPreviews` is off; `RATE_LIMITED` per user. | `Sources` in chat-ui | New procedure and tag (`Link previews`). Old clients are unaffected. |
+| `linkPreviews.image`: `GET /link-preview/image?src=<signed>` → the image bytes (raster `image/*` under 2 MB, never SVG) with `nosniff`, a `sandbox` CSP and `same-origin` CORP. Only `src` tokens a preview signed are served, so it isn't an open proxy. | The favicon and card image | New procedure (a detailed output with a file body). |
+
 ## Changes (2026-09-29, 055)
 
 The chat's Files workspace: every chat gets one, created silently on first
@@ -69,11 +81,13 @@ Schemas, by file:
 | `feedback`, `keys`, `usage` | Thumbs feedback; provider keys (write-only secrets, scopes); transactions, summaries and budgets. |
 | `health` | The `meta.health` report: database and job-queue checks. |
 | `decider` | Decider questions, answers, state and the `decision_log` entry. The port itself is in `@workspace/ai`. |
+| `link-preview` | `LinkPreview` and the image route's input; the raster types it serves. |
 | `sandbox`, `search`, `meta`, `models` | Sandbox records, exec shapes and workspace file writes; chat search and web search results; `me`, public config, model refs and picker options. |
 
 Procedure groups: `conversations`, `messages`, `runs`, `library`, `mcp`,
 `orgs`, `teams`, `grants`, `shareLinks`, `files`, `artifacts`, `memory`,
-`feedback`, `keys`, `usage`, `sandbox`, `search`, `decisions`, `me`, `meta`.
+`feedback`, `keys`, `usage`, `sandbox`, `search`, `decisions`, `me`, `meta`,
+`linkPreviews`.
 Every procedure has a REST route under `/api`, a summary and one OpenAPI tag.
 
 ## Conventions
