@@ -144,18 +144,18 @@ describe("a kind with stricter checks", () => {
     ...builtinArtifactKinds.list().filter((kind) => kind.kind !== "react"),
     strictReact,
   ]);
-  const icons = 'import { Sun } from "lucide-react";\nexport default Sun;';
+  const charts = 'import { Bar } from "recharts";\nexport default Bar;';
 
   it("refuses a create as a tool result the model can fix, and saves nothing", async () => {
     const { saved, store } = recordingStore();
     const tools = createArtifactTools(store, kinds);
     const output = await tools.create_artifact.execute?.(
-      { content: icons, title: "Sun", type: "react" },
+      { content: charts, title: "Chart", type: "react" },
       call
     );
     expect(output).toEqual({
       problems: [
-        'imports "lucide-react", which isn\'t available here. It may import: react, react-dom',
+        'imports "recharts", which isn\'t available here. It may import: react, react-dom',
       ],
       status: "invalid",
     });
@@ -168,7 +168,7 @@ describe("a kind with stricter checks", () => {
     ).toEqual({
       type: "text",
       value:
-        'Not saved: imports "lucide-react", which isn\'t available here. It may import: react, react-dom. Fix the content and call the tool again.',
+        'Not saved: imports "recharts", which isn\'t available here. It may import: react, react-dom. Fix the content and call the tool again.',
     });
     expect(saved).toEqual([]);
   });
@@ -180,13 +180,13 @@ describe("a kind with stricter checks", () => {
       {
         ...store,
         list: () =>
-          Promise.resolve([{ artifactId, kind: "react", title: "Sun" }]),
+          Promise.resolve([{ artifactId, kind: "react", title: "Chart" }]),
       },
       kinds
     );
     expect(
       await tools.update_artifact.execute?.(
-        { artifactId, content: icons },
+        { artifactId, content: charts },
         call
       )
     ).toMatchObject({ status: "invalid" });
@@ -203,7 +203,7 @@ describe("a kind with stricter checks", () => {
   it("still saves what the built-in kinds accept", async () => {
     const { saved, store } = recordingStore();
     const output = await createArtifactTools(store).create_artifact.execute?.(
-      { content: icons, title: "Sun", type: "react" },
+      { content: charts, title: "Chart", type: "react" },
       call
     );
     expect(output).toMatchObject({ status: "saved" });

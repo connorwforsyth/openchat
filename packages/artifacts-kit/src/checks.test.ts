@@ -49,7 +49,7 @@ describe("importSpecifiers", () => {
       'export { thing } from "lodash";',
       'export * from "recharts";',
       "import type { Props } from './types';",
-      'const lazy = import("lucide-react");',
+      'const lazy = import("chart.js");',
       'const old = require("react");',
       "import {",
       "  a,",
@@ -63,7 +63,7 @@ describe("importSpecifiers", () => {
       "lodash",
       "recharts",
       "./types",
-      "lucide-react",
+      "chart.js",
       "multi-line",
     ]);
   });
@@ -86,9 +86,9 @@ describe("importsAllowed", () => {
 
   it("names each module that isn't listed, and what is", () => {
     expect(
-      check.run('import { Sun } from "lucide-react";\nimport x from "react";')
+      check.run('import { Sun } from "recharts";\nimport x from "react";')
     ).toEqual([
-      'imports "lucide-react", which isn\'t available here. It may import: react, react-dom',
+      'imports "recharts", which isn\'t available here. It may import: react, react-dom',
     ]);
     expect(importsAllowed([]).run('import "x";')).toEqual([
       'imports "x", which isn\'t available here. It may import: nothing',
