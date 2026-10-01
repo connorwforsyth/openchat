@@ -2,7 +2,7 @@
 id: "026"
 title: "M1 demo gate"
 labels: [wayfinder:grilling]
-status: open
+status: closed
 assignee:
 blockedBy: ["025", "044", "045", "046", "048", "050", "055", "056", "057", "058", "059", "060", "061", "062", "064", "065", "066", "067"]
 ---
@@ -31,3 +31,7 @@ Worth seeing in person:
 - **Icons:** set `icons: { set: material }` (or `ICON_SET=material`) and rebuild.
 - A real model: add a provider key in `app.config.yaml`/settings, or run Ollama.
 - Anything that feels off as a daily driver.
+
+## Resolution (2026-10-02, Connor)
+
+Signed off: "yes signed off". The Desktop wave graduates into tickets 116–122.

@@ -7,6 +7,10 @@ assignee:
 blockedBy: ["116"]
 ---
 
+## Parked (2026-10-02)
+
+Connor: "not really sure if it's super necessary". Revisit when he asks.
+
 ## Question
 
 Desktop wave (`PLAN.md` §2 Desktop, D7 cowork, D14 Quick AI and title bar, D24 IPC rules, D28 desktop renderer). Connor said "keen to start desktop" (2026-10-02); the loop treats it as M1 sign-off for planning — he confirms in 122.

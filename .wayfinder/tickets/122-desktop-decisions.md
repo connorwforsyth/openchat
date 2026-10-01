@@ -2,7 +2,7 @@
 id: "122"
 title: "Desktop: Connor's decisions before building"
 labels: [wayfinder:grilling]
-status: open
+status: closed
 assignee:
 blockedBy: []
 ---
@@ -23,3 +23,13 @@ Answers to:
 ## Owns
 
 `.wayfinder/QUESTIONS-FOR-CONNOR.md`.
+
+## Resolution (2026-10-02, Connor)
+
+1. **M1:** signed off.
+2. **Server:** instance URL only. No local server.
+3. **Platforms:** macOS first. Windows and Linux follow, hopefully cheaply.
+4. **Signing:** not now. Unsigned builds, and Gatekeeper's first-open warning is documented. A Developer ID (US$99/yr) comes when distributing widely; macOS auto-update needs it.
+5. **Cowork mode (120):** parked, since Connor isn't sure it's needed. It's the sandbox idea on a local folder.
+
+Order: 116 shell → 117 chrome → 118 Quick AI → 119 packaging (unsigned).

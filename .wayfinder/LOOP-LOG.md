@@ -132,3 +132,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-10-02 · Connor: start plan mode (106 claimed), Desktop and the artifacts framework · drafted Desktop tickets 116–121 and decisions 122
 - 2026-10-02 · artifact framework drafted: 123 (kit, claimed), 124 (Artifacts page), 125 (Sites), 126 (Documents)
 - 2026-10-02 · 101 merged (PR #82) · e2e 74/74
+- 2026-10-02 · Connor: M1 signed off (026 closed); Desktop: instance URL only, macOS first, unsigned for now, cowork parked; claimed 116
