@@ -56,3 +56,27 @@ Done: 009 and 010 prototypes, 042 contract PR (#31), Docker verification (045, P
 44. **Chat route bundle (039):** the chat route's first load (754 kB gzip) carries `ai`, `@ai-sdk/gateway`, zod locales and parse5 through chat-ui. Trim them? *Default: yes, after M1 (a lighter client-side message mapper).*
 45. **Secrets generated at first boot (040):** the Docker entrypoint writes random `BETTER_AUTH_SECRET`/`ENCRYPTION_KEY` into the data volume when they're empty, so the quick start needs no `.env` edits. OK? *Default: yes (documented in self-hosting).*
 
+
+## Answered 2026-10-01 (Connor, by voice)
+
+- **Permissions (073):**
+  - Balanced is the default preset, and the recommended bash tightening is accepted.
+  - Risky commands in a sandbox are refused (not asked).
+  - A plain Reject stops the run.
+  - Grants last until revoked or 30 idle days, whichever comes first.
+  - Q5 (co-editor answers), Q7 (Builder and Undo), Q8 (grant storage contract) and Q9 (preset by sandbox) were unclear. The loop re-explained them and defaults to its recommendations until he says otherwise: one-time only for co-editors; Undo before Builder; grants storage asked when built; Q9 parked.
+- **Artifacts (#76):**
+  - **The line:** agreed, artifacts are deliverables and files are working material.
+  - **Order:** the Artifacts page plus Documents, then plan mode's Document, then Presentations and Spreadsheets. Add a **Sites** (microsite) feature.
+  - **Site stack:** clean HTML + Tailwind with our theme, guided by a design.md, not the React UI kit. Fast.
+  - **Network:** sites may fetch public resources (fonts, CDN imports) from an allowlist; otherwise locked down.
+  - **Kind rules:** an artifact kind is "like a skill under the hood".
+  - **No "Made in" label:** opening an artifact offers "Open chat".
+  - Q18 (one artifact across chats) was re-explained; the loop's default is the same artifact.
+  - The additive contract routes for the Artifacts page are approved.
+- **Small PR calls:** all the loop's recommendations, plus Google's "G" mark. The gateway's `-highspeed`/`-ultraspeed` models fold into fast mode. A public "link previews on/off" flag is approved; password-protected share links are a later idea.
+- **Other:**
+  - "[" toggles the sidebar.
+  - The voice proposal (104) goes next.
+  - Start merging the review stack.
+- **Contract:** Connor approved optional `reasoning`, `fast` and `mode` on run options.
