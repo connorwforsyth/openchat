@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
@@ -26,6 +27,7 @@ import {
   menuCommandSchema,
   platformOf,
 } from "../shared/ipc";
+import { parseDesktopBuild } from "./build-info";
 import { parseDesktopEnv } from "./env";
 import { i18nForSystem } from "./i18n";
 import { checkInstance } from "./instance";
@@ -51,6 +53,7 @@ import {
   writeSettings,
 } from "./settings";
 import { drawTrayIcon } from "./tray-icon";
+import { startAutoUpdate } from "./updates";
 import { placeWindow, windowStateOf } from "./window-state";
 
 // The desktop shell (ticket 116). Instance URL only (122): the main window
@@ -61,6 +64,12 @@ import { placeWindow, windowStateOf } from "./window-state";
 // menu bar icon. Electron's wiring lives here; the rules it applies are pure
 // functions in src/shared and src/main.
 
+/** Written in by electron.vite.config.ts from the brand (ticket 119). */
+declare const __DESKTOP_BUILD__: unknown;
+
+const build = parseDesktopBuild(
+  typeof __DESKTOP_BUILD__ === "undefined" ? undefined : __DESKTOP_BUILD__
+);
 const env = parseDesktopEnv(process.env);
 const platform = platformOf(process.platform);
 const INSTANCE_PARTITION = "persist:instance";
@@ -89,9 +98,40 @@ const webPreferences = (
   webviewTag: false,
 });
 
+/**
+ * The brand's template image (scripts/brand-assets.ts), or the built-in
+ * bubble when there isn't one. It's in Resources/brand once packaged, and in
+ * .brand/ beside the app in a dev run (the build writes it).
+ */
+const trayImage = (): Electron.NativeImage => {
+  // Loads the @2x file beside it too.
+  const branded = nativeImage.createFromPath(
+    app.isPackaged
+      ? join(process.resourcesPath, "brand", "trayTemplate.png")
+      : join(app.getAppPath(), ".brand", "tray", "trayTemplate.png")
+  );
+  const image = branded.isEmpty() ? nativeImage.createEmpty() : branded;
+  if (branded.isEmpty()) {
+    for (const scaleFactor of [1, 2]) {
+      image.addRepresentation(drawTrayIcon(scaleFactor));
+    }
+  }
+  image.setTemplateImage(true);
+  return image;
+};
+
 const main = async () => {
-  if (env.DESKTOP_USER_DATA) {
-    app.setPath("userData", env.DESKTOP_USER_DATA);
+  // The brand's name in the menus, About and Quit, and the userData folder
+  // under it (a packaged app gets both from its bundle; this makes a dev run
+  // match). macOS's menu bar title in a dev run stays the Electron bundle's.
+  app.setName(build.name);
+  app.setPath(
+    "userData",
+    env.DESKTOP_USER_DATA ?? join(app.getPath("appData"), build.name)
+  );
+  if (platform === "win") {
+    // Notifications and the taskbar group under the installer's app ID.
+    app.setAppUserModelId(build.appId);
   }
   // Every renderer sandboxed, whatever a window asks for.
   app.enableSandbox();
@@ -100,6 +140,18 @@ const main = async () => {
     return;
   }
   await app.whenReady();
+  if (!app.isPackaged && platform === "mac") {
+    // A dev run's Dock icon is Electron's; show the brand's instead.
+    const icon = nativeImage.createFromPath(
+      join(app.getAppPath(), ".brand", "icon.png")
+    );
+    if (!icon.isEmpty()) {
+      app.dock?.setIcon(icon);
+    }
+  }
+  startAutoUpdate(build, app.isPackaged).catch((cause: unknown) => {
+    console.error("[desktop] auto-update didn't start:", cause);
+  });
 
   const path = settingsPath(app.getPath("userData"));
   let settings: Settings = await readSettings(path);
@@ -383,18 +435,11 @@ const main = async () => {
   };
   let quickShortcut = takeQuickShortcut(settings.quickAi.shortcut);
 
-  // The menu bar icon (macOS, 117 and 118). A placeholder drawing until the
-  // brand's icon (119).
+  // The menu bar icon (macOS, 117 and 118), from the brand's logo (119).
   let tray: Tray | null = null;
   let trayMenu: Menu | null = null;
   if (platform === "mac") {
-    const image = nativeImage.createEmpty();
-    for (const scaleFactor of [1, 2]) {
-      const bitmap = drawTrayIcon(scaleFactor);
-      image.addRepresentation(bitmap);
-    }
-    image.setTemplateImage(true);
-    tray = new Tray(image);
+    tray = new Tray(trayImage());
     tray.setToolTip(instance?.name ?? app.name);
   }
 

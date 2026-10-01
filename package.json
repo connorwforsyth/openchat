@@ -112,6 +112,7 @@
     "db:migrate": "turbo run db:migrate",
     "desktop:build": "turbo run build --filter=desktop",
     "desktop:dev": "turbo run desktop:dev --filter=desktop",
+    "desktop:package": "turbo run package --filter=desktop --",
     "dev": "turbo run dev",
     "eval": "turbo run eval",
     "evals": "turbo run evals --",

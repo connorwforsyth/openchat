@@ -5,9 +5,12 @@
   "type": "module",
   "main": "./dist/main/index.js",
   "scripts": {
-    "build": "electron-vite build",
-    "desktop:dev": "electron-vite dev",
+    "brand": "bun scripts/brand-assets-cli.ts",
+    "build": "bun scripts/brand-assets-cli.ts && electron-vite build",
+    "desktop:dev": "bun scripts/brand-assets-cli.ts && electron-vite dev",
     "lint": "ultracite check",
+    "package": "bun scripts/package.ts",
+    "package:smoke": "bun scripts/smoke-packaged.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
@@ -19,24 +22,30 @@
     "@workspace/shared": "workspace:*",
     "@workspace/shortcuts": "workspace:*",
     "@workspace/ui": "workspace:*",
+    "electron-updater": "6.8.9",
     "react": "catalog:",
     "react-dom": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@babel/core": "catalog:",
+    "@electron/fuses": "1.8.0",
     "@lingui/babel-plugin-lingui-macro": "catalog:",
     "@lingui/conf": "catalog:",
+    "@resvg/resvg-js": "2.6.2",
     "@rolldown/plugin-babel": "catalog:",
     "@tailwindcss/postcss": "^4",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "@workspace/config": "workspace:*",
     "@workspace/typescript-config": "workspace:*",
     "electron": "catalog:",
+    "electron-builder": "26.15.3",
     "electron-vite": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "yaml": "^2.9.1"
   }
 }

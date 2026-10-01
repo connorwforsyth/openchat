@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- The neutral icon used when app.config.yaml's brand has no logo (ticket 119).
+       On Apple's icon grid: an 824px tile with 100px clear on every side. -->
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4a4d55"/>
+      <stop offset="1" stop-color="#25272c"/>
+    </linearGradient>
+  </defs>
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#tile)"/>
+  <path fill="#f5f5f7" d="M402 306h220c77 0 140 63 140 140v70c0 77-63 140-140 140H500l-112 84c-13 10-31 0-29-16l9-70c-63-14-106-69-106-138v-70c0-77 63-140 140-140z"/>
+</svg>

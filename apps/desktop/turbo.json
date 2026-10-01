@@ -1,0 +1,40 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      // The brand (app.config.yaml) goes into main and the icons (ticket 119).
+      "env": ["CONFIG_PATH", "DESKTOP_AUTO_UPDATE", "DESKTOP_UPDATE_REPO"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/app.config.yaml",
+        "$TURBO_ROOT$/apps/web/app.config.yaml"
+      ],
+      "outputs": ["dist/**", ".brand/**"]
+    },
+    "desktop:dev": {
+      "cache": false,
+      "dependsOn": ["^i18n:compile", "^icons:select"],
+      "passThroughEnv": [
+        "CONFIG_PATH",
+        "DESKTOP_INSTANCE_URL",
+        "DESKTOP_USER_DATA"
+      ],
+      "persistent": true
+    },
+    // `bun run desktop:package`: unsigned artifacts in release/ (docs/desktop.md).
+    "package": {
+      "cache": false,
+      "dependsOn": ["^i18n:compile", "^icons:select"],
+      "passThroughEnv": [
+        "CONFIG_PATH",
+        "DESKTOP_AUTO_UPDATE",
+        "DESKTOP_UPDATE_REPO",
+        "CSC_*",
+        "WIN_CSC_*",
+        "APPLE_*",
+        "GH_TOKEN"
+      ]
+    }
+  }
+}

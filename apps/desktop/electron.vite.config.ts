@@ -1,3 +1,4 @@
+import { existsSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
 
@@ -29,6 +30,16 @@ const lingui = () =>
 // build doesn't change the catalog.
 const output = { comments: false } as const;
 
+// The brand and the update switch, written into main as `__DESKTOP_BUILD__`
+// (src/main/build-info.ts), so a dev run and a packaged one both show the
+// brand's name (ticket 119). `bun run brand` (run before every build and dev
+// run) writes it from app.config.yaml; read as JSON here, since this config
+// is loaded by Node, which can't import the workspace's TypeScript packages.
+const buildInfo = resolve(import.meta.dirname, ".brand/build.json");
+const desktopBuild = existsSync(buildInfo)
+  ? readFileSync(buildInfo, "utf8")
+  : "null";
+
 // The shell is three bundles in dist/ (PLAN.md §6 "Build rules": the
 // Electron main bundle compiles; dist/ is what Lingui's extraction, git and
 // turbo already treat as output). Workspace packages are TypeScript source, so main and the
@@ -42,6 +53,7 @@ export default defineConfig({
       outDir: "dist/main",
       rolldownOptions: { output },
     },
+    define: { __DESKTOP_BUILD__: desktopBuild },
     plugins: [lingui()],
   },
   preload: {
