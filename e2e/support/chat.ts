@@ -1,4 +1,9 @@
-import { expect, type Locator, type Page } from "@playwright/test";
+import {
+  expect,
+  type FileChooser,
+  type Locator,
+  type Page,
+} from "@playwright/test";
 import {
   type ConversationId,
   conversationIdSchema,
@@ -155,9 +160,9 @@ export const targetPicker = (page: Page, label?: string): Locator =>
   });
 
 /**
- * Picks what answers from the composer's picker: `name` in the menu group
- * labelled `group` ("My agents", "Shared with me", "Team & org agents", or
- * a provider).
+ * Picks what answers from the composer's picker dialog: `name` in the
+ * section labelled `group` ("My agents", "Shared with me", "Team & org
+ * agents", or a provider).
  */
 export const pickTarget = async (
   page: Page,
@@ -166,8 +171,23 @@ export const pickTarget = async (
   await composerReady(page);
   await targetPicker(page).click();
   await page
+    .getByRole("dialog", { name: "Choose a model or agent" })
     .getByRole("group", { name: group })
-    .getByRole("menuitemradio", { name })
+    .getByRole("option", { name })
     .click();
   await expect(targetPicker(page, name)).toBeVisible();
+};
+
+/** The composer's + menu button. */
+export const plusMenu = (page: Page): Locator =>
+  page.getByRole("button", { name: "Add to message" });
+
+/**
+ * Attach files through the + menu: resolves with the file chooser it opens.
+ */
+export const openAttachChooser = async (page: Page): Promise<FileChooser> => {
+  const chooser = page.waitForEvent("filechooser");
+  await plusMenu(page).click();
+  await page.getByRole("menuitem", { name: "Attach files" }).click();
+  return chooser;
 };

@@ -5,6 +5,7 @@ import {
   composerReady,
   conversationIdOf,
   expectReply,
+  openAttachChooser,
   openWorkspace,
   send,
   userMessages,
@@ -81,9 +82,8 @@ test("a PDF attached in the composer goes with the message", async ({
 }) => {
   await page.goto("/");
   await composerReady(page);
-  const chooser = page.waitForEvent("filechooser");
-  await page.getByRole("button", { name: "Attach files" }).click();
-  await (await chooser).setFiles({
+  const chooser = await openAttachChooser(page);
+  await chooser.setFiles({
     buffer: makePdf(ATTACHED),
     mimeType: "application/pdf",
     name: "attached-report.pdf",

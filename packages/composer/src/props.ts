@@ -60,6 +60,12 @@ export interface ComposerProps {
   readonly onStop?: () => void;
   readonly onSubmit: (value: ComposerValue) => void;
   readonly onTargetChange?: (target: RunTarget) => void;
+  /**
+   * Web search was switched on or off in the + menu. Pass it only when the
+   * instance has web search (`features.webSearch`); left out, the switch
+   * isn't offered. The host sends it as the run's `options.webSearch`.
+   */
+  readonly onWebSearchChange?: (on: boolean) => void;
   /** People `@` can mention. */
   readonly people?: readonly UserSummary[];
   readonly placeholder?: string;
@@ -68,6 +74,8 @@ export interface ComposerProps {
   readonly status?: ComposerStatus;
   /** The model/agent picker shows when this and `onTargetChange` are set. */
   readonly target?: RunTarget;
+  /** Whether web search is on for the next message (see `onWebSearchChange`). */
+  readonly webSearch?: boolean;
 }
 
 /** What the user did in the shell before the editor loaded, handed to the editor. */

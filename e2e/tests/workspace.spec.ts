@@ -7,6 +7,7 @@ import {
   composerReady,
   conversationIdOf,
   expectReply,
+  openAttachChooser,
   openWorkspace,
   send,
 } from "../support/chat";
@@ -413,9 +414,8 @@ test("a file attached in the composer lands in the workspace", async ({
 }) => {
   await page.goto(`/c/${filesChat}`);
   await composerReady(page);
-  const chooser = page.waitForEvent("filechooser");
-  await page.getByRole("button", { name: "Attach files" }).click();
-  await (await chooser).setFiles({
+  const chooser = await openAttachChooser(page);
+  await chooser.setFiles({
     buffer: Buffer.from("attached-content\n"),
     mimeType: "text/plain",
     name: "attached-notes.txt",

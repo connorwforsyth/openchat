@@ -14,6 +14,7 @@ import { ComposerLoader } from "@workspace/composer/components/composer-loader";
   agents={agents}              // LibraryItem-shaped: picker + @mentions
   models={models}              // meta.listModels output; Auto is always offered
   target={target} onTargetChange={setTarget}
+  webSearch={on} onWebSearchChange={setOn}   // only where the instance has web search
   context={context} contexts={contextOptionsFromMe(me, allowed)}
   contextLocked={hasMessages} onContextChange={setContext}
   people={members}             // UserSummary[] for @mentions
@@ -54,9 +55,29 @@ command names in and gets tokens and calls out.
 
 ## Bottom row
 
-Attach and the model/agent picker sit at the start; the chat context chip
-(only while `contextLocked` is false: after the first message the chat
+The **+** menu and the model/agent picker sit at the start; the chat context
+chip (only while `contextLocked` is false: after the first message the chat
 shows its context elsewhere) and the round Send or Stop button at the end.
+
+The + menu (`components/plus-menu.tsx`) holds what can be added to the next
+message: *Attach files*; *Add a workspace file* (the `files` `/open` lists;
+choosing one inserts the same `@file` mention `@` does) and *Use a prompt*
+(the `prompts` `/` offers, variables form included), each only when there
+are some; and *Web search*, a switch, only when the host passes
+`onWebSearchChange` (the chat does when `features.webSearch` is on, and sends
+`options.webSearch: "on"` for turns while it's on). While it's on, a
+*Search* chip beside + turns it off. Skills join the menu once they run in
+chats (082).
+
+The picker (`components/target-picker.tsx`) is a search dialog, AI
+Elements' model selector: sections for Auto, each provider's models (the
+vendor after a gateway's colon, `gateway:anthropic/…` is Anthropic), then
+agents by where they come from, with a divider between sections. Typing
+matches every word against label, alias, ref and provider
+(`filterTargetGroups` in `options.ts`); nothing is capped. An alias shows the
+model id it stands for; an option without a key stays, disabled, saying so.
+A second line shows a description when an option has one; only Auto does
+until `ModelOption` carries them (096).
 
 ## Layout
 
@@ -70,6 +91,7 @@ shows its context elsewhere) and the round Send or Stop button at the end.
 | `src/components/composer-shell.tsx` | The static placeholder: same frame, textarea instead of the editor. |
 | `src/components/composer-loader.tsx` | Shell first, then swaps in the editor. |
 | `src/components/composer.tsx` | The editor composer (client-only). |
+| `src/components/plus-menu.tsx`, `target-picker.tsx` | The + menu and the model/agent dialog. |
 
 ## Loading: composer first
 

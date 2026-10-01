@@ -7,6 +7,7 @@ import {
   conversationIdOf,
   expectReply,
   lockedContext,
+  pickTarget,
   send,
 } from "../support/chat";
 import { storageStateFor } from "../support/users";
@@ -47,11 +48,7 @@ test("a Platform chat is paid by Platform's key, rolls up, and locks its context
   await expect(contextChip(page, "Platform")).toBeVisible();
 
   // Pick the model only Platform's key can pay for.
-  await page.getByRole("button", { name: "Model or agent:" }).click();
-  await page
-    .getByRole("group", { name: "paid" })
-    .getByRole("menuitemradio", { name: "echo" })
-    .click();
+  await pickTarget(page, { group: "paid", name: "echo" });
 
   await send(page, "Who pays for this?");
   await expectReply(page, "Echo: Who pays for this?");

@@ -208,6 +208,10 @@ msgstr "Add a key below to use a provider's models with your own account."
 msgid "Add a starter"
 msgstr "Add a starter"
 
+#: ../composer/src/components/plus-menu.tsx
+msgid "Add a workspace file"
+msgstr "Add a workspace file"
+
 #: ../library-ui/src/components/agent-form.tsx
 msgid "Add an MCP server to your library to connect it here."
 msgstr "Add an MCP server to your library to connect it here."
@@ -232,6 +236,10 @@ msgstr "Add people, teams or orgs"
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Add photos or files"
 msgstr "Add photos or files"
+
+#: ../composer/src/components/plus-menu.tsx
+msgid "Add to message"
+msgstr "Add to message"
 
 #: ../chat-ui/src/workspace/preview.tsx
 msgid "Address"
@@ -400,7 +408,7 @@ msgstr "Ask for an updated change"
 msgid "At least 8 characters."
 msgstr "At least 8 characters."
 
-#: ../composer/src/components/composer-footer.tsx
+#: ../composer/src/components/plus-menu.tsx
 msgid "Attach files"
 msgstr "Attach files"
 
@@ -640,6 +648,14 @@ msgstr "Choose a library"
 #: ../../apps/web/app/(auth)/_components/auth-problem.tsx
 msgid "Choose a longer password (at least 8 characters)."
 msgstr "Choose a longer password (at least 8 characters)."
+
+#: ../ui/src/components/ai-elements/model-selector.tsx
+msgid "Choose a model"
+msgstr "Choose a model"
+
+#: ../composer/src/components/target-picker.tsx
+msgid "Choose a model or agent"
+msgstr "Choose a model or agent"
 
 #: ../chat-ui/src/header/chat-title.tsx
 msgid "Click to rename"
@@ -1711,6 +1727,10 @@ msgstr "Model or agent: {label}"
 msgid "Models"
 msgstr "Models"
 
+#: ../composer/src/components/target-picker.tsx
+msgid "Models and agents"
+msgstr "Models and agents"
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "Monthly"
 msgstr "Monthly"
@@ -1869,6 +1889,10 @@ msgstr "No files yet. Ask for one, drop a file here, or type /new-file"
 msgid "No files yet. Files you and the agent create will appear here."
 msgstr "No files yet. Files you and the agent create will appear here."
 
+#: ../composer/src/components/target-picker.tsx
+msgid "No key in this context"
+msgstr "No key in this context"
+
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "No keys yet"
 msgstr "No keys yet"
@@ -1952,6 +1976,10 @@ msgstr "Nothing is running on port {port} yet. Ask the agent to start the app."
 #: ../library-ui/src/components/library-index.tsx
 msgid "Nothing matches"
 msgstr "Nothing matches"
+
+#: ../composer/src/components/target-picker.tsx
+msgid "Nothing matches."
+msgstr "Nothing matches."
 
 #: ../../apps/web/app/dev/composer/demo.tsx
 msgid "Nothing sent yet."
@@ -2171,8 +2199,8 @@ msgid "Personal key fallback is off: this server forbids it."
 msgstr "Personal key fallback is off: this server forbids it."
 
 #: ../composer/src/components/target-picker.tsx
-msgid "Picks a model for each message"
-msgstr "Picks a model for each message"
+msgid "Picks a fast or strong model for each message"
+msgstr "Picks a fast or strong model for each message"
 
 #: ../chat-ui/src/sidebar/chat-row.tsx
 msgid "Pin"
@@ -2675,6 +2703,7 @@ msgid "Scroll to start"
 msgstr "Scroll to start"
 
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
+#: ../composer/src/components/composer-footer.tsx
 #: ../library-ui/src/components/library-index.tsx
 msgid "Search"
 msgstr "Search"
@@ -2699,6 +2728,10 @@ msgstr "Search for a command to run"
 #: ../library-ui/src/components/agent-form.tsx
 msgid "Search knowledge files"
 msgstr "Search knowledge files"
+
+#: ../composer/src/components/target-picker.tsx
+msgid "Search models and agents"
+msgstr "Search models and agents"
 
 #: ../palette/src/command-palette.tsx
 msgid "Search or type a command…"
@@ -3596,6 +3629,10 @@ msgstr "Use"
 msgid "Use {example} for a value people fill in when they use the prompt."
 msgstr "Use {example} for a value people fill in when they use the prompt."
 
+#: ../composer/src/components/plus-menu.tsx
+msgid "Use a prompt"
+msgstr "Use a prompt"
+
 #: ../../apps/web/app/(auth)/sign-up/page.tsx
 msgid "Use an email address from an approved domain."
 msgstr "Use an email address from an approved domain."
@@ -3724,6 +3761,14 @@ msgstr "Warns"
 #: ../chat-ui/src/conversation/artifact-card.tsx
 msgid "Web page"
 msgstr "Web page"
+
+#: ../composer/src/components/plus-menu.tsx
+msgid "Web search"
+msgstr "Web search"
+
+#: ../composer/src/components/composer-footer.tsx
+msgid "Web search is on. Turn it off"
+msgstr "Web search is on. Turn it off"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "Weekly"

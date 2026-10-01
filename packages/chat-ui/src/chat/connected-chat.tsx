@@ -18,6 +18,7 @@ import {
 import type { RunCreated } from "@workspace/client/run-transport";
 import { useRunChat } from "@workspace/client/use-run-chat";
 import { contextOptionsFromMe } from "@workspace/composer/options";
+import type { ComposerProps } from "@workspace/composer/props";
 import type {
   AgentOption,
   AttachmentLimits,
@@ -258,6 +259,20 @@ const mentionedFiles = (value: ComposerValue): string[] =>
     mention.kind === "file" ? [mention.path] : []
   );
 
+/** Whether this turn searches the web: switched on, on an instance that can. */
+const webSearchOn = (config: PublicConfig, on: boolean): boolean =>
+  on && config.features.webSearch === true;
+
+/** The composer's web search switch, offered only where the instance has it (D18 `features`). */
+const webSearchSwitch = (
+  config: PublicConfig,
+  on: boolean,
+  onChange: (on: boolean) => void
+): Pick<ComposerProps, "onWebSearchChange" | "webSearch"> =>
+  config.features.webSearch === true
+    ? { onWebSearchChange: onChange, webSearch: on }
+    : {};
+
 /** Paths the composer offers: files only, relative to the workspace. Pure. */
 const filePaths = (
   entries: Parameters<typeof toTreePaths>[0] | undefined
@@ -301,6 +316,7 @@ const useLiveTurn = ({
   stored,
   storedAt,
   target,
+  webSearch,
 }: {
   readonly client: ApiClient;
   readonly context: ChatContext;
@@ -312,14 +328,16 @@ const useLiveTurn = ({
   /** When the stored branch was last fetched (`dataUpdatedAt`). */
   readonly storedAt: number;
   readonly target: RunTarget | null;
+  /** Switched on in the composer's + menu: search the web this turn. */
+  readonly webSearch: boolean;
 }) => {
   const initialMessages = useMemo(
     () => toUIMessages(stored, { fileUrl }),
     [stored]
   );
-  const fieldsRef = useRef({ context, target });
+  const fieldsRef = useRef({ context, target, webSearch });
   useEffect(() => {
-    fieldsRef.current = { context, target };
+    fieldsRef.current = { context, target, webSearch };
   });
   const chat = useRunChat({
     client,
@@ -329,9 +347,14 @@ const useLiveTurn = ({
     onRunCreated,
     runFields: () => {
       const fields = fieldsRef.current;
-      return fields.target
-        ? { context: fields.context, target: fields.target }
-        : { context: fields.context };
+      return {
+        context: fields.context,
+        // Off means "let the Decider choose" (`auto`), as before the switch.
+        ...(fields.webSearch
+          ? { options: { sandbox: "auto", webSearch: "on" } as const }
+          : {}),
+        ...(fields.target ? { target: fields.target } : {}),
+      };
     },
   });
   const { messages: live, setMessages, status } = chat;
@@ -1156,6 +1179,7 @@ export function ConnectedChat({
     onDraftContextChange
   );
   const [uploadFailed, setUploadFailed] = useState(false);
+  const [webSearch, setWebSearch] = useState(false);
   const titleWatch = useTitleWatch(conversationId);
 
   const data = useChatQueries(api, {
@@ -1261,6 +1285,7 @@ export function ConnectedChat({
     stored,
     storedAt: data.path.dataUpdatedAt,
     target,
+    webSearch: webSearchOn(config, webSearch),
   });
   const { regenerate, sendMessage, setMessages } = chat;
   const { activity, composerStatus, decisions, stop, unseen, waiting } =
@@ -1435,6 +1460,7 @@ export function ConnectedChat({
           onStop: stop,
           onSubmit,
           onTargetChange,
+          ...webSearchSwitch(config, webSearch, setWebSearch),
           status: composerStatus,
           target: target ?? undefined,
         }}
