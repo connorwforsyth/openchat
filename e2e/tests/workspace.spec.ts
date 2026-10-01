@@ -50,8 +50,9 @@ const editorIn = (page: Page) =>
   page.locator('[data-slot="code-editor"] [contenteditable="true"]');
 
 /**
- * Shows the open file as code: Markdown and HTML open rendered (066), with
- * a Preview/Code toggle.
+ * Shows the open file as code: Markdown opens rendered (066), with a
+ * Preview/Code toggle. (An HTML file's page is in the browser half, its code
+ * below, 097.)
  */
 const showCode = (panel: Locator) =>
   panel
@@ -320,7 +321,8 @@ test("a page the agent writes opens in the Preview by itself, as a static render
       .getByRole("heading", { name: "Made by the agent" })
   ).toBeVisible();
 
-  // The card leads with Preview; Open shows the file, rendered, with Code.
+  // The card leads with Preview; Open shows the file's code under the
+  // page, which stays in the browser above (097).
   await expect(
     card.getByRole("button", { name: "Preview index.html" })
   ).toBeVisible();
@@ -328,8 +330,8 @@ test("a page the agent writes opens in the Preview by itself, as a static render
   await expect(
     panel.getByRole("treeitem", { name: "index.html" })
   ).toHaveAttribute("aria-selected", "true");
-  await showCode(panel);
   await expect(editorIn(page)).toContainText("Made by the agent");
+  await expect(frame).toBeVisible();
 });
 
 test("an edit typed in the panel's editor survives a reload", async ({

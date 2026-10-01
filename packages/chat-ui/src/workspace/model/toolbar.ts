@@ -29,6 +29,8 @@ export interface ToolbarRoom {
   readonly backToList: boolean;
   /** The panel's Close ends the row. */
   readonly close: boolean;
+  /** The browser half's Maximise is before it (097). */
+  readonly maximise?: boolean;
   /** A rendered file's Preview/Code switch is in the row. */
   readonly toggle: boolean;
   /** The toolbar's width; 0 before it's measured. */
@@ -48,6 +50,7 @@ const slot = (width: number) => width + TOOLBAR.gap;
 export const toolbarMinimum = ({
   backToList,
   close,
+  maximise = false,
   toggle,
 }: Omit<ToolbarRoom, "width">): number =>
   TOOLBAR.padding -
@@ -57,6 +60,7 @@ export const toolbarMinimum = ({
   slot(TOOLBAR.address) +
   slot(TOOLBAR.button) + // the menu
   (toggle ? slot(TOOLBAR.toggle) : 0) +
+  (maximise ? slot(TOOLBAR.button) : 0) +
   (close ? slot(TOOLBAR.button) : 0);
 
 const FULL: ToolbarFit = {

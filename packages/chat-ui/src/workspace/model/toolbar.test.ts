@@ -60,4 +60,19 @@ describe("fitBrowserToolbar", () => {
   it("shows everything before it's measured, as on a wide panel", () => {
     expect(fitBrowserToolbar({ ...narrowFile, width: 0 }).forward).toBe(true);
   });
+
+  it("fits the stacked browser's Maximise (097) at the narrowest stacked panel", () => {
+    // Stacked from 420px: Back, the address, the menu, Maximise and Close.
+    const top = {
+      backToList: false,
+      close: true,
+      maximise: true,
+      toggle: false,
+    };
+    expect(toolbarMinimum(top)).toBe(
+      toolbarMinimum({ ...top, maximise: false }) + TOOLBAR.button + TOOLBAR.gap
+    );
+    expect(toolbarMinimum(top)).toBeLessThanOrEqual(420);
+    expect(fitBrowserToolbar({ ...top, width: 420 }).reload).toBe(true);
+  });
 });
