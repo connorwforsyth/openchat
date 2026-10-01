@@ -3,6 +3,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import {
   AttachIcon,
+  ClockIcon,
   FileIcon,
   GlobeIcon,
   LibraryIcon,
@@ -24,14 +25,21 @@ import {
 import { type Ref, useCallback } from "react";
 
 import type { FileCandidate, PromptOption } from "../schemas";
+import type { FastMode } from "../variants";
 
 export interface PlusMenuProps {
   readonly attachDisabled: boolean;
   readonly disabled: boolean;
+  /**
+   * Fast mode for the chosen model (105); left out when it has none, and
+   * the switch isn't offered. Separate from its thinking level.
+   */
+  readonly fast?: FastMode & { readonly on: boolean };
   /** Workspace files to add to the message, as `/open` lists them. */
   readonly files: readonly FileCandidate[];
   readonly onAddFile: ((file: FileCandidate) => void) | undefined;
   readonly onAttach: () => void;
+  readonly onFastChange?: (on: boolean) => void;
   readonly onUsePrompt: ((prompt: PromptOption) => void) | undefined;
   /** Left out when the instance has no web search: the item isn't offered. */
   readonly onWebSearchChange: ((on: boolean) => void) | undefined;
@@ -84,15 +92,18 @@ const SUBMENU_CLASS = "max-h-72 w-64 max-w-[calc(100vw-2rem)]";
 /**
  * The composer's + menu: things to add to the next message. Attach files is
  * always first; a workspace file and a prompt appear when there are some to
- * pick; web search is a switch for the instance that has it. Base UI's menu
+ * pick; web search is a switch for the instance that has it, and fast mode
+ * one for a model that has a fast variant. Base UI's menu
  * gives it arrow keys, type-ahead, and Escape back to the + button.
  */
 export function PlusMenu({
   attachDisabled,
   disabled,
+  fast,
   files,
   onAddFile,
   onAttach,
+  onFastChange,
   onUsePrompt,
   onWebSearchChange,
   prompts,
@@ -105,6 +116,11 @@ export function PlusMenu({
     (on: boolean) => onWebSearchChange?.(on),
     [onWebSearchChange]
   );
+  const switchFast = useCallback(
+    (on: boolean) => onFastChange?.(on),
+    [onFastChange]
+  );
+  const offerFast = fast !== undefined && onFastChange !== undefined;
   const offerFiles = onAddFile !== undefined && files.length > 0;
   const offerPrompts = onUsePrompt !== undefined && prompts.length > 0;
   return (
@@ -153,17 +169,37 @@ export function PlusMenu({
           </DropdownMenuSub>
         ) : null}
         {/* Skills join here once they run in chats (S4, ticket 082). */}
+        {onWebSearchChange || offerFast ? <DropdownMenuSeparator /> : null}
         {onWebSearchChange ? (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuCheckboxItem
-              checked={webSearch}
-              onCheckedChange={switchWebSearch}
-            >
-              <GlobeIcon aria-hidden />
-              <Trans>Web search</Trans>
-            </DropdownMenuCheckboxItem>
-          </>
+          <DropdownMenuCheckboxItem
+            checked={webSearch}
+            onCheckedChange={switchWebSearch}
+          >
+            <GlobeIcon aria-hidden />
+            <Trans>Web search</Trans>
+          </DropdownMenuCheckboxItem>
+        ) : null}
+        {offerFast ? (
+          <DropdownMenuCheckboxItem
+            checked={fast.on}
+            disabled={fast.blocked !== undefined}
+            onCheckedChange={switchFast}
+          >
+            <ClockIcon aria-hidden />
+            <span className="flex min-w-0 flex-col">
+              <Trans>Fast mode</Trans>
+              {fast.blocked === "server" ? (
+                <span className="text-muted-foreground text-xs">
+                  <Trans>Needs server support</Trans>
+                </span>
+              ) : null}
+              {fast.blocked === "unavailable" ? (
+                <span className="text-muted-foreground text-xs">
+                  <Trans>No key in this context</Trans>
+                </span>
+              ) : null}
+            </span>
+          </DropdownMenuCheckboxItem>
         ) : null}
       </PromptInputActionMenuContent>
     </PromptInputActionMenu>

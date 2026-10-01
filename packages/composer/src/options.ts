@@ -22,6 +22,11 @@ import {
   type PromptOption,
 } from "./schemas";
 import { slashStage } from "./triggers";
+import {
+  type FoldedModels,
+  familyMembers,
+  foldModelVariants,
+} from "./variants";
 
 // Turning contract data into what the pickers and menus list. Pure, so the
 // grouping and matching rules are tested without rendering anything.
@@ -37,7 +42,7 @@ export interface TargetChoice {
   /** The agent a row picks, for its preview card. */
   readonly agent?: AgentOption;
   readonly available: boolean;
-  /** A one-line "why pick this", shown under the label when there is one (096). */
+  /** A one-line "why pick this" (096), for the card and search; not the row (105). */
   readonly description?: string;
   /**
    * The model id behind an alias (`claude-opus-5-5` for `strong`), shown
@@ -82,6 +87,8 @@ export interface TargetGroups {
   readonly autoAvailable: boolean;
   /** Whether the server offers `auto` at all (`models.auto.enabled`). */
   readonly autoOffered: boolean;
+  /** The models with modes of a model folded into it (105). */
+  readonly folded: FoldedModels;
   /** Models by provider, in the order the server first listed each provider. */
   readonly providers: readonly ProviderGroup[];
 }
@@ -132,7 +139,11 @@ export const bareModelName = (label: string): string =>
 export const modelName = (model: ModelOption): string =>
   model.displayName?.trim() || bareModelName(model.label);
 
-const modelChoice = (model: ModelOption, vendor: string): TargetChoice => {
+const modelChoice = (
+  model: ModelOption,
+  vendor: string,
+  members: readonly ModelOption[]
+): TargetChoice => {
   const target: RunTarget = { model: model.selector, type: "model" };
   const ref = model.target ?? model.selector;
   const modelId = parseModelRef(ref)?.modelId;
@@ -158,6 +169,12 @@ const modelChoice = (model: ModelOption, vendor: string): TargetChoice => {
       model.target ?? undefined,
       vendor,
       providerLabel(vendor),
+      // The entries folded into it (105) still find it.
+      ...members.flatMap((member) => [
+        member.label,
+        member.displayName,
+        member.selector,
+      ]),
     ]),
     target,
     vendor,
@@ -187,18 +204,26 @@ const AGENT_SOURCE_ORDER: readonly (AgentSource | null)[] = [
  * The picker's groups: Auto, models by provider, then agents by where they
  * come from. An alias is filed under the vendor it resolves to. `auto` in
  * the model list only says whether Auto is available; it never appears twice.
+ * An entry that's only a mode of another model (`o4-mini-high`) is folded
+ * into it, and comes back as its thinking level or fast mode (105).
  */
 export const buildTargetGroups = (
   models: readonly ModelOption[],
   agents: readonly AgentOption[]
 ): TargetGroups => {
+  const folded = foldModelVariants(models);
   const providers: { choices: TargetChoice[]; provider: string }[] = [];
-  for (const model of models) {
+  for (const model of folded.models) {
     if (model.selector === AUTO_MODEL) {
       continue;
     }
     const provider = modelVendor(model);
-    const choice = modelChoice(model, provider);
+    const family = folded.families.get(model.selector);
+    const choice = modelChoice(
+      model,
+      provider,
+      family ? familyMembers(family) : []
+    );
     const group = providers.find((entry) => entry.provider === provider);
     if (group === undefined) {
       providers.push({ choices: [choice], provider });
@@ -218,6 +243,7 @@ export const buildTargetGroups = (
     autoAvailable:
       models.find((model) => model.selector === AUTO_MODEL)?.available ?? true,
     autoOffered: models.some((model) => model.selector === AUTO_MODEL),
+    folded,
     providers: providers.map((group) => ({
       ...group,
       label: providerLabel(group.provider),
@@ -278,12 +304,27 @@ export const filterTargetGroups = (
   };
 };
 
-/** The choice for a target, if the groups list it. */
+/**
+ * The target a row stands for: a folded entry's base model, without the
+ * level it runs at; anything else as it is.
+ */
+export const listedTarget = (
+  groups: TargetGroups,
+  target: RunTarget
+): RunTarget =>
+  target.type === "model"
+    ? {
+        model: groups.folded.baseOf.get(target.model) ?? target.model,
+        type: "model",
+      }
+    : target;
+
+/** The choice for a target (its base model's, for a folded entry), if listed. */
 export const findTargetChoice = (
   groups: TargetGroups,
   target: RunTarget
 ): TargetChoice | undefined => {
-  const key = targetKey(target);
+  const key = targetKey(listedTarget(groups, target));
   return [
     ...groups.agents,
     ...groups.providers.flatMap((group) => group.choices),

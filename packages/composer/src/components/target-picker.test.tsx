@@ -67,6 +67,8 @@ const GPT = /^gpt-6/;
 const ROCKET = /^Rocket 1/;
 const REVIEWER = /^Reviewer/;
 const AUTO = /^Auto/;
+const O4_MINI = /^o4-mini/;
+const TEXT_SIZE = /\btext-(xs|sm|base|lg)\b/;
 
 const AGENTS: readonly AgentOption[] = [
   { ...agentItem, source: "mine" },
@@ -148,10 +150,9 @@ describe("TargetPicker", () => {
     expect(screen.getAllByRole("separator")).toHaveLength(
       groupHeadings().length - 1
     );
-    // Auto says what it does; an alias shows the model behind it.
-    expect(optionNames()[0]).toContain(
-      "Picks a fast or strong model for each message"
-    );
+    // Auto's row is just its name (its card says what it does); an alias
+    // shows the model behind it.
+    expect(optionNames()[0]).toBe("Auto");
     expect(screen.getByRole("option", { name: STRONG }).textContent).toContain(
       "Claude Opus 5.5"
     );
@@ -183,14 +184,17 @@ describe("TargetPicker", () => {
     expect(logo(ROCKET)?.textContent).toBe("a");
   });
 
-  it("shows a model's description under its name, and finds it by it (096)", async () => {
+  it("leaves a model's description to the card, and still finds it by it (105)", async () => {
     renderPicker();
     await open("Model or agent: Auto");
     const strong = screen.getByRole("option", { name: STRONG });
-    const line = [...strong.querySelectorAll("span")].find(
-      (span) => span.textContent === "Hard problems and long documents"
-    );
-    expect(line).toBeTruthy();
+    expect(strong.textContent).not.toContain("Hard problems");
+    // The name and the vendor are one size; only the colour sets it apart.
+    const name = strong.querySelector("[data-slot=model-selector-name]");
+    const vendor = strong.querySelector("[data-slot=model-selector-vendor]");
+    expect(vendor?.className).not.toMatch(TEXT_SIZE);
+    expect(name?.className).not.toMatch(TEXT_SIZE);
+    expect(vendor?.className).toContain("text-muted-foreground");
     await userEvent.keyboard("long documents");
     await waitFor(() => expect(optionNames()).toHaveLength(1));
     expect(optionNames()[0]).toContain("strong");
@@ -238,6 +242,41 @@ describe("TargetPicker", () => {
     await waitFor(() => expect(screen.queryByRole("listbox")).toBeNull());
     await waitFor(() => expect(document.activeElement).toBe(trigger));
     expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("opens as a modal overlay with focus in the search (105)", async () => {
+    renderPicker();
+    await open("Model or agent: Auto");
+    const dialog = screen.getByRole("dialog", {
+      name: "Choose a model or agent",
+    });
+    // Modal: the page behind it is covered and inert.
+    expect(document.querySelector("[data-base-ui-inert]")).toBeTruthy();
+    // Not anchored to the button: no popover positioner around it.
+    expect(dialog.closest("[data-side]")).toBeNull();
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByRole("combobox", { name: "Models and agents" })
+      )
+    );
+  });
+
+  it("lists a mode of a model once, under the model (105)", async () => {
+    const models: readonly ModelOption[] = [
+      {
+        ...option("openai:o4-mini", "openai:o4-mini", "o4-mini"),
+        capabilities: ["reasoning"],
+      },
+      option("openai:o4-mini-high", "openai:o4-mini-high", "o4-mini-high"),
+    ];
+    renderPicker({ model: "openai:o4-mini-high", type: "model" }, { models });
+    await open("Model or agent: o4-mini");
+    expect(optionNames().filter((name) => name?.startsWith("o4-mini"))).toEqual(
+      ["o4-miniOpenAI"]
+    );
+    expect(screen.getByRole("option", { name: O4_MINI }).dataset.checked).toBe(
+      "true"
+    );
   });
 
   it("starts on the current choice and moves with the arrow keys", async () => {
@@ -322,7 +361,9 @@ describe("TargetPicker's preview card (099)", () => {
 describe("TargetPicker's Recently used (099)", () => {
   const pick = async (name: RegExp) => {
     await open("Model or agent: Auto");
-    await userEvent.click(screen.getByRole("option", { name }));
+    // The dialog's backdrop covers the page; these tests load no CSS, so the
+    // panel isn't lifted above it and a real pointer can't reach a row.
+    fireEvent.click(screen.getByRole("option", { name }));
     await waitFor(() => expect(screen.queryByRole("listbox")).toBeNull());
   };
 

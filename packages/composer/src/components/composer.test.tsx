@@ -16,9 +16,11 @@ import {
   userAda,
   userBo,
 } from "@workspace/contract/fixtures";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import type { ModelOption } from "@workspace/contract/schemas/models";
+import type { RunTarget } from "@workspace/contract/schemas/runs";
+import { useCallback, useState } from "react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
-
 import {
   type ComposerValue,
   composerValueSchema,
@@ -67,6 +69,14 @@ const APP_TS = /app\.ts/;
 const NEW_FILE = /New file/;
 const OPEN_FILE = /Open file/;
 const PREVIEW = /Preview/;
+const THINKING = /^Thinking:/;
+const GPT_6 = /^GPT-6/;
+const LOW = /^Low/;
+const HIGH = /^High/;
+const MEDIUM = /^Medium/;
+const O4_MINI = /^o4-mini/;
+const EXTRA_HIGH = /Extra high/;
+const FAST_MODE = /Fast mode/;
 
 const renderComposer = (props: Partial<ComposerProps> = {}) => {
   const onSubmit = vi.fn<(value: ComposerValue) => void>();
@@ -679,5 +689,218 @@ describe("Composer", () => {
       "disabled",
       true
     );
+  });
+});
+
+describe("Composer's thinking level and fast mode (105)", () => {
+  const model = (
+    selector: string,
+    label: string,
+    extra: Partial<ModelOption> = {}
+  ): ModelOption => ({
+    available: true,
+    capabilities: [],
+    contextWindow: null,
+    displayName: label,
+    label,
+    provider: "openai",
+    selector,
+    target: selector,
+    ...extra,
+  });
+  const MODELS: readonly ModelOption[] = [
+    model("openai:o4-mini", "o4-mini", { capabilities: ["reasoning"] }),
+    model("openai:o4-mini-high", "o4-mini (high)"),
+    model("openai:o4-mini-fast", "o4-mini (fast)"),
+    model("openai:gpt-6", "GPT-6", { capabilities: ["reasoning"] }),
+    model("acme:plain", "Plain", { provider: "acme" }),
+  ];
+
+  const changes = vi.fn<(target: RunTarget) => void>();
+
+  function Harness({ initial }: { readonly initial: RunTarget }) {
+    const [target, setTarget] = useState(initial);
+    const change = useCallback((next: RunTarget) => {
+      changes(next);
+      setTarget(next);
+    }, []);
+    return (
+      <I18nProvider i18n={i18n}>
+        <Composer
+          context={{ type: "personal" }}
+          contexts={[
+            { context: { type: "personal" } },
+            {
+              context: { id: teamPlatform.id, type: "team" },
+              name: "Platform",
+            },
+          ]}
+          models={MODELS}
+          onContextChange={vi.fn()}
+          onSubmit={vi.fn()}
+          onTargetChange={change}
+          onWebSearchChange={vi.fn()}
+          recentsKey="user-1"
+          target={target}
+        />
+      </I18nProvider>
+    );
+  }
+
+  const renderHarness = (selector = "openai:o4-mini") =>
+    render(<Harness initial={{ model: selector, type: "model" }} />);
+
+  const thinking = () => screen.queryByRole("button", { name: THINKING });
+
+  const chooseLevel = async (name: RegExp) => {
+    const trigger = thinking();
+    if (!trigger) {
+      throw new Error("no thinking control");
+    }
+    await userEvent.click(trigger);
+    await userEvent.click(await screen.findByRole("menuitemradio", { name }));
+  };
+
+  const pickModel = async (from: string, name: RegExp) => {
+    await userEvent.click(
+      screen.getByRole("button", { name: `Model or agent: ${from}` })
+    );
+    fireEvent.click(await screen.findByRole("option", { name }));
+    await waitFor(() => expect(screen.queryByRole("listbox")).toBeNull());
+  };
+
+  beforeEach(() => {
+    localStorage.clear();
+    changes.mockClear();
+  });
+
+  it("puts the + menu and context first, and thinking and the model by Send", () => {
+    renderHarness();
+    const footer = screen
+      .getByRole("button", { name: "Send" })
+      .closest(
+        "[data-slot=input-group-addon], footer, div[class*=justify]"
+      )?.parentElement;
+    const names = within(footer ?? document.body)
+      .getAllByRole("button")
+      .map((button) => button.getAttribute("aria-label"));
+    expect(names).toEqual([
+      "Add to message",
+      "Chat context: Personal",
+      "Thinking: Default",
+      "Model or agent: o4-mini",
+      "Send",
+    ]);
+  });
+
+  it("shows the thinking control only for a model with a choice to make", async () => {
+    renderHarness("acme:plain");
+    expect(thinking()).toBeNull();
+    await pickModel("Plain", GPT_6);
+    expect(thinking()).toBeTruthy();
+  });
+
+  it("sends a level as the target's reasoning effort, or picks its folded entry", async () => {
+    renderHarness();
+    await chooseLevel(LOW);
+    expect(changes).toHaveBeenLastCalledWith({
+      model: "openai:o4-mini",
+      parameters: { reasoningEffort: "low" },
+      type: "model",
+    });
+    expect(thinking()?.getAttribute("aria-label")).toBe("Thinking: Low");
+    // High is the catalog's own o4-mini-high entry.
+    await chooseLevel(HIGH);
+    expect(changes).toHaveBeenLastCalledWith({
+      model: "openai:o4-mini-high",
+      type: "model",
+    });
+    expect(
+      screen.getByRole("button", { name: "Model or agent: o4-mini" })
+    ).toBeTruthy();
+  });
+
+  it("lists a level the server can't take yet, disabled, with the reason", async () => {
+    renderHarness("openai:gpt-6");
+    await userEvent.click(thinking() as HTMLElement);
+    const xhigh = await screen.findByRole("menuitemradio", {
+      name: EXTRA_HIGH,
+    });
+    expect(xhigh.getAttribute("aria-disabled")).toBe("true");
+    expect(xhigh.textContent).toContain("Needs server support");
+  });
+
+  it("switches fast mode in the + menu, apart from the level, and off from its chip", async () => {
+    renderHarness();
+    await chooseLevel(HIGH);
+    await userEvent.click(
+      screen.getByRole("button", { name: "Add to message" })
+    );
+    await userEvent.click(
+      await screen.findByRole("menuitemcheckbox", { name: "Fast mode" })
+    );
+    expect(changes).toHaveBeenLastCalledWith({
+      model: "openai:o4-mini-fast",
+      type: "model",
+    });
+    await userEvent.keyboard("{Escape}");
+    // The folded High waits while fast mode is on.
+    await userEvent.click(thinking() as HTMLElement);
+    const high = await screen.findByRole("menuitemradio", { name: HIGH });
+    expect(high.textContent).toContain("Not with Fast mode");
+    await userEvent.keyboard("{Escape}");
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Fast mode is on. Turn it off" })
+    );
+    expect(changes).toHaveBeenLastCalledWith({
+      model: "openai:o4-mini-high",
+      type: "model",
+    });
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", { name: "Add to message" })
+    );
+  });
+
+  it("offers fast mode only for a model with a fast variant or tier", async () => {
+    renderHarness("acme:plain");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Add to message" })
+    );
+    await screen.findByRole("menuitemcheckbox", { name: "Web search" });
+    expect(
+      screen.queryByRole("menuitemcheckbox", { name: FAST_MODE })
+    ).toBeNull();
+    await userEvent.keyboard("{Escape}");
+
+    // GPT-6 has OpenAI's priority tier, which needs a run option first.
+    await pickModel("Plain", GPT_6);
+    await userEvent.click(
+      screen.getByRole("button", { name: "Add to message" })
+    );
+    const fast = await screen.findByRole("menuitemcheckbox", {
+      name: FAST_MODE,
+    });
+    expect(fast.getAttribute("aria-disabled")).toBe("true");
+    expect(fast.textContent).toContain("Needs server support");
+  });
+
+  it("remembers each model's level per person", async () => {
+    renderHarness();
+    await chooseLevel(MEDIUM);
+    await pickModel("o4-mini", GPT_6);
+    expect(changes).toHaveBeenLastCalledWith({
+      model: "openai:gpt-6",
+      type: "model",
+    });
+    await pickModel("GPT-6", O4_MINI);
+    expect(changes).toHaveBeenLastCalledWith({
+      model: "openai:o4-mini",
+      parameters: { reasoningEffort: "medium" },
+      type: "model",
+    });
+    expect(
+      JSON.parse(localStorage.getItem("composer:model-variants:user-1") ?? "[]")
+    ).toEqual([["openai:o4-mini", { fast: false, level: "medium" }]]);
   });
 });

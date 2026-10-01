@@ -957,6 +957,7 @@ msgstr "Decision sent to the agent"
 msgid "Decision sent. Waiting for the agent…"
 msgstr "Decision sent. Waiting for the agent…"
 
+#: ../composer/src/components/thinking-control.tsx
 #: ../library-ui/src/components/prompt-form.tsx
 msgid "Default"
 msgstr "Default"
@@ -1252,9 +1253,25 @@ msgstr "Explain how HTTPS keeps a connection private, in plain language with one
 msgid "Export"
 msgstr "Export"
 
+#: ../composer/src/components/thinking-control.tsx
+msgid "Extra high"
+msgstr "Extra high"
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "Fall back to personal keys"
 msgstr "Fall back to personal keys"
+
+#: ../composer/src/components/composer-footer.tsx
+msgid "Fast"
+msgstr "Fast"
+
+#: ../composer/src/components/plus-menu.tsx
+msgid "Fast mode"
+msgstr "Fast mode"
+
+#: ../composer/src/components/composer-footer.tsx
+msgid "Fast mode is on. Turn it off"
+msgstr "Fast mode is on. Turn it off"
 
 #: ../../apps/web/app/dev/code/demo.tsx
 msgid "File"
@@ -1370,6 +1387,10 @@ msgstr "Hide"
 #: ../palette/src/context-actions.ts
 msgid "Hide the workspace"
 msgstr "Hide the workspace"
+
+#: ../composer/src/components/thinking-control.tsx
+msgid "High"
+msgstr "High"
 
 #: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
 #: ../library-ui/src/components/item-builder.tsx
@@ -1618,6 +1639,10 @@ msgstr "locale"
 msgid "Locked by server config"
 msgstr "Locked by server config"
 
+#: ../composer/src/components/thinking-control.tsx
+msgid "Low"
+msgstr "Low"
+
 #: ../library-ui/src/components/prompt-form.tsx
 msgid "Lowercase letters, digits and dashes. Type / and this in the composer to use it."
 msgstr "Lowercase letters, digits and dashes. Type / and this in the composer to use it."
@@ -1642,6 +1667,10 @@ msgstr "Match my browser"
 msgid "Matches"
 msgstr "Matches"
 
+#: ../composer/src/components/thinking-control.tsx
+msgid "Max"
+msgstr "Max"
+
 #: ../library-ui/src/components/kind.tsx
 msgid "MCP server"
 msgstr "MCP server"
@@ -1650,6 +1679,10 @@ msgstr "MCP server"
 #: ../library-ui/src/components/kind.tsx
 msgid "MCP servers"
 msgstr "MCP servers"
+
+#: ../composer/src/components/thinking-control.tsx
+msgid "Medium"
+msgstr "Medium"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 msgid "Member"
@@ -1720,6 +1753,10 @@ msgstr "Message"
 #: ../library-ui/src/components/test-chat.tsx
 msgid "Message the draft"
 msgstr "Message the draft"
+
+#: ../composer/src/components/thinking-control.tsx
+msgid "Minimal"
+msgstr "Minimal"
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "MMD"
@@ -1801,6 +1838,11 @@ msgstr "name@example.com"
 #: ../shortcuts/src/react/help-dialog.tsx
 msgid "Navigation"
 msgstr "Navigation"
+
+#: ../composer/src/components/plus-menu.tsx
+#: ../composer/src/components/thinking-control.tsx
+msgid "Needs server support"
+msgstr "Needs server support"
 
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "Needs you to sign in"
@@ -1909,7 +1951,9 @@ msgstr "No files yet. Ask for one, drop a file here, or type /new-file"
 msgid "No files yet. Files you and the agent create will appear here."
 msgstr "No files yet. Files you and the agent create will appear here."
 
+#: ../composer/src/components/plus-menu.tsx
 #: ../composer/src/components/target-picker.tsx
+#: ../composer/src/components/thinking-control.tsx
 msgid "No key in this context"
 msgstr "No key in this context"
 
@@ -1973,6 +2017,10 @@ msgstr "None yet"
 msgid "Not saved"
 msgstr "Not saved"
 
+#: ../composer/src/components/thinking-control.tsx
+msgid "Not with Fast mode"
+msgstr "Not with Fast mode"
+
 #: ../chat-ui/src/workspace/new-file-dialog.tsx
 msgid "notes.md"
 msgstr "notes.md"
@@ -2021,6 +2069,7 @@ msgstr "Nothing to preview yet. Pages the agent writes and apps it starts show h
 msgid "OAuth"
 msgstr "OAuth"
 
+#: ../composer/src/components/thinking-control.tsx
 #: ../shortcuts/src/react/help-dialog.tsx
 #: ../shortcuts/src/react/shortcuts-editor.tsx
 msgid "Off"
@@ -2037,6 +2086,10 @@ msgstr "Older"
 #: ../chat-ui/src/artifacts/artifact-view.tsx
 msgid "Older version"
 msgstr "Older version"
+
+#: ../composer/src/components/thinking-control.tsx
+msgid "On"
+msgstr "On"
 
 #: ../chat-ui/src/workspace/preview.tsx
 msgid "Only pages in this preview can open here."
@@ -3424,6 +3477,14 @@ msgstr "They lose access to this org's chats, library and keys. Their personal c
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 msgid "They're already a member or already invited."
 msgstr "They're already a member or already invited."
+
+#: ../composer/src/components/thinking-control.tsx
+msgid "Thinking"
+msgstr "Thinking"
+
+#: ../composer/src/components/thinking-control.tsx
+msgid "Thinking: {label}"
+msgstr "Thinking: {label}"
 
 #: ../chat-ui/src/conversation/thinking.tsx
 #: ../ui/src/components/ai-elements/reasoning.tsx
