@@ -151,6 +151,8 @@ export interface HarnessOptions {
   readonly models?: Readonly<Record<string, LanguageModelV4>>;
   /** `models.prices` for the test provider's models; none are priced otherwise. */
   readonly prices?: ModelPrices;
+  /** Configured providers, by key, for real turns that read their adapter (105). */
+  readonly providers?: AppConfig["providers"];
   /**
    * Resolve turns for real (`createTurnResolver`: agents, drafts, tools)
    * over `models`, instead of the scripted `nextTurn` queue.
@@ -170,8 +172,11 @@ export const createHarness = async (
   await seedOrg(db, owner.id, { isPersonal: true });
   const turns: TurnScript[] = [];
   const jobs = createMemoryJobQueue<Jobs>();
+  const config = testConfig(options.prices);
   const services = createServices({
-    config: testConfig(options.prices),
+    config: options.providers
+      ? { ...config, providers: { ...config.providers, ...options.providers } }
+      : config,
     db,
     jobs,
     listen: listenFor(testDb),

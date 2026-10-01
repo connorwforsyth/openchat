@@ -82,6 +82,7 @@ export interface ServicesOptions {
   readonly tools?: Pick<
     TurnResolverDeps,
     | "builtins"
+    | "catalog"
     | "decider"
     | "knowledge"
     | "mcp"

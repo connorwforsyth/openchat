@@ -35,7 +35,7 @@ const config = appConfigSchema.parse({
 const catalog = {
   data: [
     { id: "anthropic/claude-haiku-4.5" },
-    { id: "openai/gpt-5-mini" },
+    { id: "openai/gpt-5-mini", tags: ["reasoning"] },
     { id: "openai/gpt-5-pro" },
     { id: "xai/grok-4" },
   ],
@@ -47,7 +47,9 @@ const loaderWith = (instanceKey: boolean) => {
     fetches.push(String(input));
     return Promise.resolve(Response.json(catalog));
   }) as typeof globalThis.fetch;
+  const registry = buildRegistry(config, { fetch });
   const loader = createModelLoader({
+    catalog: registry.catalog,
     config,
     // The personal context resolves keys without the database.
     db: {} as Db,
@@ -62,7 +64,7 @@ const loaderWith = (instanceKey: boolean) => {
           ]
         : []
     ),
-    registry: buildRegistry(config, { fetch }),
+    registry,
   });
   return {
     fetches,
@@ -79,6 +81,14 @@ describe("the run's model check", () => {
     );
     expect(loaded.ok && loaded.value.paidBy).toEqual({ type: "instance" });
     expect(fetches).toEqual(["https://gateway.example/v1/models"]);
+  });
+
+  it("says when the catalog says the model reasons (105)", async () => {
+    const { load } = loaderWith(true);
+    const mini = await load("gateway:openai/gpt-5-mini");
+    expect(mini.ok && mini.value.reasons).toBe(true);
+    const haiku = await load("gateway:anthropic/claude-haiku-4.5");
+    expect(haiku.ok && haiku.value.reasons).toBeUndefined();
   });
 
   it.each([

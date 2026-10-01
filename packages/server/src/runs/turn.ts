@@ -20,6 +20,12 @@ import type {
 import type { RunStart } from "@workspace/ai/ports/run-executor";
 import { composeInstructions } from "@workspace/ai/prompts/compose";
 import { BASE, FRAGMENTS } from "@workspace/ai/prompts/generated";
+import { identityOf } from "@workspace/ai/providers/reasoning";
+import type { DiscoveringRegistry } from "@workspace/ai/providers/registry";
+import {
+  runSettings,
+  withRunSettings,
+} from "@workspace/ai/providers/run-settings";
 import { ARTIFACT_TOOLS } from "@workspace/ai/tools/artifacts";
 import { resolveTools } from "@workspace/ai/tools/resolve";
 import { buildToolSet, type McpToolSource } from "@workspace/ai/tools/tool-set";
@@ -111,6 +117,11 @@ export interface ModelCaller {
 export interface LoadedModel {
   readonly model: LanguageModelV4;
   readonly paidBy: KeyScope | null;
+  /**
+   * Whether the provider's catalog says the model reasons (105); unset when
+   * it has no catalog or doesn't say.
+   */
+  readonly reasons?: boolean;
   readonly resolvedModel: ModelRef;
 }
 
@@ -141,8 +152,15 @@ export interface TurnResolverDeps {
   readonly artifacts?: (run: RunStart) => Readonly<Record<string, Tool>>;
   /** Built-in tools this instance serves, the same for every turn, from their workstreams. */
   readonly builtins?: Readonly<Record<string, Tool>>;
+  /**
+   * A discovering registry's catalogs (095), for whether an
+   * OpenAI-compatible model reasons and so takes a thinking level (105).
+   */
+  readonly catalog?: DiscoveringRegistry["catalog"];
   readonly config: Pick<AppConfig, "models" | "policies"> &
-    Partial<Pick<AppConfig, "decider">>;
+    // `providers` says which adapter a ref runs on, for its thinking level
+    // and fast tier (105); without it neither is sent.
+    Partial<Pick<AppConfig, "decider" | "providers">>;
   readonly db: Db;
   /**
    * The Decider (D15) paid for by the caller's keys in this chat's context,
@@ -267,6 +285,7 @@ export const chatKeysFor = async (
 export const createModelLoader = (
   deps: Pick<
     TurnResolverDeps,
+    | "catalog"
     | "config"
     | "db"
     | "decider"
@@ -345,12 +364,40 @@ export const createModelLoader = (
           : unavailable(provider)
       );
     }
+    const reasons = await catalogSaysReasons(
+      deps,
+      ref.value,
+      credentials,
+      provider
+    );
     return ok({
       model: model.value,
       paidBy: credentials?.source ?? null,
+      ...(reasons === undefined ? {} : { reasons }),
       resolvedModel: ref.value,
     });
   };
+};
+
+/**
+ * Whether an OpenAI-compatible provider's catalog says the model reasons;
+ * native providers' SDKs know their own models, so they aren't asked.
+ */
+const catalogSaysReasons = async (
+  deps: Pick<TurnResolverDeps, "catalog" | "config">,
+  ref: ModelRef,
+  credentials: ProviderCredentials | undefined,
+  provider: string
+): Promise<boolean | undefined> => {
+  if (
+    !deps.catalog ||
+    deps.config.providers?.[provider]?.type !== "openai-compatible"
+  ) {
+    return;
+  }
+  const models = await deps.catalog(provider, credentials).catch(() => null);
+  const modelId = parseModelRef(ref)?.modelId;
+  return models?.find((model) => model.id === modelId)?.traits?.reasoning;
 };
 
 /** Attachments one plain chat checks for before offering `file_search`. */
@@ -580,13 +627,28 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
       dynamic: sandbox.sandbox ? [FRAGMENTS.workspace] : [],
       mentions: mentioned,
     });
+    // The run's thinking level and fast mode (105), where the model takes them.
+    const { reasons, ...model } = loaded.value;
+    const providerType =
+      deps.config.providers?.[
+        parseModelRef(model.resolvedModel)?.provider ?? ""
+      ]?.type;
+    const settings = providerType
+      ? runSettings({
+          ...identityOf(model.resolvedModel),
+          options: run.options,
+          providerType,
+          reasons,
+        })
+      : {};
     return ok({
       agent: null,
       ...(instructions.sections.length > 0
         ? { instructions: instructions.text }
         : {}),
       parameters: target.parameters,
-      ...loaded.value,
+      ...model,
+      model: withRunSettings(model.model, settings),
       proposeEdits: sandbox.proposeEdits,
       toolApproval: {
         ...mcp.toolApproval,

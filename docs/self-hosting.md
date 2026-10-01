@@ -267,7 +267,7 @@ providers:
 
 ### Model descriptions
 
-The model picker shows one line under each model saying why you'd pick it.
+The model picker's preview card says in one line why you'd pick a model.
 Set them under `models.descriptions`, keyed by alias or by `provider:model`
 ref:
 
@@ -286,7 +286,7 @@ models:
   alias, then for the ref it points at, then the provider's catalog when
   `discover` is on and the catalog describes the model (OpenAI-compatible
   gateways and Google do; Anthropic, OpenAI and Ollama don't). Otherwise
-  there's no second line. `auto` has its own line, in the app's language,
+  the card has no description. `auto` has its own line, in the app's language,
   and can't be given one here.
 - **Length.** Only the first line is kept, and anything past 120 characters
   is cut at a word with an ellipsis.
@@ -329,6 +329,33 @@ supplied is left off.
   catalog says the model lacks; Reasoning shows when the catalog says the
   model reasons (gateway tags, OpenRouter's parameters, Google's `thinking`).
   The card never claims vision the provider config doesn't send.
+
+### Thinking levels and fast mode
+
+Beside the model button, a thinking control sets how hard a reasoning model
+thinks; Fast mode, in the composer's **+** menu, asks for a provider's fast
+tier. Both are remembered per model for each person, and sent with each turn
+as the run's `reasoning` and `fast` options (visible later on the run).
+
+- **Which models.** The thinking control shows for a model the provider or
+  its catalog says reasons. Its levels are the ones the provider takes:
+  Anthropic off (except models that always think), low, medium, high, and
+  extra high on Opus/Sonnet 4.6 and later; OpenAI low to high, off from
+  GPT-5.1, minimal on GPT-5, extra high on GPT-6; Gemini 2.5 off (except
+  2.5 Pro) to high, Gemini 3 minimal to high; others low to high. An
+  OpenAI-compatible server gets a level only when `discover` is on and its
+  catalog says the model reasons. A level a model doesn't take is dropped and
+  the provider's default applies.
+- **Catalog modes fold in.** A catalog entry that's only a mode of another
+  listed model (`o4-mini-high`, `claude-3.7-sonnet:thinking`,
+  `claude-opus-5-fast`, and the `-thinking`, `-reasoning`, `-instant` and
+  `-turbo` suffixes) isn't listed separately: it becomes that model's
+  thinking level or its Fast mode.
+- **Fast mode** uses OpenAI's priority processing (`serviceTier: priority`,
+  GPT-4 and later and o3 and later, not nano or chat models) or Anthropic's
+  fast mode (`speed: fast`, Opus 4.6), or a catalog's `-fast` entry. **Both
+  provider tiers are billed at a higher rate than standard requests**; check
+  the provider's pricing before your users rely on it.
 
 ### Uploaded files
 
