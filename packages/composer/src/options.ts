@@ -148,18 +148,16 @@ const modelChoice = (
   const ref = model.target ?? model.selector;
   const modelId = parseModelRef(ref)?.modelId;
   const isAlias = parseModelRef(model.selector) === undefined;
-  // An alias (`strong`) says nothing about which model answers, so the
-  // model's name sits muted beside it; a ref's row is the model's name.
+  // An alias (`strong`) shows as the model it names (114, Connor: aliases
+  // read as confusing); it still finds the row in a search and still works
+  // for chats saved with it.
   const named = model.displayName?.trim() || modelId;
-  const detail =
-    isAlias && named !== undefined && named !== model.label ? named : undefined;
   const description = model.description?.trim() || undefined;
   return {
     available: model.available,
     ...(description === undefined ? {} : { description }),
-    ...(detail === undefined ? {} : { detail }),
     key: targetKey(target),
-    label: isAlias ? model.label : modelName(model),
+    label: isAlias ? (named ?? model.label) : modelName(model),
     model,
     search: searchText([
       model.label,
