@@ -4,6 +4,7 @@ import { newId } from "@workspace/shared/ids";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
+import { conversation } from "../schema/chat";
 import { teamMember } from "../schema/tenancy";
 import {
   createTestDb,
@@ -21,6 +22,7 @@ import {
   getConversationWithBranch,
   listConversations,
   parseHeadline,
+  prefixSearchParts,
   searchConversations,
   setConversationContext,
   setParticipantState,
@@ -30,6 +32,7 @@ import {
 } from "./conversations";
 import { createShareLink, listGrantsForResource, upsertGrant } from "./grants";
 import { insertMessage } from "./messages";
+import { rowsOf } from "./page";
 import { loadPrincipals } from "./teams";
 
 let testDb: TestDb;
@@ -367,6 +370,121 @@ describe("search", () => {
         query: "x",
       })
     ).toMatchObject({ error: { type: "invalid_cursor" } });
+  });
+
+  test("the last word matches as a prefix while it's typed", async () => {
+    const { db, newChat, owner, say } = await setup();
+    const titled = await newChat("Query selection");
+    const other = await newChat("Weekend plans");
+    await say(other.id, null, "a querulous parrot and a selection of seeds");
+    const viewer = await viewerOf(owner.id);
+    const search = async (query: string) =>
+      expectOk(await searchConversations(db, viewer, { limit: 10, query }))
+        .items;
+
+    for (const query of ["q", "qu", "que", "quer", "query", "QUE"]) {
+      // biome-ignore lint/performance/noAwaitInLoops: one query at a time reads clearer in a failure.
+      const hits = await search(query);
+      expect(hits[0], query).toMatchObject({
+        conversationId: titled.id,
+        messageId: null,
+      });
+      const [hit] = hits;
+      const span = hit?.highlights[0];
+      expect(span && hit?.snippet.slice(span.start, span.end)).toBe("Query");
+    }
+    // "quer" also finds "querulous" in a message; "query" no longer does.
+    expect((await search("quer")).map((h) => h.conversationId)).toContain(
+      other.id
+    );
+    expect((await search("query")).map((h) => h.conversationId)).toEqual([
+      titled.id,
+    ]);
+    // Only the last word is a prefix: "que sel" needs "que" whole.
+    expect(await search("que sel")).toEqual([]);
+    expect((await search("query sel")).map((h) => h.conversationId)).toEqual([
+      titled.id,
+    ]);
+    // A trailing space means the word is finished.
+    expect(await search("que ")).toEqual([]);
+  });
+
+  test("quotes and -word keep their websearch meaning", async () => {
+    const { db, newChat, owner, say } = await setup();
+    const a = await newChat("Gravel bike");
+    await say(a.id, null, "tubeless tyres on the gravel bike");
+    const b = await newChat("Road bike");
+    await say(b.id, null, "tyres tubeless and fast");
+    const viewer = await viewerOf(owner.id);
+    const ids = async (query: string) =>
+      new Set(
+        expectOk(
+          await searchConversations(db, viewer, { limit: 10, query })
+        ).items.map((h) => h.conversationId)
+      );
+
+    expect(await ids('"tubeless tyres"')).toEqual(new Set([a.id]));
+    expect(await ids("bike -gravel")).toEqual(new Set([b.id]));
+    expect(await ids("-gravel bik")).toEqual(new Set([b.id]));
+    expect(await ids('"tubeless tyres" bi')).toEqual(new Set([a.id]));
+    // Inside an open quote nothing is a prefix.
+    expect(await ids('"tubeless ty')).toEqual(new Set());
+  });
+
+  test("injection-shaped input is only ever text", async () => {
+    const { chat, db, owner } = await setup();
+    const viewer = await viewerOf(owner.id);
+    for (const query of [
+      "'); drop table conversation; --",
+      "a & b | !c",
+      "fir:* | x",
+      "first:*",
+      "(fir",
+      "<->",
+      "\\",
+      "'",
+      ":*",
+      "&",
+      "or",
+      "-",
+      '"',
+      "fir'st",
+    ]) {
+      // biome-ignore lint/performance/noAwaitInLoops: each must succeed on its own.
+      const found = await searchConversations(db, viewer, { limit: 10, query });
+      expect(found.ok, query).toBe(true);
+    }
+    // Operators are dropped from the prefix, the letters still search.
+    const hits = expectOk(
+      await searchConversations(db, viewer, { limit: 10, query: "fir:*|!" })
+    ).items;
+    expect(hits.map((h) => h.conversationId)).toEqual([chat.id]);
+    const count = rowsOf<{ n: number }>(
+      await db.execute(sql`select count(*)::int as n from ${conversation}`)
+    );
+    expect(count[0]?.n).toBeGreaterThan(0);
+  });
+
+  test("prefixSearchParts splits off a safe prefix term", () => {
+    expect(prefixSearchParts("que")).toEqual({ head: "", prefix: "que:*" });
+    expect(prefixSearchParts("big que")).toEqual({
+      head: "big ",
+      prefix: "que:*",
+    });
+    expect(prefixSearchParts("que ")).toEqual({ head: "que ", prefix: null });
+    expect(prefixSearchParts("-que")).toEqual({ head: "-que", prefix: null });
+    expect(prefixSearchParts('"que')).toEqual({ head: '"que', prefix: null });
+    expect(prefixSearchParts("e-ma")).toEqual({
+      head: "",
+      prefix: "e & ma:*",
+    });
+    expect(prefixSearchParts("x');--:*|&!")).toEqual({
+      head: "",
+      prefix: "x:*",
+    });
+    expect(prefixSearchParts("a or")).toEqual({ head: "a or", prefix: null });
+    expect(prefixSearchParts("!!!")).toEqual({ head: "!!!", prefix: null });
+    expect(prefixSearchParts("")).toEqual({ head: "", prefix: null });
   });
 
   test("parseHeadline turns markers into offsets", () => {

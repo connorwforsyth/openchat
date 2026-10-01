@@ -521,11 +521,56 @@ const offsetOf = (
     : err({ type: "invalid_cursor" });
 };
 
+const TRAILING_WORD = /(\S+)$/u;
+const NOT_A_LEXEME_CHAR = /[^\p{L}\p{N}]+/gu;
+
+/**
+ * The search box is searched as it's typed (⌘K, D28), so the last word may be
+ * half a word: "que" should find "Query". Complete words keep
+ * `websearch_to_tsquery` semantics (quotes, `-word`, `or`); the last one also
+ * matches as a prefix (`to_tsquery('que:*')`). A trailing space, a quote or a
+ * `-` means the person is past that word or wants it exact, so no prefix.
+ *
+ * The prefix term is rebuilt from letters and digits only, so no tsquery
+ * operator (`&|!<>():*'\`) can reach `to_tsquery`; both parts are bound
+ * parameters.
+ */
+export const prefixSearchParts = (
+  raw: string
+): { readonly head: string; readonly prefix: string | null } => {
+  const word = TRAILING_WORD.exec(raw)?.[1];
+  const quotes = raw.split('"').length - 1;
+  if (!word || word.includes('"') || word.startsWith("-") || quotes % 2 === 1) {
+    return { head: raw, prefix: null };
+  }
+  const pieces = word.split(NOT_A_LEXEME_CHAR).filter(Boolean);
+  if (pieces.length === 0 || word.toLowerCase() === "or") {
+    return { head: raw, prefix: null };
+  }
+  // "e-mail" → `e & mail:*`; each piece is a plain lexeme.
+  const prefix = pieces
+    .map((piece, i) => (i === pieces.length - 1 ? `${piece}:*` : piece))
+    .join(" & ");
+  return { head: raw.slice(0, raw.length - word.length), prefix };
+};
+
+const searchQuery = (config: SQL, raw: string): SQL => {
+  const { head, prefix } = prefixSearchParts(raw);
+  if (prefix === null) {
+    return sql`websearch_to_tsquery(${config}, ${raw})`;
+  }
+  // An empty `head` is an empty tsquery, which `&&` drops. The last word as
+  // websearch reads it is kept too, so an exact match never ranks lower.
+  const word = raw.slice(head.length);
+  return sql`(websearch_to_tsquery(${config}, ${head}) && (websearch_to_tsquery(${config}, ${word}) || to_tsquery(${config}, ${prefix})))`;
+};
+
 /**
  * Matches in the titles and message text of chats the viewer can read,
- * best first (`websearch_to_tsquery`, so quotes and `-word` work). Title
- * matches rank double. Ranked results can't be keyset-paged, so the cursor
- * is an offset.
+ * best first (`websearch_to_tsquery`, so quotes and `-word` work, with the
+ * last word also matching as a prefix: `prefixSearchParts`). Title matches
+ * rank double. Ranked results can't be keyset-paged, so the cursor is an
+ * offset.
  */
 export const searchConversations = async (
   db: Db,
@@ -537,7 +582,7 @@ export const searchConversations = async (
     return offset;
   }
   const config = sql.raw(`'${TEXT_SEARCH_CONFIG}'`);
-  const query = sql`websearch_to_tsquery(${config}, ${input.query})`;
+  const query = searchQuery(config, input.query);
   const scope = and(
     inHistory,
     canRead(viewer),
