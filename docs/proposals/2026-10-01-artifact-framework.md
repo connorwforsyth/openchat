@@ -166,6 +166,18 @@ The common thread is that a fixed stack and rules are what make an artifact rend
     - Inline **chips** (date, @person) are TipTap nodes we already have in the composer (mentions).
 - **Data changes:** the artifact gets an owner and grants. Versions keep their `messageId`, and gain a `conversationId` so a version made from another chat is traceable.
 
+## Sites, and swappable stacks (Connor, 2026-10-01)
+
+- **Sites is a feature in its own right:** publishable microsites. A Site artifact can be published to a share link; password protection is a later idea.
+- **The stack is a swappable setting on the Site kind,** not a fixed choice. Each stack is a small definition: allowed libraries, the theme tokens, a `design.md` the model follows, its checks, and how it builds for publishing.
+  - **`html-tailwind`** (default): clean HTML + Tailwind with the instance theme. The lightest and fastest.
+  - **`react-ui`:** React + our UI kit, pre-rendered to static HTML on publish, so visitors get HTML and CSS and React hydrates only the interactive parts.
+  - **Later:** other design systems.
+  - **Who chooses:** the instance, an org, or a single site, using the same narrowing layers as the kind's rules.
+- **Network:** sites may load public resources (fonts, CDN libraries) from an allowlist of origins, enforced by the site's CSP. Anything else is blocked. Admins can edit the allowlist.
+- **Rules work like a skill:** a kind (and a stack) is packaged like a `SKILL.md`, with its instructions and its `design.md`, plus code checks. Instance admins set them first.
+- **No "Made in" label:** opening an artifact offers "Open chat" for people who can open it.
+
 ## Suggested order
 
 1. **Framework and two kinds:** the kit, then Site (formalising today's html and react with checks and the theme) and Document (TipTap, structured edits). Migrate the existing kinds to definitions with no behaviour change, as S2 did for tools.
