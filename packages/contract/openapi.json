@@ -14628,8 +14628,15 @@
                           }
                         ]
                       },
+                      "description": {
+                        "type": "string"
+                      },
                       "label": {
                         "type": "string"
+                      },
+                      "provider": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9_-]{0,63}$"
                       },
                       "selector": {
                         "anyOf": [
