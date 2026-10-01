@@ -1,5 +1,5 @@
 import { mockResults } from "../../../e2e/support/mock-search";
-import { call, plan } from "../src/mock";
+import { call, plan, unofferedCall } from "../src/mock";
 import { defineSuite, evalCase, liveCase } from "../src/suite";
 import {
   callOf,
@@ -250,17 +250,53 @@ export const tools = defineSuite({
       "arguments that don't fit the tool's schema come back as an error the model can read",
       async (t) => {
         const turn = await t.send(plan(call("read", { path: 42 })));
-        const gap = {
-          expectedFailure:
-            "Product bug: a tool call whose arguments fail the tool's input schema fails the whole run (`internal`; the server logs \"couldn't store the answer's parts\") and the answer is stored empty, instead of the model getting an error it can correct.",
-        };
-        t.check(turn.status, "run status").equals("succeeded").gate(gap);
-        t.calledTool("read").gate(gap);
+        t.check(turn.status, "run status").equals("succeeded").gate();
+        t.calledTool("read").gate();
         t.check(endOf(callOf(turn, "read")), "how the call ended")
           .matches(ERROR)
-          .gate(gap);
+          .gate();
+        t.check(turn.text, "what the model was told").matches(PLAN_DONE).gate();
+        t.check(turn.text, "what the model was told")
+          .includes("Invalid input for tool read")
+          .gate();
         t.check(await t.files({ chat: chatOf(t) }), "workspace files")
           .equals([])
+          .gate();
+      }
+    ),
+
+    evalCase(
+      "a call to a tool the turn doesn't have comes back as an error, and the turn goes on (131)",
+      async (t) => {
+        const made = await t.send(
+          plan(unofferedCall("frobnicate", { path: "notes.txt" }))
+        );
+        t.check(made.status, "run status").equals("succeeded").gate();
+        t.calledTool("frobnicate", { path: "notes.txt" }).gate();
+        t.check(endOf(callOf(made, "frobnicate")), "how the call ended")
+          .matches(ERROR)
+          .gate();
+        t.check(made.text, "what the model was told").matches(PLAN_DONE).gate();
+        t.check(made.text, "what the model was told")
+          .includes("unavailable tool 'frobnicate'")
+          .gate();
+
+        // A tool the composer withheld is a tool the turn doesn't have.
+        const withheld = await t.send(
+          plan(unofferedCall("write", { content: "hi\n", path: "a.txt" })),
+          { run: { sandbox: "off" } }
+        );
+        t.check(withheld.status, "run status with the file tools off")
+          .equals("succeeded")
+          .gate();
+        t.check(endOf(callOf(withheld, "write")), "how the write ended")
+          .matches(ERROR)
+          .gate();
+        t.check(withheld.text, "what the model was told")
+          .includes("unavailable tool 'write'")
+          .gate();
+        t.check(await t.readFile("a.txt"), "a.txt")
+          .equals(null)
           .gate();
       }
     ),
@@ -302,5 +338,5 @@ export const tools = defineSuite({
   ],
   name: "tools",
   proves:
-    "Once a model picks a tool, the server does the right thing with it: write, bash, read, file_search, web_search and an instance MCP tool are offered on a plain chat (or withheld by the composer's switches and when there is nothing to search), the call is stored with the model's arguments, write and unattached MCP tools ask first while bash, read and the searches run, and the result reaches the model. Whether a model would pick that tool is scripted, not tested.",
+    "Once a model picks a tool, the server does the right thing with it: write, bash, read, file_search, web_search and an instance MCP tool are offered on a plain chat (or withheld by the composer's switches and when there is nothing to search), the call is stored with the model's arguments, write and unattached MCP tools ask first while bash, read and the searches run, and the result reaches the model; a call the turn can't make (a tool it doesn't have, or arguments that don't fit) comes back to the model as an error and the turn goes on. Whether a model would pick that tool is scripted, not tested.",
 });

@@ -46,7 +46,7 @@ where a regression in our code would land:
 | Suite | Cases | What it shows | What it doesn't |
 |---|---|---|---|
 | `baseline` | 4 | A plain turn works over HTTP: the run succeeds with no tool calls, the stream delivers the stored text and ends, the branch is stored with its author, model and usage, and the title job names the chat. | Anything about answer quality. |
-| `tools` | 8 | Once a model picks a tool: the tool is offered on a plain chat (or withheld by the composer's switches), the call is stored with the model's arguments, `write` and an unattached MCP tool ask first while `bash`, `read` and the searches run, and the result reaches the model. | That a model would pick that tool. The choice is scripted. |
+| `tools` | 9 | Once a model picks a tool: the tool is offered on a plain chat (or withheld by the composer's switches), the call is stored with the model's arguments, `write` and an unattached MCP tool ask first while `bash`, `read` and the searches run, and the result reaches the model. A call the turn can't make (a tool it doesn't have, or arguments that don't fit) comes back to the model as an error and the turn goes on. | That a model would pick that tool. The choice is scripted. |
 | `grounding` | 4 | The facts are delivered: an attached PDF is indexed and found with its name and page and the answer stores a citation; an `@file` mention puts the file's current content in the instructions; the memory file is in the next private chat's instructions. | That a model sticks to them. |
 | `multi-turn` | 6 | A later turn is built from the right branch, with earlier tool results, nothing from a sibling branch, a regenerated answer beside the first; cancel-on-send leaves no change behind; a message sent mid-answer queues. | |
 | `injection` | 7 | What the server allows a model that obeys injected text (the mock plays one): no write outside `/work` even when approved, changes wait for the person, approving one call approves no other. | That a real model resists the injection. |
@@ -160,7 +160,6 @@ These are in the report on every run, with their reasons.
 | `files`: write through a linked directory (Files route) | Bug this suite found: `sandbox.writeFile` answers 500, and `sandbox.exec` on that workspace answers 500 from then on. |
 | `files`: NUL in a path | Bug this suite found: a NUL in a tool call's arguments fails the whole run. |
 | `files`: NUL in a file | The same bug from the other side: a tool result with a NUL (reading such a file) fails the run. |
-| `tools`: arguments that don't fit the schema | Bug this suite found: the run fails (`couldn't store the answer's parts`) instead of the model getting an error. |
 
 Skipped: the seven live cases (they need `--live`), and `injection`: hostile MCP tool description. It needs an MCP fixture
 whose tool description carries the injection; `@workspace/mcp`'s fixture has
