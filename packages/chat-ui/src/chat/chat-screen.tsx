@@ -1,10 +1,7 @@
 "use client";
 
 import { Trans, useLingui } from "@lingui/react/macro";
-import {
-  ComposerLoader,
-  type ComposerLoaderProps,
-} from "@workspace/composer/components/composer-loader";
+import type { ComposerLoaderProps } from "@workspace/composer/components/composer-loader";
 import { ContextSummary } from "@workspace/composer/components/context-chip";
 import type {
   ComposerCommand,
@@ -41,7 +38,6 @@ import {
 
 import type { ConversationActions } from "../conversation/actions";
 import { ConversationView } from "../conversation/conversation-view";
-import { EmptyState } from "../conversation/empty-state";
 import type { MessageFeedback } from "../conversation/feedback";
 import { FilePreviewContext } from "../conversation/file-change-card";
 import { AppHeader } from "../header/app-header";
@@ -88,6 +84,7 @@ import {
 import type { WorkspaceFilesSource } from "../workspace/model/client";
 import { toSandboxPath } from "../workspace/model/tree";
 import type { WorkspaceArtifacts } from "../workspace/workspace-panel";
+import { ComposerDock, useComposerPlacement } from "./composer-dock";
 
 // The whole chat screen, presentational: the app shell with the sidebar,
 // header, conversation, docked composer and the Workspace panel (files,
@@ -295,10 +292,20 @@ function ChatScreenBody({
     }),
     [closeSidebarSheet, sidebar]
   );
+  const {
+    newChat: startNewChat,
+    placement,
+    submit: onSubmit,
+  } = useComposerPlacement({
+    conversationId: conversation.id,
+    messageCount: messages.length,
+    onNewChat,
+    onSubmit: composer.onSubmit,
+  });
   const newChat = useCallback(() => {
     closeSidebarSheet();
-    onNewChat();
-  }, [closeSidebarSheet, onNewChat]);
+    startNewChat();
+  }, [closeSidebarSheet, startNewChat]);
   const openPalette = useMemo(
     () =>
       onOpenPalette
@@ -340,7 +347,7 @@ function ChatScreenBody({
   useShortcuts({
     "branch.next": () => stepBranch(1),
     "branch.prev": () => stepBranch(-1),
-    "chat.new": onNewChat,
+    "chat.new": startNewChat,
     "chat.next": () => stepChat(1),
     "chat.prev": () => stepChat(-1),
     "composer.focus": focusComposer,
@@ -501,7 +508,7 @@ function ChatScreenBody({
 
   // The composer's file commands (061) act on the panel; they exist once
   // the chat does, since its first message creates the workspace.
-  const { disabled: composerDisabled, onSubmit } = composer;
+  const { disabled: composerDisabled } = composer;
   const [newFile, setNewFile] = useState({ asked: false, open: false });
   const setNewFileOpen = useCallback(
     (open: boolean) => setNewFile({ asked: true, open }),
@@ -584,6 +591,7 @@ function ChatScreenBody({
   const composerProps = useMemo<ComposerLoaderProps>(
     () => ({
       ...composer,
+      onSubmit,
       ...workspaceComposer,
       ...(contextLocked
         ? {}
@@ -596,6 +604,7 @@ function ChatScreenBody({
     [
       composer,
       contextLocked,
+      onSubmit,
       conversation.context,
       conversation.contextOptions,
       conversation.onContextChange,
@@ -671,7 +680,7 @@ function ChatScreenBody({
                 render={
                   <Button
                     aria-label={t`New chat`}
-                    onClick={onNewChat}
+                    onClick={startNewChat}
                     size="icon-sm"
                     variant="ghost"
                   />
@@ -735,30 +744,31 @@ function ChatScreenBody({
       sidebarOpen={layout.sidebarOpen}
       sidebarSheetOpen={sidebarSheetOpen}
     >
-      <FilePreviewContext.Provider value={chatWorkspace ? previewFile : null}>
-        <ConversationView
-          actions={conversationActions}
-          agents={composer.agents}
-          conversationKey={conversation.id ?? "new"}
-          empty={
-            <EmptyState
-              onSuggestion={composerDisabled ? undefined : sendSuggestion}
-            />
-          }
-          error={runError}
-          feedback={feedback}
-          messages={messages}
-          models={composer.models}
-          pendingApprovals={pendingApprovals}
-          siblings={siblings}
-          streamingMessageId={streamingMessageId}
+      {/* A size container: the centred composer is placed against its height. */}
+      <div className="flex min-h-0 flex-1 flex-col [container-type:size]">
+        <FilePreviewContext.Provider value={chatWorkspace ? previewFile : null}>
+          <ConversationView
+            actions={conversationActions}
+            agents={composer.agents}
+            conversationKey={conversation.id ?? "new"}
+            // The greeting and suggestions sit with the composer; before the
+            // first message the column above it is empty.
+            empty={<div className="flex-1" />}
+            error={runError}
+            feedback={feedback}
+            messages={messages}
+            models={composer.models}
+            pendingApprovals={pendingApprovals}
+            siblings={siblings}
+            streamingMessageId={streamingMessageId}
+          />
+        </FilePreviewContext.Provider>
+        <ComposerDock
+          composer={composerProps}
+          onSuggestion={composerDisabled ? undefined : sendSuggestion}
+          placement={placement}
+          ref={composerRef}
         />
-      </FilePreviewContext.Provider>
-      <div
-        className="mx-auto w-full max-w-2xl shrink-0 px-6 pb-[max(--spacing(4),env(safe-area-inset-bottom))]"
-        ref={composerRef}
-      >
-        <ComposerLoader {...composerProps} />
       </div>
       <ShortcutHelp onOpenChange={setHelpOpen} open={helpOpen} />
       {newFile.asked && files.kind === "chat" ? (

@@ -1,9 +1,10 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 import { apiFor } from "../support/api";
 import {
   assistantMessages,
   composer,
+  composerReady,
   conversationIdOf,
   expectReply,
   send,
@@ -52,6 +53,58 @@ test("a new chat streams a reply, gets a title, and records the boot timings", a
   });
   await expectReply(page, "Echo: And a second turn");
   await expect(assistantMessages(page)).toHaveCount(2);
+});
+
+/**
+ * Where the composer's middle sits down the conversation column, 0 at its
+ * top and 1 at its bottom, and how far its bottom is from the column's.
+ */
+const composerPosition = async (page: Page) => {
+  const column = await page.locator("main").boundingBox();
+  const frame = await page.locator('[data-slot="composer"]').boundingBox();
+  if (!(column && frame)) {
+    throw new Error("no composer or column on screen");
+  }
+  return {
+    gapBelow: column.y + column.height - (frame.y + frame.height),
+    middle: (frame.y + frame.height / 2 - column.y) / column.height,
+  };
+};
+
+// 098: a new chat's composer sits in the middle (a little above it); the
+// first send moves it to the bottom, and a started chat renders it there
+// from the server on.
+test("the composer is centred on a new chat and docks at the bottom once it starts", async ({
+  page,
+}) => {
+  const html = await (await page.request.get("/")).text();
+  expect(html).toContain('data-placement="center"');
+  await page.goto("/");
+  await composerReady(page);
+  const centred = await composerPosition(page);
+  expect(centred.middle).toBeGreaterThan(0.35);
+  expect(centred.middle).toBeLessThan(0.55);
+  await expect(page.getByText("What can I help with?")).toBeVisible();
+
+  await send(page, "Hello from the middle");
+  await expect
+    .poll(async () => (await composerPosition(page)).gapBelow)
+    .toBeLessThan(40);
+  // The composer kept focus through the move.
+  await expect(composer(page)).toBeFocused();
+  await expectReply(page, "Echo: Hello from the middle");
+  await expect(page.getByText("What can I help with?")).toHaveCount(0);
+  const id = await conversationIdOf(page);
+
+  // Reloaded, it's at the bottom in the server's HTML, so the first paint
+  // never shows it centred.
+  const reloaded = await (await page.request.get(`/c/${id}`)).text();
+  expect(reloaded).toContain('data-placement="bottom"');
+  expect(reloaded).not.toContain('data-placement="center"');
+  await page.reload();
+  expect((await composerPosition(page)).gapBelow).toBeLessThan(40);
+  await expect(assistantMessages(page)).toHaveCount(1);
+  expect((await composerPosition(page)).gapBelow).toBeLessThan(40);
 });
 
 test("closing the tab mid-reply and reopening resumes the stream", async ({

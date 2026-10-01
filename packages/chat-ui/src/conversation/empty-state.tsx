@@ -2,18 +2,7 @@
 
 import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@workspace/ui/components/button";
-import {
-  Empty,
-  EmptyContent,
-  EmptyHeader,
-  EmptyTitle,
-} from "@workspace/ui/components/empty";
 import { useCallback, useMemo } from "react";
-
-export interface EmptyStateProps {
-  /** Sends a suggested prompt as the first message; no suggestions without it. */
-  readonly onSuggestion?: (prompt: string) => void;
-}
 
 interface Suggestion {
   readonly label: string;
@@ -38,12 +27,30 @@ function SuggestionButton({
   );
 }
 
+// A new chat before its first message (after shadcn's chatbot template):
+// one question above the centred composer and a few prompts to start from
+// under it (098). The chat screen places the two around the composer, so
+// they move away with it rather than the composer moving between them.
+
+/** The question over a new chat's composer. */
+export function EmptyGreeting() {
+  return (
+    <h2 className="text-balance text-center font-medium text-2xl tracking-tight">
+      <Trans>What can I help with?</Trans>
+    </h2>
+  );
+}
+
+export interface EmptySuggestionsProps {
+  /** Sends a suggested prompt as the first message. */
+  readonly onSuggestion: (prompt: string) => void;
+}
+
 /**
- * A new chat before its first message (after shadcn's chatbot template):
- * one question and a few prompts to start from. Each suggestion sends its
- * full prompt; the button shows the short label.
+ * Prompts to start from, under a new chat's composer. Each suggestion sends
+ * its full prompt; the button shows the short label.
  */
-export function EmptyState({ onSuggestion }: EmptyStateProps) {
+export function EmptySuggestions({ onSuggestion }: EmptySuggestionsProps) {
   const { t } = useLingui();
   const suggestions = useMemo<readonly Suggestion[]>(
     () => [
@@ -68,33 +75,15 @@ export function EmptyState({ onSuggestion }: EmptyStateProps) {
   );
 
   return (
-    <div className="flex flex-1 items-center justify-center p-6">
-      <Empty className="border-0 p-0">
-        <EmptyHeader>
-          <EmptyTitle>
-            <h2 className="text-balance font-medium text-2xl tracking-tight">
-              <Trans>What can I help with?</Trans>
-            </h2>
-          </EmptyTitle>
-        </EmptyHeader>
-        {onSuggestion ? (
-          <EmptyContent className="max-w-lg">
-            <ul
-              aria-label={t`Suggestions`}
-              className="flex flex-wrap justify-center gap-2"
-            >
-              {suggestions.map((suggestion) => (
-                <li key={suggestion.label}>
-                  <SuggestionButton
-                    onPick={onSuggestion}
-                    suggestion={suggestion}
-                  />
-                </li>
-              ))}
-            </ul>
-          </EmptyContent>
-        ) : null}
-      </Empty>
-    </div>
+    <ul
+      aria-label={t`Suggestions`}
+      className="flex flex-wrap justify-center gap-2"
+    >
+      {suggestions.map((suggestion) => (
+        <li key={suggestion.label}>
+          <SuggestionButton onPick={onSuggestion} suggestion={suggestion} />
+        </li>
+      ))}
+    </ul>
   );
 }
