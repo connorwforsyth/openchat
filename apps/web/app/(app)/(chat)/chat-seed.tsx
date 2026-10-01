@@ -81,7 +81,7 @@ const settled = (seed: ChatSeedPromise): Promise<ChatSeed | null> =>
  * fetched a moment ago) isn't touched; with no seed, each one fetches as it
  * always did and meets the API's own checks.
  */
-const startQueries = (
+export const startQueries = (
   queryClient: QueryClient,
   { client, query }: { readonly client: ApiClient; readonly query: QueryUtils },
   conversationId: ConversationId,
