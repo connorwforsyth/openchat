@@ -97,3 +97,5 @@ Done: 009 and 010 prototypes, 042 contract PR (#31), Docker verification (045, P
 - 128: publishing someone else's personal skill (with edit access) is refused from chat. Default: keep refusing.
 - 128: every plain chat carries create/update/publish skill tools (each asks). Default: keep; gate behind a setting later if noisy.
 - 125 (Sites): additive contract changes await approval: the `site` kind, `artifacts.siteOrigins` in public config, publish/unpublish/publication routes, the public `GET /published/{token}`, and save-workspace-folder-as-site. Suggestions: load the Sites instructions on demand (follow-up); accept that published sites share one origin for now.
+- 133: a message sent *before* an approval card appears still queues behind a run that then pauses for approval (D25); it waits until you decide or Stop. Should #63's "a new message moves on" rule cover that too? Default: keep D25.
+- 132: each tab keeps its own model pick for an open chat until reload. Default: keep.

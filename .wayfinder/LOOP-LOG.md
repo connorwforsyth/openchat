@@ -148,3 +148,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-10-02 · 132 fixed (real reset race in chat-route: a late chat read overrode the person's pick; 35/121 → 0/121 under load), verifying · added 133 (approval-gap server race) and 134 (dropped second send)
 - 2026-10-02 · Connor: Quick AI should feel native: just a strip, translucent, no hints, no scrollbar (135)
 - 2026-10-02 · 132 merged (PR #101) · e2e 91/91 · 35/121 → 0/121 under load
+- 2026-10-02 · 133 fixed (two gaps: card streamed before pause; cancel in that window still left awaiting_approval), verifying · added 136 (harness resume flakes)
