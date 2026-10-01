@@ -137,7 +137,7 @@ export function ContextChip({
           }
         >
           <ContextIconFor context={value} />
-          <span className="max-w-32 truncate">{label}</span>
+          <span className="max-w-32 truncate max-sm:sr-only">{label}</span>
           <LockIcon aria-hidden className="size-3" />
         </TooltipTrigger>
         <TooltipContent>
@@ -160,7 +160,7 @@ export function ContextChip({
         }
       >
         <ContextIconFor context={value} />
-        <span className="max-w-32 truncate">{label}</span>
+        <span className="max-w-32 truncate max-sm:sr-only">{label}</span>
         <ChevronDownIcon aria-hidden className="size-3.5 opacity-60" />
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56">

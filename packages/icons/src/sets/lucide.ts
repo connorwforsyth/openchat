@@ -94,6 +94,7 @@ import {
   Wallet,
   Wrench,
   X,
+  Zap,
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
@@ -177,6 +178,7 @@ export const UsersIcon: Icon = Users;
 export const AtSignIcon: Icon = AtSign;
 export const Building2Icon: Icon = Building2;
 export const WrenchIcon: Icon = Wrench;
+export const ZapIcon: Icon = Zap;
 export const HistoryIcon: Icon = History;
 export const KeyboardIcon: Icon = Keyboard;
 export const KeyRoundIcon: Icon = KeyRound;

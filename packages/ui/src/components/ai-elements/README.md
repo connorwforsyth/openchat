@@ -14,7 +14,7 @@ dependency. `apps/web/app/dev/ai-elements` renders each one with static data.
 | `reasoning.tsx` | Collapsible thinking with stream timing and auto-close. No shadcn counterpart. |
 | `tool.tsx` | Tool-call header, status badge, input and output, typed by the AI SDK's `ToolUIPart`. No shadcn counterpart. |
 | `prompt-input.tsx` | The composer: attachments (picker, paste, drop, previews), IME-safe Enter, model select, dictation, submit/stop by `ChatStatus`. shadcn's `InputGroup` is the frame it's built on, not a composer. |
-| `model-selector.tsx` | A searchable model panel (Popover + Command) with provider sections, vendor logos and a preview card for the highlighted row; the composer's model/agent picker (094, 099). shadcn has the parts, not the composition. |
+| `model-selector.tsx` | A searchable model overlay (Dialog + Command) with provider sections, vendor logos and a preview card for the highlighted row; the composer's model/agent picker (094, 099, 105). shadcn has the parts, not the composition. |
 | `streamdown.tsx` | Ours, not upstream: hands Streamdown the registry's icons (D19) and Lingui strings (D12). |
 
 Deliberately **not** installed:
@@ -65,17 +65,20 @@ transitively (`bun.lock` has no Radix packages).
 
 Copied from `packages/elements/src/model-selector.tsx` (MIT) and adapted:
 
-- Built on Base UI's `popover` (094 used our `dialog`; 099 anchored it to
-  the trigger, opening above it like Raycast's picker) and the cmdk
-  `command` already in this package; no new dependency.
+- Built on Base UI's `dialog` (094; 099 tried a popover anchored to the
+  trigger, and 105 went back to a centred overlay at Connor's request) and
+  the cmdk `command` already in this package; no new dependency. The
+  overlay's top edge is fixed (near the top on a phone, so the keyboard
+  doesn't cover the search), so it doesn't jump as a search shortens the list.
 - `ModelSelectorContent` takes `command` props for the inner cmdk root (the
   composer filters for itself with `shouldFilter: false` and controls the
   highlighted row), a required `title` (the panel's accessible name) and a
   `preview` render function. It lays the list and the card out with
   `PreviewPane` (`../preview-pane.tsx`), so the card follows the highlighted
   row by keyboard as well as pointer, and moves below the list under 640px.
-  No close button: Escape and an outside click close it, and focus goes back
-  to the trigger. It appears at once and fades out (D28).
+  No close button: Escape and a click on the backdrop close it, focus starts
+  in the search and goes back to the trigger. It appears at once and fades
+  out (D28).
 - `ModelSelectorLogo` takes the vendor id and draws its monochrome mark from
   `@workspace/icons/brands` (generated from lobe-icons, MIT; nothing is
   fetched), or a neutral letter mark for a vendor that list doesn't know.

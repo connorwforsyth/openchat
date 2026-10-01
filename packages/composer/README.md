@@ -14,6 +14,7 @@ import { ComposerLoader } from "@workspace/composer/components/composer-loader";
   agents={agents}              // LibraryItem-shaped: picker + @mentions
   models={models}              // meta.listModels output; Auto is always offered
   target={target} onTargetChange={setTarget}
+  variant={variant} onVariantChange={setVariant}   // the run's reasoning and fast options
   webSearch={on} onWebSearchChange={setOn}   // only where the instance has web search
   context={context} contexts={contextOptionsFromMe(me, allowed)}
   contextLocked={hasMessages} onContextChange={setContext}
@@ -55,29 +56,57 @@ command names in and gets tokens and calls out.
 
 ## Bottom row
 
-The **+** menu and the model/agent picker sit at the start; the chat context
-chip (only while `contextLocked` is false: after the first message the chat
-shows its context elsewhere) and the round Send or Stop button at the end.
+At the start: the **+** menu, the *Search* and *Fast* chips while those are
+on, and the chat context chip (only while `contextLocked` is false: after the
+first message the chat shows its context elsewhere). At the end, by the round
+Send or Stop button: the thinking level, when the chosen model has one, and
+the model/agent picker (105).
 
 The + menu (`components/plus-menu.tsx`) holds what can be added to the next
 message: *Attach files*; *Add a workspace file* (the `files` `/open` lists;
 choosing one inserts the same `@file` mention `@` does) and *Use a prompt*
 (the `prompts` `/` offers, variables form included), each only when there
-are some; and *Web search*, a switch, only when the host passes
+are some; *Web search*, a switch, only when the host passes
 `onWebSearchChange` (the chat does when `features.webSearch` is on, and sends
-`options.webSearch: "on"` for turns while it's on). While it's on, a
-*Search* chip beside + turns it off. Skills join the menu once they run in
-chats (082).
+`options.webSearch: "on"` for turns while it's on); and *Fast mode*, a
+switch, only when the chosen model has a fast variant. While a switch is on,
+its chip beside + turns it off. Skills join the menu once they run in chats
+(082).
 
-The picker (`components/target-picker.tsx`) is a search dialog, AI
-Elements' model selector: sections for Auto, each provider's models (the
-vendor after a gateway's colon, `gateway:anthropic/…` is Anthropic), then
-agents by where they come from, with a divider between sections. Typing
-matches every word against label, alias, ref and provider
+The picker (`components/target-picker.tsx`) is a search overlay, AI
+Elements' model selector on a dialog: sections for Recently used, Auto, each
+provider's models (the vendor after a gateway's colon, `gateway:anthropic/…`
+is Anthropic), then agents by where they come from, with a divider between
+sections. Each row is one line at one size: logo, name, and the vendor muted
+at the end; a card beside the list describes the highlighted row. Typing
+matches every word against label, alias, ref, provider and description
 (`filterTargetGroups` in `options.ts`); nothing is capped. An alias shows the
 model id it stands for; an option without a key stays, disabled, saying so.
-A second line shows a description when an option has one; only Auto does
-until `ModelOption` carries them (096).
+
+### Thinking levels and fast mode (105)
+
+`variants.ts` folds a catalog entry that's only a mode of another listed
+model into it: the suffixes `:thinking`, `-thinking`, `-reasoning` and
+`-high` become a thinking level, and `-fast`, `-highspeed`, `-ultraspeed`,
+`-instant` and `-turbo` fast mode (`openai:o4-mini-high` is o4-mini's High; `gateway:anthropic/claude-opus-5-fast`
+is Opus 5's fast mode). Only refs fold, only into a listed ref with the same
+provider key, never into an entry that's folded itself; `-mini`, `-nano` and
+sizes are other models.
+
+The thinking control (`components/thinking-control.tsx`) shows for a model
+the server says reasons, or one with a folded thinking entry. Its levels are
+the ones the provider takes, from the tables the server sends them by
+(`@workspace/ai/providers/reasoning`). A folded level picks its entry; any
+other level goes to the host as `variant.reasoning` through
+`onVariantChange`, and the host sends it as the run's `options.reasoning`.
+Fast mode picks the folded fast entry, or sets `variant.fast` for a
+provider's own tier (OpenAI priority, Anthropic fast mode, both billed at a
+higher rate), sent as `options.fast`. Neither touches the target's
+`parameters`, so neither sticks to the conversation's default target. A host
+that leaves out `onVariantChange` gets only the folded entries; the provider's
+levels and tiers show disabled, "Needs server support". Both choices are
+remembered per model in local storage under `recentsKey`, and put back when a
+model comes back another way (the palette, a reload).
 
 ## Layout
 
@@ -87,11 +116,12 @@ until `ModelOption` carries them (096).
 | `src/doc.ts` | Pure: ProseMirror JSON to text + mention tokens, and text back to content. |
 | `src/variables.ts` | Pure: parse and fill `{{variables}}` (a `Result` listing what's missing). |
 | `src/attachments.ts`, `options.ts`, `mentions.ts`, `triggers.ts`, `value.ts` | Pure: file limits, picker groups and context options, suggestion ranking, menu keys, the submitted value. |
+| `src/variants.ts` | Pure: folding a model's modes into it, each provider's thinking levels, and the target a level and fast mode make. |
 | `src/editor/extensions.ts` | The TipTap schema and plugins (lazy chunk only). |
 | `src/components/composer-shell.tsx` | The static placeholder: same frame, textarea instead of the editor. |
 | `src/components/composer-loader.tsx` | Shell first, then swaps in the editor. |
 | `src/components/composer.tsx` | The editor composer (client-only). |
-| `src/components/plus-menu.tsx`, `target-picker.tsx` | The + menu and the model/agent dialog. |
+| `src/components/plus-menu.tsx`, `target-picker.tsx`, `thinking-control.tsx` | The + menu, the model/agent overlay and the thinking level menu. |
 
 ## Loading: composer first
 

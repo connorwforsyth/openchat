@@ -3398,6 +3398,40 @@
             "minimum": 0,
             "maximum": 9007199254740991
           },
+          "options": {
+            "type": "object",
+            "properties": {
+              "fast": {
+                "type": "boolean"
+              },
+              "reasoning": {
+                "enum": [
+                  "off",
+                  "minimal",
+                  "low",
+                  "medium",
+                  "high",
+                  "xhigh",
+                  "max"
+                ],
+                "type": "string"
+              },
+              "reasoningEffort": {
+                "enum": ["off", "low", "medium", "high"],
+                "type": "string"
+              },
+              "sandbox": {
+                "enum": ["auto", "on", "off"],
+                "type": "string",
+                "default": "auto"
+              },
+              "webSearch": {
+                "enum": ["auto", "on", "off"],
+                "type": "string",
+                "default": "auto"
+              }
+            }
+          },
           "resolvedModel": {
             "anyOf": [
               {
@@ -17442,6 +17476,21 @@
                   "options": {
                     "type": "object",
                     "properties": {
+                      "fast": {
+                        "type": "boolean"
+                      },
+                      "reasoning": {
+                        "enum": [
+                          "off",
+                          "minimal",
+                          "low",
+                          "medium",
+                          "high",
+                          "xhigh",
+                          "max"
+                        ],
+                        "type": "string"
+                      },
                       "reasoningEffort": {
                         "enum": ["off", "low", "medium", "high"],
                         "type": "string"

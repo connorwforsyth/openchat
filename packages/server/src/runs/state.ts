@@ -89,6 +89,9 @@ export const toRun = (row: RunRow, position = 1): Run => ({
   createdBy: row.createdBy,
   id: row.id,
   lastSeq: row.lastSeq,
+  // What it was asked to run with (105); rows from before options were
+  // stored have none.
+  ...(row.options ? { options: runOptionsSchema.parse(row.options) } : {}),
   resolvedModel: row.resolvedModel,
   state: runStateFromRow(row, position),
   target: row.target,

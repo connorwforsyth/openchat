@@ -47,6 +47,7 @@ import {
   filterTargetGroups,
   findTargetChoice,
   isAutoTarget,
+  listedTarget,
   modelVendor,
   providerLabel,
   recentChoices,
@@ -132,22 +133,18 @@ function ChoiceRow({
       <span className="mt-0.5 flex shrink-0">
         <ChoiceIcon choice={choice} />
       </span>
+      {/* One line, one size: the card says the rest (105). */}
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="flex min-w-0 items-baseline gap-2">
           <ModelSelectorName className="flex-none shrink">
             {choice.label}
           </ModelSelectorName>
           {choice.detail ? (
-            <span className="min-w-0 truncate text-muted-foreground text-xs">
+            <span className="min-w-0 truncate text-muted-foreground">
               {choice.detail}
             </span>
           ) : null}
         </span>
-        {choice.description ? (
-          <span className="text-muted-foreground text-xs">
-            {choice.description}
-          </span>
-        ) : null}
         {choice.available ? null : <Unavailable />}
       </span>
       {vendor ? <ModelSelectorVendor>{vendor}</ModelSelectorVendor> : null}
@@ -302,14 +299,15 @@ interface Section {
 }
 
 /**
- * Auto, a model or an agent (D3, D15): what answers the next turn. A panel
- * anchored above the button (AI Elements' model selector on a popover)
- * with a search over every option, in sections with a divider between
- * them: Recently used, Auto, each provider's models, then agents by where
- * they come from. Each row shows the vendor's logo, the model's own name and
- * the vendor at its end; a card beside the list says more about whichever
- * row is highlighted, by arrow key or pointer (099). Escape closes it and
- * focus goes back to the button.
+ * Auto, a model or an agent (D3, D15): what answers the next turn. An
+ * overlay (AI Elements' model selector on a dialog, 105) with a search over
+ * every option, in sections with a divider between them: Recently used,
+ * Auto, each provider's models, then agents by where they come from. Each
+ * row is one line: the vendor's logo, the model's own name and the vendor
+ * at its end. A card beside the list says more about whichever row is
+ * highlighted, by arrow key or pointer (099). Entries that are only a mode
+ * of a model are folded into it; the thinking control and fast mode pick
+ * them (105). Escape closes it and focus goes back to the button.
  */
 export function TargetPicker({
   agents,
@@ -335,7 +333,8 @@ export function TargetPicker({
   );
 
   const current = findTargetChoice(groups, value);
-  const currentKey = targetKey(value);
+  // A folded entry (`o4-mini-high`) checks its model's row (105).
+  const currentKey = targetKey(listedTarget(groups, value));
   // A target the list doesn't offer (an agent shared then revoked, a model
   // since removed) still shows what it is rather than a blank button.
   const fallback = value.type === "agent" ? t`Unknown agent` : value.model;
@@ -438,9 +437,6 @@ export function TargetPicker({
             <SparklesIcon aria-hidden className="mt-0.5" />
             <span className="flex min-w-0 flex-1 flex-col">
               <ModelSelectorName>{autoLabel}</ModelSelectorName>
-              <span className="text-muted-foreground text-xs">
-                {autoDescription}
-              </span>
               {groups.autoAvailable ? null : <Unavailable />}
             </span>
           </ModelSelectorItem>
@@ -486,10 +482,7 @@ export function TargetPicker({
     });
   }
 
-  const currentModel =
-    value.type === "model" && !isAutoTarget(value)
-      ? models.find((model) => model.selector === value.model)
-      : undefined;
+  const currentModel = current?.model;
   let triggerIcon: ReactNode = <SparklesIcon aria-hidden />;
   if (value.type === "agent") {
     triggerIcon = <AgentIcon aria-hidden />;
@@ -510,14 +503,17 @@ export function TargetPicker({
         render={
           <PromptInputButton
             aria-label={t`Model or agent: ${label}`}
-            className="max-w-48 rounded-full text-muted-foreground hover:text-foreground aria-expanded:text-foreground"
+            className="min-w-0 max-w-48 shrink rounded-full text-muted-foreground hover:text-foreground aria-expanded:text-foreground max-sm:max-w-36"
             size="sm"
           />
         }
       >
         {triggerIcon}
         <span className="truncate">{label}</span>
-        <ChevronDownIcon aria-hidden className="size-3.5 opacity-60" />
+        <ChevronDownIcon
+          aria-hidden
+          className="size-3.5 opacity-60 max-sm:hidden"
+        />
       </ModelSelectorTrigger>
       <ModelSelectorContent
         command={{

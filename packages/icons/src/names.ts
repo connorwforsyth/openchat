@@ -101,6 +101,7 @@ export const iconNames = [
   "UserIcon",
   "UsersIcon",
   "WrenchIcon",
+  "ZapIcon",
   // Settings, admin and the palette
   "HistoryIcon",
   "KeyRoundIcon",

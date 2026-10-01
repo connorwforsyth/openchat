@@ -41,11 +41,13 @@ export function ComposerShell({
   onContextChange,
   onHandoff,
   onTargetChange,
+  onVariantChange,
   onWebSearchChange,
   placeholder,
   recentsKey,
   status = "ready",
   target,
+  variant,
   webSearch = false,
 }: ComposerShellProps) {
   const { t } = useLingui();
@@ -99,10 +101,12 @@ export function ComposerShell({
           onStop={undefined}
           onTargetChange={onTargetChange}
           onUsePrompt={undefined}
+          onVariantChange={onVariantChange}
           onWebSearchChange={onWebSearchChange}
           prompts={NONE}
           recentsKey={recentsKey}
           target={target}
+          variant={variant}
           webSearch={webSearch}
         />
       </InputGroup>

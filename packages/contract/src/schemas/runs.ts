@@ -150,8 +150,39 @@ export type RunTarget = z.infer<typeof runTargetSchema>;
 
 const toggleSchema = z.enum(["auto", "on", "off"]);
 
-/** Per-turn switches from the composer. `auto` lets the Decider and agent config choose. */
+/**
+ * How hard a reasoning model thinks this turn (105), from the composer's
+ * thinking control. The server maps it to the provider's own setting (a
+ * thinking budget, an effort, a thinking level) and drops a level the model
+ * doesn't take. Wider than `reasoningEffort`: some providers go below low
+ * (`minimal`) or above high (`xhigh`, `max`).
+ */
+export const reasoningLevelSchema = z.enum([
+  "off",
+  "minimal",
+  "low",
+  "medium",
+  "high",
+  "xhigh",
+  "max",
+]);
+export type ReasoningLevel = z.infer<typeof reasoningLevelSchema>;
+
+/**
+ * Per-turn switches from the composer. `auto` lets the Decider and agent
+ * config choose; an absent field leaves the provider's default. (Plan mode,
+ * 106, adds a `mode` here.)
+ */
 export const runOptionsSchema = z.object({
+  /**
+   * The provider's fast tier for this turn (105), where the model has one
+   * (OpenAI's priority processing, Anthropic's fast mode). Ignored where it
+   * doesn't. A catalog's separate `-fast` model is picked as a target instead.
+   */
+  fast: z.boolean().optional(),
+  /** The thinking level (105); wins over `reasoningEffort` when both are set. */
+  reasoning: reasoningLevelSchema.optional(),
+  /** The older, narrower level; prefer `reasoning`. */
   reasoningEffort: modelParametersSchema.shape.reasoningEffort,
   /**
    * The chat's file tools (the Files workspace, 055). `auto` gives them to
@@ -175,6 +206,11 @@ export const runSchema = z.object({
   id: runIdSchema,
   /** Highest stream sequence number written so far; resume with a smaller cursor. */
   lastSeq: z.int().min(0),
+  /**
+   * The switches it was asked to run with (105): its thinking level, fast
+   * mode, web search. Absent from servers before 105.
+   */
+  options: runOptionsSchema.optional(),
   /** The concrete model once routing (aliases, `auto`) is resolved. */
   resolvedModel: modelRefSchema.nullable(),
   state: runStateSchema,

@@ -4,7 +4,7 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import type { ModelOption } from "@workspace/contract/schemas/models";
 import type { RunTarget } from "@workspace/contract/schemas/runs";
 import type { ChatContext } from "@workspace/contract/schemas/tenancy";
-import { ArrowUpIcon, GlobeIcon } from "@workspace/icons";
+import { ArrowUpIcon, GlobeIcon, ZapIcon } from "@workspace/icons";
 import {
   PromptInputButton,
   PromptInputFooter,
@@ -13,15 +13,18 @@ import {
 } from "@workspace/ui/components/ai-elements/prompt-input";
 import { useCallback, useRef } from "react";
 
+import { useModelVariants } from "../hooks/use-model-variants";
 import type {
   AgentOption,
   ContextOption,
   FileCandidate,
   PromptOption,
 } from "../schemas";
+import type { ModelVariant } from "../variants";
 import { ContextChip } from "./context-chip";
 import { PlusMenu } from "./plus-menu";
 import { TargetPicker } from "./target-picker";
+import { ThinkingControl } from "./thinking-control";
 
 export interface ComposerFooterProps {
   readonly agents: readonly AgentOption[];
@@ -40,18 +43,21 @@ export interface ComposerFooterProps {
   readonly onStop: (() => void) | undefined;
   readonly onTargetChange: ((target: RunTarget) => void) | undefined;
   readonly onUsePrompt: ((prompt: PromptOption) => void) | undefined;
+  readonly onVariantChange: ((variant: ModelVariant) => void) | undefined;
   readonly onWebSearchChange: ((on: boolean) => void) | undefined;
   readonly prompts: readonly PromptOption[];
   readonly recentsKey: string | undefined;
   readonly target: RunTarget | undefined;
+  readonly variant: ModelVariant | undefined;
   readonly webSearch: boolean;
 }
 
 /**
- * The composer's bottom row (after shadcn's chatbot template): the + menu,
- * web search while it's on, and the model/agent picker at the start; the
- * chat context (when there's one to show) and Send, or Stop while a run is
- * going, at the end.
+ * The composer's bottom row (after shadcn's chatbot template). At the
+ * start: the + menu, web search and fast mode while they're on, and the
+ * chat context when there's one to show. At the end, by Send (or Stop while
+ * a run is going): the thinking level when the chosen model has one, and
+ * the model/agent picker (105).
  */
 export function ComposerFooter({
   agents,
@@ -70,29 +76,47 @@ export function ComposerFooter({
   onStop,
   onTargetChange,
   onUsePrompt,
+  onVariantChange,
   onWebSearchChange,
   prompts,
   recentsKey,
   target,
+  variant,
   webSearch,
 }: ComposerFooterProps) {
   const { t } = useLingui();
   const plusRef = useRef<HTMLButtonElement>(null);
-  // The chip goes away as it's switched off; focus goes back to the + menu
+  const variants = useModelVariants({
+    models,
+    onTargetChange,
+    onVariantChange,
+    recentsKey,
+    target,
+    variant,
+  });
+  const { setFast } = variants;
+  // A chip goes away as it's switched off; focus goes back to the + menu
   // it was switched on from.
   const turnOffWebSearch = useCallback(() => {
     onWebSearchChange?.(false);
     plusRef.current?.focus();
   }, [onWebSearchChange]);
+  const turnOffFast = useCallback(() => {
+    setFast(false);
+    plusRef.current?.focus();
+  }, [setFast]);
+  const picking = target !== undefined && onTargetChange !== undefined;
   return (
-    <PromptInputFooter className="px-2 pb-2">
-      <PromptInputTools className="min-w-0 flex-wrap">
+    <PromptInputFooter className="gap-1 px-2 pb-2">
+      <PromptInputTools className="min-w-0 shrink-0">
         <PlusMenu
           attachDisabled={attachDisabled}
           disabled={disabled}
+          fast={picking ? variants.fast : undefined}
           files={files}
           onAddFile={onAddFile}
           onAttach={onAttach}
+          onFastChange={setFast}
           onUsePrompt={onUsePrompt}
           onWebSearchChange={onWebSearchChange}
           prompts={prompts}
@@ -114,18 +138,21 @@ export function ComposerFooter({
             </span>
           </PromptInputButton>
         ) : null}
-        {target && onTargetChange ? (
-          <TargetPicker
-            agents={agents}
+        {picking && variants.fast?.on ? (
+          <PromptInputButton
+            aria-label={t`Fast mode is on. Turn it off`}
+            aria-pressed
+            className="rounded-full text-foreground"
             disabled={disabled}
-            models={models}
-            onChange={onTargetChange}
-            recentsKey={recentsKey}
-            value={target}
-          />
+            onClick={turnOffFast}
+            size="sm"
+          >
+            <ZapIcon aria-hidden />
+            <span className="max-sm:sr-only">
+              <Trans>Fast</Trans>
+            </span>
+          </PromptInputButton>
         ) : null}
-      </PromptInputTools>
-      <PromptInputTools className="min-w-0 justify-end">
         {context ? (
           <ContextChip
             disabled={disabled}
@@ -133,6 +160,26 @@ export function ComposerFooter({
             onChange={onContextChange}
             options={contexts}
             value={context}
+          />
+        ) : null}
+      </PromptInputTools>
+      <PromptInputTools className="min-w-0 shrink justify-end">
+        {picking && variants.levels ? (
+          <ThinkingControl
+            disabled={disabled}
+            levels={variants.levels}
+            onChange={variants.setLevel}
+            value={variants.level}
+          />
+        ) : null}
+        {picking ? (
+          <TargetPicker
+            agents={agents}
+            disabled={disabled}
+            models={models}
+            onChange={variants.pickTarget}
+            recentsKey={recentsKey}
+            value={target}
           />
         ) : null}
         {busy ? (

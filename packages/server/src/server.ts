@@ -7,7 +7,10 @@ import type { ChatKeys } from "@workspace/ai/keys/resolve";
 import type { Decider } from "@workspace/ai/ports/decider";
 import type { Embedder } from "@workspace/ai/ports/embedder";
 import type { ProviderRegistry } from "@workspace/ai/ports/provider-registry";
-import { buildRegistry } from "@workspace/ai/providers/registry";
+import {
+  buildRegistry,
+  type DiscoveringRegistry,
+} from "@workspace/ai/providers/registry";
 import { createEmbedder } from "@workspace/ai/rag/embedder";
 import { REINDEX_EMBEDDINGS_JOB } from "@workspace/ai/rag/ingest";
 import { chooseWebSearch } from "@workspace/ai/search/choose";
@@ -237,6 +240,11 @@ const describeProblem = (problem: DatabaseProblem): string =>
     ? "DATABASE_URL is invalid; running without a database"
     : `the embedded database didn't open (${problem.message}); running without a database`;
 
+/** Whether the registry reads provider catalogs (the built one does). */
+const discovers = (
+  registry: ProviderRegistry
+): registry is DiscoveringRegistry => "catalog" in registry;
+
 /**
  * Ingestion runs in the background with no chat to bill, so instance keys
  * pay for embeddings (Q25); a keyless local model needs none.
@@ -373,7 +381,8 @@ export const createServerFromEnv = async (
   const resolveSession =
     options.resolveSession ?? (auth ? sessionResolverFor(auth) : signedOut);
 
-  const registry = options.registry ?? buildRegistry(config, { log });
+  const registry: ProviderRegistry =
+    options.registry ?? buildRegistry(config, { log });
   // Secrets at rest (D24): provider keys and MCP header secrets. A missing
   // key in production only stops new secrets being stored.
   const keyRing = loadKeyRing(env, { warn: log });
@@ -444,6 +453,8 @@ export const createServerFromEnv = async (
     report,
     storage: storage.storage,
     tools: {
+      // Whether an OpenAI-compatible model reasons, from its catalog (105).
+      catalog: discovers(registry) ? registry.catalog : undefined,
       decider,
       knowledge: embedder ? { embedder } : undefined,
       mcpFor: (userId) => mcp.manager.toolSource(userId),
