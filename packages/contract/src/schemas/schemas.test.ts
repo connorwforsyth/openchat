@@ -1282,6 +1282,13 @@ const cases: Record<string, Cases> = {
         conversationId: convId,
         input: { type: "regenerate", userMessageId: msgId },
       },
+      // A thinking level and fast mode for this turn (105).
+      {
+        conversationId: convId,
+        input: { type: "regenerate", userMessageId: msgId },
+        options: { fast: true, reasoning: "low" },
+        target: { model: "anthropic:claude-opus-5-5", type: "model" },
+      },
     ],
   },
   "runs.createRunOutputSchema": {
@@ -1331,6 +1338,10 @@ const cases: Record<string, Cases> = {
       { hunkId: "h", newLines: 1, newStart: 1, oldLines: 0, oldStart: 0 },
     ],
   },
+  "runs.reasoningLevelSchema": {
+    invalid: ["none", "default", "HIGH", ""],
+    valid: ["off", "minimal", "low", "medium", "high", "xhigh", "max"],
+  },
   "runs.runErrorSchema": {
     invalid: [{ code: "oops", message: "x", retryable: false }],
     valid: [
@@ -1358,8 +1369,19 @@ const cases: Record<string, Cases> = {
     ],
   },
   "runs.runOptionsSchema": {
-    invalid: [{ webSearch: "yes" }],
-    valid: [{}, { reasoningEffort: "high", sandbox: "off" }],
+    invalid: [
+      { webSearch: "yes" },
+      { reasoning: "none" },
+      { reasoning: "on" },
+      { fast: "yes" },
+    ],
+    valid: [
+      // The shape before 105 still parses.
+      {},
+      { reasoningEffort: "high", sandbox: "off" },
+      { fast: true, reasoning: "xhigh" },
+      { fast: false, reasoning: "off", webSearch: "on" },
+    ],
   },
   "runs.runSchema": {
     invalid: [
@@ -1367,8 +1389,21 @@ const cases: Record<string, Cases> = {
         ...runAwaitingApproval,
         state: { approvals: [], startedAt: t, status: "awaiting_approval" },
       },
+      { ...runAwaitingApproval, options: { reasoning: "turbo" } },
     ],
-    valid: [runAwaitingApproval],
+    valid: [
+      // Before 105: no options.
+      runAwaitingApproval,
+      {
+        ...runAwaitingApproval,
+        options: {
+          fast: true,
+          reasoning: "high",
+          sandbox: "auto",
+          webSearch: "auto",
+        },
+      },
+    ],
   },
   "runs.runStateSchema": {
     invalid: [
