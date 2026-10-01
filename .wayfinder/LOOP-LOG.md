@@ -131,3 +131,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-10-02 · 114 merged (aliases show as their model, vendor flush right) · e2e 70/70 · added 115 (flaky harness reload test)
 - 2026-10-02 · Connor: start plan mode (106 claimed), Desktop and the artifacts framework · drafted Desktop tickets 116–121 and decisions 122
 - 2026-10-02 · artifact framework drafted: 123 (kit, claimed), 124 (Artifacts page), 125 (Sites), 126 (Documents)
+- 2026-10-02 · 101 merged (PR #82) · e2e 74/74

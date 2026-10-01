@@ -2,8 +2,8 @@
 id: "101"
 title: "Sources show the site's favicon, and an OG preview card on hover"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -48,3 +48,7 @@ Built on `t/101-link-previews` (not pushed). Contract change is its own commit (
 - **UI:** `chat-ui/src/conversation/link-preview.tsx` (`UrlSourceChip`, `LinkPreviewCard`, `Favicon`, HTTP loader with a provider for tests); `sources.tsx` uses it. Uses the existing `HoverCard` (Base UI PreviewCard) from `packages/ui`; no new primitive.
 - **Verified:** gate 82/82; `bun turbo test:e2e` 58/58 (two earlier full runs each had one unrelated flake under load: `memory.spec` "nothing is saved from a shared chat", `workspace.spec` per-hunk review; both pass alone and on rerun). Screenshots: `/private/tmp/claude-501/101-screens/`.
 - **Left:** web search isn't wired into runs on main (078), so the e2e adds citations to the history the browser loads; when 078 lands, the fixture site already answers SearXNG queries. CSP: `apps/web` sets none today, so nothing to change; image responses carry `default-src 'none'; sandbox`.
+
+## Resolution (2026-10-02, loop)
+
+Merged on Connor's word that it works in his local app. Its test server now runs beside #69's mock search, MCP fixture and the fixture site. Gate 85/85, `evals --strict` ok, e2e 74/74. [PR #82](https://github.com/connorwforsyth/openchat/pull/82).
