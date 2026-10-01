@@ -1671,6 +1671,7 @@ msgstr "Matches"
 #: ../composer/src/components/thinking-control.tsx
 msgid "Max"
 msgstr "Max"
+
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Maximise the browser"
 msgstr "Maximise the browser"
