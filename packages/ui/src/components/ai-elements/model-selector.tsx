@@ -168,9 +168,16 @@ export const ModelSelectorItem = ({
   className,
   ...props
 }: ModelSelectorItemProps) => (
-  // Room for a second line (a reason it's unavailable); the mark, vendor and
-  // checkmark stay on the first.
-  <CommandItem className={cn("items-start rounded-md", className)} {...props} />
+  // Room for a second line (a reason it's unavailable); the mark and vendor
+  // stay on the first. No checkmark (112, 114): the trigger already says
+  // which model is chosen, so the vendor sits flush right.
+  <CommandItem
+    className={cn(
+      "items-start rounded-md [&>svg:last-child]:hidden",
+      className
+    )}
+    {...props}
+  />
 );
 
 export type ModelSelectorShortcutProps = ComponentProps<typeof CommandShortcut>;
