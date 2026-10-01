@@ -2,7 +2,7 @@
 id: "131"
 title: "A bad or unavailable tool call should be an error the model reads, not a failed run"
 labels: [wayfinder:build]
-status: open
+status: closed
 assignee:
 blockedBy: []
 ---

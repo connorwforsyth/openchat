@@ -139,3 +139,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-10-02 · 129 merged (PR #92) · gate 93/93 · e2e 74/74 ×3 · added 132 (flaky composer thinking/fast test)
 - 2026-10-02 · 106 merged (PR #93) · gate 93/93 (forced, clean) · e2e 75/75 · chat-ui unit tests flake only under load (logged on 132) · 131 resumed to wire plan mode · 124 rebased (conflicts in connected-chat and the .po resolved), verifying
 - 2026-10-02 · 124 merged (PR #94) · gate 93/93 · e2e 83/83 · claimed 125 (Sites) and 127 (skills in chats) · local app moved to main
+- 2026-10-02 · 131 merged (PR #95; closes 090) · gate 93/93 · e2e 84/84 · 117 re-verifying after rebase onto #94
