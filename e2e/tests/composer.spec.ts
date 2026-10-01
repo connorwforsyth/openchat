@@ -11,12 +11,13 @@ import {
 } from "../support/chat";
 import { storageStateFor } from "../support/users";
 
-// Tickets 094 and 099: the composer's + menu and the model panel, driven
-// by keyboard the way the Done-whens ask.
+// Tickets 094, 099 and 105: the composer's + menu, the model overlay, the
+// thinking level and fast mode, driven by keyboard the way the Done-whens ask.
 
 test.use({ storageState: storageStateFor("ada") });
 
 const PARROT = /Parrot/;
+const THINKING = /^Thinking:/;
 
 const isCreateRun = (request: Request) =>
   request.method() === "POST" &&
@@ -28,7 +29,11 @@ const nextRunBody = async (page: Page, act: () => Promise<void>) => {
   await act();
   return (await request).postDataJSON() as {
     readonly options?: { readonly webSearch?: string };
-    readonly target?: { readonly model?: string; readonly type: string };
+    readonly target?: {
+      readonly model?: string;
+      readonly parameters?: { readonly reasoningEffort?: string };
+      readonly type: string;
+    };
   };
 };
 
@@ -76,10 +81,22 @@ test("the panel's card follows the highlighted model, which picks and sends", as
 }) => {
   await page.goto("/");
   await composerReady(page);
-  await targetPicker(page).click();
+  // From the keyboard: a click leaves the pointer where the centred overlay
+  // opens, and a row under the pointer takes the highlight.
+  await targetPicker(page).focus();
+  await page.keyboard.press("Enter");
   const dialog = page.getByRole("dialog", { name: "Choose a model or agent" });
   await expect(dialog).toBeVisible();
   const card = dialog.locator("[data-slot=preview-pane-content]");
+
+  // An overlay (105): centred across the page rather than hung off the
+  // button, with focus in its search.
+  await expect(dialog.getByRole("combobox")).toBeFocused();
+  const box = await dialog.boundingBox();
+  const width = page.viewportSize()?.width ?? 0;
+  expect(
+    Math.abs((box?.x ?? 0) + (box?.width ?? 0) / 2 - width / 2)
+  ).toBeLessThan(2);
 
   // It opens on the current model, named from the catalog without its
   // provider, the provider at the row's end and its logo beside it.
@@ -162,4 +179,60 @@ test("the + menu attaches a file and switches web search on for the turn", async
   const second = await nextRunBody(page, () => send(page, "No search now"));
   expect(second.options).toBeUndefined();
   await expectReply(page, "Echo: No search now");
+});
+
+test("the thinking level and fast mode sit apart, and go out with the run (105)", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await composerReady(page);
+  // The trigger sits by Send, the thinking control just before it.
+  const end = page.getByRole("button", { name: "Send" }).locator("..");
+  expect(
+    await end
+      .getByRole("button")
+      .evaluateAll((buttons) =>
+        buttons.map((button) => button.getAttribute("aria-label"))
+      )
+  ).toEqual(["Thinking: Default", "Model or agent: Echo", "Send"]);
+
+  // Echo reasons: Low goes out as the target's reasoning effort.
+  const thinking = page.getByRole("button", { name: THINKING });
+  await thinking.click();
+  await page.getByRole("menuitemradio", { name: "Low" }).click();
+  await expect(thinking).toHaveAccessibleName("Thinking: Low");
+  await expect(thinking).toBeFocused();
+  const body = await nextRunBody(page, () => send(page, "Think a little"));
+  expect(body.target).toEqual({
+    model: "mock:echo",
+    parameters: { reasoningEffort: "low" },
+    type: "model",
+  });
+  await expectReply(page, "Echo: Think a little");
+
+  // Parrot is listed once; its catalog fast entry is the + menu's Fast mode.
+  await targetPicker(page).click();
+  const dialog = page.getByRole("dialog", { name: "Choose a model or agent" });
+  await page.keyboard.type("parrot");
+  await expect(dialog.getByRole("option")).toHaveCount(1);
+  await page.keyboard.press("Enter");
+  await expect(dialog).toBeHidden();
+  // Parrot doesn't reason: no thinking control.
+  await expect(thinking).toBeHidden();
+  await plusMenu(page).click();
+  await page.getByRole("menuitemcheckbox", { name: "Fast mode" }).click();
+  await page.keyboard.press("Escape");
+  await expect(
+    page.getByRole("button", { name: "Fast mode is on. Turn it off" })
+  ).toBeVisible();
+  await expect(targetPicker(page, "Parrot")).toBeVisible();
+  const fast = await nextRunBody(page, () => send(page, "Quickly now"));
+  expect(fast.target).toEqual({ model: "mock:parrot-fast", type: "model" });
+  await expectReply(page, "Echo: Quickly now");
+
+  // Back on Echo, its level is remembered.
+  await targetPicker(page, "Parrot").click();
+  await page.keyboard.type("mock echo");
+  await page.keyboard.press("Enter");
+  await expect(thinking).toHaveAccessibleName("Thinking: Low");
 });
