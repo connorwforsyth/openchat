@@ -2,7 +2,7 @@
 
 import { Trans } from "@lingui/react/macro";
 import { ComposerLoader } from "@workspace/composer/components/composer-loader";
-import { AUTO_TARGET, contextOptionsFromMe } from "@workspace/composer/options";
+import { AUTO_TARGET } from "@workspace/composer/options";
 import type {
   ComposerStatus,
   ComposerValue,
@@ -11,14 +11,12 @@ import type {
 import {
   agentItem,
   fixtureId,
-  me,
   modelOptions,
   publicConfig,
   userAda,
   userBo,
 } from "@workspace/contract/fixtures";
 import type { RunTarget } from "@workspace/contract/schemas/runs";
-import type { ChatContext } from "@workspace/contract/schemas/tenancy";
 import {
   type ChangeEvent,
   type ReactNode,
@@ -72,8 +70,6 @@ const prompts: PromptOption[] = [
   },
 ];
 
-const contexts = contextOptionsFromMe(me, publicConfig.policies.chatContexts);
-
 const attachmentLimits = {
   maxFileSize: publicConfig.limits.uploadMaxMb * 1024 * 1024,
   maxFiles: 4,
@@ -121,10 +117,8 @@ function Toggle({
 
 export function ComposerDemo() {
   const [target, setTarget] = useState<RunTarget>(AUTO_TARGET);
-  const [context, setContext] = useState<ChatContext>({ type: "personal" });
   const [status, setStatus] = useState<ComposerStatus>("ready");
   const [sent, setSent] = useState<string | null>(null);
-  const [locked, setLocked] = useState(false);
   const [disabled, setDisabled] = useState(false);
 
   useEffect(() => {
@@ -138,16 +132,9 @@ export function ComposerDemo() {
   const handleSubmit = useCallback((value: ComposerValue) => {
     setSent(describe(value));
     setStatus("streaming");
-    // The context is fixed once the chat has a first message (D17).
-    setLocked(true);
   }, []);
 
   const handleStop = useCallback(() => setStatus("ready"), []);
-  const toggleLocked = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) =>
-      setLocked(event.currentTarget.checked),
-    []
-  );
   const toggleDisabled = useCallback(
     (event: ChangeEvent<HTMLInputElement>) =>
       setDisabled(event.currentTarget.checked),
@@ -157,9 +144,6 @@ export function ComposerDemo() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap gap-4">
-        <Toggle checked={locked} onChange={toggleLocked}>
-          <Trans>Context locked</Trans>
-        </Toggle>
         <Toggle checked={disabled} onChange={toggleDisabled}>
           <Trans>Disabled</Trans>
         </Toggle>
@@ -167,12 +151,8 @@ export function ComposerDemo() {
       <ComposerLoader
         agents={[agentItem]}
         attachmentLimits={attachmentLimits}
-        context={context}
-        contextLocked={locked}
-        contexts={contexts}
         disabled={disabled}
         models={modelOptions}
-        onContextChange={setContext}
         onStop={handleStop}
         onSubmit={handleSubmit}
         onTargetChange={setTarget}

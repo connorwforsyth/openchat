@@ -31,7 +31,7 @@ import {
   ItemTitle,
 } from "@workspace/ui/components/item";
 import { motionMs } from "@workspace/ui/lib/motion";
-import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { initialsOf } from "../model/people";
 
@@ -118,11 +118,6 @@ function TriggerIcon({
 export interface ShareMenuProps {
   /** Nothing to share before the first message. */
   readonly disabled?: boolean;
-  /**
-   * The chat's context once it's locked (D17), shown in the menu; while it
-   * can still change, the composer offers it instead.
-   */
-  readonly lockedContext?: ReactNode;
   /** Copies the chat's link; resolves once it's on the clipboard. */
   readonly onCopyLink?: () => Promise<void> | void;
   readonly onInvite?: () => void;
@@ -130,13 +125,12 @@ export interface ShareMenuProps {
 }
 
 /**
- * Share (D14): who has access, invite people, copy a link (all through
- * callbacks), and the chat's locked context. The people in the chat show as
+ * Share (D14): who has access, invite people and copy a link (all through
+ * callbacks). The chat's context sits by the title (113). The people in the chat show as
  * avatars on the button itself.
  */
 export function ShareMenu({
   disabled,
-  lockedContext,
   onCopyLink,
   onInvite,
   participants,
@@ -191,12 +185,6 @@ export function ShareMenu({
             </Item>
           ))}
         </DropdownMenuGroup>
-        {lockedContext ? (
-          <>
-            <DropdownMenuSeparator />
-            <LockedContextGroup>{lockedContext}</LockedContextGroup>
-          </>
-        ) : null}
         {actions ? (
           <>
             <DropdownMenuSeparator />
@@ -221,30 +209,5 @@ export function ShareMenu({
         ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
-  );
-}
-
-/**
- * The locked context inside a menu (Share, or the narrow screen's overflow
- * menu): read-only, with why it can't change.
- */
-export function LockedContextGroup({
-  children,
-}: {
-  readonly children: ReactNode;
-}) {
-  return (
-    <DropdownMenuGroup>
-      <DropdownMenuLabel>
-        <Trans>Chat context</Trans>
-      </DropdownMenuLabel>
-      <div className="px-1.5 py-1 text-sm">{children}</div>
-      <p className="px-1.5 pb-1 text-muted-foreground text-xs">
-        <Trans>
-          Whose keys and budget this chat uses. It can't change after the first
-          message.
-        </Trans>
-      </p>
-    </DropdownMenuGroup>
   );
 }

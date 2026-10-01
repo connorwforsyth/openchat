@@ -187,9 +187,10 @@ const newChat = (overrides: Partial<ChatScreenProps> = {}) => {
 };
 
 describe("header (D14)", () => {
-  it("has at most four controls besides the title and branch switcher", async () => {
+  it("has at most three controls besides the title, context and branch switcher", async () => {
     renderWithI18n(<ChatScreen {...props()} />);
-    // Collapsing the sidebar adds New chat: the busiest the header gets.
+    // Collapsing the sidebar brings its toggle here: the busiest the header
+    // gets. There's no New chat button in either state (113).
     const mod = modKey();
     await userEvent.keyboard(`{${mod}>}b{/${mod}}`);
     const controls = header()
@@ -201,7 +202,7 @@ describe("header (D14)", () => {
             button.getAttribute("aria-label")?.startsWith("Rename chat")
           )
       );
-    const expected = ["Toggle sidebar", "New chat", "Share", "Workspace"];
+    const expected = ["Toggle sidebar", "Share", "Workspace"];
     expect(controls).toEqual(
       expected.map((name) => header().getByRole("button", { name }))
     );
@@ -209,6 +210,28 @@ describe("header (D14)", () => {
     expect(header().queryByRole("button", { name: SANDBOX_PILL })).toBeNull();
     expect(
       header().queryByRole("button", { name: "Artifacts panel" })
+    ).toBeNull();
+  });
+
+  it("keeps the sidebar toggle in the sidebar while it's open (113)", async () => {
+    renderWithI18n(<ChatScreen {...props()} />);
+    const sidebar = within(
+      screen.getByRole("complementary", { name: "Chats" })
+    );
+    const toggle = sidebar.getByRole("button", { name: "Toggle sidebar" });
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    expect(
+      header().queryByRole("button", { name: "Toggle sidebar" })
+    ).toBeNull();
+    expect(header().queryByRole("button", { name: "New chat" })).toBeNull();
+
+    await userEvent.click(toggle);
+    const reopen = header().getByRole("button", { name: "Toggle sidebar" });
+    expect(reopen.getAttribute("aria-expanded")).toBe("false");
+    expect(header().queryByRole("button", { name: "New chat" })).toBeNull();
+    await userEvent.click(reopen);
+    expect(
+      header().queryByRole("button", { name: "Toggle sidebar" })
     ).toBeNull();
   });
 
@@ -228,29 +251,40 @@ describe("header (D14)", () => {
   });
 });
 
-describe("chat context", () => {
-  it("shows in the Share menu once locked, not in the composer", async () => {
+const chatContext = () =>
+  document.querySelector<HTMLElement>(
+    '[data-slot="app-header"] [data-slot="chat-context"]'
+  );
+
+describe("chat context (113)", () => {
+  it("shows by the title as text once locked, and nowhere else", async () => {
     renderWithI18n(<ChatScreen {...props()} />);
     await editorReady();
     expect(
       composerFrame().queryByRole("button", { name: ANY_CONTEXT_CHIP })
     ).toBeNull();
+    // A fact about the chat now, not a choice.
+    expect(chatContext()?.textContent).toContain("Platform");
+    expect(chatContext()?.tagName).not.toBe("BUTTON");
+    expect(
+      header().queryByRole("button", { name: ANY_CONTEXT_CHIP })
+    ).toBeNull();
 
     await userEvent.click(header().getByRole("button", { name: "Share" }));
-    const group = await screen.findByRole("group", { name: "Chat context" });
-    expect(group.textContent).toContain("Platform");
-    // A fact about the chat now, not a choice.
-    expect(within(group).queryByRole("button")).toBeNull();
-    expect(within(group).queryByRole("menuitemradio")).toBeNull();
+    await screen.findByRole("menu");
+    expect(screen.queryByRole("group", { name: "Chat context" })).toBeNull();
   });
 
-  it("is chosen in the composer before the first message", async () => {
+  it("is chosen in the header before the first message", async () => {
     const screenProps = newChat();
     renderWithI18n(<ChatScreen {...screenProps} />);
     expect(screen.getByText("What can I help with?")).toBeTruthy();
     await editorReady();
+    expect(
+      composerFrame().queryByRole("button", { name: ANY_CONTEXT_CHIP })
+    ).toBeNull();
     await userEvent.click(
-      composerFrame().getByRole("button", { name: "Chat context: Platform" })
+      header().getByRole("button", { name: "Chat context: Platform" })
     );
     await userEvent.click(
       await screen.findByRole("menuitemradio", { name: "Personal" })
@@ -258,6 +292,24 @@ describe("chat context", () => {
     expect(screenProps.conversation.onContextChange).toHaveBeenCalledWith({
       type: "personal",
     });
+  });
+
+  it("isn't shown to someone with only Personal", async () => {
+    const base = newChat();
+    renderWithI18n(
+      <ChatScreen
+        {...newChat({
+          conversation: {
+            ...base.conversation,
+            context: { type: "personal" },
+            contextOptions: [{ context: { type: "personal" } }],
+          },
+        })}
+      />
+    );
+    await editorReady();
+    expect(chatContext()).toBeNull();
+    expect(screen.queryByRole("button", { name: ANY_CONTEXT_CHIP })).toBeNull();
   });
 });
 
@@ -933,10 +985,9 @@ describe("narrow screens", () => {
     await userEvent.click(
       header().getByRole("button", { name: "More actions" })
     );
-    // The locked context comes along.
-    expect(
-      (await screen.findByRole("group", { name: "Chat context" })).textContent
-    ).toContain("Platform");
+    // The context stays by the title, not in the menu (113).
+    expect(chatContext()?.textContent).toContain("Platform");
+    expect(screen.queryByRole("group", { name: "Chat context" })).toBeNull();
     await userEvent.click(
       await screen.findByRole("menuitemcheckbox", { name: "Workspace" })
     );

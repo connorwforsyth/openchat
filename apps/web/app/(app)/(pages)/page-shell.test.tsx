@@ -1,4 +1,4 @@
-import { cleanup, screen, waitFor } from "@testing-library/react";
+import { cleanup, screen, waitFor, within } from "@testing-library/react";
 import {
   conversation,
   fixtureId,
@@ -133,7 +133,7 @@ describe("PageShell", () => {
     expect(value.openPalette).toHaveBeenCalled();
   });
 
-  it("toggles the shared sidebar, from the header and with ⌘B", async () => {
+  it("toggles the shared sidebar, from the sidebar's top row and with ⌘B", async () => {
     const value = frame();
     renderWithApi(
       <AppFrameProvider value={value}>
@@ -143,8 +143,9 @@ describe("PageShell", () => {
       </AppFrameProvider>,
       api()
     );
+    const chats = within(screen.getByRole("complementary", { name: "Chats" }));
     await userEvent.click(
-      screen.getByRole("button", { name: "Toggle sidebar" })
+      chats.getByRole("button", { name: "Toggle sidebar" })
     );
     expect(value.layout.toggleSidebar).toHaveBeenCalledTimes(1);
     await userEvent.keyboard("{Meta>}b{/Meta}");
@@ -189,7 +190,8 @@ describe("PageShell", () => {
       api()
     );
     expect(screen.queryByRole("complementary", { name: "Chats" })).toBeNull();
-    // The header offers a new chat instead.
-    expect(screen.getByRole("button", { name: "New chat" })).toBeTruthy();
+    // The header takes the sidebar toggle, and no New chat button (113).
+    expect(screen.getByRole("button", { name: "Toggle sidebar" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "New chat" })).toBeNull();
   });
 });

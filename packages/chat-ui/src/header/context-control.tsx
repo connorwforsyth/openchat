@@ -1,6 +1,8 @@
 "use client";
 
 import { Trans, useLingui } from "@lingui/react/macro";
+import { contextKey } from "@workspace/composer/options";
+import type { ContextOption } from "@workspace/composer/schemas";
 import type { ChatContext } from "@workspace/contract/schemas/tenancy";
 import {
   Building2Icon,
@@ -9,7 +11,7 @@ import {
   UserIcon,
   UsersIcon,
 } from "@workspace/icons";
-import { PromptInputButton } from "@workspace/ui/components/ai-elements/prompt-input";
+import { Button } from "@workspace/ui/components/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,20 +21,12 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@workspace/ui/components/tooltip";
+import { cn } from "@workspace/ui/lib/utils";
 import { useCallback } from "react";
 
-import { contextKey } from "../options";
-import type { ContextOption } from "../schemas";
-
-export interface ContextChipProps {
-  readonly disabled?: boolean;
+export interface ContextControlProps {
   /** Fixed once the chat has its first message (D17). */
-  readonly locked?: boolean;
+  readonly locked: boolean;
   readonly onChange?: (context: ChatContext) => void;
   readonly options: readonly ContextOption[];
   readonly value: ChatContext;
@@ -71,36 +65,29 @@ function useContextLabel() {
 }
 
 /**
- * A context as a plain line (icon, name, lock), for where a locked context is
- * shown rather than chosen: the chat header's Share menu (D14).
+ * Whether there's a context worth showing: the person belongs to a team or
+ * an org, or the chat is in one. Someone with only Personal never sees it.
  */
-export function ContextSummary({
-  options,
-  value,
-}: Pick<ContextChipProps, "options" | "value">) {
-  const labelFor = useContextLabel();
-  const key = contextKey(value);
-  const label = labelFor(
-    value,
-    options.find((option) => contextKey(option.context) === key)?.name
-  );
-  return (
-    <span className="flex min-w-0 items-center gap-2 [&_svg]:size-4 [&_svg]:shrink-0">
-      <ContextIconFor context={value} />
-      <span className="min-w-0 flex-1 truncate">{label}</span>
-      <LockIcon aria-hidden className="text-muted-foreground" />
-    </span>
-  );
-}
+export const showsContext = (
+  options: readonly ContextOption[],
+  value: ChatContext
+): boolean => options.length > 1 || value.type !== "personal";
 
-/** Whose keys pay and where usage rolls up: Personal, a team or an org. */
-export function ContextChip({
-  disabled,
+// Quiet: muted, small, no border, as tall as the title's button.
+const QUIET =
+  "h-7 min-w-0 max-w-40 shrink-0 gap-1.5 px-2 font-normal text-muted-foreground text-sm max-sm:max-w-28 [&_svg]:size-3.5 [&_svg]:shrink-0";
+
+/**
+ * Whose keys pay and where usage rolls up (D17): Personal, a team or an org,
+ * beside the chat's title (113). Chosen from a menu until the first message;
+ * after that it's text. Render it only where `showsContext` says so.
+ */
+export function ContextControl({
   locked,
   onChange,
   options,
   value,
-}: ContextChipProps) {
+}: ContextControlProps) {
   const { t } = useLingui();
   const labelFor = useContextLabel();
   const key = contextKey(value);
@@ -122,48 +109,43 @@ export function ContextChip({
   );
 
   if (locked || !onChange) {
-    // Still focusable (aria-disabled, not disabled) so keyboard users can
-    // reach the tooltip that says why it can't change.
     return (
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            <PromptInputButton
-              aria-disabled
-              aria-label={t`Chat context: ${label}, locked`}
-              className="rounded-full text-muted-foreground"
-              size="sm"
-            />
-          }
-        >
-          <ContextIconFor context={value} />
-          <span className="max-w-32 truncate max-sm:sr-only">{label}</span>
-          <LockIcon aria-hidden className="size-3" />
-        </TooltipTrigger>
-        <TooltipContent>
-          <Trans>The context can't change after the first message.</Trans>
-        </TooltipContent>
-      </Tooltip>
+      <span
+        className={cn("flex items-center", QUIET)}
+        data-locked={locked ? "" : undefined}
+        data-slot="chat-context"
+      >
+        <span className="sr-only">
+          <Trans>Chat context:</Trans>
+        </span>
+        <ContextIconFor context={value} />
+        <span className="min-w-0 truncate">{label}</span>
+        {locked ? <LockIcon aria-hidden className="opacity-60" /> : null}
+      </span>
     );
   }
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        disabled={disabled}
         render={
-          <PromptInputButton
+          <Button
             aria-label={t`Chat context: ${label}`}
-            className="rounded-full text-muted-foreground hover:text-foreground aria-expanded:text-foreground"
+            className={cn(
+              QUIET,
+              "hover:text-foreground aria-expanded:text-foreground"
+            )}
+            data-slot="chat-context"
             size="sm"
+            variant="ghost"
           />
         }
       >
         <ContextIconFor context={value} />
-        <span className="max-w-32 truncate max-sm:sr-only">{label}</span>
-        <ChevronDownIcon aria-hidden className="size-3.5 opacity-60" />
+        <span className="min-w-0 truncate">{label}</span>
+        <ChevronDownIcon aria-hidden className="opacity-60" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56">
+      <DropdownMenuContent align="start" className="w-64">
         <DropdownMenuGroup>
           <DropdownMenuLabel>
             <Trans>Chat context</Trans>
@@ -182,6 +164,12 @@ export function ContextChip({
               </DropdownMenuRadioItem>
             ))}
           </DropdownMenuRadioGroup>
+          <p className="px-1.5 pt-1 pb-1.5 text-muted-foreground text-xs">
+            <Trans>
+              Whose keys and budget this chat uses. It can't change after the
+              first message.
+            </Trans>
+          </p>
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>

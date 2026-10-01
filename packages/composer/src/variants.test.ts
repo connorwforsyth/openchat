@@ -15,6 +15,7 @@ import {
   providerLevels,
   targetForChoice,
   thinkingLevels,
+  variantChoiceSchema,
 } from "./variants";
 
 const model = (
@@ -201,9 +202,8 @@ describe("thinkingLevels", () => {
     ];
     const family = familyFor(models, "openai:o4-mini");
     expect(thinkingLevels(family, "openai", false, true)).toEqual([
-      { level: "default" },
       { level: "low" },
-      { level: "medium" },
+      { default: true, level: "medium" },
       { level: "high", model: models[1] },
     ]);
   });
@@ -212,7 +212,10 @@ describe("thinkingLevels", () => {
     const models = [model("acme:q"), model("acme:q:thinking")];
     expect(
       thinkingLevels(familyFor(models, "acme:q"), "acme", false, true)
-    ).toEqual([{ level: "off" }, { level: "on", model: models[1] }]);
+    ).toEqual([
+      { default: true, level: "off" },
+      { level: "on", model: models[1] },
+    ]);
   });
 
   it("marks what can't be had: fast mode, a missing key, a host without run options", () => {
@@ -224,7 +227,7 @@ describe("thinkingLevels", () => {
     ];
     const family = familyFor(models, "acme:q");
     expect(thinkingLevels(family, "acme", false, true)).toEqual([
-      { level: "off" },
+      { default: true, level: "off" },
       { blocked: "unavailable", level: "on", model: models[1] },
       { level: "high", model: models[2] },
     ]);
@@ -234,12 +237,20 @@ describe("thinkingLevels", () => {
     const gpt6 = familyFor([model("openai:gpt-6", reasons)], "openai:gpt-6");
     expect(
       thinkingLevels(gpt6, "openai", false, false)?.map((each) => each.blocked)
-    ).toEqual([undefined, "server", "server", "server", "server"]);
+    ).toEqual(["server", undefined, "server", "server"]);
     expect(
       thinkingLevels(gpt6, "openai", false, true)?.every(
         (each) => each.blocked === undefined
       )
     ).toBe(true);
+  });
+});
+
+describe("variantChoiceSchema", () => {
+  it("reads a level remembered as the old Default as none chosen", () => {
+    expect(
+      variantChoiceSchema.parse({ fast: false, level: "default" })
+    ).toEqual({ fast: false });
   });
 });
 
@@ -311,10 +322,10 @@ describe("targetForChoice and choiceOfTarget", () => {
       variant: {},
     });
     expect(
-      targetForChoice(family, "openai", { fast: true, level: "medium" }, true)
+      targetForChoice(family, "openai", { fast: true, level: "low" }, true)
     ).toEqual({
       target: { model: "openai:o4-mini-fast", type: "model" },
-      variant: { reasoning: "medium" },
+      variant: { reasoning: "low" },
     });
   });
 
@@ -323,22 +334,27 @@ describe("targetForChoice and choiceOfTarget", () => {
     const made = targetForChoice(
       gpt,
       "openai",
-      { fast: true, level: "off" },
+      { fast: true, level: "low" },
       true
     );
     expect(made).toEqual({
       target: { model: "openai:gpt-5.2", type: "model" },
-      variant: { fast: true, reasoning: "off" },
+      variant: { fast: true, reasoning: "low" },
     });
     expect(choiceOfTarget(gpt, made.target, made.variant)).toEqual({
       fast: true,
-      level: "off",
+      level: "low",
     });
   });
 
-  it("sends nothing for the default, or what the host can't send", () => {
+  it("sends nothing for the provider's default, or what the host can't send", () => {
+    expect(targetForChoice(family, "openai", { fast: false }, true)).toEqual({
+      target: o4,
+      variant: {},
+    });
+    // Medium is what o4-mini does with nothing sent (113).
     expect(
-      targetForChoice(family, "openai", { fast: false, level: "default" }, true)
+      targetForChoice(family, "openai", { fast: false, level: "medium" }, true)
     ).toEqual({ target: o4, variant: {} });
     expect(
       targetForChoice(family, "openai", { fast: false, level: "low" }, false)

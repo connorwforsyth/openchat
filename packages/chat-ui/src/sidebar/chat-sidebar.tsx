@@ -30,6 +30,8 @@ export interface ChatSidebarProps {
   readonly onRestore: (id: ConversationId) => void;
   readonly onSelect: (id: ConversationId) => void;
   readonly onTogglePin: (id: ConversationId, pinned: boolean) => void;
+  /** The sidebar toggle, at the end of the brand row (113). */
+  readonly toggle?: ReactNode;
 }
 
 // Same rhythm as the chat rows (071): 36px, 44px on touch.
@@ -68,6 +70,7 @@ export function ChatSidebar({
   onRestore,
   onSelect,
   onTogglePin,
+  toggle,
 }: ChatSidebarProps) {
   const { t } = useLingui();
   const showUndo = useUndoToast();
@@ -97,7 +100,10 @@ export function ChatSidebar({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex h-12 shrink-0 items-center gap-2 px-3">{brand}</div>
+      <div className="flex h-12 shrink-0 items-center gap-2 ps-3 pe-2">
+        <div className="flex min-w-0 flex-1 items-center gap-2">{brand}</div>
+        {toggle}
+      </div>
 
       <nav aria-label={t`Primary`} className="flex flex-col gap-0.5 px-2">
         <button className={navRowClass} onClick={onNewChat} type="button">

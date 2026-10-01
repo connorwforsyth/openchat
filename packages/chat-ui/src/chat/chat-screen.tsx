@@ -1,8 +1,7 @@
 "use client";
 
-import { Trans, useLingui } from "@lingui/react/macro";
+import { useLingui } from "@lingui/react/macro";
 import type { ComposerLoaderProps } from "@workspace/composer/components/composer-loader";
-import { ContextSummary } from "@workspace/composer/components/context-chip";
 import type {
   ComposerCommand,
   ComposerValue,
@@ -16,13 +15,6 @@ import type {
 } from "@workspace/contract/schemas/messages";
 import type { PendingApproval } from "@workspace/contract/schemas/runs";
 import type { ChatContext } from "@workspace/contract/schemas/tenancy";
-import { NewChatIcon, PanelLeftIcon } from "@workspace/icons";
-import { Button } from "@workspace/ui/components/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@workspace/ui/components/tooltip";
 import {
   lazy,
   type ReactNode,
@@ -43,6 +35,7 @@ import { FilePreviewContext } from "../conversation/file-change-card";
 import { AppHeader } from "../header/app-header";
 import { BranchSwitcher } from "../header/branch-switcher";
 import { ChatTitle } from "../header/chat-title";
+import { ContextControl, showsContext } from "../header/context-control";
 import { HeaderOverflowMenu } from "../header/overflow-menu";
 import { ShareMenu } from "../header/share-menu";
 import { WorkspaceToggle } from "../header/workspace-toggle";
@@ -60,6 +53,7 @@ import {
 import { AppShell } from "../shell/app-shell";
 import { type Platform, PlatformProvider } from "../shell/platform";
 import { RightPanel } from "../shell/right-panel";
+import { SidebarToggle } from "../shell/sidebar-toggle";
 import { useNarrowScreen } from "../shell/use-narrow-screen";
 import {
   type ShellLayoutState,
@@ -585,38 +579,19 @@ function ChatScreenBody({
     [canPreview, chatWorkspace, paths, runCommand]
   );
 
-  // The context is chosen in the composer until the first message locks it;
-  // after that it's a fact about the chat, shown in the Share menu.
-  const { contextLocked } = conversation;
   const composerProps = useMemo<ComposerLoaderProps>(
-    () => ({
-      ...composer,
-      onSubmit,
-      ...workspaceComposer,
-      ...(contextLocked
-        ? {}
-        : {
-            context: conversation.context,
-            contexts: conversation.contextOptions,
-            onContextChange: conversation.onContextChange,
-          }),
-    }),
-    [
-      composer,
-      contextLocked,
-      onSubmit,
-      conversation.context,
-      conversation.contextOptions,
-      conversation.onContextChange,
-      workspaceComposer,
-    ]
+    () => ({ ...composer, onSubmit, ...workspaceComposer }),
+    [composer, onSubmit, workspaceComposer]
   );
-  const lockedContext = contextLocked ? (
-    <ContextSummary
-      options={conversation.contextOptions}
-      value={conversation.context}
+  const sidebarExpanded = narrow ? sidebarSheetOpen : layout.sidebarOpen;
+  const sidebarToggle = (where: "header" | "sidebar") => (
+    <SidebarToggle
+      expanded={sidebarExpanded}
+      hint={<ShortcutHint id="sidebar.toggle" />}
+      onToggle={toggleChats}
+      placement={where}
     />
-  ) : undefined;
+  );
 
   // A suggestion is sent as the first message, as if typed.
   const sendSuggestion = useCallback(
@@ -629,7 +604,6 @@ function ChatScreenBody({
       end={
         narrow ? (
           <HeaderOverflowMenu
-            lockedContext={lockedContext}
             onCopyLink={conversation.onCopyLink}
             onInvite={conversation.onInvite}
             onToggleWorkspace={toggleWorkspace}
@@ -641,7 +615,6 @@ function ChatScreenBody({
           <div className="flex items-center gap-1 max-md:hidden">
             <ShareMenu
               disabled={conversation.id === null}
-              lockedContext={lockedContext}
               onCopyLink={conversation.onCopyLink}
               onInvite={conversation.onInvite}
               participants={conversation.participants}
@@ -655,49 +628,21 @@ function ChatScreenBody({
       }
       start={
         <>
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <Button
-                  aria-expanded={narrow ? sidebarSheetOpen : layout.sidebarOpen}
-                  aria-label={t`Toggle sidebar`}
-                  onClick={toggleChats}
-                  size="icon-sm"
-                  variant="ghost"
-                />
-              }
-            >
-              <PanelLeftIcon aria-hidden />
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-              <Trans>Toggle sidebar</Trans>
-              <ShortcutHint id="sidebar.toggle" />
-            </TooltipContent>
-          </Tooltip>
-          {layout.sidebarOpen && !narrow ? null : (
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <Button
-                    aria-label={t`New chat`}
-                    onClick={startNewChat}
-                    size="icon-sm"
-                    variant="ghost"
-                  />
-                }
-              >
-                <NewChatIcon aria-hidden />
-              </TooltipTrigger>
-              <TooltipContent side="bottom">
-                <Trans>New chat</Trans>
-                <ShortcutHint id="chat.new" />
-              </TooltipContent>
-            </Tooltip>
-          )}
+          {/* Here only while the sidebar isn't docked; else it's in the
+              sidebar's top row. New chat is ⌘N and the sidebar's (113). */}
+          {sidebarToggle("header")}
           <ChatTitle
             onRename={conversation.onRename}
             title={conversation.title}
           />
+          {showsContext(conversation.contextOptions, conversation.context) ? (
+            <ContextControl
+              locked={conversation.contextLocked}
+              onChange={conversation.onContextChange}
+              options={conversation.contextOptions}
+              value={conversation.context}
+            />
+          ) : null}
           <BranchSwitcher
             className="shrink-0"
             info={fork}
@@ -739,6 +684,7 @@ function ChatScreenBody({
           brand={brand}
           onNewChat={newChat}
           onOpenPalette={openPalette}
+          toggle={sidebarToggle("sidebar")}
         />
       }
       sidebarOpen={layout.sidebarOpen}

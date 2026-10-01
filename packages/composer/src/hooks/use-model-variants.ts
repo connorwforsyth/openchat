@@ -24,8 +24,8 @@ import { useVariantChoices } from "./use-variant-choices";
 export interface ModelVariants {
   /** Fast mode for the chosen model, and whether it's on; `undefined` when it has none. */
   readonly fast?: FastMode & { readonly on: boolean };
-  /** The thinking level shown, one of `levels`. */
-  readonly level: ThinkingLevel;
+  /** The thinking level shown, one of `levels`; set whenever `levels` is. */
+  readonly level?: ThinkingLevel;
   /** `undefined` when the chosen model has no thinking choice. */
   readonly levels?: readonly LevelChoice[];
   /** A model or agent picked in the picker, with that model's last choices. */
@@ -114,11 +114,11 @@ export const useModelVariants = ({
   const levels = family
     ? thinkingLevels(family, vendor, choice.fast, sends)
     : undefined;
+  // The chosen level, else the one the provider uses with nothing sent.
   const shown =
-    levels?.find((each) => each.level === choice.level && !each.blocked)
-      ?.level ??
-    levels?.[0]?.level ??
-    "default";
+    levels?.find((each) => each.level === choice.level && !each.blocked) ??
+    levels?.find((each) => each.default) ??
+    levels?.[0];
 
   const emit = useCallback(
     (next: VariantTarget, current: RunTarget | undefined) => {
@@ -168,7 +168,7 @@ export const useModelVariants = ({
   const fast = family ? fastMode(family, vendor, sends) : undefined;
   return {
     ...(fast ? { fast: { ...fast, on: choice.fast && !fast.blocked } } : {}),
-    level: shown,
+    ...(shown ? { level: shown.level } : {}),
     ...(levels ? { levels } : {}),
     pickTarget,
     setFast,

@@ -48,7 +48,6 @@ import {
   findTargetChoice,
   isAutoTarget,
   listedTarget,
-  modelVendor,
   providerLabel,
   recentChoices,
   type TargetChoice,
@@ -482,20 +481,6 @@ export function TargetPicker({
     });
   }
 
-  const currentModel = current?.model;
-  let triggerIcon: ReactNode = <SparklesIcon aria-hidden />;
-  if (value.type === "agent") {
-    triggerIcon = <AgentIcon aria-hidden />;
-  } else if (currentModel) {
-    const vendor = modelVendor(currentModel);
-    triggerIcon = (
-      <ModelSelectorLogo
-        name={providerLabel(vendor) || label}
-        provider={vendor}
-      />
-    );
-  }
-
   return (
     <ModelSelector onOpenChange={handleOpenChange} open={open}>
       <ModelSelectorTrigger
@@ -508,7 +493,7 @@ export function TargetPicker({
           />
         }
       >
-        {triggerIcon}
+        {/* The name only, no provider mark (113). */}
         <span className="truncate">{label}</span>
         <ChevronDownIcon
           aria-hidden

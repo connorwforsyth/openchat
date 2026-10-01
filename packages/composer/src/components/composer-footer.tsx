@@ -3,7 +3,6 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { ModelOption } from "@workspace/contract/schemas/models";
 import type { RunTarget } from "@workspace/contract/schemas/runs";
-import type { ChatContext } from "@workspace/contract/schemas/tenancy";
 import { ArrowUpIcon, GlobeIcon, ZapIcon } from "@workspace/icons";
 import {
   PromptInputButton,
@@ -14,14 +13,8 @@ import {
 import { useCallback, useRef } from "react";
 
 import { useModelVariants } from "../hooks/use-model-variants";
-import type {
-  AgentOption,
-  ContextOption,
-  FileCandidate,
-  PromptOption,
-} from "../schemas";
+import type { AgentOption, FileCandidate, PromptOption } from "../schemas";
 import type { ModelVariant } from "../variants";
-import { ContextChip } from "./context-chip";
 import { PlusMenu } from "./plus-menu";
 import { TargetPicker } from "./target-picker";
 import { ThinkingControl } from "./thinking-control";
@@ -31,15 +24,11 @@ export interface ComposerFooterProps {
   readonly attachDisabled: boolean;
   readonly busy: boolean;
   readonly canSubmit: boolean;
-  readonly context: ChatContext | undefined;
-  readonly contextLocked: boolean | undefined;
-  readonly contexts: readonly ContextOption[];
   readonly disabled: boolean;
   readonly files: readonly FileCandidate[];
   readonly models: readonly ModelOption[];
   readonly onAddFile: ((file: FileCandidate) => void) | undefined;
   readonly onAttach: () => void;
-  readonly onContextChange: ((context: ChatContext) => void) | undefined;
   readonly onStop: (() => void) | undefined;
   readonly onTargetChange: ((target: RunTarget) => void) | undefined;
   readonly onUsePrompt: ((prompt: PromptOption) => void) | undefined;
@@ -54,25 +43,21 @@ export interface ComposerFooterProps {
 
 /**
  * The composer's bottom row (after shadcn's chatbot template). At the
- * start: the + menu, web search and fast mode while they're on, and the
- * chat context when there's one to show. At the end, by Send (or Stop while
- * a run is going): the thinking level when the chosen model has one, and
- * the model/agent picker (105).
+ * start: the + menu, and web search and fast mode while they're on. At the
+ * end: the model/agent picker, then its thinking level when it has one,
+ * then Send (or Stop while a run is going) (105, 113). The chat context
+ * lives in the chat header, not here (113).
  */
 export function ComposerFooter({
   agents,
   attachDisabled,
   busy,
   canSubmit,
-  context,
-  contextLocked,
-  contexts,
   disabled,
   files,
   models,
   onAddFile,
   onAttach,
-  onContextChange,
   onStop,
   onTargetChange,
   onUsePrompt,
@@ -153,25 +138,8 @@ export function ComposerFooter({
             </span>
           </PromptInputButton>
         ) : null}
-        {context ? (
-          <ContextChip
-            disabled={disabled}
-            locked={contextLocked}
-            onChange={onContextChange}
-            options={contexts}
-            value={context}
-          />
-        ) : null}
       </PromptInputTools>
       <PromptInputTools className="min-w-0 shrink justify-end">
-        {picking && variants.levels ? (
-          <ThinkingControl
-            disabled={disabled}
-            levels={variants.levels}
-            onChange={variants.setLevel}
-            value={variants.level}
-          />
-        ) : null}
         {picking ? (
           <TargetPicker
             agents={agents}
@@ -180,6 +148,14 @@ export function ComposerFooter({
             onChange={variants.pickTarget}
             recentsKey={recentsKey}
             value={target}
+          />
+        ) : null}
+        {picking && variants.levels && variants.level ? (
+          <ThinkingControl
+            disabled={disabled}
+            levels={variants.levels}
+            onChange={variants.setLevel}
+            value={variants.level}
           />
         ) : null}
         {busy ? (

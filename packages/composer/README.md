@@ -16,8 +16,6 @@ import { ComposerLoader } from "@workspace/composer/components/composer-loader";
   target={target} onTargetChange={setTarget}
   variant={variant} onVariantChange={setVariant}   // the run's reasoning and fast options
   webSearch={on} onWebSearchChange={setOn}   // only where the instance has web search
-  context={context} contexts={contextOptionsFromMe(me, allowed)}
-  contextLocked={hasMessages} onContextChange={setContext}
   people={members}             // UserSummary[] for @mentions
   prompts={prompts}            // { id, name, description, definition: PromptDefinition }
   attachmentLimits={{ accept: ["image/*", ".pdf"], maxFiles: 10, maxFileSize: 25e6 }}
@@ -56,11 +54,14 @@ command names in and gets tokens and calls out.
 
 ## Bottom row
 
-At the start: the **+** menu, the *Search* and *Fast* chips while those are
-on, and the chat context chip (only while `contextLocked` is false: after the
-first message the chat shows its context elsewhere). At the end, by the round
-Send or Stop button: the thinking level, when the chosen model has one, and
-the model/agent picker (105).
+At the start: the **+** menu, and the *Search* and *Fast* chips while those
+are on. At the end: the model/agent picker (its name only, no provider mark),
+then the thinking level when the chosen model has one, then the round Send or
+Stop button (105, 113). The level is a word (*Medium*), never "Default": with
+nothing chosen it's the provider's own default for that model
+(`defaultReasoningLevel` in `@workspace/ai/providers/reasoning`), and
+choosing that level sends no `reasoning`. The chat context isn't the
+composer's: the chat shows it in its header (`@workspace/chat-ui`).
 
 The + menu (`components/plus-menu.tsx`) holds what can be added to the next
 message: *Attach files*; *Add a workspace file* (the `files` `/open` lists;

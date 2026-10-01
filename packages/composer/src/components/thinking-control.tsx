@@ -1,7 +1,7 @@
 "use client";
 
 import { Trans, useLingui } from "@lingui/react/macro";
-import { ChevronDownIcon, ReasoningIcon } from "@workspace/icons";
+import { ChevronDownIcon } from "@workspace/icons";
 import { PromptInputButton } from "@workspace/ui/components/ai-elements/prompt-input";
 import {
   DropdownMenu,
@@ -32,8 +32,6 @@ export function useLevelLabel() {
   const { t } = useLingui();
   return (level: ThinkingLevel): string => {
     switch (level) {
-      case "default":
-        return t`Default`;
       case "off":
         return t`Off`;
       case "on":
@@ -70,9 +68,10 @@ function BlockReason({ blocked }: { readonly blocked: LevelBlock }) {
 }
 
 /**
- * How hard the chosen model thinks (105), beside the model button: the
+ * How hard the chosen model thinks (105), after the model button: the
  * levels its provider takes, and any catalog entry that's a thinking mode of
- * it. A level that can't be sent yet is listed, disabled, with the reason.
+ * it, shown as the level in use, a word with no icon (113). A level that
+ * can't be sent yet is listed, disabled, with the reason.
  * Base UI's menu gives it arrow keys and Escape back to the button.
  */
 export function ThinkingControl({
@@ -105,8 +104,7 @@ export function ThinkingControl({
           />
         }
       >
-        <ReasoningIcon aria-hidden />
-        <span className="max-sm:sr-only">{label}</span>
+        <span>{label}</span>
         <ChevronDownIcon
           aria-hidden
           className="size-3.5 opacity-60 max-sm:hidden"
