@@ -162,6 +162,34 @@ describe("re-running", () => {
     );
   });
 
+  it("drops a rating whose model has gone, keeping the rest (099)", () => {
+    const rated: CurrentFiles = {
+      ...first,
+      config: first.config?.replace(
+        "aliases:",
+        "ratings:\n    fast: { speed: 5 }\n    strong: { intelligence: 5 }\n  aliases:"
+      ),
+    };
+    expect(parseConfig(rated.config ?? "", parseEnv(first.env ?? "")).ok).toBe(
+      true
+    );
+    const switched = apply(
+      rated,
+      plan(rated, {
+        ...demoAnswers,
+        compatible: { baseURL: "http://localhost:11434/v1", id: "ollama" },
+        fastModel: null,
+        keys: {},
+        providers: ["compatible"],
+        strongModel: "ollama:qwen3",
+      })
+    );
+    const config = switched.config ?? "";
+    expect(config).not.toContain("speed: 5");
+    expect(config).toContain("intelligence: 5");
+    expect(parseConfig(config, parseEnv(switched.env ?? "")).ok).toBe(true);
+  });
+
   it("switches the database, and moves the old Docker storage path back for local mode", () => {
     // What setup wrote for Docker before the image linked ./.data into its volume.
     const legacy: CurrentFiles = {

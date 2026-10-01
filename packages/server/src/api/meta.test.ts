@@ -245,6 +245,55 @@ describe("meta.models", () => {
     });
   });
 
+  it("sends the preview card's facts through the response schema (099)", async () => {
+    const world = await seedWorld();
+    const fetch = (() =>
+      Promise.resolve(
+        Response.json({
+          data: [
+            {
+              id: "gpt-5-mini",
+              name: "GPT-5 mini",
+              pricing: { input: "0.00000025", output: "0.000002" },
+              tags: ["reasoning"],
+            },
+            { id: "gpt-test" },
+          ],
+        })
+      )) as unknown as typeof globalThis.fetch;
+    const meta = setup(world, {
+      config: {
+        models: {
+          ...baseConfig.models,
+          ratings: { "openai:gpt-5-mini": { intelligence: 4, speed: 5 } },
+        },
+        providers: {
+          ...baseConfig.providers,
+          openai: { discover: true, models: ["gpt-test"] },
+        },
+      },
+      fetch,
+    });
+    const models = await call(
+      meta.models,
+      { contextId: world.team.id, contextType: "team" },
+      as(world.alice.id)
+    );
+    const mini = models.find(
+      (option) => option.selector === "openai:gpt-5-mini"
+    );
+    expect(mini).toMatchObject({
+      capabilities: ["tools", "vision", "files", "reasoning"],
+      cost: { input: 250_000, output: 2_000_000, tier: 2 },
+      displayName: "GPT-5 mini",
+      ratings: { intelligence: 4, speed: 5 },
+    });
+    const test = models.find((option) => option.selector === "openai:gpt-test");
+    expect(test?.displayName).toBe("GPT-Test");
+    expect(test).not.toHaveProperty("cost");
+    expect(test).not.toHaveProperty("ratings");
+  });
+
   it("refuses contexts the caller isn't in or the instance disallows", async () => {
     const world = await seedWorld();
     const meta = setup(world);

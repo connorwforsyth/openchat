@@ -295,6 +295,41 @@ models:
 - The picker's search matches descriptions too, and groups models by who
   makes them (`gateway:anthropic/…` sits under Anthropic).
 
+### The model preview card
+
+Highlight a model in the picker (arrow keys or the pointer) and a card beside
+it shows what's known about it. Nothing on it is guessed: a fact nobody
+supplied is left off.
+
+- **Name.** The provider catalog's name (`Claude Opus 4`, without
+  OpenRouter's `Anthropic: ` prefix), else one tidied from the model id
+  (`claude-3-5-sonnet-20241022` is "Claude 3.5 Sonnet"). The vendor prefix is
+  never shown; the vendor's logo and name sit beside the row instead.
+- **Speed and intelligence** bars come only from your config, 1 (least) to 5
+  (most), keyed by alias or `provider:model` ref. The alias's rating beats its
+  ref's; a model without one shows no bar. Checked at boot like
+  `descriptions`, and `auto` can't be rated.
+
+  ```yaml
+  models:
+    ratings:
+      fast: { speed: 5, intelligence: 3 }
+      strong: { speed: 2, intelligence: 5 }
+      gateway:openai/gpt-4.1: { intelligence: 4 }
+  ```
+- **Cost** comes from the catalog's prices when `discover` is on and the
+  catalog lists them (the Vercel AI Gateway and OpenRouter do; Anthropic,
+  OpenAI, Google and Ollama don't). The bar is a 1–5 tier of the blended
+  price (three input tokens to one output): up to $0.50, $2.50, $8 and $20 per
+  million tokens, then anything dearer.
+- **Context** is the context window from the catalog, shown in tokens and
+  roughly in words (three quarters of a token each).
+- **Vision, Tool use and Reasoning** are the provider's capabilities
+  (`options.capabilities` for an OpenAI-compatible server), less anything the
+  catalog says the model lacks; Reasoning shows when the catalog says the
+  model reasons (gateway tags, OpenRouter's parameters, Google's `thinking`).
+  The card never claims vision the provider config doesn't send.
+
 ### Uploaded files
 
 Uploads go to the local file store, `storage.path` in `app.config.yaml`

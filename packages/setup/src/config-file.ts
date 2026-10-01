@@ -169,15 +169,15 @@ const resolves = (doc: Document, selector: unknown): boolean => {
 };
 
 /**
- * Descriptions (096) stay unless what they describe has gone: the config
- * refuses one for a model it can't find.
+ * Descriptions (096) and ratings (099) stay unless what they describe has
+ * gone: the config refuses one for a model it can't find.
  */
 const pruneDescriptions = (doc: Document): void => {
-  for (const selector of Object.keys(
-    readRecord(doc, ["models", "descriptions"])
-  )) {
-    if (selector === "auto" || !resolves(doc, selector)) {
-      remove(doc, ["models", "descriptions", selector]);
+  for (const section of ["descriptions", "ratings"]) {
+    for (const selector of Object.keys(readRecord(doc, ["models", section]))) {
+      if (selector === "auto" || !resolves(doc, selector)) {
+        remove(doc, ["models", section, selector]);
+      }
     }
   }
 };

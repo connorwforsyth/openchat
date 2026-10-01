@@ -29,7 +29,13 @@ import {
   describeCatalogError,
   fetchCatalog,
 } from "./catalog";
-import { oneLine, vendorOf } from "./describe";
+import {
+  capabilitiesWith,
+  costOf,
+  displayNameOf,
+  oneLine,
+  vendorOf,
+} from "./describe";
 import {
   createProvider,
   isKeyless,
@@ -97,7 +103,7 @@ export const buildRegistry = (
   config: RegistryConfig,
   options: RegistryOptions = {}
 ): DiscoveringRegistry => {
-  const { aliases, descriptions } = config.models;
+  const { aliases, descriptions, ratings } = config.models;
   const now = options.now ?? Date.now;
   const log = options.log ?? (() => undefined);
 
@@ -334,23 +340,38 @@ export const buildRegistry = (
   };
 
   /**
-   * An option's description and vendor (096). The config's description,
-   * by selector then by the ref it resolves to, beats the catalog's.
+   * What the picker says about an option beyond its name. The config's
+   * description and ratings, by selector then by the ref it resolves to,
+   * beat the catalog's (096, 099). The name, price and capabilities come
+   * from the catalog, else the id and the provider; nothing is guessed.
    */
   const described = (
     option: ModelOption,
     catalogs: ReadonlyMap<ModelRef, CatalogModel>
   ): ModelOption => {
     const { target } = option;
+    if (!target) {
+      return option;
+    }
+    const listed = catalogs.get(target);
     const description =
       oneLine(descriptions[option.selector]) ??
-      (target ? oneLine(descriptions[target]) : undefined) ??
-      (target ? oneLine(catalogs.get(target)?.description) : undefined);
-    const provider = target ? vendorOf(target) : undefined;
+      oneLine(descriptions[target]) ??
+      oneLine(listed?.description);
+    const provider = vendorOf(target);
+    const modelId = parseModelRef(target)?.modelId;
+    const rated = ratings[option.selector] ?? ratings[target];
+    const cost = costOf(listed?.pricing);
     return {
       ...option,
+      capabilities: capabilitiesWith(option.capabilities, listed?.traits),
+      ...(cost === undefined ? {} : { cost }),
       ...(description === undefined ? {} : { description }),
+      ...(modelId === undefined
+        ? {}
+        : { displayName: displayNameOf(modelId, listed?.name) }),
       ...(provider === undefined ? {} : { provider }),
+      ...(rated === undefined ? {} : { ratings: { ...rated } }),
     };
   };
 
