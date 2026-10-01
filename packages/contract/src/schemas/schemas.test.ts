@@ -1198,8 +1198,17 @@ const cases: Record<string, Cases> = {
     invalid: ["Fast", "a b", "anthropic:x"],
     valid: ["fast", "auto"],
   },
+  "models.modelCostSchema": {
+    invalid: [{ tier: 0 }, { tier: 6 }, { input: -1, tier: 1 }, { tier: 2.5 }],
+    valid: [{ tier: 1 }, { input: 3_000_000, output: 15_000_000, tier: 3 }],
+  },
   "models.modelOptionSchema": {
-    invalid: [{ ...modelOptions[1], selector: "A B" }],
+    invalid: [
+      { ...modelOptions[1], selector: "A B" },
+      { ...modelOptions[1], displayName: "" },
+      { ...modelOptions[1], ratings: { speed: 9 } },
+      { ...modelOptions[1], cost: { input: 1 } },
+    ],
     valid: modelOptions,
   },
   "models.modelParametersSchema": {
@@ -1209,6 +1218,10 @@ const cases: Record<string, Cases> = {
       { reasoningEffort: "max" },
     ],
     valid: [{}, { maxOutputTokens: 1024, temperature: 0.2, topP: 1 }],
+  },
+  "models.modelRatingsSchema": {
+    invalid: [{ speed: 0 }, { intelligence: 6 }, { speed: 1.5 }],
+    valid: [{}, { speed: 5 }, { intelligence: 1, speed: 3 }],
   },
   "models.modelRefSchema": {
     invalid: ["fast", "anthropic:", ":model", "anthropic: x"],
@@ -1221,6 +1234,10 @@ const cases: Record<string, Cases> = {
   "models.modelSelectorSchema": {
     invalid: ["", "Has Space"],
     valid: ["auto", "openai:gpt-5"],
+  },
+  "models.modelTierSchema": {
+    invalid: [0, 6, 2.5, "3"],
+    valid: [1, 3, 5],
   },
   "models.providerIdSchema": {
     invalid: ["OpenAI", "1x", ""],
