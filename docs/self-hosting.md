@@ -265,6 +265,36 @@ providers:
   answer, that provider offers (and runs) only its configured models, the log
   says so once, and it's tried again a minute later.
 
+### Model descriptions
+
+The model picker shows one line under each model saying why you'd pick it.
+Set them under `models.descriptions`, keyed by alias or by `provider:model`
+ref:
+
+```yaml
+models:
+  aliases:
+    fast: anthropic:claude-haiku-4-5
+    strong: anthropic:claude-opus-5-5
+  descriptions:
+    fast: Quick everyday answers
+    strong: Hard problems and long documents
+    gateway:openai/gpt-4.1: Steady at following instructions
+```
+
+- **Where a line comes from.** Your `models.descriptions` entry for the
+  alias, then for the ref it points at, then the provider's catalog when
+  `discover` is on and the catalog describes the model (OpenAI-compatible
+  gateways and Google do; Anthropic, OpenAI and Ollama don't). Otherwise
+  there's no second line. `auto` has its own line, in the app's language,
+  and can't be given one here.
+- **Length.** Only the first line is kept, and anything past 120 characters
+  is cut at a word with an ellipsis.
+- **Checked at boot.** A key that isn't an alias or a ref to a configured
+  provider is a config error, like any other model reference.
+- The picker's search matches descriptions too, and groups models by who
+  makes them (`gateway:anthropic/…` sits under Anthropic).
+
 ### Uploaded files
 
 Uploads go to the local file store, `storage.path` in `app.config.yaml`
