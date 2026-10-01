@@ -92,7 +92,7 @@ export function PlanCard({ plan }: { readonly plan: PlanRef }) {
   const actionable = !settled && onApprovePlan !== undefined;
   return (
     <section
-      aria-label={t`Plan: ${plan.title}`}
+      aria-label={plan.title}
       className="flex w-full max-w-md flex-col gap-3 rounded-lg border p-3"
       data-slot="plan-card"
     >

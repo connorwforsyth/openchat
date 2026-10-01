@@ -29,12 +29,40 @@ import { z } from "zod";
 //     server put in front of the model;
 //   - `[search:<query>]` → a `file_search` call when it's offered;
 //   - `remember <fact>` → an `update_memory` call when it's offered;
+//   - a planning run (plan mode, 106: its instructions say so) → `ls` with
+//     bash when it's offered, then `PLAN_REPLY`; a run approving a plan (its
+//     instructions hold `<approved-plan>`) → a `write` of the approved plan
+//     to `plan.md`, which asks first, then `Built the plan.`;
 //   - `[slow]` → forty numbered words, one every SLOW_TOKEN_MS;
 //   - anything else → `Echo: <message>`, followed by `[<path>: <content>]`
 //     for each workspace file the message mentions (`@file` and attachments,
 //     which the server reads into the instructions; ticket 056).
 
 const SLOW_TOKEN_MS = 120;
+
+// `@workspace/ai`'s `prompts/fragments/plan.md`, as the server sends it.
+const PLANNING = "This turn is for planning only.";
+const APPROVED_PLAN = /<approved-plan>\n([\s\S]*?)\n<\/approved-plan>/;
+
+/** What a planning run answers: a plan in the sections plan mode asks for. */
+export const PLAN_REPLY = [
+  "# Write a greeting",
+  "",
+  "## Goal",
+  "The workspace has a greeting file.",
+  "",
+  "## Steps",
+  "1. Write hello.txt with a greeting.",
+  "",
+  "## Files to touch",
+  "- hello.txt (new)",
+  "",
+  "## Risks",
+  "None.",
+  "",
+  "## Open questions",
+  "None",
+].join("\n");
 const SLOW_TOKENS = 40;
 const EMBEDDING_DIMENSIONS = 384;
 
@@ -342,6 +370,27 @@ export const historyOf = (request: ChatRequest): string =>
     })
     .join("\n");
 
+/** Plan mode (106): a planning run, or a run carrying an approved plan. */
+const planModeReply = (request: ChatRequest, system: string): Reply | null => {
+  const steps = toolTurnsSinceUser(request);
+  if (system.includes(PLANNING)) {
+    return steps === 0 && offered(request, "bash")
+      ? { args: JSON.stringify({ command: "ls" }), name: "bash", type: "tool" }
+      : text(PLAN_REPLY);
+  }
+  const approved = APPROVED_PLAN.exec(system)?.[1];
+  if (approved === undefined) {
+    return null;
+  }
+  return steps === 0 && offered(request, "write")
+    ? {
+        args: JSON.stringify({ content: `${approved}\n`, path: "plan.md" }),
+        name: "write",
+        type: "tool",
+      }
+    : text("Built the plan.");
+};
+
 export const replyFor = (request: ChatRequest): Reply => {
   const system = request.messages
     .filter((message) => message.role === "system")
@@ -354,7 +403,8 @@ export const replyFor = (request: ChatRequest): Reply => {
   if (TITLE_REQUEST.test(system)) {
     return text(titleFor(userText));
   }
-  const scripted = scriptReply(request, userText);
+  const scripted =
+    scriptReply(request, userText) ?? planModeReply(request, system);
   if (scripted) {
     return scripted;
   }

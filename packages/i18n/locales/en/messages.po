@@ -2382,11 +2382,6 @@ msgstr "Plan something"
 msgid "Plan, in Markdown"
 msgstr "Plan, in Markdown"
 
-#. placeholder {0}: plan.title
-#: ../chat-ui/src/conversation/plan-card.tsx
-msgid "Plan: {0}"
-msgstr "Plan: {0}"
-
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "PNG"
 msgstr "PNG"
