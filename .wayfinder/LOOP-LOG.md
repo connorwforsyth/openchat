@@ -122,3 +122,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-10-01 · Connor's picker feedback: added and claimed 105 (overlay next to Send, plainer rows, variant picker); the reasoning-level contract field is not approved yet
 - 2026-10-01 · Connor approved run options `reasoning`/`fast` (105) and `mode: "plan"`; plan lives as a chat reply and a Document artifact: added and claimed 106 (after 105)
 - 2026-10-01 · Connor answered the open questions (see QUESTIONS-FOR-CONNOR.md, 'Answered 2026-10-01'); merging the review stack starts
+- 2026-10-01 · added and claimed 107 (model/agent markers); added 108 (agents apart from models, proposal first)
