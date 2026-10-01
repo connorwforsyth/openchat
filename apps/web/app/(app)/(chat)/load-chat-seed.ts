@@ -1,7 +1,7 @@
 import { activeRunsInput } from "@workspace/chat-ui/chat/seed";
 import type { ConversationId } from "@workspace/contract/schemas/common";
 
-import { getServerApi, loopbackSignal } from "@/lib/server-session";
+import { getServerApi, getViewer, loopbackSignal } from "@/lib/server-session";
 
 import type { ChatSeed } from "./chat-seed";
 
@@ -15,8 +15,12 @@ import type { ChatSeed } from "./chat-seed";
 export const loadChatSeed = async (
   conversationId: ConversationId
 ): Promise<ChatSeed | null> => {
+  // After the layout's own lookup, never alongside it: the shell (and so
+  // the first byte) waits on that one, and the database answers one query
+  // at a time, so reading the chat first would delay the whole page.
+  const viewer = await getViewer();
   const api = await getServerApi();
-  if (!api) {
+  if (!api || viewer.kind !== "signed_in") {
     return null;
   }
   const signal = loopbackSignal();
