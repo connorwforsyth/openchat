@@ -158,6 +158,11 @@ closes (the M1 demo gate first). Their contents are in `PLAN.md` §2.
   support in the preview proxy (hot reload), disk quotas on sandbox volumes.
 - **Open-source readiness:** licence, brand, docs site, landing page,
   pseudo-locale and RTL gates, SAML, Helm.
+- **From the T3 Code study (2026-10-03):** ideas held for these waves (events
+  channel shape, connection runtime, mobile outbox and build discipline, cowork
+  checkpoints) are listed in
+  [`.context/research/t3code/README.md`](../.context/research/t3code/README.md);
+  what was ready to build became tickets 140–157.
 
 ## Out of scope
 
