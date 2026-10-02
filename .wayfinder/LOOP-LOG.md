@@ -153,3 +153,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-10-02 · 125 green from a fresh worktree (gate 93/93, e2e 100/100); draft PR #105 awaits Connor's contract approval · the old t-125 worktree's builds died from local state, not the code (clean bisect passed) · claimed 126, 130, 136
 - 2026-10-02 · Connor: Files + Globe header icons instead of the right-panel toggle; a device switch in the web preview (137)
 - 2026-10-02 · 130 merged (PR #106) · gate 93/93 · e2e 95/95
+- 2026-10-02 · Connor: image generation into the chat, saved to files and artifacts (138)
