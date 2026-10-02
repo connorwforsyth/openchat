@@ -1093,6 +1093,11 @@ describe("fill (138)", () => {
     await waitFor(() =>
       expect(editor.textContent).toBe("Edit the image images/fox-1.png: ")
     );
+    // The editor focuses at the end on the next frame; type after it has.
+    await waitFor(() => expect(document.activeElement).toBe(editor));
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => resolve());
+    });
     await userEvent.keyboard("make it blue");
     await userEvent.keyboard("{Enter}");
     expect(lastValue(onSubmit).text).toBe(
