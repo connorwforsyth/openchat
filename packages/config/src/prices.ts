@@ -47,16 +47,42 @@ export const usageCost = (
   if (!price) {
     return { costMicros: 0, priced: false };
   }
+  // An image model priced per image may leave its tokens unpriced.
+  const inputMicros = price.inputMicros ?? 0;
   const input = tokens(usage.inputTokens);
   const reported = tokens(usage.cachedInputTokens);
   const cached = reported > input ? input : reported;
   const millionths =
-    (input - cached) * BigInt(price.inputMicros) +
-    cached * BigInt(price.cachedInputMicros ?? price.inputMicros) +
-    tokens(usage.outputTokens) * BigInt(price.outputMicros);
+    (input - cached) * BigInt(inputMicros) +
+    cached * BigInt(price.cachedInputMicros ?? inputMicros) +
+    tokens(usage.outputTokens) * BigInt(price.outputMicros ?? 0);
   const micros = (millionths + HALF) / TOKENS_PER_PRICE;
   return {
     costMicros: Number(micros > MAX_COST ? MAX_COST : micros),
+    priced: true,
+  };
+};
+
+/**
+ * What `count` images from an image model cost (138): `imageMicros` each,
+ * plus their tokens at the model's token prices where the provider reports
+ * them (OpenAI's image models bill by token). Unpriced, like `usageCost`,
+ * when `models.prices` doesn't list the model.
+ */
+export const imageCost = (
+  prices: ModelPrices,
+  model: ModelRef,
+  count: number,
+  usage: TokenUsage = { inputTokens: 0, outputTokens: 0 }
+): UsageCost => {
+  const price = Object.hasOwn(prices, model) ? prices[model] : undefined;
+  if (!price) {
+    return { costMicros: 0, priced: false };
+  }
+  const perImage = BigInt(price.imageMicros ?? 0) * tokens(count);
+  const total = BigInt(usageCost(prices, model, usage).costMicros) + perImage;
+  return {
+    costMicros: Number(total > MAX_COST ? MAX_COST : total),
     priced: true,
   };
 };

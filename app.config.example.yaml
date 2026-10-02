@@ -40,6 +40,12 @@ models:
   descriptions:
     fast: Quick everyday answers
     strong: Hard problems and long documents
+  # Image generation (`generate_image`): its own list, never in the chat
+  # picker. `discover: true` adds a discovering provider's image models (the
+  # gateway's `type: image`). Calls ask first unless `approval: auto`.
+  # image: { default: openai:gpt-image-1, discover: false, approval: ask }
+  # Per-image prices sit beside token prices (micro-USD; 40000 is 4 cents):
+  # prices: { "openai:gpt-image-1": { imageMicros: 40000 } }
 
 # Instance-wide limits; each org chooses within them in the admin UI.
 policies:
