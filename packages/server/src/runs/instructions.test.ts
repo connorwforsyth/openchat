@@ -80,6 +80,7 @@ const workspace: SandboxToolSource = () =>
         inputSchema: z.object({ command: z.string() }),
       }),
     },
+    writeFile: () => Promise.resolve(ok(undefined)),
   });
 
 const agentDefinition = (instructions: string): AgentDefinition => ({

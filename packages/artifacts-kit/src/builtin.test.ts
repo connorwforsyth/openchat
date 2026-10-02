@@ -2,6 +2,7 @@ import { artifactKindSchema } from "@workspace/contract/schemas/message-parts";
 import { describe, expect, it } from "vitest";
 
 import { builtinArtifactKinds, builtinKindDefinitions } from "./builtin";
+import { IMAGE_MAX_CHARS, imageDataUrl } from "./kinds/image";
 import { TEXT_MAX_CHARS } from "./kinds/text";
 
 // Today's kinds as definitions (ticket 123). Which content each accepts is
@@ -10,12 +11,13 @@ import { TEXT_MAX_CHARS } from "./kinds/text";
 // before the kit; the Site kind (125) has its own tests under `kinds/site`.
 
 const textKinds = () =>
-  builtinArtifactKinds
-    .list()
-    .filter(
-      (definition) =>
-        definition.kind !== "site" && definition.kind !== "document"
-    );
+  builtinArtifactKinds.list().filter(
+    (definition) =>
+      definition.kind !== "site" &&
+      definition.kind !== "document" &&
+      // Images (138) are written by `generate_image` only, never by hand.
+      definition.kind !== "image"
+  );
 
 describe("the built-in kinds", () => {
   it("define every kind the contract stores, under its own name", () => {
@@ -53,6 +55,7 @@ describe("the built-in kinds", () => {
       code: { panel: "source", runtime: null },
       document: { panel: "document", runtime: null },
       html: { panel: "frame", runtime: "html" },
+      image: { panel: "image", runtime: null },
       markdown: { panel: "markdown", runtime: null },
       mermaid: { panel: "source", runtime: "mermaid" },
       react: {
@@ -92,5 +95,23 @@ describe("the built-in kinds", () => {
     expect(builtinArtifactKinds.check("mermaid", "journey\n  A")).toEqual([
       "content isn't a valid mermaid artifact",
     ]);
+  });
+
+  it("take an image only as a base64 data: URL (138)", () => {
+    const png = imageDataUrl("image/png", "iVBORw0KGgo=");
+    expect(builtinArtifactKinds.check("image", png)).toEqual([]);
+    expect(builtinArtifactKinds.get("image")?.operations).toEqual({});
+    const problem =
+      "content isn't a PNG, JPEG or WebP image as a base64 data: URL";
+    expect(builtinArtifactKinds.check("image", "a cat")).toEqual([problem]);
+    expect(
+      builtinArtifactKinds.check("image", "data:image/svg+xml;base64,PHN2Zz4=")
+    ).toEqual([problem]);
+    expect(
+      builtinArtifactKinds.check(
+        "image",
+        imageDataUrl("image/png", "A".repeat(IMAGE_MAX_CHARS))
+      )
+    ).toContain(`content is longer than ${IMAGE_MAX_CHARS} characters`);
   });
 });

@@ -90,6 +90,8 @@ const WORKSPACE_TOOLS: ReadonlySet<string> = new Set([
   "write",
   "edit",
   "preview",
+  // Writes its pictures under images/ (138).
+  "generate_image",
 ]);
 
 /**

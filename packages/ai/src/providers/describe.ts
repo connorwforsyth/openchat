@@ -219,7 +219,12 @@ export const capabilitiesWith = (
         traits?.[capability] === false
       )
   );
-  return traits?.reasoning === true && !kept.includes("reasoning")
-    ? [...kept, "reasoning"]
-    : kept;
+  const reasoned: ModelCapability[] =
+    traits?.reasoning === true && !kept.includes("reasoning")
+      ? [...kept, "reasoning"]
+      : kept;
+  // A model the catalog says draws images itself (138); nothing else says so.
+  return traits?.imageOutput === true && !reasoned.includes("image-output")
+    ? [...reasoned, "image-output"]
+    : reasoned;
 };

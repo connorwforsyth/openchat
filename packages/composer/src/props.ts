@@ -46,6 +46,11 @@ export interface ComposerProps {
    * and by `/open`.
    */
   readonly files?: readonly WorkspacePath[];
+  /**
+   * Text the host puts in the composer, replacing what's there, with the
+   * caret at its end ("Edit this image", 138). Each new `id` applies once.
+   */
+  readonly fill?: ComposerFill;
   /** Models for the picker, as `meta.listModels` returns them. */
   readonly models?: readonly ModelOption[];
   readonly onAttachmentsChange?: (
@@ -109,6 +114,12 @@ export interface ComposerProps {
   readonly variant?: ModelVariant;
   /** Whether web search is on for the next message (see `onWebSearchChange`). */
   readonly webSearch?: boolean;
+}
+
+/** A request to fill the composer; see `ComposerProps.fill`. */
+export interface ComposerFill {
+  readonly id: number;
+  readonly text: string;
 }
 
 /** What the user did in the shell before the editor loaded, handed to the editor. */

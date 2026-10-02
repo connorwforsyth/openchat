@@ -19,6 +19,7 @@ import type {
   SandboxToolSource,
   TurnSandbox,
   WorkspaceRead,
+  WorkspaceWrite,
 } from "@workspace/server/runs/sandbox";
 import { type AsyncResult, err, ok } from "@workspace/shared/result";
 
@@ -161,6 +162,21 @@ const lazySandbox = (
       using((sandbox) => sandbox.writeFile(path, content)),
   };
 };
+
+/** The workspace's `writeFile` as the server's `WorkspaceWrite` (138). */
+const workspaceWrite =
+  (sandbox: ToolSandbox): WorkspaceWrite =>
+  async (path, bytes) => {
+    const written = await sandbox.writeFile(path, bytes);
+    return written.ok
+      ? written
+      : err({
+          message:
+            "message" in written.error
+              ? written.error.message
+              : `the workspace couldn't save ${path} (${written.error.type})`,
+        });
+  };
 
 /** The workspace's `readFile` as the server's `WorkspaceRead`. */
 const workspaceRead =
@@ -427,5 +443,6 @@ export const createTurnSandboxSource =
         },
         sandbox,
       }),
+      writeFile: workspaceWrite(sandbox),
     };
   };

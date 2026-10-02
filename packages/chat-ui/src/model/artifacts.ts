@@ -82,12 +82,13 @@ export const versionEdit = (
 };
 
 /** How the panel shows an artifact besides its source. */
-export type ArtifactPreviewKind = "frame" | "markdown" | "none";
+export type ArtifactPreviewKind = "frame" | "image" | "markdown" | "none";
 
 export const previewKind = (kind: ArtifactKind): ArtifactPreviewKind => {
   const { panel } = builtinKindDefinitions[kind].render;
   switch (panel) {
     case "frame":
+    case "image":
     case "markdown":
       return panel;
     // React needs a bundler in the frame, and Mermaid a renderer; the panel

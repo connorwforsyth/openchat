@@ -9,6 +9,7 @@ import { createAiSdkEmbedder } from "@workspace/ai/rag/embedder";
 import { INGEST_FILE_JOB } from "@workspace/ai/rag/ingest";
 import { createHashEmbeddingModel } from "@workspace/ai/rag/mock-embedding-model";
 import { chooseWebSearch } from "@workspace/ai/search/choose";
+import { mockImageModel } from "@workspace/ai/testing/mock-image-model";
 import { textStream } from "@workspace/ai/testing/mock-models";
 import { createArtifactTools } from "@workspace/ai/tools/artifacts";
 import { resolveTools } from "@workspace/ai/tools/resolve";
@@ -214,6 +215,14 @@ const toolsOfTurn = async (
     artifacts: (run) => createArtifactTools(dbArtifactStore(db, run)),
     config,
     db,
+    // One image model, so a plain chat is offered `generate_image` (138).
+    images: {
+      imageModel: () => ok(mockImageModel().model),
+      imageModels: () =>
+        Promise.resolve([
+          { available: true, displayName: "Pixel", target: "test:pixel" },
+        ]),
+    },
     keyStore: createMemoryKeyStore([]),
     knowledge: { embedder },
     mcpFor: (id) => mcp.manager.toolSource(id),
@@ -358,6 +367,7 @@ const publishedAgent = async (
       "web_search",
       "create_artifact",
       "update_artifact",
+      "generate_image",
       "create_skill",
       "update_skill",
       "publish_skill",
@@ -471,6 +481,7 @@ describe("the tools a run can be given", () => {
       "create_skill",
       "edit",
       "file_search",
+      "generate_image",
       "load_skill",
       "open__add",
       "open__echo",

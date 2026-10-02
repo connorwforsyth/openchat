@@ -69,6 +69,12 @@ export type WorkspaceRead = (
   path: string
 ) => AsyncResult<Uint8Array, WorkspaceReadError>;
 
+/** Writes a file into the chat's workspace (an image, 138), starting it if it must. */
+export type WorkspaceWrite = (
+  path: string,
+  bytes: Uint8Array
+) => AsyncResult<void, { readonly message: string }>;
+
 /** The chat's sandbox as one turn sees it. */
 export interface TurnSandbox {
   /** What a paused call would change; `undefined` when it changes no file (or can't). */
@@ -84,6 +90,8 @@ export interface TurnSandbox {
   readonly readFile: WorkspaceRead;
   /** Keyed by the names in `SANDBOX_TOOLS`. */
   readonly tools: Readonly<Record<string, Tool>>;
+  /** For files a tool makes itself, outside `write`'s review (`generate_image`). */
+  readonly writeFile: WorkspaceWrite;
 }
 
 export interface SandboxToolRequest {

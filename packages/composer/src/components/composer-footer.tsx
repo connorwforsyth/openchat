@@ -44,6 +44,8 @@ export interface ComposerFooterProps {
   readonly onAddFile: ((file: FileCandidate) => void) | undefined;
   readonly onAddSkill?: ((skill: SkillOption) => void) | undefined;
   readonly onAttach: () => void;
+  /** The + menu's "Image" (138); left out, it isn't offered. */
+  readonly onMakeImage?: (() => void) | undefined;
   readonly onPlanChange?: ((on: boolean) => void) | undefined;
   readonly onStop: (() => void) | undefined;
   readonly onTargetChange: ((target: RunTarget) => void) | undefined;
@@ -79,6 +81,7 @@ export function ComposerFooter({
   onAddFile,
   onAddSkill,
   onAttach,
+  onMakeImage,
   onPlanChange,
   onStop,
   onTargetChange,
@@ -138,6 +141,7 @@ export function ComposerFooter({
           onAddSkill={onAddSkill}
           onAttach={onAttach}
           onFastChange={setFast}
+          onMakeImage={onMakeImage}
           onPlanChange={onPlanChange}
           onUsePrompt={onUsePrompt}
           onWebSearchChange={onWebSearchChange}

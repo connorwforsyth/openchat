@@ -25,6 +25,7 @@ import {
   createMemoryJobQueue,
   type MemoryJobQueue,
 } from "../ports/job-queue.memory";
+import type { ImageModels } from "../runs/images";
 import type { SandboxToolSource } from "../runs/sandbox";
 import type { SkillFileReader } from "../runs/skills";
 import type { Turn } from "../runs/turn";
@@ -149,6 +150,14 @@ const listenFor = (testDb: TestDb): Listen => {
 };
 
 export interface HarnessOptions {
+  /**
+   * Image models for real turns' `generate_image` (138), and whether a call
+   * asks (`models.image.approval`, `ask` by default).
+   */
+  readonly images?: {
+    readonly approval?: "ask" | "auto";
+    readonly models: ImageModels;
+  };
   /** More models the registry serves, by ref (the `test` provider is keyless). */
   readonly models?: Readonly<Record<string, LanguageModelV4>>;
   /** `models.prices` for the test provider's models; none are priced otherwise. */
@@ -176,7 +185,17 @@ export const createHarness = async (
   await seedOrg(db, owner.id, { isPersonal: true });
   const turns: TurnScript[] = [];
   const jobs = createMemoryJobQueue<Jobs>();
-  const config = testConfig(options.prices);
+  const base = testConfig(options.prices);
+  const config: AppConfig = {
+    ...base,
+    models: {
+      ...base.models,
+      image: {
+        ...base.models.image,
+        approval: options.images?.approval ?? base.models.image.approval,
+      },
+    },
+  };
   const services = createServices({
     config: options.providers
       ? { ...config, providers: { ...config.providers, ...options.providers } }
@@ -211,6 +230,7 @@ export const createHarness = async (
           );
         },
     tools: {
+      ...(options.images ? { images: options.images.models } : {}),
       ...(options.sandbox ? { sandbox: options.sandbox(db) } : {}),
       ...(options.skillFiles ? { skillFiles: options.skillFiles } : {}),
     },

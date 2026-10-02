@@ -65,9 +65,22 @@ msgstr "{count, plural, one {# item} other {# items}}"
 msgid "{count, plural, one {# knowledge file wasn't copied} other {# knowledge files weren't copied}}"
 msgstr "{count, plural, one {# knowledge file wasn't copied} other {# knowledge files weren't copied}}"
 
+#: ../chat-ui/src/conversation/generated-images.tsx
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "{count, plural, one {Made an image} other {Made # images}}"
+msgstr "{count, plural, one {Made an image} other {Made # images}}"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "{count, plural, one {Making an image} other {Making # images}}"
+msgstr "{count, plural, one {Making an image} other {Making # images}}"
+
 #: ../chat-ui/src/conversation/skills-note.tsx
 msgid "{count, plural, one {Used the skill {names}} other {Used the skills {names}}}"
 msgstr "{count, plural, one {Used the skill {names}} other {Used the skills {names}}}"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "{count, plural, one {Wants to make an image} other {Wants to make # images}}"
+msgstr "{count, plural, one {Wants to make an image} other {Wants to make # images}}"
 
 #: ../code-ui/src/diff-view.tsx
 msgid "{deletions, plural, one {# line removed} other {# lines removed}}"
@@ -161,6 +174,10 @@ msgstr "A file with that name already exists."
 #: ../chat-ui/src/workspace/save-site-dialog.tsx
 msgid "A folder of plain HTML, CSS and JavaScript, with an index.html, becomes a site you can preview and publish. Build an app first and save the folder it builds to."
 msgstr "A folder of plain HTML, CSS and JavaScript, with an index.html, becomes a site you can preview and publish. Build an app first and save the folder it builds to."
+
+#: ../chat-ui/src/artifacts/artifact-view.tsx
+msgid "A generated image has no source to show."
+msgstr "A generated image has no source to show."
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "A member"
@@ -982,6 +999,10 @@ msgid "Couldn't load this artifact."
 msgstr "Couldn't load this artifact."
 
 #: ../chat-ui/src/model/tool-summary.ts
+msgid "Couldn't make an image"
+msgstr "Couldn't make an image"
+
+#: ../chat-ui/src/model/tool-summary.ts
 msgid "Couldn't open a preview"
 msgstr "Couldn't open a preview"
 
@@ -1203,6 +1224,10 @@ msgstr "Delete this budget?"
 msgid "Denied"
 msgstr "Denied"
 
+#: ../composer/src/components/plus-menu.tsx
+msgid "Describe a picture to make"
+msgstr "Describe a picture to make"
+
 #: ../library-ui/src/components/item-builder.tsx
 #: ../library-ui/src/components/prompt-form.tsx
 msgid "Description"
@@ -1244,6 +1269,10 @@ msgstr "Didn't create a skill"
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Didn't create the skill {name}"
 msgstr "Didn't create the skill {name}"
+
+#: ../chat-ui/src/model/tool-summary.ts
+msgid "Didn't make an image"
+msgstr "Didn't make an image"
 
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Didn't open a preview"
@@ -1314,6 +1343,19 @@ msgstr "Documents, pages and diagrams from your chats, and ones shared with you.
 #: ../chat-ui/src/workspace/save-site-dialog.tsx
 msgid "Done"
 msgstr "Done"
+
+#: ../chat-ui/src/artifacts/image-preview.tsx
+#: ../chat-ui/src/conversation/generated-images.tsx
+msgid "Download"
+msgstr "Download"
+
+#: ../chat-ui/src/artifacts/image-preview.tsx
+msgid "Download {fileName}"
+msgstr "Download {fileName}"
+
+#: ../chat-ui/src/conversation/generated-images.tsx
+msgid "Download {name}"
+msgstr "Download {name}"
 
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Download diagram"
@@ -1395,6 +1437,14 @@ msgstr "Edit message"
 #: ../../apps/web/app/dev/sandbox/demo.tsx
 msgid "Edit README.md as the agent"
 msgstr "Edit README.md as the agent"
+
+#: ../chat-ui/src/chat/chat-screen.tsx
+msgid "Edit the image {path}: "
+msgstr "Edit the image {path}: "
+
+#: ../chat-ui/src/conversation/generated-images.tsx
+msgid "Edit this image"
+msgstr "Edit this image"
 
 #: ../chat-ui/src/artifacts/document/document-view.tsx
 #: ../chat-ui/src/conversation/file-change-card.tsx
@@ -1613,6 +1663,15 @@ msgstr "Frontmatter with a name and description, then the instructions the agent
 msgid "General"
 msgstr "General"
 
+#: ../chat-ui/src/conversation/artifact-card.tsx
+#: ../chat-ui/src/model/artifact-kinds.ts
+msgid "Generated image"
+msgstr "Generated image"
+
+#: ../chat-ui/src/conversation/generated-images.tsx
+msgid "Generated images"
+msgstr "Generated images"
+
 #: ../chat-ui/src/workspace/new-file-dialog.tsx
 msgid "Give the file a name."
 msgstr "Give the file a name."
@@ -1704,6 +1763,7 @@ msgid "https://chat.example.com"
 msgstr "https://chat.example.com"
 
 #: ../chat-ui/src/conversation/artifact-card.tsx
+#: ../composer/src/components/plus-menu.tsx
 #: ../ui/src/components/ai-elements/message.tsx
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Image"
@@ -1843,6 +1903,14 @@ msgstr "Its next version is published, and a copy goes into that library, which 
 #: ../library-ui/src/components/confirm-delete.tsx
 msgid "Its versions go too, and anyone it's shared with loses it. This can't be undone."
 msgstr "Its versions go too, and anyone it's shared with loses it. This can't be undone."
+
+#: ../composer/src/components/target-picker.tsx
+msgid "itself"
+msgstr "itself"
+
+#: ../composer/src/components/target-picker.tsx
+msgid "itself, or with {tool}"
+msgstr "itself, or with {tool}"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "Keep a copy on each device"
@@ -2034,9 +2102,17 @@ msgstr "Lowercase letters, digits and dashes. Type / and this in the composer to
 msgid "Maintainer"
 msgstr "Maintainer"
 
+#: ../composer/src/components/composer.tsx
+msgid "Make an image of "
+msgstr "Make an image of "
+
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgid "Make something new"
 msgstr "Make something new"
+
+#: ../composer/src/components/target-picker.tsx
+msgid "Makes images"
+msgstr "Makes images"
 
 #: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../chat-ui/src/model/artifact-kinds.ts
@@ -3485,6 +3561,10 @@ msgstr "Searching your files"
 msgid "Secret"
 msgstr "Secret"
 
+#: ../composer/src/components/target-picker.tsx
+msgid "Sees images"
+msgstr "Sees images"
+
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Select a file to open it."
 msgstr "Select a file to open it."
@@ -4629,10 +4709,6 @@ msgstr "Viewed {when}"
 msgid "Viewer"
 msgstr "Viewer"
 
-#: ../composer/src/components/target-picker.tsx
-msgid "Vision"
-msgstr "Vision"
-
 #: ../chat-ui/src/conversation/message-row.tsx
 msgid "Waiting for the answer before it…"
 msgstr "Waiting for the answer before it…"
@@ -4801,6 +4877,10 @@ msgstr "Whose keys and budget this chat uses. It can't change after the first me
 #: ../chat-ui/src/conversation/approval.tsx
 msgid "Why? (optional, sent to the agent)"
 msgstr "Why? (optional, sent to the agent)"
+
+#: ../composer/src/components/target-picker.tsx
+msgid "with {tool}"
+msgstr "with {tool}"
 
 #: ../chat-ui/src/artifacts/document/document-view.tsx
 msgid "Word (.docx)"

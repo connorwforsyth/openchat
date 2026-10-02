@@ -4,6 +4,7 @@ import type { ArtifactKindDefinition } from "./define";
 import { codeKind } from "./kinds/code";
 import { documentKind } from "./kinds/document/kind";
 import { htmlKind } from "./kinds/html";
+import { imageKind } from "./kinds/image";
 import { markdownKind } from "./kinds/markdown";
 import { mermaidKind } from "./kinds/mermaid";
 import { reactKind } from "./kinds/react";
@@ -19,6 +20,7 @@ export const builtinKindDefinitions = {
   code: codeKind,
   document: documentKind,
   html: htmlKind,
+  image: imageKind,
   markdown: markdownKind,
   mermaid: mermaidKind,
   react: reactKind,

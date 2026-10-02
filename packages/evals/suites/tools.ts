@@ -20,6 +20,9 @@ const PAGE = "<!doctype html><title>Hi</title><h1>Hello</h1>\n";
 const INSIDE_WORK = /^(?!\/)(?!.*\.\.)|^\/work\//;
 const ERROR = /error/;
 const PLAN_DONE = /^Plan done after 1 steps\./;
+const FIRST_IMAGE = "images/a-lighthouse-at-dusk-1.png";
+/** A PNG's first bytes, as the harness reads a binary file (latin1). */
+const PNG_SIGNATURE = "\x89PNG";
 
 export const tools = defineSuite({
   cases: [
@@ -198,6 +201,60 @@ export const tools = defineSuite({
         t.check(off.status, "run status with web search off")
           .equals("succeeded")
           .gate();
+      }
+    ),
+
+    evalCase(
+      '"draw a lighthouse": generate_image asks first, then keeps each picture in the workspace and the artifacts (138)',
+      async (t) => {
+        const ask = { count: 2, prompt: "A lighthouse at dusk" };
+        const asked = await t.send(plan(call("generate_image", ask)));
+        t.calledTool("generate_image", ask).gate();
+        t.check(asked.status, "run status").equals("awaiting_approval").gate();
+        t.check(await t.readFile(FIRST_IMAGE), "the picture before approval")
+          .equals(null)
+          .gate();
+
+        const done = await t.approve();
+        t.check(done.status, "run status after approval")
+          .equals("succeeded")
+          .gate();
+        t.check(
+          callOf(done, "generate_image")?.output,
+          "generate_image's result"
+        )
+          .matches({
+            images: [
+              {
+                artifact: { kind: "image", title: "A lighthouse at dusk (1)" },
+                mediaType: "image/png",
+                path: FIRST_IMAGE,
+              },
+              {
+                artifact: { kind: "image", title: "A lighthouse at dusk (2)" },
+                path: "images/a-lighthouse-at-dusk-2.png",
+              },
+            ],
+            model: "Pixel",
+            status: "generated",
+          })
+          .gate();
+        t.check(
+          (await t.readFile(FIRST_IMAGE))?.startsWith(PNG_SIGNATURE),
+          "the picture in the workspace is a PNG"
+        )
+          .equals(true)
+          .gate();
+        t.check(done.text, "what the model was told")
+          .includes("Made 2 images with Pixel")
+          .gate();
+
+        // Planning only reads: the tool isn't there to call.
+        const planning = await t.send(
+          plan(call("generate_image", { prompt: "A second lighthouse" })),
+          { run: { mode: "plan" } }
+        );
+        t.notCalledTool("generate_image", { in: planning }).gate();
       }
     ),
 

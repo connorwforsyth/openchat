@@ -237,18 +237,56 @@ const authSchema = z
 const priceMicrosSchema = z.int().min(0).max(1_000_000_000_000);
 
 /** What one model charges. No price ships built in: a wrong one is worse than none. */
-export const modelPriceSchema = z.strictObject({
-  /**
-   * Input tokens the provider read from its cache, where it reports them.
-   * Left out, they cost the same as any other input token.
-   */
-  cachedInputMicros: priceMicrosSchema.optional(),
-  inputMicros: priceMicrosSchema,
-  outputMicros: priceMicrosSchema,
-});
+export const modelPriceSchema = z
+  .strictObject({
+    /**
+     * Input tokens the provider read from its cache, where it reports them.
+     * Left out, they cost the same as any other input token.
+     */
+    cachedInputMicros: priceMicrosSchema.optional(),
+    /**
+     * What one generated image costs, in micro-USD (138): `40000` is 4 cents.
+     * For image models; added to whatever their tokens cost.
+     */
+    imageMicros: priceMicrosSchema.optional(),
+    /** Left out only for an image model priced per image. */
+    inputMicros: priceMicrosSchema.optional(),
+    outputMicros: priceMicrosSchema.optional(),
+  })
+  .refine(
+    (price) =>
+      price.imageMicros !== undefined ||
+      (price.inputMicros !== undefined && price.outputMicros !== undefined),
+    "set `inputMicros` and `outputMicros`, or `imageMicros` for an image model"
+  );
 export type ModelPrice = z.infer<typeof modelPriceSchema>;
 
 const ratingSchema = z.int().min(1).max(5);
+
+/**
+ * Image generation (138): the model `generate_image` draws with, and where
+ * else image models come from. They are their own list and never reach the
+ * chat picker. With no default and nothing discovered, no chat gets the tool.
+ */
+const imageModelsSchema = z
+  .strictObject({
+    /**
+     * Whether a `generate_image` call asks first. Images cost more than a
+     * reply, so it asks unless the instance says `auto`.
+     */
+    approval: z.enum(["ask", "auto"]).default("ask"),
+    /** The image model calls use: a `provider:model` ref. */
+    default: modelRefSchema.nullable().default(null),
+    /**
+     * Also list the image models a discovering provider's catalog names
+     * (the gateway's `type: image`), after `default` and `models`; the first
+     * one this context has a key for is used when `default` has none.
+     */
+    discover: z.boolean().default(false),
+    /** More image models to offer, by ref, after `default`. */
+    models: z.array(modelRefSchema).default([]),
+  })
+  .prefault({});
 
 const modelsSchema = z
   .strictObject({
@@ -302,6 +340,7 @@ const modelsSchema = z
     descriptions: z
       .record(modelSelectorSchema, z.string().trim().min(1))
       .default({}),
+    image: imageModelsSchema,
     /**
      * Prices by `provider:modelId` ref (what an alias resolves to), used to
      * fill `costMicros` on usage rows. A model that isn't listed is unpriced:
@@ -743,6 +782,10 @@ export const appConfigSchema = z
     checkSelector(config.models.default, ["models", "default"]);
     checkSelector(config.models.auto.cheap, ["models", "auto", "cheap"]);
     checkSelector(config.models.auto.strong, ["models", "auto", "strong"]);
+    checkSelector(config.models.image.default, ["models", "image", "default"]);
+    for (const [index, ref] of config.models.image.models.entries()) {
+      checkSelector(ref, ["models", "image", "models", index]);
+    }
     checkSelector(config.decider.model, ["decider", "model"]);
     checkSelector(config.embeddings.model, ["embeddings", "model"]);
   });

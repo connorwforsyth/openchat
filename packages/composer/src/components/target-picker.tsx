@@ -7,6 +7,7 @@ import {
   AgentIcon,
   ChevronDownIcon,
   EyeIcon,
+  ImageIcon,
   ReasoningIcon,
   SparklesIcon,
   ToolIcon,
@@ -169,20 +170,60 @@ function useAgentGroupLabel() {
   };
 }
 
+/**
+ * "Makes images" (138): the model draws them itself (its catalog says so),
+ * or calls `generate_image`, which the server names the image model of.
+ */
+function MakesImages({ model }: { readonly model: ModelOption }) {
+  const itself = model.capabilities.includes("image-output");
+  const tool = model.imageModel?.displayName;
+  if (!(itself || tool)) {
+    return null;
+  }
+  let detail: ReactNode;
+  if (itself && tool) {
+    detail = <Trans>itself, or with {tool}</Trans>;
+  } else if (tool) {
+    detail = <Trans>with {tool}</Trans>;
+  } else {
+    detail = <Trans>itself</Trans>;
+  }
+  return (
+    <ModelSelectorPreviewRow
+      data-testid="model-preview-makes-images"
+      icon={<ImageIcon aria-hidden />}
+    >
+      <Trans>Makes images</Trans>
+      <span className="ms-auto min-w-0 truncate text-muted-foreground">
+        {detail}
+      </span>
+    </ModelSelectorPreviewRow>
+  );
+}
+
 function Capabilities({ model }: { readonly model: ModelOption }) {
   const can = new Set(model.capabilities);
+  const makesImages = can.has("image-output") || model.imageModel !== undefined;
   // Only what the server says the model does. "Unsupported" would need the
   // server to say so too; absence here can just mean nobody said.
-  if (!(can.has("vision") || can.has("tools") || can.has("reasoning"))) {
+  if (
+    !(
+      can.has("vision") ||
+      can.has("tools") ||
+      can.has("reasoning") ||
+      makesImages
+    )
+  ) {
     return null;
   }
   return (
     <ModelSelectorPreviewSection>
       {can.has("vision") ? (
         <ModelSelectorPreviewRow icon={<EyeIcon aria-hidden />}>
-          <Trans>Vision</Trans>
+          <Trans>Sees images</Trans>
         </ModelSelectorPreviewRow>
       ) : null}
+      <MakesImages model={model} />
       {can.has("tools") ? (
         <ModelSelectorPreviewRow icon={<ToolIcon aria-hidden />}>
           <Trans>Tool use</Trans>

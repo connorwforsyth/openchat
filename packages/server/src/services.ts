@@ -88,6 +88,7 @@ export interface ServicesOptions {
     | "builtins"
     | "catalog"
     | "decider"
+    | "images"
     | "knowledge"
     | "mcp"
     | "mcpFor"

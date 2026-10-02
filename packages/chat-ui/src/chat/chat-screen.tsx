@@ -2,6 +2,7 @@
 
 import { useLingui } from "@lingui/react/macro";
 import type { ComposerLoaderProps } from "@workspace/composer/components/composer-loader";
+import type { ComposerFill } from "@workspace/composer/props";
 import type {
   ComposerCommand,
   ComposerValue,
@@ -519,14 +520,34 @@ function ChatScreenBody({
     streamingMessageId,
   ]);
   const chatWorkspace = files.kind === "chat";
+  // "Edit this image" (138): a follow-up naming the picture's workspace
+  // path goes in the composer, for the person to finish and send.
+  const [composerFill, setComposerFill] = useState<ComposerFill>();
+  const editImage = useCallback(
+    ({ path }: { readonly path: string }) =>
+      setComposerFill((last) => ({
+        id: (last?.id ?? 0) + 1,
+        text: t`Edit the image ${path}: `,
+      })),
+    [t]
+  );
   const conversationActions = useMemo(
     () => ({
       ...actions,
       onOpenArtifact: openArtifact,
       onOpenFile: openFile,
       ...(chatWorkspace ? { onOpenPreview: openPreviewAt } : {}),
+      ...(composer.disabled ? {} : { onEditImage: editImage }),
     }),
-    [actions, chatWorkspace, openArtifact, openFile, openPreviewAt]
+    [
+      actions,
+      chatWorkspace,
+      composer.disabled,
+      editImage,
+      openArtifact,
+      openFile,
+      openPreviewAt,
+    ]
   );
 
   // The composer's file commands (061) act on the panel; they exist once
@@ -609,8 +630,13 @@ function ChatScreenBody({
   );
 
   const composerProps = useMemo<ComposerLoaderProps>(
-    () => ({ ...composer, onSubmit, ...workspaceComposer }),
-    [composer, onSubmit, workspaceComposer]
+    () => ({
+      ...composer,
+      fill: composerFill,
+      onSubmit,
+      ...workspaceComposer,
+    }),
+    [composer, composerFill, onSubmit, workspaceComposer]
   );
   const sidebarExpanded = narrow ? sidebarSheetOpen : layout.sidebarOpen;
   const sidebarToggle = (where: "header" | "sidebar") => (

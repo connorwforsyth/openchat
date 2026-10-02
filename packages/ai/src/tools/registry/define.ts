@@ -69,6 +69,7 @@ export type ToolContext<Run extends ToolRunContext = ToolRunContext> = Run & {
  */
 export type ToolCapability =
   | "artifacts"
+  | "images"
   | "knowledge"
   | "memory"
   | "sandbox"

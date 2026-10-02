@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { type ModelPrices, usageCost } from "./prices";
+import { imageCost, type ModelPrices, usageCost } from "./prices";
 import { appConfigSchema } from "./schema";
 
 const prices: ModelPrices = {
@@ -212,5 +212,52 @@ describe("models.prices", () => {
     expect(rejects(price, "fast")).toBe(true);
     expect(rejects(price, "mistral:large")).toBe(true);
     expect(rejects(price)).toBe(false);
+  });
+
+  it("takes a per-image price without token prices (138)", () => {
+    expect(rejects({ imageMicros: 40_000 })).toBe(false);
+    expect(rejects({ imageMicros: -1 })).toBe(true);
+    expect(rejects({})).toBe(true);
+  });
+});
+
+describe("imageCost", () => {
+  const imagePrices: ModelPrices = {
+    "openai:gpt-image": {
+      imageMicros: 40_000,
+      inputMicros: 5_000_000,
+      outputMicros: 40_000_000,
+    },
+    "openai:per-image": { imageMicros: 20_000 },
+  };
+
+  it("charges each image, plus its tokens where both are priced", () => {
+    expect(imageCost(imagePrices, "openai:per-image", 3)).toEqual({
+      costMicros: 60_000,
+      priced: true,
+    });
+    // 2 × $0.04 + 100 × $5/M + 1000 × $40/M = 80000 + 500 + 40000
+    expect(
+      imageCost(imagePrices, "openai:gpt-image", 2, {
+        inputTokens: 100,
+        outputTokens: 1000,
+      })
+    ).toEqual({ costMicros: 120_500, priced: true });
+  });
+
+  it("is unpriced for a model `models.prices` doesn't list", () => {
+    expect(imageCost(imagePrices, "openai:other", 4)).toEqual({
+      costMicros: 0,
+      priced: false,
+    });
+  });
+
+  it("leaves a per-image price's tokens free", () => {
+    expect(
+      imageCost(imagePrices, "openai:per-image", 1, {
+        inputTokens: 10_000,
+        outputTokens: 10_000,
+      }).costMicros
+    ).toBe(20_000);
   });
 });

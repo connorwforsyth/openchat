@@ -29,6 +29,8 @@ export type CatalogPricing = z.infer<typeof catalogPricingSchema>;
  */
 export const catalogTraitsSchema = z.object({
   files: z.boolean().optional(),
+  /** It writes images in its own reply (138). */
+  imageOutput: z.boolean().optional(),
   reasoning: z.boolean().optional(),
   tools: z.boolean().optional(),
   vision: z.boolean().optional(),
@@ -40,6 +42,11 @@ export const catalogModelSchema = z.object({
   contextWindow: z.int().min(1).nullable(),
   description: z.string().nullable(),
   id: z.string().min(1),
+  /**
+   * `image` for an image model (138): `generate_image` may draw with it,
+   * and the chat picker never lists it. Absent for a chat model.
+   */
+  kind: z.literal("image").optional(),
   /** The provider's display name, when it gives one. */
   name: z.string().nullable(),
   /** Absent when it lists no price. */
@@ -115,6 +122,7 @@ const entry = (
   {
     contextWindow = null,
     description = null,
+    kind,
     name = null,
     pricing,
     traits,
@@ -123,6 +131,7 @@ const entry = (
   contextWindow,
   description,
   id,
+  ...(kind === undefined ? {} : { kind }),
   name,
   ...(pricing === undefined || Object.keys(pricing).length === 0
     ? {}
@@ -162,7 +171,12 @@ const strings = z.array(z.string()).optional().catch(undefined);
  * and input a model takes, so there a missing one means no.
  */
 const openAiTraits = (model: {
-  architecture?: { input_modalities?: string[] | undefined } | undefined;
+  architecture?:
+    | {
+        input_modalities?: string[] | undefined;
+        output_modalities?: string[] | undefined;
+      }
+    | undefined;
   supported_parameters?: string[] | undefined;
   tags?: string[] | undefined;
 }): CatalogTraits => {
@@ -181,6 +195,9 @@ const openAiTraits = (model: {
     if (tags.includes("file-input")) {
       traits.files = true;
     }
+    if (tags.includes("image-generation")) {
+      traits.imageOutput = true;
+    }
   }
   const parameters = model.supported_parameters;
   if (parameters) {
@@ -192,18 +209,35 @@ const openAiTraits = (model: {
     traits.vision = inputs.includes("image");
     traits.files = inputs.includes("file");
   }
+  const outputs = model.architecture?.output_modalities;
+  if (outputs) {
+    traits.imageOutput = outputs.includes("image");
+  }
   return traits;
 };
 
 // Types a gateway lists that aren't chat models (the Vercel AI Gateway says
 // `embedding` / `image`; Together says `embedding`, `image`, `audio`, …).
+// Image models are kept apart for `generate_image` (138); the rest are
+// dropped.
 const CHAT_TYPES = new Set(["chat", "code", "language"]);
+const IMAGE_TYPE = "image";
+
+/**
+ * OpenAI's and Google's own catalogs don't type their models, so their
+ * image models are known by name: `gpt-image-1`, `dall-e-3`, `imagen-4.0-…`.
+ */
+const IMAGE_MODEL_ID =
+  /^(?:models\/)?(?:gpt-image|chatgpt-image|dall-e|imagen)-/;
 
 const openAiList = z.object({
   data: z.array(
     z.looseObject({
       architecture: z
-        .looseObject({ input_modalities: strings })
+        .looseObject({
+          input_modalities: strings,
+          output_modalities: strings,
+        })
         .optional()
         .catch(undefined),
       context_length: positive,
@@ -266,11 +300,21 @@ export const parseCatalog = (
       const parsed = openAiList.safeParse(body);
       return parsed.success
         ? parsed.data.data
-            .filter((model) => !model.type || CHAT_TYPES.has(model.type))
+            .filter(
+              (model) =>
+                !model.type ||
+                CHAT_TYPES.has(model.type) ||
+                model.type === IMAGE_TYPE
+            )
             .map((model) =>
               entry(model.id, {
                 contextWindow: model.context_window ?? model.context_length,
                 description: model.description,
+                kind:
+                  model.type === IMAGE_TYPE ||
+                  (!model.type && IMAGE_MODEL_ID.test(model.id))
+                    ? "image"
+                    : undefined,
                 name: model.name,
                 pricing: pricingOf(
                   model.pricing?.input ?? model.pricing?.prompt,
@@ -299,12 +343,14 @@ export const parseCatalog = (
             .filter(
               (model) =>
                 !model.supportedGenerationMethods ||
-                model.supportedGenerationMethods.includes("generateContent")
+                model.supportedGenerationMethods.includes("generateContent") ||
+                IMAGE_MODEL_ID.test(model.name)
             )
             .map((model) =>
               entry(model.name.replace(GOOGLE_PREFIX, ""), {
                 contextWindow: model.inputTokenLimit,
                 description: model.description,
+                kind: IMAGE_MODEL_ID.test(model.name) ? "image" : undefined,
                 name: model.displayName,
                 traits:
                   model.thinking === undefined
@@ -417,6 +463,10 @@ export interface FetchCatalogOptions {
 }
 
 export const DEFAULT_CATALOG_TIMEOUT_MS = 5000;
+
+/** Whether a catalog entry is an image model rather than a chat model (138). */
+export const isImageModel = (model: Pick<CatalogModel, "kind">): boolean =>
+  model.kind === "image";
 
 /** Lists `id`'s models. Never throws; errors carry no URL, header or body. */
 export const fetchCatalog = async (

@@ -21,6 +21,10 @@
       "name": "file_search"
     },
     {
+      "approval": "user-approval",
+      "name": "generate_image"
+    },
+    {
       "approval": "not-applicable",
       "name": "load_skill"
     },
@@ -248,7 +252,8 @@
                       "svg",
                       "mermaid",
                       "site",
-                      "document"
+                      "document",
+                      "image"
                     ]
                   },
                   "title": {
@@ -331,7 +336,8 @@
                         "svg",
                         "mermaid",
                         "site",
-                        "document"
+                        "document",
+                        "image"
                       ]
                     },
                     "title": {
@@ -1182,6 +1188,207 @@
             ]
           }
         }
+      }
+    },
+    {
+      "approval": "user-approval",
+      "customModelOutput": true,
+      "model": {
+        "type": "function",
+        "name": "generate_image",
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "aspectRatio": {
+              "description": "The shape, as width:height (1:1, 16:9, 9:16), when the user asks for one and not for a size.",
+              "type": "string",
+              "pattern": "^\\d{1,2}:\\d{1,2}$"
+            },
+            "count": {
+              "description": "How many images to make, 1 to 4; 1 unless asked.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4
+            },
+            "prompt": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4000,
+              "description": "What the image shows, in detail: subject, setting, style, lighting, composition. For an edit, the change to make."
+            },
+            "size": {
+              "description": "The size in pixels, as widthxheight (1024x1024), only when the user asks for one.",
+              "type": "string",
+              "pattern": "^\\d{2,4}x\\d{2,4}$"
+            },
+            "source": {
+              "description": "To edit an image instead of making a new one: its path in the workspace, like images/harbour-1.png.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            }
+          },
+          "required": [
+            "prompt"
+          ],
+          "additionalProperties": false
+        },
+        "description": "Make an image (or up to four) from a description, or edit an image in the workspace by passing its path as `source`. Use it when the user asks for a picture, illustration, photo, logo or diagram drawn as an image. Each image is shown in the reply, saved in the workspace under images/, and kept as an artifact."
+      },
+      "name": "generate_image",
+      "outputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "images": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "artifact": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "artifactId": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                              "description": "artifact id (UUIDv7)"
+                            },
+                            "kind": {
+                              "type": "string",
+                              "enum": [
+                                "code",
+                                "html",
+                                "react",
+                                "markdown",
+                                "svg",
+                                "mermaid",
+                                "site",
+                                "document",
+                                "image"
+                              ]
+                            },
+                            "title": {
+                              "type": "string",
+                              "maxLength": 200
+                            },
+                            "versionId": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                              "description": "artifactVersion id (UUIDv7)"
+                            }
+                          },
+                          "required": [
+                            "artifactId",
+                            "kind",
+                            "title",
+                            "versionId"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "mediaType": {
+                      "type": "string"
+                    },
+                    "path": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "artifact",
+                    "mediaType",
+                    "path"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "model": {
+                "type": "string"
+              },
+              "prompt": {
+                "type": "string"
+              },
+              "source": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "status": {
+                "type": "string",
+                "const": "generated"
+              }
+            },
+            "required": [
+              "images",
+              "model",
+              "prompt",
+              "source",
+              "status"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "const": "not_found"
+              }
+            },
+            "required": [
+              "path",
+              "status"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "const": "over_budget"
+              }
+            },
+            "required": [
+              "status"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "message": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "const": "unavailable"
+              }
+            },
+            "required": [
+              "message",
+              "status"
+            ],
+            "additionalProperties": false
+          }
+        ]
       }
     },
     {
@@ -2077,7 +2284,8 @@
                       "svg",
                       "mermaid",
                       "site",
-                      "document"
+                      "document",
+                      "image"
                     ]
                   },
                   "title": {
@@ -2160,7 +2368,8 @@
                         "svg",
                         "mermaid",
                         "site",
-                        "document"
+                        "document",
+                        "image"
                       ]
                     },
                     "title": {
@@ -3377,7 +3586,8 @@
                       "svg",
                       "mermaid",
                       "site",
-                      "document"
+                      "document",
+                      "image"
                     ]
                   },
                   "title": {
@@ -3460,7 +3670,8 @@
                         "svg",
                         "mermaid",
                         "site",
-                        "document"
+                        "document",
+                        "image"
                       ]
                     },
                     "title": {
@@ -4311,6 +4522,207 @@
             ]
           }
         }
+      }
+    },
+    {
+      "approval": "user-approval",
+      "customModelOutput": true,
+      "model": {
+        "type": "function",
+        "name": "generate_image",
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "aspectRatio": {
+              "description": "The shape, as width:height (1:1, 16:9, 9:16), when the user asks for one and not for a size.",
+              "type": "string",
+              "pattern": "^\\d{1,2}:\\d{1,2}$"
+            },
+            "count": {
+              "description": "How many images to make, 1 to 4; 1 unless asked.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4
+            },
+            "prompt": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4000,
+              "description": "What the image shows, in detail: subject, setting, style, lighting, composition. For an edit, the change to make."
+            },
+            "size": {
+              "description": "The size in pixels, as widthxheight (1024x1024), only when the user asks for one.",
+              "type": "string",
+              "pattern": "^\\d{2,4}x\\d{2,4}$"
+            },
+            "source": {
+              "description": "To edit an image instead of making a new one: its path in the workspace, like images/harbour-1.png.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            }
+          },
+          "required": [
+            "prompt"
+          ],
+          "additionalProperties": false
+        },
+        "description": "Make an image (or up to four) from a description, or edit an image in the workspace by passing its path as `source`. Use it when the user asks for a picture, illustration, photo, logo or diagram drawn as an image. Each image is shown in the reply, saved in the workspace under images/, and kept as an artifact."
+      },
+      "name": "generate_image",
+      "outputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "images": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "artifact": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "artifactId": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                              "description": "artifact id (UUIDv7)"
+                            },
+                            "kind": {
+                              "type": "string",
+                              "enum": [
+                                "code",
+                                "html",
+                                "react",
+                                "markdown",
+                                "svg",
+                                "mermaid",
+                                "site",
+                                "document",
+                                "image"
+                              ]
+                            },
+                            "title": {
+                              "type": "string",
+                              "maxLength": 200
+                            },
+                            "versionId": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                              "description": "artifactVersion id (UUIDv7)"
+                            }
+                          },
+                          "required": [
+                            "artifactId",
+                            "kind",
+                            "title",
+                            "versionId"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "mediaType": {
+                      "type": "string"
+                    },
+                    "path": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "artifact",
+                    "mediaType",
+                    "path"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "model": {
+                "type": "string"
+              },
+              "prompt": {
+                "type": "string"
+              },
+              "source": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "status": {
+                "type": "string",
+                "const": "generated"
+              }
+            },
+            "required": [
+              "images",
+              "model",
+              "prompt",
+              "source",
+              "status"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "const": "not_found"
+              }
+            },
+            "required": [
+              "path",
+              "status"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "const": "over_budget"
+              }
+            },
+            "required": [
+              "status"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "message": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "const": "unavailable"
+              }
+            },
+            "required": [
+              "message",
+              "status"
+            ],
+            "additionalProperties": false
+          }
+        ]
       }
     },
     {
@@ -5206,7 +5618,8 @@
                       "svg",
                       "mermaid",
                       "site",
-                      "document"
+                      "document",
+                      "image"
                     ]
                   },
                   "title": {
@@ -5289,7 +5702,8 @@
                         "svg",
                         "mermaid",
                         "site",
-                        "document"
+                        "document",
+                        "image"
                       ]
                     },
                     "title": {

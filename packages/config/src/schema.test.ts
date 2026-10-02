@@ -152,3 +152,42 @@ describe("appConfigSchema", () => {
     });
   });
 });
+
+describe("models.image (138)", () => {
+  const providers = { openai: { apiKey: "k" } };
+
+  it("has no image model and asks by default", () => {
+    const parsed = appConfigSchema.parse({ providers });
+    expect(parsed.models.image).toEqual({
+      approval: "ask",
+      default: null,
+      discover: false,
+      models: [],
+    });
+  });
+
+  it("takes a default, more models, discovery and `auto`", () => {
+    const parsed = appConfigSchema.parse({
+      models: {
+        image: {
+          approval: "auto",
+          default: "openai:gpt-image-1",
+          discover: true,
+          models: ["openai:dall-e-3"],
+        },
+      },
+      providers,
+    });
+    expect(parsed.models.image.default).toBe("openai:gpt-image-1");
+    expect(parsed.models.image.approval).toBe("auto");
+  });
+
+  it("rejects an alias or an unconfigured provider", () => {
+    const parses = (image: unknown) =>
+      appConfigSchema.safeParse({ models: { image }, providers }).success;
+    expect(parses({ default: "fast" })).toBe(false);
+    expect(parses({ default: "google:imagen-4" })).toBe(false);
+    expect(parses({ models: ["google:imagen-4"] })).toBe(false);
+    expect(parses({ approval: "deny" })).toBe(false);
+  });
+});

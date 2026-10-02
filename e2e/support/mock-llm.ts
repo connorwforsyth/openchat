@@ -39,6 +39,8 @@ import { z } from "zod";
 //     instructions hold `<approved-plan>`) → a `write` of the approved plan
 //     to `plan.md`, which asks first, then `Built the plan.`;
 //   - `[slow]` → forty numbered words, one every SLOW_TOKEN_MS;
+//   - `POST …/images/generations` and `…/images/edits` (138) → `n` copies
+//     of a 1×1 PNG, in OpenAI's shape, for `generate_image` on `mock:pixel`;
 //   - anything else → `Echo: <message>`, followed by `[<path>: <content>]`
 //     for each workspace file the message mentions (`@file` and attachments,
 //     which the server reads into the instructions; ticket 056).
@@ -512,13 +514,37 @@ export const embed = (input: string): number[] => {
   return vector.map((value) => value / norm);
 };
 
-const readBody = async (request: IncomingMessage): Promise<unknown> => {
+const readText = async (request: IncomingMessage): Promise<string> => {
   const chunks: Buffer[] = [];
   for await (const chunk of request) {
     chunks.push(chunk as Buffer);
   }
-  const body = Buffer.concat(chunks).toString("utf8");
+  return Buffer.concat(chunks).toString("utf8");
+};
+
+const readBody = async (request: IncomingMessage): Promise<unknown> => {
+  const body = await readText(request);
   return body ? JSON.parse(body) : {};
+};
+
+/** A valid 1×1 PNG: every picture `mock:pixel` draws (138). */
+const PIXEL_PNG =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+const IMAGE_COUNT = /"n"\s*:\s*(\d+)|name="n"\r\n\r\n(\d+)/;
+const MAX_IMAGES = 4;
+
+/**
+ * An image call (138): JSON for a new picture, multipart for an edit. Only
+ * `n` is read; the answer is OpenAI's `b64_json` shape, which the
+ * openai-compatible provider reads.
+ */
+const images = (response: ServerResponse, body: string) => {
+  const match = IMAGE_COUNT.exec(body);
+  const n = Math.min(Number(match?.[1] ?? match?.[2] ?? 1), MAX_IMAGES);
+  json(response, 200, {
+    created: Math.floor(Date.now() / 1000),
+    data: Array.from({ length: n }, () => ({ b64_json: PIXEL_PNG })),
+  });
 };
 
 const sleep = (ms: number) =>
@@ -680,6 +706,8 @@ export const startMockLlm = async (port = 0): Promise<MockLlm> => {
             name: "Parrot Fast",
             object: "model",
           },
+          // An image model (138): its own list, never the chat picker's.
+          { id: "pixel", name: "Pixel", object: "model", type: "image" },
           // Through a gateway, a model whose maker has a fast tier (105).
           {
             context_window: 400_000,
@@ -694,6 +722,13 @@ export const startMockLlm = async (port = 0): Promise<MockLlm> => {
     }
     if (request.method !== "POST") {
       response.writeHead(404).end();
+      return;
+    }
+    if (
+      pathname.endsWith("/images/generations") ||
+      pathname.endsWith("/images/edits")
+    ) {
+      images(response, await readText(request));
       return;
     }
     const body = await readBody(request);
