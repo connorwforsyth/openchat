@@ -56,6 +56,18 @@ export const egressSchema = z.enum(["none", "open"]);
 export const iconSetSchema = z.enum(["lucide", "phosphor", "material"]);
 export const iconStyleSchema = z.enum(["outlined", "rounded", "sharp"]);
 
+/**
+ * The icon build args (D19). The icon set lives in app.config.yaml's `icons`
+ * block only (130); setup no longer writes these to `.env`, and offers to
+ * move them out of an older one.
+ */
+export const ICON_VARIABLES = [
+  "ICON_SET",
+  "ICON_STYLE",
+  "ICON_WEIGHT",
+  "ICON_FILL",
+] as const;
+
 export const answersSchema = z.object({
   artifacts: z.boolean(),
   brandName: z.string().trim().min(1).max(60),
@@ -65,9 +77,13 @@ export const answersSchema = z.object({
   egress: egressSchema,
   fastModel: modelRefSchema.nullable(),
   icons: z.object({
+    /** Material only, and never asked: kept from the file, or moved from `.env`. */
+    fill: z.boolean().optional(),
     set: iconSetSchema,
     /** Material only. */
     style: iconStyleSchema.nullable(),
+    /** Material only, and never asked, like `fill`. */
+    weight: z.number().int().optional(),
   }),
   /**
    * Keys typed this run, by `.env` variable. A provider missing here keeps
@@ -76,6 +92,12 @@ export const answersSchema = z.object({
    */
   keys: z.record(z.string(), z.string().min(1)),
   mode: runModeSchema,
+  /**
+   * Delete `.env`'s `ICON_*` lines (asked only when it has some). Their
+   * values have already become the `icons` defaults when the config had no
+   * block, so this moves them into app.config.yaml.
+   */
+  moveIconEnv: z.boolean().optional(),
   providers: z.array(providerChoiceSchema),
   sandbox: sandboxChoiceSchema,
   search: z.boolean(),
@@ -85,7 +107,13 @@ export const answersSchema = z.object({
 export type Answers = z.infer<typeof answersSchema>;
 
 /** Answers minus the typed keys: what a re-run can recover from the files. */
-export type Defaults = Omit<Answers, "keys"> & {
+export type Defaults = Omit<Answers, "keys" | "moveIconEnv"> & {
+  /** `.env`'s `ICON_*` lines, by name only, for the offer to move them. */
+  readonly iconEnv: {
+    /** The config has an `icons` block, so they're ignored already. */
+    readonly ignored: boolean;
+    readonly names: readonly string[];
+  };
   /** Which key variables `.env` already has a value for (never the values). */
   readonly keysSet: readonly string[];
 };

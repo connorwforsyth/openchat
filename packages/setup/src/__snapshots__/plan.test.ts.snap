@@ -111,7 +111,6 @@ ARTIFACTS_APP_ORIGINS=
 ANTHROPIC_API_KEY=fake-anthropic-key-placeholder
 GATEWAY_API_KEY=fake-gateway-key-placeholder
 OPENAI_API_KEY=fake-openai-key-placeholder
-ICON_SET=phosphor
 "
 `;
 
@@ -194,8 +193,8 @@ storage: { driver: local, path: ./.data/files }
 
 embeddings: { model: openai:text-embedding-3-small }
 
-# Read at build time, not boot (D19): rebuild after changing it. ICON_SET,
-# ICON_STYLE, ICON_WEIGHT and ICON_FILL override it (a Docker image's build args).
+# Read at build time, not boot (D19): rebuild after changing it. This block is
+# the only place to choose; ICON_* in the environment is ignored while it's here.
 icons: { set: phosphor } # e.g. { set: material, style: rounded, weight: 400, fill: false }
 
 # Interface fonts, from npm (nothing is downloaded). Compiled in like icons:
@@ -345,9 +344,6 @@ ARTIFACTS_PORT=3910
 # App origins allowed to embed the runtime, comma-separated. Unset: any
 # localhost port, for development. Set it to the app's public origin in production.
 ARTIFACTS_APP_ORIGINS=
-
-# --- Set by \`bun run setup\` ---
-ICON_SET=lucide
 "
 `;
 
@@ -426,8 +422,8 @@ storage: { driver: local, path: ./.data/files }
 
 embeddings: { model: null }
 
-# Read at build time, not boot (D19): rebuild after changing it. ICON_SET,
-# ICON_STYLE, ICON_WEIGHT and ICON_FILL override it (a Docker image's build args).
+# Read at build time, not boot (D19): rebuild after changing it. This block is
+# the only place to choose; ICON_* in the environment is ignored while it's here.
 icons: { set: lucide } # e.g. { set: material, style: rounded, weight: 400, fill: false }
 
 # Interface fonts, from npm (nothing is downloaded). Compiled in like icons:
@@ -567,8 +563,6 @@ ARTIFACTS_APP_ORIGINS=
 
 # --- Set by \`bun run setup\` ---
 ANTHROPIC_API_KEY=fake-anthropic-key-placeholder
-ICON_SET=material
-ICON_STYLE=rounded
 "
 `;
 
@@ -649,8 +643,8 @@ storage: { driver: local, path: ./.data/files }
 
 embeddings: { model: null }
 
-# Read at build time, not boot (D19): rebuild after changing it. ICON_SET,
-# ICON_STYLE, ICON_WEIGHT and ICON_FILL override it (a Docker image's build args).
+# Read at build time, not boot (D19): rebuild after changing it. This block is
+# the only place to choose; ICON_* in the environment is ignored while it's here.
 icons: { set: material, style: rounded } # e.g. { set: material, style: rounded, weight: 400, fill: false }
 
 # Interface fonts, from npm (nothing is downloaded). Compiled in like icons:

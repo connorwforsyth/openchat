@@ -21,18 +21,26 @@ COPY . .
 # Scripts are skipped: git hooks have no place in an image, and the Lingui
 # catalogs and the icon set are turbo tasks the build runs itself.
 RUN bun install --frozen-lockfile --ignore-scripts
-# The icon set is compiled in (D19), and the image is built before any
-# app.config.yaml is mounted, so it comes in as build args; `icons:select`
-# reads them from the environment. Empty ones leave it to an app.config.yaml
-# in the build context, if any, and then the defaults.
+# The icon set (D19) and the fonts (129) are compiled in from the `icons`
+# and `fonts` blocks of an app.config.yaml in the build context:
+# apps/web/app.config.yaml, else the repo root's (the one `bun run setup`
+# writes and compose mounts at runtime). With neither, the defaults.
+# The ICON_* build args are only for an image built without a config file:
+# they're ignored, with a warning in the build log, while a config has an
+# `icons` block (130).
 #   docker build -f apps/web/Dockerfile --build-arg ICON_SET=material .
 ARG ICON_SET= \
     ICON_STYLE= \
     ICON_WEIGHT= \
     ICON_FILL=
 # `NEXT_OUTPUT=standalone` switches next.config.ts to a traced, self-contained
-# server; `bun dev` and `next start` are unaffected.
-RUN NEXT_OUTPUT=standalone bunx turbo run build --filter=web
+# server; `bun dev` and `next start` are unaffected. CONFIG_PATH here only
+# reaches the select steps (turbo passes `build` itself nothing but
+# NEXT_OUTPUT), and isn't in the runtime image.
+RUN if [ ! -f apps/web/app.config.yaml ] && [ -f app.config.yaml ]; then \
+      export CONFIG_PATH=/repo/app.config.yaml; \
+    fi && \
+    NEXT_OUTPUT=standalone bunx turbo run build --filter=web
 
 FROM node:24-bookworm-slim AS runtime
 ENV NODE_ENV=production \

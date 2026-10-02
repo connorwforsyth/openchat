@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { APPENDED_HEADER, formatValue, parseEnv, updateEnv } from "./env-file";
+import {
+  APPENDED_HEADER,
+  formatValue,
+  parseEnv,
+  removeFromEnv,
+  updateEnv,
+} from "./env-file";
 
 describe("parseEnv", () => {
   it("reads plain, quoted, exported and commented values", () => {
@@ -75,5 +81,38 @@ describe("updateEnv", () => {
     );
     const written = updateEnv("", { A: 'a #b "c"' });
     expect(parseEnv(written).A).toBe('a #b "c"');
+  });
+});
+
+describe("removeFromEnv", () => {
+  it("deletes every line assigning a name, and nothing else", () => {
+    const text = [
+      "# keep this comment",
+      "KEEP=1",
+      "ICON_SET=material",
+      "export ICON_STYLE=rounded",
+      "ICON_SET=phosphor",
+      "",
+    ].join("\n");
+    expect(removeFromEnv(text, ["ICON_SET", "ICON_STYLE"])).toBe(
+      "# keep this comment\nKEEP=1\n"
+    );
+  });
+
+  it("drops setup's header when nothing is left under it", () => {
+    const text = `A=1\n\n${APPENDED_HEADER}\nICON_SET=lucide\n`;
+    expect(removeFromEnv(text, ["ICON_SET"])).toBe("A=1\n");
+  });
+
+  it("keeps the header while something is still under it", () => {
+    const text = `A=1\n\n${APPENDED_HEADER}\nICON_SET=lucide\nB=2\n`;
+    expect(removeFromEnv(text, ["ICON_SET"])).toBe(
+      `A=1\n\n${APPENDED_HEADER}\nB=2\n`
+    );
+  });
+
+  it("returns the text unchanged when no name is there", () => {
+    const text = "A=1\n# ICON_SET=material\n";
+    expect(removeFromEnv(text, ["ICON_SET"])).toBe(text);
   });
 });

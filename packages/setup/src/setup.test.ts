@@ -127,6 +127,48 @@ describe("bun run setup", () => {
     expect(prompter.shown.join("\n")).not.toContain("another-fake-key");
   });
 
+  it("offers to move ICON_* out of an older .env, naming them without values (130)", async () => {
+    const files = checkout();
+    await run(files, demoScript);
+    const env = files.files.get(FILES.env) ?? "";
+    files.files.set(
+      FILES.env,
+      `${env}ICON_SET=phosphor-value-placeholder\nICON_STYLE=sharp\n`
+    );
+
+    const { prompter, result } = await run(files, {});
+    expect(prompter.asked.indexOf("iconEnv")).toBe(
+      prompter.asked.indexOf("icons") - 1
+    );
+    expect(prompter.shown).toContain(
+      ".env sets ICON_SET, ICON_STYLE, which app.config.yaml's icons block now overrides. Remove them from .env?"
+    );
+    expect(prompter.shown).toContain("Update .env? (ICON_SET, ICON_STYLE)");
+    const shown = prompter.shown.join("\n");
+    expect(shown).not.toContain("phosphor-value-placeholder");
+    expect(shown).not.toContain(FAKE_KEYS.anthropic);
+    expect(result).toEqual({ ok: true, value: [FILES.env] });
+    expect(files.files.get(FILES.env)).toBe(env);
+  });
+
+  it("leaves ICON_* in .env when the move is declined", async () => {
+    const files = checkout();
+    await run(files, demoScript);
+    const older = `${files.files.get(FILES.env)}ICON_SET=material\n`;
+    files.files.set(FILES.env, older);
+
+    const { result } = await run(files, { iconEnv: false });
+    expect(result).toEqual({ ok: true, value: [] });
+    expect(files.files.get(FILES.env)).toBe(older);
+  });
+
+  it("doesn't ask about ICON_* when .env has none", async () => {
+    const files = checkout();
+    await run(files, demoScript);
+    const { prompter } = await run(files, {});
+    expect(prompter.asked).not.toContain("iconEnv");
+  });
+
   it("writes nothing when cancelled", async () => {
     const files = checkout();
     const { result } = await run(files, {

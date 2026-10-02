@@ -1,4 +1,4 @@
-# Written by `icons:select` (from app.config.yaml's `icons`, or ICON_*) before
+# Written by `icons:select` (from app.config.yaml's `icons`) before
 # build, dev and typecheck.
 src/selected.ts
 src/selected.native.ts

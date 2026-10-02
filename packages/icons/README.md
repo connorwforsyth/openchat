@@ -31,9 +31,10 @@ complete; `sets.test.ts` checks), and optionally in other sets.
 
 The set is chosen at build time from the `icons` block of `app.config.yaml`,
 read where the web server reads it: `CONFIG_PATH`, else `app.config.yaml`,
-both relative to `apps/web`. `ICON_SET`, `ICON_STYLE`, `ICON_WEIGHT` and
-`ICON_FILL` override it (a Docker image is built before its config is
-mounted, so it gets them as build args; see `docs/self-hosting.md`).
+both relative to `apps/web`. That block decides. `ICON_SET`, `ICON_STYLE`,
+`ICON_WEIGHT` and `ICON_FILL` count only when there's no block (Docker build
+args for an image built without a config; see `docs/self-hosting.md`), and
+`icons:select` warns, naming the variable, whenever one is set.
 
 The `icons:select` script writes `src/selected.ts` and `src/selected.native.ts`
 (gitignored), which are the package entries: each name is re-exported from
@@ -45,7 +46,7 @@ elsewhere isn't hashed, so run with `--force` after editing its `icons`
 block. `postinstall` runs it once so editors resolve the package.
 
 ```sh
-ICON_SET=material ICON_STYLE=rounded bun turbo build --filter web
+bun turbo build --filter web   # after editing the icons block
 bun run icons:gaps     # per set and platform, which names fall back to lucide
 ```
 

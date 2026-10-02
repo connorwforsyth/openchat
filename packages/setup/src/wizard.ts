@@ -391,29 +391,30 @@ const askSandbox = async (prompter: Prompter, defaults: Defaults) => {
   return { egress, sandbox };
 };
 
-const askExtras = async (prompter: Prompter, defaults: Defaults) => {
-  const services = await ask(
-    prompter.multiselect<"search" | "artifacts">({
-      id: "services",
-      initial: [
-        ...(defaults.search ? (["search"] as const) : []),
-        ...(defaults.artifacts ? (["artifacts"] as const) : []),
-      ],
-      message: "Optional services",
-      options: [
-        {
-          hint: "SearXNG, for the web_search tool",
-          label: "Web search",
-          value: "search",
-        },
-        {
-          hint: "React and Mermaid previews on their own origin",
-          label: "Artifact previews",
-          value: "artifacts",
-        },
-      ],
-    })
-  );
+/** `.env`'s `ICON_*` lines, by name; their values aren't shown (or needed). */
+const iconEnvMessage = ({ ignored, names }: Defaults["iconEnv"]): string => {
+  const list = names.join(", ");
+  const them = names.length === 1 ? "it" : "them";
+  return ignored
+    ? `.env sets ${list}, which app.config.yaml's icons block now overrides. Remove ${them} from .env?`
+    : `.env sets ${list}. The icon set now lives only in app.config.yaml's icons block. Move ${them} there and out of .env?`;
+};
+
+const askIcons = async (
+  prompter: Prompter,
+  defaults: Defaults
+): Promise<Pick<Answers, "icons" | "moveIconEnv">> => {
+  // Asked first, so the choice below is what the yaml will say either way.
+  const moveIconEnv =
+    defaults.iconEnv.names.length > 0
+      ? await ask(
+          prompter.confirm({
+            id: "iconEnv",
+            initial: true,
+            message: iconEnvMessage(defaults.iconEnv),
+          })
+        )
+      : undefined;
   const set = await ask(
     prompter.select<Answers["icons"]["set"]>({
       id: "icons",
@@ -441,10 +442,48 @@ const askExtras = async (prompter: Prompter, defaults: Defaults) => {
           })
         )
       : null;
+  const { fill, weight } = defaults.icons;
+  return {
+    icons:
+      set === "material"
+        ? {
+            set,
+            style,
+            ...(fill === undefined ? {} : { fill }),
+            ...(weight === undefined ? {} : { weight }),
+          }
+        : { set, style },
+    ...(moveIconEnv === undefined ? {} : { moveIconEnv }),
+  };
+};
+
+const askExtras = async (prompter: Prompter, defaults: Defaults) => {
+  const services = await ask(
+    prompter.multiselect<"search" | "artifacts">({
+      id: "services",
+      initial: [
+        ...(defaults.search ? (["search"] as const) : []),
+        ...(defaults.artifacts ? (["artifacts"] as const) : []),
+      ],
+      message: "Optional services",
+      options: [
+        {
+          hint: "SearXNG, for the web_search tool",
+          label: "Web search",
+          value: "search",
+        },
+        {
+          hint: "React and Mermaid previews on their own origin",
+          label: "Artifact previews",
+          value: "artifacts",
+        },
+      ],
+    })
+  );
   return {
     artifacts: services.includes("artifacts"),
-    icons: { set, style },
     search: services.includes("search"),
+    ...(await askIcons(prompter, defaults)),
   };
 };
 

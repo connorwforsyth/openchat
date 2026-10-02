@@ -4,6 +4,7 @@ import { parseDocument } from "yaml";
 import {
   compatibleKeyVariable,
   type Defaults,
+  ICON_VARIABLES,
   iconSetSchema,
   iconStyleSchema,
   keyVariables,
@@ -71,10 +72,57 @@ const pick = <T extends string>(
   return parsed.success && parsed.data !== undefined ? parsed.data : fallback;
 };
 
+const TRUTHY = new Set(["1", "true", "yes"]);
+const FALSY = new Set(["0", "false", "no"]);
+
+/** `.env`'s `ICON_*` value, as icons:select reads it: trimmed, lower-cased. */
+const iconEnv = (env: EnvValues, name: string): string | undefined =>
+  env[name]?.trim().toLowerCase() || undefined;
+
+const envFlag = (value: string): boolean | undefined => {
+  if (TRUTHY.has(value)) {
+    return true;
+  }
+  return FALSY.has(value) ? false : undefined;
+};
+
+/**
+ * The icon choice a build makes now (packages/icons/scripts/config.ts): the
+ * config's `icons` block when it has one, else `.env`'s `ICON_*`, else
+ * Lucide. On a first run the example's block stands in for unset variables.
+ */
+const readIcons = (
+  config: Record<string, unknown>,
+  hasBlock: boolean,
+  env: EnvValues
+): Defaults["icons"] => {
+  const yaml = record(config.icons);
+  const value = (name: string, key: string): unknown =>
+    hasBlock ? yaml[key] : (iconEnv(env, name) ?? yaml[key]);
+  const set = pick(iconSetSchema, value("ICON_SET", "set"), "lucide");
+  if (set !== "material") {
+    return { set, style: null };
+  }
+  const weightValue = value("ICON_WEIGHT", "weight");
+  const weight =
+    typeof weightValue === "string" ? Number(weightValue) : weightValue;
+  const fillValue = value("ICON_FILL", "fill");
+  const fill = typeof fillValue === "string" ? envFlag(fillValue) : fillValue;
+  return {
+    ...(typeof fill === "boolean" ? { fill } : {}),
+    set,
+    style: pick(iconStyleSchema, value("ICON_STYLE", "style"), "outlined"),
+    ...(typeof weight === "number" && Number.isInteger(weight)
+      ? { weight }
+      : {}),
+  };
+};
+
 export const readDefaults = (files: CurrentFiles): Defaults => {
   const env = currentEnv(files);
   const config = readYaml(files.config ?? files.configExample);
   const firstRun = files.config === undefined;
+  const hasIconBlock = !firstRun && Object.hasOwn(config, "icons");
 
   const providersBlock = config.providers;
   // No `providers` at all is the schema's default: a local Ollama.
@@ -90,7 +138,6 @@ export const readDefaults = (files: CurrentFiles): Defaults => {
   const aliases = record(models.aliases);
   const auto = record(models.auto);
   const auth = record(config.auth);
-  const icons = record(config.icons);
   const sandbox = record(config.sandbox);
   const search = record(config.search);
 
@@ -98,8 +145,6 @@ export const readDefaults = (files: CurrentFiles): Defaults => {
     ...nativeProviders.map((provider) => keyVariables[provider]),
     ...(compatible ? [compatibleKeyVariable(compatible.id)] : []),
   ];
-
-  const iconSet = pick(iconSetSchema, env.ICON_SET || icons.set, "lucide");
 
   return {
     // Search and artifacts previews each start another container, so a
@@ -117,13 +162,13 @@ export const readDefaults = (files: CurrentFiles): Defaults => {
     domains: Array.isArray(auth.domains) ? auth.domains.map(String) : [],
     egress: env.SANDBOX_EGRESS === "open" ? "open" : "none",
     fastModel: toRef(aliases.fast ?? auto.cheap, aliases),
-    icons: {
-      set: iconSet,
-      style:
-        iconSet === "material"
-          ? pick(iconStyleSchema, env.ICON_STYLE || icons.style, "outlined")
-          : null,
+    iconEnv: {
+      ignored: hasIconBlock,
+      names: ICON_VARIABLES.filter((name) =>
+        Object.hasOwn(parseEnv(files.env ?? ""), name)
+      ),
     },
+    icons: readIcons(config, hasIconBlock, env),
     keysSet: keyNames.filter((name) => Boolean(env[name])),
     mode: mountsConfig(files.override) || firstRun ? "docker" : "local",
     providers: [

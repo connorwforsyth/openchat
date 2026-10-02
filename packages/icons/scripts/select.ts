@@ -5,7 +5,12 @@ import { DEFAULT_CONFIG_FILE } from "@workspace/config/load";
 
 import { iconNames } from "../src/names";
 import type { IconPlatform } from "../src/set-ids";
-import { describeChoice, type IconChoice, resolveIconChoice } from "./config";
+import {
+  describeChoice,
+  type IconChoice,
+  iconEnvWarning,
+  resolveIconChoice,
+} from "./config";
 import {
   materialSymbols,
   pickGlyphs,
@@ -37,8 +42,9 @@ import {
 //
 // The choice comes from `icons` in app.config.yaml, read where the web server
 // reads it: `CONFIG_PATH`, else `app.config.yaml`, both relative to apps/web.
-// `ICON_SET`, `ICON_STYLE`, `ICON_WEIGHT` and `ICON_FILL` override it; that's
-// how a Docker image, built before its config is mounted, gets its set.
+// The block decides (130). `ICON_SET`, `ICON_STYLE`, `ICON_WEIGHT` and
+// `ICON_FILL` count only when there's no block: Docker build args for an
+// image built without a config. Either way, setting them gets a warning.
 
 // bun's built-in YAML parser saves this package a dependency. bun's types
 // aren't installed, so this declares just the part used here.
@@ -65,7 +71,7 @@ function readConfigBlock(
     // may set it for the runtime mount, which a build never sees.
     if (explicit) {
       console.warn(
-        `icons:select: CONFIG_PATH is ${path}, which doesn't exist at build time; using ICON_* and defaults.`
+        `icons:select: CONFIG_PATH is ${path}, which doesn't exist at build time; using the defaults (or ICON_* build args).`
       );
     }
     return { ok: true, value: { block: undefined, source: undefined } };
@@ -149,6 +155,14 @@ if (!resolved.ok) {
   fail(resolved.error);
 }
 const choice = resolved.value;
+const warning = iconEnvWarning(
+  config.value.block,
+  process.env,
+  config.value.source
+);
+if (warning) {
+  console.warn(`icons:select: warning: ${warning}`);
+}
 
 // Written whichever set is chosen, so `sets/material.ts` always type-checks.
 const glyphs = materialGlyphs(choice);
