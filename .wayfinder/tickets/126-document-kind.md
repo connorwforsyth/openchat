@@ -2,8 +2,8 @@
 id: "126"
 title: "Documents: a rich-text kind with a full-page editor"
 labels: [wayfinder:build]
-status: open
-assignee: 
+status: in-progress
+assignee: loop
 blockedBy: ["124"]
 ---
 
