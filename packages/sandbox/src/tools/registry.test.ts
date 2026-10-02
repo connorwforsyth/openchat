@@ -4,6 +4,7 @@ import {
   clientToolDefinition,
   mcpToolDefinition,
 } from "@workspace/ai/tools/registry/adapt";
+import { GENERATE_IMAGE_TOOL } from "@workspace/ai/tools/registry/generate-image";
 import { SKILL_AUTHORING_TOOLS } from "@workspace/ai/tools/registry/skill-authoring";
 import {
   chatSandboxApproval,
@@ -36,6 +37,7 @@ describe("the built-in tool registry", () => {
       "create_skill",
       "edit",
       "file_search",
+      "generate_image",
       "load_skill",
       "preview",
       "publish_skill",
@@ -78,7 +80,13 @@ describe("the built-in tool registry", () => {
       .filter(([, approval]) => approval === "ask")
       .map(([name]) => name);
     expect(asking.sort()).toEqual(
-      [...FILE_CHANGE_TOOLS, ...ARTIFACT_TOOLS, ...SKILL_AUTHORING_TOOLS].sort()
+      [
+        ...FILE_CHANGE_TOOLS,
+        ...ARTIFACT_TOOLS,
+        ...SKILL_AUTHORING_TOOLS,
+        // `models.image.approval` defaults to `ask` (138).
+        GENERATE_IMAGE_TOOL,
+      ].sort()
     );
   });
 

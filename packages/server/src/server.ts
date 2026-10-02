@@ -63,6 +63,7 @@ import { createSearchHandlers } from "./knowledge/search";
 import { createLibraryRouter } from "./library/router";
 import { linkPreviewsFromEnv } from "./link-preview/from-env";
 import type { Storage } from "./ports/storage";
+import type { ImageModels } from "./runs/images";
 import type { WebSearchSource } from "./runs/retrieval";
 import type { SandboxToolSource } from "./runs/sandbox";
 import {
@@ -246,6 +247,10 @@ const describeProblem = (problem: DatabaseProblem): string =>
 const discovers = (
   registry: ProviderRegistry
 ): registry is DiscoveringRegistry => "catalog" in registry;
+
+/** `generate_image`'s models (138): only a discovering registry lists them. */
+const imageModelsOf = (registry: ProviderRegistry): ImageModels | undefined =>
+  discovers(registry) ? registry : undefined;
 
 /**
  * Ingestion runs in the background with no chat to bill, so instance keys
@@ -459,6 +464,8 @@ export const createServerFromEnv = async (
       // Whether an OpenAI-compatible model reasons, from its catalog (105).
       catalog: discovers(registry) ? registry.catalog : undefined,
       decider,
+      // `generate_image`'s models (138), which only the built registry lists.
+      images: imageModelsOf(registry),
       knowledge: embedder ? { embedder } : undefined,
       mcpFor: (userId) => mcp.manager.toolSource(userId),
       // Plain chats: every server the caller may use (078).

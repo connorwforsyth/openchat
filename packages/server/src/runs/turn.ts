@@ -29,6 +29,7 @@ import {
   withRunSettings,
 } from "@workspace/ai/providers/run-settings";
 import { ARTIFACT_TOOLS } from "@workspace/ai/tools/artifacts";
+import { GENERATE_IMAGE_TOOL } from "@workspace/ai/tools/registry/generate-image";
 import {
   PUBLISH_SKILL_TOOL,
   SKILL_AUTHORING_TOOLS,
@@ -71,6 +72,7 @@ import type { Tool, ToolApprovalStatus, ToolSet } from "ai";
 import { actorFor } from "../context";
 import { canUseLibraryItem } from "../library/router";
 import { draftFor } from "./drafts";
+import { chatImageTools, type ImageModels } from "./images";
 import { approvedPlanFor } from "./plan-artifact";
 import {
   gateTurnTools,
@@ -194,6 +196,12 @@ export interface TurnResolverDeps {
    * retrieval gate unless `routeAuto` or `retrieval` override it.
    */
   readonly decider?: (keys: ChatKeys) => Decider;
+  /**
+   * The instance's image models (138), from the built registry; without
+   * them no run gets `generate_image`. It's offered only when
+   * `models.image` names one this chat's keys can pay for.
+   */
+  readonly images?: ImageModels;
   readonly keyStore: KeyStore;
   /**
    * `file_search` over an agent's knowledge files and the chat's
@@ -589,6 +597,33 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
       : {};
   };
 
+  /**
+   * `generate_image` for this turn (138), bound to the caller's keys and the
+   * chat's workspace; nothing without an image model they can pay for.
+   */
+  const imageTools = async (
+    run: RunStart,
+    sandbox: TurnSandbox | null,
+    signal: AbortSignal | undefined
+  ): Promise<Pick<Turn, "toolApproval" | "tools">> => {
+    if (!deps.images) {
+      return {};
+    }
+    const keys = await chatKeysFor(
+      deps,
+      { context: run.context, userId: run.createdBy },
+      signal
+    );
+    return keys
+      ? await chatImageTools(
+          { config: deps.config, db, models: deps.images },
+          run,
+          keys,
+          sandbox
+        )
+      : {};
+  };
+
   /** The chat's sandbox for this turn, unless the composer turned it off. */
   const sandboxFor = async (
     run: RunStart,
@@ -700,10 +735,12 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
     const mcp = await chatMcpTools(run, signal);
     const artifacts = chatArtifactTools(run);
     const authoring = chatSkillTools(run);
+    const images = await imageTools(run, sandbox.sandbox, signal);
     const own = {
       ...mcp.tools,
       ...artifacts.tools,
       ...authoring.tools,
+      ...images.tools,
       ...sandbox.tools,
     };
     const retrieval = {
@@ -766,6 +803,7 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
         ...mcp.toolApproval,
         ...artifacts.toolApproval,
         ...authoring.toolApproval,
+        ...images.toolApproval,
         ...sandbox.toolApproval,
         ...gated.toolApproval,
         ...skills.toolApproval,
@@ -841,6 +879,8 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
       ...webSearchTools(deps.webSearch, run, loaded.value.resolvedModel),
       ...deps.artifacts?.(run),
       ...deps.skillAuthoring?.(run),
+      // An agent gets `generate_image` when its version lists it (138).
+      ...(await imageTools(run, sandbox, signal)).tools,
       ...sandbox?.tools,
       ...searchable.builtins,
     };
@@ -856,6 +896,9 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
           tools: {
             ...ARTIFACT_APPROVALS,
             ...SKILL_APPROVALS,
+            // Images cost more than a reply: they ask unless the instance
+            // says `auto`, or the agent sets the tool to `auto` by name.
+            [GENERATE_IMAGE_TOOL]: deps.config.models.image.approval,
             ...planned.approvals.tools,
             [PUBLISH_SKILL_TOOL]: "ask",
           },
