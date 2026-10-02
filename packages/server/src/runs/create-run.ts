@@ -18,6 +18,7 @@ import {
 } from "@workspace/db/queries/conversations";
 import { getMessage, insertMessage } from "@workspace/db/queries/messages";
 import {
+  approvalIdsOf,
   createRun as insertRun,
   listActiveRuns,
   type RunRow,
@@ -331,12 +332,45 @@ const placeRun = async (
 };
 
 /**
+ * Whether a run's answer is waiting on someone's decision: it has paused,
+ * or its stream has asked about a call nobody has decided yet (133). The
+ * card goes out while the pass is still running, and the run only pauses
+ * once that pass settles, so a person can answer a card on screen before
+ * then. A resumed pass has every card it showed decided (stored with the
+ * resume), so it counts again only once it asks again.
+ */
+const waitsOnSomeone = async (db: Db, run: RunRow): Promise<boolean> => {
+  if (run.status === "awaiting_approval") {
+    return true;
+  }
+  if (run.status !== "running" || !run.assistantMessageId) {
+    return false;
+  }
+  const asked = await approvalIdsOf(db, run.id);
+  if (asked.size === 0) {
+    return false;
+  }
+  const answer = await getMessage(db, run.assistantMessageId);
+  const decided = new Set(
+    answer.ok
+      ? answer.value.parts.flatMap((part) =>
+          part.type === "tool-call" && part.approval.state === "decided"
+            ? [part.toolCallId]
+            : []
+        )
+      : []
+  );
+  return [...asked.keys()].some((toolCallId) => !decided.has(toolCallId));
+};
+
+/**
  * A turn sent while the answer it follows waits on approvals moves on
  * without them (072): that answer stops as Stop would stop it, and its
  * pending changes are never applied. Queued behind it instead, the turn
  * would wait for as long as nobody decides, since nothing expires a pause.
  * Someone who may send here may already press Stop, so this grants
- * nothing new.
+ * nothing new. A turn sent while the answer is still being written, before
+ * any card, queues as usual (D25).
  */
 const moveOnFromWaiting = async (
   deps: CreateRunDeps,
@@ -345,7 +379,7 @@ const moveOnFromWaiting = async (
 ): Promise<void> => {
   const anchor = turn.type === "message" ? turn.parentId : turn.userMessageId;
   const tail = busyTail(await listActiveRuns(deps.db, conversationId), anchor);
-  if (tail?.status === "awaiting_approval") {
+  if (tail && (await waitsOnSomeone(deps.db, tail))) {
     // A decision that resumed it a moment ago doesn't save it: the cancel
     // stops that pass too.
     await deps.executor.cancel(tail.id, actor.userId);

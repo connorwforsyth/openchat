@@ -1076,7 +1076,22 @@ export const createInProcessExecutor = (
         await running.get(runId);
         return true;
       };
-      if ((await abortPass()) || (await cancelIdle(row, by))) {
+      if (await abortPass()) {
+        // A pass that had already asked for approval when the abort came
+        // can still settle waiting on it (133). Stop stops that wait too,
+        // unless a decision has resumed it, which the next look stops.
+        const after = await getRun(db, runId);
+        if (
+          after.ok &&
+          after.value.status === "awaiting_approval" &&
+          !active.has(runId) &&
+          !(await cancelIdle(after.value, by))
+        ) {
+          await abortPass();
+        }
+        return ok(undefined);
+      }
+      if (await cancelIdle(row, by)) {
         return ok(undefined);
       }
       // A decision resumed it between the two looks: stop that pass.

@@ -121,6 +121,7 @@ export const textParts = {
 
 export interface TurnScript {
   readonly model: LanguageModelV4;
+  readonly proposeEdits?: Turn["proposeEdits"];
   readonly toolApproval?: Readonly<Record<string, ToolApprovalStatus>>;
   readonly tools?: Readonly<Record<string, Tool>>;
 }
@@ -202,6 +203,7 @@ export const createHarness = async (
               agent: null,
               model: turn.model,
               paidBy: null,
+              proposeEdits: turn.proposeEdits,
               resolvedModel: "test:model",
               toolApproval: turn.toolApproval,
               tools: turn.tools,
