@@ -341,7 +341,7 @@ describe("TargetPicker's preview card (099)", () => {
     for (const part of [
       "~150K words",
       "200K tokens",
-      "Vision",
+      "Sees images",
       "Tool use",
       "Reasoning",
       "Hard problems and long documents",
@@ -355,7 +355,7 @@ describe("TargetPicker's preview card (099)", () => {
     expect(card()?.querySelectorAll("meter")).toHaveLength(0);
     expect(card()?.textContent).toContain("No ratings or prices for gpt-6");
     expect(card()?.textContent).toContain("400K tokens");
-    expect(card()?.textContent).not.toContain("Vision");
+    expect(card()?.textContent).not.toContain("Sees images");
   });
 
   it("follows the current choice the model list settles on, until the person moves (132)", async () => {
@@ -462,5 +462,56 @@ describe("TargetPicker's Recently used (099)", () => {
     await pick(STRONG);
     await open("Model or agent: Auto");
     expect(groupHeadings()[0]).toBe("Recently used");
+  });
+});
+
+describe("TargetPicker's preview card: images (138)", () => {
+  const IMAGE_MODELS: readonly ModelOption[] = [
+    {
+      ...option("strong", "anthropic:claude-opus-5-5", "strong"),
+      capabilities: ["tools", "vision"],
+      displayName: "Claude Opus 5.5",
+      imageModel: { displayName: "GPT Image", target: "openai:gpt-image-1" },
+      provider: "anthropic",
+    },
+    {
+      ...option(
+        "gateway:google/gemini-image",
+        "gateway:google/gemini-image",
+        "google/gemini-image"
+      ),
+      capabilities: ["tools", "image-output"],
+      displayName: "Gemini Image",
+      imageModel: { displayName: "GPT Image", target: "openai:gpt-image-1" },
+      provider: "google",
+    },
+    {
+      ...option("gateway:acme/plain", "gateway:acme/plain", "acme/plain"),
+      capabilities: ["tools"],
+      displayName: "Plain",
+      provider: "acme",
+    },
+  ];
+  const makesImages = () =>
+    card()?.querySelector("[data-testid=model-preview-makes-images]")
+      ?.textContent ?? null;
+
+  it("says what a model sees and makes, and with which image model", async () => {
+    renderPicker({ model: "strong", type: "model" }, { models: IMAGE_MODELS });
+    await open("Model or agent: Claude Opus 5.5");
+    await waitFor(() =>
+      expect(card()?.textContent).toContain("Claude Opus 5.5")
+    );
+    expect(card()?.textContent).toContain("Sees images");
+    expect(makesImages()).toBe("Makes imageswith GPT Image");
+
+    await userEvent.keyboard("{ArrowDown}");
+    await waitFor(() => expect(card()?.textContent).toContain("Gemini Image"));
+    expect(card()?.textContent).not.toContain("Sees images");
+    expect(makesImages()).toBe("Makes imagesitself, or with GPT Image");
+
+    await userEvent.keyboard("{ArrowDown}");
+    await waitFor(() => expect(card()?.textContent).toContain("Plain"));
+    expect(makesImages()).toBeNull();
   });
 });

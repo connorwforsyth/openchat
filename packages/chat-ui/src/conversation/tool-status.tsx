@@ -11,6 +11,7 @@ import {
   FileTextIcon,
   GlobeIcon,
   type Icon,
+  ImageIcon,
   LoaderCircleIcon,
   MonitorIcon,
   PencilIcon,
@@ -48,6 +49,7 @@ export const toolIcons: Readonly<Record<ToolIconName, Icon>> = {
   FileIcon,
   FileTextIcon,
   GlobeIcon,
+  ImageIcon,
   MonitorIcon,
   PencilIcon,
   SearchIcon,
@@ -136,8 +138,10 @@ function Details({
           />
         </div>
       );
-    // A finished change or skill renders as its card, never as a line.
+    // A finished change, skill or set of images renders as its card, never
+    // as a line.
     case "file-change":
+    case "image":
     case "skill":
       return null;
     default:

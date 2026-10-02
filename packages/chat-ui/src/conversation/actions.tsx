@@ -1,6 +1,8 @@
 "use client";
 
 import type {
+  ArtifactId,
+  ArtifactVersionId,
   FileId,
   LibraryItemId,
   MessageId,
@@ -28,6 +30,14 @@ export type FeedbackInput = z.input<typeof setFeedbackInputSchema>;
  * view (a shared link, a viewer's seat) leaves the matching controls out.
  */
 export interface ConversationActions {
+  /**
+   * Where a generated image's bytes are served (138), by its artifact
+   * version. Without it, the reply lists the pictures without showing them.
+   */
+  readonly artifactImageUrl?: (
+    artifactId: ArtifactId,
+    versionId: ArtifactVersionId
+  ) => string;
   /** Where an uploaded file's bytes are served, for images and links. */
   readonly fileUrl?: (fileId: FileId) => string;
   /**
@@ -44,6 +54,14 @@ export interface ConversationActions {
   readonly onDiscardPlan?: (plan: PlanRef) => void;
   /** Edit a user message: its new text becomes a sibling branch (D25). */
   readonly onEdit?: (message: Message, text: string) => void;
+  /**
+   * "Edit this image" (138): put a follow-up in the composer that edits the
+   * picture at `path` in the workspace. Without it, there's no such button.
+   */
+  readonly onEditImage?: (image: {
+    readonly path: string;
+    readonly prompt: string;
+  }) => void;
   /** Open a plan in the panel's editor (106). */
   readonly onEditPlan?: (plan: PlanRef) => void;
   readonly onFeedback?: (input: FeedbackInput) => void;

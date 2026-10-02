@@ -6,6 +6,7 @@ import {
   FileIcon,
   FileTextIcon,
   GlobeIcon,
+  ImageIcon,
   LibraryIcon,
   PlusIcon,
   SparklesIcon,
@@ -44,6 +45,11 @@ export interface PlusMenuProps {
   readonly onAddSkill?: ((skill: SkillOption) => void) | undefined;
   readonly onAttach: () => void;
   readonly onFastChange?: (on: boolean) => void;
+  /**
+   * Starts a message asking for a picture (138); left out when the chosen
+   * model can't make one, and the item isn't offered.
+   */
+  readonly onMakeImage?: (() => void) | undefined;
   /** Plan mode (106); left out, the switch isn't offered. */
   readonly onPlanChange?: ((on: boolean) => void) | undefined;
   readonly onUsePrompt: ((prompt: PromptOption) => void) | undefined;
@@ -140,6 +146,7 @@ export function PlusMenu({
   onAddSkill,
   onAttach,
   onFastChange,
+  onMakeImage,
   onPlanChange,
   onUsePrompt,
   onWebSearchChange,
@@ -182,6 +189,17 @@ export function PlusMenu({
           <AttachIcon aria-hidden />
           <Trans>Attach files</Trans>
         </PromptInputActionMenuItem>
+        {onMakeImage ? (
+          <PromptInputActionMenuItem onClick={onMakeImage}>
+            <ImageIcon aria-hidden />
+            <span className="flex min-w-0 flex-col">
+              <Trans>Image</Trans>
+              <span className="text-muted-foreground text-xs">
+                <Trans>Describe a picture to make</Trans>
+              </span>
+            </span>
+          </PromptInputActionMenuItem>
+        ) : null}
         {offerFiles ? (
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>

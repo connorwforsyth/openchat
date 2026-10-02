@@ -53,6 +53,7 @@ import { ArtifactPreview, SrcdocPreview } from "./artifact-preview";
 import { DocumentArtifact } from "./document/document-artifact";
 import { DocumentView } from "./document/document-view";
 import { fitArtifactHeader } from "./header-fit";
+import { ImageArtifactPreview } from "./image-preview";
 import { type PlanEditing, PlanEditor } from "./plan-editor";
 import { isRuntimeKind } from "./runtime-protocol";
 
@@ -237,6 +238,84 @@ function ArtifactError({ error }: { readonly error: string }) {
   );
 }
 
+/** What changed since the previous version; an image's versions have no lines (138). */
+const editBetween = (
+  kind: Artifact["kind"],
+  path: string,
+  previous: ArtifactVersion | undefined,
+  version: ArtifactVersion | undefined
+) =>
+  previous && version && kind !== "image"
+    ? versionEdit(path, previous.content, version.content)
+    : null;
+
+/** The preview the panel draws itself, without the runtime. */
+function PanelPreview({
+  artifact,
+  content,
+  path,
+  preview,
+}: {
+  readonly artifact: Artifact;
+  readonly content: string;
+  readonly path: string;
+  readonly preview: ArtifactPreviewKind;
+}) {
+  switch (preview) {
+    case "frame":
+      return (
+        <SrcdocPreview
+          content={content}
+          kind={artifact.kind}
+          title={artifact.title}
+        />
+      );
+    case "image":
+      return (
+        <ImageArtifactPreview
+          content={content}
+          fileName={path}
+          title={artifact.title}
+        />
+      );
+    case "markdown":
+      return (
+        <article className="px-6 py-5 text-sm leading-relaxed">
+          <Markdown>{content}</Markdown>
+        </article>
+      );
+    case "none":
+      return null;
+    default:
+      return preview satisfies never;
+  }
+}
+
+/** The Code tab: the source, or a note for an image, which has none (138). */
+function ArtifactSource({
+  content,
+  kind,
+  path,
+}: {
+  readonly content: string;
+  readonly kind: Artifact["kind"];
+  readonly path: string;
+}) {
+  return kind === "image" ? (
+    <p className="p-4 text-muted-foreground text-sm">
+      <Trans>A generated image has no source to show.</Trans>
+    </p>
+  ) : (
+    /* The title row already names it: no CodeHeader, no card. */
+    <CodeView
+      className="rounded-none border-0"
+      contents={content}
+      header={false}
+      path={path}
+    />
+  );
+}
+
 function ArtifactDetail({
   artifact,
   error,
@@ -277,11 +356,8 @@ function ArtifactDetail({
     version?.language ?? null
   );
   const edit = useMemo(
-    () =>
-      previous && version
-        ? versionEdit(path, previous.content, version.content)
-        : null,
-    [path, previous, version]
+    () => editBetween(artifact.kind, path, previous, version),
+    [artifact.kind, path, previous, version]
   );
 
   const step = useCallback(
@@ -332,26 +408,20 @@ function ArtifactDetail({
                 title={artifact.title}
               />
             ) : null}
-            {preview === "frame" ? (
-              <SrcdocPreview
+            {preview === "runtime" ? null : (
+              <PanelPreview
+                artifact={artifact}
                 content={version.content}
-                kind={artifact.kind}
-                title={artifact.title}
+                path={path}
+                preview={preview}
               />
-            ) : null}
-            {preview === "markdown" ? (
-              <article className="px-6 py-5 text-sm leading-relaxed">
-                <Markdown>{version.content}</Markdown>
-              </article>
-            ) : null}
+            )}
           </TabsContent>
         )}
         <TabsContent value="code">
-          {/* The title row already names it: no CodeHeader, no card. */}
-          <CodeView
-            className="rounded-none border-0"
-            contents={version.content}
-            header={false}
+          <ArtifactSource
+            content={version.content}
+            kind={artifact.kind}
             path={path}
           />
         </TabsContent>

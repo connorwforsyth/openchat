@@ -1,7 +1,7 @@
 "use client";
 
 import { Trans, useLingui } from "@lingui/react/macro";
-import { CodeIcon, FileTextIcon, GlobeIcon } from "@workspace/icons";
+import { CodeIcon, FileTextIcon, GlobeIcon, ImageIcon } from "@workspace/icons";
 import { useCallback } from "react";
 
 import type { ArtifactRefPart } from "../model/parts";
@@ -25,6 +25,8 @@ function KindLabel({ kind }: { readonly kind: ArtifactRefPart["kind"] }) {
       return <Trans>Diagram</Trans>;
     case "site":
       return <Trans>Site</Trans>;
+    case "image":
+      return <Trans>Generated image</Trans>;
     default:
       return kind satisfies never;
   }
@@ -39,6 +41,8 @@ const iconFor = (kind: ArtifactRefPart["kind"]) => {
     case "document":
     case "markdown":
       return FileTextIcon;
+    case "image":
+      return ImageIcon;
     default:
       return CodeIcon;
   }

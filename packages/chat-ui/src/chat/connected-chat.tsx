@@ -31,6 +31,8 @@ import type {
 } from "@workspace/composer/schemas";
 import type { ModelVariant } from "@workspace/composer/variants";
 import type {
+  ArtifactId,
+  ArtifactVersionId,
   ConversationId,
   FileId,
   MessageId,
@@ -181,6 +183,11 @@ export interface ConnectedChatProps {
 }
 
 const fileUrl = (fileId: FileId): string => `/api/files/${fileId}/content`;
+/** A generated image's bytes (138), served by its artifact version. */
+const artifactImageUrl = (
+  artifactId: ArtifactId,
+  versionId: ArtifactVersionId
+): string => `/api/artifacts/${artifactId}/versions/${versionId}/image`;
 
 const ignore = () => undefined;
 
@@ -1629,6 +1636,7 @@ export function ConnectedChat({
   const { decide } = decisions;
   const actions = useMemo(
     (): ConversationActions => ({
+      artifactImageUrl,
       fileUrl,
       ...(libraryHref
         ? { libraryItemHref: (id) => `${libraryHref}/${id}` }

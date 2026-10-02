@@ -103,6 +103,7 @@ export function Composer({
   commands = NONE,
   disabled = false,
   files: workspaceFiles = NONE,
+  fill,
   handoff,
   models = NONE,
   onAttachmentsChange,
@@ -419,6 +420,40 @@ export function Composer({
     editor.setEditable(!disabled && pendingTemplate === null, false);
   }, [disabled, editor, pendingTemplate]);
 
+  // The + menu's "Image" (138): offered when the chosen model can make one
+  // (it calls `generate_image`, or draws itself); it starts the message.
+  const canMakeImages = useMemo(() => {
+    const chosen =
+      target?.type === "model"
+        ? models.find((option) => option.selector === target.model)
+        : undefined;
+    return Boolean(
+      chosen &&
+        (chosen.imageModel || chosen.capabilities.includes("image-output"))
+    );
+  }, [models, target]);
+  const imageStart = t`Make an image of `;
+  const startImage = useCallback(() => {
+    const current = editor.getText();
+    editor.commands.setContent(
+      textToDoc(current.trim() === "" ? imageStart : `${imageStart}${current}`),
+      { emitUpdate: true }
+    );
+    editor.commands.focus("end");
+  }, [editor, imageStart]);
+
+  // The host filled the composer (138): its text replaces the draft, and
+  // the caret waits at the end for the rest of the sentence.
+  const fillId = fill?.id;
+  const fillText = fill?.text;
+  useEffect(() => {
+    if (fillId === undefined || fillText === undefined) {
+      return;
+    }
+    editor.commands.setContent(textToDoc(fillText), { emitUpdate: true });
+    editor.commands.focus("end");
+  }, [editor, fillId, fillText]);
+
   // A template's text is gone once the editor is empty again.
   useEffect(() => {
     if (text.trim() === "") {
@@ -584,6 +619,7 @@ export function Composer({
           onAddFile={addWorkspaceFile}
           onAddSkill={pickSkill}
           onAttach={openFilePicker}
+          onMakeImage={canMakeImages ? startImage : undefined}
           onPlanChange={onPlanChange}
           onStop={onStop ? stop : undefined}
           onTargetChange={onTargetChange}

@@ -512,3 +512,82 @@ describe("approvals", () => {
     expect(screen.queryByRole("button", { name: "Reject all" })).toBeNull();
   });
 });
+
+describe("generate_image (138)", () => {
+  const ARTIFACT = "00000000-0000-4000-8000-0000000000a1";
+  const VERSION = "00000000-0000-4000-8000-0000000000b1";
+  const generated = {
+    images: [
+      {
+        artifact: {
+          artifactId: ARTIFACT,
+          kind: "image",
+          title: "A fox at dusk",
+          versionId: VERSION,
+        },
+        mediaType: "image/png",
+        path: "images/a-fox-at-dusk-1.png",
+      },
+    ],
+    model: "Pixel",
+    prompt: "A fox at dusk",
+    source: null,
+    status: "generated",
+  };
+
+  it("asks first, saying how many it will make", () => {
+    renderTool(
+      call(
+        "generate_image",
+        { count: 2, prompt: "A fox" },
+        { requestedAt: "2026-10-02T00:00:00.000Z", state: "pending" }
+      ),
+      undefined,
+      { onDecide: vi.fn() }
+    );
+    line("Wants to make 2 images");
+    expect(
+      screen.getByRole("region", {
+        name: "Approval needed for generate_image",
+      })
+    ).toBeTruthy();
+  });
+
+  it("shows each picture inline, to download or edit", async () => {
+    const onEditImage = vi.fn();
+    renderTool(
+      call("generate_image", { prompt: "A fox at dusk" }),
+      success("generate_image", generated),
+      {
+        artifactImageUrl: (artifactId, versionId) =>
+          `/img/${artifactId}/${versionId}`,
+        onEditImage,
+      }
+    );
+    const images = screen.getByRole("region", { name: "Generated images" });
+    const picture = within(images).getByRole("img", { name: "A fox at dusk" });
+    expect(picture.getAttribute("src")).toBe(`/img/${ARTIFACT}/${VERSION}`);
+    const download = within(images).getByRole("link", {
+      name: "Download a-fox-at-dusk-1.png",
+    });
+    expect(download.getAttribute("download")).toBe("a-fox-at-dusk-1.png");
+    await userEvent.click(
+      within(images).getByRole("button", { name: "Edit this image" })
+    );
+    expect(onEditImage).toHaveBeenCalledWith({
+      path: "images/a-fox-at-dusk-1.png",
+      prompt: "A fox at dusk",
+    });
+  });
+
+  it("says why it made nothing", () => {
+    renderTool(
+      call("generate_image", { prompt: "A fox" }),
+      success("generate_image", { status: "over_budget" })
+    );
+    line("Couldn't make an image");
+    expect(screen.queryByRole("region", { name: "Generated images" })).toBe(
+      null
+    );
+  });
+});

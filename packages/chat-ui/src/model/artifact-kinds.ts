@@ -15,6 +15,7 @@ export const artifactKindLabels: Readonly<
   code: msg`Code`,
   document: msg`Document`,
   html: msg`Web page`,
+  image: msg`Generated image`,
   markdown: msg`Markdown`,
   mermaid: msg`Diagram`,
   react: msg`React component`,
@@ -39,8 +40,10 @@ export const artifactKindDefinition = (
 export const starterKinds: readonly ArtifactKind[] = artifactKinds.filter(
   (kind) => {
     const { render } = builtinKindDefinitions[kind];
+    // An image is only ever `generate_image`'s (138), never started by hand.
     return (
       kind !== "markdown" &&
+      kind !== "image" &&
       (render.runtime !== null || render.panel !== "source")
     );
   }

@@ -78,6 +78,7 @@ const REVIEWER = /Reviewer/;
 const BO = /Bo/;
 const APP_TS = /app\.ts/;
 const NEW_FILE = /New file/;
+const IMAGE = /^Image/;
 const OPEN_FILE = /Open file/;
 const PREVIEW = /Preview/;
 const THINKING = /^Thinking:/;
@@ -1077,5 +1078,63 @@ describe("Composer's thinking level and fast mode (105)", () => {
     );
     expect(changes).not.toHaveBeenCalled();
     expect(thinking()?.getAttribute("aria-label")).toBe("Thinking: Low");
+  });
+});
+
+describe("fill (138)", () => {
+  it("replaces the draft with the host's text, once per id, ready to finish", async () => {
+    const { editor, onSubmit, rerender } = renderComposer();
+    const view = (fill: ComposerProps["fill"]) => (
+      <I18nProvider i18n={i18n}>
+        <Composer fill={fill} onSubmit={onSubmit} />
+      </I18nProvider>
+    );
+    rerender(view({ id: 1, text: "Edit the image images/fox-1.png: " }));
+    await waitFor(() =>
+      expect(editor.textContent).toBe("Edit the image images/fox-1.png: ")
+    );
+    await userEvent.keyboard("make it blue");
+    await userEvent.keyboard("{Enter}");
+    expect(lastValue(onSubmit).text).toBe(
+      "Edit the image images/fox-1.png: make it blue"
+    );
+  });
+});
+
+describe("the + menu's Image (138)", () => {
+  const drawing: ModelOption = {
+    available: true,
+    capabilities: ["tools"],
+    contextWindow: null,
+    imageModel: { displayName: "GPT Image", target: "openai:gpt-image-1" },
+    label: "strong",
+    selector: "strong",
+    target: "anthropic:claude-opus-5-5",
+  };
+
+  it("starts a message asking for a picture when the chosen model can make one", async () => {
+    const { editor } = renderComposer({
+      models: [drawing],
+      onTargetChange: vi.fn(),
+      target: { model: "strong", type: "model" },
+    });
+    await userEvent.click(
+      screen.getByRole("button", { name: "Add to message" })
+    );
+    await userEvent.click(await screen.findByRole("menuitem", { name: IMAGE }));
+    await waitFor(() => expect(editor.textContent).toBe("Make an image of "));
+  });
+
+  it("isn't offered for a model that can't", async () => {
+    renderComposer({
+      models: [{ ...drawing, imageModel: undefined }],
+      onTargetChange: vi.fn(),
+      target: { model: "strong", type: "model" },
+    });
+    await userEvent.click(
+      screen.getByRole("button", { name: "Add to message" })
+    );
+    await screen.findByRole("menuitem", { name: "Attach files" });
+    expect(screen.queryByRole("menuitem", { name: IMAGE })).toBeNull();
   });
 });

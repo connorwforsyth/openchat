@@ -1,10 +1,15 @@
 import type { MessageDescriptor } from "@lingui/core";
-import { msg } from "@lingui/core/macro";
+import { msg, plural } from "@lingui/core/macro";
 import {
   type InterruptedBy,
   type Interruption,
   interruptionOf,
 } from "@workspace/ai/messages/approval";
+import {
+  type GeneratedImage,
+  generateImageOutputSchema,
+} from "@workspace/ai/tools/image-generation";
+import { GENERATE_IMAGE_TOOL } from "@workspace/ai/tools/registry/generate-image";
 import {
   isSkillAuthoringTool,
   type SkillAuthoringOutput,
@@ -46,6 +51,7 @@ export type ToolIconName = Extract<
   | "FileIcon"
   | "FileTextIcon"
   | "GlobeIcon"
+  | "ImageIcon"
   | "MonitorIcon"
   | "PencilIcon"
   | "SearchIcon"
@@ -76,6 +82,12 @@ export type ToolDetail =
       readonly stdout: string;
     }
   | { readonly change: FileChange; readonly kind: "file-change" }
+  | {
+      /** What `generate_image` made (138), for the images in the reply. */
+      readonly images: readonly GeneratedImage[];
+      readonly kind: "image";
+      readonly prompt: string;
+    }
   | {
       readonly kind: "skill";
       /** What a skill tool saved or published (128), for the skill card. */
@@ -313,6 +325,72 @@ const webSearchLabels: Labels = {
   done: msg`Searched the web`,
   error: msg`Couldn't search the web`,
   running: msg`Searching the web`,
+};
+
+const imageLabels = (count: number): Labels => ({
+  awaiting: msg`${plural(count, {
+    one: "Wants to make an image",
+    other: "Wants to make # images",
+  })}`,
+  denied: msg`Didn't make an image`,
+  done: msg`${plural(count, { one: "Made an image", other: "Made # images" })}`,
+  error: msg`Couldn't make an image`,
+  running: msg`${plural(count, {
+    one: "Making an image",
+    other: "Making # images",
+  })}`,
+});
+
+const imageInputSchema = z.looseObject({
+  count: z.int().min(1).optional().catch(undefined),
+});
+
+/**
+ * `generate_image` (138): its pictures for the reply once it made them;
+ * a result that made none reads as an error, in words the person follows.
+ */
+const imageSummary = (
+  call: ToolCallPart,
+  result: ToolResultPart | undefined
+): ToolSummary => {
+  const parsed = generateImageOutputSchema.safeParse(successValue(result));
+  const asked = imageInputSchema.safeParse(call.input);
+  const count =
+    parsed.success && parsed.data.status === "generated"
+      ? parsed.data.images.length
+      : ((asked.success ? asked.data.count : undefined) ?? 1);
+  const summary = labelled(call, result, "ImageIcon", imageLabels(count));
+  if (!parsed.success || summary.status !== "done") {
+    return summary;
+  }
+  switch (parsed.data.status) {
+    case "generated":
+      return {
+        ...summary,
+        detail: {
+          images: parsed.data.images,
+          kind: "image",
+          prompt: parsed.data.prompt,
+        },
+      };
+    case "not_found":
+      return {
+        ...summary,
+        errorText: parsed.data.path,
+        label: imageLabels(count).error,
+        status: "error",
+      };
+    case "over_budget":
+      return {
+        ...summary,
+        label: imageLabels(count).error,
+        status: "error",
+      };
+    case "unavailable":
+      return summary;
+    default:
+      return parsed.data satisfies never;
+  }
 };
 
 const mcpLabels = (code: string, server: string): Labels => ({
@@ -575,6 +653,8 @@ const summaryOf = (
       return labelled(call, result, "SearchIcon", fileSearchLabels);
     case "web_search":
       return labelled(call, result, "GlobeIcon", webSearchLabels);
+    case GENERATE_IMAGE_TOOL:
+      return imageSummary(call, result);
     default: {
       if (isSkillAuthoringTool(call.toolName)) {
         return skillSummary(call, result, call.toolName);

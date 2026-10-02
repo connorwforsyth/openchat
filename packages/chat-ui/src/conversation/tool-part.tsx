@@ -12,6 +12,7 @@ import { useConversationActions } from "./actions";
 import { ApprovalCard } from "./approval";
 import { useRunActivity } from "./approval-state";
 import { FileChangeCard } from "./file-change-card";
+import { GeneratedImages } from "./generated-images";
 import { SkillApprovalSubject, SkillCard } from "./skill-card";
 import { ToolStatus } from "./tool-status";
 
@@ -62,7 +63,11 @@ export const ToolPart = memo(function ToolPartInner({
       {summary.detail.kind === "skill" ? (
         <SkillCard detail={summary.detail} />
       ) : null}
+      {summary.detail.kind === "image" ? (
+        <GeneratedImages detail={summary.detail} />
+      ) : null}
       {summary.detail.kind === "file-change" ||
+      summary.detail.kind === "image" ||
       summary.detail.kind === "skill" ? null : (
         <ToolStatus
           onOpenPreview={onOpenPreview}
