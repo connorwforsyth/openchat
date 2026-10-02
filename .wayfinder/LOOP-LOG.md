@@ -161,3 +161,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-10-02 · 126 merged (PR #109) after reconciling with Sites: one kinds layer (planning runs get none), migration after sites · gate 93/93 · e2e 107/107
 - 2026-10-02 · 138 merged (PR #111) · gate 93/93 · e2e 109/109
 - 2026-10-03 · Connor asked for a study of T3 Code: five reports in `.context/research/t3code/`; added 140–157 (152 needs Connor; 155 is a contract change) · claimed 140, 143, 145; 142 and 144 done directly
+- 2026-10-03 · 140, 143, 145, 146, 147, 149 gated (e2e 109–111) → PRs #115–#120; 142 #112, 144 #113, 148 #114 · not merged (Connor reviews; new direction from the T3 study) · one workspace-split e2e flake under load, passes alone and on rerun
