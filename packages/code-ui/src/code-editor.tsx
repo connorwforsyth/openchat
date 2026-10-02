@@ -19,7 +19,7 @@ import {
 } from "react";
 
 import { CodeHeader } from "./code-header";
-import { codeThemeNames } from "./theme/code-theme";
+import { codeThemeNames, preferredHighlighter } from "./theme/code-theme";
 import { prepareEditorColors } from "./theme/editor-colors";
 import { diffsHostStyle } from "./theme/host-styles";
 import { registerCodeThemes } from "./theme/register";
@@ -105,6 +105,7 @@ export function CodeEditor({
     () => ({
       disableFileHeader: true,
       overflow: "scroll" as const,
+      preferredHighlighter,
       theme: codeThemeNames,
       themeType,
     }),
