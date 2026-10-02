@@ -104,3 +104,4 @@ Done: 009 and 010 prototypes, 042 contract PR (#31), Docker verification (045, P
 ## Answered 2026-10-02 (contracts)
 
 - Connor approved both contract changes and said to merge: Sites (125, PR #105) and Documents (126, PR #109).
+- 138 (image generation, branch `t/138-image-generation`): additive contract changes await approval: the `image` artifact kind, the `image-output` model capability, and optional `ModelOption.imageModel`. Also open: a per-call `model` argument, a per-turn image model picker, and forcing image generation like web search (a run option, which is a contract change).

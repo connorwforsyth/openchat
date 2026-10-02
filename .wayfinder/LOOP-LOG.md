@@ -156,3 +156,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-10-02 · Connor: image generation into the chat, saved to files and artifacts (138)
 - 2026-10-02 · 137 merged (PR #107) · icons tidy (PR #108): tiny components instead of @__PURE__ per line; #__NO_SIDE_EFFECTS__ tried and rejected (Turbopack ignores it across modules, +18 KB)
 - 2026-10-02 · 126 built (e2e 98/98 pre-rebase); draft PR #109 awaits Connor's contract approval
+- 2026-10-02 · machine restarted (agents and runs cut off; resumed) · 125 merged (PR #105) · gate 93/93 · e2e 101/101 · 126 reconciling with Sites · 138 built, awaits contract approval
