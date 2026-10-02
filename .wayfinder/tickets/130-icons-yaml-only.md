@@ -2,7 +2,7 @@
 id: "130"
 title: "Icon set from app.config.yaml only; setup stops writing ICON_* into .env"
 labels: [wayfinder:build]
-status: in-progress
+status: closed
 assignee: loop
 blockedBy: []
 ---
