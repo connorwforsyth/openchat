@@ -536,6 +536,76 @@ test("a decision sent while a reloaded page replays the run stays sent (136)", a
   expect(watched.posts).toEqual([200, 200, 200]);
 });
 
+/** The chat's stored branch, fetched (batched or not). */
+const STORED_BRANCH = /\/conversations\/[0-9a-f-]+\/path(?=["?&]|$)/;
+
+/**
+ * The persisted query cache (D28) as text: idb-keyval's default store,
+ * where `query-persistence.ts` keeps it.
+ */
+const persistedCache = (page: Page) =>
+  page.evaluate(
+    () =>
+      new Promise<string>((resolve) => {
+        const open = indexedDB.open("keyval-store");
+        open.onerror = () => resolve("");
+        open.onsuccess = () => {
+          try {
+            const read = open.result
+              .transaction("keyval")
+              .objectStore("keyval")
+              .get("query-cache");
+            read.onsuccess = () => resolve(JSON.stringify(read.result ?? ""));
+            read.onerror = () => resolve("");
+          } catch {
+            resolve("");
+          }
+        };
+      })
+  );
+
+test("a card restored from the last visit waits until it's checked (136)", async ({
+  page,
+}) => {
+  const watched = await watch(page);
+  await page.goto("/");
+  await send(page, "[script:site]");
+  await expect(cards(page)).toHaveCount(1, { timeout: 30_000 });
+  // The index.html card is in the cache kept for the next visit.
+  await expect
+    .poll(async () => (await persistedCache(page)).includes("pending"), {
+      timeout: 15_000,
+    })
+    .toBe(true);
+
+  // On a slow connection the branch doesn't refetch after the decision,
+  // so the kept copy still shows index.html waiting.
+  const checking = await holdApi(page, STORED_BRANCH);
+  await Promise.all([
+    page.waitForResponse((response) => response.url().includes("/approvals")),
+    approveNext(page),
+  ]);
+  await page.reload();
+  await composerReady(page);
+  // The restored card shows, but can't be decided until the branch is
+  // checked: it was decided already.
+  await expect(
+    page.locator('section[aria-label^="Approval needed"]')
+  ).not.toHaveCount(0);
+  await expect(cards(page)).toHaveCount(0);
+  checking.release();
+  await expect(
+    page.getByRole("button", { name: "Wants to change style.css" })
+  ).toBeVisible({ timeout: 30_000 });
+  await approveNext(page);
+  await expect(
+    page.getByRole("button", { name: "Wants to change script.js" })
+  ).toBeVisible({ timeout: 30_000 });
+  await approveNext(page);
+  await expectReply(page, SITE_DONE);
+  expect(watched.posts).toEqual([200, 200, 200]);
+});
+
 test("two tabs: a decision in one shows in the other, and deciding twice is harmless", async ({
   baseURL,
   browser,

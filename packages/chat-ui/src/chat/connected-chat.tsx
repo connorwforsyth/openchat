@@ -1203,6 +1203,7 @@ const useStaleCalls = (
 const useRunControls = ({
   api,
   chat,
+  checking,
   client,
   conversationId,
   createdRunId,
@@ -1212,6 +1213,8 @@ const useRunControls = ({
 }: {
   readonly api: QueryUtils;
   readonly chat: ReturnType<typeof useRunChat>;
+  /** The branch on screen is a restored copy not yet checked (136). */
+  readonly checking: boolean;
   readonly client: ApiClient;
   readonly conversationId: ConversationId | null;
   /** The run this page started last, for Stop before the runs list has it. */
@@ -1307,11 +1310,12 @@ const useRunControls = ({
   const activity = useMemo(
     (): RunActivity => ({
       answers: answerPhases(activeRuns),
+      checking,
       decisions: decisions.states,
       onRetry: decisions.retry,
       stale,
     }),
-    [activeRuns, decisions.retry, decisions.states, stale]
+    [activeRuns, checking, decisions.retry, decisions.states, stale]
   );
   return {
     activity,
@@ -1325,6 +1329,40 @@ const useRunControls = ({
     unseen: !following && unseenApprovals(activeRuns, messages).length > 0,
     waiting,
   };
+};
+
+/**
+ * Whether the stored branch on screen is a copy from before the chat was
+ * shown (restored from the persisted cache, D28, or cached from an earlier
+ * visit) that the refetch on showing it hasn't replaced yet (136). It can
+ * be minutes behind: a card on it may be decided already, and deciding it
+ * again only waits for a run that has moved on. Fresh data, or a refetch
+ * that has failed since, counts as checked. Pure.
+ */
+export const restoredUnchecked = (
+  query: {
+    readonly data: unknown;
+    readonly dataUpdatedAt: number;
+    readonly errorUpdatedAt: number;
+    readonly isStale: boolean;
+  },
+  shownAt: number
+): boolean =>
+  query.data !== undefined &&
+  query.isStale &&
+  query.dataUpdatedAt < shownAt &&
+  query.errorUpdatedAt < shownAt;
+
+/** When this chat was shown: on mount, and again when it changes. */
+const useShownAt = (conversationId: ConversationId | null): number => {
+  const [shown, setShown] = useState(() => ({
+    at: Date.now(),
+    id: conversationId,
+  }));
+  if (shown.id !== conversationId) {
+    setShown({ at: Date.now(), id: conversationId });
+  }
+  return shown.at;
 };
 
 /**
@@ -1400,6 +1438,7 @@ export function ConnectedChat({
   // remembers them per model and sets them as the model changes.
   const [variant, setVariant] = useState<ModelVariant>({});
   const titleWatch = useTitleWatch(conversationId);
+  const shownAt = useShownAt(conversationId);
 
   const data = useChatQueries(api, {
     artifactId:
@@ -1515,6 +1554,7 @@ export function ConnectedChat({
     useRunControls({
       api,
       chat,
+      checking: restoredUnchecked(data.path, shownAt),
       client,
       conversationId,
       createdRunId,

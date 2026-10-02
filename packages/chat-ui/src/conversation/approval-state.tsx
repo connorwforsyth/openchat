@@ -22,6 +22,12 @@ export type DecisionState =
 export interface RunActivity {
   /** Unfinished answers by message id; a finished one isn't listed. */
   readonly answers: ReadonlyMap<string, AnswerPhase>;
+  /**
+   * The answer on screen is a copy restored from an earlier visit (D28)
+   * that hasn't been checked against the server yet (136): a card on it
+   * may already be decided, so it can't be decided until then.
+   */
+  readonly checking?: boolean;
   readonly decisions: ReadonlyMap<string, DecisionState>;
   /** Sends a failed decision again. */
   readonly onRetry?: (toolCallId: string) => void;

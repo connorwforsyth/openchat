@@ -43,7 +43,7 @@ export const ToolPart = memo(function ToolPartInner({
   readonly streaming: boolean;
 }) {
   const { onDecide, onOpenPreview } = useConversationActions();
-  const { decisions, onRetry, stale } = useRunActivity();
+  const { checking, decisions, onRetry, stale } = useRunActivity();
   const summary = useMemo(() => toolSummary(call, result), [call, result]);
   const decide = useCallback(
     (decision: ApprovalDecision) => onDecide?.(call.toolCallId, decision),
@@ -72,6 +72,7 @@ export const ToolPart = memo(function ToolPartInner({
       )}
       {summary.status === "awaiting" && onDecide ? (
         <ApprovalCard
+          checking={checking}
           edits={editsFor(approvals, call.toolCallId)}
           onDecide={decide}
           onRetry={onRetry ? retry : undefined}

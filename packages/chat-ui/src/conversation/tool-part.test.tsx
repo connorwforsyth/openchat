@@ -337,6 +337,8 @@ describe("other tools", () => {
   });
 });
 
+const APPROVAL_NEEDED = /^Approval needed/;
+
 describe("approvals", () => {
   const pending = call(
     "edit",
@@ -396,6 +398,24 @@ describe("approvals", () => {
     expect(
       screen.getByRole("button", { name: "Approve all" }).closest("[inert]")
     ).toBeTruthy();
+  });
+
+  it("waits, inert, while the answer is a restored copy not yet checked (136)", () => {
+    renderTool(
+      { ...pending, toolCallId: pendingEdit.toolCallId },
+      undefined,
+      { onDecide: vi.fn() },
+      { activity: { answers: new Map(), checking: true, decisions: new Map() } }
+    );
+    expect(
+      screen.getByRole("button", { name: "Approve all" }).closest("[inert]")
+    ).toBeTruthy();
+    expect(
+      screen
+        .getByRole("region", { name: APPROVAL_NEEDED })
+        .getAttribute("aria-busy")
+    ).toBe("true");
+    expect(screen.getByText("Checking this change still waits…")).toBeTruthy();
   });
 
   it("says a decision failed, and sends it again on Retry", async () => {

@@ -2,7 +2,11 @@ import { pickedSkills, userParts } from "@workspace/client/run-transport";
 import type { UIMessage } from "ai";
 import { describe, expect, it } from "vitest";
 
-import { outgoingMessage, turnOptions } from "./connected-chat";
+import {
+  outgoingMessage,
+  restoredUnchecked,
+  turnOptions,
+} from "./connected-chat";
 
 // What a turn sends: attachments and text as before, plus a
 // `data-workspace-file` part per mentioned file (062), which the run
@@ -102,5 +106,34 @@ describe("turnOptions with plan mode (106)", () => {
     });
     // Off, the mode is left out: a normal run.
     expect(turnOptions(true, {}, false)).not.toHaveProperty("mode");
+  });
+});
+
+describe("restoredUnchecked (136)", () => {
+  const shownAt = 1000;
+  const query = {
+    data: { messages: [] },
+    dataUpdatedAt: 500,
+    errorUpdatedAt: 0,
+    isStale: true,
+  };
+
+  it("holds a branch from before the chat was shown until it's refetched", () => {
+    expect(restoredUnchecked(query, shownAt)).toBe(true);
+    expect(restoredUnchecked({ ...query, dataUpdatedAt: 1500 }, shownAt)).toBe(
+      false
+    );
+  });
+
+  it("trusts fresh data, nothing at all, and a refetch that failed", () => {
+    expect(restoredUnchecked({ ...query, isStale: false }, shownAt)).toBe(
+      false
+    );
+    expect(restoredUnchecked({ ...query, data: undefined }, shownAt)).toBe(
+      false
+    );
+    expect(restoredUnchecked({ ...query, errorUpdatedAt: 1200 }, shownAt)).toBe(
+      false
+    );
   });
 });

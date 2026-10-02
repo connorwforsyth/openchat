@@ -34,6 +34,12 @@ import { LazyDiffView } from "./lazy";
 // reviewed, the combined review goes back as one decision.
 
 export interface ApprovalCardProps {
+  /**
+   * The card is from a copy of the answer not yet checked with the server
+   * (restored from the last visit, 136): it may already be decided, so it
+   * waits, inert, until the check lands.
+   */
+  readonly checking?: boolean;
   readonly edits: readonly ProposedEdit[];
   readonly onDecide: (decision: ApprovalDecision) => void;
   /** Sends the decision that failed again. */
@@ -59,6 +65,7 @@ export interface ApprovalCardProps {
 }
 
 export function ApprovalCard({
+  checking = false,
   edits,
   onDecide,
   onRetry,
@@ -129,8 +136,9 @@ export function ApprovalCard({
   // next card's buttons under the pointer, and a double click's second
   // click would decide that one too.
   const sending = state?.status === "sending" || (clicked && !failed);
+  const inert = sending || checking;
 
-  if (stale) {
+  if (stale && !checking) {
     return (
       <StaleChange
         decide={decide}
@@ -143,11 +151,11 @@ export function ApprovalCard({
   const reviewed = Object.keys(reviews).length;
   return (
     <section
-      aria-busy={sending}
+      aria-busy={inert}
       aria-label={t`Approval needed for ${toolName}`}
       className="flex flex-col gap-3 rounded-lg border bg-muted/30 p-3"
     >
-      <div className="flex flex-col gap-3" inert={sending}>
+      <div className="flex flex-col gap-3" inert={inert}>
         {subject && edits.length === 0 ? (
           subject
         ) : (
@@ -240,23 +248,41 @@ export function ApprovalCard({
           </div>
         )}
       </div>
-      {sending ? (
-        <p
-          className="flex items-center gap-2 text-muted-foreground text-xs"
-          role="status"
-        >
-          <ClockIcon aria-hidden className="size-3.5" />
-          <Trans>Decision sent. Waiting for the agent…</Trans>
-        </p>
-      ) : (
-        <p className="text-muted-foreground text-xs">
-          <Trans>
-            Or send a new message: this change is skipped and the agent reads
-            your message instead.
-          </Trans>
-        </p>
-      )}
+      <CardFooter checking={checking} sending={sending} />
     </section>
+  );
+}
+
+/** What the card is waiting for, or what else the person can do. */
+function CardFooter({
+  checking,
+  sending,
+}: {
+  readonly checking: boolean;
+  readonly sending: boolean;
+}) {
+  if (sending || checking) {
+    return (
+      <p
+        className="flex items-center gap-2 text-muted-foreground text-xs"
+        role="status"
+      >
+        <ClockIcon aria-hidden className="size-3.5" />
+        {sending ? (
+          <Trans>Decision sent. Waiting for the agent…</Trans>
+        ) : (
+          <Trans>Checking this change still waits…</Trans>
+        )}
+      </p>
+    );
+  }
+  return (
+    <p className="text-muted-foreground text-xs">
+      <Trans>
+        Or send a new message: this change is skipped and the agent reads your
+        message instead.
+      </Trans>
+    </p>
   );
 }
 
