@@ -2,7 +2,7 @@
 id: "136"
 title: "Harness e2e flakes under load: a second tab keeps its card after Stop; a card stays after approving across a reload"
 labels: [wayfinder:build]
-status: in-progress
+status: closed
 assignee: loop
 blockedBy: []
 ---
