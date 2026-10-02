@@ -225,8 +225,6 @@ beforeAll(async () => {
 });
 
 afterEach(cleanup);
-// The Preview's device is kept per chat for the session (137).
-afterEach(() => window.sessionStorage.clear());
 
 describe("the list and the main area", () => {
   it("lists the files and the artifacts under the browser, and selects them", async () => {
@@ -814,18 +812,14 @@ describe("the built-in browser (066)", () => {
     await userEvent.click(panel().getByRole("button", { name: "Reload" }));
     await waitFor(() => expect(probe).toHaveBeenCalledTimes(checks + 1));
 
-    // 137: the device menu draws the page at a phone's width, centred.
-    const stage = () => document.querySelector<HTMLElement>("[data-device]");
-    expect(stage()?.dataset.device).toBe("desktop");
-    await press(panel().getByRole("button", { name: "Device: Desktop" }));
+    const width = () =>
+      document.querySelector("[data-width]")?.getAttribute("data-width");
+    expect(width()).toBe("desktop");
+    await press(more());
     await press(
-      await screen.findByRole("menuitemradio", { name: "Phone (390 px)" })
+      await screen.findByRole("menuitemcheckbox", { name: "Mobile width" })
     );
-    await waitFor(() => expect(stage()?.dataset.device).toBe("phone"));
-    expect(stage()?.getBoundingClientRect().width).toBe(390);
-    expect(
-      panel().getByRole("button", { name: "Device: Phone (390 px)" })
-    ).toBeTruthy();
+    await waitFor(() => expect(width()).toBe("mobile"));
   });
 
   it("renders a page itself when nothing can serve it, labelled, with its CSS inlined and links followed", async () => {
@@ -855,13 +849,13 @@ describe("the built-in browser (066)", () => {
     expect(srcdoc).toContain("<h1>Home</h1>");
     expect(frame.getAttribute("sandbox")).not.toContain("allow-same-origin");
     expect(panel().getByText("Static render")).toBeTruthy();
-    // Everything fits in the row and there's no tab to open: no "…" menu.
+    await press(more());
+    await screen.findByRole("menuitemcheckbox", { name: "Mobile width" });
     expect(
-      panel().queryByRole("button", { name: "More browser actions" })
+      screen.queryByRole("menuitem", { name: "Open in a new tab" })
     ).toBeNull();
-    expect(
-      panel().getByRole("button", { name: "Device: Desktop" })
-    ).toBeTruthy();
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
 
     // A link clicked in the page asks the panel for the page it points to.
     act(() =>
@@ -1322,8 +1316,8 @@ describe("the browser over the files (097)", () => {
     expect(await editable()).toBeTruthy();
   });
 
-  // 137: the header's Globe and Files.
-  it("gives the browser the whole panel for the Globe, and Files brings the files back", async () => {
+  // 137: the header's Browser and Files.
+  it("gives the browser the whole panel for Browser, and Files brings the files back", async () => {
     const { client } = fakeClient(files);
     const base = props({ files: chatFiles(client) });
     const view = renderWithI18n(
@@ -1363,7 +1357,7 @@ describe("the browser over the files (097)", () => {
     expect(shown(browser())).toBe(true);
   });
 
-  it("shows the browser's empty state on the Globe before there's a preview", async () => {
+  it("shows the browser's empty state on Browser before there's a preview", async () => {
     const { client } = fakeClient({
       "/work/notes.txt": { content: "notes\n", etag: V1 },
     });
@@ -1379,35 +1373,6 @@ describe("the browser over the files (097)", () => {
     expect(await panel().findByText("Nothing running yet")).toBeTruthy();
     expect(shown(browser())).toBe(true);
     expect(shown(nav())).toBe(false);
-  });
-
-  it("keeps each chat's device for the session", async () => {
-    const { client } = fakeClient(files);
-    const at = (chatKey: string) => (
-      <div style={{ height: 800, width: 900 }}>
-        <Selecting
-          {...props({ chatKey, files: chatFiles(client) })}
-          initial={{ kind: "preview" }}
-        />
-      </div>
-    );
-    const stage = () =>
-      document.querySelector<HTMLElement>("[data-device]")?.dataset.device;
-    const view = renderWithI18n(at("chat-a"));
-    await press(
-      await panel().findByRole("button", { name: "Device: Desktop" })
-    );
-    await press(
-      await screen.findByRole("menuitemradio", { name: "Tablet (768 px)" })
-    );
-    await waitFor(() => expect(stage()).toBe("tablet"));
-    expect(window.sessionStorage.getItem("chat-ui:preview-device:chat-a")).toBe(
-      "tablet"
-    );
-    view.rerender(at("chat-b"));
-    await waitFor(() => expect(stage()).toBe("desktop"));
-    view.rerender(at("chat-a"));
-    await waitFor(() => expect(stage()).toBe("tablet"));
   });
 
   it("keeps the open file below when the chat shows the Preview", async () => {

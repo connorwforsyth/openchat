@@ -235,7 +235,7 @@ describe("header (D14)", () => {
     ).toBeNull();
   });
 
-  // 137: Files and the Globe in place of one Workspace toggle.
+  // 137: Files and Browser in place of one Workspace toggle.
   it("opens the panel on its files or its browser, switches, and closes on a second press", async () => {
     renderWithI18n(<ChatScreen {...props()} />);
     const files = header().getByRole("button", { name: "Files" });
@@ -254,7 +254,7 @@ describe("header (D14)", () => {
     ).toBeTruthy();
     expect(pressed()).toEqual(["true", "false"]);
 
-    // The Globe switches to the browser: its empty state, with nothing
+    // The Browser switches to the browser: its empty state, with nothing
     // running yet.
     await userEvent.click(browser);
     expect(pressed()).toEqual(["false", "true"]);
@@ -268,7 +268,7 @@ describe("header (D14)", () => {
     expect(sidePanel()).toBeNull();
     expect(pressed()).toEqual(["false", "false"]);
 
-    // The Globe opens it too, and Files switches back.
+    // The Browser opens it too, and Files switches back.
     await userEvent.click(browser);
     expect(await screen.findByText("Nothing running yet")).toBeTruthy();
     await userEvent.click(files);
@@ -1032,7 +1032,7 @@ describe("narrow screens", () => {
 
   it("shows the side panel as a bottom sheet, opened from the overflow menu", async () => {
     renderWithI18n(<ChatScreen {...props()} />);
-    // Share, Files and the Globe move into the overflow menu.
+    // Share, Files and Browser move into the overflow menu.
     expect(header().queryByRole("button", { name: "Share" })).toBeNull();
     expect(header().queryByRole("button", { name: "Files" })).toBeNull();
     expect(header().queryByRole("button", { name: "Browser" })).toBeNull();

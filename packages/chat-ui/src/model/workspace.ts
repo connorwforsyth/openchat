@@ -57,7 +57,7 @@ export const halfOf = (section: WorkspaceSection | null): PanelHalf | null => {
   return section === "browser" ? "browser" : "files";
 };
 
-/** The Workspace panel's two halves, as the header's Globe and Files name them. */
+/** The Workspace panel's two halves, as the header's Browser and Files name them. */
 export type PanelHalf = "browser" | "files";
 
 /**

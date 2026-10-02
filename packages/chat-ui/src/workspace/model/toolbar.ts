@@ -4,9 +4,7 @@
 // the address bar (at least 120px), the "…" menu, the Preview/Code switch and
 // Close always fit; Reload, then Forward, then the switch's words, then the
 // "Static render" words come back as room allows. Whatever isn't inline is
-// in the menu (the words just stay in the labels). The device menu (137)
-// comes back after Forward, before any words; until then its choices are in
-// the "…" menu.
+// in the menu (the words just stay in the labels).
 
 /** CSS pixels, as the toolbar's classes draw them. */
 export const TOOLBAR = {
@@ -40,8 +38,6 @@ export interface ToolbarRoom {
 }
 
 export interface ToolbarFit {
-  /** The device menu's button (137); otherwise its choices are in "…". */
-  readonly device: boolean;
   readonly forward: boolean;
   readonly reload: boolean;
   readonly staticLabel: boolean;
@@ -68,7 +64,6 @@ export const toolbarMinimum = ({
   (close ? slot(TOOLBAR.button) : 0);
 
 const FULL: ToolbarFit = {
-  device: true,
   forward: true,
   reload: true,
   staticLabel: true,
@@ -84,13 +79,12 @@ export const fitBrowserToolbar = (room: ToolbarRoom): ToolbarFit => {
   const spare = room.width - toolbarMinimum(room);
   const reload = spare >= slot(TOOLBAR.button);
   const forward = spare >= 2 * slot(TOOLBAR.button);
-  const device = spare >= 3 * slot(TOOLBAR.button);
-  const afterButtons = spare - 3 * slot(TOOLBAR.button);
+  const afterButtons = spare - 2 * slot(TOOLBAR.button);
   const toggleLabels =
-    device && room.toggle && afterButtons >= TOOLBAR.toggleLabels;
+    forward && room.toggle && afterButtons >= TOOLBAR.toggleLabels;
   const staticLabel =
-    device &&
+    forward &&
     afterButtons - (toggleLabels ? TOOLBAR.toggleLabels : 0) >=
       TOOLBAR.staticLabel;
-  return { device, forward, reload, staticLabel, toggleLabels };
+  return { forward, reload, staticLabel, toggleLabels };
 };

@@ -187,9 +187,9 @@ test.describe("shell", () => {
   });
 
   // D14 after tickets 057 and 137: the header ends with Share, Files and the
-  // Globe (no sandbox pill, no Artifacts button), and a new chat opens on
+  // Browser (no sandbox pill, no Artifacts button), and a new chat opens on
   // the template-style empty state with its suggestions.
-  test("the chat header keeps to Share, Files and the Globe", async ({
+  test("the chat header keeps to Share, Files and Browser", async ({
     page,
   }) => {
     await page.goto("/");
@@ -226,7 +226,7 @@ test.describe("shell", () => {
     await expect(files).toHaveAttribute("aria-pressed", "true");
     const panel = page.getByRole("complementary", { name: "Side panel" });
     await expect(panel).toBeVisible();
-    // Before there's anything to preview, the Globe shows the browser's
+    // Before there's anything to preview, Browser shows the browser's
     // empty state.
     await browser.click();
     await expect(browser).toHaveAttribute("aria-pressed", "true");

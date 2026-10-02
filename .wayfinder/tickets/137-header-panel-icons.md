@@ -15,21 +15,24 @@ Reading: replace the header's single `WorkspaceToggle` (PanelRight) with two ico
 
 ## Done when
 
-- The header shows Files and Globe icon buttons, each with a tooltip and a pressed state, where the PanelRight toggle was. The overflow menu's "Workspace" item matches (Files / Browser).
-- Files focuses the files half (it restores it if the browser was maximised), and Globe focuses or maximises the browser half. If there's no preview yet, Globe shows the browser's empty state ("Nothing running yet").
+- The header shows two icon buttons where the PanelRight toggle was: **Files** with a folder icon, and **Browser** with a browser-window icon (`AppWindowIcon`), not a globe. Each has a tooltip and a pressed state. The overflow menu's "Workspace" item matches (Files / Browser).
+- Files focuses the files half (it restores it if the browser was maximised), and Browser focuses or maximises the browser half. If there's no preview yet, Browser shows the browser's empty state ("Nothing running yet").
 - The S and A shortcuts still work. If Artifacts lost its entry point, it stays reachable (a tab in the panel, or the overflow menu).
-- The preview toolbar has a device menu (Desktop / Tablet 768 / Phone 390). The page renders at that width, centred, with a device-frame outline. The choice is per chat and remembered for the session.
-- Tests: unit, plus e2e covering both icons and the device switch. Light and dark, desktop and 375px screenshots checked by eye.
+- Tests: unit, plus e2e covering both icons. Light and dark, desktop and 375px screenshots checked by eye.
+
+## Clarified (2026-10-02)
+
+Connor: "I want the right sidebar icon to not be a right sidebar icon - instead be a files / folder icon - and then the integrated browser thing can be a kind of like a window icon? Almost like a browser." So the buttons are a **folder** icon (Files) and a **browser-window** icon (the integrated browser), not a globe. The "device icon" meant the browser button, so the viewport device menu is out of scope (it can be offered separately).
 
 ## Results (2026-10-02, loop)
 
 Built on `t/137-header-icons` (not pushed).
 
-- **Header.** `header/panel-toggles.tsx` replaces `workspace-toggle.tsx`: Files (FolderIcon) and Browser (GlobeIcon), each with a tooltip (Files shows its S key) and `aria-pressed`. A press on the half that's showing closes the panel; a press on the other switches. The overflow menu (narrow screens) has the same two items as checkboxes, so nothing shifts at 375px.
-- **Halves.** The layout's sections are now `files | browser | artifacts` (a stored `"browser"` reopens there). The Preview's selection belongs to `browser`, so the Globe shows as pressed when the agent opens a page too. A press sends the panel a `HalfRequest`. The Globe maximises the browser (the whole panel; its turn on a narrow panel), and Files brings the files back from a maximised browser (its turn when narrow). With no preview yet, the Globe shows the browser with a new empty state: "Nothing running yet".
-- **Device menu.** It sits in the Preview toolbar after Forward: Desktop, Tablet (768 px) and Phone (390 px). Its icon is the device in use. When the row has no room, the choices move into the "…" menu (`fitBrowserToolbar` gained `device`). The page renders at that width, centred, inside a rounded outline on a muted stage. A half that's narrower than the device scrolls sideways. The choice is kept per chat in `sessionStorage` (`chat-ui:preview-device:<chat id>`). It replaces the "Mobile width" checkbox.
+- **Header.** `header/panel-toggles.tsx` replaces `workspace-toggle.tsx` with two buttons: Files (FolderIcon) and Browser (AppWindowIcon, a window with a top bar). Each has a tooltip (Files also shows its S key) and `aria-pressed`. Pressing the half that's showing closes the panel, and pressing the other half switches to it. On narrow screens the overflow menu has the same two items as checkboxes, so the header doesn't shift at 375px.
+- **Halves.** The layout's sections are now `files | browser | artifacts`, and a stored `"browser"` reopens there. The Preview's selection belongs to `browser`, so Browser shows as pressed when the agent opens a page too. A press sends the panel a `HalfRequest`. Browser maximises the browser (on a narrow panel, the browser's turn). Files brings the files back from a maximised browser (when narrow, the files' turn). With no preview yet, Browser shows the browser with a new empty state: "Nothing running yet".
 - **Artifacts.** They're still in the files' list (its Artifacts section) and on A. Artifacts count as the files half, so Files shows as pressed for them.
-- **Shortcuts.** S toggles the files and A toggles the artifacts, as before. S's label is now "Show or hide the files" (the registry, which also labels the desktop menu) and "Files" in the hints. A panel opened with S hands focus back to Files when it closes.
-- **Icons.** FolderIcon, SmartphoneIcon and TabletIcon are mapped in lucide, lucide-native and phosphor. Material isn't mapped yet, because that needs `icons:vendor`, which downloads packages; it falls back to lucide.
-- **Tests.** Unit tests cover the header toggles, S/A, the overflow menu, `halfOf`, `sectionOf`, `maximisedForHalf`, `viewForHalf`, the toolbar fit, a Globe or Files press on the panel, the empty state and the per-chat device. In e2e, both icons open and switch and a second press closes; the device switch is checked for 390px, centring and a reload. The existing specs now use Files.
-- Screenshots checked by eye in light and dark, at 1280 and 375.
+- **Shortcuts.** S still toggles the files and A the artifacts. S's label is now "Show or hide the files" in the registry, which is what the desktop menu uses, and "Files" in the hints. When a panel opened with S closes, focus goes back to Files.
+- **Icons.** FolderIcon and AppWindowIcon are mapped in lucide, lucide-native and phosphor (`Folder`, `Browser`). Material isn't mapped: mapping it needs `icons:vendor`, which downloads packages. Until then it falls back to lucide.
+- **Device menu.** It was built (Desktop / Tablet 768 / Phone 390, per chat in sessionStorage) and then removed after the clarification. The Preview keeps its old "Mobile width" checkbox. The menu can come back as its own ticket.
+- **Tests.** Unit tests cover the header toggles, S and A, the overflow menu, `halfOf`, `sectionOf`, `maximisedForHalf`, `viewForHalf`, a Browser or Files press on the panel, and the empty state. In e2e, both icons open the panel and switch halves, a second press closes it, and Browser on a new chat shows the empty state. The existing specs now use Files.
+- Screenshots were checked by eye in light and dark, at 1280 and 375.

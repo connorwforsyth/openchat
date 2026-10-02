@@ -7,7 +7,7 @@ import { z } from "zod";
 
 /**
  * The Workspace panel's sections: the chat's files, its browser (the
- * Preview, 137: the header's Globe) or its artifacts. Files and artifacts
+ * Preview, 137: the header's Browser) or its artifacts. Files and artifacts
  * share the lower half; the browser is the upper one. Non-null in the
  * layout means the panel is open.
  */

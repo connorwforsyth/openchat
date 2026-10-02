@@ -180,9 +180,9 @@ describe("maximisedAfter", () => {
   });
 });
 
-// 137: the header's Globe and Files each ask for their half.
+// 137: the header's Browser and Files each ask for their half.
 describe("a header press", () => {
-  it("gives the browser the whole height for the Globe", () => {
+  it("gives the browser the whole height for Browser", () => {
     expect(maximisedForHalf(null, "browser")).toBe("browser");
     expect(maximisedForHalf("files", "browser")).toBe("browser");
   });

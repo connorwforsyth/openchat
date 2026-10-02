@@ -174,7 +174,7 @@ export const maximisedAfter = (
 };
 
 /**
- * The header asking for one half (137): Globe for the browser, Files for
+ * The header asking for one half (137): Browser for the browser, Files for
  * the files. `id` moves with each press, so pressing again asks again.
  */
 export interface HalfRequest {
@@ -183,7 +183,7 @@ export interface HalfRequest {
 }
 
 /**
- * What a header press does to a maximised half: the Globe gives the browser
+ * What a header press does to a maximised half: Browser gives the browser
  * the whole height (its empty state, before there's a preview); Files brings
  * the files back if the browser had it, and leaves them as they were otherwise.
  */

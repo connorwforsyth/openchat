@@ -107,7 +107,6 @@ import { BrowserView } from "./preview";
 import { RenderedFile } from "./rendered-file";
 import { SplitHandle } from "./split-handle";
 import { useElementHeight, useElementWidth } from "./use-element-width";
-import { usePreviewDevice } from "./use-preview-device";
 import { usePreviewHistory } from "./use-preview-history";
 import { useSplit } from "./use-split";
 import {
@@ -167,11 +166,9 @@ export interface WorkspaceArtifacts {
 
 export interface WorkspacePanelProps {
   readonly artifacts: WorkspaceArtifacts;
-  /** The chat, for the Preview's device (137); `null` before it's created. */
-  readonly chatKey?: string | null;
   readonly className?: string;
   readonly files: WorkspaceFilesSource;
-  /** The header's last press of Globe or Files (137). */
+  /** The header's last press of Browser or Files (137). */
   readonly halfRequest?: HalfRequest | null;
   readonly onSelect: (selection: WorkspaceSelection | null) => void;
   /** A page the chat asks the Preview to show (`openPreview`, an `.html` write). */
@@ -285,7 +282,7 @@ interface Turn {
  * the file search is only previewing (↓/↑), which keeps the list in view;
  * Back to the list shows the list. A page the chat asks for shows the
  * browser. A pick also restores a maximised half that would hide it.
- * The header's Globe and Files (137) show their half, as `maximisedForHalf`
+ * The header's Browser and Files (137) show their half, as `maximisedForHalf`
  * and `viewForHalf` say, the panel opening with one included.
  */
 function usePanes({
@@ -821,7 +818,6 @@ function usePreviewSources(view: FilesView): PreviewSources {
 
 function WorkspaceLayout({
   artifacts,
-  chatKey = null,
   className,
   filesSelection,
   halfRequest = null,
@@ -861,7 +857,6 @@ function WorkspaceLayout({
   });
   const { listAlone } = layout;
   const split = useSplit();
-  const [device, setDevice] = usePreviewDevice(chatKey);
   const browserId = useId();
 
   const { navigate } = preview;
@@ -997,14 +992,12 @@ function WorkspaceLayout({
             rowEnd={rowEnds.browser}
           >
             <BrowserView
-              device={device}
               history={preview.history}
               modeToggle={
                 pageMode
                   ? { mode: "rendered", onModeChange: pageMode }
                   : undefined
               }
-              onDeviceChange={setDevice}
               onNavigate={navigate}
               probe={probePreview}
               readFile={view.readFile}

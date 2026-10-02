@@ -338,7 +338,7 @@ function ChatScreenBody({
     [closingPanel, layout.panel, togglePanel]
   );
 
-  // The header's Files and Globe (137) ask the panel for their half; a
+  // The header's Files and Browser (137) ask the panel for their half; a
   // closed panel forgets the last press, so the next opening asks afresh.
   const [halfRequest, setHalfRequest] = useState<HalfRequest | null>(null);
   const halfPresses = useRef(0);
@@ -686,7 +686,6 @@ function ChatScreenBody({
     <RightPanel onClose={closePanel}>
       <LazyWorkspacePanel
         artifacts={workspace.artifacts}
-        chatKey={conversation.id}
         files={files}
         halfRequest={halfRequest}
         onSelect={select}

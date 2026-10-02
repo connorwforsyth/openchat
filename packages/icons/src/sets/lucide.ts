@@ -1,6 +1,7 @@
 // The reference set, and the fallback for every other set: it must map every
 // name in `names.ts` (enforced by `sets.test.ts`).
 import {
+  AppWindow,
   Archive,
   ArrowDown,
   ArrowLeft,
@@ -81,13 +82,11 @@ import {
   Shapes,
   Share,
   Shield,
-  Smartphone,
   Sparkles,
   Square,
   SquarePen,
   Star,
   Sun,
-  Tablet,
   Terminal,
   ThumbsDown,
   ThumbsUp,
@@ -169,8 +168,7 @@ export const EyeOffIcon: Icon = EyeOff;
 export const FileIcon: Icon = File;
 export const FileTextIcon: Icon = FileText;
 export const FolderIcon: Icon = Folder;
-export const SmartphoneIcon: Icon = Smartphone;
-export const TabletIcon: Icon = Tablet;
+export const AppWindowIcon: Icon = AppWindow;
 export const GitBranchIcon: Icon = GitBranch;
 export const GlobeIcon: Icon = Globe;
 export const ImageIcon: Icon = Image;

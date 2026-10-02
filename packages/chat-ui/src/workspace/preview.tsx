@@ -8,20 +8,14 @@ import {
   ExternalLinkIcon,
   FileIcon,
   GlobeIcon,
-  MonitorIcon,
   RefreshCwIcon,
-  SmartphoneIcon,
-  TabletIcon,
 } from "@workspace/icons";
 import { Button } from "@workspace/ui/components/button";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
@@ -32,11 +26,6 @@ import {
   InputGroupText,
 } from "@workspace/ui/components/input-group";
 import { Spinner } from "@workspace/ui/components/spinner";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@workspace/ui/components/tooltip";
 import { cn } from "@workspace/ui/lib/utils";
 import {
   type FormEvent,
@@ -44,7 +33,6 @@ import {
   type ReactNode,
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from "react";
@@ -66,13 +54,6 @@ import {
   targetOf,
   workspaceFileOf,
 } from "./model/browser";
-import {
-  DEFAULT_DEVICE,
-  DEVICE_WIDTH,
-  PREVIEW_DEVICES,
-  type PreviewDevice,
-  previewDeviceSchema,
-} from "./model/device";
 import { probePreview } from "./model/preview-probe";
 import {
   type ReadStaticFile,
@@ -90,8 +71,7 @@ import {
 } from "./view-header";
 
 // The Workspace panel's built-in browser (066): back, forward, reload, an
-// address bar, a device (137: the page at a tablet's or a phone's width,
-// centred in an outline) and open in a new tab, over one page at a
+// address bar, a mobile width and open in a new tab, over one page at a
 // time. A served page is on the sandbox preview origin, never the app's
 // (D24), and every frame is sandboxed on top without `allow-same-origin`:
 // no access to the app, no top navigation, no app cookies. So the panel
@@ -105,12 +85,9 @@ import {
 const FRAME_SANDBOX = "allow-scripts allow-forms allow-popups allow-modals";
 
 export interface BrowserViewProps {
-  /** The width the page is drawn at (137); the panel keeps it per chat. */
-  readonly device?: PreviewDevice;
   readonly history: BrowserHistory | null;
   /** A rendered file's Preview/Code switch, at the end of the toolbar. */
   readonly modeToggle?: Omit<ModeToggleProps, "labels">;
-  readonly onDeviceChange?: (device: PreviewDevice) => void;
   readonly onNavigate: (action: BrowserAction) => void;
   /** Whether a URL answers; the default checks from an opaque-origin frame. */
   readonly probe?: (url: string) => Promise<boolean>;
@@ -122,10 +99,8 @@ export interface BrowserViewProps {
 }
 
 export function BrowserView({
-  device: heldDevice,
   history,
   modeToggle,
-  onDeviceChange,
   onNavigate,
   probe = probePreview,
   readFile,
@@ -133,10 +108,7 @@ export function BrowserView({
   sources,
 }: BrowserViewProps) {
   const { t } = useLingui();
-  // Held by the panel when it passes one; otherwise here, for this view.
-  const [ownDevice, setOwnDevice] = useState<PreviewDevice>(DEFAULT_DEVICE);
-  const device = heldDevice ?? ownDevice;
-  const changeDevice = onDeviceChange ?? setOwnDevice;
+  const [mobile, setMobile] = useState(false);
   const [toolbar, width] = useElementWidth<HTMLDivElement>();
   const rowEnd = useRowEnd();
   const inPanel = usePanelFrame() !== null;
@@ -221,16 +193,13 @@ export function BrowserView({
           staticLabel={fit.staticLabel}
           target={target}
         />
-        {fit.device ? (
-          <DeviceMenu device={device} onDeviceChange={changeDevice} />
-        ) : null}
         <BrowserMenu
           canGoForward={canGoForward(history)}
-          device={fit.device ? null : device}
           fit={fit}
+          mobile={mobile}
           newTab={served ? pageUrl(served.preview, page?.path ?? "/") : null}
-          onDeviceChange={changeDevice}
           onForward={forward}
+          onMobileChange={setMobile}
           onReload={page ? reload : null}
         />
         {modeToggle ? (
@@ -241,148 +210,24 @@ export function BrowserView({
         ) : null}
         <RowEndActions />
       </div>
-      <DeviceStage device={device}>
-        <PageFrame
-          loads={loads}
-          onNavigate={onNavigate}
-          page={page}
-          probe={probe}
-          readFile={readFile}
-          refreshKey={refreshKey}
-          target={target}
-        />
-      </DeviceStage>
-    </div>
-  );
-}
-
-const DEVICE_ICONS: Readonly<Record<PreviewDevice, typeof MonitorIcon>> = {
-  desktop: MonitorIcon,
-  phone: SmartphoneIcon,
-  tablet: TabletIcon,
-};
-
-/** Each device's name in the menu, with its width. */
-const useDeviceLabels = (): Readonly<Record<PreviewDevice, string>> => {
-  const { t } = useLingui();
-  const { phone, tablet } = DEVICE_WIDTH;
-  return useMemo(
-    () => ({
-      desktop: t`Desktop`,
-      phone: t`Phone (${phone} px)`,
-      tablet: t`Tablet (${tablet} px)`,
-    }),
-    [t]
-  );
-};
-
-/** The device choices, for the device menu or the "…" menu. */
-function DeviceChoices({
-  device,
-  onDeviceChange,
-}: {
-  readonly device: PreviewDevice;
-  readonly onDeviceChange: (device: PreviewDevice) => void;
-}) {
-  const labels = useDeviceLabels();
-  const change = useCallback(
-    (value: unknown) => {
-      const picked = previewDeviceSchema.safeParse(value);
-      if (picked.success) {
-        onDeviceChange(picked.data);
-      }
-    },
-    [onDeviceChange]
-  );
-  return (
-    <DropdownMenuRadioGroup onValueChange={change} value={device}>
-      {PREVIEW_DEVICES.map((choice) => {
-        const Icon = DEVICE_ICONS[choice];
-        return (
-          <DropdownMenuRadioItem closeOnClick key={choice} value={choice}>
-            <Icon aria-hidden />
-            {labels[choice]}
-          </DropdownMenuRadioItem>
-        );
-      })}
-    </DropdownMenuRadioGroup>
-  );
-}
-
-/** The toolbar's device button (137): its icon is the device showing. */
-function DeviceMenu({
-  device,
-  onDeviceChange,
-}: {
-  readonly device: PreviewDevice;
-  readonly onDeviceChange: (device: PreviewDevice) => void;
-}) {
-  const { t } = useLingui();
-  const labels = useDeviceLabels();
-  const Icon = DEVICE_ICONS[device];
-  const label = labels[device];
-  return (
-    <DropdownMenu>
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            <DropdownMenuTrigger
-              render={
-                <Button
-                  aria-label={t`Device: ${label}`}
-                  size="icon-sm"
-                  variant="ghost"
-                />
-              }
-            />
-          }
+      <div className={cn("flex min-h-0 flex-1", mobile && "bg-muted/30")}>
+        <div
+          className={cn(
+            "flex min-h-0 w-full flex-1 flex-col bg-background",
+            mobile && "mx-auto max-w-[390px] border-x"
+          )}
+          data-width={mobile ? "mobile" : "desktop"}
         >
-          <Icon aria-hidden />
-        </TooltipTrigger>
-        <TooltipContent side="bottom">
-          <Trans>Device</Trans>
-        </TooltipContent>
-      </Tooltip>
-      <DropdownMenuContent align="end" className="w-48">
-        <DeviceChoices device={device} onDeviceChange={onDeviceChange} />
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
-/**
- * Where the page is drawn: the whole half on a desktop; a tablet's or a
- * phone's width, centred in an outline, otherwise. A half narrower than the
- * device scrolls sideways rather than squeezing the page.
- */
-function DeviceStage({
-  children,
-  device,
-}: {
-  readonly children: ReactNode;
-  readonly device: PreviewDevice;
-}) {
-  const width = DEVICE_WIDTH[device];
-  return (
-    <div
-      className={cn(
-        "flex min-h-0 flex-1",
-        width !== null && "overflow-x-auto bg-muted/40 p-3"
-      )}
-      data-slot="preview-stage"
-    >
-      <div
-        className={cn(
-          "flex min-h-0 w-full flex-1 flex-col bg-background",
-          width !== null &&
-            "mx-auto shrink-0 overflow-hidden rounded-lg border shadow-xs"
-        )}
-        data-device={device}
-        style={
-          width === null ? undefined : { maxWidth: width, minWidth: width }
-        }
-      >
-        {children}
+          <PageFrame
+            loads={loads}
+            onNavigate={onNavigate}
+            page={page}
+            probe={probe}
+            readFile={readFile}
+            refreshKey={refreshKey}
+            target={target}
+          />
+        </div>
       </div>
     </div>
   );
@@ -391,29 +236,24 @@ function DeviceStage({
 /** The toolbar's quieter actions, and whatever didn't fit in the row. */
 function BrowserMenu({
   canGoForward: forwardEnabled,
-  device,
   fit,
+  mobile,
   newTab,
-  onDeviceChange,
   onForward,
+  onMobileChange,
   onReload,
 }: {
   readonly canGoForward: boolean;
-  /** The device, when its own menu didn't fit in the row; `null` when it did. */
-  readonly device: PreviewDevice | null;
   readonly fit: ToolbarFit;
+  readonly mobile: boolean;
   /** The served page's own URL; `null` for a static render (no origin to open). */
   readonly newTab: string | null;
-  readonly onDeviceChange: (device: PreviewDevice) => void;
   readonly onForward: () => void;
+  readonly onMobileChange: (mobile: boolean) => void;
   readonly onReload: (() => void) | null;
 }) {
   const { t } = useLingui();
   const moved = !(fit.forward && fit.reload);
-  // Everything is in the row and there's no tab to open: no menu.
-  if (!(moved || device || newTab)) {
-    return null;
-  }
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -443,16 +283,14 @@ function BrowserMenu({
             <Trans>Reload</Trans>
           </DropdownMenuItem>
         )}
-        {moved && device ? <DropdownMenuSeparator /> : null}
-        {device ? (
-          <DropdownMenuGroup>
-            <DropdownMenuLabel>
-              <Trans>Device</Trans>
-            </DropdownMenuLabel>
-            <DeviceChoices device={device} onDeviceChange={onDeviceChange} />
-          </DropdownMenuGroup>
-        ) : null}
-        {(moved || device) && newTab ? <DropdownMenuSeparator /> : null}
+        {moved ? <DropdownMenuSeparator /> : null}
+        <DropdownMenuCheckboxItem
+          checked={mobile}
+          onCheckedChange={onMobileChange}
+          title={t`Show the page at a phone's width`}
+        >
+          <Trans>Mobile width</Trans>
+        </DropdownMenuCheckboxItem>
         {newTab ? (
           <DropdownMenuItem
             render={

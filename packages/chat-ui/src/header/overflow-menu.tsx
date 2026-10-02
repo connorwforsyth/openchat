@@ -2,9 +2,9 @@
 
 import { Trans, useLingui } from "@lingui/react/macro";
 import {
+  AppWindowIcon,
   EllipsisIcon,
   FolderIcon,
-  GlobeIcon,
   LinkIcon,
   UserPlusIcon,
 } from "@workspace/icons";
@@ -89,7 +89,7 @@ export function HeaderOverflowMenu({
             closeOnClick
             onCheckedChange={toggleBrowser}
           >
-            <GlobeIcon aria-hidden />
+            <AppWindowIcon aria-hidden />
             <Trans>Browser</Trans>
           </DropdownMenuCheckboxItem>
         </DropdownMenuGroup>

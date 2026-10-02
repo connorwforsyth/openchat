@@ -1,7 +1,7 @@
 "use client";
 
 import { useLingui } from "@lingui/react/macro";
-import { FolderIcon, GlobeIcon } from "@workspace/icons";
+import { AppWindowIcon, FolderIcon } from "@workspace/icons";
 import { Button } from "@workspace/ui/components/button";
 import {
   Tooltip,
@@ -14,7 +14,7 @@ import type { PanelHalf } from "../model/workspace";
 
 /**
  * The header's ways into the right panel (137, after D14's one Workspace
- * toggle): Files opens it on the chat's files, the Globe on its browser.
+ * toggle): Files opens it on the chat's files, Browser on its browser.
  * Each closes the panel when its half is the one showing and switches to
  * its half otherwise. Artifacts are in the files' list (and on A).
  */
@@ -42,7 +42,7 @@ export function PanelToggles({
       />
       <HalfToggle
         half="browser"
-        icon={<GlobeIcon aria-hidden />}
+        icon={<AppWindowIcon aria-hidden />}
         label={t`Browser`}
         onToggle={onToggle}
         shown={shown}

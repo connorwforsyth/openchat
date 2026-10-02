@@ -1169,21 +1169,9 @@ msgstr "Description"
 msgid "Description for {name}"
 msgstr "Description for {name}"
 
-#: ../chat-ui/src/workspace/preview.tsx
-msgid "Desktop"
-msgstr "Desktop"
-
 #: ../../apps/web/app/dev/library/page.tsx
 msgid "Developer gallery"
 msgstr "Developer gallery"
-
-#: ../chat-ui/src/workspace/preview.tsx
-msgid "Device"
-msgstr "Device"
-
-#: ../chat-ui/src/workspace/preview.tsx
-msgid "Device: {label}"
-msgstr "Device: {label}"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "Devices"
@@ -2047,6 +2035,10 @@ msgstr "Minimal"
 msgid "MMD"
 msgstr "MMD"
 
+#: ../chat-ui/src/workspace/preview.tsx
+msgid "Mobile width"
+msgstr "Mobile width"
+
 #: ../palette/src/context-actions.ts
 msgid "model"
 msgstr "model"
@@ -2625,10 +2617,6 @@ msgstr "Personal"
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "Personal key fallback is off: this server forbids it."
 msgstr "Personal key fallback is off: this server forbids it."
-
-#: ../chat-ui/src/workspace/preview.tsx
-msgid "Phone ({phone} px)"
-msgstr "Phone ({phone} px)"
 
 #: ../composer/src/components/target-picker.tsx
 msgid "Picks a fast or strong model for each message"
@@ -3436,6 +3424,10 @@ msgstr "Show more"
 msgid "Show or hide the files"
 msgstr "Show or hide the files"
 
+#: ../chat-ui/src/workspace/preview.tsx
+msgid "Show the page at a phone's width"
+msgstr "Show the page at a phone's width"
+
 #: ../palette/src/context-actions.ts
 msgid "Show the workspace"
 msgstr "Show the workspace"
@@ -3679,10 +3671,6 @@ msgstr "Switched to {modelLabel}"
 #: ../chat-ui/src/sidebar/account-menu.tsx
 msgid "System"
 msgstr "System"
-
-#: ../chat-ui/src/workspace/preview.tsx
-msgid "Tablet ({tablet} px)"
-msgstr "Tablet ({tablet} px)"
 
 #: ../palette/src/context-actions.ts
 msgid "team"

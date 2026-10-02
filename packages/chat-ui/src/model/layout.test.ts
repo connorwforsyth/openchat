@@ -55,7 +55,7 @@ describe("the Workspace panel's layout (060)", () => {
     });
   });
 
-  // 137: the header's Globe opens the panel on its browser.
+  // 137: the header's Browser opens the panel on its browser.
   it("keeps a stored browser", () => {
     expect(parseShellLayout(JSON.stringify({ panel: "browser" })).panel).toBe(
       "browser"
