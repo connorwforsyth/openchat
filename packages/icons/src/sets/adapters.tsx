@@ -1,6 +1,6 @@
 import type { Icon as PhosphorIcon } from "@phosphor-icons/react/dist/lib/types";
 
-import type { Icon, IconProps } from "../types";
+import type { IconProps } from "../types";
 
 // Lucide's defaults, so swapping sets doesn't resize every icon without a
 // `size-*` class.
@@ -16,61 +16,60 @@ function hasAccessibleName(props: IconProps): boolean {
 }
 
 /**
- * Wraps a Phosphor icon in the lucide prop surface: drops the stroke props
+ * Draws a Phosphor icon with the lucide prop surface: drops the stroke props
  * Phosphor's filled paths can't use, and hides decorative icons from assistive
- * tech the way lucide does.
+ * tech the way lucide does. Each icon in `phosphor.ts` is a small component
+ * calling this, so an icon nothing renders is dropped without any bundler hint.
  */
-export function fromPhosphor(Glyph: PhosphorIcon): Icon {
-  function PhosphorGlyph({
+export function phosphorGlyph(
+  {
     absoluteStrokeWidth: _absoluteStrokeWidth,
     nonScalingStroke: _nonScalingStroke,
     size = defaultSize,
     ...props
-  }: IconProps) {
-    return (
-      <Glyph
-        aria-hidden={hasAccessibleName(props) ? undefined : true}
-        size={size}
-        {...props}
-      />
-    );
-  }
-  PhosphorGlyph.displayName = Glyph.displayName;
-  return PhosphorGlyph;
+  }: IconProps,
+  Glyph: PhosphorIcon
+) {
+  return (
+    <Glyph
+      aria-hidden={hasAccessibleName(props) ? undefined : true}
+      size={size}
+      {...props}
+    />
+  );
 }
 
 /**
  * Draws a Material Symbol from its path data (`material.glyphs.ts`) with the
  * lucide prop surface. Symbols are filled shapes in a 960-unit box, so they
- * paint with `fill` and ignore the stroke props. A plain function component,
- * so it renders in Server Components too.
+ * paint with `fill` and ignore the stroke props. Each icon in `material.ts`
+ * is a small component calling this, so an icon nothing renders is dropped
+ * without any bundler hint.
  */
-export function fromMaterial(path: string): Icon {
-  function MaterialGlyph({
+export function materialGlyph(
+  {
     absoluteStrokeWidth: _absoluteStrokeWidth,
     children,
     nonScalingStroke: _nonScalingStroke,
     size = defaultSize,
     strokeWidth: _strokeWidth,
     ...props
-  }: IconProps) {
-    return (
-      // biome-ignore lint/a11y/noSvgWithoutTitle: decorative unless the caller names it (aria-label or a <title> child), as with lucide.
-      <svg
-        aria-hidden={
-          hasAccessibleName({ children, ...props }) ? undefined : true
-        }
-        fill="currentColor"
-        height={size}
-        viewBox="0 -960 960 960"
-        width={size}
-        xmlns="http://www.w3.org/2000/svg"
-        {...props}
-      >
-        {children}
-        <path d={path} />
-      </svg>
-    );
-  }
-  return MaterialGlyph;
+  }: IconProps,
+  path: string
+) {
+  return (
+    // biome-ignore lint/a11y/noSvgWithoutTitle: decorative unless the caller names it (aria-label or a <title> child), as with lucide.
+    <svg
+      aria-hidden={hasAccessibleName({ children, ...props }) ? undefined : true}
+      fill="currentColor"
+      height={size}
+      viewBox="0 -960 960 960"
+      width={size}
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
+      {children}
+      <path d={path} />
+    </svg>
+  );
 }

@@ -16,7 +16,7 @@ describe("exportedIconNames", () => {
     const source = [
       'import { Check } from "lucide-react";',
       "export const CheckIcon: Icon = Check;",
-      "export const SendIcon = fromPhosphor(PaperPlaneRight);",
+      "export const SendIcon: Icon = (p) => draw(p, PaperPlaneRight);",
       "const PrivateIcon = Check;",
       "export const helper = 1;",
     ].join("\n");

@@ -17,10 +17,10 @@ import {
 describe("materialSymbols", () => {
   it("lists each glyph reference once, sorted", () => {
     const source = [
-      "export const SearchIcon = fromMaterial(glyph.search);",
-      "export const Trash2Icon = fromMaterial(glyph.delete);",
-      "export const AgentIcon = fromMaterial(glyph.smart_toy);",
-      "export const BotIcon = fromMaterial(glyph.smart_toy);",
+      "export const SearchIcon: Icon = (p) => draw(p, glyph.search);",
+      "export const Trash2Icon: Icon = (p) => draw(p, glyph.delete);",
+      "export const AgentIcon: Icon = (p) => draw(p, glyph.smart_toy);",
+      "export const BotIcon: Icon = (p) => draw(p, glyph.smart_toy);",
     ].join("\n");
     expect(materialSymbols(source)).toEqual(["delete", "search", "smart_toy"]);
   });
