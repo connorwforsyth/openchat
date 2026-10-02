@@ -6,6 +6,8 @@ import {
 import type { ProviderRegistry } from "@workspace/ai/ports/provider-registry";
 import type { RunStart } from "@workspace/ai/ports/run-executor";
 import { createArtifactTools } from "@workspace/ai/tools/artifacts";
+import { instanceArtifactKinds } from "@workspace/artifacts-kit/instance";
+import type { ArtifactKindRegistry } from "@workspace/artifacts-kit/registry";
 import type { AppConfig } from "@workspace/config/schema";
 import type { Db } from "@workspace/db/client";
 
@@ -99,6 +101,8 @@ export interface ServicesOptions {
 }
 
 export interface Services extends ApiServices {
+  /** The artifact kinds this instance offers, with its settings applied (125). */
+  readonly artifactKinds: ArtifactKindRegistry;
   readonly executor: InProcessExecutor;
   /** Handlers for the jobs this package owns; pass them to `registerJobs`. */
   readonly jobHandlers: JobHandlers;
@@ -118,8 +122,12 @@ export const createServices = (options: ServicesOptions): Services => {
   const report = options.report ?? (() => undefined);
   const keyStore =
     options.keyStore ?? createMemoryKeyStore(instanceKeysFromConfig(config));
+  // The instance layer of the kinds' rules (125): its site settings.
+  const artifactKinds = instanceArtifactKinds(config.artifacts.kinds);
   const turnDeps = {
-    artifacts: (run: RunStart) => createArtifactTools(dbArtifactStore(db, run)),
+    artifactKinds,
+    artifacts: (run: RunStart) =>
+      createArtifactTools(dbArtifactStore(db, run), artifactKinds),
     attachedArtifacts: (run: RunStart) => attachedArtifactsSection(db, run),
     // The library's own rules, as the run's creator (128).
     skillAuthoring: skillAuthoringTools({
@@ -210,6 +218,7 @@ export const createServices = (options: ServicesOptions): Services => {
 
   return {
     access: options.access ?? grantAccess(db),
+    artifactKinds,
     budget: options.budget ?? budgetCheck(db, options.now),
     db,
     defaultModel: config.models.default,

@@ -21,6 +21,8 @@ function KindLabel({ kind }: { readonly kind: ArtifactRefPart["kind"] }) {
       return <Trans>Image</Trans>;
     case "mermaid":
       return <Trans>Diagram</Trans>;
+    case "site":
+      return <Trans>Site</Trans>;
     default:
       return kind satisfies never;
   }
@@ -30,6 +32,7 @@ const iconFor = (kind: ArtifactRefPart["kind"]) => {
   switch (kind) {
     case "html":
     case "react":
+    case "site":
       return GlobeIcon;
     case "markdown":
       return FileTextIcon;

@@ -13,6 +13,7 @@ export type InstructionLayer =
   | "agent"
   | "skills"
   | "dynamic"
+  | "kinds"
   | "mentions"
   | "memory";
 
@@ -34,6 +35,13 @@ export interface ComposeInput {
   readonly base?: readonly PromptFile[];
   /** Fragments that depend on the turn, such as `FRAGMENTS.workspace` when the chat has a workspace. */
   readonly dynamic?: readonly PromptFile[];
+  /**
+   * The instructions of the artifact kinds the model may create this turn
+   * (125): each kind is "like a skill under the hood", so its rules and
+   * design guide reach the model whenever the artifact tools do. Kinds with
+   * no instructions add nothing.
+   */
+  readonly kinds?: readonly PromptFile[];
   /** The rendered memory section (`memoryInstructions`). */
   readonly memory?: string;
   /** The rendered `@file` mentions (`workspaceContext`). */
@@ -94,6 +102,9 @@ export const composeInstructions = (
     ),
     ...(input.dynamic ?? []).flatMap(({ source, text }) =>
       section("dynamic", source, text)
+    ),
+    ...(input.kinds ?? []).flatMap(({ source, text }) =>
+      section("kinds", source, text)
     ),
     ...section("mentions", MENTIONS_SOURCE, input.mentions),
   ];

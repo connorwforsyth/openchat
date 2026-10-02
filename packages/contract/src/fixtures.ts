@@ -395,6 +395,9 @@ export const me: Me = {
 };
 
 export const publicConfig: PublicConfig = {
+  artifacts: {
+    siteOrigins: ["https://fonts.googleapis.com", "https://fonts.gstatic.com"],
+  },
   auth: { providers: [{ id: "github", name: "GitHub" }], signup: "invite" },
   brand: { faviconUrl: null, logoUrl: null, name: "Chat" },
   features: {

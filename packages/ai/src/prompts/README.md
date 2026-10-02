@@ -14,8 +14,11 @@ this order by `composeInstructions` (`compose.ts`):
    has a workspace; `fragments/plan.md`'s `planning` part instead of it for a
    planning run (plan mode, 106), and its `approved` part, holding the plan,
    for a run that approves one.
-5. `fragments/mentions.md`: the `@file` mentions in the message being answered.
-6. `fragments/memory.md`: the user's memory file, in a private chat.
+5. The instructions of the artifact kinds the turn may create (125), from
+   their definitions in `@workspace/artifacts-kit`, when the turn has the
+   artifact tools. A kind with empty instructions adds nothing.
+6. `fragments/mentions.md`: the `@file` mentions in the message being answered.
+7. `fragments/memory.md`: the user's memory file, in a private chat.
 
 Layers are joined by one blank line, and a layer with no text is left out.
 `composeInstructions` returns the final string and the sections it was built

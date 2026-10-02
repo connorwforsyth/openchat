@@ -23,11 +23,14 @@
       "dependencies": {
         "@workspace/artifacts-kit": "workspace:*",
         "@workspace/chat-ui": "workspace:*",
+        "@workspace/contract": "workspace:*",
         "@workspace/shared": "workspace:*",
+        "@workspace/ui": "workspace:*",
         "mermaid": "catalog:",
         "react": "catalog:",
         "react-dom": "catalog:",
         "sucrase": "catalog:",
+        "tailwindcss": "^4",
         "zod": "catalog:",
       },
       "devDependencies": {
@@ -170,6 +173,7 @@
         "@workspace/contract": "workspace:*",
         "@workspace/mcp": "workspace:*",
         "@workspace/typescript-config": "workspace:*",
+        "artifacts": "workspace:*",
         "desktop": "workspace:*",
         "typescript": "catalog:",
         "web": "workspace:*",
@@ -214,6 +218,7 @@
       "name": "@workspace/artifacts-kit",
       "version": "0.0.0",
       "dependencies": {
+        "@workspace/config": "workspace:*",
         "@workspace/contract": "workspace:*",
         "@workspace/icons": "workspace:*",
         "@workspace/shared": "workspace:*",
@@ -656,6 +661,7 @@
         "@orpc/server": "catalog:",
         "@orpc/zod": "catalog:",
         "@workspace/ai": "workspace:*",
+        "@workspace/artifacts-kit": "workspace:*",
         "@workspace/auth": "workspace:*",
         "@workspace/config": "workspace:*",
         "@workspace/contract": "workspace:*",

@@ -314,6 +314,28 @@ const cases: Record<string, Cases> = {
       { ...artifactRow, access: "viewer", viewedAt: t, visibility: "shared" },
     ],
   },
+  "files.artifactPublicationSchema": {
+    invalid: [
+      {
+        artifactId: fixtureId("artifact", 1),
+        publishedAt: t,
+        publishedBy: uid,
+        token: "short",
+        url: "https://artifacts.example/s/x/",
+        versionId: fixtureId("artifactVersion", 1),
+      },
+    ],
+    valid: [
+      {
+        artifactId: fixtureId("artifact", 1),
+        publishedAt: t,
+        publishedBy: uid,
+        token: "a".repeat(32),
+        url: "https://artifacts.example/s/aaaa/",
+        versionId: fixtureId("artifactVersion", 1),
+      },
+    ],
+  },
   "files.artifactSchema": {
     invalid: [{ conversationId: convId }],
     valid: [
@@ -393,9 +415,23 @@ const cases: Record<string, Cases> = {
     invalid: [{ purpose: "avatar" }],
     valid: [{}, { conversationId: convId, purpose: "knowledge" }],
   },
+  "files.publishedArtifactSchema": {
+    invalid: [{ content: "{}", kind: "page", publishedAt: t, title: "Site" }],
+    valid: [{ content: "{}", kind: "site", publishedAt: t, title: "Site" }],
+  },
   "files.renameArtifactInputSchema": {
     invalid: [{ id: fixtureId("artifact", 1), title: "  " }],
     valid: [{ id: fixtureId("artifact", 1), title: "Trip plan" }],
+  },
+  "files.saveWorkspaceArtifactInputSchema": {
+    invalid: [
+      { conversationId: convId, kind: "html", path: "site", title: "Site" },
+      { conversationId: convId, kind: "site", path: "site", title: " " },
+    ],
+    valid: [
+      { conversationId: convId, kind: "site", path: "site", title: "Site" },
+      { conversationId: convId, kind: "site", path: ".", title: "Site" },
+    ],
   },
   "files.shareArtifactInputSchema": {
     invalid: [

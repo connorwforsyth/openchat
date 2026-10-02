@@ -76,6 +76,14 @@ export type FeatureFlag = z.infer<typeof featureFlagSchema>;
 
 /** Instance config safe for anyone to read, signed in or not. No secrets, no URLs of internal services. */
 export const publicConfigSchema = z.object({
+  artifacts: z.object({
+    /**
+     * The public origins a Site artifact may load fonts, styles, scripts and
+     * images from (125); its CSP blocks everything else. The artifact
+     * runtime reads it to build that CSP.
+     */
+    siteOrigins: z.array(z.string()),
+  }),
   auth: z.object({
     /** OIDC and social providers offered on the sign-in page. */
     providers: z.array(z.object({ id: z.string(), name: z.string() })),

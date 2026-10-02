@@ -14,6 +14,7 @@ import {
 } from "./common";
 import { artifactKindSchema } from "./message-parts";
 import { modelRefSchema } from "./models";
+import { sandboxPathSchema } from "./sandbox";
 import { principalSchema } from "./tenancy";
 
 // Files, RAG and artifacts (PLAN.md §8 RAG). Uploads land in storage (local
@@ -202,3 +203,48 @@ export const useArtifactInputSchema = z.object({
   conversationId: conversationIdSchema,
   id: artifactIdSchema,
 });
+
+// Sites (125): a Site artifact can be published to a public link, served
+// by the artifact runtime on its own origin (D24), and a folder in a chat's
+// workspace can be saved as one.
+
+/** An artifact's public link and the version it serves. */
+export const artifactPublicationSchema = z.object({
+  artifactId: artifactIdSchema,
+  publishedAt: timestampSchema,
+  publishedBy: userIdSchema,
+  /** Unguessable; the only credential the link needs. */
+  token: z.string().min(22).max(128),
+  /** On the artifact runtime's origin, never the app's. */
+  url: z.url(),
+  /** Publishing again moves the link to the latest version. */
+  versionId: artifactVersionIdSchema,
+});
+export type ArtifactPublication = z.infer<typeof artifactPublicationSchema>;
+
+/**
+ * What a published link serves, for the artifact runtime to build and
+ * show. Public and read-only: the token was the access check.
+ */
+export const publishedArtifactSchema = z.object({
+  content: z.string(),
+  kind: artifactKindSchema,
+  publishedAt: timestampSchema,
+  title: z.string().max(200),
+});
+export type PublishedArtifact = z.infer<typeof publishedArtifactSchema>;
+
+/**
+ * "Save as artifact": the files under a folder in the chat's workspace
+ * become a new artifact of `kind`, if they pass that kind's checks.
+ */
+export const saveWorkspaceArtifactInputSchema = z.object({
+  conversationId: conversationIdSchema,
+  kind: artifactKindSchema.extract(["site"]),
+  /** A folder, relative to the workspace root (`.` for all of it). */
+  path: sandboxPathSchema,
+  title: z.string().trim().min(1).max(200),
+});
+export type SaveWorkspaceArtifactInput = z.infer<
+  typeof saveWorkspaceArtifactInputSchema
+>;

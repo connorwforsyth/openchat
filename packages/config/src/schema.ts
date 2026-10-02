@@ -11,6 +11,8 @@ import { sandboxProviderSchema } from "@workspace/contract/schemas/sandbox";
 import { instancePolicySchema } from "@workspace/contract/schemas/tenancy";
 import { z } from "zod";
 
+import { DEFAULT_SITE_ORIGINS, isSiteOrigin } from "./sites";
+
 // The `app.config.yaml` schema (PLAN.md §9, D18). The YAML sets instance-wide
 // settings and limits; orgs choose within them in the database. Every section
 // has defaults, so an empty or missing file still boots (D8: degrade, never
@@ -619,8 +621,40 @@ const mcpSchema = z
   })
   .prefault({});
 
+/**
+ * The Site kind (125): whether sites are offered, the stack the model is
+ * told to build them with, and the public origins they may load fonts,
+ * styles, scripts and images from. The site's CSP blocks everything else.
+ * Admins edit it here; it applies on restart.
+ */
+const siteKindSchema = z
+  .strictObject({
+    allowedOrigins: z
+      .array(
+        z
+          .string()
+          .refine(
+            isSiteOrigin,
+            "an https origin with no path, like https://fonts.googleapis.com (https://*.example.com covers its subdomains)"
+          )
+      )
+      .max(50)
+      .default([...DEFAULT_SITE_ORIGINS])
+      .transform((origins) => [...new Set(origins)]),
+    enabled: z.boolean().default(true),
+    /**
+     * The stack sites are built with (`@workspace/artifacts-kit`'s
+     * `kinds/site/stacks.ts`). `react-ui` is defined there but not built,
+     * so it isn't offered here yet.
+     */
+    stack: z.enum(["html-tailwind"]).default("html-tailwind"),
+  })
+  .prefault({});
+
 const artifactsSchema = z
   .strictObject({
+    /** Per-kind settings (the framework's instance layer), today sites. */
+    kinds: z.strictObject({ site: siteKindSchema }).prefault({}),
     /** Separate origin for artifacts and previews (D24); `null` serves them sandboxed from a data origin. */
     origin: z.url().nullable().default(null),
   })

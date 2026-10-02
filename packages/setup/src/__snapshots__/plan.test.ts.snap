@@ -220,6 +220,19 @@ mcp:
 
 artifacts:
   origin: null # a separate origin for artifacts and previews, e.g. https://artifacts.example.com
+  kinds:
+    site:
+      # Sites (125): small static websites, published to a link on the runtime's origin
+      enabled: true
+      stack: html-tailwind # react-ui is defined but not available yet
+      # The public origins sites may load fonts, styles, scripts and images
+      # from; their CSP blocks everything else. https only; https://*.host
+      # covers subdomains. These are the defaults.
+      allowedOrigins:
+        - https://fonts.googleapis.com
+        - https://fonts.gstatic.com
+        - https://cdnjs.cloudflare.com
+        - https://cdn.jsdelivr.net
 "
 `;
 
@@ -449,6 +462,19 @@ mcp:
 
 artifacts:
   origin: null # a separate origin for artifacts and previews, e.g. https://artifacts.example.com
+  kinds:
+    site:
+      # Sites (125): small static websites, published to a link on the runtime's origin
+      enabled: true
+      stack: html-tailwind # react-ui is defined but not available yet
+      # The public origins sites may load fonts, styles, scripts and images
+      # from; their CSP blocks everything else. https only; https://*.host
+      # covers subdomains. These are the defaults.
+      allowedOrigins:
+        - https://fonts.googleapis.com
+        - https://fonts.gstatic.com
+        - https://cdnjs.cloudflare.com
+        - https://cdn.jsdelivr.net
 "
 `;
 
@@ -670,6 +696,19 @@ mcp:
 
 artifacts:
   origin: null # a separate origin for artifacts and previews, e.g. https://artifacts.example.com
+  kinds:
+    site:
+      # Sites (125): small static websites, published to a link on the runtime's origin
+      enabled: true
+      stack: html-tailwind # react-ui is defined but not available yet
+      # The public origins sites may load fonts, styles, scripts and images
+      # from; their CSP blocks everything else. https only; https://*.host
+      # covers subdomains. These are the defaults.
+      allowedOrigins:
+        - https://fonts.googleapis.com
+        - https://fonts.gstatic.com
+        - https://cdnjs.cloudflare.com
+        - https://cdn.jsdelivr.net
 "
 `;
 

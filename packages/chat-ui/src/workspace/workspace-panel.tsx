@@ -105,6 +105,7 @@ import {
 import { NewFileDialog } from "./new-file-dialog";
 import { BrowserView } from "./preview";
 import { RenderedFile } from "./rendered-file";
+import { SaveSiteDialog } from "./save-site-dialog";
 import { SplitHandle } from "./split-handle";
 import { useElementHeight, useElementWidth } from "./use-element-width";
 import { usePreviewHistory } from "./use-preview-history";
@@ -1598,6 +1599,7 @@ function WorkspaceMenu({
   const { t } = useLingui();
   const { actions } = view;
   const [confirmReset, setConfirmReset] = useState(false);
+  const [savingSite, setSavingSite] = useState(false);
   const upload = useRef<HTMLInputElement>(null);
   const importFiles = actions?.importFiles;
 
@@ -1610,6 +1612,8 @@ function WorkspaceMenu({
     [importFiles]
   );
   const askReset = useCallback(() => setConfirmReset(true), []);
+  const askSaveSite = useCallback(() => setSavingSite(true), []);
+  const saveAsSite = actions?.saveAsSite;
   const reset = actions?.reset;
   const doReset = useCallback(() => {
     setConfirmReset(false);
@@ -1642,6 +1646,12 @@ function WorkspaceMenu({
             <RefreshCwIcon aria-hidden />
             <Trans>Refresh</Trans>
           </DropdownMenuItem>
+          {saveAsSite ? (
+            <DropdownMenuItem disabled={!writable} onClick={askSaveSite}>
+              <GlobeIcon aria-hidden />
+              <Trans>Save as site…</Trans>
+            </DropdownMenuItem>
+          ) : null}
           <DropdownMenuSeparator />
           <DropdownMenuItem
             disabled={!reset}
@@ -1662,6 +1672,13 @@ function WorkspaceMenu({
         tabIndex={-1}
         type="file"
       />
+      {saveAsSite ? (
+        <SaveSiteDialog
+          onOpenChange={setSavingSite}
+          onSave={saveAsSite}
+          open={savingSite}
+        />
+      ) : null}
       <AlertDialog onOpenChange={setConfirmReset} open={confirmReset}>
         <AlertDialogContent>
           <AlertDialogHeader>

@@ -46,8 +46,22 @@ const createKeepaliveClient = (): Pick<ApiClient, "sandbox"> =>
     fetch: (input, init) => fetch(input, { ...init, keepalive: true }),
   });
 
+/** `VALIDATION`'s issues, as their messages. */
+const issueMessages = (cause: unknown): readonly string[] => {
+  if (codeOf(cause) !== "VALIDATION") {
+    return [];
+  }
+  const issues = field(field(cause, "data"), "issues");
+  return Array.isArray(issues)
+    ? issues.flatMap((issue: unknown) => {
+        const message = field(issue, "message");
+        return typeof message === "string" ? [message] : [];
+      })
+    : [];
+};
+
 export const createApiSandboxClient = (
-  client: Pick<ApiClient, "files" | "sandbox">,
+  client: Pick<ApiClient, "artifacts" | "files" | "sandbox">,
   conversationId: ConversationId,
   messages: SandboxErrorMessages,
   keepaliveClient: () => Pick<ApiClient, "sandbox"> = createKeepaliveClient
@@ -92,6 +106,20 @@ export const createApiSandboxClient = (
     readFile: (id, path) =>
       fromPromise(client.sandbox.readFile({ id, path }), describe),
     reset: (id) => fromPromise(client.sandbox.reset({ id }), describe),
+    saveAsSite: async ({ path, title }) => {
+      try {
+        const saved = await client.artifacts.saveFromWorkspace({
+          conversationId,
+          kind: "site",
+          path,
+          title,
+        });
+        return ok(saved.id);
+      } catch (cause) {
+        const issues = issueMessages(cause);
+        return err(issues.length > 0 ? issues : [describe(cause)]);
+      }
+    },
     writeFile: async ({ content, ifMatch, keepalive, path }) => {
       try {
         return ok(

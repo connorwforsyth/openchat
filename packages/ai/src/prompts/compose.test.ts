@@ -88,6 +88,38 @@ describe("composeInstructions", () => {
     ).toBe("## Memory");
     expect(composeInstructions({ memory: "## Memory" }).text).toBe("## Memory");
   });
+
+  it("puts the artifact kinds' instructions after the fragments and before the mentions", () => {
+    const composed = composeInstructions({
+      dynamic: [FRAGMENTS.workspace],
+      kinds: [
+        { source: "kinds/html", text: "" },
+        { source: "kinds/site", text: "Sites are static." },
+      ],
+      mentions: "<workspace-file/>",
+    });
+    expect(
+      composed.sections.map(({ layer, source }) => [layer, source])
+    ).toEqual([
+      ["dynamic", "fragments/workspace.md"],
+      ["kinds", "kinds/site"],
+      ["mentions", "fragments/mentions.md"],
+    ]);
+    expect(composed.text).toBe(
+      [FRAGMENTS.workspace.text, "Sites are static.", "<workspace-file/>"].join(
+        "\n\n"
+      )
+    );
+  });
+
+  it("adds nothing for kinds whose instructions are empty", () => {
+    expect(
+      composeInstructions({
+        agent: "Be terse.",
+        kinds: [{ source: "kinds/html", text: "" }],
+      })
+    ).toEqual(composeInstructions({ agent: "Be terse." }));
+  });
 });
 
 describe("composeInstructions with skills (127)", () => {

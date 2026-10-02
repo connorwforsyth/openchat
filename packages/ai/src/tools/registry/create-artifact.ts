@@ -27,7 +27,7 @@ export const createArtifactInputSchema = z.object({
     "A short title the user will recognise it by."
   ),
   type: artifactDirectiveSchema.shape.type.describe(
-    "html: one complete HTML document. react: one file with a default-exported component. svg: one <svg> element. mermaid: diagram source. markdown: a document. code: a file in any language."
+    "html: one complete HTML document. react: one file with a default-exported component. svg: one <svg> element. mermaid: diagram source. markdown: a document. code: a file in any language. site: a small website of several files, as JSON (see the Sites instructions)."
   ),
 });
 export type CreateArtifactInput = z.infer<typeof createArtifactInputSchema>;

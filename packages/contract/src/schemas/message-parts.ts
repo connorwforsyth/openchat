@@ -177,6 +177,8 @@ export const artifactKindSchema = z.enum([
   "markdown",
   "svg",
   "mermaid",
+  /** A small static website: several files, published to a link (125). */
+  "site",
 ]);
 export type ArtifactKind = z.infer<typeof artifactKindSchema>;
 

@@ -25,17 +25,23 @@ import {
   duplicateArtifact,
   getArtifact,
   getArtifactGrant,
+  getArtifactPublication,
   getArtifactVersion,
+  getPublishedArtifact,
   listArtifactGrants,
   listArtifactPage,
   listArtifactUses,
   listArtifactVersions,
   listChatArtifacts,
   markArtifactViewed,
+  newestMessageIn,
+  publishArtifactVersion,
   renameArtifact,
+  saveArtifactVersion,
   toArtifact,
   toArtifactGrant,
   toArtifactVersion,
+  unpublishArtifact,
   upsertArtifactGrant,
 } from "@workspace/db/queries/artifacts";
 import { decodeCursor } from "@workspace/db/queries/page";
@@ -49,7 +55,18 @@ import {
   type ConversationAccess,
   type RequestContext,
 } from "../context";
-import { forbiddenError, validationError } from "./errors";
+import {
+  featureDisabledError,
+  forbiddenError,
+  validationError,
+} from "./errors";
+import {
+  folderFiles,
+  mintPublicationToken,
+  type SitesDeps,
+  siteContentFrom,
+  toPublication,
+} from "./sites";
 
 // The `artifacts` procedure group: documents, pages and snippets a chat
 // produced, and their versions for the before/after diff. Since 124 an
@@ -61,6 +78,11 @@ import { forbiddenError, validationError } from "./errors";
 export interface ArtifactsDeps {
   readonly access: ConversationAccess;
   readonly db: Db;
+  /**
+   * Publishing and "Save as artifact" (125). Without it, publishing is off
+   * and saving from a workspace says sandboxes are.
+   */
+  readonly sites?: SitesDeps;
 }
 
 const notFound = () => new ORPCError("NOT_FOUND", baseErrors.NOT_FOUND);
@@ -112,7 +134,10 @@ const mayShareWith = async (
   }
 };
 
-export const createArtifactsRouter = ({ access, db }: ArtifactsDeps) => {
+/** How many workspace files "Save as artifact" reads before giving up. */
+const MAX_WORKSPACE_FILES = 200;
+
+export const createArtifactsRouter = ({ access, db, sites }: ArtifactsDeps) => {
   const os = implement(contract).$context<RequestContext>();
   const authed = os.use(async ({ context, next }) => {
     if (!context.session) {
@@ -212,6 +237,74 @@ export const createArtifactsRouter = ({ access, db }: ArtifactsDeps) => {
       viewedAt: facts.viewedAt?.toISOString() ?? null,
       visibility: facts.shared ? "shared" : "private",
     };
+  };
+
+  /** The runtime origin publishing needs, or the feature is off. */
+  const publishing = () => {
+    if (!(sites?.publicLinks && sites.runtimeOrigin)) {
+      throw featureDisabledError("publicLinks");
+    }
+    return { kinds: sites.kinds, runtimeOrigin: sites.runtimeOrigin };
+  };
+
+  /** "Save as artifact": the folder's files, read as text, or what's wrong. */
+  const readFolder = async (
+    actor: Actor,
+    workspace: SitesDeps["workspace"],
+    input: { readonly conversationId: ConversationId; readonly path: string }
+  ) => {
+    const sandbox = await workspace.get(actor, {
+      conversationId: input.conversationId,
+    });
+    if (!(sandbox.ok && sandbox.value)) {
+      throw validationError([
+        { message: "This chat has no workspace.", path: ["conversationId"] },
+      ]);
+    }
+    const sandboxId = sandbox.value.id;
+    const listed = await workspace.listFiles(actor, {
+      id: sandboxId,
+      path: input.path,
+      recursive: true,
+    });
+    if (!listed.ok) {
+      throw validationError([
+        { message: "There's no folder at that path.", path: ["path"] },
+      ]);
+    }
+    const files = folderFiles(listed.value);
+    if (files.length > MAX_WORKSPACE_FILES) {
+      throw validationError([
+        {
+          message: `The folder has ${files.length} files; a site has far fewer. Save the built site's folder.`,
+          path: ["path"],
+        },
+      ]);
+    }
+    const read = await Promise.all(
+      files.map(async (file) => ({
+        ...file,
+        read: await workspace.readFile(actor, {
+          id: sandboxId,
+          path: file.path,
+        }),
+      }))
+    );
+    const binary = read.filter(
+      ({ read: result }) => !result.ok || result.value.encoding !== "utf8"
+    );
+    if (binary.length > 0) {
+      throw validationError(
+        binary.map(({ relative }) => ({
+          message: `${relative} isn't a text file; sites hold text files only`,
+          path: ["path"],
+        }))
+      );
+    }
+    return read.map(({ read: result, relative }) => ({
+      relative,
+      text: result.ok ? result.value.content : "",
+    }));
   };
 
   const artifacts = {
@@ -331,6 +424,63 @@ export const createArtifactsRouter = ({ access, db }: ArtifactsDeps) => {
       }
     ),
 
+    publication: authed.artifacts.publication.handler(
+      async ({ context, input }) => {
+        await readable(context.actor, input.id);
+        const row = await getArtifactPublication(db, input.id);
+        return row && sites?.runtimeOrigin
+          ? toPublication(row, sites.runtimeOrigin)
+          : null;
+      }
+    ),
+
+    publish: authed.artifacts.publish.handler(async ({ context, input }) => {
+      const row = await owned(context.actor, input.id);
+      const { kinds, runtimeOrigin } = publishing();
+      if (!kinds.get(row.kind)?.capabilities.share) {
+        throw validationError([
+          { message: "Only sites can be published.", path: ["id"] },
+        ]);
+      }
+      if (!row.latestVersionId) {
+        throw notFound();
+      }
+      const version = await getArtifactVersion(
+        db,
+        input.id,
+        row.latestVersionId
+      );
+      if (!version.ok) {
+        throw notFound();
+      }
+      // The instance's rules may have narrowed since it was saved.
+      const problems = kinds.check(row.kind, version.value.content);
+      if (problems.length > 0) {
+        throw validationError(
+          problems.map((message) => ({ message, path: ["id"] }))
+        );
+      }
+      const existing = await getArtifactPublication(db, input.id);
+      const published = await publishArtifactVersion(db, {
+        artifactId: input.id,
+        publishedBy: context.actor.userId,
+        token: existing?.token ?? mintPublicationToken(),
+        versionId: version.value.id,
+      });
+      return toPublication(published, runtimeOrigin);
+    }),
+
+    published: os.artifacts.published.handler(async ({ input }) => {
+      if (!sites?.publicLinks) {
+        throw featureDisabledError("publicLinks");
+      }
+      const found = await getPublishedArtifact(db, input.token);
+      if (!found) {
+        throw notFound();
+      }
+      return { ...found, publishedAt: found.publishedAt.toISOString() };
+    }),
+
     rename: authed.artifacts.rename.handler(async ({ context, input }) => {
       const found = await readable(context.actor, input.id);
       if (found.access === "viewer") {
@@ -342,6 +492,48 @@ export const createArtifactsRouter = ({ access, db }: ArtifactsDeps) => {
       }
       return listItem(context.actor, renamed.value, found.access);
     }),
+
+    saveFromWorkspace: authed.artifacts.saveFromWorkspace.handler(
+      async ({ context, input }) => {
+        if (!sites) {
+          throw featureDisabledError("sandboxes");
+        }
+        if (!(await access(context.actor, input.conversationId, "write"))) {
+          throw (await access(context.actor, input.conversationId, "read"))
+            ? forbiddenError()
+            : notFound();
+        }
+        const files = await readFolder(context.actor, sites.workspace, input);
+        const content = siteContentFrom(files);
+        const problems = sites.kinds.check(input.kind, content);
+        if (problems.length > 0) {
+          throw validationError(
+            problems.map((message) => ({ message, path: ["path"] }))
+          );
+        }
+        const messageId = await newestMessageIn(db, input.conversationId);
+        if (!messageId) {
+          throw validationError([
+            {
+              message: "This chat has no messages yet.",
+              path: ["conversationId"],
+            },
+          ]);
+        }
+        const saved = await saveArtifactVersion(db, {
+          content,
+          conversationId: input.conversationId,
+          kind: input.kind,
+          messageId,
+          ownerId: context.actor.userId,
+          title: input.title,
+        });
+        if (!saved.ok) {
+          throw notFound();
+        }
+        return toArtifact(saved.value.artifact);
+      }
+    ),
 
     share: authed.artifacts.share.handler(async ({ context, input }) => {
       await owned(context.actor, input.id);
@@ -368,6 +560,13 @@ export const createArtifactsRouter = ({ access, db }: ArtifactsDeps) => {
         })
       );
     }),
+
+    unpublish: authed.artifacts.unpublish.handler(
+      async ({ context, input }) => {
+        await owned(context.actor, input.id);
+        await unpublishArtifact(db, input.id);
+      }
+    ),
 
     unshare: authed.artifacts.unshare.handler(async ({ context, input }) => {
       const found = await readable(context.actor, input.id);

@@ -35,6 +35,8 @@ import {
 } from "@workspace/ai/tools/registry/skill-authoring";
 import { resolveTools } from "@workspace/ai/tools/resolve";
 import { buildToolSet, type McpToolSource } from "@workspace/ai/tools/tool-set";
+import { builtinArtifactKinds } from "@workspace/artifacts-kit/builtin";
+import type { ArtifactKindRegistry } from "@workspace/artifacts-kit/registry";
 import type { AppConfig } from "@workspace/config/schema";
 import type {
   LibraryItemId,
@@ -158,6 +160,11 @@ export type TurnResolver = (
 ) => AsyncResult<Turn, RunError>;
 
 export interface TurnResolverDeps {
+  /**
+   * The artifact kinds this instance offers (125), whose instructions a turn
+   * with the artifact tools is given. The built-in kinds when left out.
+   */
+  readonly artifactKinds?: ArtifactKindRegistry;
   /**
    * The chat's artifact tools (`create_artifact`, `update_artifact`) for one
    * run (078), bound to the database by `services.ts`.
@@ -644,6 +651,18 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
   };
 
   /**
+   * The instructions of the artifact kinds the model may create (125): a
+   * kind works like a skill, so a turn that has the artifact tools is told
+   * each kind's rules. Kinds with none add nothing.
+   */
+  const kindInstructions = (
+    tools: Readonly<Record<string, unknown>> | undefined
+  ): readonly PromptFile[] =>
+    tools && ARTIFACT_TOOLS.some((name) => name in tools)
+      ? (deps.artifactKinds ?? builtinArtifactKinds).instructionFiles()
+      : [];
+
+  /**
    * Plan mode's instructions (106): a planning run is told it only reads
    * and what its plan must hold; a run that approves a plan gets the
    * version approved. Nothing for any other run, so its prompt is as before.
@@ -714,6 +733,7 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
         ...(sandbox.sandbox && !planning ? [FRAGMENTS.workspace] : []),
         ...(await planInstructions(run)),
       ],
+      kinds: kindInstructions(tools),
       mentions: mentioned,
       skills: skills.sections,
     });
@@ -878,6 +898,7 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
         agent: definition.instructions,
         base: BASE,
         dynamic: await planInstructions(run),
+        kinds: kindInstructions(gated.tools),
         mentions: mentioned,
         skills: skills.sections,
       }).text,

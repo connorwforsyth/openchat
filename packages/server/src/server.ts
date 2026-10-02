@@ -45,6 +45,7 @@ import {
   type SandboxApi,
 } from "./api/sandbox";
 import { createSharedResourceLoader } from "./api/shared";
+import { runtimeOriginOf } from "./api/sites";
 import { createUsageRouter } from "./api/usage";
 import { type App, createApp } from "./app";
 import { type DatabaseProblem, openDatabase } from "./boot/database";
@@ -494,6 +495,7 @@ export const createServerFromEnv = async (
   }
 
   const loadSharedResource = createSharedResourceLoader(db);
+  const sandboxApi = sandbox?.api ?? disabledSandboxApi;
   const authContext = (
     request: Request,
     session: Session | null
@@ -526,7 +528,16 @@ export const createServerFromEnv = async (
       ...createKeysRouter({ config, db, keys: keyRing, registry }),
       ...createUsageRouter({ db }),
       ...createDecisionsRouter({ db }),
-      ...createArtifactsRouter({ access: services.access, db }),
+      ...createArtifactsRouter({
+        access: services.access,
+        db,
+        sites: {
+          kinds: services.artifactKinds,
+          publicLinks: config.features.publicLinks,
+          runtimeOrigin: runtimeOriginOf(env.ARTIFACTS_ORIGIN),
+          workspace: sandboxApi,
+        },
+      }),
       ...createLibraryRouter({
         db,
         defaultModel: config.models.default,
@@ -545,7 +556,7 @@ export const createServerFromEnv = async (
       }),
       ...createMcpRouter({ db, manager: mcp.manager }),
       ...linkPreviewsFromEnv({ config, env, log }),
-      ...createSandboxRouter({ api: sandbox?.api ?? disabledSandboxApi, db }),
+      ...createSandboxRouter({ api: sandboxApi, db }),
       ...(auth ? authRouter : {}),
       ...options.routers,
     },

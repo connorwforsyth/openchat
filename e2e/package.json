@@ -16,6 +16,7 @@
     "@workspace/contract": "workspace:*",
     "@workspace/mcp": "workspace:*",
     "@workspace/typescript-config": "workspace:*",
+    "artifacts": "workspace:*",
     "desktop": "workspace:*",
     "typescript": "catalog:",
     "web": "workspace:*",

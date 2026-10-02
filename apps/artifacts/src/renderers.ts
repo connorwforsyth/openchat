@@ -76,11 +76,25 @@ const react: Renderer = async (container, request, context) => {
   return teardown;
 };
 
+/**
+ * Sites (125) render on their own page, `site.html`, whose CSP lets in the
+ * instance's public origins; this page's CSP lets in nothing, so it only
+ * says where to go.
+ */
+const site: Renderer = (_container, _request, { fail }) => {
+  fail({
+    kind: "render",
+    message: "Sites are previewed by the runtime's site page (site.html).",
+  });
+  return Promise.resolve(null);
+};
+
 /** The renderers, by the name a kind's `render.runtime` gives. */
 export const runtimeRenderers: Readonly<Record<string, Renderer>> = {
   html,
   mermaid,
   react,
+  site,
   svg,
 };
 

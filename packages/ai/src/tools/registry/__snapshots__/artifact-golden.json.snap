@@ -17,7 +17,8 @@
     "react",
     "markdown",
     "svg",
-    "mermaid"
+    "mermaid",
+    "site"
   ],
   "prompt": {
     "composed": {
@@ -62,9 +63,10 @@
               "react",
               "markdown",
               "svg",
-              "mermaid"
+              "mermaid",
+              "site"
             ],
-            "description": "html: one complete HTML document. react: one file with a default-exported component. svg: one <svg> element. mermaid: diagram source. markdown: a document. code: a file in any language."
+            "description": "html: one complete HTML document. react: one file with a default-exported component. svg: one <svg> element. mermaid: diagram source. markdown: a document. code: a file in any language. site: a small website of several files, as JSON (see the Sites instructions)."
           }
         },
         "required": [
@@ -98,7 +100,8 @@
                       "react",
                       "markdown",
                       "svg",
-                      "mermaid"
+                      "mermaid",
+                      "site"
                     ]
                   },
                   "title": {
@@ -179,7 +182,8 @@
                         "react",
                         "markdown",
                         "svg",
-                        "mermaid"
+                        "mermaid",
+                        "site"
                       ]
                     },
                     "title": {
@@ -286,7 +290,8 @@
                       "react",
                       "markdown",
                       "svg",
-                      "mermaid"
+                      "mermaid",
+                      "site"
                     ]
                   },
                   "title": {
@@ -367,7 +372,8 @@
                         "react",
                         "markdown",
                         "svg",
-                        "mermaid"
+                        "mermaid",
+                        "site"
                       ]
                     },
                     "title": {
@@ -432,6 +438,12 @@
             "content isn't a valid mermaid artifact"
           ],
           "status": "invalid"
+        },
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
         }
       },
       "recorded landing-page": {
@@ -453,6 +465,12 @@
         "mermaid": {
           "problems": [
             "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
         }
@@ -483,6 +501,12 @@
             "content isn't a valid mermaid artifact"
           ],
           "status": "invalid"
+        },
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
         }
       },
       "recorded oauth-login": {
@@ -506,7 +530,13 @@
           ],
           "status": "invalid"
         },
-        "mermaid": "saved"
+        "mermaid": "saved",
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        }
       },
       "recorded sun-icon": {
         "code": "saved",
@@ -522,6 +552,12 @@
         "mermaid": {
           "problems": [
             "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
         }
@@ -545,6 +581,12 @@
         "mermaid": {
           "problems": [
             "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
         }
@@ -575,6 +617,12 @@
             "content isn't a valid mermaid artifact"
           ],
           "status": "invalid"
+        },
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
         }
       },
       "an open directive": {
@@ -603,6 +651,12 @@
             "content isn't a valid mermaid artifact"
           ],
           "status": "invalid"
+        },
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
         }
       },
       "angle brackets": {
@@ -629,6 +683,12 @@
         "mermaid": {
           "problems": [
             "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
         }
@@ -669,6 +729,12 @@
             "content isn't a valid mermaid artifact"
           ],
           "status": "invalid"
+        },
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
         }
       },
       "carriage returns": {
@@ -692,7 +758,13 @@
           ],
           "status": "invalid"
         },
-        "mermaid": "saved"
+        "mermaid": "saved",
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        }
       },
       "classDiagram glued": {
         "code": "saved",
@@ -718,6 +790,12 @@
         "mermaid": {
           "problems": [
             "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
         }
@@ -748,6 +826,12 @@
             "content isn't a valid mermaid artifact"
           ],
           "status": "invalid"
+        },
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
         }
       },
       "default export spaced": {
@@ -769,6 +853,12 @@
         "mermaid": {
           "problems": [
             "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
         }
@@ -794,6 +884,12 @@
             "content isn't a valid mermaid artifact"
           ],
           "status": "invalid"
+        },
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
         }
       },
       "doctype only": {
@@ -815,6 +911,12 @@
         "mermaid": {
           "problems": [
             "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
         }
@@ -855,6 +957,12 @@
             "content isn't a valid mermaid artifact"
           ],
           "status": "invalid"
+        },
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
         }
       },
       "html comment": {
@@ -878,6 +986,12 @@
             "content isn't a valid mermaid artifact"
           ],
           "status": "invalid"
+        },
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
         }
       },
       "indented svg": {
@@ -894,6 +1008,12 @@
         "mermaid": {
           "problems": [
             "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
         }
@@ -924,6 +1044,12 @@
             "content isn't a valid mermaid artifact"
           ],
           "status": "invalid"
+        },
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
         }
       },
       "mermaid graph": {
@@ -947,7 +1073,13 @@
           ],
           "status": "invalid"
         },
-        "mermaid": "saved"
+        "mermaid": "saved",
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        }
       },
       "mermaid flowchart": {
         "code": "saved",
@@ -970,7 +1102,13 @@
           ],
           "status": "invalid"
         },
-        "mermaid": "saved"
+        "mermaid": "saved",
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        }
       },
       "mermaid sequenceDiagram": {
         "code": "saved",
@@ -993,7 +1131,13 @@
           ],
           "status": "invalid"
         },
-        "mermaid": "saved"
+        "mermaid": "saved",
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        }
       },
       "mermaid classDiagram": {
         "code": "saved",
@@ -1016,7 +1160,13 @@
           ],
           "status": "invalid"
         },
-        "mermaid": "saved"
+        "mermaid": "saved",
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        }
       },
       "mermaid stateDiagram": {
         "code": "saved",
@@ -1039,7 +1189,13 @@
           ],
           "status": "invalid"
         },
-        "mermaid": "saved"
+        "mermaid": "saved",
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        }
       },
       "mermaid erDiagram": {
         "code": "saved",
@@ -1062,7 +1218,13 @@
           ],
           "status": "invalid"
         },
-        "mermaid": "saved"
+        "mermaid": "saved",
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        }
       },
       "mermaid gantt": {
         "code": "saved",
@@ -1085,7 +1247,13 @@
           ],
           "status": "invalid"
         },
-        "mermaid": "saved"
+        "mermaid": "saved",
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        }
       },
       "mermaid pie": {
         "code": "saved",
@@ -1108,7 +1276,13 @@
           ],
           "status": "invalid"
         },
-        "mermaid": "saved"
+        "mermaid": "saved",
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        }
       },
       "mermaid mindmap": {
         "code": "saved",
@@ -1131,7 +1305,13 @@
           ],
           "status": "invalid"
         },
-        "mermaid": "saved"
+        "mermaid": "saved",
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        }
       },
       "mermaid timeline": {
         "code": "saved",
@@ -1154,7 +1334,13 @@
           ],
           "status": "invalid"
         },
-        "mermaid": "saved"
+        "mermaid": "saved",
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        }
       },
       "mermaid journey": {
         "code": "saved",
@@ -1180,6 +1366,12 @@
         "mermaid": {
           "problems": [
             "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
         }
@@ -1210,6 +1402,12 @@
             "content isn't a valid mermaid artifact"
           ],
           "status": "invalid"
+        },
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
         }
       },
       "mermaid stateDiagram-v2": {
@@ -1233,7 +1431,13 @@
           ],
           "status": "invalid"
         },
-        "mermaid": "saved"
+        "mermaid": "saved",
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        }
       },
       "mermaid after a fence": {
         "code": "saved",
@@ -1261,6 +1465,12 @@
             "content isn't a valid mermaid artifact"
           ],
           "status": "invalid"
+        },
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
         }
       },
       "mermaid indented": {
@@ -1284,7 +1494,13 @@
           ],
           "status": "invalid"
         },
-        "mermaid": "saved"
+        "mermaid": "saved",
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        }
       },
       "named export only": {
         "code": "saved",
@@ -1310,6 +1526,12 @@
         "mermaid": {
           "problems": [
             "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
         }
@@ -1340,6 +1562,12 @@
             "content isn't a valid mermaid artifact"
           ],
           "status": "invalid"
+        },
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
         }
       },
       "react element default": {
@@ -1356,6 +1584,12 @@
         "mermaid": {
           "problems": [
             "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
         }
@@ -1396,6 +1630,12 @@
             "content isn't a valid mermaid artifact"
           ],
           "status": "invalid"
+        },
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
         }
       },
       "svg after text": {
@@ -1417,6 +1657,12 @@
         "mermaid": {
           "problems": [
             "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
         }
@@ -1442,6 +1688,12 @@
             "content isn't a valid mermaid artifact"
           ],
           "status": "invalid"
+        },
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
         }
       },
       "svg self closing": {
@@ -1463,6 +1715,12 @@
         "mermaid": {
           "problems": [
             "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
         }
@@ -1488,6 +1746,12 @@
             "content isn't a valid mermaid artifact"
           ],
           "status": "invalid"
+        },
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
         }
       },
       "svg uppercase": {
@@ -1511,6 +1775,12 @@
             "content isn't a valid mermaid artifact"
           ],
           "status": "invalid"
+        },
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
         }
       },
       "svg with attributes": {
@@ -1527,6 +1797,12 @@
         "mermaid": {
           "problems": [
             "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
         }
@@ -1567,6 +1843,12 @@
             "content isn't a valid mermaid artifact"
           ],
           "status": "invalid"
+        },
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
         }
       },
       "tag uppercase": {
@@ -1588,6 +1870,12 @@
         "mermaid": {
           "problems": [
             "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
         }
@@ -1618,6 +1906,12 @@
             "content isn't a valid mermaid artifact"
           ],
           "status": "invalid"
+        },
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
         }
       },
       "text then a tag": {
@@ -1641,6 +1935,12 @@
             "content isn't a valid mermaid artifact"
           ],
           "status": "invalid"
+        },
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
         }
       },
       "trailing fence line": {
@@ -1662,6 +1962,12 @@
         "mermaid": {
           "problems": [
             "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        },
+        "site": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
         }
@@ -2582,6 +2888,308 @@
           "status": "invalid"
         },
         "trailing fence line": "saved"
+      },
+      "site": {
+        "recorded counter-button": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "recorded landing-page": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "recorded serve-page": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "recorded oauth-login": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "recorded sun-icon": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "a fence first": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "a lone close": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "an open directive": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "angle brackets": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "blank lines": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "carriage returns": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "classDiagram glued": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "default export no space": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "default export spaced": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "default export, newline": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "doctype only": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "empty string": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "html comment": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "indented svg": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "markdown with fences and directives": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid graph": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid flowchart": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid sequenceDiagram": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid classDiagram": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid stateDiagram": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid erDiagram": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid gantt": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid pie": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid mindmap": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid timeline": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid journey": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid gitGraph": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid stateDiagram-v2": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid after a fence": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid indented": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "named export only": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "one word": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "react element default": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "spaces only": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "svg after text": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "svg in a fence": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "svg self closing": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "svg trailing text": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "svg uppercase": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "svg with attributes": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "tab only": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "tag uppercase": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "tag with digit": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "text then a tag": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        },
+        "trailing fence line": {
+          "problems": [
+            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+          ],
+          "status": "invalid"
+        }
       },
       "svg": {
         "recorded counter-button": {

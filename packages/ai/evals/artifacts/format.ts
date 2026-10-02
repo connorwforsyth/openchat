@@ -52,6 +52,8 @@ const BODY_CHECKS: Readonly<Record<ArtifactKind, RegExp>> = {
   mermaid:
     /^\s*(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|mindmap|timeline)\b/,
   react: /export\s+default\b/,
+  // Sites (125) are JSON with their files; the Site kind checks the rest.
+  site: /"files"\s*:/,
   svg: /^\s*<svg[\s>][\s\S]*<\/svg>\s*$/,
 };
 

@@ -1,4 +1,4 @@
-import type { SandboxId } from "@workspace/contract/schemas/common";
+import type { ArtifactId, SandboxId } from "@workspace/contract/schemas/common";
 import type {
   FileEntry,
   SandboxFileEncoding,
@@ -54,6 +54,15 @@ export interface WorkspaceClient {
   ) => AsyncResult<WorkspaceFileRead, string>;
   /** Empties the workspace and starts it again. */
   reset: (id: SandboxId) => AsyncResult<SandboxRecord, string>;
+  /**
+   * "Save as artifact" (125): a folder (relative to the workspace root)
+   * becomes a Site, if it passes the site checks; the error is what fails
+   * them, as sentences. Missing where the host can't save artifacts.
+   */
+  saveAsSite?: (input: {
+    readonly path: string;
+    readonly title: string;
+  }) => AsyncResult<ArtifactId, readonly string[]>;
   writeFile: (
     input: WorkspaceWriteInput
   ) => AsyncResult<SandboxFileWrite, WorkspaceWriteError>;

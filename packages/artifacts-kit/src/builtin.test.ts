@@ -6,7 +6,13 @@ import { TEXT_MAX_CHARS } from "./kinds/text";
 
 // Today's kinds as definitions (ticket 123). Which content each accepts is
 // pinned by the golden snapshot in `packages/ai` (`artifact-golden.test.ts`);
-// these say how they're put together.
+// these say how they're put together. The text kinds are the six from
+// before the kit; the Site kind (125) has its own tests under `kinds/site`.
+
+const textKinds = () =>
+  builtinArtifactKinds
+    .list()
+    .filter((definition) => definition.kind !== "site");
 
 describe("the built-in kinds", () => {
   it("define every kind the contract stores, under its own name", () => {
@@ -19,7 +25,7 @@ describe("the built-in kinds", () => {
   });
 
   it("are text, replaced whole, with no instructions of their own", () => {
-    for (const definition of builtinArtifactKinds.list()) {
+    for (const definition of textKinds()) {
       expect(Object.keys(definition.operations)).toEqual(["replace"]);
       expect(
         definition.operations.replace?.apply("before", { content: "after" })
@@ -28,7 +34,10 @@ describe("the built-in kinds", () => {
       expect(definition.editor).toBe("none");
       expect(definition.diff).toBe("text");
     }
-    expect(builtinArtifactKinds.instructionFiles()).toEqual([]);
+    // Only sites come with instructions.
+    expect(
+      builtinArtifactKinds.instructionFiles().map(({ source }) => source)
+    ).toEqual(["kinds/site"]);
   });
 
   it("render in the runtime where they did, and the panel otherwise", () => {
@@ -47,17 +56,18 @@ describe("the built-in kinds", () => {
         panel: "source",
         runtime: "react",
       },
+      site: { panel: "source", runtime: "site" },
       svg: { panel: "frame", runtime: "svg" },
     });
   });
 
-  it("let only React be annotated, and none share, present or call the model", () => {
+  it("let only React be annotated, only sites be published, and none present or call the model", () => {
     for (const definition of builtinArtifactKinds.list()) {
       expect(definition.capabilities).toEqual({
         aiCalls: false,
         annotate: definition.kind === "react",
         present: false,
-        share: false,
+        share: definition.kind === "site",
       });
     }
   });

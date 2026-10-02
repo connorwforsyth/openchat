@@ -80,9 +80,14 @@ const TITLES = [
 ];
 
 describe("the kinds' checks", () => {
-  it("say what the directive reader said, for every kind, content and title", () => {
+  it("say what the directive reader said, for every text kind, content and title", () => {
     let compared = 0;
-    for (const type of artifactKindSchema.options) {
+    // Sites (125) came after the directive and have checks of their own
+    // (`@workspace/artifacts-kit`'s `kinds/site`).
+    const textKinds = artifactKindSchema.options.filter(
+      (kind) => kind !== "site"
+    );
+    for (const type of textKinds) {
       for (const content of CONTENTS) {
         for (const title of TITLES) {
           const artifact = { content, title, type };
@@ -96,15 +101,20 @@ describe("the kinds' checks", () => {
     expect(compared).toBeGreaterThan(1000);
   });
 
-  it("add no instructions to the artifacts prompt fragment", () => {
+  it("add instructions for sites only, as their own layer", () => {
     const fragment = composeInstructions({ dynamic: [FRAGMENTS.artifacts] });
     const withKinds = composeInstructions({
-      dynamic: [
-        FRAGMENTS.artifacts,
-        ...builtinArtifactKinds.instructionFiles(),
-      ],
+      dynamic: [FRAGMENTS.artifacts],
+      kinds: builtinArtifactKinds.instructionFiles(),
     });
-    expect(withKinds).toEqual(fragment);
+    expect(withKinds.sections).toEqual([
+      ...fragment.sections,
+      {
+        layer: "kinds",
+        source: "kinds/site",
+        text: builtinArtifactKinds.get("site")?.instructions,
+      },
+    ]);
   });
 });
 
