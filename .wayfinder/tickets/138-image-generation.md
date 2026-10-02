@@ -75,3 +75,16 @@ Open for Connor:
 2. Should `generate_image` take a `model` argument so the list can be chosen per call? Today the first usable image model is used.
 3. Should the composer get a per-turn image model picker?
 4. Should a run option force image generation, the way web search can be forced? That would be a contract change. The + menu only starts the text today.
+
+Rebased onto main (Sites #105, Documents #109, #110, icons, header buttons) after Connor approved the contract (2026-10-02):
+- `ArtifactKind` is now `…, site, document, image`.
+- The migration was regenerated as `20261002073832_image_artifacts` after `documents`. Its check lists all nine kinds.
+- The image kind has no instructions, so the kinds layer adds nothing and planning gets nothing from it.
+- The image preview and download live in the Documents-era panel.
+- The goldens only gain `image` in the artifact tools' output enums. The tool golden also gains `generate_image`.
+
+Verification, all passing:
+- `check` and `check:guards` on every commit.
+- `bun turbo typecheck lint test build --continue`: 92 of 93. The one failure was the composer fill test racing TipTap's deferred focus; it's fixed and re-run.
+- `evals --strict`.
+- Full e2e on port 3310: 109 passed.
