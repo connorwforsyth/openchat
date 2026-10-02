@@ -1,4 +1,5 @@
 import type { IconName } from "@workspace/icons/names";
+import { err, ok, type Result } from "@workspace/shared/result";
 import type { z } from "zod";
 
 // An artifact kind, written down in one place (ticket 123, from the
@@ -32,6 +33,13 @@ export interface ArtifactOperation<TContent, TInput> {
   apply(current: TContent | null, input: TInput): TContent;
   readonly description: string;
   readonly input: z.ZodType<TInput>;
+  /**
+   * Why it can't apply to `current` (a section that isn't there), each a
+   * sentence the model can act on; none means `apply` may run. Left out,
+   * it always applies.
+   */
+  // biome-ignore lint/style/useConsistentMethodSignatures: a method, as `apply` is.
+  problems?(current: TContent | null, input: TInput): readonly string[];
 }
 
 /**
@@ -44,7 +52,8 @@ export interface ArtifactOperation<TContent, TInput> {
  */
 export interface ArtifactRender {
   readonly imports?: readonly string[];
-  readonly panel: "frame" | "markdown" | "source";
+  /** `document`: the rich-text editor (126). */
+  readonly panel: "document" | "frame" | "markdown" | "source";
   readonly runtime: string | null;
 }
 
@@ -58,6 +67,25 @@ export interface ArtifactCapabilities {
   readonly present: boolean;
   /** It can be published to a share link of its own. */
   readonly share: boolean;
+}
+
+/**
+ * How a kind whose stored text isn't what the model writes (a document's
+ * JSON, 126) crosses that line. Kinds without one store, and show the
+ * model, exactly the text it wrote.
+ */
+// Methods, as `ArtifactCheck.run` is, so a kind's text fits where any kind
+// is expected; each only ever sees its own content.
+export interface ArtifactModelText<TContent> {
+  /** The model's text (a document's Markdown) as content. */
+  // biome-ignore lint/style/useConsistentMethodSignatures: see above.
+  fromModel(text: string): TContent;
+  /** Content as a version stores it; `content` reads it back. */
+  // biome-ignore lint/style/useConsistentMethodSignatures: see above.
+  serialize(content: TContent): string;
+  /** What the model reads of content: the same language it writes. */
+  // biome-ignore lint/style/useConsistentMethodSignatures: see above.
+  toModel(content: TContent): string;
 }
 
 /** A way out of the app: today, a file with an extension. */
@@ -74,8 +102,8 @@ export interface ArtifactKindDefinition<TContent = unknown> {
   readonly content: z.ZodType<TContent>;
   /** How versions are compared: a line diff of the text, for now. */
   readonly diff: "text";
-  /** How a person edits it; `none` while only the model can. */
-  readonly editor: "none";
+  /** How a person edits it: `none` while only the model can, or the rich-text editor (126). */
+  readonly editor: "none" | "rich-text";
   readonly export: readonly ArtifactExport[];
   readonly icon: IconName;
   /**
@@ -91,6 +119,8 @@ export interface ArtifactKindDefinition<TContent = unknown> {
    * nothing renders it yet.
    */
   readonly label: string;
+  /** For a kind whose stored text isn't what the model writes. */
+  readonly modelText?: ArtifactModelText<TContent>;
   /** How the content changes, by operation name. */
   readonly operations: Readonly<
     Record<string, ArtifactOperation<TContent, unknown>>
@@ -129,4 +159,88 @@ export const checkArtifact = <TContent>(
     );
   }
   return definition.checks.flatMap((check) => check.run(parsed.data));
+};
+
+/**
+ * The text a version stores for what the model wrote: converted for a kind
+ * with `modelText` (a document's Markdown becomes its JSON), as written
+ * otherwise. Pure.
+ */
+export const storedFromModel = <TContent>(
+  definition: ArtifactKindDefinition<TContent>,
+  text: string
+): string =>
+  definition.modelText
+    ? definition.modelText.serialize(definition.modelText.fromModel(text))
+    : text;
+
+/**
+ * What the model reads of a stored version: converted for a kind with
+ * `modelText`, as stored otherwise (and when it doesn't parse). Pure.
+ */
+export const modelViewOf = <TContent>(
+  definition: ArtifactKindDefinition<TContent>,
+  stored: string
+): string => {
+  if (!definition.modelText) {
+    return stored;
+  }
+  const parsed = definition.content.safeParse(stored);
+  return parsed.success ? definition.modelText.toModel(parsed.data) : stored;
+};
+
+const issuesOf = (error: z.ZodError, at: string): string[] =>
+  error.issues.map((issue) =>
+    [
+      issue.path.length > 0 ? `${at}.${issue.path.join(".")}` : at,
+      issue.message,
+    ]
+      .join(" ")
+      .trim()
+  );
+
+/**
+ * Applies operation `name` to the stored version `stored` (`null` for none
+ * yet) and returns the next version's text, or why it can't: an operation
+ * the kind doesn't have, input that doesn't fit, content that doesn't parse,
+ * or the operation's own problems. The result still has to pass the kind's
+ * checks before it's saved. Pure.
+ */
+export const applyArtifactOperation = <TContent>(
+  definition: ArtifactKindDefinition<TContent>,
+  stored: string | null,
+  name: string,
+  input: unknown
+): Result<string, readonly string[]> => {
+  const operation = Object.hasOwn(definition.operations, name)
+    ? definition.operations[name]
+    : undefined;
+  if (!operation) {
+    const known = Object.keys(definition.operations).join(", ");
+    return err([
+      `a ${definition.kind} has no "${name}" edit. It has: ${known}`,
+    ]);
+  }
+  const parsedInput = operation.input.safeParse(input);
+  if (!parsedInput.success) {
+    return err(issuesOf(parsedInput.error, "edit"));
+  }
+  let current: TContent | null = null;
+  if (stored !== null) {
+    const parsed = definition.content.safeParse(stored);
+    if (!parsed.success) {
+      return err(issuesOf(parsed.error, "content"));
+    }
+    current = parsed.data;
+  }
+  const problems = operation.problems?.(current, parsedInput.data) ?? [];
+  if (problems.length > 0) {
+    return err(problems);
+  }
+  const next = operation.apply(current, parsedInput.data);
+  const serialize =
+    definition.modelText?.serialize ??
+    ((content: TContent) =>
+      typeof content === "string" ? content : JSON.stringify(content));
+  return ok(serialize(next));
 };

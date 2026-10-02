@@ -18,6 +18,8 @@
     "@workspace/contract": "workspace:*",
     "@workspace/icons": "workspace:*",
     "@workspace/shared": "workspace:*",
+    "docx": "catalog:",
+    "marked": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
