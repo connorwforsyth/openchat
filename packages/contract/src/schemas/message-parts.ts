@@ -179,6 +179,8 @@ export const artifactKindSchema = z.enum([
   "mermaid",
   /** A small static website: several files, published to a link (125). */
   "site",
+  /** Rich text (126): a TipTap (ProseMirror) document as JSON. */
+  "document",
 ]);
 export type ArtifactKind = z.infer<typeof artifactKindSchema>;
 

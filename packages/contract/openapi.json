@@ -123,7 +123,8 @@
               "markdown",
               "svg",
               "mermaid",
-              "site"
+              "site",
+              "document"
             ],
             "type": "string"
           },
@@ -222,7 +223,8 @@
               "markdown",
               "svg",
               "mermaid",
-              "site"
+              "site",
+              "document"
             ],
             "type": "string"
           },
@@ -318,6 +320,18 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "editedBy": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "description": "user id (UUIDv7)"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "id": {
             "type": "string",
@@ -2861,7 +2875,8 @@
                   "markdown",
                   "svg",
                   "mermaid",
-                  "site"
+                  "site",
+                  "document"
                 ],
                 "type": "string"
               },
@@ -5964,7 +5979,8 @@
                 "markdown",
                 "svg",
                 "mermaid",
-                "site"
+                "site",
+                "document"
               ],
               "type": "string"
             },
@@ -6397,6 +6413,271 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/UNAUTHORIZEDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/FORBIDDENError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/NOT_FOUNDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "422",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/VALIDATIONError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "429",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/RATE_LIMITEDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "artifacts.saveVersion",
+        "summary": "Save an artifact version",
+        "description": "A person's edit (126), saved as the next version after the kind's checks. The owner, or an `editor`. `CONFLICT` (`version_mismatch`) when `baseVersionId` is no longer the latest version.",
+        "tags": ["Artifacts"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "artifact id (UUIDv7)"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "baseVersionId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "artifactVersion id (UUIDv7)"
+                  },
+                  "content": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000000
+                  }
+                },
+                "required": ["baseVersionId", "content"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtifactVersion"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/UNAUTHORIZEDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/FORBIDDENError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/NOT_FOUNDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/CONFLICTError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "422",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/VALIDATIONError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "429",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/RATE_LIMITEDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/artifacts/{id}/viewed": {
+      "post": {
+        "operationId": "artifacts.markViewed",
+        "summary": "Mark an artifact viewed",
+        "description": "Records that the caller opened it now, for the page's \"Viewed …\" and its order.",
+        "tags": ["Artifacts"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "artifact id (UUIDv7)"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No content."
           },
           "401": {
             "description": "401",
@@ -6949,7 +7230,8 @@
                         "markdown",
                         "svg",
                         "mermaid",
-                        "site"
+                        "site",
+                        "document"
                       ],
                       "type": "string"
                     },
@@ -7106,116 +7388,6 @@
                     },
                     {
                       "$ref": "#/components/schemas/FEATURE_DISABLEDError"
-                    },
-                    {
-                      "$ref": "#/components/schemas/UndefinedError"
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "404",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/NOT_FOUNDError"
-                    },
-                    {
-                      "$ref": "#/components/schemas/UndefinedError"
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "422",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/VALIDATIONError"
-                    },
-                    {
-                      "$ref": "#/components/schemas/UndefinedError"
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "429",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/RATE_LIMITEDError"
-                    },
-                    {
-                      "$ref": "#/components/schemas/UndefinedError"
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/artifacts/{id}/viewed": {
-      "post": {
-        "operationId": "artifacts.markViewed",
-        "summary": "Mark an artifact viewed",
-        "description": "Records that the caller opened it now, for the page's \"Viewed …\" and its order.",
-        "tags": ["Artifacts"],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "description": "artifact id (UUIDv7)"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "No content."
-          },
-          "401": {
-            "description": "401",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/UNAUTHORIZEDError"
-                    },
-                    {
-                      "$ref": "#/components/schemas/UndefinedError"
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "403",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/FORBIDDENError"
                     },
                     {
                       "$ref": "#/components/schemas/UndefinedError"

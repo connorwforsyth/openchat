@@ -364,8 +364,15 @@ const cases: Record<string, Cases> = {
     ],
   },
   "files.artifactVersionSchema": {
-    invalid: [{ artifactId: fixtureId("artifact", 1), number: 0 }],
-    valid: [artifactVersionRow],
+    invalid: [
+      { artifactId: fixtureId("artifact", 1), number: 0 },
+      { ...artifactVersionRow, editedBy: "someone" },
+    ],
+    valid: [
+      artifactVersionRow,
+      { ...artifactVersionRow, editedBy: null },
+      { ...artifactVersionRow, editedBy: uid },
+    ],
   },
   "files.fileSchema": { invalid: [{ ...file, size: -1 }], valid: [file] },
   "files.fileSearchHitSchema": {
@@ -409,7 +416,11 @@ const cases: Record<string, Cases> = {
   },
   "files.listAllArtifactsInputSchema": {
     invalid: [{ scope: "everyone" }, { kind: "pdf" }],
-    valid: [{}, { kind: "markdown", query: "trip", scope: "shared" }],
+    valid: [
+      {},
+      { kind: "markdown", query: "trip", scope: "shared" },
+      { kind: "document" },
+    ],
   },
   "files.listFilesInputSchema": {
     invalid: [{ purpose: "avatar" }],
@@ -422,6 +433,23 @@ const cases: Record<string, Cases> = {
   "files.renameArtifactInputSchema": {
     invalid: [{ id: fixtureId("artifact", 1), title: "  " }],
     valid: [{ id: fixtureId("artifact", 1), title: "Trip plan" }],
+  },
+  "files.saveArtifactVersionInputSchema": {
+    invalid: [
+      {
+        baseVersionId: fixtureId("artifactVersion", 1),
+        content: "",
+        id: fixtureId("artifact", 1),
+      },
+      { content: "{}", id: fixtureId("artifact", 1) },
+    ],
+    valid: [
+      {
+        baseVersionId: fixtureId("artifactVersion", 1),
+        content: '{"type":"doc","content":[]}',
+        id: fixtureId("artifact", 1),
+      },
+    ],
   },
   "files.saveWorkspaceArtifactInputSchema": {
     invalid: [

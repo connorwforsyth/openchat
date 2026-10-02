@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { featureError } from "../errors";
+import { conflictError, featureError } from "../errors";
 import {
   artifactIdSchema,
   artifactVersionIdSchema,
@@ -24,6 +24,7 @@ import {
   listFilesInputSchema,
   publishedArtifactSchema,
   renameArtifactInputSchema,
+  saveArtifactVersionInputSchema,
   saveWorkspaceArtifactInputSchema,
   shareArtifactInputSchema,
   uploadFileInputSchema,
@@ -240,6 +241,18 @@ export const artifacts = {
     })
     .input(saveWorkspaceArtifactInputSchema)
     .output(artifactSchema),
+  saveVersion: authed
+    .errors(conflictError)
+    .route({
+      description:
+        "A person's edit (126), saved as the next version after the kind's checks. The owner, or an `editor`. `CONFLICT` (`version_mismatch`) when `baseVersionId` is no longer the latest version.",
+      method: "POST",
+      path: "/artifacts/{id}/versions",
+      successStatus: 201,
+      summary: "Save an artifact version",
+    })
+    .input(saveArtifactVersionInputSchema)
+    .output(artifactVersionSchema),
   share: authed
     .route({
       description:
