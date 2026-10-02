@@ -783,6 +783,39 @@ describe("Composer", () => {
   });
 });
 
+describe("Composer as a strip (135)", () => {
+  it("is the input and Send alone, and sends on Enter", async () => {
+    const { container, editor, onSubmit } = renderComposer({
+      appearance: "strip",
+      models: modelOptions,
+      onTargetChange: vi.fn(),
+      onWebSearchChange: vi.fn(),
+      target: { model: "auto", type: "model" },
+    });
+    // One button: no + menu, picker or toolbar.
+    expect(
+      screen.getAllByRole("button").map((button) => button.ariaLabel)
+    ).toEqual(["Send"]);
+    expect(container.querySelector('[data-slot="input-group"]')).not.toBeNull();
+
+    await userEvent.click(editor);
+    await userEvent.keyboard("Quick one{Enter}");
+    expect(lastValue(onSubmit).text).toBe("Quick one");
+  });
+
+  it("hides the input's scrollbar (the page's CSS applies it; e2e checks it)", () => {
+    const { editor } = renderComposer({ appearance: "strip" });
+    expect(editor.classList).toContain("no-scrollbar");
+  });
+
+  it("shows Stop while streaming", () => {
+    const onStop = vi.fn();
+    renderComposer({ appearance: "strip", onStop, status: "streaming" });
+    fireEvent.click(screen.getByRole("button", { name: "Stop" }));
+    expect(onStop).toHaveBeenCalled();
+  });
+});
+
 describe("Composer's thinking level and fast mode (105)", () => {
   const model = (
     selector: string,

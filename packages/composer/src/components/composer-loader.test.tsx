@@ -52,6 +52,26 @@ describe("ComposerShell", () => {
   });
 });
 
+describe("ComposerShell as a strip (135)", () => {
+  it("is the textarea and Send alone, like the editor's strip", () => {
+    render(
+      <I18nProvider i18n={i18n}>
+        <ComposerShell
+          appearance="strip"
+          onSubmit={vi.fn()}
+          onTargetChange={vi.fn()}
+          target={{ model: "auto", type: "model" }}
+        />
+      </I18nProvider>
+    );
+    expect(
+      screen.getAllByRole("button").map((button) => button.ariaLabel)
+    ).toEqual(["Send"]);
+    const input = screen.getByRole("textbox", { name: "Message" });
+    expect(input.classList).toContain("no-scrollbar");
+  });
+});
+
 describe("ComposerLoader", () => {
   it("hands typed text, caret and focus from the shell to the editor", async () => {
     const chunk = deferredLoad();

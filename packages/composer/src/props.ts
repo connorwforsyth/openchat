@@ -19,9 +19,20 @@ import type { ModelVariant } from "./variants";
 // Props shared by the shell, the loader and the editor. A types-only module,
 // so importing it never pulls the editor into a bundle.
 
+/**
+ * How the composer is laid out. `default` is the chat's: a framed field over
+ * the bottom row (+ menu, picker, Send). `strip` is one bare row, the input
+ * and Send and nothing else (Quick AI, 135): no frame, so the host's surface
+ * shows through, larger text, and an input that grows to a cap and then
+ * scrolls without a visible scrollbar.
+ */
+export type ComposerAppearance = "default" | "strip";
+
 export interface ComposerProps {
   /** Agents for the picker and for `@` mentions. */
   readonly agents?: readonly AgentOption[];
+  /** Read once, when the composer mounts. Defaults to `default`. */
+  readonly appearance?: ComposerAppearance;
   readonly attachmentLimits?: AttachmentLimits;
   readonly className?: string;
   /**

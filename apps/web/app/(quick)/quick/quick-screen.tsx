@@ -14,13 +14,13 @@ import type {
 import type { ConversationId, RunId } from "@workspace/contract/schemas/common";
 import type { RunTarget } from "@workspace/contract/schemas/runs";
 import type { ChatContext } from "@workspace/contract/schemas/tenancy";
-import { ExternalLinkIcon } from "@workspace/icons";
+import { SparklesIcon } from "@workspace/icons";
 import { readDesktopBridge } from "@workspace/shortcuts/desktop";
 import { comboKeycaps } from "@workspace/shortcuts/keys";
 import { useDetectedPlatform } from "@workspace/shortcuts/react/context";
-import { useDesktopPlatform } from "@workspace/shortcuts/react/use-desktop";
 import { Button } from "@workspace/ui/components/button";
 import { Kbd, KbdGroup } from "@workspace/ui/components/kbd";
+import { cn } from "@workspace/ui/lib/utils";
 import {
   type KeyboardEvent,
   useCallback,
@@ -36,9 +36,14 @@ import { routes } from "@/lib/routes";
 // The desktop app shows this page in a small floating window (the shell
 // sizes the window to the page). Every send starts a new chat. ⏎ answers
 // here; ⌘⏎ (Ctrl+Enter elsewhere) opens the chat in the app's main window
-// once its run has started, where the reply carries on. Escape hides the
-// window. In a browser the page
-// works too: ⌘⏎ goes to the chat.
+// once its run has started, where the reply carries on, and with a reply
+// showing and nothing typed it opens that reply's chat. Escape hides the
+// window. In a browser the page works too: ⌘⏎ goes to the chat.
+//
+// It looks like a launcher (135, after Raycast): one tall strip, an icon,
+// the input in large type and Send, nothing else, on the window's native
+// translucent material. A reply opens below a hairline, with a small muted
+// footer that names the action ⌘⏎ takes. Nothing in it shows a scrollbar.
 
 const PERSONAL: ChatContext = { type: "personal" };
 
@@ -78,12 +83,26 @@ export const replyText = (message: ChatMessage | undefined): string =>
 /** Menus that take Escape for themselves: the composer's suggestions, the + menu. */
 const OPEN_MENU = '[data-slot="composer-suggestions"], [role="menu"]';
 
+const COMPOSER_INPUT = '[data-slot="composer"] [role="textbox"]';
+
 /** Focuses the composer's editor, once it's on the page. */
 const focusComposer = () => {
-  document
-    .querySelector<HTMLElement>('[data-slot="composer"] [role="textbox"]')
-    ?.focus();
+  document.querySelector<HTMLElement>(COMPOSER_INPUT)?.focus();
 };
+
+/** Whether nothing's typed: the shell's textarea or the editor. */
+const composerEmpty = (): boolean => {
+  const input = document.querySelector<HTMLElement>(COMPOSER_INPUT);
+  const text =
+    input instanceof HTMLTextAreaElement ? input.value : input?.textContent;
+  return (text ?? "").trim() === "";
+};
+
+/**
+ * Hairlines between the strip, the reply and its footer: the foreground at
+ * a tenth, so they read on any material, light or dark.
+ */
+const HAIRLINE = "border-foreground/10 border-t";
 
 /**
  * One ask: sends `text` to the new chat as soon as it mounts and shows the
@@ -158,7 +177,7 @@ function QuickTurn({
 
   if (ask.openInApp) {
     return (
-      <p className="px-1 text-muted-foreground text-sm">
+      <p className={cn(HAIRLINE, "px-4 py-3 text-muted-foreground text-sm")}>
         <Trans>Opening the chat in the app…</Trans>
       </p>
     );
@@ -167,14 +186,13 @@ function QuickTurn({
   return (
     <section
       aria-label={ask.text}
-      className="flex min-h-0 flex-col gap-2"
+      className={cn(HAIRLINE, "flex min-h-0 flex-col")}
       data-slot="quick-turn"
     >
-      <p className="truncate px-1 text-muted-foreground text-sm">{ask.text}</p>
       <div
         aria-busy={busy}
         aria-live="polite"
-        className="max-h-[26rem] overflow-y-auto px-1 text-sm leading-relaxed"
+        className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-3 text-sm leading-relaxed"
         data-slot="quick-reply"
       >
         {reply === "" && busy ? <ThinkingLabel /> : null}
@@ -187,12 +205,24 @@ function QuickTurn({
           </p>
         ) : null}
       </div>
-      <div className="flex justify-end">
-        <Button onClick={open} size="sm" variant="ghost">
-          <ExternalLinkIcon />
+      <footer
+        className={cn(
+          HAIRLINE,
+          "flex h-10 shrink-0 items-center justify-between gap-3 ps-4 pe-2 text-muted-foreground text-xs"
+        )}
+        data-slot="quick-footer"
+      >
+        <span className="min-w-0 truncate">{ask.text}</span>
+        <Button
+          className="shrink-0 text-muted-foreground"
+          onClick={open}
+          size="xs"
+          variant="ghost"
+        >
           <Trans>Open in the app</Trans>
+          <Keys combo="Mod+Enter" />
         </Button>
-      </div>
+      </footer>
     </section>
   );
 }
@@ -200,7 +230,7 @@ function QuickTurn({
 function Keys({ combo }: { readonly combo: string }) {
   const platform = useDetectedPlatform();
   return (
-    <KbdGroup>
+    <KbdGroup aria-hidden>
       {comboKeycaps(combo, platform).map((key) => (
         <Kbd key={key}>{key}</Kbd>
       ))}
@@ -210,7 +240,6 @@ function Keys({ combo }: { readonly combo: string }) {
 
 export function QuickScreen() {
   const { t } = useLingui();
-  const inShell = useDesktopPlatform() !== null;
   const { query } = useApi();
   const settings = useQuery(query.me.settings.queryOptions());
   const { mutateAsync: createChat, isPending: creating } = useMutation(
@@ -224,11 +253,20 @@ export function QuickScreen() {
   // composer submits, which happens inside that key's handler.
   const openInApp = useRef(false);
 
-  const onKeyDownCapture = useCallback((event: KeyboardEvent) => {
-    if (event.key === "Enter") {
-      openInApp.current = event.metaKey || event.ctrlKey;
-    }
-  }, []);
+  const onKeyDownCapture = useCallback(
+    (event: KeyboardEvent) => {
+      if (event.key !== "Enter") {
+        return;
+      }
+      const toApp = event.metaKey || event.ctrlKey;
+      openInApp.current = toApp;
+      // Nothing to send: ⌘⏎ opens the reply on show, as its footer says.
+      if (toApp && ask && !ask.openInApp && composerEmpty()) {
+        goToChat(ask.conversationId);
+      }
+    },
+    [ask]
+  );
 
   const onSubmit = useCallback(
     (value: ComposerValue) => {
@@ -295,22 +333,37 @@ export function QuickScreen() {
 
   return (
     <main
-      className="flex flex-col gap-3 p-3"
+      // As tall as the Quick AI window gets (apps/desktop's QUICK_WINDOW):
+      // past that the reply scrolls, not the page.
+      className="flex max-h-140 flex-col text-foreground"
       data-slot="quick"
       onKeyDownCapture={onKeyDownCapture}
     >
       <h1 className="sr-only">
         <Trans>Quick AI</Trans>
       </h1>
-      <ComposerLoader
-        attachmentLimits={NO_ATTACHMENTS}
-        onStop={stopRun ?? undefined}
-        onSubmit={onSubmit}
-        placeholder={t`Ask anything`}
-        status={status}
-      />
+      <div className="flex shrink-0 items-start">
+        <span
+          aria-hidden
+          className="flex h-15 shrink-0 items-center ps-4 pe-2 text-muted-foreground"
+        >
+          <SparklesIcon className="size-5" />
+        </span>
+        <ComposerLoader
+          appearance="strip"
+          attachmentLimits={NO_ATTACHMENTS}
+          className="min-w-0 flex-1"
+          onStop={stopRun ?? undefined}
+          onSubmit={onSubmit}
+          placeholder={t`Ask anything…`}
+          status={status}
+        />
+      </div>
       {failed ? (
-        <p className="px-1 text-destructive text-sm" role="alert">
+        <p
+          className={cn(HAIRLINE, "px-4 py-3 text-destructive text-sm")}
+          role="alert"
+        >
           <Trans>
             Couldn't start a chat. Check your connection and try again.
           </Trans>
@@ -324,21 +377,7 @@ export function QuickScreen() {
           onHandedOff={handedOff}
           onStopReady={onStopReady}
         />
-      ) : (
-        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 px-1 text-muted-foreground text-xs">
-          <span className="flex items-center gap-1">
-            <Keys combo="Enter" /> <Trans>Ask here</Trans>
-          </span>
-          <span className="flex items-center gap-1">
-            <Keys combo="Mod+Enter" /> <Trans>Open in the app</Trans>
-          </span>
-          {inShell ? (
-            <span className="flex items-center gap-1">
-              <Keys combo="Escape" /> <Trans>Close</Trans>
-            </span>
-          ) : null}
-        </p>
-      )}
+      ) : null}
     </main>
   );
 }

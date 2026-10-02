@@ -2,7 +2,12 @@ import { BrowserWindow, type Rectangle, screen } from "electron";
 
 import type { Platform } from "../shared/ipc";
 import { decideQuickNavigation, mainUrlFor, quickUrl } from "../shared/quick";
-import { placeQuickWindow, QUICK_WINDOW, quickHeight } from "./quick-window";
+import {
+  placeQuickWindow,
+  QUICK_WINDOW,
+  quickHeight,
+  quickWindowLook,
+} from "./quick-window";
 import { guardContents, type OriginSource } from "./security";
 
 // The Quick AI window (118): a small, frameless, always-on-top window over
@@ -73,7 +78,6 @@ export const createQuickAi = (ports: QuickAiPorts): QuickAi => {
   };
 
   const create = (origin: string): BrowserWindow => {
-    const mac = ports.platform === "mac";
     const created = new BrowserWindow({
       ...placeQuickWindow(workArea),
       alwaysOnTop: true,
@@ -87,8 +91,8 @@ export const createQuickAi = (ports: QuickAiPorts): QuickAi => {
       show: false,
       skipTaskbar: true,
       title: "",
-      // macOS: a panel floats over full-screen apps and every Space.
-      ...(mac ? { type: "panel" as const } : {}),
+      // macOS: a translucent panel over full-screen apps and every Space.
+      ...quickWindowLook(ports.platform),
       webPreferences: {
         ...ports.webPreferences,
         // Reports the page's height, which the window follows.
