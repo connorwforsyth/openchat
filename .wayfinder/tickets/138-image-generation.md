@@ -2,7 +2,7 @@
 id: "138"
 title: "Image generation in chat: generate_image tool, image models from config/gateway, saved to files and Artifacts"
 labels: [wayfinder:build]
-status: in-progress
+status: closed
 assignee: loop
 blockedBy: []
 ---
