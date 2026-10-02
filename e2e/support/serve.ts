@@ -69,6 +69,8 @@ providers:
   paid: { type: openai-compatible, baseURL: "${baseURL}", models: [echo], options: { keyless: "false" } }
 models:
   default: mock:echo
+  # Image generation (138) on the mock's image model, also found by discovery.
+  image: { default: mock:pixel, discover: true }
 decider: { adapter: none }
 embeddings: { model: mock:embed, dimensions: 384 }
 sandbox: { default: just-bash }

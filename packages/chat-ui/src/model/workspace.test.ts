@@ -44,10 +44,13 @@ describe("workspaceRevision", () => {
           call("bash", "b"),
           call("web_search", "c"),
           result("web_search", "c"),
+          // Its pictures land under images/ (138).
+          call("generate_image", "d"),
+          result("generate_image", "d"),
         ],
       },
     ];
-    expect(workspaceRevision(messages)).toBe(1);
+    expect(workspaceRevision(messages)).toBe(2);
   });
 
   it("moves as results stream in", () => {
