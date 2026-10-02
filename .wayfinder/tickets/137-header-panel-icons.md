@@ -20,3 +20,7 @@ Reading: replace the header's single `WorkspaceToggle` (PanelRight) with two ico
 - The S and A shortcuts still work. If Artifacts lost its entry point, it stays reachable (a tab in the panel, or the overflow menu).
 - The preview toolbar has a device menu (Desktop / Tablet 768 / Phone 390). The page renders at that width, centred, with a device-frame outline. The choice is per chat and remembered for the session.
 - Tests: unit, plus e2e covering both icons and the device switch. Light and dark, desktop and 375px screenshots checked by eye.
+
+## Clarified (2026-10-02)
+
+Connor: "I want the right sidebar icon to not be a right sidebar icon - instead be a files / folder icon - and then the integrated browser thing can be a kind of like a window icon? Almost like a browser." So the buttons are a **folder** icon (Files) and a **browser-window** icon (the integrated browser), not a globe. The "device icon" meant the browser button, so the viewport device menu is out of scope (it can be offered separately).
