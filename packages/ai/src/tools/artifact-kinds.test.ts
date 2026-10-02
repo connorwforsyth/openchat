@@ -84,9 +84,10 @@ describe("the kinds' checks", () => {
     let compared = 0;
     // Sites (125) came after the directive and have checks of their own
     // (`@workspace/artifacts-kit`'s `kinds/site`); a document (126) stores
-    // JSON made from the model's Markdown, which the reader can't judge.
+    // JSON made from the model's Markdown, which the reader can't judge;
+    // an image (138) is only ever `generate_image`'s.
     const textKinds = artifactKindSchema.options.filter(
-      (kind) => kind !== "site" && kind !== "document"
+      (kind) => kind !== "site" && kind !== "document" && kind !== "image"
     );
     for (const type of textKinds) {
       for (const content of CONTENTS) {

@@ -48,12 +48,12 @@ export interface ArtifactOperation<TContent, TInput> {
  *   that draws it, or `null` for kinds the runtime doesn't take.
  * - `imports`: for code the runtime runs, the modules it may import.
  * - `panel`: what the chat's panel shows without the runtime: a `frame`
- *   (srcdoc), rendered `markdown`, or only the `source`.
+ *   (srcdoc), rendered `markdown`, an `image` (138), or only the `source`.
  */
 export interface ArtifactRender {
   readonly imports?: readonly string[];
-  /** `document`: the rich-text editor (126). */
-  readonly panel: "document" | "frame" | "markdown" | "source";
+  /** `document`: the rich-text editor (126); `image`: a picture (138). */
+  readonly panel: "document" | "frame" | "image" | "markdown" | "source";
   readonly runtime: string | null;
 }
 

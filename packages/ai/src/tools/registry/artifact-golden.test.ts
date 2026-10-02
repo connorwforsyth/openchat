@@ -1,15 +1,15 @@
 import type { ArtifactId } from "@workspace/contract/schemas/common";
-import {
-  type ArtifactKind,
-  artifactKindSchema,
-} from "@workspace/contract/schemas/message-parts";
+import type { ArtifactKind } from "@workspace/contract/schemas/message-parts";
 import { newId } from "@workspace/shared/ids";
 import { err, ok } from "@workspace/shared/result";
 import { asSchema, type Tool } from "ai";
 import { describe, expect, it } from "vitest";
 
 import { RECORDED_REPLIES } from "../../../evals/artifacts/fixtures";
-import { parseArtifacts } from "../../../evals/artifacts/format";
+import {
+  artifactDirectiveSchema,
+  parseArtifacts,
+} from "../../../evals/artifacts/format";
 import { composeInstructions } from "../../prompts/compose";
 import { FRAGMENTS } from "../../prompts/generated";
 import {
@@ -169,8 +169,15 @@ const TITLES: Readonly<Record<string, string>> = {
   "tabs and newlines only": "\t\n",
 };
 
+/**
+ * The kinds the tools write: every kind but `image`, which only
+ * `generate_image` saves (138).
+ */
+const WRITTEN_KINDS = artifactDirectiveSchema.shape.type.options;
+type WrittenKind = (typeof WRITTEN_KINDS)[number];
+
 /** One valid content per kind, to update from. */
-const BASES: Readonly<Record<ArtifactKind, string>> = {
+const BASES: Readonly<Record<WrittenKind, string>> = {
   code: "print(1)",
   document: "# Notes",
   html: "<p>hi</p>",
@@ -208,7 +215,7 @@ const modelView = (name: string, tool: Tool | undefined) => ({
 
 describe("the artifact tools", () => {
   it("are what they were before the artifact framework", async () => {
-    const kinds = artifactKindSchema.options;
+    const kinds = WRITTEN_KINDS;
 
     const created = await mapEntries(SAMPLES, (content) =>
       mapEntries(
@@ -245,7 +252,7 @@ describe("the artifact tools", () => {
       const base = await createArtifact(store, {
         content: baseContent,
         title: "Base",
-        type: kind as ArtifactKind,
+        type: kind as WrittenKind,
       });
       if (base.status !== "saved") {
         throw new Error(`no ${kind} base: ${JSON.stringify(base)}`);

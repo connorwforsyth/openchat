@@ -22,8 +22,12 @@ export const artifactDirectiveSchema = z.object({
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "kebab-case")
     .max(64),
   title: z.string().trim().min(1).max(200),
-  type: artifactKindSchema,
+  // An image (138) is only ever `generate_image`'s, never written as text.
+  type: artifactKindSchema.exclude(["image"]),
 });
+
+/** The kinds a model may write itself: every kind but `image`. */
+type WrittenKind = z.infer<typeof artifactDirectiveSchema>["type"];
 
 export interface ParsedArtifact {
   readonly content: string;
@@ -45,7 +49,7 @@ const FENCE = /^```([\w+-]*)\s*$/;
 const ATTRIBUTE = /(\w+)="([^"]*)"/g;
 
 /** What an artifact of each kind must look like to render at all. */
-const BODY_CHECKS: Readonly<Record<ArtifactKind, RegExp>> = {
+const BODY_CHECKS: Readonly<Record<WrittenKind, RegExp>> = {
   code: /\S/,
   // Rich text the model writes as Markdown (126).
   document: /\S/,

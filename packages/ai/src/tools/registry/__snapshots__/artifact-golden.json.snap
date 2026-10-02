@@ -104,7 +104,8 @@
                       "svg",
                       "mermaid",
                       "site",
-                      "document"
+                      "document",
+                      "image"
                     ]
                   },
                   "title": {
@@ -187,7 +188,8 @@
                         "svg",
                         "mermaid",
                         "site",
-                        "document"
+                        "document",
+                        "image"
                       ]
                     },
                     "title": {
@@ -332,7 +334,8 @@
                       "svg",
                       "mermaid",
                       "site",
-                      "document"
+                      "document",
+                      "image"
                     ]
                   },
                   "title": {
@@ -415,7 +418,8 @@
                         "svg",
                         "mermaid",
                         "site",
-                        "document"
+                        "document",
+                        "image"
                       ]
                     },
                     "title": {

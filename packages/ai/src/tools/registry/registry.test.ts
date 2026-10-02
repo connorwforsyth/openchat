@@ -140,6 +140,7 @@ describe("the built-ins written in this package", () => {
       create_artifact: "ask",
       create_skill: "ask",
       file_search: "auto",
+      generate_image: "ask",
       load_skill: "auto",
       publish_skill: "ask",
       update_artifact: "ask",

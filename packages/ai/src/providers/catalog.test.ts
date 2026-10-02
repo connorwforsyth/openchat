@@ -78,7 +78,7 @@ describe("catalogKindOf", () => {
 });
 
 describe("fetchCatalog", () => {
-  it("lists an openai-compatible gateway with its metadata, chat models only", async () => {
+  it("lists an openai-compatible gateway with its metadata, chat and image models only", async () => {
     const { fetch, seen } = fakeFetch({
       data: [
         {
@@ -114,6 +114,14 @@ describe("fetchCatalog", () => {
           id: "anthropic/claude-haiku-4.5",
           name: "Claude Haiku 4.5",
           pricing: { input: 1_000_000 },
+        },
+        // Kept apart for `generate_image` (138), never the chat picker.
+        {
+          contextWindow: null,
+          description: null,
+          id: "openai/gpt-image-1",
+          kind: "image",
+          name: null,
         },
         {
           contextWindow: 131_072,

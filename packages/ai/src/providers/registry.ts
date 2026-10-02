@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import type { ProviderV4 } from "@ai-sdk/provider";
+import type { ImageModelV4, ProviderV4 } from "@ai-sdk/provider";
 import type { AppConfig } from "@workspace/config/schema";
 import {
   AUTO_MODEL,
@@ -28,6 +28,7 @@ import {
   type CatalogModel,
   describeCatalogError,
   fetchCatalog,
+  isImageModel,
 } from "./catalog";
 import {
   capabilitiesWith,
@@ -51,7 +52,7 @@ import { patternFilter } from "./patterns";
 
 export type RegistryConfig = Pick<AppConfig, "models" | "providers">;
 
-type ModelKind = "embeddingModel" | "languageModel";
+type ModelKind = "embeddingModel" | "imageModel" | "languageModel";
 
 export interface RegistryOptions extends ProviderFactoryOptions {
   /** Catalog fetches' timeout; default 5 s. */
@@ -60,6 +61,14 @@ export interface RegistryOptions extends ProviderFactoryOptions {
   readonly log?: (message: string) => void;
   /** For the catalog cache; `Date.now` by default. */
   readonly now?: () => number;
+}
+
+/** An image model `generate_image` may draw with (138), as one context sees it. */
+export interface ImageModelChoice {
+  /** Whether this context has a key for it, or it needs none. */
+  readonly available: boolean;
+  readonly displayName: string;
+  readonly target: ModelRef;
 }
 
 /** The port, plus what discovery found out about each model, kept for 096. */
@@ -72,6 +81,18 @@ export interface DiscoveringRegistry extends ProviderRegistry {
     provider: string,
     credentials: ProviderCredentials | undefined
   ) => Promise<readonly CatalogModel[] | null>;
+  /** An image model for `generate_image` (138). Pass a ref, not an alias. */
+  imageModel: (
+    ref: ModelRef,
+    credentials: ProviderCredentials | undefined
+  ) => Result<ImageModelV4, ProviderRegistryError>;
+  /**
+   * The image models on offer, in order: `models.image.default`, then
+   * `models.image.models`, then (with `models.image.discover`) the image
+   * models discovering providers' catalogs list for these keys. Never the
+   * chat picker's.
+   */
+  imageModels: (keys: ProviderKeys) => Promise<readonly ImageModelChoice[]>;
 }
 
 // A catalog that failed is retried after this long (or the TTL, if shorter),
@@ -282,12 +303,58 @@ export const buildRegistry = (
       Object.entries(config.providers)
         .filter(([, providerConfig]) => providerConfig.discover)
         .map(async ([provider]) =>
-          ((await catalog(provider, keys[provider])) ?? []).map(
-            (listed) => [`${provider}:${listed.id}`, listed] as const
-          )
+          ((await catalog(provider, keys[provider])) ?? [])
+            // Image models are `imageModels`' (138), never the picker's.
+            .filter((listed) => !isImageModel(listed))
+            .map((listed) => [`${provider}:${listed.id}`, listed] as const)
         )
     );
     return new Map(lists.flat());
+  };
+
+  /** Every discovering provider's image models (138), keyed by ref. */
+  const discoveredImages = async (
+    keys: ProviderKeys
+  ): Promise<ReadonlyMap<ModelRef, CatalogModel>> => {
+    const lists = await Promise.all(
+      Object.entries(config.providers)
+        .filter(([, providerConfig]) => providerConfig.discover)
+        .map(async ([provider]) =>
+          ((await catalog(provider, keys[provider])) ?? [])
+            .filter((listed) => isImageModel(listed))
+            .map((listed) => [`${provider}:${listed.id}`, listed] as const)
+        )
+    );
+    return new Map(lists.flat());
+  };
+
+  const imageModels: DiscoveringRegistry["imageModels"] = async (keys) => {
+    const { image } = config.models;
+    const keyedProviders = new Set(Object.keys(keys));
+    const listed = await discoveredImages(keys);
+    const configured = [
+      ...(image.default ? [image.default] : []),
+      ...image.models,
+    ];
+    const found = image.discover
+      ? [...listed.keys()]
+          .filter((ref) => {
+            const parsed = parseModelRef(ref);
+            return Boolean(
+              parsed && allowedBy.get(parsed.provider)?.(parsed.modelId)
+            );
+          })
+          .sort((a, b) => a.localeCompare(b))
+      : [];
+    const refs = [...new Set([...configured, ...found])];
+    return refs.map((ref) => {
+      const modelId = parseModelRef(ref)?.modelId ?? ref;
+      return {
+        available: isAvailable(ref, keyedProviders),
+        displayName: displayNameOf(modelId, listed.get(ref)?.name),
+        target: ref,
+      };
+    });
   };
 
   const configuredOptions = (
@@ -375,6 +442,48 @@ export const buildRegistry = (
     };
   };
 
+  /** The chat picker's options for these keys: configured, then discovered. */
+  const chatOptions = async (keys: ProviderKeys): Promise<ModelOption[]> => {
+    const keyedProviders = new Set(Object.keys(keys));
+    const configured = configuredOptions(keyedProviders);
+    const catalogs = await discovered(keys);
+    if (catalogs.size === 0) {
+      return configured.map((option) => described(option, catalogs));
+    }
+    // What a catalog says about a configured model fills its context window.
+    const withWindows = configured.map((option) => {
+      const known = option.target ? catalogs.get(option.target) : undefined;
+      return known?.contextWindow && option.contextWindow === null
+        ? { ...option, contextWindow: known.contextWindow }
+        : option;
+    });
+    const listed = new Set(configured.map((option) => option.target));
+    const extra = [...catalogs.entries()]
+      .filter(([ref, entry]) => {
+        const provider = parseModelRef(ref)?.provider ?? "";
+        return (
+          !listed.has(ref) &&
+          (pinned.has(ref) || allowedBy.get(provider)?.(entry.id))
+        );
+      })
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(
+        ([ref, entry]): ModelOption => ({
+          // Listed only when its catalog answered, so a key (or none
+          // needed) is there.
+          available: true,
+          capabilities: capabilitiesOf(ref),
+          contextWindow: entry.contextWindow,
+          label: entry.id,
+          selector: ref,
+          target: ref,
+        })
+      );
+    return [...withWindows, ...extra].map((option) =>
+      described(option, catalogs)
+    );
+  };
+
   return {
     catalog,
 
@@ -398,7 +507,9 @@ export const buildRegistry = (
       }
       const listed = await catalogResult(parsed.provider, credentials);
       if (listed.ok) {
-        return listed.value.some((entry) => entry.id === parsed.modelId)
+        return listed.value.some(
+          (entry) => entry.id === parsed.modelId && !isImageModel(entry)
+        )
           ? ok(ref)
           : err({ selector: ref, type: "not_offered" });
       }
@@ -412,50 +523,40 @@ export const buildRegistry = (
     embeddingModel: (ref, credentials) =>
       model("embeddingModel", ref, credentials),
 
+    imageModel: (ref, credentials) => model("imageModel", ref, credentials),
+
+    imageModels,
+
     languageModel: (ref, credentials) =>
       model("languageModel", ref, credentials),
 
     listModels: async (keys) => {
-      const keyedProviders = new Set(Object.keys(keys));
-      const configured = configuredOptions(keyedProviders);
-      const catalogs = await discovered(keys);
-      if (catalogs.size === 0) {
-        return configured.map((option) => described(option, catalogs));
-      }
-      // What a catalog says about a configured model fills its context window.
-      const withWindows = configured.map((option) => {
-        const known = option.target ? catalogs.get(option.target) : undefined;
-        return known?.contextWindow && option.contextWindow === null
-          ? { ...option, contextWindow: known.contextWindow }
-          : option;
-      });
-      const listed = new Set(configured.map((option) => option.target));
-      const extra = [...catalogs.entries()]
-        .filter(([ref, entry]) => {
-          const provider = parseModelRef(ref)?.provider ?? "";
-          return (
-            !listed.has(ref) &&
-            (pinned.has(ref) || allowedBy.get(provider)?.(entry.id))
-          );
-        })
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(
-          ([ref, entry]): ModelOption => ({
-            // Listed only when its catalog answered, so a key (or none
-            // needed) is there.
-            available: true,
-            capabilities: capabilitiesOf(ref),
-            contextWindow: entry.contextWindow,
-            label: entry.id,
-            selector: ref,
-            target: ref,
-          })
-        );
-      return [...withWindows, ...extra].map((option) =>
-        described(option, catalogs)
-      );
+      const [chat, images] = await Promise.all([
+        chatOptions(keys),
+        imageModels(keys),
+      ]);
+      return withImageModel(chat, images);
     },
 
     resolve,
   };
+};
+
+/**
+ * Each option that can call tools, with the image model `generate_image`
+ * would draw with for it (138): the first one this context can use. Pure.
+ */
+export const withImageModel = (
+  options: readonly ModelOption[],
+  images: readonly ImageModelChoice[]
+): ModelOption[] => {
+  const image = images.find((choice) => choice.available);
+  return options.map((option) =>
+    image && option.target && option.capabilities.includes("tools")
+      ? {
+          ...option,
+          imageModel: { displayName: image.displayName, target: image.target },
+        }
+      : option
+  );
 };
