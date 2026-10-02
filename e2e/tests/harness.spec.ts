@@ -294,6 +294,73 @@ test("Stop while a change waits cancels the run, and the card goes everywhere", 
   await other.close();
 });
 
+/**
+ * Holds API requests (batched ones included) whose url, decoded, matches,
+ * until `release`: a slow connection, made deterministic.
+ */
+const holdApi = async (page: Page, matches: RegExp) => {
+  const held: (() => void)[] = [];
+  let holding = true;
+  await page.route("**/api/**", async (route) => {
+    if (holding && matches.test(decodeURIComponent(route.request().url()))) {
+      await new Promise<void>((resolve) => {
+        held.push(resolve);
+      });
+    }
+    await route.fallback();
+  });
+  return {
+    held: () => held.length,
+    release: () => {
+      holding = false;
+      for (const each of held.splice(0)) {
+        each();
+      }
+    },
+  };
+};
+
+/** A decision on its way to the server. */
+const DECIDING = /\/approvals$/;
+
+/** The runs list a page asks when it looks for a run's stream to follow. */
+const FINDING_THE_STREAM = /\/runs\?[^"]*limit=1(?!\d)/;
+
+test("a second tab still looking for the stream when Stop lands drops the card too (136)", async ({
+  baseURL,
+  browser,
+  page,
+}) => {
+  await page.goto("/");
+  await send(page, "[script:one]");
+  await expect(cards(page)).toHaveCount(1, { timeout: 30_000 });
+  const id = await conversationIdOf(page);
+  const api = await apiFor(page, baseURL ?? "");
+
+  // The other tab shows the stored card, but its look for the run's stream
+  // is slow: by the time it's answered, the run has stopped.
+  const other = await browser.newContext({
+    baseURL,
+    storageState: storageStateFor("ada"),
+  });
+  const tab = await other.newPage();
+  const finding = await holdApi(tab, FINDING_THE_STREAM);
+  await tab.goto(`/c/${id}`);
+  await expect(cards(tab)).toHaveCount(1, { timeout: 30_000 });
+  await expect.poll(finding.held).toBeGreaterThan(0);
+
+  const note = page.getByRole("status").filter({ hasText: WAITING_NOTE });
+  await note.getByRole("button", { name: "Stop" }).click();
+  await eventually(
+    () => runStatuses(api, id),
+    (statuses) => statuses[0] === "cancelled"
+  );
+  finding.release();
+  await expect(cards(tab)).toHaveCount(0);
+  await expect(tab.getByText(STOPPED_BY_YOU)).toBeVisible();
+  await other.close();
+});
+
 test("Stop during a running command kills it and keeps the line", async ({
   baseURL,
   page,
@@ -365,6 +432,108 @@ test("a reload mid-run or during a pause shows where the run is", async ({
   await composerReady(page);
   await expect(page.getByText(STOPPED_EARLY)).toHaveCount(0);
   await expectReply(page, WOKE_UP);
+});
+
+/**
+ * From the next load on, every event of a run's stream reaches the page
+ * `ms` after the one before: a slow connection replaying a long answer.
+ * `window.__lastStreamEvent` says when the last one arrived.
+ */
+const slowStreams = (page: Page, ms: number) =>
+  page.addInitScript((delay) => {
+    const holder = window as unknown as { __lastStreamEvent?: number };
+    const original = window.fetch.bind(window);
+    window.fetch = async (input, init) => {
+      const response = await original(input, init);
+      const url = input instanceof Request ? input.url : String(input);
+      if (!(url.includes("/api/runs/") && url.includes("/stream"))) {
+        return response;
+      }
+      const reader = response.body?.getReader();
+      if (!reader) {
+        return response;
+      }
+      const decoder = new TextDecoder();
+      const encoder = new TextEncoder();
+      let buffer = "";
+      const body = new ReadableStream<Uint8Array>({
+        cancel: () => reader.cancel(),
+        pull: async (sink) => {
+          for (;;) {
+            const end = buffer.indexOf("\n\n");
+            if (end !== -1) {
+              const event = buffer.slice(0, end + 2);
+              buffer = buffer.slice(end + 2);
+              // biome-ignore lint/performance/noAwaitInLoops: one event at a time, in order, on purpose.
+              await new Promise((resolve) => setTimeout(resolve, delay));
+              sink.enqueue(encoder.encode(event));
+              holder.__lastStreamEvent = Date.now();
+              return;
+            }
+            const { done, value } = await reader.read();
+            if (done) {
+              sink.close();
+              return;
+            }
+            buffer += decoder.decode(value, { stream: true });
+          }
+        },
+      });
+      return new Response(body, {
+        headers: response.headers,
+        status: response.status,
+      });
+    };
+  }, ms);
+
+/** Resolves once no stream event has arrived for a second. */
+const streamQuiet = (page: Page) =>
+  expect
+    .poll(
+      () =>
+        page.evaluate(() => {
+          const last = (window as unknown as { __lastStreamEvent?: number })
+            .__lastStreamEvent;
+          return last === undefined ? 0 : Date.now() - last;
+        }),
+      { timeout: 30_000 }
+    )
+    .toBeGreaterThan(1000);
+
+test("a decision sent while a reloaded page replays the run stays sent (136)", async ({
+  page,
+}) => {
+  const watched = await watch(page);
+  await page.goto("/");
+  await send(page, "[script:site]");
+  await approveNext(page);
+  await expect(
+    page.getByRole("button", { name: "Wants to change style.css" })
+  ).toBeVisible({ timeout: 30_000 });
+  await expect(cards(page)).toHaveCount(1);
+
+  // Reloaded during the pause on a slow connection: the page picks the run
+  // up and replays it from the start, slowly. The card shows at once, from
+  // the stored answer, and is approved while the replay is still going,
+  // with the decision slow to land too.
+  await slowStreams(page, 100);
+  await page.reload();
+  await composerReady(page);
+  const deciding = await holdApi(page, DECIDING);
+  await approveNext(page);
+  await streamQuiet(page);
+  // The replay caught up: the decision is still on its way, and the card
+  // never came back undecided.
+  await expect(cards(page)).toHaveCount(0);
+  deciding.release();
+  await expect(
+    page.getByRole("button", { name: "Wants to change script.js" })
+  ).toBeVisible({ timeout: 30_000 });
+  await approveNext(page);
+  await expectReply(page, SITE_DONE);
+  await expect(cards(page)).toHaveCount(0);
+  // One decision per card: index.html, style.css, script.js.
+  expect(watched.posts).toEqual([200, 200, 200]);
 });
 
 test("two tabs: a decision in one shows in the other, and deciding twice is harmless", async ({

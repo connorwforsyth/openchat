@@ -92,6 +92,7 @@ import {
   runToFollow,
   stoppableRun,
   unseenApprovals,
+  unsettledCalls,
   waitingCalls,
   waitingForPerson,
 } from "../model/run-activity";
@@ -1052,15 +1053,15 @@ const useDecisions = ({
   client,
   conversationId,
   onSent,
-  pending,
   runs,
+  unsettled,
 }: {
   readonly client: ApiClient;
   readonly conversationId: ConversationId | null;
   /** After the server took a decision: refetch, and follow the run on. */
   readonly onSent: () => void;
-  /** Calls on screen still waiting for a decision. */
-  readonly pending: readonly string[];
+  /** Calls on screen not yet decided or answered (`unsettledCalls`). */
+  readonly unsettled: readonly string[];
   readonly runs: readonly Run[] | undefined;
 }) => {
   const [states, setStates] = useState<ReadonlyMap<string, DecisionState>>(
@@ -1121,11 +1122,12 @@ const useDecisions = ({
     [decide]
   );
 
-  // Once the screen no longer waits on a call, its decision is the
-  // server's to show; this page's note about it goes.
-  const waiting = pending.join(" ");
+  // Once the screen shows a call decided or answered (or no longer shows
+  // it), its decision is the server's to show; this page's note about it
+  // goes.
+  const open = unsettled.join(" ");
   useEffect(() => {
-    const still = new Set(waiting.split(" "));
+    const still = new Set(open.split(" "));
     setStates((current) => {
       const stale = [...current.keys()].filter((id) => !still.has(id));
       if (stale.length === 0) {
@@ -1138,7 +1140,7 @@ const useDecisions = ({
       }
       return next;
     });
-  }, [waiting]);
+  }, [open]);
 
   return { decide, retry, states };
 };
@@ -1219,7 +1221,16 @@ const useRunControls = ({
   /** The chat's workspace, to check pending changes against its files. */
   readonly sandboxId: SandboxId | null;
 }) => {
-  const { resumeStream, stop: stopReading } = chat;
+  const { resumeStream: resume, stop: stopReading } = chat;
+  // Following a run ends however it ends, and the stored branch is read
+  // again then: at the stream's end (as `onFinish` does), and at once when
+  // the run had ended before the page asked for it (136: another tab
+  // stopped it while this one was still looking for its stream, so there
+  // was no stream to follow and nothing else would clear the card).
+  const resumeStream = useCallback(
+    () => resume().catch(ignore).finally(refresh),
+    [refresh, resume]
+  );
   // The same query `useChatQueries` makes; read whole for the run states.
   const activeRuns = useQuery(
     api.runs.list.queryOptions({
@@ -1251,8 +1262,8 @@ const useRunControls = ({
         resumeStream().catch(ignore);
       }
     }, [refresh, resumeStream]),
-    pending,
     runs: activeRuns,
+    unsettled: useMemo(() => unsettledCalls(messages), [messages]),
   });
   const sending = useMemo(
     () =>

@@ -1,10 +1,14 @@
 import { fixtureId, userAda } from "@workspace/contract/fixtures";
-import type { MessagePart } from "@workspace/contract/schemas/message-parts";
+import type {
+  ApprovalState,
+  MessagePart,
+} from "@workspace/contract/schemas/message-parts";
 import type { UIMessage } from "ai";
 import { describe, expect, it } from "vitest";
 
 import { treeMessages } from "../fixtures";
 import {
+  caughtUp,
   type Decisions,
   liveParts,
   liveTail,
@@ -143,6 +147,91 @@ describe("mergeLive while a picked-up stream replays", () => {
     expect(
       mergeLive(stored, [caught], context, undefined, answer.id)[1]?.parts
     ).toMatchObject([{ toolCallId: "c9", type: "tool-call" }]);
+  });
+
+  it("keeps the stored card while the replay has the call but not yet its card (136)", () => {
+    if (!(question && answer)) {
+      throw new Error("fixture path is too short");
+    }
+    const call = {
+      approval: { requestedAt: context.now, state: "pending" as const },
+      input: {},
+      toolCallId: "c9",
+      toolName: "write",
+      type: "tool-call" as const,
+    };
+    const stored = [
+      question,
+      { ...answer, parts: [call], status: "partial" as const },
+    ];
+    // The call's input has replayed; the approval request hasn't yet.
+    const called: UIMessage = {
+      id: answer.id,
+      parts: [
+        {
+          input: {},
+          state: "input-available",
+          toolCallId: "c9",
+          type: "tool-write",
+        },
+      ],
+      role: "assistant",
+    };
+    expect(mergeLive(stored, [called], context, undefined, answer.id)[1]).toBe(
+      stored[1]
+    );
+  });
+});
+
+describe("caughtUp", () => {
+  const at = "2026-09-30T10:00:00.000Z";
+  const call = (toolCallId: string, approval: ApprovalState): MessagePart => ({
+    approval,
+    input: {},
+    toolCallId,
+    toolName: "write",
+    type: "tool-call",
+  });
+  const result = (toolCallId: string): MessagePart => ({
+    output: { status: "success", value: null },
+    toolCallId,
+    toolName: "write",
+    type: "tool-result",
+  });
+  const pending = { requestedAt: at, state: "pending" } as const;
+  const decided = {
+    decidedAt: at,
+    decidedBy: userAda.id,
+    decision: { decision: "approve" },
+    state: "decided",
+  } as const;
+  const called = { state: "not-required" } as const;
+
+  it("needs every stored call, as far along as the stored copy has it", () => {
+    const stored = { parts: [call("c1", decided), result("c1")] };
+    expect(caughtUp({ parts: [] }, stored)).toBe(false);
+    expect(caughtUp({ parts: [call("c1", called)] }, stored)).toBe(false);
+    expect(caughtUp({ parts: [call("c1", decided)] }, stored)).toBe(false);
+    expect(
+      caughtUp({ parts: [call("c1", decided), result("c1")] }, stored)
+    ).toBe(true);
+  });
+
+  it("takes a card for a call the stored copy only asks about", () => {
+    const stored = { parts: [call("c2", pending)] };
+    expect(caughtUp({ parts: [call("c2", called)] }, stored)).toBe(false);
+    expect(caughtUp({ parts: [call("c2", pending)] }, stored)).toBe(true);
+    // Ahead of the stored copy is caught up too.
+    expect(caughtUp({ parts: [call("c2", decided)] }, stored)).toBe(true);
+    expect(
+      caughtUp({ parts: [call("c2", called), result("c2")] }, stored)
+    ).toBe(true);
+  });
+
+  it("ignores calls the stored copy doesn't have yet", () => {
+    expect(caughtUp({ parts: [call("c3", pending)] }, { parts: [] })).toBe(
+      true
+    );
   });
 });
 
