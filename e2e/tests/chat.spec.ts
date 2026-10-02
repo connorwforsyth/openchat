@@ -8,6 +8,7 @@ import {
   conversationIdOf,
   expectReply,
   send,
+  sendButton,
   userMessages,
 } from "../support/chat";
 import { recordBootTimings } from "../support/timings";
@@ -105,6 +106,92 @@ test("the composer is centred on a new chat and docks at the bottom once it star
   expect((await composerPosition(page)).gapBelow).toBeLessThan(40);
   await expect(assistantMessages(page)).toHaveCount(1);
   expect((await composerPosition(page)).gapBelow).toBeLessThan(40);
+});
+
+/** Holds `method` requests to paths that `matches` from now on, until `release`. */
+const holdRequests = async (
+  page: Page,
+  matches: (url: URL) => boolean,
+  method: string
+) => {
+  const held: (() => void)[] = [];
+  let holding = true;
+  await page.route(matches, async (route) => {
+    if (holding && route.request().method() === method) {
+      await new Promise<void>((resolve) => {
+        held.push(resolve);
+      });
+    }
+    await route.fallback();
+  });
+  return {
+    held: () => held.length,
+    release: () => {
+      holding = false;
+      for (const each of held.splice(0)) {
+        each();
+      }
+    },
+  };
+};
+
+test("a message sent while a new chat is being made waits in the composer; the first still goes (134)", async ({
+  page,
+}) => {
+  const creates: string[] = [];
+  page.on("request", (request) => {
+    if (
+      request.method() === "POST" &&
+      new URL(request.url()).pathname === "/api/conversations"
+    ) {
+      creates.push(request.url());
+    }
+  });
+  await page.goto("/");
+  await composerReady(page);
+  const creating = await holdRequests(
+    page,
+    (url) => url.pathname === "/api/conversations",
+    "POST"
+  );
+  // The new chat's address: the router fetches its page before moving.
+  const routing = await holdRequests(
+    page,
+    (url) => url.pathname.startsWith("/c/"),
+    "GET"
+  );
+  const stop = page.getByRole("button", { exact: true, name: "Stop" });
+  const second = "Second while it was made";
+  const tryToSend = async () => {
+    await composer(page).click();
+    await composer(page).press("Enter");
+    // Busy, as once a run starts: the message stays in the composer.
+    await expect(stop).toBeVisible();
+    await expect(composer(page)).toHaveText(second);
+  };
+
+  await send(page, "First of a new chat");
+  await expect.poll(creating.held).toBe(1);
+  // While the chat is created…
+  await composer(page).pressSequentially(second);
+  await tryToSend();
+  creating.release();
+  // …and while the page moves to its address.
+  await expect.poll(routing.held).toBeGreaterThan(0);
+  await tryToSend();
+  routing.release();
+
+  await expectReply(page, "Echo: First of a new chat");
+  await conversationIdOf(page);
+  await expect(composer(page)).toHaveText(second);
+  await expect(sendButton(page)).toBeEnabled();
+  await composer(page).press("Enter");
+  await expectReply(page, `Echo: ${second}`);
+  await expect(userMessages(page)).toHaveCount(2);
+  await expect(userMessages(page).first()).toContainText("First of a new chat");
+  await expect(userMessages(page).last()).toContainText(second);
+  // One chat: the second message never made one of its own.
+  expect(creates).toHaveLength(1);
 });
 
 test("closing the tab mid-reply and reopening resumes the stream", async ({

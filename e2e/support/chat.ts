@@ -32,6 +32,12 @@ export const conversationIdOf = async (page: Page): Promise<ConversationId> => {
   return conversationIdSchema.parse(match?.[1]);
 };
 
+/** The composer's Send button; Stop takes its place while a run is going. */
+export const sendButton = (page: Page): Locator =>
+  page
+    .locator('[data-slot="composer"]')
+    .getByRole("button", { exact: true, name: "Send" });
+
 /**
  * Waits for the live composer. The server renders a look-alike shell, which
  * the editor replaces once it loads: a menu opened or a button pressed in
@@ -102,6 +108,10 @@ export const send = async (
       });
     }, measure.token);
   }
+  // Enter sends only when the composer can (134): not while the previous
+  // reply is still ending, which can outlast its text appearing. A person
+  // sees Stop there, not Send, and waits.
+  await expect(sendButton(page)).toBeEnabled();
   await input.press("Enter");
   if (measure) {
     const latency = await page.evaluate(

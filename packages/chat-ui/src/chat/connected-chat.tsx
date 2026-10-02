@@ -24,6 +24,7 @@ import type {
   AgentOption,
   AttachmentLimits,
   ComposerAttachment,
+  ComposerStatus,
   ComposerValue,
   PickedSkillOption,
   SkillOption,
@@ -70,6 +71,14 @@ import {
 import { PlanStatusProvider } from "../conversation/plan-card";
 import { staleEdits } from "../model/approval";
 import { newestLeafUnder, type TreeNode } from "../model/branch";
+import {
+  type FirstSend,
+  firstSendBusy,
+  firstSendFailed,
+  firstSendNext,
+  firstSendQueued,
+  firstSendStarted,
+} from "../model/first-send";
 import { type LiveMapping, mergeLive } from "../model/live-messages";
 import type { MemoryUpdate } from "../model/parts";
 import {
@@ -733,7 +742,17 @@ const useFollowRunningReply = ({
   }, [conversationId, idle, resumeStream, runningRunId]);
 };
 
-/** A new chat is created on first send; the send happens once it's routed to. */
+/** A message waiting for its new chat's address (134). */
+interface Queued {
+  readonly outgoing: Outgoing;
+  readonly text: string;
+}
+
+/**
+ * A new chat is created on first send; the send happens once it's routed
+ * to. Until then the composer is busy (`busy`), and a message sent anyway
+ * joins the same chat after the first rather than making another (134).
+ */
 const useFirstSend = ({
   api,
   client,
@@ -743,6 +762,7 @@ const useFirstSend = ({
   onNavigate,
   onWorkspaceChanged,
   send,
+  sendInTurn,
   target,
 }: {
   readonly api: QueryUtils;
@@ -755,31 +775,45 @@ const useFirstSend = ({
   /** The workspace changed (attachments were imported). */
   readonly onWorkspaceChanged: () => void;
   readonly send: (text: string, outgoing: Outgoing) => void;
+  /** Sends, and settles once the turn's answer has ended. */
+  readonly sendInTurn: (text: string, outgoing: Outgoing) => Promise<void>;
   /** Stored as the new chat's default, so reopening it continues with the same agent or model. */
   readonly target: RunTarget | null;
 }) => {
-  const [pending, setPending] = useState<{
-    readonly conversationId: ConversationId;
-    readonly outgoing: Outgoing;
-    readonly text: string;
-  } | null>(null);
+  const [first, setFirst] = useState<FirstSend<Queued> | null>(null);
+  const [sending, setSending] = useState(false);
+  // One chat per first send, however many messages race to it.
+  const creation = useRef<Promise<ConversationId> | null>(null);
+  // Messages get ready in the order they were sent, whatever they upload.
+  const order = useRef<Promise<unknown>>(Promise.resolve());
+  const navigatedTo = useRef<ConversationId | null>(null);
   useEffect(() => {
-    if (pending && pending.conversationId === conversationId) {
-      setPending(null);
-      send(pending.text, pending.outgoing);
+    // At a chat's address its creation is over; a later new chat makes its own.
+    if (conversationId !== null) {
+      creation.current = null;
     }
-  }, [conversationId, pending, send]);
+  }, [conversationId]);
+
+  useEffect(() => {
+    const next = firstSendNext(first, { conversationId, sending });
+    if (!next) {
+      return;
+    }
+    setFirst(next.rest);
+    setSending(true);
+    // The next waits for this one's answer, as a person would.
+    sendInTurn(next.item.text, next.item.outgoing)
+      .catch(ignore)
+      .finally(() => setSending(false));
+  }, [conversationId, first, sendInTurn, sending]);
 
   const { mutateAsync: create } = useMutation(
     api.conversations.create.mutationOptions()
   );
-  return useCallback(
-    async (value: ComposerValue) => {
+  const prepare = useCallback(
+    async (id: ConversationId, value: ComposerValue): Promise<Outgoing> => {
       // Files belong to a conversation, so a new chat exists before they
       // upload; the message goes once they have.
-      const id =
-        conversationId ??
-        (await create({ context, defaultTarget: target ?? undefined })).id;
       const uploaded = await uploadAttachments(client, id, value.attachments);
       // Imported before sending, so the turn can read them when it starts.
       const imported =
@@ -789,30 +823,54 @@ const useFirstSend = ({
       if (imported.length > 0) {
         onWorkspaceChanged();
       }
-      const outgoing: Outgoing = {
+      return {
         files: uploaded.map((each) => each.part),
         skills: value.skills,
         workspaceFiles: [...mentionedFiles(value), ...imported],
       };
+    },
+    [client, importFiles, onWorkspaceChanged]
+  );
+
+  const submit = useCallback(
+    async (value: ComposerValue) => {
       if (conversationId) {
-        send(value.text, outgoing);
+        send(value.text, await prepare(conversationId, value));
         return;
       }
-      setPending({ conversationId: id, outgoing, text: value.text });
-      onNavigate(id);
+      setFirst(firstSendStarted);
+      const made =
+        creation.current ??
+        create({ context, defaultTarget: target ?? undefined }).then(
+          (created) => created.id
+        );
+      creation.current = made;
+      const ready = order.current.then(async () => {
+        const id = await made;
+        return { id, outgoing: await prepare(id, value) };
+      });
+      order.current = ready.catch(ignore);
+      try {
+        const { id, outgoing } = await ready;
+        setFirst((current) =>
+          firstSendQueued(current, id, { outgoing, text: value.text })
+        );
+        if (navigatedTo.current !== id) {
+          navigatedTo.current = id;
+          onNavigate(id);
+        }
+      } catch (error) {
+        if (creation.current === made) {
+          // Not made, or made: either way the next try starts afresh.
+          creation.current = null;
+        }
+        setFirst(firstSendFailed);
+        throw error;
+      }
     },
-    [
-      client,
-      context,
-      conversationId,
-      create,
-      importFiles,
-      onNavigate,
-      onWorkspaceChanged,
-      send,
-      target,
-    ]
+    [context, conversationId, create, onNavigate, prepare, send, target]
   );
+  return { busy: firstSendBusy(first, conversationId), submit };
 };
 
 const TITLE_WAIT_MS = 30_000;
@@ -1258,6 +1316,21 @@ const useRunControls = ({
   };
 };
 
+/**
+ * A new chat's first message is on its way (134): the composer is busy, as
+ * once its run starts, so another message waits in it. Nothing runs yet for
+ * Stop to stop.
+ */
+const whileFirstSend = (
+  busy: boolean,
+  status: ComposerStatus,
+  stop: () => void
+): {
+  readonly onStop: (() => void) | undefined;
+  readonly status: ComposerStatus;
+} =>
+  busy ? { onStop: undefined, status: "submitted" } : { onStop: stop, status };
+
 /** What a message carries: `sendTarget` when the host gave one (111), else the shown target. */
 const targetToSend = (
   sendTarget: RunTarget | null | undefined,
@@ -1438,11 +1511,16 @@ export function ConnectedChat({
       sandboxId: data.sandbox.data?.id ?? null,
     });
   const { stop: stopReading } = chat;
+  const sendInTurn = useCallback(
+    (text: string, outgoing: Outgoing = NOTHING_ELSE) =>
+      sendMessage(outgoingMessage(text, outgoing)),
+    [sendMessage]
+  );
   const send = useCallback(
     (text: string, outgoing: Outgoing = NOTHING_ELSE) => {
-      sendMessage(outgoingMessage(text, outgoing)).catch(ignore);
+      sendInTurn(text, outgoing).catch(ignore);
     },
-    [sendMessage]
+    [sendInTurn]
   );
   // Approving a plan (106): a normal run (plan mode off for it, and after)
   // whose message carries the approval, and the edited plan if it changed.
@@ -1463,7 +1541,7 @@ export function ConnectedChat({
     },
     [plan, sendMessage, stopReading, t, waiting]
   );
-  const submit = useFirstSend({
+  const firstSend = useFirstSend({
     api,
     client,
     context: draftContext,
@@ -1472,8 +1550,15 @@ export function ConnectedChat({
     onNavigate,
     onWorkspaceChanged,
     send,
+    sendInTurn,
     target: outgoingTarget,
   });
+  const { submit } = firstSend;
+  const { onStop, status: shownStatus } = whileFirstSend(
+    firstSend.busy,
+    composerStatus,
+    stop
+  );
 
   const { mutateAsync: revertMemory } = useMutation(
     api.memory.revert.mutationOptions()
@@ -1626,24 +1711,23 @@ export function ConnectedChat({
   const planStatus = useMemo(
     () => ({
       approved: approvedPlanIds(messages),
-      busy: composerStatus === "submitted" || composerStatus === "streaming",
+      busy: shownStatus === "submitted" || shownStatus === "streaming",
       discarded: discardedPlans,
     }),
-    [composerStatus, discardedPlans, messages]
+    [shownStatus, discardedPlans, messages]
   );
   const planEditing = useMemo(
     () =>
       editingPlan
         ? {
             artifactId: editingPlan.artifactId,
-            busy:
-              composerStatus === "submitted" || composerStatus === "streaming",
+            busy: shownStatus === "submitted" || shownStatus === "streaming",
             onApprove: (content: string | undefined) =>
               approvePlan(editingPlan, content),
             onCancel: () => setEditingPlan(null),
           }
         : null,
-    [approvePlan, composerStatus, editingPlan]
+    [approvePlan, shownStatus, editingPlan]
   );
 
   return (
@@ -1657,7 +1741,7 @@ export function ConnectedChat({
             attachmentLimits,
             models,
             onPlanChange: plan.set,
-            onStop: stop,
+            onStop,
             onSubmit,
             onTargetChange,
             onVariantChange: setVariant,
@@ -1666,7 +1750,7 @@ export function ConnectedChat({
             ...webSearchSwitch(config, webSearch, setWebSearch),
             plan: plan.on,
             skills,
-            status: composerStatus,
+            status: shownStatus,
             target: target ?? undefined,
             variant,
           }}
