@@ -152,6 +152,12 @@ models:
     strong: anthropic:claude-opus-5-5
   default: strong
   auto: { enabled: true, cheap: fast, strong: strong }
+  # Image generation (\`generate_image\`): its own list, never in the chat
+  # picker. \`discover: true\` adds a discovering provider's image models (the
+  # gateway's \`type: image\`). Calls ask first unless \`approval: auto\`.
+  # image: { default: openai:gpt-image-1, discover: false, approval: ask }
+  # Per-image prices sit beside token prices (micro-USD; 40000 is 4 cents):
+  # prices: { "openai:gpt-image-1": { imageMicros: 40000 } }
   # One line under each model in the picker, by alias or provider:model ref.
   # Beats what a provider's catalog says; \`auto\` has its own.
   descriptions:
@@ -395,6 +401,12 @@ models:
     strong: ollama:llama3.2
   default: strong
   auto: { enabled: false, cheap: null, strong: null }
+  # Image generation (\`generate_image\`): its own list, never in the chat
+  # picker. \`discover: true\` adds a discovering provider's image models (the
+  # gateway's \`type: image\`). Calls ask first unless \`approval: auto\`.
+  # image: { default: openai:gpt-image-1, discover: false, approval: ask }
+  # Per-image prices sit beside token prices (micro-USD; 40000 is 4 cents):
+  # prices: { "openai:gpt-image-1": { imageMicros: 40000 } }
   # One line under each model in the picker, by alias or provider:model ref.
   # Beats what a provider's catalog says; \`auto\` has its own.
   descriptions:
@@ -628,6 +640,12 @@ models:
     strong: anthropic:claude-opus-5-5
   default: strong
   auto: { enabled: true, cheap: fast, strong: strong }
+  # Image generation (\`generate_image\`): its own list, never in the chat
+  # picker. \`discover: true\` adds a discovering provider's image models (the
+  # gateway's \`type: image\`). Calls ask first unless \`approval: auto\`.
+  # image: { default: openai:gpt-image-1, discover: false, approval: ask }
+  # Per-image prices sit beside token prices (micro-USD; 40000 is 4 cents):
+  # prices: { "openai:gpt-image-1": { imageMicros: 40000 } }
   # One line under each model in the picker, by alias or provider:model ref.
   # Beats what a provider's catalog says; \`auto\` has its own.
   descriptions:
