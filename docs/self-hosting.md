@@ -397,26 +397,33 @@ production unless the instance itself is served from loopback.
 
 ### Icon set
 
-The icon set is compiled into the image, so the `icons` block of a mounted
-`app.config.yaml` can't change it: the image is built before the file is
-there. Choose the set with build args instead, in `.env` (compose passes them
-through):
+The icon set is compiled in, so it's read at build time, from the `icons`
+block of `app.config.yaml`:
 
-```sh
-ICON_SET=material        # lucide (default), phosphor or material
-ICON_STYLE=rounded       # Material only: outlined (default), rounded, sharp
-ICON_WEIGHT=400          # Material only: 100–700, default 400
-ICON_FILL=false          # Material only: true for the filled symbols
+```yaml
+icons: { set: material, style: rounded }   # lucide (default), phosphor or material
+# Material only: style outlined (default), rounded or sharp; weight 100–700
+# (default 400); fill: true for the filled symbols
 ```
 
-then rebuild with `docker compose up -d --build`. Without compose, pass them
-to `docker build` as `--build-arg ICON_SET=material` and so on. Outside
-Docker, `bun run build` reads the `icons` block itself (from `CONFIG_PATH`, or
-`apps/web/app.config.yaml`), and these variables override it.
+`bun run setup` writes this block for you. The block is the only place to
+choose: nothing about icons goes in `.env`. Rebuild after changing it, with
+`docker compose up -d --build`; the image reads `apps/web/app.config.yaml`
+from the build context, else the `app.config.yaml` at the repo root (the one
+setup writes and compose mounts). Outside Docker, `bun run build` and
+`bun dev` read it themselves, from `CONFIG_PATH` or `apps/web/app.config.yaml`.
+
+`ICON_SET`, `ICON_STYLE`, `ICON_WEIGHT` and `ICON_FILL` remain as build args
+for an image built from a context with no config file
+(`docker build -f apps/web/Dockerfile --build-arg ICON_SET=material .`).
+They count only while there's no `icons` block; next to one they're ignored.
+Either way the build log warns, naming the variable. An older setup put
+them in `.env`; re-running `bun run setup` offers to move them into the yaml
+and delete them from `.env`.
 
 ### Fonts
 
-The interface fonts are compiled in the same way, but only from the `fonts`
+The interface fonts are compiled in the same way, only from the `fonts`
 block of `app.config.yaml` (there are no build args for them):
 
 ```yaml
@@ -425,8 +432,8 @@ fonts: { sans: inter, mono: jetbrains-mono }
 
 Sans: `geist` (default), `inter`, `open-sans`, `ibm-plex-sans`, `figtree`,
 `manrope`. Mono: `geist-mono` (default), `jetbrains-mono`. Only the chosen
-pair ships. For a Docker image, put the file at `apps/web/app.config.yaml` in
-the build context before `docker compose up -d --build`; outside Docker,
+pair ships. A Docker image reads the file from the build context, as for
+icons, so edit it before `docker compose up -d --build`; outside Docker,
 `bun run build` and `bun dev` read it themselves.
 
 ## Optional services
