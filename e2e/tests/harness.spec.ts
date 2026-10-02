@@ -592,12 +592,12 @@ test("a card restored from the last visit waits until it's checked (136)", async
     approveNext(page),
   ]);
   await page.reload();
-  await composerReady(page);
-  // The restored card shows, but can't be decided until the branch is
-  // checked: it was decided already.
+  // The restored card shows (rendered from the cache, after hydration), but
+  // can't be decided until the branch is checked: it was decided already.
+  // Not waiting for the composer: what it needs may share a held batch.
   await expect(
     page.locator('section[aria-label^="Approval needed"]')
-  ).not.toHaveCount(0);
+  ).not.toHaveCount(0, { timeout: 30_000 });
   await expect(cards(page)).toHaveCount(0);
   checking.release();
   await expect(
