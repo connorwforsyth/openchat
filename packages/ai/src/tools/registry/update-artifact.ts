@@ -1,3 +1,5 @@
+import { builtinArtifactKinds } from "@workspace/artifacts-kit/builtin";
+import { DOCUMENT_EDITS } from "@workspace/artifacts-kit/kinds/document/operations";
 import type { ArtifactKindRegistry } from "@workspace/artifacts-kit/registry";
 import { artifactIdSchema } from "@workspace/contract/schemas/common";
 import { z } from "zod";
@@ -13,19 +15,67 @@ import {
   artifactToolOutputSchema,
   type StoredArtifact,
   saveArtifact,
+  storedContent,
 } from "../artifact-content";
 import { defineTool, type ToolContext } from "./define";
 
-// `update_artifact` (078): the whole content again, saved as the artifact's
-// next version; earlier versions are kept. The content is checked by the
-// artifact's kind (`@workspace/artifacts-kit`, 123), and nothing is saved if
-// a check fails. What the tools share is in `../artifact-content.ts`.
+// `update_artifact` (078): the artifact's next version; earlier versions
+// are kept. Either the whole content again, or (126) an `edit` of one part
+// of a document: a kind's structured operation (`@workspace/artifacts-kit`)
+// applied to its latest version. The content is checked by the artifact's
+// kind (123), and nothing is saved if a check fails. What the tools share
+// is in `../artifact-content.ts`.
+
+const EDIT_NAMES = Object.keys(DOCUMENT_EDITS) as [
+  keyof typeof DOCUMENT_EDITS,
+  ...(keyof typeof DOCUMENT_EDITS)[],
+];
+
+/**
+ * One structured edit. A flat object (not a union) so every provider's
+ * tool schema can say it; each operation reads the fields it needs and the
+ * kit checks them.
+ */
+export const artifactEditSchema = z
+  .object({
+    content: z
+      .string()
+      .max(400_000)
+      .optional()
+      .describe(
+        "Markdown for replace_section and insert: the new section body (start it with a heading to replace the heading too) or the blocks to insert."
+      ),
+    heading: z
+      .string()
+      .max(300)
+      .optional()
+      .describe(
+        "The section's heading text, as it reads (without #s). insert without one adds at the end of the document."
+      ),
+    operation: z
+      .enum(EDIT_NAMES)
+      .describe(
+        "replace_section: the section under a heading, up to the next heading of the same or a higher level. insert: blocks at a section's start or end, or the document's end. delete_section: a heading and its section."
+      ),
+    position: z
+      .enum(["section_end", "section_start"])
+      .optional()
+      .describe("For insert: where in the section. section_end by default."),
+  })
+  .describe(
+    'For a document (type "document"): change one section instead of sending all of it. Leave out content when you send an edit.'
+  );
 
 export const updateArtifactInputSchema = z.object({
   artifactId: artifactIdSchema.describe(
     "The artifactId create_artifact returned."
   ),
-  content: artifactContentSchema,
+  content: artifactContentSchema
+    .optional()
+    .describe(
+      "The artifact's complete new content, with no surrounding code fence. Leave out when you send an edit."
+    ),
+  edit: artifactEditSchema.optional(),
   language: artifactLanguageSchema,
   title: artifactDirectiveSchema.shape.title
     .optional()
@@ -33,11 +83,90 @@ export const updateArtifactInputSchema = z.object({
 });
 export type UpdateArtifactInput = z.infer<typeof updateArtifactInputSchema>;
 
-/** Applies an `update_artifact` call: the whole content again, as the next version. */
+const invalid = (problem: string): ArtifactToolOutput => ({
+  problems: [problem],
+  status: "invalid",
+});
+
+/** The edit as its operation's input: the fields it sent, without `operation`. */
+const editInput = ({
+  operation: _operation,
+  ...fields
+}: z.infer<typeof artifactEditSchema>) =>
+  Object.fromEntries(
+    Object.entries(fields).filter(([, value]) => value !== undefined)
+  );
+
+/**
+ * The next version's stored text: the whole content (converted for the
+ * kind), or the latest version with the edit applied.
+ */
+const nextContent = async (
+  store: ArtifactStore,
+  current: StoredArtifact,
+  input: UpdateArtifactInput,
+  kinds: ArtifactKindRegistry
+): Promise<
+  | { readonly content: string; readonly ok: true }
+  | { readonly ok: false; readonly output: ArtifactToolOutput }
+> => {
+  if (input.edit === undefined) {
+    if (input.content === undefined) {
+      return {
+        ok: false,
+        output: invalid(
+          "send either content (the whole artifact) or an edit (one part of a document)"
+        ),
+      };
+    }
+    const stored = storedContent(kinds, current.kind, input.content);
+    return "problems" in stored
+      ? {
+          ok: false,
+          output: { problems: [...stored.problems], status: "invalid" },
+        }
+      : { content: stored.content, ok: true };
+  }
+  if (input.content !== undefined) {
+    return {
+      ok: false,
+      output: invalid("send content or an edit, not both"),
+    };
+  }
+  let latest: string | null;
+  try {
+    latest = await store.read(current.artifactId);
+  } catch {
+    return {
+      ok: false,
+      output: {
+        message: "The artifact couldn't be read right now.",
+        status: "unavailable",
+      },
+    };
+  }
+  const edited = kinds.edit(
+    current.kind,
+    latest,
+    input.edit.operation,
+    editInput(input.edit)
+  );
+  return edited.ok
+    ? { content: edited.value, ok: true }
+    : {
+        ok: false,
+        output: {
+          problems: [...edited.error],
+          status: "invalid",
+        },
+      };
+};
+
+/** Applies an `update_artifact` call, as the artifact's next version. */
 export const updateArtifact = async (
   store: ArtifactStore,
   input: UpdateArtifactInput,
-  kinds?: ArtifactKindRegistry
+  kinds: ArtifactKindRegistry = builtinArtifactKinds
 ): Promise<ArtifactToolOutput> => {
   let existing: readonly StoredArtifact[];
   try {
@@ -54,11 +183,15 @@ export const updateArtifact = async (
   if (!current) {
     return { artifacts: [...existing], status: "not_found" };
   }
+  const next = await nextContent(store, current, input, kinds);
+  if (!next.ok) {
+    return next.output;
+  }
   return saveArtifact(
     store,
     {
       artifactId: current.artifactId,
-      content: input.content,
+      content: next.content,
       kind: current.kind,
       language: input.language ?? null,
       title: input.title ?? current.title,
@@ -72,7 +205,7 @@ export const updateArtifactTool = defineTool({
   approval: "ask",
   capability: "artifacts",
   description:
-    "Replace an artifact's content, saved as its next version; earlier versions are kept. Pass the complete new content, not a diff.",
+    "Save an artifact's next version; earlier versions are kept. Pass the complete new content, not a diff, or, for a document, an edit of one section.",
   execute: (input, { ports }: ToolContext<{ readonly ports: ArtifactPorts }>) =>
     updateArtifact(ports.store, input, ports.kinds),
   input: updateArtifactInputSchema,

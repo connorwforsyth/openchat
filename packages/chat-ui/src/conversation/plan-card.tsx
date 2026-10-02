@@ -67,7 +67,9 @@ export function PlanCard({ plan }: { readonly plan: PlanRef }) {
     () =>
       onOpenArtifact?.({
         artifactId: plan.artifactId,
-        kind: "markdown",
+        // Plans are Documents since 126 (the panel reads the artifact's own
+        // kind; this one only opens it at its latest).
+        kind: "document",
         title: plan.title,
         type: "artifact-ref",
         versionId: plan.versionId,

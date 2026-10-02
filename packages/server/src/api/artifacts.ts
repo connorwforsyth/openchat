@@ -1,4 +1,6 @@
 import { implement, ORPCError } from "@orpc/server";
+import { builtinArtifactKinds } from "@workspace/artifacts-kit/builtin";
+import type { ArtifactKindRegistry } from "@workspace/artifacts-kit/registry";
 import { contract } from "@workspace/contract/contract";
 import { baseErrors } from "@workspace/contract/errors";
 import type {
@@ -38,6 +40,7 @@ import {
   publishArtifactVersion,
   renameArtifact,
   saveArtifactVersion,
+  saveEditedArtifactVersion,
   toArtifact,
   toArtifactGrant,
   toArtifactVersion,
@@ -78,6 +81,8 @@ import {
 export interface ArtifactsDeps {
   readonly access: ConversationAccess;
   readonly db: Db;
+  /** What a person's edit is checked against (126); the built-in kinds when left out. */
+  readonly kinds?: ArtifactKindRegistry;
   /**
    * Publishing and "Save as artifact" (125). Without it, publishing is off
    * and saving from a workspace says sandboxes are.
@@ -137,7 +142,12 @@ const mayShareWith = async (
 /** How many workspace files "Save as artifact" reads before giving up. */
 const MAX_WORKSPACE_FILES = 200;
 
-export const createArtifactsRouter = ({ access, db, sites }: ArtifactsDeps) => {
+export const createArtifactsRouter = ({
+  access,
+  db,
+  kinds: versionKinds = builtinArtifactKinds,
+  sites,
+}: ArtifactsDeps) => {
   const os = implement(contract).$context<RequestContext>();
   const authed = os.use(async ({ context, next }) => {
     if (!context.session) {
@@ -532,6 +542,36 @@ export const createArtifactsRouter = ({ access, db, sites }: ArtifactsDeps) => {
           throw notFound();
         }
         return toArtifact(saved.value.artifact);
+      }
+    ),
+
+    saveVersion: authed.artifacts.saveVersion.handler(
+      async ({ context, errors, input }) => {
+        // A person's edit (126): the owner or an editor, through the kind's
+        // checks, on top of the version they edited.
+        const found = await readable(context.actor, input.id);
+        if (found.access === "viewer") {
+          throw forbiddenError();
+        }
+        const problems = versionKinds.check(found.row.kind, input.content);
+        if (problems.length > 0) {
+          throw validationError(
+            problems.map((message) => ({ message, path: ["content"] }))
+          );
+        }
+        const saved = await saveEditedArtifactVersion(db, {
+          artifactId: input.id,
+          baseVersionId: input.baseVersionId,
+          content: input.content,
+          editedBy: context.actor.userId,
+        });
+        if (!saved.ok) {
+          if (saved.error.type === "version_mismatch") {
+            throw errors.CONFLICT({ data: { reason: "version_mismatch" } });
+          }
+          throw notFound();
+        }
+        return toArtifactVersion(saved.value.version);
       }
     ),
 

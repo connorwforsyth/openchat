@@ -1,0 +1,3 @@
+ALTER TABLE "artifact_version" ADD COLUMN "edited_by" uuid;--> statement-breakpoint
+ALTER TABLE "artifact_version" ADD CONSTRAINT "artifact_version_edited_by_user_id_fkey" FOREIGN KEY ("edited_by") REFERENCES "user"("id") ON DELETE SET NULL;--> statement-breakpoint
+ALTER TABLE "artifact" DROP CONSTRAINT "artifact_kind", ADD CONSTRAINT "artifact_kind" CHECK ("kind" in ('code', 'html', 'react', 'markdown', 'svg', 'mermaid', 'site', 'document'));

@@ -2,11 +2,13 @@ import {
   type RunStart,
   runStartSchema,
 } from "@workspace/ai/ports/run-executor";
+import { builtinArtifactKinds } from "@workspace/artifacts-kit/builtin";
 import type { UserId } from "@workspace/contract/schemas/common";
 import type { Db } from "@workspace/db/client";
 import {
   attachArtifactToChat,
   saveArtifactVersion,
+  saveEditedArtifactVersion,
   upsertArtifactGrant,
 } from "@workspace/db/queries/artifacts";
 import { createConversation } from "@workspace/db/queries/conversations";
@@ -162,5 +164,53 @@ describe("a chat an artifact is used in", () => {
       })
     );
     expect(saved).toMatchObject({ artifactId: id, version: 2 });
+  });
+});
+
+describe("a document a person edited (126)", () => {
+  it("reaches its own chat's model as Markdown, and the store reads its latest version", async () => {
+    const ada = await seedUser(db);
+    const chat = await chatOf(ada.id);
+    const made = expectOk(
+      await saveArtifactVersion(db, {
+        content: builtinArtifactKinds.fromModel(
+          "document",
+          "# Brief\n\nDraft."
+        ),
+        conversationId: chat.chat.id,
+        kind: "document",
+        messageId: chat.message.id,
+        title: "Brief",
+      })
+    );
+    const run = runIn(chat, ada.id);
+    // Only what the model wrote: it's in the conversation already.
+    expect(await attachedArtifactsFor(db, run)).toEqual([]);
+
+    const edited = builtinArtifactKinds.fromModel(
+      "document",
+      "# Brief\n\nEdited by Ada."
+    );
+    expectOk(
+      await saveEditedArtifactVersion(db, {
+        artifactId: made.artifact.id,
+        baseVersionId: made.version.id,
+        content: edited,
+        editedBy: ada.id,
+      })
+    );
+    const attached = await attachedArtifactsFor(db, run);
+    expect(attached).toEqual([
+      expect.objectContaining({
+        artifactId: made.artifact.id,
+        content: "# Brief\n\nEdited by Ada.\n",
+        edited: true,
+        kind: "document",
+      }),
+    ]);
+    expect(attachedArtifactsText(attached)).toContain(
+      "The user edited these artifacts of this chat"
+    );
+    expect(await dbArtifactStore(db, run).read(made.artifact.id)).toBe(edited);
   });
 });

@@ -1,5 +1,6 @@
 import type { RunStart } from "@workspace/ai/ports/run-executor";
 import type { ArtifactStore } from "@workspace/ai/tools/artifacts";
+import { builtinArtifactKinds } from "@workspace/artifacts-kit/builtin";
 import type { ArtifactId } from "@workspace/contract/schemas/common";
 import type { ArtifactKind } from "@workspace/contract/schemas/message-parts";
 import type { Db } from "@workspace/db/client";
@@ -20,13 +21,18 @@ import { err, ok } from "@workspace/shared/result";
 // used in it from elsewhere ("Use in chat", 124) are not, so their latest
 // versions are put in the instructions, the way `@file` mentions are, and
 // the store lets `update_artifact` version those the run's requester may
-// edit (they own it, or hold an `editor` share).
+// edit (they own it, or hold an `editor` share). A chat's own artifact whose
+// latest version a person edited (126) is put there too: the conversation
+// only holds what the model wrote. Each is shown as the model writes it (a
+// document as Markdown).
 
 export interface AttachedArtifact {
   readonly artifactId: ArtifactId;
   readonly content: string;
   /** Whether the model may make a new version of it from this chat. */
   readonly editable: boolean;
+  /** This chat's own artifact, which a person edited since (126). */
+  readonly edited?: boolean;
   readonly kind: ArtifactKind;
   readonly language: string | null;
   readonly title: string;
@@ -38,10 +44,12 @@ const QUOTE = /"/g;
 export const attachedArtifactsText = (
   attached: readonly AttachedArtifact[]
 ): string | undefined => {
+  const used = attached.filter((each) => !each.edited);
+  const edited = attached.filter((each) => each.edited);
   if (attached.length === 0) {
     return;
   }
-  const blocks = attached.map((each) => {
+  const block = (each: AttachedArtifact) => {
     const attributes = [
       `id="${each.artifactId}"`,
       `title="${each.title.replace(QUOTE, "'")}"`,
@@ -52,10 +60,20 @@ export const attachedArtifactsText = (
       .filter((attribute) => attribute !== null)
       .join(" ");
     return `<artifact ${attributes}>\n${each.content}\n</artifact>`;
-  });
+  };
   return [
-    "The user attached these artifacts to this chat from elsewhere. Each is its latest version. To change an editable one, call update_artifact with its id; that saves its next version, which the user sees wherever the artifact is used. A read-only one can't be changed from here: make a new artifact with create_artifact instead.",
-    ...blocks,
+    ...(used.length > 0
+      ? [
+          "The user attached these artifacts to this chat from elsewhere. Each is its latest version. To change an editable one, call update_artifact with its id; that saves its next version, which the user sees wherever the artifact is used. A read-only one can't be changed from here: make a new artifact with create_artifact instead.",
+          ...used.map(block),
+        ]
+      : []),
+    ...(edited.length > 0
+      ? [
+          "The user edited these artifacts of this chat since you last wrote them. Each is its latest version: work from it, not from what you wrote earlier.",
+          ...edited.map(block),
+        ]
+      : []),
   ].join("\n\n");
 };
 
@@ -72,31 +90,54 @@ const editableBy = async (
   return level === "owner" || level === "editor";
 };
 
-/** The artifacts used in the run's chat, each at its latest version. */
+/**
+ * The artifacts used in the run's chat, and its own artifacts a person
+ * edited last (126), each at its latest version, as the model reads it.
+ */
 export const attachedArtifactsFor = async (
   db: Db,
   run: RunStart
 ): Promise<readonly AttachedArtifact[]> => {
-  const used = await listUsedArtifacts(db, run.conversationId);
-  const found = await Promise.all(
-    used.map(async (row): Promise<AttachedArtifact | null> => {
-      if (row.latestVersionId === null) {
-        return null;
-      }
-      const version = await getArtifactVersion(db, row.id, row.latestVersionId);
-      if (!version.ok) {
-        return null;
-      }
-      return {
-        artifactId: row.id,
-        content: version.value.content,
-        editable: await editableBy(db, run, row),
-        kind: row.kind,
-        language: version.value.language,
-        title: row.title,
-      };
-    })
-  );
+  const [used, own] = await Promise.all([
+    listUsedArtifacts(db, run.conversationId),
+    listArtifacts(db, run.conversationId),
+  ]);
+  const latest = async (row: ArtifactRow) => {
+    if (row.latestVersionId === null) {
+      return null;
+    }
+    const version = await getArtifactVersion(db, row.id, row.latestVersionId);
+    return version.ok ? version.value : null;
+  };
+  const found = await Promise.all([
+    ...used.map(async (row): Promise<AttachedArtifact | null> => {
+      const version = await latest(row);
+      return version
+        ? {
+            artifactId: row.id,
+            content: builtinArtifactKinds.toModel(row.kind, version.content),
+            editable: await editableBy(db, run, row),
+            kind: row.kind,
+            language: version.language,
+            title: row.title,
+          }
+        : null;
+    }),
+    ...own.map(async (row): Promise<AttachedArtifact | null> => {
+      const version = await latest(row);
+      return version?.editedBy
+        ? {
+            artifactId: row.id,
+            content: builtinArtifactKinds.toModel(row.kind, version.content),
+            editable: true,
+            edited: true,
+            kind: row.kind,
+            language: version.language,
+            title: row.title,
+          }
+        : null;
+    }),
+  ]);
   return found.filter((each): each is AttachedArtifact => each !== null);
 };
 
@@ -135,6 +176,14 @@ export const dbArtifactStore = (db: Db, run: RunStart): ArtifactStore => {
         kind: row.kind,
         title: row.title,
       })),
+    read: async (artifactId) => {
+      const row = (await reachable()).find((each) => each.id === artifactId);
+      if (!row?.latestVersionId) {
+        return null;
+      }
+      const version = await getArtifactVersion(db, row.id, row.latestVersionId);
+      return version.ok ? version.value.content : null;
+    },
     save: async (input) => {
       if (
         input.artifactId &&

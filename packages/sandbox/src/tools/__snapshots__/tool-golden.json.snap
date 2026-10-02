@@ -207,9 +207,10 @@
                 "markdown",
                 "svg",
                 "mermaid",
-                "site"
+                "site",
+                "document"
               ],
-              "description": "html: one complete HTML document. react: one file with a default-exported component. svg: one <svg> element. mermaid: diagram source. markdown: a document. code: a file in any language. site: a small website of several files, as JSON (see the Sites instructions)."
+              "description": "document: a rich-text document the user can edit and export, written in Markdown (prefer it for reports, plans and notes). html: one complete HTML document. react: one file with a default-exported component. svg: one <svg> element. mermaid: diagram source. markdown: Markdown text that is only read. code: a file in any language. site: a small website of several files, as JSON (see the Sites instructions)."
             }
           },
           "required": [
@@ -246,7 +247,8 @@
                       "markdown",
                       "svg",
                       "mermaid",
-                      "site"
+                      "site",
+                      "document"
                     ]
                   },
                   "title": {
@@ -328,7 +330,8 @@
                         "markdown",
                         "svg",
                         "mermaid",
-                        "site"
+                        "site",
+                        "document"
                       ]
                     },
                     "title": {
@@ -1987,10 +1990,47 @@
               "description": "The artifactId create_artifact returned."
             },
             "content": {
+              "description": "The artifact's complete new content, with no surrounding code fence. Leave out when you send an edit.",
               "type": "string",
               "minLength": 1,
-              "maxLength": 400000,
-              "description": "The artifact's complete content, with no surrounding code fence."
+              "maxLength": 400000
+            },
+            "edit": {
+              "type": "object",
+              "properties": {
+                "content": {
+                  "description": "Markdown for replace_section and insert: the new section body (start it with a heading to replace the heading too) or the blocks to insert.",
+                  "type": "string",
+                  "maxLength": 400000
+                },
+                "heading": {
+                  "description": "The section's heading text, as it reads (without #s). insert without one adds at the end of the document.",
+                  "type": "string",
+                  "maxLength": 300
+                },
+                "operation": {
+                  "type": "string",
+                  "enum": [
+                    "delete_section",
+                    "insert",
+                    "replace_section"
+                  ],
+                  "description": "replace_section: the section under a heading, up to the next heading of the same or a higher level. insert: blocks at a section's start or end, or the document's end. delete_section: a heading and its section."
+                },
+                "position": {
+                  "description": "For insert: where in the section. section_end by default.",
+                  "type": "string",
+                  "enum": [
+                    "section_end",
+                    "section_start"
+                  ]
+                }
+              },
+              "required": [
+                "operation"
+              ],
+              "description": "For a document (type \"document\"): change one section instead of sending all of it. Leave out content when you send an edit.",
+              "additionalProperties": false
             },
             "language": {
               "description": "For type \"code\": the language, as a code fence names it (ts, python, sql).",
@@ -2005,12 +2045,11 @@
             }
           },
           "required": [
-            "artifactId",
-            "content"
+            "artifactId"
           ],
           "additionalProperties": false
         },
-        "description": "Replace an artifact's content, saved as its next version; earlier versions are kept. Pass the complete new content, not a diff."
+        "description": "Save an artifact's next version; earlier versions are kept. Pass the complete new content, not a diff, or, for a document, an edit of one section."
       },
       "name": "update_artifact",
       "outputSchema": {
@@ -2037,7 +2076,8 @@
                       "markdown",
                       "svg",
                       "mermaid",
-                      "site"
+                      "site",
+                      "document"
                     ]
                   },
                   "title": {
@@ -2119,7 +2159,8 @@
                         "markdown",
                         "svg",
                         "mermaid",
-                        "site"
+                        "site",
+                        "document"
                       ]
                     },
                     "title": {
@@ -3295,9 +3336,10 @@
                 "markdown",
                 "svg",
                 "mermaid",
-                "site"
+                "site",
+                "document"
               ],
-              "description": "html: one complete HTML document. react: one file with a default-exported component. svg: one <svg> element. mermaid: diagram source. markdown: a document. code: a file in any language. site: a small website of several files, as JSON (see the Sites instructions)."
+              "description": "document: a rich-text document the user can edit and export, written in Markdown (prefer it for reports, plans and notes). html: one complete HTML document. react: one file with a default-exported component. svg: one <svg> element. mermaid: diagram source. markdown: Markdown text that is only read. code: a file in any language. site: a small website of several files, as JSON (see the Sites instructions)."
             }
           },
           "required": [
@@ -3334,7 +3376,8 @@
                       "markdown",
                       "svg",
                       "mermaid",
-                      "site"
+                      "site",
+                      "document"
                     ]
                   },
                   "title": {
@@ -3416,7 +3459,8 @@
                         "markdown",
                         "svg",
                         "mermaid",
-                        "site"
+                        "site",
+                        "document"
                       ]
                     },
                     "title": {
@@ -5075,10 +5119,47 @@
               "description": "The artifactId create_artifact returned."
             },
             "content": {
+              "description": "The artifact's complete new content, with no surrounding code fence. Leave out when you send an edit.",
               "type": "string",
               "minLength": 1,
-              "maxLength": 400000,
-              "description": "The artifact's complete content, with no surrounding code fence."
+              "maxLength": 400000
+            },
+            "edit": {
+              "type": "object",
+              "properties": {
+                "content": {
+                  "description": "Markdown for replace_section and insert: the new section body (start it with a heading to replace the heading too) or the blocks to insert.",
+                  "type": "string",
+                  "maxLength": 400000
+                },
+                "heading": {
+                  "description": "The section's heading text, as it reads (without #s). insert without one adds at the end of the document.",
+                  "type": "string",
+                  "maxLength": 300
+                },
+                "operation": {
+                  "type": "string",
+                  "enum": [
+                    "delete_section",
+                    "insert",
+                    "replace_section"
+                  ],
+                  "description": "replace_section: the section under a heading, up to the next heading of the same or a higher level. insert: blocks at a section's start or end, or the document's end. delete_section: a heading and its section."
+                },
+                "position": {
+                  "description": "For insert: where in the section. section_end by default.",
+                  "type": "string",
+                  "enum": [
+                    "section_end",
+                    "section_start"
+                  ]
+                }
+              },
+              "required": [
+                "operation"
+              ],
+              "description": "For a document (type \"document\"): change one section instead of sending all of it. Leave out content when you send an edit.",
+              "additionalProperties": false
             },
             "language": {
               "description": "For type \"code\": the language, as a code fence names it (ts, python, sql).",
@@ -5093,12 +5174,11 @@
             }
           },
           "required": [
-            "artifactId",
-            "content"
+            "artifactId"
           ],
           "additionalProperties": false
         },
-        "description": "Replace an artifact's content, saved as its next version; earlier versions are kept. Pass the complete new content, not a diff."
+        "description": "Save an artifact's next version; earlier versions are kept. Pass the complete new content, not a diff, or, for a document, an edit of one section."
       },
       "name": "update_artifact",
       "outputSchema": {
@@ -5125,7 +5205,8 @@
                       "markdown",
                       "svg",
                       "mermaid",
-                      "site"
+                      "site",
+                      "document"
                     ]
                   },
                   "title": {
@@ -5207,7 +5288,8 @@
                         "markdown",
                         "svg",
                         "mermaid",
-                        "site"
+                        "site",
+                        "document"
                       ]
                     },
                     "title": {

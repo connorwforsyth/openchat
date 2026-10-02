@@ -10,8 +10,9 @@ import {
 import { storageStateFor } from "../support/users";
 
 // Plan mode as a person meets it (106): switch Plan on, get a plan back as
-// the answer and as a "Plan: …" artifact, edit it in the panel, approve it,
-// and the build that follows is a normal run whose file changes still ask.
+// the answer and as a "Plan: …" Document (126), edit it in the panel's
+// document editor (each pause saves a version), approve it, and the build
+// that follows is a normal run whose file changes still ask.
 // The mock answers a planning run with `ls` and then `PLAN_REPLY`, and a run
 // carrying an approved plan with a `write` of it (support/mock-llm.ts).
 
@@ -59,17 +60,25 @@ test("Plan on, a plan and its artifact, Edit, Approve: a normal run that asks be
     )
   );
   expect(calls).toEqual(["bash"]);
-  // The plan is an artifact of the chat too.
+  // The plan is a Document of the chat too (126).
   const [artifact] = await api.artifacts.list({ conversationId: id });
-  expect(artifact).toMatchObject({ kind: "markdown", title: PLAN_TITLE });
+  expect(artifact).toMatchObject({ kind: "document", title: PLAN_TITLE });
 
-  // Edit opens it in the panel's editor.
+  // Edit opens it in the panel's document editor, as rich text.
   await card.getByRole("button", { name: "Edit" }).click();
-  const editor = page.getByRole("textbox", { name: "Plan, in Markdown" });
+  const editor = page.getByRole("textbox", { name: "Document" });
   await expect(editor).toBeVisible();
-  const original = await editor.inputValue();
-  expect(original).toContain(GOAL);
-  await editor.fill(`${original}\n\n${EDIT}`);
+  await expect(editor.getByRole("heading", { name: "Goal" })).toBeVisible();
+  await expect(editor).toContainText(GOAL);
+  await expect(editor).toHaveAttribute("contenteditable", "true");
+  await editor.getByText("None", { exact: true }).click();
+  // The caret is in that paragraph (the toolbar says so) before typing.
+  await expect(
+    page.getByRole("button", { name: "Text style: Text" })
+  ).toBeVisible();
+  await page.keyboard.press("End");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type(EDIT);
   await page.getByRole("button", { name: "Approve the plan" }).click();
 
   // Approving turned Plan off and started a normal run, whose write asks.
@@ -94,13 +103,15 @@ test("Plan on, a plan and its artifact, Edit, Approve: a normal run that asks be
       ? building.state.approvals
       : [];
   expect(pending.map((call) => call.toolName)).toEqual(["write"]);
-  // It builds the plan as edited, saved first as the plan's next version.
+  // It builds the plan as edited: the edit was saved as the plan's next
+  // version (by Ada, not a run), and the approval names it.
   expect(JSON.stringify(pending[0]?.input)).toContain(EDIT);
   const versions = await api.artifacts.listVersions({
     id: artifact?.id ?? "",
   });
   expect(versions).toHaveLength(2);
   expect(versions[1]?.content).toContain(EDIT);
+  expect(versions[1]?.editedBy).toBeTruthy();
 
   await approval.getByRole("button", { name: "Approve" }).click();
   await expectReply(page, BUILT);

@@ -216,6 +216,14 @@ export const artifactVersion = pgTable(
       .notNull()
       .references(() => conversation.id, { onDelete: "cascade" }),
     createdAt: createdAt(),
+    /**
+     * The person who saved this version by editing it (126); `null` when a
+     * run made it. Their version keeps the chat and message of the version
+     * they edited.
+     */
+    editedBy: idRef("edited_by", "user").references(() => user.id, {
+      onDelete: "set null",
+    }),
     id: idColumn("artifactVersion"),
     /** For `code` artifacts: a Shiki language id. */
     language: text("language"),

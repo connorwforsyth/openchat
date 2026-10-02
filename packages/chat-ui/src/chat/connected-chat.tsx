@@ -1853,6 +1853,7 @@ export function ConnectedChat({
           streamingMessageId={streamingMessageId}
           workspace={{
             artifacts: {
+              api,
               artifacts: data.artifacts.data ?? [],
               editing: planEditing,
               error: data.versions.isError

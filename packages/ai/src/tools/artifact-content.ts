@@ -95,6 +95,11 @@ export interface NewArtifactContent {
 /** One chat's artifacts, as the tools reach them. The server binds it per run. */
 export interface ArtifactStore {
   readonly list: () => Promise<readonly StoredArtifact[]>;
+  /**
+   * The latest version's stored text of an artifact the chat can reach, for
+   * a structured edit (126); `null` when it has none.
+   */
+  readonly read: (artifactId: ArtifactId) => Promise<string | null>;
   readonly save: (
     input: NewArtifactContent
   ) => AsyncResult<
@@ -155,7 +160,26 @@ export const artifactProblems = (
     : kinds.check(artifact.type, artifact.content);
 };
 
-/** Saves valid content through the store; every failure is a result the model reads. */
+/**
+ * What the model wrote, as the text a version stores (126): converted for
+ * a kind that stores something else (a document's Markdown becomes its
+ * JSON). Blank text converts to an empty document, which a person may
+ * save but the model shouldn't, so it's refused here, before converting.
+ */
+export const storedContent = (
+  kinds: ArtifactKindRegistry,
+  kind: ArtifactKind,
+  text: string
+): { readonly content: string } | { readonly problems: readonly string[] } =>
+  kinds.get(kind)?.modelText && text.trim() === ""
+    ? { problems: ["content is empty"] }
+    : { content: kinds.fromModel(kind, text) };
+
+/**
+ * Saves valid content through the store; every failure is a result the
+ * model reads. `content` is the text a version stores: callers convert
+ * what the model wrote first (`kinds.fromModel`, a document's Markdown).
+ */
 export const saveArtifact = async (
   store: ArtifactStore,
   input: NewArtifactContent,

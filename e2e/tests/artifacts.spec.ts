@@ -127,7 +127,8 @@ test("artifacts made in a chat are listed on the Artifacts page", async ({
   const row = rowOf(page, "Harbour guide");
   await expect(row).toBeVisible();
   await expect(row).toContainText("Only you");
-  await expect(row.getByRole("img", { name: "Document" })).toBeVisible();
+  // A markdown artifact reads as Markdown; "Document" is the rich-text kind (126).
+  await expect(row.getByRole("img", { name: "Markdown" })).toBeVisible();
   await expect(
     page.getByRole("region", { name: "Today" }).getByRole("link", {
       exact: true,

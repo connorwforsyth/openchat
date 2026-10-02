@@ -12,7 +12,10 @@ import { TEXT_MAX_CHARS } from "./kinds/text";
 const textKinds = () =>
   builtinArtifactKinds
     .list()
-    .filter((definition) => definition.kind !== "site");
+    .filter(
+      (definition) =>
+        definition.kind !== "site" && definition.kind !== "document"
+    );
 
 describe("the built-in kinds", () => {
   it("define every kind the contract stores, under its own name", () => {
@@ -34,10 +37,10 @@ describe("the built-in kinds", () => {
       expect(definition.editor).toBe("none");
       expect(definition.diff).toBe("text");
     }
-    // Only sites come with instructions.
+    // Sites and documents come with instructions.
     expect(
       builtinArtifactKinds.instructionFiles().map(({ source }) => source)
-    ).toEqual(["kinds/site"]);
+    ).toEqual(["kinds/document", "kinds/site"]);
   });
 
   it("render in the runtime where they did, and the panel otherwise", () => {
@@ -48,6 +51,7 @@ describe("the built-in kinds", () => {
     );
     expect(renders).toEqual({
       code: { panel: "source", runtime: null },
+      document: { panel: "document", runtime: null },
       html: { panel: "frame", runtime: "html" },
       markdown: { panel: "markdown", runtime: null },
       mermaid: { panel: "source", runtime: "mermaid" },

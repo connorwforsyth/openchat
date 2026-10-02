@@ -15,8 +15,10 @@ function KindLabel({ kind }: { readonly kind: ArtifactRefPart["kind"] }) {
       return <Trans>Web page</Trans>;
     case "react":
       return <Trans>React component</Trans>;
-    case "markdown":
+    case "document":
       return <Trans>Document</Trans>;
+    case "markdown":
+      return <Trans>Markdown</Trans>;
     case "svg":
       return <Trans>Image</Trans>;
     case "mermaid":
@@ -34,6 +36,7 @@ const iconFor = (kind: ArtifactRefPart["kind"]) => {
     case "react":
     case "site":
       return GlobeIcon;
+    case "document":
     case "markdown":
       return FileTextIcon;
     default:

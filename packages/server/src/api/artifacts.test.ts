@@ -374,3 +374,163 @@ describe("the Artifacts page (124)", () => {
     ).toEqual([expect.objectContaining({ id })]);
   });
 });
+
+describe("saving a person's edit (126)", () => {
+  const router = () =>
+    createArtifactsRouter({ access: grantAccess(db), db }).artifacts;
+  const doc = (text: string) =>
+    JSON.stringify({
+      content: [{ content: [{ text, type: "text" }], type: "paragraph" }],
+      type: "doc",
+    });
+
+  const seedDocument = async () => {
+    const owner = await seedUser(db);
+    const other = await seedUser(db);
+    const personal = await seedOrg(db, owner.id, { isPersonal: true });
+    const chat = await createConversation(db, {
+      context: { id: personal.id, type: "personal" },
+      ownerId: owner.id,
+    });
+    const message = expectOk(
+      await insertMessage(db, {
+        authorId: null,
+        conversationId: chat.id,
+        parentId: null,
+        parts: [{ text: "Here you go", type: "text" }],
+        role: "assistant",
+      })
+    );
+    const made = expectOk(
+      await saveArtifactVersion(db, {
+        content: doc("First draft"),
+        conversationId: chat.id,
+        kind: "document",
+        messageId: message.id,
+        title: "Brief",
+      })
+    );
+    return { chat, made, message, other, owner };
+  };
+
+  it("saves the owner's edit as the next version, made by them", async () => {
+    const artifacts = router();
+    const { chat, made, message, owner } = await seedDocument();
+    const { id } = made.artifact;
+    const saved = await call(
+      artifacts.saveVersion,
+      { baseVersionId: made.version.id, content: doc("Edited"), id },
+      as(owner.id)
+    );
+    expect(saved).toMatchObject({
+      artifactId: id,
+      content: doc("Edited"),
+      conversationId: chat.id,
+      editedBy: owner.id,
+      messageId: message.id,
+      number: 2,
+    });
+    expect(await call(artifacts.get, { id }, as(owner.id))).toMatchObject({
+      latestVersionId: saved.id,
+    });
+    const versions = await call(artifacts.listVersions, { id }, as(owner.id));
+    expect(versions.map((version) => version.editedBy)).toEqual([
+      null,
+      owner.id,
+    ]);
+  });
+
+  it("lets an editor save, not a viewer, and hides it from anyone else", async () => {
+    const artifacts = router();
+    const { made, other, owner } = await seedDocument();
+    const { id } = made.artifact;
+    const edit = { baseVersionId: made.version.id, content: doc("Mine"), id };
+    await expect(
+      call(artifacts.saveVersion, edit, as(other.id))
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+
+    await call(
+      artifacts.share,
+      { id, permission: "viewer", principal: { id: other.id, type: "user" } },
+      as(owner.id)
+    );
+    await expect(
+      call(artifacts.saveVersion, edit, as(other.id))
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+    await call(
+      artifacts.share,
+      { id, permission: "editor", principal: { id: other.id, type: "user" } },
+      as(owner.id)
+    );
+    expect(await call(artifacts.saveVersion, edit, as(other.id))).toMatchObject(
+      { editedBy: other.id, number: 2 }
+    );
+  });
+
+  it("refuses an edit of a version that's no longer the latest", async () => {
+    const artifacts = router();
+    const { made, owner } = await seedDocument();
+    const { id } = made.artifact;
+    await call(
+      artifacts.saveVersion,
+      { baseVersionId: made.version.id, content: doc("One"), id },
+      as(owner.id)
+    );
+    await expect(
+      call(
+        artifacts.saveVersion,
+        { baseVersionId: made.version.id, content: doc("Two"), id },
+        as(owner.id)
+      )
+    ).rejects.toMatchObject({
+      code: "CONFLICT",
+      data: { reason: "version_mismatch" },
+    });
+  });
+
+  it("runs the kind's checks: content that isn't a document, or an unsafe link", async () => {
+    const artifacts = router();
+    const { made, owner } = await seedDocument();
+    const { id } = made.artifact;
+    await expect(
+      call(
+        artifacts.saveVersion,
+        { baseVersionId: made.version.id, content: "# Not JSON", id },
+        as(owner.id)
+      )
+    ).rejects.toMatchObject({
+      code: "VALIDATION",
+      data: {
+        issues: [
+          { message: "content isn't a document's JSON", path: ["content"] },
+        ],
+      },
+    });
+    const unsafe = JSON.stringify({
+      content: [
+        {
+          content: [
+            {
+              marks: [{ attrs: { href: "javascript:alert(1)" }, type: "link" }],
+              text: "click",
+              type: "text",
+            },
+          ],
+          type: "paragraph",
+        },
+      ],
+      type: "doc",
+    });
+    await expect(
+      call(
+        artifacts.saveVersion,
+        { baseVersionId: made.version.id, content: unsafe, id },
+        as(owner.id)
+      )
+    ).rejects.toMatchObject({ code: "VALIDATION" });
+    expect(
+      await call(artifacts.listVersions, { id }, as(owner.id))
+    ).toHaveLength(1);
+  });
+});

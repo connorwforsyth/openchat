@@ -307,11 +307,85 @@ export const toArtifactVersion = (
   content: row.content,
   conversationId: row.conversationId,
   createdAt: row.createdAt.toISOString(),
+  editedBy: row.editedBy,
   id: row.id,
   language: row.language,
   messageId: row.messageId,
   number: row.number,
 });
+
+/** Why a person's edit wasn't saved. */
+export type SaveEditError =
+  | NotFoundError
+  /** Another version landed after the one they edited. */
+  | { readonly type: "version_mismatch" };
+
+/**
+ * A person's edit as the artifact's next version (126): only if
+ * `baseVersionId` is still its latest, so two people (or a person and a
+ * run) never overwrite each other unseen. The version keeps the chat and
+ * message of the one it was edited from, and records who edited it. The
+ * artifact row is locked, as `saveArtifactVersion` does.
+ */
+export const saveEditedArtifactVersion = (
+  db: Db,
+  input: {
+    readonly artifactId: ArtifactId;
+    readonly baseVersionId: ArtifactVersionId;
+    readonly content: string;
+    readonly editedBy: UserId;
+  }
+): AsyncResult<
+  {
+    readonly artifact: PublishedArtifactRow;
+    readonly version: ArtifactVersionRow;
+  },
+  SaveEditError
+> =>
+  db.transaction(async (tx) => {
+    const [target] = await tx
+      .select()
+      .from(artifact)
+      .where(eq(artifact.id, input.artifactId))
+      .for("update");
+    if (!target) {
+      return err(notFound("artifact", input.artifactId));
+    }
+    if (target.latestVersionId !== input.baseVersionId) {
+      return err({ type: "version_mismatch" as const });
+    }
+    const [base] = await tx
+      .select()
+      .from(artifactVersion)
+      .where(eq(artifactVersion.id, input.baseVersionId));
+    if (!base) {
+      return err(notFound("artifact_version", input.baseVersionId));
+    }
+    const [version] = await tx
+      .insert(artifactVersion)
+      .values({
+        artifactId: target.id,
+        content: input.content,
+        conversationId: base.conversationId,
+        editedBy: input.editedBy,
+        language: base.language,
+        messageId: base.messageId,
+        number: base.number + 1,
+      })
+      .returning();
+    if (!version) {
+      throw new Error("insert returned no row");
+    }
+    const [updated] = await tx
+      .update(artifact)
+      .set({ latestVersionId: version.id })
+      .where(eq(artifact.id, target.id))
+      .returning();
+    if (!(updated && hasVersion(updated))) {
+      throw new Error("update returned no row");
+    }
+    return ok({ artifact: updated, version });
+  });
 
 // --- The Artifacts page (124) ---
 

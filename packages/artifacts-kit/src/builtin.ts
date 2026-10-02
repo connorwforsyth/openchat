@@ -2,6 +2,7 @@ import type { ArtifactKind } from "@workspace/contract/schemas/message-parts";
 
 import type { ArtifactKindDefinition } from "./define";
 import { codeKind } from "./kinds/code";
+import { documentKind } from "./kinds/document/kind";
 import { htmlKind } from "./kinds/html";
 import { markdownKind } from "./kinds/markdown";
 import { mermaidKind } from "./kinds/mermaid";
@@ -16,6 +17,7 @@ import { createArtifactKindRegistry } from "./registry";
 
 export const builtinKindDefinitions = {
   code: codeKind,
+  document: documentKind,
   html: htmlKind,
   markdown: markdownKind,
   mermaid: mermaidKind,

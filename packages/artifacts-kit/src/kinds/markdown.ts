@@ -5,7 +5,7 @@ export const markdownKind = textKind({
   export: [{ extension: "md", format: "file" }],
   icon: "FileTextIcon",
   kind: "markdown",
-  label: "Document",
+  label: "Markdown",
   render: { panel: "markdown", runtime: null },
   shape: /\S/,
 });

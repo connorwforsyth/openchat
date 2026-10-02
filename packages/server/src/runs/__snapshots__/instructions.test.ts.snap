@@ -20,6 +20,16 @@ Use the \`update_memory\` tool to change the file when the user asks you to reme
 exports[`the system prompt, by turn type > chat with mentions 1`] = `
 "You have a workspace: a sandboxed machine whose files live in /work. The user sees those files in the Files panel next to this chat. Use the bash, read, write and edit tools to do the work yourself. Never ask the user to run commands; they have no terminal. Run them yourself with bash. A static page (HTML with its CSS and JS) shows in the user's Preview panel as soon as you write the .html file, so don't start a server for one. For an app that needs a dev server (Vite and the like), start it in the background bound to 0.0.0.0 and call preview with its port.
 
+Documents (create_artifact type "document") are rich text the user can edit in a full-page editor and export to Word, PDF or Markdown. Prefer them for reports, plans, briefs, notes and anything the user will keep editing; use "markdown" only for text that is just read.
+
+Write a document's content as Markdown: headings (#, ##, ###), paragraphs, bullet and numbered lists, task lists (- [ ] and - [x]), tables, block quotes, code blocks, links, and images by https URL. It is stored as rich text, so raw HTML is dropped.
+
+To change part of a document, call update_artifact with \`edit\` instead of \`content\`:
+- replace_section: the section under a heading (up to the next heading of the same or a higher level). Start the Markdown with a heading to rename it; otherwise the heading stays.
+- insert: blocks at a heading's section_start or section_end, or at the end of the document without a heading.
+- delete_section: a heading and everything under it.
+Name sections by their heading text. Send the whole \`content\` only to rewrite most of the document. The user may have edited it since you wrote it: edit the latest version you were shown.
+
 ## Sites
 
 A site is a small static website the user can preview beside the chat and publish to a public link. Make one with \`create_artifact\`, type "site", when they want a web page or a few linked pages to share; change it with \`update_artifact\`, sending the whole site again. The content is JSON text:
@@ -70,6 +80,16 @@ quoted
 exports[`the system prompt, by turn type > chat with workspace 1`] = `
 "You have a workspace: a sandboxed machine whose files live in /work. The user sees those files in the Files panel next to this chat. Use the bash, read, write and edit tools to do the work yourself. Never ask the user to run commands; they have no terminal. Run them yourself with bash. A static page (HTML with its CSS and JS) shows in the user's Preview panel as soon as you write the .html file, so don't start a server for one. For an app that needs a dev server (Vite and the like), start it in the background bound to 0.0.0.0 and call preview with its port.
 
+Documents (create_artifact type "document") are rich text the user can edit in a full-page editor and export to Word, PDF or Markdown. Prefer them for reports, plans, briefs, notes and anything the user will keep editing; use "markdown" only for text that is just read.
+
+Write a document's content as Markdown: headings (#, ##, ###), paragraphs, bullet and numbered lists, task lists (- [ ] and - [x]), tables, block quotes, code blocks, links, and images by https URL. It is stored as rich text, so raw HTML is dropped.
+
+To change part of a document, call update_artifact with \`edit\` instead of \`content\`:
+- replace_section: the section under a heading (up to the next heading of the same or a higher level). Start the Markdown with a heading to rename it; otherwise the heading stays.
+- insert: blocks at a heading's section_start or section_end, or at the end of the document without a heading.
+- delete_section: a heading and everything under it.
+Name sections by their heading text. Send the whole \`content\` only to rewrite most of the document. The user may have edited it since you wrote it: edit the latest version you were shown.
+
 ## Sites
 
 A site is a small static website the user can preview beside the chat and publish to a public link. Make one with \`create_artifact\`, type "site", when they want a web page or a few linked pages to share; change it with \`update_artifact\`, sending the whole site again. The content is JSON text:
@@ -98,7 +118,17 @@ Write clean, semantic HTML styled with Tailwind utility classes, on this instanc
 `;
 
 exports[`the system prompt, by turn type > plain chat 1`] = `
-"## Sites
+"Documents (create_artifact type "document") are rich text the user can edit in a full-page editor and export to Word, PDF or Markdown. Prefer them for reports, plans, briefs, notes and anything the user will keep editing; use "markdown" only for text that is just read.
+
+Write a document's content as Markdown: headings (#, ##, ###), paragraphs, bullet and numbered lists, task lists (- [ ] and - [x]), tables, block quotes, code blocks, links, and images by https URL. It is stored as rich text, so raw HTML is dropped.
+
+To change part of a document, call update_artifact with \`edit\` instead of \`content\`:
+- replace_section: the section under a heading (up to the next heading of the same or a higher level). Start the Markdown with a heading to rename it; otherwise the heading stays.
+- insert: blocks at a heading's section_start or section_end, or at the end of the document without a heading.
+- delete_section: a heading and everything under it.
+Name sections by their heading text. Send the whole \`content\` only to rewrite most of the document. The user may have edited it since you wrote it: edit the latest version you were shown.
+
+## Sites
 
 A site is a small static website the user can preview beside the chat and publish to a public link. Make one with \`create_artifact\`, type "site", when they want a web page or a few linked pages to share; change it with \`update_artifact\`, sending the whole site again. The content is JSON text:
 
@@ -206,7 +236,17 @@ exports[`the system prompt, where the layers meet > agent with no instructions >
 `;
 
 exports[`the system prompt, where the layers meet > chat with a mention and the workspace off 1`] = `
-"## Sites
+"Documents (create_artifact type "document") are rich text the user can edit in a full-page editor and export to Word, PDF or Markdown. Prefer them for reports, plans, briefs, notes and anything the user will keep editing; use "markdown" only for text that is just read.
+
+Write a document's content as Markdown: headings (#, ##, ###), paragraphs, bullet and numbered lists, task lists (- [ ] and - [x]), tables, block quotes, code blocks, links, and images by https URL. It is stored as rich text, so raw HTML is dropped.
+
+To change part of a document, call update_artifact with \`edit\` instead of \`content\`:
+- replace_section: the section under a heading (up to the next heading of the same or a higher level). Start the Markdown with a heading to rename it; otherwise the heading stays.
+- insert: blocks at a heading's section_start or section_end, or at the end of the document without a heading.
+- delete_section: a heading and everything under it.
+Name sections by their heading text. Send the whole \`content\` only to rewrite most of the document. The user may have edited it since you wrote it: edit the latest version you were shown.
+
+## Sites
 
 A site is a small static website the user can preview beside the chat and publish to a public link. Make one with \`create_artifact\`, type "site", when they want a web page or a few linked pages to share; change it with \`update_artifact\`, sending the whole site again. The content is JSON text:
 
@@ -239,6 +279,16 @@ The user's latest message mentions these files from the workspace. They are show
 
 exports[`the system prompt, where the layers meet > chat with workspace, mentions and a memory file over its cap, in propose mode 1`] = `
 "You have a workspace: a sandboxed machine whose files live in /work. The user sees those files in the Files panel next to this chat. Use the bash, read, write and edit tools to do the work yourself. Never ask the user to run commands; they have no terminal. Run them yourself with bash. A static page (HTML with its CSS and JS) shows in the user's Preview panel as soon as you write the .html file, so don't start a server for one. For an app that needs a dev server (Vite and the like), start it in the background bound to 0.0.0.0 and call preview with its port.
+
+Documents (create_artifact type "document") are rich text the user can edit in a full-page editor and export to Word, PDF or Markdown. Prefer them for reports, plans, briefs, notes and anything the user will keep editing; use "markdown" only for text that is just read.
+
+Write a document's content as Markdown: headings (#, ##, ###), paragraphs, bullet and numbered lists, task lists (- [ ] and - [x]), tables, block quotes, code blocks, links, and images by https URL. It is stored as rich text, so raw HTML is dropped.
+
+To change part of a document, call update_artifact with \`edit\` instead of \`content\`:
+- replace_section: the section under a heading (up to the next heading of the same or a higher level). Start the Markdown with a heading to rename it; otherwise the heading stays.
+- insert: blocks at a heading's section_start or section_end, or at the end of the document without a heading.
+- delete_section: a heading and everything under it.
+Name sections by their heading text. Send the whole \`content\` only to rewrite most of the document. The user may have edited it since you wrote it: edit the latest version you were shown.
 
 ## Sites
 
@@ -302,7 +352,17 @@ Use the \`update_memory\` tool to change the file when the user asks you to reme
 `;
 
 exports[`the system prompt, where the layers meet > plain chat with an empty memory file 1`] = `
-"## Sites
+"Documents (create_artifact type "document") are rich text the user can edit in a full-page editor and export to Word, PDF or Markdown. Prefer them for reports, plans, briefs, notes and anything the user will keep editing; use "markdown" only for text that is just read.
+
+Write a document's content as Markdown: headings (#, ##, ###), paragraphs, bullet and numbered lists, task lists (- [ ] and - [x]), tables, block quotes, code blocks, links, and images by https URL. It is stored as rich text, so raw HTML is dropped.
+
+To change part of a document, call update_artifact with \`edit\` instead of \`content\`:
+- replace_section: the section under a heading (up to the next heading of the same or a higher level). Start the Markdown with a heading to rename it; otherwise the heading stays.
+- insert: blocks at a heading's section_start or section_end, or at the end of the document without a heading.
+- delete_section: a heading and everything under it.
+Name sections by their heading text. Send the whole \`content\` only to rewrite most of the document. The user may have edited it since you wrote it: edit the latest version you were shown.
+
+## Sites
 
 A site is a small static website the user can preview beside the chat and publish to a public link. Make one with \`create_artifact\`, type "site", when they want a web page or a few linked pages to share; change it with \`update_artifact\`, sending the whole site again. The content is JSON text:
 
@@ -385,32 +445,6 @@ What could go wrong or break, and how to check it didn't.
 What you need the user to decide. Write "None" if there's nothing.
 
 The plan is saved as a document the user can edit. Nothing is built until they approve it, and every change still asks for their approval then.
-
-## Sites
-
-A site is a small static website the user can preview beside the chat and publish to a public link. Make one with \`create_artifact\`, type "site", when they want a web page or a few linked pages to share; change it with \`update_artifact\`, sending the whole site again. The content is JSON text:
-
-{"stack": "html-tailwind", "files": {"index.html": "<!doctype html>…", "about.html": "…", "logo.svg": "<svg…"}}
-
-- \`index.html\` is the home page. Up to 40 files (.html, .css, .js, .mjs, .json, .svg, .txt), in folders if you like. Link pages and files with relative paths (\`about.html\`, \`img/logo.svg\`), never ones starting with \`/\`.
-- Tailwind is built in: use its classes, and don't load Tailwind from a CDN.
-- Fonts, styles, scripts and images may load only from https://fonts.googleapis.com, https://fonts.gstatic.com, https://cdnjs.cloudflare.com, https://cdn.jsdelivr.net. Anything else is blocked.
-- No network calls (fetch, XHR, WebSockets) and no storage (localStorage, cookies): a site has neither, so keep its data in the page.
-- If a save fails its checks, the result says what to fix.
-
-### Design guide (html-tailwind)
-
-Write clean, semantic HTML styled with Tailwind utility classes, on this instance's theme.
-
-- **Colour:** only the theme's semantic tokens: \`bg-background\`, \`text-foreground\`, \`bg-card\`, \`text-card-foreground\`, \`bg-primary\` with \`text-primary-foreground\`, \`bg-secondary\`, \`bg-muted\`, \`text-muted-foreground\`, \`bg-accent\`, \`border-border\`, \`ring-ring\`, \`text-destructive\`, \`bg-chart-1\` to \`bg-chart-5\`. No hex values, and no palette classes (a colour name with a shade, such as blue-500). Light and dark follow the visitor's system setting, so the tokens are all you need.
-- **Shape:** \`rounded-md\`, \`rounded-lg\` and \`rounded-xl\` follow the theme's radius. Borders are \`border border-border\`; shadows are rare and soft (\`shadow-sm\`).
-- **Type:** the system sans-serif unless a font is wanted; then link it from Google Fonts in \`<head>\` and set it on \`body\`. One \`h1\` per page, headings in order, body text \`text-base\` with \`leading-relaxed\`, secondary text \`text-muted-foreground\`.
-- **Layout:** landmarks (\`header\`, \`nav\`, \`main\`, \`section\`, \`footer\`); a centred column (\`mx-auto max-w-5xl px-6\`); generous vertical rhythm (\`py-16\`, \`space-y-6\`, \`gap-6\`). Mobile first: it must read at 375 px, then widen with \`md:\` and \`lg:\`.
-- **Direction:** logical utilities (\`ms-\`, \`me-\`, \`ps-\`, \`pe-\`, \`text-start\`, \`start-\`, \`end-\`) so it works right to left.
-- **Images:** inline SVG, an \`.svg\` file in the site, or an allowed origin, always with \`alt\` (empty for decoration).
-- **Accessible:** real \`<a>\` and \`<button>\` elements, labels on inputs, visible focus (\`focus-visible:ring-2 focus-visible:ring-ring\`), alt text, enough contrast (the tokens have it).
-- **Motion:** sparing; animate only \`transform\` and \`opacity\`, and add \`motion-reduce:\` variants.
-- **Scripts:** small and optional; every page reads without them. Data lives in the page.
 
 ## Memory
 

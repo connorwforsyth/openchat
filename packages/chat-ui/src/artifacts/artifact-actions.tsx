@@ -21,6 +21,7 @@ import {
   CopyIcon,
   EllipsisIcon,
   GlobeIcon,
+  LockIcon,
   MessageSquareIcon,
   NewChatIcon,
   PencilIcon,
@@ -270,6 +271,39 @@ export function ArtifactMenu({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </>
+  );
+}
+
+/**
+ * Share as a button of its own (126), for a document's title bar: a lock
+ * while only its owner has it, as Claude's does.
+ */
+export function ArtifactShareButton({
+  api,
+  artifact,
+  me,
+}: {
+  readonly api: QueryUtils;
+  readonly artifact: ArtifactListItem;
+  readonly me: Me;
+}) {
+  const [open, setOpen] = useState(false);
+  const show = useCallback(() => setOpen(true), []);
+  const Icon = artifact.visibility === "private" ? LockIcon : ShareIcon;
+  return (
+    <>
+      <Button onClick={show} size="sm" variant="outline">
+        <Icon aria-hidden data-icon="inline-start" />
+        <Trans>Share</Trans>
+      </Button>
+      <ShareDialog
+        api={api}
+        artifact={artifact}
+        me={me}
+        onOpenChange={setOpen}
+        open={open}
+      />
     </>
   );
 }

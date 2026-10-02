@@ -13,8 +13,9 @@ export const artifactKindLabels: Readonly<
   Record<ArtifactKind, MessageDescriptor>
 > = {
   code: msg`Code`,
+  document: msg`Document`,
   html: msg`Web page`,
-  markdown: msg`Document`,
+  markdown: msg`Markdown`,
   mermaid: msg`Diagram`,
   react: msg`React component`,
   site: msg`Site`,
@@ -32,11 +33,15 @@ export const artifactKindDefinition = (
 
 /**
  * The kinds "Make something new" offers: those shown as more than their
- * source (a page, a document, a diagram), not plain code.
+ * source (a page, a document, a diagram), not plain code. Markdown is left
+ * to the model: a Document (126) is what a person starts.
  */
 export const starterKinds: readonly ArtifactKind[] = artifactKinds.filter(
   (kind) => {
     const { render } = builtinKindDefinitions[kind];
-    return render.runtime !== null || render.panel !== "source";
+    return (
+      kind !== "markdown" &&
+      (render.runtime !== null || render.panel !== "source")
+    );
   }
 );

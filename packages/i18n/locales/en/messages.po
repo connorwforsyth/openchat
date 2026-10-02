@@ -400,10 +400,15 @@ msgstr "API keys"
 msgid "Appearance"
 msgstr "Appearance"
 
+#: ../chat-ui/src/artifacts/document/document-toolbar.tsx
+msgid "Apply"
+msgstr "Apply"
+
 #: ../chat-ui/src/conversation/approval.tsx
 msgid "Approval needed for {toolName}"
 msgstr "Approval needed for {toolName}"
 
+#: ../chat-ui/src/artifacts/document/document-view.tsx
 #: ../chat-ui/src/artifacts/plan-editor.tsx
 #: ../chat-ui/src/conversation/approval.tsx
 #: ../chat-ui/src/conversation/plan-card.tsx
@@ -414,6 +419,7 @@ msgstr "Approve"
 msgid "Approve all"
 msgstr "Approve all"
 
+#: ../chat-ui/src/artifacts/document/document-view.tsx
 #: ../chat-ui/src/artifacts/plan-editor.tsx
 msgid "Approve the plan"
 msgstr "Approve the plan"
@@ -552,6 +558,10 @@ msgstr "Block new chats when it's spent"
 msgid "Blocks new chats"
 msgstr "Blocks new chats"
 
+#: ../chat-ui/src/artifacts/document/document-toolbar.tsx
+msgid "Bold"
+msgstr "Bold"
+
 #: ../chat-ui/src/header/branch-switcher.tsx
 msgid "Branches"
 msgstr "Branches"
@@ -584,6 +594,10 @@ msgstr "Build a skill to load it into this agent's sandbox."
 msgid "Build an agent, prompt, skill or MCP server, or import one."
 msgstr "Build an agent, prompt, skill or MCP server, or import one."
 
+#: ../chat-ui/src/artifacts/document/document-toolbar.tsx
+msgid "Bulleted list"
+msgstr "Bulleted list"
+
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 #: ../library-ui/src/components/badges.tsx
 msgid "Can edit"
@@ -608,6 +622,7 @@ msgstr "Can't reach the server"
 #: ../../apps/web/app/(app)/_shared/confirm.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 #: ../chat-ui/src/artifacts/artifact-actions.tsx
+#: ../chat-ui/src/artifacts/document/document-view.tsx
 #: ../chat-ui/src/artifacts/plan-editor.tsx
 #: ../chat-ui/src/conversation/approval.tsx
 #: ../chat-ui/src/conversation/message-row.tsx
@@ -657,6 +672,10 @@ msgstr "Changed a skill"
 msgid "Changed by the agent"
 msgstr "Changed by the agent"
 
+#: ../chat-ui/src/artifacts/document/document-view.tsx
+msgid "Changed elsewhere"
+msgstr "Changed elsewhere"
+
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Changed the skill {name}"
 msgstr "Changed the skill {name}"
@@ -678,6 +697,7 @@ msgid "Changing the skill {name}"
 msgstr "Changing the skill {name}"
 
 #: ../../apps/desktop/src/main/menu.ts
+#: ../chat-ui/src/artifacts/artifact-full-view.tsx
 msgid "Chat"
 msgstr "Chat"
 
@@ -755,6 +775,10 @@ msgstr "Check your connection. If it keeps happening, the server may be restarti
 msgid "Checking this change still waits…"
 msgstr "Checking this change still waits…"
 
+#: ../chat-ui/src/artifacts/document/document-toolbar.tsx
+msgid "Checklist"
+msgstr "Checklist"
+
 #: ../../apps/web/app/(app)/(pages)/admin/[orgId]/policies/page.tsx
 msgid "Choices for this org, within the limits this server's configuration sets."
 msgstr "Choices for this org, within the limits this server's configuration sets."
@@ -794,6 +818,10 @@ msgstr "Close toast"
 #: ../chat-ui/src/workspace/mode-toggle.tsx
 msgid "Code"
 msgstr "Code"
+
+#: ../chat-ui/src/artifacts/document/document-toolbar.tsx
+msgid "Code block"
+msgstr "Code block"
 
 #: ../../apps/web/app/dev/code/page.tsx
 msgid "Code views"
@@ -981,6 +1009,7 @@ msgstr "Couldn't read {code}"
 msgid "Couldn't run {code}"
 msgstr "Couldn't run {code}"
 
+#: ../chat-ui/src/artifacts/document/document-view.tsx
 #: ../chat-ui/src/workspace/file-view.tsx
 msgid "Couldn't save"
 msgstr "Couldn't save"
@@ -1272,6 +1301,7 @@ msgstr "Disconnect"
 msgid "Dismiss"
 msgstr "Dismiss"
 
+#: ../chat-ui/src/artifacts/document/document-view.tsx
 #: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../chat-ui/src/model/artifact-kinds.ts
 msgid "Document"
@@ -1366,6 +1396,7 @@ msgstr "Edit message"
 msgid "Edit README.md as the agent"
 msgstr "Edit README.md as the agent"
 
+#: ../chat-ui/src/artifacts/document/document-view.tsx
 #: ../chat-ui/src/conversation/file-change-card.tsx
 msgid "Edited"
 msgstr "Edited"
@@ -1377,6 +1408,10 @@ msgstr "Edited {code}"
 #: ../chat-ui/src/conversation/file-change-card.tsx
 msgid "Edited {path}"
 msgstr "Edited {path}"
+
+#: ../chat-ui/src/artifacts/document/document-view.tsx
+msgid "Edited by hand"
+msgstr "Edited by hand"
 
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Editing {code}"
@@ -1464,6 +1499,7 @@ msgstr "Explain a concept"
 msgid "Explain how HTTPS keeps a connection private, in plain language with one short example."
 msgstr "Explain how HTTPS keeps a connection private, in plain language with one short example."
 
+#: ../chat-ui/src/artifacts/document/document-view.tsx
 #: ../library-ui/src/components/item-builder.tsx
 #: ../library-ui/src/components/library-index.tsx
 msgid "Export"
@@ -1561,6 +1597,10 @@ msgstr "Folder"
 msgid "For"
 msgstr "For"
 
+#: ../chat-ui/src/artifacts/document/document-toolbar.tsx
+msgid "Formatting"
+msgstr "Formatting"
+
 #: ../chat-ui/src/workspace/preview.tsx
 msgid "Forward"
 msgstr "Forward"
@@ -1605,6 +1645,18 @@ msgstr "Header"
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "Header name"
 msgstr "Header name"
+
+#: ../chat-ui/src/artifacts/document/document-toolbar.tsx
+msgid "Heading 1"
+msgstr "Heading 1"
+
+#: ../chat-ui/src/artifacts/document/document-toolbar.tsx
+msgid "Heading 2"
+msgstr "Heading 2"
+
+#: ../chat-ui/src/artifacts/document/document-toolbar.tsx
+msgid "Heading 3"
+msgstr "Heading 3"
 
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
 msgid "help"
@@ -1657,9 +1709,17 @@ msgstr "https://chat.example.com"
 msgid "Image"
 msgstr "Image"
 
+#: ../chat-ui/src/artifacts/document/document-toolbar.tsx
+msgid "Image address"
+msgstr "Image address"
+
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Image not available"
 msgstr "Image not available"
+
+#: ../chat-ui/src/artifacts/document/document-toolbar.tsx
+msgid "Images load over https."
+msgstr "Images load over https."
 
 #: ../library-ui/src/components/library-index.tsx
 msgid "Import"
@@ -1681,13 +1741,30 @@ msgstr "In a library"
 msgid "Informational"
 msgstr "Informational"
 
+#: ../chat-ui/src/artifacts/document/document-toolbar.tsx
+msgid "Inline code"
+msgstr "Inline code"
+
+#: ../chat-ui/src/artifacts/document/document-toolbar.tsx
 #: ../composer/src/components/template-variables.tsx
 msgid "Insert"
 msgstr "Insert"
 
+#: ../chat-ui/src/artifacts/document/document-toolbar.tsx
+msgid "Insert divider"
+msgstr "Insert divider"
+
+#: ../chat-ui/src/artifacts/document/document-toolbar.tsx
+msgid "Insert image"
+msgstr "Insert image"
+
 #: ../composer/src/components/template-variables.tsx
 msgid "Insert prompt"
 msgstr "Insert prompt"
+
+#: ../chat-ui/src/artifacts/document/document-toolbar.tsx
+msgid "Insert table"
+msgstr "Insert table"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
 msgid "Inside"
@@ -1746,6 +1823,10 @@ msgstr "It was shared for use only. Ask its owner for view access to see its ins
 msgid "It's removed from this chat's workspace for you and the agent. This can't be undone."
 msgstr "It's removed from this chat's workspace for you and the agent. This can't be undone."
 
+#: ../chat-ui/src/artifacts/document/document-toolbar.tsx
+msgid "Italic"
+msgstr "Italic"
+
 #: ../library-ui/src/components/library-index.tsx
 msgid "Items published to your teams and orgs show up here."
 msgstr "Items published to your teams and orgs show up here."
@@ -1766,6 +1847,10 @@ msgstr "Its versions go too, and anyone it's shared with loses it. This can't be
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "Keep a copy on each device"
 msgstr "Keep a copy on each device"
+
+#: ../chat-ui/src/artifacts/document/document-view.tsx
+msgid "Keep mine"
+msgstr "Keep mine"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "Keeping a copy on this device is off: this server forbids it."
@@ -1874,6 +1959,14 @@ msgstr "Light"
 msgid "Limit (USD)"
 msgstr "Limit (USD)"
 
+#: ../chat-ui/src/artifacts/document/document-toolbar.tsx
+msgid "Link"
+msgstr "Link"
+
+#: ../chat-ui/src/artifacts/document/document-toolbar.tsx
+msgid "Link address"
+msgstr "Link address"
+
 #: ../chat-ui/src/header/overflow-menu.tsx
 #: ../chat-ui/src/header/share-menu.tsx
 msgid "Link copied"
@@ -1886,6 +1979,10 @@ msgstr "List"
 #: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
 msgid "Load latest"
 msgstr "Load latest"
+
+#: ../chat-ui/src/artifacts/document/document-view.tsx
+msgid "Load theirs"
+msgstr "Load theirs"
 
 #: ../../apps/web/app/(app)/_shared/app-frame.tsx
 #: ../ui/src/components/spinner.tsx
@@ -1941,9 +2038,15 @@ msgstr "Maintainer"
 msgid "Make something new"
 msgstr "Make something new"
 
+#: ../chat-ui/src/conversation/artifact-card.tsx
+#: ../chat-ui/src/model/artifact-kinds.ts
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Markdown"
 msgstr "Markdown"
+
+#: ../chat-ui/src/artifacts/document/document-view.tsx
+msgid "Markdown (.md)"
+msgstr "Markdown (.md)"
 
 #: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
 msgid "Markdown that's included in every chat you start. Agents add to it when you ask them to remember something."
@@ -2206,6 +2309,7 @@ msgid "New team"
 msgstr "New team"
 
 #: ../chat-ui/src/artifacts/artifact-view.tsx
+#: ../chat-ui/src/artifacts/document/document-view.tsx
 msgid "Newer version"
 msgstr "Newer version"
 
@@ -2395,6 +2499,10 @@ msgstr "Nothing sent yet."
 msgid "Nothing shared with you"
 msgstr "Nothing shared with you"
 
+#: ../chat-ui/src/artifacts/document/document-toolbar.tsx
+msgid "Numbered list"
+msgstr "Numbered list"
+
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "OAuth"
 msgstr "OAuth"
@@ -2414,6 +2522,7 @@ msgid "Older"
 msgstr "Older"
 
 #: ../chat-ui/src/artifacts/artifact-view.tsx
+#: ../chat-ui/src/artifacts/document/document-view.tsx
 msgid "Older version"
 msgstr "Older version"
 
@@ -2611,6 +2720,10 @@ msgstr "Parameters"
 #: ../../apps/web/app/(auth)/_components/sign-up-form.tsx
 msgid "Password"
 msgstr "Password"
+
+#: ../chat-ui/src/artifacts/document/document-view.tsx
+msgid "PDF (print)…"
+msgstr "PDF (print)…"
 
 #: ../ui/src/components/ai-elements/tool.tsx
 msgid "Pending"
@@ -2941,6 +3054,10 @@ msgstr "Quick AI Shortcut"
 msgid "Quit"
 msgstr "Quit"
 
+#: ../chat-ui/src/artifacts/document/document-toolbar.tsx
+msgid "Quote"
+msgstr "Quote"
+
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Ran {code}"
 msgstr "Ran {code}"
@@ -2953,6 +3070,10 @@ msgstr "React component"
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Read {code}"
 msgstr "Read {code}"
+
+#: ../chat-ui/src/artifacts/document/document-view.tsx
+msgid "Read only"
+msgstr "Read only"
 
 #: ../chat-ui/src/workspace/file-view.tsx
 msgid "Read-only: over 1 MB"
@@ -3026,6 +3147,7 @@ msgstr "Rejected"
 msgid "Reload"
 msgstr "Reload"
 
+#: ../chat-ui/src/artifacts/document/document-toolbar.tsx
 #: ../ui/src/components/ai-elements/message.tsx
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Remove"
@@ -3152,6 +3274,7 @@ msgid "Responded"
 msgstr "Responded"
 
 #: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
+#: ../chat-ui/src/artifacts/document/document-view.tsx
 #: ../chat-ui/src/workspace/view-header.tsx
 msgid "Restore"
 msgstr "Restore"
@@ -3173,6 +3296,7 @@ msgid "Result"
 msgstr "Result"
 
 #: ../../apps/web/app/dev/ai-elements/demo.tsx
+#: ../chat-ui/src/artifacts/document/document-view.tsx
 #: ../chat-ui/src/conversation/approval.tsx
 #: ../chat-ui/src/workspace/preview.tsx
 #: ../chat-ui/src/workspace/workspace-panel.tsx
@@ -3246,6 +3370,7 @@ msgid "Save the server to check its connection."
 msgstr "Save the server to check its connection."
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
+#: ../chat-ui/src/artifacts/document/document-view.tsx
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "Saved"
 msgstr "Saved"
@@ -3258,6 +3383,7 @@ msgstr "Saved \"{saved}\". It's with this chat's artifacts, and on your Artifact
 msgid "Saved in this browser."
 msgstr "Saved in this browser."
 
+#: ../chat-ui/src/artifacts/document/document-view.tsx
 #: ../chat-ui/src/workspace/file-view.tsx
 #: ../library-ui/src/components/item-builder.tsx
 msgid "Saving…"
@@ -3636,6 +3762,10 @@ msgstr "Start over"
 msgid "Start the app and open a preview"
 msgstr "Start the app and open a preview"
 
+#: ../chat-ui/src/artifacts/document/document-view.tsx
+msgid "Start writing…"
+msgstr "Start writing…"
+
 #: ../library-ui/src/components/agent-form.tsx
 msgid "Starter {position}"
 msgstr "Starter {position}"
@@ -3693,6 +3823,10 @@ msgstr "Stored encrypted and never shown again. Changing the URL or header name 
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "Streamable HTTP"
 msgstr "Streamable HTTP"
+
+#: ../chat-ui/src/artifacts/document/document-toolbar.tsx
+msgid "Strikethrough"
+msgstr "Strikethrough"
 
 #: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Submit"
@@ -3793,6 +3927,15 @@ msgstr "Testing draft"
 #: ../library-ui/src/testing/echo-test-chat.tsx
 msgid "Testing what's on screen; save to keep it."
 msgstr "Testing what's on screen; save to keep it."
+
+#: ../chat-ui/src/artifacts/document/document-toolbar.tsx
+msgid "Text"
+msgstr "Text"
+
+#. placeholder {0}: blockLabels[active.block]
+#: ../chat-ui/src/artifacts/document/document-toolbar.tsx
+msgid "Text style: {0}"
+msgstr "Text style: {0}"
 
 #: ../chat-ui/src/conversation/feedback.tsx
 msgid "Thanks! What was good? (optional)"
@@ -4208,6 +4351,10 @@ msgstr "This server's configuration forbids audit policies, so admins can't read
 msgid "This version can't be published yet:"
 msgstr "This version can't be published yet:"
 
+#: ../chat-ui/src/artifacts/document/document-view.tsx
+msgid "This version couldn't be read as a document."
+msgstr "This version couldn't be read as a document."
+
 #: ../chat-ui/src/conversation/approval.tsx
 msgid "This was already decided, in another tab or by someone else, or the answer stopped."
 msgstr "This was already decided, in another tab or by someone else, or the answer stopped."
@@ -4302,6 +4449,7 @@ msgstr "Turn off"
 msgid "Turned off on this instance"
 msgstr "Turned off on this instance"
 
+#: ../chat-ui/src/artifacts/document/document-toolbar.tsx
 #: ../chat-ui/src/conversation/memory-note.tsx
 #: ../chat-ui/src/shell/use-undo-toast.ts
 msgid "Undo"
@@ -4380,6 +4528,10 @@ msgstr "Use {title} in a chat"
 msgid "Use a prompt"
 msgstr "Use a prompt"
 
+#: ../chat-ui/src/artifacts/document/document-toolbar.tsx
+msgid "Use a web (https://) or email (mailto:) address."
+msgstr "Use a web (https://) or email (mailto:) address."
+
 #: ../../apps/web/app/(auth)/sign-up/page.tsx
 msgid "Use an email address from an approved domain."
 msgstr "Use an email address from an approved domain."
@@ -4431,6 +4583,7 @@ msgid "v{number}"
 msgstr "v{number}"
 
 #: ../chat-ui/src/artifacts/artifact-view.tsx
+#: ../chat-ui/src/artifacts/document/document-view.tsx
 msgid "v{number} of {total}"
 msgstr "v{number} of {total}"
 
@@ -4446,7 +4599,12 @@ msgstr "Version {number}"
 msgid "Version {number} of {total}"
 msgstr "Version {number} of {total}"
 
+#: ../chat-ui/src/artifacts/document/document-view.tsx
+msgid "Version {number}, read only"
+msgstr "Version {number}, read only"
+
 #: ../chat-ui/src/artifacts/artifact-view.tsx
+#: ../chat-ui/src/artifacts/document/document-view.tsx
 msgid "Versions"
 msgstr "Versions"
 
@@ -4644,6 +4802,10 @@ msgstr "Whose keys and budget this chat uses. It can't change after the first me
 msgid "Why? (optional, sent to the agent)"
 msgstr "Why? (optional, sent to the agent)"
 
+#: ../chat-ui/src/artifacts/document/document-view.tsx
+msgid "Word (.docx)"
+msgstr "Word (.docx)"
+
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "Work account"
 msgstr "Work account"
@@ -4765,6 +4927,10 @@ msgstr "Your decision didn't reach the server."
 #: ../chat-ui/src/artifacts/plan-editor.tsx
 msgid "Your edits are saved as a new version when you approve."
 msgstr "Your edits are saved as a new version when you approve."
+
+#: ../chat-ui/src/artifacts/document/document-view.tsx
+msgid "Your edits are saved as you go. Approve to build this plan."
+msgstr "Your edits are saved as you go. Approve to build this plan."
 
 #: ../chat-ui/src/conversation/skill-card.tsx
 msgid "your library"

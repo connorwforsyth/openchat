@@ -54,7 +54,7 @@ describe("PlanCard", () => {
     expect(onEditPlan).toHaveBeenCalledWith(plan);
     // Edit opens the plan in the panel, where the editor takes over.
     expect(onOpenArtifact).toHaveBeenCalledWith(
-      expect.objectContaining({ artifactId: plan.artifactId, kind: "markdown" })
+      expect.objectContaining({ artifactId: plan.artifactId, kind: "document" })
     );
 
     await userEvent.click(screen.getByRole("button", { name: "Discard" }));

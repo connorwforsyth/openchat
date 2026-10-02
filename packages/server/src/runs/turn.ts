@@ -653,7 +653,8 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
   /**
    * The instructions of the artifact kinds the model may create (125): a
    * kind works like a skill, so a turn that has the artifact tools is told
-   * each kind's rules. Kinds with none add nothing.
+   * each kind's rules (Sites and, since 126, Documents). Kinds with none add
+   * nothing, and a planning run gets none.
    */
   const kindInstructions = (
     tools: Readonly<Record<string, unknown>> | undefined
@@ -733,7 +734,8 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
         ...(sandbox.sandbox && !planning ? [FRAGMENTS.workspace] : []),
         ...(await planInstructions(run)),
       ],
-      kinds: kindInstructions(tools),
+      // A planning run can't make artifacts (126).
+      kinds: planning ? [] : kindInstructions(tools),
       mentions: mentioned,
       skills: skills.sections,
     });
@@ -898,7 +900,8 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
         agent: definition.instructions,
         base: BASE,
         dynamic: await planInstructions(run),
-        kinds: kindInstructions(gated.tools),
+        // A planning run can't make artifacts.
+        kinds: run.options.mode === "plan" ? [] : kindInstructions(gated.tools),
         mentions: mentioned,
         skills: skills.sections,
       }).text,

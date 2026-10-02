@@ -116,6 +116,12 @@ export const artifactVersionSchema = z.object({
    */
   conversationId: conversationIdSchema,
   createdAt: timestampSchema,
+  /**
+   * The person who saved this version by editing it (126); `null` or
+   * absent when a run made it. A person's version keeps the chat and
+   * message of the version it was edited from.
+   */
+  editedBy: userIdSchema.nullable().optional(),
   id: artifactVersionIdSchema,
   /** For `code` artifacts: a Shiki language id. */
   language: z.string().max(64).nullable(),
@@ -177,6 +183,20 @@ export const renameArtifactInputSchema = z.object({
   id: artifactIdSchema,
   title: z.string().trim().min(1).max(200),
 });
+
+/**
+ * A person's edit, saved as the next version (126). `baseVersionId` is the
+ * version they edited: if another version landed since, the save is a
+ * `CONFLICT` (`version_mismatch`) rather than a silent overwrite.
+ */
+export const saveArtifactVersionInputSchema = z.object({
+  baseVersionId: artifactVersionIdSchema,
+  content: z.string().min(1).max(1_000_000),
+  id: artifactIdSchema,
+});
+export type SaveArtifactVersionInput = z.infer<
+  typeof saveArtifactVersionInputSchema
+>;
 
 /** A share on one artifact. */
 export const artifactGrantSchema = z.object({
