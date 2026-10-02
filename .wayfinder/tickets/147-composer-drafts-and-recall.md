@@ -3,7 +3,7 @@ id: "147"
 title: "A chat's unsent draft survives reload and switching chats; ArrowUp recalls your last prompt"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: []
 ---
 

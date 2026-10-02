@@ -3,7 +3,7 @@ id: "146"
 title: "MCP tool results are capped, and a test measures what a chat sends over the wire"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: []
 ---
 

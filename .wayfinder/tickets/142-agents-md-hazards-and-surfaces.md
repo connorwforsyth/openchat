@@ -3,7 +3,7 @@ id: "142"
 title: "AGENTS.md: ways to hurt yourself, a hit-every-surface checklist, a glossary"
 labels: [wayfinder:task]
 status: open
-assignee:
+assignee: loop
 blockedBy: []
 ---
 

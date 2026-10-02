@@ -3,7 +3,7 @@ id: "144"
 title: "A reply's markdown controls stay in their streaming state after the stream ends"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: []
 ---
 

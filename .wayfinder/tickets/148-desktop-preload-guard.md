@@ -3,7 +3,7 @@ id: "148"
 title: "Desktop: a test checks the built preloads on Linux CI"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: []
 ---
 

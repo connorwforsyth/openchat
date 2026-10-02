@@ -3,7 +3,7 @@ id: "149"
 title: "Desktop: updates are a visible state with menu items, and tested against a local feed"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: ["148"]
 ---
 
