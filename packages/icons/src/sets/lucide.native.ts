@@ -1,5 +1,6 @@
 // React Native twin of `lucide.ts`, over `lucide-react-native`.
 import {
+  AppWindow,
   Archive,
   ArrowDown,
   ArrowLeft,
@@ -32,6 +33,7 @@ import {
   EyeOff,
   File,
   FileText,
+  Folder,
   GitBranch,
   Globe,
   GripVertical,
@@ -164,6 +166,8 @@ export const EyeIcon: NativeIcon = Eye;
 export const EyeOffIcon: NativeIcon = EyeOff;
 export const FileIcon: NativeIcon = File;
 export const FileTextIcon: NativeIcon = FileText;
+export const FolderIcon: NativeIcon = Folder;
+export const AppWindowIcon: NativeIcon = AppWindow;
 export const GitBranchIcon: NativeIcon = GitBranch;
 export const GlobeIcon: NativeIcon = Globe;
 export const ImageIcon: NativeIcon = Image;

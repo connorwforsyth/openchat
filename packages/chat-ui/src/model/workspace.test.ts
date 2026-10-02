@@ -3,6 +3,7 @@ import type { Message } from "@workspace/contract/schemas/messages";
 import { describe, expect, it } from "vitest";
 
 import {
+  halfOf,
   sectionOf,
   shownSelection,
   workspacePath,
@@ -86,8 +87,30 @@ describe("shownSelection", () => {
   });
 
   it("knows which section a selection lives in", () => {
-    expect(sectionOf({ kind: "preview" })).toBe("files");
+    expect(sectionOf({ kind: "preview" })).toBe("browser");
+    expect(sectionOf({ kind: "file", path: "a.ts" })).toBe("files");
     expect(sectionOf({ kind: "artifact" })).toBe("artifacts");
+  });
+
+  // 137: the browser keeps the files' list, so an open file stays below it.
+  it("shows the files' selection on the browser too", () => {
+    const file = { kind: "file" as const, path: "a.ts" };
+    expect(shownSelection("browser", file, true)).toBe(file);
+    expect(shownSelection("files", { kind: "preview" }, true)).toEqual({
+      kind: "preview",
+    });
+    expect(shownSelection("browser", null, true)).toEqual({ kind: "preview" });
+    expect(shownSelection("browser", null, false)).toBeNull();
+    expect(
+      shownSelection("browser", { artifactId, kind: "artifact" }, false)
+    ).toBeNull();
+  });
+
+  it("names the header half a section belongs to", () => {
+    expect(halfOf(null)).toBeNull();
+    expect(halfOf("browser")).toBe("browser");
+    expect(halfOf("files")).toBe("files");
+    expect(halfOf("artifacts")).toBe("files");
   });
 });
 

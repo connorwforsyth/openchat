@@ -1,4 +1,4 @@
-import type { WorkspaceSelection } from "../../model/workspace";
+import type { PanelHalf, WorkspaceSelection } from "../../model/workspace";
 import { type FileMode, isHtmlPath } from "./browser";
 
 // The Workspace panel as two halves (097): the browser on top, the files
@@ -171,4 +171,39 @@ export const maximisedAfter = (
     return null;
   }
   return !forBrowser && maximised === "browser" ? null : maximised;
+};
+
+/**
+ * The header asking for one half (137): Browser for the browser, Files for
+ * the files. `id` moves with each press, so pressing again asks again.
+ */
+export interface HalfRequest {
+  readonly half: PanelHalf;
+  readonly id: number;
+}
+
+/**
+ * What a header press does to a maximised half: Browser gives the browser
+ * the whole height (its empty state, before there's a preview); Files brings
+ * the files back if the browser had it, and leaves them as they were otherwise.
+ */
+export const maximisedForHalf = (
+  maximised: Maximised,
+  half: PanelHalf
+): Maximised => {
+  if (half === "browser") {
+    return "browser";
+  }
+  return maximised === "browser" ? null : maximised;
+};
+
+/** Whose turn a header press makes it on a narrow panel. */
+export const viewForHalf = (
+  half: PanelHalf,
+  filesSelected: boolean
+): TurnView => {
+  if (half === "browser") {
+    return "browser";
+  }
+  return filesSelected ? "main" : "list";
 };

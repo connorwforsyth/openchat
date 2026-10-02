@@ -1316,6 +1316,65 @@ describe("the browser over the files (097)", () => {
     expect(await editable()).toBeTruthy();
   });
 
+  // 137: the header's Browser and Files.
+  it("gives the browser the whole panel for Browser, and Files brings the files back", async () => {
+    const { client } = fakeClient(files);
+    const base = props({ files: chatFiles(client) });
+    const view = renderWithI18n(
+      <div style={{ height: 800, width: 900 }}>
+        <Selecting {...base} />
+      </div>
+    );
+    await treeItem("notes.txt");
+    expect(shown(browser())).toBe(true);
+    expect(shown(nav())).toBe(true);
+    view.rerender(
+      <div style={{ height: 800, width: 900 }}>
+        <Selecting
+          {...base}
+          halfRequest={{ half: "browser", id: 1 }}
+          section="browser"
+        />
+      </div>
+    );
+    await waitFor(() => expect(shown(nav())).toBe(false));
+    expect(shown(browser())).toBe(true);
+    expect(
+      panel()
+        .getByRole("button", { name: "Maximise the browser" })
+        .getAttribute("aria-pressed")
+    ).toBe("true");
+    view.rerender(
+      <div style={{ height: 800, width: 900 }}>
+        <Selecting
+          {...base}
+          halfRequest={{ half: "files", id: 2 }}
+          section="files"
+        />
+      </div>
+    );
+    await waitFor(() => expect(shown(nav())).toBe(true));
+    expect(shown(browser())).toBe(true);
+  });
+
+  it("shows the browser's empty state on Browser before there's a preview", async () => {
+    const { client } = fakeClient({
+      "/work/notes.txt": { content: "notes\n", etag: V1 },
+    });
+    renderWithI18n(
+      <div style={{ height: 800, width: 900 }}>
+        <Selecting
+          {...props({ files: chatFiles(client) })}
+          halfRequest={{ half: "browser", id: 1 }}
+          section="browser"
+        />
+      </div>
+    );
+    expect(await panel().findByText("Nothing running yet")).toBeTruthy();
+    expect(shown(browser())).toBe(true);
+    expect(shown(nav())).toBe(false);
+  });
+
   it("keeps the open file below when the chat shows the Preview", async () => {
     const { client } = fakeClient(files);
     const base = props({ files: chatFiles(client) });

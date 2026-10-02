@@ -548,6 +548,8 @@ msgstr "Blocks new chats"
 msgid "Branches"
 msgstr "Branches"
 
+#: ../chat-ui/src/header/overflow-menu.tsx
+#: ../chat-ui/src/header/panel-toggles.tsx
 #: ../chat-ui/src/workspace/preview.tsx
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Browser"
@@ -1489,6 +1491,10 @@ msgstr "File tree"
 msgid "files"
 msgstr "files"
 
+#: ../chat-ui/src/header/overflow-menu.tsx
+#: ../chat-ui/src/header/panel-toggles.tsx
+#: ../chat-ui/src/shell/right-panel.tsx
+#: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 #: ../code-ui/src/file-tree.tsx
 #: ../composer/src/components/composer.tsx
@@ -2351,6 +2357,10 @@ msgstr "Nothing matches."
 msgid "Nothing matches. Try another search or kind."
 msgstr "Nothing matches. Try another search or kind."
 
+#: ../chat-ui/src/workspace/preview.tsx
+msgid "Nothing running yet"
+msgstr "Nothing running yet"
+
 #: ../../apps/web/app/dev/composer/demo.tsx
 msgid "Nothing sent yet."
 msgstr "Nothing sent yet."
@@ -2358,10 +2368,6 @@ msgstr "Nothing sent yet."
 #: ../library-ui/src/components/library-index.tsx
 msgid "Nothing shared with you"
 msgstr "Nothing shared with you"
-
-#: ../chat-ui/src/workspace/preview.tsx
-msgid "Nothing to preview yet. Pages the agent writes and apps it starts show here."
-msgstr "Nothing to preview yet. Pages the agent writes and apps it starts show here."
 
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "OAuth"
@@ -2554,6 +2560,10 @@ msgstr "Owner"
 #: ../chat-ui/src/conversation/link-preview.tsx
 msgid "Page: {name}"
 msgstr "Page: {name}"
+
+#: ../chat-ui/src/workspace/preview.tsx
+msgid "Pages the agent writes and apps it starts show here."
+msgstr "Pages the agent writes and apps it starts show here."
 
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
 msgid "panel"
@@ -3411,8 +3421,8 @@ msgid "Show more"
 msgstr "Show more"
 
 #: ../shortcuts/src/registry.ts
-msgid "Show or hide the workspace"
-msgstr "Show or hide the workspace"
+msgid "Show or hide the files"
+msgstr "Show or hide the files"
 
 #: ../chat-ui/src/workspace/preview.tsx
 msgid "Show the page at a phone's width"
@@ -4558,10 +4568,6 @@ msgstr "Work account"
 msgid "Works"
 msgstr "Works"
 
-#: ../chat-ui/src/header/overflow-menu.tsx
-#: ../chat-ui/src/header/workspace-toggle.tsx
-#: ../chat-ui/src/shell/right-panel.tsx
-#: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Workspace"
 msgstr "Workspace"

@@ -1,6 +1,7 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
 
 import {
+  chatHeader,
   composerReady,
   conversationIdOf,
   expectReply,
@@ -150,6 +151,54 @@ test("either half maximises and restores", async ({ page }) => {
   await expect(browser).toBeVisible();
 });
 
+// 137: the header's Files and Browser in place of one Workspace toggle.
+test("Files and Browser open their halves, switch, and close on a second press", async ({
+  page,
+}) => {
+  await page.goto(chatPath);
+  await composerReady(page);
+  const header = chatHeader(page);
+  const files = header.getByRole("button", { exact: true, name: "Files" });
+  const browserToggle = header.getByRole("button", { name: "Browser" });
+  const sidePanel = page.getByRole("complementary", { name: "Side panel" });
+  const panel = page.getByRole("region", { name: "Workspace" });
+  if ((await files.getAttribute("aria-pressed")) === "true") {
+    await files.click();
+  }
+  await expect(sidePanel).toBeHidden();
+
+  // The Browser: the browser, the whole panel.
+  await browserToggle.click();
+  await expect(browserToggle).toHaveAttribute("aria-pressed", "true");
+  await expect(files).toHaveAttribute("aria-pressed", "false");
+  await expect(
+    browserOf(panel)
+      .frameLocator("iframe")
+      .getByRole("heading", { name: "Site" })
+  ).toBeVisible();
+  await expect(listOf(panel)).toBeHidden();
+
+  // Files: the files come back, under the page.
+  await files.click();
+  await expect(files).toHaveAttribute("aria-pressed", "true");
+  await expect(browserToggle).toHaveAttribute("aria-pressed", "false");
+  await expect(listOf(panel)).toBeVisible();
+  await expect(browserOf(panel)).toBeVisible();
+
+  // The Browser again switches back; a second press closes.
+  await browserToggle.click();
+  await expect(listOf(panel)).toBeHidden();
+  await browserToggle.click();
+  await expect(sidePanel).toBeHidden();
+  await expect(browserToggle).toHaveAttribute("aria-pressed", "false");
+
+  // Files opens it too, and a second press closes.
+  await files.click();
+  await expect(listOf(panel)).toBeVisible();
+  await files.click();
+  await expect(sidePanel).toBeHidden();
+});
+
 test("a narrow panel shows one half at a time", async ({ page }) => {
   const panel = await openPanel(page);
   // Drag the side panel's edge to 360px, under the 420px the halves stack at.
@@ -174,14 +223,24 @@ test("a narrow panel shows one half at a time", async ({ page }) => {
 
   const browser = browserOf(panel);
   const list = listOf(panel);
-  // The chat showed the Preview, so it's the browser's turn.
+  // Opened with Files (137), so it's the files' turn: the list.
+  await expect(list).toBeVisible();
+  await expect(browser).toBeHidden();
+  await expect(dividerOf(page)).toHaveCount(0);
+  await panel.getByRole("button", { name: "Preview" }).click();
   await expect(browser).toBeVisible();
   await expect(list).toBeHidden();
-  await expect(dividerOf(page)).toHaveCount(0);
   await panel.getByRole("button", { name: "Back to the list" }).click();
   await expect(list).toBeVisible();
   await expect(browser).toBeHidden();
-  await panel.getByRole("button", { name: "Preview" }).click();
+  // Picking the Preview put the panel on the browser's section (Browser
+  // is pressed); Files and then Browser switch whose turn it is.
+  const header = chatHeader(page);
+  const browserToggle = header.getByRole("button", { name: "Browser" });
+  await expect(browserToggle).toHaveAttribute("aria-pressed", "true");
+  await header.getByRole("button", { exact: true, name: "Files" }).click();
+  await expect(list).toBeVisible();
+  await browserToggle.click();
   await expect(browser).toBeVisible();
   await expect(list).toBeHidden();
 });

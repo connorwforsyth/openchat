@@ -72,6 +72,7 @@ export const iconNames = [
   "OctagonXIcon",
   "TriangleAlertIcon",
   // Objects
+  "AppWindowIcon",
   "ArchiveIcon",
   "AtSignIcon",
   "BotIcon",
@@ -83,6 +84,7 @@ export const iconNames = [
   "EyeOffIcon",
   "FileIcon",
   "FileTextIcon",
+  "FolderIcon",
   "GitBranchIcon",
   "GlobeIcon",
   "ImageIcon",

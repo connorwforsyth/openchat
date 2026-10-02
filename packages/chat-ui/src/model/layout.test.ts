@@ -55,6 +55,13 @@ describe("the Workspace panel's layout (060)", () => {
     });
   });
 
+  // 137: the header's Browser opens the panel on its browser.
+  it("keeps a stored browser", () => {
+    expect(parseShellLayout(JSON.stringify({ panel: "browser" })).panel).toBe(
+      "browser"
+    );
+  });
+
   it("keeps a closed panel closed", () => {
     expect(parseShellLayout(JSON.stringify({ panel: null })).panel).toBeNull();
   });
@@ -65,6 +72,7 @@ describe("togglePanel and clampPanelWidth", () => {
     const files = togglePanel(defaultShellLayout, "files");
     expect(files.panel).toBe("files");
     expect(togglePanel(files, "artifacts").panel).toBe("artifacts");
+    expect(togglePanel(files, "browser").panel).toBe("browser");
     expect(togglePanel(files, "files").panel).toBeNull();
   });
 

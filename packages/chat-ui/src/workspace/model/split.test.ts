@@ -5,11 +5,13 @@ import {
   LIST_BESIDE_FROM,
   MIN_PANE_HEIGHT,
   maximisedAfter,
+  maximisedForHalf,
   paneLayout,
   parseSplit,
   SPLIT_BELOW,
   SPLIT_DEFAULT,
   splitBounds,
+  viewForHalf,
   viewOf,
 } from "./split";
 
@@ -175,5 +177,38 @@ describe("maximisedAfter", () => {
     );
     expect(maximisedAfter("files", null)).toBe("files");
     expect(maximisedAfter(null, { kind: "preview" })).toBeNull();
+  });
+});
+
+// 137: the header's Browser and Files each ask for their half.
+describe("a header press", () => {
+  it("gives the browser the whole height for Browser", () => {
+    expect(maximisedForHalf(null, "browser")).toBe("browser");
+    expect(maximisedForHalf("files", "browser")).toBe("browser");
+  });
+
+  it("brings the files back from a maximised browser for Files", () => {
+    expect(maximisedForHalf("browser", "files")).toBeNull();
+    expect(maximisedForHalf(null, "files")).toBeNull();
+    expect(maximisedForHalf("files", "files")).toBe("files");
+  });
+
+  it("shows the browser even with nothing to preview yet", () => {
+    const layout = paneLayout({
+      ...wide,
+      hasPreview: true,
+      maximised: maximisedForHalf(null, "browser"),
+    });
+    expect(layout).toMatchObject({
+      browser: true,
+      divider: false,
+      files: false,
+    });
+  });
+
+  it("takes the half's turn on a narrow panel", () => {
+    expect(viewForHalf("browser", true)).toBe("browser");
+    expect(viewForHalf("files", true)).toBe("main");
+    expect(viewForHalf("files", false)).toBe("list");
   });
 });

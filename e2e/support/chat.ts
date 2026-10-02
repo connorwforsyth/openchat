@@ -146,11 +146,14 @@ export const lockedContext = (page: Page): Locator =>
   chatHeader(page).locator('[data-slot="chat-context"][data-locked]');
 
 /**
- * Opens the chat's Workspace panel from the header (060: one panel with the
- * files, preview and artifacts; no tabs) and returns it.
+ * Opens the chat's Workspace panel from the header's Files (137; 060: one
+ * panel with the files, preview and artifacts; no tabs) and returns it.
  */
 export const openWorkspace = async (page: Page): Promise<Locator> => {
-  const toggle = chatHeader(page).getByRole("button", { name: "Workspace" });
+  const toggle = chatHeader(page).getByRole("button", {
+    exact: true,
+    name: "Files",
+  });
   if ((await toggle.getAttribute("aria-pressed")) !== "true") {
     await toggle.click();
   }

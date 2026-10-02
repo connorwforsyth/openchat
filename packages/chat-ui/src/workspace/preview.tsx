@@ -424,12 +424,15 @@ function PageFrame({
   if (!page) {
     return (
       <Centered>
-        <p className="max-w-72">
-          <Trans>
-            Nothing to preview yet. Pages the agent writes and apps it starts
-            show here.
-          </Trans>
-        </p>
+        <GlobeIcon aria-hidden className="size-5" />
+        <div className="flex max-w-72 flex-col gap-1">
+          <p className="font-medium text-foreground">
+            <Trans>Nothing running yet</Trans>
+          </p>
+          <p>
+            <Trans>Pages the agent writes and apps it starts show here.</Trans>
+          </p>
+        </div>
       </Centered>
     );
   }

@@ -202,7 +202,7 @@ describe("header (D14)", () => {
             button.getAttribute("aria-label")?.startsWith("Rename chat")
           )
       );
-    const expected = ["Toggle sidebar", "Share", "Workspace"];
+    const expected = ["Toggle sidebar", "Share", "Files", "Browser"];
     expect(controls).toEqual(
       expected.map((name) => header().getByRole("button", { name }))
     );
@@ -235,19 +235,71 @@ describe("header (D14)", () => {
     ).toBeNull();
   });
 
-  it("toggles the workspace panel with one pressed button", async () => {
+  // 137: Files and Browser in place of one Workspace toggle.
+  it("opens the panel on its files or its browser, switches, and closes on a second press", async () => {
     renderWithI18n(<ChatScreen {...props()} />);
-    const toggle = header().getByRole("button", { name: "Workspace" });
-    expect(toggle.getAttribute("aria-pressed")).toBe("false");
-    await userEvent.click(toggle);
+    const files = header().getByRole("button", { name: "Files" });
+    const browser = header().getByRole("button", { name: "Browser" });
+    const pressed = () => [
+      files.getAttribute("aria-pressed"),
+      browser.getAttribute("aria-pressed"),
+    ];
+    const sidePanel = () =>
+      screen.queryByRole("complementary", { name: "Side panel" });
+    expect(pressed()).toEqual(["false", "false"]);
+
+    await userEvent.click(files);
     expect(
       await screen.findByRole("complementary", { name: "Side panel" })
     ).toBeTruthy();
-    expect(toggle.getAttribute("aria-pressed")).toBe("true");
-    await userEvent.click(toggle);
+    expect(pressed()).toEqual(["true", "false"]);
+
+    // The Browser switches to the browser: its empty state, with nothing
+    // running yet.
+    await userEvent.click(browser);
+    expect(pressed()).toEqual(["false", "true"]);
+    const panel = within(
+      await screen.findByRole("region", { name: "Workspace" })
+    );
+    expect(await panel.findByText("Nothing running yet")).toBeTruthy();
+    expect(panel.getByRole("toolbar", { name: "Browser" }).hidden).toBe(false);
+
+    await userEvent.click(browser);
+    expect(sidePanel()).toBeNull();
+    expect(pressed()).toEqual(["false", "false"]);
+
+    // The Browser opens it too, and Files switches back.
+    await userEvent.click(browser);
+    expect(await screen.findByText("Nothing running yet")).toBeTruthy();
+    await userEvent.click(files);
+    expect(pressed()).toEqual(["true", "false"]);
+    await waitFor(() =>
+      expect(screen.queryByText("Nothing running yet")).toBeNull()
+    );
+    await userEvent.click(files);
+    expect(sidePanel()).toBeNull();
+  });
+
+  it("keeps S on the files and A on the artifacts", async () => {
+    renderWithI18n(<ChatScreen {...props()} />);
+    const files = header().getByRole("button", { name: "Files" });
+    await userEvent.keyboard("s");
     expect(
-      screen.queryByRole("complementary", { name: "Side panel" })
-    ).toBeNull();
+      await screen.findByRole("complementary", { name: "Side panel" })
+    ).toBeTruthy();
+    expect(files.getAttribute("aria-pressed")).toBe("true");
+    await userEvent.keyboard("s");
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("complementary", { name: "Side panel" })
+      ).toBeNull()
+    );
+    // Artifacts are in the files' half, so Files shows as pressed.
+    await userEvent.keyboard("a");
+    expect(
+      await screen.findByRole("complementary", { name: "Side panel" })
+    ).toBeTruthy();
+    expect(files.getAttribute("aria-pressed")).toBe("true");
   });
 });
 
@@ -827,7 +879,7 @@ describe("the Preview opens by itself (066)", () => {
 
   it("not when the person closed the panel during the run", async () => {
     const { stream } = live(withAnswer([call]));
-    const toggle = header().getByRole("button", { name: "Workspace" });
+    const toggle = header().getByRole("button", { name: "Files" });
     await userEvent.click(toggle);
     expect(
       await screen.findByRole("region", { name: "Workspace" })
@@ -980,17 +1032,21 @@ describe("narrow screens", () => {
 
   it("shows the side panel as a bottom sheet, opened from the overflow menu", async () => {
     renderWithI18n(<ChatScreen {...props()} />);
-    // Share and the Workspace toggle move into the overflow menu.
+    // Share, Files and Browser move into the overflow menu.
     expect(header().queryByRole("button", { name: "Share" })).toBeNull();
-    expect(header().queryByRole("button", { name: "Workspace" })).toBeNull();
+    expect(header().queryByRole("button", { name: "Files" })).toBeNull();
+    expect(header().queryByRole("button", { name: "Browser" })).toBeNull();
     await userEvent.click(
       header().getByRole("button", { name: "More actions" })
     );
     // The context stays by the title, not in the menu (113).
     expect(chatContext()?.textContent).toContain("Platform");
     expect(screen.queryByRole("group", { name: "Chat context" })).toBeNull();
+    expect(
+      await screen.findByRole("menuitemcheckbox", { name: "Browser" })
+    ).toBeTruthy();
     await userEvent.click(
-      await screen.findByRole("menuitemcheckbox", { name: "Workspace" })
+      await screen.findByRole("menuitemcheckbox", { name: "Files" })
     );
     const panelSheet = within(await sheet("Side panel"));
     // One Workspace panel, and no terminal anywhere in it (060).
