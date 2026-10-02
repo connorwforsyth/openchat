@@ -2,7 +2,7 @@
 id: "137"
 title: "Header: Files and Globe (browser) icons instead of one right-panel toggle; a device-size switch in the web preview"
 labels: [wayfinder:build]
-status: in-progress
+status: closed
 assignee: loop
 blockedBy: []
 ---
