@@ -12,7 +12,7 @@ import { ArrowLeftIcon, MessageSquareIcon } from "@workspace/icons";
 import { Button } from "@workspace/ui/components/button";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 
-import { ArtifactMenu } from "./artifact-actions";
+import { ArtifactMenu, ArtifactShareButton } from "./artifact-actions";
 import { ArtifactView } from "./artifact-view";
 import type {
   ArtifactLinkComponent,
@@ -85,6 +85,26 @@ export function ArtifactFullView({
     ),
     [kind]
   );
+  const isDocument = kind === "document";
+  // A Document's own title bar carries Chat, Share and the menu (126).
+  const documentActions = artifact ? (
+    <>
+      {artifact.canGoToChat ? (
+        <Button onClick={goToChat} size="sm" variant="ghost">
+          <MessageSquareIcon aria-hidden data-icon="inline-start" />
+          <Trans>Chat</Trans>
+        </Button>
+      ) : null}
+      <ArtifactShareButton api={api} artifact={artifact} me={me} />
+      <ArtifactMenu
+        api={api}
+        artifact={artifact}
+        links={links}
+        me={me}
+        onDeleted={leave}
+      />
+    </>
+  ) : null;
   const back = (
     <Link
       className="inline-flex items-center gap-1 text-muted-foreground text-sm outline-none hover:text-foreground focus-visible:underline"
@@ -112,7 +132,7 @@ export function ArtifactFullView({
     <div className="flex min-h-0 flex-1 flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         {back}
-        {artifact ? (
+        {artifact && !isDocument ? (
           <div className="flex items-center gap-2">
             {artifact.canGoToChat ? (
               <Button onClick={goToChat} size="sm" variant="outline">
@@ -137,8 +157,11 @@ export function ArtifactFullView({
       >
         {artifact ? (
           <ArtifactView
+            actions={documentActions}
+            api={api}
             artifact={artifact}
             header={header}
+            info={artifact}
             onSelect={select}
             runtimeOrigin={runtimeOrigin}
             versionId={versionId}

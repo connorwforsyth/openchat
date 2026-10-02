@@ -1,6 +1,7 @@
 "use client";
 
 import { Trans, useLingui } from "@lingui/react/macro";
+import type { QueryUtils } from "@workspace/client/api";
 import { CodeView } from "@workspace/code-ui/code-view";
 import { DiffView } from "@workspace/code-ui/diff-view";
 import type {
@@ -9,6 +10,7 @@ import type {
 } from "@workspace/contract/schemas/common";
 import type {
   Artifact,
+  ArtifactListItem,
   ArtifactVersion,
 } from "@workspace/contract/schemas/files";
 import {
@@ -48,6 +50,8 @@ import {
 } from "../model/artifacts";
 import { useElementWidth } from "../workspace/use-element-width";
 import { ArtifactPreview, SrcdocPreview } from "./artifact-preview";
+import { DocumentArtifact } from "./document/document-artifact";
+import { DocumentView } from "./document/document-view";
 import { fitArtifactHeader } from "./header-fit";
 import { type PlanEditing, PlanEditor } from "./plan-editor";
 import { isRuntimeKind } from "./runtime-protocol";
@@ -70,6 +74,13 @@ export interface ArtifactSelection {
 }
 
 export interface ArtifactViewProps {
+  /** The host's buttons for a document's title bar (126): Chat, Share, ⋯. */
+  readonly actions?: ReactNode;
+  /**
+   * The API, for a Document (126) to know who may edit it and to save a
+   * person's edits. Without it a document is read only.
+   */
+  readonly api?: QueryUtils;
   /** `undefined` when the chat has none. */
   readonly artifact: Artifact | undefined;
   /**
@@ -85,6 +96,8 @@ export interface ArtifactViewProps {
    * a way back). Without it, a plain 48px row.
    */
   readonly header?: (content: ReactNode) => ReactNode;
+  /** The artifact as its list row (access, owner), when the host has it. */
+  readonly info?: ArtifactListItem;
   readonly onSelect: (selection: ArtifactSelection) => void;
   /**
    * The artifact runtime's origin (`ARTIFACTS_ORIGIN`, D24). Without one,
@@ -100,15 +113,21 @@ export interface ArtifactViewProps {
 
 type View = "preview" | "code" | "changes";
 
+const readOnly = () =>
+  Promise.reject(new Error("This document can't be edited here."));
+
 const plainHeader = (content: ReactNode) => (
   <div className="flex h-12 shrink-0 items-center border-b px-3">{content}</div>
 );
 
 export function ArtifactView({
+  actions,
+  api,
   artifact,
   editing = null,
   error,
   header = plainHeader,
+  info,
   onSelect,
   runtimeOrigin = null,
   versionId,
@@ -132,6 +151,35 @@ export function ArtifactView({
   }
 
   const latest = versions?.at(-1);
+  // A Document (126) is its own editor, a plan's included.
+  if (artifact.kind === "document" && versions && versions.length > 0) {
+    return api ? (
+      <DocumentArtifact
+        actions={actions}
+        api={api}
+        artifact={artifact}
+        editing={editing}
+        header={header}
+        info={info}
+        key={artifact.id}
+        onSelect={onSelect}
+        versionId={versionId}
+        versions={versions}
+      />
+    ) : (
+      <DocumentView
+        access={null}
+        actions={actions}
+        artifact={artifact}
+        header={header}
+        key={artifact.id}
+        onSave={readOnly}
+        onSelect={onSelect}
+        versionId={versionId}
+        versions={versions}
+      />
+    );
+  }
   if (editing?.artifactId === artifact.id && latest) {
     return (
       <PlanEditor

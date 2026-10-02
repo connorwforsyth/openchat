@@ -1,6 +1,7 @@
 "use client";
 
 import { Plural, Trans, useLingui } from "@lingui/react/macro";
+import type { QueryUtils } from "@workspace/client/api";
 import { FileTree, type FileTreeHandle } from "@workspace/code-ui/file-tree";
 import type {
   Artifact,
@@ -154,6 +155,8 @@ const MAX_MATCHES = 200;
 const FOCUS_FRAMES = 30;
 
 export interface WorkspaceArtifacts {
+  /** The API, so a Document (126) can be edited in the panel; read only without it. */
+  readonly api?: QueryUtils;
   readonly artifacts: readonly Artifact[];
   /** A plan being edited (106), shown as its editor when it's selected. */
   readonly editing?: PlanEditing | null;
@@ -1820,6 +1823,7 @@ function MainArea({
     return (
       <div className="flex min-h-0 flex-1 flex-col">
         <ArtifactView
+          api={artifacts.api}
           artifact={artifact}
           editing={artifacts.editing}
           error={artifacts.error}
