@@ -210,7 +210,17 @@ export function useDocumentSave({
     }
   }, [baseVersionId]);
 
-  useEffect(() => clearTimer, [clearTimer]);
+  // Leaving (closing the panel, a layout that remounts the page) saves
+  // what's waiting rather than dropping it.
+  useEffect(
+    () => () => {
+      clearTimer();
+      if (live.current.pending !== null && !live.current.conflicted) {
+        run().catch(() => undefined);
+      }
+    },
+    [clearTimer, run]
+  );
 
   const saved = useCallback(
     (versionId: ArtifactVersionId) => live.current.mine.has(versionId),

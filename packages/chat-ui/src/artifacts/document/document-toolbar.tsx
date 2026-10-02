@@ -161,22 +161,28 @@ export function DocumentToolbar({ editor }: { readonly editor: Editor }) {
               onValueChange={setBlock}
               value={active.block}
             >
-              <DropdownMenuRadioItem value="paragraph">
+              <DropdownMenuRadioItem closeOnClick value="paragraph">
                 <Trans>Text</Trans>
               </DropdownMenuRadioItem>
               <DropdownMenuRadioItem
                 className="font-semibold text-xl"
+                closeOnClick
                 value="h1"
               >
                 <Trans>Heading 1</Trans>
               </DropdownMenuRadioItem>
               <DropdownMenuRadioItem
                 className="font-semibold text-lg"
+                closeOnClick
                 value="h2"
               >
                 <Trans>Heading 2</Trans>
               </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem className="font-semibold" value="h3">
+              <DropdownMenuRadioItem
+                className="font-semibold"
+                closeOnClick
+                value="h3"
+              >
                 <Trans>Heading 3</Trans>
               </DropdownMenuRadioItem>
             </DropdownMenuRadioGroup>

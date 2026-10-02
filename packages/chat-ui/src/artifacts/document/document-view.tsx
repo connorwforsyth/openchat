@@ -22,6 +22,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   CircleAlertIcon,
+  CircleIcon,
   DownloadIcon,
   LoaderCircleIcon,
   PencilIcon,
@@ -204,20 +205,32 @@ function LatestDocument({
     save: onSave,
   });
   const { change } = save;
+  // Made once, so the editor isn't handed new options (and re-set) on
+  // every render.
+  const label = t`Document`;
+  const placeholder = t`Start writing…`;
+  const extensions = useMemo(
+    () => documentExtensions(placeholder),
+    [placeholder]
+  );
+  const editorProps = useMemo(
+    () => ({
+      attributes: {
+        "aria-label": label,
+        "aria-multiline": "true",
+        class: "outline-none",
+        "data-slot": "document-editor",
+        role: "textbox",
+      },
+    }),
+    [label]
+  );
   const editor = useEditor(
     {
       content: initial ?? undefined,
       editable: canEdit,
-      editorProps: {
-        attributes: {
-          "aria-label": t`Document`,
-          "aria-multiline": "true",
-          class: "outline-none",
-          "data-slot": "document-editor",
-          role: "textbox",
-        },
-      },
-      extensions: documentExtensions(t`Start writing…`),
+      editorProps,
+      extensions,
       immediatelyRender: false,
       onUpdate: ({ editor: updated, transaction }) => {
         if (transaction.docChanged) {
@@ -405,10 +418,12 @@ const DOCUMENT_TEXT = cn(
   "text-base leading-relaxed",
   "[&_.ProseMirror]:min-h-48 [&_.ProseMirror]:outline-none",
   "[&_.ProseMirror>*+*]:mt-3",
-  "[&_h1]:mt-8 [&_h1]:font-serif [&_h1]:text-3xl [&_h1]:leading-tight",
-  "[&_h2]:mt-7 [&_h2]:font-serif [&_h2]:text-2xl [&_h2]:leading-snug",
-  "[&_h3]:mt-6 [&_h3]:font-semibold [&_h3]:text-xl",
-  "[&_h4]:mt-5 [&_h4]:font-semibold [&_h4]:text-lg",
+  // Headings take more room above them than the generic gap (more specific).
+  "[&_.ProseMirror>*+h1]:mt-10 [&_.ProseMirror>*+h2]:mt-8 [&_.ProseMirror>*+h3]:mt-6 [&_.ProseMirror>*+h4]:mt-5",
+  "[&_h1]:font-serif [&_h1]:text-3xl [&_h1]:leading-tight",
+  "[&_h2]:font-serif [&_h2]:text-2xl [&_h2]:leading-snug",
+  "[&_h3]:font-semibold [&_h3]:text-xl",
+  "[&_h4]:font-semibold [&_h4]:text-lg",
   "[&_h5]:font-semibold [&_h6]:font-semibold [&_h6]:text-muted-foreground",
   "[&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2",
   "[&_li]:my-1 [&_ol]:list-decimal [&_ol]:ps-6 [&_ul]:list-disc [&_ul]:ps-6",
@@ -581,13 +596,21 @@ function SaveStatus({
           data-save-state={state}
         >
           <CheckIcon aria-hidden className="size-3.5" />
-          <Trans>Saved</Trans>
+          <span className="sr-only sm:not-sr-only">
+            <Trans>Saved</Trans>
+          </span>
         </output>
       );
     case "unsaved":
       return (
-        <output className={quiet} data-save-state={state}>
-          <Trans>Edited</Trans>
+        <output
+          className={cn(quiet, "inline-flex items-center gap-1")}
+          data-save-state={state}
+        >
+          <CircleIcon aria-hidden className="size-2 fill-current" />
+          <span className="sr-only sm:not-sr-only">
+            <Trans>Edited</Trans>
+          </span>
         </output>
       );
     case "saving":
@@ -600,7 +623,9 @@ function SaveStatus({
             aria-hidden
             className="size-3.5 motion-safe:animate-spin"
           />
-          <Trans>Saving…</Trans>
+          <span className="sr-only sm:not-sr-only">
+            <Trans>Saving…</Trans>
+          </span>
         </output>
       );
     case "error":

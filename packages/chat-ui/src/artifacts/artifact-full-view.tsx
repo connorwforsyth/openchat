@@ -90,9 +90,17 @@ export function ArtifactFullView({
   const documentActions = artifact ? (
     <>
       {artifact.canGoToChat ? (
-        <Button onClick={goToChat} size="sm" variant="ghost">
+        <Button
+          aria-label={t`Chat`}
+          onClick={goToChat}
+          size="sm"
+          title={t`Chat`}
+          variant="ghost"
+        >
           <MessageSquareIcon aria-hidden data-icon="inline-start" />
-          <Trans>Chat</Trans>
+          <span className="hidden sm:inline">
+            <Trans>Chat</Trans>
+          </span>
         </Button>
       ) : null}
       <ArtifactShareButton api={api} artifact={artifact} me={me} />

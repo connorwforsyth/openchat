@@ -115,6 +115,17 @@ describe("DocumentView", () => {
     await waitFor(() => expect(screen.getByText("Saved")).toBeTruthy());
   });
 
+  it("saves what's waiting when it closes before the pause", async () => {
+    const { onSave } = renderView();
+    const text = await editor();
+    await userEvent.click(within(text).getByText("Walk the harbour."));
+    await userEvent.keyboard("{End} Bye");
+    expect(onSave).not.toHaveBeenCalled();
+    cleanup();
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    expect(onSave.mock.calls[0]?.[0].content).toContain("harbour. Bye");
+  });
+
   it("is read only, without a toolbar, for a viewer", async () => {
     const { onSave } = renderView({ access: "viewer" });
     const text = await editor();
