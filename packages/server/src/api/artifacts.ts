@@ -139,6 +139,28 @@ const mayShareWith = async (
   }
 };
 
+/**
+ * The caller's access to an artifact: ownership or a share first, else
+ * `viewer` through a chat they can read that made it or uses it; `null`
+ * when none. Also what serves an image artifact's bytes (138).
+ */
+export const artifactAccessFor = async (
+  { access, db }: Pick<ArtifactsDeps, "access" | "db">,
+  actor: Actor,
+  row: ArtifactRow
+): Promise<ArtifactAccess | null> => {
+  const direct = await artifactAccessOf(db, row.id, actor);
+  if (direct) {
+    return direct;
+  }
+  // Through a chat: the one that made it, or any it's used in.
+  const chats = [row.conversationId, ...(await listArtifactUses(db, row.id))];
+  const reads = await Promise.all(
+    chats.map((conversationId) => access(actor, conversationId, "read"))
+  );
+  return reads.some(Boolean) ? "viewer" : null;
+};
+
 /** How many workspace files "Save as artifact" reads before giving up. */
 const MAX_WORKSPACE_FILES = 200;
 
@@ -181,28 +203,8 @@ export const createArtifactsRouter = ({
     };
   };
 
-  /**
-   * The caller's access: ownership or a share first, else `viewer` through
-   * a chat they can read that made it or uses it; `null` when none.
-   */
-  const accessTo = async (
-    actor: Actor,
-    row: ArtifactRow
-  ): Promise<ArtifactAccess | null> => {
-    const direct = await artifactAccessOf(db, row.id, actor);
-    if (direct) {
-      return direct;
-    }
-    // Through a chat: the one that made it, or any it's used in.
-    const chats = [row.conversationId, ...(await listArtifactUses(db, row.id))];
-    const reads = await Promise.all(
-      chats.map((conversationId) => access(actor, conversationId, "read"))
-    );
-    if (reads.some(Boolean)) {
-      return "viewer";
-    }
-    return null;
-  };
+  const accessTo = (actor: Actor, row: ArtifactRow) =>
+    artifactAccessFor({ access, db }, actor, row);
 
   /** The artifact and the caller's access, if they have any. */
   const readable = async (actor: Actor, id: ArtifactId) => {

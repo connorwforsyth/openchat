@@ -50,6 +50,7 @@ import { createUsageRouter } from "./api/usage";
 import { type App, createApp } from "./app";
 import { type DatabaseProblem, openDatabase } from "./boot/database";
 import type { Session, SessionResolver } from "./context";
+import { mountArtifactImageRoutes } from "./http/artifact-images";
 import { mountFileRoutes } from "./http/files";
 import { mountLlmRoute } from "./http/llm";
 import { MCP_OAUTH_CALLBACK_PATH, mountMcpRoutes } from "./http/mcp";
@@ -572,6 +573,11 @@ export const createServerFromEnv = async (
       if (auth) {
         hono.on(["GET", "POST"], "/api/auth/*", (c) => auth.handler(c.req.raw));
       }
+      mountArtifactImageRoutes(hono, {
+        access: services.access,
+        db,
+        resolveSession,
+      });
       mountFileRoutes(hono, {
         db,
         resolveSession,
