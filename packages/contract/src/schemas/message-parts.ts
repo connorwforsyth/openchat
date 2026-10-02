@@ -181,6 +181,11 @@ export const artifactKindSchema = z.enum([
   "site",
   /** Rich text (126): a TipTap (ProseMirror) document as JSON. */
   "document",
+  /**
+   * A picture `generate_image` made (138): a version is one image as a
+   * `data:` URL, so the Artifacts page shows it without the chat's workspace.
+   */
+  "image",
 ]);
 export type ArtifactKind = z.infer<typeof artifactKindSchema>;
 

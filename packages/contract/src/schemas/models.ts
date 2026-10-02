@@ -72,6 +72,8 @@ export const modelCapabilitySchema = z.enum([
   "files",
   "reasoning",
   "web-search",
+  /** Writes images in its own reply, as the provider's catalog says (138). */
+  "image-output",
 ]);
 
 /** A 1–5 step on the picker's bars: 1 is the least (slowest, cheapest), 5 the most. */
@@ -116,6 +118,14 @@ export const modelOptionSchema = z.object({
    * Absent for `auto`.
    */
   displayName: z.string().min(1).optional(),
+  /**
+   * The image model `generate_image` uses when this model asks for a
+   * picture in this context (138); absent when there is none, or the model
+   * can't call tools.
+   */
+  imageModel: z
+    .object({ displayName: z.string().min(1), target: modelRefSchema })
+    .optional(),
   /** The label shown in the picker. */
   label: z.string(),
   /**

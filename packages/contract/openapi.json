@@ -124,7 +124,8 @@
               "svg",
               "mermaid",
               "site",
-              "document"
+              "document",
+              "image"
             ],
             "type": "string"
           },
@@ -224,7 +225,8 @@
               "svg",
               "mermaid",
               "site",
-              "document"
+              "document",
+              "image"
             ],
             "type": "string"
           },
@@ -2876,7 +2878,8 @@
                   "svg",
                   "mermaid",
                   "site",
-                  "document"
+                  "document",
+                  "image"
                 ],
                 "type": "string"
               },
@@ -5980,7 +5983,8 @@
                 "svg",
                 "mermaid",
                 "site",
-                "document"
+                "document",
+                "image"
               ],
               "type": "string"
             },
@@ -7231,7 +7235,8 @@
                         "svg",
                         "mermaid",
                         "site",
-                        "document"
+                        "document",
+                        "image"
                       ],
                       "type": "string"
                     },
@@ -17349,7 +17354,8 @@
                             "vision",
                             "files",
                             "reasoning",
-                            "web-search"
+                            "web-search",
+                            "image-output"
                           ],
                           "type": "string"
                         }
@@ -17393,6 +17399,20 @@
                       "displayName": {
                         "type": "string",
                         "minLength": 1
+                      },
+                      "imageModel": {
+                        "type": "object",
+                        "properties": {
+                          "displayName": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "target": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_-]{0,63}:[^\\s:][^\\s]{0,255}$"
+                          }
+                        },
+                        "required": ["displayName", "target"]
                       },
                       "label": {
                         "type": "string"
