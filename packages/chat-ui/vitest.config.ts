@@ -33,6 +33,7 @@ export default defineProject({
       "react/jsx-runtime",
       "zod",
       "@streamdown/math",
+      "@pierre/diffs",
       "@workspace/code-ui > @pierre/diffs",
       "@workspace/code-ui > @pierre/diffs/edit",
       "@workspace/code-ui > @pierre/diffs/react",
