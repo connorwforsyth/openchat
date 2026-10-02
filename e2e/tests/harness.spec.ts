@@ -549,17 +549,23 @@ const persistedCache = (page: Page) =>
       new Promise<string>((resolve) => {
         const open = indexedDB.open("keyval-store");
         open.onerror = () => resolve("");
+        // Opened before the app first writes, the database is made here:
+        // with idb-keyval's store, or the app could never write to it.
+        open.onupgradeneeded = () => open.result.createObjectStore("keyval");
         open.onsuccess = () => {
-          try {
-            const read = open.result
-              .transaction("keyval")
-              .objectStore("keyval")
-              .get("query-cache");
-            read.onsuccess = () => resolve(JSON.stringify(read.result ?? ""));
-            read.onerror = () => resolve("");
-          } catch {
+          const db = open.result;
+          const read = db
+            .transaction("keyval", "readonly")
+            .objectStore("keyval")
+            .get("query-cache");
+          read.onsuccess = () => {
+            db.close();
+            resolve(JSON.stringify(read.result ?? ""));
+          };
+          read.onerror = () => {
+            db.close();
             resolve("");
-          }
+          };
         };
       })
   );
