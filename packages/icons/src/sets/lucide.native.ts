@@ -32,6 +32,7 @@ import {
   EyeOff,
   File,
   FileText,
+  Folder,
   GitBranch,
   Globe,
   GripVertical,
@@ -79,11 +80,13 @@ import {
   Shapes,
   Share,
   Shield,
+  Smartphone,
   Sparkles,
   Square,
   SquarePen,
   Star,
   Sun,
+  Tablet,
   Terminal,
   ThumbsDown,
   ThumbsUp,
@@ -164,6 +167,9 @@ export const EyeIcon: NativeIcon = Eye;
 export const EyeOffIcon: NativeIcon = EyeOff;
 export const FileIcon: NativeIcon = File;
 export const FileTextIcon: NativeIcon = FileText;
+export const FolderIcon: NativeIcon = Folder;
+export const SmartphoneIcon: NativeIcon = Smartphone;
+export const TabletIcon: NativeIcon = Tablet;
 export const GitBranchIcon: NativeIcon = GitBranch;
 export const GlobeIcon: NativeIcon = Globe;
 export const ImageIcon: NativeIcon = Image;

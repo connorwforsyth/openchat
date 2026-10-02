@@ -19,7 +19,7 @@ export const useShortcutLabels = (): Readonly<Record<ShortcutId, string>> => {
       help: t`Keyboard shortcuts`,
       "palette.open": t`Search and commands`,
       "panel.artifacts": t`Workspace artifacts`,
-      "panel.sandbox": t`Workspace`,
+      "panel.sandbox": t`Files`,
       "sidebar.toggle": t`Toggle sidebar`,
     }),
     [t]

@@ -28,9 +28,37 @@ export const workspaceSelectionSchema = z.discriminatedUnion("kind", [
 ]);
 export type WorkspaceSelection = z.infer<typeof workspaceSelectionSchema>;
 
-/** The list section a selection lives in. */
-export const sectionOf = (selection: WorkspaceSelection): WorkspaceSection =>
-  selection.kind === "artifact" ? "artifacts" : "files";
+/** The section a selection lives in: the Preview is the browser's. */
+export const sectionOf = (selection: WorkspaceSelection): WorkspaceSection => {
+  switch (selection.kind) {
+    case "artifact":
+      return "artifacts";
+    case "preview":
+      return "browser";
+    case "file":
+      return "files";
+    default:
+      return selection satisfies never;
+  }
+};
+
+/**
+ * The list a section shows: the browser has none of its own, so it keeps
+ * the files' (an open file stays open below it).
+ */
+const listOf = (section: WorkspaceSection): "artifacts" | "files" =>
+  section === "artifacts" ? "artifacts" : "files";
+
+/** The header half a section belongs to (137): the browser, or the files below it. */
+export const halfOf = (section: WorkspaceSection | null): PanelHalf | null => {
+  if (section === null) {
+    return null;
+  }
+  return section === "browser" ? "browser" : "files";
+};
+
+/** The Workspace panel's two halves, as the header's Globe and Files name them. */
+export type PanelHalf = "browser" | "files";
 
 /**
  * What the panel shows on `section`: the selection if it belongs there,
@@ -42,7 +70,7 @@ export const shownSelection = (
   selection: WorkspaceSelection | null,
   hasPreview: boolean
 ): WorkspaceSelection | null => {
-  if (selection && sectionOf(selection) === section) {
+  if (selection && listOf(sectionOf(selection)) === listOf(section)) {
     return selection.kind === "preview" && !hasPreview ? null : selection;
   }
   if (section === "artifacts") {

@@ -63,6 +63,7 @@ import {
   ArtifactView,
 } from "../artifacts/artifact-view";
 import type { PlanEditing } from "../artifacts/plan-editor";
+import type { WorkspaceSection } from "../model/layout";
 import type { WorkspaceSelection } from "../model/workspace";
 import { usePanelFrame } from "../shell/right-panel";
 import { isTypingEvent } from "../shortcuts/registry";
@@ -90,12 +91,15 @@ import {
   type TextRun,
 } from "./model/file-search";
 import {
+  type HalfRequest,
   type Maximised,
   maximisedAfter,
+  maximisedForHalf,
   type PaneLayout,
   paneLayout,
   SPLIT_DEFAULT,
   type TurnView,
+  viewForHalf,
   viewOf,
 } from "./model/split";
 import { NewFileDialog } from "./new-file-dialog";
@@ -103,6 +107,7 @@ import { BrowserView } from "./preview";
 import { RenderedFile } from "./rendered-file";
 import { SplitHandle } from "./split-handle";
 import { useElementHeight, useElementWidth } from "./use-element-width";
+import { usePreviewDevice } from "./use-preview-device";
 import { usePreviewHistory } from "./use-preview-history";
 import { useSplit } from "./use-split";
 import {
@@ -162,8 +167,12 @@ export interface WorkspaceArtifacts {
 
 export interface WorkspacePanelProps {
   readonly artifacts: WorkspaceArtifacts;
+  /** The chat, for the Preview's device (137); `null` before it's created. */
+  readonly chatKey?: string | null;
   readonly className?: string;
   readonly files: WorkspaceFilesSource;
+  /** The header's last press of Globe or Files (137). */
+  readonly halfRequest?: HalfRequest | null;
   readonly onSelect: (selection: WorkspaceSelection | null) => void;
   /** A page the chat asks the Preview to show (`openPreview`, an `.html` write). */
   readonly previewRequest?: PreviewRequest | null;
@@ -171,6 +180,11 @@ export interface WorkspacePanelProps {
   readonly probePreview?: (url: string) => Promise<boolean>;
   /** `workspaceRevision` of the chat's messages. */
   readonly revision: number;
+  /**
+   * The section the panel is open on. On the browser it shows the browser
+   * even before there's anything to preview (its empty state).
+   */
+  readonly section?: WorkspaceSection | null;
   /** What the main area shows. */
   readonly selection: WorkspaceSelection | null;
 }
@@ -255,6 +269,8 @@ const selectionKey = (selection: WorkspaceSelection | null): string | null => {
 };
 
 interface Turn {
+  /** The header's last press, `HalfRequest.id`. */
+  readonly half: number | null;
   readonly key: string | null;
   readonly maximised: Maximised;
   readonly previewing: string | null;
@@ -269,31 +285,56 @@ interface Turn {
  * the file search is only previewing (↓/↑), which keeps the list in view;
  * Back to the list shows the list. A page the chat asks for shows the
  * browser. A pick also restores a maximised half that would hide it.
+ * The header's Globe and Files (137) show their half, as `maximisedForHalf`
+ * and `viewForHalf` say, the panel opening with one included.
  */
-function usePanes(
-  selection: WorkspaceSelection | null,
-  request: number | null,
-  asked: TurnView
-) {
+function usePanes({
+  asked,
+  filesSelected,
+  halfRequest,
+  request,
+  selection,
+}: {
+  readonly asked: TurnView;
+  readonly filesSelected: boolean;
+  readonly halfRequest: HalfRequest | null;
+  readonly request: number | null;
+  readonly selection: WorkspaceSelection | null;
+}) {
   const key = selectionKey(selection);
+  const press = halfRequest?.id ?? null;
   const [turn, setTurn] = useState<Turn>(() => ({
+    half: press,
     key,
-    maximised: null,
+    maximised: halfRequest ? maximisedForHalf(null, halfRequest.half) : null,
     previewing: null,
     request,
-    view: asked,
+    view: halfRequest ? viewForHalf(halfRequest.half, filesSelected) : asked,
   }));
-  if (turn.key !== key || turn.request !== request) {
+  if (turn.key !== key || turn.request !== request || turn.half !== press) {
     const requested = turn.request !== request && request !== null;
+    const picked =
+      turn.key !== key || requested
+        ? {
+            maximised: maximisedAfter(
+              turn.maximised,
+              requested ? { kind: "preview" } : selection
+            ),
+            view: nextView(key, asked, requested, turn),
+          }
+        : { maximised: turn.maximised, view: turn.view };
+    const pressed = turn.half !== press && halfRequest !== null;
     setTurn({
+      half: press,
       key,
-      maximised: maximisedAfter(
-        turn.maximised,
-        requested ? { kind: "preview" } : selection
-      ),
+      maximised: pressed
+        ? maximisedForHalf(picked.maximised, halfRequest.half)
+        : picked.maximised,
       previewing: turn.previewing,
       request,
-      view: nextView(key, asked, requested, turn),
+      view: pressed
+        ? viewForHalf(halfRequest.half, filesSelected)
+        : picked.view,
     });
   }
   const showList = useCallback(
@@ -323,6 +364,48 @@ function usePanes(
     () => ({ maximise, maximised, previewing, show, showList, view }),
     [maximise, maximised, previewing, show, showList, view]
   );
+}
+
+/**
+ * The halves on screen and whose turn it is. On the browser's section the
+ * browser shows even with nothing in it yet, to say so (137).
+ */
+function useHalves({
+  filesSelection,
+  halfRequest,
+  hasPreview,
+  modes,
+  request,
+  section,
+  selection,
+  width,
+}: {
+  readonly filesSelection: WorkspaceSelection | null;
+  readonly halfRequest: HalfRequest | null;
+  readonly hasPreview: boolean;
+  readonly modes: Readonly<Record<string, FileMode>>;
+  readonly request: number | null;
+  readonly section: WorkspaceSection | null;
+  readonly selection: WorkspaceSelection | null;
+  readonly width: number;
+}) {
+  const filesSelected = filesSelection !== null;
+  const panes = usePanes({
+    asked: viewOf(selection, modes),
+    filesSelected,
+    halfRequest,
+    request,
+    selection,
+  });
+  const browserShown = hasPreview || section === "browser";
+  const layout = paneLayout({
+    filesSelected,
+    hasPreview: browserShown,
+    maximised: panes.maximised,
+    view: panes.view,
+    width,
+  });
+  return { browserShown, layout, panes };
 }
 
 const nextView = (
@@ -738,12 +821,15 @@ function usePreviewSources(view: FilesView): PreviewSources {
 
 function WorkspaceLayout({
   artifacts,
+  chatKey = null,
   className,
   filesSelection,
+  halfRequest = null,
   onSelect,
   previewRequest,
   probePreview,
   revision,
+  section = null,
   selection,
   view,
 }: LayoutProps & { readonly view: FilesView }) {
@@ -762,21 +848,20 @@ function WorkspaceLayout({
   // The halves, and on a narrow panel whose turn it is.
   const [measure, width] = useElementWidth<HTMLElement>();
   const [measureHeight, height] = useElementHeight<HTMLDivElement>();
-  const panes = usePanes(
-    selection,
-    previewRequest?.id ?? null,
-    viewOf(selection, modes)
-  );
   const hasPreview = preview.history !== null;
-  const layout = paneLayout({
-    filesSelected: filesSelection !== null,
+  const { browserShown, layout, panes } = useHalves({
+    filesSelection,
+    halfRequest,
     hasPreview,
-    maximised: panes.maximised,
-    view: panes.view,
+    modes,
+    request: previewRequest?.id ?? null,
+    section,
+    selection,
     width,
   });
   const { listAlone } = layout;
   const split = useSplit();
+  const [device, setDevice] = usePreviewDevice(chatKey);
   const browserId = useId();
 
   const { navigate } = preview;
@@ -903,7 +988,7 @@ function WorkspaceLayout({
       ref={measure}
     >
       <div className="flex min-h-0 flex-1 flex-col" ref={measureHeight}>
-        {hasPreview ? (
+        {browserShown ? (
           <BrowserPane
             backToList={layout.turns ? showList : null}
             flex={layout.files ? `0 1 ${split.fraction * 100}%` : "1 1 0%"}
@@ -912,12 +997,14 @@ function WorkspaceLayout({
             rowEnd={rowEnds.browser}
           >
             <BrowserView
+              device={device}
               history={preview.history}
               modeToggle={
                 pageMode
                   ? { mode: "rendered", onModeChange: pageMode }
                   : undefined
               }
+              onDeviceChange={setDevice}
               onNavigate={navigate}
               probe={probePreview}
               readFile={view.readFile}

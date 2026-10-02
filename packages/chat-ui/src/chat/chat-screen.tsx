@@ -37,13 +37,15 @@ import { BranchSwitcher } from "../header/branch-switcher";
 import { ChatTitle } from "../header/chat-title";
 import { ContextControl, showsContext } from "../header/context-control";
 import { HeaderOverflowMenu } from "../header/overflow-menu";
+import { PanelToggles } from "../header/panel-toggles";
 import { ShareMenu } from "../header/share-menu";
-import { WorkspaceToggle } from "../header/workspace-toggle";
 import { activeFork, stepSibling } from "../model/branch";
 import { groupChats, orderedChats } from "../model/date-groups";
 import type { WorkspaceSection } from "../model/layout";
 import type { ArtifactRefPart } from "../model/parts";
 import {
+  halfOf,
+  type PanelHalf,
   sectionOf,
   shownSelection,
   type WorkspaceSelection,
@@ -76,6 +78,7 @@ import {
   pagePathOf,
 } from "../workspace/model/browser";
 import type { WorkspaceFilesSource } from "../workspace/model/client";
+import type { HalfRequest } from "../workspace/model/split";
 import { toSandboxPath } from "../workspace/model/tree";
 import type { WorkspaceArtifacts } from "../workspace/workspace-panel";
 import { ComposerDock, useComposerPlacement } from "./composer-dock";
@@ -232,8 +235,8 @@ function ChatScreenBody({
     sharedLayout ?? ownLayout;
   const narrow = useNarrowScreen();
   const [sidebarSheetOpen, setSidebarSheetOpen] = useState(false);
-  // The panel's last section: the Workspace toggle reopens it, and a narrow
-  // screen's sheet keeps showing it while it fades out.
+  // The panel's last section: a narrow screen's sheet keeps showing it
+  // while it fades out.
   const [lastPanel, setLastPanel] = useState<WorkspaceSection>("files");
   if (layout.panel !== null && layout.panel !== lastPanel) {
     setLastPanel(layout.panel);
@@ -335,6 +338,36 @@ function ChatScreenBody({
     [closingPanel, layout.panel, togglePanel]
   );
 
+  // The header's Files and Globe (137) ask the panel for their half; a
+  // closed panel forgets the last press, so the next opening asks afresh.
+  const [halfRequest, setHalfRequest] = useState<HalfRequest | null>(null);
+  const halfPresses = useRef(0);
+  if (layout.panel === null && halfRequest !== null) {
+    setHalfRequest(null);
+  }
+  const askHalf = useCallback((half: PanelHalf) => {
+    halfPresses.current += 1;
+    setHalfRequest({ half, id: halfPresses.current });
+  }, []);
+  const shownHalf = halfOf(layout.panel);
+  const toggleHalf = useCallback(
+    (half: PanelHalf) => {
+      if (shownHalf === half) {
+        closePanel();
+        return;
+      }
+      setPanel(half);
+      askHalf(half);
+    },
+    [askHalf, closePanel, setPanel, shownHalf]
+  );
+  const toggleFiles = useCallback(() => {
+    if (layout.panel !== "files") {
+      askHalf("files");
+    }
+    togglePanelBy("files");
+  }, [askHalf, layout.panel, togglePanelBy]);
+
   const focusComposer = useCallback(() => {
     composerRef.current?.querySelector<HTMLElement>(FOCUSABLE_INPUT)?.focus();
   }, []);
@@ -349,7 +382,7 @@ function ChatScreenBody({
     help: () => setHelpOpen(true),
     "palette.open": onOpenPalette,
     "panel.artifacts": () => togglePanelBy("artifacts"),
-    "panel.sandbox": () => togglePanelBy("files"),
+    "panel.sandbox": toggleFiles,
     "sidebar.toggle": toggleChats,
   });
 
@@ -494,13 +527,6 @@ function ChatScreenBody({
     [actions, chatWorkspace, openArtifact, openFile, openPreviewAt]
   );
 
-  const toggleWorkspace = useCallback(() => {
-    if (layout.panel !== null) {
-      closingPanel();
-    }
-    setPanel(layout.panel === null ? lastPanel : null);
-  }, [closingPanel, lastPanel, layout.panel, setPanel]);
-
   // The composer's file commands (061) act on the panel; they exist once
   // the chat does, since its first message creates the workspace.
   const { disabled: composerDisabled } = composer;
@@ -607,9 +633,9 @@ function ChatScreenBody({
           <HeaderOverflowMenu
             onCopyLink={conversation.onCopyLink}
             onInvite={conversation.onInvite}
-            onToggleWorkspace={toggleWorkspace}
+            onTogglePanel={toggleHalf}
             shareDisabled={conversation.id === null}
-            workspaceOpen={layout.panel !== null}
+            shown={shownHalf}
           />
         ) : (
           // The CSS covers the moment before hydration knows the width.
@@ -620,9 +646,10 @@ function ChatScreenBody({
               onInvite={conversation.onInvite}
               participants={conversation.participants}
             />
-            <WorkspaceToggle
-              onToggle={toggleWorkspace}
-              open={layout.panel !== null}
+            <PanelToggles
+              filesHint={<ShortcutHint id="panel.sandbox" />}
+              onToggle={toggleHalf}
+              shown={shownHalf}
             />
           </div>
         )
@@ -659,10 +686,13 @@ function ChatScreenBody({
     <RightPanel onClose={closePanel}>
       <LazyWorkspacePanel
         artifacts={workspace.artifacts}
+        chatKey={conversation.id}
         files={files}
+        halfRequest={halfRequest}
         onSelect={select}
         previewRequest={previewRequest}
         revision={revision}
+        section={section}
         selection={shown}
       />
     </RightPanel>

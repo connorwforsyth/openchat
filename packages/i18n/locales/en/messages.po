@@ -548,6 +548,8 @@ msgstr "Blocks new chats"
 msgid "Branches"
 msgstr "Branches"
 
+#: ../chat-ui/src/header/overflow-menu.tsx
+#: ../chat-ui/src/header/panel-toggles.tsx
 #: ../chat-ui/src/workspace/preview.tsx
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Browser"
@@ -1167,9 +1169,21 @@ msgstr "Description"
 msgid "Description for {name}"
 msgstr "Description for {name}"
 
+#: ../chat-ui/src/workspace/preview.tsx
+msgid "Desktop"
+msgstr "Desktop"
+
 #: ../../apps/web/app/dev/library/page.tsx
 msgid "Developer gallery"
 msgstr "Developer gallery"
+
+#: ../chat-ui/src/workspace/preview.tsx
+msgid "Device"
+msgstr "Device"
+
+#: ../chat-ui/src/workspace/preview.tsx
+msgid "Device: {label}"
+msgstr "Device: {label}"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "Devices"
@@ -1489,6 +1503,9 @@ msgstr "File tree"
 msgid "files"
 msgstr "files"
 
+#: ../chat-ui/src/header/overflow-menu.tsx
+#: ../chat-ui/src/header/panel-toggles.tsx
+#: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 #: ../code-ui/src/file-tree.tsx
 #: ../composer/src/components/composer.tsx
@@ -2029,10 +2046,6 @@ msgstr "Minimal"
 msgid "MMD"
 msgstr "MMD"
 
-#: ../chat-ui/src/workspace/preview.tsx
-msgid "Mobile width"
-msgstr "Mobile width"
-
 #: ../palette/src/context-actions.ts
 msgid "model"
 msgstr "model"
@@ -2351,6 +2364,10 @@ msgstr "Nothing matches."
 msgid "Nothing matches. Try another search or kind."
 msgstr "Nothing matches. Try another search or kind."
 
+#: ../chat-ui/src/workspace/preview.tsx
+msgid "Nothing running yet"
+msgstr "Nothing running yet"
+
 #: ../../apps/web/app/dev/composer/demo.tsx
 msgid "Nothing sent yet."
 msgstr "Nothing sent yet."
@@ -2358,10 +2375,6 @@ msgstr "Nothing sent yet."
 #: ../library-ui/src/components/library-index.tsx
 msgid "Nothing shared with you"
 msgstr "Nothing shared with you"
-
-#: ../chat-ui/src/workspace/preview.tsx
-msgid "Nothing to preview yet. Pages the agent writes and apps it starts show here."
-msgstr "Nothing to preview yet. Pages the agent writes and apps it starts show here."
 
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "OAuth"
@@ -2555,6 +2568,10 @@ msgstr "Owner"
 msgid "Page: {name}"
 msgstr "Page: {name}"
 
+#: ../chat-ui/src/workspace/preview.tsx
+msgid "Pages the agent writes and apps it starts show here."
+msgstr "Pages the agent writes and apps it starts show here."
+
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
 msgid "panel"
 msgstr "panel"
@@ -2607,6 +2624,10 @@ msgstr "Personal"
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "Personal key fallback is off: this server forbids it."
 msgstr "Personal key fallback is off: this server forbids it."
+
+#: ../chat-ui/src/workspace/preview.tsx
+msgid "Phone ({phone} px)"
+msgstr "Phone ({phone} px)"
 
 #: ../composer/src/components/target-picker.tsx
 msgid "Picks a fast or strong model for each message"
@@ -3411,12 +3432,8 @@ msgid "Show more"
 msgstr "Show more"
 
 #: ../shortcuts/src/registry.ts
-msgid "Show or hide the workspace"
-msgstr "Show or hide the workspace"
-
-#: ../chat-ui/src/workspace/preview.tsx
-msgid "Show the page at a phone's width"
-msgstr "Show the page at a phone's width"
+msgid "Show or hide the files"
+msgstr "Show or hide the files"
 
 #: ../palette/src/context-actions.ts
 msgid "Show the workspace"
@@ -3661,6 +3678,10 @@ msgstr "Switched to {modelLabel}"
 #: ../chat-ui/src/sidebar/account-menu.tsx
 msgid "System"
 msgstr "System"
+
+#: ../chat-ui/src/workspace/preview.tsx
+msgid "Tablet ({tablet} px)"
+msgstr "Tablet ({tablet} px)"
 
 #: ../palette/src/context-actions.ts
 msgid "team"
@@ -4558,10 +4579,7 @@ msgstr "Work account"
 msgid "Works"
 msgstr "Works"
 
-#: ../chat-ui/src/header/overflow-menu.tsx
-#: ../chat-ui/src/header/workspace-toggle.tsx
 #: ../chat-ui/src/shell/right-panel.tsx
-#: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Workspace"
 msgstr "Workspace"

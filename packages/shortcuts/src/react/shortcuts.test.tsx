@@ -137,7 +137,7 @@ describe("ShortcutsHelpDialog", () => {
       "New chat",
       "Focus the composer",
       "Previous branch",
-      "Show or hide the workspace",
+      "Show or hide the files",
       "Toggle the sidebar",
     ]) {
       expect(dialog.textContent).toContain(text);

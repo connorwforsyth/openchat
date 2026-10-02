@@ -94,13 +94,7 @@ export const shortcutRegistry: readonly ShortcutDefinition[] = [
     "conversation",
     msg`Copy the last reply`
   ),
-  define(
-    "panel.sandbox",
-    ["S"],
-    "chat",
-    "panels",
-    msg`Show or hide the workspace`
-  ),
+  define("panel.sandbox", ["S"], "chat", "panels", msg`Show or hide the files`),
   define(
     "panel.artifacts",
     ["A"],

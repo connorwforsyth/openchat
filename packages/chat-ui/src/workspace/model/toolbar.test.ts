@@ -15,6 +15,7 @@ describe("fitBrowserToolbar", () => {
     const fit = fitBrowserToolbar({ ...narrowFile, width: 340 });
     // Reload and Forward are in the "…" menu; the words are in the labels.
     expect(fit).toEqual({
+      device: false,
       forward: false,
       reload: false,
       staticLabel: false,
@@ -32,6 +33,7 @@ describe("fitBrowserToolbar", () => {
   it("brings back the words as room allows, the switch's first", () => {
     const wide = fitBrowserToolbar({ ...wideFile, width: 900 });
     expect(wide).toEqual({
+      device: true,
       forward: true,
       reload: true,
       staticLabel: true,
@@ -41,7 +43,7 @@ describe("fitBrowserToolbar", () => {
       ...wideFile,
       width:
         toolbarMinimum(wideFile) +
-        2 * (TOOLBAR.button + TOOLBAR.gap) +
+        3 * (TOOLBAR.button + TOOLBAR.gap) +
         TOOLBAR.toggleLabels,
     });
     expect(between.toggleLabels).toBe(true);
@@ -74,5 +76,31 @@ describe("fitBrowserToolbar", () => {
     );
     expect(toolbarMinimum(top)).toBeLessThanOrEqual(420);
     expect(fitBrowserToolbar({ ...top, width: 420 }).reload).toBe(true);
+  });
+
+  // 137: the device menu comes back after Forward, before the words.
+  it("brings the device menu back after Forward", () => {
+    const slot = TOOLBAR.button + TOOLBAR.gap;
+    const two = fitBrowserToolbar({
+      ...wideFile,
+      width: toolbarMinimum(wideFile) + 2 * slot,
+    });
+    expect(two).toMatchObject({ device: false, forward: true, reload: true });
+    const three = fitBrowserToolbar({
+      ...wideFile,
+      width: toolbarMinimum(wideFile) + 3 * slot,
+    });
+    expect(three).toMatchObject({ device: true, toggleLabels: false });
+  });
+
+  it("fits the device menu in a stacked browser at the 560px default", () => {
+    const top = {
+      backToList: false,
+      close: true,
+      maximise: true,
+      toggle: false,
+    };
+    expect(fitBrowserToolbar({ ...top, width: 560 }).device).toBe(true);
+    expect(fitBrowserToolbar({ ...top, width: 420 }).device).toBe(true);
   });
 });

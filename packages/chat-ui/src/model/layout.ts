@@ -6,10 +6,12 @@ import { z } from "zod";
 // unreadable falls back to the defaults.
 
 /**
- * The Workspace panel's sections (060): the chat's files (with the preview)
- * or its artifacts. Non-null in the layout means the panel is open.
+ * The Workspace panel's sections: the chat's files, its browser (the
+ * Preview, 137: the header's Globe) or its artifacts. Files and artifacts
+ * share the lower half; the browser is the upper one. Non-null in the
+ * layout means the panel is open.
  */
-export const workspaceSectionSchema = z.enum(["files", "artifacts"]);
+export const workspaceSectionSchema = z.enum(["files", "browser", "artifacts"]);
 export type WorkspaceSection = z.infer<typeof workspaceSectionSchema>;
 
 /**

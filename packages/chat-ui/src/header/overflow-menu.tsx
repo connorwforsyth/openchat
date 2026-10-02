@@ -3,8 +3,9 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import {
   EllipsisIcon,
+  FolderIcon,
+  GlobeIcon,
   LinkIcon,
-  PanelRightIcon,
   UserPlusIcon,
 } from "@workspace/icons";
 import { Button } from "@workspace/ui/components/button";
@@ -20,29 +21,33 @@ import {
 import { useToastManager } from "@workspace/ui/components/toast";
 import { useCallback } from "react";
 
+import type { PanelHalf } from "../model/workspace";
+
 /** How long "Link copied" stays: long enough to read. */
 const COPIED_TOAST_MS = 2000;
 
 export interface HeaderOverflowMenuProps {
   readonly onCopyLink?: () => Promise<void> | void;
   readonly onInvite?: () => void;
-  readonly onToggleWorkspace: () => void;
+  /** Files or the browser, as the wide header's toggles (137). */
+  readonly onTogglePanel: (half: PanelHalf) => void;
   /** Nothing to share before the first message. */
   readonly shareDisabled?: boolean;
-  readonly workspaceOpen: boolean;
+  /** The half the panel is open on; `null` when it's closed. */
+  readonly shown: PanelHalf | null;
 }
 
 /**
- * The header's end on a narrow screen, where Share and the Workspace toggle
- * don't fit beside the title: both in one menu.
+ * The header's end on a narrow screen, where Share and the Files and
+ * Browser toggles don't fit beside the title: all in one menu.
  * Needs the shell's toast provider.
  */
 export function HeaderOverflowMenu({
   onCopyLink,
   onInvite,
-  onToggleWorkspace,
+  onTogglePanel,
   shareDisabled = false,
-  workspaceOpen,
+  shown,
 }: HeaderOverflowMenuProps) {
   const { t } = useLingui();
   const { add } = useToastManager();
@@ -51,6 +56,14 @@ export function HeaderOverflowMenu({
     add({ priority: "low", timeout: COPIED_TOAST_MS, title: t`Link copied` });
   }, [add, onCopyLink, t]);
   const share = Boolean(onInvite || onCopyLink);
+  const toggleFiles = useCallback(
+    () => onTogglePanel("files"),
+    [onTogglePanel]
+  );
+  const toggleBrowser = useCallback(
+    () => onTogglePanel("browser"),
+    [onTogglePanel]
+  );
 
   return (
     <DropdownMenu>
@@ -64,12 +77,20 @@ export function HeaderOverflowMenu({
       <DropdownMenuContent align="end" className="w-64">
         <DropdownMenuGroup>
           <DropdownMenuCheckboxItem
-            checked={workspaceOpen}
+            checked={shown === "files"}
             closeOnClick
-            onCheckedChange={onToggleWorkspace}
+            onCheckedChange={toggleFiles}
           >
-            <PanelRightIcon aria-hidden />
-            <Trans>Workspace</Trans>
+            <FolderIcon aria-hidden />
+            <Trans>Files</Trans>
+          </DropdownMenuCheckboxItem>
+          <DropdownMenuCheckboxItem
+            checked={shown === "browser"}
+            closeOnClick
+            onCheckedChange={toggleBrowser}
+          >
+            <GlobeIcon aria-hidden />
+            <Trans>Browser</Trans>
           </DropdownMenuCheckboxItem>
         </DropdownMenuGroup>
         {share ? (

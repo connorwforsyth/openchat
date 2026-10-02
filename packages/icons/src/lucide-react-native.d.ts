@@ -58,6 +58,9 @@ declare module "lucide-react-native" {
   export const EyeOff: LucideIcon;
   export const File: LucideIcon;
   export const FileText: LucideIcon;
+  export const Folder: LucideIcon;
+  export const Smartphone: LucideIcon;
+  export const Tablet: LucideIcon;
   export const GitBranch: LucideIcon;
   export const Globe: LucideIcon;
   export const GripVertical: LucideIcon;
