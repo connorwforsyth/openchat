@@ -76,8 +76,8 @@ storage: { driver: local, path: ./.data/files }
 
 embeddings: { model: openai:text-embedding-3-small }
 
-# Read at build time, not boot (D19): rebuild after changing it. ICON_SET,
-# ICON_STYLE, ICON_WEIGHT and ICON_FILL override it (a Docker image's build args).
+# Read at build time, not boot (D19): rebuild after changing it. This block is
+# the only place to choose; ICON_* in the environment is ignored while it's here.
 icons: { set: lucide }      # e.g. { set: material, style: rounded, weight: 400, fill: false }
 
 # Interface fonts, from npm (nothing is downloaded). Compiled in like icons:

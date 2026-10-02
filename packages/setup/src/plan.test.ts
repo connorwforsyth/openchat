@@ -77,11 +77,14 @@ describe("the demo's answers", () => {
 
   it("reproduce what was done by hand", () => {
     expect(env).toMatchObject({
-      ICON_SET: "material",
-      ICON_STYLE: "rounded",
       SANDBOX_EGRESS: "open",
       SANDBOX_RUNNER_TOKEN: "fake-random-1",
     });
+    // The icon set goes in the yaml, never .env (130).
+    expect(Object.keys(env).filter((name) => name.startsWith("ICON_"))).toEqual(
+      []
+    );
+    expect(files.config).toContain("icons: { set: material, style: rounded }");
     expect(files.config).toContain("  default: docker");
     expect(files.override).toContain("CONFIG_PATH: /config/app.config.yaml");
     expect(files.override).toContain(
@@ -97,6 +100,7 @@ describe("re-running", () => {
     const { keys, ...rest } = demoAnswers;
     expect(readDefaults(first)).toEqual({
       ...rest,
+      iconEnv: { ignored: true, names: [] },
       keysSet: Object.keys(keys),
     });
   });
@@ -211,6 +215,80 @@ describe("re-running", () => {
     expect(readDefaults({ ...local, override: undefined }).mode).toBe("local");
     // In the image both are the same directory in the volume: nothing to move.
     expect(plan(legacy, { ...demoAnswers, keys: {} })).toEqual([]);
+  });
+});
+
+const ICONS_KEY = /^icons:/m;
+const ICONS_LINE = /^icons:.*\n/m;
+
+describe("an older .env with ICON_* (130)", () => {
+  const first = apply(firstRun, plan(firstRun, everythingAnswers));
+  const secretLine = `OPENAI_API_KEY=${FAKE_KEYS.openai}`;
+
+  it("ignores them when the config has an icons block, and offers to remove them", () => {
+    // Connor's case: Phosphor in the yaml, Material left behind in .env.
+    const older: CurrentFiles = {
+      ...first,
+      env: `${first.env}ICON_SET=material\n`,
+    };
+    const defaults = readDefaults(older);
+    expect(defaults.icons).toEqual({ set: "phosphor", style: null });
+    expect(defaults.iconEnv).toEqual({ ignored: true, names: ["ICON_SET"] });
+
+    const moved = apply(
+      older,
+      plan(older, { ...everythingAnswers, keys: {}, moveIconEnv: true })
+    );
+    expect(moved.env).toBe(first.env);
+    expect(moved.env).toContain(secretLine);
+    expect(moved.config).toBe(first.config);
+
+    // Declined: .env is left exactly as it was.
+    expect(
+      plan(older, { ...everythingAnswers, keys: {}, moveIconEnv: false })
+    ).toEqual([]);
+  });
+
+  it("moves them into the icons block when the config has none", () => {
+    const older: CurrentFiles = {
+      ...first,
+      config: first.config?.replace(ICONS_LINE, ""),
+      env: `${first.env}ICON_SET=Material\nICON_STYLE=sharp\nICON_WEIGHT=300\nICON_FILL=true\n`,
+    };
+    expect(older.config).not.toMatch(ICONS_KEY);
+    const defaults = readDefaults(older);
+    expect(defaults.icons).toEqual({
+      fill: true,
+      set: "material",
+      style: "sharp",
+      weight: 300,
+    });
+    expect(defaults.iconEnv).toEqual({
+      ignored: false,
+      names: ["ICON_SET", "ICON_STYLE", "ICON_WEIGHT", "ICON_FILL"],
+    });
+
+    const moved = apply(
+      older,
+      plan(older, {
+        ...everythingAnswers,
+        icons: defaults.icons,
+        keys: {},
+        moveIconEnv: true,
+      })
+    );
+    const env = parseEnv(moved.env ?? "");
+    expect(Object.keys(env).filter((name) => name.startsWith("ICON_"))).toEqual(
+      []
+    );
+    expect(moved.env).toContain(secretLine);
+    expect(moved.config).toContain(
+      "icons: { set: material, style: sharp, weight: 300, fill: true }"
+    );
+    expect(parseConfig(moved.config ?? "", env).ok).toBe(true);
+    // What was moved reads back the same, with nothing left to offer.
+    expect(readDefaults(moved).icons).toEqual(defaults.icons);
+    expect(readDefaults(moved).iconEnv).toEqual({ ignored: true, names: [] });
   });
 });
 

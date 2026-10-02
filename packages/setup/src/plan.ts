@@ -5,13 +5,18 @@ import {
 } from "@workspace/config/parse";
 import { err, ok, type Result } from "@workspace/shared/result";
 
-import { type Answers, OLLAMA_URL_FROM_DOCKER } from "./answers";
+import {
+  type Answers,
+  ICON_VARIABLES,
+  OLLAMA_URL_FROM_DOCKER,
+} from "./answers";
 import { updateConfig } from "./config-file";
 import type { CurrentFiles } from "./current";
 import {
   type EnvUpdates,
   type EnvValues,
   parseEnv,
+  removeFromEnv,
   updateEnv,
 } from "./env-file";
 import { updateOverride } from "./override-file";
@@ -89,11 +94,7 @@ export const envUpdates = (
     ? env.ARTIFACTS_ORIGIN || LOCAL_URLS.artifacts
     : null;
 
-  // Build args: the image compiles its icon set in (D19).
-  updates.ICON_SET = answers.icons.set;
-  updates.ICON_STYLE =
-    answers.icons.set === "material" ? answers.icons.style : null;
-
+  // The icon set goes in app.config.yaml's `icons` block only (130).
   return updates;
 };
 
@@ -121,10 +122,14 @@ export const planChanges = (
   random: RandomSecret
 ): Result<readonly FileChange[], PlanError> => {
   const envBase = files.env ?? files.envExample;
-  const envAfter = updateEnv(
+  const envUpdated = updateEnv(
     envBase,
     envUpdates(answers, parseEnv(envBase), random)
   );
+  // Only when asked: the person said yes to moving them into the yaml.
+  const envAfter = answers.moveIconEnv
+    ? removeFromEnv(envUpdated, ICON_VARIABLES)
+    : envUpdated;
   const newEnv = parseEnv(envAfter);
 
   const configAfter = updateConfig(

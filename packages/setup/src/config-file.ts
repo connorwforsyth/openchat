@@ -277,6 +277,12 @@ const applyIcons = (doc: Document, answers: Answers): void => {
   set(doc, ["icons", "set"], answers.icons.set);
   if (answers.icons.set === "material" && answers.icons.style) {
     set(doc, ["icons", "style"], answers.icons.style);
+    // Not asked; there only when the file had them or `.env` did (130).
+    for (const key of ["weight", "fill"] as const) {
+      if (answers.icons[key] !== undefined) {
+        set(doc, ["icons", key], answers.icons[key]);
+      }
+    }
   } else {
     for (const key of ["style", "weight", "fill"]) {
       remove(doc, ["icons", key]);

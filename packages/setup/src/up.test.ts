@@ -69,8 +69,9 @@ describe("planUp", () => {
     expect(dev?.env).toMatchObject({
       ARTIFACTS_ORIGIN: "http://artifacts.localhost:3910",
       CONFIG_PATH: "/repo/app.config.yaml",
-      ICON_SET: "lucide",
     });
+    // The icon set comes from the config's icons block (130).
+    expect(dev?.env).not.toHaveProperty("ICON_SET");
     // Empty values stay unset, so PGlite is used rather than an empty URL.
     expect(dev?.env).not.toHaveProperty("DATABASE_URL");
   });

@@ -102,3 +102,27 @@ export const updateEnv = (text: string, updates: EnvUpdates): string => {
   const header = text.includes(APPENDED_HEADER) ? [] : ["", APPENDED_HEADER];
   return `${[body, ...header, ...additions].join("\n")}\n`;
 };
+
+/**
+ * Deletes every line that assigns one of `names` (where `updateEnv` with
+ * `null` would keep a blank `NAME=`), for variables that no longer belong in
+ * `.env`. A setup header left with nothing at all under it goes too.
+ */
+export const removeFromEnv = (
+  text: string,
+  names: readonly string[]
+): string => {
+  const drop = new Set(names);
+  const kept = text.split("\n").filter((line) => {
+    const name = line.match(ASSIGNMENT)?.[1];
+    return !(name && drop.has(name));
+  });
+  const header = kept.indexOf(APPENDED_HEADER);
+  const orphaned =
+    header !== -1 && kept.slice(header + 1).every((line) => line.trim() === "");
+  if (!orphaned) {
+    return kept.join("\n");
+  }
+  const body = kept.slice(0, header).join("\n").replace(TRAILING_NEWLINES, "");
+  return `${body}\n`;
+};
