@@ -80,6 +80,32 @@ export const waitingCalls = (messages: readonly Message[]): string[] => {
 };
 
 /**
+ * Calls on screen that aren't settled yet: no decision shown and no
+ * result. A decision this page sent is kept until its call settles (or
+ * leaves the screen), not merely until the call stops looking like it
+ * waits: a replayed answer shows a call before its card for a moment, and
+ * dropping the decision then brought the card back undecided (136).
+ */
+export const unsettledCalls = (messages: readonly Message[]): string[] => {
+  const answered = new Set(
+    messages.flatMap((message) =>
+      message.parts.flatMap((part) =>
+        part.type === "tool-result" ? [part.toolCallId] : []
+      )
+    )
+  );
+  return messages.flatMap((message) =>
+    message.parts.flatMap((part) =>
+      part.type === "tool-call" &&
+      part.approval.state !== "decided" &&
+      !answered.has(part.toolCallId)
+        ? [part.toolCallId]
+        : []
+    )
+  );
+};
+
+/**
  * Whether the only thing going on is a change waiting for the person: a card
  * is on screen and no decision is on its way. The composer then sends (a
  * new message moves on from the waiting answer) instead of offering only

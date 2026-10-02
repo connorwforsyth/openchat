@@ -751,6 +751,10 @@ msgstr "Check your connection and try again."
 msgid "Check your connection. If it keeps happening, the server may be restarting."
 msgstr "Check your connection. If it keeps happening, the server may be restarting."
 
+#: ../chat-ui/src/conversation/approval.tsx
+msgid "Checking this change still waits…"
+msgstr "Checking this change still waits…"
+
 #: ../../apps/web/app/(app)/(pages)/admin/[orgId]/policies/page.tsx
 msgid "Choices for this org, within the limits this server's configuration sets."
 msgstr "Choices for this org, within the limits this server's configuration sets."

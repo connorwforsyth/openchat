@@ -7,6 +7,7 @@ import {
   runToFollow,
   stoppableRun,
   unseenApprovals,
+  unsettledCalls,
   waitingCalls,
   waitingForPerson,
 } from "./run-activity";
@@ -32,13 +33,22 @@ const waiting = run("r3", {
 
 const answer = (parts: Message["parts"]) =>
   ({ id: "m-r3", parts, role: "assistant" }) as unknown as Message;
-const pendingCall = (toolCallId: string): Message["parts"][number] => ({
-  approval: { requestedAt: at, state: "pending" },
+type Approval = Extract<
+  Message["parts"][number],
+  { type: "tool-call" }
+>["approval"];
+const callWith = (
+  toolCallId: string,
+  approval: Approval
+): Message["parts"][number] => ({
+  approval,
   input: {},
   toolCallId,
   toolName: "write",
   type: "tool-call",
 });
+const pendingCall = (toolCallId: string): Message["parts"][number] =>
+  callWith(toolCallId, { requestedAt: at, state: "pending" });
 
 describe("run activity", () => {
   it("maps unfinished answers to how their run is doing", () => {
@@ -80,6 +90,34 @@ describe("run activity", () => {
       },
     ]);
     expect(waitingCalls([stopped])).toEqual([]);
+  });
+
+  it("counts a call as settled once decided or answered, not before its card (136)", () => {
+    const replaying = answer([callWith("c1", { state: "not-required" })]);
+    // A replay that has the call but not its card yet: no longer waiting,
+    // but not settled either, so a decision on its way is kept.
+    expect(waitingCalls([replaying])).toEqual([]);
+    expect(unsettledCalls([replaying])).toEqual(["c1"]);
+    expect(unsettledCalls([answer([pendingCall("c1")])])).toEqual(["c1"]);
+    const decided = answer([
+      callWith("c1", {
+        decidedAt: at,
+        decidedBy: "u1" as never,
+        decision: { decision: "approve" },
+        state: "decided",
+      }),
+    ]);
+    expect(unsettledCalls([decided])).toEqual([]);
+    const answered = answer([
+      pendingCall("c1"),
+      {
+        output: { message: "Not run", status: "error" },
+        toolCallId: "c1",
+        toolName: "write",
+        type: "tool-result",
+      },
+    ]);
+    expect(unsettledCalls([answered])).toEqual([]);
   });
 
   it("notices a call the waiting run asks about that the screen lacks", () => {

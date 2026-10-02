@@ -187,17 +187,43 @@ export const liveMessage = (
   usage: null,
 });
 
-const callIds = (message: Pick<Message, "parts">): Set<string> =>
-  new Set(
-    message.parts.flatMap((part) =>
-      part.type === "tool-call" ? [part.toolCallId] : []
-    )
-  );
+/**
+ * How far each call in a message has got: 0 called, 1 asked about,
+ * 2 decided, 3 answered.
+ */
+const callProgress = (message: Pick<Message, "parts">): Map<string, number> => {
+  const progress = new Map<string, number>();
+  for (const part of message.parts) {
+    if (part.type === "tool-call") {
+      const rank = { decided: 2, "not-required": 0, pending: 1 }[
+        part.approval.state
+      ];
+      progress.set(
+        part.toolCallId,
+        Math.max(progress.get(part.toolCallId) ?? 0, rank)
+      );
+    } else if (part.type === "tool-result") {
+      progress.set(part.toolCallId, 3);
+    }
+  }
+  return progress;
+};
 
-/** Whether the live copy of an answer has every call the stored one has. */
-const caughtUp = (live: Message, stored: Message): boolean => {
-  const shown = callIds(live);
-  return [...callIds(stored)].every((id) => shown.has(id));
+/**
+ * Whether the live copy of an answer has got as far as the stored one with
+ * every call the stored one has: not just the call, but its card and its
+ * result too. A replay that has the call but not yet the card would take
+ * the card down and put it back (136: a decision on its way was dropped
+ * with it, and the card came back as if undecided).
+ */
+export const caughtUp = (
+  live: Pick<Message, "parts">,
+  stored: Pick<Message, "parts">
+): boolean => {
+  const shown = callProgress(live);
+  return [...callProgress(stored)].every(
+    ([id, rank]) => (shown.get(id) ?? -1) >= rank
+  );
 };
 
 /** A live message's mapping, and the decisions it was mapped with. */
@@ -258,8 +284,9 @@ export const mergeLive = (
         }
         const mapped = mapLive(streaming, message.parentId);
         // A page that picks a run up replays its stream from the start, so
-        // for a moment the live copy has fewer calls than the stored one:
-        // showing it would unmount a card and bring it straight back.
+        // for a moment the live copy is behind the stored one: fewer calls,
+        // or a call not yet asked about or answered. Showing it would
+        // unmount a card and bring it straight back.
         // Who answers is the stored copy's: the stream doesn't say, and the
         // switch marker (107) reads it.
         return caughtUp(mapped, message)

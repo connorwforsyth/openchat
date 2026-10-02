@@ -92,6 +92,7 @@ import {
   runToFollow,
   stoppableRun,
   unseenApprovals,
+  unsettledCalls,
   waitingCalls,
   waitingForPerson,
 } from "../model/run-activity";
@@ -1052,15 +1053,15 @@ const useDecisions = ({
   client,
   conversationId,
   onSent,
-  pending,
   runs,
+  unsettled,
 }: {
   readonly client: ApiClient;
   readonly conversationId: ConversationId | null;
   /** After the server took a decision: refetch, and follow the run on. */
   readonly onSent: () => void;
-  /** Calls on screen still waiting for a decision. */
-  readonly pending: readonly string[];
+  /** Calls on screen not yet decided or answered (`unsettledCalls`). */
+  readonly unsettled: readonly string[];
   readonly runs: readonly Run[] | undefined;
 }) => {
   const [states, setStates] = useState<ReadonlyMap<string, DecisionState>>(
@@ -1121,11 +1122,12 @@ const useDecisions = ({
     [decide]
   );
 
-  // Once the screen no longer waits on a call, its decision is the
-  // server's to show; this page's note about it goes.
-  const waiting = pending.join(" ");
+  // Once the screen shows a call decided or answered (or no longer shows
+  // it), its decision is the server's to show; this page's note about it
+  // goes.
+  const open = unsettled.join(" ");
   useEffect(() => {
-    const still = new Set(waiting.split(" "));
+    const still = new Set(open.split(" "));
     setStates((current) => {
       const stale = [...current.keys()].filter((id) => !still.has(id));
       if (stale.length === 0) {
@@ -1138,7 +1140,7 @@ const useDecisions = ({
       }
       return next;
     });
-  }, [waiting]);
+  }, [open]);
 
   return { decide, retry, states };
 };
@@ -1201,6 +1203,7 @@ const useStaleCalls = (
 const useRunControls = ({
   api,
   chat,
+  checking,
   client,
   conversationId,
   createdRunId,
@@ -1210,6 +1213,8 @@ const useRunControls = ({
 }: {
   readonly api: QueryUtils;
   readonly chat: ReturnType<typeof useRunChat>;
+  /** The branch on screen is a restored copy not yet checked (136). */
+  readonly checking: boolean;
   readonly client: ApiClient;
   readonly conversationId: ConversationId | null;
   /** The run this page started last, for Stop before the runs list has it. */
@@ -1219,7 +1224,16 @@ const useRunControls = ({
   /** The chat's workspace, to check pending changes against its files. */
   readonly sandboxId: SandboxId | null;
 }) => {
-  const { resumeStream, stop: stopReading } = chat;
+  const { resumeStream: resume, stop: stopReading } = chat;
+  // Following a run ends however it ends, and the stored branch is read
+  // again then: at the stream's end (as `onFinish` does), and at once when
+  // the run had ended before the page asked for it (136: another tab
+  // stopped it while this one was still looking for its stream, so there
+  // was no stream to follow and nothing else would clear the card).
+  const resumeStream = useCallback(
+    () => resume().catch(ignore).finally(refresh),
+    [refresh, resume]
+  );
   // The same query `useChatQueries` makes; read whole for the run states.
   const activeRuns = useQuery(
     api.runs.list.queryOptions({
@@ -1251,8 +1265,8 @@ const useRunControls = ({
         resumeStream().catch(ignore);
       }
     }, [refresh, resumeStream]),
-    pending,
     runs: activeRuns,
+    unsettled: useMemo(() => unsettledCalls(messages), [messages]),
   });
   const sending = useMemo(
     () =>
@@ -1296,11 +1310,12 @@ const useRunControls = ({
   const activity = useMemo(
     (): RunActivity => ({
       answers: answerPhases(activeRuns),
+      checking,
       decisions: decisions.states,
       onRetry: decisions.retry,
       stale,
     }),
-    [activeRuns, decisions.retry, decisions.states, stale]
+    [activeRuns, checking, decisions.retry, decisions.states, stale]
   );
   return {
     activity,
@@ -1314,6 +1329,40 @@ const useRunControls = ({
     unseen: !following && unseenApprovals(activeRuns, messages).length > 0,
     waiting,
   };
+};
+
+/**
+ * Whether the stored branch on screen is a copy from before the chat was
+ * shown (restored from the persisted cache, D28, or cached from an earlier
+ * visit) that the refetch on showing it hasn't replaced yet (136). It can
+ * be minutes behind: a card on it may be decided already, and deciding it
+ * again only waits for a run that has moved on. Fresh data, or a refetch
+ * that has failed since, counts as checked. Pure.
+ */
+export const restoredUnchecked = (
+  query: {
+    readonly data: unknown;
+    readonly dataUpdatedAt: number;
+    readonly errorUpdatedAt: number;
+    readonly isStale: boolean;
+  },
+  shownAt: number
+): boolean =>
+  query.data !== undefined &&
+  query.isStale &&
+  query.dataUpdatedAt < shownAt &&
+  query.errorUpdatedAt < shownAt;
+
+/** When this chat was shown: on mount, and again when it changes. */
+const useShownAt = (conversationId: ConversationId | null): number => {
+  const [shown, setShown] = useState(() => ({
+    at: Date.now(),
+    id: conversationId,
+  }));
+  if (shown.id !== conversationId) {
+    setShown({ at: Date.now(), id: conversationId });
+  }
+  return shown.at;
 };
 
 /**
@@ -1389,6 +1438,7 @@ export function ConnectedChat({
   // remembers them per model and sets them as the model changes.
   const [variant, setVariant] = useState<ModelVariant>({});
   const titleWatch = useTitleWatch(conversationId);
+  const shownAt = useShownAt(conversationId);
 
   const data = useChatQueries(api, {
     artifactId:
@@ -1504,6 +1554,7 @@ export function ConnectedChat({
     useRunControls({
       api,
       chat,
+      checking: restoredUnchecked(data.path, shownAt),
       client,
       conversationId,
       createdRunId,
