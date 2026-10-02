@@ -100,3 +100,7 @@ Done: 009 and 010 prototypes, 042 contract PR (#31), Docker verification (045, P
 - 133: a message sent *before* an approval card appears still queues behind a run that then pauses for approval (D25); it waits until you decide or Stop. Should #63's "a new message moves on" rule cover that too? Default: keep D25.
 - 132: each tab keeps its own model pick for an open chat until reload. Default: keep.
 - 126 (Documents, draft PR #109): additive contract changes await approval: the `document` kind, `ArtifactVersion.editedBy`, and `POST /artifacts/{id}/versions` (save a person's edit, `CONFLICT` on a stale base). Also: a person's version keeps the base version's chat and message (default: keep); the `markdown` kind is relabelled "Markdown" and Document replaces it in "Make something new" (default: keep); Chat opens the source chat rather than a side chat (default: keep for now).
+
+## Answered 2026-10-02 (contracts)
+
+- Connor approved both contract changes and said to merge: Sites (125, PR #105) and Documents (126, PR #109).
