@@ -18,7 +18,8 @@
     "markdown",
     "svg",
     "mermaid",
-    "site"
+    "site",
+    "document"
   ],
   "prompt": {
     "composed": {
@@ -64,9 +65,10 @@
               "markdown",
               "svg",
               "mermaid",
-              "site"
+              "site",
+              "document"
             ],
-            "description": "html: one complete HTML document. react: one file with a default-exported component. svg: one <svg> element. mermaid: diagram source. markdown: a document. code: a file in any language. site: a small website of several files, as JSON (see the Sites instructions)."
+            "description": "document: a rich-text document the user can edit and export, written in Markdown (prefer it for reports, plans and notes). html: one complete HTML document. react: one file with a default-exported component. svg: one <svg> element. mermaid: diagram source. markdown: Markdown text that is only read. code: a file in any language. site: a small website of several files, as JSON (see the Sites instructions)."
           }
         },
         "required": [
@@ -101,7 +103,8 @@
                       "markdown",
                       "svg",
                       "mermaid",
-                      "site"
+                      "site",
+                      "document"
                     ]
                   },
                   "title": {
@@ -183,7 +186,8 @@
                         "markdown",
                         "svg",
                         "mermaid",
-                        "site"
+                        "site",
+                        "document"
                       ]
                     },
                     "title": {
@@ -231,7 +235,7 @@
     },
     {
       "customModelOutput": true,
-      "description": "Replace an artifact's content, saved as its next version; earlier versions are kept. Pass the complete new content, not a diff.",
+      "description": "Save an artifact's next version; earlier versions are kept. Pass the complete new content, not a diff, or, for a document, an edit of one section.",
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
@@ -243,10 +247,47 @@
             "description": "The artifactId create_artifact returned."
           },
           "content": {
+            "description": "The artifact's complete new content, with no surrounding code fence. Leave out when you send an edit.",
             "type": "string",
             "minLength": 1,
-            "maxLength": 400000,
-            "description": "The artifact's complete content, with no surrounding code fence."
+            "maxLength": 400000
+          },
+          "edit": {
+            "type": "object",
+            "properties": {
+              "content": {
+                "description": "Markdown for replace_section and insert: the new section body (start it with a heading to replace the heading too) or the blocks to insert.",
+                "type": "string",
+                "maxLength": 400000
+              },
+              "heading": {
+                "description": "The section's heading text, as it reads (without #s). insert without one adds at the end of the document.",
+                "type": "string",
+                "maxLength": 300
+              },
+              "operation": {
+                "type": "string",
+                "enum": [
+                  "delete_section",
+                  "insert",
+                  "replace_section"
+                ],
+                "description": "replace_section: the section under a heading, up to the next heading of the same or a higher level. insert: blocks at a section's start or end, or the document's end. delete_section: a heading and its section."
+              },
+              "position": {
+                "description": "For insert: where in the section. section_end by default.",
+                "type": "string",
+                "enum": [
+                  "section_end",
+                  "section_start"
+                ]
+              }
+            },
+            "required": [
+              "operation"
+            ],
+            "description": "For a document (type \"document\"): change one section instead of sending all of it. Leave out content when you send an edit.",
+            "additionalProperties": false
           },
           "language": {
             "description": "For type \"code\": the language, as a code fence names it (ts, python, sql).",
@@ -261,8 +302,7 @@
           }
         },
         "required": [
-          "artifactId",
-          "content"
+          "artifactId"
         ],
         "additionalProperties": false
       },
@@ -291,7 +331,8 @@
                       "markdown",
                       "svg",
                       "mermaid",
-                      "site"
+                      "site",
+                      "document"
                     ]
                   },
                   "title": {
@@ -373,7 +414,8 @@
                         "markdown",
                         "svg",
                         "mermaid",
-                        "site"
+                        "site",
+                        "document"
                       ]
                     },
                     "title": {
@@ -444,7 +486,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "recorded landing-page": {
         "code": "saved",
@@ -473,7 +516,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "recorded serve-page": {
         "code": "saved",
@@ -507,7 +551,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "recorded oauth-login": {
         "code": "saved",
@@ -536,7 +581,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "recorded sun-icon": {
         "code": "saved",
@@ -560,7 +606,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "a fence first": {
         "code": "saved",
@@ -589,7 +636,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "a lone close": {
         "code": "saved",
@@ -623,7 +671,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "an open directive": {
         "code": "saved",
@@ -657,7 +706,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "angle brackets": {
         "code": "saved",
@@ -691,7 +741,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "blank lines": {
         "code": {
@@ -735,6 +786,12 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
+        },
+        "document": {
+          "problems": [
+            "content is empty"
+          ],
+          "status": "invalid"
         }
       },
       "carriage returns": {
@@ -764,7 +821,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "classDiagram glued": {
         "code": "saved",
@@ -798,7 +856,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "default export no space": {
         "code": "saved",
@@ -832,7 +891,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "default export spaced": {
         "code": "saved",
@@ -861,7 +921,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "default export, newline": {
         "code": "saved",
@@ -890,7 +951,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "doctype only": {
         "code": "saved",
@@ -919,7 +981,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "empty string": {
         "code": {
@@ -963,6 +1026,12 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
+        },
+        "document": {
+          "problems": [
+            "content is empty"
+          ],
+          "status": "invalid"
         }
       },
       "html comment": {
@@ -992,7 +1061,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "indented svg": {
         "code": "saved",
@@ -1016,7 +1086,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "markdown with fences and directives": {
         "code": "saved",
@@ -1050,7 +1121,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "mermaid graph": {
         "code": "saved",
@@ -1079,7 +1151,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "mermaid flowchart": {
         "code": "saved",
@@ -1108,7 +1181,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "mermaid sequenceDiagram": {
         "code": "saved",
@@ -1137,7 +1211,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "mermaid classDiagram": {
         "code": "saved",
@@ -1166,7 +1241,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "mermaid stateDiagram": {
         "code": "saved",
@@ -1195,7 +1271,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "mermaid erDiagram": {
         "code": "saved",
@@ -1224,7 +1301,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "mermaid gantt": {
         "code": "saved",
@@ -1253,7 +1331,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "mermaid pie": {
         "code": "saved",
@@ -1282,7 +1361,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "mermaid mindmap": {
         "code": "saved",
@@ -1311,7 +1391,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "mermaid timeline": {
         "code": "saved",
@@ -1340,7 +1421,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "mermaid journey": {
         "code": "saved",
@@ -1374,7 +1456,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "mermaid gitGraph": {
         "code": "saved",
@@ -1408,7 +1491,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "mermaid stateDiagram-v2": {
         "code": "saved",
@@ -1437,7 +1521,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "mermaid after a fence": {
         "code": "saved",
@@ -1471,7 +1556,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "mermaid indented": {
         "code": "saved",
@@ -1500,7 +1586,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "named export only": {
         "code": "saved",
@@ -1534,7 +1621,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "one word": {
         "code": "saved",
@@ -1568,7 +1656,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "react element default": {
         "code": "saved",
@@ -1592,7 +1681,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "spaces only": {
         "code": {
@@ -1636,6 +1726,12 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
+        },
+        "document": {
+          "problems": [
+            "content is empty"
+          ],
+          "status": "invalid"
         }
       },
       "svg after text": {
@@ -1665,7 +1761,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "svg in a fence": {
         "code": "saved",
@@ -1694,7 +1791,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "svg self closing": {
         "code": "saved",
@@ -1723,7 +1821,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "svg trailing text": {
         "code": "saved",
@@ -1752,7 +1851,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "svg uppercase": {
         "code": "saved",
@@ -1781,7 +1881,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "svg with attributes": {
         "code": "saved",
@@ -1805,7 +1906,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "tab only": {
         "code": {
@@ -1849,6 +1951,12 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
+        },
+        "document": {
+          "problems": [
+            "content is empty"
+          ],
+          "status": "invalid"
         }
       },
       "tag uppercase": {
@@ -1878,7 +1986,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "tag with digit": {
         "code": "saved",
@@ -1912,7 +2021,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "text then a tag": {
         "code": "saved",
@@ -1941,7 +2051,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       },
       "trailing fence line": {
         "code": "saved",
@@ -1970,7 +2081,8 @@
             "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
           ],
           "status": "invalid"
-        }
+        },
+        "document": "saved"
       }
     },
     "titled": {
@@ -2078,6 +2190,78 @@
         "tab only": {
           "problems": [
             "content isn't a valid code artifact"
+          ],
+          "status": "invalid"
+        },
+        "tag uppercase": "saved",
+        "tag with digit": "saved",
+        "text then a tag": "saved",
+        "trailing fence line": "saved"
+      },
+      "document": {
+        "recorded counter-button": "saved",
+        "recorded landing-page": "saved",
+        "recorded serve-page": "saved",
+        "recorded oauth-login": "saved",
+        "recorded sun-icon": "saved",
+        "a fence first": "saved",
+        "a lone close": "saved",
+        "an open directive": "saved",
+        "angle brackets": "saved",
+        "blank lines": {
+          "problems": [
+            "content is empty"
+          ],
+          "status": "invalid"
+        },
+        "carriage returns": "saved",
+        "classDiagram glued": "saved",
+        "default export no space": "saved",
+        "default export spaced": "saved",
+        "default export, newline": "saved",
+        "doctype only": "saved",
+        "empty string": {
+          "problems": [
+            "content is empty"
+          ],
+          "status": "invalid"
+        },
+        "html comment": "saved",
+        "indented svg": "saved",
+        "markdown with fences and directives": "saved",
+        "mermaid graph": "saved",
+        "mermaid flowchart": "saved",
+        "mermaid sequenceDiagram": "saved",
+        "mermaid classDiagram": "saved",
+        "mermaid stateDiagram": "saved",
+        "mermaid erDiagram": "saved",
+        "mermaid gantt": "saved",
+        "mermaid pie": "saved",
+        "mermaid mindmap": "saved",
+        "mermaid timeline": "saved",
+        "mermaid journey": "saved",
+        "mermaid gitGraph": "saved",
+        "mermaid stateDiagram-v2": "saved",
+        "mermaid after a fence": "saved",
+        "mermaid indented": "saved",
+        "named export only": "saved",
+        "one word": "saved",
+        "react element default": "saved",
+        "spaces only": {
+          "problems": [
+            "content is empty"
+          ],
+          "status": "invalid"
+        },
+        "svg after text": "saved",
+        "svg in a fence": "saved",
+        "svg self closing": "saved",
+        "svg trailing text": "saved",
+        "svg uppercase": "saved",
+        "svg with attributes": "saved",
+        "tab only": {
+          "problems": [
+            "content is empty"
           ],
           "status": "invalid"
         },

@@ -35,7 +35,7 @@ import {
 } from "./chat-context";
 import { canEditAgent, draftFor } from "./drafts";
 import { pinPlanApproval } from "./plan-artifact";
-import { PLAN_APPROVAL_DATA, planApprovalOf } from "./plan-mode";
+import { isPlanKind, PLAN_APPROVAL_DATA, planApprovalOf } from "./plan-mode";
 import { partsWithSkills, resolvePickedSkills } from "./skills";
 import { runStartFromRow } from "./state";
 
@@ -214,7 +214,7 @@ const checkPlanApproval = async (
   const plan = await getArtifact(db, approval.artifactId);
   return plan.ok &&
     plan.value.conversationId === conversationId &&
-    plan.value.kind === "markdown"
+    isPlanKind(plan.value.kind)
     ? ok(undefined)
     : err(badApproval("That plan isn't in this conversation."));
 };

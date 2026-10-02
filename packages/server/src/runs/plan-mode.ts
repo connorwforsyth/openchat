@@ -346,6 +346,13 @@ export const PLAN_DATA = "plan";
 /** The approving message's data part. */
 export const PLAN_APPROVAL_DATA = "plan-approval";
 
+/**
+ * The kinds a plan artifact can be: a Document since 126, and Markdown for
+ * plans saved before, which still approve and build as they did.
+ */
+export const isPlanKind = (kind: string): boolean =>
+  kind === "document" || kind === "markdown";
+
 /** Longest plan a person may send back edited. */
 export const PLAN_MAX_CHARS = 100_000;
 

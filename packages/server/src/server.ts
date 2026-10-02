@@ -531,6 +531,7 @@ export const createServerFromEnv = async (
       ...createArtifactsRouter({
         access: services.access,
         db,
+        kinds: services.artifactKinds,
         sites: {
           kinds: services.artifactKinds,
           publicLinks: config.features.publicLinks,

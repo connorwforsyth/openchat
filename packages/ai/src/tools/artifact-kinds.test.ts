@@ -83,9 +83,10 @@ describe("the kinds' checks", () => {
   it("say what the directive reader said, for every text kind, content and title", () => {
     let compared = 0;
     // Sites (125) came after the directive and have checks of their own
-    // (`@workspace/artifacts-kit`'s `kinds/site`).
+    // (`@workspace/artifacts-kit`'s `kinds/site`); a document (126) stores
+    // JSON made from the model's Markdown, which the reader can't judge.
     const textKinds = artifactKindSchema.options.filter(
-      (kind) => kind !== "site"
+      (kind) => kind !== "site" && kind !== "document"
     );
     for (const type of textKinds) {
       for (const content of CONTENTS) {
@@ -101,7 +102,7 @@ describe("the kinds' checks", () => {
     expect(compared).toBeGreaterThan(1000);
   });
 
-  it("add instructions for sites only, as their own layer", () => {
+  it("add documents' and sites' instructions, as their own layer", () => {
     const fragment = composeInstructions({ dynamic: [FRAGMENTS.artifacts] });
     const withKinds = composeInstructions({
       dynamic: [FRAGMENTS.artifacts],
@@ -109,6 +110,11 @@ describe("the kinds' checks", () => {
     });
     expect(withKinds.sections).toEqual([
       ...fragment.sections,
+      {
+        layer: "kinds",
+        source: "kinds/document",
+        text: builtinArtifactKinds.get("document")?.instructions,
+      },
       {
         layer: "kinds",
         source: "kinds/site",
@@ -123,6 +129,7 @@ const recordingStore = () => {
   const saved: NewArtifactContent[] = [];
   const store: ArtifactStore = {
     list: () => Promise.resolve([]),
+    read: () => Promise.resolve(null),
     save: (input) => {
       saved.push(input);
       return Promise.resolve(

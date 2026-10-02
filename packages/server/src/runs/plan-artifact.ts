@@ -1,4 +1,5 @@
 import type { RunStart } from "@workspace/ai/ports/run-executor";
+import { builtinArtifactKinds } from "@workspace/artifacts-kit/builtin";
 import type { MessageId } from "@workspace/contract/schemas/common";
 import type { MessagePart } from "@workspace/contract/schemas/message-parts";
 import type { Db } from "@workspace/db/client";
@@ -11,6 +12,7 @@ import { getMessage, updateMessage } from "@workspace/db/queries/messages";
 import { err, ok, type Result } from "@workspace/shared/result";
 
 import {
+  isPlanKind,
   PLAN_APPROVAL_DATA,
   PLAN_DATA,
   type PlanApproval,
@@ -21,14 +23,15 @@ import {
 } from "./plan-mode";
 
 // Plan mode's I/O (106), over the existing artifact store: a planning run's
-// answer saved as a markdown artifact, and an approval pinned to the
-// version it approves. The rules are in `plan-mode.ts`.
+// answer saved as a Document (126; plans from before were markdown and
+// still work), and an approval pinned to the version it approves. The rules
+// are in `plan-mode.ts`.
 
 /**
- * Saves a planning run's answer as a "Plan: …" markdown artifact in its
- * chat, and returns the answer's parts with a `plan` data part pointing at
- * it, which the chat shows as the plan card. An answer with no prose has
- * no plan to save. Saving is an extra: on failure the answer stands.
+ * Saves a planning run's answer as a "Plan: …" Document in its chat, and
+ * returns the answer's parts with a `plan` data part pointing at it, which
+ * the chat shows as the plan card. An answer with no prose has no plan to
+ * save. Saving is an extra: on failure the answer stands.
  */
 export const savePlan = async (
   db: Db,
@@ -43,9 +46,9 @@ export const savePlan = async (
   const asked = await getMessage(db, run.userMessageId);
   const request = asked.ok ? planText(asked.value.parts) : "";
   const saved = await saveArtifactVersion(db, {
-    content,
+    content: builtinArtifactKinds.fromModel("document", content),
     conversationId: run.conversationId,
-    kind: "markdown",
+    kind: "document",
     messageId: assistantMessageId,
     title: planTitle(content, request),
   });
@@ -76,8 +79,10 @@ const approvalPart = (
  * Pins a message's plan approval to one version of the plan before its run
  * starts: the person's edits, saved as a new version made by that message,
  * or else the plan's latest version. The stored part then names that
- * version and drops the edited text. Only a markdown artifact in the same
- * chat can be approved. A message without an approval is left alone.
+ * version and drops the edited text. Only a plan (a Document, or a markdown
+ * artifact from before 126) in the same chat can be approved; a Document's
+ * edits come as its JSON (or Markdown) and must pass its checks. A message
+ * without an approval is left alone.
  */
 export const pinPlanApproval = async (
   db: Db,
@@ -95,16 +100,21 @@ export const pinPlanApproval = async (
   if (!found.ok || found.value.conversationId !== message.conversationId) {
     return err({ type: "not_found" });
   }
-  if (found.value.kind !== "markdown") {
+  const { kind } = found.value;
+  if (!isPlanKind(kind)) {
     return err({ type: "not_a_plan" });
   }
   let versionId = found.value.latestVersionId;
   if (approval.content !== undefined) {
+    const content = builtinArtifactKinds.fromModel(kind, approval.content);
+    if (builtinArtifactKinds.check(kind, content).length > 0) {
+      return err({ type: "not_a_plan" });
+    }
     const saved = await saveArtifactVersion(db, {
       artifactId: found.value.id,
-      content: approval.content,
+      content,
       conversationId: message.conversationId,
-      kind: "markdown",
+      kind,
       messageId: message.id,
       title: found.value.title,
     });
@@ -146,13 +156,16 @@ export const approvedPlanFor = async (
   if (!artifact.ok || artifact.value.conversationId !== run.conversationId) {
     return;
   }
+  // The model reads a Document's plan as Markdown (126).
+  const { kind } = artifact.value;
+  const asText = (stored: string) => builtinArtifactKinds.toModel(kind, stored);
   if (!approval.versionId && approval.content !== undefined) {
-    return approval.content;
+    return asText(builtinArtifactKinds.fromModel(kind, approval.content));
   }
   const versionId = approval.versionId ?? artifact.value.latestVersionId;
   if (!versionId) {
     return;
   }
   const version = await getArtifactVersion(db, approval.artifactId, versionId);
-  return version.ok ? version.value.content : undefined;
+  return version.ok ? asText(version.value.content) : undefined;
 };

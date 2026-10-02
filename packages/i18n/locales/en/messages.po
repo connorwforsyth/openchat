@@ -1941,6 +1941,8 @@ msgstr "Maintainer"
 msgid "Make something new"
 msgstr "Make something new"
 
+#: ../chat-ui/src/conversation/artifact-card.tsx
+#: ../chat-ui/src/model/artifact-kinds.ts
 #: ../ui/src/components/ai-elements/streamdown.tsx
 msgid "Markdown"
 msgstr "Markdown"

@@ -38,7 +38,10 @@ const json = (value: unknown): unknown =>
 
 /** A store that saves everything, so only validation decides the result. */
 const acceptingStore = (): ArtifactStore => {
-  const kinds = new Map<ArtifactId, { kind: ArtifactKind; title: string }>();
+  const kinds = new Map<
+    ArtifactId,
+    { content: string; kind: ArtifactKind; title: string }
+  >();
   return {
     list: () =>
       Promise.resolve(
@@ -48,12 +51,18 @@ const acceptingStore = (): ArtifactStore => {
           title,
         }))
       ),
+    read: (artifactId) =>
+      Promise.resolve(kinds.get(artifactId)?.content ?? null),
     save: (input) => {
       if (input.artifactId && !kinds.has(input.artifactId)) {
         return Promise.resolve(err({ type: "not_found" as const }));
       }
       const artifactId = input.artifactId ?? newId("artifact");
-      kinds.set(artifactId, { kind: input.kind, title: input.title });
+      kinds.set(artifactId, {
+        content: input.content,
+        kind: input.kind,
+        title: input.title,
+      });
       return Promise.resolve(
         ok({
           artifactId,
@@ -163,6 +172,7 @@ const TITLES: Readonly<Record<string, string>> = {
 /** One valid content per kind, to update from. */
 const BASES: Readonly<Record<ArtifactKind, string>> = {
   code: "print(1)",
+  document: "# Notes",
   html: "<p>hi</p>",
   markdown: "# Notes",
   mermaid: "graph TD",

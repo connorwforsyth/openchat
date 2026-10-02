@@ -91,8 +91,10 @@ export const previewKind = (kind: ArtifactKind): ArtifactPreviewKind => {
     case "markdown":
       return panel;
     // React needs a bundler in the frame, and Mermaid a renderer; the panel
-    // leaves both to the artifact runtime and shows the source here.
+    // leaves both to the artifact runtime and shows the source here. A
+    // document (126) is its editor, which the view picks before any preview.
     case "source":
+    case "document":
       return "none";
     default:
       return panel satisfies never;

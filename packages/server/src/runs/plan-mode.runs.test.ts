@@ -1,5 +1,6 @@
 import type { LanguageModelV4StreamResult } from "@ai-sdk/provider";
 import { textStream, toolCallStream } from "@workspace/ai/testing/mock-models";
+import { builtinArtifactKinds } from "@workspace/artifacts-kit/builtin";
 import type {
   ConversationId,
   MessageId,
@@ -14,6 +15,7 @@ import type {
 import {
   listArtifacts,
   listArtifactVersions,
+  saveArtifactVersion,
 } from "@workspace/db/queries/artifacts";
 import { getMessage } from "@workspace/db/queries/messages";
 import { type Tool, tool } from "ai";
@@ -263,13 +265,13 @@ describe("a planning run's tools", () => {
       const [artifact, ...others] = await listArtifacts(h.db, chat);
       expect(others).toEqual([]);
       expect(artifact).toMatchObject({
-        kind: "markdown",
+        kind: "document",
         title: "Plan: Add a dark theme",
       });
     }
   );
 
-  it("saves the plan as a markdown artifact and points the answer at it", async () => {
+  it("saves the plan as a Document and points the answer at it (126)", async () => {
     h = await createHarness();
     h.nextTurn({ model: scripted([]) });
     const chat = await newChat(h);
@@ -279,12 +281,18 @@ describe("a planning run's tools", () => {
     const [artifact, ...others] = await listArtifacts(h.db, chat);
     expect(others).toEqual([]);
     expect(artifact).toMatchObject({
-      kind: "markdown",
+      kind: "document",
       messageId: run.assistantMessageId,
       title: "Plan: Add a dark theme",
     });
     const versions = await listArtifactVersions(h.db, artifact?.id as never);
-    expect(versions.map((version) => version.content)).toEqual([PLAN]);
+    // The editor's JSON, made from the plan's Markdown.
+    expect(versions.map((version) => version.content)).toEqual([
+      builtinArtifactKinds.fromModel("document", PLAN),
+    ]);
+    expect(
+      builtinArtifactKinds.check("document", versions[0]?.content)
+    ).toEqual([]);
     const answer = await getMessage(h.db, run.assistantMessageId as MessageId);
     expect(answer.ok && answer.value.parts.at(-1)).toEqual({
       data: {
@@ -397,7 +405,20 @@ describe("approving a plan", () => {
       "update_skill",
     ]);
     const versions = await listArtifactVersions(h.db, plan.artifactId);
-    expect(versions.map((version) => version.content)).toEqual([PLAN, edited]);
+    expect(
+      versions.map((version) =>
+        builtinArtifactKinds.toModel("document", version.content)
+      )
+    ).toEqual([
+      builtinArtifactKinds.toModel(
+        "document",
+        builtinArtifactKinds.fromModel("document", PLAN)
+      ),
+      builtinArtifactKinds.toModel(
+        "document",
+        builtinArtifactKinds.fromModel("document", edited)
+      ),
+    ]);
     expect(versions[1]?.messageId).toBe(created.userMessageId);
     // The message keeps which version it approved, not the text.
     const message = await getMessage(h.db, created.userMessageId);
@@ -411,6 +432,53 @@ describe("approving a plan", () => {
     expect(system).toContain("The user approved this plan.");
     expect(system).toContain("keep the light theme the default");
     expect(system).not.toContain("planning only");
+  });
+
+  it("still approves a markdown plan saved before Documents (126), edits and all", async () => {
+    const model = scripted([], "ok");
+    let calls = 0;
+    const planner = scripted([]);
+    h = await createHarness({
+      models: {
+        [MODEL]: new MockLanguageModelV4({
+          doStream: (options) => {
+            calls += 1;
+            return calls === 1
+              ? planner.doStream(options)
+              : model.doStream(options);
+          },
+        }),
+      },
+      realTurns: true,
+    });
+    const plan = await planned(h);
+    const old = await saveArtifactVersion(h.db, {
+      content: PLAN,
+      conversationId: plan.chat,
+      kind: "markdown",
+      messageId: plan.parentId,
+      title: "Plan: Add a dark theme",
+    });
+    if (!old.ok) {
+      throw new Error("no markdown plan");
+    }
+    const edited = `${PLAN}\n\nAlso: keep the old one.`;
+    await send(
+      h,
+      plan.chat,
+      [
+        text("Build the approved plan."),
+        {
+          data: { artifactId: old.value.artifact.id, content: edited },
+          name: "plan-approval",
+          type: "data",
+        },
+      ],
+      { parentId: plan.parentId }
+    );
+    const versions = await listArtifactVersions(h.db, old.value.artifact.id);
+    expect(versions.map((version) => version.content)).toEqual([PLAN, edited]);
+    expect(systemOf(model)).toContain("Also: keep the old one.");
   });
 
   it("uses the latest version when nothing was edited", async () => {

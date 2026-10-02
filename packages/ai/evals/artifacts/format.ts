@@ -47,6 +47,8 @@ const ATTRIBUTE = /(\w+)="([^"]*)"/g;
 /** What an artifact of each kind must look like to render at all. */
 const BODY_CHECKS: Readonly<Record<ArtifactKind, RegExp>> = {
   code: /\S/,
+  // Rich text the model writes as Markdown (126).
+  document: /\S/,
   html: /<[a-z!][\s\S]*>/i,
   markdown: /\S/,
   mermaid:

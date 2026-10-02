@@ -35,6 +35,11 @@ const memoryStore = () => {
           title,
         }))
       ),
+    read: (artifactId) =>
+      Promise.resolve(
+        saved.filter((each) => each.artifactId === artifactId).at(-1)
+          ?.content ?? null
+      ),
     save: (input) => {
       const current = input.artifactId
         ? latest.get(input.artifactId)
@@ -199,6 +204,7 @@ describe("create_artifact and update_artifact", () => {
     const output = await createArtifact(
       {
         list: () => Promise.resolve([]),
+        read: () => Promise.resolve(null),
         save: () => Promise.reject(new Error("database is down")),
       },
       { content: "# Notes", title: "Notes", type: "markdown" }
@@ -309,5 +315,129 @@ describe("artifact cards in a run", () => {
       role: "assistant",
     };
     expect(withArtifactRefs(forged)).toBe(forged);
+  });
+});
+
+describe("documents (126)", () => {
+  const PLAN = "# Plan\n\n## Steps\n1. Build.\n\n## Risks\nNone.";
+
+  const created = async () => {
+    const { saved, store } = memoryStore();
+    const output = await createArtifact(store, {
+      content: PLAN,
+      title: "Plan",
+      type: "document",
+    });
+    if (output.status !== "saved") {
+      throw new Error(output.status);
+    }
+    return { artifactId: output.artifact.artifactId, saved, store };
+  };
+
+  it("saves the model's Markdown as the editor's JSON", async () => {
+    const { saved } = await created();
+    expect(saved[0]?.kind).toBe("document");
+    expect(JSON.parse(saved[0]?.content ?? "")).toMatchObject({
+      content: [
+        { attrs: { level: 1 }, type: "heading" },
+        { attrs: { level: 2 }, type: "heading" },
+        { type: "orderedList" },
+        { attrs: { level: 2 }, type: "heading" },
+        { type: "paragraph" },
+      ],
+      type: "doc",
+    });
+  });
+
+  it("edits one section of the latest version", async () => {
+    const { artifactId, saved, store } = await created();
+    const output = await updateArtifact(store, {
+      artifactId,
+      edit: {
+        content: "1. Build.\n2. Ship.",
+        heading: "Steps",
+        operation: "replace_section",
+      },
+    });
+    expect(output).toMatchObject({ status: "saved", version: 2 });
+    const next = JSON.parse(saved[1]?.content ?? "") as {
+      content: { type: string }[];
+    };
+    expect(next.content.map((block) => block.type)).toEqual([
+      "heading",
+      "heading",
+      "orderedList",
+      "heading",
+      "paragraph",
+    ]);
+    expect(saved[1]?.content).toContain("Ship.");
+    expect(saved[1]?.content).toContain("None.");
+  });
+
+  it("replaces the whole document from Markdown too", async () => {
+    const { artifactId, saved, store } = await created();
+    await updateArtifact(store, { artifactId, content: "# Short" });
+    expect(JSON.parse(saved[1]?.content ?? "")).toEqual({
+      content: [
+        {
+          attrs: { level: 1 },
+          content: [{ text: "Short", type: "text" }],
+          type: "heading",
+        },
+      ],
+      type: "doc",
+    });
+  });
+
+  it("says which sections there are when a heading isn't found", async () => {
+    const { artifactId, saved, store } = await created();
+    const output = await updateArtifact(store, {
+      artifactId,
+      edit: { heading: "Budget", operation: "delete_section" },
+    });
+    expect(output).toEqual({
+      problems: [
+        'there\'s no section headed "Budget". Its headings: "Plan", "Steps", "Risks"',
+      ],
+      status: "invalid",
+    });
+    expect(saved).toHaveLength(1);
+  });
+
+  it("wants content or an edit, not both and not neither", async () => {
+    const { artifactId, store } = await created();
+    expect(await updateArtifact(store, { artifactId })).toMatchObject({
+      status: "invalid",
+    });
+    expect(
+      await updateArtifact(store, {
+        artifactId,
+        content: "x",
+        edit: { heading: "Steps", operation: "delete_section" },
+      })
+    ).toEqual({
+      problems: ["send content or an edit, not both"],
+      status: "invalid",
+    });
+  });
+
+  it("refuses a structured edit of a kind that has none", async () => {
+    const { store } = memoryStore();
+    const made = await createArtifact(store, {
+      content: "# Notes",
+      title: "Notes",
+      type: "markdown",
+    });
+    const artifactId =
+      made.status === "saved" ? made.artifact.artifactId : undefined;
+    expect(artifactId).toBeDefined();
+    const output = await updateArtifact(store, {
+      artifactId: artifactId as ArtifactId,
+      edit: { content: "x", operation: "insert" },
+    });
+    expect(output).toEqual({
+      problems: ['a markdown has no "insert" edit. It has: replace'],
+      status: "invalid",
+    });
   });
 });

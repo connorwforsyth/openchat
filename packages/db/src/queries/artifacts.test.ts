@@ -38,6 +38,8 @@ import {
   markArtifactViewed,
   renameArtifact,
   saveArtifactVersion,
+  saveEditedArtifactVersion,
+  toArtifactVersion,
   upsertArtifactGrant,
 } from "./artifacts";
 import { createConversation } from "./conversations";
@@ -78,7 +80,7 @@ const makeArtifact = async (
   ownerId: UserId,
   values: {
     readonly content?: string;
-    readonly kind?: "markdown" | "html";
+    readonly kind?: "markdown" | "html" | "document";
   } = {}
 ) => {
   const { chat, message } = await chatFor(ownerId);
@@ -319,6 +321,58 @@ describe("use in chat", () => {
       number: 2,
     });
     expect(saved.artifact.conversationId).not.toBe(other.chat.id);
+  });
+});
+
+describe("a person's edit (126)", () => {
+  test("saves the next version on the latest, keeping its chat and message, and records who", async () => {
+    const ada = await seedUser(db);
+    const { artifact, chat, message, version } = await makeArtifact(ada.id, {
+      content: '{"type":"doc","content":[]}',
+      kind: "document",
+    });
+    const saved = expectOk(
+      await saveEditedArtifactVersion(db, {
+        artifactId: artifact.id,
+        baseVersionId: version.id,
+        content: '{"type":"doc","content":[{"type":"paragraph"}]}',
+        editedBy: ada.id,
+      })
+    );
+    expect(saved.version).toMatchObject({
+      conversationId: chat.id,
+      editedBy: ada.id,
+      messageId: message.id,
+      number: 2,
+    });
+    expect(saved.artifact.latestVersionId).toBe(saved.version.id);
+    expect(toArtifactVersion(saved.version).editedBy).toBe(ada.id);
+    // A run's version names nobody.
+    expect(toArtifactVersion(version).editedBy).toBeNull();
+  });
+
+  test("refuses an edit of a version that's no longer the latest", async () => {
+    const ada = await seedUser(db);
+    const { artifact, version } = await makeArtifact(ada.id);
+    expectOk(
+      await saveEditedArtifactVersion(db, {
+        artifactId: artifact.id,
+        baseVersionId: version.id,
+        content: "Mine",
+        editedBy: ada.id,
+      })
+    );
+    const stale = await saveEditedArtifactVersion(db, {
+      artifactId: artifact.id,
+      baseVersionId: version.id,
+      content: "Theirs",
+      editedBy: ada.id,
+    });
+    expect(stale).toEqual({
+      error: { type: "version_mismatch" },
+      ok: false,
+    });
+    expect(await listArtifactVersions(db, artifact.id)).toHaveLength(2);
   });
 });
 

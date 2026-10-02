@@ -1,3 +1,4 @@
+import { builtinArtifactKinds } from "@workspace/artifacts-kit/builtin";
 import type { ArtifactKindRegistry } from "@workspace/artifacts-kit/registry";
 import { z } from "zod";
 
@@ -11,6 +12,7 @@ import {
   artifactModelText,
   artifactToolOutputSchema,
   saveArtifact,
+  storedContent,
 } from "../artifact-content";
 import { defineTool, type ToolContext } from "./define";
 
@@ -27,27 +29,39 @@ export const createArtifactInputSchema = z.object({
     "A short title the user will recognise it by."
   ),
   type: artifactDirectiveSchema.shape.type.describe(
-    "html: one complete HTML document. react: one file with a default-exported component. svg: one <svg> element. mermaid: diagram source. markdown: a document. code: a file in any language. site: a small website of several files, as JSON (see the Sites instructions)."
+    "document: a rich-text document the user can edit and export, written in Markdown (prefer it for reports, plans and notes). html: one complete HTML document. react: one file with a default-exported component. svg: one <svg> element. mermaid: diagram source. markdown: Markdown text that is only read. code: a file in any language. site: a small website of several files, as JSON (see the Sites instructions)."
   ),
 });
 export type CreateArtifactInput = z.infer<typeof createArtifactInputSchema>;
 
-/** Applies a `create_artifact` call. Exposed for tests; the tool wraps it. */
+/**
+ * Applies a `create_artifact` call. Exposed for tests; the tool wraps it.
+ * A kind whose versions aren't what the model writes (a document's
+ * Markdown, 126) converts it first.
+ */
 export const createArtifact = (
   store: ArtifactStore,
   input: CreateArtifactInput,
-  kinds?: ArtifactKindRegistry
-): Promise<ArtifactToolOutput> =>
-  saveArtifact(
+  kinds: ArtifactKindRegistry = builtinArtifactKinds
+): Promise<ArtifactToolOutput> => {
+  const stored = storedContent(kinds, input.type, input.content);
+  if ("problems" in stored) {
+    return Promise.resolve({
+      problems: [...stored.problems],
+      status: "invalid",
+    });
+  }
+  return saveArtifact(
     store,
     {
-      content: input.content,
+      content: stored.content,
       kind: input.type,
       language: input.language ?? null,
       title: input.title,
     },
     kinds
   );
+};
 
 export const createArtifactTool = defineTool({
   // Saving puts something in the chat that outlives the reply, so it asks
