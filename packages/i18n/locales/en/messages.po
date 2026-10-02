@@ -1505,6 +1505,7 @@ msgstr "files"
 
 #: ../chat-ui/src/header/overflow-menu.tsx
 #: ../chat-ui/src/header/panel-toggles.tsx
+#: ../chat-ui/src/shell/right-panel.tsx
 #: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 #: ../code-ui/src/file-tree.tsx
@@ -4579,7 +4580,6 @@ msgstr "Work account"
 msgid "Works"
 msgstr "Works"
 
-#: ../chat-ui/src/shell/right-panel.tsx
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Workspace"
 msgstr "Workspace"

@@ -231,7 +231,10 @@ test("the conversation keeps 480px: at 900px with the panel open the sidebar pee
   page,
 }) => {
   await page.setViewportSize({ height: 800, width: 900 });
-  await page.getByRole("button", { exact: true, name: "Workspace" }).click();
+  await page
+    .locator('[data-slot="app-header"]')
+    .getByRole("button", { exact: true, name: "Files" })
+    .click();
   const panel = page.getByRole("complementary", { name: "Side panel" });
   await expect(panel).toBeVisible();
   await expect(page.locator('[data-slot="app-shell-sidebar"]')).toHaveCount(0);
@@ -246,7 +249,10 @@ test("the conversation keeps 480px: at 900px with the panel open the sidebar pee
   expect(await widthOf(page.getByRole("main"))).toBeGreaterThanOrEqual(480);
   expect(await widthOf(panel)).toBeGreaterThanOrEqual(280);
   // Leave it closed for the specs that follow.
-  await page.getByRole("button", { exact: true, name: "Workspace" }).click();
+  await page
+    .locator('[data-slot="app-header"]')
+    .getByRole("button", { exact: true, name: "Files" })
+    .click();
   await expect(panel).toBeHidden();
 });
 

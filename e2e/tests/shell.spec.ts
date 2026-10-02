@@ -186,10 +186,12 @@ test.describe("shell", () => {
     await expect(sidebar).toBeVisible();
   });
 
-  // D14 after ticket 057: the header ends with Share and one Workspace
-  // toggle (no sandbox pill, no Artifacts button), and a new chat opens on
+  // D14 after tickets 057 and 137: the header ends with Share, Files and the
+  // Globe (no sandbox pill, no Artifacts button), and a new chat opens on
   // the template-style empty state with its suggestions.
-  test("the chat header keeps to Share and Workspace", async ({ page }) => {
+  test("the chat header keeps to Share, Files and the Globe", async ({
+    page,
+  }) => {
     await page.goto("/");
     await composerReady(page);
     await expect(page.getByText("What can I help with?")).toBeVisible();
@@ -216,13 +218,21 @@ test.describe("shell", () => {
     await expect(
       header.getByRole("button", { name: SANDBOX_PILL })
     ).toHaveCount(0);
-    const workspace = header.getByRole("button", { name: "Workspace" });
-    await expect(workspace).toHaveAttribute("aria-pressed", "false");
-    await workspace.click();
-    await expect(workspace).toHaveAttribute("aria-pressed", "true");
+    const files = header.getByRole("button", { exact: true, name: "Files" });
+    const browser = header.getByRole("button", { name: "Browser" });
+    await expect(files).toHaveAttribute("aria-pressed", "false");
+    await expect(browser).toHaveAttribute("aria-pressed", "false");
+    await files.click();
+    await expect(files).toHaveAttribute("aria-pressed", "true");
     const panel = page.getByRole("complementary", { name: "Side panel" });
     await expect(panel).toBeVisible();
-    await workspace.click();
+    // Before there's anything to preview, the Globe shows the browser's
+    // empty state.
+    await browser.click();
+    await expect(browser).toHaveAttribute("aria-pressed", "true");
+    await expect(files).toHaveAttribute("aria-pressed", "false");
+    await expect(panel.getByText("Nothing running yet")).toBeVisible();
+    await browser.click();
     await expect(panel).toBeHidden();
   });
 

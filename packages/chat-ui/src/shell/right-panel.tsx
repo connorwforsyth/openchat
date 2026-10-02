@@ -49,9 +49,9 @@ export const usePanelFrame = (): PanelFrame | null =>
 export function RightPanel({ children, onClose }: RightPanelProps) {
   const { t } = useLingui();
   const frame = useRef<HTMLDivElement | null>(null);
-  // The header's toggle has the same label; it's where focus goes back to
-  // when the panel was opened with S from nowhere in particular.
-  const toggleLabel = t`Workspace`;
+  // The header's Files toggle (137) has this label; it's where focus goes
+  // back to when the panel was opened with S from nowhere in particular.
+  const toggleLabel = t`Files`;
   const toggle = useRef(toggleLabel);
   useEffect(() => {
     toggle.current = toggleLabel;

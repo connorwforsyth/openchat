@@ -25,7 +25,7 @@ test.use({ storageState: storageStateFor("ada") });
 let chatPath: string;
 
 const toggleOf = (page: Page) =>
-  chatHeader(page).getByRole("button", { name: "Workspace" });
+  chatHeader(page).getByRole("button", { exact: true, name: "Files" });
 const panelOf = (page: Page) => page.getByRole("region", { name: "Workspace" });
 const searchIn = (panel: Locator) =>
   panel.getByRole("combobox", { name: "Search files" });

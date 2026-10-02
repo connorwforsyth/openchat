@@ -32,7 +32,7 @@ function Shell({ withComposer = false }: { readonly withComposer?: boolean }) {
     <I18nProvider i18n={i18n}>
       <header data-slot="app-header">
         <button
-          aria-label="Workspace"
+          aria-label="Files"
           aria-pressed={open}
           onClick={toggleOpen}
           type="button"
@@ -55,7 +55,7 @@ function Shell({ withComposer = false }: { readonly withComposer?: boolean }) {
 }
 
 const frame = () => document.querySelector('[data-slot="right-panel"]');
-const toggle = () => screen.getByRole("button", { name: "Workspace" });
+const toggle = () => screen.getByRole("button", { name: "Files" });
 
 afterEach(cleanup);
 

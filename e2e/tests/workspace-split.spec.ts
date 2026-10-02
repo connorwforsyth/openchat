@@ -1,6 +1,7 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
 
 import {
+  chatHeader,
   composerReady,
   conversationIdOf,
   expectReply,
@@ -150,6 +151,110 @@ test("either half maximises and restores", async ({ page }) => {
   await expect(browser).toBeVisible();
 });
 
+// 137: the header's Files and Globe in place of one Workspace toggle.
+test("Files and the Globe open their halves, switch, and close on a second press", async ({
+  page,
+}) => {
+  await page.goto(chatPath);
+  await composerReady(page);
+  const header = chatHeader(page);
+  const files = header.getByRole("button", { exact: true, name: "Files" });
+  const globe = header.getByRole("button", { name: "Browser" });
+  const sidePanel = page.getByRole("complementary", { name: "Side panel" });
+  const panel = page.getByRole("region", { name: "Workspace" });
+  if ((await files.getAttribute("aria-pressed")) === "true") {
+    await files.click();
+  }
+  await expect(sidePanel).toBeHidden();
+
+  // The Globe: the browser, the whole panel.
+  await globe.click();
+  await expect(globe).toHaveAttribute("aria-pressed", "true");
+  await expect(files).toHaveAttribute("aria-pressed", "false");
+  await expect(
+    browserOf(panel)
+      .frameLocator("iframe")
+      .getByRole("heading", { name: "Site" })
+  ).toBeVisible();
+  await expect(listOf(panel)).toBeHidden();
+
+  // Files: the files come back, under the page.
+  await files.click();
+  await expect(files).toHaveAttribute("aria-pressed", "true");
+  await expect(globe).toHaveAttribute("aria-pressed", "false");
+  await expect(listOf(panel)).toBeVisible();
+  await expect(browserOf(panel)).toBeVisible();
+
+  // The Globe again switches back; a second press closes.
+  await globe.click();
+  await expect(listOf(panel)).toBeHidden();
+  await globe.click();
+  await expect(sidePanel).toBeHidden();
+  await expect(globe).toHaveAttribute("aria-pressed", "false");
+
+  // Files opens it too, and a second press closes.
+  await files.click();
+  await expect(listOf(panel)).toBeVisible();
+  await files.click();
+  await expect(sidePanel).toBeHidden();
+});
+
+test("the device menu draws the page at a tablet's or a phone's width, per chat", async ({
+  page,
+}) => {
+  await page.goto(chatPath);
+  await composerReady(page);
+  const globe = chatHeader(page).getByRole("button", { name: "Browser" });
+  if ((await globe.getAttribute("aria-pressed")) !== "true") {
+    await globe.click();
+  }
+  const panel = page.getByRole("region", { name: "Workspace" });
+  const browser = browserOf(panel);
+  const frame = browser.locator("iframe");
+  await expect(
+    browser.frameLocator("iframe").getByRole("heading", { name: "Site" })
+  ).toBeVisible();
+  const stage = browser.locator("[data-device]");
+  await expect(stage).toHaveAttribute("data-device", "desktop");
+  const full = Math.round((await frame.boundingBox())?.width ?? 0);
+  expect(full).toBeGreaterThan(390);
+
+  await browser.getByRole("button", { name: "Device: Desktop" }).click();
+  await page.getByRole("menuitemradio", { name: "Phone (390 px)" }).click();
+  await expect(stage).toHaveAttribute("data-device", "phone");
+  await expect
+    .poll(async () => Math.round((await stage.boundingBox())?.width ?? 0))
+    .toBe(390);
+  // Centred in the half.
+  const half = await browser.boundingBox();
+  const box = await stage.boundingBox();
+  if (!(half && box)) {
+    throw new Error("no stage");
+  }
+  const left = box.x - half.x;
+  const right = half.x + half.width - (box.x + box.width);
+  expect(Math.abs(left - right)).toBeLessThanOrEqual(2);
+
+  // Kept for the session: a reload shows the phone again.
+  await page.reload();
+  await composerReady(page);
+  const reopened = browserOf(page.getByRole("region", { name: "Workspace" }));
+  await expect(reopened.locator("[data-device]")).toHaveAttribute(
+    "data-device",
+    "phone"
+  );
+
+  // Back to the desktop for the specs that follow.
+  await reopened
+    .getByRole("button", { name: "Device: Phone (390 px)" })
+    .click();
+  await page.getByRole("menuitemradio", { name: "Desktop" }).click();
+  await expect(reopened.locator("[data-device]")).toHaveAttribute(
+    "data-device",
+    "desktop"
+  );
+});
+
 test("a narrow panel shows one half at a time", async ({ page }) => {
   const panel = await openPanel(page);
   // Drag the side panel's edge to 360px, under the 420px the halves stack at.
@@ -174,14 +279,24 @@ test("a narrow panel shows one half at a time", async ({ page }) => {
 
   const browser = browserOf(panel);
   const list = listOf(panel);
-  // The chat showed the Preview, so it's the browser's turn.
+  // Opened with Files (137), so it's the files' turn: the list.
+  await expect(list).toBeVisible();
+  await expect(browser).toBeHidden();
+  await expect(dividerOf(page)).toHaveCount(0);
+  await panel.getByRole("button", { name: "Preview" }).click();
   await expect(browser).toBeVisible();
   await expect(list).toBeHidden();
-  await expect(dividerOf(page)).toHaveCount(0);
   await panel.getByRole("button", { name: "Back to the list" }).click();
   await expect(list).toBeVisible();
   await expect(browser).toBeHidden();
-  await panel.getByRole("button", { name: "Preview" }).click();
+  // Picking the Preview put the panel on the browser's section (the Globe
+  // is pressed); Files and then the Globe switch whose turn it is.
+  const header = chatHeader(page);
+  const globe = header.getByRole("button", { name: "Browser" });
+  await expect(globe).toHaveAttribute("aria-pressed", "true");
+  await header.getByRole("button", { exact: true, name: "Files" }).click();
+  await expect(list).toBeVisible();
+  await globe.click();
   await expect(browser).toBeVisible();
   await expect(list).toBeHidden();
 });
