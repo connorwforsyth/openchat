@@ -149,3 +149,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-10-02 · Connor: Quick AI should feel native: just a strip, translucent, no hints, no scrollbar (135)
 - 2026-10-02 · 132 merged (PR #101) · e2e 91/91 · 35/121 → 0/121 under load
 - 2026-10-02 · 133 fixed (two gaps: card streamed before pause; cancel in that window still left awaiting_approval), verifying · added 136 (harness resume flakes)
+- 2026-10-02 · 134 merged (PR #102) · 135 merged (PR #103; Quick AI Raycast strip) · 133 merged (PR #104) · harness ×5 quiet: 51/51 on 133 and main

@@ -2,7 +2,7 @@
 id: "134"
 title: "A second message sent ~0.4s after the first on a new agent chat never reaches the server"
 labels: [wayfinder:build]
-status: open
+status: closed
 assignee:
 blockedBy: []
 ---

@@ -2,7 +2,7 @@
 id: "135"
 title: "Quick AI: a native-feeling strip (input + button, translucent, no hints, no scrollbar)"
 labels: [wayfinder:build]
-status: in-progress
+status: closed
 assignee: loop
 blockedBy: []
 ---

@@ -2,7 +2,7 @@
 id: "133"
 title: "A message sent just after an approval card appears can queue behind a run that then waits forever"
 labels: [wayfinder:build]
-status: open
+status: closed
 assignee:
 blockedBy: []
 ---
