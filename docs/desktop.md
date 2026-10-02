@@ -155,8 +155,11 @@ Windows would warn on every update.
    ```
 
    The build then carries `app-update.yml` pointing at that repository's
-   Releases, and on launch the packaged app checks, downloads in the
-   background and installs on quit. (A dev run never checks.)
+   Releases. The packaged app checks at launch and every six hours, and
+   downloads in the background. The menu shows where it stands (Check for
+   Updates… under About on macOS, in Help elsewhere; then Downloading
+   Update…; then Restart to Update), and a download the person never
+   restarts for installs on the next quit. (A dev run never checks.)
 2. Publish a release: create a GitHub release whose tag is `v<version>`
    and upload every file in `release/` except the unpacked folders and
    `builder-debug.yml`: the dmg and zip (macOS installs from the zip), the
@@ -169,3 +172,20 @@ Windows would warn on every update.
 
 A private repository's releases need a token in the app, which isn't
 wired; publish desktop releases from a public repository.
+
+### Trying an update locally
+
+`DESKTOP_UPDATE_URL` points a packaged build at any generic feed instead of
+GitHub, so the whole path can be tried without publishing anything:
+
+1. Package the newer version (bump `version` in `apps/desktop/package.json`)
+   with `DESKTOP_AUTO_UPDATE=1`, and move `release/` aside as the feed (it
+   holds the zip or installer and the `latest*.yml` the updater reads).
+2. Package the older version the same way.
+3. Serve the feed folder (`bunx serve <folder> -p 8765`, or any static
+   server) and launch the older app with
+   `DESKTOP_UPDATE_URL=http://localhost:8765`.
+
+The menu should go from Checking to Downloading to Restart to Update. On
+macOS an unsigned app stops there: Squirrel won't install into it, so the
+install step can only be proven on Linux (AppImage) until builds are signed.
