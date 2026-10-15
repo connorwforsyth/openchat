@@ -11,4 +11,5 @@ export const codeKind = textKind({
   label: "Code",
   render: { panel: "source", runtime: null },
   shape: /\S/,
+  thumbnail: "none",
 });

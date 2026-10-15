@@ -8,4 +8,6 @@ export const htmlKind = textKind({
   label: "Web page",
   render: { panel: "frame", runtime: "html" },
   shape: /<[a-z!][\s\S]*>/i,
+  starter: {},
+  thumbnail: "runtime",
 });

@@ -45,7 +45,7 @@ export const textKind = ({
   ...definition
 }: Pick<
   ArtifactKindDefinition<string>,
-  "export" | "icon" | "kind" | "label" | "render"
+  "export" | "icon" | "kind" | "label" | "render" | "starter" | "thumbnail"
 > & {
   readonly annotate?: boolean;
   readonly shape: RegExp;

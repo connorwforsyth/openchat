@@ -49,4 +49,5 @@ export const imageKind = defineArtifactKind<string>({
   label: "Image",
   operations: {},
   render: { panel: "image", runtime: null },
+  thumbnail: "none",
 });

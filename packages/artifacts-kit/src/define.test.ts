@@ -2,7 +2,13 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 
 import { matches } from "./checks";
-import { checkArtifact, defineArtifactKind, defineOperation } from "./define";
+import {
+  type ArtifactStarter,
+  checkArtifact,
+  defineArtifactKind,
+  defineOperation,
+  starterKindsOf,
+} from "./define";
 
 const append = defineOperation({
   apply: (
@@ -45,6 +51,28 @@ const notes = defineArtifactKind({
   label: "Notes",
   operations: { append },
   render: { panel: "source", runtime: null },
+  thumbnail: "none",
+});
+
+describe("starterKindsOf", () => {
+  it("keeps kinds with a starter, by order and then as defined", () => {
+    const kinds: readonly {
+      readonly kind: string;
+      readonly starter?: ArtifactStarter;
+    }[] = [
+      { kind: "a", starter: {} },
+      { kind: "b" },
+      { kind: "c", starter: { badge: "beta", order: 2 } },
+      { kind: "d", starter: {} },
+      { kind: "e", starter: { order: 1 } },
+    ];
+    expect(starterKindsOf(kinds).map((each) => each.kind)).toEqual([
+      "e",
+      "c",
+      "a",
+      "d",
+    ]);
+  });
 });
 
 describe("checkArtifact", () => {
