@@ -173,7 +173,11 @@ const DotRow = ({
             </span>
           ) : (
             <span className="text-muted-foreground text-sm">
-              <Trans>No runs yet.</Trans>
+              {dot.status === "running" ? (
+                <Trans>Working on it…</Trans>
+              ) : (
+                <Trans>No runs yet.</Trans>
+              )}
             </span>
           )}
         </span>

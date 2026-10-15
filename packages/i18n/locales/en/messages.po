@@ -1400,6 +1400,7 @@ msgid "Dot schedule"
 msgstr "Dot schedule"
 
 #: ../../apps/web/app/(app)/(pages)/dots/dots-screen.tsx
+#: ../../apps/web/app/(app)/(pages)/page-shell.tsx
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "Dots"
 msgstr "Dots"
@@ -5147,6 +5148,10 @@ msgstr "Word (.docx)"
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "Work account"
 msgstr "Work account"
+
+#: ../../apps/web/app/(app)/(pages)/dots/dots-screen.tsx
+msgid "Working on it…"
+msgstr "Working on it…"
 
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "Works"
