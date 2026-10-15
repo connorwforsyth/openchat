@@ -2,6 +2,7 @@ import { oc } from "@orpc/contract";
 
 import { feedback, keys, me, memory, meta } from "./routes/account";
 import { conversations } from "./routes/conversations";
+import { dots } from "./routes/dots";
 import { artifacts, files } from "./routes/files";
 import { library, mcp } from "./routes/library";
 import { linkPreviews } from "./routes/link-preview";
@@ -20,6 +21,7 @@ export const contract = {
   artifacts: oc.tag("Artifacts").router(artifacts),
   conversations: oc.tag("Conversations").router(conversations),
   decisions: oc.tag("Admin").router(decisions),
+  dots: oc.tag("Dots").router(dots),
   feedback: oc.tag("Feedback").router(feedback),
   files: oc.tag("Files").router(files),
   grants: oc.tag("Sharing").router(grants),

@@ -58,6 +58,7 @@ const tags = Object.entries({
   Admin: "Instance administration.",
   Artifacts: "Artifacts produced in conversations, with versions.",
   Conversations: "Conversations, chat context and per-user state.",
+  Dots: "Always-on agents that run on a schedule into their own conversation.",
   Feedback: "Thumbs up/down on assistant messages.",
   Files: "Uploads, ingestion and semantic file search.",
   Keys: "Org, team and user provider keys (write-only).",
