@@ -152,6 +152,10 @@ msgstr "{reviewed} of {0} files reviewed"
 msgid "{seconds, plural, one {Thought for # second} other {Thought for # seconds}}"
 msgstr "{seconds, plural, one {Thought for # second} other {Thought for # seconds}}"
 
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "{slides, plural, one {# slide} other {# slides}}"
+msgstr "{slides, plural, one {# slide} other {# slides}}"
+
 #: ../composer/src/components/composer.tsx
 msgid "{suggestionCount, plural, one {# suggestion} other {# suggestions}}"
 msgstr "{suggestionCount, plural, one {# suggestion} other {# suggestions}}"
@@ -189,6 +193,10 @@ msgstr "A React artifact needs a default export: a component or an element."
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "A secret is saved. It's never shown; type a new one to replace it."
 msgstr "A secret is saved. It's never shown; type a new one to replace it."
+
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "A slide in this deck failed to draw."
+msgstr "A slide in this deck failed to draw."
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 #: ../library-ui/src/components/badges.tsx
@@ -1524,6 +1532,10 @@ msgstr "Everyone gets the latest published version unless they pin one."
 msgid "Everything in the org, including its teams."
 msgstr "Everything in the org, including its teams."
 
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "Exit"
+msgstr "Exit"
+
 #: ../ui/src/components/markdown.tsx
 msgid "Exit fullscreen"
 msgstr "Exit fullscreen"
@@ -1545,10 +1557,15 @@ msgid "Explain how HTTPS keeps a connection private, in plain language with one 
 msgstr "Explain how HTTPS keeps a connection private, in plain language with one short example."
 
 #: ../chat-ui/src/artifacts/document/document-view.tsx
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
 #: ../library-ui/src/components/item-builder.tsx
 #: ../library-ui/src/components/library-index.tsx
 msgid "Export"
 msgstr "Export"
+
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "Exporting…"
+msgstr "Exporting…"
 
 #: ../composer/src/components/thinking-control.tsx
 msgid "Extra high"
@@ -2076,6 +2093,7 @@ msgid "Loading files…"
 msgstr "Loading files…"
 
 #: ../chat-ui/src/artifacts/artifact-preview.tsx
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
 msgid "Loading preview"
 msgstr "Loading preview"
 
@@ -2411,6 +2429,10 @@ msgstr "New team"
 msgid "Newer version"
 msgstr "Newer version"
 
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "Next"
+msgstr "Next"
+
 #: ../chat-ui/src/header/branch-switcher.tsx
 #: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
 #: ../shortcuts/src/registry.ts
@@ -2535,6 +2557,10 @@ msgstr "Not shared with anyone yet."
 #: ../composer/src/components/thinking-control.tsx
 msgid "Not with Fast mode"
 msgstr "Not with Fast mode"
+
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "Notes"
+msgstr "Notes"
 
 #: ../chat-ui/src/conversation/skill-card.tsx
 msgid "Notes: {notes}"
@@ -2814,6 +2840,10 @@ msgstr "Panels"
 msgid "Password"
 msgstr "Password"
 
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "PDF (.pdf)"
+msgstr "PDF (.pdf)"
+
 #: ../chat-ui/src/artifacts/document/document-view.tsx
 msgid "PDF (print)…"
 msgstr "PDF (print)…"
@@ -2909,14 +2939,26 @@ msgstr "policies"
 msgid "Policies"
 msgstr "Policies"
 
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "PowerPoint (.pptx)"
+msgstr "PowerPoint (.pptx)"
+
 #: ../../apps/web/app/(app)/(pages)/settings/_components/profile-settings.tsx
 msgid "Preferences"
 msgstr "Preferences"
+
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "Present"
+msgstr "Present"
 
 #: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../chat-ui/src/model/artifact-kinds.ts
 msgid "Presentation"
 msgstr "Presentation"
+
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "Presenting {title}"
+msgstr "Presenting {title}"
 
 #: ../library-ui/src/components/kind.tsx
 msgid "Preset"
@@ -2952,6 +2994,7 @@ msgid "Preview {path}"
 msgstr "Preview {path}"
 
 #: ../chat-ui/src/artifacts/artifact-preview.tsx
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
 msgid "Preview of {title}"
 msgstr "Preview of {title}"
 
@@ -2966,6 +3009,10 @@ msgstr "Previews can't import \"{module}\". React artifacts can import {allowed}
 #: ../chat-ui/src/artifacts/artifact-preview.tsx
 msgid "Previews of this kind need the artifact runtime. Its source is in the Code tab."
 msgstr "Previews of this kind need the artifact runtime. Its source is in the Code tab."
+
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "Previous"
+msgstr "Previous"
 
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
@@ -3788,6 +3835,18 @@ msgstr "Skills"
 msgid "Slash command"
 msgstr "Slash command"
 
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "Slide {slide} of {slides}"
+msgstr "Slide {slide} of {slides}"
+
+#: ../chat-ui/src/model/artifact-kinds.ts
+msgid "Slides"
+msgstr "Slides"
+
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "Slides of {title}"
+msgstr "Slides of {title}"
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "Some chat contexts aren't allowed on this server and are left out."
 msgstr "Some chat contexts aren't allowed on this server and are left out."
@@ -3817,6 +3876,10 @@ msgstr "Sources"
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "Space-separated. Leave empty for the server's defaults."
 msgstr "Space-separated. Leave empty for the server's defaults."
+
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "Speaker notes"
+msgstr "Speaker notes"
 
 #: ../composer/src/components/target-picker.tsx
 msgid "Speed"
@@ -4174,6 +4237,10 @@ msgstr "The chat's model sees its latest version and, if you can edit it, can ma
 #: ../../apps/web/app/dev/sandbox/page.tsx
 msgid "The chat's Workspace panel (files, editor, preview and artifacts) over a just-bash workspace that runs entirely in this browser tab: simulated bash, an in-memory filesystem, no server and no network. Reloading the page starts over."
 msgstr "The chat's Workspace panel (files, editor, preview and artifacts) over a just-bash workspace that runs entirely in this browser tab: simulated bash, an in-memory filesystem, no server and no network. Reloading the page starts over."
+
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "The deck couldn't be exported: {exportError}"
+msgstr "The deck couldn't be exported: {exportError}"
 
 #: ../../apps/web/app/dev/chat/demo.tsx
 msgid "The demo workspace couldn't do that."

@@ -69,20 +69,24 @@ const allowed = new Set<string>([
   "react/jsx-runtime",
 ]);
 
-/** Runs the compiled module and returns its exports. */
+/**
+ * Runs the compiled module and returns its exports. `permitted` is what it
+ * may import: React's list, unless a kind says otherwise (a slide, 164).
+ */
 export const evaluateArtifact = (
   compiled: CompiledArtifact,
-  modules: Readonly<Record<string, unknown>> = artifactModules
+  modules: Readonly<Record<string, unknown>> = artifactModules,
+  permitted: ReadonlySet<string> = allowed
 ): Result<Readonly<Record<string, unknown>>, RuntimeError> => {
   const blocked = compiled.imports.find(
     (specifier) =>
-      !(allowed.has(specifier) && Object.hasOwn(modules, specifier))
+      !(permitted.has(specifier) && Object.hasOwn(modules, specifier))
   );
   if (blocked !== undefined) {
     return err({ kind: "import", message: blocked });
   }
   const require = (specifier: string): unknown => {
-    if (allowed.has(specifier) && Object.hasOwn(modules, specifier)) {
+    if (permitted.has(specifier) && Object.hasOwn(modules, specifier)) {
       return modules[specifier];
     }
     throw new Error(`Cannot import "${specifier}"`);

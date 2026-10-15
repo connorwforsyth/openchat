@@ -29,6 +29,16 @@ export const artifactKindLabels: Readonly<
   svg: msg`SVG image`,
 };
 
+/**
+ * A "Make something new" card's name where it isn't the kind's (161):
+ * people make "Slides" (164), and get a presentation.
+ */
+export const starterLabels: Readonly<
+  Partial<Record<ArtifactKind, MessageDescriptor>>
+> = {
+  presentation: msg`Slides`,
+};
+
 /** Every kind, in the kit's order. */
 export const artifactKinds = Object.keys(
   builtinKindDefinitions

@@ -31,6 +31,7 @@
   "runtimeKinds": [
     "html",
     "mermaid",
+    "presentation",
     "react",
     "site",
     "svg"

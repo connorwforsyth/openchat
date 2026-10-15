@@ -216,7 +216,8 @@
                 "svg",
                 "mermaid",
                 "site",
-                "document"
+                "document",
+                "presentation"
               ],
               "description": "document: a rich-text document the user can edit and export, written in Markdown (prefer it for reports, plans and notes). html: one complete HTML document. react: one file with a default-exported component. svg: one <svg> element. mermaid: diagram source. markdown: Markdown text that is only read. code: a file in any language. site: a small website of several files, as JSON (see the Sites instructions)."
             }
@@ -2291,7 +2292,7 @@
               "type": "object",
               "properties": {
                 "content": {
-                  "description": "Markdown for replace_section and insert: the new section body (start it with a heading to replace the heading too) or the blocks to insert.",
+                  "description": "Markdown for replace_section and insert: the new section body (start it with a heading to replace the heading too) or the blocks to insert. For a presentation's replace: the whole deck's JSON.",
                   "type": "string",
                   "maxLength": 400000
                 },
@@ -2300,14 +2301,30 @@
                   "type": "string",
                   "maxLength": 300
                 },
+                "index": {
+                  "description": "For add_slide and move_slide: the slide's 0-based position in the deck. add_slide without one adds at the end.",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "notes": {
+                  "description": "For add_slide and update_slide: the slide's speaker notes.",
+                  "type": "string",
+                  "maxLength": 5000
+                },
                 "operation": {
                   "type": "string",
                   "enum": [
                     "delete_section",
                     "insert",
-                    "replace_section"
+                    "replace_section",
+                    "add_slide",
+                    "delete_slide",
+                    "move_slide",
+                    "replace",
+                    "update_slide"
                   ],
-                  "description": "replace_section: the section under a heading, up to the next heading of the same or a higher level. insert: blocks at a section's start or end, or the document's end. delete_section: a heading and its section."
+                  "description": "A document's: replace_section (the section under a heading, up to the next heading of the same or a higher level), insert (blocks at a section's start or end, or the document's end), delete_section (a heading and its section). A presentation's: update_slide, add_slide, move_slide, delete_slide, replace (the whole deck)."
                 },
                 "position": {
                   "description": "For insert: where in the section. section_end by default.",
@@ -2316,12 +2333,22 @@
                     "section_end",
                     "section_start"
                   ]
+                },
+                "slide": {
+                  "description": "For a presentation's slide edits: the slide's id.",
+                  "type": "string",
+                  "maxLength": 40
+                },
+                "source": {
+                  "description": "For add_slide and update_slide: the slide's TSX, default-exporting one slide.",
+                  "type": "string",
+                  "maxLength": 40000
                 }
               },
               "required": [
                 "operation"
               ],
-              "description": "For a document (type \"document\"): change one section instead of sending all of it. Leave out content when you send an edit.",
+              "description": "For a document (type \"document\"), change one section; for a presentation (type \"presentation\"), one slide; instead of sending all of it. Leave out content when you send an edit, except for a presentation's replace.",
               "additionalProperties": false
             },
             "language": {
@@ -2341,7 +2368,7 @@
           ],
           "additionalProperties": false
         },
-        "description": "Save an artifact's next version; earlier versions are kept. Pass the complete new content, not a diff, or, for a document, an edit of one section."
+        "description": "Save an artifact's next version; earlier versions are kept. Pass the complete new content, not a diff, or, for a document, an edit of one section, or, for a presentation, an edit of one slide."
       },
       "name": "update_artifact",
       "outputSchema": {
@@ -3637,7 +3664,8 @@
                 "svg",
                 "mermaid",
                 "site",
-                "document"
+                "document",
+                "presentation"
               ],
               "description": "document: a rich-text document the user can edit and export, written in Markdown (prefer it for reports, plans and notes). html: one complete HTML document. react: one file with a default-exported component. svg: one <svg> element. mermaid: diagram source. markdown: Markdown text that is only read. code: a file in any language. site: a small website of several files, as JSON (see the Sites instructions)."
             }
@@ -5712,7 +5740,7 @@
               "type": "object",
               "properties": {
                 "content": {
-                  "description": "Markdown for replace_section and insert: the new section body (start it with a heading to replace the heading too) or the blocks to insert.",
+                  "description": "Markdown for replace_section and insert: the new section body (start it with a heading to replace the heading too) or the blocks to insert. For a presentation's replace: the whole deck's JSON.",
                   "type": "string",
                   "maxLength": 400000
                 },
@@ -5721,14 +5749,30 @@
                   "type": "string",
                   "maxLength": 300
                 },
+                "index": {
+                  "description": "For add_slide and move_slide: the slide's 0-based position in the deck. add_slide without one adds at the end.",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "notes": {
+                  "description": "For add_slide and update_slide: the slide's speaker notes.",
+                  "type": "string",
+                  "maxLength": 5000
+                },
                 "operation": {
                   "type": "string",
                   "enum": [
                     "delete_section",
                     "insert",
-                    "replace_section"
+                    "replace_section",
+                    "add_slide",
+                    "delete_slide",
+                    "move_slide",
+                    "replace",
+                    "update_slide"
                   ],
-                  "description": "replace_section: the section under a heading, up to the next heading of the same or a higher level. insert: blocks at a section's start or end, or the document's end. delete_section: a heading and its section."
+                  "description": "A document's: replace_section (the section under a heading, up to the next heading of the same or a higher level), insert (blocks at a section's start or end, or the document's end), delete_section (a heading and its section). A presentation's: update_slide, add_slide, move_slide, delete_slide, replace (the whole deck)."
                 },
                 "position": {
                   "description": "For insert: where in the section. section_end by default.",
@@ -5737,12 +5781,22 @@
                     "section_end",
                     "section_start"
                   ]
+                },
+                "slide": {
+                  "description": "For a presentation's slide edits: the slide's id.",
+                  "type": "string",
+                  "maxLength": 40
+                },
+                "source": {
+                  "description": "For add_slide and update_slide: the slide's TSX, default-exporting one slide.",
+                  "type": "string",
+                  "maxLength": 40000
                 }
               },
               "required": [
                 "operation"
               ],
-              "description": "For a document (type \"document\"): change one section instead of sending all of it. Leave out content when you send an edit.",
+              "description": "For a document (type \"document\"), change one section; for a presentation (type \"presentation\"), one slide; instead of sending all of it. Leave out content when you send an edit, except for a presentation's replace.",
               "additionalProperties": false
             },
             "language": {
@@ -5762,7 +5816,7 @@
           ],
           "additionalProperties": false
         },
-        "description": "Save an artifact's next version; earlier versions are kept. Pass the complete new content, not a diff, or, for a document, an edit of one section."
+        "description": "Save an artifact's next version; earlier versions are kept. Pass the complete new content, not a diff, or, for a document, an edit of one section, or, for a presentation, an edit of one slide."
       },
       "name": "update_artifact",
       "outputSchema": {

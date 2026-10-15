@@ -1,5 +1,7 @@
 import { builtinArtifactKinds } from "@workspace/artifacts-kit/builtin";
 import { DOCUMENT_EDITS } from "@workspace/artifacts-kit/kinds/document/operations";
+import { PRESENTATION_LIMITS } from "@workspace/artifacts-kit/kinds/presentation/content";
+import { PRESENTATION_EDITS } from "@workspace/artifacts-kit/kinds/presentation/operations";
 import type { ArtifactKindRegistry } from "@workspace/artifacts-kit/registry";
 import { artifactIdSchema } from "@workspace/contract/schemas/common";
 import { z } from "zod";
@@ -21,15 +23,20 @@ import { defineTool, type ToolContext } from "./define";
 
 // `update_artifact` (078): the artifact's next version; earlier versions
 // are kept. Either the whole content again, or (126) an `edit` of one part
-// of a document: a kind's structured operation (`@workspace/artifacts-kit`)
+// of a document, or (164) one slide of a presentation: a kind's structured operation (`@workspace/artifacts-kit`)
 // applied to its latest version. The content is checked by the artifact's
 // kind (123), and nothing is saved if a check fails. What the tools share
 // is in `../artifact-content.ts`.
 
-const EDIT_NAMES = Object.keys(DOCUMENT_EDITS) as [
-  keyof typeof DOCUMENT_EDITS,
-  ...(keyof typeof DOCUMENT_EDITS)[],
-];
+type EditName = keyof typeof DOCUMENT_EDITS | keyof typeof PRESENTATION_EDITS;
+
+/** Every kind's edits by name; the kit says which kind has which. */
+const EDIT_NAMES = [
+  ...new Set([
+    ...Object.keys(DOCUMENT_EDITS),
+    ...Object.keys(PRESENTATION_EDITS),
+  ]),
+] as [EditName, ...EditName[]];
 
 /**
  * One structured edit. A flat object (not a union) so every provider's
@@ -43,7 +50,7 @@ export const artifactEditSchema = z
       .max(400_000)
       .optional()
       .describe(
-        "Markdown for replace_section and insert: the new section body (start it with a heading to replace the heading too) or the blocks to insert."
+        "Markdown for replace_section and insert: the new section body (start it with a heading to replace the heading too) or the blocks to insert. For a presentation's replace: the whole deck's JSON."
       ),
     heading: z
       .string()
@@ -52,18 +59,42 @@ export const artifactEditSchema = z
       .describe(
         "The section's heading text, as it reads (without #s). insert without one adds at the end of the document."
       ),
+    index: z
+      .number()
+      .int()
+      .optional()
+      .describe(
+        "For add_slide and move_slide: the slide's 0-based position in the deck. add_slide without one adds at the end."
+      ),
+    notes: z
+      .string()
+      .max(PRESENTATION_LIMITS.notes)
+      .optional()
+      .describe("For add_slide and update_slide: the slide's speaker notes."),
     operation: z
       .enum(EDIT_NAMES)
       .describe(
-        "replace_section: the section under a heading, up to the next heading of the same or a higher level. insert: blocks at a section's start or end, or the document's end. delete_section: a heading and its section."
+        "A document's: replace_section (the section under a heading, up to the next heading of the same or a higher level), insert (blocks at a section's start or end, or the document's end), delete_section (a heading and its section). A presentation's: update_slide, add_slide, move_slide, delete_slide, replace (the whole deck)."
       ),
     position: z
       .enum(["section_end", "section_start"])
       .optional()
       .describe("For insert: where in the section. section_end by default."),
+    slide: z
+      .string()
+      .max(40)
+      .optional()
+      .describe("For a presentation's slide edits: the slide's id."),
+    source: z
+      .string()
+      .max(PRESENTATION_LIMITS.source)
+      .optional()
+      .describe(
+        "For add_slide and update_slide: the slide's TSX, default-exporting one slide."
+      ),
   })
   .describe(
-    'For a document (type "document"): change one section instead of sending all of it. Leave out content when you send an edit.'
+    'For a document (type "document"), change one section; for a presentation (type "presentation"), one slide; instead of sending all of it. Leave out content when you send an edit, except for a presentation\'s replace.'
   );
 
 export const updateArtifactInputSchema = z.object({
@@ -115,7 +146,7 @@ const nextContent = async (
       return {
         ok: false,
         output: invalid(
-          "send either content (the whole artifact) or an edit (one part of a document)"
+          "send either content (the whole artifact) or an edit (one part of a document or presentation)"
         ),
       };
     }
@@ -205,7 +236,7 @@ export const updateArtifactTool = defineTool({
   approval: "ask",
   capability: "artifacts",
   description:
-    "Save an artifact's next version; earlier versions are kept. Pass the complete new content, not a diff, or, for a document, an edit of one section.",
+    "Save an artifact's next version; earlier versions are kept. Pass the complete new content, not a diff, or, for a document, an edit of one section, or, for a presentation, an edit of one slide.",
   execute: (input, { ports }: ToolContext<{ readonly ports: ArtifactPorts }>) =>
     updateArtifact(ports.store, input, ports.kinds),
   input: updateArtifactInputSchema,
