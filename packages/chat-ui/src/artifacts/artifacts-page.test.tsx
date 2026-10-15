@@ -182,7 +182,7 @@ describe("ArtifactsPage", () => {
   });
 
   it("leaves a kind out when the instance hasn't enabled it", () => {
-    setup({ kinds: ["html", "mermaid"] });
+    setup({ kinds: ["html", "diagram"] });
     const starters = screen.getByRole("region", { name: "Make something new" });
     expect(within(starters).queryByText("Site")).toBeNull();
     expect(

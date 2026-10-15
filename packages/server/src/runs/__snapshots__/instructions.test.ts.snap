@@ -20,6 +20,8 @@ Use the \`update_memory\` tool to change the file when the user asks you to reme
 exports[`the system prompt, by turn type > chat with mentions 1`] = `
 "You have a workspace: a sandboxed machine whose files live in /work. The user sees those files in the Files panel next to this chat. Use the bash, read, write and edit tools to do the work yourself. Never ask the user to run commands; they have no terminal. Run them yourself with bash. A static page (HTML with its CSS and JS) shows in the user's Preview panel as soon as you write the .html file, so don't start a server for one. For an app that needs a dev server (Vite and the like), start it in the background bound to 0.0.0.0 and call preview with its port.
 
+Before you create or update a \`diagram\` artifact, call \`load_artifact_guide\` with type "diagram" and follow the guide it returns.
+
 Documents (create_artifact type "document") are rich text the user can edit in a full-page editor and export to Word, PDF or Markdown. Prefer them for reports, plans, briefs, notes and anything the user will keep editing; use "markdown" only for text that is just read.
 
 Write a document's content as Markdown: headings (#, ##, ###), paragraphs, bullet and numbered lists, task lists (- [ ] and - [x]), tables, block quotes, code blocks, links, and images by https URL. It is stored as rich text, so raw HTML is dropped.
@@ -56,6 +58,8 @@ quoted
 exports[`the system prompt, by turn type > chat with workspace 1`] = `
 "You have a workspace: a sandboxed machine whose files live in /work. The user sees those files in the Files panel next to this chat. Use the bash, read, write and edit tools to do the work yourself. Never ask the user to run commands; they have no terminal. Run them yourself with bash. A static page (HTML with its CSS and JS) shows in the user's Preview panel as soon as you write the .html file, so don't start a server for one. For an app that needs a dev server (Vite and the like), start it in the background bound to 0.0.0.0 and call preview with its port.
 
+Before you create or update a \`diagram\` artifact, call \`load_artifact_guide\` with type "diagram" and follow the guide it returns.
+
 Documents (create_artifact type "document") are rich text the user can edit in a full-page editor and export to Word, PDF or Markdown. Prefer them for reports, plans, briefs, notes and anything the user will keep editing; use "markdown" only for text that is just read.
 
 Write a document's content as Markdown: headings (#, ##, ###), paragraphs, bullet and numbered lists, task lists (- [ ] and - [x]), tables, block quotes, code blocks, links, and images by https URL. It is stored as rich text, so raw HTML is dropped.
@@ -70,7 +74,9 @@ Before you create or update a \`site\` artifact, call \`load_artifact_guide\` wi
 `;
 
 exports[`the system prompt, by turn type > plain chat 1`] = `
-"Documents (create_artifact type "document") are rich text the user can edit in a full-page editor and export to Word, PDF or Markdown. Prefer them for reports, plans, briefs, notes and anything the user will keep editing; use "markdown" only for text that is just read.
+"Before you create or update a \`diagram\` artifact, call \`load_artifact_guide\` with type "diagram" and follow the guide it returns.
+
+Documents (create_artifact type "document") are rich text the user can edit in a full-page editor and export to Word, PDF or Markdown. Prefer them for reports, plans, briefs, notes and anything the user will keep editing; use "markdown" only for text that is just read.
 
 Write a document's content as Markdown: headings (#, ##, ###), paragraphs, bullet and numbered lists, task lists (- [ ] and - [x]), tables, block quotes, code blocks, links, and images by https URL. It is stored as rich text, so raw HTML is dropped.
 
@@ -164,7 +170,9 @@ exports[`the system prompt, where the layers meet > agent with no instructions >
 `;
 
 exports[`the system prompt, where the layers meet > chat with a mention and the workspace off 1`] = `
-"Documents (create_artifact type "document") are rich text the user can edit in a full-page editor and export to Word, PDF or Markdown. Prefer them for reports, plans, briefs, notes and anything the user will keep editing; use "markdown" only for text that is just read.
+"Before you create or update a \`diagram\` artifact, call \`load_artifact_guide\` with type "diagram" and follow the guide it returns.
+
+Documents (create_artifact type "document") are rich text the user can edit in a full-page editor and export to Word, PDF or Markdown. Prefer them for reports, plans, briefs, notes and anything the user will keep editing; use "markdown" only for text that is just read.
 
 Write a document's content as Markdown: headings (#, ##, ###), paragraphs, bullet and numbered lists, task lists (- [ ] and - [x]), tables, block quotes, code blocks, links, and images by https URL. It is stored as rich text, so raw HTML is dropped.
 
@@ -183,6 +191,8 @@ The user's latest message mentions these files from the workspace. They are show
 
 exports[`the system prompt, where the layers meet > chat with workspace, mentions and a memory file over its cap, in propose mode 1`] = `
 "You have a workspace: a sandboxed machine whose files live in /work. The user sees those files in the Files panel next to this chat. Use the bash, read, write and edit tools to do the work yourself. Never ask the user to run commands; they have no terminal. Run them yourself with bash. A static page (HTML with its CSS and JS) shows in the user's Preview panel as soon as you write the .html file, so don't start a server for one. For an app that needs a dev server (Vite and the like), start it in the background bound to 0.0.0.0 and call preview with its port.
+
+Before you create or update a \`diagram\` artifact, call \`load_artifact_guide\` with type "diagram" and follow the guide it returns.
 
 Documents (create_artifact type "document") are rich text the user can edit in a full-page editor and export to Word, PDF or Markdown. Prefer them for reports, plans, briefs, notes and anything the user will keep editing; use "markdown" only for text that is just read.
 
@@ -232,7 +242,9 @@ Use the \`update_memory\` tool to change the file when the user asks you to reme
 `;
 
 exports[`the system prompt, where the layers meet > plain chat with an empty memory file 1`] = `
-"Documents (create_artifact type "document") are rich text the user can edit in a full-page editor and export to Word, PDF or Markdown. Prefer them for reports, plans, briefs, notes and anything the user will keep editing; use "markdown" only for text that is just read.
+"Before you create or update a \`diagram\` artifact, call \`load_artifact_guide\` with type "diagram" and follow the guide it returns.
+
+Documents (create_artifact type "document") are rich text the user can edit in a full-page editor and export to Word, PDF or Markdown. Prefer them for reports, plans, briefs, notes and anything the user will keep editing; use "markdown" only for text that is just read.
 
 Write a document's content as Markdown: headings (#, ##, ###), paragraphs, bullet and numbered lists, task lists (- [ ] and - [x]), tables, block quotes, code blocks, links, and images by https URL. It is stored as rich text, so raw HTML is dropped.
 
