@@ -29,6 +29,7 @@ import {
 } from "@workspace/contract/schemas/models";
 import type { RunTarget } from "@workspace/contract/schemas/runs";
 import type { ChatContext } from "@workspace/contract/schemas/tenancy";
+import { useCreateWithAiPrompt } from "@workspace/library-ui/components/skill-starters";
 import type { PaletteContext } from "@workspace/palette/context-actions";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -41,6 +42,7 @@ import { useAfterBoot } from "@/app/(app)/_shared/use-after-boot";
 import { routeParams, routes } from "@/lib/routes";
 
 import { messageTarget, shownTarget } from "./message-target";
+import { startFill } from "./start-fill";
 import {
   AGENT_TABS,
   contextForOwner,
@@ -391,7 +393,24 @@ export function ChatRoute({
       (chatDefault ?? chat.target ?? settings.data?.defaultTarget)?.type ===
         "agent"
   );
-  const skills = useSkillsForPicker(booted);
+  const newChat = conversationId === null;
+  const skillParam = newChat ? searchParams.get(routeParams.skill) : null;
+  const skills = useSkillsForPicker(booted || skillParam !== null);
+  // "Create with AI" and "Try it" (170): a new chat starts with the
+  // composer filled in, for the person to send.
+  const draftParam = newChat ? searchParams.get(routeParams.draft) : null;
+  const composerFill = useMemo(
+    () => startFill({ draft: draftParam, skillId: skillParam, skills }),
+    [draftParam, skillParam, skills]
+  );
+  const createWithAiPrompt = useCreateWithAiPrompt();
+  const skillActions = useMemo(
+    () => ({
+      onCreate: () => router.push(routes.libraryNew("skill")),
+      onCreateWithAi: () => router.push(routes.draftChat(createWithAiPrompt)),
+    }),
+    [createWithAiPrompt, router]
+  );
   const changeContext = useContextChange(conversationId ?? null);
   const { changeTarget, pickedHere } = useTargetChange({
     contextOptions,
@@ -477,6 +496,7 @@ export function ChatRoute({
       artifactsRuntimeOrigin={artifactsRuntimeOrigin}
       brand={<Brand config={config} />}
       client={client}
+      composerFill={composerFill}
       config={config}
       conversationId={conversationId}
       draftContext={chat.draftContext}
@@ -499,6 +519,8 @@ export function ChatRoute({
       platform={platform}
       sandboxClient={sandboxClient}
       sendTarget={sendTarget}
+      skillActions={skillActions}
+      skillChatHref={routes.chatWithSkill}
       skills={skills}
       target={target}
       theme={frame.theme}

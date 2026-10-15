@@ -26,6 +26,7 @@ import {
 import { InputGroupButton } from "@workspace/ui/components/input-group";
 import { type Ref, useCallback } from "react";
 
+import type { SkillActions } from "../props";
 import type { FileCandidate, PromptOption, SkillOption } from "../schemas";
 import type { FastMode } from "../variants";
 
@@ -57,6 +58,8 @@ export interface PlusMenuProps {
   /** Whether the next message plans rather than builds. */
   readonly plan?: boolean;
   readonly prompts: readonly PromptOption[];
+  /** Ways to make a new skill, at the end of the Skills submenu (170). */
+  readonly skillActions?: SkillActions | undefined;
   /** Skills to pick, less those already on the message. */
   readonly skills?: readonly SkillOption[];
   readonly triggerRef?: Ref<HTMLButtonElement>;
@@ -123,10 +126,48 @@ function SkillItem({
   );
 }
 
-const NO_SKILLS: readonly SkillOption[] = [];
-
 // Long lists scroll inside their submenu rather than past the screen.
 const SUBMENU_CLASS = "max-h-72 w-64 max-w-[calc(100vw-2rem)]";
+
+const NO_SKILLS: readonly SkillOption[] = [];
+
+/** Skills to put on the message, then ways to make a new one (170). */
+function SkillsSubmenu({
+  onAddSkill,
+  skillActions,
+  skills,
+}: Pick<PlusMenuProps, "onAddSkill" | "skillActions"> & {
+  readonly skills: readonly SkillOption[];
+}) {
+  return (
+    <DropdownMenuSub>
+      <DropdownMenuSubTrigger>
+        <SparklesIcon aria-hidden />
+        <Trans>Skills</Trans>
+      </DropdownMenuSubTrigger>
+      <DropdownMenuSubContent className={SUBMENU_CLASS}>
+        {onAddSkill
+          ? skills.map((skill) => (
+              <SkillItem key={skill.id} onChoose={onAddSkill} skill={skill} />
+            ))
+          : null}
+        {skillActions ? (
+          <>
+            {onAddSkill ? <DropdownMenuSeparator /> : null}
+            <DropdownMenuItem onClick={skillActions.onCreate}>
+              <PlusIcon aria-hidden />
+              <Trans>Create skill…</Trans>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={skillActions.onCreateWithAi}>
+              <SparklesIcon aria-hidden />
+              <Trans>Create with AI…</Trans>
+            </DropdownMenuItem>
+          </>
+        ) : null}
+      </DropdownMenuSubContent>
+    </DropdownMenuSub>
+  );
+}
 
 /**
  * The composer's + menu: things to add to the next message. Attach files is
@@ -151,6 +192,7 @@ export function PlusMenu({
   onWebSearchChange,
   plan = false,
   prompts,
+  skillActions,
   skills = NO_SKILLS,
   triggerRef,
   webSearch,
@@ -172,7 +214,8 @@ export function PlusMenu({
   const offerFast = fast !== undefined && onFastChange !== undefined;
   const offerFiles = onAddFile !== undefined && files.length > 0;
   const offerPrompts = onUsePrompt !== undefined && prompts.length > 0;
-  const offerSkills = onAddSkill !== undefined && skills.length > 0;
+  const pickSkills = onAddSkill !== undefined && skills.length > 0;
+  const offerSkills = pickSkills || skillActions !== undefined;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -238,17 +281,11 @@ export function PlusMenu({
           </DropdownMenuSub>
         ) : null}
         {offerSkills ? (
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger>
-              <SparklesIcon aria-hidden />
-              <Trans>Skills</Trans>
-            </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent className={SUBMENU_CLASS}>
-              {skills.map((skill) => (
-                <SkillItem key={skill.id} onChoose={onAddSkill} skill={skill} />
-              ))}
-            </DropdownMenuSubContent>
-          </DropdownMenuSub>
+          <SkillsSubmenu
+            onAddSkill={pickSkills ? onAddSkill : undefined}
+            skillActions={skillActions}
+            skills={skills}
+          />
         ) : null}
         {onPlanChange || onWebSearchChange || offerFast ? (
           <DropdownMenuSeparator />

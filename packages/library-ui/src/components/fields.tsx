@@ -50,6 +50,8 @@ interface FieldShellProps {
   }) => ReactNode;
   readonly description?: ReactNode;
   readonly issue?: IssueCode;
+  /** Words for `issue` when the generic ones would be vague. */
+  readonly issueText?: string;
   readonly label: ReactNode;
 }
 
@@ -57,6 +59,7 @@ export function FieldShell({
   children,
   description,
   issue,
+  issueText: override,
   label,
 }: FieldShellProps) {
   const id = useId();
@@ -71,7 +74,7 @@ export function FieldShell({
         id,
       })}
       {issue ? (
-        <FieldError id={describedBy}>{issueText(issue)}</FieldError>
+        <FieldError id={describedBy}>{override ?? issueText(issue)}</FieldError>
       ) : null}
       {description && !issue ? (
         <FieldDescription id={describedBy}>{description}</FieldDescription>
@@ -83,12 +86,14 @@ export function FieldShell({
 export function TextField({
   description,
   issue,
+  issueText,
   label,
   onValueChange,
   ...input
 }: Omit<ComponentProps<typeof Input>, "id" | "onChange"> & {
   readonly description?: ReactNode;
   readonly issue?: IssueCode;
+  readonly issueText?: string;
   readonly label: ReactNode;
   /** Gets the field's `name` back, so one stable handler can serve a form. */
   readonly onValueChange: (value: string, name: string) => void;
@@ -99,7 +104,12 @@ export function TextField({
     [onValueChange]
   );
   return (
-    <FieldShell description={description} issue={issue} label={label}>
+    <FieldShell
+      description={description}
+      issue={issue}
+      issueText={issueText}
+      label={label}
+    >
       {(control) => <Input {...input} {...control} onChange={handleChange} />}
     </FieldShell>
   );
@@ -108,12 +118,14 @@ export function TextField({
 export function TextAreaField({
   description,
   issue,
+  issueText,
   label,
   onValueChange,
   ...textarea
 }: Omit<ComponentProps<typeof Textarea>, "id" | "onChange"> & {
   readonly description?: ReactNode;
   readonly issue?: IssueCode;
+  readonly issueText?: string;
   readonly label: ReactNode;
   /** Gets the field's `name` back, so one stable handler can serve a form. */
   readonly onValueChange: (value: string, name: string) => void;
@@ -124,7 +136,12 @@ export function TextAreaField({
     [onValueChange]
   );
   return (
-    <FieldShell description={description} issue={issue} label={label}>
+    <FieldShell
+      description={description}
+      issue={issue}
+      issueText={issueText}
+      label={label}
+    >
       {(control) => (
         <Textarea {...textarea} {...control} onChange={handleChange} />
       )}

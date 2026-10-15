@@ -76,6 +76,11 @@ export interface PublishDialogProps {
   readonly onOpenChange: (open: boolean) => void;
   /** A publish rolled back after the dialog closed. */
   readonly onProblem?: (message: string) => void;
+  /**
+   * Saves what's on screen; `false` when it couldn't. Given, unsaved edits
+   * are saved and published in one step (170) instead of being left out.
+   */
+  readonly onSaveFirst?: () => Promise<boolean>;
   readonly open: boolean;
 }
 
@@ -84,6 +89,7 @@ export function PublishDialog({
   item,
   onOpenChange,
   onProblem,
+  onSaveFirst,
   open,
 }: PublishDialogProps) {
   const { t } = useLingui();
@@ -103,7 +109,10 @@ export function PublishDialog({
   const libraryId = useId();
   const nextVersion = (item.latestVersionNumber ?? 0) + 1;
   const chosen = targets.find((each) => keyOf(each.target) === target);
-  const pending = publishVersion.isPending || publishCopy.isPending;
+  const [savingFirst, setSavingFirst] = useState(false);
+  const pending =
+    savingFirst || publishVersion.isPending || publishCopy.isPending;
+  const saveFirst = dirty && onSaveFirst !== undefined;
 
   const { mutate: copy } = publishCopy;
   const { mutate: freeze } = publishVersion;
@@ -124,8 +133,19 @@ export function PublishDialog({
     onOpenChange(false);
   }, [chosen, copy, onOpenChange, onProblem, t]);
 
-  const submit = useCallback(() => {
+  const submit = useCallback(async () => {
     setProblem(null);
+    if (saveFirst) {
+      setSavingFirst(true);
+      const saved = await onSaveFirst();
+      setSavingFirst(false);
+      if (!saved) {
+        setProblem(
+          t`Your changes couldn't be saved, so nothing was published.`
+        );
+        return;
+      }
+    }
     if (!versioned) {
       copyToLibrary();
       return;
@@ -155,6 +175,8 @@ export function PublishDialog({
     freeze,
     notes,
     onOpenChange,
+    onSaveFirst,
+    saveFirst,
     t,
     toLibrary,
     versioned,
@@ -194,16 +216,7 @@ export function PublishDialog({
           </DialogDescription>
         </DialogHeader>
         <FieldGroup>
-          {dirty ? (
-            <Alert>
-              <AlertDescription>
-                <Trans>
-                  You have unsaved changes. Save the draft first to publish
-                  them.
-                </Trans>
-              </AlertDescription>
-            </Alert>
-          ) : null}
+          {dirty ? <UnsavedNotice saveFirst={saveFirst} /> : null}
           {versioned ? (
             <TextAreaField
               description={t`Optional. Shown in the version history.`}
@@ -280,14 +293,49 @@ export function PublishDialog({
             onClick={submit}
           >
             {pending ? <Spinner data-icon="inline-start" /> : null}
-            {versioned ? (
-              <Trans>Publish v{nextVersion}</Trans>
-            ) : (
-              <Trans>Publish to library</Trans>
-            )}
+            <PublishLabel
+              nextVersion={nextVersion}
+              saveFirst={saveFirst}
+              versioned={versioned}
+            />
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function UnsavedNotice({ saveFirst }: { readonly saveFirst: boolean }) {
+  return (
+    <Alert>
+      <AlertDescription>
+        {saveFirst ? (
+          <Trans>Your unsaved changes are saved first, then published.</Trans>
+        ) : (
+          <Trans>
+            You have unsaved changes. Save the draft first to publish them.
+          </Trans>
+        )}
+      </AlertDescription>
+    </Alert>
+  );
+}
+
+function PublishLabel({
+  nextVersion,
+  saveFirst,
+  versioned,
+}: {
+  readonly nextVersion: number;
+  readonly saveFirst: boolean;
+  readonly versioned: boolean;
+}) {
+  if (!versioned) {
+    return <Trans>Publish to library</Trans>;
+  }
+  return saveFirst ? (
+    <Trans>Save and publish v{nextVersion}</Trans>
+  ) : (
+    <Trans>Publish v{nextVersion}</Trans>
   );
 }

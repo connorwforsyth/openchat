@@ -14,6 +14,8 @@ import type { ProposedEdit } from "@workspace/contract/schemas/runs";
 import {
   ChevronDownIcon,
   ExternalLinkIcon,
+  PencilIcon,
+  PlayIcon,
   SparklesIcon,
 } from "@workspace/icons";
 import { Badge } from "@workspace/ui/components/badge";
@@ -32,7 +34,7 @@ import { LazyDiffView } from "./lazy";
 
 // The skill tools in the transcript (128). A saved or published skill is a
 // card: its name, which version and whether it's live, the library it's in,
-// and "Open in Library"; an edit also shows what it changed in SKILL.md,
+// and "Open in Library" ("Review and publish" for a draft, 170); an edit also shows what it changed in SKILL.md,
 // with the same diff as an artifact's versions. While a call waits, the
 // approval card says what it will do, and for a publish, exactly where.
 
@@ -106,10 +108,52 @@ function SkillChanges({ edit }: { readonly edit: ProposedEdit | null }) {
   );
 }
 
+/**
+ * What to do next with a skill the agent made (170): a draft is edited and
+ * published in the Library; a published one can be tried in a new chat.
+ */
+function SkillLinks({ skill }: { readonly skill: SkillRef }) {
+  const { libraryItemHref, skillChatHref } = useConversationActions();
+  const draft = skill.state === "draft";
+  return (
+    <div className="flex shrink-0 flex-wrap items-center gap-1">
+      {libraryItemHref ? (
+        <a
+          className={buttonVariants({ size: "xs", variant: "outline" })}
+          href={libraryItemHref(skill.skillId)}
+        >
+          {draft ? (
+            <PencilIcon aria-hidden data-icon="inline-start" />
+          ) : (
+            <ExternalLinkIcon aria-hidden data-icon="inline-start" />
+          )}
+          {draft ? <Trans>Edit</Trans> : <Trans>Open in Library</Trans>}
+        </a>
+      ) : null}
+      {draft && libraryItemHref ? (
+        <a
+          className={buttonVariants({ size: "xs" })}
+          href={libraryItemHref(skill.skillId)}
+        >
+          <Trans>Review and publish</Trans>
+        </a>
+      ) : null}
+      {!draft && skillChatHref ? (
+        <a
+          className={buttonVariants({ size: "xs" })}
+          href={skillChatHref(skill.skillId)}
+        >
+          <PlayIcon aria-hidden data-icon="inline-start" />
+          <Trans>Try it</Trans>
+        </a>
+      ) : null}
+    </div>
+  );
+}
+
 /** A skill a tool saved or published: what it is now, and a way to open it. */
 export function SkillCard({ detail }: { readonly detail: SkillResult }) {
   const { t } = useLingui();
-  const { libraryItemHref } = useConversationActions();
   const { result, tool } = detail;
   const { skill } = result;
   const edit = useMemo(
@@ -152,15 +196,7 @@ export function SkillCard({ detail }: { readonly detail: SkillResult }) {
             ) : null}
           </p>
         </div>
-        {libraryItemHref ? (
-          <a
-            className={buttonVariants({ size: "xs", variant: "outline" })}
-            href={libraryItemHref(skill.skillId)}
-          >
-            <ExternalLinkIcon aria-hidden data-icon="inline-start" />
-            <Trans>Open in Library</Trans>
-          </a>
-        ) : null}
+        <SkillLinks skill={skill} />
       </div>
       {result.status === "saved" && result.previousSkillMd !== undefined ? (
         <SkillChanges edit={edit} />

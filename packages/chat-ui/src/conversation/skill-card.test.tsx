@@ -164,7 +164,7 @@ describe("a skill call waiting on approval", () => {
 });
 
 describe("the skill card", () => {
-  it("shows a created draft, its version and library, and opens it in the Library", () => {
+  it("shows a created draft, its version and library, and offers to review and publish it", () => {
     renderTool(
       call("create_skill", { name: "Release notes" }),
       success("create_skill", { skill, skillMd: "x", status: "saved" }),
@@ -176,7 +176,9 @@ describe("the skill card", () => {
     expect(card.textContent).toContain("In your library");
     expect(card.textContent).toContain("1 file");
     expect(
-      screen.getByRole("link", { name: "Open in Library" }).getAttribute("href")
+      screen
+        .getByRole("link", { name: "Review and publish" })
+        .getAttribute("href")
     ).toBe(`/library/${ID}`);
   });
 
@@ -190,7 +192,9 @@ describe("the skill card", () => {
         status: "saved",
       })
     );
-    expect(screen.queryByRole("link", { name: "Open in Library" })).toBeNull();
+    expect(
+      screen.queryByRole("link", { name: "Review and publish" })
+    ).toBeNull();
     expect(screen.queryByLabelText("Diff of SKILL.md")).toBeNull();
     await userEvent.click(
       screen.getByRole("button", { name: "Changes to SKILL.md" })
@@ -210,9 +214,13 @@ describe("the skill card", () => {
         },
         status: "published",
         unchanged: false,
-      })
+      }),
+      { skillChatHref: (id) => `/?skill=${id}` }
     );
     const card = screen.getByRole("region", { name: "Skill: Release notes" });
+    expect(
+      screen.getByRole("link", { name: "Try it" }).getAttribute("href")
+    ).toBe(`/?skill=${ID}`);
     expect(card.textContent).toContain("Published a skill");
     expect(card.textContent).toContain("Published · v2");
     expect(card.textContent).toContain("In the Eng team library");

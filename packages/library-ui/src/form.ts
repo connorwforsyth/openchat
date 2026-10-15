@@ -11,6 +11,8 @@ import {
 } from "@workspace/contract/schemas/library";
 import type { ModelSelector } from "@workspace/contract/schemas/models";
 
+import { readSkillMd, skillFieldIssues, writeSkillMd } from "./skill-md";
+
 // The builder's form state and its validation, as pure functions. The
 // contract's own schemas decide what's valid (zod first, D8), so the form
 // can't drift from what the server accepts; the UI only turns issue codes
@@ -69,6 +71,17 @@ export const validateDraft = (form: DraftForm): FormIssues => {
     for (const issue of definition.error.issues) {
       const key = keyOf(["definition", ...issue.path]);
       issues[key] ??= codeOf(issue);
+    }
+  }
+  // A skill's name and description live in SKILL.md's frontmatter (170),
+  // and a model picks the skill by them, so both are needed to save.
+  if (form.definition.kind === "skill") {
+    const skill = skillFieldIssues(readSkillMd(form.definition.skillMd));
+    if (skill.name) {
+      issues["definition.skillMd.name"] = skill.name;
+    }
+    if (skill.description) {
+      issues["definition.skillMd.description"] = skill.description;
     }
   }
   return issues;
@@ -132,7 +145,7 @@ export const newDefinition = (
       return {
         files: [],
         kind: "skill",
-        skillMd: "---\nname: \ndescription: \n---\n\n",
+        skillMd: writeSkillMd({ description: "", instructions: "", name: "" }),
       };
     case "mcp_server":
       return {
@@ -146,6 +159,22 @@ export const newDefinition = (
     default:
       return kind satisfies never;
   }
+};
+
+/**
+ * A skill's library name and description follow its frontmatter (170): the
+ * form edits them there, and the library lists the item by them.
+ */
+export const syncSkillItem = (form: DraftForm): DraftForm => {
+  if (form.definition.kind !== "skill") {
+    return form;
+  }
+  const { description, name } = readSkillMd(form.definition.skillMd);
+  return {
+    ...form,
+    description: description.trim().slice(0, 2000),
+    name: name.trim().slice(0, 200),
+  };
 };
 
 /** Whether two forms would save the same thing. */

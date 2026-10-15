@@ -25,7 +25,7 @@ import type {
   SkillOption,
 } from "../schemas";
 import type { ModelVariant } from "../variants";
-import { PlusMenu } from "./plus-menu";
+import { PlusMenu, type PlusMenuProps } from "./plus-menu";
 import { STRIP_SEND_CLASS } from "./styles";
 import { TargetPicker } from "./target-picker";
 import { ThinkingControl } from "./thinking-control";
@@ -54,6 +54,7 @@ export interface ComposerFooterProps {
   readonly plan?: boolean;
   readonly prompts: readonly PromptOption[];
   readonly recentsKey: string | undefined;
+  readonly skillActions?: PlusMenuProps["skillActions"];
   /** Skills the + menu offers (127), less those already picked. */
   readonly skills?: readonly SkillOption[];
   readonly target: RunTarget | undefined;
@@ -90,6 +91,7 @@ export function ComposerFooter({
   plan = false,
   prompts,
   recentsKey,
+  skillActions,
   skills,
   target,
   variant,
@@ -149,6 +151,7 @@ export function ComposerFooter({
           onWebSearchChange={onWebSearchChange}
           plan={plan}
           prompts={prompts}
+          skillActions={skillActions}
           skills={skills}
           triggerRef={plusRef}
           webSearch={webSearch}

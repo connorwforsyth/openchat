@@ -11,6 +11,7 @@ import {
   type ItemBuilderProps,
 } from "@workspace/library-ui/components/item-builder";
 import { createRunTestChat } from "@workspace/library-ui/components/run-test-chat";
+import { useCreateWithAiPrompt } from "@workspace/library-ui/components/skill-starters";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
 
@@ -59,7 +60,11 @@ const usePins = (): NonNullable<ItemBuilderProps["pins"]> => {
   );
 };
 
-const chatHref = (item: LibraryItemDetail) => routes.chatWithAgent(item.id);
+// An agent starts a chat; a skill is tried in one, as a chip (170).
+const chatHref = (item: LibraryItemDetail) =>
+  item.kind === "skill"
+    ? routes.chatWithSkill(item.id)
+    : routes.chatWithAgent(item.id);
 
 export function BuilderScreen({ target }: { readonly target: BuilderTarget }) {
   const router = useRouter();
@@ -75,12 +80,18 @@ export function BuilderScreen({ target }: { readonly target: BuilderTarget }) {
     [router]
   );
   const back = useCallback(() => router.push(routes.library), [router]);
+  const createWithAiPrompt = useCreateWithAiPrompt();
+  const createWithAi = useCallback(
+    () => router.push(routes.draftChat(createWithAiPrompt)),
+    [createWithAiPrompt, router]
+  );
   return (
     <ItemBuilder
       backHref={routes.library}
       chatHref={chatHref}
       link={NextLink}
       onCreated={open}
+      onCreateSkillWithAi={createWithAi}
       onDeleted={back}
       onDuplicated={openCopy}
       pins={pins}

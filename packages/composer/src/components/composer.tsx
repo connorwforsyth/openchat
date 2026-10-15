@@ -131,6 +131,7 @@ export function Composer({
   plan = false,
   prompts = NONE,
   recentsKey,
+  skillActions,
   skills: offeredSkills = NONE,
   status = "ready",
   target,
@@ -514,15 +515,31 @@ export function Composer({
 
   // The host filled the composer (138): its text replaces the draft, and
   // the caret waits at the end for the rest of the sentence.
+  // Skills in a fill ("Try it", 170) join any already picked.
   const fillId = fill?.id;
   const fillText = fill?.text;
+  const fillSkills = fill?.skills;
+  const appliedFill = useRef<number | undefined>(undefined);
   useEffect(() => {
-    if (fillId === undefined || fillText === undefined) {
+    if (
+      fillId === undefined ||
+      fillText === undefined ||
+      appliedFill.current === fillId
+    ) {
       return;
     }
+    appliedFill.current = fillId;
     editor.commands.setContent(textToDoc(fillText), { emitUpdate: true });
     editor.commands.focus("end");
-  }, [editor, fillId, fillText]);
+    if (fillSkills && fillSkills.length > 0) {
+      setPickedSkills((picked) => [
+        ...picked,
+        ...fillSkills.filter((skill) =>
+          picked.every((each) => each.id !== skill.id)
+        ),
+      ]);
+    }
+  }, [editor, fillId, fillText, fillSkills]);
 
   // A template's text is gone once the editor is empty again.
   useEffect(() => {
@@ -702,6 +719,7 @@ export function Composer({
           plan={plan}
           prompts={prompts}
           recentsKey={recentsKey}
+          skillActions={skillActions}
           skills={skillsToPick}
           target={target}
           variant={variant}

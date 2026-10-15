@@ -25,7 +25,11 @@ import {
   createStorageDraftStore,
 } from "@workspace/composer/ports/draft-store.storage";
 import { promptHistory } from "@workspace/composer/prompt-history";
-import type { ComposerProps } from "@workspace/composer/props";
+import type {
+  ComposerFill,
+  ComposerProps,
+  SkillActions,
+} from "@workspace/composer/props";
 import type {
   AgentOption,
   AttachmentLimits,
@@ -41,6 +45,7 @@ import type {
   ArtifactVersionId,
   ConversationId,
   FileId,
+  LibraryItemId,
   MessageId,
   RunId,
   SandboxId,
@@ -138,6 +143,11 @@ export interface ConnectedChatProps {
   readonly artifactsRuntimeOrigin?: string | null;
   readonly brand?: ReactNode;
   readonly client: ApiClient;
+  /**
+   * What the host puts in a new chat's composer without sending it: a
+   * drafted request, or a skill to try (170). Each new `id` applies once.
+   */
+  readonly composerFill?: ComposerFill;
   readonly config: PublicConfig;
   /** `null` opens a new, not-yet-created chat. */
   readonly conversationId: ConversationId | null;
@@ -181,6 +191,10 @@ export interface ConnectedChatProps {
    * Omitted, `target` goes out.
    */
   readonly sendTarget?: RunTarget | null;
+  /** "Create skill…" and "Create with AI…" in the composer (170). */
+  readonly skillActions?: SkillActions;
+  /** A new chat with a skill to try, for the skill card (170). */
+  readonly skillChatHref?: (id: LibraryItemId) => string;
   /** Skills the caller can use (127), for the composer's + menu and `/`. */
   readonly skills?: readonly SkillOption[];
   /** What answers: a model or an agent. Omitted, the server's default does. */
@@ -1426,6 +1440,7 @@ export function ConnectedChat({
   client,
   artifactsHref,
   config,
+  composerFill,
   conversationId,
   draftContext: draftContextProp,
   initialPrompt,
@@ -1445,6 +1460,8 @@ export function ConnectedChat({
   platform,
   sandboxClient,
   sendTarget,
+  skillActions,
+  skillChatHref,
   skills,
   target = null,
   theme,
@@ -1667,6 +1684,7 @@ export function ConnectedChat({
       ...(libraryHref
         ? { libraryItemHref: (id) => `${libraryHref}/${id}` }
         : {}),
+      ...(skillChatHref ? { skillChatHref } : {}),
       onApprovePlan: (approved) => approvePlan(approved),
       onClearFeedback: feedback.clear,
       onDecide: decide,
@@ -1723,6 +1741,7 @@ export function ConnectedChat({
       revertMemory,
       send,
       setMessages,
+      skillChatHref,
       stored,
     ]
   );
@@ -1831,6 +1850,7 @@ export function ConnectedChat({
             agents,
             attachmentLimits,
             ...composerDrafts,
+            fill: composerFill,
             models,
             onPlanChange: plan.set,
             onStop,
@@ -1841,6 +1861,7 @@ export function ConnectedChat({
             recentsKey: me.user.id,
             ...webSearchSwitch(config, webSearch, setWebSearch),
             plan: plan.on,
+            skillActions,
             skills,
             status: shownStatus,
             target: target ?? undefined,
