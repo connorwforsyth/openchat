@@ -107,6 +107,13 @@ ARTIFACTS_PORT=3910
 # localhost port, for development. Set it to the app's public origin in production.
 ARTIFACTS_APP_ORIGINS=
 
+# Voice (docs/voice.md): \`docker compose --profile voice up -d\`, then point
+# app.config.yaml's \`voice:\` at these. Unset, voice is off.
+# VOICE_STT_URL=http://localhost:8000/v1
+# VOICE_TTS_URL=http://localhost:8880/v1
+# VOICE_STT_PORT=8000
+# VOICE_TTS_PORT=8880
+
 # --- Set by \`bun run setup\` ---
 ANTHROPIC_API_KEY=fake-anthropic-key-placeholder
 GATEWAY_API_KEY=fake-gateway-key-placeholder
@@ -242,6 +249,19 @@ artifacts:
         - https://fonts.gstatic.com
         - https://cdnjs.cloudflare.com
         - https://cdn.jsdelivr.net
+
+# Voice conversations (docs/voice.md). Off until configured: no URLs (local)
+# or no key (openai) and the call button stays hidden.
+#   local:  \`docker compose --profile voice up -d\` runs Whisper (Speaches) and
+#           Kokoro; both stay on this machine.
+#   openai: OpenAI's audio API and, for speech to speech, Realtime. The key
+#           falls back to providers.openai.apiKey.
+voice:
+  provider: local # local | openai
+  stt: { url: "\${VOICE_STT_URL}", model: Systran/faster-whisper-base.en }
+  tts: { url: "\${VOICE_TTS_URL}", model: kokoro, voice: af_heart }
+  # openai: { apiKey: "\${OPENAI_API_KEY}", sttModel: gpt-4o-mini-transcribe, ttsModel: gpt-4o-mini-tts, voice: alloy, realtimeModel: gpt-realtime }
+  maxUploadMb: 10
 "
 `;
 
@@ -366,6 +386,13 @@ ARTIFACTS_PORT=3910
 # App origins allowed to embed the runtime, comma-separated. Unset: any
 # localhost port, for development. Set it to the app's public origin in production.
 ARTIFACTS_APP_ORIGINS=
+
+# Voice (docs/voice.md): \`docker compose --profile voice up -d\`, then point
+# app.config.yaml's \`voice:\` at these. Unset, voice is off.
+# VOICE_STT_URL=http://localhost:8000/v1
+# VOICE_TTS_URL=http://localhost:8880/v1
+# VOICE_STT_PORT=8000
+# VOICE_TTS_PORT=8880
 "
 `;
 
@@ -493,6 +520,19 @@ artifacts:
         - https://fonts.gstatic.com
         - https://cdnjs.cloudflare.com
         - https://cdn.jsdelivr.net
+
+# Voice conversations (docs/voice.md). Off until configured: no URLs (local)
+# or no key (openai) and the call button stays hidden.
+#   local:  \`docker compose --profile voice up -d\` runs Whisper (Speaches) and
+#           Kokoro; both stay on this machine.
+#   openai: OpenAI's audio API and, for speech to speech, Realtime. The key
+#           falls back to providers.openai.apiKey.
+voice:
+  provider: local # local | openai
+  stt: { url: "\${VOICE_STT_URL}", model: Systran/faster-whisper-base.en }
+  tts: { url: "\${VOICE_TTS_URL}", model: kokoro, voice: af_heart }
+  # openai: { apiKey: "\${OPENAI_API_KEY}", sttModel: gpt-4o-mini-transcribe, ttsModel: gpt-4o-mini-tts, voice: alloy, realtimeModel: gpt-realtime }
+  maxUploadMb: 10
 "
 `;
 
@@ -604,6 +644,13 @@ ARTIFACTS_PORT=3910
 # App origins allowed to embed the runtime, comma-separated. Unset: any
 # localhost port, for development. Set it to the app's public origin in production.
 ARTIFACTS_APP_ORIGINS=
+
+# Voice (docs/voice.md): \`docker compose --profile voice up -d\`, then point
+# app.config.yaml's \`voice:\` at these. Unset, voice is off.
+# VOICE_STT_URL=http://localhost:8000/v1
+# VOICE_TTS_URL=http://localhost:8880/v1
+# VOICE_STT_PORT=8000
+# VOICE_TTS_PORT=8880
 
 # --- Set by \`bun run setup\` ---
 ANTHROPIC_API_KEY=fake-anthropic-key-placeholder
@@ -736,6 +783,19 @@ artifacts:
         - https://fonts.gstatic.com
         - https://cdnjs.cloudflare.com
         - https://cdn.jsdelivr.net
+
+# Voice conversations (docs/voice.md). Off until configured: no URLs (local)
+# or no key (openai) and the call button stays hidden.
+#   local:  \`docker compose --profile voice up -d\` runs Whisper (Speaches) and
+#           Kokoro; both stay on this machine.
+#   openai: OpenAI's audio API and, for speech to speech, Realtime. The key
+#           falls back to providers.openai.apiKey.
+voice:
+  provider: local # local | openai
+  stt: { url: "\${VOICE_STT_URL}", model: Systran/faster-whisper-base.en }
+  tts: { url: "\${VOICE_TTS_URL}", model: kokoro, voice: af_heart }
+  # openai: { apiKey: "\${OPENAI_API_KEY}", sttModel: gpt-4o-mini-transcribe, ttsModel: gpt-4o-mini-tts, voice: alloy, realtimeModel: gpt-realtime }
+  maxUploadMb: 10
 "
 `;
 
