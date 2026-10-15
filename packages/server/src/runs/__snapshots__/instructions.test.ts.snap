@@ -34,6 +34,8 @@ Name sections by their heading text. Send the whole \`content\` only to rewrite 
 
 Before you create or update a \`presentation\` artifact, call \`load_artifact_guide\` with type "presentation" and follow the guide it returns.
 
+Before you create or update a \`spreadsheet\` artifact, call \`load_artifact_guide\` with type "spreadsheet" and follow the guide it returns.
+
 Before you create or update a \`site\` artifact, call \`load_artifact_guide\` with type "site" and follow the guide it returns.
 
 The user's latest message mentions these files from the workspace. They are shown as they are now:
@@ -74,6 +76,8 @@ Name sections by their heading text. Send the whole \`content\` only to rewrite 
 
 Before you create or update a \`presentation\` artifact, call \`load_artifact_guide\` with type "presentation" and follow the guide it returns.
 
+Before you create or update a \`spreadsheet\` artifact, call \`load_artifact_guide\` with type "spreadsheet" and follow the guide it returns.
+
 Before you create or update a \`site\` artifact, call \`load_artifact_guide\` with type "site" and follow the guide it returns."
 `;
 
@@ -91,6 +95,8 @@ To change part of a document, call update_artifact with \`edit\` instead of \`co
 Name sections by their heading text. Send the whole \`content\` only to rewrite most of the document. The user may have edited it since you wrote it: edit the latest version you were shown.
 
 Before you create or update a \`presentation\` artifact, call \`load_artifact_guide\` with type "presentation" and follow the guide it returns.
+
+Before you create or update a \`spreadsheet\` artifact, call \`load_artifact_guide\` with type "spreadsheet" and follow the guide it returns.
 
 Before you create or update a \`site\` artifact, call \`load_artifact_guide\` with type "site" and follow the guide it returns."
 `;
@@ -190,6 +196,8 @@ Name sections by their heading text. Send the whole \`content\` only to rewrite 
 
 Before you create or update a \`presentation\` artifact, call \`load_artifact_guide\` with type "presentation" and follow the guide it returns.
 
+Before you create or update a \`spreadsheet\` artifact, call \`load_artifact_guide\` with type "spreadsheet" and follow the guide it returns.
+
 Before you create or update a \`site\` artifact, call \`load_artifact_guide\` with type "site" and follow the guide it returns.
 
 The user's latest message mentions these files from the workspace. They are shown as they are now:
@@ -213,6 +221,8 @@ To change part of a document, call update_artifact with \`edit\` instead of \`co
 Name sections by their heading text. Send the whole \`content\` only to rewrite most of the document. The user may have edited it since you wrote it: edit the latest version you were shown.
 
 Before you create or update a \`presentation\` artifact, call \`load_artifact_guide\` with type "presentation" and follow the guide it returns.
+
+Before you create or update a \`spreadsheet\` artifact, call \`load_artifact_guide\` with type "spreadsheet" and follow the guide it returns.
 
 Before you create or update a \`site\` artifact, call \`load_artifact_guide\` with type "site" and follow the guide it returns.
 
@@ -265,6 +275,8 @@ To change part of a document, call update_artifact with \`edit\` instead of \`co
 Name sections by their heading text. Send the whole \`content\` only to rewrite most of the document. The user may have edited it since you wrote it: edit the latest version you were shown.
 
 Before you create or update a \`presentation\` artifact, call \`load_artifact_guide\` with type "presentation" and follow the guide it returns.
+
+Before you create or update a \`spreadsheet\` artifact, call \`load_artifact_guide\` with type "spreadsheet" and follow the guide it returns.
 
 Before you create or update a \`site\` artifact, call \`load_artifact_guide\` with type "site" and follow the guide it returns.
 

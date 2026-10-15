@@ -29,7 +29,7 @@ export const createArtifactInputSchema = z.object({
     "A short title the user will recognise it by."
   ),
   type: artifactDirectiveSchema.shape.type.describe(
-    "document: a rich-text document the user can edit and export, written in Markdown (prefer it for reports, plans and notes). html: one complete HTML document. react: one file with a default-exported component. svg: one <svg> element. diagram: a flowchart the user can rearrange, as JSON nodes and edges with no coordinates (see the Diagrams instructions). mermaid: Mermaid source, for sequence, class, state and other diagrams. markdown: Markdown text that is only read. code: a file in any language. site: a small website of several files, as JSON (see the Sites instructions)."
+    "document: a rich-text document the user can edit and export, written in Markdown (prefer it for reports, plans and notes). html: one complete HTML document. react: one file with a default-exported component. svg: one <svg> element. diagram: a flowchart the user can rearrange, as JSON nodes and edges with no coordinates (see the Diagrams instructions). mermaid: Mermaid source, for sequence, class, state and other diagrams. markdown: Markdown text that is only read. code: a file in any language. site: a small website of several files, as JSON (see the Sites instructions). spreadsheet: sheets of values and formulas, one Markdown table per sheet (see the Spreadsheets instructions)."
   ),
 });
 export type CreateArtifactInput = z.infer<typeof createArtifactInputSchema>;

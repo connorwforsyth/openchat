@@ -11,6 +11,7 @@ import {
 import { DOCUMENT_EDITS } from "@workspace/artifacts-kit/kinds/document/operations";
 import { PRESENTATION_LIMITS } from "@workspace/artifacts-kit/kinds/presentation/content";
 import { PRESENTATION_EDITS } from "@workspace/artifacts-kit/kinds/presentation/operations";
+import { SPREADSHEET_EDITS } from "@workspace/artifacts-kit/kinds/spreadsheet/operations";
 import type { ArtifactKindRegistry } from "@workspace/artifacts-kit/registry";
 import { artifactIdSchema } from "@workspace/contract/schemas/common";
 import { z } from "zod";
@@ -32,16 +33,17 @@ import { defineTool, type ToolContext } from "./define";
 
 // `update_artifact` (078): the artifact's next version; earlier versions
 // are kept. Either the whole content again, or (126) an `edit` of one part
-// of a document, (164) one slide of a presentation, or (165) a diagram's
-// nodes and edges: a kind's structured operation (`@workspace/artifacts-kit`)
-// applied to its latest version. The content is checked by the artifact's
-// kind (123), and nothing is saved if a check fails. What the tools share
-// is in `../artifact-content.ts`.
+// of a document, (164) one slide of a presentation, (165) a diagram's nodes
+// and edges, or (166) a spreadsheet's cells and sheets: a kind's structured
+// operation (`@workspace/artifacts-kit`) applied to its latest version. The
+// content is checked by the artifact's kind (123), and nothing is saved if a
+// check fails. What the tools share is in `../artifact-content.ts`.
 
 type EditName =
   | keyof typeof DOCUMENT_EDITS
   | keyof typeof PRESENTATION_EDITS
-  | keyof typeof DIAGRAM_EDITS;
+  | keyof typeof DIAGRAM_EDITS
+  | keyof typeof SPREADSHEET_EDITS;
 
 /** Every kind's edits by name; the kit says which kind has which. */
 const EDIT_NAMES = [
@@ -49,8 +51,16 @@ const EDIT_NAMES = [
     ...Object.keys(DOCUMENT_EDITS),
     ...Object.keys(PRESENTATION_EDITS),
     ...Object.keys(DIAGRAM_EDITS),
+    ...Object.keys(SPREADSHEET_EDITS),
   ]),
 ] as [EditName, ...EditName[]];
+
+const spreadsheetCellSchema = z.union([
+  z.string().max(10_000),
+  z.number(),
+  z.boolean(),
+  z.null(),
+]);
 
 /**
  * One structured edit. A flat object (not a union) so every provider's
@@ -72,6 +82,20 @@ export const artifactEditSchema = z
       .optional()
       .describe(
         "For a diagram's add_nodes and connect: edges to add, {from, to, label?}. For remove: edges to remove, {from, to}."
+      ),
+    fmt: z
+      .string()
+      .max(64)
+      .optional()
+      .describe(
+        'Spreadsheet set_range and set_formula: a number format for the cells, as Excel writes one ("0.00", "#,##0", "0%").'
+      ),
+    formula: z
+      .string()
+      .max(2000)
+      .optional()
+      .describe(
+        'Spreadsheet set_formula: the formula, with or without its leading "=".'
       ),
     group: diagramGroupSchema
       .optional()
@@ -103,6 +127,13 @@ export const artifactEditSchema = z
     label: diagramLabelSchema
       .optional()
       .describe("For a diagram's update_node: the node's new label."),
+    name: z
+      .string()
+      .max(64)
+      .optional()
+      .describe(
+        "Spreadsheet add_sheet: the new sheet's name. rename_sheet: the sheet's new name."
+      ),
     nodes: z
       .array(diagramNodeSchema)
       .max(200)
@@ -118,15 +149,29 @@ export const artifactEditSchema = z
     operation: z
       .enum(EDIT_NAMES)
       .describe(
-        "A document's: replace_section (the section under a heading, up to the next heading of the same or a higher level), insert (blocks at a section's start or end, or the document's end), delete_section (a heading and its section). A presentation's: update_slide, add_slide, move_slide, delete_slide, replace (the whole deck). A diagram's: add_nodes, connect, update_node, remove, replace (the whole graph, keeping the layout)."
+        "A document's: replace_section (the section under a heading, up to the next heading of the same or a higher level), insert (blocks at a section's start or end, or the document's end), delete_section (a heading and its section). A presentation's: update_slide, add_slide, move_slide, delete_slide, replace (the whole deck). A diagram's: add_nodes, connect, update_node, remove, replace (the whole graph, keeping the layout). A spreadsheet's: set_range, set_formula, delete_range, add_sheet, rename_sheet."
       ),
     position: z
       .enum(["section_end", "section_start"])
       .optional()
       .describe("For insert: where in the section. section_end by default."),
+    range: z
+      .string()
+      .max(32)
+      .optional()
+      .describe(
+        'Spreadsheet set_range, set_formula and delete_range: a cell ("B2") or a range ("B2:D5").'
+      ),
     shape: diagramShapeSchema
       .optional()
       .describe("For a diagram's update_node: the node's new shape."),
+    sheet: z
+      .string()
+      .max(64)
+      .optional()
+      .describe(
+        "Spreadsheet: the sheet the edit acts on; the first sheet when left out."
+      ),
     slide: z
       .string()
       .max(40)
@@ -139,9 +184,16 @@ export const artifactEditSchema = z
       .describe(
         "For add_slide and update_slide: the slide's TSX, default-exporting one slide."
       ),
+    values: z
+      .array(z.array(spreadsheetCellSchema).max(100))
+      .max(10_000)
+      .optional()
+      .describe(
+        'Spreadsheet set_range: rows of cells from the range\'s top-left. Numbers, TRUE/FALSE, text, "=FORMULA", or null to clear.'
+      ),
   })
   .describe(
-    'For a document (type "document"), change one section; for a presentation (type "presentation"), one slide; for a diagram (type "diagram"), some nodes or edges; instead of sending all of it. Leave out content when you send an edit, except for a presentation\'s replace.'
+    'For a document (type "document"), change one section; for a presentation (type "presentation"), one slide; for a diagram (type "diagram"), some nodes or edges; for a spreadsheet (type "spreadsheet"), some cells or sheets; instead of sending all of it. Leave out content when you send an edit, except for a presentation\'s replace.'
   );
 
 export const updateArtifactInputSchema = z.object({
@@ -193,7 +245,7 @@ const nextContent = async (
       return {
         ok: false,
         output: invalid(
-          "send either content (the whole artifact) or an edit (one part of a document, presentation or diagram)"
+          "send either content (the whole artifact) or an edit (one part of a document, presentation, diagram or spreadsheet)"
         ),
       };
     }
@@ -283,7 +335,7 @@ export const updateArtifactTool = defineTool({
   approval: "ask",
   capability: "artifacts",
   description:
-    "Save an artifact's next version; earlier versions are kept. Pass the complete new content, not a diff, or, for a document, an edit of one section, for a presentation, an edit of one slide, or, for a diagram, an edit of some nodes or edges.",
+    "Save an artifact's next version; earlier versions are kept. Pass the complete new content, not a diff, or, for a document, an edit of one section, for a presentation, an edit of one slide, for a diagram, an edit of some nodes or edges, or, for a spreadsheet, an edit of some cells or sheets.",
   execute: (input, { ports }: ToolContext<{ readonly ports: ArtifactPorts }>) =>
     updateArtifact(ports.store, input, ports.kinds),
   input: updateArtifactInputSchema,

@@ -55,6 +55,7 @@ export interface ArtifactRender {
   /**
    * `document`: the rich-text editor (126); `image`: a picture (138);
    * `diagram`: the diagram canvas (165).
+   * `spreadsheet`: the grid (166).
    */
   readonly panel:
     | "diagram"
@@ -62,7 +63,8 @@ export interface ArtifactRender {
     | "frame"
     | "image"
     | "markdown"
-    | "source";
+    | "source"
+    | "spreadsheet";
   readonly runtime: string | null;
 }
 
@@ -136,9 +138,9 @@ export interface ArtifactKindDefinition<TContent = unknown> {
   readonly diff: "text";
   /**
    * How a person edits it: `none` while only the model can, the rich-text
-   * editor (126), or the diagram canvas (165).
+   * editor (126), the diagram canvas (165), or the grid (166).
    */
-  readonly editor: "canvas" | "none" | "rich-text";
+  readonly editor: "canvas" | "grid" | "none" | "rich-text";
   readonly export: readonly ArtifactExport[];
   readonly icon: IconName;
   /**

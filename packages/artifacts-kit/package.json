@@ -15,11 +15,13 @@
   },
   "dependencies": {
     "@dagrejs/dagre": "catalog:",
+    "@formulajs/formulajs": "catalog:",
     "@workspace/config": "workspace:*",
     "@workspace/contract": "workspace:*",
     "@workspace/icons": "workspace:*",
     "@workspace/shared": "workspace:*",
     "docx": "catalog:",
+    "exceljs": "catalog:",
     "marked": "catalog:",
     "zod": "catalog:"
   },

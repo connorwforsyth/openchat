@@ -23,8 +23,8 @@ export const artifactDirectiveSchema = z.object({
     .max(64),
   title: z.string().trim().min(1).max(200),
   // An image (138) is only ever `generate_image`'s, never written as text,
-  // and spreadsheets (166) aren't built yet.
-  type: artifactKindSchema.exclude(["image", "spreadsheet"]),
+  // and so isn't offered.
+  type: artifactKindSchema.exclude(["image"]),
 });
 
 /** The kinds a model may write itself. */
@@ -65,6 +65,8 @@ const BODY_CHECKS: Readonly<Record<WrittenKind, RegExp>> = {
   react: /export\s+default\b/,
   // Sites (125) are JSON with their files; the Site kind checks the rest.
   site: /"files"\s*:/,
+  // Sheets as Markdown tables or JSON (166); the kind checks the rest.
+  spreadsheet: /\S/,
   svg: /^\s*<svg[\s>][\s\S]*<\/svg>\s*$/,
 };
 
