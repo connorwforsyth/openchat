@@ -36,6 +36,9 @@ const SectionTitle = ({ pathname }: { readonly pathname: string }) => {
   if (pathname.startsWith(routes.artifacts)) {
     return <Trans>Artifacts</Trans>;
   }
+  if (pathname.startsWith(routes.dots)) {
+    return <Trans>Dots</Trans>;
+  }
   if (pathname.startsWith(routes.admin)) {
     return <Trans>Admin</Trans>;
   }
