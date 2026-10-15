@@ -138,6 +138,8 @@ export interface WorkspaceHandle {
 
 export interface ChatScreenProps {
   readonly actions: ConversationActions;
+  /** A bar above the messages, in the flow (a Dot's schedule, 172). */
+  readonly banner?: ReactNode;
   readonly brand?: ReactNode;
   readonly composer: ComposerLoaderProps;
   readonly conversation: ChatScreenConversation;
@@ -211,6 +213,7 @@ const textValue = (text: string): ComposerValue => ({
 
 function ChatScreenBody({
   actions,
+  banner,
   brand,
   composer,
   conversation,
@@ -749,6 +752,7 @@ function ChatScreenBody({
     >
       {/* A size container: the centred composer is placed against its height. */}
       <div className="flex min-h-0 flex-1 flex-col [container-type:size]">
+        {banner}
         <FilePreviewContext.Provider value={chatWorkspace ? previewFile : null}>
           <ConversationView
             actions={conversationActions}

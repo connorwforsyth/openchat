@@ -63,10 +63,10 @@ export function DotBanner({
   }
   const next = dot.enabled ? nextText(dot.nextRunAt) : null;
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-14 z-20 flex justify-center px-4">
+    <div className="flex shrink-0 justify-center border-border border-b px-4 py-1.5">
       <section
         aria-label={t`Dot schedule`}
-        className="pointer-events-auto flex max-w-full items-center gap-2 rounded-full border border-border bg-background/95 py-1 ps-3 pe-1 text-sm shadow-sm backdrop-blur"
+        className="flex max-w-full items-center gap-2 text-sm"
       >
         <BotIcon
           aria-hidden
