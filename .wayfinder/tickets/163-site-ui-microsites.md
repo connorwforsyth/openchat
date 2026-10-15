@@ -3,7 +3,7 @@ id: "163"
 title: "Microsites: `@workspace/site-ui` and sites written as TSX pages"
 labels: [wayfinder:build]
 status: open
-assignee:
+assignee: loop
 blockedBy: ["159"]
 ---
 
@@ -40,3 +40,15 @@ Connor (2026-10-16): the microsite should "use very specific libraries that the 
 ## Owns
 
 `packages/site-ui/**` (new), `packages/artifacts-kit/src/kinds/site/**`, `apps/artifacts/**` (including `Dockerfile` and `package.json`), `packages/config/src/schema.ts` (the site key) and its test, `app.config.example.yaml`, `e2e/tests/sites.spec.ts`, the instructions snapshot.
+
+## Results (2026-10-16)
+
+- **Spike passed first:** a `sandbox="allow-scripts"` srcdoc frame under the served `site.html` (site CSP, no `'unsafe-eval'`) imported a module from the runtime's origin by absolute URL (ACAO `*`). Chromium only.
+- **`packages/site-ui`:** `Page`, `Nav`, `Hero`, `FeatureGrid`, `Stats`, `Testimonial` (its credit prop is `byline`, because Biome's ARIA rule rejects `role`), `Pricing`, `Faq` (native `<details>`), `Cta`, `Footer`, `Section` and `Prose`. They're built on button styles, card, badge and separator, with no Lingui and no overlays, and every word comes in as a prop. Icons are picked from 27 curated names, and unknown names are ignored via `hasOwn`. `src/candidates.generated.ts` comes from `scripts/candidates.ts`. Browser-mode tests check rendering, that the exports equal `SITE_UI_EXPORTS`, and that the candidates aren't stale (files read through `commands.readFile`).
+- **Kit:** `stacks.ts` is gone. `stack` is now an optional legacy string that nothing reads, and `DEFAULT_SITE_STACK` stays exported because `packages/server/src/api/sites.ts` still writes it. `tsx` is a site extension now. A site needs exactly one of `index.tsx` and `index.html`, and `x.tsx` and `x.html` can't both exist. `tsx.ts` holds `SITE_TSX_MODULES`, `SITE_UI_EXPORTS` and `tsxPageProblems` (bad imports, unknown names, namespace imports, no default export). `tsxReferences` reads JSX attributes, `href:`/`src:` props and imports, and a link to `about.html` resolves to `about.tsx`. `design/site-ui.md` replaces `react-ui.md`, and the instructions now carry both guides, site-ui first. The guide's examples are checked and compiled in the kit tests and rendered in `apps/artifacts`.
+- **Build:** there are `CompileTsx` and `SiteTsxPorts` ports. `tsxShell` writes the `.html` shell, escaping `</script` and `<!--` as `\x3C`. Raw `.tsx` files never reach the output, and site-ui's candidates are merged in only when the site has TSX pages.
+- **Runtime:** `apps/artifacts/src/site-runtime.ts` (`mountPage` with its require table, mounted with `createRoot`) is built as its own `site-runtime-<hash>.js` by `build:runtime`. The server finds it at boot (and again on each request under `--watch`) and writes it into `site.html` as a `<meta>`. Published shells import it by root path. Render errors post `{type: "error"}` on `SITE_PREVIEW_CHANNEL`, and `site-main` reports them. Nothing is rendered on the server.
+- **Config:** `stack` is still accepted (any string), deprecated and ignored. `app.config.example.yaml` is updated, and the Dockerfile now runs `packages/icons/scripts/select.ts`.
+- **Snapshots outside Owns,** all derived from this change: `packages/setup` (`plan.test.ts`, which embeds the example yaml) and `packages/ai` (`artifact-golden`, the site JSON error message), along with the instructions snapshot. The instructions grow by about 100 lines, the site-ui guide; ticket 160's on-demand guides could take that out.
+- **Verification:** `check`, `check:guards`, `turbo typecheck lint test --filter=...[HEAD]` (composer failed once under load and passed alone), and the e2e `sites.spec.ts`, 7 of 7, including the new TSX preview and publish test.
+- **Gaps:** I didn't run `docker build`. The candidates staleness test reads the source list that's already recorded, so a new block file only shows up after `bun run candidates`. Published TSX sites need JavaScript until there's sandbox pre-rendering.
