@@ -9,6 +9,12 @@
 // directory, so runs from other worktrees on the same machine queue too.
 // Unit-test packages don't take it and stay parallel; so does a root
 // `vitest run`, which is one process.
+//
+//   bun ../../scripts/ci/browser-lock.ts --name next-build next build
+//
+// `--name` holds a different lock. Ticket 140: `next build` OOM-killed under
+// three worktrees' gates at once, so apps/web's build and the root e2e run
+// share a `next-build` lock, and only one runs per machine.
 import { type ChildProcess, spawn } from "node:child_process";
 import {
   mkdirSync,
@@ -20,7 +26,45 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { z } from "zod";
+
 export const DEFAULT_LOCK_DIR = join(tmpdir(), "vitest-browser-mode.lock");
+
+// A name becomes a directory name in the temp directory, so no separators.
+export const LockNameSchema = z.string().regex(/^[a-z0-9][a-z0-9-]*$/);
+
+/** Where the lock called `name` lives; no name is the browser-mode lock. */
+export const lockDirFor = (name?: string): string =>
+  name === undefined ? DEFAULT_LOCK_DIR : join(tmpdir(), `${name}.lock`);
+
+export const InvocationSchema = z.object({
+  args: z.array(z.string()).readonly(),
+  command: z.string(),
+  name: LockNameSchema.optional(),
+});
+export type Invocation = z.infer<typeof InvocationSchema>;
+
+/** `[--name <name>] <command> [...args]`, or why it isn't. */
+export const parseInvocation = (
+  argv: readonly string[]
+):
+  | { readonly ok: true; readonly value: Invocation }
+  | { readonly error: string; readonly ok: false } => {
+  const named = argv[0] === "--name";
+  const [command, ...args] = named ? argv.slice(2) : argv;
+  const parsed = InvocationSchema.safeParse({
+    args,
+    command,
+    name: named ? (argv[1] ?? "") : undefined,
+  });
+  return parsed.success
+    ? { ok: true, value: parsed.data }
+    : {
+        error:
+          "usage: browser-lock.ts [--name <lowercase-name>] <command> [...args]",
+        ok: false,
+      };
+};
 
 const OWNER_FILE = "pid";
 const POLL_MS = 250;
@@ -94,13 +138,13 @@ export const release = (lockDir: string, pid = process.pid): void => {
   }
 };
 
-const acquire = (lockDir: string): Promise<void> => {
+const acquire = (lockDir: string, name?: string): Promise<void> => {
   if (tryAcquire(lockDir)) {
     return Promise.resolve();
   }
   const owner = readOwner(lockDir);
   console.log(
-    `Waiting for another browser test run${owner ? ` (pid ${owner})` : ""} to finish…`
+    `Waiting for another ${name ?? "browser test"} run${owner ? ` (pid ${owner})` : ""} to finish…`
   );
   return new Promise((resolve) => {
     const poll = setInterval(() => {
@@ -113,12 +157,13 @@ const acquire = (lockDir: string): Promise<void> => {
 };
 
 const main = async (): Promise<void> => {
-  const [command, ...args] = process.argv.slice(2);
-  if (!command) {
-    console.error("usage: browser-lock.ts <command> [...args]");
+  const invocation = parseInvocation(process.argv.slice(2));
+  if (!invocation.ok) {
+    console.error(invocation.error);
     process.exit(2);
   }
-  const lockDir = DEFAULT_LOCK_DIR;
+  const { args, command, name } = invocation.value;
+  const lockDir = lockDirFor(name);
 
   let child: ChildProcess | undefined;
   const forward = (signal: NodeJS.Signals) => {
@@ -133,7 +178,7 @@ const main = async (): Promise<void> => {
   process.on("SIGTERM", forward);
   process.on("exit", () => release(lockDir));
 
-  await acquire(lockDir);
+  await acquire(lockDir, name);
   child = spawn(command, args, { stdio: "inherit" });
   child.on("error", (error) => {
     console.error(error.message);

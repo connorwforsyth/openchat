@@ -133,7 +133,7 @@
     "setup": "bun packages/setup/src/main.ts",
     "test": "turbo run test",
     "test:desktop": "turbo run test:desktop",
-    "test:e2e": "turbo run test:e2e",
+    "test:e2e": "turbo run build --filter=@workspace/e2e^... && bun scripts/ci/browser-lock.ts --name next-build turbo run test:e2e --only",
     "test:guards": "vitest run --project guards",
     "typecheck": "turbo run typecheck",
     "typecheck:guards": "tsc -p scripts/ci"
