@@ -18,10 +18,8 @@ describe("updateState", () => {
     });
   });
 
-  it("checks in a packaged build that turned it on", () => {
-    expect(updateState({ autoUpdate: true }, true)).toEqual({
-      kind: "checking",
-    });
+  it("is on in a packaged build that turned it on", () => {
+    expect(updateState({ autoUpdate: true }, true)).toEqual({ kind: "idle" });
   });
 });
 
@@ -29,9 +27,12 @@ describe("startAutoUpdate", () => {
   it("doesn't load the updater when off", async () => {
     // electron-updater needs Electron; importing it here would throw, so a
     // resolved "off" shows it was never loaded.
-    await expect(startAutoUpdate({ autoUpdate: false }, true)).resolves.toEqual(
-      { kind: "off", reason: "build" }
-    );
+    const updates = await startAutoUpdate({
+      build: { autoUpdate: false },
+      isPackaged: true,
+      onChange: () => undefined,
+    });
+    expect(updates.state()).toEqual({ kind: "off", reason: "build" });
   });
 });
 

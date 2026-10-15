@@ -11,6 +11,11 @@ export const desktopEnvSchema = z.object({
    * setting the Quick AI shortcut directly.
    */
   DESKTOP_TEST_HOOKS: z.literal("1").optional().catch(undefined),
+  /**
+   * Read updates from this generic feed instead of the build's (149): a
+   * folder of packaged releases served locally, to try an update end to end.
+   */
+  DESKTOP_UPDATE_URL: z.url().optional(),
   /** Keep settings and the session here instead of the OS default (tests, side-by-side runs). */
   DESKTOP_USER_DATA: z.string().min(1).optional(),
   /** Set by `electron-vite dev`: the setup page's dev server. */

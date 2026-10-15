@@ -5,6 +5,7 @@ import { getShortcut, type ShortcutId } from "@workspace/shortcuts/registry";
 import type { MenuItemConstructorOptions } from "electron";
 
 import type { Platform } from "../shared/ipc";
+import { type UpdateState, updateMenuItem } from "../shared/update-state";
 import {
   QUICK_SHORTCUT_PRESETS,
   type QuickShortcut,
@@ -27,6 +28,10 @@ import {
 
 export interface MenuActions {
   readonly changeInstance: () => void;
+  /** Looks for an update now (149). */
+  readonly checkForUpdates: () => void;
+  /** Quits and installs a downloaded update (149). */
+  readonly restartToUpdate: () => void;
   /** Sends a shortcut's command to the instance's page. */
   readonly runShortcut: (id: ShortcutId) => void;
   /** Saves and registers another Quick AI shortcut, or none (118). */
@@ -95,6 +100,53 @@ const quickItems = ({
   ];
 };
 
+/** The update item (149): absent while updates are off. */
+const updateItems = ({
+  actions,
+  i18n,
+  update,
+}: {
+  readonly actions: MenuActions;
+  readonly i18n: I18n;
+  readonly update: UpdateState;
+}): MenuItemConstructorOptions[] => {
+  const item = updateMenuItem(update);
+  if (!item) {
+    return [];
+  }
+  switch (item.kind) {
+    case "check":
+      return [
+        {
+          click: actions.checkForUpdates,
+          enabled: item.enabled,
+          id: "update",
+          label: item.enabled
+            ? i18n._(msg`Check for Updates…`)
+            : i18n._(msg`Checking for Updates…`),
+        },
+      ];
+    case "downloading":
+      return [
+        {
+          enabled: false,
+          id: "update",
+          label: i18n._(msg`Downloading Update… ${item.percent}%`),
+        },
+      ];
+    case "restart":
+      return [
+        {
+          click: actions.restartToUpdate,
+          id: "update",
+          label: i18n._(msg`Restart to Update`),
+        },
+      ];
+    default:
+      return [];
+  }
+};
+
 export interface TrayActions {
   readonly newChat: () => void;
   readonly quit: () => void;
@@ -150,12 +202,14 @@ export const menuTemplate = ({
   i18n,
   platform,
   quickShortcut,
+  update = { kind: "off", reason: "build" },
 }: {
   readonly actions: MenuActions;
   readonly appName: string;
   readonly i18n: I18n;
   readonly platform: Platform;
   readonly quickShortcut: QuickShortcut;
+  readonly update?: UpdateState;
 }): MenuItemConstructorOptions[] => {
   const shortcut = (id: ShortcutId): MenuItemConstructorOptions => {
     const accelerator = electronAccelerator(id);
@@ -174,6 +228,7 @@ export const menuTemplate = ({
   };
   const mac = platform === "mac";
   const quick = quickItems({ actions, i18n, platform, quickShortcut });
+  const updates = updateItems({ actions, i18n, update });
 
   const file: MenuItemConstructorOptions = {
     role: "fileMenu",
@@ -225,7 +280,11 @@ export const menuTemplate = ({
   };
   const help: MenuItemConstructorOptions = {
     role: "help",
-    submenu: [shortcut("help")],
+    // macOS keeps the update item in the app menu, under About.
+    submenu: [
+      shortcut("help"),
+      ...(mac || updates.length === 0 ? [] : [separator, ...updates]),
+    ],
   };
   const shared: MenuItemConstructorOptions[] = [
     file,
@@ -244,6 +303,7 @@ export const menuTemplate = ({
       label: appName,
       submenu: [
         { role: "about" },
+        ...updates,
         separator,
         shortcut("settings.open"),
         changeInstance,

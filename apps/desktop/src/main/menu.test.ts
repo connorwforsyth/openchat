@@ -6,8 +6,8 @@ import {
 } from "@workspace/shortcuts/registry";
 import type { MenuItemConstructorOptions } from "electron";
 import { describe, expect, it, vi } from "vitest";
-
 import type { Platform } from "../shared/ipc";
+import type { UpdateState } from "../shared/update-state";
 import {
   type MenuActions,
   menuTemplate,
@@ -22,11 +22,14 @@ const altSpace = parseQuickShortcut("Alt+Space");
 const build = (
   platform: Platform,
   actions: Partial<MenuActions> = {},
-  quickShortcut: QuickShortcut = altSpace
+  quickShortcut: QuickShortcut = altSpace,
+  update?: UpdateState
 ) =>
   menuTemplate({
     actions: {
       changeInstance: vi.fn(),
+      checkForUpdates: vi.fn(),
+      restartToUpdate: vi.fn(),
       runShortcut: vi.fn(),
       setQuickShortcut: vi.fn(),
       toggleQuick: vi.fn(),
@@ -36,6 +39,7 @@ const build = (
     i18n,
     platform,
     quickShortcut,
+    update,
   });
 
 const submenu = (item: MenuItemConstructorOptions | undefined) =>
@@ -58,6 +62,76 @@ const click = (item: MenuItemConstructorOptions | undefined) => {
   const handler = item?.click as (() => void) | undefined;
   handler?.();
 };
+
+describe("the update item (149)", () => {
+  it("isn't there while updates are off", () => {
+    expect(findItem(build("mac"), "update")).toBeUndefined();
+    expect(
+      findItem(
+        build("win", {}, altSpace, { kind: "off", reason: "build" }),
+        "update"
+      )
+    ).toBeUndefined();
+  });
+
+  it("sits under About on macOS and in Help elsewhere", () => {
+    const idle: UpdateState = { kind: "idle" };
+    const [appMenu] = build("mac", {}, altSpace, idle);
+    expect(
+      submenu(appMenu)
+        .map((entry) => entry.role ?? entry.id)
+        .slice(0, 2)
+    ).toEqual(["about", "update"]);
+    const help = build("win", {}, altSpace, idle).find(
+      (menu) => menu.role === "help"
+    );
+    expect(submenu(help).some((entry) => entry.id === "update")).toBe(true);
+  });
+
+  it("checks when clicked, and is disabled while a check runs", () => {
+    const checkForUpdates = vi.fn();
+    click(
+      findItem(
+        build("mac", { checkForUpdates }, altSpace, { kind: "idle" }),
+        "update"
+      )
+    );
+    expect(checkForUpdates).toHaveBeenCalledOnce();
+    expect(
+      findItem(
+        build("mac", {}, altSpace, { kind: "checking", manual: true }),
+        "update"
+      )
+    ).toMatchObject({ enabled: false });
+  });
+
+  it("offers the restart once downloaded", () => {
+    const restartToUpdate = vi.fn();
+    const item = findItem(
+      build("linux", { restartToUpdate }, altSpace, {
+        kind: "downloaded",
+        version: "1.2.0",
+      }),
+      "update"
+    );
+    expect(item?.label).toBe("Restart to Update");
+    click(item);
+    expect(restartToUpdate).toHaveBeenCalledOnce();
+  });
+
+  it("shows download progress", () => {
+    expect(
+      findItem(
+        build("mac", {}, altSpace, {
+          kind: "downloading",
+          percent: 40,
+          version: "1.2.0",
+        }),
+        "update"
+      )
+    ).toMatchObject({ enabled: false, label: "Downloading Update… 40%" });
+  });
+});
 
 describe("menuTemplate", () => {
   it("puts Settings and Change Server in the app menu on macOS", () => {

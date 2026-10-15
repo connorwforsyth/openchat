@@ -45,6 +45,10 @@ msgstr "{added, plural, one {# line added} other {# lines added}}"
 msgid "{additions, plural, one {# line added} other {# lines added}}"
 msgstr "{additions, plural, one {# line added} other {# lines added}}"
 
+#: ../../apps/desktop/src/main/updates.ts
+msgid "{appName} {version} is the newest version."
+msgstr "{appName} {version} is the newest version."
+
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "{code} exited with code {exitCode}"
 msgstr "{code} exited with code {exitCode}"
@@ -758,6 +762,10 @@ msgstr "Chats that relied on it fall back to other keys, or stop if there are no
 msgid "Check"
 msgstr "Check"
 
+#: ../../apps/desktop/src/main/menu.ts
+msgid "Check for Updates…"
+msgstr "Check for Updates…"
+
 #: ../../apps/web/app/(auth)/invite/[token]/page.tsx
 msgid "Check that you copied the whole link, or ask for a new one."
 msgstr "Check that you copied the whole link, or ask for a new one."
@@ -766,6 +774,7 @@ msgstr "Check that you copied the whole link, or ask for a new one."
 msgid "Check the provider (lowercase, like “anthropic”), the key and the URL."
 msgstr "Check the provider (lowercase, like “anthropic”), the key and the URL."
 
+#: ../../apps/desktop/src/main/updates.ts
 #: ../../apps/web/app/(app)/_shared/query-state.tsx
 #: ../library-ui/src/components/library-index.tsx
 msgid "Check your connection and try again."
@@ -774,6 +783,10 @@ msgstr "Check your connection and try again."
 #: ../../apps/web/app/(app)/_shared/app-frame.tsx
 msgid "Check your connection. If it keeps happening, the server may be restarting."
 msgstr "Check your connection. If it keeps happening, the server may be restarting."
+
+#: ../../apps/desktop/src/main/menu.ts
+msgid "Checking for Updates…"
+msgstr "Checking for Updates…"
 
 #: ../chat-ui/src/conversation/approval.tsx
 msgid "Checking this change still waits…"
@@ -966,6 +979,10 @@ msgstr "Couldn't change the skill {name}"
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "Couldn't check"
 msgstr "Couldn't check"
+
+#: ../../apps/desktop/src/main/updates.ts
+msgid "Couldn't check for updates"
+msgstr "Couldn't check for updates"
 
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Couldn't create a skill"
@@ -1369,6 +1386,11 @@ msgstr "Download table as CSV"
 #: ../ui/src/components/markdown.tsx
 msgid "Download table as Markdown"
 msgstr "Download table as Markdown"
+
+#. placeholder {0}: item.percent
+#: ../../apps/desktop/src/main/menu.ts
+msgid "Downloading Update… {0}%"
+msgstr "Downloading Update… {0}%"
 
 #: ../library-ui/src/components/badges.tsx
 #: ../library-ui/src/components/version-history.tsx
@@ -3338,6 +3360,10 @@ msgstr "Resize sidebar"
 msgid "Resize the browser"
 msgstr "Resize the browser"
 
+#: ../../apps/desktop/src/main/menu.ts
+msgid "Restart to Update"
+msgstr "Restart to Update"
+
 #: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
 #: ../chat-ui/src/artifacts/document/document-view.tsx
 #: ../chat-ui/src/workspace/view-header.tsx
@@ -4956,6 +4982,10 @@ msgstr "You're not an owner or admin of any org. Admin pages appear here when yo
 #: ../../apps/web/app/(auth)/invite/[token]/page.tsx
 msgid "You're signed in as {0}. Accept to join the team that invited you."
 msgstr "You're signed in as {0}. Accept to join the team that invited you."
+
+#: ../../apps/desktop/src/main/updates.ts
+msgid "You're up to date"
+msgstr "You're up to date"
 
 #: ../../apps/web/app/(auth)/invite/[token]/page.tsx
 msgid "You've been invited"

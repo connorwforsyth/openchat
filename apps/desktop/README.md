@@ -115,7 +115,11 @@ in a browser there's no bridge and nothing changes.
   ad hoc on Apple Silicon; signing turns on with `CSC_*` variables.
 - **Auto-update** (`src/main/updates.ts`): electron-updater from GitHub
   Releases, off unless packaged with `DESKTOP_AUTO_UPDATE=1` and
-  `DESKTOP_UPDATE_REPO`; off, the updater module is never loaded.
+  `DESKTOP_UPDATE_REPO`; off, the updater module is never loaded. Its events
+  fold into a pure `UpdateState` (`src/shared/update-state.ts`, 149) that the
+  menu shows: Check for Updates…, Downloading Update…, Restart to Update.
+  `DESKTOP_UPDATE_URL` swaps in any generic feed (docs/desktop.md, "Trying an
+  update locally").
 
 ## Security (`PLAN.md` D24)
 
