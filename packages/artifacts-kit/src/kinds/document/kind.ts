@@ -86,4 +86,6 @@ export const documentKind = defineArtifactKind<Document>({
     replace_section: replaceSection,
   },
   render: { panel: "document", runtime: null },
+  starter: {},
+  thumbnail: "none",
 });

@@ -670,9 +670,8 @@ const mcpSchema = z
   .prefault({});
 
 /**
- * The Site kind (125): whether sites are offered, the stack the model is
- * told to build them with, and the public origins they may load fonts,
- * styles, scripts and images from. The site's CSP blocks everything else.
+ * The Site kind (125): whether sites are offered, and the public origins
+ * they may load fonts, styles, scripts and images from. The site's CSP blocks everything else.
  * Admins edit it here; it applies on restart.
  */
 const siteKindSchema = z
@@ -691,11 +690,11 @@ const siteKindSchema = z
       .transform((origins) => [...new Set(origins)]),
     enabled: z.boolean().default(true),
     /**
-     * The stack sites are built with (`@workspace/artifacts-kit`'s
-     * `kinds/site/stacks.ts`). `react-ui` is defined there but not built,
-     * so it isn't offered here yet.
+     * Deprecated and ignored (163): sites have no stacks now (pages are TSX
+     * on `@workspace/site-ui`, or HTML). Still accepted, since the object
+     * is strict and configs written for 125 set it.
      */
-    stack: z.enum(["html-tailwind"]).default("html-tailwind"),
+    stack: z.string().max(64).optional(),
   })
   .prefault({});
 

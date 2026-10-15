@@ -1,3 +1,4 @@
+import { importsAllowed } from "../checks";
 import { textKind } from "./text";
 
 /**
@@ -8,16 +9,19 @@ export const REACT_IMPORTS = ["react", "react-dom"] as const;
 
 /**
  * One TSX file with a default-exported component, compiled and mounted by
- * the runtime. Imports outside `REACT_IMPORTS` fail when it renders; saving
- * doesn't check them yet, as it didn't before the kit.
+ * the runtime. An import outside `REACT_IMPORTS` is refused when it's saved
+ * (159), rather than failing later when it renders.
  */
 export const reactKind = textKind({
   // The runtime stamps each element's source line (`data-src`, D16).
   annotate: true,
+  checks: [importsAllowed(REACT_IMPORTS)],
   export: [{ extension: "tsx", format: "file" }],
   icon: "LayersIcon",
   kind: "react",
   label: "React component",
   render: { imports: REACT_IMPORTS, panel: "source", runtime: "react" },
   shape: /export\s+default\b/,
+  starter: {},
+  thumbnail: "runtime",
 });

@@ -1,13 +1,15 @@
 import type { ArtifactCheck } from "../../define";
 import {
   extensionOf,
-  SITE_ENTRY,
+  isTsxPage,
+  pageOf,
+  SITE_ENTRY_SOURCES,
   SITE_LIMITS,
   type SiteContent,
-  type SiteStackId,
 } from "./content";
 import { isExternal, originAllowed, originOf } from "./origins";
 import { fileReferences, inlineCode, resolveInSite } from "./scan";
+import { tsxPageProblems } from "./tsx";
 
 // The rules a site must pass to be saved (125). Each problem is a sentence
 // the model reads and can fix. What they enforce, the CSP enforces again at
@@ -18,18 +20,13 @@ type SiteCheck = ArtifactCheck<SiteContent>;
 
 const filesOf = (content: SiteContent) => Object.entries(content.files);
 
-/** The stack is one this instance offers. */
-export const stackOffered = (offered: readonly SiteStackId[]): SiteCheck => ({
-  name: "stack",
-  run: ({ stack }) =>
-    offered.includes(stack)
-      ? []
-      : [
-          `the "${stack}" stack isn't available here. Use ${offered.map((id) => `"${id}"`).join(" or ") || "no stack (sites are turned off)"}`,
-        ],
-});
+/** Whether `target`, a built page or file, is in the site (`about.html` may be `about.tsx`). */
+const inSite = (content: SiteContent, target: string): boolean =>
+  content.files[target] !== undefined ||
+  (extensionOf(target) === "html" &&
+    content.files[`${target.slice(0, -"html".length)}tsx`] !== undefined);
 
-/** There's a home page, and not too much. */
+/** There's one home page, each page is built from one file, and not too much. */
 export const siteShape: SiteCheck = {
   name: "shape",
   run: (content) => {
@@ -38,10 +35,30 @@ export const siteShape: SiteCheck = {
       (sum, [path, text]) => sum + path.length + text.length,
       0
     );
+    const homes = SITE_ENTRY_SOURCES.filter(
+      (path) => content.files[path] !== undefined
+    );
+    const twins = files
+      .map(([path]) => path)
+      .filter(isTsxPage)
+      .filter((path) => content.files[pageOf(path)] !== undefined)
+      // The home page's pair is the line above's.
+      .filter((path) => path !== "index.tsx");
     return [
-      ...(content.files[SITE_ENTRY] === undefined
-        ? [`has no ${SITE_ENTRY}: every site needs a home page there`]
+      ...(homes.length === 0
+        ? [
+            `has no home page: every site needs ${SITE_ENTRY_SOURCES.join(" or ")}`,
+          ]
         : []),
+      ...(homes.length > 1
+        ? [
+            `has both ${SITE_ENTRY_SOURCES.join(" and ")}: a site has one home page, so keep one of them`,
+          ]
+        : []),
+      ...twins.map(
+        (path) =>
+          `has both ${path} and ${pageOf(path)}, which would be the same page: keep one of them`
+      ),
       ...(files.length > SITE_LIMITS.files
         ? [
             `has ${files.length} files; a site may have at most ${SITE_LIMITS.files}`,
@@ -71,6 +88,18 @@ export const pagesAreHtml: SiteCheck = {
 };
 
 /**
+ * Each TSX page imports only React and site-ui's blocks, by names site-ui
+ * has, and exports its page (`./tsx.ts`).
+ */
+export const tsxPages: SiteCheck = {
+  name: "tsx-pages",
+  run: (content) =>
+    filesOf(content)
+      .filter(([path]) => isTsxPage(path))
+      .flatMap(([path, text]) => tsxPageProblems(path, text)),
+};
+
+/**
  * Local references resolve: every relative link and resource names a file
  * the site has, and nothing is rooted at `/` (a published site lives under
  * its link's path, so `/about.html` would leave it).
@@ -81,14 +110,18 @@ export const localReferences: SiteCheck = {
     filesOf(content).flatMap(([path, text]) => {
       const problems = new Set<string>();
       for (const reference of fileReferences(path, text)) {
+        // A TSX page's imports are `tsxPages`' business.
+        if (reference.kind === "module") {
+          continue;
+        }
         const target = resolveInSite(path, reference.url);
         if (target === "root") {
           problems.add(
-            `${path} refers to "${reference.url}"; use a relative path (like "${reference.url.replace(LEADING_SLASHES, "") || SITE_ENTRY}"), since a published site doesn't live at the root`
+            `${path} refers to "${reference.url}"; use a relative path (like "${reference.url.replace(LEADING_SLASHES, "") || "index.html"}"), since a published site doesn't live at the root`
           );
         } else if (
           target !== null &&
-          content.files[target] === undefined &&
+          !inSite(content, target) &&
           // A bare module name (`react`) is the next check's business.
           !(
             reference.kind === "resource" &&
@@ -175,7 +208,7 @@ export const noNetworkOrStorage: SiteCheck = {
   run: (content) =>
     filesOf(content).flatMap(([path, text]) => {
       const extension = extensionOf(path);
-      const scripts = isScript(path) ? [text] : [];
+      const scripts = isScript(path) || isTsxPage(path) ? [text] : [];
       if (extension === "html") {
         scripts.push(...inlineCode(text).scripts);
       }

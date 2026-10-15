@@ -1,8 +1,8 @@
 import {
   type BuiltSite,
   buildSite,
-  type CompileTailwind,
   SITE_PREVIEW_CHANNEL,
+  type SiteBuildPorts,
 } from "@workspace/artifacts-kit/kinds/site/build";
 import {
   SITE_ENTRY,
@@ -15,15 +15,16 @@ import { z } from "zod";
 import { runtimeError } from "./errors";
 
 // Previewing a site (125): its content is parsed and built for a preview
-// (`buildSite`'s "preview" target: Tailwind compiled, local files written
-// into each page) and one page at a time is shown in a `srcdoc` frame. The
+// (`buildSite`'s "preview" target: TSX pages as their shells, Tailwind
+// compiled, local files written into each page) and one page at a time is
+// shown in a `srcdoc` frame. The
 // page this runs in is `site.html`, served with the site CSP, which the
 // frame inherits: the instance's public origins, and nothing else.
 
 /** A site, built for preview, or why it couldn't be. */
 export const buildPreview = async (
   code: string,
-  ports: { readonly compile: CompileTailwind; readonly themeCss: string }
+  ports: SiteBuildPorts
 ): Promise<Result<BuiltSite, RuntimeError>> => {
   const parsed = siteContentSchema.safeParse(code);
   if (!parsed.success) {
@@ -65,6 +66,24 @@ export const navigationTarget = (
   const parsed = navigateSchema.safeParse(data);
   return parsed.success && site.files[parsed.data.page] !== undefined
     ? parsed.data.page
+    : null;
+};
+
+const pageErrorSchema = z.object({
+  channel: z.literal(SITE_PREVIEW_CHANNEL),
+  message: z.string().max(4000),
+  page: z.string().max(256),
+  type: z.literal("error"),
+});
+
+/**
+ * What went wrong in a previewed TSX page, if the message says (the site
+ * runtime posts it, `./site-runtime.ts`); `null` for anything else.
+ */
+export const pageError = (data: unknown): RuntimeError | null => {
+  const parsed = pageErrorSchema.safeParse(data);
+  return parsed.success
+    ? { kind: "render", message: `${parsed.data.page}: ${parsed.data.message}` }
     : null;
 };
 

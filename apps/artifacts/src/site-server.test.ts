@@ -3,8 +3,14 @@ import { createRequire } from "node:module";
 
 import { describe, expect, it } from "vitest";
 
-import { buildPreview, navigationTarget } from "./site-preview";
-import { createSiteServer, sitePathOf } from "./site-server";
+import { buildPreview, navigationTarget, pageError } from "./site-preview";
+import {
+  createSiteServer,
+  isSiteRuntimeFile,
+  sitePathOf,
+  withSiteRuntime,
+} from "./site-server";
+import { siteTsxPorts } from "./site-tsx";
 import { tailwindCompiler } from "./tailwind";
 
 // Sites in the runtime (125): Tailwind compiled over the instance theme,
@@ -50,9 +56,28 @@ const config = (siteOrigins: readonly string[]) => ({
   sandbox: { default: null, providers: [] },
 });
 
+/** A TSX site (163): a home page from site-ui's blocks, and an HTML page. */
+const TSX_SITE = JSON.stringify({
+  files: {
+    "about.html":
+      "<!doctype html><html><head></head><body><a href='index.html'>Home</a></body></html>",
+    "index.tsx": [
+      'import { FeatureGrid, Hero, Page } from "@workspace/site-ui";',
+      "export default function Home() {",
+      '  return <Page><Hero title="Harbour walks" /><FeatureGrid features={[{ title: "Small groups", description: "Eight at most." }]} /></Page>;',
+      "}",
+    ].join("\n"),
+  },
+});
+const RUNTIME = "/site-runtime-abc123.js";
+
 /** The app's API: its config, and one published site. */
 const fakeApi = (
-  overrides: { readonly published?: Response; readonly down?: boolean } = {}
+  overrides: {
+    readonly published?: Response;
+    readonly down?: boolean;
+    readonly site?: string;
+  } = {}
 ) => {
   const calls: string[] = [];
   const fetch = (input: string | URL | Request) => {
@@ -70,7 +95,7 @@ const fakeApi = (
       return Promise.resolve(
         overrides.published ??
           Response.json({
-            content: SITE,
+            content: overrides.site ?? SITE,
             kind: "site",
             publishedAt: "2026-10-02T00:00:00.000Z",
             title: "Harbour",
@@ -82,12 +107,13 @@ const fakeApi = (
   return { calls, fetch: fetch as typeof globalThis.fetch };
 };
 
-const server = (api = fakeApi()) =>
+const server = (api = fakeApi(), runtimeUrl: string | null = RUNTIME) =>
   createSiteServer({
     apiOrigin: "http://app.test",
     appOrigins: ["https://chat.example"],
     compile,
     fetch: api.fetch,
+    runtimeUrl: () => runtimeUrl,
     themeCss,
   });
 
@@ -132,11 +158,70 @@ describe("the site preview", () => {
     expect(await buildPreview("<html>", { compile, themeCss })).toEqual({
       error: {
         kind: "syntax",
-        message:
-          'content isn\'t JSON. A site is {"stack": "html-tailwind", "files": {"index.html": "…"}}',
+        message: 'content isn\'t JSON. A site is {"files": {"index.tsx": "…"}}',
       },
       ok: false,
     });
+  });
+
+  it("builds a TSX page as a shell that mounts it with the site runtime (163)", async () => {
+    const built = await buildPreview(TSX_SITE, {
+      compile,
+      themeCss,
+      tsx: siteTsxPorts(`https://runtime.example${RUNTIME}`),
+    });
+    expect(built.ok).toBe(true);
+    if (built.ok) {
+      expect(Object.keys(built.value.files).sort()).toEqual([
+        "about.html",
+        "index.html",
+      ]);
+      const index = built.value.files["index.html"];
+      expect(index).toContain(
+        `import { mountPage } from "https://runtime.example${RUNTIME}";`
+      );
+      expect(index).toContain("require('@workspace/site-ui')");
+      expect(index).not.toContain("<Hero");
+      // site-ui's classes are built, though the site's files don't name them.
+      expect(built.value.css).toContain(".text-muted-foreground");
+      expect(built.value.css).toContain(".rounded-xl");
+    }
+    const broken = await buildPreview(
+      JSON.stringify({ files: { "index.tsx": "export default () => <p" } }),
+      { compile, themeCss, tsx: siteTsxPorts(RUNTIME) }
+    );
+    expect(broken.ok ? null : broken.error.kind).toBe("render");
+    const unbuilt = await buildPreview(TSX_SITE, { compile, themeCss });
+    expect(unbuilt.ok ? null : unbuilt.error.message).toContain(
+      "index.tsx is a TSX page, and this runtime can't build them"
+    );
+  });
+
+  it("hears a TSX page's render error, and nothing else", () => {
+    expect(
+      pageError({
+        channel: "site-preview/1",
+        message: "Hero is not defined",
+        page: "index.html",
+        type: "error",
+      })
+    ).toEqual({ kind: "render", message: "index.html: Hero is not defined" });
+    expect(
+      pageError({ message: "x", page: "index.html", type: "error" })
+    ).toBeNull();
+    expect(
+      pageError({ channel: "site-preview/1", page: "a.html", type: "navigate" })
+    ).toBeNull();
+  });
+
+  it("is told where the site runtime is", () => {
+    expect(withSiteRuntime("<html><head><title>x</title>", RUNTIME)).toBe(
+      `<html><head><meta name="site-runtime" content="${RUNTIME}"><title>x</title>`
+    );
+    expect(withSiteRuntime("<head>", null)).toBe("<head>");
+    expect(isSiteRuntimeFile("site-runtime-abc123.js")).toBe(true);
+    expect(isSiteRuntimeFile("site-runtime-abc123.js.map")).toBe(false);
+    expect(isSiteRuntimeFile("site-abc123.js")).toBe(false);
   });
 });
 
@@ -161,6 +246,21 @@ describe("published sites", () => {
     expect(
       (await sites.published(`/s/${TOKEN}/notes.txt`))?.headers["Content-Type"]
     ).toBe("text/plain; charset=utf-8");
+  });
+
+  it("serve a TSX page as its shell, importing the runtime from this origin, and never the TSX", async () => {
+    const sites = server(fakeApi({ site: TSX_SITE }));
+    const page = await sites.published(`/s/${TOKEN}/`);
+    expect(page?.status).toBe(200);
+    expect(page?.body).toContain(`import { mountPage } from "${RUNTIME}";`);
+    expect(page?.body).toContain('<div id="root"></div>');
+    expect(page?.headers["Content-Security-Policy"]).toContain(
+      "script-src 'self' 'unsafe-inline' https://fonts.googleapis.com;"
+    );
+    expect((await sites.published(`/s/${TOKEN}/index.tsx`))?.status).toBe(404);
+    expect((await sites.published(`/s/${TOKEN}/about.html`))?.status).toBe(200);
+    const noRuntime = server(fakeApi({ site: TSX_SITE }), null);
+    expect((await noRuntime.published(`/s/${TOKEN}/`))?.status).toBe(500);
   });
 
   it("redirect to the site's folder, and 404 what isn't there", async () => {

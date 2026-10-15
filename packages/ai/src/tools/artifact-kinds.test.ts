@@ -149,24 +149,12 @@ const recordingStore = () => {
 
 const call = { context: {}, messages: [], toolCallId: "call-1" };
 
-describe("a kind with stricter checks", () => {
-  // React that may only import React: what a narrower layer would set.
-  const strictReact = defineArtifactKind({
-    ...reactKind,
-    checks: [
-      ...reactKind.checks,
-      importsAllowed(reactKind.render.imports ?? []),
-    ],
-  });
-  const kinds = createArtifactKindRegistry([
-    ...builtinArtifactKinds.list().filter((kind) => kind.kind !== "react"),
-    strictReact,
-  ]);
+describe("a kind's checks", () => {
   const charts = 'import { Bar } from "recharts";\nexport default Bar;';
 
   it("refuses a create as a tool result the model can fix, and saves nothing", async () => {
     const { saved, store } = recordingStore();
-    const tools = createArtifactTools(store, kinds);
+    const tools = createArtifactTools(store);
     const output = await tools.create_artifact.execute?.(
       { content: charts, title: "Chart", type: "react" },
       call
@@ -194,14 +182,11 @@ describe("a kind with stricter checks", () => {
   it("checks an update against the artifact's kind", async () => {
     const { saved, store } = recordingStore();
     const artifactId: ArtifactId = newId("artifact");
-    const tools = createArtifactTools(
-      {
-        ...store,
-        list: () =>
-          Promise.resolve([{ artifactId, kind: "react", title: "Chart" }]),
-      },
-      kinds
-    );
+    const tools = createArtifactTools({
+      ...store,
+      list: () =>
+        Promise.resolve([{ artifactId, kind: "react", title: "Chart" }]),
+    });
     expect(
       await tools.update_artifact.execute?.(
         { artifactId, content: charts },
@@ -218,13 +203,35 @@ describe("a kind with stricter checks", () => {
     expect(saved).toHaveLength(1);
   });
 
-  it("still saves what the built-in kinds accept", async () => {
+  it("refuses more under a narrower layer, and the built-in kinds still accept it", async () => {
+    // React that may only import React: what a narrower layer would set.
+    const strictReact = defineArtifactKind({
+      ...reactKind,
+      checks: [...reactKind.checks, importsAllowed(["react"])],
+    });
+    const kinds = createArtifactKindRegistry([
+      ...builtinArtifactKinds.list().filter((kind) => kind.kind !== "react"),
+      strictReact,
+    ]);
+    const portal =
+      'import { createPortal } from "react-dom";\nexport default createPortal;';
+    const input = { content: portal, title: "Portal", type: "react" } as const;
     const { saved, store } = recordingStore();
-    const output = await createArtifactTools(store).create_artifact.execute?.(
-      { content: charts, title: "Chart", type: "react" },
-      call
-    );
-    expect(output).toMatchObject({ status: "saved" });
+    expect(
+      await createArtifactTools(store, kinds).create_artifact.execute?.(
+        input,
+        call
+      )
+    ).toEqual({
+      problems: [
+        'imports "react-dom", which isn\'t available here. It may import: react',
+      ],
+      status: "invalid",
+    });
+    expect(saved).toEqual([]);
+    expect(
+      await createArtifactTools(store).create_artifact.execute?.(input, call)
+    ).toMatchObject({ status: "saved" });
     expect(saved).toHaveLength(1);
   });
 });

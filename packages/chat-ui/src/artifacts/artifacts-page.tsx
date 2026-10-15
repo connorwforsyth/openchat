@@ -54,11 +54,13 @@ import {
   groupArtifacts,
 } from "../model/artifact-groups";
 import {
+  artifactKindDefinition,
   artifactKindLabels,
   artifactKinds,
   starterKinds,
 } from "../model/artifact-kinds";
 import { type ArtifactLinks, ArtifactMenu } from "./artifact-actions";
+import { ArtifactThumbnail } from "./artifact-thumbnail";
 import { KindIcon, kindIcon } from "./kind-icon";
 
 // The Artifacts page (124, the framework proposal's "Artifacts page"):
@@ -86,6 +88,11 @@ export interface ArtifactPageLinks extends ArtifactLinks {
 
 export interface ArtifactsPageProps {
   readonly api: QueryUtils;
+  /**
+   * The kinds this instance offers, for "Make something new" (161); every
+   * built-in kind when left out.
+   */
+  readonly kinds?: readonly ArtifactKind[];
   /** Client-side navigation for the rows' links; a plain `<a>` by default. */
   readonly link?: ArtifactLinkComponent;
   readonly links: ArtifactPageLinks;
@@ -94,6 +101,11 @@ export interface ArtifactsPageProps {
   readonly now?: Date;
   /** "Make something new": starts a new chat that sends `prompt`. */
   readonly onStart: (prompt: string) => void;
+  /**
+   * Where the grid's picture of an artifact comes from, for kinds whose
+   * `thumbnail` is `runtime`; `null` (or left out) shows the kind's icon.
+   */
+  readonly thumbnailUrl?: (item: ArtifactListItem) => string | null;
 }
 
 type View = "list" | "grid";
@@ -105,11 +117,13 @@ const seenAt = (item: ArtifactListItem): number =>
 
 export function ArtifactsPage({
   api,
+  kinds,
   link = PlainLink,
   links,
   me,
   now,
   onStart,
+  thumbnailUrl,
 }: ArtifactsPageProps) {
   const { t } = useLingui();
   const [scope, setScope] = useState<ArtifactScope>("all");
@@ -149,7 +163,7 @@ export function ArtifactsPage({
         </p>
       </header>
 
-      <StarterCards onStart={onStart} />
+      <StarterCards kinds={kinds} onStart={onStart} />
 
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -208,6 +222,7 @@ export function ArtifactsPage({
           now={now}
           query={query}
           scope={scope}
+          thumbnailUrl={thumbnailUrl}
           view={view}
         />
       </div>
@@ -216,10 +231,16 @@ export function ArtifactsPage({
 }
 
 function StarterCards({
+  kinds,
   onStart,
 }: {
+  readonly kinds?: readonly ArtifactKind[];
   readonly onStart: (prompt: string) => void;
 }) {
+  const starters = useMemo(() => starterKinds(kinds), [kinds]);
+  if (starters.length === 0) {
+    return null;
+  }
   return (
     <section
       aria-labelledby="make-something-new"
@@ -230,7 +251,7 @@ function StarterCards({
       </h2>
       {/* Mobile: the cards scroll sideways rather than stack. */}
       <ul className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 sm:grid sm:grid-cols-3 sm:overflow-visible lg:grid-cols-5">
-        {starterKinds.map((each) => (
+        {starters.map((each) => (
           <StarterCard key={each} kind={each} onStart={onStart} />
         ))}
       </ul>
@@ -248,6 +269,7 @@ function StarterCard({
   const { i18n, t } = useLingui();
   const label = i18n._(artifactKindLabels[kind]);
   const Glyph = kindIcon(kind);
+  const badge = artifactKindDefinition(kind).starter?.badge;
   const start = useCallback(
     () =>
       onStart(
@@ -262,11 +284,33 @@ function StarterCard({
         onClick={start}
         type="button"
       >
-        <Glyph aria-hidden className="size-5 text-muted-foreground" />
+        <span className="flex items-start justify-between gap-2">
+          <Glyph aria-hidden className="size-5 text-muted-foreground" />
+          {badge ? <StarterBadge badge={badge} /> : null}
+        </span>
         <span className="font-medium text-sm">{label}</span>
       </button>
     </li>
   );
+}
+
+function StarterBadge({ badge }: { readonly badge: "beta" | "new" }) {
+  switch (badge) {
+    case "new":
+      return (
+        <Badge variant="secondary">
+          <Trans context="artifact kind badge">New</Trans>
+        </Badge>
+      );
+    case "beta":
+      return (
+        <Badge variant="outline">
+          <Trans context="artifact kind badge">Beta</Trans>
+        </Badge>
+      );
+    default:
+      return badge satisfies never;
+  }
 }
 
 function KindFilter({
@@ -326,6 +370,7 @@ function ArtifactList({
   now,
   query,
   scope,
+  thumbnailUrl,
   view,
 }: {
   readonly api: QueryUtils;
@@ -337,6 +382,7 @@ function ArtifactList({
   readonly now?: Date;
   readonly query: string;
   readonly scope: ArtifactScope;
+  readonly thumbnailUrl?: (item: ArtifactListItem) => string | null;
   readonly view: View;
 }) {
   const list = useInfiniteQuery(
@@ -411,6 +457,7 @@ function ArtifactList({
                   links={links}
                   me={me}
                   now={clock}
+                  thumbnailUrl={thumbnailUrl}
                 />
               ) : (
                 <ArtifactRow
@@ -571,15 +618,27 @@ function ArtifactRow({ api, item, link: Link, links, me, now }: ItemProps) {
   );
 }
 
-function ArtifactCard({ api, item, link: Link, links, me, now }: ItemProps) {
+function ArtifactCard({
+  api,
+  item,
+  link: Link,
+  links,
+  me,
+  now,
+  thumbnailUrl,
+}: ItemProps & {
+  readonly thumbnailUrl?: (item: ArtifactListItem) => string | null;
+}) {
+  const src =
+    artifactKindDefinition(item.kind).thumbnail === "runtime"
+      ? (thumbnailUrl?.(item) ?? null)
+      : null;
   return (
     <li
       className="flex flex-col gap-2 rounded-xl border border-border bg-card p-3"
       data-artifact-id={item.id}
     >
-      <div className="flex h-20 items-center justify-center rounded-lg bg-muted">
-        <KindIcon className="size-8 text-muted-foreground" kind={item.kind} />
-      </div>
+      <ArtifactThumbnail kind={item.kind} src={src} />
       <div className="flex items-start gap-1">
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <Link

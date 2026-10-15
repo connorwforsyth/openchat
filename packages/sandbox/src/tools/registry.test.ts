@@ -38,6 +38,7 @@ describe("the built-in tool registry", () => {
       "edit",
       "file_search",
       "generate_image",
+      "load_artifact_guide",
       "load_skill",
       "preview",
       "publish_skill",

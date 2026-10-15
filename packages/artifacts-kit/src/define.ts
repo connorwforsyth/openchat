@@ -94,6 +94,29 @@ export interface ArtifactExport {
   readonly format: "file";
 }
 
+/**
+ * A kind's card under "Make something new" on the Artifacts page (161).
+ * The card's label and the prompt it starts a chat with are user-facing,
+ * so they live in the client's Lingui catalogs, keyed by kind; the kit
+ * only says whether there's a card, where it goes and its badge.
+ */
+export interface ArtifactStarter {
+  /** A `new` or `beta` badge on the card; none when left out. */
+  readonly badge?: "beta" | "new";
+  /**
+   * Where the card sorts, lowest first. Cards without one follow those
+   * with one, in the order the kinds are defined.
+   */
+  readonly order?: number;
+}
+
+/**
+ * How the Artifacts page's grid draws a kind's thumbnail: `runtime`, a
+ * render of the artifact itself (a page, a diagram, a deck's first slide);
+ * `none`, only the kind's icon.
+ */
+export type ArtifactThumbnail = "none" | "runtime";
+
 export interface ArtifactKindDefinition<TContent = unknown> {
   readonly capabilities: ArtifactCapabilities;
   /** Every rule beyond the content's shape, in the order they're reported. */
@@ -126,6 +149,9 @@ export interface ArtifactKindDefinition<TContent = unknown> {
     Record<string, ArtifactOperation<TContent, unknown>>
   >;
   readonly render: ArtifactRender;
+  /** Its "Make something new" card; kinds without one get no card. */
+  readonly starter?: ArtifactStarter;
+  readonly thumbnail: ArtifactThumbnail;
 }
 
 /**
@@ -135,6 +161,27 @@ export interface ArtifactKindDefinition<TContent = unknown> {
 export const defineArtifactKind = <TContent>(
   definition: ArtifactKindDefinition<TContent>
 ): ArtifactKindDefinition<TContent> => definition;
+
+/**
+ * The kinds that get a "Make something new" card, from `kinds` (an
+ * instance's enabled kinds, in the order they're defined): by `order`, then
+ * definition order. Pure.
+ */
+export const starterKindsOf = <
+  TKind extends { readonly starter?: ArtifactStarter },
+>(
+  kinds: readonly TKind[]
+): readonly TKind[] => {
+  const rank = (kind: TKind) => kind.starter?.order ?? Number.POSITIVE_INFINITY;
+  return (
+    kinds
+      .map((kind, index) => ({ index, kind }))
+      .filter((each) => each.kind.starter !== undefined)
+      // A fresh array from `filter`, so sorting it in place mutates nothing shared.
+      .sort((a, b) => rank(a.kind) - rank(b.kind) || a.index - b.index)
+      .map((each) => each.kind)
+  );
+};
 
 /** Declares an operation, keeping its input type. */
 export const defineOperation = <TContent, TInput>(

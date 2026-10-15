@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { readFile } from "node:fs/promises";
+import { readdir, readFile, stat } from "node:fs/promises";
 import { createServer } from "node:http";
 import { resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,7 +8,11 @@ import { z } from "zod";
 
 import { appOriginsFrom, responseHeaders } from "./headers";
 import { SITE_ASSETS } from "./site-assets";
-import { createSiteServer } from "./site-server";
+import {
+  createSiteServer,
+  isSiteRuntimeFile,
+  withSiteRuntime,
+} from "./site-server";
 import { tailwindCompiler } from "./tailwind";
 
 // Serves the built runtime (dist/public) with its security headers. A static
@@ -36,11 +40,45 @@ const envSchema = z.object({
 const env = envSchema.parse(process.env);
 const appOrigins = appOriginsFrom(env.ARTIFACTS_APP_ORIGINS);
 const publicDir = fileURLToPath(new URL("../dist/public/", import.meta.url));
+const watching = process.argv.includes("--watch");
+
+/**
+ * The site runtime's bundle (163), `/site-runtime-<hash>.js`, or `null`
+ * if the build has none. The newest, since a watching build leaves old ones.
+ */
+const locateSiteRuntime = async (): Promise<string | null> => {
+  const names = await readdir(publicDir).catch(() => [] as string[]);
+  const found = await Promise.all(
+    names.filter(isSiteRuntimeFile).map(async (name) => ({
+      at: (await stat(resolve(publicDir, name))).mtimeMs,
+      name,
+    }))
+  );
+  const [newest] = found.sort((a, b) => b.at - a.at);
+  return newest ? `/${newest.name}` : null;
+};
+
+// Found at boot; while watching, the bundle's name changes with each
+// rebuild, so it's looked up again whenever it's needed.
+let siteRuntime = await locateSiteRuntime();
+const siteRuntimeUrl = async () => {
+  if (watching) {
+    siteRuntime = await locateSiteRuntime();
+  }
+  return siteRuntime;
+};
+if (!(siteRuntime || watching)) {
+  console.warn(
+    "No site-runtime-*.js in dist/public: TSX site pages won't build. Run `bun run build:public`."
+  );
+}
+
 const sites = createSiteServer({
   apiOrigin: env.ARTIFACTS_API_ORIGIN ?? null,
   appOrigins,
   compile: tailwindCompiler(SITE_ASSETS.tailwindCss),
   fetch: globalThis.fetch,
+  runtimeUrl: () => siteRuntime,
   themeCss: SITE_ASSETS.themeCss,
 });
 
@@ -71,6 +109,7 @@ const server = createServer(async (request, response) => {
   }
   const { pathname } = new URL(request.url ?? "/", "http://runtime");
   if (pathname.startsWith("/s/")) {
+    await siteRuntimeUrl();
     const site = await sites.published(pathname).catch(() => null);
     if (site) {
       response.writeHead(site.status, site.headers);
@@ -85,27 +124,33 @@ const server = createServer(async (request, response) => {
     return;
   }
   const headers = responseHeaders(file, appOrigins);
-  response.writeHead(
-    200,
-    pathname === SITE_PAGE
-      ? {
-          ...headers,
-          "Content-Security-Policy": await sites.previewPolicy(),
-        }
-      : headers
-  );
+  if (pathname === SITE_PAGE) {
+    response.writeHead(200, {
+      ...headers,
+      "Content-Security-Policy": await sites.previewPolicy(),
+    });
+    response.end(
+      request.method === "HEAD"
+        ? undefined
+        : withSiteRuntime(body.toString("utf8"), await siteRuntimeUrl())
+    );
+    return;
+  }
+  response.writeHead(200, headers);
   response.end(request.method === "HEAD" ? undefined : body);
 });
 
-if (process.argv.includes("--watch")) {
+if (watching) {
   // Development: rebuild the page whenever its source changes, and stop
   // the watcher with the server.
-  const watcher = spawn("bun", ["run", "build:public", "--watch"], {
-    stdio: "inherit",
-  });
+  const watchers = ["build:pages", "build:runtime"].map((script) =>
+    spawn("bun", ["run", script, "--watch"], { stdio: "inherit" })
+  );
   for (const signal of ["SIGINT", "SIGTERM"] as const) {
     process.once(signal, () => {
-      watcher.kill(signal);
+      for (const watcher of watchers) {
+        watcher.kill(signal);
+      }
       process.exit(0);
     });
   }

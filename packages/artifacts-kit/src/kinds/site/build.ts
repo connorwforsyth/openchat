@@ -1,12 +1,20 @@
-import { extensionOf, type SiteContent } from "./content";
+import { extensionOf, isTsxPage, pageOf, type SiteContent } from "./content";
 import { resolveInSite } from "./scan";
 import { siteTailwindInput } from "./theme";
 
-// Building an html-tailwind site (125): Tailwind is compiled for the classes
-// the site uses, over the instance's theme, and put in each page. The
-// compiler is a port: the artifact runtime passes Tailwind's, in the browser
-// for a preview and on its server for a published link, so the kit ships
-// none and stays pure.
+// Building a site (125): Tailwind is compiled for the classes the site
+// uses, over the instance's theme, and put in each page. The compilers are
+// ports: the artifact runtime passes Tailwind's and Sucrase's, in the
+// browser for a preview and on its server for a published link, so the kit
+// ships none and stays pure.
+//
+// A TSX page (163) becomes an `.html` shell of the same name: a root
+// element and one inline module script that imports `mountPage` from the
+// site runtime (`apps/artifacts/src/site-runtime.ts`) and hands it the
+// compiled page as a function, `(require, module, exports) => {…}`. That
+// fits the site CSP as it is: `'unsafe-inline'` covers the script, and
+// nothing is evaluated from a string. Model code only ever runs in the
+// visitor's browser, never on the server.
 
 /** Compiles Tailwind `input` (CSS) for `candidates` (class names) to CSS. */
 export type CompileTailwind = (
@@ -14,10 +22,27 @@ export type CompileTailwind = (
   candidates: readonly string[]
 ) => Promise<string>;
 
+/**
+ * Compiles a TSX page to the body of a CommonJS module (it may use
+ * `require`, `module` and `exports`); throws if it doesn't compile.
+ */
+export type CompileTsx = (source: string, path: string) => string;
+
+/** What building TSX pages takes, from the runtime. */
+export interface SiteTsxPorts {
+  /** The words site-ui's blocks are styled with (`@workspace/site-ui/candidates`). */
+  readonly candidates: readonly string[];
+  readonly compile: CompileTsx;
+  /** Where the site runtime module is, as the built page will import it. */
+  readonly runtimeUrl: string;
+}
+
 export interface SiteBuildPorts {
   readonly compile: CompileTailwind;
   /** The instance's theme, `globals.css` as text (`./theme.ts`). */
   readonly themeCss: string;
+  /** Needed only when the site has TSX pages. */
+  readonly tsx?: SiteTsxPorts;
 }
 
 /** Where a built page will be shown, which decides what it may refer to. */
@@ -50,7 +75,9 @@ export const tailwindCandidates = (
 ): readonly string[] => [
   ...new Set(
     Object.entries(files)
-      .filter(([path]) => ["html", "js", "mjs"].includes(extensionOf(path)))
+      .filter(([path]) =>
+        ["html", "js", "mjs", "tsx"].includes(extensionOf(path))
+      )
       .flatMap(([, text]) => text.split(CANDIDATE_SPLIT))
       .filter((word) => word.length > 0 && word.length < 200)
   ),
@@ -75,6 +102,50 @@ export const intoHead = (page: string, markup: string): string => {
 /** Text that can sit inside `<style>` or `<script>` without closing it. */
 const raw = (text: string, tag: "script" | "style") =>
   text.replace(new RegExp(`</(${tag})`, "gi"), "<\\/$1");
+
+const SCRIPT_DATA_HAZARD = /<(?=!--|\/script)/gi;
+
+/**
+ * Compiled code that can sit inside an inline `<script>`: nothing closes
+ * it (`</script`), and nothing opens the parser's escaped state (`<!--`,
+ * without which a `<script` inside is harmless). Compiled code has no
+ * markup, so either is inside a string, a template, a regular expression
+ * or a comment, where `\x3C` reads as the same `<`.
+ */
+const scriptBody = (code: string) => code.replace(SCRIPT_DATA_HAZARD, "\\x3C");
+
+/** The `.html` shell a TSX page is served as (see the top of the file). */
+export const tsxShell = (
+  page: string,
+  compiled: string,
+  runtimeUrl: string
+): string =>
+  [
+    '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>',
+    '<body><div id="root"></div>',
+    `<script type="module">import { mountPage } from ${scriptBody(JSON.stringify(runtimeUrl))};\nmountPage((require, module, exports) => {\n${scriptBody(compiled)}\n}, ${scriptBody(JSON.stringify({ page }))});</script>`,
+    "</body></html>",
+  ].join("");
+
+/** The site's files as they're served: each TSX page replaced by its shell. */
+const servedFiles = (
+  files: Readonly<Record<string, string>>,
+  tsx: SiteTsxPorts | undefined
+): Readonly<Record<string, string>> =>
+  Object.fromEntries(
+    Object.entries(files).map(([path, text]) => {
+      if (!isTsxPage(path)) {
+        return [path, text];
+      }
+      if (!tsx) {
+        throw new Error(
+          `${path} is a TSX page, and this runtime can't build them`
+        );
+      }
+      const page = pageOf(path);
+      return [page, tsxShell(page, tsx.compile(text, path), tsx.runtimeUrl)];
+    })
+  );
 
 const STYLESHEET_LINK = /<link\b(?=[^>]*\brel\s*=\s*["']?stylesheet)[^>]*>/gi;
 const SCRIPT_WITH_SRC =
@@ -157,25 +228,29 @@ const previewNavigation = (path: string, pages: readonly string[]) =>
 })();</script>`;
 
 /**
- * The site, built: Tailwind compiled once for every class it uses, and put
- * at the top of each page's head. For a preview, each page also carries its
- * local files and the link handling above.
+ * The site, built: TSX pages as their shells, Tailwind compiled once for
+ * every class it uses and put at the top of each page's head. For a
+ * preview, each page also carries its local files and the link handling.
  */
 export const buildSite = async (
   content: SiteContent,
-  { compile, themeCss }: SiteBuildPorts,
+  { compile, themeCss, tsx }: SiteBuildPorts,
   target: SiteBuildTarget
 ): Promise<BuiltSite> => {
-  const css = await compile(
-    siteTailwindInput(themeCss),
-    tailwindCandidates(content.files)
-  );
-  const pages = Object.keys(content.files).filter(
+  const served = servedFiles(content.files, tsx);
+  const hasTsx = Object.keys(content.files).some(isTsxPage);
+  const css = await compile(siteTailwindInput(themeCss), [
+    ...new Set([
+      ...tailwindCandidates(content.files),
+      ...(hasTsx && tsx ? tsx.candidates : []),
+    ]),
+  ]);
+  const pages = Object.keys(served).filter(
     (path) => extensionOf(path) === "html"
   );
   const style = `<style data-site-theme>${raw(css, "style")}</style>`;
   const files = Object.fromEntries(
-    Object.entries(content.files).map(([path, text]) => {
+    Object.entries(served).map(([path, text]) => {
       if (extensionOf(path) !== "html") {
         return [path, text];
       }
@@ -185,7 +260,7 @@ export const buildSite = async (
       return [
         path,
         intoHead(
-          inlineLocalFiles(path, text, content.files),
+          inlineLocalFiles(path, text, served),
           `${style}${previewNavigation(path, pages)}`
         ),
       ];

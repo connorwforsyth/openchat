@@ -25,6 +25,7 @@
         "@workspace/chat-ui": "workspace:*",
         "@workspace/contract": "workspace:*",
         "@workspace/shared": "workspace:*",
+        "@workspace/site-ui": "workspace:*",
         "@workspace/ui": "workspace:*",
         "mermaid": "catalog:",
         "react": "catalog:",
@@ -229,6 +230,7 @@
       "devDependencies": {
         "@types/node": "catalog:",
         "@workspace/typescript-config": "workspace:*",
+        "sucrase": "catalog:",
         "typescript": "catalog:",
         "vitest": "catalog:",
       },
@@ -755,6 +757,31 @@
         "@workspace/i18n": "workspace:*",
         "@workspace/typescript-config": "workspace:*",
         "playwright": "catalog:",
+        "typescript": "catalog:",
+        "vitest": "catalog:",
+      },
+    },
+    "packages/site-ui": {
+      "name": "@workspace/site-ui",
+      "version": "0.0.0",
+      "dependencies": {
+        "@workspace/icons": "workspace:*",
+        "@workspace/ui": "workspace:*",
+        "cn": "^0.4.0",
+        "react": "catalog:",
+      },
+      "devDependencies": {
+        "@testing-library/dom": "catalog:",
+        "@testing-library/react": "catalog:",
+        "@types/node": "catalog:",
+        "@types/react": "catalog:",
+        "@types/react-dom": "catalog:",
+        "@vitest/browser-playwright": "catalog:",
+        "@workspace/artifacts-kit": "workspace:*",
+        "@workspace/typescript-config": "workspace:*",
+        "playwright": "catalog:",
+        "react-dom": "catalog:",
+        "sucrase": "catalog:",
         "typescript": "catalog:",
         "vitest": "catalog:",
       },
@@ -1932,6 +1959,8 @@
     "@workspace/shared": ["@workspace/shared@workspace:packages/shared"],
 
     "@workspace/shortcuts": ["@workspace/shortcuts@workspace:packages/shortcuts"],
+
+    "@workspace/site-ui": ["@workspace/site-ui@workspace:packages/site-ui"],
 
     "@workspace/typescript-config": ["@workspace/typescript-config@workspace:packages/typescript-config"],
 
