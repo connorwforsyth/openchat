@@ -6,6 +6,7 @@ import {
   EllipsisIcon,
   FolderIcon,
   LinkIcon,
+  ShapesIcon,
   UserPlusIcon,
 } from "@workspace/icons";
 import { Button } from "@workspace/ui/components/button";
@@ -21,7 +22,7 @@ import {
 import { useToastManager } from "@workspace/ui/components/toast";
 import { useCallback } from "react";
 
-import type { PanelHalf } from "../model/workspace";
+import type { WorkspaceSection } from "../model/layout";
 
 /** How long "Link copied" stays: long enough to read. */
 const COPIED_TOAST_MS = 2000;
@@ -29,17 +30,17 @@ const COPIED_TOAST_MS = 2000;
 export interface HeaderOverflowMenuProps {
   readonly onCopyLink?: () => Promise<void> | void;
   readonly onInvite?: () => void;
-  /** Files or the browser, as the wide header's toggles (137). */
-  readonly onTogglePanel: (half: PanelHalf) => void;
+  /** Artifacts, Files or the browser, as the wide header's toggles (137, 171). */
+  readonly onTogglePanel: (section: WorkspaceSection) => void;
   /** Nothing to share before the first message. */
   readonly shareDisabled?: boolean;
-  /** The half the panel is open on; `null` when it's closed. */
-  readonly shown: PanelHalf | null;
+  /** The section the panel is open on; `null` when it's closed. */
+  readonly shown: WorkspaceSection | null;
 }
 
 /**
- * The header's end on a narrow screen, where Share and the Files and
- * Browser toggles don't fit beside the title: all in one menu.
+ * The header's end on a narrow screen, where Share and the Artifacts, Files
+ * and Browser toggles don't fit beside the title: all in one menu.
  * Needs the shell's toast provider.
  */
 export function HeaderOverflowMenu({
@@ -56,6 +57,10 @@ export function HeaderOverflowMenu({
     add({ priority: "low", timeout: COPIED_TOAST_MS, title: t`Link copied` });
   }, [add, onCopyLink, t]);
   const share = Boolean(onInvite || onCopyLink);
+  const toggleArtifacts = useCallback(
+    () => onTogglePanel("artifacts"),
+    [onTogglePanel]
+  );
   const toggleFiles = useCallback(
     () => onTogglePanel("files"),
     [onTogglePanel]
@@ -76,6 +81,14 @@ export function HeaderOverflowMenu({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
         <DropdownMenuGroup>
+          <DropdownMenuCheckboxItem
+            checked={shown === "artifacts"}
+            closeOnClick
+            onCheckedChange={toggleArtifacts}
+          >
+            <ShapesIcon aria-hidden />
+            <Trans>Artifacts</Trans>
+          </DropdownMenuCheckboxItem>
           <DropdownMenuCheckboxItem
             checked={shown === "files"}
             closeOnClick

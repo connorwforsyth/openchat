@@ -10,6 +10,8 @@ export const useShortcutLabels = (): Readonly<Record<ShortcutId, string>> => {
   const { t } = useLingui();
   return useMemo(
     () => ({
+      "artifact.next": t`Next artifact`,
+      "artifact.prev": t`Previous artifact`,
       "branch.next": t`Next branch`,
       "branch.prev": t`Previous branch`,
       "chat.new": t`New chat`,
@@ -18,7 +20,7 @@ export const useShortcutLabels = (): Readonly<Record<ShortcutId, string>> => {
       "composer.focus": t`Focus the message box`,
       help: t`Keyboard shortcuts`,
       "palette.open": t`Search and commands`,
-      "panel.artifacts": t`Workspace artifacts`,
+      "panel.artifacts": t`Artifacts`,
       "panel.sandbox": t`Files`,
       "sidebar.toggle": t`Toggle sidebar`,
     }),

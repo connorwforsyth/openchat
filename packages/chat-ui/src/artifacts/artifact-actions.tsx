@@ -4,6 +4,7 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { QueryUtils } from "@workspace/client/api";
 import type {
+  ArtifactId,
   ConversationId,
   GrantId,
 } from "@workspace/contract/schemas/common";
@@ -77,6 +78,14 @@ import { PublishDialog } from "./publish-dialog";
 /** Where things are, named by the app (chat-ui doesn't know its routes). */
 export interface ArtifactLinks {
   readonly chat: (id: ConversationId) => string;
+  /**
+   * The chat with this artifact open in its panel (171); without it, "Go to
+   * chat" opens the chat alone.
+   */
+  readonly chatWithArtifact?: (
+    id: ConversationId,
+    artifactId: ArtifactId
+  ) => string;
   readonly navigate: (href: string) => void;
 }
 
@@ -141,8 +150,13 @@ export function ArtifactMenu({
   const openPublish = useCallback(() => setOpen("publish"), []);
   const publishable = owner && artifact.kind === "site";
   const goToChat = useCallback(
-    () => links.navigate(links.chat(artifact.conversationId)),
-    [artifact.conversationId, links]
+    () =>
+      links.navigate(
+        links.chatWithArtifact
+          ? links.chatWithArtifact(artifact.conversationId, artifact.id)
+          : links.chat(artifact.conversationId)
+      ),
+    [artifact.conversationId, artifact.id, links]
   );
   const copy = useCallback(
     () => duplicateIt({ id: artifact.id }),

@@ -252,6 +252,8 @@ export const menuTemplate = ({
       separator,
       shortcut("panel.sandbox"),
       shortcut("panel.artifacts"),
+      shortcut("artifact.prev"),
+      shortcut("artifact.next"),
       separator,
       { role: "reload" },
       { role: "forceReload" },

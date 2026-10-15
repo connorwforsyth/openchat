@@ -30,6 +30,7 @@ const useLinks = () => {
       artifact: routes.artifact,
       artifacts: routes.artifacts,
       chat: (id: Parameters<typeof routes.chat>[0]) => routes.chat(id),
+      chatWithArtifact: routes.chatArtifact,
       navigate: (href: string) => router.push(href),
     }),
     [router]

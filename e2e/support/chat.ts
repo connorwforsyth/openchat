@@ -154,10 +154,12 @@ export const openWorkspace = async (page: Page): Promise<Locator> => {
     exact: true,
     name: "Files",
   });
-  if ((await toggle.getAttribute("aria-pressed")) !== "true") {
+  const panel = page.getByRole("region", { name: "Workspace" });
+  // Already open (on any section, since 171 gave Artifacts its own toggle).
+  if (!(await panel.isVisible())) {
     await toggle.click();
   }
-  return page.getByRole("region", { name: "Workspace" });
+  return panel;
 };
 
 const ANY_TARGET = /^Model or agent:/;

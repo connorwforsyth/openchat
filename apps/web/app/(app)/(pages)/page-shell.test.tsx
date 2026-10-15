@@ -80,6 +80,7 @@ const frame = (overrides: Partial<AppFrameValue> = {}): AppFrameValue => ({
   config,
   layout: {
     layout: { panel: null, panelWidth: 400, sidebarOpen: true },
+    restored: true,
     setPanel: vi.fn(),
     setPanelWidth: vi.fn(),
     togglePanel: vi.fn(),

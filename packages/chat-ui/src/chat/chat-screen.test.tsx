@@ -30,7 +30,7 @@ import {
 } from "../fixtures";
 import { localBranchPath } from "../model/branch";
 import { SHELL_LAYOUT_STORAGE_KEY } from "../shell/use-shell-layout";
-import { modKey, renderWithI18n } from "../testing/render";
+import { modKey, renderWithI18n, withI18n } from "../testing/render";
 import type {
   WorkspaceClient,
   WorkspaceFilesSource,
@@ -202,15 +202,18 @@ describe("header (D14)", () => {
             button.getAttribute("aria-label")?.startsWith("Rename chat")
           )
       );
-    const expected = ["Toggle sidebar", "Share", "Files", "Browser"];
+    const expected = [
+      "Toggle sidebar",
+      "Share",
+      "Artifacts (2)",
+      "Files",
+      "Browser",
+    ];
     expect(controls).toEqual(
       expected.map((name) => header().getByRole("button", { name }))
     );
-    // No sandbox pill, no separate Artifacts button.
+    // No sandbox pill.
     expect(header().queryByRole("button", { name: SANDBOX_PILL })).toBeNull();
-    expect(
-      header().queryByRole("button", { name: "Artifacts panel" })
-    ).toBeNull();
   });
 
   it("keeps the sidebar toggle in the sidebar while it's open (113)", async () => {
@@ -294,12 +297,79 @@ describe("header (D14)", () => {
         screen.queryByRole("complementary", { name: "Side panel" })
       ).toBeNull()
     );
-    // Artifacts are in the files' half, so Files shows as pressed.
+    // A opens the artifacts, which have their own toggle since 171.
     await userEvent.keyboard("a");
     expect(
       await screen.findByRole("complementary", { name: "Side panel" })
     ).toBeTruthy();
-    expect(files.getAttribute("aria-pressed")).toBe("true");
+    const artifacts = header().getByRole("button", { name: "Artifacts (2)" });
+    expect(artifacts.getAttribute("aria-pressed")).toBe("true");
+    expect(files.getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("counts the artifacts and marks one that arrives later (171)", async () => {
+    const { rerender } = renderWithI18n(
+      <ChatScreen
+        {...props({
+          workspace: {
+            ...props().workspace,
+            artifacts: { artifacts: chatArtifacts.slice(0, 1), versions: [] },
+          },
+        })}
+      />
+    );
+    expect(
+      header()
+        .getByRole("button", { name: "Artifacts (1)" })
+        .querySelector("[data-fresh]")
+    ).toBeNull();
+    rerender(withI18n(<ChatScreen {...props()} />));
+    const toggle = await header().findByRole("button", {
+      name: "Artifacts (2), new artifact",
+    });
+    expect(toggle.querySelector("[data-fresh]")).not.toBeNull();
+    // Looking clears it.
+    await userEvent.click(toggle);
+    expect(
+      await header().findByRole("button", { name: "Artifacts (2)" })
+    ).toBeTruthy();
+  });
+
+  it("opens the artifact the address names (171)", async () => {
+    const onSelect = vi.fn();
+    const onChange = vi.fn();
+    const id = chatArtifacts[1]?.id ?? null;
+    renderWithI18n(
+      <ChatScreen
+        {...props({
+          workspace: {
+            ...props().workspace,
+            artifactParam: { onChange, value: id },
+            onSelect,
+          },
+        })}
+      />
+    );
+    expect(
+      await screen.findByRole("complementary", { name: "Side panel" })
+    ).toBeTruthy();
+    expect(onSelect).toHaveBeenCalledWith({ artifactId: id, kind: "artifact" });
+    // Opening from the address doesn't write it back.
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("steps through the artifacts with { and } (171)", async () => {
+    const onSelect = vi.fn();
+    renderWithI18n(
+      <ChatScreen
+        {...props({ workspace: { ...props().workspace, onSelect } })}
+      />
+    );
+    await userEvent.keyboard("{Shift>}{BracketRight}{/Shift}");
+    expect(onSelect).toHaveBeenLastCalledWith({
+      artifactId: chatArtifacts[0]?.id,
+      kind: "artifact",
+    });
   });
 });
 

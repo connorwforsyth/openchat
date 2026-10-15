@@ -7,8 +7,13 @@ import type { ReactElement } from "react";
 // ids whose fallback is the English source, so no messages need loading.
 const i18n = setupI18n({ locale: "en", messages: { en: {} } });
 
+/** `ui` in the test catalog's provider, e.g. for `rerender`. */
+export const withI18n = (ui: ReactElement): ReactElement => (
+  <I18nProvider i18n={i18n}>{ui}</I18nProvider>
+);
+
 export const renderWithI18n = (ui: ReactElement): RenderResult =>
-  render(<I18nProvider i18n={i18n}>{ui}</I18nProvider>);
+  render(withI18n(ui));
 
 const APPLE = /Mac|iPhone|iPad/;
 
