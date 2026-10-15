@@ -84,13 +84,22 @@ test("a turn is told how to make a site, and a site that loads from a blocked or
   page,
 }) => {
   await page.goto("/");
-  // The Site kind's instructions reach the model like a skill's (125).
+  // The Site kind's guide is loaded on demand, like a skill's (160): the
+  // system prompt only points at it.
   await send(page, "[show:system]");
-  const reply = await expectReply(page, "A site is a small static website");
-  await expect(reply).toContainText("https://fonts.googleapis.com");
-  await expect(reply).toContainText("Design guide (site-ui)");
-  await expect(reply).toContainText("Design guide (html-tailwind)");
+  const system = await expectReply(page, "call load_artifact_guide");
+  await expect(system).toContainText('with type "site"');
+  await expect(system).not.toContainText("Design guide (site-ui)");
   chatPath = `/c/${await conversationIdOf(page)}`;
+
+  // The tool runs without asking and returns the instance's instructions.
+  await send(
+    page,
+    `[tool:load_artifact_guide ${JSON.stringify({ type: "site" })}]`
+  );
+  const guide = await expectReply(page, "A site is a small static website");
+  await expect(guide).toContainText("https://fonts.googleapis.com");
+  await expect(guide).toContainText("Design guide (site-ui)");
 
   await send(
     page,

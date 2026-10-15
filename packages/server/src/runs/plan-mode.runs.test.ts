@@ -332,6 +332,7 @@ describe("a planning run's turn, resolved for real", () => {
     expect(offered(builder)).toEqual([
       "create_artifact",
       "create_skill",
+      "load_artifact_guide",
       "publish_skill",
       "update_artifact",
       "update_memory",
@@ -399,6 +400,7 @@ describe("approving a plan", () => {
     expect(offered(model)).toEqual([
       "create_artifact",
       "create_skill",
+      "load_artifact_guide",
       "publish_skill",
       "update_artifact",
       "update_memory",

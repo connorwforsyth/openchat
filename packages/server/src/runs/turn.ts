@@ -18,6 +18,7 @@ import type {
   ProviderRegistry,
 } from "@workspace/ai/ports/provider-registry";
 import type { RunStart } from "@workspace/ai/ports/run-executor";
+import { LOAD_ARTIFACT_GUIDE_TOOL } from "@workspace/ai/prompts/artifact-guides";
 import type { PromptFile } from "@workspace/ai/prompts/codegen";
 import { composeInstructions } from "@workspace/ai/prompts/compose";
 import { BASE, FRAGMENTS } from "@workspace/ai/prompts/generated";
@@ -30,10 +31,12 @@ import {
 } from "@workspace/ai/providers/run-settings";
 import { ARTIFACT_TOOLS } from "@workspace/ai/tools/artifacts";
 import { GENERATE_IMAGE_TOOL } from "@workspace/ai/tools/registry/generate-image";
+import { loadArtifactGuideTool } from "@workspace/ai/tools/registry/load-artifact-guide";
 import {
   PUBLISH_SKILL_TOOL,
   SKILL_AUTHORING_TOOLS,
 } from "@workspace/ai/tools/registry/skill-authoring";
+import { toAiSdkTool } from "@workspace/ai/tools/registry/to-ai-sdk";
 import { resolveTools } from "@workspace/ai/tools/resolve";
 import { buildToolSet, type McpToolSource } from "@workspace/ai/tools/tool-set";
 import { builtinArtifactKinds } from "@workspace/artifacts-kit/builtin";
@@ -477,6 +480,30 @@ const SKILL_APPROVALS = Object.fromEntries(
 export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
   const { db } = deps;
   const loadModel = createModelLoader(deps);
+  const kinds = deps.artifactKinds ?? builtinArtifactKinds;
+
+  /**
+   * `load_artifact_guide` (160), offered beside the artifact tools but not
+   * among them: everything `deps.artifacts` returns is held to "ask", and
+   * this only reads the instance's kinds, so it never asks. Nothing when no
+   * kind has a guide, or the instance has no artifact tools.
+   */
+  const artifactGuideTools = (): Readonly<Record<string, Tool>> => {
+    const guides = kinds
+      .list()
+      .filter((definition) => definition.instructions !== "")
+      .map((definition) => ({
+        guide: definition.instructions,
+        kind: definition.kind,
+      }));
+    return deps.artifacts && guides.length > 0
+      ? {
+          [LOAD_ARTIFACT_GUIDE_TOOL]: toAiSdkTool(loadArtifactGuideTool, {
+            ports: { guides },
+          }),
+        }
+      : {};
+  };
 
   /**
    * The retrieval gate for this caller: the configured one, or the Decider
@@ -695,8 +722,13 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
     tools: Readonly<Record<string, unknown>> | undefined
   ): readonly PromptFile[] =>
     tools && ARTIFACT_TOOLS.some((name) => name in tools)
-      ? (deps.artifactKinds ?? builtinArtifactKinds).instructionFiles()
+      ? kinds.instructionFiles()
       : [];
+
+  /** Whether the turn can load kinds' guides, so their full text can wait (160). */
+  const guidesOnDemand = (
+    tools: Readonly<Record<string, unknown>> | undefined
+  ): boolean => tools !== undefined && LOAD_ARTIFACT_GUIDE_TOOL in tools;
 
   /**
    * Plan mode's instructions (106): a planning run is told it only reads
@@ -734,11 +766,13 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
     const sandbox = await chatSandboxTools(run, { reviews, signal });
     const mcp = await chatMcpTools(run, signal);
     const artifacts = chatArtifactTools(run);
+    const guides = artifactGuideTools();
     const authoring = chatSkillTools(run);
     const images = await imageTools(run, sandbox.sandbox, signal);
     const own = {
       ...mcp.tools,
       ...artifacts.tools,
+      ...guides,
       ...authoring.tools,
       ...images.tools,
       ...sandbox.tools,
@@ -772,6 +806,7 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
         ...(await planInstructions(run)),
       ],
       // A planning run can't make artifacts (126).
+      kindGuidesOnDemand: guidesOnDemand(tools),
       kinds: planning ? [] : kindInstructions(tools),
       mentions: mentioned,
       skills: skills.sections,
@@ -802,6 +837,9 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
       toolApproval: {
         ...mcp.toolApproval,
         ...artifacts.toolApproval,
+        ...Object.fromEntries(
+          Object.keys(guides).map((name) => [name, "not-applicable" as const])
+        ),
         ...authoring.toolApproval,
         ...images.toolApproval,
         ...sandbox.toolApproval,
@@ -878,6 +916,7 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
       // An agent gets these when its version lists them by name.
       ...webSearchTools(deps.webSearch, run, loaded.value.resolvedModel),
       ...deps.artifacts?.(run),
+      ...artifactGuideTools(),
       ...deps.skillAuthoring?.(run),
       // An agent gets `generate_image` when its version lists it (138).
       ...(await imageTools(run, sandbox, signal)).tools,
@@ -895,6 +934,8 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
           ...planned.approvals,
           tools: {
             ...ARTIFACT_APPROVALS,
+            // It only reads the instance's kinds (160).
+            [LOAD_ARTIFACT_GUIDE_TOOL]: "auto",
             ...SKILL_APPROVALS,
             // Images cost more than a reply: they ask unless the instance
             // says `auto`, or the agent sets the tool to `auto` by name.
@@ -944,6 +985,7 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
         base: BASE,
         dynamic: await planInstructions(run),
         // A planning run can't make artifacts.
+        kindGuidesOnDemand: guidesOnDemand(gated.tools),
         kinds: run.options.mode === "plan" ? [] : kindInstructions(gated.tools),
         mentions: mentioned,
         skills: skills.sections,
