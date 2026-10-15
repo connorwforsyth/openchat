@@ -2,7 +2,7 @@
 id: "162"
 title: "Contract: `presentation`, `spreadsheet` and `diagram` artifact kinds"
 labels: [wayfinder:build]
-status: open
+status: closed
 assignee:
 blockedBy: []
 ---
@@ -19,3 +19,7 @@ Connor (2026-10-16): "I'd like to have a presentations mode, a spreadsheet mode,
 ## Owns
 
 `packages/contract/src/schemas/message-parts.ts` (own PR), then `packages/db/drizzle/**` and `packages/db/src/schema/**` (the kind check).
+
+## Resolution (2026-10-16, loop)
+
+Merged in [PR #125](https://github.com/connorwforsyth/openchat/pull/125): presentation, spreadsheet and diagram artifact kinds (contract + placeholders). Verified: already contained in main via #124/#127; GitHub marked it merged. Nothing left on this ticket.

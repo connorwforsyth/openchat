@@ -162,3 +162,4 @@ One line per iteration: date · ticket · PR · outcome · verification. The new
 - 2026-10-02 · 138 merged (PR #111) · gate 93/93 · e2e 109/109
 - 2026-10-03 · Connor asked for a study of T3 Code: five reports in `.context/research/t3code/`; added 140–157 (152 needs Connor; 155 is a contract change) · claimed 140, 143, 145; 142 and 144 done directly
 - 2026-10-03 · 140, 143, 145, 146, 147, 149 gated (e2e 109–111) → PRs #115–#120; 142 #112, 144 #113, 148 #114 · not merged (Connor reviews; new direction from the T3 study) · one workspace-split e2e flake under load, passes alone and on rerun
+- 2026-10-16 · backlog merged on Connor's say-so: 142 #112, 158 #121, 148 #114, 140 #115, 145 #117, 146 #118, 147 #119, 144 #113, 143 #116, 149 #120, 162 #125 · local gate on each rebased branch (Actions minutes out); 113/116 ported onto #123's Markdown; 125 was already in main · flakes: PGlite/browser timeouts at load ~80–100, passed alone

@@ -2,8 +2,8 @@
 id: "149"
 title: "Desktop: updates are a visible state with menu items, and tested against a local feed"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: ["148"]
 ---
 
@@ -21,3 +21,7 @@ From the T3 Code study (`.context/research/t3code/desktop.md` §3.1–3.2). `app
 ## Owns
 
 `apps/desktop/src/main/updates.ts`, `apps/desktop/src/main/menu*.ts`, `apps/desktop/src/shared/update-state.ts` (new), `apps/desktop/scripts/builder-config.ts`, `apps/desktop/scripts/smoke-packaged.ts`, tests.
+
+## Resolution (2026-10-16, loop)
+
+Merged in [PR #120](https://github.com/connorwforsyth/openchat/pull/120): desktop update state with menu items. Verified: rebased; messages.po re-extracted; full local gate. Nothing left on this ticket.

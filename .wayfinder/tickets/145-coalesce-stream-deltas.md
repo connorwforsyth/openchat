@@ -2,8 +2,8 @@
 id: "145"
 title: "Adjacent text and reasoning deltas are merged before they're stored as run chunks"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -22,3 +22,7 @@ From the T3 Code study (`.context/research/t3code/server.md`, recommendation 2).
 ## Owns
 
 `packages/server/src/stream/postgres-stream-channel.ts`, a new pure module beside it, their tests.
+
+## Resolution (2026-10-16, loop)
+
+Merged in [PR #117](https://github.com/connorwforsyth/openchat/pull/117): adjacent text/reasoning deltas coalesced before storing run chunks. Verified: full local gate. Nothing left on this ticket.
