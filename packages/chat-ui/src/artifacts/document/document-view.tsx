@@ -567,7 +567,7 @@ function TitleBar({
   );
 }
 
-function SaveStatus({
+export function SaveStatus({
   canEdit,
   onKeepMine,
   onLoadLatest,
@@ -664,7 +664,7 @@ function SaveStatus({
   }
 }
 
-function OlderVersion({
+export function OlderVersion({
   canRestore,
   number,
   onRestore,
