@@ -45,9 +45,9 @@ Packages depend in one direction: `sandbox` → `server` → `mcp` → `ai`. So
 | What | Where |
 |---|---|
 | `defineTool`, `ToolContext`, `toAiSdkTool`, the adapters, `createToolRegistry` | here |
-| `file_search`, `web_search`, `update_memory`, `create_artifact`, `update_artifact`, `generate_image`, `load_skill`, `create_skill`, `update_skill`, `publish_skill` | here, one file each |
+| `file_search`, `web_search`, `update_memory`, `create_artifact`, `update_artifact`, `load_artifact_guide`, `generate_image`, `load_skill`, `create_skill`, `update_skill`, `publish_skill` | here, one file each |
 | `bash`, `read`, `write`, `edit`, `preview` | `packages/sandbox/src/tools/defs/`, one file each |
-| The registry of all fourteen (`builtinTools`) | `packages/sandbox/src/tools/registry.ts` |
+| The registry of every built-in (`builtinTools`) | `packages/sandbox/src/tools/registry.ts` |
 
 The sandbox tools need the `Sandbox` port and the `/work` path rule, which
 live in `@workspace/sandbox`. That package is also the first one that can see
@@ -94,6 +94,7 @@ does today when nobody has said otherwise:
 | `create_skill`, `update_skill` | `ask` | `chatSkillTools` and `SKILL_APPROVALS` in `server/src/runs/turn.ts`; an agent may set them to `auto` |
 | `publish_skill` | `ask` | The same; the turn holds it to `ask` even under an agent that says `auto` |
 | `load_skill` | `auto` | `skillTools` in `server/src/runs/skills.ts`; it only reads skills the turn was given |
+| `load_artifact_guide` | `auto` | `artifactGuideTools` in `server/src/runs/turn.ts`, outside the artifact tools (whose keys are forced to ask); it only reads the instance's kinds |
 | MCP tools | `ask` | `chatMcpTools`; an agent's own approvals apply instead |
 | Client tools | `auto` | `buildToolSet`; the client decides for itself |
 

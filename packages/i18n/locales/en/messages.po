@@ -549,6 +549,11 @@ msgstr "Bad answer"
 msgid "Base URL (optional)"
 msgstr "Base URL (optional)"
 
+#: ../chat-ui/src/artifacts/artifacts-page.tsx
+msgctxt "artifact kind badge"
+msgid "Beta"
+msgstr "Beta"
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "Block new chats when it's spent"
 msgstr "Block new chats when it's spent"
@@ -2312,6 +2317,11 @@ msgid "Never used"
 msgstr "Never used"
 
 #: ../library-ui/src/components/library-index.tsx
+msgid "New"
+msgstr "New"
+
+#: ../chat-ui/src/artifacts/artifacts-page.tsx
+msgctxt "artifact kind badge"
 msgid "New"
 msgstr "New"
 

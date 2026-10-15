@@ -96,4 +96,6 @@ export const siteKind = ({
     label: "Site",
     operations: { replace: replaceSite },
     render: { panel: "source", runtime: "site" },
+    starter: { badge: "beta" },
+    thumbnail: "runtime",
   });

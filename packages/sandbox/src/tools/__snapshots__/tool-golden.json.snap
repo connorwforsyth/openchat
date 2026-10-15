@@ -26,6 +26,10 @@
     },
     {
       "approval": "not-applicable",
+      "name": "load_artifact_guide"
+    },
+    {
+      "approval": "not-applicable",
       "name": "load_skill"
     },
     {
@@ -1384,6 +1388,78 @@
             },
             "required": [
               "message",
+              "status"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    {
+      "approval": "not-applicable",
+      "customModelOutput": true,
+      "model": {
+        "type": "function",
+        "name": "load_artifact_guide",
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "description": "The artifact kind you are about to write, such as \"site\"."
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        "description": "Load an artifact kind's guide: its rules and the components it builds from. Call it before you create or update an artifact of that kind."
+      },
+      "name": "load_artifact_guide",
+      "outputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "guide": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "const": "loaded"
+              },
+              "type": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "guide",
+              "status",
+              "type"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "available": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "status": {
+                "type": "string",
+                "const": "not_found"
+              }
+            },
+            "required": [
+              "available",
               "status"
             ],
             "additionalProperties": false
@@ -4718,6 +4794,78 @@
             },
             "required": [
               "message",
+              "status"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    {
+      "approval": "not-applicable",
+      "customModelOutput": true,
+      "model": {
+        "type": "function",
+        "name": "load_artifact_guide",
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "description": "The artifact kind you are about to write, such as \"site\"."
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        "description": "Load an artifact kind's guide: its rules and the components it builds from. Call it before you create or update an artifact of that kind."
+      },
+      "name": "load_artifact_guide",
+      "outputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "guide": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "const": "loaded"
+              },
+              "type": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "guide",
+              "status",
+              "type"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "available": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "status": {
+                "type": "string",
+                "const": "not_found"
+              }
+            },
+            "required": [
+              "available",
               "status"
             ],
             "additionalProperties": false

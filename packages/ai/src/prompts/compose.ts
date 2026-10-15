@@ -1,3 +1,4 @@
+import { kindPrompts } from "./artifact-guides";
 import type { PromptFile } from "./codegen";
 
 // A turn's instructions, layered (the eve pattern, ticket 079): the base
@@ -35,6 +36,11 @@ export interface ComposeInput {
   readonly base?: readonly PromptFile[];
   /** Fragments that depend on the turn, such as `FRAGMENTS.workspace` when the chat has a workspace. */
   readonly dynamic?: readonly PromptFile[];
+  /**
+   * Whether the turn has `load_artifact_guide` (160): then each kind but
+   * Document shrinks to one line saying to load its guide first.
+   */
+  readonly kindGuidesOnDemand?: boolean;
   /**
    * The instructions of the artifact kinds the model may create this turn
    * (125): each kind is "like a skill under the hood", so its rules and
@@ -103,9 +109,10 @@ export const composeInstructions = (
     ...(input.dynamic ?? []).flatMap(({ source, text }) =>
       section("dynamic", source, text)
     ),
-    ...(input.kinds ?? []).flatMap(({ source, text }) =>
-      section("kinds", source, text)
-    ),
+    ...kindPrompts(
+      input.kinds ?? [],
+      input.kindGuidesOnDemand ?? false
+    ).flatMap(({ source, text }) => section("kinds", source, text)),
     ...section("mentions", MENTIONS_SOURCE, input.mentions),
   ];
   const memory = section("memory", MEMORY_SOURCE, input.memory);

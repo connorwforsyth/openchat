@@ -8,7 +8,19 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 
 import { renderWithI18n } from "../testing/render";
-import { ArtifactsPage } from "./artifacts-page";
+import { ArtifactsPage, type ArtifactsPageProps } from "./artifacts-page";
+
+// An image that never decodes: the thumbnail's `onError`, without the network.
+const BROKEN_IMAGE = "data:image/png;base64,AAAA";
+const PIXEL =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1' height='1'/%3E";
+
+const thumbnailOf = (title: string) =>
+  screen
+    .getByRole("link", { name: title })
+    .closest("li")
+    ?.querySelector("[data-thumbnail]")
+    ?.getAttribute("data-thumbnail");
 
 // The Artifacts page over a fake server: what it lists, how the tabs and
 // filters ask, and which actions each row offers.
@@ -67,7 +79,9 @@ const me: Me = {
   },
 };
 
-const setup = () => {
+const setup = (
+  props: Pick<ArtifactsPageProps, "kinds" | "thumbnailUrl"> = {}
+) => {
   const asked: URL[] = [];
   const fetch = (input: RequestInfo | URL): Promise<Response> => {
     const url = new URL(input instanceof Request ? input.url : String(input));
@@ -98,6 +112,7 @@ const setup = () => {
         me={me}
         now={now}
         onStart={onStart}
+        {...props}
       />
     </QueryClientProvider>
   );
@@ -147,6 +162,55 @@ describe("ArtifactsPage", () => {
     const { onStart } = setup();
     await userEvent.click(screen.getByRole("button", { name: "Web page" }));
     expect(onStart).toHaveBeenCalledWith(expect.stringContaining("Web page"));
+  });
+
+  it("builds the starter cards from the enabled kinds, with their badges", async () => {
+    const { onStart } = setup({
+      kinds: ["markdown", "html", "site", "document"],
+    });
+    const cards = within(
+      screen.getByRole("region", { name: "Make something new" })
+    ).getAllByRole("button");
+    // Markdown has no starter; the rest keep the kit's order.
+    expect(cards.map((card) => card.textContent)).toEqual([
+      "Document",
+      "Web page",
+      "BetaSite",
+    ]);
+    await userEvent.click(cards[2] as HTMLElement);
+    expect(onStart).toHaveBeenCalledWith(expect.stringContaining("Site"));
+  });
+
+  it("leaves a kind out when the instance hasn't enabled it", () => {
+    setup({ kinds: ["html", "mermaid"] });
+    const starters = screen.getByRole("region", { name: "Make something new" });
+    expect(within(starters).queryByText("Site")).toBeNull();
+    expect(
+      within(starters).getByRole("button", { name: "Diagram" })
+    ).toBeTruthy();
+  });
+
+  it("shows a runtime kind's thumbnail in the grid, and the icon otherwise", async () => {
+    const asked: string[] = [];
+    setup({
+      thumbnailUrl: (item) => {
+        asked.push(item.title);
+        return PIXEL;
+      },
+    });
+    await screen.findByRole("link", { name: "Landing page" });
+    await userEvent.click(screen.getByRole("button", { name: "Grid" }));
+    await waitFor(() => expect(thumbnailOf("Landing page")).toBe("image"));
+    // Markdown's `thumbnail` is `none`: the icon, and its URL never asked.
+    expect(thumbnailOf("Trip plan")).toBe("icon");
+    expect(asked).not.toContain("Trip plan");
+  });
+
+  it("falls back to the kind's icon when the thumbnail doesn't load", async () => {
+    setup({ thumbnailUrl: () => BROKEN_IMAGE });
+    await screen.findByRole("link", { name: "Landing page" });
+    await userEvent.click(screen.getByRole("button", { name: "Grid" }));
+    await waitFor(() => expect(thumbnailOf("Landing page")).toBe("icon"));
   });
 
   it("offers Delete and Go to chat only where they apply", async () => {

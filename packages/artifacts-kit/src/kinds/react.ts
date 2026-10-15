@@ -22,4 +22,6 @@ export const reactKind = textKind({
   label: "React component",
   render: { imports: REACT_IMPORTS, panel: "source", runtime: "react" },
   shape: /export\s+default\b/,
+  starter: {},
+  thumbnail: "runtime",
 });
