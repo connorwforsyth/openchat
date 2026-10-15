@@ -29,6 +29,7 @@ export const config = {
     "/",
     "/c/:path*",
     "/artifacts/:path*",
+    "/dots/:path*",
     "/library/:path*",
     "/settings/:path*",
     "/admin/:path*",

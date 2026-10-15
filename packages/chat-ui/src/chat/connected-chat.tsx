@@ -141,6 +141,8 @@ export interface ConnectedChatProps {
   readonly config: PublicConfig;
   /** `null` opens a new, not-yet-created chat. */
   readonly conversationId: ConversationId | null;
+  /** Where the Dots page lives (172), for the sidebar. */
+  readonly dotsHref?: string;
   /**
    * The context a new chat starts in. Pass it with `onDraftContextChange` when
    * something outside the screen (the ⌘K palette) can change it too.
@@ -1425,6 +1427,7 @@ export function ConnectedChat({
   brand,
   client,
   artifactsHref,
+  dotsHref,
   config,
   conversationId,
   draftContext: draftContextProp,
@@ -1887,6 +1890,7 @@ export function ConnectedChat({
             activeId: conversationId,
             artifactsHref,
             chats: data.chats.data?.items ?? [],
+            dotsHref,
             libraryHref,
             onSelect: onNavigate,
           }}

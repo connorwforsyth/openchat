@@ -37,6 +37,8 @@ export const routes = {
   // A search hit names the message; the fragment keeps it in the address.
   chatWithAgent: (agentId: LibraryItemId) =>
     withQuery("/", { [routeParams.agent]: agentId }),
+  /** Always-on agents (172). */
+  dots: "/dots",
   home: "/",
   invite: (token: string) => `/invite/${encodeURIComponent(token)}`,
   library: "/library",
