@@ -23,13 +23,8 @@ export const artifactDirectiveSchema = z.object({
     .max(64),
   title: z.string().trim().min(1).max(200),
   // An image (138) is only ever `generate_image`'s, never written as text,
-  // and the kinds not built yet (164–166) aren't offered.
-  type: artifactKindSchema.exclude([
-    "image",
-    "presentation",
-    "spreadsheet",
-    "diagram",
-  ]),
+  // and the kinds not built yet (164, 166) aren't offered.
+  type: artifactKindSchema.exclude(["image", "presentation", "spreadsheet"]),
 });
 
 /** The kinds a model may write itself. */
@@ -57,6 +52,8 @@ const ATTRIBUTE = /(\w+)="([^"]*)"/g;
 /** What an artifact of each kind must look like to render at all. */
 const BODY_CHECKS: Readonly<Record<WrittenKind, RegExp>> = {
   code: /\S/,
+  // A graph as JSON (165); the Diagram kind checks the rest.
+  diagram: /"nodes"\s*:/,
   // Rich text the model writes as Markdown (126).
   document: /\S/,
   html: /<[a-z!][\s\S]*>/i,

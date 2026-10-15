@@ -179,6 +179,7 @@ type WrittenKind = (typeof WRITTEN_KINDS)[number];
 /** One valid content per kind, to update from. */
 const BASES: Readonly<Record<WrittenKind, string>> = {
   code: "print(1)",
+  diagram: '{"nodes":[{"id":"a","label":"A"}]}',
   document: "# Notes",
   html: "<p>hi</p>",
   markdown: "# Notes",

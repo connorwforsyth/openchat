@@ -11,13 +11,14 @@ import { TEXT_MAX_CHARS } from "./kinds/text";
 // before the kit; the Site kind (125) has its own tests under `kinds/site`.
 
 /** In the contract, not built yet (164–166). */
-const PLANNED = ["presentation", "spreadsheet", "diagram"];
+const PLANNED = ["presentation", "spreadsheet"];
 
 const textKinds = () =>
   builtinArtifactKinds.list().filter(
     (definition) =>
       definition.kind !== "site" &&
       definition.kind !== "document" &&
+      definition.kind !== "diagram" &&
       // Images (138) are written by `generate_image` only, never by hand.
       definition.kind !== "image" &&
       !PLANNED.includes(definition.kind)
@@ -43,10 +44,10 @@ describe("the built-in kinds", () => {
       expect(definition.editor).toBe("none");
       expect(definition.diff).toBe("text");
     }
-    // Sites and documents come with instructions.
+    // Diagrams, documents and sites come with instructions.
     expect(
       builtinArtifactKinds.instructionFiles().map(({ source }) => source)
-    ).toEqual(["kinds/document", "kinds/site"]);
+    ).toEqual(["kinds/diagram", "kinds/document", "kinds/site"]);
   });
 
   it("render in the runtime where they did, and the panel otherwise", () => {
@@ -57,7 +58,7 @@ describe("the built-in kinds", () => {
     );
     expect(renders).toEqual({
       code: { panel: "source", runtime: null },
-      diagram: { panel: "source", runtime: null },
+      diagram: { panel: "diagram", runtime: null },
       document: { panel: "document", runtime: null },
       html: { panel: "frame", runtime: "html" },
       image: { panel: "image", runtime: null },

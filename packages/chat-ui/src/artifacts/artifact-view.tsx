@@ -50,6 +50,8 @@ import {
 } from "../model/artifacts";
 import { useElementWidth } from "../workspace/use-element-width";
 import { ArtifactPreview, SrcdocPreview } from "./artifact-preview";
+import { DiagramArtifact } from "./diagram/diagram-artifact";
+import { DiagramView } from "./diagram/diagram-view";
 import { DocumentArtifact } from "./document/document-artifact";
 import { DocumentView } from "./document/document-view";
 import { fitArtifactHeader } from "./header-fit";
@@ -171,6 +173,32 @@ export function ArtifactView({
       <DocumentView
         access={null}
         actions={actions}
+        artifact={artifact}
+        header={header}
+        key={artifact.id}
+        onSave={readOnly}
+        onSelect={onSelect}
+        versionId={versionId}
+        versions={versions}
+      />
+    );
+  }
+  // A Diagram (165) is its own canvas.
+  if (artifact.kind === "diagram" && versions && versions.length > 0) {
+    return api ? (
+      <DiagramArtifact
+        api={api}
+        artifact={artifact}
+        header={header}
+        info={info}
+        key={artifact.id}
+        onSelect={onSelect}
+        versionId={versionId}
+        versions={versions}
+      />
+    ) : (
+      <DiagramView
+        access={null}
         artifact={artifact}
         header={header}
         key={artifact.id}

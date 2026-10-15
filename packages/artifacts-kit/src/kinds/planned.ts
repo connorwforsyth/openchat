@@ -4,7 +4,7 @@ import { z } from "zod";
 import { type ArtifactKindDefinition, defineArtifactKind } from "../define";
 
 // Kinds in the contract (162) whose tickets haven't built them yet:
-// presentation (164), diagram (165) and spreadsheet (166). Each is a
+// presentation (164) and spreadsheet (166). Each is a
 // definition so every kind has one, but nothing offers it and every save is
 // refused, so no version of one can exist until its ticket replaces this.
 
@@ -54,10 +54,4 @@ export const spreadsheetKind = plannedKind({
   icon: "LayoutGridIcon",
   kind: "spreadsheet",
   label: "Spreadsheet",
-});
-
-export const diagramKind = plannedKind({
-  icon: "NetworkIcon",
-  kind: "diagram",
-  label: "Diagram",
 });

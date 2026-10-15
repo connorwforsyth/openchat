@@ -277,6 +277,10 @@ msgstr "Add it to this chat's workspace, where you and the agent can both edit i
 msgid "Add key"
 msgstr "Add key"
 
+#: ../chat-ui/src/artifacts/diagram/diagram-view.tsx
+msgid "Add node"
+msgstr "Add node"
+
 #: ../chat-ui/src/artifacts/artifact-actions.tsx
 #: ../library-ui/src/components/share-dialog.tsx
 msgid "Add people, teams or orgs"
@@ -1227,6 +1231,11 @@ msgstr "Devices"
 msgid "Diagram"
 msgstr "Diagram"
 
+#. placeholder {0}: artifact.title
+#: ../chat-ui/src/artifacts/diagram/diagram-view.tsx
+msgid "Diagram: {0}"
+msgstr "Diagram: {0}"
+
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Didn't change {code}"
 msgstr "Didn't change {code}"
@@ -1522,6 +1531,7 @@ msgstr "Explain a concept"
 msgid "Explain how HTTPS keeps a connection private, in plain language with one short example."
 msgstr "Explain how HTTPS keeps a connection private, in plain language with one short example."
 
+#: ../chat-ui/src/artifacts/diagram/diagram-view.tsx
 #: ../chat-ui/src/artifacts/document/document-view.tsx
 #: ../library-ui/src/components/item-builder.tsx
 #: ../library-ui/src/components/library-index.tsx
@@ -1609,7 +1619,6 @@ msgid "Find people, teams or orgs"
 msgstr "Find people, teams or orgs"
 
 #: ../chat-ui/src/conversation/artifact-card.tsx
-#: ../chat-ui/src/model/artifact-kinds.ts
 msgid "Flowchart"
 msgstr "Flowchart"
 
@@ -2207,6 +2216,14 @@ msgstr "Memory updated: {0}"
 msgid "Mention"
 msgstr "Mention"
 
+#: ../chat-ui/src/artifacts/diagram/diagram-view.tsx
+msgid "Mermaid (.mmd)"
+msgstr "Mermaid (.mmd)"
+
+#: ../chat-ui/src/model/artifact-kinds.ts
+msgid "Mermaid diagram"
+msgstr "Mermaid diagram"
+
 #: ../composer/src/components/composer-shell.tsx
 #: ../composer/src/components/composer.tsx
 msgid "Message"
@@ -2376,11 +2393,16 @@ msgstr "New name for {name}"
 msgid "New organisation"
 msgstr "New organisation"
 
+#: ../chat-ui/src/artifacts/diagram/diagram-view.tsx
+msgid "New step"
+msgstr "New step"
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
 msgid "New team"
 msgstr "New team"
 
 #: ../chat-ui/src/artifacts/artifact-view.tsx
+#: ../chat-ui/src/artifacts/diagram/diagram-view.tsx
 #: ../chat-ui/src/artifacts/document/document-view.tsx
 msgid "Newer version"
 msgstr "Newer version"
@@ -2490,6 +2512,10 @@ msgstr "No versions yet."
 msgid "No versions yet. Saving creates the first one."
 msgstr "No versions yet. Saving creates the first one."
 
+#: ../chat-ui/src/artifacts/diagram/diagram-canvas.tsx
+msgid "Node label"
+msgstr "Node label"
+
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "None"
 msgstr "None"
@@ -2589,6 +2615,7 @@ msgid "Older"
 msgstr "Older"
 
 #: ../chat-ui/src/artifacts/artifact-view.tsx
+#: ../chat-ui/src/artifacts/diagram/diagram-view.tsx
 #: ../chat-ui/src/artifacts/document/document-view.tsx
 msgid "Older version"
 msgstr "Older version"
@@ -2873,6 +2900,10 @@ msgstr "Plan, in Markdown"
 #: ../ui/src/components/markdown.tsx
 msgid "PNG"
 msgstr "PNG"
+
+#: ../chat-ui/src/artifacts/diagram/diagram-view.tsx
+msgid "PNG image (.png)"
+msgstr "PNG image (.png)"
 
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
 msgid "policies"
@@ -3906,6 +3937,10 @@ msgstr "SVG"
 msgid "SVG image"
 msgstr "SVG image"
 
+#: ../chat-ui/src/artifacts/diagram/diagram-view.tsx
+msgid "SVG image (.svg)"
+msgstr "SVG image (.svg)"
+
 #: ../palette/src/context-actions.ts
 msgid "Switch chat context to {label}"
 msgstr "Switch chat context to {label}"
@@ -4409,6 +4444,10 @@ msgstr "This server's configuration forbids audit policies, so admins can't read
 msgid "This version can't be published yet:"
 msgstr "This version can't be published yet:"
 
+#: ../chat-ui/src/artifacts/diagram/diagram-view.tsx
+msgid "This version couldn't be read as a diagram."
+msgstr "This version couldn't be read as a diagram."
+
 #: ../chat-ui/src/artifacts/document/document-view.tsx
 msgid "This version couldn't be read as a document."
 msgstr "This version couldn't be read as a document."
@@ -4636,6 +4675,7 @@ msgid "v{number}"
 msgstr "v{number}"
 
 #: ../chat-ui/src/artifacts/artifact-view.tsx
+#: ../chat-ui/src/artifacts/diagram/diagram-view.tsx
 #: ../chat-ui/src/artifacts/document/document-view.tsx
 msgid "v{number} of {total}"
 msgstr "v{number} of {total}"
@@ -4657,6 +4697,7 @@ msgid "Version {number}, read only"
 msgstr "Version {number}, read only"
 
 #: ../chat-ui/src/artifacts/artifact-view.tsx
+#: ../chat-ui/src/artifacts/diagram/diagram-view.tsx
 #: ../chat-ui/src/artifacts/document/document-view.tsx
 msgid "Versions"
 msgstr "Versions"
@@ -5004,6 +5045,10 @@ msgstr "Your own keys pay for your Personal chats, and for team or org chats whe
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgid "Yours"
 msgstr "Yours"
+
+#: ../chat-ui/src/artifacts/diagram/diagram-canvas.tsx
+msgid "Zoom"
+msgstr "Zoom"
 
 #: ../ui/src/components/markdown.tsx
 msgid "Zoom in"
