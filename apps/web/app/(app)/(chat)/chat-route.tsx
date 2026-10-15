@@ -38,6 +38,7 @@ import { Brand } from "@/app/(app)/_shared/brand";
 import { useShellPlatform } from "@/app/(app)/_shared/desktop";
 import { createApiSandboxClient } from "@/app/(app)/_shared/sandbox-client";
 import { useAfterBoot } from "@/app/(app)/_shared/use-after-boot";
+import { DotBanner } from "@/app/(app)/(pages)/dots/dot-banner";
 import { routeParams, routes } from "@/lib/routes";
 
 import { messageTarget, shownTarget } from "./message-target";
@@ -471,37 +472,41 @@ export function ChatRoute({
     return null;
   }
   return (
-    <ConnectedChat
-      agents={agents}
-      artifactsHref={routes.artifacts}
-      artifactsRuntimeOrigin={artifactsRuntimeOrigin}
-      brand={<Brand config={config} />}
-      client={client}
-      config={config}
-      conversationId={conversationId}
-      draftContext={chat.draftContext}
-      initialPrompt={
-        conversationId ? null : searchParams.get(routeParams.askAi)
-      }
-      layout={layout}
-      libraryHref={routes.library}
-      me={me}
-      models={models.data ?? NO_MODELS}
-      onDraftContextChange={chat.setDraftContext}
-      onNavigate={navigate}
-      onNewOrg={frame.openNewOrg}
-      onOpenAdmin={canAdmin(me) ? openAdmin : undefined}
-      onOpenPalette={frame.openPalette}
-      onOpenSettings={openSettings}
-      onSignOut={frame.signOut}
-      onTargetChange={changeTarget}
-      onThemeChange={frame.setTheme}
-      platform={platform}
-      sandboxClient={sandboxClient}
-      sendTarget={sendTarget}
-      skills={skills}
-      target={target}
-      theme={frame.theme}
-    />
+    <>
+      <DotBanner conversationId={conversationId} />
+      <ConnectedChat
+        agents={agents}
+        artifactsHref={routes.artifacts}
+        artifactsRuntimeOrigin={artifactsRuntimeOrigin}
+        brand={<Brand config={config} />}
+        client={client}
+        config={config}
+        conversationId={conversationId}
+        dotsHref={routes.dots}
+        draftContext={chat.draftContext}
+        initialPrompt={
+          conversationId ? null : searchParams.get(routeParams.askAi)
+        }
+        layout={layout}
+        libraryHref={routes.library}
+        me={me}
+        models={models.data ?? NO_MODELS}
+        onDraftContextChange={chat.setDraftContext}
+        onNavigate={navigate}
+        onNewOrg={frame.openNewOrg}
+        onOpenAdmin={canAdmin(me) ? openAdmin : undefined}
+        onOpenPalette={frame.openPalette}
+        onOpenSettings={openSettings}
+        onSignOut={frame.signOut}
+        onTargetChange={changeTarget}
+        onThemeChange={frame.setTheme}
+        platform={platform}
+        sandboxClient={sandboxClient}
+        sendTarget={sendTarget}
+        skills={skills}
+        target={target}
+        theme={frame.theme}
+      />
+    </>
   );
 }

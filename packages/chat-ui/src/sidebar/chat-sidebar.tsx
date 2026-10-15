@@ -3,6 +3,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { ConversationId } from "@workspace/contract/schemas/common";
 import {
+  BotIcon,
   LibraryIcon,
   NewChatIcon,
   SearchIcon,
@@ -26,6 +27,8 @@ export interface ChatSidebarProps {
   /** The org or brand at the top of the sidebar. */
   readonly brand?: ReactNode;
   readonly chats: readonly SidebarChat[];
+  /** Where the Dots page lives (172); a plain link. */
+  readonly dotsHref?: string;
   /** Where the library lives (ticket 017); a plain link. */
   readonly libraryHref?: string;
   /** The clock for date groups; defaults to now. */
@@ -72,6 +75,7 @@ export function ChatSidebar({
   account,
   activeId,
   artifactsHref,
+  dotsHref,
   brand,
   chats,
   libraryHref,
@@ -149,6 +153,14 @@ export function ChatSidebar({
             <ShapesIcon aria-hidden />
             <span className="flex-1">
               <Trans>Artifacts</Trans>
+            </span>
+          </a>
+        ) : null}
+        {dotsHref ? (
+          <a className={navRowClass} href={dotsHref}>
+            <BotIcon aria-hidden />
+            <span className="flex-1">
+              <Trans>Dots</Trans>
             </span>
           </a>
         ) : null}

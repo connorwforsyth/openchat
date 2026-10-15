@@ -106,6 +106,10 @@ msgstr "{files, plural, one {# file} other {# files}}"
 msgid "{files} changed after the agent proposed this, so the change can't be applied as shown."
 msgstr "{files} changed after the agent proposed this, so the change can't be applied as shown."
 
+#: ../../apps/web/app/(app)/(pages)/dots/schedule-text.tsx
+msgid "{label} and {more} more"
+msgstr "{label} and {more} more"
+
 #: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
 msgid "{length} of {max} characters"
 msgstr "{length} of {max} characters"
@@ -117,6 +121,10 @@ msgstr "{length} of {max} characters. Anything past the limit isn't included in 
 #: ../composer/src/components/attachment-list.tsx
 msgid "{maxFiles, plural, one {{fileName} wasn't added: you can attach # file.} other {{fileName} wasn't added: you can attach up to # files.}}"
 msgstr "{maxFiles, plural, one {{fileName} wasn't added: you can attach # file.} other {{fileName} wasn't added: you can attach up to # files.}}"
+
+#: ../../apps/web/app/(app)/(pages)/dots/dots-screen.tsx
+msgid "{name} on"
+msgstr "{name} on"
 
 #. placeholder {0}: source.page
 #: ../chat-ui/src/conversation/sources.tsx
@@ -164,6 +172,10 @@ msgstr "{used} of {limit}"
 #: ../composer/src/components/target-picker.tsx
 msgid "~{0} words"
 msgstr "~{0} words"
+
+#: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
+msgid "A Dot is an always-on agent with its own chat and workspace. It runs on its schedules, and you'll see what it found."
+msgstr "A Dot is an always-on agent with its own chat and workspace. It runs on its schedules, and you'll see what it found."
 
 #: ../chat-ui/src/chat/chat-screen.tsx
 #: ../chat-ui/src/workspace/use-workspace-files.ts
@@ -286,6 +298,10 @@ msgstr "Add key"
 msgid "Add people, teams or orgs"
 msgstr "Add people, teams or orgs"
 
+#: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
+msgid "Add schedule"
+msgstr "Add schedule"
+
 #: ../composer/src/components/plus-menu.tsx
 msgid "Add to message"
 msgstr "Add to message"
@@ -323,6 +339,10 @@ msgstr "Agent"
 #: ../library-ui/src/components/run-test-chat.tsx
 msgid "Agent test"
 msgstr "Agent test"
+
+#: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
+msgid "Agent: {name}"
+msgstr "Agent: {name}"
 
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
 msgid "agents"
@@ -369,6 +389,14 @@ msgstr "Already used by “{other}”."
 #: ../library-ui/src/components/publish-dialog.tsx
 msgid "Also publish to a team or org library"
 msgstr "Also publish to a team or org library"
+
+#: ../../apps/web/app/(app)/(pages)/dots/dots-screen.tsx
+msgid "Always-on agents that run on a schedule, in their own workspace, and report back in their own chat."
+msgstr "Always-on agents that run on a schedule, in their own workspace, and report back in their own chat."
+
+#: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
+msgid "An agent brings its own tools and MCP servers; a model gets the workspace and the server's built-in tools."
+msgstr "An agent brings its own tools and MCP servers; a model gets the workspace and the server's built-in tools."
 
 #: ../library-ui/src/components/agent-form.tsx
 msgid "An alias follows whatever the instance maps it to."
@@ -1070,6 +1098,10 @@ msgstr "Covers chats held in this org's contexts (the org and its teams). Person
 msgid "Create"
 msgstr "Create"
 
+#: ../../apps/web/app/(app)/(pages)/dots/dots-screen.tsx
+msgid "Create a daily brief"
+msgstr "Create a daily brief"
+
 #: ../library-ui/src/components/share-dialog.tsx
 msgid "Create a read-only link"
 msgstr "Create a read-only link"
@@ -1086,6 +1118,10 @@ msgstr "Create an account"
 #: ../../apps/web/app/(auth)/invite/[token]/page.tsx
 msgid "Create an account with the email address the invitation was sent to, or sign in if you already have one."
 msgstr "Create an account with the email address the invitation was sent to, or sign in if you already have one."
+
+#: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
+msgid "Create Dot"
+msgstr "Create Dot"
 
 #: ../../apps/web/app/(app)/_shared/new-org-dialog.tsx
 msgid "Create organisation"
@@ -1132,6 +1168,10 @@ msgstr "Creating a skill"
 msgid "Creating the skill {name}"
 msgstr "Creating the skill {name}"
 
+#: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
+msgid "Cron"
+msgstr "Cron"
+
 #: ../ui/src/components/markdown.tsx
 msgid "CSV"
 msgstr "CSV"
@@ -1140,9 +1180,21 @@ msgstr "CSV"
 msgid "Current"
 msgstr "Current"
 
+#: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
+msgid "Custom"
+msgstr "Custom"
+
+#: ../../apps/web/app/(app)/(pages)/dots/schedule-text.tsx
+msgid "Custom ({expression})"
+msgstr "Custom ({expression})"
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "Daily"
 msgstr "Daily"
+
+#: ../../apps/web/app/(app)/(pages)/dots/dots-screen.tsx
+msgid "Daily brief"
+msgstr "Daily brief"
 
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
 msgid "dark"
@@ -1182,6 +1234,7 @@ msgid "Delete"
 msgstr "Delete"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
+#: ../../apps/web/app/(app)/(pages)/dots/dots-screen.tsx
 msgid "Delete {name}"
 msgstr "Delete {name}"
 
@@ -1324,6 +1377,10 @@ msgstr "Disconnect"
 msgid "Dismiss"
 msgstr "Dismiss"
 
+#: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
+msgid "Docker (sandbox runner)"
+msgstr "Docker (sandbox runner)"
+
 #: ../chat-ui/src/artifacts/document/document-view.tsx
 #: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../chat-ui/src/model/artifact-kinds.ts
@@ -1337,6 +1394,15 @@ msgstr "Documents, pages and diagrams from your chats, and ones shared with you.
 #: ../chat-ui/src/workspace/save-site-dialog.tsx
 msgid "Done"
 msgstr "Done"
+
+#: ../../apps/web/app/(app)/(pages)/dots/dot-banner.tsx
+msgid "Dot schedule"
+msgstr "Dot schedule"
+
+#: ../../apps/web/app/(app)/(pages)/dots/dots-screen.tsx
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "Dots"
+msgstr "Dots"
 
 #: ../chat-ui/src/artifacts/image-preview.tsx
 #: ../chat-ui/src/conversation/generated-images.tsx
@@ -1429,6 +1495,14 @@ msgstr "Duplicate to my library"
 msgid "Edit"
 msgstr "Edit"
 
+#: ../../apps/web/app/(app)/(pages)/dots/dots-screen.tsx
+msgid "Edit {name}"
+msgstr "Edit {name}"
+
+#: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
+msgid "Edit Dot"
+msgstr "Edit Dot"
+
 #: ../chat-ui/src/conversation/message-row.tsx
 msgid "Edit message"
 msgstr "Edit message"
@@ -1508,13 +1582,46 @@ msgstr "Error"
 msgid "Eval results are shown; publishing is never blocked."
 msgstr "Eval results are shown; publishing is never blocked."
 
+#: ../../apps/web/app/(app)/(pages)/dots/schedule-text.tsx
+msgid "Every {day} at {time}"
+msgstr "Every {day} at {time}"
+
+#: ../../apps/web/app/(app)/(pages)/dots/schedule-text.tsx
+msgid "Every {minutes} minutes"
+msgstr "Every {minutes} minutes"
+
 #: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
 msgid "Every change is kept. Restoring makes a new version, so nothing is lost."
 msgstr "Every change is kept. Restoring makes a new version, so nothing is lost."
 
+#: ../../apps/web/app/(app)/(pages)/dots/schedule-text.tsx
+msgid "Every day at {time}"
+msgstr "Every day at {time}"
+
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Every file in it is deleted and it starts again empty, for you and the agent. This can't be undone."
 msgstr "Every file in it is deleted and it starts again empty, for you and the agent. This can't be undone."
+
+#: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
+#: ../../apps/web/app/(app)/(pages)/dots/schedule-text.tsx
+msgid "Every hour"
+msgstr "Every hour"
+
+#: ../../apps/web/app/(app)/(pages)/dots/schedule-text.tsx
+msgid "Every hour at {minute} past"
+msgstr "Every hour at {minute} past"
+
+#: ../../apps/web/app/(app)/(pages)/dots/schedule-text.tsx
+msgid "Every minute"
+msgstr "Every minute"
+
+#: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
+msgid "Every minute (for testing)"
+msgstr "Every minute (for testing)"
+
+#: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
+msgid "Every morning at 8"
+msgstr "Every morning at 8"
 
 #: ../library-ui/src/components/version-history.tsx
 msgid "Everyone gets the latest published version unless they pin one."
@@ -1553,6 +1660,10 @@ msgstr "Export"
 #: ../composer/src/components/thinking-control.tsx
 msgid "Extra high"
 msgstr "Extra high"
+
+#: ../../apps/web/app/(app)/(pages)/dots/dots-screen.tsx
+msgid "Failed"
+msgstr "Failed"
 
 #: ../../apps/web/app/dev/ai-elements/demo.tsx
 msgid "Failed to run {tool}"
@@ -1676,6 +1787,10 @@ msgstr "Generated image"
 msgid "Generated images"
 msgstr "Generated images"
 
+#: ../../apps/web/app/(app)/(pages)/dots/dots-screen.tsx
+msgid "Give me my daily brief: list what's in /work, note anything new since yesterday, and suggest one thing to do today."
+msgstr "Give me my daily brief: list what's in /work, note anything new since yesterday, and suggest one thing to do today."
+
 #: ../chat-ui/src/workspace/new-file-dialog.tsx
 msgid "Give the file a name."
 msgstr "Give the file a name."
@@ -1766,6 +1881,10 @@ msgstr "How the app looks on this device."
 msgid "https://chat.example.com"
 msgstr "https://chat.example.com"
 
+#: ../../apps/web/app/(app)/(pages)/dots/dots-screen.tsx
+msgid "Idle"
+msgstr "Idle"
+
 #: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../composer/src/components/plus-menu.tsx
 msgid "Image"
@@ -1840,6 +1959,7 @@ msgstr "Insert table"
 msgid "Inside"
 msgstr "Inside"
 
+#: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
 #: ../library-ui/src/components/agent-form.tsx
 msgid "Instructions"
 msgstr "Instructions"
@@ -1876,6 +1996,10 @@ msgstr "It can't be saved as a site yet:"
 #: ../library-ui/src/components/item-builder.tsx
 msgid "It couldn't be created. Try again."
 msgstr "It couldn't be created. Try again."
+
+#: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
+msgid "It couldn't be saved. Check the schedules' cron and time zone, then try again."
+msgstr "It couldn't be saved. Check the schedules' cron and time zone, then try again."
 
 #: ../library-ui/src/components/item-builder.tsx
 msgid "It may have been deleted, or it isn't shared with you."
@@ -1925,6 +2049,10 @@ msgstr "itself, or with {tool}"
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "Keep a copy on each device"
 msgstr "Keep a copy on each device"
+
+#: ../../apps/web/app/(app)/(pages)/dots/dots-screen.tsx
+msgid "Keep it short: three bullet points at most."
+msgstr "Keep it short: three bullet points at most."
 
 #: ../chat-ui/src/artifacts/document/document-view.tsx
 msgid "Keep mine"
@@ -2124,6 +2252,10 @@ msgstr "Make something new"
 msgid "Makes images"
 msgstr "Makes images"
 
+#: ../../apps/web/app/(app)/(pages)/dots/dot-banner.tsx
+msgid "Manage"
+msgstr "Manage"
+
 #: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../chat-ui/src/model/artifact-kinds.ts
 #: ../ui/src/components/markdown.tsx
@@ -2267,11 +2399,17 @@ msgstr "model"
 msgid "Model"
 msgstr "Model"
 
+#: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
+msgid "Model or agent"
+msgstr "Model or agent"
+
 #: ../composer/src/components/target-picker.tsx
 msgid "Model or agent: {label}"
 msgstr "Model or agent: {label}"
 
 #. placeholder {0}: current.label
+#. placeholder {0}: model.label
+#: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
 #: ../../apps/web/app/dev/ai-elements/demo.tsx
 msgid "Model: {0}"
 msgstr "Model: {0}"
@@ -2283,6 +2421,10 @@ msgstr "Models"
 #: ../composer/src/components/target-picker.tsx
 msgid "Models and agents"
 msgstr "Models and agents"
+
+#: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
+msgid "Mondays at 9"
+msgstr "Mondays at 9"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "Monthly"
@@ -2301,6 +2443,10 @@ msgstr "More artifact actions"
 msgid "More browser actions"
 msgstr "More browser actions"
 
+#: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
+msgid "Morning brief"
+msgstr "Morning brief"
+
 #: ../composer/src/components/target-picker.tsx
 msgid "My agents"
 msgstr "My agents"
@@ -2314,6 +2460,7 @@ msgid "name"
 msgstr "name"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
+#: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
 #: ../../apps/web/app/(auth)/_components/sign-up-form.tsx
 #: ../chat-ui/src/workspace/new-file-dialog.tsx
 #: ../library-ui/src/components/item-builder.tsx
@@ -2378,6 +2525,11 @@ msgstr "New chats start here: it decides whose keys pay and where usage counts. 
 msgid "New description: {description}"
 msgstr "New description: {description}"
 
+#: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
+#: ../../apps/web/app/(app)/(pages)/dots/dots-screen.tsx
+msgid "New Dot"
+msgstr "New Dot"
+
 #: ../chat-ui/src/workspace/new-file-dialog.tsx
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 #: ../composer/src/components/suggestion-menu.tsx
@@ -2402,6 +2554,10 @@ msgstr "New name for {name}"
 msgid "New organisation"
 msgstr "New organisation"
 
+#: ../../apps/web/app/(app)/(pages)/dots/dots-screen.tsx
+msgid "New result"
+msgstr "New result"
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
 msgid "New team"
 msgstr "New team"
@@ -2410,6 +2566,11 @@ msgstr "New team"
 #: ../chat-ui/src/artifacts/document/document-view.tsx
 msgid "Newer version"
 msgstr "Newer version"
+
+#: ../../apps/web/app/(app)/(pages)/dots/dot-banner.tsx
+#: ../../apps/web/app/(app)/(pages)/dots/dots-screen.tsx
+msgid "next {next}"
+msgstr "next {next}"
 
 #: ../chat-ui/src/header/branch-switcher.tsx
 #: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
@@ -2445,6 +2606,10 @@ msgstr "No changes to {path}"
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "No chats yet. Start one and it shows up here."
 msgstr "No chats yet. Start one and it shows up here."
+
+#: ../../apps/web/app/(app)/(pages)/dots/dots-screen.tsx
+msgid "No Dots yet"
+msgstr "No Dots yet"
 
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "No files yet"
@@ -2484,9 +2649,17 @@ msgstr "No ratings or prices for {name}"
 msgid "No regressions"
 msgstr "No regressions"
 
+#: ../../apps/web/app/(app)/(pages)/dots/dots-screen.tsx
+msgid "No runs yet."
+msgstr "No runs yet."
+
 #: ../library-ui/src/components/agent-form.tsx
 msgid "No sandbox"
 msgstr "No sandbox"
+
+#: ../../apps/web/app/(app)/(pages)/dots/schedule-text.tsx
+msgid "No schedule"
+msgstr "No schedule"
 
 #: ../../apps/desktop/src/main/menu.ts
 msgid "No Shortcut"
@@ -2515,6 +2688,10 @@ msgstr "No versions yet."
 #: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
 msgid "No versions yet. Saving creates the first one."
 msgstr "No versions yet. Saving creates the first one."
+
+#: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
+msgid "Nobody is there to approve tools while it runs on its own, so any tool that would ask is refused, unless you name it here."
+msgstr "Nobody is there to approve tools while it runs on its own, so any tool that would ask is refused, unless you name it here."
 
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "None"
@@ -2644,6 +2821,10 @@ msgstr "Only you"
 #: ../chat-ui/src/conversation/tool-status.tsx
 msgid "Open"
 msgstr "Open"
+
+#: ../../apps/web/app/(app)/(pages)/dots/dots-screen.tsx
+msgid "Open {name}"
+msgstr "Open {name}"
 
 #: ../chat-ui/src/conversation/file-change-card.tsx
 msgid "Open {path}"
@@ -2813,6 +2994,10 @@ msgstr "Panels"
 #: ../../apps/web/app/(auth)/_components/sign-up-form.tsx
 msgid "Password"
 msgstr "Password"
+
+#: ../../apps/web/app/(app)/(pages)/dots/schedule-text.tsx
+msgid "Paused"
+msgstr "Paused"
 
 #: ../chat-ui/src/artifacts/document/document-view.tsx
 msgid "PDF (print)…"
@@ -3274,6 +3459,10 @@ msgstr "Remove key"
 msgid "Remove member"
 msgstr "Remove member"
 
+#: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
+msgid "Remove schedule {position}"
+msgstr "Remove schedule {position}"
+
 #: ../composer/src/components/skill-list.tsx
 msgid "Remove skill {name}"
 msgstr "Remove skill {name}"
@@ -3407,6 +3596,15 @@ msgstr "Role for {name}"
 msgid "Run code in the sandbox"
 msgstr "Run code in the sandbox"
 
+#: ../../apps/web/app/(app)/(pages)/dots/dot-banner.tsx
+#: ../../apps/web/app/(app)/(pages)/dots/dots-screen.tsx
+msgid "Run now"
+msgstr "Run now"
+
+#: ../../apps/web/app/(app)/(pages)/dots/dots-screen.tsx
+msgid "Running"
+msgstr "Running"
+
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Running {code}"
 msgstr "Running {code}"
@@ -3431,6 +3629,7 @@ msgstr "Sandbox"
 msgid "Sandboxes are turned off on this server."
 msgstr "Sandboxes are turned off on this server."
 
+#: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
 #: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
 #: ../chat-ui/src/artifacts/artifact-actions.tsx
 msgid "Save"
@@ -3475,6 +3674,14 @@ msgstr "Saved in this browser."
 #: ../library-ui/src/components/item-builder.tsx
 msgid "Saving…"
 msgstr "Saving…"
+
+#: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
+msgid "Schedule {position} on"
+msgstr "Schedule {position} on"
+
+#: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
+msgid "Schedules"
+msgstr "Schedules"
 
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "Scopes"
@@ -3610,6 +3817,10 @@ msgstr "Server address"
 msgid "Server config"
 msgstr "Server config"
 
+#: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
+msgid "Server default"
+msgstr "Server default"
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "Set budget"
 msgstr "Set budget"
@@ -3742,6 +3953,10 @@ msgstr "Sign out"
 msgid "Sign-in isn't available on this server right now. An administrator needs to finish setting it up."
 msgstr "Sign-in isn't available on this server right now. An administrator needs to finish setting it up."
 
+#: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
+msgid "Simulated (just-bash)"
+msgstr "Simulated (just-bash)"
+
 #: ../chat-ui/src/shortcuts/shortcut-help.tsx
 #: ../shortcuts/src/react/help-dialog.tsx
 msgid "Single keys work when you're not typing in a text field."
@@ -3859,6 +4074,10 @@ msgstr "Start over"
 msgid "Start the app and open a preview"
 msgstr "Start the app and open a preview"
 
+#: ../../apps/web/app/(app)/(pages)/dots/dots-screen.tsx
+msgid "Start with a daily brief, or make your own: pick a model or agent, say what it should do, and when."
+msgstr "Start with a daily brief, or make your own: pick a model or agent, say what it should do, and when."
+
 #: ../chat-ui/src/artifacts/document/document-view.tsx
 msgid "Start writing…"
 msgstr "Start writing…"
@@ -3964,6 +4183,10 @@ msgstr "Switched to {modelLabel}"
 #: ../chat-ui/src/sidebar/account-menu.tsx
 msgid "System"
 msgstr "System"
+
+#: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
+msgid "Task"
+msgstr "Task"
 
 #: ../palette/src/context-actions.ts
 msgid "team"
@@ -4463,6 +4686,10 @@ msgstr "Thought for 4 seconds"
 msgid "Thought for a few seconds"
 msgstr "Thought for a few seconds"
 
+#: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
+msgid "Time zone"
+msgstr "Time zone"
+
 #: ../chat-ui/src/artifacts/artifact-actions.tsx
 #: ../chat-ui/src/workspace/save-site-dialog.tsx
 msgid "Title"
@@ -4502,6 +4729,10 @@ msgstr "Tool use"
 #: ../library-ui/src/components/agent-form.tsx
 msgid "Tools"
 msgstr "Tools"
+
+#: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
+msgid "Tools it may use without asking"
+msgstr "Tools it may use without asking"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
 msgid "Top level"
@@ -4562,6 +4793,10 @@ msgstr "Unpin"
 #: ../chat-ui/src/artifacts/publish-dialog.tsx
 msgid "Unpublish"
 msgstr "Unpublish"
+
+#: ../../apps/web/app/(app)/(pages)/dots/dots-screen.tsx
+msgid "Unread"
+msgstr "Unread"
 
 #: ../chat-ui/src/workspace/file-view.tsx
 msgid "Unsaved"
@@ -4797,6 +5032,14 @@ msgstr "Web search"
 msgid "Web search is on. Turn it off"
 msgstr "Web search is on. Turn it off"
 
+#: ../../apps/web/app/(app)/(pages)/dots/schedule-text.tsx
+msgid "Weekdays at {time}"
+msgstr "Weekdays at {time}"
+
+#: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
+msgid "Weekdays at 9"
+msgstr "Weekdays at 9"
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "Weekly"
 msgstr "Weekly"
@@ -4821,6 +5064,14 @@ msgstr "What happens when an agent is published to this org's library."
 msgid "What it's for"
 msgstr "What it's for"
 
+#: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
+msgid "What it's for and how to report back."
+msgstr "What it's for and how to report back."
+
+#: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
+msgid "What should it do each time?"
+msgstr "What should it do each time?"
+
 #: ../library-ui/src/components/agent-form.tsx
 msgid "What the agent is for and how it should behave. People who can only use the agent never see this."
 msgstr "What the agent is for and how it should behave. People who can only use the agent never see this."
@@ -4844,6 +5095,10 @@ msgstr "What's published doesn't change until it's published."
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "When a team or org chat has no key of its own, use the member's personal key."
 msgstr "When a team or org chat has no key of its own, use the member's personal key."
+
+#: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
+msgid "When schedule {position} runs"
+msgstr "When schedule {position} runs"
 
 #: ../library-ui/src/components/library-index.tsx
 msgid "When someone shares an item with you or your team, it shows up here."
@@ -4897,6 +5152,7 @@ msgstr "Work account"
 msgid "Works"
 msgstr "Works"
 
+#: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Workspace"
 msgstr "Workspace"
