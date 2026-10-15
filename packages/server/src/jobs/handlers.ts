@@ -1,4 +1,7 @@
-import { generateTitle } from "@workspace/ai/title/generate-title";
+import {
+  fallbackTitle,
+  generateTitle,
+} from "@workspace/ai/title/generate-title";
 import type { ConversationId } from "@workspace/contract/schemas/common";
 import type { ChatContext } from "@workspace/contract/schemas/tenancy";
 import type { Db } from "@workspace/db/client";
@@ -15,10 +18,12 @@ import type { LanguageModel } from "ai";
 
 import { actorFor } from "../context";
 import type { StreamChannel } from "../ports/stream-channel";
-import type { JobHandlers } from "./registry";
+import { type JobHandlers, jobDefaults } from "./registry";
 
 // The handlers this package owns: titles and stream pruning. Other
 // workstreams add theirs to the same `JobHandlers` map at boot.
+
+const TITLE_RETRIES = jobDefaults["title.generate"].retryLimit ?? 0;
 
 export interface TitleModelRequest {
   readonly context: ChatContext;
@@ -91,20 +96,29 @@ export const coreJobHandlers = ({
       signal,
       userId,
     });
-    if (!model) {
-      return ok({ skipped: "no_model" });
-    }
     const messages = branch.messages.flatMap((row) => {
       const message = toMessage(row);
       return message.ok ? [message.value] : [];
     });
-    const title = await generateTitle(messages, model, { signal });
-    if (!title.ok) {
-      return title.error.retryable
-        ? err(title.error.message)
-        : ok({ skipped: title.error.code });
+    const generated = model
+      ? await generateTitle(messages, model, { signal })
+      : null;
+    if (
+      generated &&
+      !generated.ok &&
+      generated.error.retryable &&
+      job.retryCount < TITLE_RETRIES
+    ) {
+      return err(generated.error.message);
     }
-    await updateConversation(db, conversationId, { title: title.value });
-    return ok({ title: title.value });
+    // No model (none configured, or no key in this context), one that
+    // can't title, or one still failing on the last try: the first message
+    // still beats "New chat".
+    const title = generated?.ok ? generated.value : fallbackTitle(messages);
+    if (!title) {
+      return ok({ skipped: model ? "no_title" : "no_model" });
+    }
+    await updateConversation(db, conversationId, { title });
+    return ok({ title });
   },
 });

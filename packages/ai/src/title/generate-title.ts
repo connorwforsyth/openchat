@@ -55,6 +55,33 @@ export const titleInput = (
     .join("\n\n")
     .slice(0, MAX_INPUT_CHARS);
 
+// Only before a space or the end, so `Next.js` and `v1.2` stay whole. CJK
+// full stops take no space after them.
+const SENTENCE_END = /[.!?](?=\s|$)|[。\n]/u;
+const FALLBACK_WORDS = 8;
+
+/**
+ * A title from the user's first message alone, for when no model can write
+ * one: its first sentence, cut to a few words. `null` with no text. Pure.
+ */
+export const fallbackTitle = (
+  messages: readonly Pick<Message, "parts" | "role">[]
+): string | null => {
+  const first = messages
+    .filter((message) => message.role === "user")
+    .flatMap((message) =>
+      message.parts.flatMap((part) => (part.type === "text" ? [part.text] : []))
+    )
+    .find((text) => text.trim());
+  if (!first) {
+    return null;
+  }
+  const sentence = first.trim().split(SENTENCE_END)[0] ?? "";
+  const words = sentence.split(WHITESPACE).filter(Boolean);
+  const cut = words.slice(0, FALLBACK_WORDS).join(" ");
+  return cleanTitle(words.length > FALLBACK_WORDS ? `${cut}…` : cut);
+};
+
 export const generateTitle = async (
   messages: readonly Pick<Message, "parts" | "role">[],
   model: LanguageModel,

@@ -330,6 +330,15 @@ const modelsSchema = z
           });
         }
       }),
+    /**
+     * Names new chats: an alias or `provider:model` ref. `null` uses
+     * `auto.cheap`, then `default`; `false` never calls a model. A chat no
+     * model can name is titled from its first message.
+     */
+    conversationTitleModel: z
+      .union([modelSelectorSchema, z.literal(false)])
+      .nullable()
+      .default(null),
     /** The model new chats start with; `null` picks the first available. */
     default: modelSelectorSchema.nullable().default(null),
     /**
@@ -782,6 +791,12 @@ export const appConfigSchema = z
     checkSelector(config.models.default, ["models", "default"]);
     checkSelector(config.models.auto.cheap, ["models", "auto", "cheap"]);
     checkSelector(config.models.auto.strong, ["models", "auto", "strong"]);
+    if (config.models.conversationTitleModel !== false) {
+      checkSelector(config.models.conversationTitleModel, [
+        "models",
+        "conversationTitleModel",
+      ]);
+    }
     checkSelector(config.models.image.default, ["models", "image", "default"]);
     for (const [index, ref] of config.models.image.models.entries()) {
       checkSelector(ref, ["models", "image", "models", index]);

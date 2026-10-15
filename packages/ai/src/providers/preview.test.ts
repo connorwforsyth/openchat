@@ -177,7 +177,10 @@ const GATEWAY = {
   ],
 };
 
-const registryWith = (ratings: Record<string, unknown>) =>
+const registryWith = (
+  ratings: Record<string, unknown>,
+  prices: Record<string, unknown> = {}
+) =>
   buildRegistry(
     appConfigSchema.parse({
       models: {
@@ -186,6 +189,7 @@ const registryWith = (ratings: Record<string, unknown>) =>
           strong: "anthropic:claude-opus-5-5",
         },
         auto: { cheap: "fast", enabled: true, strong: "strong" },
+        prices,
         ratings,
       },
       providers: {
@@ -204,8 +208,11 @@ const registryWith = (ratings: Record<string, unknown>) =>
     }
   );
 
-const bySelector = async (ratings: Record<string, unknown> = {}) => {
-  const options = await registryWith(ratings).listModels({
+const bySelector = async (
+  ratings: Record<string, unknown> = {},
+  prices: Record<string, unknown> = {}
+) => {
+  const options = await registryWith(ratings, prices).listModels({
     anthropic: key("anthropic"),
     gateway: key("gateway"),
   });
@@ -239,6 +246,28 @@ describe("listModels' preview facts", () => {
     expect(gpt).not.toHaveProperty("cost");
     // Auto is the UI's to describe.
     expect(options.get("auto")).not.toHaveProperty("displayName");
+  });
+
+  it("prices from config where the catalog has none, the catalog first", async () => {
+    const options = await bySelector(
+      {},
+      {
+        "anthropic:claude-opus-5-5": {
+          inputMicros: 5_000_000,
+          outputMicros: 25_000_000,
+        },
+        "gateway:anthropic/claude-haiku-4.5": {
+          inputMicros: 1,
+          outputMicros: 1,
+        },
+      }
+    );
+    expect(options.get("strong")?.cost).toEqual({
+      input: 5_000_000,
+      output: 25_000_000,
+      tier: 4,
+    });
+    expect(options.get("fast")?.cost?.tier).toBe(2);
   });
 
   it("rates from config, the alias's rating beating its ref's", async () => {

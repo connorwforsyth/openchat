@@ -124,7 +124,7 @@ export const buildRegistry = (
   config: RegistryConfig,
   options: RegistryOptions = {}
 ): DiscoveringRegistry => {
-  const { aliases, descriptions, ratings } = config.models;
+  const { aliases, descriptions, prices, ratings } = config.models;
   const now = options.now ?? Date.now;
   const log = options.log ?? (() => undefined);
 
@@ -409,8 +409,9 @@ export const buildRegistry = (
   /**
    * What the picker says about an option beyond its name. The config's
    * description and ratings, by selector then by the ref it resolves to,
-   * beat the catalog's (096, 099). The name, price and capabilities come
-   * from the catalog, else the id and the provider; nothing is guessed.
+   * beat the catalog's (096, 099). The name and capabilities come
+   * from the catalog, else the id and the provider; the price from the
+   * catalog, else `models.prices`. Nothing is guessed.
    */
   const described = (
     option: ModelOption,
@@ -428,7 +429,12 @@ export const buildRegistry = (
     const provider = vendorOf(target);
     const modelId = parseModelRef(target)?.modelId;
     const rated = ratings[option.selector] ?? ratings[target];
-    const cost = costOf(listed?.pricing);
+    // The catalog's price, else the one the config bills usage at.
+    const priced = prices[target];
+    const cost = costOf(
+      listed?.pricing ??
+        (priced && { input: priced.inputMicros, output: priced.outputMicros })
+    );
     return {
       ...option,
       capabilities: capabilitiesWith(option.capabilities, listed?.traits),
