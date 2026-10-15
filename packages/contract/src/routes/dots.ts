@@ -10,6 +10,8 @@ import { dotIdSchema, dotScheduleIdSchema } from "../schemas/common";
 import {
   createDotInputSchema,
   createDotScheduleInputSchema,
+  dotActivityInputSchema,
+  dotActivitySchema,
   dotScheduleSchema,
   dotSchema,
   runDotNowInputSchema,
@@ -26,6 +28,16 @@ const byId = z.object({ id: dotIdSchema });
 // no job queue, so schedules can't fire.
 
 export const dots = {
+  activity: authed
+    .route({
+      description:
+        "The runs the Dot started, newest first: what triggered each, how it ended and the start of its reply.",
+      method: "GET",
+      path: "/dots/{id}/activity",
+      summary: "A Dot's activity",
+    })
+    .input(dotActivityInputSchema)
+    .output(z.array(dotActivitySchema)),
   create: authed
     .errors(featureError)
     .route({
@@ -51,7 +63,7 @@ export const dots = {
   delete: authed
     .route({
       description:
-        "Deletes the Dot and its schedules. Its conversation stays, as a normal chat.",
+        "Deletes the Dot and its schedules. Its conversation stays, as a normal chat. Deleting the primary Dot makes the newest remaining one primary.",
       method: "DELETE",
       path: "/dots/{id}",
       successStatus: 204,
@@ -74,7 +86,8 @@ export const dots = {
     .output(dotSchema),
   list: authed
     .route({
-      description: "The caller's Dots, newest first, with unread state.",
+      description:
+        "The caller's Dots, the primary one first and then newest first, with unread state.",
       method: "GET",
       path: "/dots",
       summary: "List Dots",
@@ -109,7 +122,13 @@ export const dots = {
     .output(createRunOutputSchema),
   update: authed
     .errors(featureError)
-    .route({ method: "PATCH", path: "/dots/{id}", summary: "Update a Dot" })
+    .route({
+      description:
+        "A handle another of the caller's Dots has is a `VALIDATION` error on `handle`. `primary: true` moves the primary mark here.",
+      method: "PATCH",
+      path: "/dots/{id}",
+      summary: "Update a Dot",
+    })
     .input(updateDotInputSchema)
     .output(dotSchema),
   updateSchedule: authed

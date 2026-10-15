@@ -9465,6 +9465,219 @@
         }
       }
     },
+    "/dots/{id}/activity": {
+      "get": {
+        "operationId": "dots.activity",
+        "summary": "A Dot's activity",
+        "description": "The runs the Dot started, newest first: what triggered each, how it ended and the start of its reply.",
+        "tags": ["Dots"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "dot id (UUIDv7)"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 30
+            },
+            "allowEmptyValue": true,
+            "allowReserved": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "error": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "maxLength": 2000
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "finishedAt": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "runId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "run id (UUIDv7)"
+                      },
+                      "scheduleId": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "format": "uuid",
+                            "description": "dotSchedule id (UUIDv7)"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "snippet": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "maxLength": 500
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "startedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "status": {
+                        "enum": [
+                          "queued",
+                          "running",
+                          "awaiting_approval",
+                          "succeeded",
+                          "failed",
+                          "cancelled"
+                        ],
+                        "type": "string"
+                      },
+                      "trigger": {
+                        "enum": ["schedule", "manual"],
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "error",
+                      "finishedAt",
+                      "runId",
+                      "scheduleId",
+                      "snippet",
+                      "startedAt",
+                      "status",
+                      "trigger"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/UNAUTHORIZEDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/FORBIDDENError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/NOT_FOUNDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "422",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/VALIDATIONError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "429",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/RATE_LIMITEDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/dots": {
       "post": {
         "operationId": "dots.create",
@@ -9489,9 +9702,38 @@
                     },
                     "default": []
                   },
+                  "avatar": {
+                    "type": "object",
+                    "properties": {
+                      "color": {
+                        "enum": [
+                          "ember",
+                          "sun",
+                          "moss",
+                          "sea",
+                          "dusk",
+                          "bloom"
+                        ],
+                        "type": "string"
+                      },
+                      "style": {
+                        "enum": ["orb", "blob", "ring", "spark", "pebble"],
+                        "type": "string"
+                      }
+                    },
+                    "required": ["color", "style"],
+                    "default": {
+                      "color": "sea",
+                      "style": "orb"
+                    }
+                  },
                   "enabled": {
                     "type": "boolean",
                     "default": true
+                  },
+                  "handle": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9_-]{1,23}$"
                   },
                   "instructions": {
                     "type": "string",
@@ -9501,7 +9743,16 @@
                   "name": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 200
+                    "maxLength": 24
+                  },
+                  "primary": {
+                    "type": "boolean",
+                    "default": false
+                  },
+                  "rules": {
+                    "type": "string",
+                    "maxLength": 4000,
+                    "default": ""
                   },
                   "sandboxProvider": {
                     "anyOf": [
@@ -9580,6 +9831,27 @@
                         "pattern": "^[a-zA-Z0-9_.:-]+$"
                       }
                     },
+                    "avatar": {
+                      "type": "object",
+                      "properties": {
+                        "color": {
+                          "enum": [
+                            "ember",
+                            "sun",
+                            "moss",
+                            "sea",
+                            "dusk",
+                            "bloom"
+                          ],
+                          "type": "string"
+                        },
+                        "style": {
+                          "enum": ["orb", "blob", "ring", "spark", "pebble"],
+                          "type": "string"
+                        }
+                      },
+                      "required": ["color", "style"]
+                    },
                     "conversationId": {
                       "type": "string",
                       "format": "uuid",
@@ -9591,6 +9863,10 @@
                     },
                     "enabled": {
                       "type": "boolean"
+                    },
+                    "handle": {
+                      "type": "string",
+                      "pattern": "^[a-z0-9][a-z0-9_-]{1,23}$"
                     },
                     "id": {
                       "type": "string",
@@ -9692,6 +9968,17 @@
                         }
                       ]
                     },
+                    "lastViewedAt": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "name": {
                       "type": "string",
                       "minLength": 1,
@@ -9712,6 +9999,13 @@
                       "type": "string",
                       "format": "uuid",
                       "description": "user id (UUIDv7)"
+                    },
+                    "primary": {
+                      "type": "boolean"
+                    },
+                    "rules": {
+                      "type": "string",
+                      "maxLength": 4000
                     },
                     "sandboxProvider": {
                       "anyOf": [
@@ -9838,6 +10132,11 @@
                     "unread": {
                       "type": "boolean"
                     },
+                    "unreadRuns": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
                     "updatedAt": {
                       "type": "string",
                       "format": "date-time"
@@ -9845,20 +10144,26 @@
                   },
                   "required": [
                     "autoApproveTools",
+                    "avatar",
                     "conversationId",
                     "createdAt",
                     "enabled",
+                    "handle",
                     "id",
                     "instructions",
                     "lastRun",
+                    "lastViewedAt",
                     "name",
                     "nextRunAt",
                     "ownerId",
+                    "primary",
+                    "rules",
                     "sandboxProvider",
                     "schedules",
                     "status",
                     "target",
                     "unread",
+                    "unreadRuns",
                     "updatedAt"
                   ]
                 }
@@ -9958,7 +10263,7 @@
       "get": {
         "operationId": "dots.list",
         "summary": "List Dots",
-        "description": "The caller's Dots, newest first, with unread state.",
+        "description": "The caller's Dots, the primary one first and then newest first, with unread state.",
         "tags": ["Dots"],
         "parameters": [],
         "responses": {
@@ -9981,6 +10286,27 @@
                           "pattern": "^[a-zA-Z0-9_.:-]+$"
                         }
                       },
+                      "avatar": {
+                        "type": "object",
+                        "properties": {
+                          "color": {
+                            "enum": [
+                              "ember",
+                              "sun",
+                              "moss",
+                              "sea",
+                              "dusk",
+                              "bloom"
+                            ],
+                            "type": "string"
+                          },
+                          "style": {
+                            "enum": ["orb", "blob", "ring", "spark", "pebble"],
+                            "type": "string"
+                          }
+                        },
+                        "required": ["color", "style"]
+                      },
                       "conversationId": {
                         "type": "string",
                         "format": "uuid",
@@ -9992,6 +10318,10 @@
                       },
                       "enabled": {
                         "type": "boolean"
+                      },
+                      "handle": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9][a-z0-9_-]{1,23}$"
                       },
                       "id": {
                         "type": "string",
@@ -10093,6 +10423,17 @@
                           }
                         ]
                       },
+                      "lastViewedAt": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
                       "name": {
                         "type": "string",
                         "minLength": 1,
@@ -10113,6 +10454,13 @@
                         "type": "string",
                         "format": "uuid",
                         "description": "user id (UUIDv7)"
+                      },
+                      "primary": {
+                        "type": "boolean"
+                      },
+                      "rules": {
+                        "type": "string",
+                        "maxLength": 4000
                       },
                       "sandboxProvider": {
                         "anyOf": [
@@ -10239,6 +10587,11 @@
                       "unread": {
                         "type": "boolean"
                       },
+                      "unreadRuns": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
                       "updatedAt": {
                         "type": "string",
                         "format": "date-time"
@@ -10246,20 +10599,26 @@
                     },
                     "required": [
                       "autoApproveTools",
+                      "avatar",
                       "conversationId",
                       "createdAt",
                       "enabled",
+                      "handle",
                       "id",
                       "instructions",
                       "lastRun",
+                      "lastViewedAt",
                       "name",
                       "nextRunAt",
                       "ownerId",
+                      "primary",
+                      "rules",
                       "sandboxProvider",
                       "schedules",
                       "status",
                       "target",
                       "unread",
+                      "unreadRuns",
                       "updatedAt"
                     ]
                   }
@@ -10602,7 +10961,7 @@
       "delete": {
         "operationId": "dots.delete",
         "summary": "Delete a Dot",
-        "description": "Deletes the Dot and its schedules. Its conversation stays, as a normal chat.",
+        "description": "Deletes the Dot and its schedules. Its conversation stays, as a normal chat. Deleting the primary Dot makes the newest remaining one primary.",
         "tags": ["Dots"],
         "parameters": [
           {
@@ -10741,6 +11100,27 @@
                         "pattern": "^[a-zA-Z0-9_.:-]+$"
                       }
                     },
+                    "avatar": {
+                      "type": "object",
+                      "properties": {
+                        "color": {
+                          "enum": [
+                            "ember",
+                            "sun",
+                            "moss",
+                            "sea",
+                            "dusk",
+                            "bloom"
+                          ],
+                          "type": "string"
+                        },
+                        "style": {
+                          "enum": ["orb", "blob", "ring", "spark", "pebble"],
+                          "type": "string"
+                        }
+                      },
+                      "required": ["color", "style"]
+                    },
                     "conversationId": {
                       "type": "string",
                       "format": "uuid",
@@ -10752,6 +11132,10 @@
                     },
                     "enabled": {
                       "type": "boolean"
+                    },
+                    "handle": {
+                      "type": "string",
+                      "pattern": "^[a-z0-9][a-z0-9_-]{1,23}$"
                     },
                     "id": {
                       "type": "string",
@@ -10853,6 +11237,17 @@
                         }
                       ]
                     },
+                    "lastViewedAt": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "name": {
                       "type": "string",
                       "minLength": 1,
@@ -10873,6 +11268,13 @@
                       "type": "string",
                       "format": "uuid",
                       "description": "user id (UUIDv7)"
+                    },
+                    "primary": {
+                      "type": "boolean"
+                    },
+                    "rules": {
+                      "type": "string",
+                      "maxLength": 4000
                     },
                     "sandboxProvider": {
                       "anyOf": [
@@ -10999,6 +11401,11 @@
                     "unread": {
                       "type": "boolean"
                     },
+                    "unreadRuns": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
                     "updatedAt": {
                       "type": "string",
                       "format": "date-time"
@@ -11006,20 +11413,26 @@
                   },
                   "required": [
                     "autoApproveTools",
+                    "avatar",
                     "conversationId",
                     "createdAt",
                     "enabled",
+                    "handle",
                     "id",
                     "instructions",
                     "lastRun",
+                    "lastViewedAt",
                     "name",
                     "nextRunAt",
                     "ownerId",
+                    "primary",
+                    "rules",
                     "sandboxProvider",
                     "schedules",
                     "status",
                     "target",
                     "unread",
+                    "unreadRuns",
                     "updatedAt"
                   ]
                 }
@@ -11116,6 +11529,7 @@
       "patch": {
         "operationId": "dots.update",
         "summary": "Update a Dot",
+        "description": "A handle another of the caller's Dots has is a `VALIDATION` error on `handle`. `primary: true` moves the primary mark here.",
         "tags": ["Dots"],
         "parameters": [
           {
@@ -11146,8 +11560,33 @@
                       "pattern": "^[a-zA-Z0-9_.:-]+$"
                     }
                   },
+                  "avatar": {
+                    "type": "object",
+                    "properties": {
+                      "color": {
+                        "enum": [
+                          "ember",
+                          "sun",
+                          "moss",
+                          "sea",
+                          "dusk",
+                          "bloom"
+                        ],
+                        "type": "string"
+                      },
+                      "style": {
+                        "enum": ["orb", "blob", "ring", "spark", "pebble"],
+                        "type": "string"
+                      }
+                    },
+                    "required": ["color", "style"]
+                  },
                   "enabled": {
                     "type": "boolean"
+                  },
+                  "handle": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9_-]{1,23}$"
                   },
                   "instructions": {
                     "type": "string",
@@ -11156,7 +11595,14 @@
                   "name": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 200
+                    "maxLength": 24
+                  },
+                  "primary": {
+                    "const": true
+                  },
+                  "rules": {
+                    "type": "string",
+                    "maxLength": 4000
                   },
                   "sandboxProvider": {
                     "anyOf": [
@@ -11202,6 +11648,27 @@
                         "pattern": "^[a-zA-Z0-9_.:-]+$"
                       }
                     },
+                    "avatar": {
+                      "type": "object",
+                      "properties": {
+                        "color": {
+                          "enum": [
+                            "ember",
+                            "sun",
+                            "moss",
+                            "sea",
+                            "dusk",
+                            "bloom"
+                          ],
+                          "type": "string"
+                        },
+                        "style": {
+                          "enum": ["orb", "blob", "ring", "spark", "pebble"],
+                          "type": "string"
+                        }
+                      },
+                      "required": ["color", "style"]
+                    },
                     "conversationId": {
                       "type": "string",
                       "format": "uuid",
@@ -11213,6 +11680,10 @@
                     },
                     "enabled": {
                       "type": "boolean"
+                    },
+                    "handle": {
+                      "type": "string",
+                      "pattern": "^[a-z0-9][a-z0-9_-]{1,23}$"
                     },
                     "id": {
                       "type": "string",
@@ -11314,6 +11785,17 @@
                         }
                       ]
                     },
+                    "lastViewedAt": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "name": {
                       "type": "string",
                       "minLength": 1,
@@ -11334,6 +11816,13 @@
                       "type": "string",
                       "format": "uuid",
                       "description": "user id (UUIDv7)"
+                    },
+                    "primary": {
+                      "type": "boolean"
+                    },
+                    "rules": {
+                      "type": "string",
+                      "maxLength": 4000
                     },
                     "sandboxProvider": {
                       "anyOf": [
@@ -11460,6 +11949,11 @@
                     "unread": {
                       "type": "boolean"
                     },
+                    "unreadRuns": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
                     "updatedAt": {
                       "type": "string",
                       "format": "date-time"
@@ -11467,20 +11961,26 @@
                   },
                   "required": [
                     "autoApproveTools",
+                    "avatar",
                     "conversationId",
                     "createdAt",
                     "enabled",
+                    "handle",
                     "id",
                     "instructions",
                     "lastRun",
+                    "lastViewedAt",
                     "name",
                     "nextRunAt",
                     "ownerId",
+                    "primary",
+                    "rules",
                     "sandboxProvider",
                     "schedules",
                     "status",
                     "target",
                     "unread",
+                    "unreadRuns",
                     "updatedAt"
                   ]
                 }
@@ -11961,6 +12461,27 @@
                         "pattern": "^[a-zA-Z0-9_.:-]+$"
                       }
                     },
+                    "avatar": {
+                      "type": "object",
+                      "properties": {
+                        "color": {
+                          "enum": [
+                            "ember",
+                            "sun",
+                            "moss",
+                            "sea",
+                            "dusk",
+                            "bloom"
+                          ],
+                          "type": "string"
+                        },
+                        "style": {
+                          "enum": ["orb", "blob", "ring", "spark", "pebble"],
+                          "type": "string"
+                        }
+                      },
+                      "required": ["color", "style"]
+                    },
                     "conversationId": {
                       "type": "string",
                       "format": "uuid",
@@ -11972,6 +12493,10 @@
                     },
                     "enabled": {
                       "type": "boolean"
+                    },
+                    "handle": {
+                      "type": "string",
+                      "pattern": "^[a-z0-9][a-z0-9_-]{1,23}$"
                     },
                     "id": {
                       "type": "string",
@@ -12073,6 +12598,17 @@
                         }
                       ]
                     },
+                    "lastViewedAt": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "name": {
                       "type": "string",
                       "minLength": 1,
@@ -12093,6 +12629,13 @@
                       "type": "string",
                       "format": "uuid",
                       "description": "user id (UUIDv7)"
+                    },
+                    "primary": {
+                      "type": "boolean"
+                    },
+                    "rules": {
+                      "type": "string",
+                      "maxLength": 4000
                     },
                     "sandboxProvider": {
                       "anyOf": [
@@ -12219,6 +12762,11 @@
                     "unread": {
                       "type": "boolean"
                     },
+                    "unreadRuns": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
                     "updatedAt": {
                       "type": "string",
                       "format": "date-time"
@@ -12226,20 +12774,26 @@
                   },
                   "required": [
                     "autoApproveTools",
+                    "avatar",
                     "conversationId",
                     "createdAt",
                     "enabled",
+                    "handle",
                     "id",
                     "instructions",
                     "lastRun",
+                    "lastViewedAt",
                     "name",
                     "nextRunAt",
                     "ownerId",
+                    "primary",
+                    "rules",
                     "sandboxProvider",
                     "schedules",
                     "status",
                     "target",
                     "unread",
+                    "unreadRuns",
                     "updatedAt"
                   ]
                 }
