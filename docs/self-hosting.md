@@ -319,9 +319,15 @@ supplied is left off.
   ```
 - **Cost** comes from the catalog's prices when `discover` is on and the
   catalog lists them (the Vercel AI Gateway and OpenRouter do; Anthropic,
-  OpenAI, Google and Ollama don't). The bar is a 1–5 tier of the blended
+  OpenAI, Google and Ollama don't), else from your `models.prices` entry for
+  the ref. The bar is a 1–5 tier of the blended
   price (three input tokens to one output): up to $0.50, $2.50, $8 and $20 per
   million tokens, then anything dearer.
+
+  The simplest way to get cost bars for every model is a gateway with
+  discovery on: the Vercel AI Gateway and OpenRouter publish prices for all
+  their models. Neither publishes speed or intelligence scores, so those stay
+  in `models.ratings`.
 - **Context** is the context window from the catalog, shown in tokens and
   roughly in words (three quarters of a token each).
 - **Vision, Tool use and Reasoning** are the provider's capabilities
@@ -329,6 +335,20 @@ supplied is left off.
   catalog says the model lacks; Reasoning shows when the catalog says the
   model reasons (gateway tags, OpenRouter's parameters, Google's `thinking`).
   The card never claims vision the provider config doesn't send.
+
+### Conversation titles
+
+A new chat is named after its first exchange by `models.conversationTitleModel`
+(an alias or `provider:model` ref), else `models.auto.cheap`, else
+`models.default`. When that model has no key in the chat's context, or returns
+nothing usable, the chat is named from the first sentence of its first message
+instead, cut to eight words. Set it to `false` to always do that and never
+spend a model call on titles.
+
+```yaml
+models:
+  conversationTitleModel: fast
+```
 
 ### Thinking levels and fast mode
 

@@ -46,6 +46,8 @@ models:
   descriptions:
     fast: Quick everyday answers
     strong: Hard problems and long documents
+  # Defaults to auto.cheap. Set to false to name chats from their first message.
+  # conversationTitleModel: fast
 
 # Instance-wide limits; each org chooses within them in the admin UI.
 policies:

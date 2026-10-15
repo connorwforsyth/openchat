@@ -201,18 +201,27 @@ export const createServices = (options: ServicesOptions): Services => {
     writer: streams,
   });
 
-  const titleSelector = config.models.auto.cheap ?? config.models.default;
+  const conversationTitleModel =
+    config.models.conversationTitleModel === false
+      ? null
+      : (config.models.conversationTitleModel ??
+        config.models.auto.cheap ??
+        config.models.default);
   const jobHandlers = coreJobHandlers({
     db,
     streams,
     titleModel: async ({ context, signal, userId }) => {
-      if (!titleSelector) {
+      if (!conversationTitleModel) {
         return null;
       }
-      const loaded = await loadModel({ context, userId }, titleSelector, {
-        signal,
-        state: { facts: {}, history: [], input: "" },
-      });
+      const loaded = await loadModel(
+        { context, userId },
+        conversationTitleModel,
+        {
+          signal,
+          state: { facts: {}, history: [], input: "" },
+        }
+      );
       return loaded.ok ? loaded.value.model : null;
     },
   });
