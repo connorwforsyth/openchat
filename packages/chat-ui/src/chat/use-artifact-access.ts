@@ -51,26 +51,25 @@ export const useArtifactUrl = ({
     if (!(onChange && restored)) {
       return;
     }
-    if (value !== seenParam.current) {
-      const before = seenParam.current;
-      seenParam.current = value;
-      seenInView.current = value ?? inView;
+    // Compared with what was last seen, not with what was expected, so an
+    // effect run again on the same values (StrictMode, a re-render while an
+    // open is on its way) changes nothing.
+    const lastParam = seenParam.current;
+    const lastInView = seenInView.current;
+    seenParam.current = value;
+    seenInView.current = inView;
+    if (value !== lastParam) {
       if (value !== null && value !== inView) {
         latest.current.open(value);
-      } else if (value === null && before !== null && inView !== null) {
+      } else if (value === null && lastParam !== null && inView !== null) {
         // Back past the entry that opened it.
-        seenInView.current = null;
         latest.current.close();
       }
       return;
     }
-    if (inView !== seenInView.current) {
-      const before = seenInView.current;
-      seenInView.current = inView;
-      if (inView !== value) {
-        seenParam.current = inView;
-        onChange(inView, historyModeFor(before, inView));
-      }
+    if (inView !== lastInView && inView !== value) {
+      seenParam.current = inView;
+      onChange(inView, historyModeFor(lastInView, inView));
     }
   }, [inView, onChange, restored, value]);
 };
