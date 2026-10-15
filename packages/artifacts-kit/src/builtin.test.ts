@@ -97,6 +97,16 @@ describe("the built-in kinds", () => {
     ]);
   });
 
+  it("refuse a React import the runtime doesn't bundle (159)", () => {
+    const app = (from: string) =>
+      `import { x } from "${from}";\nexport default () => x;`;
+    expect(builtinArtifactKinds.check("react", app("react"))).toEqual([]);
+    expect(builtinArtifactKinds.check("react", app("react-dom"))).toEqual([]);
+    expect(builtinArtifactKinds.check("react", app("recharts"))).toEqual([
+      'imports "recharts", which isn\'t available here. It may import: react, react-dom',
+    ]);
+  });
+
   it("take an image only as a base64 data: URL (138)", () => {
     const png = imageDataUrl("image/png", "iVBORw0KGgo=");
     expect(builtinArtifactKinds.check("image", png)).toEqual([]);
