@@ -2,8 +2,8 @@
 id: "158"
 title: "`bun dev` passes .env to the app (keys in .env.local were dropped by turbo)"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -19,3 +19,7 @@ Connor (2026-10-03): "on local the AI gateway isn't connected". Bun loads the ro
 ## Owns
 
 Root `package.json` (the `dev` and `desktop:dev` scripts).
+
+## Resolution (2026-10-16, loop)
+
+Merged in [PR #121](https://github.com/connorwforsyth/openchat/pull/121): `bun dev` loads root .env and .env.local. Verified: full local gate. Nothing left on this ticket.

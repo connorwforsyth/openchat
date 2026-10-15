@@ -2,8 +2,8 @@
 id: "148"
 title: "Desktop: a test checks the built preloads on Linux CI"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -20,3 +20,7 @@ From the T3 Code study (`.context/research/t3code/desktop.md` §3.3). Both prelo
 ## Owns
 
 `apps/desktop/src/preload/*.test.ts` (or `apps/desktop/scripts/`), `apps/desktop/package.json` (test wiring), `apps/desktop/vitest.config.ts`.
+
+## Resolution (2026-10-16, loop)
+
+Merged in [PR #114](https://github.com/connorwforsyth/openchat/pull/114): desktop preload guard test. Verified: full local gate (chat-ui hover flake passed on rerun). Nothing left on this ticket.

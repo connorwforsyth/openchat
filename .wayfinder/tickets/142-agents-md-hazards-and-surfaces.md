@@ -2,8 +2,8 @@
 id: "142"
 title: "AGENTS.md: ways to hurt yourself, a hit-every-surface checklist, a glossary"
 labels: [wayfinder:task]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -20,3 +20,7 @@ From the T3 Code study (`.context/research/t3code/engineering.md` §3). T3's `AG
 ## Owns
 
 `AGENTS.md`, `.wayfinder/LOOP.md`.
+
+## Resolution (2026-10-16, loop)
+
+Merged in [PR #112](https://github.com/connorwforsyth/openchat/pull/112): AGENTS.md hazards, hit-every-surface checklist and glossary. Verified: doc-only; full local gate. Nothing left on this ticket.
