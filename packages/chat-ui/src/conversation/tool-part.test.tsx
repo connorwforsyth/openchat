@@ -115,6 +115,10 @@ const line = (name: RegExp | string) => screen.getByRole("button", { name });
 const statusOf = (element: HTMLElement) =>
   element.closest("[data-status]")?.getAttribute("data-status");
 
+// The Trace line's own status: "running" pulses it, "error" turns it red.
+const lineStatus = (toggle: HTMLElement) =>
+  toggle.querySelector("[data-slot=trace-line]")?.getAttribute("data-status");
+
 afterEach(() => {
   cleanup();
 });
@@ -122,20 +126,19 @@ afterEach(() => {
 describe("bash", () => {
   const bash = call("bash", { command: "ls -la\necho done" });
 
-  it("shows a running line with a spinner", () => {
+  it("shows a running line that pulses", () => {
     renderTool(bash, undefined);
     const toggle = line(RUNNING);
     expect(toggle.textContent).toContain("ls -la…");
     expect(statusOf(toggle)).toBe("running");
-    expect(toggle.querySelector(".motion-safe\\:animate-spin")).toBeTruthy();
+    expect(lineStatus(toggle)).toBe("running");
   });
 
-  it("says Stopped, without a spinner, once the message stopped with no result", async () => {
+  it("says Stopped, without pulsing, once the message stopped with no result", async () => {
     renderTool(bash, undefined, {}, { streaming: false });
     const toggle = line("Stopped");
     expect(statusOf(toggle)).toBe("stopped");
-    expect(toggle.className).not.toContain("text-destructive");
-    expect(toggle.querySelector(".motion-safe\\:animate-spin")).toBeNull();
+    expect(lineStatus(toggle)).toBeNull();
     await userEvent.click(toggle);
     expect(screen.getByLabelText("Command and output").textContent).toContain(
       "ls -la"
@@ -160,7 +163,7 @@ describe("bash", () => {
     const toggle = line(RUNNING);
     expect(statusOf(toggle)).toBe("stopped");
     expect(toggle.textContent).toContain("Stopped by you");
-    expect(toggle.className).not.toContain("text-destructive");
+    expect(lineStatus(toggle)).toBeNull();
     await userEvent.click(toggle);
     expect(screen.getByLabelText("Command and output").textContent).toContain(
       "step 2"
@@ -184,7 +187,7 @@ describe("bash", () => {
     renderTool(bash, success("bash", ran("", 1, "no such file")));
     const toggle = line(EXITED);
     expect(statusOf(toggle)).toBe("error");
-    expect(toggle.className).toContain("text-destructive");
+    expect(lineStatus(toggle)).toBe("error");
     expect(toggle.textContent).toContain("no such file");
   });
 
@@ -326,8 +329,8 @@ describe("other tools", () => {
       })
     );
     await userEvent.click(line(USED_CREATE_ISSUE));
-    expect(screen.getByText("Parameters")).toBeTruthy();
-    expect(screen.getByText("Result")).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Input" })).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Output" })).toBeTruthy();
     expect(document.body.textContent).toContain('"title": "Bug"');
   });
 

@@ -1,0 +1,262 @@
+"use client";
+
+import { useLingui } from "@lingui/react/macro";
+import { CheckIcon, CopyIcon } from "@workspace/icons";
+import { Button } from "@workspace/ui/components/button";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "cn";
+import type { ComponentProps } from "react";
+import { useCallback, useEffect, useState } from "react";
+
+const codeBlockVariants = cva(
+  "group/code-block relative flex w-full min-w-0 flex-col overflow-hidden rounded-lg text-sm has-[>[data-slot=code-block-content]:focus-visible]:ring-3 has-[>[data-slot=code-block-content]:focus-visible]:ring-ring/50 data-[size=sm]:text-xs",
+  {
+    defaultVariants: {
+      variant: "default",
+    },
+    variants: {
+      variant: {
+        default:
+          "border border-input text-foreground has-[>[data-slot=code-block-content]:focus-visible]:border-ring dark:bg-input/30",
+        destructive:
+          "border border-destructive/30 text-destructive dark:border-destructive/40",
+      },
+    },
+  }
+);
+
+function CodeBlock({
+  className,
+  variant = "default",
+  size = "default",
+  ...props
+}: ComponentProps<"div"> &
+  VariantProps<typeof codeBlockVariants> & { size?: "default" | "sm" }) {
+  return (
+    <div
+      className={cn(codeBlockVariants({ variant }), className)}
+      data-size={size}
+      data-slot="code-block"
+      data-variant={variant}
+      {...props}
+    />
+  );
+}
+
+function CodeBlockHeader({ className, ...props }: ComponentProps<"div">) {
+  return (
+    <div
+      className={cn(
+        "flex min-w-0 shrink-0 items-center gap-2 px-3 pt-3 text-muted-foreground *:has-[>[data-slot=code-block-title]]:min-w-0 group-data-[size=sm]/code-block:px-2.5 group-data-[size=sm]/code-block:pt-2.5 group-data-[variant=destructive]/code-block:text-destructive",
+        className
+      )}
+      data-slot="code-block-header"
+      {...props}
+    />
+  );
+}
+
+function CodeBlockTitle({ className, ...props }: ComponentProps<"div">) {
+  return (
+    <div
+      className={cn(
+        "min-w-0 truncate font-medium font-sans text-foreground text-sm group-data-[size=sm]/code-block:text-xs group-data-[variant=destructive]/code-block:text-destructive [&_svg:not([class*='size-'])]:size-3.5 [&_svg]:pointer-events-none [&_svg]:inline-block [&_svg]:align-middle *:[svg]:me-1.5",
+        className
+      )}
+      data-slot="code-block-title"
+      {...props}
+    />
+  );
+}
+
+function CodeBlockActions({ className, ...props }: ComponentProps<"div">) {
+  return (
+    <div
+      className={cn(
+        "-my-1 ms-auto -me-1.5 flex shrink-0 items-center gap-1 [[data-slot=code-block]>&]:absolute [[data-slot=code-block]>&]:end-2 [[data-slot=code-block]>&]:top-2 [[data-slot=code-block]>&]:z-10 [[data-slot=code-block]>&]:m-0 [[data-slot=code-block]>&]:opacity-0 [[data-slot=code-block]>&]:pointer-coarse:opacity-100 [[data-slot=code-block]>&]:transition-opacity [[data-slot=code-block]>&]:duration-(--motion-fast) [[data-slot=code-block]>&]:group-focus-within/code-block:opacity-100 [[data-slot=code-block]>&]:group-hover/code-block:opacity-100 group-data-[size=sm]/code-block:[[data-slot=code-block]>&]:end-1.5 group-data-[size=sm]/code-block:[[data-slot=code-block]>&]:top-1.5 [[data-slot=code-block]>&]:*:[button]:bg-background [[data-slot=code-block]>&]:*:[button]:ring-1 [[data-slot=code-block]>&]:*:[button]:ring-foreground/10",
+        className
+      )}
+      data-slot="code-block-actions"
+      {...props}
+    />
+  );
+}
+
+type ButtonClick = NonNullable<ComponentProps<typeof Button>["onClick"]>;
+
+// How long the copy button shows its check before going back to the icon.
+const COPIED_MS = 2000;
+
+function CodeBlockCopyButton({
+  value,
+  variant = "ghost",
+  size = "icon-xs",
+  className,
+  onClick,
+  ...props
+}: ComponentProps<typeof Button> & { value: string }) {
+  const { t } = useLingui();
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!copied) {
+      return;
+    }
+
+    const timeout = setTimeout(() => setCopied(false), COPIED_MS);
+    return () => clearTimeout(timeout);
+  }, [copied]);
+
+  const copy = useCallback<ButtonClick>(
+    (event) => {
+      onClick?.(event);
+      // Clipboard access can be refused; the button just doesn't confirm
+      // then.
+      navigator.clipboard.writeText(value).then(
+        () => setCopied(true),
+        () => undefined
+      );
+    },
+    [onClick, value]
+  );
+
+  return (
+    <>
+      <Button
+        aria-label={copied ? t`Copied` : t`Copy`}
+        className={cn(className)}
+        data-copied={copied || undefined}
+        data-slot="code-block-copy-button"
+        onClick={copy}
+        size={size}
+        variant={variant}
+        {...props}
+      >
+        {copied ? <CheckIcon /> : <CopyIcon />}
+      </Button>
+      <span aria-live="polite" className="sr-only">
+        {copied ? t`Copied` : ""}
+      </span>
+    </>
+  );
+}
+
+const TRAILING_NEWLINE = /\n$/;
+
+function CodeBlockContent({
+  className,
+  children,
+  style,
+  wrap = false,
+  lineNumbers = false,
+  startLine = 1,
+  ...props
+}: ComponentProps<"pre"> & {
+  wrap?: boolean;
+  lineNumbers?: boolean;
+  startLine?: number;
+}) {
+  const lines =
+    lineNumbers && typeof children === "string"
+      ? children
+          .replace(TRAILING_NEWLINE, "")
+          .split("\n")
+          .map((line, index) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: lines have no identity but their position, and the list is rebuilt whole.
+            <CodeBlockLine key={index}>{line}</CodeBlockLine>
+          ))
+      : children;
+
+  return (
+    <pre
+      className={cn(
+        "scroll-fade-x scrollbar-thin data-wrap:scroll-fade-y data-wrap:wrap-break-word min-h-0 min-w-0 overflow-auto px-3 py-3 text-start font-mono leading-relaxed outline-none group-has-data-[slot=code-block-header]/code-block:pt-2 group-has-data-[slot=code-block-footer]/code-block:pb-2 data-wrap:whitespace-pre-wrap group-data-[size=sm]/code-block:px-2.5 group-data-[size=sm]/code-block:py-2.5 group-data-[size=sm]/code-block:group-has-data-[slot=code-block-header]/code-block:pt-1.5",
+        className
+      )}
+      data-numbered={lineNumbers || undefined}
+      data-slot="code-block-content"
+      data-wrap={wrap || undefined}
+      dir="ltr"
+      style={{ counterReset: `line ${startLine - 1}`, ...style }}
+      // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrollable region needs focus so keyboard users can scroll it (WCAG 2.1.1).
+      tabIndex={0}
+      {...props}
+    >
+      <code
+        className="grid min-h-lh in-data-wrap:min-w-0 min-w-max in-data-numbered:grid-cols-[auto_1fr] content-start"
+        data-slot="code-block-code"
+      >
+        {lines}
+      </code>
+    </pre>
+  );
+}
+
+const codeBlockLineVariants = cva(
+  "relative in-data-numbered:col-span-2 -mx-3 block in-data-numbered:grid min-h-lh in-data-numbered:grid-cols-subgrid in-data-numbered:gap-x-3 px-3 in-data-numbered:[counter-increment:line] before:min-w-6 in-data-numbered:before:select-none before:text-end before:text-muted-foreground in-data-numbered:before:content-[counter(line)] after:absolute after:start-1 after:top-0 after:select-none after:text-muted-foreground group-data-[size=sm]/code-block:-mx-2.5 group-data-[size=sm]/code-block:px-2.5 in-data-numbered:supports-[content:counter(line)_/_'']:before:content-[counter(line)_/_'']",
+  {
+    defaultVariants: {
+      variant: "default",
+    },
+    variants: {
+      variant: {
+        added: "bg-muted after:content-['+']",
+        default: "",
+        highlighted: "bg-muted",
+        removed: "bg-destructive/10 after:text-destructive after:content-['−']",
+      },
+    },
+  }
+);
+
+function CodeBlockLine({
+  className,
+  variant = "default",
+  children,
+  ...props
+}: ComponentProps<"span"> & VariantProps<typeof codeBlockLineVariants>) {
+  // An empty line holds a newline so copying a selection keeps blank lines.
+  const empty =
+    children === undefined ||
+    children === null ||
+    children === "" ||
+    (Array.isArray(children) && children.length === 0);
+  const content = empty ? "\n" : children;
+
+  return (
+    <span
+      className={cn(codeBlockLineVariants({ variant }), className)}
+      data-slot="code-block-line"
+      data-variant={variant}
+      {...props}
+    >
+      <span className="min-w-0" data-slot="code-block-line-content">
+        {content}
+      </span>
+    </span>
+  );
+}
+
+function CodeBlockFooter({ className, ...props }: ComponentProps<"div">) {
+  return (
+    <div
+      className={cn(
+        "flex min-w-0 shrink-0 items-center gap-2 px-3 pb-3 text-muted-foreground group-data-[size=sm]/code-block:px-2.5 group-data-[size=sm]/code-block:pb-2.5",
+        className
+      )}
+      data-slot="code-block-footer"
+      {...props}
+    />
+  );
+}
+
+export {
+  CodeBlock,
+  CodeBlockActions,
+  CodeBlockContent,
+  CodeBlockCopyButton,
+  CodeBlockFooter,
+  CodeBlockHeader,
+  CodeBlockLine,
+  CodeBlockTitle,
+};

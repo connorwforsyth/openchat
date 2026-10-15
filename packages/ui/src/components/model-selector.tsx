@@ -1,9 +1,10 @@
 "use client";
 
-// AI Elements' model selector (MIT, vercel/ai-elements
-// `packages/elements/src/model-selector.tsx`), on our Base UI dialog and
-// cmdk command, with a preview card beside the list (099, 105). See this
-// folder's README for what changed from upstream.
+// The composer's model and agent picker: a searchable dialog (Base UI dialog
+// and cmdk command) with provider sections and a preview card beside the
+// list (094, 099, 105). It began as AI Elements' model selector (MIT,
+// vercel/ai-elements). shadcn's Model Selector pattern is a dropdown with no
+// search, so this stays our own composition; see this package's README.
 
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { BrandMark, hasBrandMark } from "@workspace/icons/brands";

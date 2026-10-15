@@ -1,6 +1,6 @@
 "use client";
 
-import { MessageResponse } from "@workspace/ui/components/ai-elements/message";
+import { Markdown as StreamdownMarkdown } from "@workspace/ui/components/markdown";
 import { useEffect, useState } from "react";
 
 type MathPlugin = Awaited<typeof import("./math-plugin")>["math"];
@@ -54,14 +54,14 @@ export function Markdown({
   }, [math, needsMath]);
 
   return (
-    <MessageResponse
+    <StreamdownMarkdown
       isAnimating={streaming}
-      // MessageResponse re-renders only when its text changes; the key makes
-      // the arrival of the math plugin count too.
+      // It re-renders only when its text changes; the key makes the arrival
+      // of the math plugin count too.
       key={math ? "math" : "plain"}
       plugins={math ? { math } : undefined}
     >
       {children}
-    </MessageResponse>
+    </StreamdownMarkdown>
   );
 }

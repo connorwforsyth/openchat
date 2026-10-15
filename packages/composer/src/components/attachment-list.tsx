@@ -3,7 +3,15 @@
 import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import { formatFileSize } from "@workspace/i18n/format";
 import { FileIcon, XIcon } from "@workspace/icons";
-import { Button } from "@workspace/ui/components/button";
+import {
+  Attachment,
+  AttachmentAction,
+  AttachmentActions,
+  AttachmentContent,
+  AttachmentDescription,
+  AttachmentMedia,
+  AttachmentTitle,
+} from "@workspace/ui/components/attachment";
 import { useCallback, useEffect, useState } from "react";
 
 import type { AttachmentRejection, ComposerAttachment } from "../schemas";
@@ -29,17 +37,17 @@ function AttachmentPreview({ file }: { readonly file: File }) {
   }, [file, isImage]);
 
   if (url === null) {
-    return <FileIcon aria-hidden className="size-4 text-muted-foreground" />;
+    return (
+      <AttachmentMedia>
+        <FileIcon aria-hidden className="text-muted-foreground" />
+      </AttachmentMedia>
+    );
   }
   return (
-    // biome-ignore lint/performance/noImgElement: the composer is framework-agnostic, so next/image isn't available; this is a 20px local preview.
-    <img
-      alt=""
-      className="size-5 rounded-sm object-cover"
-      height={20}
-      src={url}
-      width={20}
-    />
+    <AttachmentMedia variant="image">
+      {/* biome-ignore lint/performance/noImgElement: the composer is framework-agnostic, so next/image isn't available; this is a 32px local preview. */}
+      <img alt="" height={32} src={url} width={32} />
+    </AttachmentMedia>
   );
 }
 
@@ -55,22 +63,25 @@ function AttachmentChip({ disabled, file, id, onRemove }: AttachmentChipProps) {
   const { name, size } = file;
   const handleRemove = useCallback(() => onRemove(id), [id, onRemove]);
   return (
-    <li className="flex h-8 max-w-56 items-center gap-1.5 rounded-md border border-border bg-background ps-1.5 pe-0.5 text-foreground text-sm">
-      <AttachmentPreview file={file} />
-      <span className="truncate">{name}</span>
-      <span className="shrink-0 text-muted-foreground text-xs">
-        {formatFileSize(size, i18n.locale)}
-      </span>
-      <Button
-        aria-label={t`Remove ${name}`}
-        disabled={disabled}
-        onClick={handleRemove}
-        size="icon-xs"
-        type="button"
-        variant="ghost"
-      >
-        <XIcon aria-hidden />
-      </Button>
+    <li className="max-w-56">
+      <Attachment size="sm">
+        <AttachmentPreview file={file} />
+        <AttachmentContent>
+          <AttachmentTitle>{name}</AttachmentTitle>
+          <AttachmentDescription>
+            {formatFileSize(size, i18n.locale)}
+          </AttachmentDescription>
+        </AttachmentContent>
+        <AttachmentActions>
+          <AttachmentAction
+            aria-label={t`Remove ${name}`}
+            disabled={disabled}
+            onClick={handleRemove}
+          >
+            <XIcon aria-hidden />
+          </AttachmentAction>
+        </AttachmentActions>
+      </Attachment>
     </li>
   );
 }

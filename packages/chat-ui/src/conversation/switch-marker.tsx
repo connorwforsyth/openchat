@@ -15,7 +15,7 @@ import {
   parseModelRef,
 } from "@workspace/contract/schemas/models";
 import { AgentIcon } from "@workspace/icons";
-import { ModelSelectorLogo } from "@workspace/ui/components/ai-elements/model-selector";
+import { ModelSelectorLogo } from "@workspace/ui/components/model-selector";
 import { Separator } from "@workspace/ui/components/separator";
 import type { ReactNode } from "react";
 

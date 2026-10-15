@@ -4,7 +4,6 @@ import type { MessageDescriptor } from "@lingui/core";
 import { Trans as TransRuntime } from "@lingui/react";
 import { Trans, useLingui } from "@lingui/react/macro";
 import {
-  ChevronDownIcon,
   CircleAlertIcon,
   ExternalLinkIcon,
   FileIcon,
@@ -12,7 +11,6 @@ import {
   GlobeIcon,
   type Icon,
   ImageIcon,
-  LoaderCircleIcon,
   MonitorIcon,
   PencilIcon,
   SearchIcon,
@@ -21,17 +19,21 @@ import {
   ToolIcon,
   WrenchIcon,
 } from "@workspace/icons";
-import {
-  ToolInput,
-  ToolOutput,
-} from "@workspace/ui/components/ai-elements/tool";
 import { Button, buttonVariants } from "@workspace/ui/components/button";
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@workspace/ui/components/collapsible";
-import { cn } from "@workspace/ui/lib/utils";
+  CodeBlock,
+  CodeBlockContent,
+} from "@workspace/ui/components/code-block";
+import {
+  Trace,
+  TraceCollapsible,
+  TraceCollapsibleContent,
+  TraceCollapsibleTrigger,
+  TraceDescription,
+  TraceIcon,
+  TraceLine,
+  TraceTitle,
+} from "@workspace/ui/components/trace";
 import { useCallback } from "react";
 
 import type {
@@ -40,10 +42,11 @@ import type {
   ToolSummary,
 } from "../model/tool-summary";
 
-// One tool call as a quiet line under the prose (shadcn's chatbot template):
-// an icon and what the agent did, muted, or in the destructive colour when
-// it failed. It expands to what's behind it: a command and the end of its
-// output, or the raw input and result for anything else.
+// One tool call as a quiet Trace line under the prose (shadcn's Tool
+// pattern): an icon and what the agent did, muted, pulsing while it runs, or
+// in the destructive colour when it failed. It expands to what's behind it: a
+// command and the end of its output, or the raw input and result for anything
+// else.
 
 export const toolIcons: Readonly<Record<ToolIconName, Icon>> = {
   FileIcon,
@@ -78,28 +81,36 @@ export function ToolLabel({ label }: { readonly label: MessageDescriptor }) {
   return <TransRuntime id={label.id} message={label.message} values={values} />;
 }
 
-function StatusIcon({
-  stopped,
-  summary,
-}: {
-  readonly stopped: boolean;
-  readonly summary: ToolSummary;
-}) {
-  if (summary.status === "running" && !stopped) {
-    // Spins (a transform) while the tool runs; with reduced motion it
-    // breathes instead, which is opacity only (D28).
-    return (
-      <LoaderCircleIcon
-        aria-hidden
-        className="size-4 shrink-0 motion-safe:animate-spin motion-reduce:animate-pulse"
-      />
-    );
-  }
+// A failure changes the icon's shape too, so it doesn't rest on colour alone.
+function StatusIcon({ summary }: { readonly summary: ToolSummary }) {
   if (summary.status === "error") {
-    return <CircleAlertIcon aria-hidden className="size-4 shrink-0" />;
+    return <CircleAlertIcon />;
   }
   const ToolGlyph = toolIcons[summary.icon];
-  return <ToolGlyph aria-hidden className="size-4 shrink-0" />;
+  return <ToolGlyph />;
+}
+
+/** A tool's input or output as plain text in a small Code Block. */
+function ToolCode({
+  label,
+  value,
+  variant,
+}: {
+  readonly label: string;
+  readonly value: unknown;
+  readonly variant?: "destructive";
+}) {
+  const text =
+    typeof value === "string" ? value : JSON.stringify(value, null, 2);
+  return (
+    <section aria-label={label}>
+      <CodeBlock size="sm" variant={variant}>
+        <CodeBlockContent className="max-h-64" wrap>
+          {text}
+        </CodeBlockContent>
+      </CodeBlock>
+    </section>
+  );
 }
 
 function Details({
@@ -117,25 +128,30 @@ function Details({
         .join("\n");
       return (
         <section aria-label={t`Command and output`}>
-          <pre className="max-h-72 overflow-auto rounded-md bg-muted/50 p-3 font-mono text-xs">
-            <code>
+          <CodeBlock size="sm">
+            <CodeBlockContent className="max-h-72" wrap>
               <span className="text-muted-foreground">$ </span>
               {detail.command}
               {output ? `\n${output}` : null}
-            </code>
-          </pre>
+            </CodeBlockContent>
+          </CodeBlock>
         </section>
       );
     }
     case "raw":
       return (
-        <div className="flex flex-col gap-2">
-          <ToolInput className="p-0" input={detail.input} />
-          <ToolOutput
-            className="p-0"
-            errorText={errorText}
-            output={detail.output}
-          />
+        <div className="flex flex-col gap-3">
+          <ToolCode label={t`Input`} value={detail.input} />
+          {errorText ? (
+            <ToolCode
+              label={t`Error`}
+              value={errorText}
+              variant="destructive"
+            />
+          ) : null}
+          {detail.output === undefined ? null : (
+            <ToolCode label={t`Output`} value={detail.output} />
+          )}
         </div>
       );
     // A finished change, skill or set of images renders as its card, never
@@ -168,13 +184,13 @@ function PreviewButton({
 /** Who stopped a call's run, after what it was doing. */
 function StoppedNote({ summary }: { readonly summary: ToolSummary }) {
   return (
-    <span className="shrink-0 text-xs" data-stopped-by={summary.stoppedBy}>
+    <TraceDescription className="text-xs" data-stopped-by={summary.stoppedBy}>
       {summary.stoppedBy === "user" ? (
         <Trans>Stopped by you</Trans>
       ) : (
         <Trans>Stopped</Trans>
       )}
-    </span>
+    </TraceDescription>
   );
 }
 
@@ -194,60 +210,61 @@ export function ToolStatus({
 }) {
   const failed = summary.status === "error";
   const stopped = ended || summary.status === "stopped";
+  let status: "running" | "error" | undefined;
+  if (failed) {
+    status = "error";
+  } else if (summary.status === "running" && !stopped) {
+    status = "running";
+  }
   return (
-    <Collapsible
-      className="not-prose flex flex-col gap-2"
+    <Trace
+      className="not-prose"
       data-status={stopped ? "stopped" : summary.status}
     >
-      <div className="flex min-w-0 items-center gap-1">
-        <CollapsibleTrigger
-          className={cn(
-            "group flex min-w-0 max-w-full items-center gap-2 rounded-md px-1.5 py-0.5 text-start text-sm outline-none transition-colors duration-(--motion-fast) ease-motion-out focus-visible:ring-3 focus-visible:ring-ring/50",
-            failed
-              ? "text-destructive"
-              : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          <StatusIcon stopped={stopped} summary={summary} />
-          <span className="min-w-0 truncate">
-            {ended ? (
-              <Trans>Stopped</Trans>
-            ) : (
-              <ToolLabel label={summary.label} />
-            )}
-          </span>
-          {summary.status === "stopped" ? (
-            <StoppedNote summary={summary} />
+      <TraceCollapsible>
+        <div className="flex min-w-0 items-center gap-1">
+          <TraceCollapsibleTrigger>
+            <TraceLine status={status}>
+              <TraceIcon>
+                <StatusIcon summary={summary} />
+              </TraceIcon>
+              <TraceTitle>
+                {ended ? (
+                  <Trans>Stopped</Trans>
+                ) : (
+                  <ToolLabel label={summary.label} />
+                )}
+              </TraceTitle>
+              {summary.status === "stopped" ? (
+                <StoppedNote summary={summary} />
+              ) : null}
+              {failed && summary.errorText ? (
+                <TraceDescription className="min-w-0 max-w-64 shrink truncate text-current text-xs opacity-80">
+                  {summary.errorText}
+                </TraceDescription>
+              ) : null}
+            </TraceLine>
+          </TraceCollapsibleTrigger>
+          {summary.previewUrl && onOpenPreview ? (
+            <PreviewButton onOpen={onOpenPreview} url={summary.previewUrl} />
           ) : null}
-          {failed && summary.errorText ? (
-            <span className="min-w-0 max-w-64 truncate text-xs opacity-80">
-              {summary.errorText}
-            </span>
+          {summary.previewUrl && !onOpenPreview ? (
+            <a
+              className={buttonVariants({ size: "xs", variant: "ghost" })}
+              href={summary.previewUrl}
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              <ExternalLinkIcon aria-hidden data-icon="inline-start" />
+              <Trans>Open</Trans>
+            </a>
           ) : null}
-          <ChevronDownIcon
-            aria-hidden
-            className="size-3.5 shrink-0 opacity-0 transition-[opacity,transform] duration-(--motion-fast) ease-motion-out group-hover:opacity-100 group-focus-visible:opacity-100 group-data-panel-open:rotate-180 group-data-panel-open:opacity-100"
-          />
-        </CollapsibleTrigger>
-        {summary.previewUrl && onOpenPreview ? (
-          <PreviewButton onOpen={onOpenPreview} url={summary.previewUrl} />
-        ) : null}
-        {summary.previewUrl && !onOpenPreview ? (
-          <a
-            className={buttonVariants({ size: "xs", variant: "ghost" })}
-            href={summary.previewUrl}
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            <ExternalLinkIcon aria-hidden data-icon="inline-start" />
-            <Trans>Open</Trans>
-          </a>
-        ) : null}
-      </div>
-      {/* Opens at once: D28 never animates height. */}
-      <CollapsibleContent className="ps-7">
-        <Details detail={summary.detail} errorText={summary.errorText} />
-      </CollapsibleContent>
-    </Collapsible>
+        </div>
+        {/* Opens at once: D28 never animates height. */}
+        <TraceCollapsibleContent>
+          <Details detail={summary.detail} errorText={summary.errorText} />
+        </TraceCollapsibleContent>
+      </TraceCollapsible>
+    </Trace>
   );
 }

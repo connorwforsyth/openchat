@@ -13,18 +13,17 @@ import {
   ZapIcon,
 } from "@workspace/icons";
 import {
-  PromptInputActionMenu,
-  PromptInputActionMenuContent,
-  PromptInputActionMenuItem,
-  PromptInputActionMenuTrigger,
-} from "@workspace/ui/components/ai-elements/prompt-input";
-import {
+  DropdownMenu,
   DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
+import { InputGroupButton } from "@workspace/ui/components/input-group";
 import { type Ref, useCallback } from "react";
 
 import type { FileCandidate, PromptOption, SkillOption } from "../schemas";
@@ -73,14 +72,14 @@ function FileItem({
 }) {
   const choose = useCallback(() => onChoose(file), [file, onChoose]);
   return (
-    <PromptInputActionMenuItem label={file.label} onClick={choose}>
+    <DropdownMenuItem label={file.label} onClick={choose}>
       <span className="truncate">{file.label}</span>
       {file.description ? (
         <span className="ms-auto truncate ps-2 text-muted-foreground text-xs">
           {file.description}
         </span>
       ) : null}
-    </PromptInputActionMenuItem>
+    </DropdownMenuItem>
   );
 }
 
@@ -93,12 +92,12 @@ function PromptItem({
 }) {
   const choose = useCallback(() => onChoose(prompt), [onChoose, prompt]);
   return (
-    <PromptInputActionMenuItem label={prompt.name} onClick={choose}>
+    <DropdownMenuItem label={prompt.name} onClick={choose}>
       <span className="truncate">{prompt.name}</span>
       <span className="ms-auto ps-2 text-muted-foreground text-xs">
         /{prompt.definition.command}
       </span>
-    </PromptInputActionMenuItem>
+    </DropdownMenuItem>
   );
 }
 
@@ -111,7 +110,7 @@ function SkillItem({
 }) {
   const choose = useCallback(() => onChoose(skill), [onChoose, skill]);
   return (
-    <PromptInputActionMenuItem label={skill.name} onClick={choose}>
+    <DropdownMenuItem label={skill.name} onClick={choose}>
       <span className="flex min-w-0 flex-col">
         <span className="truncate">{skill.name}</span>
         {skill.description ? (
@@ -120,7 +119,7 @@ function SkillItem({
           </span>
         ) : null}
       </span>
-    </PromptInputActionMenuItem>
+    </DropdownMenuItem>
   );
 }
 
@@ -175,22 +174,30 @@ export function PlusMenu({
   const offerPrompts = onUsePrompt !== undefined && prompts.length > 0;
   const offerSkills = onAddSkill !== undefined && skills.length > 0;
   return (
-    <PromptInputActionMenu>
-      <PromptInputActionMenuTrigger
-        aria-label={t`Add to message`}
-        className="rounded-full"
-        disabled={disabled}
-        ref={triggerRef}
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
+          <InputGroupButton
+            aria-label={t`Add to message`}
+            className="rounded-full"
+            disabled={disabled}
+            ref={triggerRef}
+            size="icon-sm"
+            variant="outline"
+          />
+        }
       >
-        <PlusIcon aria-hidden className="size-4" />
-      </PromptInputActionMenuTrigger>
-      <PromptInputActionMenuContent className="min-w-52">
-        <PromptInputActionMenuItem disabled={attachDisabled} onClick={onAttach}>
+        <PlusIcon aria-hidden />
+      </DropdownMenuTrigger>
+      {/* Base UI's menu matches the trigger's width by default; an icon-sized
+          trigger would squeeze the items, so size to them instead. */}
+      <DropdownMenuContent align="start" className="w-auto min-w-52">
+        <DropdownMenuItem disabled={attachDisabled} onClick={onAttach}>
           <AttachIcon aria-hidden />
           <Trans>Attach files</Trans>
-        </PromptInputActionMenuItem>
+        </DropdownMenuItem>
         {onMakeImage ? (
-          <PromptInputActionMenuItem onClick={onMakeImage}>
+          <DropdownMenuItem onClick={onMakeImage}>
             <ImageIcon aria-hidden />
             <span className="flex min-w-0 flex-col">
               <Trans>Image</Trans>
@@ -198,7 +205,7 @@ export function PlusMenu({
                 <Trans>Describe a picture to make</Trans>
               </span>
             </span>
-          </PromptInputActionMenuItem>
+          </DropdownMenuItem>
         ) : null}
         {offerFiles ? (
           <DropdownMenuSub>
@@ -288,7 +295,7 @@ export function PlusMenu({
             </span>
           </DropdownMenuCheckboxItem>
         ) : null}
-      </PromptInputActionMenuContent>
-    </PromptInputActionMenu>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

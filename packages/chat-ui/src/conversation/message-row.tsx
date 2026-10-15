@@ -13,18 +13,22 @@ import {
   RefreshCwIcon,
   TriangleAlertIcon,
 } from "@workspace/icons";
-import {
-  MessageAction,
-  MessageActions,
-  MessageContent,
-  Message as MessageFrame,
-  MessageToolbar,
-} from "@workspace/ui/components/ai-elements/message";
 import { Bubble, BubbleContent } from "@workspace/ui/components/bubble";
 import { Button } from "@workspace/ui/components/button";
+import {
+  MessageContent,
+  MessageFooter,
+  Message as MessageFrame,
+} from "@workspace/ui/components/message";
 import { Textarea } from "@workspace/ui/components/textarea";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@workspace/ui/components/tooltip";
+import {
   type ChangeEvent,
+  type ComponentProps,
   type FormEvent,
   type KeyboardEvent,
   memo,
@@ -68,6 +72,34 @@ export interface MessageRowProps {
   readonly streaming: boolean;
 }
 
+/** A ghost icon button with its label as a tooltip (shadcn's Message pattern). */
+function MessageAction({
+  children,
+  label,
+  ...props
+}: ComponentProps<typeof Button> & { readonly label: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button
+            aria-label={label}
+            size="icon-xs"
+            type="button"
+            variant="ghost"
+            {...props}
+          />
+        }
+      >
+        {children}
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>{label}</p>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 function CopyAction({ text }: { readonly text: string }) {
   const { t } = useLingui();
   const [copied, setCopied] = useState(false);
@@ -86,12 +118,7 @@ function CopyAction({ text }: { readonly text: string }) {
     );
   }, [text]);
   return (
-    <MessageAction
-      label={copied ? t`Copied` : t`Copy`}
-      onClick={copy}
-      size="icon-xs"
-      tooltip={copied ? t`Copied` : t`Copy`}
-    >
+    <MessageAction label={copied ? t`Copied` : t`Copy`} onClick={copy}>
       {copied ? <CheckIcon aria-hidden /> : <CopyIcon aria-hidden />}
     </MessageAction>
   );
@@ -295,51 +322,49 @@ function UserMessage({
   );
 
   return (
-    <MessageFrame data-message-id={message.id} from="user">
-      {editing ? (
-        <EditForm initial={text} onCancel={cancel} onSave={save} />
-      ) : (
-        <>
-          {files.map((block) => (
-            <div className="ms-auto" key={block.key}>
-              <FileParts files={block.files} />
-            </div>
-          ))}
-          {text ? (
-            <Bubble align="end" variant="muted">
-              <BubbleContent className="whitespace-pre-wrap px-4 py-2.5 text-[15px]">
-                {text}
-              </BubbleContent>
-            </Bubble>
-          ) : null}
-          {approvals.map((block) => (
-            <div className="ms-auto" key={block.key}>
-              <PlanApprovalNote approval={block.approval} />
-            </div>
-          ))}
-          {skills.map((block) => (
-            <div className="ms-auto" key={block.key}>
-              <SkillsNote skills={block.skills} />
-            </div>
-          ))}
-          <MessageToolbar className="mt-0 justify-end gap-1 opacity-0 pointer-coarse:opacity-100 focus-within:opacity-100 group-hover:opacity-100">
-            <BranchSwitcher info={siblings} onSelect={onSelectBranch ?? noop} />
-            <MessageActions>
+    <MessageFrame align="end" className="is-user" data-message-id={message.id}>
+      <MessageContent className="gap-2">
+        {editing ? (
+          <EditForm initial={text} onCancel={cancel} onSave={save} />
+        ) : (
+          <>
+            {files.map((block) => (
+              <div className="ms-auto" key={block.key}>
+                <FileParts files={block.files} />
+              </div>
+            ))}
+            {text ? (
+              <Bubble align="end" variant="muted">
+                <BubbleContent className="whitespace-pre-wrap px-4 py-2.5 text-[15px]">
+                  {text}
+                </BubbleContent>
+              </Bubble>
+            ) : null}
+            {approvals.map((block) => (
+              <div className="ms-auto" key={block.key}>
+                <PlanApprovalNote approval={block.approval} />
+              </div>
+            ))}
+            {skills.map((block) => (
+              <div className="ms-auto" key={block.key}>
+                <SkillsNote skills={block.skills} />
+              </div>
+            ))}
+            <MessageFooter className="gap-1 px-0 opacity-0 pointer-coarse:opacity-100 focus-within:opacity-100 group-hover/message:opacity-100">
+              <BranchSwitcher
+                info={siblings}
+                onSelect={onSelectBranch ?? noop}
+              />
               {text ? <CopyAction text={text} /> : null}
               {onEdit ? (
-                <MessageAction
-                  label={t`Edit`}
-                  onClick={startEdit}
-                  size="icon-xs"
-                  tooltip={t`Edit`}
-                >
+                <MessageAction label={t`Edit`} onClick={startEdit}>
                   <PencilIcon aria-hidden />
                 </MessageAction>
               ) : null}
-            </MessageActions>
-          </MessageToolbar>
-        </>
-      )}
+            </MessageFooter>
+          </>
+        )}
+      </MessageContent>
     </MessageFrame>
   );
 }
@@ -374,10 +399,10 @@ function AssistantMessage({
   return (
     <MessageFrame
       aria-busy={streaming}
+      className="is-assistant"
       data-message-id={message.id}
-      from="assistant"
     >
-      <MessageContent className="w-full gap-3">
+      <MessageContent className="gap-3 text-[15px] text-foreground leading-[1.75]">
         {view.blocks.map((block) => (
           <Block
             approvals={approvals}
@@ -394,19 +419,12 @@ function AssistantMessage({
         ) : null}
         <Sources sources={view.sources} />
         <StatusNote phase={phase} status={message.status} />
-      </MessageContent>
-      {streaming ? null : (
-        <MessageToolbar className="-ms-1.5 mt-0 justify-start gap-1">
-          <BranchSwitcher info={siblings} onSelect={onSelectBranch ?? noop} />
-          <MessageActions>
+        {streaming ? null : (
+          <MessageFooter className="-ms-1.5 gap-1 px-0">
+            <BranchSwitcher info={siblings} onSelect={onSelectBranch ?? noop} />
             {text ? <CopyAction text={text} /> : null}
             {onRegenerate ? (
-              <MessageAction
-                label={t`Regenerate`}
-                onClick={regenerate}
-                size="icon-xs"
-                tooltip={t`Regenerate`}
-              >
+              <MessageAction label={t`Regenerate`} onClick={regenerate}>
                 <RefreshCwIcon aria-hidden />
               </MessageAction>
             ) : null}
@@ -415,9 +433,9 @@ function AssistantMessage({
               feedback={feedback}
               messageId={message.id}
             />
-          </MessageActions>
-        </MessageToolbar>
-      )}
+          </MessageFooter>
+        )}
+      </MessageContent>
     </MessageFrame>
   );
 }

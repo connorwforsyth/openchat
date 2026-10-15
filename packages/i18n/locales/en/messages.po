@@ -86,11 +86,6 @@ msgstr "{count, plural, one {Wants to make an image} other {Wants to make # imag
 msgid "{deletions, plural, one {# line removed} other {# lines removed}}"
 msgstr "{deletions, plural, one {# line removed} other {# lines removed}}"
 
-#: ../chat-ui/src/conversation/reasoning-part.tsx
-#: ../ui/src/components/ai-elements/reasoning.tsx
-msgid "{duration, plural, one {Thought for # second} other {Thought for # seconds}}"
-msgstr "{duration, plural, one {Thought for # second} other {Thought for # seconds}}"
-
 #: ../composer/src/components/attachment-list.tsx
 msgid "{fileName} is larger than {limit}."
 msgstr "{fileName} is larger than {limit}."
@@ -132,10 +127,6 @@ msgstr "{name}'s library"
 msgid "{ownerName} (owner)"
 msgstr "{ownerName} (owner)"
 
-#: ../ui/src/components/ai-elements/message.tsx
-msgid "{page} of {totalBranches}"
-msgstr "{page} of {totalBranches}"
-
 #: ../chat-ui/src/header/branch-switcher.tsx
 msgid "{position}/{total}"
 msgstr "{position}/{total}"
@@ -152,6 +143,10 @@ msgstr "{removed, plural, one {# line removed} other {# lines removed}}"
 #: ../chat-ui/src/conversation/approval.tsx
 msgid "{reviewed} of {0} files reviewed"
 msgstr "{reviewed} of {0} files reviewed"
+
+#: ../chat-ui/src/conversation/reasoning-part.tsx
+msgid "{seconds, plural, one {Thought for # second} other {Thought for # seconds}}"
+msgstr "{seconds, plural, one {Thought for # second} other {Thought for # seconds}}"
 
 #: ../composer/src/components/composer.tsx
 msgid "{suggestionCount, plural, one {# suggestion} other {# suggestions}}"
@@ -287,10 +282,6 @@ msgstr "Add key"
 msgid "Add people, teams or orgs"
 msgstr "Add people, teams or orgs"
 
-#: ../ui/src/components/ai-elements/prompt-input.tsx
-msgid "Add photos or files"
-msgstr "Add photos or files"
-
 #: ../composer/src/components/plus-menu.tsx
 msgid "Add to message"
 msgstr "Add to message"
@@ -354,10 +345,6 @@ msgstr "AI Elements"
 #: ../library-ui/src/components/library-index.tsx
 msgid "All"
 msgstr "All"
-
-#: ../ui/src/components/ai-elements/prompt-input.tsx
-msgid "All files exceed the maximum size."
-msgstr "All files exceed the maximum size."
 
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgid "All kinds"
@@ -511,6 +498,7 @@ msgstr "Ask for an updated change"
 msgid "At least 8 characters."
 msgstr "At least 8 characters."
 
+#: ../../apps/web/app/dev/ai-elements/demo.tsx
 #: ../composer/src/components/plus-menu.tsx
 msgid "Attach files"
 msgstr "Attach files"
@@ -520,8 +508,6 @@ msgid "Attached file"
 msgstr "Attached file"
 
 #: ../chat-ui/src/conversation/file-parts.tsx
-#: ../ui/src/components/ai-elements/message.tsx
-#: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Attachment"
 msgstr "Attachment"
 
@@ -542,10 +528,6 @@ msgstr "Authentication"
 #: ../composer/src/components/target-picker.tsx
 msgid "Auto"
 msgstr "Auto"
-
-#: ../ui/src/components/ai-elements/tool.tsx
-msgid "Awaiting approval"
-msgstr "Awaiting approval"
 
 #: ../chat-ui/src/workspace/preview.tsx
 msgid "Back"
@@ -816,8 +798,8 @@ msgstr "Choose a model or agent"
 msgid "Click to rename"
 msgstr "Click to rename"
 
-#: ../ui/src/components/ai-elements/streamdown.tsx
 #: ../ui/src/components/dialog.tsx
+#: ../ui/src/components/markdown.tsx
 msgid "Close"
 msgstr "Close"
 
@@ -860,10 +842,6 @@ msgstr "Commands"
 #: ../code-ui/src/diff-view.tsx
 msgid "Comment for the agent on change {number}"
 msgstr "Comment for the agent on change {number}"
-
-#: ../ui/src/components/ai-elements/tool.tsx
-msgid "Completed"
-msgstr "Completed"
 
 #: ../../apps/web/app/dev/composer/page.tsx
 msgid "Composer"
@@ -911,24 +889,22 @@ msgstr "Conversation"
 msgid "Conversation starters"
 msgstr "Conversation starters"
 
-#: ../../apps/web/app/dev/ai-elements/demo.tsx
-msgid "Conversation, message, reasoning and tool"
-msgstr "Conversation, message, reasoning and tool"
-
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 #: ../chat-ui/src/artifacts/publish-dialog.tsx
 #: ../chat-ui/src/conversation/message-row.tsx
-#: ../ui/src/components/ai-elements/streamdown.tsx
+#: ../ui/src/components/code-block.tsx
+#: ../ui/src/components/markdown.tsx
 msgid "Copied"
 msgstr "Copied"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 #: ../../apps/web/app/dev/ai-elements/demo.tsx
 #: ../chat-ui/src/conversation/message-row.tsx
+#: ../ui/src/components/code-block.tsx
 msgid "Copy"
 msgstr "Copy"
 
-#: ../ui/src/components/ai-elements/streamdown.tsx
+#: ../ui/src/components/markdown.tsx
 msgid "Copy code"
 msgstr "Copy code"
 
@@ -936,7 +912,7 @@ msgstr "Copy code"
 #: ../chat-ui/src/header/overflow-menu.tsx
 #: ../chat-ui/src/header/share-menu.tsx
 #: ../library-ui/src/components/share-dialog.tsx
-#: ../ui/src/components/ai-elements/streamdown.tsx
+#: ../ui/src/components/markdown.tsx
 msgid "Copy link"
 msgstr "Copy link"
 
@@ -945,19 +921,19 @@ msgstr "Copy link"
 msgid "Copy link to this chat"
 msgstr "Copy link to this chat"
 
-#: ../ui/src/components/ai-elements/streamdown.tsx
+#: ../ui/src/components/markdown.tsx
 msgid "Copy table"
 msgstr "Copy table"
 
-#: ../ui/src/components/ai-elements/streamdown.tsx
+#: ../ui/src/components/markdown.tsx
 msgid "Copy table as CSV"
 msgstr "Copy table as CSV"
 
-#: ../ui/src/components/ai-elements/streamdown.tsx
+#: ../ui/src/components/markdown.tsx
 msgid "Copy table as Markdown"
 msgstr "Copy table as Markdown"
 
-#: ../ui/src/components/ai-elements/streamdown.tsx
+#: ../ui/src/components/markdown.tsx
 msgid "Copy table as TSV"
 msgstr "Copy table as TSV"
 
@@ -1134,7 +1110,7 @@ msgstr "Creating a skill"
 msgid "Creating the skill {name}"
 msgstr "Creating the skill {name}"
 
-#: ../ui/src/components/ai-elements/streamdown.tsx
+#: ../ui/src/components/markdown.tsx
 msgid "CSV"
 msgstr "CSV"
 
@@ -1219,10 +1195,6 @@ msgstr "Delete the budget for {name}"
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "Delete this budget?"
 msgstr "Delete this budget?"
-
-#: ../ui/src/components/ai-elements/tool.tsx
-msgid "Denied"
-msgstr "Denied"
 
 #: ../composer/src/components/plus-menu.tsx
 msgid "Describe a picture to make"
@@ -1357,39 +1329,39 @@ msgstr "Download {fileName}"
 msgid "Download {name}"
 msgstr "Download {name}"
 
-#: ../ui/src/components/ai-elements/streamdown.tsx
+#: ../ui/src/components/markdown.tsx
 msgid "Download diagram"
 msgstr "Download diagram"
 
-#: ../ui/src/components/ai-elements/streamdown.tsx
+#: ../ui/src/components/markdown.tsx
 msgid "Download diagram as MMD"
 msgstr "Download diagram as MMD"
 
-#: ../ui/src/components/ai-elements/streamdown.tsx
+#: ../ui/src/components/markdown.tsx
 msgid "Download diagram as PNG"
 msgstr "Download diagram as PNG"
 
-#: ../ui/src/components/ai-elements/streamdown.tsx
+#: ../ui/src/components/markdown.tsx
 msgid "Download diagram as SVG"
 msgstr "Download diagram as SVG"
 
-#: ../ui/src/components/ai-elements/streamdown.tsx
+#: ../ui/src/components/markdown.tsx
 msgid "Download file"
 msgstr "Download file"
 
-#: ../ui/src/components/ai-elements/streamdown.tsx
+#: ../ui/src/components/markdown.tsx
 msgid "Download image"
 msgstr "Download image"
 
-#: ../ui/src/components/ai-elements/streamdown.tsx
+#: ../ui/src/components/markdown.tsx
 msgid "Download table"
 msgstr "Download table"
 
-#: ../ui/src/components/ai-elements/streamdown.tsx
+#: ../ui/src/components/markdown.tsx
 msgid "Download table as CSV"
 msgstr "Download table as CSV"
 
-#: ../ui/src/components/ai-elements/streamdown.tsx
+#: ../ui/src/components/markdown.tsx
 msgid "Download table as Markdown"
 msgstr "Download table as Markdown"
 
@@ -1501,7 +1473,7 @@ msgstr "Enter sends and Shift+Enter adds a line. Type / for commands, prompts an
 msgid "Enter your server's address."
 msgstr "Enter your server's address."
 
-#: ../ui/src/components/ai-elements/tool.tsx
+#: ../chat-ui/src/conversation/tool-status.tsx
 msgid "Error"
 msgstr "Error"
 
@@ -1517,10 +1489,6 @@ msgstr "Every change is kept. Restoring makes a new version, so nothing is lost.
 msgid "Every file in it is deleted and it starts again empty, for you and the agent. This can't be undone."
 msgstr "Every file in it is deleted and it starts again empty, for you and the agent. This can't be undone."
 
-#: ../../apps/web/app/dev/ai-elements/page.tsx
-msgid "Every migrated component with static sample data. Nothing here calls a model."
-msgstr "Every migrated component with static sample data. Nothing here calls a model."
-
 #: ../library-ui/src/components/version-history.tsx
 msgid "Everyone gets the latest published version unless they pin one."
 msgstr "Everyone gets the latest published version unless they pin one."
@@ -1529,7 +1497,7 @@ msgstr "Everyone gets the latest published version unless they pin one."
 msgid "Everything in the org, including its teams."
 msgstr "Everything in the org, including its teams."
 
-#: ../ui/src/components/ai-elements/streamdown.tsx
+#: ../ui/src/components/markdown.tsx
 msgid "Exit fullscreen"
 msgstr "Exit fullscreen"
 
@@ -1558,6 +1526,10 @@ msgstr "Export"
 #: ../composer/src/components/thinking-control.tsx
 msgid "Extra high"
 msgstr "Extra high"
+
+#: ../../apps/web/app/dev/ai-elements/demo.tsx
+msgid "Failed to run {tool}"
+msgstr "Failed to run {tool}"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "Fall back to personal keys"
@@ -1764,8 +1736,6 @@ msgstr "https://chat.example.com"
 
 #: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../composer/src/components/plus-menu.tsx
-#: ../ui/src/components/ai-elements/message.tsx
-#: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Image"
 msgstr "Image"
 
@@ -1773,7 +1743,7 @@ msgstr "Image"
 msgid "Image address"
 msgstr "Image address"
 
-#: ../ui/src/components/ai-elements/streamdown.tsx
+#: ../ui/src/components/markdown.tsx
 msgid "Image not available"
 msgstr "Image not available"
 
@@ -1804,6 +1774,10 @@ msgstr "Informational"
 #: ../chat-ui/src/artifacts/document/document-toolbar.tsx
 msgid "Inline code"
 msgstr "Inline code"
+
+#: ../chat-ui/src/conversation/tool-status.tsx
+msgid "Input"
+msgstr "Input"
 
 #: ../chat-ui/src/artifacts/document/document-toolbar.tsx
 #: ../composer/src/components/template-variables.tsx
@@ -2116,7 +2090,7 @@ msgstr "Makes images"
 
 #: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../chat-ui/src/model/artifact-kinds.ts
-#: ../ui/src/components/ai-elements/streamdown.tsx
+#: ../ui/src/components/markdown.tsx
 msgid "Markdown"
 msgstr "Markdown"
 
@@ -2232,11 +2206,15 @@ msgstr "Message"
 msgid "Message the draft"
 msgstr "Message the draft"
 
+#: ../../apps/web/app/dev/ai-elements/demo.tsx
+msgid "Message, reasoning and tool"
+msgstr "Message, reasoning and tool"
+
 #: ../composer/src/components/thinking-control.tsx
 msgid "Minimal"
 msgstr "Minimal"
 
-#: ../ui/src/components/ai-elements/streamdown.tsx
+#: ../ui/src/components/markdown.tsx
 msgid "MMD"
 msgstr "MMD"
 
@@ -2249,7 +2227,6 @@ msgid "model"
 msgstr "model"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
-#: ../../apps/web/app/dev/ai-elements/demo.tsx
 #: ../library-ui/src/components/agent-form.tsx
 msgid "Model"
 msgstr "Model"
@@ -2257,6 +2234,11 @@ msgstr "Model"
 #: ../composer/src/components/target-picker.tsx
 msgid "Model or agent: {label}"
 msgstr "Model or agent: {label}"
+
+#. placeholder {0}: current.label
+#: ../../apps/web/app/dev/ai-elements/demo.tsx
+msgid "Model: {0}"
+msgstr "Model: {0}"
 
 #: ../composer/src/components/target-picker.tsx
 msgid "Models"
@@ -2272,7 +2254,6 @@ msgstr "Monthly"
 
 #: ../chat-ui/src/header/overflow-menu.tsx
 #: ../library-ui/src/components/item-builder.tsx
-#: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "More actions"
 msgstr "More actions"
 
@@ -2392,7 +2373,6 @@ msgstr "Newer version"
 #: ../chat-ui/src/header/branch-switcher.tsx
 #: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
 #: ../shortcuts/src/registry.ts
-#: ../ui/src/components/ai-elements/message.tsx
 msgid "Next branch"
 msgstr "Next branch"
 
@@ -2424,10 +2404,6 @@ msgstr "No changes to {path}"
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "No chats yet. Start one and it shows up here."
 msgstr "No chats yet. Start one and it shows up here."
-
-#: ../ui/src/components/ai-elements/prompt-input.tsx
-msgid "No files match the accepted types."
-msgstr "No files match the accepted types."
 
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "No files yet"
@@ -2641,7 +2617,7 @@ msgstr "Open artifact: {0}"
 msgid "Open chat"
 msgstr "Open chat"
 
-#: ../ui/src/components/ai-elements/streamdown.tsx
+#: ../ui/src/components/markdown.tsx
 msgid "Open external link?"
 msgstr "Open external link?"
 
@@ -2661,7 +2637,7 @@ msgstr "Open in Library"
 msgid "Open in the app"
 msgstr "Open in the app"
 
-#: ../ui/src/components/ai-elements/streamdown.tsx
+#: ../ui/src/components/markdown.tsx
 msgid "Open link"
 msgstr "Open link"
 
@@ -2761,6 +2737,10 @@ msgstr "Organization"
 msgid "Orgs you own or administer."
 msgstr "Orgs you own or administer."
 
+#: ../chat-ui/src/conversation/tool-status.tsx
+msgid "Output"
+msgstr "Output"
+
 #: ../chat-ui/src/workspace/file-view.tsx
 msgid "Overwrite"
 msgstr "Overwrite"
@@ -2788,10 +2768,6 @@ msgstr "panel"
 msgid "Panels"
 msgstr "Panels"
 
-#: ../ui/src/components/ai-elements/tool.tsx
-msgid "Parameters"
-msgstr "Parameters"
-
 #: ../../apps/web/app/(auth)/_components/sign-in-form.tsx
 #: ../../apps/web/app/(auth)/_components/sign-up-form.tsx
 msgid "Password"
@@ -2800,10 +2776,6 @@ msgstr "Password"
 #: ../chat-ui/src/artifacts/document/document-view.tsx
 msgid "PDF (print)…"
 msgstr "PDF (print)…"
-
-#: ../ui/src/components/ai-elements/tool.tsx
-msgid "Pending"
-msgstr "Pending"
 
 #: ../chat-ui/src/header/share-menu.tsx
 msgid "People in this chat"
@@ -2883,7 +2855,7 @@ msgstr "Plan something"
 msgid "Plan, in Markdown"
 msgstr "Plan, in Markdown"
 
-#: ../ui/src/components/ai-elements/streamdown.tsx
+#: ../ui/src/components/markdown.tsx
 msgid "PNG"
 msgstr "PNG"
 
@@ -2957,7 +2929,6 @@ msgstr "Previous 7 days"
 #: ../chat-ui/src/header/branch-switcher.tsx
 #: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
 #: ../shortcuts/src/registry.ts
-#: ../ui/src/components/ai-elements/message.tsx
 msgid "Previous branch"
 msgstr "Previous branch"
 
@@ -3138,6 +3109,10 @@ msgstr "Quote"
 msgid "Ran {code}"
 msgstr "Ran {code}"
 
+#: ../../apps/web/app/dev/ai-elements/demo.tsx
+msgid "Ran {tool}"
+msgstr "Ran {tool}"
+
 #: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../chat-ui/src/model/artifact-kinds.ts
 msgid "React component"
@@ -3224,13 +3199,12 @@ msgid "Reload"
 msgstr "Reload"
 
 #: ../chat-ui/src/artifacts/document/document-toolbar.tsx
-#: ../ui/src/components/ai-elements/message.tsx
-#: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Remove"
 msgstr "Remove"
 
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
+#: ../../apps/web/app/dev/ai-elements/demo.tsx
 #: ../chat-ui/src/artifacts/artifact-actions.tsx
 #: ../composer/src/components/attachment-list.tsx
 #: ../library-ui/src/components/agent-form.tsx
@@ -3245,11 +3219,6 @@ msgstr "Remove {name} from this org?"
 #: ../library-ui/src/components/skill-form.tsx
 msgid "Remove {path}"
 msgstr "Remove {path}"
-
-#: ../ui/src/components/ai-elements/message.tsx
-#: ../ui/src/components/ai-elements/prompt-input.tsx
-msgid "Remove attachment"
-msgstr "Remove attachment"
 
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "Remove key"
@@ -3325,7 +3294,7 @@ msgstr "Reset the workspace?"
 msgid "Reset workspace…"
 msgstr "Reset workspace…"
 
-#: ../ui/src/components/ai-elements/streamdown.tsx
+#: ../ui/src/components/markdown.tsx
 msgid "Reset zoom and pan"
 msgstr "Reset zoom and pan"
 
@@ -3345,10 +3314,6 @@ msgstr "Resize sidebar"
 msgid "Resize the browser"
 msgstr "Resize the browser"
 
-#: ../ui/src/components/ai-elements/tool.tsx
-msgid "Responded"
-msgstr "Responded"
-
 #: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
 #: ../chat-ui/src/artifacts/document/document-view.tsx
 #: ../chat-ui/src/workspace/view-header.tsx
@@ -3366,10 +3331,6 @@ msgstr "Restore version {number}"
 #: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
 msgid "Restored an earlier version"
 msgstr "Restored an earlier version"
-
-#: ../ui/src/components/ai-elements/tool.tsx
-msgid "Result"
-msgstr "Result"
 
 #: ../../apps/web/app/dev/ai-elements/demo.tsx
 #: ../chat-ui/src/artifacts/document/document-view.tsx
@@ -3396,13 +3357,13 @@ msgstr "Role for {name}"
 msgid "Run code in the sandbox"
 msgstr "Run code in the sandbox"
 
-#: ../ui/src/components/ai-elements/tool.tsx
-msgid "Running"
-msgstr "Running"
-
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Running {code}"
 msgstr "Running {code}"
+
+#: ../../apps/web/app/dev/ai-elements/demo.tsx
+msgid "Running {tool}"
+msgstr "Running {tool}"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "Sampled scoring"
@@ -3569,6 +3530,7 @@ msgstr "Sees images"
 msgid "Select a file to open it."
 msgstr "Select a file to open it."
 
+#: ../../apps/web/app/dev/ai-elements/demo.tsx
 #: ../chat-ui/src/conversation/message-row.tsx
 #: ../composer/src/components/composer-footer.tsx
 msgid "Send"
@@ -3616,6 +3578,10 @@ msgstr "Settings"
 #: ../../apps/web/app/(app)/(pages)/settings/layout.tsx
 msgid "Settings pages"
 msgstr "Settings pages"
+
+#: ../../apps/web/app/dev/ai-elements/page.tsx
+msgid "shadcn's AI Elements patterns as the app composes them, with static sample data. Nothing here calls a model."
+msgstr "shadcn's AI Elements patterns as the app composes them, with static sample data. Nothing here calls a model."
 
 #: ../chat-ui/src/artifacts/artifact-actions.tsx
 #: ../chat-ui/src/header/share-menu.tsx
@@ -3830,10 +3796,6 @@ msgstr "Split"
 msgid "SSE"
 msgstr "SSE"
 
-#: ../ui/src/components/ai-elements/prompt-input.tsx
-msgid "Start dictation"
-msgstr "Start dictation"
-
 #: ../library-ui/src/components/test-chat.tsx
 msgid "Start over"
 msgstr "Start over"
@@ -3872,13 +3834,8 @@ msgstr "Still working on this answer…"
 
 #: ../chat-ui/src/chat/connected-chat.tsx
 #: ../composer/src/components/composer-footer.tsx
-#: ../ui/src/components/ai-elements/prompt-input.tsx
 msgid "Stop"
 msgstr "Stop"
-
-#: ../ui/src/components/ai-elements/prompt-input.tsx
-msgid "Stop dictation"
-msgstr "Stop dictation"
 
 #: ../shortcuts/src/registry.ts
 msgid "Stop generating"
@@ -3908,10 +3865,6 @@ msgstr "Streamable HTTP"
 msgid "Strikethrough"
 msgstr "Strikethrough"
 
-#: ../ui/src/components/ai-elements/prompt-input.tsx
-msgid "Submit"
-msgstr "Submit"
-
 #: ../code-ui/src/diff-view.tsx
 msgid "Submit review"
 msgstr "Submit review"
@@ -3920,7 +3873,7 @@ msgstr "Submit review"
 msgid "Suggestions"
 msgstr "Suggestions"
 
-#: ../ui/src/components/ai-elements/streamdown.tsx
+#: ../ui/src/components/markdown.tsx
 msgid "SVG"
 msgstr "SVG"
 
@@ -4333,8 +4286,8 @@ msgstr "Thinking"
 msgid "Thinking: {label}"
 msgstr "Thinking: {label}"
 
+#: ../chat-ui/src/conversation/reasoning-part.tsx
 #: ../chat-ui/src/conversation/thinking.tsx
-#: ../ui/src/components/ai-elements/reasoning.tsx
 msgid "Thinking…"
 msgstr "Thinking…"
 
@@ -4447,8 +4400,11 @@ msgstr "This workspace can't do that."
 msgid "Those keys can't be used as a shortcut."
 msgstr "Those keys can't be used as a shortcut."
 
+#: ../../apps/web/app/dev/ai-elements/demo.tsx
+msgid "Thought for 4 seconds"
+msgstr "Thought for 4 seconds"
+
 #: ../chat-ui/src/conversation/reasoning-part.tsx
-#: ../ui/src/components/ai-elements/reasoning.tsx
 msgid "Thought for a few seconds"
 msgstr "Thought for a few seconds"
 
@@ -4484,10 +4440,6 @@ msgstr "Tokens"
 msgid "Too many attempts. Wait a few seconds and try again."
 msgstr "Too many attempts. Wait a few seconds and try again."
 
-#: ../ui/src/components/ai-elements/prompt-input.tsx
-msgid "Too many files. Some were not added."
-msgstr "Too many files. Some were not added."
-
 #: ../composer/src/components/target-picker.tsx
 msgid "Tool use"
 msgstr "Tool use"
@@ -4517,7 +4469,7 @@ msgstr "Try another search or kind."
 msgid "Try the draft before you publish it."
 msgstr "Try the draft before you publish it."
 
-#: ../ui/src/components/ai-elements/streamdown.tsx
+#: ../ui/src/components/markdown.tsx
 msgid "TSV"
 msgstr "TSV"
 
@@ -4575,10 +4527,6 @@ msgstr "Updated {when}"
 #: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
 msgid "Updated in a chat"
 msgstr "Updated in a chat"
-
-#: ../ui/src/components/ai-elements/prompt-input.tsx
-msgid "Upload files"
-msgstr "Upload files"
 
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Upload files…"
@@ -4693,7 +4641,7 @@ msgstr "Versions"
 msgid "View"
 msgstr "View"
 
-#: ../ui/src/components/ai-elements/streamdown.tsx
+#: ../ui/src/components/markdown.tsx
 msgid "View fullscreen"
 msgstr "View fullscreen"
 
@@ -4830,7 +4778,7 @@ msgstr "What this org spends, and the limits on it."
 msgid "What went wrong? (optional)"
 msgstr "What went wrong? (optional)"
 
-#: ../ui/src/components/ai-elements/prompt-input.tsx
+#: ../../apps/web/app/dev/ai-elements/demo.tsx
 msgid "What would you like to know?"
 msgstr "What would you like to know?"
 
@@ -4915,8 +4863,8 @@ msgid "Workspace panel"
 msgstr "Workspace panel"
 
 #: ../../apps/web/app/dev/ai-elements/demo.tsx
-msgid "Would send “{text}” with {fileCount, plural, one {# attachment} other {# attachments}}."
-msgstr "Would send “{text}” with {fileCount, plural, one {# attachment} other {# attachments}}."
+msgid "Would send “{submitted}”."
+msgstr "Would send “{submitted}”."
 
 #: ../chat-ui/src/conversation/empty-state.tsx
 msgid "Write a small TypeScript function that groups a list of dates by ISO week, with a couple of tests."
@@ -4967,7 +4915,7 @@ msgstr "You have unsaved changes. Save the draft first to publish them."
 msgid "You'll be its owner. Next, add teams and invite people."
 msgstr "You'll be its owner. Next, add teams and invite people."
 
-#: ../ui/src/components/ai-elements/streamdown.tsx
+#: ../ui/src/components/markdown.tsx
 msgid "You're about to visit an external website."
 msgstr "You're about to visit an external website."
 
@@ -5032,10 +4980,10 @@ msgstr "Your own keys pay for your Personal chats, and for team or org chats whe
 msgid "Yours"
 msgstr "Yours"
 
-#: ../ui/src/components/ai-elements/streamdown.tsx
+#: ../ui/src/components/markdown.tsx
 msgid "Zoom in"
 msgstr "Zoom in"
 
-#: ../ui/src/components/ai-elements/streamdown.tsx
+#: ../ui/src/components/markdown.tsx
 msgid "Zoom out"
 msgstr "Zoom out"

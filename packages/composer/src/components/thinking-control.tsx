@@ -2,7 +2,6 @@
 
 import { Trans, useLingui } from "@lingui/react/macro";
 import { ChevronDownIcon } from "@workspace/icons";
-import { PromptInputButton } from "@workspace/ui/components/ai-elements/prompt-input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,6 +11,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
+import { InputGroupButton } from "@workspace/ui/components/input-group";
 import { useCallback } from "react";
 
 import {
@@ -97,10 +97,12 @@ export function ThinkingControl({
       <DropdownMenuTrigger
         disabled={disabled}
         render={
-          <PromptInputButton
+          <InputGroupButton
             aria-label={t`Thinking: ${label}`}
             className="rounded-full text-muted-foreground hover:text-foreground aria-expanded:text-foreground"
             size="sm"
+            type="button"
+            variant="ghost"
           />
         }
       >

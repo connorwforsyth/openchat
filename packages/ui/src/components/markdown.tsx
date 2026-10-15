@@ -13,8 +13,17 @@ import {
   ZoomInIcon,
   ZoomOutIcon,
 } from "@workspace/icons";
-import { useMemo } from "react";
-import type { IconMap, StreamdownTranslations } from "streamdown";
+import { cn } from "@workspace/ui/lib/utils";
+import type { ComponentProps } from "react";
+import { memo, useMemo } from "react";
+import {
+  type IconMap,
+  Streamdown,
+  type StreamdownTranslations,
+} from "streamdown";
+
+// Model output as markdown. shadcn's Message pattern renders replies with
+// Streamdown in a project-owned `markdown` component; this is ours.
 
 // Streamdown ships its own glyphs and English labels. Handing it the registry's
 // icons (D19) and Lingui strings (D12) keeps rendered markdown on the active
@@ -81,3 +90,28 @@ export const useStreamdownDefaults = (): {
 
   return { icons, translations };
 };
+
+export type MarkdownProps = ComponentProps<typeof Streamdown>;
+
+export const Markdown = memo(
+  ({ className, ...props }: MarkdownProps) => {
+    const defaults = useStreamdownDefaults();
+
+    return (
+      <Streamdown
+        className={cn(
+          "size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
+          className
+        )}
+        icons={defaults.icons}
+        translations={defaults.translations}
+        {...props}
+      />
+    );
+  },
+  // Re-rendering markdown is the expensive part of streaming; only a change in
+  // the text itself warrants it.
+  (prevProps, nextProps) => prevProps.children === nextProps.children
+);
+
+Markdown.displayName = "Markdown";

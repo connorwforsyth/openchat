@@ -23,8 +23,8 @@ export default async function Page() {
         </h1>
         <p className="text-muted-foreground text-sm">
           <Trans>
-            Every migrated component with static sample data. Nothing here calls
-            a model.
+            shadcn's AI Elements patterns as the app composes them, with static
+            sample data. Nothing here calls a model.
           </Trans>
         </p>
       </header>
