@@ -10,7 +10,7 @@ import { cn } from "@workspace/ui/lib/utils";
 import { type ReactNode, useMemo } from "react";
 
 import { CodeHeader } from "./code-header";
-import { codeThemeNames } from "./theme/code-theme";
+import { codeThemeNames, preferredHighlighter } from "./theme/code-theme";
 import { diffsHostStyle } from "./theme/host-styles";
 import { registerCodeThemes } from "./theme/register";
 import { useCodeThemeType } from "./theme/use-code-theme-type";
@@ -63,6 +63,7 @@ export function CodeView<Meta = undefined>({
       enableLineSelection: onSelectLines !== undefined,
       onLineSelectionEnd: onSelectLines,
       overflow: wrap ? ("wrap" as const) : ("scroll" as const),
+      preferredHighlighter,
       theme: codeThemeNames,
       themeType,
     }),

@@ -267,6 +267,7 @@
       "dependencies": {
         "@lingui/core": "catalog:",
         "@lingui/react": "catalog:",
+        "@pierre/diffs": "catalog:",
         "@streamdown/math": "1.0.2",
         "@tanstack/react-query": "catalog:",
         "@tiptap/core": "catalog:",
