@@ -193,6 +193,11 @@ function RuntimePreview({
       case "resize":
         setHeight(message.value.height);
         return;
+      // A deck's (164); its own preview listens for them.
+      case "position":
+      case "exported":
+      case "export-failed":
+        return;
       default:
         return message.value satisfies never;
     }
@@ -305,11 +310,11 @@ const themeSnapshot = (): RuntimeTheme =>
   document.documentElement.classList.contains("dark") ? "dark" : "light";
 const serverTheme = (): RuntimeTheme => "light";
 
-const useDocumentTheme = () =>
+export const useDocumentTheme = () =>
   useSyncExternalStore(subscribeTheme, themeSnapshot, serverTheme);
 
 const noSubscription = () => () => undefined;
-const useParentOrigin = () =>
+export const useParentOrigin = () =>
   useSyncExternalStore(
     noSubscription,
     () => window.location.origin,

@@ -441,3 +441,77 @@ describe("documents (126)", () => {
     });
   });
 });
+
+describe("presentations (164)", () => {
+  const slide = (id: string) => ({
+    id,
+    source: `import { Title } from "@workspace/slide-ui";\nexport default () => <Title title="${id}" />;`,
+  });
+  const DECK = JSON.stringify({
+    slides: [slide("intro"), slide("plan"), slide("end")],
+    title: "Deck",
+  });
+
+  const created = async () => {
+    const { saved, store } = memoryStore();
+    const output = await createArtifact(store, {
+      content: DECK,
+      title: "Deck",
+      type: "presentation",
+    });
+    if (output.status !== "saved") {
+      throw new Error(JSON.stringify(output));
+    }
+    return { artifactId: output.artifact.artifactId, saved, store };
+  };
+
+  const idsOf = (content: string | undefined) =>
+    (JSON.parse(content ?? "") as { slides: { id: string }[] }).slides.map(
+      (each) => each.id
+    );
+
+  it("moves and updates one slide of the latest version", async () => {
+    const { artifactId, saved, store } = await created();
+    expect(
+      await updateArtifact(store, {
+        artifactId,
+        edit: { index: 0, operation: "move_slide", slide: "end" },
+      })
+    ).toMatchObject({ status: "saved", version: 2 });
+    expect(idsOf(saved[1]?.content)).toEqual(["end", "intro", "plan"]);
+    await updateArtifact(store, {
+      artifactId,
+      edit: { notes: "Pause here.", operation: "update_slide", slide: "plan" },
+    });
+    expect(saved[2]?.content).toContain("Pause here.");
+  });
+
+  it("says which slides there are when an id isn't found, and saves nothing", async () => {
+    const { artifactId, saved, store } = await created();
+    const output = await updateArtifact(store, {
+      artifactId,
+      edit: { operation: "delete_slide", slide: "budget" },
+    });
+    expect(output).toEqual({
+      problems: [
+        `there's no slide "budget". Its slides: "intro", "plan", "end"`,
+      ],
+      status: "invalid",
+    });
+    expect(saved).toHaveLength(1);
+  });
+
+  it("refuses a slide that imports what the runtime doesn't have", async () => {
+    const { artifactId, saved, store } = await created();
+    const output = await updateArtifact(store, {
+      artifactId,
+      edit: {
+        operation: "add_slide",
+        slide: "chart",
+        source: 'import x from "recharts";\nexport default x;',
+      },
+    });
+    expect(output).toMatchObject({ status: "invalid" });
+    expect(saved).toHaveLength(1);
+  });
+});

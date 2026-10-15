@@ -2,12 +2,13 @@ import type { ArtifactKind } from "@workspace/contract/schemas/message-parts";
 
 import type { ArtifactKindDefinition } from "./define";
 import { codeKind } from "./kinds/code";
+import { diagramKind } from "./kinds/diagram/kind";
 import { documentKind } from "./kinds/document/kind";
 import { htmlKind } from "./kinds/html";
 import { imageKind } from "./kinds/image";
 import { markdownKind } from "./kinds/markdown";
 import { mermaidKind } from "./kinds/mermaid";
-import { diagramKind, presentationKind } from "./kinds/planned";
+import { presentationKind } from "./kinds/presentation/kind";
 import { reactKind } from "./kinds/react";
 import { siteKind } from "./kinds/site/kind";
 import { spreadsheetKind } from "./kinds/spreadsheet/kind";
@@ -20,13 +21,13 @@ import { createArtifactKindRegistry } from "./registry";
 
 export const builtinKindDefinitions = {
   code: codeKind,
-  // Not built yet (164–166): refused on save, offered nowhere.
   diagram: diagramKind,
   document: documentKind,
   html: htmlKind,
   image: imageKind,
   markdown: markdownKind,
   mermaid: mermaidKind,
+  // Not built yet (164, 166): refused on save, offered nowhere.
   presentation: presentationKind,
   react: reactKind,
   // The defaults; an instance's settings make its own (`instanceArtifactKinds`).

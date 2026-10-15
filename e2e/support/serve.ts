@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 
 import { startMcpFixture } from "@workspace/mcp/testing/fixture-server";
 
+import { devPort, portLine } from "../../scripts/ci/dev-port";
 import { BRAND_NAME } from "./brand";
 import { recordFixtureOrigin, startFixtureSite } from "./fixture-site";
 import { startMockLlm } from "./mock-llm";
@@ -43,7 +44,10 @@ import { startMockSearch } from "./mock-search";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const web = join(root, "apps/web");
-const port = Number(process.env.E2E_PORT ?? 3100);
+// The same port playwright.config.ts resolves: 3100 in the main checkout,
+// its own in a linked worktree, E2E_PORT if set (140).
+const resolvedPort = devPort(3100, "E2E_PORT");
+const { port } = resolvedPort;
 
 interface Mocks {
   /** Where uploads are stored. */
@@ -168,6 +172,7 @@ const startRuntime = async () => {
 };
 
 const main = async () => {
+  console.log(portLine("e2e", resolvedPort));
   const dir = await mkdtemp(join(tmpdir(), "e2e-server-"));
   const [llm, search, mcp, site] = await Promise.all([
     startMockLlm(),

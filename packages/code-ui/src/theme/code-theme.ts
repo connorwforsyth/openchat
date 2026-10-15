@@ -87,6 +87,14 @@ const scopes: Readonly<Record<Exclude<SyntaxRole, "background">, string[]>> = {
 };
 
 /** The theme names registered with @pierre/diffs, by colour scheme. */
+/**
+ * Every code view on the main thread asks for Shiki's WASM (Oniguruma) engine
+ * (143). @pierre/diffs keeps one highlighter per page, made with the engine of
+ * whoever asks first, and the JavaScript regex engine can backtrack for
+ * minutes on hostile input, which model output can be.
+ */
+export const preferredHighlighter = "shiki-wasm" as const;
+
 export const codeThemeNames = {
   dark: "workspace-code-dark",
   light: "workspace-code-light",

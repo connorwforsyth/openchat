@@ -1,6 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const port = Number(process.env.E2E_PORT ?? 3100);
+import { devPort } from "./scripts/ci/dev-port";
+
+// 3100 in the main checkout, a port of its own in a linked worktree (140);
+// E2E_PORT wins. serve.ts resolves the same port and prints it.
+const { port } = devPort(3100, "E2E_PORT");
 const baseURL = `http://localhost:${port}`;
 
 // End to end (PLAN.md §11 M1) against the production build of apps/web, the

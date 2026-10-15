@@ -12,6 +12,7 @@ import { parseConfig } from "@workspace/config/parse";
 import type { AppConfig } from "@workspace/config/schema";
 import { parse as parseYaml } from "yaml";
 
+import { portFor, readCheckout } from "../../../scripts/ci/dev-port";
 import { suites as allSuites } from "../suites";
 import type { Judge } from "./judge";
 import { junitOf } from "./junit";
@@ -45,6 +46,7 @@ import { createWorld } from "./world";
 // `--yes` (or a yes at the prompt). It refuses to run in CI without
 // `--allow-ci`, and it is never part of the gate or `turbo test`.
 
+// The main checkout's port; a linked worktree gets its own (140).
 const DEFAULT_PORT = 3184;
 /** A real model takes longer than the mock; a live case gets this long. */
 const LIVE_CASE_TIMEOUT_MS = 180_000;
@@ -53,7 +55,8 @@ const USAGE = `bun run evals [options]
 
   --strict          exit non-zero on any gate failure
   --suite <name>    run only this suite (repeatable)
-  --port <number>   the port to boot the app on (EVALS_PORT, ${DEFAULT_PORT})
+  --port <number>   the port to boot the app on (EVALS_PORT; ${DEFAULT_PORT},
+                    or this worktree's own)
   --out <dir>       where reports go (.evals)
   --list            print the suites and cases, and exit
 
@@ -306,7 +309,11 @@ const parse = async (): Promise<Invocation | number> => {
   return {
     live,
     outDir: join(values.out ?? join(REPO_ROOT, ".evals"), stamp(new Date())),
-    port: Number(values.port ?? process.env.EVALS_PORT ?? DEFAULT_PORT),
+    port: Number(
+      values.port ??
+        process.env.EVALS_PORT ??
+        portFor(DEFAULT_PORT, readCheckout())
+    ),
     strict: values.strict ?? false,
     suites,
   };

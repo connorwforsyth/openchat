@@ -20,7 +20,9 @@
     "mermaid",
     "site",
     "document",
-    "spreadsheet"
+    "presentation",
+    "spreadsheet",
+    "diagram"
   ],
   "prompt": {
     "composed": {
@@ -35,7 +37,7 @@
   "tools": [
     {
       "customModelOutput": true,
-      "description": "Create an artifact: a self-contained piece of work the user will want to keep, reuse or see rendered (a document, a web page, a React component, an SVG image, a Mermaid diagram or a code file). It opens beside the chat instead of filling the reply. Use it for substantial content; keep short snippets and explanations in the reply.",
+      "description": "Create an artifact: a self-contained piece of work the user will want to keep, reuse or see rendered (a document, a web page, a React component, an SVG image, a diagram or a code file). It opens beside the chat instead of filling the reply. Use it for substantial content; keep short snippets and explanations in the reply.",
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
@@ -68,9 +70,11 @@
               "mermaid",
               "site",
               "document",
-              "spreadsheet"
+              "presentation",
+              "spreadsheet",
+              "diagram"
             ],
-            "description": "document: a rich-text document the user can edit and export, written in Markdown (prefer it for reports, plans and notes). html: one complete HTML document. react: one file with a default-exported component. svg: one <svg> element. mermaid: diagram source. markdown: Markdown text that is only read. code: a file in any language. site: a small website of several files, as JSON (see the Sites instructions). spreadsheet: sheets of values and formulas, one Markdown table per sheet (see the Spreadsheets instructions)."
+            "description": "document: a rich-text document the user can edit and export, written in Markdown (prefer it for reports, plans and notes). html: one complete HTML document. react: one file with a default-exported component. svg: one <svg> element. diagram: a flowchart the user can rearrange, as JSON nodes and edges with no coordinates (see the Diagrams instructions). mermaid: Mermaid source, for sequence, class, state and other diagrams. markdown: Markdown text that is only read. code: a file in any language. site: a small website of several files, as JSON (see the Sites instructions). spreadsheet: sheets of values and formulas, one Markdown table per sheet (see the Spreadsheets instructions)."
           }
         },
         "required": [
@@ -245,7 +249,7 @@
     },
     {
       "customModelOutput": true,
-      "description": "Save an artifact's next version; earlier versions are kept. Pass the complete new content, not a diff, or, for a document or spreadsheet, an edit of one part.",
+      "description": "Save an artifact's next version; earlier versions are kept. Pass the complete new content, not a diff, or, for a document, an edit of one section, for a presentation, an edit of one slide, for a diagram, an edit of some nodes or edges, or, for a spreadsheet, an edit of some cells or sheets.",
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
@@ -266,9 +270,43 @@
             "type": "object",
             "properties": {
               "content": {
-                "description": "Markdown for replace_section and insert: the new section body (start it with a heading to replace the heading too) or the blocks to insert.",
+                "description": "Markdown for replace_section and insert: the new section body (start it with a heading to replace the heading too) or the blocks to insert. For a presentation's replace: the whole deck's JSON. For a diagram's replace: the whole graph as JSON.",
                 "type": "string",
                 "maxLength": 400000
+              },
+              "edges": {
+                "description": "For a diagram's add_nodes and connect: edges to add, {from, to, label?}. For remove: edges to remove, {from, to}.",
+                "maxItems": 400,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "from": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[A-Za-z0-9_-]+$",
+                      "description": "A short id, unique in the diagram: letters, digits, _ and -."
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100
+                    },
+                    "to": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[A-Za-z0-9_-]+$",
+                      "description": "A short id, unique in the diagram: letters, digits, _ and -."
+                    }
+                  },
+                  "required": [
+                    "from",
+                    "to"
+                  ],
+                  "additionalProperties": false
+                }
               },
               "fmt": {
                 "description": "Spreadsheet set_range and set_formula: a number format for the cells, as Excel writes one (\"0.00\", \"#,##0\", \"0%\").",
@@ -280,15 +318,100 @@
                 "type": "string",
                 "maxLength": 2000
               },
+              "group": {
+                "description": "For a diagram's update_node: the node's new group.",
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
               "heading": {
                 "description": "The section's heading text, as it reads (without #s). insert without one adds at the end of the document.",
                 "type": "string",
                 "maxLength": 300
               },
+              "id": {
+                "description": "For a diagram's update_node: the node to change.",
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              "ids": {
+                "description": "For a diagram's remove: nodes to remove, with every edge touching them.",
+                "maxItems": 200,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[A-Za-z0-9_-]+$",
+                  "description": "A short id, unique in the diagram: letters, digits, _ and -."
+                }
+              },
+              "index": {
+                "description": "For add_slide and move_slide: the slide's 0-based position in the deck. add_slide without one adds at the end.",
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "label": {
+                "description": "For a diagram's update_node: the node's new label.",
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
               "name": {
                 "description": "Spreadsheet add_sheet: the new sheet's name. rename_sheet: the sheet's new name.",
                 "type": "string",
                 "maxLength": 64
+              },
+              "nodes": {
+                "description": "For a diagram's add_nodes: nodes to add, {id, label, shape?, group?}.",
+                "maxItems": 200,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "group": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    },
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[A-Za-z0-9_-]+$",
+                      "description": "A short id, unique in the diagram: letters, digits, _ and -."
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    },
+                    "shape": {
+                      "default": "rect",
+                      "type": "string",
+                      "enum": [
+                        "rect",
+                        "rounded",
+                        "stadium",
+                        "diamond",
+                        "circle"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "label"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "notes": {
+                "description": "For add_slide and update_slide: the slide's speaker notes.",
+                "type": "string",
+                "maxLength": 5000
               },
               "operation": {
                 "type": "string",
@@ -296,13 +419,22 @@
                   "delete_section",
                   "insert",
                   "replace_section",
+                  "add_slide",
+                  "delete_slide",
+                  "move_slide",
+                  "replace",
+                  "update_slide",
+                  "add_nodes",
+                  "connect",
+                  "remove",
+                  "update_node",
                   "add_sheet",
                   "delete_range",
                   "rename_sheet",
                   "set_formula",
                   "set_range"
                 ],
-                "description": "Document: replace_section (the section under a heading, up to the next heading of the same or a higher level), insert (blocks at a section's start or end, or the document's end), delete_section (a heading and its section). Spreadsheet: set_range, set_formula, delete_range, add_sheet, rename_sheet."
+                "description": "A document's: replace_section (the section under a heading, up to the next heading of the same or a higher level), insert (blocks at a section's start or end, or the document's end), delete_section (a heading and its section). A presentation's: update_slide, add_slide, move_slide, delete_slide, replace (the whole deck). A diagram's: add_nodes, connect, update_node, remove, replace (the whole graph, keeping the layout). A spreadsheet's: set_range, set_formula, delete_range, add_sheet, rename_sheet."
               },
               "position": {
                 "description": "For insert: where in the section. section_end by default.",
@@ -317,10 +449,31 @@
                 "type": "string",
                 "maxLength": 32
               },
+              "shape": {
+                "description": "For a diagram's update_node: the node's new shape.",
+                "type": "string",
+                "enum": [
+                  "rect",
+                  "rounded",
+                  "stadium",
+                  "diamond",
+                  "circle"
+                ]
+              },
               "sheet": {
                 "description": "Spreadsheet: the sheet the edit acts on; the first sheet when left out.",
                 "type": "string",
                 "maxLength": 64
+              },
+              "slide": {
+                "description": "For a presentation's slide edits: the slide's id.",
+                "type": "string",
+                "maxLength": 40
+              },
+              "source": {
+                "description": "For add_slide and update_slide: the slide's TSX, default-exporting one slide.",
+                "type": "string",
+                "maxLength": 40000
               },
               "values": {
                 "description": "Spreadsheet set_range: rows of cells from the range's top-left. Numbers, TRUE/FALSE, text, \"=FORMULA\", or null to clear.",
@@ -352,7 +505,7 @@
             "required": [
               "operation"
             ],
-            "description": "For a document (type \"document\"): change one section; for a spreadsheet (type \"spreadsheet\"): change some cells or sheets, instead of sending all of it. Leave out content when you send an edit.",
+            "description": "For a document (type \"document\"), change one section; for a presentation (type \"presentation\"), one slide; for a diagram (type \"diagram\"), some nodes or edges; for a spreadsheet (type \"spreadsheet\"), some cells or sheets; instead of sending all of it. Leave out content when you send an edit, except for a presentation's replace.",
             "additionalProperties": false
           },
           "language": {
@@ -562,7 +715,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "recorded landing-page": {
         "code": "saved",
@@ -593,7 +758,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "recorded serve-page": {
         "code": "saved",
@@ -629,7 +806,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "recorded oauth-login": {
         "code": "saved",
@@ -660,7 +849,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "recorded sun-icon": {
         "code": "saved",
@@ -686,7 +887,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "a fence first": {
         "code": "saved",
@@ -717,7 +930,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "a lone close": {
         "code": "saved",
@@ -753,7 +978,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "an open directive": {
         "code": "saved",
@@ -789,7 +1026,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "angle brackets": {
         "code": "saved",
@@ -825,7 +1074,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "blank lines": {
         "code": {
@@ -876,7 +1137,19 @@
           ],
           "status": "invalid"
         },
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
         "spreadsheet": {
+          "problems": [
+            "content is empty"
+          ],
+          "status": "invalid"
+        },
+        "diagram": {
           "problems": [
             "content is empty"
           ],
@@ -912,7 +1185,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "classDiagram glued": {
         "code": "saved",
@@ -948,7 +1233,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "default export no space": {
         "code": "saved",
@@ -984,7 +1281,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "default export spaced": {
         "code": "saved",
@@ -1015,7 +1324,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "default export, newline": {
         "code": "saved",
@@ -1046,7 +1367,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "doctype only": {
         "code": "saved",
@@ -1077,7 +1410,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "empty string": {
         "code": {
@@ -1128,7 +1473,19 @@
           ],
           "status": "invalid"
         },
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
         "spreadsheet": {
+          "problems": [
+            "content is empty"
+          ],
+          "status": "invalid"
+        },
+        "diagram": {
           "problems": [
             "content is empty"
           ],
@@ -1164,7 +1521,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "indented svg": {
         "code": "saved",
@@ -1190,7 +1559,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "markdown with fences and directives": {
         "code": "saved",
@@ -1226,7 +1607,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "mermaid graph": {
         "code": "saved",
@@ -1257,7 +1650,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "mermaid flowchart": {
         "code": "saved",
@@ -1288,7 +1693,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "mermaid sequenceDiagram": {
         "code": "saved",
@@ -1319,7 +1736,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "mermaid classDiagram": {
         "code": "saved",
@@ -1350,7 +1779,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "mermaid stateDiagram": {
         "code": "saved",
@@ -1381,7 +1822,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "mermaid erDiagram": {
         "code": "saved",
@@ -1412,7 +1865,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "mermaid gantt": {
         "code": "saved",
@@ -1443,7 +1908,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "mermaid pie": {
         "code": "saved",
@@ -1474,7 +1951,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "mermaid mindmap": {
         "code": "saved",
@@ -1505,7 +1994,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "mermaid timeline": {
         "code": "saved",
@@ -1536,7 +2037,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "mermaid journey": {
         "code": "saved",
@@ -1572,7 +2085,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "mermaid gitGraph": {
         "code": "saved",
@@ -1608,7 +2133,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "mermaid stateDiagram-v2": {
         "code": "saved",
@@ -1639,7 +2176,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "mermaid after a fence": {
         "code": "saved",
@@ -1675,7 +2224,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "mermaid indented": {
         "code": "saved",
@@ -1706,7 +2267,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "named export only": {
         "code": "saved",
@@ -1742,7 +2315,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "one word": {
         "code": "saved",
@@ -1778,7 +2363,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "react element default": {
         "code": "saved",
@@ -1804,7 +2401,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "spaces only": {
         "code": {
@@ -1855,7 +2464,19 @@
           ],
           "status": "invalid"
         },
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
         "spreadsheet": {
+          "problems": [
+            "content is empty"
+          ],
+          "status": "invalid"
+        },
+        "diagram": {
           "problems": [
             "content is empty"
           ],
@@ -1891,7 +2512,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "svg in a fence": {
         "code": "saved",
@@ -1922,7 +2555,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "svg self closing": {
         "code": "saved",
@@ -1953,7 +2598,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "svg trailing text": {
         "code": "saved",
@@ -1984,7 +2641,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "svg uppercase": {
         "code": "saved",
@@ -2015,7 +2684,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "svg with attributes": {
         "code": "saved",
@@ -2041,7 +2722,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "tab only": {
         "code": {
@@ -2092,7 +2785,19 @@
           ],
           "status": "invalid"
         },
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
         "spreadsheet": {
+          "problems": [
+            "content is empty"
+          ],
+          "status": "invalid"
+        },
+        "diagram": {
           "problems": [
             "content is empty"
           ],
@@ -2128,7 +2833,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "tag with digit": {
         "code": "saved",
@@ -2164,7 +2881,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "text then a tag": {
         "code": "saved",
@@ -2195,7 +2924,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "trailing fence line": {
         "code": "saved",
@@ -2226,7 +2967,19 @@
           "status": "invalid"
         },
         "document": "saved",
-        "spreadsheet": "saved"
+        "presentation": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spreadsheet": "saved",
+        "diagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       }
     },
     "titled": {
@@ -2341,6 +3094,308 @@
         "tag with digit": "saved",
         "text then a tag": "saved",
         "trailing fence line": "saved"
+      },
+      "diagram": {
+        "recorded counter-button": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "recorded landing-page": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "recorded serve-page": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "recorded oauth-login": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "recorded sun-icon": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "a fence first": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "a lone close": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "an open directive": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "angle brackets": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "blank lines": {
+          "problems": [
+            "content is empty"
+          ],
+          "status": "invalid"
+        },
+        "carriage returns": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "classDiagram glued": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "default export no space": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "default export spaced": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "default export, newline": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "doctype only": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "empty string": {
+          "problems": [
+            "content is empty"
+          ],
+          "status": "invalid"
+        },
+        "html comment": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "indented svg": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "markdown with fences and directives": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid graph": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid flowchart": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid sequenceDiagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid classDiagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid stateDiagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid erDiagram": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid gantt": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid pie": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid mindmap": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid timeline": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid journey": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid gitGraph": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid stateDiagram-v2": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid after a fence": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid indented": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "named export only": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "one word": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "react element default": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "spaces only": {
+          "problems": [
+            "content is empty"
+          ],
+          "status": "invalid"
+        },
+        "svg after text": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "svg in a fence": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "svg self closing": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "svg trailing text": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "svg uppercase": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "svg with attributes": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "tab only": {
+          "problems": [
+            "content is empty"
+          ],
+          "status": "invalid"
+        },
+        "tag uppercase": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "tag with digit": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "text then a tag": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        },
+        "trailing fence line": {
+          "problems": [
+            "a diagram needs at least one node: write JSON like {\"direction\":\"LR\",\"nodes\":[{\"id\":\"a\",\"label\":\"Start\"}],\"edges\":[]}"
+          ],
+          "status": "invalid"
+        }
       },
       "document": {
         "recorded counter-button": "saved",
@@ -2941,6 +3996,308 @@
         "trailing fence line": {
           "problems": [
             "content isn't a valid mermaid artifact"
+          ],
+          "status": "invalid"
+        }
+      },
+      "presentation": {
+        "recorded counter-button": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "recorded landing-page": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "recorded serve-page": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "recorded oauth-login": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "recorded sun-icon": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "a fence first": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "a lone close": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "an open directive": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "angle brackets": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "blank lines": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "carriage returns": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "classDiagram glued": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "default export no space": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "default export spaced": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "default export, newline": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "doctype only": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "empty string": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "html comment": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "indented svg": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "markdown with fences and directives": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid graph": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid flowchart": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid sequenceDiagram": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid classDiagram": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid stateDiagram": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid erDiagram": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid gantt": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid pie": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid mindmap": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid timeline": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid journey": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid gitGraph": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid stateDiagram-v2": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid after a fence": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "mermaid indented": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "named export only": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "one word": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "react element default": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "spaces only": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "svg after text": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "svg in a fence": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "svg self closing": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "svg trailing text": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "svg uppercase": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "svg with attributes": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "tab only": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "tag uppercase": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "tag with digit": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "text then a tag": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+          ],
+          "status": "invalid"
+        },
+        "trailing fence line": {
+          "problems": [
+            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
           ],
           "status": "invalid"
         }

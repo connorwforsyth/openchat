@@ -20,8 +20,11 @@
     "@workspace/contract": "workspace:*",
     "@workspace/shared": "workspace:*",
     "@workspace/site-ui": "workspace:*",
+    "@workspace/slide-ui": "workspace:*",
     "@workspace/ui": "workspace:*",
+    "jspdf": "^4.2.1",
     "mermaid": "catalog:",
+    "pptxgenjs": "^4.0.1",
     "react": "catalog:",
     "react-dom": "catalog:",
     "sucrase": "catalog:",
@@ -33,6 +36,7 @@
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@workspace/typescript-config": "workspace:*",
+    "jszip": "^3.10.2",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

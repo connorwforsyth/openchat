@@ -2,8 +2,8 @@
 id: "144"
 title: "A reply's markdown controls stay in their streaming state after the stream ends"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -20,3 +20,7 @@ Found by the T3 Code study (`.context/research/t3code/web.md`, recommendation 2)
 ## Owns
 
 `packages/ui/src/components/ai-elements/message.tsx` and a test beside it.
+
+## Resolution (2026-10-16, loop)
+
+Merged in [PR #113](https://github.com/connorwforsyth/openchat/pull/113): Markdown memo compares isAnimating/mode/className/plugins so controls leave streaming state. Verified: rebased: fix ported from the deleted ai-elements/message.tsx to ui/components/markdown.tsx after #123; full local gate. Nothing left on this ticket.

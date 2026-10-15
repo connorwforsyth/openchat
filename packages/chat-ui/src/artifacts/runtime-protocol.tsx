@@ -19,6 +19,8 @@ export const RUNTIME_CHANNEL = "artifact-runtime/1";
 export const runtimeKindSchema = artifactKindSchema.extract([
   "html",
   "mermaid",
+  // Slides on the main page, compiled like React (164).
+  "presentation",
   "react",
   // On its own page (`site.html`), whose CSP lets in the instance's public
   // origins (125).
@@ -66,9 +68,52 @@ export const renderRequestSchema = z.object({
 });
 export type RenderRequest = z.infer<typeof renderRequestSchema>;
 
-/** Every message the host sends; one for now, a union once Annotate lands. */
-export const hostMessageSchema = renderRequestSchema;
+/** How the presenter moves through a deck (164), or in and out of presenting. */
+export const presentActionSchema = z.enum([
+  "enter",
+  "exit",
+  "first",
+  "last",
+  "next",
+  "previous",
+]);
+export type PresentAction = z.infer<typeof presentActionSchema>;
+
+/** The files a deck exports to (164). */
+export const exportFormatSchema = z.enum(["pdf", "pptx"]);
+export type ExportFormat = z.infer<typeof exportFormatSchema>;
+
+/** Host → frame: present the deck on screen (`id` is its render). */
+export const presentRequestSchema = z.object({
+  action: presentActionSchema,
+  channel: z.literal(RUNTIME_CHANNEL),
+  id: renderIdSchema,
+  type: z.literal("present"),
+});
+export type PresentRequest = z.infer<typeof presentRequestSchema>;
+
+/** Host → frame: make the deck on screen into a file; answered by `exported`. */
+export const exportRequestSchema = z.object({
+  channel: z.literal(RUNTIME_CHANNEL),
+  format: exportFormatSchema,
+  id: renderIdSchema,
+  /** Echoed back, so the host matches the file to its click. */
+  request: renderIdSchema,
+  type: z.literal("export"),
+});
+export type ExportRequest = z.infer<typeof exportRequestSchema>;
+
+/** Every message the host sends. */
+export const hostMessageSchema = z.discriminatedUnion("type", [
+  renderRequestSchema,
+  presentRequestSchema,
+  exportRequestSchema,
+]);
 export type HostMessage = z.infer<typeof hostMessageSchema>;
+
+/** The largest exported file the host accepts from the frame. */
+export const MAX_EXPORT_BYTES = 50_000_000;
+const MAX_NOTES_LENGTH = 20_000;
 
 /**
  * Why a render failed. The panel words each one itself (the frame has no
@@ -111,6 +156,36 @@ export const frameMessageSchema = z.discriminatedUnion("type", [
     channel: z.literal(RUNTIME_CHANNEL),
     height: z.number().int().min(0).max(MAX_FRAME_HEIGHT),
     type: z.literal("resize"),
+  }),
+  // Where the presenter is in a deck (164): its slide, how many of the
+  // slide's steps show, and the slide's speaker notes.
+  z.object({
+    channel: z.literal(RUNTIME_CHANNEL),
+    id: renderIdSchema,
+    notes: z.string().max(MAX_NOTES_LENGTH),
+    presenting: z.boolean(),
+    slide: z.number().int().min(0),
+    slides: z.number().int().min(0),
+    step: z.number().int().min(0),
+    steps: z.number().int().min(0),
+    type: z.literal("position"),
+  }),
+  z.object({
+    channel: z.literal(RUNTIME_CHANNEL),
+    data: z
+      .instanceof(Uint8Array)
+      .refine((data) => data.byteLength <= MAX_EXPORT_BYTES),
+    format: exportFormatSchema,
+    id: renderIdSchema,
+    request: renderIdSchema,
+    type: z.literal("exported"),
+  }),
+  z.object({
+    channel: z.literal(RUNTIME_CHANNEL),
+    id: renderIdSchema,
+    message: z.string().max(MAX_MESSAGE_LENGTH),
+    request: renderIdSchema,
+    type: z.literal("export-failed"),
   }),
 ]);
 export type FrameMessage = z.infer<typeof frameMessageSchema>;

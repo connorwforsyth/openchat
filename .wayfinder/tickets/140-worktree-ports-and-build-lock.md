@@ -2,8 +2,8 @@
 id: "140"
 title: "Each worktree gets its own ports, and only one production build runs per machine"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -22,3 +22,7 @@ From the T3 Code study (`.context/research/t3code/engineering.md` §1, §5). The
 ## Owns
 
 `scripts/dev-port.ts` (new) and its test, `scripts/ci/browser-lock.ts` and its test, `playwright.config.ts`, `e2e/support/serve.ts` (the port default only), `packages/evals/src/cli.ts` (the port default only), `apps/web/package.json` scripts, root `package.json` scripts.
+
+## Resolution (2026-10-16, loop)
+
+Merged in [PR #115](https://github.com/connorwforsyth/openchat/pull/115): per-worktree dev ports and machine-wide build lock. Verified: full local gate; server/db PGlite timeouts under load ~80 passed when rerun alone, files untouched by the PR. Nothing left on this ticket.

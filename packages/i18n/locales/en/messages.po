@@ -45,6 +45,10 @@ msgstr "{added, plural, one {# line added} other {# lines added}}"
 msgid "{additions, plural, one {# line added} other {# lines added}}"
 msgstr "{additions, plural, one {# line added} other {# lines added}}"
 
+#: ../../apps/desktop/src/main/updates.ts
+msgid "{appName} {version} is the newest version."
+msgstr "{appName} {version} is the newest version."
+
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "{code} exited with code {exitCode}"
 msgstr "{code} exited with code {exitCode}"
@@ -148,6 +152,10 @@ msgstr "{reviewed} of {0} files reviewed"
 msgid "{seconds, plural, one {Thought for # second} other {Thought for # seconds}}"
 msgstr "{seconds, plural, one {Thought for # second} other {Thought for # seconds}}"
 
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "{slides, plural, one {# slide} other {# slides}}"
+msgstr "{slides, plural, one {# slide} other {# slides}}"
+
 #: ../composer/src/components/composer.tsx
 msgid "{suggestionCount, plural, one {# suggestion} other {# suggestions}}"
 msgstr "{suggestionCount, plural, one {# suggestion} other {# suggestions}}"
@@ -185,6 +193,10 @@ msgstr "A React artifact needs a default export: a component or an element."
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "A secret is saved. It's never shown; type a new one to replace it."
 msgstr "A secret is saved. It's never shown; type a new one to replace it."
+
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "A slide in this deck failed to draw."
+msgstr "A slide in this deck failed to draw."
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 #: ../library-ui/src/components/badges.tsx
@@ -284,6 +296,10 @@ msgstr "Add it to this chat's workspace, where you and the agent can both edit i
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "Add key"
 msgstr "Add key"
+
+#: ../chat-ui/src/artifacts/diagram/diagram-view.tsx
+msgid "Add node"
+msgstr "Add node"
 
 #: ../chat-ui/src/artifacts/artifact-actions.tsx
 #: ../library-ui/src/components/share-dialog.tsx
@@ -770,6 +786,10 @@ msgstr "Chats that relied on it fall back to other keys, or stop if there are no
 msgid "Check"
 msgstr "Check"
 
+#: ../../apps/desktop/src/main/menu.ts
+msgid "Check for Updates…"
+msgstr "Check for Updates…"
+
 #: ../../apps/web/app/(auth)/invite/[token]/page.tsx
 msgid "Check that you copied the whole link, or ask for a new one."
 msgstr "Check that you copied the whole link, or ask for a new one."
@@ -778,6 +798,7 @@ msgstr "Check that you copied the whole link, or ask for a new one."
 msgid "Check the provider (lowercase, like “anthropic”), the key and the URL."
 msgstr "Check the provider (lowercase, like “anthropic”), the key and the URL."
 
+#: ../../apps/desktop/src/main/updates.ts
 #: ../../apps/web/app/(app)/_shared/query-state.tsx
 #: ../library-ui/src/components/library-index.tsx
 msgid "Check your connection and try again."
@@ -786,6 +807,10 @@ msgstr "Check your connection and try again."
 #: ../../apps/web/app/(app)/_shared/app-frame.tsx
 msgid "Check your connection. If it keeps happening, the server may be restarting."
 msgstr "Check your connection. If it keeps happening, the server may be restarting."
+
+#: ../../apps/desktop/src/main/menu.ts
+msgid "Checking for Updates…"
+msgstr "Checking for Updates…"
 
 #: ../chat-ui/src/conversation/approval.tsx
 msgid "Checking this change still waits…"
@@ -986,6 +1011,10 @@ msgstr "Couldn't change the skill {name}"
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "Couldn't check"
 msgstr "Couldn't check"
+
+#: ../../apps/desktop/src/main/updates.ts
+msgid "Couldn't check for updates"
+msgstr "Couldn't check for updates"
 
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Couldn't create a skill"
@@ -1251,6 +1280,11 @@ msgstr "Devices"
 msgid "Diagram"
 msgstr "Diagram"
 
+#. placeholder {0}: artifact.title
+#: ../chat-ui/src/artifacts/diagram/diagram-view.tsx
+msgid "Diagram: {0}"
+msgstr "Diagram: {0}"
+
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Didn't change {code}"
 msgstr "Didn't change {code}"
@@ -1394,6 +1428,11 @@ msgstr "Download table as CSV"
 msgid "Download table as Markdown"
 msgstr "Download table as Markdown"
 
+#. placeholder {0}: item.percent
+#: ../../apps/desktop/src/main/menu.ts
+msgid "Downloading Update… {0}%"
+msgstr "Downloading Update… {0}%"
+
 #: ../library-ui/src/components/badges.tsx
 #: ../library-ui/src/components/version-history.tsx
 msgid "Draft"
@@ -1530,6 +1569,10 @@ msgstr "Everything in the org, including its teams."
 msgid "Excel (.xlsx)"
 msgstr "Excel (.xlsx)"
 
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "Exit"
+msgstr "Exit"
+
 #: ../ui/src/components/markdown.tsx
 msgid "Exit fullscreen"
 msgstr "Exit fullscreen"
@@ -1550,12 +1593,18 @@ msgstr "Explain a concept"
 msgid "Explain how HTTPS keeps a connection private, in plain language with one short example."
 msgstr "Explain how HTTPS keeps a connection private, in plain language with one short example."
 
+#: ../chat-ui/src/artifacts/diagram/diagram-view.tsx
 #: ../chat-ui/src/artifacts/document/document-view.tsx
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
 #: ../chat-ui/src/artifacts/spreadsheet/spreadsheet-view.tsx
 #: ../library-ui/src/components/item-builder.tsx
 #: ../library-ui/src/components/library-index.tsx
 msgid "Export"
 msgstr "Export"
+
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "Exporting…"
+msgstr "Exporting…"
 
 #: ../composer/src/components/thinking-control.tsx
 msgid "Extra high"
@@ -1638,7 +1687,6 @@ msgid "Find people, teams or orgs"
 msgstr "Find people, teams or orgs"
 
 #: ../chat-ui/src/conversation/artifact-card.tsx
-#: ../chat-ui/src/model/artifact-kinds.ts
 msgid "Flowchart"
 msgstr "Flowchart"
 
@@ -1805,6 +1853,10 @@ msgstr "In <0/>"
 #: ../library-ui/src/components/badges.tsx
 msgid "In a library"
 msgstr "In a library"
+
+#: ../composer/src/components/composer.tsx
+msgid "In an empty message, the up and down arrows bring back what you sent before."
+msgstr "In an empty message, the up and down arrows bring back what you sent before."
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "Informational"
@@ -2079,6 +2131,7 @@ msgid "Loading files…"
 msgstr "Loading files…"
 
 #: ../chat-ui/src/artifacts/artifact-preview.tsx
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
 msgid "Loading preview"
 msgstr "Loading preview"
 
@@ -2239,6 +2292,14 @@ msgstr "Memory updated: {0}"
 #: ../composer/src/components/composer.tsx
 msgid "Mention"
 msgstr "Mention"
+
+#: ../chat-ui/src/artifacts/diagram/diagram-view.tsx
+msgid "Mermaid (.mmd)"
+msgstr "Mermaid (.mmd)"
+
+#: ../chat-ui/src/model/artifact-kinds.ts
+msgid "Mermaid diagram"
+msgstr "Mermaid diagram"
 
 #: ../composer/src/components/composer-shell.tsx
 #: ../composer/src/components/composer.tsx
@@ -2409,15 +2470,24 @@ msgstr "New name for {name}"
 msgid "New organisation"
 msgstr "New organisation"
 
+#: ../chat-ui/src/artifacts/diagram/diagram-view.tsx
+msgid "New step"
+msgstr "New step"
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
 msgid "New team"
 msgstr "New team"
 
 #: ../chat-ui/src/artifacts/artifact-view.tsx
+#: ../chat-ui/src/artifacts/diagram/diagram-view.tsx
 #: ../chat-ui/src/artifacts/document/document-view.tsx
 #: ../chat-ui/src/artifacts/spreadsheet/spreadsheet-view.tsx
 msgid "Newer version"
 msgstr "Newer version"
+
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "Next"
+msgstr "Next"
 
 #: ../chat-ui/src/header/branch-switcher.tsx
 #: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
@@ -2524,6 +2594,10 @@ msgstr "No versions yet."
 msgid "No versions yet. Saving creates the first one."
 msgstr "No versions yet. Saving creates the first one."
 
+#: ../chat-ui/src/artifacts/diagram/diagram-canvas.tsx
+msgid "Node label"
+msgstr "Node label"
+
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "None"
 msgstr "None"
@@ -2543,6 +2617,10 @@ msgstr "Not shared with anyone yet."
 #: ../composer/src/components/thinking-control.tsx
 msgid "Not with Fast mode"
 msgstr "Not with Fast mode"
+
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "Notes"
+msgstr "Notes"
 
 #: ../chat-ui/src/conversation/skill-card.tsx
 msgid "Notes: {notes}"
@@ -2623,6 +2701,7 @@ msgid "Older"
 msgstr "Older"
 
 #: ../chat-ui/src/artifacts/artifact-view.tsx
+#: ../chat-ui/src/artifacts/diagram/diagram-view.tsx
 #: ../chat-ui/src/artifacts/document/document-view.tsx
 #: ../chat-ui/src/artifacts/spreadsheet/spreadsheet-view.tsx
 msgid "Older version"
@@ -2823,6 +2902,10 @@ msgstr "Panels"
 msgid "Password"
 msgstr "Password"
 
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "PDF (.pdf)"
+msgstr "PDF (.pdf)"
+
 #: ../chat-ui/src/artifacts/document/document-view.tsx
 msgid "PDF (print)…"
 msgstr "PDF (print)…"
@@ -2909,6 +2992,10 @@ msgstr "Plan, in Markdown"
 msgid "PNG"
 msgstr "PNG"
 
+#: ../chat-ui/src/artifacts/diagram/diagram-view.tsx
+msgid "PNG image (.png)"
+msgstr "PNG image (.png)"
+
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
 msgid "policies"
 msgstr "policies"
@@ -2918,14 +3005,26 @@ msgstr "policies"
 msgid "Policies"
 msgstr "Policies"
 
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "PowerPoint (.pptx)"
+msgstr "PowerPoint (.pptx)"
+
 #: ../../apps/web/app/(app)/(pages)/settings/_components/profile-settings.tsx
 msgid "Preferences"
 msgstr "Preferences"
+
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "Present"
+msgstr "Present"
 
 #: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../chat-ui/src/model/artifact-kinds.ts
 msgid "Presentation"
 msgstr "Presentation"
+
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "Presenting {title}"
+msgstr "Presenting {title}"
 
 #: ../library-ui/src/components/kind.tsx
 msgid "Preset"
@@ -2961,6 +3060,7 @@ msgid "Preview {path}"
 msgstr "Preview {path}"
 
 #: ../chat-ui/src/artifacts/artifact-preview.tsx
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
 msgid "Preview of {title}"
 msgstr "Preview of {title}"
 
@@ -2975,6 +3075,10 @@ msgstr "Previews can't import \"{module}\". React artifacts can import {allowed}
 #: ../chat-ui/src/artifacts/artifact-preview.tsx
 msgid "Previews of this kind need the artifact runtime. Its source is in the Code tab."
 msgstr "Previews of this kind need the artifact runtime. Its source is in the Code tab."
+
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "Previous"
+msgstr "Previous"
 
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
@@ -3368,6 +3472,10 @@ msgstr "Resize sidebar"
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Resize the browser"
 msgstr "Resize the browser"
+
+#: ../../apps/desktop/src/main/menu.ts
+msgid "Restart to Update"
+msgstr "Restart to Update"
 
 #: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
 #: ../chat-ui/src/artifacts/document/document-view.tsx
@@ -3797,6 +3905,18 @@ msgstr "Skills"
 msgid "Slash command"
 msgstr "Slash command"
 
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "Slide {slide} of {slides}"
+msgstr "Slide {slide} of {slides}"
+
+#: ../chat-ui/src/model/artifact-kinds.ts
+msgid "Slides"
+msgstr "Slides"
+
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "Slides of {title}"
+msgstr "Slides of {title}"
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "Some chat contexts aren't allowed on this server and are left out."
 msgstr "Some chat contexts aren't allowed on this server and are left out."
@@ -3826,6 +3946,10 @@ msgstr "Sources"
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "Space-separated. Leave empty for the server's defaults."
 msgstr "Space-separated. Leave empty for the server's defaults."
+
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "Speaker notes"
+msgstr "Speaker notes"
 
 #: ../composer/src/components/target-picker.tsx
 msgid "Speed"
@@ -3944,6 +4068,10 @@ msgstr "SVG"
 #: ../chat-ui/src/model/artifact-kinds.ts
 msgid "SVG image"
 msgstr "SVG image"
+
+#: ../chat-ui/src/artifacts/diagram/diagram-view.tsx
+msgid "SVG image (.svg)"
+msgstr "SVG image (.svg)"
 
 #: ../palette/src/context-actions.ts
 msgid "Switch chat context to {label}"
@@ -4187,6 +4315,10 @@ msgstr "The chat's model sees its latest version and, if you can edit it, can ma
 #: ../../apps/web/app/dev/sandbox/page.tsx
 msgid "The chat's Workspace panel (files, editor, preview and artifacts) over a just-bash workspace that runs entirely in this browser tab: simulated bash, an in-memory filesystem, no server and no network. Reloading the page starts over."
 msgstr "The chat's Workspace panel (files, editor, preview and artifacts) over a just-bash workspace that runs entirely in this browser tab: simulated bash, an in-memory filesystem, no server and no network. Reloading the page starts over."
+
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "The deck couldn't be exported: {exportError}"
+msgstr "The deck couldn't be exported: {exportError}"
 
 #: ../../apps/web/app/dev/chat/demo.tsx
 msgid "The demo workspace couldn't do that."
@@ -4452,6 +4584,10 @@ msgstr "This server's configuration forbids audit policies, so admins can't read
 msgid "This version can't be published yet:"
 msgstr "This version can't be published yet:"
 
+#: ../chat-ui/src/artifacts/diagram/diagram-view.tsx
+msgid "This version couldn't be read as a diagram."
+msgstr "This version couldn't be read as a diagram."
+
 #: ../chat-ui/src/artifacts/document/document-view.tsx
 msgid "This version couldn't be read as a document."
 msgstr "This version couldn't be read as a document."
@@ -4683,6 +4819,7 @@ msgid "v{number}"
 msgstr "v{number}"
 
 #: ../chat-ui/src/artifacts/artifact-view.tsx
+#: ../chat-ui/src/artifacts/diagram/diagram-view.tsx
 #: ../chat-ui/src/artifacts/document/document-view.tsx
 #: ../chat-ui/src/artifacts/spreadsheet/spreadsheet-view.tsx
 msgid "v{number} of {total}"
@@ -4705,6 +4842,7 @@ msgid "Version {number}, read only"
 msgstr "Version {number}, read only"
 
 #: ../chat-ui/src/artifacts/artifact-view.tsx
+#: ../chat-ui/src/artifacts/diagram/diagram-view.tsx
 #: ../chat-ui/src/artifacts/document/document-view.tsx
 #: ../chat-ui/src/artifacts/spreadsheet/spreadsheet-view.tsx
 msgid "Versions"
@@ -5002,6 +5140,10 @@ msgstr "You're not an owner or admin of any org. Admin pages appear here when yo
 msgid "You're signed in as {0}. Accept to join the team that invited you."
 msgstr "You're signed in as {0}. Accept to join the team that invited you."
 
+#: ../../apps/desktop/src/main/updates.ts
+msgid "You're up to date"
+msgstr "You're up to date"
+
 #: ../../apps/web/app/(auth)/invite/[token]/page.tsx
 msgid "You've been invited"
 msgstr "You've been invited"
@@ -5053,6 +5195,10 @@ msgstr "Your own keys pay for your Personal chats, and for team or org chats whe
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgid "Yours"
 msgstr "Yours"
+
+#: ../chat-ui/src/artifacts/diagram/diagram-canvas.tsx
+msgid "Zoom"
+msgstr "Zoom"
 
 #: ../ui/src/components/markdown.tsx
 msgid "Zoom in"

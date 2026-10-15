@@ -15,6 +15,7 @@ import { sql } from "drizzle-orm";
 
 import type { StreamChannel, StreamEvent } from "../ports/stream-channel";
 import { isTerminal } from "../runs/state";
+import { coalesceDeltas } from "./coalesce-deltas";
 import type { Listen } from "./listen";
 
 // The StreamChannel on Postgres (D4): chunks live in `run_chunk` with gapless
@@ -28,7 +29,11 @@ import type { Listen } from "./listen";
 //
 // Writes are batched per run: appends made while a write is in flight go out
 // together in the next one, so a fast token stream costs a transaction per
-// batch rather than per token.
+// batch rather than per token. Within a batch, adjacent deltas for the same
+// part are merged into one row (`coalesceDeltas`), so the appends that fed a
+// merged row share its seq. Only a batch that hasn't been written yet is
+// merged, never a stored row, so a client's cursor always points at a row
+// whose content won't change: resume can't miss or repeat text.
 
 /** The NOTIFY channel; the payload is the run id. */
 export const RUN_STREAM_CHANNEL = "run_stream";
@@ -117,10 +122,11 @@ export const createPostgresStreamChannel = ({
         }
         return;
       }
+      const coalesced = coalesceDeltas(batch.map((item) => item.payload));
       const written = await appendRunChunks(
         db,
         runId,
-        batch.map((item) => item.payload)
+        coalesced.map((chunk) => chunk.payload)
       );
       if (!written.ok) {
         for (const item of batch) {
@@ -130,9 +136,13 @@ export const createPostgresStreamChannel = ({
         }
         return;
       }
-      const first = written.value - batch.length + 1;
-      for (const [index, item] of batch.entries()) {
-        item.resolve(ok(first + index));
+      const first = written.value - coalesced.length + 1;
+      let next = 0;
+      for (const [offset, chunk] of coalesced.entries()) {
+        for (const item of batch.slice(next, next + chunk.count)) {
+          item.resolve(ok(first + offset));
+        }
+        next += chunk.count;
       }
       await notify(runId);
     } catch (cause) {

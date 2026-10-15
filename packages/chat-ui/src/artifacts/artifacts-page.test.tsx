@@ -166,23 +166,25 @@ describe("ArtifactsPage", () => {
 
   it("builds the starter cards from the enabled kinds, with their badges", async () => {
     const { onStart } = setup({
-      kinds: ["markdown", "html", "site", "document"],
+      kinds: ["markdown", "html", "presentation", "site", "document"],
     });
     const cards = within(
       screen.getByRole("region", { name: "Make something new" })
     ).getAllByRole("button");
-    // Markdown has no starter; the rest keep the kit's order.
+    // Markdown has no starter; the rest keep the kit's order. A
+    // presentation's card says what people make: slides (164).
     expect(cards.map((card) => card.textContent)).toEqual([
       "Document",
       "Web page",
+      "NewSlides",
       "BetaSite",
     ]);
-    await userEvent.click(cards[2] as HTMLElement);
+    await userEvent.click(cards[3] as HTMLElement);
     expect(onStart).toHaveBeenCalledWith(expect.stringContaining("Site"));
   });
 
   it("leaves a kind out when the instance hasn't enabled it", () => {
-    setup({ kinds: ["html", "mermaid"] });
+    setup({ kinds: ["html", "diagram"] });
     const starters = screen.getByRole("region", { name: "Make something new" });
     expect(within(starters).queryByText("Site")).toBeNull();
     expect(

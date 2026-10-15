@@ -2,6 +2,8 @@ import type { ModelOption } from "@workspace/contract/schemas/models";
 import type { RunTarget } from "@workspace/contract/schemas/runs";
 import type { UserSummary } from "@workspace/contract/schemas/tenancy";
 
+import type { DraftKey, DraftStore } from "./ports/draft-store";
+import type { PromptHistoryEntry } from "./prompt-history";
 import type {
   AgentOption,
   AttachmentLimits,
@@ -42,6 +44,12 @@ export interface ComposerProps {
   readonly commands?: readonly ComposerCommand[];
   readonly disabled?: boolean;
   /**
+   * Keeps the unsent draft (text, mentions, picked skills) in `store` under
+   * `key`, restoring it on mount and when `key` changes (147). Left out,
+   * the draft lives only as long as the composer.
+   */
+  readonly draft?: ComposerDraftOptions;
+  /**
    * Workspace files (`src/app.ts`), offered by `@` after agents and people,
    * and by `/open`.
    */
@@ -51,6 +59,12 @@ export interface ComposerProps {
    * caret at its end ("Edit this image", 138). Each new `id` applies once.
    */
   readonly fill?: ComposerFill;
+  /**
+   * The person's earlier prompts here, oldest first (`promptHistory` over
+   * the branch in view): ArrowUp in an empty composer brings them back
+   * (147). Left out, ArrowUp only moves the caret.
+   */
+  readonly history?: readonly PromptHistoryEntry[];
   /** Models for the picker, as `meta.listModels` returns them. */
   readonly models?: readonly ModelOption[];
   readonly onAttachmentsChange?: (
@@ -114,6 +128,13 @@ export interface ComposerProps {
   readonly variant?: ModelVariant;
   /** Whether web search is on for the next message (see `onWebSearchChange`). */
   readonly webSearch?: boolean;
+}
+
+/** Where the draft is kept; see `ComposerProps.draft`. */
+export interface ComposerDraftOptions {
+  /** The conversation id, or `NEW_CHAT_DRAFT_KEY` for a chat not made yet. */
+  readonly key: DraftKey;
+  readonly store: DraftStore;
 }
 
 /** A request to fill the composer; see `ComposerProps.fill`. */

@@ -4,7 +4,7 @@ import {
   getSharedHighlighter,
 } from "@pierre/diffs";
 
-import { codeThemeNames } from "./code-theme";
+import { codeThemeNames, preferredHighlighter } from "./code-theme";
 
 // Ticket 064. Our Shiki themes colour code with CSS expressions over the ui
 // tokens (code-theme.ts), and Shiki can't hand those to its TextMate
@@ -68,6 +68,7 @@ export function prepareEditorColors(): void {
   }
   getSharedHighlighter({
     langs: ["text"],
+    preferredHighlighter,
     themes: [codeThemeNames.light, codeThemeNames.dark],
   }).then(resolveEditorColors, () => {
     // The editor asks for the same highlighter and reports its own failure.
