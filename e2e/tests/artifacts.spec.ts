@@ -274,7 +274,10 @@ test("Go to chat returns to the chat that made it", async ({
   await page.goto("/artifacts");
   await openMenu(page, "Harbour walk");
   await page.getByRole("menuitem", { name: "Go to chat" }).click();
-  await expect(page).toHaveURL(`/c/${madeIn}`);
+  // 171: the chat opens with the artifact showing in its panel.
+  await expect(page).toHaveURL(
+    new RegExp(`/c/${madeIn}\\?artifact=[0-9a-f-]+$`)
+  );
   await expect(
     page.getByRole("button", { name: "Open artifact: Harbour guide" })
   ).toBeVisible();
