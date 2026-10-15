@@ -41,6 +41,8 @@ describe("routes", () => {
     expect(routes.chat(chat)).toBe(`/c/${chat}`);
     expect(routes.chat(chat, message)).toBe(`/c/${chat}#${message}`);
     expect(routes.askAi("hi there")).toBe("/?prompt=hi+there");
+    expect(routes.draftChat("make a skill")).toBe("/?draft=make+a+skill");
+    expect(routes.chatWithSkill(chat as never)).toBe(`/?skill=${chat}`);
     expect(routes.signInThen("/c/1?a=b")).toBe(
       "/sign-in?next=%2Fc%2F1%3Fa%3Db"
     );

@@ -16,10 +16,14 @@ export const routeParams = {
   agent: "agent",
   /** `/?prompt=` starts a new chat and sends it (the palette's "Ask AI"). */
   askAi: "prompt",
+  /** `/?draft=` starts a new chat with it in the composer, unsent (170). */
+  draft: "draft",
   /** `/sign-up?invite=` returns to the invitation once the account exists. */
   invite: "invite",
   /** `/sign-in?next=` is where to go once signed in. */
   next: "next",
+  /** `/?skill=` starts a new chat with that skill on the composer ("Try it", 170). */
+  skill: "skill",
 } as const;
 
 const withQuery = (path: string, query: Record<string, string>) =>
@@ -37,6 +41,9 @@ export const routes = {
   // A search hit names the message; the fragment keeps it in the address.
   chatWithAgent: (agentId: LibraryItemId) =>
     withQuery("/", { [routeParams.agent]: agentId }),
+  chatWithSkill: (skillId: LibraryItemId) =>
+    withQuery("/", { [routeParams.skill]: skillId }),
+  draftChat: (text: string) => withQuery("/", { [routeParams.draft]: text }),
   home: "/",
   invite: (token: string) => `/invite/${encodeURIComponent(token)}`,
   library: "/library",

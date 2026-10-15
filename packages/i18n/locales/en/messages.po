@@ -160,10 +160,146 @@ msgstr "{suggestionCount, plural, one {# suggestion} other {# suggestions}}"
 msgid "{used} of {limit}"
 msgstr "{used} of {limit}"
 
+#: ../library-ui/src/components/skill-starters.tsx
+msgid "# Brand voice\n"
+"\n"
+"## Who we sound like\n"
+"Confident, helpful and human. An expert friend, never a salesperson.\n"
+"\n"
+"## Words we use\n"
+"- Say \"customers\", not \"users\".\n"
+"- Write the product name exactly as it's spelled in the brand guide.\n"
+"\n"
+"## Words we avoid\n"
+"- Superlatives we can't prove (\"best\", \"fastest\").\n"
+"- Hype (\"revolutionary\", \"game-changing\").\n"
+"\n"
+"## Format\n"
+"Sentence case for headings. Oxford comma. Numbers as numerals.\n"
+""
+msgstr "# Brand voice\n"
+"\n"
+"## Who we sound like\n"
+"Confident, helpful and human. An expert friend, never a salesperson.\n"
+"\n"
+"## Words we use\n"
+"- Say \"customers\", not \"users\".\n"
+"- Write the product name exactly as it's spelled in the brand guide.\n"
+"\n"
+"## Words we avoid\n"
+"- Superlatives we can't prove (\"best\", \"fastest\").\n"
+"- Hype (\"revolutionary\", \"game-changing\").\n"
+"\n"
+"## Format\n"
+"Sentence case for headings. Oxford comma. Numbers as numerals.\n"
+""
+
+#: ../library-ui/src/components/skill-starters.tsx
+msgid "# Code review checklist\n"
+"\n"
+"Review the change in this order and report findings grouped by severity\n"
+"(blocking, should fix, nit). Quote the line you mean.\n"
+"\n"
+"1. **Correctness**: does it do what it says? Edge cases, errors, nulls.\n"
+"2. **Security**: input validation, secrets, injection, access checks.\n"
+"3. **Tests**: is the new behaviour covered? Would a test fail without it?\n"
+"4. **Readability**: names, comments that say why, dead code.\n"
+"5. **Performance**: only when it matters at the expected scale.\n"
+"\n"
+"End with a one-line verdict: approve, approve with changes, or request changes.\n"
+""
+msgstr "# Code review checklist\n"
+"\n"
+"Review the change in this order and report findings grouped by severity\n"
+"(blocking, should fix, nit). Quote the line you mean.\n"
+"\n"
+"1. **Correctness**: does it do what it says? Edge cases, errors, nulls.\n"
+"2. **Security**: input validation, secrets, injection, access checks.\n"
+"3. **Tests**: is the new behaviour covered? Would a test fail without it?\n"
+"4. **Readability**: names, comments that say why, dead code.\n"
+"5. **Performance**: only when it matters at the expected scale.\n"
+"\n"
+"End with a one-line verdict: approve, approve with changes, or request changes.\n"
+""
+
+#: ../library-ui/src/components/skill-starters.tsx
+msgid "# Data analysis\n"
+"\n"
+"1. **Understand the data**: list the columns, their types and the row count.\n"
+"   Note missing values and anything that looks wrong.\n"
+"2. **Restate the question** in one sentence before answering it.\n"
+"3. **Analyse**: start simple (counts, averages, distributions) before\n"
+"   anything clever. Show the method so it can be checked.\n"
+"4. **Visualise** when a chart says it faster than a table.\n"
+"5. **Conclude**: the answer first, then the evidence, then the caveats\n"
+"   (sample size, missing data, correlation isn't causation).\n"
+""
+msgstr "# Data analysis\n"
+"\n"
+"1. **Understand the data**: list the columns, their types and the row count.\n"
+"   Note missing values and anything that looks wrong.\n"
+"2. **Restate the question** in one sentence before answering it.\n"
+"3. **Analyse**: start simple (counts, averages, distributions) before\n"
+"   anything clever. Show the method so it can be checked.\n"
+"4. **Visualise** when a chart says it faster than a table.\n"
+"5. **Conclude**: the answer first, then the evidence, then the caveats\n"
+"   (sample size, missing data, correlation isn't causation).\n"
+""
+
+#: ../library-ui/src/components/skill-form.tsx
+msgid "# My skill\n"
+"\n"
+"1. First, …\n"
+"2. Then, …"
+msgstr "# My skill\n"
+"\n"
+"1. First, …\n"
+"2. Then, …"
+
+#: ../library-ui/src/components/skill-starters.tsx
+msgid "# Writing style\n"
+"\n"
+"## Voice\n"
+"- Plain, direct and warm. Short sentences; one idea each.\n"
+"- Active voice. Say \"we\" for the team and \"you\" for the reader.\n"
+"\n"
+"## Do\n"
+"- Lead with the point, then the reason.\n"
+"- Prefer concrete examples to adjectives.\n"
+"\n"
+"## Don't\n"
+"- No filler (\"just\", \"really\", \"very\") and no exclamation marks.\n"
+"- Don't use jargon without explaining it.\n"
+"\n"
+"## Before you finish\n"
+"Read the draft once more and cut anything that doesn't earn its place.\n"
+""
+msgstr "# Writing style\n"
+"\n"
+"## Voice\n"
+"- Plain, direct and warm. Short sentences; one idea each.\n"
+"- Active voice. Say \"we\" for the team and \"you\" for the reader.\n"
+"\n"
+"## Do\n"
+"- Lead with the point, then the reason.\n"
+"- Prefer concrete examples to adjectives.\n"
+"\n"
+"## Don't\n"
+"- No filler (\"just\", \"really\", \"very\") and no exclamation marks.\n"
+"- Don't use jargon without explaining it.\n"
+"\n"
+"## Before you finish\n"
+"Read the draft once more and cut anything that doesn't earn its place.\n"
+""
+
 #. placeholder {0}: size.words
 #: ../composer/src/components/target-picker.tsx
 msgid "~{0} words"
 msgstr "~{0} words"
+
+#: ../library-ui/src/components/skill-starters.tsx
+msgid "A checklist for reviewing code changes. Use when asked to review a diff, a pull request or a file."
+msgstr "A checklist for reviewing code changes. Use when asked to review a diff, a pull request or a file."
 
 #: ../chat-ui/src/chat/chat-screen.tsx
 #: ../chat-ui/src/workspace/use-workspace-files.ts
@@ -185,6 +321,10 @@ msgstr "A member"
 #: ../chat-ui/src/artifacts/artifact-preview.tsx
 msgid "A React artifact needs a default export: a component or an element."
 msgstr "A React artifact needs a default export: a component or an element."
+
+#: ../library-ui/src/components/skill-starters.tsx
+msgid "A repeatable method for questions about data."
+msgstr "A repeatable method for questions about data."
 
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "A secret is saved. It's never shown; type a new one to replace it."
@@ -558,6 +698,10 @@ msgctxt "artifact kind badge"
 msgid "Beta"
 msgstr "Beta"
 
+#: ../library-ui/src/components/skill-starters.tsx
+msgid "Blank"
+msgstr "Blank"
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "Block new chats when it's spent"
 msgstr "Block new chats when it's spent"
@@ -573,6 +717,14 @@ msgstr "Bold"
 #: ../chat-ui/src/header/branch-switcher.tsx
 msgid "Branches"
 msgstr "Branches"
+
+#: ../library-ui/src/components/skill-starters.tsx
+msgid "Brand voice"
+msgstr "Brand voice"
+
+#: ../library-ui/src/components/skill-starters.tsx
+msgid "Bring in a skill you already have."
+msgstr "Bring in a skill you already have."
 
 #: ../chat-ui/src/header/overflow-menu.tsx
 #: ../chat-ui/src/header/panel-toggles.tsx
@@ -812,6 +964,10 @@ msgstr "Choose a longer password (at least 8 characters)."
 msgid "Choose a model or agent"
 msgstr "Choose a model or agent"
 
+#: ../library-ui/src/components/skill-starters.tsx
+msgid "Choose a SKILL.md file"
+msgstr "Choose a SKILL.md file"
+
 #: ../chat-ui/src/header/chat-title.tsx
 msgid "Click to rename"
 msgstr "Click to rename"
@@ -839,6 +995,10 @@ msgstr "Code"
 #: ../chat-ui/src/artifacts/document/document-toolbar.tsx
 msgid "Code block"
 msgstr "Code block"
+
+#: ../library-ui/src/components/skill-starters.tsx
+msgid "Code review checklist"
+msgstr "Code review checklist"
 
 #: ../../apps/web/app/dev/code/page.tsx
 msgid "Code views"
@@ -885,6 +1045,10 @@ msgstr "Connecting to port {port}…"
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "Connection"
 msgstr "Connection"
+
+#: ../library-ui/src/components/skill-starters.tsx
+msgid "Consistent, prioritised code reviews."
+msgstr "Consistent, prioritised code reviews."
 
 #: ../palette/src/context-actions.ts
 msgid "context"
@@ -1091,6 +1255,10 @@ msgstr "Create an account with the email address the invitation was sent to, or 
 msgid "Create organisation"
 msgstr "Create organisation"
 
+#: ../composer/src/components/plus-menu.tsx
+msgid "Create skill…"
+msgstr "Create skill…"
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
 msgid "Create team"
 msgstr "Create team"
@@ -1098,6 +1266,14 @@ msgstr "Create team"
 #: ../library-ui/src/components/run-test-chat.tsx
 msgid "Create the agent to try it in a test chat."
 msgstr "Create the agent to try it in a test chat."
+
+#: ../library-ui/src/components/skill-starters.tsx
+msgid "Create with AI"
+msgstr "Create with AI"
+
+#: ../composer/src/components/plus-menu.tsx
+msgid "Create with AI…"
+msgstr "Create with AI…"
 
 #: ../../apps/web/app/(auth)/sign-up/page.tsx
 msgid "Create your account with the email address the invitation was sent to."
@@ -1152,6 +1328,10 @@ msgstr "dark"
 #: ../chat-ui/src/sidebar/account-menu.tsx
 msgid "Dark"
 msgstr "Dark"
+
+#: ../library-ui/src/components/skill-starters.tsx
+msgid "Data analysis"
+msgstr "Data analysis"
 
 #: ../../apps/web/app/dev/code/demo.tsx
 msgid "Decision sent to the agent"
@@ -1222,8 +1402,13 @@ msgstr "Delete this budget?"
 msgid "Describe a picture to make"
 msgstr "Describe a picture to make"
 
+#: ../library-ui/src/components/skill-starters.tsx
+msgid "Describe it in a chat and the AI drafts it for you."
+msgstr "Describe it in a chat and the AI drafts it for you."
+
 #: ../library-ui/src/components/item-builder.tsx
 #: ../library-ui/src/components/prompt-form.tsx
+#: ../library-ui/src/components/skill-form.tsx
 msgid "Description"
 msgstr "Description"
 
@@ -1425,9 +1610,18 @@ msgstr "Duplicate to my library"
 #: ../chat-ui/src/artifacts/artifact-actions.tsx
 #: ../chat-ui/src/conversation/message-row.tsx
 #: ../chat-ui/src/conversation/plan-card.tsx
+#: ../chat-ui/src/conversation/skill-card.tsx
 #: ../library-ui/src/components/share-dialog.tsx
 msgid "Edit"
 msgstr "Edit"
+
+#: ../library-ui/src/components/skill-form.tsx
+msgid "Edit as fields"
+msgstr "Edit as fields"
+
+#: ../library-ui/src/components/skill-form.tsx
+msgid "Edit as SKILL.md"
+msgstr "Edit as SKILL.md"
 
 #: ../chat-ui/src/conversation/message-row.tsx
 msgid "Edit message"
@@ -1680,6 +1874,10 @@ msgstr "Generated images"
 msgid "Give the file a name."
 msgstr "Give the file a name."
 
+#: ../library-ui/src/components/skill-form.tsx
+msgid "Give the skill a name."
+msgstr "Give the skill a name."
+
 #. placeholder {0}: approved.title
 #: ../chat-ui/src/chat/connected-chat.tsx
 msgid "Go ahead with the plan: {0}"
@@ -1725,6 +1923,10 @@ msgstr "Heading 3"
 msgid "help"
 msgstr "help"
 
+#: ../library-ui/src/components/skill-starters.tsx
+msgid "Help me create a new skill. Interview me one question at a time: what it should do, when it should be used, and an example of good output. Then draft it with create_skill, with a description that says when to use it and short Markdown instructions. Afterwards, tell me I can edit it, try it, or publish it."
+msgstr "Help me create a new skill. Interview me one question at a time: what it should do, when it should be used, and an example of good output. Then draft it with create_skill, with a description that says when to use it and short Markdown instructions. Afterwards, tell me I can edit it, try it, or publish it."
+
 #: ../chat-ui/src/conversation/empty-state.tsx
 msgid "Help me plan a team offsite. Ask me a few questions first, then suggest an agenda."
 msgstr "Help me plan a team offsite. Ask me a few questions first, then suggest an agenda."
@@ -1762,6 +1964,10 @@ msgstr "hotkeys"
 msgid "How the app looks on this device."
 msgstr "How the app looks on this device."
 
+#: ../library-ui/src/components/skill-starters.tsx
+msgid "How to analyse a dataset. Use when the person shares a CSV, spreadsheet or table and asks questions about it."
+msgstr "How to analyse a dataset. Use when the person shares a CSV, spreadsheet or table and asks questions about it."
+
 #: ../../apps/desktop/src/renderer/setup-screen.tsx
 msgid "https://chat.example.com"
 msgstr "https://chat.example.com"
@@ -1790,6 +1996,10 @@ msgstr "Import"
 #: ../library-ui/src/components/library-index.tsx
 msgid "Import file"
 msgstr "Import file"
+
+#: ../library-ui/src/components/skill-starters.tsx
+msgid "Import SKILL.md"
+msgstr "Import SKILL.md"
 
 #: ../chat-ui/src/conversation/skill-card.tsx
 msgid "In <0/>"
@@ -1841,6 +2051,7 @@ msgid "Inside"
 msgstr "Inside"
 
 #: ../library-ui/src/components/agent-form.tsx
+#: ../library-ui/src/components/skill-form.tsx
 msgid "Instructions"
 msgstr "Instructions"
 
@@ -1926,9 +2137,21 @@ msgstr "itself, or with {tool}"
 msgid "Keep a copy on each device"
 msgstr "Keep a copy on each device"
 
+#: ../library-ui/src/components/skill-starters.tsx
+msgid "Keep customer-facing copy on brand."
+msgstr "Keep customer-facing copy on brand."
+
 #: ../chat-ui/src/artifacts/document/document-view.tsx
 msgid "Keep mine"
 msgstr "Keep mine"
+
+#: ../library-ui/src/components/skill-form.tsx
+msgid "Keep the description to {SKILL_DESCRIPTION_MAX} characters or fewer."
+msgstr "Keep the description to {SKILL_DESCRIPTION_MAX} characters or fewer."
+
+#: ../library-ui/src/components/skill-form.tsx
+msgid "Keep the name to {SKILL_NAME_MAX} characters or fewer."
+msgstr "Keep the name to {SKILL_NAME_MAX} characters or fewer."
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "Keeping a copy on this device is off: this server forbids it."
@@ -2116,6 +2339,10 @@ msgstr "Maintainer"
 msgid "Make an image of "
 msgstr "Make an image of "
 
+#: ../library-ui/src/components/skill-starters.tsx
+msgid "Make every draft sound like you."
+msgstr "Make every draft sound like you."
+
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgid "Make something new"
 msgstr "Make something new"
@@ -2137,6 +2364,10 @@ msgstr "Markdown (.md)"
 #: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
 msgid "Markdown that's included in every chat you start. Agents add to it when you ask them to remember something."
 msgstr "Markdown that's included in every chat you start. Agents add to it when you ask them to remember something."
+
+#: ../library-ui/src/components/skill-form.tsx
+msgid "Markdown. What the model follows when the skill is used: steps, rules and examples."
+msgstr "Markdown. What the model follows when the skill is used: steps, rules and examples."
 
 #: ../../apps/web/app/(app)/(pages)/settings/_components/profile-settings.tsx
 msgid "Match my browser"
@@ -2317,12 +2548,17 @@ msgstr "name"
 #: ../../apps/web/app/(auth)/_components/sign-up-form.tsx
 #: ../chat-ui/src/workspace/new-file-dialog.tsx
 #: ../library-ui/src/components/item-builder.tsx
+#: ../library-ui/src/components/skill-form.tsx
 msgid "Name"
 msgstr "Name"
 
 #: ../library-ui/src/components/item-builder.tsx
 msgid "Name your {kindLabel}"
 msgstr "Name your {kindLabel}"
+
+#: ../library-ui/src/components/skill-form.tsx
+msgid "Name your skill"
+msgstr "Name your skill"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 #: ../../apps/web/app/(auth)/_components/sign-in-form.tsx
@@ -2592,6 +2828,10 @@ msgstr "Nothing sent yet."
 msgid "Nothing shared with you"
 msgstr "Nothing shared with you"
 
+#: ../library-ui/src/components/skill-form.tsx
+msgid "Nothing to preview yet."
+msgstr "Nothing to preview yet."
+
 #: ../chat-ui/src/artifacts/document/document-toolbar.tsx
 msgid "Numbered list"
 msgstr "Numbered list"
@@ -2778,6 +3018,10 @@ msgstr "Organization"
 msgid "Orgs you own or administer."
 msgstr "Orgs you own or administer."
 
+#: ../library-ui/src/components/skill-starters.tsx
+msgid "Our brand's voice and terminology. Use when writing anything customer-facing: marketing copy, product text, support replies."
+msgstr "Our brand's voice and terminology. Use when writing anything customer-facing: marketing copy, product text, support replies."
+
 #: ../chat-ui/src/conversation/tool-status.tsx
 msgid "Output"
 msgstr "Output"
@@ -2944,6 +3188,7 @@ msgstr "preview"
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 #: ../composer/src/components/suggestion-menu.tsx
 #: ../library-ui/src/components/prompt-form.tsx
+#: ../library-ui/src/components/skill-form.tsx
 msgid "Preview"
 msgstr "Preview"
 
@@ -3390,10 +3635,18 @@ msgstr "Restored an earlier version"
 msgid "Retry"
 msgstr "Retry"
 
+#: ../chat-ui/src/conversation/skill-card.tsx
+msgid "Review and publish"
+msgstr "Review and publish"
+
 #. placeholder {0}: edit.path
 #: ../chat-ui/src/conversation/approval.tsx
 msgid "Reviewed {0}"
 msgstr "Reviewed {0}"
+
+#: ../library-ui/src/components/skill-form.tsx
+msgid "Reviews code for bugs and style. Use when asked to review a diff or pull request."
+msgstr "Reviews code for bugs and style. Use when asked to review a diff or pull request."
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 msgid "Role"
@@ -3436,6 +3689,10 @@ msgstr "Sandboxes are turned off on this server."
 msgid "Save"
 msgstr "Save"
 
+#: ../library-ui/src/components/publish-dialog.tsx
+msgid "Save and publish v{nextVersion}"
+msgstr "Save and publish v{nextVersion}"
+
 #: ../chat-ui/src/workspace/save-site-dialog.tsx
 msgid "Save as site"
 msgstr "Save as site"
@@ -3475,6 +3732,10 @@ msgstr "Saved in this browser."
 #: ../library-ui/src/components/item-builder.tsx
 msgid "Saving…"
 msgstr "Saving…"
+
+#: ../library-ui/src/components/skill-form.tsx
+msgid "Say what the skill does and when to use it."
+msgstr "Say what the skill does and when to use it."
 
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "Scopes"
@@ -3851,6 +4112,14 @@ msgstr "Spreadsheet"
 msgid "SSE"
 msgstr "SSE"
 
+#: ../library-ui/src/components/skill-starters.tsx
+msgid "Start from"
+msgstr "Start from"
+
+#: ../library-ui/src/components/skill-starters.tsx
+msgid "Start from an empty SKILL.md."
+msgstr "Start from an empty SKILL.md."
+
 #: ../library-ui/src/components/test-chat.tsx
 msgid "Start over"
 msgstr "Start over"
@@ -3858,6 +4127,10 @@ msgstr "Start over"
 #: ../chat-ui/src/chat/chat-screen.tsx
 msgid "Start the app and open a preview"
 msgstr "Start the app and open a preview"
+
+#: ../library-ui/src/components/skill-form.tsx
+msgid "Start with a letter or number; use letters, numbers, spaces, hyphens and underscores."
+msgstr "Start with a letter or number; use letters, numbers, spaces, hyphens and underscores."
 
 #: ../chat-ui/src/artifacts/document/document-view.tsx
 msgid "Start writing…"
@@ -4520,6 +4793,12 @@ msgstr "Try again"
 msgid "Try another search or kind."
 msgstr "Try another search or kind."
 
+#: ../chat-ui/src/conversation/skill-card.tsx
+#: ../library-ui/src/components/item-builder.tsx
+#: ../library-ui/src/components/library-index.tsx
+msgid "Try it"
+msgstr "Try it"
+
 #: ../library-ui/src/components/test-chat.tsx
 msgid "Try the draft before you publish it."
 msgstr "Try the draft before you publish it."
@@ -4821,6 +5100,10 @@ msgstr "What happens when an agent is published to this org's library."
 msgid "What it's for"
 msgstr "What it's for"
 
+#: ../library-ui/src/components/skill-form.tsx
+msgid "What people see when they pick it, like Code review checklist."
+msgstr "What people see when they pick it, like Code review checklist."
+
 #: ../library-ui/src/components/agent-form.tsx
 msgid "What the agent is for and how it should behave. People who can only use the agent never see this."
 msgstr "What the agent is for and how it should behave. People who can only use the agent never see this."
@@ -4852,6 +5135,10 @@ msgstr "When someone shares an item with you or your team, it shows up here."
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "When spent"
 msgstr "When spent"
+
+#: ../library-ui/src/components/skill-form.tsx
+msgid "When to use it: the model reads this to decide whether the skill fits the task. Say what it does and when, like “Use when reviewing a pull request.”"
+msgstr "When to use it: the model reads this to decide whether the skill fits the task. Say what it does and when, like “Use when reviewing a pull request.”"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "Where members of this org may hold chats. The context decides whose keys pay and where usage counts."
@@ -4921,6 +5208,10 @@ msgstr "Workspace panel"
 msgid "Would send “{submitted}”."
 msgstr "Would send “{submitted}”."
 
+#: ../library-ui/src/components/skill-form.tsx
+msgid "Write"
+msgstr "Write"
+
 #: ../chat-ui/src/conversation/empty-state.tsx
 msgid "Write a small TypeScript function that groups a list of dates by ISO week, with a couple of tests."
 msgstr "Write a small TypeScript function that groups a list of dates by ISO week, with a couple of tests."
@@ -4929,9 +5220,17 @@ msgstr "Write a small TypeScript function that groups a list of dates by ISO wee
 msgid "Write some code"
 msgstr "Write some code"
 
+#: ../library-ui/src/components/skill-starters.tsx
+msgid "Writes in my personal style. Use when drafting or editing emails, posts or documents on my behalf."
+msgstr "Writes in my personal style. Use when drafting or editing emails, posts or documents on my behalf."
+
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Writing {code}"
 msgstr "Writing {code}"
+
+#: ../library-ui/src/components/skill-starters.tsx
+msgid "Writing style"
+msgstr "Writing style"
 
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
@@ -4995,6 +5294,10 @@ msgstr "You've been invited"
 msgid "Your browser keeps that combination; pick another one."
 msgstr "Your browser keeps that combination; pick another one."
 
+#: ../library-ui/src/components/publish-dialog.tsx
+msgid "Your changes couldn't be saved, so nothing was published."
+msgstr "Your changes couldn't be saved, so nothing was published."
+
 #: ../library-ui/src/components/run-test-chat.tsx
 msgid "Your changes couldn't be saved, so the message wasn't sent."
 msgstr "Your changes couldn't be saved, so the message wasn't sent."
@@ -5034,6 +5337,10 @@ msgstr "Your name and email come from how you signed in."
 #: ../../apps/web/app/(app)/(pages)/settings/keys/page.tsx
 msgid "Your own keys pay for your Personal chats, and for team or org chats when the org allows it."
 msgstr "Your own keys pay for your Personal chats, and for team or org chats when the org allows it."
+
+#: ../library-ui/src/components/publish-dialog.tsx
+msgid "Your unsaved changes are saved first, then published."
+msgstr "Your unsaved changes are saved first, then published."
 
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgid "Yours"

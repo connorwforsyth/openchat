@@ -18,6 +18,7 @@ import {
   DownloadIcon,
   EllipsisIcon,
   MessageSquareIcon,
+  PlayIcon,
   ShareIcon,
   Trash2Icon,
 } from "@workspace/icons";
@@ -54,6 +55,7 @@ import {
   formFromDefinition,
   newDefinition,
   sameForm,
+  syncSkillItem,
   validateDraft,
 } from "../form";
 import {
@@ -67,6 +69,7 @@ import {
   usePublicConfig,
   useUpdateItem,
 } from "../hooks";
+import { writeSkillMd } from "../skill-md";
 import { downloadJson, exportFileName } from "../transfer";
 import { AgentForm, type Choice, type KnowledgeFile } from "./agent-form";
 import { AccessBadge, VersionBadge, VisibilityBadge } from "./badges";
@@ -79,6 +82,11 @@ import { PromptForm, PromptPreview } from "./prompt-form";
 import { PublishDialog } from "./publish-dialog";
 import { ShareDialog } from "./share-dialog";
 import { SkillFiles, type SkillFilesProps, SkillForm } from "./skill-form";
+import {
+  type SkillStarter,
+  type SkillStarterId,
+  SkillStarterPicker,
+} from "./skill-starters";
 import type { TestChatComponent } from "./test-chat";
 import { VersionHistory } from "./version-history";
 
@@ -95,7 +103,10 @@ export type BuilderTarget =
 
 export interface ItemBuilderProps {
   readonly backHref: string;
-  /** Where "Use in chat" goes for a published agent (044). */
+  /**
+   * Where "Use in chat" goes for a published agent (044), and "Try it" for
+   * a published skill (170): a new chat with the skill on the composer.
+   */
   readonly chatHref?: (item: LibraryItemDetail) => string | null;
   /** Agent knowledge: names for attached files, when the page knows them. */
   readonly knowledgeFiles?: readonly KnowledgeFile[];
@@ -103,6 +114,8 @@ export interface ItemBuilderProps {
   /** Agent knowledge: the page uploads and returns files. */
   readonly onAddKnowledge?: () => Promise<readonly KnowledgeFile[]>;
   readonly onCreated?: (item: LibraryItemDetail) => void;
+  /** "Create with AI" for a new skill (170): a chat where the model drafts it. */
+  readonly onCreateSkillWithAi?: () => void;
   readonly onDeleted?: () => void;
   readonly onDuplicated?: (item: LibraryItemDetail) => void;
   /** Consumer pins (D13), kept by the page. */
@@ -300,6 +313,7 @@ function Builder({
   link: Link = PlainLink,
   onAddKnowledge,
   onCreated,
+  onCreateSkillWithAi,
   onDeleted,
   onDuplicated,
   pins,
@@ -327,9 +341,44 @@ function Builder({
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // A skill's name and description are its frontmatter's (170).
   const setDefinition = useCallback(
     (definition: LibraryDefinitionInput) =>
-      setForm((current) => (current ? { ...current, definition } : current)),
+      setForm((current) =>
+        current ? syncSkillItem({ ...current, definition }) : current
+      ),
+    [setForm]
+  );
+  const [starter, setStarter] = useState<SkillStarterId | null>("blank");
+  const importSkillMd = useCallback(
+    (skillMd: string) => {
+      setStarter(null);
+      setForm((current) =>
+        current?.definition.kind === "skill"
+          ? syncSkillItem({
+              ...current,
+              definition: { ...current.definition, skillMd },
+            })
+          : current
+      );
+    },
+    [setForm]
+  );
+  const pickStarter = useCallback(
+    (picked: SkillStarter) => {
+      setStarter(picked.id);
+      setForm((current) =>
+        current?.definition.kind === "skill"
+          ? syncSkillItem({
+              ...current,
+              definition: {
+                ...current.definition,
+                skillMd: writeSkillMd(picked.fields),
+              },
+            })
+          : current
+      );
+    },
     [setForm]
   );
   const setName = useCallback(
@@ -374,6 +423,15 @@ function Builder({
         <Alert role="alert" variant="destructive">
           <AlertDescription>{draft.problem}</AlertDescription>
         </Alert>
+      ) : null}
+
+      {form && !detail && kind === "skill" ? (
+        <SkillStarterPicker
+          onCreateWithAi={onCreateSkillWithAi}
+          onImport={importSkillMd}
+          onPick={pickStarter}
+          selected={starter}
+        />
       ) : null}
 
       {form ? (
@@ -423,6 +481,7 @@ function Builder({
           onDeleted={onDeleted}
           onDialog={setDialog}
           onProblem={draft.setProblem}
+          onSaveFirst={draft.canEdit ? draft.saveBeforeTest : undefined}
           pins={pins}
         />
       ) : null}
@@ -480,8 +539,8 @@ function BuilderHeader({
       <KindTile kind={kind} />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <Titles
-          description={detail?.description ?? ""}
-          form={form}
+          description={form?.description ?? detail?.description ?? ""}
+          form={kind === "skill" ? null : form}
           kindLabel={kindLabel}
           nameInvalid={nameInvalid}
           onDescription={onDescription}
@@ -501,8 +560,17 @@ function BuilderHeader({
           className={buttonVariants({ variant: "outline" })}
           href={chatHref}
         >
-          <MessageSquareIcon data-icon="inline-start" />
-          <Trans>Use in chat</Trans>
+          {kind === "skill" ? (
+            <>
+              <PlayIcon data-icon="inline-start" />
+              <Trans>Try it</Trans>
+            </>
+          ) : (
+            <>
+              <MessageSquareIcon data-icon="inline-start" />
+              <Trans>Use in chat</Trans>
+            </>
+          )}
         </Link>
       ) : null}
       <HeaderActions
@@ -843,6 +911,7 @@ function BuilderDialogs({
   onDeleted,
   onDialog,
   onProblem,
+  onSaveFirst,
   pins,
 }: {
   readonly detail: LibraryItemDetail;
@@ -851,6 +920,7 @@ function BuilderDialogs({
   readonly onDeleted?: () => void;
   readonly onDialog: (dialog: Dialogs) => void;
   readonly onProblem: (message: string) => void;
+  readonly onSaveFirst?: () => Promise<boolean>;
   readonly pins?: ItemBuilderProps["pins"];
 }) {
   const remove = useDeleteItem();
@@ -887,6 +957,7 @@ function BuilderDialogs({
         item={detail}
         onOpenChange={handlers.publish}
         onProblem={onProblem}
+        onSaveFirst={onSaveFirst}
         open={dialog === "publish"}
       />
       <VersionHistory

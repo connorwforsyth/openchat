@@ -82,6 +82,8 @@ export interface ConversationActions {
   readonly onSelectBranch?: (messageId: MessageId) => void;
   /** "Memory updated · Undo" (D20). */
   readonly onUndoMemory?: (update: MemoryUpdate) => Promise<void> | void;
+  /** A new chat with a published skill on the composer: the card's "Try it" (170). */
+  readonly skillChatHref?: (id: LibraryItemId) => string;
 }
 
 type ActionKey = keyof ConversationActions;

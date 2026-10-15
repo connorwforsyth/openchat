@@ -12,6 +12,7 @@ import type {
   ComposerCommand,
   ComposerStatus,
   ComposerValue,
+  PickedSkillOption,
   PromptOption,
   SkillOption,
   WorkspacePath,
@@ -114,6 +115,8 @@ export interface ComposerProps {
    * signed-in user's id. Left out, they're per browser.
    */
   readonly recentsKey?: string;
+  /** "Create skill…" and "Create with AI…" in the Skills submenu (170). */
+  readonly skillActions?: SkillActions;
   /**
    * Skills the person can use (127): offered from the + menu and from `/`.
    * A picked one shows as a chip and goes out with the message
@@ -140,7 +143,17 @@ export interface ComposerDraftOptions {
 /** A request to fill the composer; see `ComposerProps.fill`. */
 export interface ComposerFill {
   readonly id: number;
+  /** Skills to put on the message as chips ("Try it", 170), with the text. */
+  readonly skills?: readonly PickedSkillOption[];
   readonly text: string;
+}
+
+/** Ways to make a new skill from the composer (170); the host routes them. */
+export interface SkillActions {
+  /** Opens the skill builder. */
+  readonly onCreate: () => void;
+  /** Starts a chat where the model drafts a skill. */
+  readonly onCreateWithAi: () => void;
 }
 
 /** What the user did in the shell before the editor loaded, handed to the editor. */

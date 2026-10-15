@@ -523,13 +523,15 @@ function ChatScreenBody({
   // "Edit this image" (138): a follow-up naming the picture's workspace
   // path goes in the composer, for the person to finish and send.
   const [composerFill, setComposerFill] = useState<ComposerFill>();
+  const hostFillId = composer.fill?.id;
   const editImage = useCallback(
     ({ path }: { readonly path: string }) =>
       setComposerFill((last) => ({
-        id: (last?.id ?? 0) + 1,
+        // After the host's own fill, so the composer applies this one too.
+        id: Math.max(last?.id ?? 0, hostFillId ?? 0) + 1,
         text: t`Edit the image ${path}: `,
       })),
-    [t]
+    [hostFillId, t]
   );
   const conversationActions = useMemo(
     () => ({
@@ -632,7 +634,7 @@ function ChatScreenBody({
   const composerProps = useMemo<ComposerLoaderProps>(
     () => ({
       ...composer,
-      fill: composerFill,
+      fill: composerFill ?? composer.fill,
       onSubmit,
       ...workspaceComposer,
     }),

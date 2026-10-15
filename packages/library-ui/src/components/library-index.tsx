@@ -10,6 +10,7 @@ import {
   DownloadIcon,
   EllipsisIcon,
   MessageSquareIcon,
+  PlayIcon,
   PlusIcon,
   SearchIcon,
   Trash2Icon,
@@ -434,7 +435,9 @@ const canView = (item: LibraryItem) => item.myAccess !== "use";
 /** A chat answers with an agent's latest published version (D13). */
 export const usableInChat = (
   item: Pick<LibraryItem, "kind" | "latestVersionId">
-): boolean => item.kind === "agent" && item.latestVersionId !== null;
+): boolean =>
+  (item.kind === "agent" || item.kind === "skill") &&
+  item.latestVersionId !== null;
 const canManage = (item: LibraryItem) =>
   item.myAccess === "owner" || item.myAccess === "maintainer";
 
@@ -514,8 +517,18 @@ export function ItemCard({
               })}
               href={chatHref}
             >
-              <MessageSquareIcon data-icon="inline-start" />
-              <Trans>Use in chat</Trans> <span className="sr-only">{name}</span>
+              {item.kind === "skill" ? (
+                <>
+                  <PlayIcon data-icon="inline-start" />
+                  <Trans>Try it</Trans>
+                </>
+              ) : (
+                <>
+                  <MessageSquareIcon data-icon="inline-start" />
+                  <Trans>Use in chat</Trans>
+                </>
+              )}{" "}
+              <span className="sr-only">{name}</span>
             </Link>
           ) : null}
         </div>
