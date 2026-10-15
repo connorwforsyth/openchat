@@ -60,6 +60,8 @@ Read `.wayfinder/map.md` (Notes and the ownership register), then the parts of
      `node_modules/next/dist/docs` for anything in `apps/web`);
    - the constraints below, verbatim;
    - "Edit only the paths in Owns. If you must touch anything else, stop and report why."
+   - "Don't run the full build or e2e; check the packages you touched. In your report, say
+     which entries of AGENTS.md 'Hit every surface' applied and how you covered them."
 5. **Verify each result yourself.** Don't trust the report. In the agent's worktree, run:
    - `bun install` and `bun turbo typecheck lint test build`;
    - the ticket's own **Done when** checks;
