@@ -1,7 +1,6 @@
 import { codeThemeNames } from "@workspace/code-ui/theme/code-theme";
 import { err, type Result } from "@workspace/shared/result";
-import type { MessageResponse } from "@workspace/ui/components/ai-elements/message";
-import type { ComponentProps } from "react";
+import type { MarkdownProps } from "@workspace/ui/components/markdown";
 
 // Syntax highlighting for fenced code in model output (ticket 143), as a
 // Streamdown code plugin: Streamdown keeps its code block (header, copy and
@@ -13,9 +12,7 @@ import type { ComponentProps } from "react";
 // so a chunk tokenises only the lines it finished plus the open one. Blocks
 // that stop growing land in an LRU, so reopening a chat doesn't re-tokenise.
 
-type PluginConfig = NonNullable<
-  ComponentProps<typeof MessageResponse>["plugins"]
->;
+type PluginConfig = NonNullable<MarkdownProps["plugins"]>;
 export type CodeHighlighterPlugin = NonNullable<PluginConfig["code"]>;
 type HighlightOptions = Parameters<CodeHighlighterPlugin["highlight"]>[0];
 export type HighlightResult = NonNullable<
@@ -405,7 +402,7 @@ export function createCodeHighlighter<State>({
 
 /**
  * The app's plugin: one per page, so every message shares the caches. Its
- * object identity is stable, which MessageResponse's memo relies on.
+ * object identity is stable, which Markdown's memo relies on.
  */
 export const codePlugin: CodeHighlighterPlugin = createCodeHighlighter({
   loadTokenizer: (language) =>
