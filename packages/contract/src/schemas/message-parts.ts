@@ -186,6 +186,12 @@ export const artifactKindSchema = z.enum([
    * `data:` URL, so the Artifacts page shows it without the chat's workspace.
    */
   "image",
+  /** Slides (164): TSX pages on a fixed 1920×1080 canvas, as JSON. */
+  "presentation",
+  /** Sheets of cells and formulas (166), as JSON. */
+  "spreadsheet",
+  /** A graph of nodes and edges people can edit (165), as JSON. */
+  "diagram",
 ]);
 export type ArtifactKind = z.infer<typeof artifactKindSchema>;
 

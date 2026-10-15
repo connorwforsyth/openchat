@@ -105,7 +105,10 @@
                       "mermaid",
                       "site",
                       "document",
-                      "image"
+                      "image",
+                      "presentation",
+                      "spreadsheet",
+                      "diagram"
                     ]
                   },
                   "title": {
@@ -189,7 +192,10 @@
                         "mermaid",
                         "site",
                         "document",
-                        "image"
+                        "image",
+                        "presentation",
+                        "spreadsheet",
+                        "diagram"
                       ]
                     },
                     "title": {
@@ -335,7 +341,10 @@
                       "mermaid",
                       "site",
                       "document",
-                      "image"
+                      "image",
+                      "presentation",
+                      "spreadsheet",
+                      "diagram"
                     ]
                   },
                   "title": {
@@ -419,7 +428,10 @@
                         "mermaid",
                         "site",
                         "document",
-                        "image"
+                        "image",
+                        "presentation",
+                        "spreadsheet",
+                        "diagram"
                       ]
                     },
                     "title": {

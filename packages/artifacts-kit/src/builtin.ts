@@ -7,6 +7,11 @@ import { htmlKind } from "./kinds/html";
 import { imageKind } from "./kinds/image";
 import { markdownKind } from "./kinds/markdown";
 import { mermaidKind } from "./kinds/mermaid";
+import {
+  diagramKind,
+  presentationKind,
+  spreadsheetKind,
+} from "./kinds/planned";
 import { reactKind } from "./kinds/react";
 import { siteKind } from "./kinds/site/kind";
 import { svgKind } from "./kinds/svg";
@@ -18,14 +23,18 @@ import { createArtifactKindRegistry } from "./registry";
 
 export const builtinKindDefinitions = {
   code: codeKind,
+  // Not built yet (164–166): refused on save, offered nowhere.
+  diagram: diagramKind,
   document: documentKind,
   html: htmlKind,
   image: imageKind,
   markdown: markdownKind,
   mermaid: mermaidKind,
+  presentation: presentationKind,
   react: reactKind,
   // The defaults; an instance's settings make its own (`instanceArtifactKinds`).
   site: siteKind(),
+  spreadsheet: spreadsheetKind,
   svg: svgKind,
 } as const satisfies Readonly<Record<ArtifactKind, ArtifactKindDefinition>>;
 

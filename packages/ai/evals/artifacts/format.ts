@@ -22,11 +22,17 @@ export const artifactDirectiveSchema = z.object({
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "kebab-case")
     .max(64),
   title: z.string().trim().min(1).max(200),
-  // An image (138) is only ever `generate_image`'s, never written as text.
-  type: artifactKindSchema.exclude(["image"]),
+  // An image (138) is only ever `generate_image`'s, never written as text,
+  // and the kinds not built yet (164–166) aren't offered.
+  type: artifactKindSchema.exclude([
+    "image",
+    "presentation",
+    "spreadsheet",
+    "diagram",
+  ]),
 });
 
-/** The kinds a model may write itself: every kind but `image`. */
+/** The kinds a model may write itself. */
 type WrittenKind = z.infer<typeof artifactDirectiveSchema>["type"];
 
 export interface ParsedArtifact {
