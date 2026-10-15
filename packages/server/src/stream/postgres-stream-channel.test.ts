@@ -1,4 +1,8 @@
-import type { ConversationId, RunId } from "@workspace/contract/schemas/common";
+import type {
+  ConversationId,
+  JsonValue,
+  RunId,
+} from "@workspace/contract/schemas/common";
 import { createConversation } from "@workspace/db/queries/conversations";
 import { insertMessage } from "@workspace/db/queries/messages";
 import { createRun, transitionRun } from "@workspace/db/queries/runs";
@@ -10,9 +14,10 @@ import {
   type TestDb,
 } from "@workspace/db/testing";
 import type { Result } from "@workspace/shared/result";
+import { readUIMessageStream, type UIMessage, type UIMessageChunk } from "ai";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import type { StreamEvent } from "../ports/stream-channel";
+import type { StreamChannel, StreamEvent } from "../ports/stream-channel";
 import { type PgliteListener, pgliteListen } from "./listen";
 import { createPostgresStreamChannel } from "./postgres-stream-channel";
 import { cursorFrom } from "./sse";
@@ -78,6 +83,82 @@ const collect = async (
   return seen;
 };
 
+/** What a client renders from these chunks: the AI SDK's own reassembly. */
+const render = async (payloads: readonly unknown[]) => {
+  let message: UIMessage | undefined;
+  const stream = new ReadableStream<UIMessageChunk>({
+    start: (controller) => {
+      for (const payload of payloads) {
+        controller.enqueue(payload as UIMessageChunk);
+      }
+      controller.close();
+    },
+  });
+  for await (const snapshot of readUIMessageStream({ stream })) {
+    message = snapshot;
+  }
+  return message?.parts;
+};
+
+/** A long answer: some reasoning, then 2,000 text deltas, as a provider streams them. */
+const longAnswer = (): UIMessageChunk[] => [
+  { type: "start" },
+  { type: "start-step" },
+  { id: "r1", type: "reasoning-start" },
+  ...Array.from({ length: 200 }, (_, index) => ({
+    delta: `thought ${index}. `,
+    id: "r1",
+    type: "reasoning-delta" as const,
+  })),
+  { id: "r1", type: "reasoning-end" },
+  { id: "t1", type: "text-start" },
+  ...Array.from({ length: 2000 }, (_, index) => ({
+    delta: `word${index} `,
+    id: "t1",
+    type: "text-delta" as const,
+  })),
+  { id: "t1", type: "text-end" },
+  { type: "finish-step" },
+  { type: "finish" },
+];
+
+/**
+ * Appends the way the executor's `pipeToStream` does: read a chunk, append
+ * it without waiting. The source yields to the event loop now and then, as
+ * a provider's network reads do, so the chunks land in several batches.
+ */
+const pipe = async (
+  channel: Pick<StreamChannel, "append">,
+  runId: RunId,
+  chunks: readonly UIMessageChunk[]
+) => {
+  let index = 0;
+  const reader = new ReadableStream<UIMessageChunk>({
+    pull: async (controller) => {
+      if (index % 50 === 0) {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      }
+      const chunk = chunks[index];
+      index += 1;
+      if (chunk) {
+        controller.enqueue(chunk);
+      } else {
+        controller.close();
+      }
+    },
+  }).getReader();
+  const appends: ReturnType<StreamChannel["append"]>[] = [];
+  for (;;) {
+    // biome-ignore lint/performance/noAwaitInLoops: chunks are copied in order, like the executor.
+    const next = await reader.read();
+    if (next.done) {
+      break;
+    }
+    appends.push(channel.append(runId, next.value as JsonValue));
+  }
+  return await Promise.all(appends);
+};
+
 describe.each([
   ["LISTEN/NOTIFY", true],
   ["polling", false],
@@ -119,6 +200,106 @@ describe.each([
     expect(await collect(pruned)).toEqual([
       { status: "succeeded", type: "end" },
     ]);
+    await channel.stop();
+  });
+
+  it("stores a batch's adjacent deltas as one row its appends share", async () => {
+    const channel = channelFor(listen);
+    const runId = await newRun();
+    const chunks: JsonValue[] = [
+      { id: "t", type: "text-start" },
+      { delta: "Hel", id: "t", type: "text-delta" },
+      { delta: "lo", id: "t", type: "text-delta" },
+      { id: "t", type: "text-end" },
+    ];
+    const seqs = await Promise.all(
+      chunks.map((chunk) => channel.append(runId, chunk))
+    );
+    expect(seqs.map((seq) => seq.ok && seq.value)).toEqual([1, 2, 2, 3]);
+    // A later batch starts a new row; the stored one never changes.
+    expect(
+      await channel.append(runId, { delta: "!", id: "t", type: "text-delta" })
+    ).toEqual({ ok: true, value: 4 });
+    await transitionRun(testDb.db, runId, { type: "succeed" });
+    expect((await collect(await channel.subscribe(runId))).slice(0, 4)).toEqual(
+      [
+        { payload: { id: "t", type: "text-start" }, seq: 1, type: "chunk" },
+        {
+          payload: { delta: "Hello", id: "t", type: "text-delta" },
+          seq: 2,
+          type: "chunk",
+        },
+        { payload: { id: "t", type: "text-end" }, seq: 3, type: "chunk" },
+        {
+          payload: { delta: "!", id: "t", type: "text-delta" },
+          seq: 4,
+          type: "chunk",
+        },
+      ]
+    );
+    await channel.stop();
+  });
+
+  it("renders a long answer the same however a client resumes", async () => {
+    const channel = channelFor(listen);
+    const runId = await newRun();
+    const chunks = longAnswer();
+    const expected = await render(chunks);
+
+    // A client following live from the start drops off partway through.
+    const writing = pipe(channel, runId, chunks);
+    const live = await channel.subscribe(runId);
+    if (!live.ok) {
+      throw new Error("subscribe failed");
+    }
+    const seen: { payload: unknown; seq: number }[] = [];
+    for await (const event of live.value) {
+      if (event.type === "chunk") {
+        seen.push(event);
+      }
+      if (seen.length === 3) {
+        break;
+      }
+    }
+    const seqs = await writing;
+    await transitionRun(testDb.db, runId, { type: "succeed" });
+    await channel.close(runId, "succeeded");
+
+    const all = (await collect(await channel.subscribe(runId))).flatMap(
+      (event) => (event.type === "chunk" ? [event] : [])
+    );
+    expect(all.map((event) => event.seq)).toEqual(
+      all.map((_, index) => index + 1)
+    );
+    expect(all.length).toBeLessThan(chunks.length / 10);
+    // Each append resolved with the row now holding its chunk.
+    expect(new Set(seqs.map((seq) => seq.ok && seq.value))).toEqual(
+      new Set(all.map((event) => event.seq))
+    );
+    expect(await render(all.map((event) => event.payload))).toEqual(expected);
+
+    const resume = async (cursor: number) =>
+      (await collect(await channel.subscribe(runId, { cursor }))).flatMap(
+        (event) => (event.type === "chunk" ? [event.payload] : [])
+      );
+    // The live client resumes after what it saw: nothing missed or repeated.
+    const lastSeen = (seen.at(-1) as { seq: number }).seq;
+    expect(
+      await render([
+        ...seen.map((event) => event.payload),
+        ...(await resume(lastSeen)),
+      ])
+    ).toEqual(expected);
+    // So does a resume from any other row, or from 0.
+    for (const cursor of [0, ...all.map((event) => event.seq)]) {
+      const before = all
+        .filter((event) => event.seq <= cursor)
+        .map((event) => event.payload);
+      // biome-ignore lint/performance/noAwaitInLoops: each cursor is its own resume.
+      expect(await render([...before, ...(await resume(cursor))])).toEqual(
+        expected
+      );
+    }
     await channel.stop();
   });
 
