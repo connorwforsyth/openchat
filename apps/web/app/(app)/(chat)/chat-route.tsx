@@ -472,41 +472,39 @@ export function ChatRoute({
     return null;
   }
   return (
-    <>
-      <DotBanner conversationId={conversationId} />
-      <ConnectedChat
-        agents={agents}
-        artifactsHref={routes.artifacts}
-        artifactsRuntimeOrigin={artifactsRuntimeOrigin}
-        brand={<Brand config={config} />}
-        client={client}
-        config={config}
-        conversationId={conversationId}
-        dotsHref={routes.dots}
-        draftContext={chat.draftContext}
-        initialPrompt={
-          conversationId ? null : searchParams.get(routeParams.askAi)
-        }
-        layout={layout}
-        libraryHref={routes.library}
-        me={me}
-        models={models.data ?? NO_MODELS}
-        onDraftContextChange={chat.setDraftContext}
-        onNavigate={navigate}
-        onNewOrg={frame.openNewOrg}
-        onOpenAdmin={canAdmin(me) ? openAdmin : undefined}
-        onOpenPalette={frame.openPalette}
-        onOpenSettings={openSettings}
-        onSignOut={frame.signOut}
-        onTargetChange={changeTarget}
-        onThemeChange={frame.setTheme}
-        platform={platform}
-        sandboxClient={sandboxClient}
-        sendTarget={sendTarget}
-        skills={skills}
-        target={target}
-        theme={frame.theme}
-      />
-    </>
+    <ConnectedChat
+      agents={agents}
+      artifactsHref={routes.artifacts}
+      artifactsRuntimeOrigin={artifactsRuntimeOrigin}
+      banner={<DotBanner conversationId={conversationId} />}
+      brand={<Brand config={config} />}
+      client={client}
+      config={config}
+      conversationId={conversationId}
+      dotsHref={routes.dots}
+      draftContext={chat.draftContext}
+      initialPrompt={
+        conversationId ? null : searchParams.get(routeParams.askAi)
+      }
+      layout={layout}
+      libraryHref={routes.library}
+      me={me}
+      models={models.data ?? NO_MODELS}
+      onDraftContextChange={chat.setDraftContext}
+      onNavigate={navigate}
+      onNewOrg={frame.openNewOrg}
+      onOpenAdmin={canAdmin(me) ? openAdmin : undefined}
+      onOpenPalette={frame.openPalette}
+      onOpenSettings={openSettings}
+      onSignOut={frame.signOut}
+      onTargetChange={changeTarget}
+      onThemeChange={frame.setTheme}
+      platform={platform}
+      sandboxClient={sandboxClient}
+      sendTarget={sendTarget}
+      skills={skills}
+      target={target}
+      theme={frame.theme}
+    />
   );
 }

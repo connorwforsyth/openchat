@@ -136,6 +136,8 @@ export interface ConnectedChatProps {
    * `runtimeOriginFrom`. Omitted or `null`, previews fall back to `srcdoc`.
    */
   readonly artifactsRuntimeOrigin?: string | null;
+  /** A bar above the messages (a Dot's schedule, 172). */
+  readonly banner?: ReactNode;
   readonly brand?: ReactNode;
   readonly client: ApiClient;
   readonly config: PublicConfig;
@@ -1427,6 +1429,7 @@ export function ConnectedChat({
   brand,
   client,
   artifactsHref,
+  banner,
   dotsHref,
   config,
   conversationId,
@@ -1829,6 +1832,7 @@ export function ConnectedChat({
       <PlanStatusProvider value={planStatus}>
         <ChatScreen
           actions={actions}
+          banner={banner}
           brand={brand}
           composer={{
             agents,

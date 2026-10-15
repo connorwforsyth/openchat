@@ -1480,6 +1480,10 @@ msgstr "Draft a one-page project brief as a Markdown file: goal, scope, risks an
 msgid "Drop to add to the workspace"
 msgstr "Drop to add to the workspace"
 
+#: ../../apps/web/app/(app)/(pages)/dots/schedule-text.tsx
+msgid "due now"
+msgstr "due now"
+
 #: ../chat-ui/src/artifacts/artifact-actions.tsx
 msgid "Duplicate"
 msgstr "Duplicate"

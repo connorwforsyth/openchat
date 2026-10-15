@@ -66,11 +66,19 @@ export const useScheduleText = () => {
 
 /** "in 3 minutes" for the next run, or `null` when nothing is scheduled. */
 export const useNextRunText = () => {
-  const { i18n } = useLingui();
+  const { i18n, t } = useLingui();
   return useCallback(
-    (iso: string | null): string | null =>
-      iso ? formatRelativeTime(iso, i18n.locale) : null,
-    [i18n.locale]
+    (iso: string | null): string | null => {
+      if (!iso) {
+        return null;
+      }
+      // A slot just fired and the list hasn't refreshed yet: say so, rather
+      // than "a few seconds ago".
+      return new Date(iso).getTime() <= Date.now()
+        ? t`due now`
+        : formatRelativeTime(iso, i18n.locale);
+    },
+    [i18n.locale, t]
   );
 };
 
