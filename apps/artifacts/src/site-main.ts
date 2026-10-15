@@ -10,7 +10,13 @@ import {
 
 import { runtimeError } from "./errors";
 import { SITE_ASSETS } from "./site-assets";
-import { buildPreview, navigationTarget, PREVIEW_START } from "./site-preview";
+import {
+  buildPreview,
+  navigationTarget,
+  PREVIEW_START,
+  pageError,
+} from "./site-preview";
+import { SITE_RUNTIME_META, siteTsxPorts } from "./site-tsx";
 import { tailwindCompiler } from "./tailwind";
 
 // The site preview page (125), `site.html`: the runtime protocol's other
@@ -22,6 +28,15 @@ import { tailwindCompiler } from "./tailwind";
 const root = document.getElementById("root");
 const parent = parentOriginFrom(window.location.search);
 const compile = tailwindCompiler(SITE_ASSETS.tailwindCss);
+// Where the site runtime is, as the server wrote it into this page (163).
+// Absolute, since a `srcdoc` page resolves nothing against this one's URL
+// on its own. Without it, TSX pages fail to build and say so.
+const runtimePath = document
+  .querySelector(`meta[name="${SITE_RUNTIME_META}"]`)
+  ?.getAttribute("content");
+const tsx = runtimePath
+  ? siteTsxPorts(new URL(runtimePath, window.location.href).href)
+  : undefined;
 
 const start = (container: HTMLElement, parentOrigin: string) => {
   const post = (message: FrameMessage) =>
@@ -67,6 +82,7 @@ const start = (container: HTMLElement, parentOrigin: string) => {
     const built = await buildPreview(request.code, {
       compile,
       themeCss: SITE_ASSETS.themeCss,
+      tsx,
     });
     if (current !== request) {
       return;
@@ -82,8 +98,14 @@ const start = (container: HTMLElement, parentOrigin: string) => {
   };
 
   window.addEventListener("message", (event) => {
-    // A previewed page following a link to another of the site's pages.
+    // A previewed page following a link to another of the site's pages,
+    // or a TSX page that failed to render.
     if (frame && event.source === frame.contentWindow) {
+      const error = pageError(event.data);
+      if (error && current) {
+        fail(current, error);
+        return;
+      }
       const page = site ? navigationTarget(event.data, site) : null;
       if (page && site && current) {
         show(current, site, page);

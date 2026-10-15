@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "build": "bun run build:public && bun build src/server.ts --target=node --outfile=dist/server.js",
-    "build:public": "bun build ./index.html ./site.html --outdir=dist/public --production --splitting",
+    "build:pages": "bun build ./index.html ./site.html --outdir=dist/public --production --splitting",
+    "build:public": "bun run build:pages && bun run build:runtime",
+    "build:runtime": "bun build ./src/site-runtime.ts --outdir=dist/public --production --entry-naming=[name]-[hash].[ext]",
     "dev": "bun src/server.ts --watch",
     "lint": "ultracite check",
     "start": "node dist/server.js",
@@ -17,6 +19,7 @@
     "@workspace/chat-ui": "workspace:*",
     "@workspace/contract": "workspace:*",
     "@workspace/shared": "workspace:*",
+    "@workspace/site-ui": "workspace:*",
     "@workspace/ui": "workspace:*",
     "mermaid": "catalog:",
     "react": "catalog:",

@@ -12,10 +12,13 @@ import { siteContentSecurityPolicy } from "@workspace/artifacts-kit/kinds/site/c
 import { publishedArtifactSchema } from "@workspace/contract/schemas/files";
 import { publicConfigSchema } from "@workspace/contract/schemas/meta";
 
+import { SITE_RUNTIME_META, siteTsxPorts } from "./site-tsx";
+
 // The server's part in Sites (125). It serves the preview page with the
 // site CSP, and published sites at /s/<token>/<path>: it asks the app's API
 // for what the link serves (`GET /api/published/{token}`), builds it with
-// Tailwind, and answers each file with the published CSP. The public
+// Tailwind (TSX pages compiled to shells that mount in the visitor's
+// browser, 163), and answers each file with the published CSP. The public
 // origins come from the app's public config (`GET /api/config`), which is
 // where admins set them (`artifacts.kinds.site.allowedOrigins`); if the app
 // can't be reached, sites get none: the CSP fails closed.
@@ -28,6 +31,11 @@ export interface SiteServerOptions {
   readonly compile: CompileTailwind;
   readonly fetch: typeof globalThis.fetch;
   readonly now?: () => number;
+  /**
+   * Where the site runtime (`./site-runtime.ts`) is served, for TSX pages'
+   * shells (163), or `null` if the build has none, when TSX pages fail.
+   */
+  readonly runtimeUrl: () => string | null;
   readonly themeCss: string;
 }
 
@@ -73,6 +81,24 @@ const text = (status: number, body: string): SiteResponse => ({
   },
   status,
 });
+
+const SITE_RUNTIME_FILE = /^site-runtime-[A-Za-z0-9]+\.js$/;
+
+/** Whether `name` is the site runtime's bundle, as `build:runtime` names it. */
+export const isSiteRuntimeFile = (name: string): boolean =>
+  SITE_RUNTIME_FILE.test(name);
+
+/**
+ * The preview page with where the site runtime is (`url`, a path on this
+ * origin) written into its head, for `site-main.ts` to read.
+ */
+export const withSiteRuntime = (page: string, url: string | null): string =>
+  url === null
+    ? page
+    : page.replace(
+        "<head>",
+        `<head><meta name="${SITE_RUNTIME_META}" content="${url.replaceAll("&", "&amp;").replaceAll('"', "&quot;")}">`
+      );
 
 /** The file a published site's request names, inside the site. */
 export const sitePathOf = (rest: string): string | null => {
@@ -182,9 +208,14 @@ export const createSiteServer = (options: SiteServerOptions) => {
       return kept;
     }
     try {
+      const runtimeUrl = options.runtimeUrl();
       const built = await buildSite(
         published.content,
-        { compile: options.compile, themeCss: options.themeCss },
+        {
+          compile: options.compile,
+          themeCss: options.themeCss,
+          tsx: runtimeUrl ? siteTsxPorts(runtimeUrl) : undefined,
+        },
         "published"
       );
       keep(key, built);
