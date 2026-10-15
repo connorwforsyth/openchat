@@ -88,7 +88,7 @@ describe("appConfigSchema", () => {
     const site = (input: unknown) =>
       appConfigSchema.safeParse({ artifacts: { kinds: { site: input } } });
 
-    it("offers sites on html-tailwind, loading from Google Fonts, cdnjs and jsDelivr", () => {
+    it("offers sites, loading from Google Fonts, cdnjs and jsDelivr", () => {
       expect(appConfigSchema.parse({}).artifacts.kinds.site).toEqual({
         allowedOrigins: [
           "https://fonts.googleapis.com",
@@ -97,7 +97,6 @@ describe("appConfigSchema", () => {
           "https://cdn.jsdelivr.net",
         ],
         enabled: true,
-        stack: "html-tailwind",
       });
     });
 
@@ -134,9 +133,9 @@ describe("appConfigSchema", () => {
       }
     });
 
-    it("refuses the react-ui stack until it's built, and unknown keys", () => {
-      expect(site({ stack: "react-ui" }).success).toBe(false);
-      expect(site({ stack: "vue" }).success).toBe(false);
+    it("still accepts the deprecated stack key (163), which nothing reads, and refuses unknown keys", () => {
+      expect(site({ stack: "html-tailwind" }).success).toBe(true);
+      expect(site({ stack: "react-ui" }).success).toBe(true);
       expect(site({ origins: [] }).success).toBe(false);
     });
 

@@ -2,16 +2,20 @@ import { DEFAULT_SITE_ORIGINS } from "@workspace/config/sites";
 import { describe, expect, it } from "vitest";
 import { DESIGN_GUIDES } from "./design/generated";
 import { siteKind } from "./kind";
-import { SITE_STACKS } from "./stacks";
 
 describe("the Site kind", () => {
-  it("tells the model its rules, the instance's origins and its stack's design guide", () => {
+  it("tells the model its rules, the instance's origins and both design guides, site-ui first", () => {
     const { instructions } = siteKind();
     expect(instructions.startsWith("## Sites\n")).toBe(true);
     expect(instructions).toContain('type "site"');
     expect(instructions).toContain(DEFAULT_SITE_ORIGINS.join(", "));
-    expect(instructions).toContain('{"stack": "html-tailwind", "files"');
-    expect(instructions.endsWith(DESIGN_GUIDES["html-tailwind"])).toBe(true);
+    expect(instructions).toContain('{"files": {"index.tsx"');
+    expect(instructions).not.toContain('"stack"');
+    expect(
+      instructions.endsWith(
+        `${DESIGN_GUIDES["site-ui"]}\n\n${DESIGN_GUIDES["html-tailwind"]}`
+      )
+    ).toBe(true);
     expect(siteKind({ allowedOrigins: [] }).instructions).toContain(
       "may load only from the site's own files"
     );
@@ -26,16 +30,20 @@ describe("the Site kind", () => {
     });
     expect(kind.operations.replace?.apply(null, next)).toEqual({
       files: { "index.html": "<p>" },
-      stack: "html-tailwind",
     });
   });
 
-  it("defines both stacks, with react-ui not available yet", () => {
-    expect(SITE_STACKS["html-tailwind"].available).toBe(true);
-    expect(SITE_STACKS["react-ui"].available).toBe(false);
-    expect(SITE_STACKS["react-ui"].libraries).toContain("react");
-    expect(SITE_STACKS["html-tailwind"].themeColors).toContain(
-      "muted-foreground"
-    );
+  it("still reads a site saved with a stack (125), and ignores it", () => {
+    const kind = siteKind();
+    const old = '{"stack": "html-tailwind", "files": {"index.html": "<p>"}}';
+    expect(kind.content.parse(old)).toEqual({
+      files: { "index.html": "<p>" },
+      stack: "html-tailwind",
+    });
+    expect(
+      kind.content.parse(
+        '{"stack": "react-ui", "files": {"index.html": "<p>"}}'
+      ).stack
+    ).toBe("react-ui");
   });
 });

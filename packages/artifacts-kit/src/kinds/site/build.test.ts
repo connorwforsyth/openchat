@@ -17,6 +17,8 @@ const FONT_TOKEN = /^\s*--font-[\w-]+\s*:[^;]*;\s*$/gm;
 const PUBLISHED_HEAD =
   /^<!doctype html><html lang="en"><head><style data-site-theme>\/\* \d+ \*\/ \.built\{\}/;
 
+const SCRIPT_END = /<\/script>/g;
+
 const fakeCompile = (input: string, candidates: readonly string[]) =>
   Promise.resolve(
     `/* ${input.length} */ .built{} /* ${candidates.join(" ")} */`
@@ -59,7 +61,6 @@ describe("building a site", () => {
         "<svg xmlns='http://www.w3.org/2000/svg'><circle r='4'/></svg>",
       "site.css": "h1 { letter-spacing: -0.01em; } </style><script>",
     },
-    stack: "html-tailwind" as const,
   };
 
   it("compiles Tailwind for the words its pages and scripts use", () => {
@@ -106,6 +107,75 @@ describe("building a site", () => {
     expect(index).toContain('"site-preview/1"');
     expect(index).toContain(
       'const pages = new Set(["about.html","index.html"]);'
+    );
+  });
+
+  it("builds each TSX page as an .html shell that hands the compiled page to the runtime (163)", async () => {
+    const tsx = {
+      candidates: ["from-site-ui"],
+      // Stands in for Sucrase: what matters is where its output goes.
+      compile: (source: string, path: string) =>
+        `/* ${path} */ exports.default = ${JSON.stringify(source)}; // </script><!-- x`,
+      runtimeUrl: "https://runtime.example/site-runtime-abc.js",
+    };
+    const site = {
+      files: {
+        "about.html": "<!doctype html><html><head></head><body></body></html>",
+        "index.tsx": 'export default () => <p className="text-primary" />;',
+      },
+    };
+    const targets = ["preview", "published"] as const;
+    const builds = await Promise.all(
+      targets.map((target) =>
+        buildSite(site, { compile: fakeCompile, themeCss, tsx }, target)
+      )
+    );
+    for (const [at, built] of builds.entries()) {
+      const target = targets[at];
+      expect(Object.keys(built.files).sort()).toEqual([
+        "about.html",
+        "index.html",
+      ]);
+      const index = built.files["index.html"];
+      expect(index).toContain('<div id="root"></div>');
+      expect(index).toContain(
+        'import { mountPage } from "https://runtime.example/site-runtime-abc.js";\nmountPage((require, module, exports) => {\n/* index.tsx */'
+      );
+      expect(index).toContain('}, {"page":"index.html"});</script>');
+      // Neither closes the script nor opens an escaped state.
+      expect(index).toContain("// \\x3C/script>\\x3C!-- x");
+      expect(index?.match(SCRIPT_END)?.length).toBe(
+        target === "preview" ? 2 : 1
+      );
+      // The TSX's own classes and site-ui's are compiled.
+      expect(built.css).toContain("text-primary");
+      expect(built.css).toContain("from-site-ui");
+    }
+    expect(builds[0]?.files["index.html"]).toContain(
+      'const pages = new Set(["about.html","index.html"]);'
+    );
+  });
+
+  it("leaves site-ui's words out of a site with no TSX pages, and can't build TSX without the port", async () => {
+    const tsx = {
+      candidates: ["from-site-ui"],
+      compile: () => "",
+      runtimeUrl: "/site-runtime.js",
+    };
+    const built = await buildSite(
+      content,
+      { compile: fakeCompile, themeCss, tsx },
+      "published"
+    );
+    expect(built.css).not.toContain("from-site-ui");
+    await expect(
+      buildSite(
+        { files: { "index.tsx": "export default () => null;" } },
+        { compile: fakeCompile, themeCss },
+        "published"
+      )
+    ).rejects.toThrow(
+      "index.tsx is a TSX page, and this runtime can't build them"
     );
   });
 

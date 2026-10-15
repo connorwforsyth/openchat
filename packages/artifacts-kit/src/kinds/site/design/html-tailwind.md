@@ -1,6 +1,6 @@
 ### Design guide (html-tailwind)
 
-Write clean, semantic HTML styled with Tailwind utility classes, on this instance's theme.
+For `.html` pages, and for your own markup inside a TSX page: clean, semantic HTML styled with Tailwind utility classes, on this instance's theme.
 
 - **Colour:** only the theme's semantic tokens: `bg-background`, `text-foreground`, `bg-card`, `text-card-foreground`, `bg-primary` with `text-primary-foreground`, `bg-secondary`, `bg-muted`, `text-muted-foreground`, `bg-accent`, `border-border`, `ring-ring`, `text-destructive`, `bg-chart-1` to `bg-chart-5`. No hex values, and no palette classes (a colour name with a shade, such as blue-500). Light and dark follow the visitor's system setting, so the tokens are all you need.
 - **Shape:** `rounded-md`, `rounded-lg` and `rounded-xl` follow the theme's radius. Borders are `border border-border`; shadows are rare and soft (`shadow-sm`).

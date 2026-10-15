@@ -11,6 +11,9 @@ WORKDIR /repo
 COPY . .
 # Scripts are skipped: the runtime needs no Lingui catalogs or git hooks.
 RUN bun install --frozen-lockfile --ignore-scripts --filter artifacts
+# Except the icon set's selection (D19), which writes the module that
+# @workspace/icons exports and site-ui's blocks draw with (163).
+RUN cd packages/icons && bun scripts/select.ts
 RUN cd apps/artifacts && bun run build
 
 FROM node:24-bookworm-slim

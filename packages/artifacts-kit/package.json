@@ -25,6 +25,7 @@
   "devDependencies": {
     "@types/node": "catalog:",
     "@workspace/typescript-config": "workspace:*",
+    "sucrase": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

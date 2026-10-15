@@ -46,8 +46,25 @@ const ABOUT =
   '<!doctype html><html><head></head><body><h1 class="text-muted-foreground">About the walks</h1><a href="index.html">Home</a></body></html>';
 const SITE = JSON.stringify({
   files: { "about.html": ABOUT, "index.html": HOME },
-  stack: "html-tailwind",
 });
+
+/** A TSX site (163): a home page composed from site-ui's blocks. */
+const TSX_SITE = JSON.stringify({
+  files: {
+    "index.tsx": [
+      'import { FeatureGrid, Hero, Page } from "@workspace/site-ui";',
+      "export default function Home() {",
+      "  return (",
+      "    <Page>",
+      '      <Hero title="Lighthouse tours" description="Up the spiral stairs." actions={[{ label: "Features", href: "#features" }]} />',
+      '      <FeatureGrid id="features" title="On the tour" features={[{ icon: "sun", title: "The lamp room", description: "Fresnel lens and all." }]} />',
+      "    </Page>",
+      "  );",
+      "}",
+    ].join("\n"),
+  },
+});
+const SAVED_TSX_SITE = /Tool result: Saved "Lighthouse site" as version 1/;
 
 const createSite = (title: string, content: string) =>
   `[tool:create_artifact ${JSON.stringify({ content, title, type: "site" })}]`;
@@ -71,6 +88,7 @@ test("a turn is told how to make a site, and a site that loads from a blocked or
   await send(page, "[show:system]");
   const reply = await expectReply(page, "A site is a small static website");
   await expect(reply).toContainText("https://fonts.googleapis.com");
+  await expect(reply).toContainText("Design guide (site-ui)");
   await expect(reply).toContainText("Design guide (html-tailwind)");
   chatPath = `/c/${await conversationIdOf(page)}`;
 
@@ -182,6 +200,62 @@ test("unpublishing takes the link down", async ({ browser, page }) => {
   const visitor = await browser.newContext({ storageState: undefined });
   const gone = await (await visitor.newPage()).goto(publishedUrl);
   expect(gone?.status()).toBe(404);
+  await visitor.close();
+});
+
+test("the model makes a site from site-ui's blocks in TSX, and it previews and publishes", async ({
+  browser,
+  page,
+}) => {
+  await page.goto(chatPath);
+  await send(page, createSite("Lighthouse site", TSX_SITE));
+  await approve(page);
+  await expectReply(page, SAVED_TSX_SITE);
+
+  await page
+    .getByRole("button", { name: "Open artifact: Lighthouse site" })
+    .click();
+  const site = page
+    .getByRole("region", { name: "Workspace" })
+    .frameLocator('iframe[title="Preview of Lighthouse site"]')
+    .frameLocator('iframe[title="Lighthouse site"]');
+  // Mounted in the frame by the site runtime, styled by site-ui's classes.
+  const hero = site.getByRole("heading", {
+    level: 1,
+    name: "Lighthouse tours",
+  });
+  await expect(hero).toBeVisible();
+  await expect(hero).toHaveCSS("font-weight", "600");
+  await expect(
+    site.getByRole("heading", { level: 3, name: "The lamp room" })
+  ).toBeVisible();
+
+  await page.goto("/artifacts");
+  const row = page.locator("li[data-artifact-id]").filter({
+    has: page.getByRole("link", { exact: true, name: "Lighthouse site" }),
+  });
+  await row
+    .getByRole("button", { name: "Actions for Lighthouse site" })
+    .click();
+  await page.getByRole("menuitem", { name: "Publish" }).click();
+  const dialog = page.getByRole("dialog", { name: "Publish Lighthouse site" });
+  await dialog.getByRole("button", { exact: true, name: "Publish" }).click();
+  const link = dialog.getByRole("textbox", { name: "Public link" });
+  await expect(link).toHaveValue(PUBLISHED_LINK);
+
+  // Published, the page is the same shell, mounting in the visitor's
+  // browser; the TSX itself isn't served.
+  const visitor = await browser.newContext({ storageState: undefined });
+  const visit = await visitor.newPage();
+  const url = await link.inputValue();
+  expect((await visit.goto(url))?.status()).toBe(200);
+  await expect(
+    visit.getByRole("heading", { level: 1, name: "Lighthouse tours" })
+  ).toBeVisible();
+  await expect(
+    visit.getByRole("heading", { level: 2, name: "On the tour" })
+  ).toBeVisible();
+  expect((await visit.goto(`${url}index.tsx`))?.status()).toBe(404);
   await visitor.close();
 });
 

@@ -1,0 +1,12 @@
+{
+  "extends": "@workspace/typescript-config/react-library.json",
+  "compilerOptions": {
+    // Consumed as source by bun (the artifact runtime) and Vitest, which
+    // resolve like a bundler, as packages/ui is.
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strictNullChecks": true
+  },
+  "include": ["."],
+  "exclude": ["node_modules", "dist"]
+}

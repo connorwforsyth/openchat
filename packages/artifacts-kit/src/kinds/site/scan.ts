@@ -8,8 +8,12 @@ import { isExternal } from "./origins";
 
 /** A URL a file names, and whether loading the page fetches it. */
 export interface SiteReference {
-  /** `resource`: fetched to show the page; `link`: only if someone follows it. */
-  readonly kind: "link" | "resource";
+  /**
+   * `resource`: fetched to show the page; `link`: only if someone follows
+   * it; `module`: a TSX page's import, which the runtime resolves from its
+   * own table (`./tsx.ts` checks those) rather than fetching.
+   */
+  readonly kind: "link" | "module" | "resource";
   readonly url: string;
 }
 
@@ -141,6 +145,25 @@ export const htmlReferences = (html: string): readonly SiteReference[] => {
   ];
 };
 
+const PROP_URL = /\b(href|src)\s*:\s*(["'])([^"'\n]*)\2/g;
+
+/**
+ * What a TSX page refers to: its JSX tags' attributes (as HTML's), the
+ * `href:` and `src:` values it passes blocks (`links={[{ href: "about.html" }]}`),
+ * and its imports, as modules.
+ */
+export const tsxReferences = (tsx: string): readonly SiteReference[] => [
+  ...htmlReferences(tsx),
+  ...[...tsx.matchAll(PROP_URL)].flatMap((match): readonly SiteReference[] =>
+    match[3]
+      ? [{ kind: match[1] === "src" ? "resource" : "link", url: match[3] }]
+      : []
+  ),
+  ...importSpecifiers(tsx).map(
+    (url): SiteReference => ({ kind: "module", url })
+  ),
+];
+
 /** What `path` refers to, by its type; nothing for types that refer to nothing. */
 export const fileReferences = (
   path: string,
@@ -150,6 +173,8 @@ export const fileReferences = (
   switch (extension) {
     case "html":
       return htmlReferences(text);
+    case "tsx":
+      return tsxReferences(text);
     case "css":
       return cssReferences(text);
     case "js":
