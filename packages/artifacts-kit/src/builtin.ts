@@ -7,13 +7,10 @@ import { htmlKind } from "./kinds/html";
 import { imageKind } from "./kinds/image";
 import { markdownKind } from "./kinds/markdown";
 import { mermaidKind } from "./kinds/mermaid";
-import {
-  diagramKind,
-  presentationKind,
-  spreadsheetKind,
-} from "./kinds/planned";
+import { diagramKind, presentationKind } from "./kinds/planned";
 import { reactKind } from "./kinds/react";
 import { siteKind } from "./kinds/site/kind";
+import { spreadsheetKind } from "./kinds/spreadsheet/kind";
 import { svgKind } from "./kinds/svg";
 import { createArtifactKindRegistry } from "./registry";
 

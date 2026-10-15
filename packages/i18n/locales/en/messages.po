@@ -195,6 +195,10 @@ msgstr "A team"
 msgid "A team's spend counts toward its parents' budgets and the org's."
 msgstr "A team's spend counts toward its parents' budgets and the org's."
 
+#: ../chat-ui/src/artifacts/spreadsheet/spreadsheet-view.tsx
+msgid "A value, or a formula starting with ="
+msgstr "A value, or a formula starting with ="
+
 #: ../code-ui/src/diff-view.tsx
 msgid "Accept"
 msgstr "Accept"
@@ -251,6 +255,10 @@ msgstr "Add a key"
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "Add a key below to use a provider's models with your own account."
 msgstr "Add a key below to use a provider's models with your own account."
+
+#: ../chat-ui/src/artifacts/spreadsheet/spreadsheet-view.tsx
+msgid "Add a sheet"
+msgstr "Add a sheet"
 
 #: ../library-ui/src/components/agent-form.tsx
 msgid "Add a starter"
@@ -643,6 +651,10 @@ msgstr "Cancel"
 msgid "Cancel the invitation for {email}"
 msgstr "Cancel the invitation for {email}"
 
+#: ../chat-ui/src/artifacts/spreadsheet/spreadsheet-grid.tsx
+msgid "Cells of {sheetName}"
+msgstr "Cells of {sheetName}"
+
 #: ../code-ui/src/diff-view.tsx
 msgid "Change {number}"
 msgstr "Change {number}"
@@ -872,6 +884,14 @@ msgstr "Connecting to port {port}…"
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "Connection"
 msgstr "Connection"
+
+#: ../chat-ui/src/artifacts/spreadsheet/spreadsheet-view.tsx
+msgid "Contents of cell {address}"
+msgstr "Contents of cell {address}"
+
+#: ../chat-ui/src/artifacts/spreadsheet/spreadsheet-view.tsx
+msgid "Contents of the cell"
+msgstr "Contents of the cell"
 
 #: ../palette/src/context-actions.ts
 msgid "context"
@@ -1118,6 +1138,10 @@ msgstr "Creating the skill {name}"
 #: ../ui/src/components/markdown.tsx
 msgid "CSV"
 msgstr "CSV"
+
+#: ../chat-ui/src/artifacts/spreadsheet/spreadsheet-view.tsx
+msgid "CSV of this sheet (.csv)"
+msgstr "CSV of this sheet (.csv)"
 
 #: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
 msgid "Current"
@@ -1502,6 +1526,10 @@ msgstr "Everyone gets the latest published version unless they pin one."
 msgid "Everything in the org, including its teams."
 msgstr "Everything in the org, including its teams."
 
+#: ../chat-ui/src/artifacts/spreadsheet/spreadsheet-view.tsx
+msgid "Excel (.xlsx)"
+msgstr "Excel (.xlsx)"
+
 #: ../ui/src/components/markdown.tsx
 msgid "Exit fullscreen"
 msgstr "Exit fullscreen"
@@ -1523,6 +1551,7 @@ msgid "Explain how HTTPS keeps a connection private, in plain language with one 
 msgstr "Explain how HTTPS keeps a connection private, in plain language with one short example."
 
 #: ../chat-ui/src/artifacts/document/document-view.tsx
+#: ../chat-ui/src/artifacts/spreadsheet/spreadsheet-view.tsx
 #: ../library-ui/src/components/item-builder.tsx
 #: ../library-ui/src/components/library-index.tsx
 msgid "Export"
@@ -2053,6 +2082,10 @@ msgstr "Loading files…"
 msgid "Loading preview"
 msgstr "Loading preview"
 
+#: ../chat-ui/src/artifacts/spreadsheet/spreadsheet-view.tsx
+msgid "Loading the grid"
+msgstr "Loading the grid"
+
 #: ../chat-ui/src/workspace/lazy-workspace-panel.tsx
 msgid "Loading workspace"
 msgstr "Loading workspace"
@@ -2382,6 +2415,7 @@ msgstr "New team"
 
 #: ../chat-ui/src/artifacts/artifact-view.tsx
 #: ../chat-ui/src/artifacts/document/document-view.tsx
+#: ../chat-ui/src/artifacts/spreadsheet/spreadsheet-view.tsx
 msgid "Newer version"
 msgstr "Newer version"
 
@@ -2590,6 +2624,7 @@ msgstr "Older"
 
 #: ../chat-ui/src/artifacts/artifact-view.tsx
 #: ../chat-ui/src/artifacts/document/document-view.tsx
+#: ../chat-ui/src/artifacts/spreadsheet/spreadsheet-view.tsx
 msgid "Older version"
 msgstr "Older version"
 
@@ -3639,6 +3674,10 @@ msgstr "Shared with me"
 msgid "Shared with you"
 msgstr "Shared with you"
 
+#: ../chat-ui/src/artifacts/spreadsheet/spreadsheet-view.tsx
+msgid "Sheets"
+msgstr "Sheets"
+
 #: ../../apps/web/app/(app)/_shared/new-org-dialog.tsx
 msgid "Short name"
 msgstr "Short name"
@@ -4029,6 +4068,10 @@ msgstr "That doesn't look like a web address."
 msgid "That doesn't look right."
 msgstr "That doesn't look right."
 
+#: ../chat-ui/src/artifacts/spreadsheet/spreadsheet-view.tsx
+msgid "That edit wasn't kept:"
+msgstr "That edit wasn't kept:"
+
 #: ../../apps/web/app/(auth)/_components/auth-problem.tsx
 msgid "That email and password don't match an account."
 msgstr "That email and password don't match an account."
@@ -4413,6 +4456,10 @@ msgstr "This version can't be published yet:"
 msgid "This version couldn't be read as a document."
 msgstr "This version couldn't be read as a document."
 
+#: ../chat-ui/src/artifacts/spreadsheet/spreadsheet-view.tsx
+msgid "This version couldn't be read as a spreadsheet."
+msgstr "This version couldn't be read as a spreadsheet."
+
 #: ../chat-ui/src/conversation/approval.tsx
 msgid "This was already decided, in another tab or by someone else, or the answer stopped."
 msgstr "This was already decided, in another tab or by someone else, or the answer stopped."
@@ -4637,6 +4684,7 @@ msgstr "v{number}"
 
 #: ../chat-ui/src/artifacts/artifact-view.tsx
 #: ../chat-ui/src/artifacts/document/document-view.tsx
+#: ../chat-ui/src/artifacts/spreadsheet/spreadsheet-view.tsx
 msgid "v{number} of {total}"
 msgstr "v{number} of {total}"
 
@@ -4658,6 +4706,7 @@ msgstr "Version {number}, read only"
 
 #: ../chat-ui/src/artifacts/artifact-view.tsx
 #: ../chat-ui/src/artifacts/document/document-view.tsx
+#: ../chat-ui/src/artifacts/spreadsheet/spreadsheet-view.tsx
 msgid "Versions"
 msgstr "Versions"
 

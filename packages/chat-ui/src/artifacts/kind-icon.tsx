@@ -10,6 +10,7 @@ import {
   type Icon,
   ImageIcon,
   LayersIcon,
+  LayoutGridIcon,
   NetworkIcon,
 } from "@workspace/icons";
 import type { IconName } from "@workspace/icons/names";
@@ -29,6 +30,7 @@ const kindIcons: Partial<Record<IconName, Icon>> = {
   GlobeIcon,
   ImageIcon,
   LayersIcon,
+  LayoutGridIcon,
   NetworkIcon,
 };
 

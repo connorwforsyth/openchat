@@ -56,6 +56,8 @@ export default defineProject({
       "@workspace/client > @orpc/tanstack-query",
       "@workspace/contract > @orpc/contract",
       "@workspace/shared > uuidv7",
+      "@glideapps/glide-data-grid",
+      "@workspace/artifacts-kit > @formulajs/formulajs",
       "@workspace/icons > lucide-react",
       "@workspace/ui > @base-ui/react/avatar",
       "@workspace/ui > @base-ui/react/button",

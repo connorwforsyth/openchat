@@ -52,8 +52,17 @@ export interface ArtifactOperation<TContent, TInput> {
  */
 export interface ArtifactRender {
   readonly imports?: readonly string[];
-  /** `document`: the rich-text editor (126); `image`: a picture (138). */
-  readonly panel: "document" | "frame" | "image" | "markdown" | "source";
+  /**
+   * `document`: the rich-text editor (126); `image`: a picture (138);
+   * `spreadsheet`: the grid (166).
+   */
+  readonly panel:
+    | "document"
+    | "frame"
+    | "image"
+    | "markdown"
+    | "source"
+    | "spreadsheet";
   readonly runtime: string | null;
 }
 
@@ -125,8 +134,11 @@ export interface ArtifactKindDefinition<TContent = unknown> {
   readonly content: z.ZodType<TContent>;
   /** How versions are compared: a line diff of the text, for now. */
   readonly diff: "text";
-  /** How a person edits it: `none` while only the model can, or the rich-text editor (126). */
-  readonly editor: "none" | "rich-text";
+  /**
+   * How a person edits it: `none` while only the model can, the rich-text
+   * editor (126), or the grid (166).
+   */
+  readonly editor: "grid" | "none" | "rich-text";
   readonly export: readonly ArtifactExport[];
   readonly icon: IconName;
   /**

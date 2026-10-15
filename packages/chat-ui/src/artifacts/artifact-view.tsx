@@ -56,6 +56,8 @@ import { fitArtifactHeader } from "./header-fit";
 import { ImageArtifactPreview } from "./image-preview";
 import { type PlanEditing, PlanEditor } from "./plan-editor";
 import { isRuntimeKind } from "./runtime-protocol";
+import { SpreadsheetArtifact } from "./spreadsheet/spreadsheet-artifact";
+import { SpreadsheetView } from "./spreadsheet/spreadsheet-view";
 
 // One artifact in the Workspace panel (D16, D27, 060): its preview, source
 // (CodeView) and what changed since the previous version (DiffView), with
@@ -169,6 +171,34 @@ export function ArtifactView({
       />
     ) : (
       <DocumentView
+        access={null}
+        actions={actions}
+        artifact={artifact}
+        header={header}
+        key={artifact.id}
+        onSave={readOnly}
+        onSelect={onSelect}
+        versionId={versionId}
+        versions={versions}
+      />
+    );
+  }
+  // A Spreadsheet (166) is its own grid.
+  if (artifact.kind === "spreadsheet" && versions && versions.length > 0) {
+    return api ? (
+      <SpreadsheetArtifact
+        actions={actions}
+        api={api}
+        artifact={artifact}
+        header={header}
+        info={info}
+        key={artifact.id}
+        onSelect={onSelect}
+        versionId={versionId}
+        versions={versions}
+      />
+    ) : (
+      <SpreadsheetView
         access={null}
         actions={actions}
         artifact={artifact}

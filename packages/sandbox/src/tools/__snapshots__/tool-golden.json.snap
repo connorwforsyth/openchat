@@ -216,9 +216,10 @@
                 "svg",
                 "mermaid",
                 "site",
-                "document"
+                "document",
+                "spreadsheet"
               ],
-              "description": "document: a rich-text document the user can edit and export, written in Markdown (prefer it for reports, plans and notes). html: one complete HTML document. react: one file with a default-exported component. svg: one <svg> element. mermaid: diagram source. markdown: Markdown text that is only read. code: a file in any language. site: a small website of several files, as JSON (see the Sites instructions)."
+              "description": "document: a rich-text document the user can edit and export, written in Markdown (prefer it for reports, plans and notes). html: one complete HTML document. react: one file with a default-exported component. svg: one <svg> element. mermaid: diagram source. markdown: Markdown text that is only read. code: a file in any language. site: a small website of several files, as JSON (see the Sites instructions). spreadsheet: sheets of values and formulas, one Markdown table per sheet (see the Spreadsheets instructions)."
             }
           },
           "required": [
@@ -2295,19 +2296,39 @@
                   "type": "string",
                   "maxLength": 400000
                 },
+                "fmt": {
+                  "description": "Spreadsheet set_range and set_formula: a number format for the cells, as Excel writes one (\"0.00\", \"#,##0\", \"0%\").",
+                  "type": "string",
+                  "maxLength": 64
+                },
+                "formula": {
+                  "description": "Spreadsheet set_formula: the formula, with or without its leading \"=\".",
+                  "type": "string",
+                  "maxLength": 2000
+                },
                 "heading": {
                   "description": "The section's heading text, as it reads (without #s). insert without one adds at the end of the document.",
                   "type": "string",
                   "maxLength": 300
+                },
+                "name": {
+                  "description": "Spreadsheet add_sheet: the new sheet's name. rename_sheet: the sheet's new name.",
+                  "type": "string",
+                  "maxLength": 64
                 },
                 "operation": {
                   "type": "string",
                   "enum": [
                     "delete_section",
                     "insert",
-                    "replace_section"
+                    "replace_section",
+                    "add_sheet",
+                    "delete_range",
+                    "rename_sheet",
+                    "set_formula",
+                    "set_range"
                   ],
-                  "description": "replace_section: the section under a heading, up to the next heading of the same or a higher level. insert: blocks at a section's start or end, or the document's end. delete_section: a heading and its section."
+                  "description": "Document: replace_section (the section under a heading, up to the next heading of the same or a higher level), insert (blocks at a section's start or end, or the document's end), delete_section (a heading and its section). Spreadsheet: set_range, set_formula, delete_range, add_sheet, rename_sheet."
                 },
                 "position": {
                   "description": "For insert: where in the section. section_end by default.",
@@ -2316,12 +2337,48 @@
                     "section_end",
                     "section_start"
                   ]
+                },
+                "range": {
+                  "description": "Spreadsheet set_range, set_formula and delete_range: a cell (\"B2\") or a range (\"B2:D5\").",
+                  "type": "string",
+                  "maxLength": 32
+                },
+                "sheet": {
+                  "description": "Spreadsheet: the sheet the edit acts on; the first sheet when left out.",
+                  "type": "string",
+                  "maxLength": 64
+                },
+                "values": {
+                  "description": "Spreadsheet set_range: rows of cells from the range's top-left. Numbers, TRUE/FALSE, text, \"=FORMULA\", or null to clear.",
+                  "maxItems": 10000,
+                  "type": "array",
+                  "items": {
+                    "maxItems": 100,
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "maxLength": 10000
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "boolean"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
                 }
               },
               "required": [
                 "operation"
               ],
-              "description": "For a document (type \"document\"): change one section instead of sending all of it. Leave out content when you send an edit.",
+              "description": "For a document (type \"document\"): change one section; for a spreadsheet (type \"spreadsheet\"): change some cells or sheets, instead of sending all of it. Leave out content when you send an edit.",
               "additionalProperties": false
             },
             "language": {
@@ -2341,7 +2398,7 @@
           ],
           "additionalProperties": false
         },
-        "description": "Save an artifact's next version; earlier versions are kept. Pass the complete new content, not a diff, or, for a document, an edit of one section."
+        "description": "Save an artifact's next version; earlier versions are kept. Pass the complete new content, not a diff, or, for a document or spreadsheet, an edit of one part."
       },
       "name": "update_artifact",
       "outputSchema": {
@@ -3637,9 +3694,10 @@
                 "svg",
                 "mermaid",
                 "site",
-                "document"
+                "document",
+                "spreadsheet"
               ],
-              "description": "document: a rich-text document the user can edit and export, written in Markdown (prefer it for reports, plans and notes). html: one complete HTML document. react: one file with a default-exported component. svg: one <svg> element. mermaid: diagram source. markdown: Markdown text that is only read. code: a file in any language. site: a small website of several files, as JSON (see the Sites instructions)."
+              "description": "document: a rich-text document the user can edit and export, written in Markdown (prefer it for reports, plans and notes). html: one complete HTML document. react: one file with a default-exported component. svg: one <svg> element. mermaid: diagram source. markdown: Markdown text that is only read. code: a file in any language. site: a small website of several files, as JSON (see the Sites instructions). spreadsheet: sheets of values and formulas, one Markdown table per sheet (see the Spreadsheets instructions)."
             }
           },
           "required": [
@@ -5716,19 +5774,39 @@
                   "type": "string",
                   "maxLength": 400000
                 },
+                "fmt": {
+                  "description": "Spreadsheet set_range and set_formula: a number format for the cells, as Excel writes one (\"0.00\", \"#,##0\", \"0%\").",
+                  "type": "string",
+                  "maxLength": 64
+                },
+                "formula": {
+                  "description": "Spreadsheet set_formula: the formula, with or without its leading \"=\".",
+                  "type": "string",
+                  "maxLength": 2000
+                },
                 "heading": {
                   "description": "The section's heading text, as it reads (without #s). insert without one adds at the end of the document.",
                   "type": "string",
                   "maxLength": 300
+                },
+                "name": {
+                  "description": "Spreadsheet add_sheet: the new sheet's name. rename_sheet: the sheet's new name.",
+                  "type": "string",
+                  "maxLength": 64
                 },
                 "operation": {
                   "type": "string",
                   "enum": [
                     "delete_section",
                     "insert",
-                    "replace_section"
+                    "replace_section",
+                    "add_sheet",
+                    "delete_range",
+                    "rename_sheet",
+                    "set_formula",
+                    "set_range"
                   ],
-                  "description": "replace_section: the section under a heading, up to the next heading of the same or a higher level. insert: blocks at a section's start or end, or the document's end. delete_section: a heading and its section."
+                  "description": "Document: replace_section (the section under a heading, up to the next heading of the same or a higher level), insert (blocks at a section's start or end, or the document's end), delete_section (a heading and its section). Spreadsheet: set_range, set_formula, delete_range, add_sheet, rename_sheet."
                 },
                 "position": {
                   "description": "For insert: where in the section. section_end by default.",
@@ -5737,12 +5815,48 @@
                     "section_end",
                     "section_start"
                   ]
+                },
+                "range": {
+                  "description": "Spreadsheet set_range, set_formula and delete_range: a cell (\"B2\") or a range (\"B2:D5\").",
+                  "type": "string",
+                  "maxLength": 32
+                },
+                "sheet": {
+                  "description": "Spreadsheet: the sheet the edit acts on; the first sheet when left out.",
+                  "type": "string",
+                  "maxLength": 64
+                },
+                "values": {
+                  "description": "Spreadsheet set_range: rows of cells from the range's top-left. Numbers, TRUE/FALSE, text, \"=FORMULA\", or null to clear.",
+                  "maxItems": 10000,
+                  "type": "array",
+                  "items": {
+                    "maxItems": 100,
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "maxLength": 10000
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "boolean"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
                 }
               },
               "required": [
                 "operation"
               ],
-              "description": "For a document (type \"document\"): change one section instead of sending all of it. Leave out content when you send an edit.",
+              "description": "For a document (type \"document\"): change one section; for a spreadsheet (type \"spreadsheet\"): change some cells or sheets, instead of sending all of it. Leave out content when you send an edit.",
               "additionalProperties": false
             },
             "language": {
@@ -5762,7 +5876,7 @@
           ],
           "additionalProperties": false
         },
-        "description": "Save an artifact's next version; earlier versions are kept. Pass the complete new content, not a diff, or, for a document, an edit of one section."
+        "description": "Save an artifact's next version; earlier versions are kept. Pass the complete new content, not a diff, or, for a document or spreadsheet, an edit of one part."
       },
       "name": "update_artifact",
       "outputSchema": {

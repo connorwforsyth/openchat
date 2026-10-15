@@ -10,14 +10,15 @@ import { TEXT_MAX_CHARS } from "./kinds/text";
 // these say how they're put together. The text kinds are the six from
 // before the kit; the Site kind (125) has its own tests under `kinds/site`.
 
-/** In the contract, not built yet (164–166). */
-const PLANNED = ["presentation", "spreadsheet", "diagram"];
+/** In the contract, not built yet (164, 165). */
+const PLANNED = ["presentation", "diagram"];
 
 const textKinds = () =>
   builtinArtifactKinds.list().filter(
     (definition) =>
       definition.kind !== "site" &&
       definition.kind !== "document" &&
+      definition.kind !== "spreadsheet" &&
       // Images (138) are written by `generate_image` only, never by hand.
       definition.kind !== "image" &&
       !PLANNED.includes(definition.kind)
@@ -43,10 +44,10 @@ describe("the built-in kinds", () => {
       expect(definition.editor).toBe("none");
       expect(definition.diff).toBe("text");
     }
-    // Sites and documents come with instructions.
+    // Sites, documents and spreadsheets come with instructions.
     expect(
       builtinArtifactKinds.instructionFiles().map(({ source }) => source)
-    ).toEqual(["kinds/document", "kinds/site"]);
+    ).toEqual(["kinds/document", "kinds/site", "kinds/spreadsheet"]);
   });
 
   it("render in the runtime where they did, and the panel otherwise", () => {
@@ -70,7 +71,7 @@ describe("the built-in kinds", () => {
         runtime: "react",
       },
       site: { panel: "source", runtime: "site" },
-      spreadsheet: { panel: "source", runtime: null },
+      spreadsheet: { panel: "spreadsheet", runtime: null },
       svg: { panel: "frame", runtime: "svg" },
     });
   });

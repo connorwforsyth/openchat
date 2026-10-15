@@ -185,6 +185,7 @@ const BASES: Readonly<Record<WrittenKind, string>> = {
   mermaid: "graph TD",
   react: "export default 1",
   site: '{"files": {"index.html": "<p>hi</p>"}}',
+  spreadsheet: "| 1 | =A1*2 |",
   svg: "<svg></svg>",
 };
 

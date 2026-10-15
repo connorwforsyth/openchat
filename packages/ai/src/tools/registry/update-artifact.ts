@@ -1,5 +1,6 @@
 import { builtinArtifactKinds } from "@workspace/artifacts-kit/builtin";
 import { DOCUMENT_EDITS } from "@workspace/artifacts-kit/kinds/document/operations";
+import { SPREADSHEET_EDITS } from "@workspace/artifacts-kit/kinds/spreadsheet/operations";
 import type { ArtifactKindRegistry } from "@workspace/artifacts-kit/registry";
 import { artifactIdSchema } from "@workspace/contract/schemas/common";
 import { z } from "zod";
@@ -22,14 +23,23 @@ import { defineTool, type ToolContext } from "./define";
 // `update_artifact` (078): the artifact's next version; earlier versions
 // are kept. Either the whole content again, or (126) an `edit` of one part
 // of a document: a kind's structured operation (`@workspace/artifacts-kit`)
-// applied to its latest version. The content is checked by the artifact's
+// applied to its latest version, or (166) of a spreadsheet's cells. The content is checked by the artifact's
 // kind (123), and nothing is saved if a check fails. What the tools share
 // is in `../artifact-content.ts`.
 
-const EDIT_NAMES = Object.keys(DOCUMENT_EDITS) as [
-  keyof typeof DOCUMENT_EDITS,
-  ...(keyof typeof DOCUMENT_EDITS)[],
-];
+type EditName = keyof typeof DOCUMENT_EDITS | keyof typeof SPREADSHEET_EDITS;
+
+const EDIT_NAMES = [
+  ...Object.keys(DOCUMENT_EDITS),
+  ...Object.keys(SPREADSHEET_EDITS),
+] as [EditName, ...EditName[]];
+
+const spreadsheetCellSchema = z.union([
+  z.string().max(10_000),
+  z.number(),
+  z.boolean(),
+  z.null(),
+]);
 
 /**
  * One structured edit. A flat object (not a union) so every provider's
@@ -45,6 +55,20 @@ export const artifactEditSchema = z
       .describe(
         "Markdown for replace_section and insert: the new section body (start it with a heading to replace the heading too) or the blocks to insert."
       ),
+    fmt: z
+      .string()
+      .max(64)
+      .optional()
+      .describe(
+        'Spreadsheet set_range and set_formula: a number format for the cells, as Excel writes one ("0.00", "#,##0", "0%").'
+      ),
+    formula: z
+      .string()
+      .max(2000)
+      .optional()
+      .describe(
+        'Spreadsheet set_formula: the formula, with or without its leading "=".'
+      ),
     heading: z
       .string()
       .max(300)
@@ -52,18 +76,46 @@ export const artifactEditSchema = z
       .describe(
         "The section's heading text, as it reads (without #s). insert without one adds at the end of the document."
       ),
+    name: z
+      .string()
+      .max(64)
+      .optional()
+      .describe(
+        "Spreadsheet add_sheet: the new sheet's name. rename_sheet: the sheet's new name."
+      ),
     operation: z
       .enum(EDIT_NAMES)
       .describe(
-        "replace_section: the section under a heading, up to the next heading of the same or a higher level. insert: blocks at a section's start or end, or the document's end. delete_section: a heading and its section."
+        "Document: replace_section (the section under a heading, up to the next heading of the same or a higher level), insert (blocks at a section's start or end, or the document's end), delete_section (a heading and its section). Spreadsheet: set_range, set_formula, delete_range, add_sheet, rename_sheet."
       ),
     position: z
       .enum(["section_end", "section_start"])
       .optional()
       .describe("For insert: where in the section. section_end by default."),
+    range: z
+      .string()
+      .max(32)
+      .optional()
+      .describe(
+        'Spreadsheet set_range, set_formula and delete_range: a cell ("B2") or a range ("B2:D5").'
+      ),
+    sheet: z
+      .string()
+      .max(64)
+      .optional()
+      .describe(
+        "Spreadsheet: the sheet the edit acts on; the first sheet when left out."
+      ),
+    values: z
+      .array(z.array(spreadsheetCellSchema).max(100))
+      .max(10_000)
+      .optional()
+      .describe(
+        'Spreadsheet set_range: rows of cells from the range\'s top-left. Numbers, TRUE/FALSE, text, "=FORMULA", or null to clear.'
+      ),
   })
   .describe(
-    'For a document (type "document"): change one section instead of sending all of it. Leave out content when you send an edit.'
+    'For a document (type "document"): change one section; for a spreadsheet (type "spreadsheet"): change some cells or sheets, instead of sending all of it. Leave out content when you send an edit.'
   );
 
 export const updateArtifactInputSchema = z.object({
@@ -115,7 +167,7 @@ const nextContent = async (
       return {
         ok: false,
         output: invalid(
-          "send either content (the whole artifact) or an edit (one part of a document)"
+          "send either content (the whole artifact) or an edit (one part of a document or spreadsheet)"
         ),
       };
     }
@@ -205,7 +257,7 @@ export const updateArtifactTool = defineTool({
   approval: "ask",
   capability: "artifacts",
   description:
-    "Save an artifact's next version; earlier versions are kept. Pass the complete new content, not a diff, or, for a document, an edit of one section.",
+    "Save an artifact's next version; earlier versions are kept. Pass the complete new content, not a diff, or, for a document or spreadsheet, an edit of one part.",
   execute: (input, { ports }: ToolContext<{ readonly ports: ArtifactPorts }>) =>
     updateArtifact(ports.store, input, ports.kinds),
   input: updateArtifactInputSchema,
