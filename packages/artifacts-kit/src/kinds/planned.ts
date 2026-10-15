@@ -44,12 +44,6 @@ export const plannedKind = ({
     thumbnail: "none",
   });
 
-export const presentationKind = plannedKind({
-  icon: "PlayIcon",
-  kind: "presentation",
-  label: "Presentation",
-});
-
 export const spreadsheetKind = plannedKind({
   icon: "LayoutGridIcon",
   kind: "spreadsheet",

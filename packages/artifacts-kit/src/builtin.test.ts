@@ -10,14 +10,15 @@ import { TEXT_MAX_CHARS } from "./kinds/text";
 // these say how they're put together. The text kinds are the six from
 // before the kit; the Site kind (125) has its own tests under `kinds/site`.
 
-/** In the contract, not built yet (164–166). */
-const PLANNED = ["presentation", "spreadsheet", "diagram"];
+/** In the contract, not built yet (165–166). */
+const PLANNED = ["spreadsheet", "diagram"];
 
 const textKinds = () =>
   builtinArtifactKinds.list().filter(
     (definition) =>
       definition.kind !== "site" &&
       definition.kind !== "document" &&
+      definition.kind !== "presentation" &&
       // Images (138) are written by `generate_image` only, never by hand.
       definition.kind !== "image" &&
       !PLANNED.includes(definition.kind)
@@ -43,10 +44,10 @@ describe("the built-in kinds", () => {
       expect(definition.editor).toBe("none");
       expect(definition.diff).toBe("text");
     }
-    // Sites and documents come with instructions.
+    // Sites, documents and presentations come with instructions.
     expect(
       builtinArtifactKinds.instructionFiles().map(({ source }) => source)
-    ).toEqual(["kinds/document", "kinds/site"]);
+    ).toEqual(["kinds/document", "kinds/presentation", "kinds/site"]);
   });
 
   it("render in the runtime where they did, and the panel otherwise", () => {
@@ -63,7 +64,11 @@ describe("the built-in kinds", () => {
       image: { panel: "image", runtime: null },
       markdown: { panel: "markdown", runtime: null },
       mermaid: { panel: "source", runtime: "mermaid" },
-      presentation: { panel: "source", runtime: null },
+      presentation: {
+        imports: ["react", "@workspace/slide-ui"],
+        panel: "source",
+        runtime: "presentation",
+      },
       react: {
         imports: ["react", "react-dom"],
         panel: "source",
@@ -75,12 +80,13 @@ describe("the built-in kinds", () => {
     });
   });
 
-  it("let only React be annotated, only sites be published, and none present or call the model", () => {
+  it("let only React and presentations be annotated, only sites be published, only presentations be presented, and none call the model", () => {
     for (const definition of builtinArtifactKinds.list()) {
       expect(definition.capabilities).toEqual({
         aiCalls: false,
-        annotate: definition.kind === "react",
-        present: false,
+        annotate:
+          definition.kind === "react" || definition.kind === "presentation",
+        present: definition.kind === "presentation",
         share: definition.kind === "site",
       });
     }
@@ -114,7 +120,7 @@ describe("the built-in kinds", () => {
     ]);
   });
 
-  it("refuse every save of a kind that isn't built yet (164–166)", () => {
+  it("refuse every save of a kind that isn't built yet (165–166)", () => {
     for (const kind of PLANNED) {
       expect(builtinArtifactKinds.get(kind)?.starter).toBeUndefined();
       expect(builtinArtifactKinds.check(kind, "{}")).toEqual([
