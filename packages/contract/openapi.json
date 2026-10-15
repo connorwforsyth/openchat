@@ -125,7 +125,10 @@
               "mermaid",
               "site",
               "document",
-              "image"
+              "image",
+              "presentation",
+              "spreadsheet",
+              "diagram"
             ],
             "type": "string"
           },
@@ -226,7 +229,10 @@
               "mermaid",
               "site",
               "document",
-              "image"
+              "image",
+              "presentation",
+              "spreadsheet",
+              "diagram"
             ],
             "type": "string"
           },
@@ -2879,7 +2885,10 @@
                   "mermaid",
                   "site",
                   "document",
-                  "image"
+                  "image",
+                  "presentation",
+                  "spreadsheet",
+                  "diagram"
                 ],
                 "type": "string"
               },
@@ -5984,7 +5993,10 @@
                 "mermaid",
                 "site",
                 "document",
-                "image"
+                "image",
+                "presentation",
+                "spreadsheet",
+                "diagram"
               ],
               "type": "string"
             },
@@ -7236,7 +7248,10 @@
                         "mermaid",
                         "site",
                         "document",
-                        "image"
+                        "image",
+                        "presentation",
+                        "spreadsheet",
+                        "diagram"
                       ],
                       "type": "string"
                     },

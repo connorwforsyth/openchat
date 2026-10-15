@@ -27,6 +27,12 @@ function KindLabel({ kind }: { readonly kind: ArtifactRefPart["kind"] }) {
       return <Trans>Site</Trans>;
     case "image":
       return <Trans>Generated image</Trans>;
+    case "presentation":
+      return <Trans>Presentation</Trans>;
+    case "spreadsheet":
+      return <Trans>Spreadsheet</Trans>;
+    case "diagram":
+      return <Trans>Flowchart</Trans>;
     default:
       return kind satisfies never;
   }

@@ -10,13 +10,17 @@ import { TEXT_MAX_CHARS } from "./kinds/text";
 // these say how they're put together. The text kinds are the six from
 // before the kit; the Site kind (125) has its own tests under `kinds/site`.
 
+/** In the contract, not built yet (164–166). */
+const PLANNED = ["presentation", "spreadsheet", "diagram"];
+
 const textKinds = () =>
   builtinArtifactKinds.list().filter(
     (definition) =>
       definition.kind !== "site" &&
       definition.kind !== "document" &&
       // Images (138) are written by `generate_image` only, never by hand.
-      definition.kind !== "image"
+      definition.kind !== "image" &&
+      !PLANNED.includes(definition.kind)
   );
 
 describe("the built-in kinds", () => {
@@ -53,17 +57,20 @@ describe("the built-in kinds", () => {
     );
     expect(renders).toEqual({
       code: { panel: "source", runtime: null },
+      diagram: { panel: "source", runtime: null },
       document: { panel: "document", runtime: null },
       html: { panel: "frame", runtime: "html" },
       image: { panel: "image", runtime: null },
       markdown: { panel: "markdown", runtime: null },
       mermaid: { panel: "source", runtime: "mermaid" },
+      presentation: { panel: "source", runtime: null },
       react: {
         imports: ["react", "react-dom"],
         panel: "source",
         runtime: "react",
       },
       site: { panel: "source", runtime: "site" },
+      spreadsheet: { panel: "source", runtime: null },
       svg: { panel: "frame", runtime: "svg" },
     });
   });
@@ -105,6 +112,15 @@ describe("the built-in kinds", () => {
     expect(builtinArtifactKinds.check("react", app("recharts"))).toEqual([
       'imports "recharts", which isn\'t available here. It may import: react, react-dom',
     ]);
+  });
+
+  it("refuse every save of a kind that isn't built yet (164–166)", () => {
+    for (const kind of PLANNED) {
+      expect(builtinArtifactKinds.get(kind)?.starter).toBeUndefined();
+      expect(builtinArtifactKinds.check(kind, "{}")).toEqual([
+        `${kind} artifacts aren't available yet`,
+      ]);
+    }
   });
 
   it("take an image only as a base64 data: URL (138)", () => {

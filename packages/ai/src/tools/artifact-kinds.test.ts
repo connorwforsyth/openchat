@@ -4,13 +4,15 @@ import { defineArtifactKind } from "@workspace/artifacts-kit/define";
 import { reactKind } from "@workspace/artifacts-kit/kinds/react";
 import { createArtifactKindRegistry } from "@workspace/artifacts-kit/registry";
 import type { ArtifactId } from "@workspace/contract/schemas/common";
-import { artifactKindSchema } from "@workspace/contract/schemas/message-parts";
 import { newId } from "@workspace/shared/ids";
 import { ok } from "@workspace/shared/result";
 import { describe, expect, it } from "vitest";
 
 import { RECORDED_REPLIES } from "../../evals/artifacts/fixtures";
-import { parseArtifacts } from "../../evals/artifacts/format";
+import {
+  artifactDirectiveSchema,
+  parseArtifacts,
+} from "../../evals/artifacts/format";
 import { composeInstructions } from "../prompts/compose";
 import { FRAGMENTS } from "../prompts/generated";
 import {
@@ -85,9 +87,10 @@ describe("the kinds' checks", () => {
     // Sites (125) came after the directive and have checks of their own
     // (`@workspace/artifacts-kit`'s `kinds/site`); a document (126) stores
     // JSON made from the model's Markdown, which the reader can't judge;
-    // an image (138) is only ever `generate_image`'s.
-    const textKinds = artifactKindSchema.options.filter(
-      (kind) => kind !== "site" && kind !== "document" && kind !== "image"
+    // an image (138) is only ever `generate_image`'s; and presentations,
+    // spreadsheets and diagrams (164–166) aren't built yet.
+    const textKinds = artifactDirectiveSchema.shape.type.options.filter(
+      (kind) => kind !== "site" && kind !== "document"
     );
     for (const type of textKinds) {
       for (const content of CONTENTS) {

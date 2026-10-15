@@ -16,13 +16,16 @@ export const artifactKindLabels: Readonly<
   Record<ArtifactKind, MessageDescriptor>
 > = {
   code: msg`Code`,
+  diagram: msg`Flowchart`,
   document: msg`Document`,
   html: msg`Web page`,
   image: msg`Generated image`,
   markdown: msg`Markdown`,
   mermaid: msg`Diagram`,
+  presentation: msg`Presentation`,
   react: msg`React component`,
   site: msg`Site`,
+  spreadsheet: msg`Spreadsheet`,
   svg: msg`SVG image`,
 };
 

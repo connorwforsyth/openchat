@@ -1608,6 +1608,11 @@ msgstr "Fill in every variable to see the message."
 msgid "Find people, teams or orgs"
 msgstr "Find people, teams or orgs"
 
+#: ../chat-ui/src/conversation/artifact-card.tsx
+#: ../chat-ui/src/model/artifact-kinds.ts
+msgid "Flowchart"
+msgstr "Flowchart"
+
 #: ../shortcuts/src/registry.ts
 msgid "Focus the composer"
 msgstr "Focus the composer"
@@ -2882,6 +2887,11 @@ msgstr "Policies"
 msgid "Preferences"
 msgstr "Preferences"
 
+#: ../chat-ui/src/conversation/artifact-card.tsx
+#: ../chat-ui/src/model/artifact-kinds.ts
+msgid "Presentation"
+msgstr "Presentation"
+
 #: ../library-ui/src/components/kind.tsx
 msgid "Preset"
 msgstr "Preset"
@@ -3801,6 +3811,11 @@ msgstr "Spent"
 #: ../code-ui/src/diff-view.tsx
 msgid "Split"
 msgstr "Split"
+
+#: ../chat-ui/src/conversation/artifact-card.tsx
+#: ../chat-ui/src/model/artifact-kinds.ts
+msgid "Spreadsheet"
+msgstr "Spreadsheet"
 
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "SSE"

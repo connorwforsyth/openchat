@@ -1,0 +1,1 @@
+ALTER TABLE "artifact" DROP CONSTRAINT "artifact_kind", ADD CONSTRAINT "artifact_kind" CHECK ("kind" in ('code', 'html', 'react', 'markdown', 'svg', 'mermaid', 'site', 'document', 'image', 'presentation', 'spreadsheet', 'diagram'));
