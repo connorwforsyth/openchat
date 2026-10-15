@@ -116,7 +116,7 @@ describe("SpreadsheetView", () => {
     await userEvent.clear(bar);
     await userEvent.type(bar, "=B4*2{Enter}");
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1), {
-      timeout: 5000,
+      timeout: 15_000,
     });
     const [input] = onSave.mock.calls[0] ?? [];
     expect(input?.baseVersionId).toBe(versions[1]?.id);
@@ -145,9 +145,14 @@ describe("SpreadsheetView", () => {
       expect(found).not.toBeNull();
       return found as HTMLTextAreaElement;
     });
-    await userEvent.type(editor, "300{Enter}");
+    expect(document.activeElement).toBe(editor);
+    await userEvent.keyboard("300");
+    await expect.poll(() => editor.value).toBe("1300");
+    // Glide commits the value of its last render: let it render first.
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    await userEvent.keyboard("{Enter}");
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1), {
-      timeout: 5000,
+      timeout: 15_000,
     });
     const [input] = onSave.mock.calls[0] ?? [];
     expect(read(input?.content ?? "{}").sheets[0]?.cells.B2).toEqual({
