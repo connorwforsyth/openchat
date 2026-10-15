@@ -9,7 +9,20 @@ import type {
 import type { DotRunTrigger } from "@workspace/contract/schemas/dots";
 import type { MessagePart } from "@workspace/contract/schemas/message-parts";
 import type { RunError, RunStatus } from "@workspace/contract/schemas/runs";
-import { and, asc, desc, eq, inArray, isNotNull, lte } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gt,
+  inArray,
+  isNotNull,
+  lte,
+  ne,
+  or,
+  sql,
+} from "drizzle-orm";
 
 import type { Db } from "../client";
 import { message, run } from "../schema/chat";
@@ -32,9 +45,13 @@ export type DotPatch = Partial<
   Pick<
     DotRow,
     | "autoApproveTools"
+    | "avatarColor"
+    | "avatarStyle"
     | "enabled"
+    | "handle"
     | "instructions"
     | "name"
+    | "rules"
     | "sandboxProvider"
     | "target"
   >
@@ -94,13 +111,88 @@ export const getDotByConversation = async (
   return row ?? null;
 };
 
-/** The owner's Dots, newest first. */
+/** The owner's Dots: the primary one first, then newest first. */
 export const listDots = (db: Db, ownerId: UserId): Promise<DotRow[]> =>
   db
     .select()
     .from(dot)
     .where(eq(dot.ownerId, ownerId))
+    .orderBy(desc(dot.primary), desc(dot.createdAt), desc(dot.id));
+
+/** The owner's handles, for picking a free one. */
+export const listDotHandles = async (
+  db: Db,
+  ownerId: UserId
+): Promise<string[]> => {
+  const rows = await db
+    .select({ handle: dot.handle })
+    .from(dot)
+    .where(eq(dot.ownerId, ownerId));
+  return rows.map((row) => row.handle);
+};
+
+/** Whether another of the owner's Dots has `handle`. */
+export const dotHandleTaken = async (
+  db: Db,
+  ownerId: UserId,
+  handle: string,
+  except: DotId | null
+): Promise<boolean> => {
+  const [row] = await db
+    .select({ id: dot.id })
+    .from(dot)
+    .where(
+      and(
+        eq(dot.ownerId, ownerId),
+        eq(dot.handle, handle),
+        except ? ne(dot.id, except) : undefined
+      )
+    )
+    .limit(1);
+  return Boolean(row);
+};
+
+/**
+ * Makes `id` the owner's primary Dot (the previous one stops being), in one
+ * transaction so the partial unique index never sees two. `false` when it
+ * isn't the owner's.
+ */
+export const setPrimaryDot = (
+  db: Db,
+  id: DotId,
+  ownerId: UserId
+): Promise<boolean> =>
+  db.transaction(async (tx) => {
+    const [target] = await tx
+      .select({ id: dot.id })
+      .from(dot)
+      .where(and(eq(dot.id, id), eq(dot.ownerId, ownerId)));
+    if (!target) {
+      return false;
+    }
+    await tx
+      .update(dot)
+      .set({ primary: false })
+      .where(and(eq(dot.ownerId, ownerId), eq(dot.primary, true)));
+    await tx.update(dot).set({ primary: true }).where(eq(dot.id, id));
+    return true;
+  });
+
+/** After the primary Dot is deleted: the newest remaining one takes over. */
+export const promoteNewestDot = async (
+  db: Db,
+  ownerId: UserId
+): Promise<void> => {
+  const rows = await db
+    .select({ id: dot.id, primary: dot.primary })
+    .from(dot)
+    .where(eq(dot.ownerId, ownerId))
     .orderBy(desc(dot.createdAt), desc(dot.id));
+  const [newest] = rows;
+  if (newest && !rows.some((row) => row.primary)) {
+    await db.update(dot).set({ primary: true }).where(eq(dot.id, newest.id));
+  }
+};
 
 export const updateDot = async (
   db: Db,
@@ -308,6 +400,62 @@ export const latestDotRuns = async (
     .where(inArray(dotRun.dotId, [...dotIds]))
     .orderBy(dotRun.dotId, desc(dotRun.createdAt), desc(dotRun.id));
   return rows;
+};
+
+/** A Dot's runs, newest first, as `latestDotRuns` shapes them. */
+export const listDotRuns = (
+  db: Db,
+  dotId: DotId,
+  limit: number
+): Promise<DotLastRunRow[]> =>
+  db
+    .select({
+      createdAt: dotRun.createdAt,
+      dotId: dotRun.dotId,
+      error: run.error,
+      finishedAt: run.finishedAt,
+      replyParts: message.parts,
+      runId: dotRun.runId,
+      scheduleId: dotRun.scheduleId,
+      startedAt: run.startedAt,
+      status: run.status,
+      trigger: dotRun.trigger,
+    })
+    .from(dotRun)
+    .innerJoin(run, eq(run.id, dotRun.runId))
+    .leftJoin(message, eq(message.id, run.assistantMessageId))
+    .where(eq(dotRun.dotId, dotId))
+    .orderBy(desc(dotRun.createdAt), desc(dotRun.id))
+    .limit(limit);
+
+/**
+ * How many runs each Dot finished since its owner last opened it (all of
+ * them before the first time).
+ */
+export const unreadDotRunCounts = async (
+  db: Db,
+  dotIds: readonly DotId[]
+): Promise<ReadonlyMap<DotId, number>> => {
+  if (dotIds.length === 0) {
+    return new Map();
+  }
+  const rows = await db
+    .select({ dotId: dotRun.dotId, n: count() })
+    .from(dotRun)
+    .innerJoin(dot, eq(dot.id, dotRun.dotId))
+    .innerJoin(run, eq(run.id, dotRun.runId))
+    .where(
+      and(
+        inArray(dotRun.dotId, [...dotIds]),
+        isNotNull(run.finishedAt),
+        or(
+          sql`${dot.lastViewedAt} is null`,
+          gt(run.finishedAt, dot.lastViewedAt)
+        )
+      )
+    )
+    .groupBy(dotRun.dotId);
+  return new Map(rows.map((row) => [row.dotId, Number(row.n)]));
 };
 
 /** The conversation's newest message: a Dot's run posts after it. */

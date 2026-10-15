@@ -20,6 +20,7 @@ import { useApi } from "@/app/(app)/_shared/api";
 import { canAdmin, useAppFrame } from "@/app/(app)/_shared/app-frame";
 import { Brand } from "@/app/(app)/_shared/brand";
 import { useShellPlatform } from "@/app/(app)/_shared/desktop";
+import { useSidebarDots } from "@/app/(app)/(pages)/dots/sidebar-dots";
 import { routes } from "@/lib/routes";
 
 // Library, settings and admin inside the app shell (009): the same sidebar
@@ -58,6 +59,7 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
     query.conversations.list.queryOptions({ input: SIDEBAR_LIST_INPUT })
   );
   const update = useConversationUpdate(query);
+  const sidebarDots = useSidebarDots(null);
 
   const { toggleSidebar } = layout;
   const toggleChats = useCallback(() => {
@@ -145,12 +147,14 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
           artifactsHref={routes.artifacts}
           brand={<Brand config={frame.config} />}
           chats={chats.data?.items ?? []}
+          dots={sidebarDots.dots}
           dotsHref={routes.dots}
           libraryHref={routes.library}
           onNewChat={newChat}
           onOpenPalette={openPalette}
           onSelect={selectChat}
           toggle={sidebarToggle("sidebar")}
+          top={sidebarDots.top}
         />
       }
       sidebarOpen={layout.layout.sidebarOpen}

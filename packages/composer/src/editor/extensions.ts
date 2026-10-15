@@ -62,7 +62,8 @@ export interface ComposerKeyHandlers {
 export interface ComposerExtensionOptions {
   readonly keys: ComposerKeyHandlers;
   readonly mention: MentionSuggestion;
-  readonly placeholder: string;
+  /** A function is read on every redraw, so it can change after mount. */
+  readonly placeholder: string | (() => string);
   readonly slash: SlashSuggestion;
 }
 
@@ -146,7 +147,10 @@ export const createComposerExtensions = ({
     },
   }),
   UndoRedo,
-  Placeholder.configure({ placeholder }),
+  Placeholder.configure({
+    placeholder:
+      typeof placeholder === "function" ? () => placeholder() : placeholder,
+  }),
   ComposerMention.configure({
     deleteTriggerWithBackspace: true,
     HTMLAttributes: {

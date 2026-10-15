@@ -1,4 +1,10 @@
-import { dotRunTriggerSchema } from "@workspace/contract/schemas/dots";
+import {
+  type DotAvatarColor,
+  type DotAvatarStyle,
+  dotAvatarColorSchema,
+  dotAvatarStyleSchema,
+  dotRunTriggerSchema,
+} from "@workspace/contract/schemas/dots";
 import {
   type RunTarget,
   runStatusSchema,
@@ -39,11 +45,21 @@ export const dot = pgTable(
       .$type<string[]>()
       .notNull()
       .default([]),
+    avatarColor: text("avatar_color")
+      .$type<DotAvatarColor>()
+      .notNull()
+      .default("sea"),
+    avatarStyle: text("avatar_style")
+      .$type<DotAvatarStyle>()
+      .notNull()
+      .default("orb"),
     conversationId: idRef("conversation_id", "conversation")
       .notNull()
       .references(() => conversation.id, { onDelete: "cascade" }),
     createdAt: createdAt(),
     enabled: boolean("enabled").notNull().default(true),
+    /** `@handle`, without the `@`; unique per owner. */
+    handle: text("handle").notNull(),
     id: idColumn("dot"),
     instructions: text("instructions").notNull().default(""),
     /** When the owner last opened it; a run finished later is unread. */
@@ -52,6 +68,10 @@ export const dot = pgTable(
     ownerId: idRef("owner_id", "user")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
+    /** The owner's one primary Dot (a partial unique index keeps it one). */
+    primary: boolean("is_primary").notNull().default(false),
+    /** When it may act and when it should ask, in the owner's words. */
+    rules: text("rules").notNull().default(""),
     /** `null` means the instance default. */
     sandboxProvider: text("sandbox_provider").$type<SandboxProvider>(),
     target: jsonb("target").$type<RunTarget>().notNull(),
@@ -60,6 +80,18 @@ export const dot = pgTable(
   (t) => [
     index("dot_owner_idx").on(t.ownerId, t.createdAt),
     uniqueIndex("dot_conversation_uidx").on(t.conversationId),
+    uniqueIndex("dot_owner_handle_uidx").on(t.ownerId, t.handle),
+    uniqueIndex("dot_owner_primary_uidx")
+      .on(t.ownerId)
+      .where(sql`${t.primary}`),
+    check(
+      "dot_avatar_color",
+      oneOf(t.avatarColor, dotAvatarColorSchema.options)
+    ),
+    check(
+      "dot_avatar_style",
+      oneOf(t.avatarStyle, dotAvatarStyleSchema.options)
+    ),
   ]
 );
 

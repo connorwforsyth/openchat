@@ -113,6 +113,7 @@ import {
 import type { Platform } from "../shell/platform";
 import type { ShellLayoutState } from "../shell/use-shell-layout";
 import type { Theme } from "../sidebar/account-menu";
+import type { ChatSidebarProps } from "../sidebar/chat-sidebar";
 import type {
   WorkspaceClient,
   WorkspaceFilesSource,
@@ -140,6 +141,8 @@ export interface ConnectedChatProps {
   readonly banner?: ReactNode;
   readonly brand?: ReactNode;
   readonly client: ApiClient;
+  /** Placeholder for the composer ("Message Pip" in a Dot's chat, 172). */
+  readonly composerPlaceholder?: string;
   readonly config: PublicConfig;
   /** `null` opens a new, not-yet-created chat. */
   readonly conversationId: ConversationId | null;
@@ -185,6 +188,8 @@ export interface ConnectedChatProps {
    * Omitted, `target` goes out.
    */
   readonly sendTarget?: RunTarget | null;
+  /** The sidebar's Dot slots (172): `top` and `dots` of `ChatSidebarProps`. */
+  readonly sidebarDots?: Pick<ChatSidebarProps, "dots" | "top">;
   /** Skills the caller can use (127), for the composer's + menu and `/`. */
   readonly skills?: readonly SkillOption[];
   /** What answers: a model or an agent. Omitted, the server's default does. */
@@ -1430,6 +1435,7 @@ export function ConnectedChat({
   client,
   artifactsHref,
   banner,
+  composerPlaceholder,
   dotsHref,
   config,
   conversationId,
@@ -1451,6 +1457,7 @@ export function ConnectedChat({
   platform,
   sandboxClient,
   sendTarget,
+  sidebarDots,
   skills,
   target = null,
   theme,
@@ -1844,6 +1851,7 @@ export function ConnectedChat({
             onSubmit,
             onTargetChange,
             onVariantChange: setVariant,
+            placeholder: composerPlaceholder,
             // "Recently used" in the picker is each person's own (099).
             recentsKey: me.user.id,
             ...webSearchSwitch(config, webSearch, setWebSearch),
@@ -1895,6 +1903,7 @@ export function ConnectedChat({
             artifactsHref,
             chats: data.chats.data?.items ?? [],
             dotsHref,
+            ...sidebarDots,
             libraryHref,
             onSelect: onNavigate,
           }}

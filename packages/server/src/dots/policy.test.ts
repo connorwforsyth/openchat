@@ -4,8 +4,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   DOT_RUN_KEY_PREFIX,
+  dotPersona,
   dotRunKey,
   dotStatusOf,
+  handleFrom,
   isDotRunKey,
   isUnread,
   nextFor,
@@ -166,5 +168,47 @@ describe("dotRunKey", () => {
     expect(isDotRunKey(dotRunKey({ nonce: "n", type: "manual" }))).toBe(true);
     expect(isDotRunKey("composer-123")).toBe(false);
     expect(isDotRunKey(null)).toBe(false);
+  });
+});
+
+describe("handleFrom", () => {
+  it("makes a lowercase handle from the name", () => {
+    expect(handleFrom("Pip", [])).toBe("pip");
+    expect(handleFrom("Morning Brief!", [])).toBe("morning-brief");
+    expect(handleFrom("Zoë", [])).toBe("zoe");
+  });
+
+  it("pads one that's too short and names one with nothing usable", () => {
+    expect(handleFrom("Q", [])).toBe("q-dot");
+    expect(handleFrom("🌟", [])).toBe("dot");
+  });
+
+  it("counts up past the owner's taken handles, within 24 characters", () => {
+    expect(handleFrom("Pip", ["pip", "pip-2"])).toBe("pip-3");
+    const long = "a".repeat(30);
+    const taken = ["a".repeat(24)];
+    expect(handleFrom(long, taken)).toBe(`${"a".repeat(22)}-2`);
+  });
+});
+
+describe("dotPersona", () => {
+  it("names the Dot and includes only what the owner wrote", () => {
+    const bare = dotPersona({
+      handle: "pip",
+      instructions: " ",
+      name: "Pip",
+      rules: "",
+    });
+    expect(bare).toContain("You are Pip (@pip)");
+    expect(bare).toContain("schedule_task");
+    expect(bare).not.toContain("rules");
+    const full = dotPersona({
+      handle: "pip",
+      instructions: "Inbox zero.",
+      name: "Pip",
+      rules: "Ask before emailing anyone.",
+    });
+    expect(full).toContain("Inbox zero.");
+    expect(full).toContain("Ask before emailing anyone.");
   });
 });

@@ -38,7 +38,11 @@ import { Brand } from "@/app/(app)/_shared/brand";
 import { useShellPlatform } from "@/app/(app)/_shared/desktop";
 import { createApiSandboxClient } from "@/app/(app)/_shared/sandbox-client";
 import { useAfterBoot } from "@/app/(app)/_shared/use-after-boot";
-import { DotBanner } from "@/app/(app)/(pages)/dots/dot-banner";
+import {
+  DotHome,
+  useDotForConversation,
+} from "@/app/(app)/(pages)/dots/dot-home";
+import { useSidebarDots } from "@/app/(app)/(pages)/dots/sidebar-dots";
 import { routeParams, routes } from "@/lib/routes";
 
 import { messageTarget, shownTarget } from "./message-target";
@@ -467,6 +471,10 @@ export function ChatRoute({
     [client, config.features.sandboxes, conversationId, t]
   );
 
+  const dot = useDotForConversation(conversationId ?? null);
+  const dotName = dot?.name;
+  const sidebarDots = useSidebarDots(conversationId ?? null);
+
   if (conversationId === undefined) {
     // Not an id: the page renders the 404.
     return null;
@@ -476,9 +484,10 @@ export function ChatRoute({
       agents={agents}
       artifactsHref={routes.artifacts}
       artifactsRuntimeOrigin={artifactsRuntimeOrigin}
-      banner={<DotBanner conversationId={conversationId} />}
+      banner={<DotHome conversationId={conversationId} />}
       brand={<Brand config={config} />}
       client={client}
+      composerPlaceholder={dotName ? t`Message ${dotName}` : undefined}
       config={config}
       conversationId={conversationId}
       dotsHref={routes.dots}
@@ -502,6 +511,7 @@ export function ChatRoute({
       platform={platform}
       sandboxClient={sandboxClient}
       sendTarget={sendTarget}
+      sidebarDots={sidebarDots}
       skills={skills}
       target={target}
       theme={frame.theme}

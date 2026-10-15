@@ -204,3 +204,59 @@ export const dotRunKey = (
 
 export const isDotRunKey = (key: string | null | undefined): boolean =>
   key?.startsWith(DOT_RUN_KEY_PREFIX) ?? false;
+
+const NOT_HANDLE = /[^a-z0-9_-]+/g;
+const EDGE_DASHES = /^[-_]+|[-_]+$/g;
+const HANDLE_MAX = 24;
+
+/**
+ * A free `@handle` from a Dot's name: lowercase, letters, digits, `-` and
+ * `_`, 2–24 long, with `-2`, `-3`… when the owner already uses it.
+ */
+export const handleFrom = (name: string, taken: readonly string[]): string => {
+  const base =
+    name
+      .normalize("NFKD")
+      .toLowerCase()
+      .replace(NOT_HANDLE, "-")
+      .replace(EDGE_DASHES, "")
+      .slice(0, HANDLE_MAX)
+      .replace(EDGE_DASHES, "") || "dot";
+  const stem = base.length < 2 ? `${base}-dot` : base;
+  const used = new Set(taken);
+  if (!used.has(stem)) {
+    return stem;
+  }
+  for (let n = 2; ; n += 1) {
+    const suffix = `-${n}`;
+    const candidate = `${stem.slice(0, HANDLE_MAX - suffix.length)}${suffix}`;
+    if (!used.has(candidate)) {
+      return candidate;
+    }
+  }
+};
+
+/** Who the Dot is, for every turn in its chat, watched or not. */
+export interface DotIdentity {
+  readonly handle: string;
+  readonly instructions: string;
+  readonly name: string;
+  readonly rules: string;
+}
+
+/**
+ * The persona section of a turn in the Dot's own chat, when the owner is
+ * there talking to it. Unattended runs add their own note on top.
+ */
+export const dotPersona = (dot: DotIdentity): string =>
+  [
+    `You are ${dot.name} (@${dot.handle}), the user's own always-on agent (a Dot). Talk like a capable companion: warm, brief and direct. You can run work on a schedule: use the schedule_task tool to set one up when the user asks for something recurring or later, and manage_scheduled_tasks to list, pause or resume yours.`,
+    dot.instructions.trim() === ""
+      ? undefined
+      : `What the owner wants your help with:\n${dot.instructions.trim()}`,
+    dot.rules.trim() === ""
+      ? undefined
+      : `The owner's rules on when to act and when to ask first:\n${dot.rules.trim()}`,
+  ]
+    .filter((section): section is string => Boolean(section))
+    .join("\n\n");

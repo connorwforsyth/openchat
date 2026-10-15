@@ -2,11 +2,9 @@
 
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
-import type { DotScheduleId } from "@workspace/contract/schemas/common";
 import type { Dot } from "@workspace/contract/schemas/dots";
 import type { RunTarget } from "@workspace/contract/schemas/runs";
 import type { SandboxProvider } from "@workspace/contract/schemas/sandbox";
-import { PlusIcon, Trash2Icon } from "@workspace/icons";
 import { Button } from "@workspace/ui/components/button";
 import {
   Dialog,
@@ -24,8 +22,13 @@ import {
   FieldLabel,
 } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+} from "@workspace/ui/components/input-group";
 import { Spinner } from "@workspace/ui/components/spinner";
-import { Switch } from "@workspace/ui/components/switch";
 import { Textarea } from "@workspace/ui/components/textarea";
 import {
   type ChangeEvent,
@@ -35,47 +38,21 @@ import {
   useMemo,
   useState,
 } from "react";
+
 import { useApi } from "@/app/(app)/_shared/api";
 import { type Option, OptionSelect } from "@/app/(app)/_shared/option-select";
 import { AGENT_TABS, usableAgents } from "@/app/(app)/(chat)/usable-agents";
+import { AvatarPicker } from "./avatar-picker";
+import { DotAvatar } from "./dot-avatar";
 
-import {
-  localTimeZone,
-  PRESET_CRON,
-  presetOf,
-  type SchedulePreset,
-} from "./schedule";
-import { useScheduleText } from "./schedule-text";
+// Editing who a Dot is (172): its name, @handle and look, what it helps
+// with, what thinks for it (a model or a published agent) and its
+// workspace. Schedules and rules live in their own profile tabs.
 
-// Creating and editing a Dot (172): who answers (a model or a published
-// agent), standing instructions, the workspace provider, tools it may run
-// unattended, and its schedules with friendly presets and a custom cron.
-
-interface ScheduleDraft {
-  readonly cron: string;
-  readonly enabled: boolean;
-  /** The stored schedule this edits; `null` for a new one. */
-  readonly id: DotScheduleId | null;
-  /** A stable React key, also for new rows. */
-  readonly key: string;
-  readonly prompt: string;
-  readonly timezone: string;
-}
-
-export interface DotDraft {
-  readonly autoApproveTools: string;
-  readonly instructions: string;
-  readonly name: string;
-  readonly sandbox: "default" | SandboxProvider;
-  readonly schedules: readonly ScheduleDraft[];
-  /** `model:<selector>` or `agent:<id>`. */
-  readonly target: string;
-}
-
-const targetKey = (target: RunTarget): string =>
+export const targetKey = (target: RunTarget): string =>
   target.type === "agent" ? `agent:${target.id}` : `model:${target.model}`;
 
-const targetOf = (key: string): RunTarget | null => {
+export const targetOf = (key: string): RunTarget | null => {
   const index = key.indexOf(":");
   const kind = key.slice(0, index);
   const value = key.slice(index + 1);
@@ -87,63 +64,9 @@ const targetOf = (key: string): RunTarget | null => {
     : ({ model: value, type: "model" } as RunTarget);
 };
 
-let rowSeq = 0;
-const rowKey = () => {
-  rowSeq += 1;
-  return `row-${rowSeq}`;
-};
-
-const newSchedule = (cron: string, prompt: string): ScheduleDraft => ({
-  cron,
-  enabled: true,
-  id: null,
-  key: rowKey(),
-  prompt,
-  timezone: localTimeZone(),
-});
-
-/** The "Daily brief" template: a Dot ready to save in two clicks. */
-export const dailyBriefDraft = (
-  target: string,
-  prompt: string,
-  instructions: string,
-  name: string
-): DotDraft => ({
-  autoApproveTools: "",
-  instructions,
-  name,
-  sandbox: "default",
-  schedules: [newSchedule(PRESET_CRON.morning, prompt)],
-  target,
-});
-
-const draftOf = (dot: Dot): DotDraft => ({
-  autoApproveTools: dot.autoApproveTools.join(", "),
-  instructions: dot.instructions,
-  name: dot.name,
-  sandbox: dot.sandboxProvider ?? "default",
-  schedules: dot.schedules.map((schedule) => ({
-    cron: schedule.cron,
-    enabled: schedule.enabled,
-    id: schedule.id,
-    key: schedule.id,
-    prompt: schedule.prompt,
-    timezone: schedule.timezone,
-  })),
-  target: targetKey(dot.target),
-});
-
-const TOOL_SEPARATOR = /[\s,]+/;
-
-const toolsOf = (text: string): string[] =>
-  text
-    .split(TOOL_SEPARATOR)
-    .map((tool) => tool.trim())
-    .filter((tool) => tool !== "");
-
 const AGENT_LIST_LIMIT = 100;
 
-const useTargetOptions = (): readonly Option<string>[] => {
+export const useTargetOptions = (): readonly Option<string>[] => {
   const { t } = useLingui();
   const { query } = useApi();
   const models = useQuery(
@@ -179,223 +102,63 @@ const useTargetOptions = (): readonly Option<string>[] => {
   );
 };
 
-const ScheduleRow = ({
-  index,
-  onChange,
-  onRemove,
-  schedule,
-}: {
-  readonly index: number;
-  readonly onChange: (index: number, next: ScheduleDraft) => void;
-  readonly onRemove: (index: number) => void;
-  readonly schedule: ScheduleDraft;
-}) => {
-  const { t } = useLingui();
-  const ids = useId();
-  const say = useScheduleText();
-  const preset = presetOf(schedule.cron);
-  const presets: readonly Option<SchedulePreset>[] = useMemo(
-    () => [
-      { label: t`Every morning at 8`, value: "morning" },
-      { label: t`Every hour`, value: "hourly" },
-      { label: t`Weekdays at 9`, value: "weekdays" },
-      { label: t`Mondays at 9`, value: "weekly" },
-      { label: t`Every minute (for testing)`, value: "every-minute" },
-      { label: t`Custom`, value: "custom" },
-    ],
-    [t]
-  );
-  const [custom, setCustom] = useState(preset === "custom");
-  const changePreset = useCallback(
-    (next: SchedulePreset) => {
-      setCustom(next === "custom");
-      if (next !== "custom") {
-        onChange(index, { ...schedule, cron: PRESET_CRON[next] });
-      }
-    },
-    [index, onChange, schedule]
-  );
-  const changeCron = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) =>
-      onChange(index, { ...schedule, cron: event.currentTarget.value }),
-    [index, onChange, schedule]
-  );
-  const changePrompt = useCallback(
-    (event: ChangeEvent<HTMLTextAreaElement>) =>
-      onChange(index, { ...schedule, prompt: event.currentTarget.value }),
-    [index, onChange, schedule]
-  );
-  const changeZone = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) =>
-      onChange(index, { ...schedule, timezone: event.currentTarget.value }),
-    [index, onChange, schedule]
-  );
-  const changeEnabled = useCallback(
-    (enabled: boolean) => onChange(index, { ...schedule, enabled }),
-    [index, onChange, schedule]
-  );
-  const remove = useCallback(() => onRemove(index), [index, onRemove]);
-  const position = index + 1;
-  return (
-    <fieldset className="flex flex-col gap-3 rounded-lg border border-border p-3">
-      <div className="flex items-center gap-2">
-        <OptionSelect
-          className="min-w-0 flex-1"
-          label={t`When schedule ${position} runs`}
-          onChange={changePreset}
-          options={presets}
-          value={custom ? "custom" : preset}
-        />
-        <Switch
-          aria-label={t`Schedule ${position} on`}
-          checked={schedule.enabled}
-          onCheckedChange={changeEnabled}
-        />
-        <Button
-          aria-label={t`Remove schedule ${position}`}
-          onClick={remove}
-          size="icon-sm"
-          type="button"
-          variant="ghost"
-        >
-          <Trash2Icon />
-        </Button>
-      </div>
-      {custom ? (
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <Field>
-            <FieldLabel htmlFor={`${ids}-cron`}>
-              <Trans>Cron</Trans>
-            </FieldLabel>
-            <Input
-              autoComplete="off"
-              className="font-mono"
-              id={`${ids}-cron`}
-              onChange={changeCron}
-              placeholder="0 8 * * *"
-              value={schedule.cron}
-            />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor={`${ids}-zone`}>
-              <Trans>Time zone</Trans>
-            </FieldLabel>
-            <Input
-              autoComplete="off"
-              id={`${ids}-zone`}
-              onChange={changeZone}
-              value={schedule.timezone}
-            />
-          </Field>
-        </div>
-      ) : null}
-      <p className="text-muted-foreground text-xs">
-        {say(schedule.cron)} · {schedule.timezone}
-      </p>
-      <Field>
-        <FieldLabel htmlFor={`${ids}-prompt`}>
-          <Trans>Task</Trans>
-        </FieldLabel>
-        <Textarea
-          id={`${ids}-prompt`}
-          onChange={changePrompt}
-          placeholder={t`What should it do each time?`}
-          required
-          rows={2}
-          value={schedule.prompt}
-        />
-      </Field>
-    </fieldset>
-  );
-};
+const LEADING_AT = /^@/;
 
-export interface DotDialogProps {
-  /** The Dot being edited; absent for a new one. */
-  readonly dot?: Dot;
-  /** A template to start a new Dot from. */
-  readonly initial?: DotDraft;
+interface SettingsDraft {
+  readonly avatar: Dot["avatar"];
+  readonly handle: string;
+  readonly instructions: string;
+  readonly name: string;
+  readonly sandbox: "default" | SandboxProvider;
+  /** `model:<selector>` or `agent:<id>`. */
+  readonly target: string;
+}
+
+const draftOf = (dot: Dot): SettingsDraft => ({
+  avatar: dot.avatar,
+  handle: dot.handle,
+  instructions: dot.instructions,
+  name: dot.name,
+  sandbox: dot.sandboxProvider ?? "default",
+  target: targetKey(dot.target),
+});
+
+export interface DotSettingsDialogProps {
+  readonly dot: Dot;
   readonly onOpenChange: (open: boolean) => void;
   readonly onSaved: (dot: Dot) => void;
   readonly open: boolean;
 }
 
-export function DotDialog(props: DotDialogProps) {
-  // Remounted per open, so the form starts from the Dot or the template.
-  return props.open ? <DotForm {...props} /> : null;
+export function DotSettingsDialog(props: DotSettingsDialogProps) {
+  // Remounted per open, so the form starts from the Dot as it is now.
+  return props.open ? <SettingsForm {...props} /> : null;
 }
 
-function DotForm({
+function SettingsForm({
   dot,
-  initial,
   onOpenChange,
   onSaved,
   open,
-}: DotDialogProps) {
+}: DotSettingsDialogProps) {
   const { t } = useLingui();
   const ids = useId();
   const { client } = useApi();
   const targets = useTargetOptions();
-  const [draft, setDraft] = useState<DotDraft>(
-    () =>
-      (dot ? draftOf(dot) : initial) ?? {
-        autoApproveTools: "",
-        instructions: "",
-        name: "",
-        sandbox: "default",
-        schedules: [newSchedule(PRESET_CRON.morning, "")],
-        target: "",
-      }
-  );
-  const target =
-    draft.target === ""
-      ? (targets.find((o) => !o.disabled)?.value ?? "")
-      : draft.target;
+  const [draft, setDraft] = useState<SettingsDraft>(() => draftOf(dot));
 
   const save = useMutation({
-    mutationFn: async (): Promise<Dot> => {
-      const runTarget = targetOf(target);
-      if (!runTarget) {
-        throw new Error("no target");
-      }
-      const fields = {
-        autoApproveTools: toolsOf(draft.autoApproveTools),
+    mutationFn: (): Promise<Dot> => {
+      const runTarget = targetOf(draft.target);
+      return client.dots.update({
+        avatar: draft.avatar,
+        handle: draft.handle.trim().replace(LEADING_AT, ""),
+        id: dot.id,
         instructions: draft.instructions,
         name: draft.name.trim(),
         sandboxProvider: draft.sandbox === "default" ? null : draft.sandbox,
-        target: runTarget,
-      };
-      const scheduleFields = (schedule: ScheduleDraft) => ({
-        cron: schedule.cron.trim(),
-        enabled: schedule.enabled,
-        prompt: schedule.prompt.trim(),
-        timezone: schedule.timezone.trim() || "UTC",
+        ...(runTarget ? { target: runTarget } : {}),
       });
-      if (!dot) {
-        return client.dots.create({
-          ...fields,
-          enabled: true,
-          schedules: draft.schedules.map(scheduleFields),
-        });
-      }
-      await client.dots.update({ id: dot.id, ...fields });
-      const kept = new Set(draft.schedules.map((schedule) => schedule.id));
-      await Promise.all([
-        ...dot.schedules
-          .filter((schedule) => !kept.has(schedule.id))
-          .map((schedule) => client.dots.deleteSchedule({ id: schedule.id })),
-        ...draft.schedules.map((schedule) =>
-          schedule.id
-            ? client.dots.updateSchedule({
-                id: schedule.id,
-                ...scheduleFields(schedule),
-              })
-            : client.dots.createSchedule({
-                dotId: dot.id,
-                ...scheduleFields(schedule),
-              })
-        ),
-      ]);
-      return client.dots.get({ id: dot.id });
     },
     onSuccess: (saved) => {
       onSaved(saved);
@@ -404,62 +167,23 @@ function DotForm({
   });
 
   const set = useCallback(
-    <K extends keyof DotDraft>(key: K, value: DotDraft[K]) =>
+    <K extends keyof SettingsDraft>(key: K, value: SettingsDraft[K]) =>
       setDraft((current) => ({ ...current, [key]: value })),
     []
   );
-  const changeName = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) =>
-      set("name", event.currentTarget.value),
+  const setAvatar = useCallback(
+    (avatar: Dot["avatar"]) => set("avatar", avatar),
     [set]
   );
-  const changeInstructions = useCallback(
-    (event: ChangeEvent<HTMLTextAreaElement>) =>
-      set("instructions", event.currentTarget.value),
+  const setTarget = useCallback((value: string) => set("target", value), [set]);
+  const setSandbox = useCallback(
+    (value: SettingsDraft["sandbox"]) => set("sandbox", value),
     [set]
   );
-  const changeTools = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) =>
-      set("autoApproveTools", event.currentTarget.value),
-    [set]
-  );
-  const changeTarget = useCallback(
-    (value: string) => set("target", value),
-    [set]
-  );
-  const changeSandbox = useCallback(
-    (value: DotDraft["sandbox"]) => set("sandbox", value),
-    [set]
-  );
-  const changeSchedule = useCallback(
-    (index: number, next: ScheduleDraft) =>
-      setDraft((current) => ({
-        ...current,
-        schedules: current.schedules.map((schedule, at) =>
-          at === index ? next : schedule
-        ),
-      })),
-    []
-  );
-  const removeSchedule = useCallback(
-    (index: number) =>
-      setDraft((current) => ({
-        ...current,
-        schedules: current.schedules.filter((_, at) => at !== index),
-      })),
-    []
-  );
-  const addSchedule = useCallback(
-    () =>
-      setDraft((current) => ({
-        ...current,
-        schedules: [
-          ...current.schedules,
-          newSchedule(PRESET_CRON.hourly, current.schedules[0]?.prompt ?? ""),
-        ],
-      })),
-    []
-  );
+  const text =
+    (key: "handle" | "instructions" | "name") =>
+    (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      set(key, event.currentTarget.value);
   const { mutate } = save;
   const submit = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
@@ -468,8 +192,7 @@ function DotForm({
     },
     [mutate]
   );
-
-  const sandboxes: readonly Option<DotDraft["sandbox"]>[] = useMemo(
+  const sandboxes: readonly Option<SettingsDraft["sandbox"]>[] = useMemo(
     () => [
       { label: t`Server default`, value: "default" },
       { label: t`Simulated (just-bash)`, value: "just-bash" },
@@ -480,43 +203,77 @@ function DotForm({
 
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         <form className="contents" onSubmit={submit}>
           <DialogHeader>
             <DialogTitle>
-              {dot ? <Trans>Edit Dot</Trans> : <Trans>New Dot</Trans>}
+              <Trans>Edit {dot.name}</Trans>
             </DialogTitle>
             <DialogDescription>
               <Trans>
-                A Dot is an always-on agent with its own chat and workspace. It
-                runs on its schedules, and you'll see what it found.
+                Who it is, what it helps with, and what thinks for it.
               </Trans>
             </DialogDescription>
           </DialogHeader>
           <FieldGroup>
+            <div className="flex items-center gap-4">
+              <DotAvatar avatar={draft.avatar} size="lg" />
+              <AvatarPicker compact onChange={setAvatar} value={draft.avatar} />
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field>
+                <FieldLabel htmlFor={`${ids}-name`}>
+                  <Trans>Name</Trans>
+                </FieldLabel>
+                <Input
+                  id={`${ids}-name`}
+                  maxLength={24}
+                  onChange={text("name")}
+                  required
+                  value={draft.name}
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor={`${ids}-handle`}>
+                  <Trans>Handle</Trans>
+                </FieldLabel>
+                <InputGroup>
+                  <InputGroupAddon>
+                    <InputGroupText>@</InputGroupText>
+                  </InputGroupAddon>
+                  <InputGroupInput
+                    autoComplete="off"
+                    id={`${ids}-handle`}
+                    maxLength={24}
+                    onChange={text("handle")}
+                    pattern="[a-z0-9][a-z0-9_\-]{1,23}"
+                    required
+                    value={draft.handle}
+                  />
+                </InputGroup>
+              </Field>
+            </div>
             <Field>
-              <FieldLabel htmlFor={`${ids}-name`}>
-                <Trans>Name</Trans>
+              <FieldLabel htmlFor={`${ids}-instructions`}>
+                <Trans>What it helps with</Trans>
               </FieldLabel>
-              <Input
-                autoFocus
-                id={`${ids}-name`}
-                maxLength={200}
-                onChange={changeName}
-                placeholder={t`Morning brief`}
-                required
-                value={draft.name}
+              <Textarea
+                id={`${ids}-instructions`}
+                maxLength={20_000}
+                onChange={text("instructions")}
+                rows={3}
+                value={draft.instructions}
               />
             </Field>
             <Field>
               <FieldLabel htmlFor={`${ids}-target`}>
-                <Trans>Model or agent</Trans>
+                <Trans>Thinks with</Trans>
               </FieldLabel>
               <OptionSelect
                 id={`${ids}-target`}
-                onChange={changeTarget}
+                onChange={setTarget}
                 options={targets}
-                value={target}
+                value={draft.target}
               />
               <FieldDescription>
                 <Trans>
@@ -526,86 +283,29 @@ function DotForm({
               </FieldDescription>
             </Field>
             <Field>
-              <FieldLabel htmlFor={`${ids}-instructions`}>
-                <Trans>Instructions</Trans>
-              </FieldLabel>
-              <Textarea
-                id={`${ids}-instructions`}
-                maxLength={20_000}
-                onChange={changeInstructions}
-                placeholder={t`What it's for and how to report back.`}
-                rows={3}
-                value={draft.instructions}
-              />
-            </Field>
-            <Field>
               <FieldLabel htmlFor={`${ids}-sandbox`}>
                 <Trans>Workspace</Trans>
               </FieldLabel>
               <OptionSelect
                 id={`${ids}-sandbox`}
-                onChange={changeSandbox}
+                onChange={setSandbox}
                 options={sandboxes}
                 value={draft.sandbox}
               />
             </Field>
-            <Field>
-              <FieldLabel htmlFor={`${ids}-tools`}>
-                <Trans>Tools it may use without asking</Trans>
-              </FieldLabel>
-              <Input
-                autoComplete="off"
-                className="font-mono"
-                id={`${ids}-tools`}
-                onChange={changeTools}
-                placeholder="write, edit"
-                value={draft.autoApproveTools}
-              />
-              <FieldDescription>
-                <Trans>
-                  Nobody is there to approve tools while it runs on its own, so
-                  any tool that would ask is refused, unless you name it here.
-                </Trans>
-              </FieldDescription>
-            </Field>
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center justify-between">
-                <span className="font-medium text-sm">
-                  <Trans>Schedules</Trans>
-                </span>
-                <Button
-                  onClick={addSchedule}
-                  size="sm"
-                  type="button"
-                  variant="outline"
-                >
-                  <PlusIcon data-icon="inline-start" />
-                  <Trans>Add schedule</Trans>
-                </Button>
-              </div>
-              {draft.schedules.map((schedule, index) => (
-                <ScheduleRow
-                  index={index}
-                  key={schedule.key}
-                  onChange={changeSchedule}
-                  onRemove={removeSchedule}
-                  schedule={schedule}
-                />
-              ))}
-            </div>
             {save.isError ? (
               <FieldError>
                 <Trans>
-                  It couldn't be saved. Check the schedules' cron and time zone,
-                  then try again.
+                  It couldn't be saved. The handle may be taken by another of
+                  your Dots.
                 </Trans>
               </FieldError>
             ) : null}
           </FieldGroup>
           <DialogFooter>
-            <Button disabled={save.isPending || target === ""} type="submit">
+            <Button disabled={save.isPending} type="submit">
               {save.isPending ? <Spinner data-icon="inline-start" /> : null}
-              {dot ? <Trans>Save</Trans> : <Trans>Create Dot</Trans>}
+              <Trans>Save</Trans>
             </Button>
           </DialogFooter>
         </form>

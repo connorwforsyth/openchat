@@ -27,6 +27,11 @@ export interface ChatSidebarProps {
   /** The org or brand at the top of the sidebar. */
   readonly brand?: ReactNode;
   readonly chats: readonly SidebarChat[];
+  /**
+   * The Dots section (172): replaces the plain `dotsHref` link when the app
+   * lists the owner's Dots itself.
+   */
+  readonly dots?: ReactNode;
   /** Where the Dots page lives (172); a plain link. */
   readonly dotsHref?: string;
   /** Where the library lives (ticket 017); a plain link. */
@@ -44,6 +49,8 @@ export interface ChatSidebarProps {
   readonly onTogglePin: (id: ConversationId, pinned: boolean) => void;
   /** The sidebar toggle, at the end of the brand row (113). */
   readonly toggle?: ReactNode;
+  /** Above the actions: the owner's primary Dot (172). */
+  readonly top?: ReactNode;
 }
 
 // Same rhythm as the chat rows (071): 36px, 44px on touch.
@@ -75,6 +82,7 @@ export function ChatSidebar({
   account,
   activeId,
   artifactsHref,
+  dots,
   dotsHref,
   brand,
   chats,
@@ -88,6 +96,7 @@ export function ChatSidebar({
   onSelect,
   onTogglePin,
   toggle,
+  top,
 }: ChatSidebarProps) {
   const { t } = useLingui();
   const { platform } = usePlatform();
@@ -131,6 +140,7 @@ export function ChatSidebar({
         {toggle}
       </div>
 
+      {top ? <div className="px-2 pb-1">{top}</div> : null}
       <nav aria-label={t`Primary`} className="flex flex-col gap-0.5 px-2">
         <button className={navRowClass} onClick={onNewChat} type="button">
           <NewChatIcon aria-hidden />
@@ -156,14 +166,15 @@ export function ChatSidebar({
             </span>
           </a>
         ) : null}
-        {dotsHref ? (
-          <a className={navRowClass} href={dotsHref}>
-            <BotIcon aria-hidden />
-            <span className="flex-1">
-              <Trans>Dots</Trans>
-            </span>
-          </a>
-        ) : null}
+        {dots ??
+          (dotsHref ? (
+            <a className={navRowClass} href={dotsHref}>
+              <BotIcon aria-hidden />
+              <span className="flex-1">
+                <Trans>Dots</Trans>
+              </span>
+            </a>
+          ) : null)}
         {libraryHref ? (
           <a className={navRowClass} href={libraryHref}>
             <LibraryIcon aria-hidden />

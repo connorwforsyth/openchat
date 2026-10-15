@@ -104,6 +104,15 @@ export const READY_MARK = "composer:ready";
  * Client-only: render it through ComposerLoader, which paints ComposerShell
  * first (and on the server) and loads this module as its own chunk.
  */
+/** The placeholder, in a ref the editor's plugin reads on every redraw. */
+const useLivePlaceholder = (placeholder: string | undefined) => {
+  const { t } = useLingui();
+  const fallback = t`Ask anything`;
+  const shown = useRef(placeholder ?? fallback);
+  shown.current = placeholder ?? fallback;
+  return shown;
+};
+
 export function Composer({
   agents = NONE,
   appearance = "default",
@@ -185,6 +194,8 @@ export function Composer({
     pendingTemplate === null &&
     hasContent({ attachments: files.attachments, text });
 
+  const shownPlaceholder = useLivePlaceholder(placeholder);
+
   // The editor is built once; its plugins call back through this ref so they
   // always see the current props and state.
   const live = useRef<LiveHandlers>({
@@ -251,7 +262,9 @@ export function Composer({
           ],
           render: menus.mentionRenderer,
         },
-        placeholder: placeholder ?? t`Ask anything`,
+        // Read live, so a placeholder that arrives later ("Message Pip",
+        // 172) shows without rebuilding the editor.
+        placeholder: () => shownPlaceholder.current,
         slash: {
           command: ({ editor: current, props: item, range }) =>
             live.current.chooseSlash(current, range, item),
@@ -485,6 +498,14 @@ export function Composer({
       slash: (query) => slashItems(query, slash),
     });
   }, [candidates, refreshMenus, slash]);
+
+  const placeholderText = shownPlaceholder.current;
+  useEffect(() => {
+    // Redraw the empty paragraph's placeholder when it changes.
+    if (placeholderText !== "" && !editor.isDestroyed) {
+      editor.view.dispatch(editor.state.tr.setMeta("placeholder", true));
+    }
+  }, [editor, placeholderText]);
 
   useEffect(() => {
     editor.setEditable(!disabled && pendingTemplate === null, false);

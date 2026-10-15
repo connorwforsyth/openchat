@@ -12,6 +12,7 @@ import {
   deleteDot,
   editDotSchedule,
   getDotFor,
+  listDotActivity,
   listDotsFor,
   markDotRead,
   removeDotSchedule,
@@ -46,6 +47,8 @@ const failure = (error: DotError, errors?: RunErrors): Error => {
   switch (error.type) {
     case "not_found":
       return new ORPCError("NOT_FOUND");
+    case "handle_taken":
+      return validation("Another of your Dots has that handle.", ["handle"]);
     case "no_personal_space":
       return validation("You have no personal space yet.", []);
     case "invalid_cron":
@@ -99,6 +102,9 @@ export const createDotsRouter = (deps: DotDeps) => {
   });
 
   const dots = {
+    activity: authed.dots.activity.handler(async ({ context, input }) =>
+      unwrap(await listDotActivity(db, context.actor.userId, input))
+    ),
     create: authed.dots.create.handler(async ({ context, input }) =>
       unwrap(await createDot(deps, context.actor, input))
     ),

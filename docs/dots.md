@@ -9,6 +9,35 @@ status, next run, last result and an unread marker.
 
 Ticket 172. Contract changes are in their own branch (`t/172a-contract-dots`).
 
+## The Dot home (identity first)
+
+A Dot is someone you talk to, not a cron form. It has a name, an animated
+avatar (`orb|blob|ring|spark|pebble` in a theme colour `--dot-*`; it breathes
+with transform/opacity only, still under reduced motion), an `@handle`
+(unique per owner) and one **primary** Dot per owner (a partial unique index;
+the first Dot is primary, deleting it promotes the newest remaining one).
+
+- **Onboarding** (`/dots` with no Dots, or "New Dot"): name it, pick a look,
+  say what it helps with (or pick Daily brief / Follow-up monitor / Weekly
+  review, which adds a starter schedule), then straight into its chat.
+- **Sidebar**: the primary Dot sits at the top with its avatar; the others are
+  listed under "Dots" (`ChatSidebar`'s `top` and `dots` slots).
+- **Home = its conversation**: the composer says "Message <name>"; the bar
+  above shows status, Check in now, Profile, and a Call slot. If it ran while
+  you were away, a "While you were away, I ran N tasks" card tops the chat.
+- **Profile** (side sheet): Activity (`dots.activity`: runs, status, trigger),
+  Scheduled (the schedules editor), Rules (free-text "when to ask first" plus
+  tools it may use unattended), Computer (slot), Memory (the owner's memory;
+  a Dot runs as its owner).
+- **Conversational scheduling**: every turn in a Dot's chat gets its persona
+  and two tools: `schedule_task` (create; asks for approval when you're there,
+  refused unattended unless auto-approved) and `manage_scheduled_tasks`
+  (list/pause/resume its own; never asks).
+- **Extension slots** (`apps/web/app/(app)/(pages)/dots/dot-extensions.tsx`):
+  `CallButton`, `ComputerTab`, `ComputerTabLabel`, each
+  `ComponentType<{ dot: Dot }> | null`; `DotHome`/`DotProfile` also take an
+  `extensions` prop.
+
 ## Architecture
 
 ```

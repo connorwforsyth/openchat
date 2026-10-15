@@ -8,6 +8,8 @@ import type {
   CreateDotInput,
   CreateDotScheduleInput,
   Dot,
+  DotActivity,
+  DotActivityInput,
   DotLastRun,
   DotSchedule,
   DotScheduleInput,
@@ -29,6 +31,7 @@ import {
   deleteDot as deleteDotRow,
   deleteDotSchedule,
   dotForRun,
+  dotHandleTaken,
   getDot,
   getDotById,
   getDotSchedule,
@@ -38,11 +41,16 @@ import {
   insertDotSchedules,
   latestDotRuns,
   latestMessageId,
+  listDotHandles,
+  listDotRuns,
   listDotSchedules,
   listDots,
   markDotViewed,
+  promoteNewestDot,
   recentScheduleStatuses,
   setDotScheduleStatus,
+  setPrimaryDot,
+  unreadDotRunCounts,
   updateDot as updateDotRow,
   updateDotSchedule,
 } from "@workspace/db/queries/dots";
@@ -63,6 +71,7 @@ import {
   DEFAULT_DOT_PROMPT,
   dotRunKey,
   dotStatusOf,
+  handleFrom,
   isActiveRun,
   isUnread,
   nextFor,
@@ -78,6 +87,7 @@ import {
 export type DotError =
   | { readonly type: "not_found" }
   | { readonly type: "no_personal_space" }
+  | { readonly type: "handle_taken" }
   | (CronError & { readonly path: readonly (string | number)[] })
   | { readonly error: CreateRunError; readonly type: "run" };
 
@@ -136,7 +146,8 @@ export const toDotLastRun = (row: DotLastRunRow): DotLastRun => ({
 export const toDot = (
   row: DotRow,
   schedules: readonly DotScheduleRow[],
-  last: DotLastRunRow | undefined
+  last: DotLastRunRow | undefined,
+  unreadRuns = 0
 ): Dot => {
   const lastRun = last ? toDotLastRun(last) : null;
   const upcoming = row.enabled
@@ -146,38 +157,46 @@ export const toDot = (
     : [];
   return {
     autoApproveTools: row.autoApproveTools,
+    avatar: { color: row.avatarColor, style: row.avatarStyle },
     conversationId: row.conversationId,
     createdAt: row.createdAt.toISOString(),
     enabled: row.enabled,
+    handle: row.handle,
     id: row.id,
     instructions: row.instructions,
     lastRun,
+    lastViewedAt: iso(row.lastViewedAt),
     name: row.name,
     nextRunAt:
       upcoming.length > 0
         ? new Date(Math.min(...upcoming)).toISOString()
         : null,
     ownerId: row.ownerId,
+    primary: row.primary,
+    rules: row.rules,
     sandboxProvider: row.sandboxProvider ?? null,
     schedules: schedules.map(toDotSchedule),
     status: dotStatusOf(lastRun),
     target: row.target,
     unread: isUnread(lastRun, row.lastViewedAt),
+    unreadRuns,
     updatedAt: row.updatedAt.toISOString(),
   };
 };
 
 const hydrate = async (db: Db, rows: readonly DotRow[]): Promise<Dot[]> => {
   const ids = rows.map((row) => row.id);
-  const [schedules, last] = await Promise.all([
+  const [schedules, last, unread] = await Promise.all([
     listDotSchedules(db, ids),
     latestDotRuns(db, ids),
+    unreadDotRunCounts(db, ids),
   ]);
   return rows.map((row) =>
     toDot(
       row,
       schedules.filter((schedule) => schedule.dotId === row.id),
-      last.find((run) => run.dotId === row.id)
+      last.find((run) => run.dotId === row.id),
+      unread.get(row.id) ?? 0
     )
   );
 };
@@ -235,19 +254,28 @@ export const createDot = async (
   if (!context.ok) {
     return err({ type: "no_personal_space" });
   }
+  const handles = await listDotHandles(db, actor.userId);
+  if (input.handle && handles.includes(input.handle)) {
+    return err({ type: "handle_taken" });
+  }
+  const handle = input.handle ?? handleFrom(input.name, handles);
   const conversation = await createConversation(db, {
     context: context.value,
     defaultTarget: input.target,
     ownerId: actor.userId,
     title: input.name,
   });
-  const row = await insertDot(db, {
+  const inserted = await insertDot(db, {
     autoApproveTools: [...input.autoApproveTools],
+    avatarColor: input.avatar.color,
+    avatarStyle: input.avatar.style,
     conversationId: conversation.id,
     enabled: input.enabled,
+    handle,
     instructions: input.instructions,
     name: input.name,
     ownerId: actor.userId,
+    rules: input.rules,
     sandboxProvider: input.sandboxProvider,
     target: input.target,
   });
@@ -255,14 +283,20 @@ export const createDot = async (
     db,
     input.schedules.map((schedule, index) => ({
       cron: schedule.cron,
-      dotId: row.id,
+      dotId: inserted.id,
       enabled: schedule.enabled,
       nextRunAt: schedule.enabled ? (firstRuns[index] ?? null) : null,
       prompt: schedule.prompt,
       timezone: schedule.timezone,
     }))
   );
-  return ok(await one(db, row));
+  // The first Dot is the primary one; asking for it moves the mark here.
+  const makePrimary = input.primary || handles.length === 0;
+  const row =
+    makePrimary && (await setPrimaryDot(db, inserted.id, actor.userId))
+      ? await getDot(db, inserted.id, actor.userId)
+      : inserted;
+  return ok(await one(db, row ?? inserted));
 };
 
 export const updateDot = async (
@@ -270,8 +304,20 @@ export const updateDot = async (
   actor: Actor,
   input: UpdateDotInput
 ): Promise<Result<Dot, DotError>> => {
-  const { id, ...patch } = input;
-  const row = await updateDotRow(deps.db, id, actor.userId, patch);
+  const { avatar, id, primary, ...rest } = input;
+  if (
+    rest.handle &&
+    (await dotHandleTaken(deps.db, actor.userId, rest.handle, id))
+  ) {
+    return err({ type: "handle_taken" });
+  }
+  if (primary && !(await setPrimaryDot(deps.db, id, actor.userId))) {
+    return err({ type: "not_found" });
+  }
+  const row = await updateDotRow(deps.db, id, actor.userId, {
+    ...rest,
+    ...(avatar ? { avatarColor: avatar.color, avatarStyle: avatar.style } : {}),
+  });
   return row ? ok(await one(deps.db, row)) : err({ type: "not_found" });
 };
 
@@ -279,10 +325,34 @@ export const deleteDot = async (
   db: Db,
   actor: Actor,
   id: DotId
-): Promise<Result<void, DotError>> =>
-  (await deleteDotRow(db, id, actor.userId))
-    ? ok(undefined)
-    : err({ type: "not_found" });
+): Promise<Result<void, DotError>> => {
+  if (!(await deleteDotRow(db, id, actor.userId))) {
+    return err({ type: "not_found" });
+  }
+  await promoteNewestDot(db, actor.userId);
+  return ok(undefined);
+};
+
+/** The runs the Dot started, newest first, for its Activity tab. */
+export const listDotActivity = async (
+  db: Db,
+  ownerId: UserId,
+  input: DotActivityInput
+): Promise<Result<DotActivity[], DotError>> => {
+  const dot = await getDot(db, input.id, ownerId);
+  if (!dot) {
+    return err({ type: "not_found" });
+  }
+  const rows = await listDotRuns(db, dot.id, input.limit);
+  return ok(rows.map(toDotLastRun));
+};
+
+/** One Dot's schedules, for its own `manage_scheduled_tasks` tool. */
+export const scheduleDotsListFor = async (
+  db: Db,
+  dotId: DotId
+): Promise<DotSchedule[]> =>
+  (await listDotSchedules(db, [dotId])).map(toDotSchedule);
 
 export const markDotRead = async (
   deps: Pick<DotDeps, "db" | "now">,
@@ -294,7 +364,7 @@ export const markDotRead = async (
 };
 
 export const addDotSchedule = async (
-  deps: DotDeps,
+  deps: Pick<DotDeps, "db" | "now">,
   actor: Actor,
   input: CreateDotScheduleInput
 ): Promise<Result<DotSchedule, DotError>> => {
@@ -320,7 +390,7 @@ export const addDotSchedule = async (
 };
 
 export const editDotSchedule = async (
-  deps: DotDeps,
+  deps: Pick<DotDeps, "db" | "now">,
   actor: Actor,
   input: UpdateDotScheduleInput
 ): Promise<Result<DotSchedule, DotError>> => {

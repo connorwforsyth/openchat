@@ -214,7 +214,7 @@ export const createServices = (options: ServicesOptions): Services => {
         report,
         settings: memory,
       }),
-      dbDotPolicy(db)
+      dbDotPolicy(db, options.now)
     ),
     timeoutMs: config.limits.runTimeoutSeconds * 1000,
     writer: streams,
