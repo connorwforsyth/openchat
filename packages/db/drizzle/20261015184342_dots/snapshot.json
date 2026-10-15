@@ -1,8 +1,8 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "41cdc2c3-454a-4f97-8e74-e73aaf4ca342",
-  "prevIds": ["4af760d3-483e-4c23-b3f8-34c8de33f54c"],
+  "id": "73164a50-7fe6-48f6-8f2b-2b2d2a3ab9ac",
+  "prevIds": ["9d72a2a9-e437-4c94-a8ed-3d7395daa99a"],
   "ddl": [
     {
       "isRlsEnabled": false,
@@ -10910,7 +10910,7 @@
       "table": "dot_schedule"
     },
     {
-      "value": "\"kind\" in ('code', 'html', 'react', 'markdown', 'svg', 'mermaid', 'site', 'document', 'image')",
+      "value": "\"kind\" in ('code', 'html', 'react', 'markdown', 'svg', 'mermaid', 'site', 'document', 'image', 'presentation', 'spreadsheet', 'diagram')",
       "name": "artifact_kind",
       "entityType": "checks",
       "schema": "public",
