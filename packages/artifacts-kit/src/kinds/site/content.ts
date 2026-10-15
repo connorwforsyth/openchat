@@ -3,23 +3,27 @@ import { z } from "zod";
 // What a Site version stores (125). `artifact_version.content` is text, so
 // a site is JSON text of this shape:
 //
-//   { "stack": "html-tailwind",
-//     "files": { "index.html": "<!doctype html>…", "about.html": "…",
-//                "css/site.css": "…", "app.js": "…", "logo.svg": "<svg…" } }
+//   { "files": { "index.tsx": "import { Hero } from \"@workspace/site-ui\";…",
+//                "about.html": "<!doctype html>…", "css/site.css": "…",
+//                "app.js": "…", "logo.svg": "<svg…" } }
 //
-// `files` maps a relative path to the file's text. `index.html` is the home
-// page. `stack` names the stack the site is built with (`./stacks.ts`), and
-// defaults to `html-tailwind`. Sites are text only: raster images come from
+// `files` maps a relative path to the file's text. A page is an `.html`
+// file, or a `.tsx` file (163) built from `@workspace/site-ui`'s blocks,
+// which is served as the `.html` page of the same name. The home page is
+// `index.tsx` or `index.html`. Sites are text only: raster images come from
 // an allowed origin or a `data:` URL, and drawings are SVG.
+//
+// `stack` is legacy: 125 stored one ("html-tailwind") and 163 removed
+// stacks, so it's still accepted, and nothing reads it.
 
-/** The stacks a site can be built with; the first is the default. */
-export const SITE_STACK_IDS = ["html-tailwind", "react-ui"] as const;
-export const siteStackIdSchema = z.enum(SITE_STACK_IDS);
-export type SiteStackId = z.infer<typeof siteStackIdSchema>;
-export const DEFAULT_SITE_STACK: SiteStackId = "html-tailwind";
+/** What versions saved before 163 hold in `stack`; nothing reads it. */
+export const DEFAULT_SITE_STACK = "html-tailwind";
 
-/** The page a visitor lands on. */
+/** The page a visitor lands on, once built. */
 export const SITE_ENTRY = "index.html";
+
+/** The files that can be the home page; a site has exactly one. */
+export const SITE_ENTRY_SOURCES = ["index.tsx", "index.html"] as const;
 
 /** The file types a site may hold, by extension. */
 export const SITE_EXTENSIONS = [
@@ -29,6 +33,7 @@ export const SITE_EXTENSIONS = [
   "mjs",
   "json",
   "svg",
+  "tsx",
   "txt",
 ] as const;
 
@@ -78,7 +83,8 @@ export const siteFilesSchema = z
 
 export const siteSourceSchema = z.object({
   files: siteFilesSchema,
-  stack: siteStackIdSchema.default(DEFAULT_SITE_STACK),
+  /** Legacy (see above): accepted and never read. */
+  stack: z.string().max(64).optional(),
 });
 export type SiteContent = z.infer<typeof siteSourceSchema>;
 
@@ -94,8 +100,7 @@ export const siteContentSchema = z
     } catch {
       context.addIssue({
         code: "custom",
-        message:
-          'isn\'t JSON. A site is {"stack": "html-tailwind", "files": {"index.html": "…"}}',
+        message: 'isn\'t JSON. A site is {"files": {"index.tsx": "…"}}',
       });
       return z.NEVER;
     }
@@ -108,4 +113,11 @@ export const extensionOf = (path: string): string =>
 
 /** The site as the JSON text a version stores. */
 export const siteContentText = (content: SiteContent): string =>
-  JSON.stringify({ files: content.files, stack: content.stack });
+  JSON.stringify({ files: content.files });
+
+/** Whether `path` is a page written in TSX, served as `pageOf(path)`. */
+export const isTsxPage = (path: string): boolean => extensionOf(path) === "tsx";
+
+/** The page a visitor opens for `path`: `about.tsx` is served as `about.html`. */
+export const pageOf = (path: string): string =>
+  isTsxPage(path) ? `${path.slice(0, path.lastIndexOf("."))}.html` : path;

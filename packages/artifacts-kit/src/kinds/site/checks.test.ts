@@ -6,19 +6,18 @@ import { SITE_LIMITS } from "./content";
 import { siteKind } from "./kind";
 
 // The Site kind's checks (125), through `checkArtifact` as a save runs them:
-// the content's shape first, then the stack's rules.
+// the content's shape first, then the pages' rules.
 
 const BAD_PATH = /^files\.\.\.\/x\.html isn't a file path a site can have/;
 const site = siteKind();
 const page = (body: string, head = "") =>
   `<!doctype html><html><head>${head}</head><body>${body}</body></html>`;
-const json = (files: Record<string, string>, stack?: string) =>
-  JSON.stringify(stack ? { files, stack } : { files });
-const check = (files: Record<string, string>, stack?: string) =>
-  checkArtifact(site, json(files, stack));
+const json = (files: Record<string, string>) => JSON.stringify({ files });
+const check = (files: Record<string, string>) =>
+  checkArtifact(site, json(files));
 
 describe("the Site kind's checks", () => {
-  it("accept a plain site, defaulting its stack", () => {
+  it("accept a plain site", () => {
     expect(
       check({
         "about.html": page('<a href="index.html">Home</a>'),
@@ -33,13 +32,12 @@ describe("the Site kind's checks", () => {
     ).toEqual([]);
     expect(site.content.parse(json({ "index.html": page("") }))).toEqual({
       files: { "index.html": page("") },
-      stack: "html-tailwind",
     });
   });
 
   it("say content that isn't JSON of the right shape is wrong, before anything else", () => {
     expect(checkArtifact(site, "<html></html>")).toEqual([
-      'content isn\'t JSON. A site is {"stack": "html-tailwind", "files": {"index.html": "…"}}',
+      'content isn\'t JSON. A site is {"files": {"index.tsx": "…"}}',
     ]);
     expect(checkArtifact(site, json({ "../x.html": "<p>" }))).toEqual([
       expect.stringMatching(BAD_PATH),
@@ -51,7 +49,7 @@ describe("the Site kind's checks", () => {
 
   it("need a home page, at most the file and size limits, and HTML pages", () => {
     expect(check({ "about.html": page("") })).toEqual([
-      "has no index.html: every site needs a home page there",
+      "has no home page: every site needs index.tsx or index.html",
     ]);
     const many = Object.fromEntries(
       Array.from({ length: SITE_LIMITS.files + 1 }, (_, index) => [
@@ -147,12 +145,95 @@ describe("the Site kind's checks", () => {
       "index.html uses fetch(), WebSocket: sites have no network and no storage, so keep data in the page itself",
     ]);
   });
+});
 
-  it("refuse the react-ui stack, which isn't built yet", () => {
-    expect(check({ "index.html": page("") }, "react-ui")).toEqual([
-      'the "react-ui" stack isn\'t available here. Use "html-tailwind"',
+const HOME_TSX = [
+  'import { useState } from "react";',
+  'import { FeatureGrid, Hero, Page } from "@workspace/site-ui";',
+  "export default function Home() {",
+  '  return <Page><Hero title="Hi" actions={[{ label: "About", href: "about.html" }]} /><FeatureGrid features={[]} /><img src="logo.svg" alt="" /></Page>;',
+  "}",
+].join("\n");
+
+describe("the Site kind's checks on TSX pages (163)", () => {
+  it("accept a page built from site-ui, linking another TSX page by its .html name", () => {
+    expect(
+      check({
+        "about.tsx":
+          'import { Page } from "@workspace/site-ui";\nexport default () => <Page><a href="index.html">Home</a></Page>;',
+        "index.tsx": HOME_TSX,
+        "logo.svg": "<svg xmlns='http://www.w3.org/2000/svg'></svg>",
+      })
+    ).toEqual([]);
+  });
+
+  it("want one home page, and one file per page", () => {
+    expect(
+      check({
+        "about.html": page(""),
+        "index.html": page(""),
+        "index.tsx": HOME_TSX,
+        "logo.svg": "<svg/>",
+      })
+    ).toEqual([
+      "has both index.tsx and index.html: a site has one home page, so keep one of them",
     ]);
-    expect(check({ "index.html": page("") }, "vue")).toHaveLength(1);
+    expect(
+      check({
+        "about.html": page(""),
+        "about.tsx": HOME_TSX.replace("Home", "About"),
+        "index.tsx": HOME_TSX,
+        "logo.svg": "<svg/>",
+      })
+    ).toEqual([
+      "has both about.tsx and about.html, which would be the same page: keep one of them",
+    ]);
+  });
+
+  it("name imports a page can't use and components site-ui doesn't have", () => {
+    const problems = check({
+      "index.tsx": [
+        'import confetti from "canvas-confetti";',
+        'import { Hero, Bogus, type HeroProps } from "@workspace/site-ui";',
+        'import * as UI from "@workspace/site-ui";',
+        'import "./site.css";',
+        "export default function Home() { return <Hero title='x' />; }",
+      ].join("\n"),
+    });
+    expect(problems).toEqual([
+      expect.stringContaining(
+        'index.tsx imports "canvas-confetti", which a page can\'t use. A TSX page imports only "react", "react/jsx-runtime", "@workspace/site-ui"'
+      ),
+      expect.stringContaining(
+        'index.tsx imports "./site.css", which a page can\'t use.'
+      ),
+      "index.tsx: Bogus isn't a site-ui component. It has: Cta, Faq, FeatureGrid, Footer, Hero, Nav, Page, Pricing, Prose, Section, Stats, Testimonial",
+      'index.tsx imports all of "@workspace/site-ui" at once; import the blocks by name, like import { Hero, FeatureGrid } from "@workspace/site-ui"',
+    ]);
+  });
+
+  it("want the page as the default export, and keep it off the network", () => {
+    expect(
+      check({
+        "index.tsx":
+          'import { Page } from "@workspace/site-ui";\nexport function Home() { fetch("x"); return <Page />; }',
+      })
+    ).toEqual([
+      "index.tsx has no default export: export the page as `export default function Home() { return <Page>…</Page>; }`",
+      "index.tsx uses fetch(): sites have no network and no storage, so keep data in the page itself",
+    ]);
+  });
+
+  it("check a page's links and images, in tags and in props", () => {
+    expect(
+      check({
+        "index.tsx":
+          'import { Nav, Page } from "@workspace/site-ui";\nexport default () => <Page><Nav brand="x" label="Main" links={[{ label: "Gone", href: "gone.html" }]} /><img src="https://evil.example/p.png" alt="" /></Page>;',
+      })
+    ).toEqual([
+      'index.tsx refers to "gone.html", which isn\'t a file in the site',
+      `index.tsx loads "https://evil.example/p.png", which is blocked: sites may load only from ${DEFAULT_SITE_ORIGINS.join(", ")}`,
+    ]);
   });
 });
 
@@ -162,6 +243,7 @@ describe("an instance's kinds", () => {
       site: {
         allowedOrigins: ["https://cdn.example.com"],
         enabled: true,
+        // Deprecated (163), and ignored.
         stack: "html-tailwind",
       },
     });
@@ -177,7 +259,7 @@ describe("an instance's kinds", () => {
       )
     ).toHaveLength(1);
     const off = instanceArtifactKinds({
-      site: { allowedOrigins: [], enabled: false, stack: "html-tailwind" },
+      site: { allowedOrigins: [], enabled: false },
     });
     expect(off.kinds).not.toContain("site");
     expect(off.kinds).toContain("html");

@@ -163,8 +163,10 @@ models:
   descriptions:
     fast: Quick everyday answers
     strong: Hard problems and long documents
+  # Defaults to auto.cheap. Set to false to name chats from their first message.
+  # conversationTitleModel: fast
 
-# Instance-wide limits; each org chooses within them in the admin UI.
+  # Instance-wide limits; each org chooses within them in the admin UI.
 policies:
   chatContext: [ personal, team, org ]
   auditPolicy: allowed # allowed | forbidden
@@ -230,7 +232,8 @@ artifacts:
     site:
       # Sites (125): small static websites, published to a link on the runtime's origin
       enabled: true
-      stack: html-tailwind # react-ui is defined but not available yet
+      # stack: deprecated and ignored (163). Pages are TSX built from
+      # @workspace/site-ui, or plain HTML; there are no stacks to pick.
       # The public origins sites may load fonts, styles, scripts and images
       # from; their CSP blocks everything else. https only; https://*.host
       # covers subdomains. These are the defaults.
@@ -411,8 +414,10 @@ models:
   # Beats what a provider's catalog says; \`auto\` has its own.
   descriptions:
     strong: Hard problems and long documents
+  # Defaults to auto.cheap. Set to false to name chats from their first message.
+  # conversationTitleModel: fast
 
-# Instance-wide limits; each org chooses within them in the admin UI.
+  # Instance-wide limits; each org chooses within them in the admin UI.
 policies:
   chatContext: [ personal, team, org ]
   auditPolicy: allowed # allowed | forbidden
@@ -478,7 +483,8 @@ artifacts:
     site:
       # Sites (125): small static websites, published to a link on the runtime's origin
       enabled: true
-      stack: html-tailwind # react-ui is defined but not available yet
+      # stack: deprecated and ignored (163). Pages are TSX built from
+      # @workspace/site-ui, or plain HTML; there are no stacks to pick.
       # The public origins sites may load fonts, styles, scripts and images
       # from; their CSP blocks everything else. https only; https://*.host
       # covers subdomains. These are the defaults.
@@ -651,8 +657,10 @@ models:
   descriptions:
     fast: Quick everyday answers
     strong: Hard problems and long documents
+  # Defaults to auto.cheap. Set to false to name chats from their first message.
+  # conversationTitleModel: fast
 
-# Instance-wide limits; each org chooses within them in the admin UI.
+  # Instance-wide limits; each org chooses within them in the admin UI.
 policies:
   chatContext: [ personal, team, org ]
   auditPolicy: allowed # allowed | forbidden
@@ -718,7 +726,8 @@ artifacts:
     site:
       # Sites (125): small static websites, published to a link on the runtime's origin
       enabled: true
-      stack: html-tailwind # react-ui is defined but not available yet
+      # stack: deprecated and ignored (163). Pages are TSX built from
+      # @workspace/site-ui, or plain HTML; there are no stacks to pick.
       # The public origins sites may load fonts, styles, scripts and images
       # from; their CSP blocks everything else. https only; https://*.host
       # covers subdomains. These are the defaults.

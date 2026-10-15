@@ -487,7 +487,7 @@
         },
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -517,7 +517,7 @@
         },
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -552,7 +552,7 @@
         },
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -582,7 +582,7 @@
         "mermaid": "saved",
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -607,7 +607,7 @@
         },
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -637,7 +637,7 @@
         },
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -672,7 +672,7 @@
         },
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -707,7 +707,7 @@
         },
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -742,7 +742,7 @@
         },
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -787,7 +787,7 @@
         },
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -822,7 +822,7 @@
         "mermaid": "saved",
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -857,7 +857,7 @@
         },
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -892,7 +892,7 @@
         },
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -922,7 +922,7 @@
         },
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -952,7 +952,7 @@
         },
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -982,7 +982,7 @@
         },
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -1027,7 +1027,7 @@
         },
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -1062,7 +1062,7 @@
         },
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -1087,7 +1087,7 @@
         },
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -1122,7 +1122,7 @@
         },
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -1152,7 +1152,7 @@
         "mermaid": "saved",
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -1182,7 +1182,7 @@
         "mermaid": "saved",
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -1212,7 +1212,7 @@
         "mermaid": "saved",
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -1242,7 +1242,7 @@
         "mermaid": "saved",
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -1272,7 +1272,7 @@
         "mermaid": "saved",
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -1302,7 +1302,7 @@
         "mermaid": "saved",
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -1332,7 +1332,7 @@
         "mermaid": "saved",
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -1362,7 +1362,7 @@
         "mermaid": "saved",
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -1392,7 +1392,7 @@
         "mermaid": "saved",
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -1422,7 +1422,7 @@
         "mermaid": "saved",
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -1457,7 +1457,7 @@
         },
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -1492,7 +1492,7 @@
         },
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -1522,7 +1522,7 @@
         "mermaid": "saved",
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -1557,7 +1557,7 @@
         },
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -1587,7 +1587,7 @@
         "mermaid": "saved",
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -1622,7 +1622,7 @@
         },
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -1657,7 +1657,7 @@
         },
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -1682,7 +1682,7 @@
         },
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -1727,7 +1727,7 @@
         },
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -1762,7 +1762,7 @@
         },
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -1792,7 +1792,7 @@
         },
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -1822,7 +1822,7 @@
         },
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -1852,7 +1852,7 @@
         },
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -1882,7 +1882,7 @@
         },
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -1907,7 +1907,7 @@
         },
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -1952,7 +1952,7 @@
         },
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -1987,7 +1987,7 @@
         },
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -2022,7 +2022,7 @@
         },
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -2052,7 +2052,7 @@
         },
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -2082,7 +2082,7 @@
         },
         "site": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
@@ -3080,301 +3080,301 @@
       "site": {
         "recorded counter-button": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "recorded landing-page": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "recorded serve-page": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "recorded oauth-login": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "recorded sun-icon": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "a fence first": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "a lone close": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "an open directive": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "angle brackets": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "blank lines": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "carriage returns": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "classDiagram glued": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "default export no space": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "default export spaced": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "default export, newline": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "doctype only": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "empty string": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "html comment": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "indented svg": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "markdown with fences and directives": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "mermaid graph": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "mermaid flowchart": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "mermaid sequenceDiagram": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "mermaid classDiagram": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "mermaid stateDiagram": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "mermaid erDiagram": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "mermaid gantt": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "mermaid pie": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "mermaid mindmap": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "mermaid timeline": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "mermaid journey": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "mermaid gitGraph": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "mermaid stateDiagram-v2": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "mermaid after a fence": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "mermaid indented": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "named export only": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "one word": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "react element default": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "spaces only": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "svg after text": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "svg in a fence": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "svg self closing": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "svg trailing text": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "svg uppercase": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "svg with attributes": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "tab only": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "tag uppercase": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "tag with digit": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "text then a tag": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         },
         "trailing fence line": {
           "problems": [
-            "content isn't JSON. A site is {\"stack\": \"html-tailwind\", \"files\": {\"index.html\": \"…\"}}"
+            "content isn't JSON. A site is {\"files\": {\"index.tsx\": \"…\"}}"
           ],
           "status": "invalid"
         }
