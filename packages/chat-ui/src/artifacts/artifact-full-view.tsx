@@ -68,9 +68,14 @@ export function ArtifactFullView({
   const conversationId = artifact?.conversationId;
   const goToChat = useCallback(() => {
     if (conversationId) {
-      navigate(links.chat(conversationId));
+      // Back in the chat with this artifact open beside it (171).
+      navigate(
+        links.chatWithArtifact
+          ? links.chatWithArtifact(conversationId, id)
+          : links.chat(conversationId)
+      );
     }
-  }, [conversationId, links, navigate]);
+  }, [conversationId, id, links, navigate]);
   const header = useCallback(
     (content: ReactNode) => (
       <div className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
@@ -145,7 +150,7 @@ export function ArtifactFullView({
             {artifact.canGoToChat ? (
               <Button onClick={goToChat} size="sm" variant="outline">
                 <MessageSquareIcon aria-hidden data-icon="inline-start" />
-                <Trans>Open chat</Trans>
+                <Trans>Open in chat</Trans>
               </Button>
             ) : null}
             <ArtifactMenu

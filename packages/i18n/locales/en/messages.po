@@ -350,6 +350,10 @@ msgstr "AI Elements"
 msgid "All"
 msgstr "All"
 
+#: ../chat-ui/src/workspace/artifact-switcher.tsx
+msgid "All artifacts"
+msgstr "All artifacts"
+
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgid "All kinds"
 msgstr "All kinds"
@@ -452,6 +456,7 @@ msgstr "Artifact"
 msgid "Artifact views"
 msgstr "Artifact views"
 
+#: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
 #: ../palette/src/context-actions.ts
 msgid "artifacts"
 msgstr "artifacts"
@@ -459,18 +464,35 @@ msgstr "artifacts"
 #: ../../apps/web/app/(app)/(pages)/page-shell.tsx
 #: ../chat-ui/src/artifacts/artifact-full-view.tsx
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
+#: ../chat-ui/src/header/overflow-menu.tsx
+#: ../chat-ui/src/header/panel-toggles.tsx
+#: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 #: ../chat-ui/src/workspace/workspace-panel.tsx
+#: ../palette/src/command-palette.tsx
 msgid "Artifacts"
 msgstr "Artifacts"
+
+#: ../chat-ui/src/header/panel-toggles.tsx
+msgid "Artifacts ({artifactCount})"
+msgstr "Artifacts ({artifactCount})"
+
+#: ../chat-ui/src/header/panel-toggles.tsx
+msgid "Artifacts ({artifactCount}), new artifact"
+msgstr "Artifacts ({artifactCount}), new artifact"
 
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgid "Artifacts couldn't be loaded."
 msgstr "Artifacts couldn't be loaded."
 
+#: ../chat-ui/src/workspace/artifact-switcher.tsx
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Artifacts in this chat"
 msgstr "Artifacts in this chat"
+
+#: ../chat-ui/src/header/panel-toggles.tsx
+msgid "Artifacts: new artifact"
+msgstr "Artifacts: new artifact"
 
 #: ../palette/src/command-palette.tsx
 msgid "Ask AI"
@@ -573,6 +595,10 @@ msgstr "Bold"
 #: ../chat-ui/src/header/branch-switcher.tsx
 msgid "Branches"
 msgstr "Branches"
+
+#: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
+msgid "Browse all artifacts"
+msgstr "Browse all artifacts"
 
 #: ../chat-ui/src/header/overflow-menu.tsx
 #: ../chat-ui/src/header/panel-toggles.tsx
@@ -1330,6 +1356,10 @@ msgstr "Dismiss"
 msgid "Document"
 msgstr "Document"
 
+#: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
+msgid "documents"
+msgstr "documents"
+
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgid "Documents, pages and diagrams from your chats, and ones shared with you."
 msgstr "Documents, pages and diagrams from your chats, and ones shared with you."
@@ -1803,6 +1833,10 @@ msgstr "In a library"
 msgid "In an empty message, the up and down arrows bring back what you sent before."
 msgstr "In an empty message, the up and down arrows bring back what you sent before."
 
+#: ../chat-ui/src/workspace/artifact-switcher.tsx
+msgid "In this chat"
+msgstr "In this chat"
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "Informational"
 msgstr "Informational"
@@ -2085,6 +2119,7 @@ msgstr "Loading workspace"
 
 #: ../chat-ui/src/artifacts/artifact-full-view.tsx
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
+#: ../chat-ui/src/workspace/artifact-switcher.tsx
 msgid "Loading…"
 msgstr "Loading…"
 
@@ -2411,6 +2446,14 @@ msgstr "New team"
 msgid "Newer version"
 msgstr "Newer version"
 
+#: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
+msgid "Next artifact"
+msgstr "Next artifact"
+
+#: ../shortcuts/src/registry.ts
+msgid "Next artifact in this chat"
+msgstr "Next artifact in this chat"
+
 #: ../chat-ui/src/header/branch-switcher.tsx
 #: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
 #: ../shortcuts/src/registry.ts
@@ -2654,10 +2697,6 @@ msgstr "Open {path}"
 msgid "Open artifact: {0}"
 msgstr "Open artifact: {0}"
 
-#: ../chat-ui/src/artifacts/artifact-full-view.tsx
-msgid "Open chat"
-msgstr "Open chat"
-
 #: ../ui/src/components/markdown.tsx
 msgid "Open external link?"
 msgstr "Open external link?"
@@ -2666,9 +2705,17 @@ msgstr "Open external link?"
 msgid "Open file"
 msgstr "Open file"
 
+#: ../chat-ui/src/workspace/artifact-switcher.tsx
+msgid "Open full screen"
+msgstr "Open full screen"
+
 #: ../chat-ui/src/workspace/preview.tsx
 msgid "Open in a new tab"
 msgstr "Open in a new tab"
+
+#: ../chat-ui/src/artifacts/artifact-full-view.tsx
+msgid "Open in chat"
+msgstr "Open in chat"
 
 #: ../chat-ui/src/conversation/skill-card.tsx
 msgid "Open in Library"
@@ -2972,6 +3019,14 @@ msgstr "Previews of this kind need the artifact runtime. Its source is in the Co
 msgid "Previous 7 days"
 msgstr "Previous 7 days"
 
+#: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
+msgid "Previous artifact"
+msgstr "Previous artifact"
+
+#: ../shortcuts/src/registry.ts
+msgid "Previous artifact in this chat"
+msgstr "Previous artifact in this chat"
+
 #: ../chat-ui/src/header/branch-switcher.tsx
 #: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
 #: ../shortcuts/src/registry.ts
@@ -3189,6 +3244,10 @@ msgstr "Reasoning"
 #: ../palette/src/command-palette.tsx
 msgid "Recent chats"
 msgstr "Recent chats"
+
+#: ../chat-ui/src/workspace/artifact-switcher.tsx
+msgid "Recent in other chats"
+msgstr "Recent in other chats"
 
 #: ../composer/src/components/target-picker.tsx
 msgid "Recently used"
@@ -3705,6 +3764,10 @@ msgid "Show more"
 msgstr "Show more"
 
 #: ../shortcuts/src/registry.ts
+msgid "Show or hide the artifacts"
+msgstr "Show or hide the artifacts"
+
+#: ../shortcuts/src/registry.ts
 msgid "Show or hide the files"
 msgstr "Show or hide the files"
 
@@ -3715,10 +3778,6 @@ msgstr "Show the page at a phone's width"
 #: ../palette/src/context-actions.ts
 msgid "Show the workspace"
 msgstr "Show the workspace"
-
-#: ../shortcuts/src/registry.ts
-msgid "Show the workspace artifacts"
-msgstr "Show the workspace artifacts"
 
 #: ../../apps/desktop/src/main/menu.ts
 msgid "Show Window"
@@ -3755,6 +3814,10 @@ msgstr "Site"
 #: ../chat-ui/src/workspace/save-site-dialog.tsx
 msgid "site (the whole workspace if empty)"
 msgstr "site (the whole workspace if empty)"
+
+#: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
+msgid "sites"
+msgstr "sites"
 
 #: ../library-ui/src/components/kind.tsx
 msgid "Skill"
@@ -3935,6 +3998,10 @@ msgstr "SVG"
 #: ../chat-ui/src/model/artifact-kinds.ts
 msgid "SVG image"
 msgstr "SVG image"
+
+#: ../chat-ui/src/workspace/artifact-switcher.tsx
+msgid "Switch artifact"
+msgstr "Switch artifact"
 
 #: ../palette/src/context-actions.ts
 msgid "Switch chat context to {label}"
@@ -4904,10 +4971,6 @@ msgstr "Workspace"
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Workspace actions"
 msgstr "Workspace actions"
-
-#: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
-msgid "Workspace artifacts"
-msgstr "Workspace artifacts"
 
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Workspace contents"

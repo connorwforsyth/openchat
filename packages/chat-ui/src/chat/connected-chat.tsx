@@ -118,7 +118,12 @@ import type {
   WorkspaceFilesSource,
 } from "../workspace/model/client";
 import { toTreePaths } from "../workspace/model/tree";
+import type { WorkspaceArtifactLinks } from "../workspace/workspace-panel";
 import { ChatScreen } from "./chat-screen";
+import type { ArtifactParam } from "./use-artifact-access";
+
+export type { ArtifactParam } from "./use-artifact-access";
+
 import { useBranchFeedback } from "./use-branch-feedback";
 import { useChatQueries, useConversationUpdate } from "./use-chat-data";
 
@@ -129,6 +134,14 @@ import { useChatQueries, useConversationUpdate } from "./use-chat-data";
 export interface ConnectedChatProps {
   /** Agents the caller can use, for the composer's picker (`target` and `onTargetChange`). */
   readonly agents?: readonly AgentOption[];
+  /**
+   * Where the panel's artifacts lead (171): their own page, other chats'
+   * and the Artifacts page. Without it the panel's switcher lists only
+   * this chat's.
+   */
+  readonly artifactLinks?: WorkspaceArtifactLinks;
+  /** The address's `?artifact=`, when the app keeps one (171). */
+  readonly artifactParam?: ArtifactParam;
   /** Where the Artifacts page lives (124). */
   readonly artifactsHref?: string;
   /**
@@ -1421,6 +1434,8 @@ const useComposerDrafts = (
 
 export function ConnectedChat({
   agents,
+  artifactLinks,
+  artifactParam,
   artifactsRuntimeOrigin = null,
   brand,
   client,
@@ -1892,6 +1907,7 @@ export function ConnectedChat({
           }}
           streamingMessageId={streamingMessageId}
           workspace={{
+            artifactParam,
             artifacts: {
               api,
               artifacts: data.artifacts.data ?? [],
@@ -1899,6 +1915,8 @@ export function ConnectedChat({
               error: data.versions.isError
                 ? t`Couldn't load this artifact.`
                 : null,
+              links: artifactLinks,
+              loaded: data.artifacts.isSuccess,
               runtimeOrigin: artifactsRuntimeOrigin,
               versions: data.versions.data,
             },

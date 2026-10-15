@@ -84,7 +84,15 @@ export const useShellLayout = (storageKey = SHELL_LAYOUT_STORAGE_KEY) => {
     []
   );
 
-  return { layout, setPanel, setPanelWidth, togglePanel, toggleSidebar };
+  return {
+    layout,
+    /** The stored layout has been read; until then it's the defaults. */
+    restored,
+    setPanel,
+    setPanelWidth,
+    togglePanel,
+    toggleSidebar,
+  };
 };
 
 export type ShellLayoutState = ReturnType<typeof useShellLayout>;

@@ -10,6 +10,7 @@ import {
   FileTextIcon,
   MessageSquareIcon,
   SettingsIcon,
+  ShapesIcon,
   SparklesIcon,
   WrenchIcon,
 } from "@workspace/icons";
@@ -40,6 +41,7 @@ import { buildContextActions, type PaletteContext } from "./context-actions";
 import {
   type CachedChat,
   type PaletteAction,
+  type PaletteArtifact,
   type PaletteLibraryItem,
   paletteAction,
 } from "./items";
@@ -54,12 +56,15 @@ import { type SearchChats, usePaletteSearch } from "./use-palette-search";
 export interface CommandPaletteProps {
   /** App actions (new chat, toggle sidebar, …), most important first. */
   readonly actions?: readonly PaletteAction[];
+  /** Artifacts to find by title (171); listed only while searching. */
+  readonly artifacts?: readonly PaletteArtifact[];
   /** Reads cached conversations; searched on every keystroke. */
   readonly cachedChats: () => readonly CachedChat[];
   readonly context?: PaletteContext;
   readonly library?: readonly PaletteLibraryItem[];
   readonly onAskAi: (prompt: string) => void;
   readonly onNewChatWithAgent?: (item: PaletteLibraryItem) => void;
+  readonly onOpenArtifact?: (artifact: PaletteArtifact) => void;
   readonly onOpenChange: (open: boolean) => void;
   readonly onOpenLibraryItem: (item: PaletteLibraryItem) => void;
   readonly onSelectChat: (
@@ -73,7 +78,7 @@ export interface CommandPaletteProps {
   readonly settings?: readonly PaletteAction[];
 }
 
-const LIMIT = { actions: 8, library: 6, settings: 5 } as const;
+const LIMIT = { actions: 8, artifacts: 6, library: 6, settings: 5 } as const;
 
 // cmdk's own keys for moving the selection (its `vimBindings` add ⌃N/⌃P/⌃J/⌃K).
 const NAVIGATION_KEYS = new Set(["ArrowDown", "ArrowUp", "End", "Home"]);
@@ -220,6 +225,28 @@ const LibraryItem = ({
   );
 };
 
+const ArtifactItem = ({
+  artifact,
+  onDone,
+  onOpen,
+}: {
+  readonly artifact: PaletteArtifact;
+  readonly onDone: () => void;
+  readonly onOpen: (artifact: PaletteArtifact) => void;
+}) => {
+  const perform = useCallback(() => onOpen(artifact), [artifact, onOpen]);
+  return (
+    <PaletteItem
+      onDone={onDone}
+      perform={perform}
+      value={`artifact:${artifact.id}`}
+    >
+      <ShapesIcon />
+      <span className="truncate">{artifact.title}</span>
+    </PaletteItem>
+  );
+};
+
 const AskItem = ({
   onAskAi,
   onDone,
@@ -242,11 +269,13 @@ const AskItem = ({
 
 export const CommandPalette = ({
   actions = [],
+  artifacts = [],
   cachedChats,
   context,
   library = [],
   onAskAi,
   onNewChatWithAgent,
+  onOpenArtifact,
   onOpenChange,
   onSelectChat,
   onOpenLibraryItem,
@@ -320,6 +349,18 @@ export const CommandPalette = ({
         LIMIT.library
       )
     : [];
+  const rankedArtifacts =
+    searching && onOpenArtifact
+      ? rankEntries(
+          trimmed,
+          artifacts.map((artifact) => ({
+            artifact,
+            subtitle: null,
+            title: artifact.title,
+          })),
+          LIMIT.artifacts
+        )
+      : [];
   const rankedSettings = searching
     ? rankEntries(trimmed, settings, LIMIT.settings)
     : [];
@@ -335,6 +376,7 @@ export const CommandPalette = ({
       .filter((action) => !action.disabled)
       .map((action) => action.id),
     ...chats.map((chat) => `chat:${chat.id}`),
+    ...rankedArtifacts.map(({ artifact }) => `artifact:${artifact.id}`),
     ...rankedLibrary.map(({ item }) => `library:${item.id}`),
     ...rankedSettings.map((entry) => entry.id),
     ...(searching ? ["ask-ai"] : []),
@@ -430,6 +472,18 @@ export const CommandPalette = ({
                   key={chat.id}
                   onDone={close}
                   onSelectChat={onSelectChat}
+                />
+              ))}
+            </CommandGroup>
+          ) : null}
+          {onOpenArtifact && rankedArtifacts.length > 0 ? (
+            <CommandGroup heading={t`Artifacts`}>
+              {rankedArtifacts.map(({ artifact }) => (
+                <ArtifactItem
+                  artifact={artifact}
+                  key={artifact.id}
+                  onDone={close}
+                  onOpen={onOpenArtifact}
                 />
               ))}
             </CommandGroup>

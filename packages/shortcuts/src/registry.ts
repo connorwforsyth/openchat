@@ -100,7 +100,22 @@ export const shortcutRegistry: readonly ShortcutDefinition[] = [
     ["A"],
     "chat",
     "panels",
-    msg`Show the workspace artifacts`
+    msg`Show or hide the artifacts`
+  ),
+  // Shift+[ and Shift+], beside the branch keys; ⌘⇧[ is the browser's tabs.
+  define(
+    "artifact.prev",
+    ["{"],
+    "chat",
+    "panels",
+    msg`Previous artifact in this chat`
+  ),
+  define(
+    "artifact.next",
+    ["}"],
+    "chat",
+    "panels",
+    msg`Next artifact in this chat`
   ),
 ];
 

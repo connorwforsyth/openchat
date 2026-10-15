@@ -20,5 +20,7 @@ export const shortcutIdSchema = z.enum([
   "reply.copy",
   "panel.sandbox",
   "panel.artifacts",
+  "artifact.prev",
+  "artifact.next",
 ]);
 export type ShortcutId = z.infer<typeof shortcutIdSchema>;

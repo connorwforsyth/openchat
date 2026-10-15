@@ -14,6 +14,8 @@ import type { LibraryKind } from "@workspace/contract/schemas/library";
 export const routeParams = {
   /** `/?agent=` starts a new chat with that agent ("Use in chat"). */
   agent: "agent",
+  /** `/c/[id]?artifact=` opens the chat with that artifact in its panel (171). */
+  artifact: "artifact",
   /** `/?prompt=` starts a new chat and sends it (the palette's "Ask AI"). */
   askAi: "prompt",
   /** `/sign-up?invite=` returns to the invitation once the account exists. */
@@ -34,6 +36,8 @@ export const routes = {
   askAi: (prompt: string) => withQuery("/", { [routeParams.askAi]: prompt }),
   chat: (id: ConversationId, messageId: MessageId | null = null) =>
     messageId ? `/c/${id}#${messageId}` : `/c/${id}`,
+  chatArtifact: (id: ConversationId, artifactId: ArtifactId) =>
+    withQuery(`/c/${id}`, { [routeParams.artifact]: artifactId }),
   // A search hit names the message; the fragment keeps it in the address.
   chatWithAgent: (agentId: LibraryItemId) =>
     withQuery("/", { [routeParams.agent]: agentId }),

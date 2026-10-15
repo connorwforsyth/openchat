@@ -22,6 +22,8 @@ describe("shortcutRegistry", () => {
     expect(keys("branch.next")).toEqual(["]"]);
     expect(keys("panel.sandbox")).toEqual(["S"]);
     expect(keys("panel.artifacts")).toEqual(["A"]);
+    expect(keys("artifact.prev")).toEqual(["{"]);
+    expect(keys("artifact.next")).toEqual(["}"]);
     expect(keys("help")).toEqual(["?"]);
     expect(keys("sidebar.toggle")).toEqual(["Mod+B"]);
     expect(keys("palette.open")).toEqual(["Mod+K"]);

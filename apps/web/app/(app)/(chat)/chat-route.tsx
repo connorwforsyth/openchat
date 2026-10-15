@@ -8,7 +8,11 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { ConnectedChat } from "@workspace/chat-ui/chat/connected-chat";
+import {
+  type ArtifactParam,
+  ConnectedChat,
+} from "@workspace/chat-ui/chat/connected-chat";
+import { parseArtifactParam } from "@workspace/chat-ui/model/artifact-access";
 import {
   AUTO_TARGET,
   contextKey,
@@ -16,6 +20,7 @@ import {
 } from "@workspace/composer/options";
 import type { ContextOption, SkillOption } from "@workspace/composer/schemas";
 import {
+  type ArtifactId,
   type ConversationId,
   conversationIdSchema,
   type LibraryItemId,
@@ -84,6 +89,40 @@ const useConversationId = (): ConversationId | null | undefined => {
   }
   const parsed = conversationIdSchema.safeParse(params.id);
   return parsed.success ? parsed.data : undefined;
+};
+
+/**
+ * `/c/[id]?artifact=` (171): the artifact open in the chat's panel, kept in
+ * the address so a reload or a shared link reopens it. Written with the
+ * history API, which the router follows without a round trip.
+ */
+const useArtifactParam = (
+  conversationId: ConversationId | null | undefined
+): ArtifactParam | undefined => {
+  const searchParams = useSearchParams();
+  const value = conversationId
+    ? parseArtifactParam(searchParams.get(routeParams.artifact))
+    : null;
+  return useMemo(() => {
+    if (!conversationId) {
+      return;
+    }
+    return {
+      onChange: (artifactId: ArtifactId | null, mode: "push" | "replace") => {
+        const href = `${
+          artifactId
+            ? routes.chatArtifact(conversationId, artifactId)
+            : routes.chat(conversationId)
+        }${window.location.hash}`;
+        if (mode === "push") {
+          window.history.pushState(null, "", href);
+        } else {
+          window.history.replaceState(null, "", href);
+        }
+      },
+      value,
+    };
+  }, [conversationId, value]);
 };
 
 /** Offers the palette this chat's model, context and workspace (D14). */
@@ -450,6 +489,16 @@ export function ChatRoute({
       router.push(id ? routes.chat(id) : routes.home),
     [router]
   );
+  const artifactParam = useArtifactParam(conversationId);
+  const artifactLinks = useMemo(
+    () => ({
+      all: routes.artifacts,
+      fullView: routes.artifact,
+      inChat: routes.chatArtifact,
+      navigate: (href: string) => router.push(href),
+    }),
+    [router]
+  );
   const openAdmin = useCallback(() => router.push(routes.admin), [router]);
   const openSettings = useCallback(
     () => router.push(routes.settings()),
@@ -473,6 +522,8 @@ export function ChatRoute({
   return (
     <ConnectedChat
       agents={agents}
+      artifactLinks={artifactLinks}
+      artifactParam={artifactParam}
       artifactsHref={routes.artifacts}
       artifactsRuntimeOrigin={artifactsRuntimeOrigin}
       brand={<Brand config={config} />}

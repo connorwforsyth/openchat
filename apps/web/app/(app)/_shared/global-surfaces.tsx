@@ -1,7 +1,7 @@
 "use client";
 
 import { useLingui } from "@lingui/react/macro";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   ConversationId,
   MessageId,
@@ -10,6 +10,7 @@ import { libraryKeys } from "@workspace/library-ui/cache";
 import { CommandPalette } from "@workspace/palette/command-palette";
 import {
   type PaletteAction,
+  type PaletteArtifact,
   type PaletteLibraryItem,
   paletteAction,
 } from "@workspace/palette/items";
@@ -30,6 +31,9 @@ import { chatsFromCache, libraryFromCache } from "./palette-cache";
 // The global surfaces (D10, D14): the ⌘K palette and the `?` dialog, and the
 // shortcuts that work on every page. Loaded after boot (see `AppFrame`); the
 // chat screen binds its own view keys (J/K, [ ], S, A, ⌘B) while it's shown.
+
+/** Recent artifacts the palette searches by title. */
+const PALETTE_ARTIFACTS = 50;
 
 const useSettingsEntries = (): readonly PaletteAction[] => {
   const { t } = useLingui();
@@ -138,6 +142,15 @@ const useActions = (): readonly PaletteAction[] => {
         : []),
       paletteAction(
         {
+          id: "action:artifacts",
+          keywords: [t`artifacts`, t`documents`, t`sites`],
+          section: "actions",
+          title: t`Browse all artifacts`,
+        },
+        () => router.push(routes.artifacts)
+      ),
+      paletteAction(
+        {
           id: "action:library",
           keywords: [t`agents`, t`prompts`, t`skills`],
           section: "actions",
@@ -211,6 +224,33 @@ export const GlobalSurfaces = () => {
     [paletteOpen, query, queryClient]
   );
 
+  // Artifacts to find by title (171): the most recent, fetched once the
+  // palette opens and then kept in the cache like everything else it reads.
+  const recentArtifacts = useQuery(
+    query.artifacts.listAll.queryOptions({
+      enabled: paletteOpen,
+      input: { limit: PALETTE_ARTIFACTS, scope: "all" },
+    })
+  );
+  const artifacts = useMemo(
+    (): readonly PaletteArtifact[] =>
+      (recentArtifacts.data?.items ?? []).map((item) => ({
+        conversationId: item.canGoToChat ? item.conversationId : null,
+        id: item.id,
+        title: item.title,
+      })),
+    [recentArtifacts.data]
+  );
+  const openArtifact = useCallback(
+    (artifact: PaletteArtifact) =>
+      router.push(
+        artifact.conversationId
+          ? routes.chatArtifact(artifact.conversationId, artifact.id)
+          : routes.artifact(artifact.id)
+      ),
+    [router]
+  );
+
   const searchChats = useCallback<SearchChats>(
     async (text, signal) =>
       (
@@ -240,10 +280,12 @@ export const GlobalSurfaces = () => {
     <>
       <CommandPalette
         actions={actions}
+        artifacts={artifacts}
         cachedChats={cachedChats}
         context={onChat ? chat.paletteContext : undefined}
         library={library}
         onAskAi={askAi}
+        onOpenArtifact={openArtifact}
         onOpenChange={setPaletteOpen}
         onOpenLibraryItem={openLibraryItem}
         onSelectChat={selectChat}

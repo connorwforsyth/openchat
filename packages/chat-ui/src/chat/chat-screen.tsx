@@ -8,7 +8,10 @@ import type {
   ComposerValue,
   ContextOption,
 } from "@workspace/composer/schemas";
-import type { ConversationId } from "@workspace/contract/schemas/common";
+import type {
+  ArtifactId,
+  ConversationId,
+} from "@workspace/contract/schemas/common";
 import type { Participant } from "@workspace/contract/schemas/conversations";
 import type {
   Message,
@@ -40,6 +43,7 @@ import { ContextControl, showsContext } from "../header/context-control";
 import { HeaderOverflowMenu } from "../header/overflow-menu";
 import { PanelToggles } from "../header/panel-toggles";
 import { ShareMenu } from "../header/share-menu";
+import { artifactInView, stepArtifact } from "../model/artifact-access";
 import { activeFork, stepSibling } from "../model/branch";
 import { groupChats, orderedChats } from "../model/date-groups";
 import type { WorkspaceSection } from "../model/layout";
@@ -83,6 +87,11 @@ import type { HalfRequest } from "../workspace/model/split";
 import { toSandboxPath } from "../workspace/model/tree";
 import type { WorkspaceArtifacts } from "../workspace/workspace-panel";
 import { ComposerDock, useComposerPlacement } from "./composer-dock";
+import {
+  type ArtifactParam,
+  useArtifactUrl,
+  useFreshArtifacts,
+} from "./use-artifact-access";
 
 // The whole chat screen, presentational: the app shell with the sidebar,
 // header, conversation, docked composer and the Workspace panel (files,
@@ -108,6 +117,11 @@ export interface ChatScreenConversation {
 
 /** The chat's Workspace panel (060), controlled by the host. */
 export interface ChatScreenWorkspace {
+  /**
+   * The address's `?artifact=` (171), when the host keeps one: the panel
+   * opens on it after a reload or from a link, and writes it as you pick.
+   */
+  readonly artifactParam?: ArtifactParam;
   readonly artifacts: WorkspaceArtifacts;
   /**
    * Whether the workspace can serve a preview (a just-bash one can't): the
@@ -232,8 +246,14 @@ function ChatScreenBody({
   // Hooks can't be conditional, so the screen's own layout always exists; it
   // just goes unused when the app passes one in.
   const ownLayout = useShellLayout();
-  const { layout, setPanel, setPanelWidth, togglePanel, toggleSidebar } =
-    sharedLayout ?? ownLayout;
+  const {
+    layout,
+    restored,
+    setPanel,
+    setPanelWidth,
+    togglePanel,
+    toggleSidebar,
+  } = sharedLayout ?? ownLayout;
   const narrow = useNarrowScreen();
   const [sidebarSheetOpen, setSidebarSheetOpen] = useState(false);
   // The panel's last section: a narrow screen's sheet keeps showing it
@@ -350,17 +370,18 @@ function ChatScreenBody({
     halfPresses.current += 1;
     setHalfRequest({ half, id: halfPresses.current });
   }, []);
-  const shownHalf = halfOf(layout.panel);
-  const toggleHalf = useCallback(
-    (half: PanelHalf) => {
-      if (shownHalf === half) {
+  // Each header toggle (137, 171) owns its section: pressing the one
+  // showing closes the panel, any other switches to it.
+  const toggleSection = useCallback(
+    (pressed: WorkspaceSection) => {
+      if (layout.panel === pressed) {
         closePanel();
         return;
       }
-      setPanel(half);
-      askHalf(half);
+      setPanel(pressed);
+      askHalf(halfOf(pressed) ?? "files");
     },
-    [askHalf, closePanel, setPanel, shownHalf]
+    [askHalf, closePanel, layout.panel, setPanel]
   );
   const toggleFiles = useCallback(() => {
     if (layout.panel !== "files") {
@@ -374,6 +395,8 @@ function ChatScreenBody({
   }, []);
 
   useShortcuts({
+    "artifact.next": () => stepArtifactBy(1),
+    "artifact.prev": () => stepArtifactBy(-1),
     "branch.next": () => stepBranch(1),
     "branch.prev": () => stepBranch(-1),
     "chat.new": startNewChat,
@@ -382,7 +405,7 @@ function ChatScreenBody({
     "composer.focus": focusComposer,
     help: () => setHelpOpen(true),
     "palette.open": onOpenPalette,
-    "panel.artifacts": () => togglePanelBy("artifacts"),
+    "panel.artifacts": () => toggleSection("artifacts"),
     "panel.sandbox": toggleFiles,
     "sidebar.toggle": toggleChats,
   });
@@ -420,6 +443,46 @@ function ChatScreenBody({
     [selectInWorkspace, setPanel]
   );
   const revision = useMemo(() => workspaceRevision(messages), [messages]);
+
+  // The chat's artifacts, one key or click away (171).
+  const artifactList = workspace.artifacts.artifacts;
+  const artifactIds = useMemo(
+    () => artifactList.map((artifact) => artifact.id),
+    [artifactList]
+  );
+  const pickedArtifact =
+    workspace.selection?.kind === "artifact"
+      ? workspace.selection.artifactId
+      : undefined;
+  const openArtifactById = useCallback(
+    (artifactId: ArtifactId) => select({ artifactId, kind: "artifact" }),
+    [select]
+  );
+  // { and } step through them; from elsewhere the first press shows the
+  // one picked last (or the newest) without stepping past it.
+  const stepArtifactBy = (delta: -1 | 1) => {
+    const current = pickedArtifact ?? artifactIds[0];
+    const next =
+      layout.panel === "artifacts"
+        ? stepArtifact(artifactIds, current, delta)
+        : (current ?? null);
+    if (next) {
+      openArtifactById(next);
+    }
+  };
+  useArtifactUrl({
+    close: closePanel,
+    inView: artifactInView(layout.panel, workspace.selection),
+    open: openArtifactById,
+    param: workspace.artifactParam,
+    restored,
+  });
+  const freshArtifact = useFreshArtifacts({
+    conversationKey: conversation.id,
+    ids: artifactIds,
+    loaded: workspace.artifacts.loaded ?? true,
+    showing: layout.panel === "artifacts",
+  });
 
   // Opening an artifact or a file from a message shows it in the panel.
   const openArtifact = useCallback(
@@ -661,9 +724,9 @@ function ChatScreenBody({
           <HeaderOverflowMenu
             onCopyLink={conversation.onCopyLink}
             onInvite={conversation.onInvite}
-            onTogglePanel={toggleHalf}
+            onTogglePanel={toggleSection}
             shareDisabled={conversation.id === null}
-            shown={shownHalf}
+            shown={layout.panel}
           />
         ) : (
           // The CSS covers the moment before hydration knows the width.
@@ -675,9 +738,12 @@ function ChatScreenBody({
               participants={conversation.participants}
             />
             <PanelToggles
+              artifactCount={artifactList.length}
+              artifactsHint={<ShortcutHint id="panel.artifacts" />}
               filesHint={<ShortcutHint id="panel.sandbox" />}
-              onToggle={toggleHalf}
-              shown={shownHalf}
+              freshArtifact={freshArtifact}
+              onToggle={toggleSection}
+              shown={layout.panel}
             />
           </div>
         )

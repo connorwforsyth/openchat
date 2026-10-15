@@ -17,6 +17,8 @@ export const shortcutIdSchema = z.enum([
   "branch.next",
   "panel.sandbox",
   "panel.artifacts",
+  "artifact.prev",
+  "artifact.next",
   "help",
   "sidebar.toggle",
   "palette.open",
@@ -46,6 +48,10 @@ export const shortcuts: readonly Shortcut[] = [
   { id: "branch.next", key: "]", mod: false, scope: "view" },
   { id: "panel.sandbox", key: "s", mod: false, scope: "view" },
   { id: "panel.artifacts", key: "a", mod: false, scope: "view" },
+  // Shift+[ and Shift+]: Shift is ignored by matching, so the key is the
+  // character it types.
+  { id: "artifact.prev", key: "{", mod: false, scope: "view" },
+  { id: "artifact.next", key: "}", mod: false, scope: "view" },
   { id: "help", key: "?", mod: false, scope: "view" },
   { id: "sidebar.toggle", key: "b", mod: true, scope: "global" },
   { id: "palette.open", key: "k", mod: true, scope: "global" },

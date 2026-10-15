@@ -1,4 +1,6 @@
 import {
+  artifactIdSchema,
+  conversationIdSchema,
   libraryItemIdSchema,
   nameSchema,
 } from "@workspace/contract/schemas/common";
@@ -59,3 +61,15 @@ export const paletteLibraryItemSchema = z.object({
   name: nameSchema,
 });
 export type PaletteLibraryItem = z.infer<typeof paletteLibraryItemSchema>;
+
+/**
+ * Artifacts the palette can open (171): the ones the app has cached, found
+ * by title. `conversationId` is the chat to open it in; `null` opens its own
+ * page (a shared artifact whose chat the caller can't read).
+ */
+export const paletteArtifactSchema = z.object({
+  conversationId: conversationIdSchema.nullable(),
+  id: artifactIdSchema,
+  title: z.string(),
+});
+export type PaletteArtifact = z.infer<typeof paletteArtifactSchema>;

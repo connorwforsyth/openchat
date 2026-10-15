@@ -184,7 +184,9 @@ test("opening an artifact shows it on its own page and records the view", async 
     .click();
   await expect(page).toHaveURL(ARTIFACT_URL);
   await expect(page.getByText("Day one: the harbour.")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Open chat" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Open in chat" })
+  ).toBeVisible();
   if (SCREENS) {
     await screens(page, "artifact");
   }
@@ -258,9 +260,9 @@ test("a shared artifact is listed for the person it's shared with, read-only", a
   await ben.page.keyboard.press("Escape");
   await row.getByRole("link", { name: "Harbour walk" }).click();
   await expect(ben.page.getByText("Day one: the harbour.")).toBeVisible();
-  await expect(ben.page.getByRole("button", { name: "Open chat" })).toHaveCount(
-    0
-  );
+  await expect(
+    ben.page.getByRole("button", { name: "Open in chat" })
+  ).toHaveCount(0);
   await ben.context.close();
 });
 
@@ -272,7 +274,10 @@ test("Go to chat returns to the chat that made it", async ({
   await page.goto("/artifacts");
   await openMenu(page, "Harbour walk");
   await page.getByRole("menuitem", { name: "Go to chat" }).click();
-  await expect(page).toHaveURL(`/c/${madeIn}`);
+  // 171: the chat opens with the artifact showing in its panel.
+  await expect(page).toHaveURL(
+    new RegExp(`/c/${madeIn}\\?artifact=[0-9a-f-]+$`)
+  );
   await expect(
     page.getByRole("button", { name: "Open artifact: Harbour guide" })
   ).toBeVisible();

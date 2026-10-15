@@ -3,6 +3,7 @@
 import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import type { QueryUtils } from "@workspace/client/api";
 import { FileTree, type FileTreeHandle } from "@workspace/code-ui/file-tree";
+import type { ArtifactId } from "@workspace/contract/schemas/common";
 import type {
   Artifact,
   ArtifactVersion,
@@ -68,6 +69,12 @@ import type { WorkspaceSection } from "../model/layout";
 import type { WorkspaceSelection } from "../model/workspace";
 import { usePanelFrame } from "../shell/right-panel";
 import { isTypingEvent } from "../shortcuts/registry";
+import {
+  ArtifactSwitcher,
+  ArtifactTabs,
+  OpenFullScreenButton,
+  type WorkspaceArtifactLinks,
+} from "./artifact-switcher";
 import { FileView } from "./file-view";
 import { ModeToggle } from "./mode-toggle";
 import {
@@ -162,6 +169,14 @@ export interface WorkspaceArtifacts {
   readonly editing?: PlanEditing | null;
   /** A message the host can show if loading versions failed. */
   readonly error?: string | null;
+  /**
+   * The ways out of the panel (171): the artifact's own page, other chats'
+   * artifacts and the Artifacts page. Without them the switcher lists only
+   * this chat's.
+   */
+  readonly links?: WorkspaceArtifactLinks;
+  /** The list has loaded (so a later arrival is new); assumed when left out. */
+  readonly loaded?: boolean;
   /** The artifact runtime's origin (`ARTIFACTS_ORIGIN`, D24). */
   readonly runtimeOrigin?: string | null;
   /** Versions of the shown artifact, oldest first; `undefined` while loading. */
@@ -1745,10 +1760,7 @@ function EmptyFiles({
   );
 }
 
-/** The artifact's title, versions and tabs, in the view's one header row (075). */
-const artifactHeader = (content: ReactNode) => (
-  <ViewHeader>{content}</ViewHeader>
-);
+export type { WorkspaceArtifactLinks } from "./artifact-switcher";
 
 function MainArea({
   artifacts,
@@ -1816,10 +1828,52 @@ function MainArea({
     }
   }, [focusView, kind, main, mode, onViewFocused, opened]);
 
+  // The artifact's title, versions and tabs, in the view's one header row
+  // (075), after the switcher and before Open full screen (171).
+  const shownArtifact =
+    selection?.kind === "artifact"
+      ? (artifacts.artifacts.find((each) => each.id === selection.artifactId) ??
+        artifacts.artifacts[0])
+      : undefined;
+  const shownArtifactId = shownArtifact?.id;
+  const switchTo = useCallback(
+    (artifactId: ArtifactId) => onSelect({ artifactId, kind: "artifact" }),
+    [onSelect]
+  );
+  const { api: artifactsApi, artifacts: artifactList, links } = artifacts;
+  const artifactHeader = useCallback(
+    (content: ReactNode) => (
+      <>
+        <ViewHeader
+          actions={
+            links && shownArtifactId ? (
+              <OpenFullScreenButton id={shownArtifactId} links={links} />
+            ) : undefined
+          }
+        >
+          {artifactList.length > 1 || links ? (
+            <ArtifactSwitcher
+              api={artifactsApi}
+              artifacts={artifactList}
+              current={shownArtifactId}
+              links={links}
+              onSelect={switchTo}
+            />
+          ) : null}
+          {content}
+        </ViewHeader>
+        <ArtifactTabs
+          artifacts={artifactList}
+          current={shownArtifactId}
+          onSelect={switchTo}
+        />
+      </>
+    ),
+    [artifactList, artifactsApi, links, shownArtifactId, switchTo]
+  );
+
   if (selection?.kind === "artifact") {
-    const artifact =
-      artifacts.artifacts.find((each) => each.id === selection.artifactId) ??
-      artifacts.artifacts[0];
+    const artifact = shownArtifact;
     return (
       <div className="flex min-h-0 flex-1 flex-col">
         <ArtifactView
