@@ -217,6 +217,7 @@
                 "mermaid",
                 "site",
                 "document",
+                "presentation",
                 "diagram"
               ],
               "description": "document: a rich-text document the user can edit and export, written in Markdown (prefer it for reports, plans and notes). html: one complete HTML document. react: one file with a default-exported component. svg: one <svg> element. diagram: a flowchart the user can rearrange, as JSON nodes and edges with no coordinates (see the Diagrams instructions). mermaid: Mermaid source, for sequence, class, state and other diagrams. markdown: Markdown text that is only read. code: a file in any language. site: a small website of several files, as JSON (see the Sites instructions)."
@@ -2292,7 +2293,7 @@
               "type": "object",
               "properties": {
                 "content": {
-                  "description": "Markdown for replace_section and insert: the new section body (start it with a heading to replace the heading too) or the blocks to insert. For a diagram's replace: the whole graph as JSON.",
+                  "description": "Markdown for replace_section and insert: the new section body (start it with a heading to replace the heading too) or the blocks to insert. For a presentation's replace: the whole deck's JSON. For a diagram's replace: the whole graph as JSON.",
                   "type": "string",
                   "maxLength": 400000
                 },
@@ -2360,6 +2361,12 @@
                     "description": "A short id, unique in the diagram: letters, digits, _ and -."
                   }
                 },
+                "index": {
+                  "description": "For add_slide and move_slide: the slide's 0-based position in the deck. add_slide without one adds at the end.",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
                 "label": {
                   "description": "For a diagram's update_node: the node's new label.",
                   "type": "string",
@@ -2409,19 +2416,28 @@
                     "additionalProperties": false
                   }
                 },
+                "notes": {
+                  "description": "For add_slide and update_slide: the slide's speaker notes.",
+                  "type": "string",
+                  "maxLength": 5000
+                },
                 "operation": {
                   "type": "string",
                   "enum": [
                     "delete_section",
                     "insert",
                     "replace_section",
+                    "add_slide",
+                    "delete_slide",
+                    "move_slide",
+                    "replace",
+                    "update_slide",
                     "add_nodes",
                     "connect",
                     "remove",
-                    "replace",
                     "update_node"
                   ],
-                  "description": "For a document: replace_section, the section under a heading, up to the next heading of the same or a higher level; insert, blocks at a section's start or end, or the document's end; delete_section, a heading and its section. For a diagram: add_nodes, connect, update_node, remove, or replace (the whole graph, keeping the layout)."
+                  "description": "A document's: replace_section (the section under a heading, up to the next heading of the same or a higher level), insert (blocks at a section's start or end, or the document's end), delete_section (a heading and its section). A presentation's: update_slide, add_slide, move_slide, delete_slide, replace (the whole deck). A diagram's: add_nodes, connect, update_node, remove, replace (the whole graph, keeping the layout)."
                 },
                 "position": {
                   "description": "For insert: where in the section. section_end by default.",
@@ -2441,12 +2457,22 @@
                     "diamond",
                     "circle"
                   ]
+                },
+                "slide": {
+                  "description": "For a presentation's slide edits: the slide's id.",
+                  "type": "string",
+                  "maxLength": 40
+                },
+                "source": {
+                  "description": "For add_slide and update_slide: the slide's TSX, default-exporting one slide.",
+                  "type": "string",
+                  "maxLength": 40000
                 }
               },
               "required": [
                 "operation"
               ],
-              "description": "For a document (type \"document\"), change one section; for a diagram (type \"diagram\"), change some nodes or edges; instead of sending all of it. Leave out content when you send an edit.",
+              "description": "For a document (type \"document\"), change one section; for a presentation (type \"presentation\"), one slide; for a diagram (type \"diagram\"), some nodes or edges; instead of sending all of it. Leave out content when you send an edit, except for a presentation's replace.",
               "additionalProperties": false
             },
             "language": {
@@ -2466,7 +2492,7 @@
           ],
           "additionalProperties": false
         },
-        "description": "Save an artifact's next version; earlier versions are kept. Pass the complete new content, not a diff, or, for a document or a diagram, an edit of one part."
+        "description": "Save an artifact's next version; earlier versions are kept. Pass the complete new content, not a diff, or, for a document, an edit of one section, for a presentation, an edit of one slide, or, for a diagram, an edit of some nodes or edges."
       },
       "name": "update_artifact",
       "outputSchema": {
@@ -3763,6 +3789,7 @@
                 "mermaid",
                 "site",
                 "document",
+                "presentation",
                 "diagram"
               ],
               "description": "document: a rich-text document the user can edit and export, written in Markdown (prefer it for reports, plans and notes). html: one complete HTML document. react: one file with a default-exported component. svg: one <svg> element. diagram: a flowchart the user can rearrange, as JSON nodes and edges with no coordinates (see the Diagrams instructions). mermaid: Mermaid source, for sequence, class, state and other diagrams. markdown: Markdown text that is only read. code: a file in any language. site: a small website of several files, as JSON (see the Sites instructions)."
@@ -5838,7 +5865,7 @@
               "type": "object",
               "properties": {
                 "content": {
-                  "description": "Markdown for replace_section and insert: the new section body (start it with a heading to replace the heading too) or the blocks to insert. For a diagram's replace: the whole graph as JSON.",
+                  "description": "Markdown for replace_section and insert: the new section body (start it with a heading to replace the heading too) or the blocks to insert. For a presentation's replace: the whole deck's JSON. For a diagram's replace: the whole graph as JSON.",
                   "type": "string",
                   "maxLength": 400000
                 },
@@ -5906,6 +5933,12 @@
                     "description": "A short id, unique in the diagram: letters, digits, _ and -."
                   }
                 },
+                "index": {
+                  "description": "For add_slide and move_slide: the slide's 0-based position in the deck. add_slide without one adds at the end.",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
                 "label": {
                   "description": "For a diagram's update_node: the node's new label.",
                   "type": "string",
@@ -5955,19 +5988,28 @@
                     "additionalProperties": false
                   }
                 },
+                "notes": {
+                  "description": "For add_slide and update_slide: the slide's speaker notes.",
+                  "type": "string",
+                  "maxLength": 5000
+                },
                 "operation": {
                   "type": "string",
                   "enum": [
                     "delete_section",
                     "insert",
                     "replace_section",
+                    "add_slide",
+                    "delete_slide",
+                    "move_slide",
+                    "replace",
+                    "update_slide",
                     "add_nodes",
                     "connect",
                     "remove",
-                    "replace",
                     "update_node"
                   ],
-                  "description": "For a document: replace_section, the section under a heading, up to the next heading of the same or a higher level; insert, blocks at a section's start or end, or the document's end; delete_section, a heading and its section. For a diagram: add_nodes, connect, update_node, remove, or replace (the whole graph, keeping the layout)."
+                  "description": "A document's: replace_section (the section under a heading, up to the next heading of the same or a higher level), insert (blocks at a section's start or end, or the document's end), delete_section (a heading and its section). A presentation's: update_slide, add_slide, move_slide, delete_slide, replace (the whole deck). A diagram's: add_nodes, connect, update_node, remove, replace (the whole graph, keeping the layout)."
                 },
                 "position": {
                   "description": "For insert: where in the section. section_end by default.",
@@ -5987,12 +6029,22 @@
                     "diamond",
                     "circle"
                   ]
+                },
+                "slide": {
+                  "description": "For a presentation's slide edits: the slide's id.",
+                  "type": "string",
+                  "maxLength": 40
+                },
+                "source": {
+                  "description": "For add_slide and update_slide: the slide's TSX, default-exporting one slide.",
+                  "type": "string",
+                  "maxLength": 40000
                 }
               },
               "required": [
                 "operation"
               ],
-              "description": "For a document (type \"document\"), change one section; for a diagram (type \"diagram\"), change some nodes or edges; instead of sending all of it. Leave out content when you send an edit.",
+              "description": "For a document (type \"document\"), change one section; for a presentation (type \"presentation\"), one slide; for a diagram (type \"diagram\"), some nodes or edges; instead of sending all of it. Leave out content when you send an edit, except for a presentation's replace.",
               "additionalProperties": false
             },
             "language": {
@@ -6012,7 +6064,7 @@
           ],
           "additionalProperties": false
         },
-        "description": "Save an artifact's next version; earlier versions are kept. Pass the complete new content, not a diff, or, for a document or a diagram, an edit of one part."
+        "description": "Save an artifact's next version; earlier versions are kept. Pass the complete new content, not a diff, or, for a document, an edit of one section, for a presentation, an edit of one slide, or, for a diagram, an edit of some nodes or edges."
       },
       "name": "update_artifact",
       "outputSchema": {

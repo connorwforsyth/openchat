@@ -19,6 +19,12 @@ import {
 import { type RunCreated, userParts } from "@workspace/client/run-transport";
 import { useRunChat } from "@workspace/client/use-run-chat";
 import { contextOptionsFromMe } from "@workspace/composer/options";
+import { NEW_CHAT_DRAFT_KEY } from "@workspace/composer/ports/draft-store";
+import {
+  browserStorage,
+  createStorageDraftStore,
+} from "@workspace/composer/ports/draft-store.storage";
+import { promptHistory } from "@workspace/composer/prompt-history";
 import type { ComposerProps } from "@workspace/composer/props";
 import type {
   AgentOption,
@@ -1393,6 +1399,26 @@ const targetToSend = (
   target: RunTarget | null
 ): RunTarget | null => (sendTarget === undefined ? target : sendTarget);
 
+/**
+ * Each chat keeps its unsent draft (147), per person on a shared browser, and
+ * ArrowUp recalls the prompts on the branch in view.
+ */
+const useComposerDrafts = (
+  userId: string,
+  conversationId: ConversationId | null,
+  messages: readonly Message[]
+): Pick<ComposerProps, "draft" | "history"> => {
+  const store = useMemo(
+    () => createStorageDraftStore(browserStorage, userId),
+    [userId]
+  );
+  const history = useMemo(() => promptHistory(messages), [messages]);
+  return {
+    draft: { key: conversationId ?? NEW_CHAT_DRAFT_KEY, store },
+    history,
+  };
+};
+
 export function ConnectedChat({
   agents,
   artifactsRuntimeOrigin = null,
@@ -1742,6 +1768,11 @@ export function ConnectedChat({
   );
 
   useAskOnce(initialPrompt, conversationId, onSubmit);
+  const composerDrafts = useComposerDrafts(
+    me.user.id,
+    conversationId,
+    messages
+  );
   const attachmentLimits = useMemo(() => attachmentLimitsFor(config), [config]);
   const newChat = useCallback(() => onNavigate(null), [onNavigate]);
   const sidebarActions = useMemo(
@@ -1799,6 +1830,7 @@ export function ConnectedChat({
           composer={{
             agents,
             attachmentLimits,
+            ...composerDrafts,
             models,
             onPlanChange: plan.set,
             onStop,

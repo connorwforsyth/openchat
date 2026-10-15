@@ -2,8 +2,8 @@
 id: "147"
 title: "A chat's unsent draft survives reload and switching chats; ArrowUp recalls your last prompt"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -23,3 +23,7 @@ From the T3 Code study (`.context/research/t3code/web.md`, recommendation 4). A 
 ## Owns
 
 `packages/composer/src/**`, `packages/chat-ui/src/chat/composer-dock.tsx` and `connected-chat.tsx` (wiring only), `packages/shortcuts/src/**` (registry entries only), `e2e/tests/composer-drafts.spec.ts` (new).
+
+## Resolution (2026-10-16, loop)
+
+Merged in [PR #119](https://github.com/connorwforsyth/openchat/pull/119): per-chat composer drafts (DraftStore) and ArrowUp recall. Verified: full local gate. Nothing left on this ticket.

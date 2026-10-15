@@ -184,6 +184,16 @@ const BASES: Readonly<Record<WrittenKind, string>> = {
   html: "<p>hi</p>",
   markdown: "# Notes",
   mermaid: "graph TD",
+  presentation: JSON.stringify({
+    slides: [
+      {
+        id: "intro",
+        source:
+          'import { Title } from "@workspace/slide-ui";\nexport default () => <Title title="Hi" />;',
+      },
+    ],
+    title: "Deck",
+  }),
   react: "export default 1",
   site: '{"files": {"index.html": "<p>hi</p>"}}',
   svg: "<svg></svg>",

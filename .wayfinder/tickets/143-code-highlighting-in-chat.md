@@ -2,8 +2,8 @@
 id: "143"
 title: "Code blocks in chat are syntax-highlighted, incrementally while streaming"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -23,3 +23,7 @@ From the T3 Code study (`.context/research/t3code/web.md`, recommendation 1). Co
 ## Owns
 
 `packages/chat-ui/src/conversation/markdown.tsx` and new files beside it, `packages/chat-ui/package.json`, `packages/ui/src/components/ai-elements/code-block.tsx` (if used), `packages/ui/src/styles/globals.css` (code colour tokens only), tests.
+
+## Resolution (2026-10-16, loop)
+
+Merged in [PR #116](https://github.com/connorwforsyth/openchat/pull/116): syntax-highlighted code fences in chat, incremental while streaming (shared @pierre/diffs Shiki, WASM engine). Verified: rebased onto #123 (Markdown replaces MessageResponse, dropped deleted ai-elements README); full local gate. Nothing left on this ticket.

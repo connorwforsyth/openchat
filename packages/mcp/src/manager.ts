@@ -67,6 +67,7 @@ import {
   type OAuthTokenStore,
   refreshIfExpiring,
 } from "./oauth";
+import { capToolResult } from "./result-cap";
 import {
   checkServerUrl,
   connectionKey,
@@ -556,11 +557,15 @@ export const createMcpManager = (options: McpManagerOptions): McpManager => {
       throw new Error(describeError(live.error));
     }
     try {
-      return await live.value.client.callTool({
-        arguments: (input ?? {}) as Record<string, unknown>,
-        name,
-        options: { signal, timeout: timeouts.requestMs },
-      });
+      // Cut here so the model, the run's stream and the stored message all
+      // get the same bounded result.
+      return capToolResult(
+        await live.value.client.callTool({
+          arguments: (input ?? {}) as Record<string, unknown>,
+          name,
+          options: { signal, timeout: timeouts.requestMs },
+        })
+      );
     } catch (error) {
       if (signal?.aborted || !isConnectionLost(error)) {
         throw error;

@@ -53,7 +53,12 @@ import {
   writeSettings,
 } from "./settings";
 import { drawTrayIcon } from "./tray-icon";
-import { startAutoUpdate } from "./updates";
+import {
+  manualCheckMessage,
+  startAutoUpdate,
+  type UpdateState,
+  type Updates,
+} from "./updates";
 import { placeWindow, windowStateOf } from "./window-state";
 
 // The desktop shell (ticket 116). Instance URL only (122): the main window
@@ -149,9 +154,6 @@ const main = async () => {
       app.dock?.setIcon(icon);
     }
   }
-  startAutoUpdate(build, app.isPackaged).catch((cause: unknown) => {
-    console.error("[desktop] auto-update didn't start:", cause);
-  });
 
   const path = settingsPath(app.getPath("userData"));
   let settings: Settings = await readSettings(path);
@@ -443,12 +445,16 @@ const main = async () => {
     tray.setToolTip(instance?.name ?? app.name);
   }
 
+  // Set once the updater has started (149); the menus read its state.
+  let updates: Updates | null = null;
   const buildMenus = () => {
     Menu.setApplicationMenu(
       Menu.buildFromTemplate(
         menuTemplate({
           actions: {
             changeInstance: openSetup,
+            checkForUpdates: () => updates?.check(true),
+            restartToUpdate: () => updates?.restart(),
             runShortcut,
             setQuickShortcut,
             toggleQuick,
@@ -457,6 +463,7 @@ const main = async () => {
           i18n,
           platform,
           quickShortcut,
+          update: updates?.state(),
         })
       )
     );
@@ -488,6 +495,37 @@ const main = async () => {
     buildMenus();
   }
   buildMenus();
+
+  // Updates (119, 149): the menu shows where one stands.
+  const showUpdateMessage = (next: UpdateState, previous: UpdateState) => {
+    const message = manualCheckMessage(previous, next, {
+      appName: app.name,
+      i18n,
+      version: app.getVersion(),
+    });
+    if (message) {
+      dialog
+        .showMessageBox({ ...message, type: "info" })
+        .catch(() => undefined);
+    }
+  };
+  startAutoUpdate({
+    build,
+    feedUrl: env.DESKTOP_UPDATE_URL,
+    isPackaged: app.isPackaged,
+    onChange: (next, previous) => {
+      buildMenus();
+      showUpdateMessage(next, previous);
+    },
+  }).then(
+    (started) => {
+      updates = started;
+      buildMenus();
+    },
+    (cause: unknown) => {
+      console.error("[desktop] auto-update didn't start:", cause);
+    }
+  );
 
   if (env.DESKTOP_TEST_HOOKS) {
     Object.assign(globalThis, {

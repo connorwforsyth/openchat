@@ -9,6 +9,8 @@ import {
   diagramShapeSchema,
 } from "@workspace/artifacts-kit/kinds/diagram/schema";
 import { DOCUMENT_EDITS } from "@workspace/artifacts-kit/kinds/document/operations";
+import { PRESENTATION_LIMITS } from "@workspace/artifacts-kit/kinds/presentation/content";
+import { PRESENTATION_EDITS } from "@workspace/artifacts-kit/kinds/presentation/operations";
 import type { ArtifactKindRegistry } from "@workspace/artifacts-kit/registry";
 import { artifactIdSchema } from "@workspace/contract/schemas/common";
 import { z } from "zod";
@@ -30,15 +32,24 @@ import { defineTool, type ToolContext } from "./define";
 
 // `update_artifact` (078): the artifact's next version; earlier versions
 // are kept. Either the whole content again, or (126) an `edit` of one part
-// of a document: a kind's structured operation (`@workspace/artifacts-kit`)
-// applied to its latest version, or (165) of a diagram's nodes and edges. The content is checked by the artifact's
+// of a document, (164) one slide of a presentation, or (165) a diagram's
+// nodes and edges: a kind's structured operation (`@workspace/artifacts-kit`)
+// applied to its latest version. The content is checked by the artifact's
 // kind (123), and nothing is saved if a check fails. What the tools share
 // is in `../artifact-content.ts`.
 
-type EditName = keyof typeof DOCUMENT_EDITS | keyof typeof DIAGRAM_EDITS;
+type EditName =
+  | keyof typeof DOCUMENT_EDITS
+  | keyof typeof PRESENTATION_EDITS
+  | keyof typeof DIAGRAM_EDITS;
 
+/** Every kind's edits by name; the kit says which kind has which. */
 const EDIT_NAMES = [
-  ...new Set([...Object.keys(DOCUMENT_EDITS), ...Object.keys(DIAGRAM_EDITS)]),
+  ...new Set([
+    ...Object.keys(DOCUMENT_EDITS),
+    ...Object.keys(PRESENTATION_EDITS),
+    ...Object.keys(DIAGRAM_EDITS),
+  ]),
 ] as [EditName, ...EditName[]];
 
 /**
@@ -53,7 +64,7 @@ export const artifactEditSchema = z
       .max(400_000)
       .optional()
       .describe(
-        "Markdown for replace_section and insert: the new section body (start it with a heading to replace the heading too) or the blocks to insert. For a diagram's replace: the whole graph as JSON."
+        "Markdown for replace_section and insert: the new section body (start it with a heading to replace the heading too) or the blocks to insert. For a presentation's replace: the whole deck's JSON. For a diagram's replace: the whole graph as JSON."
       ),
     edges: z
       .array(diagramEdgeSchema)
@@ -82,6 +93,13 @@ export const artifactEditSchema = z
       .describe(
         "For a diagram's remove: nodes to remove, with every edge touching them."
       ),
+    index: z
+      .number()
+      .int()
+      .optional()
+      .describe(
+        "For add_slide and move_slide: the slide's 0-based position in the deck. add_slide without one adds at the end."
+      ),
     label: diagramLabelSchema
       .optional()
       .describe("For a diagram's update_node: the node's new label."),
@@ -92,10 +110,15 @@ export const artifactEditSchema = z
       .describe(
         "For a diagram's add_nodes: nodes to add, {id, label, shape?, group?}."
       ),
+    notes: z
+      .string()
+      .max(PRESENTATION_LIMITS.notes)
+      .optional()
+      .describe("For add_slide and update_slide: the slide's speaker notes."),
     operation: z
       .enum(EDIT_NAMES)
       .describe(
-        "For a document: replace_section, the section under a heading, up to the next heading of the same or a higher level; insert, blocks at a section's start or end, or the document's end; delete_section, a heading and its section. For a diagram: add_nodes, connect, update_node, remove, or replace (the whole graph, keeping the layout)."
+        "A document's: replace_section (the section under a heading, up to the next heading of the same or a higher level), insert (blocks at a section's start or end, or the document's end), delete_section (a heading and its section). A presentation's: update_slide, add_slide, move_slide, delete_slide, replace (the whole deck). A diagram's: add_nodes, connect, update_node, remove, replace (the whole graph, keeping the layout)."
       ),
     position: z
       .enum(["section_end", "section_start"])
@@ -104,9 +127,21 @@ export const artifactEditSchema = z
     shape: diagramShapeSchema
       .optional()
       .describe("For a diagram's update_node: the node's new shape."),
+    slide: z
+      .string()
+      .max(40)
+      .optional()
+      .describe("For a presentation's slide edits: the slide's id."),
+    source: z
+      .string()
+      .max(PRESENTATION_LIMITS.source)
+      .optional()
+      .describe(
+        "For add_slide and update_slide: the slide's TSX, default-exporting one slide."
+      ),
   })
   .describe(
-    'For a document (type "document"), change one section; for a diagram (type "diagram"), change some nodes or edges; instead of sending all of it. Leave out content when you send an edit.'
+    'For a document (type "document"), change one section; for a presentation (type "presentation"), one slide; for a diagram (type "diagram"), some nodes or edges; instead of sending all of it. Leave out content when you send an edit, except for a presentation\'s replace.'
   );
 
 export const updateArtifactInputSchema = z.object({
@@ -158,7 +193,7 @@ const nextContent = async (
       return {
         ok: false,
         output: invalid(
-          "send either content (the whole artifact) or an edit (one part of a document or diagram)"
+          "send either content (the whole artifact) or an edit (one part of a document, presentation or diagram)"
         ),
       };
     }
@@ -248,7 +283,7 @@ export const updateArtifactTool = defineTool({
   approval: "ask",
   capability: "artifacts",
   description:
-    "Save an artifact's next version; earlier versions are kept. Pass the complete new content, not a diff, or, for a document or a diagram, an edit of one part.",
+    "Save an artifact's next version; earlier versions are kept. Pass the complete new content, not a diff, or, for a document, an edit of one section, for a presentation, an edit of one slide, or, for a diagram, an edit of some nodes or edges.",
   execute: (input, { ports }: ToolContext<{ readonly ports: ArtifactPorts }>) =>
     updateArtifact(ports.store, input, ports.kinds),
   input: updateArtifactInputSchema,

@@ -12,6 +12,10 @@
       ],
       "outputs": ["dist/**", ".brand/**"]
     },
+    // The preload check reads the built bundles (scripts/preload-bundle.test.ts).
+    "test": {
+      "dependsOn": ["build"]
+    },
     "desktop:dev": {
       "cache": false,
       "dependsOn": ["^i18n:compile", "^icons:select"],

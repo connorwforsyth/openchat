@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "next build",
-    "dev": "next dev",
+    "build": "bun ../../scripts/ci/browser-lock.ts --name next-build next build",
+    "dev": "bun ../../scripts/ci/dev-port.ts 3000 PORT next dev",
     "fonts:select": "bun scripts/fonts-select.ts",
     "lint": "ultracite check",
     "start": "next start",

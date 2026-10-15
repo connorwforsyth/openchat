@@ -36,6 +36,7 @@ export default defineProject({
       "@xyflow/react",
       "html-to-image",
       "@workspace/artifacts-kit > @dagrejs/dagre",
+      "@pierre/diffs",
       "@workspace/code-ui > @pierre/diffs",
       "@workspace/code-ui > @pierre/diffs/edit",
       "@workspace/code-ui > @pierre/diffs/react",

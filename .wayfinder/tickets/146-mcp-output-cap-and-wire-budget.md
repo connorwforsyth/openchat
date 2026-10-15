@@ -2,8 +2,8 @@
 id: "146"
 title: "MCP tool results are capped, and a test measures what a chat sends over the wire"
 labels: [wayfinder:build]
-status: open
-assignee: loop
+status: closed
+assignee:
 blockedBy: []
 ---
 
@@ -20,3 +20,7 @@ From the T3 Code study (`.context/research/t3code/server.md`, recommendation 1).
 ## Owns
 
 `packages/mcp/src/**` (the result cap), `packages/server/src/runs/**` tests (the budget test), `packages/sandbox/src/output.ts` (only if the cap helper moves to `@workspace/shared`), `packages/shared/src/**` (that helper only).
+
+## Resolution (2026-10-16, loop)
+
+Merged in [PR #118](https://github.com/connorwforsyth/openchat/pull/118): MCP tool results capped; wire-budget test. Verified: full local gate; db boot-migrate timeout under load passed alone. Nothing left on this ticket.

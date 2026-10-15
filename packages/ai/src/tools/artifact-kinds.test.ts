@@ -87,11 +87,15 @@ describe("the kinds' checks", () => {
     // Sites (125) came after the directive and have checks of their own
     // (`@workspace/artifacts-kit`'s `kinds/site`); a document (126) stores
     // JSON made from the model's Markdown, which the reader can't judge;
-    // a diagram (165) is JSON its kind checks; an image (138) is only ever
-    // `generate_image`'s; and presentations and spreadsheets (164, 166)
+    // a diagram (165) and a presentation (164) are JSON their kinds check;
+    // an image (138) is only ever `generate_image`'s; and spreadsheets (166)
     // aren't built yet.
     const textKinds = artifactDirectiveSchema.shape.type.options.filter(
-      (kind) => kind !== "site" && kind !== "document" && kind !== "diagram"
+      (kind) =>
+        kind !== "site" &&
+        kind !== "document" &&
+        kind !== "diagram" &&
+        kind !== "presentation"
     );
     for (const type of textKinds) {
       for (const content of CONTENTS) {
@@ -107,7 +111,7 @@ describe("the kinds' checks", () => {
     expect(compared).toBeGreaterThan(1000);
   });
 
-  it("add diagrams', documents' and sites' instructions, as their own layer", () => {
+  it("add diagrams', documents', presentations' and sites' instructions, as their own layer", () => {
     const fragment = composeInstructions({ dynamic: [FRAGMENTS.artifacts] });
     const withKinds = composeInstructions({
       dynamic: [FRAGMENTS.artifacts],
@@ -124,6 +128,11 @@ describe("the kinds' checks", () => {
         layer: "kinds",
         source: "kinds/document",
         text: builtinArtifactKinds.get("document")?.instructions,
+      },
+      {
+        layer: "kinds",
+        source: "kinds/presentation",
+        text: builtinArtifactKinds.get("presentation")?.instructions,
       },
       {
         layer: "kinds",

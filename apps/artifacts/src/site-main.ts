@@ -116,7 +116,8 @@ const start = (container: HTMLElement, parentOrigin: string) => {
       origin: parentOrigin,
       source: window.parent,
     });
-    if (message.ok) {
+    // Presenting and exporting are a deck's (164), never a site's.
+    if (message.ok && message.value.type === "render") {
       render(message.value).catch((error: unknown) => {
         if (current) {
           fail(current, runtimeError("render", error));

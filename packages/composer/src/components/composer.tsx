@@ -24,9 +24,12 @@ import {
 
 import { acceptAttribute, filesFromTransfer } from "../attachments";
 import { textToDoc, textToInline } from "../doc";
+import { draftDoc } from "../drafts";
 import { createComposerExtensions, slashPluginKey } from "../editor/extensions";
 import { useAttachments } from "../hooks/use-attachments";
+import { useDraft } from "../hooks/use-draft";
 import { useFileDrop } from "../hooks/use-file-drop";
+import { usePromptRecall } from "../hooks/use-prompt-recall";
 import {
   type MenuList,
   useSuggestionMenus,
@@ -39,6 +42,8 @@ import {
   slashItems,
   unpickedSkills,
 } from "../options";
+import type { Draft } from "../ports/draft-store";
+import type { PromptHistoryDirection } from "../prompt-history";
 import type { ComposerHandoff, ComposerProps } from "../props";
 import type {
   AttachmentLimits,
@@ -71,6 +76,8 @@ interface LiveHandlers {
   readonly addFiles: (files: readonly File[]) => void;
   readonly candidates: readonly MentionCandidate[];
   readonly chooseSlash: (editor: Editor, range: Range, item: SlashItem) => void;
+  readonly draftChanged: () => void;
+  readonly recallPrompt: (direction: PromptHistoryDirection) => boolean;
   readonly removeLastAttachment: () => boolean;
   readonly slash: SlashSources;
   readonly submit: () => void;
@@ -104,9 +111,11 @@ export function Composer({
   className,
   commands = NONE,
   disabled = false,
+  draft,
   files: workspaceFiles = NONE,
   fill,
   handoff,
+  history = NONE,
   models = NONE,
   onAttachmentsChange,
   onAttachmentsRejected,
@@ -182,6 +191,8 @@ export function Composer({
     addFiles: files.add,
     candidates,
     chooseSlash: () => undefined,
+    draftChanged: () => undefined,
+    recallPrompt: () => false,
     removeLastAttachment: () => false,
     slash,
     submit: () => undefined,
@@ -224,6 +235,8 @@ export function Composer({
       extensions: createComposerExtensions({
         keys: {
           onBackspaceEmpty: () => live.current.removeLastAttachment(),
+          onHistoryKey: (direction) =>
+            !menus.isOpen() && live.current.recallPrompt(direction),
           onSubmitKey: () => {
             if (menus.isOpen()) {
               return false;
@@ -250,11 +263,53 @@ export function Composer({
       onCreate: () => {
         performance.mark(READY_MARK);
       },
-      onUpdate: ({ editor: current }) => setText(current.getText()),
+      onUpdate: ({ editor: current }) => {
+        setText(current.getText());
+        live.current.draftChanged();
+      },
       shouldRerenderOnTransaction: false,
     },
     []
   );
+
+  const promptRecall = usePromptRecall(editor, history);
+
+  // The draft is kept per chat (147). Attachments aren't: see draft-store.ts.
+  const readDraft = useCallback(
+    (): Draft => ({
+      doc: draftDoc(editor.getJSON()),
+      skills: [...pickedSkills],
+      templateId,
+      version: 1,
+    }),
+    [editor, pickedSkills, templateId]
+  );
+  const restoreDraft = useCallback(
+    (saved: Draft | null) => {
+      // Not undoable: undo mustn't bring back another chat's words.
+      editor
+        .chain()
+        .setMeta("addToHistory", false)
+        .setContent(saved?.doc ?? "", { emitUpdate: true })
+        .run();
+      setPickedSkills(saved?.skills ?? []);
+      setTemplateId(saved?.templateId ?? null);
+      promptRecall.reset();
+    },
+    [editor, promptRecall]
+  );
+  const draftControls = useDraft({
+    draft,
+    read: readDraft,
+    restore: restoreDraft,
+    typedFirst: Boolean(handoff?.text),
+  });
+  // Picking or removing a skill changes the draft as much as typing does.
+  const { changed: draftChanged } = draftControls;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: saves when these change; the draft is read when the write happens
+  useEffect(() => {
+    draftChanged();
+  }, [draftChanged, pickedSkills, templateId]);
 
   const submit = useCallback(() => {
     if (!canSubmit) {
@@ -272,7 +327,18 @@ export function Composer({
     setTemplateId(null);
     setPickedSkills([]);
     files.clear();
-  }, [canSubmit, editor, files, onSubmit, pickedSkills, templateId]);
+    promptRecall.reset();
+    draftControls.sent();
+  }, [
+    canSubmit,
+    draftControls,
+    editor,
+    files,
+    onSubmit,
+    pickedSkills,
+    promptRecall,
+    templateId,
+  ]);
 
   // A skill rides with the message as a chip (127), from + or `/`.
   const addSkill = useCallback((skill: SkillOption) => {
@@ -400,6 +466,8 @@ export function Composer({
       addFiles: files.add,
       candidates,
       chooseSlash,
+      draftChanged,
+      recallPrompt: promptRecall.recall,
       removeLastAttachment,
       slash,
       submit,
@@ -654,7 +722,13 @@ export function Composer({
         <Trans>
           Enter sends and Shift+Enter adds a line. Type / for commands, prompts
           and skills, and @ to mention someone or a file.
-        </Trans>
+        </Trans>{" "}
+        {history.length > 0 ? (
+          <Trans>
+            In an empty message, the up and down arrows bring back what you sent
+            before.
+          </Trans>
+        ) : null}
       </p>
     </form>
   );

@@ -137,6 +137,17 @@ brief, and their findings land in `.context/research/`.
 - [M1 polish](tickets/031-m1-polish.md): motion audit + guard, narrow-screen layout, batched feedback lookups ([PR #24](https://github.com/connorwforsyth/openchat/pull/24))
 - [WS-importers](tickets/023-ws-importers.md): ChatGPT, Claude and LibreChat importers with branch trees; fork ([PR #13](https://github.com/connorwforsyth/openchat/pull/13))
 - [WS-ai](tickets/013-ws-ai.md): provider registry, key resolution, agent runner with approvals, Decider, `/api/llm` handler ([PR #11](https://github.com/connorwforsyth/openchat/pull/11))
+- [AGENTS.md: ways to hurt yourself, a hit-every-surface checklist, a glossary](tickets/142-agents-md-hazards-and-surfaces.md): AGENTS.md hazards, hit-every-surface checklist and glossary ([PR #112](https://github.com/connorwforsyth/openchat/pull/112))
+- [`bun dev` passes .env to the app (keys in .env.local were dropped by turbo)](tickets/158-dev-env-reaches-next.md): `bun dev` loads root .env and .env.local ([PR #121](https://github.com/connorwforsyth/openchat/pull/121))
+- [Desktop: a test checks the built preloads on Linux CI](tickets/148-desktop-preload-guard.md): desktop preload guard test ([PR #114](https://github.com/connorwforsyth/openchat/pull/114))
+- [Each worktree gets its own ports, and only one production build runs per machine](tickets/140-worktree-ports-and-build-lock.md): per-worktree dev ports and machine-wide build lock ([PR #115](https://github.com/connorwforsyth/openchat/pull/115))
+- [Adjacent text and reasoning deltas are merged before they're stored as run chunks](tickets/145-coalesce-stream-deltas.md): adjacent text/reasoning deltas coalesced before storing run chunks ([PR #117](https://github.com/connorwforsyth/openchat/pull/117))
+- [MCP tool results are capped, and a test measures what a chat sends over the wire](tickets/146-mcp-output-cap-and-wire-budget.md): MCP tool results capped; wire-budget test ([PR #118](https://github.com/connorwforsyth/openchat/pull/118))
+- [A chat's unsent draft survives reload and switching chats; ArrowUp recalls your last prompt](tickets/147-composer-drafts-and-recall.md): per-chat composer drafts (DraftStore) and ArrowUp recall ([PR #119](https://github.com/connorwforsyth/openchat/pull/119))
+- [A reply's markdown controls stay in their streaming state after the stream ends](tickets/144-message-response-memo.md): Markdown memo compares isAnimating/mode/className/plugins so controls leave streaming state ([PR #113](https://github.com/connorwforsyth/openchat/pull/113))
+- [Code blocks in chat are syntax-highlighted, incrementally while streaming](tickets/143-code-highlighting-in-chat.md): syntax-highlighted code fences in chat, incremental while streaming (shared @pierre/diffs Shiki, WASM engine) ([PR #116](https://github.com/connorwforsyth/openchat/pull/116))
+- [Desktop: updates are a visible state with menu items, and tested against a local feed](tickets/149-desktop-update-state.md): desktop update state with menu items ([PR #120](https://github.com/connorwforsyth/openchat/pull/120))
+- [Contract: `presentation`, `spreadsheet` and `diagram` artifact kinds](tickets/162-contract-new-artifact-kinds.md): presentation, spreadsheet and diagram artifact kinds (contract + placeholders) ([PR #125](https://github.com/connorwforsyth/openchat/pull/125))
 
 ## Not yet specified
 

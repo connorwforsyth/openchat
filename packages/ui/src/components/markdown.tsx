@@ -93,6 +93,24 @@ export const useStreamdownDefaults = (): {
 
 export type MarkdownProps = ComponentProps<typeof Streamdown>;
 
+/** Callers often build `plugins` inline; the same plugins in a new object are no change. */
+const samePlugins = (
+  a: MarkdownProps["plugins"],
+  b: MarkdownProps["plugins"]
+): boolean => {
+  if (a === b) {
+    return true;
+  }
+  if (!(a && b)) {
+    return false;
+  }
+  const keys = Object.keys(a) as (keyof typeof a)[];
+  return (
+    keys.length === Object.keys(b).length &&
+    keys.every((key) => a[key] === b[key])
+  );
+};
+
 export const Markdown = memo(
   ({ className, ...props }: MarkdownProps) => {
     const defaults = useStreamdownDefaults();
@@ -109,9 +127,16 @@ export const Markdown = memo(
       />
     );
   },
-  // Re-rendering markdown is the expensive part of streaming; only a change in
-  // the text itself warrants it.
-  (prevProps, nextProps) => prevProps.children === nextProps.children
+  // Re-rendering markdown is the expensive part of streaming, so only what
+  // Streamdown itself compares warrants it. `isAnimating` usually flips at the
+  // end of a stream with the text unchanged; dropping it left the code, table
+  // and diagram controls disabled until something remounted the message (144).
+  (prevProps, nextProps) =>
+    prevProps.children === nextProps.children &&
+    prevProps.isAnimating === nextProps.isAnimating &&
+    prevProps.mode === nextProps.mode &&
+    prevProps.className === nextProps.className &&
+    samePlugins(prevProps.plugins, nextProps.plugins)
 );
 
 Markdown.displayName = "Markdown";
