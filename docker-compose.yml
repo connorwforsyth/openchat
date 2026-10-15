@@ -115,12 +115,22 @@ services:
       SANDBOX_EGRESS: ${SANDBOX_EGRESS:-none}
       SANDBOX_EGRESS_PROXY: ${SANDBOX_EGRESS_PROXY:-}
       SANDBOX_IMAGE: ${SANDBOX_IMAGE:-node:24-bookworm-slim}
+      # A Dot's computer (172): build it with `docker compose --profile sandbox-desktop-build build sandbox-desktop`.
+      SANDBOX_DESKTOP_IMAGE: ${SANDBOX_DESKTOP_IMAGE:-sandbox-desktop:latest}
       SANDBOX_PREVIEW_URL: ${SANDBOX_PREVIEW_URL:-http://{id}-{port}.sandbox.localhost:7071}
     ports:
       - "127.0.0.1:${SANDBOX_RUNNER_PORT:-7070}:7070"
       # Previews: a separate origin from the app (D24).
       - "127.0.0.1:${SANDBOX_PREVIEW_PORT:-7071}:7071"
     networks: [docker-api, default]
+
+  # The desktop image a Dot's computer runs (172). Never started by compose:
+  # the runner starts one container per Dot from it.
+  sandbox-desktop:
+    build:
+      context: apps/sandbox-runner/desktop
+    image: sandbox-desktop:latest
+    profiles: [sandbox-desktop-build]
 
   # Artifact previews (PLAN.md D24): `docker compose --profile artifacts up -d`,
   # then set ARTIFACTS_ORIGIN. Artifacts render here, on their own origin and

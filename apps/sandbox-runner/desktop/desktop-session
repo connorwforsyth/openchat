@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# The desktop session: a virtual screen, a window manager, VNC on loopback
+# and noVNC on 6080 (the port the runner's preview proxy serves). Each piece
+# is restarted if it dies, so a crashed browser never takes the screen down.
+set -u
+: "${DISPLAY:=:1}"
+export DISPLAY
+SIZE="${DESKTOP_SIZE:-1280x800}"
+mkdir -p /tmp/.X11-unix "$HOME" /work/.computer 2>/dev/null || true
+
+keep() { while true; do "$@"; sleep 1; done; }
+
+keep Xvfb "$DISPLAY" -screen 0 "${SIZE}x24" -nolisten tcp -ac &
+for _ in $(seq 1 50); do xdpyinfo >/dev/null 2>&1 && break; sleep 0.1; done
+xsetroot -solid black 2>/dev/null || true
+keep openbox &
+keep x11vnc -display "$DISPLAY" -localhost -rfbport 5900 -forever -shared \
+  -nopw -quiet -noxdamage &
+keep websockify --web /usr/share/novnc 0.0.0.0:6080 127.0.0.1:5900 &
+wait

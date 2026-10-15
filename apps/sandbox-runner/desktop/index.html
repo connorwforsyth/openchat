@@ -1,0 +1,41 @@
+<!doctype html>
+<!-- The live view of a Dot's computer (172), served by websockify on 6080
+     through the runner's preview proxy. `?view_only=1` watches; `0` lets the
+     person drive. It talks to the VNC socket on its own origin. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1" name="viewport">
+    <title>Computer</title>
+    <style>
+    html,
+    body,
+    #screen {
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: black;
+    }
+    </style>
+  </head>
+  <body>
+    <div id="screen"></div>
+    <script type="module">
+    import RFB from "./core/rfb.js";
+
+    const params = new URLSearchParams(location.search);
+    const scheme = location.protocol === "https:" ? "wss" : "ws";
+    const connect = () => {
+      const rfb = new RFB(
+        document.getElementById("screen"),
+        `${scheme}://${location.host}/websockify`
+      );
+      rfb.viewOnly = params.get("view_only") !== "0";
+      rfb.scaleViewport = true;
+      rfb.background = "black";
+      rfb.addEventListener("disconnect", () => setTimeout(connect, 1000));
+    };
+    connect();
+    </script>
+  </body>
+</html>

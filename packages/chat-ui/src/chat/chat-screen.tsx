@@ -142,6 +142,11 @@ export interface ChatScreenProps {
   readonly banner?: ReactNode;
   readonly brand?: ReactNode;
   readonly composer: ComposerLoaderProps;
+  /**
+   * A live view pinned above the Workspace panel's files and browser (a
+   * Dot's computer, 172). It renders nothing for a chat that has none.
+   */
+  readonly computer?: ReactNode;
   readonly conversation: ChatScreenConversation;
   readonly feedback?: Readonly<Record<string, MessageFeedback>>;
   /** Extra header controls before Share (the voice call, 172). */
@@ -218,6 +223,7 @@ function ChatScreenBody({
   banner,
   brand,
   composer,
+  computer,
   conversation,
   feedback,
   headerEnd,
@@ -720,18 +726,28 @@ function ChatScreenBody({
     />
   );
 
+  const workspacePanel = (
+    <LazyWorkspacePanel
+      artifacts={workspace.artifacts}
+      files={files}
+      halfRequest={halfRequest}
+      onSelect={select}
+      previewRequest={previewRequest}
+      revision={revision}
+      section={section}
+      selection={shown}
+    />
+  );
   const panel = (
     <RightPanel onClose={closePanel}>
-      <LazyWorkspacePanel
-        artifacts={workspace.artifacts}
-        files={files}
-        halfRequest={halfRequest}
-        onSelect={select}
-        previewRequest={previewRequest}
-        revision={revision}
-        section={section}
-        selection={shown}
-      />
+      {computer ? (
+        <>
+          {computer}
+          <div className="flex min-h-0 flex-1 flex-col">{workspacePanel}</div>
+        </>
+      ) : (
+        workspacePanel
+      )}
     </RightPanel>
   );
 

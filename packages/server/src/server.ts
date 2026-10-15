@@ -51,9 +51,11 @@ import { createUsageRouter } from "./api/usage";
 import { type App, createApp } from "./app";
 import { type DatabaseProblem, openDatabase } from "./boot/database";
 import type { Session, SessionResolver } from "./context";
+import type { DotComputers } from "./dots/computer";
 import { scheduleDotTick } from "./dots/jobs";
 import type { EnsureDotWorkspace } from "./dots/service";
 import { mountArtifactImageRoutes } from "./http/artifact-images";
+import { mountComputerRoutes } from "./http/computer";
 import { mountFileRoutes } from "./http/files";
 import { mountLlmRoute } from "./http/llm";
 import { MCP_OAUTH_CALLBACK_PATH, mountMcpRoutes } from "./http/mcp";
@@ -98,6 +100,8 @@ type Env = Readonly<Record<string, string | undefined>>;
 export interface BoundSandbox {
   /** The `sandbox` procedure group (the panel). */
   readonly api: SandboxApi;
+  /** Dots' own computers (172), when the sandbox runner is configured. */
+  readonly computers?: DotComputers;
   /** The chat's sandbox tools for runs; the same providers, so the panel sees what the agent did. */
   readonly turnTools: SandboxToolSource;
 }
@@ -476,6 +480,7 @@ export const createServerFromEnv = async (
   });
   const services = createServices({
     access: options.access,
+    computers: sandbox?.computers,
     config,
     db,
     ensureDotWorkspace: dotWorkspaceFor(sandbox),
@@ -612,6 +617,11 @@ export const createServerFromEnv = async (
       });
       mountMcpRoutes(hono, { manager: mcp.manager, resolveSession });
       mountVoiceRoutes(hono, { resolveSession, voice: createVoice(config) });
+      mountComputerRoutes(hono, {
+        computers: sandbox?.computers,
+        db,
+        resolveSession,
+      });
       mountLlmRoute(hono, {
         budget: services.budget,
         config,

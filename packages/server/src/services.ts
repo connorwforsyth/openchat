@@ -17,6 +17,11 @@ import {
 } from "./api/artifacts-context";
 import type { ApiServices } from "./api/router";
 import { type ConversationAccess, grantAccess } from "./context";
+import {
+  type DotComputers,
+  dbDotConversation,
+  withDotComputer,
+} from "./dots/computer";
 import { dotJobHandlers } from "./dots/jobs";
 import {
   type DotDeps,
@@ -70,6 +75,8 @@ export interface ServicesOptions {
   /** Grant check; 025 passes 012's `checkAccess`. Defaults to the grant-aware one in `context`. */
   readonly access?: ConversationAccess;
   readonly budget?: BudgetCheck;
+  /** A Dot's own computer (172); without it Dots have none. */
+  readonly computers?: DotComputers;
   readonly config: AppConfig;
   readonly db: Db;
   /** Creates a Dot's workspace on its provider before its first run (172). */
@@ -208,12 +215,17 @@ export const createServices = (options: ServicesOptions): Services => {
     report,
     // Memory wraps whichever resolver runs, so scripted test turns get it
     // too; a Dot's unattended policy (172) goes on last, over every tool.
+    // A Dot's computer joins before the unattended policy sees the tools.
     resolveTurn: withDotPolicy(
-      withChatMemory(options.resolveTurn ?? createTurnResolver(turnDeps), {
-        db,
-        report,
-        settings: memory,
-      }),
+      withDotComputer(
+        withChatMemory(options.resolveTurn ?? createTurnResolver(turnDeps), {
+          db,
+          report,
+          settings: memory,
+        }),
+        options.computers,
+        dbDotConversation(db)
+      ),
       dbDotPolicy(db, options.now)
     ),
     timeoutMs: config.limits.runTimeoutSeconds * 1000,

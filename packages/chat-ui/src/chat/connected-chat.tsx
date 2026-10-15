@@ -144,6 +144,8 @@ export interface ConnectedChatProps {
   readonly client: ApiClient;
   /** Placeholder for the composer ("Message Pip" in a Dot's chat, 172). */
   readonly composerPlaceholder?: string;
+  /** A live view above the Workspace panel (a Dot's computer, 172). */
+  readonly computer?: ReactNode;
   readonly config: PublicConfig;
   /** `null` opens a new, not-yet-created chat. */
   readonly conversationId: ConversationId | null;
@@ -1484,6 +1486,7 @@ export function ConnectedChat({
   artifactsHref,
   banner,
   composerPlaceholder,
+  computer,
   dotsHref,
   config,
   conversationId,
@@ -1911,6 +1914,7 @@ export function ConnectedChat({
             target: target ?? undefined,
             variant,
           }}
+          computer={computer}
           conversation={{
             context,
             contextLocked: current?.contextLocked ?? false,

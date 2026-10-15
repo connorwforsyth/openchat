@@ -40,6 +40,7 @@ import { useShellPlatform } from "@/app/(app)/_shared/desktop";
 import { createApiSandboxClient } from "@/app/(app)/_shared/sandbox-client";
 import { useAfterBoot } from "@/app/(app)/_shared/use-after-boot";
 import { ChatVoiceCall } from "@/app/(app)/(chat)/voice-call";
+import { DotComputer } from "@/app/(app)/(pages)/dots/dot-computer";
 import {
   DotHome,
   useDotForConversation,
@@ -497,6 +498,7 @@ export function ChatRoute({
       brand={<Brand config={config} />}
       client={client}
       composerPlaceholder={dotName ? t`Message ${dotName}` : undefined}
+      computer={<DotComputer conversationId={conversationId} />}
       config={config}
       conversationId={conversationId}
       dotsHref={routes.dots}

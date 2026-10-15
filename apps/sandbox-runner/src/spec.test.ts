@@ -6,10 +6,13 @@ import {
   buildHelperSpec,
   buildNetworkSpec,
   type ContainerDefaults,
+  DESKTOP_DISPLAY,
+  DESKTOP_SESSION,
   effectiveEgress,
   parsePreviewHost,
   previewUrl,
   selectRuntime,
+  VARIANT_LABEL,
 } from "./spec";
 
 const id = fixtureId("sandbox", 1);
@@ -51,6 +54,50 @@ describe("selectRuntime", () => {
     const choice = selectRuntime(["runc", "runsc"], "runc");
     expect(choice.ok && choice.value.runtime).toBe("runc");
     expect(choice.ok && choice.value.warning).not.toBeNull();
+  });
+});
+
+describe("buildContainerSpec for a desktop (172)", () => {
+  const spec = buildContainerSpec({
+    defaults,
+    desktopImage: "sandbox-desktop:latest",
+    egress: { mode: "open" },
+    id,
+    limits: { ...limits, network: true },
+    variant: "desktop",
+  });
+  const host = spec.HostConfig ?? {};
+
+  it("runs the desktop session from the desktop image, with a display", () => {
+    expect(spec.Image).toBe("sandbox-desktop:latest");
+    expect(spec.Cmd).toEqual([DESKTOP_SESSION]);
+    expect(spec.Env).toContain(`DISPLAY=${DESKTOP_DISPLAY}`);
+    expect(spec.Labels).toMatchObject({ [VARIANT_LABEL]: "desktop" });
+    expect(host.ShmSize).toBe(512 * MIB);
+  });
+
+  it("keeps every hardening rule and the persistent volume", () => {
+    const workspace = buildContainerSpec({
+      defaults,
+      egress: { mode: "open" },
+      id,
+      limits: { ...limits, network: true },
+    });
+    const { ShmSize: _shm, ...rest } = host;
+    expect(rest).toEqual(workspace.HostConfig);
+    expect(spec.User).toBe("1000:1000");
+  });
+
+  it("is a plain workspace by default", () => {
+    const workspace = buildContainerSpec({
+      defaults,
+      egress: { mode: "none" },
+      id,
+      limits,
+    });
+    expect(workspace.Cmd).toEqual(["sleep", "infinity"]);
+    expect(workspace.Image).toBe(defaults.image);
+    expect(workspace.HostConfig?.ShmSize).toBeUndefined();
   });
 });
 

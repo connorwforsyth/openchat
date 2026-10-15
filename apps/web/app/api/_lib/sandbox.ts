@@ -1,4 +1,6 @@
 import type { Viewer } from "@workspace/db/queries/conversations";
+import { createComputers } from "@workspace/sandbox/computer/computer";
+import { createDockerSandboxFactory } from "@workspace/sandbox/docker/client";
 import {
   createConversationSandbox,
   destroySandbox,
@@ -63,8 +65,21 @@ export const bindSandbox: SandboxBinding = ({ config, db, storage }) => {
     reset: (viewer, input) => resetSandbox(deps(viewer), input),
     writeFile: (viewer, input) => writeWorkspaceFile(deps(viewer), input),
   };
+  // A Dot's computer (172) is a desktop sandbox on the same runner, so it
+  // exists only where Docker sandboxes are configured.
+  const { docker } = config.sandbox;
+  const computers =
+    config.features.sandboxes && docker
+      ? createComputers({
+          host: createDockerSandboxFactory({
+            runnerUrl: docker.runnerUrl,
+            token: docker.token,
+          }),
+        })
+      : undefined;
   return {
     api,
+    computers,
     turnTools: createTurnSandboxSource({ db, defaultProvider, providers }),
   };
 };
