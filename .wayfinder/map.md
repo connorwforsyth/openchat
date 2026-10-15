@@ -163,6 +163,21 @@ closes (the M1 demo gate first). Their contents are in `PLAN.md` §2.
   checkpoints) are listed in
   [`.context/research/t3code/README.md`](../.context/research/t3code/README.md);
   what was ready to build became tickets 140–157.
+- **Artifact kinds (2026-10-16):** each kind is made from a library chosen
+  for it, as Claude's artifact types are. The study is
+  [`.context/research/claude-artifacts/README.md`](../.context/research/claude-artifacts/README.md).
+  - Code kinds (Site, Presentation) are TSX that imports only that kind's
+    component package.
+  - Data kinds (Document, Diagram, Spreadsheet) are JSON edited through
+    operations and drawn by trusted editors.
+  - Tickets: foundation [159](tickets/159-react-import-check.md),
+    [160](tickets/160-artifact-guides-on-demand.md) and
+    [161](tickets/161-kind-starters-and-thumbnails.md), contract
+    [162](tickets/162-contract-new-artifact-kinds.md), then
+    [163](tickets/163-site-ui-microsites.md) microsites,
+    [164](tickets/164-presentations.md) presentations,
+    [165](tickets/165-diagrams.md) diagrams and
+    [166](tickets/166-spreadsheets.md) spreadsheets. Docs are already built (126).
 
 ## Out of scope
 
