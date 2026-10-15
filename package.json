@@ -91,6 +91,7 @@
       "docx": "^9.8.1",
       "just-bash": "^3.4.2",
       "lucide-react": "^1.48.0",
+      "cron-parser": "^5.10.1",
       "pg-boss": "^12.35.0",
       "mammoth": "^1.12.3",
       "marked": "^17.0.6",

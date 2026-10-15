@@ -34,6 +34,7 @@ import { listUsableServers } from "@workspace/mcp/manager";
 
 import { createArtifactsRouter } from "./api/artifacts";
 import { createDecisionsRouter } from "./api/decisions";
+import { createDotsRouter } from "./api/dots";
 import { createFilesRouter } from "./api/files";
 import { databaseProbe, downProbe, jobsProbe } from "./api/health";
 import { createKeysRouter } from "./api/keys";
@@ -50,6 +51,8 @@ import { createUsageRouter } from "./api/usage";
 import { type App, createApp } from "./app";
 import { type DatabaseProblem, openDatabase } from "./boot/database";
 import type { Session, SessionResolver } from "./context";
+import { scheduleDotTick } from "./dots/jobs";
+import type { EnsureDotWorkspace } from "./dots/service";
 import { mountArtifactImageRoutes } from "./http/artifact-images";
 import { mountFileRoutes } from "./http/files";
 import { mountLlmRoute } from "./http/llm";
@@ -333,6 +336,10 @@ const startBackgroundWork = async ({
   if (!scheduled.ok) {
     report("couldn't schedule the test chat cleanup", scheduled.error);
   }
+  const ticking = await scheduleDotTick(queue);
+  if (!ticking.ok) {
+    report("couldn't schedule the Dots tick", ticking.error);
+  }
   if (embedder) {
     // Changing `embeddings.model` re-embeds what was indexed with the old
     // one (PLAN.md §8 RAG step 4); with nothing to do the job is a no-op.
@@ -347,6 +354,21 @@ const noQueue = {
       error: { message: "no job queue", type: "unavailable" as const },
       ok: false as const,
     }),
+};
+
+/** A Dot's workspace on its own provider (172); an existing one is kept. */
+const dotWorkspaceFor = (
+  sandbox: BoundSandbox | undefined
+): EnsureDotWorkspace | undefined => {
+  if (sandbox === undefined) {
+    return;
+  }
+  return async (actor, conversationId, provider) => {
+    const existing = await sandbox.api.get(actor, { conversationId });
+    if (existing.ok && existing.value === null) {
+      await sandbox.api.create(actor, { conversationId, provider });
+    }
+  };
 };
 
 export const createServerFromEnv = async (
@@ -454,6 +476,7 @@ export const createServerFromEnv = async (
     access: options.access,
     config,
     db,
+    ensureDotWorkspace: dotWorkspaceFor(sandbox),
     jobs: jobs?.queue ?? null,
     keyStore,
     listen: database.listen,
@@ -535,6 +558,7 @@ export const createServerFromEnv = async (
       }),
       ...createKeysRouter({ config, db, keys: keyRing, registry }),
       ...createUsageRouter({ db }),
+      ...createDotsRouter(services.dots),
       ...createDecisionsRouter({ db }),
       ...createArtifactsRouter({
         access: services.access,

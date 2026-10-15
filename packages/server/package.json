@@ -30,6 +30,7 @@
     "@workspace/shared": "workspace:*",
     "ai": "catalog:",
     "aws4fetch": "catalog:",
+    "cron-parser": "catalog:",
     "drizzle-orm": "catalog:",
     "hono": "catalog:",
     "pg-boss": "catalog:",
