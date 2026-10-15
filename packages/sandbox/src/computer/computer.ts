@@ -60,15 +60,18 @@ export const desktopIdFor = (conversationId: ConversationId): SandboxId => {
 
 export type ControlHolder = "user" | "agent";
 
-/** What the `computer` tool returns (and what the chat stores). */
+/**
+ * What the `computer` tool returns, and so what the chat stores: small on
+ * purpose. The screenshot goes to the model (`toModelOutput`) but never into
+ * the stored message, where fifty of them would fill the database and, sent
+ * back as history, the model's context. The person has the live view.
+ */
 export type ComputerOutput =
   | {
       readonly action: ComputerInput["action"];
       readonly ok: true;
-      readonly screenshot: {
-        readonly data: string;
-        readonly mediaType: string;
-      };
+      /** Whether the model was shown a screenshot with this result. */
+      readonly screenshot: boolean;
     }
   | {
       readonly action: ComputerInput["action"];
@@ -149,11 +152,9 @@ export const createComputers = ({
     conversationId: ConversationId,
     input: ComputerInput,
     signal?: AbortSignal
-  ): Promise<ComputerOutput> => {
-    const fail = (error: string): ComputerOutput => ({
-      action: input.action,
-      error,
-      ok: false,
+  ): Promise<ComputerResult> => {
+    const fail = (error: string): ComputerResult => ({
+      output: { action: input.action, error, ok: false },
     });
     const action = toComputerAction(input);
     if (!action.ok) {
@@ -183,9 +184,8 @@ export const createComputers = ({
     const shot = await sandbox.value.readFile(SCREENSHOT_PATH);
     return shot.ok
       ? {
-          action: input.action,
-          ok: true,
-          screenshot: { data: base64Of(shot.value), mediaType: "image/jpeg" },
+          image: base64Of(shot.value),
+          output: { action: input.action, ok: true, screenshot: true },
         }
       : fail(`couldn't take a screenshot: ${describeError(shot.error)}`);
   };
@@ -210,29 +210,56 @@ export const createComputers = ({
   };
 };
 
-/** The tool itself: the model sees each screenshot as an image. */
+/** One action's outcome: what's stored, and the screenshot for the model. */
+export interface ComputerResult {
+  /** Base64 JPEG of the screen after the action. */
+  readonly image?: string;
+  readonly output: ComputerOutput;
+}
+
+/**
+ * The tool itself. A screenshot is kept in memory for this turn, keyed by
+ * its call, and shown to the model as an image; a call from an earlier turn
+ * (history) is shown as text only, since the screen has moved on since.
+ */
 export const computerTool = (
   execute: (
     input: ComputerInput,
     signal?: AbortSignal
-  ) => Promise<ComputerOutput>
-): Tool<ComputerInput, ComputerOutput> =>
-  tool({
+  ) => Promise<ComputerResult>
+): Tool<ComputerInput, ComputerOutput> => {
+  const images = new Map<string, string>();
+  return tool({
     description: `Use your own computer, a ${SCREEN.width}×${SCREEN.height} Linux desktop with Chromium. Every action returns a screenshot of the whole screen.`,
-    execute: (input, { abortSignal }) => execute(input, abortSignal),
+    execute: async (input, { abortSignal, toolCallId }) => {
+      const { image, output } = await execute(input, abortSignal);
+      if (image !== undefined) {
+        images.set(toolCallId, image);
+      }
+      return output;
+    },
     inputSchema: computerInputSchema,
-    toModelOutput: ({ output }) =>
-      output.ok
+    toModelOutput: ({ output, toolCallId }) => {
+      if (!output.ok) {
+        return { type: "error-text", value: output.error };
+      }
+      const image = images.get(toolCallId);
+      return image === undefined
         ? {
+            type: "text",
+            value: `${output.action}: done (an earlier screenshot, no longer shown).`,
+          }
+        : {
             type: "content",
             value: [
               { text: `${output.action}: done. The screen now:`, type: "text" },
               {
-                data: { data: output.screenshot.data, type: "data" },
-                mediaType: output.screenshot.mediaType,
+                data: { data: image, type: "data" },
+                mediaType: "image/jpeg",
                 type: "file",
               },
             ],
-          }
-        : { type: "error-text", value: output.error },
+          };
+    },
   });
+};

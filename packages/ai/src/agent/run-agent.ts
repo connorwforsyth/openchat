@@ -32,6 +32,7 @@ import {
   isArtifactTool,
 } from "../tools/artifacts";
 import { callSettings } from "./call-settings";
+import { keepRecentToolImages } from "./tool-images";
 
 // The agent runner (D2, PLAN.md §8 step 3.5): one turn of a `ToolLoopAgent`
 // over the conversation so far, streamed as AI SDK UI message chunks. The run
@@ -288,6 +289,10 @@ export const runAgent = async (
     activeTools: input.activeTools ? [...input.activeTools] : undefined,
     instructions: input.instructions,
     model: input.model,
+    // Old screenshots would crowd the context out (172).
+    prepareStep: ({ messages: stepMessages }) => ({
+      messages: keepRecentToolImages(stepMessages),
+    }),
     repairToolCall: input.unavailableTools
       ? explainUnavailable(input.unavailableTools)
       : undefined,

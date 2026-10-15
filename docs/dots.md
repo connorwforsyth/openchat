@@ -103,6 +103,32 @@ Code map:
 | `packages/server/src/api/dots.ts` | oRPC handlers |
 | `apps/web/app/(app)/(pages)/dots/` | the page, dialog, schedule presets and the chat's schedule header |
 
+## The Dot's computer
+
+Every Dot has its own computer: a Linux desktop (Xvfb, openbox, Chromium)
+in a `desktop` sandbox on the sandbox runner, one per Dot conversation, with
+its own volume so Chromium's profile (cookies, sign-ins) persists. The
+`computer` tool (`packages/sandbox/src/computer/`) drives it with xdotool
+(`screenshot`, `click`, `double_click`, `move`, `type`, `key`, `scroll`,
+`wait`, `open_browser`) and shows the model a screenshot after every action.
+It's a plain function tool, so it works with any vision model through the
+gateway. Only the latest three screenshots reach the model
+(`packages/ai/src/agent/tool-images.ts`), and none are stored in the chat.
+
+- **Approval:** the tool never asks; the computer is the Dot's own. It joins
+  every turn in a Dot's conversation (`withDotComputer`) before the
+  unattended policy, which still withholds anything else that asks.
+- **Live view:** opening the Workspace panel in a Dot's chat shows the screen
+  (noVNC through the preview proxy, `{id}-6080.sandbox.localhost:7071`),
+  view-only. **Take over** gives the owner mouse and keyboard and makes the
+  tool refuse input (a flag file in the desktop) until **Give back control**.
+  Plain routes `GET /api/computer/:conversationId` and
+  `POST /api/computer/:conversationId/control` (owner only).
+- **Image:** `docker build -t sandbox-desktop:latest apps/sandbox-runner/desktop`
+  (or `docker compose --profile sandbox-desktop-build build sandbox-desktop`);
+  the runner's `SANDBOX_DESKTOP_IMAGE` names it. The runner needs `open`
+  egress (or an allowlist proxy) for the browser to reach the web.
+
 ## Remote sandbox
 
 The Docker provider talks to `apps/sandbox-runner` over an authenticated HTTP

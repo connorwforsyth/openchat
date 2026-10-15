@@ -55,10 +55,14 @@ const execute = async (
   tools: ReturnType<ReturnType<typeof createComputers>["tools"]>,
   input: unknown
 ) =>
-  (await tools.computer?.execute?.(input as never, {
-    messages: [],
-    toolCallId: "call_1",
-  })) as ComputerOutput;
+  (await tools.computer?.execute?.(
+    input as never,
+    {
+      context: {},
+      messages: [],
+      toolCallId: "call_1",
+    } as never
+  )) as ComputerOutput;
 
 describe("desktopIdFor", () => {
   it("is stable per conversation and a UUID", () => {
@@ -76,11 +80,19 @@ describe("the computer tool", () => {
     const output = await execute(tools, { action: "click", x: 5, y: 6 });
     expect(created).toEqual([desktopIdFor(conversationId)]);
     expect(commands[0]).toContain("xdotool mousemove --sync 5 6 click 1");
-    expect(output).toEqual({
-      action: "click",
-      ok: true,
-      screenshot: { data: "/9j/2Q==", mediaType: "image/jpeg" },
+    // Stored small: the picture goes to the model only.
+    expect(output).toEqual({ action: "click", ok: true, screenshot: true });
+  });
+
+  it("shows a call from an earlier turn as text", async () => {
+    const { host } = fakeHost();
+    const tools = createComputers({ host }).tools(conversationId);
+    const model = await tools.computer?.toModelOutput?.({
+      input: { action: "click" },
+      output: { action: "click", ok: true, screenshot: true },
+      toolCallId: "from_history",
     });
+    expect(model).toMatchObject({ type: "text" });
   });
 
   it("shows the model the screenshot as an image", async () => {
