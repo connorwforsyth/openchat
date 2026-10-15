@@ -114,6 +114,7 @@ import type { Platform } from "../shell/platform";
 import type { ShellLayoutState } from "../shell/use-shell-layout";
 import type { Theme } from "../sidebar/account-menu";
 import type { ChatSidebarProps } from "../sidebar/chat-sidebar";
+import { VoiceBridgeContext } from "../voice/voice-bridge";
 import type { VoiceBridge, VoiceReply } from "../voice/voice-engine";
 import type {
   WorkspaceClient,
@@ -246,6 +247,12 @@ const voiceSlot = (
   conversationId: ConversationId | null,
   bridge: VoiceBridge
 ): ReactNode => (voice && conversationId ? voice(bridge) : null);
+
+/** The bridge for call buttons outside the header; none before the chat exists. */
+const bridgeOf = (
+  conversationId: ConversationId | null,
+  bridge: VoiceBridge
+): VoiceBridge | null => (conversationId ? bridge : null);
 
 const fileUrl = (fileId: FileId): string => `/api/files/${fileId}/content`;
 /** A generated image's bytes (138), served by its artifact version. */
@@ -1890,97 +1897,101 @@ export function ConnectedChat({
   return (
     <RunActivityProvider value={activity}>
       <PlanStatusProvider value={planStatus}>
-        <ChatScreen
-          actions={actions}
-          banner={banner}
-          brand={brand}
-          composer={{
-            agents,
-            attachmentLimits,
-            ...composerDrafts,
-            models,
-            onPlanChange: plan.set,
-            onStop,
-            onSubmit,
-            onTargetChange,
-            onVariantChange: setVariant,
-            placeholder: composerPlaceholder,
-            // "Recently used" in the picker is each person's own (099).
-            recentsKey: me.user.id,
-            ...webSearchSwitch(config, webSearch, setWebSearch),
-            plan: plan.on,
-            skills,
-            status: shownStatus,
-            target: target ?? undefined,
-            variant,
-          }}
-          computer={computer}
-          conversation={{
-            context,
-            contextLocked: current?.contextLocked ?? false,
-            contextOptions,
-            id: conversationId,
-            onContextChange,
-            onCopyLink: copyLink,
-            onRename: conversationId ? onRename : undefined,
-            participants: data.participants.data ?? [],
-            title: current?.title ?? null,
-          }}
-          feedback={feedback.byMessage}
-          headerEnd={voiceSlot(voice, conversationId, voiceBridge)}
-          layout={layout}
-          messages={messages}
-          onNewChat={newChat}
-          onOpenPalette={onOpenPalette}
-          pendingApprovals={approvals}
-          platform={platform}
-          runError={
-            <RunError
-              failed={Boolean(chat.error)}
-              onStop={stop}
-              uploadFailed={uploadFailed}
-              waiting={waiting}
-            />
-          }
-          siblings={data.path.data?.siblings ?? []}
-          sidebar={{
-            ...sidebarActions,
-            account: {
-              onNewOrg,
-              onOpenAdmin,
-              onOpenSettings,
-              onSignOut,
-              onThemeChange,
-              theme,
-              user: me.user,
-            },
-            activeId: conversationId,
-            artifactsHref,
-            chats: data.chats.data?.items ?? [],
-            dotsHref,
-            ...sidebarDots,
-            libraryHref,
-            onSelect: onNavigate,
-          }}
-          streamingMessageId={streamingMessageId}
-          workspace={{
-            artifacts: {
-              api,
-              artifacts: data.artifacts.data ?? [],
-              editing: planEditing,
-              error: data.versions.isError
-                ? t`Couldn't load this artifact.`
-                : null,
-              runtimeOrigin: artifactsRuntimeOrigin,
-              versions: data.versions.data,
-            },
-            canPreview: canPreviewOn(config, sandboxRecord),
-            files: workspaceFiles,
-            onSelect: setSelection,
-            paths: workspacePaths,
-            selection,
-          }}
-        />
+        <VoiceBridgeContext.Provider
+          value={bridgeOf(conversationId, voiceBridge)}
+        >
+          <ChatScreen
+            actions={actions}
+            banner={banner}
+            brand={brand}
+            composer={{
+              agents,
+              attachmentLimits,
+              ...composerDrafts,
+              models,
+              onPlanChange: plan.set,
+              onStop,
+              onSubmit,
+              onTargetChange,
+              onVariantChange: setVariant,
+              placeholder: composerPlaceholder,
+              // "Recently used" in the picker is each person's own (099).
+              recentsKey: me.user.id,
+              ...webSearchSwitch(config, webSearch, setWebSearch),
+              plan: plan.on,
+              skills,
+              status: shownStatus,
+              target: target ?? undefined,
+              variant,
+            }}
+            computer={computer}
+            conversation={{
+              context,
+              contextLocked: current?.contextLocked ?? false,
+              contextOptions,
+              id: conversationId,
+              onContextChange,
+              onCopyLink: copyLink,
+              onRename: conversationId ? onRename : undefined,
+              participants: data.participants.data ?? [],
+              title: current?.title ?? null,
+            }}
+            feedback={feedback.byMessage}
+            headerEnd={voiceSlot(voice, conversationId, voiceBridge)}
+            layout={layout}
+            messages={messages}
+            onNewChat={newChat}
+            onOpenPalette={onOpenPalette}
+            pendingApprovals={approvals}
+            platform={platform}
+            runError={
+              <RunError
+                failed={Boolean(chat.error)}
+                onStop={stop}
+                uploadFailed={uploadFailed}
+                waiting={waiting}
+              />
+            }
+            siblings={data.path.data?.siblings ?? []}
+            sidebar={{
+              ...sidebarActions,
+              account: {
+                onNewOrg,
+                onOpenAdmin,
+                onOpenSettings,
+                onSignOut,
+                onThemeChange,
+                theme,
+                user: me.user,
+              },
+              activeId: conversationId,
+              artifactsHref,
+              chats: data.chats.data?.items ?? [],
+              dotsHref,
+              ...sidebarDots,
+              libraryHref,
+              onSelect: onNavigate,
+            }}
+            streamingMessageId={streamingMessageId}
+            workspace={{
+              artifacts: {
+                api,
+                artifacts: data.artifacts.data ?? [],
+                editing: planEditing,
+                error: data.versions.isError
+                  ? t`Couldn't load this artifact.`
+                  : null,
+                runtimeOrigin: artifactsRuntimeOrigin,
+                versions: data.versions.data,
+              },
+              canPreview: canPreviewOn(config, sandboxRecord),
+              files: workspaceFiles,
+              onSelect: setSelection,
+              paths: workspacePaths,
+              selection,
+            }}
+          />
+        </VoiceBridgeContext.Provider>
       </PlanStatusProvider>
     </RunActivityProvider>
   );

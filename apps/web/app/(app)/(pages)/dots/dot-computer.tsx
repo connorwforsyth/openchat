@@ -3,20 +3,21 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ConversationId } from "@workspace/contract/schemas/common";
+import type { Dot } from "@workspace/contract/schemas/dots";
 import { KeyboardIcon, MonitorIcon, RotateCcwIcon } from "@workspace/icons";
 import { Button } from "@workspace/ui/components/button";
 import { useCallback } from "react";
 import { z } from "zod";
+import type { DotSurfaceProps } from "./dot-extensions";
+import { DOTS_REFRESH_MS, useDotForConversation } from "./dot-home";
 
-import { useApi } from "@/app/(app)/_shared/api";
-
-import { DOTS_REFRESH_MS } from "./dots-screen";
-
-// A Dot's own computer, live (172), pinned above the Workspace panel. The
-// screen is noVNC on the sandbox preview origin (D24), in an iframe without
-// same-origin rights. Watching is view-only; "Take over" hands the person the
-// mouse and keyboard and makes the Dot's `computer` tool refuse input until
-// "Give back control". Nothing renders for an ordinary chat.
+// A Dot's own computer, live (172): pinned above the Workspace panel in the
+// Dot's chat (the bar's "Computer" button opens it) and the body of the
+// profile's Computer tab. The screen is noVNC on the sandbox preview origin
+// (D24), in an iframe without same-origin rights. Watching is view-only;
+// "Take over" hands the person the mouse and keyboard and makes the Dot's
+// `computer` tool refuse input until "Give back control". Nothing renders
+// for an ordinary chat.
 
 const viewSchema = z.object({
   holder: z.enum(["user", "agent"]),
@@ -41,34 +42,60 @@ const screenUrl = (view: ComputerView) => {
   return url.toString();
 };
 
+const viewKey = (conversationId: ConversationId) =>
+  ["dot-computer", conversationId] as const;
+
+/** In the Dot's chat: the panel's live view; nothing for other chats. */
 export function DotComputer({
   conversationId,
 }: {
   readonly conversationId: ConversationId | null;
 }) {
+  const dot = useDotForConversation(conversationId);
+  return dot ? <DotComputerView dot={dot} /> : null;
+}
+
+/**
+ * The profile tab's label: "Computer", with a live dot while the Dot is at
+ * work on it. It reads the view only if something already opened it, so a
+ * label never starts a desktop.
+ */
+export function DotComputerLabel({ dot }: DotSurfaceProps) {
   const { t } = useLingui();
-  const { query } = useApi();
-  const queryClient = useQueryClient();
-  const dots = useQuery({
-    ...query.dots.list.queryOptions({ input: {} }),
-    enabled: conversationId !== null,
-    refetchInterval: DOTS_REFRESH_MS,
+  const view = useQuery<ComputerView>({
+    enabled: false,
+    queryKey: viewKey(dot.conversationId),
   });
-  const dot = dots.data?.find((each) => each.conversationId === conversationId);
-  const key = ["dot-computer", conversationId] as const;
+  const live = view.data?.holder === "agent" && dot.status === "running";
+  return (
+    <>
+      <Trans>Computer</Trans>
+      {live ? (
+        <span
+          aria-label={t`${dot.name} is using it`}
+          className="size-1.5 rounded-full bg-primary motion-safe:animate-pulse"
+          role="img"
+        />
+      ) : null}
+    </>
+  );
+}
+
+export function DotComputerView({ dot }: { readonly dot: Dot }) {
+  const { t } = useLingui();
+  const queryClient = useQueryClient();
+  const { conversationId } = dot;
+  const key = viewKey(conversationId);
   const view = useQuery({
-    enabled: Boolean(dot && conversationId),
     queryFn: () =>
-      fetch(computerPath(conversationId ?? ""), { cache: "no-store" }).then(
-        readView
-      ),
+      fetch(computerPath(conversationId), { cache: "no-store" }).then(readView),
     queryKey: key,
     refetchInterval: DOTS_REFRESH_MS,
     retry: 1,
   });
   const control = useMutation({
     mutationFn: (next: ComputerView["holder"]) =>
-      fetch(`${computerPath(conversationId ?? "")}/control`, {
+      fetch(`${computerPath(conversationId)}/control`, {
         body: JSON.stringify({ holder: next }),
         headers: { "content-type": "application/json" },
         method: "POST",
@@ -85,9 +112,6 @@ export function DotComputer({
     [holder, mutate]
   );
 
-  if (!(dot && conversationId)) {
-    return null;
-  }
   const current = view.data;
   const userHas = holder === "user";
   const status = (): string => {

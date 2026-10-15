@@ -9,6 +9,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { ConnectedChat } from "@workspace/chat-ui/chat/connected-chat";
+import { VoiceCallButton } from "@workspace/chat-ui/voice/voice-call";
 import type { VoiceBridge } from "@workspace/chat-ui/voice/voice-engine";
 import {
   AUTO_TARGET,
@@ -39,7 +40,6 @@ import { Brand } from "@/app/(app)/_shared/brand";
 import { useShellPlatform } from "@/app/(app)/_shared/desktop";
 import { createApiSandboxClient } from "@/app/(app)/_shared/sandbox-client";
 import { useAfterBoot } from "@/app/(app)/_shared/use-after-boot";
-import { ChatVoiceCall } from "@/app/(app)/(chat)/voice-call";
 import { DotComputer } from "@/app/(app)/(pages)/dots/dot-computer";
 import {
   DotHome,
@@ -463,13 +463,7 @@ export function ChatRoute({
     () => router.push(routes.settings()),
     [router]
   );
-  const renderVoice = useCallback(
-    (bridge: VoiceBridge) =>
-      conversationId ? (
-        <ChatVoiceCall bridge={bridge} conversationId={conversationId} />
-      ) : null,
-    [conversationId]
-  );
+
   const sandboxClient = useMemo(
     () =>
       conversationId && config.features.sandboxes
@@ -484,6 +478,22 @@ export function ChatRoute({
   const dot = useDotForConversation(conversationId ?? null);
   const dotName = dot?.name;
   const sidebarDots = useSidebarDots(conversationId ?? null);
+  // A Dot's chat has its Call in the Dot's bar (with its face); the header's
+  // stays for every other chat.
+  const isDot = Boolean(dot);
+  const renderVoice = useCallback(
+    (bridge: VoiceBridge) =>
+      conversationId && !isDot ? <VoiceCallButton bridge={bridge} /> : null,
+    [conversationId, isDot]
+  );
+  // The Dot bar's "Computer" opens the side panel, where its live view is
+  // pinned above the files; again closes it.
+  const { setPanel } = layout;
+  const panelOpen = layout.layout.panel !== null;
+  const toggleComputer = useCallback(
+    () => setPanel(panelOpen ? null : "files"),
+    [panelOpen, setPanel]
+  );
 
   if (conversationId === undefined) {
     // Not an id: the page renders the 404.
@@ -494,7 +504,14 @@ export function ChatRoute({
       agents={agents}
       artifactsHref={routes.artifacts}
       artifactsRuntimeOrigin={artifactsRuntimeOrigin}
-      banner={<DotHome conversationId={conversationId} />}
+      banner={
+        <DotHome
+          conversationId={conversationId}
+          onOpenComputer={
+            config.features.sandboxes ? toggleComputer : undefined
+          }
+        />
+      }
       brand={<Brand config={config} />}
       client={client}
       composerPlaceholder={dotName ? t`Message ${dotName}` : undefined}

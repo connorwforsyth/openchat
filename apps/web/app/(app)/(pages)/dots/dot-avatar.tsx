@@ -46,6 +46,16 @@ const RING: Readonly<Record<DotAvatarColor, string>> = {
   sun: "border-dot-sun",
 };
 
+/** The voice call's halo behind a Dot's face (172). */
+export const DOT_HALO: Readonly<Record<DotAvatarColor, string>> = {
+  bloom: "bg-dot-bloom/25",
+  dusk: "bg-dot-dusk/25",
+  ember: "bg-dot-ember/25",
+  moss: "bg-dot-moss/25",
+  sea: "bg-dot-sea/25",
+  sun: "bg-dot-sun/25",
+};
+
 const SIZE = {
   lg: "size-16",
   md: "size-9",

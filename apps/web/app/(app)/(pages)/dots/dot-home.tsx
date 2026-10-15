@@ -4,7 +4,7 @@ import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ConversationId } from "@workspace/contract/schemas/common";
 import type { Dot, DotActivity } from "@workspace/contract/schemas/dots";
-import { PlayIcon, XIcon } from "@workspace/icons";
+import { MonitorIcon, PlayIcon, XIcon } from "@workspace/icons";
 import { Button } from "@workspace/ui/components/button";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -107,9 +107,15 @@ export interface DotHomeProps {
   readonly conversationId: ConversationId | null;
   /** Plug-ins (Call, Computer); defaults to `dotExtensions`. */
   readonly extensions?: Partial<DotExtensions>;
+  /** Shows "Computer", which opens the side panel's live view. */
+  readonly onOpenComputer?: () => void;
 }
 
-export function DotHome({ conversationId, extensions }: DotHomeProps) {
+export function DotHome({
+  conversationId,
+  extensions,
+  onOpenComputer,
+}: DotHomeProps) {
   const { t } = useLingui();
   const { client, query } = useApi();
   const queryClient = useQueryClient();
@@ -191,6 +197,17 @@ export function DotHome({ conversationId, extensions }: DotHomeProps) {
             </span>
           </button>
           {CallButton ? <CallButton dot={dot} /> : null}
+          {onOpenComputer ? (
+            <Button
+              aria-label={t`Open ${name}'s computer`}
+              onClick={onOpenComputer}
+              size="icon-sm"
+              title={t`Computer`}
+              variant="ghost"
+            >
+              <MonitorIcon />
+            </Button>
+          ) : null}
           <Button
             aria-label={t`Run ${name} now`}
             disabled={runNow.isPending || dot.status === "running"}

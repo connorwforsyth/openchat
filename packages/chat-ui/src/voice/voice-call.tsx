@@ -22,7 +22,13 @@ import {
   TooltipTrigger,
 } from "@workspace/ui/components/tooltip";
 import { cn } from "@workspace/ui/lib/utils";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import {
   type CallError,
@@ -59,14 +65,25 @@ const fetchInfo = async (baseUrl: string): Promise<VoiceInfo> => {
 export interface VoiceCallButtonProps {
   readonly baseUrl?: string;
   readonly bridge: VoiceBridge;
-  /** Who's on the call, for the overlay's title (a Dot's name). */
+  /**
+   * Who's on the call: the overlay's title (a Dot's name) and, when set, the
+   * face in the orb (a Dot's avatar) with the halo's colour class.
+   */
   readonly name?: string | null;
+  readonly orb?: VoiceOrbLook;
+}
+
+/** A face for the orb: drawn inside the core, which the level scales. */
+export interface VoiceOrbLook {
+  readonly face: ReactNode;
+  readonly haloClassName: string;
 }
 
 export function VoiceCallButton({
   baseUrl = "",
   bridge,
   name,
+  orb,
 }: VoiceCallButtonProps) {
   const { t } = useLingui();
   const info = useQuery({
@@ -105,7 +122,9 @@ export function VoiceCallButton({
         </TooltipTrigger>
         <TooltipContent side="bottom">{label}</TooltipContent>
       </Tooltip>
-      {open ? <VoiceOverlay call={call} name={name ?? null} /> : null}
+      {open ? (
+        <VoiceOverlay call={call} look={orb} name={name ?? null} />
+      ) : null}
     </>
   );
 }
@@ -158,9 +177,11 @@ function useErrorText(error: CallError | null): string | null {
 
 export function VoiceOverlay({
   call,
+  look,
   name,
 }: {
   readonly call: VoiceCall;
+  readonly look?: VoiceOrbLook;
   readonly name: string | null;
 }) {
   const { t } = useLingui();
@@ -203,7 +224,7 @@ export function VoiceOverlay({
           <DialogDescription aria-live="polite">{status}</DialogDescription>
         </div>
         <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center">
-          <VoiceOrb level={level} state={orb} />
+          <VoiceOrb level={level} look={look} state={orb} />
         </div>
         {error ? (
           <p className="text-center text-destructive text-sm" role="alert">
@@ -288,9 +309,11 @@ const reducedMotion = () =>
  */
 export function VoiceOrb({
   level,
+  look,
   state,
 }: {
   readonly level: () => number;
+  readonly look?: VoiceOrbLook;
   readonly state: OrbState;
 }) {
   const core = useRef<HTMLDivElement>(null);
@@ -328,21 +351,25 @@ export function VoiceOrb({
     >
       <div
         className={cn(
-          "absolute inset-0 rounded-full bg-primary/20",
+          "absolute inset-0 rounded-full",
+          look ? look.haloClassName : "bg-primary/20",
           state === "thinking" && "animate-pulse"
         )}
         ref={halo}
       />
       <div
         className={cn(
-          "size-32 rounded-full bg-primary transition-opacity duration-(--motion-base) ease-motion-out",
+          "grid size-32 place-items-center rounded-full transition-opacity duration-(--motion-base) ease-motion-out",
+          !look && "bg-primary",
           state === "idle" && "opacity-40",
           state === "listening" && "opacity-80",
           state === "thinking" && "opacity-60",
           state === "speaking" && "opacity-100"
         )}
         ref={core}
-      />
+      >
+        {look?.face}
+      </div>
     </div>
   );
 }

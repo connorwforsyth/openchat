@@ -1,6 +1,9 @@
 import type { Dot } from "@workspace/contract/schemas/dots";
 import type { ComponentType } from "react";
 
+import { DotCallButton } from "./dot-call";
+import { DotComputerLabel, DotComputerView } from "./dot-computer";
+
 // Where the Dot's other surfaces plug in (172). The Dot home renders a Call
 // button and a Computer tab only when these are set, so the voice and
 // computer work can land on their own branches by filling one entry each,
@@ -23,7 +26,7 @@ export interface DotExtensions {
 }
 
 export const dotExtensions: DotExtensions = {
-  CallButton: null,
-  ComputerTab: null,
-  ComputerTabLabel: null,
+  CallButton: DotCallButton,
+  ComputerTab: DotComputerView,
+  ComputerTabLabel: DotComputerLabel,
 };
