@@ -19,12 +19,16 @@ import { z } from "zod";
 // discovery, dynamic registration, PKCE S256, refresh). Consent is a
 // function call: `approve()` plays the user clicking "Allow".
 //
-// Tools: `echo`, `add`, and `whoami` (who the bearer token belongs to), so
-// tests can see which user's credentials a call carried.
+// Tools: `echo`, `add`, `whoami` (who the bearer token belongs to), so
+// tests can see which user's credentials a call carried. With `dump: true`,
+// also `dump`, which answers with as much text as it's asked for (to test
+// result caps).
 
 export interface McpFixtureOptions {
   /** Access token lifetime when OAuth is on. */
   readonly accessTokenTtlSeconds?: number;
+  /** Also offer `dump`; off by default so other tests' tool counts hold. */
+  readonly dump?: boolean;
   /** Protect `/mcp` with OAuth. */
   readonly oauth?: boolean;
   /** Require this header on `/mcp` (header-secret servers). */
@@ -78,6 +82,18 @@ const sendJson = (res: ServerResponse, status: number, body: unknown) => {
 
 const s256 = (verifier: string) =>
   createHash("sha256").update(verifier).digest("base64url");
+
+/** Exactly `chars` characters of distinct lines, like a long log. */
+const numberedLines = (chars: number): string => {
+  const lines: string[] = [];
+  let length = 0;
+  for (let line = 1; length < chars; line += 1) {
+    const text = `line ${line}: the quick brown fox jumps over the lazy dog\n`;
+    lines.push(text);
+    length += text.length;
+  }
+  return lines.join("").slice(0, chars);
+};
 
 const isInitialize = (body: unknown) =>
   typeof body === "object" &&
@@ -146,6 +162,19 @@ export const startMcpFixture = async (
         return { content: [{ text: identity, type: "text" }] };
       }
     );
+    if (options.dump) {
+      server.registerTool(
+        "dump",
+        {
+          description: "Answers with `chars` characters of numbered lines.",
+          inputSchema: { chars: z.number().int().min(0) },
+        },
+        ({ chars }) => {
+          stats.toolCalls += 1;
+          return { content: [{ text: numberedLines(chars), type: "text" }] };
+        }
+      );
+    }
     return server;
   };
 
