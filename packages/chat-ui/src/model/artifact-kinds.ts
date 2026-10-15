@@ -1,7 +1,10 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { builtinKindDefinitions } from "@workspace/artifacts-kit/builtin";
-import type { ArtifactKindDefinition } from "@workspace/artifacts-kit/define";
+import {
+  type ArtifactKindDefinition,
+  starterKindsOf,
+} from "@workspace/artifacts-kit/define";
 import type { ArtifactKind } from "@workspace/contract/schemas/message-parts";
 
 // The artifact kinds as people read them (124). Everything else about a kind
@@ -33,18 +36,15 @@ export const artifactKindDefinition = (
 ): ArtifactKindDefinition => builtinKindDefinitions[kind];
 
 /**
- * The kinds "Make something new" offers: those shown as more than their
- * source (a page, a document, a diagram), not plain code. Markdown is left
- * to the model: a Document (126) is what a person starts.
+ * The kinds "Make something new" offers (161): of `enabled` (the instance's
+ * kinds; every built-in one by default), those whose definition has a
+ * `starter`, in its order.
  */
-export const starterKinds: readonly ArtifactKind[] = artifactKinds.filter(
-  (kind) => {
-    const { render } = builtinKindDefinitions[kind];
-    // An image is only ever `generate_image`'s (138), never started by hand.
-    return (
-      kind !== "markdown" &&
-      kind !== "image" &&
-      (render.runtime !== null || render.panel !== "source")
-    );
-  }
-);
+export const starterKinds = (
+  enabled: readonly ArtifactKind[] = artifactKinds
+): readonly ArtifactKind[] =>
+  starterKindsOf(
+    artifactKinds
+      .filter((kind) => enabled.includes(kind))
+      .map((kind) => ({ kind, starter: builtinKindDefinitions[kind].starter }))
+  ).map((each) => each.kind);

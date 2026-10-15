@@ -8,4 +8,5 @@ export const markdownKind = textKind({
   label: "Markdown",
   render: { panel: "markdown", runtime: null },
   shape: /\S/,
+  thumbnail: "none",
 });

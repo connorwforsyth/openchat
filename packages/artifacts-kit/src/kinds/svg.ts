@@ -8,4 +8,6 @@ export const svgKind = textKind({
   label: "SVG image",
   render: { panel: "frame", runtime: "svg" },
   shape: /^\s*<svg[\s>][\s\S]*<\/svg>\s*$/,
+  starter: {},
+  thumbnail: "runtime",
 });
