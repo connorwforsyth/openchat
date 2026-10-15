@@ -2,6 +2,13 @@
 
 import { useLingui } from "@lingui/react/macro";
 import { FileIcon } from "@workspace/icons";
+import {
+  Attachment,
+  AttachmentContent,
+  AttachmentMedia,
+  AttachmentTitle,
+  AttachmentTrigger,
+} from "@workspace/ui/components/attachment";
 
 import type { FilePart } from "../model/parts";
 import { useConversationActions } from "./actions";
@@ -36,29 +43,23 @@ export function FileParts({ files }: { readonly files: readonly FilePart[] }) {
             </li>
           );
         }
-        const chip = (
-          <>
-            <FileIcon
-              aria-hidden
-              className="size-4 shrink-0 text-muted-foreground"
-            />
-            <span className="truncate">{name}</span>
-          </>
-        );
         return (
-          <li key={key}>
-            {url ? (
-              <a
-                className="flex max-w-64 items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm transition-colors duration-(--motion-fast) hover:bg-muted"
-                href={url}
-              >
-                {chip}
-              </a>
-            ) : (
-              <span className="flex max-w-64 items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm">
-                {chip}
-              </span>
-            )}
+          <li className="max-w-64" key={key}>
+            <Attachment size="sm">
+              <AttachmentMedia>
+                <FileIcon aria-hidden className="text-muted-foreground" />
+              </AttachmentMedia>
+              <AttachmentContent>
+                <AttachmentTitle>{name}</AttachmentTitle>
+              </AttachmentContent>
+              {/* The whole chip is the link; the trigger covers it. */}
+              {url ? (
+                <AttachmentTrigger
+                  aria-label={name}
+                  render={<a href={url} />}
+                />
+              ) : null}
+            </Attachment>
           </li>
         );
       })}

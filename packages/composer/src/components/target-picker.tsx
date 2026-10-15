@@ -12,6 +12,7 @@ import {
   SparklesIcon,
   ToolIcon,
 } from "@workspace/icons";
+import { InputGroupButton } from "@workspace/ui/components/input-group";
 import {
   ModelSelector,
   ModelSelectorContent,
@@ -30,8 +31,7 @@ import {
   ModelSelectorSeparator,
   ModelSelectorTrigger,
   ModelSelectorVendor,
-} from "@workspace/ui/components/ai-elements/model-selector";
-import { PromptInputButton } from "@workspace/ui/components/ai-elements/prompt-input";
+} from "@workspace/ui/components/model-selector";
 import {
   Fragment,
   type ReactNode,
@@ -530,10 +530,12 @@ export function TargetPicker({
       <ModelSelectorTrigger
         disabled={disabled}
         render={
-          <PromptInputButton
+          <InputGroupButton
             aria-label={t`Model or agent: ${label}`}
             className="min-w-0 max-w-48 shrink rounded-full text-muted-foreground hover:text-foreground aria-expanded:text-foreground max-sm:max-w-36"
             size="sm"
+            type="button"
+            variant="ghost"
           />
         }
       >

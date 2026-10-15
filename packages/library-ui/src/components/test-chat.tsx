@@ -12,13 +12,11 @@ import type {
 } from "@workspace/contract/schemas/common";
 import type { AgentDefinition } from "@workspace/contract/schemas/library";
 import { RotateCcwIcon } from "@workspace/icons";
-import {
-  Message,
-  MessageContent,
-  MessageResponse,
-} from "@workspace/ui/components/ai-elements/message";
 import { Alert, AlertDescription } from "@workspace/ui/components/alert";
+import { Bubble, BubbleContent } from "@workspace/ui/components/bubble";
 import { Button } from "@workspace/ui/components/button";
+import { Markdown } from "@workspace/ui/components/markdown";
+import { Message, MessageContent } from "@workspace/ui/components/message";
 import {
   MessageScroller,
   MessageScrollerButton,
@@ -77,12 +75,16 @@ const MessageRow = memo(function Row({
     .flatMap((part) => (part.type === "text" ? [part.text] : []))
     .join("");
   return (
-    <Message from={message.role}>
+    <Message align={message.role === "user" ? "end" : "start"}>
       <MessageContent>
-        {message.role === "assistant" ? (
-          <MessageResponse>{text}</MessageResponse>
+        {message.role === "user" ? (
+          <Bubble align="end" variant="muted">
+            <BubbleContent className="whitespace-pre-wrap">
+              {text}
+            </BubbleContent>
+          </Bubble>
         ) : (
-          <p className="whitespace-pre-wrap">{text}</p>
+          <Markdown>{text}</Markdown>
         )}
       </MessageContent>
     </Message>

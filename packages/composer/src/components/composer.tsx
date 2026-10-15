@@ -5,8 +5,10 @@ import type { Editor, Range } from "@tiptap/core";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { exitSuggestion } from "@tiptap/suggestion";
 import type { LibraryItemId } from "@workspace/contract/schemas/common";
-import { PromptInputHeader } from "@workspace/ui/components/ai-elements/prompt-input";
-import { InputGroup } from "@workspace/ui/components/input-group";
+import {
+  InputGroup,
+  InputGroupAddon,
+} from "@workspace/ui/components/input-group";
 import { cn } from "@workspace/ui/lib/utils";
 import {
   type ChangeEvent,
@@ -590,7 +592,10 @@ export function Composer({
           />
         ) : null}
         {files.attachments.length > 0 || pickedSkills.length > 0 ? (
-          <PromptInputHeader className="cursor-default flex-col items-start gap-1.5">
+          <InputGroupAddon
+            align="block-start"
+            className="cursor-default flex-col items-start gap-1.5"
+          >
             <SkillList
               disabled={disabled}
               onRemove={removeSkill}
@@ -601,7 +606,7 @@ export function Composer({
               disabled={disabled}
               onRemove={removeAttachment}
             />
-          </PromptInputHeader>
+          </InputGroupAddon>
         ) : null}
         <EditorContent
           className={cn("w-full min-w-0", disabled && "opacity-50")}

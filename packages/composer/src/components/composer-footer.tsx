@@ -7,14 +7,13 @@ import {
   ArrowUpIcon,
   FileTextIcon,
   GlobeIcon,
+  StopIcon,
   ZapIcon,
 } from "@workspace/icons";
 import {
-  PromptInputButton,
-  PromptInputFooter,
-  PromptInputSubmit,
-  PromptInputTools,
-} from "@workspace/ui/components/ai-elements/prompt-input";
+  InputGroupAddon,
+  InputGroupButton,
+} from "@workspace/ui/components/input-group";
 import { useCallback, useRef } from "react";
 
 import { useModelVariants } from "../hooks/use-model-variants";
@@ -130,8 +129,11 @@ export function ComposerFooter({
     );
   }
   return (
-    <PromptInputFooter className="gap-1 px-2 pb-2">
-      <PromptInputTools className="min-w-0 shrink-0">
+    <InputGroupAddon
+      align="block-end"
+      className="justify-between gap-1 px-2 pb-2"
+    >
+      <div className="flex min-w-0 shrink-0 items-center gap-1">
         <PlusMenu
           attachDisabled={attachDisabled}
           disabled={disabled}
@@ -152,52 +154,58 @@ export function ComposerFooter({
           webSearch={webSearch}
         />
         {plan && onPlanChange ? (
-          <PromptInputButton
+          <InputGroupButton
             aria-label={t`Plan mode is on. Turn it off`}
             aria-pressed
             className="rounded-full text-foreground"
             disabled={disabled}
             onClick={turnOffPlan}
             size="sm"
+            type="button"
+            variant="ghost"
           >
             <FileTextIcon aria-hidden />
             <span className="max-sm:sr-only">
               <Trans>Plan</Trans>
             </span>
-          </PromptInputButton>
+          </InputGroupButton>
         ) : null}
         {webSearch && onWebSearchChange ? (
-          <PromptInputButton
+          <InputGroupButton
             aria-label={t`Web search is on. Turn it off`}
             aria-pressed
             className="rounded-full text-foreground"
             disabled={disabled}
             onClick={turnOffWebSearch}
             size="sm"
+            type="button"
+            variant="ghost"
           >
             <GlobeIcon aria-hidden />
             <span className="max-sm:sr-only">
               <Trans>Search</Trans>
             </span>
-          </PromptInputButton>
+          </InputGroupButton>
         ) : null}
         {picking && variants.fast?.on ? (
-          <PromptInputButton
+          <InputGroupButton
             aria-label={t`Fast mode is on. Turn it off`}
             aria-pressed
             className="rounded-full text-foreground"
             disabled={disabled}
             onClick={turnOffFast}
             size="sm"
+            type="button"
+            variant="ghost"
           >
             <ZapIcon aria-hidden />
             <span className="max-sm:sr-only">
               <Trans>Fast</Trans>
             </span>
-          </PromptInputButton>
+          </InputGroupButton>
         ) : null}
-      </PromptInputTools>
-      <PromptInputTools className="min-w-0 shrink justify-end">
+      </div>
+      <div className="flex min-w-0 shrink items-center justify-end gap-1">
         {picking ? (
           <TargetPicker
             agents={agents}
@@ -217,8 +225,8 @@ export function ComposerFooter({
           />
         ) : null}
         <SendButton busy={busy} canSubmit={canSubmit} onStop={onStop} />
-      </PromptInputTools>
-    </PromptInputFooter>
+      </div>
+    </InputGroupAddon>
   );
 }
 
@@ -231,21 +239,27 @@ function SendButton({
   const { t } = useLingui();
   return busy ? (
     // A plain button, not submit: Enter in the textarea must never stop a run.
-    <PromptInputSubmit
+    <InputGroupButton
       aria-label={t`Stop`}
       className="rounded-full"
       disabled={onStop === undefined}
       onClick={onStop}
-      status="streaming"
+      size="icon-sm"
       type="button"
-    />
+      variant="default"
+    >
+      <StopIcon aria-hidden />
+    </InputGroupButton>
   ) : (
-    <PromptInputSubmit
+    <InputGroupButton
       aria-label={t`Send`}
       className="rounded-full"
       disabled={!canSubmit}
+      size="icon-sm"
+      type="submit"
+      variant="default"
     >
-      <ArrowUpIcon aria-hidden className="size-4" />
-    </PromptInputSubmit>
+      <ArrowUpIcon aria-hidden />
+    </InputGroupButton>
   );
 }

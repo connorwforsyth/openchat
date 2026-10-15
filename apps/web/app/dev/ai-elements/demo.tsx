@@ -1,55 +1,50 @@
 "use client";
 
-import { Plural, Trans, useLingui } from "@lingui/react/macro";
-import { CopyIcon, RefreshCwIcon } from "@workspace/icons";
+import { Trans, useLingui } from "@lingui/react/macro";
+import {
+  ArrowUpIcon,
+  ChevronDownIcon,
+  CopyIcon,
+  FileTextIcon,
+  PlusIcon,
+  ReasoningIcon,
+  RefreshCwIcon,
+  ToolIcon,
+  XIcon,
+} from "@workspace/icons";
+import {
+  Attachment,
+  AttachmentAction,
+  AttachmentActions,
+  AttachmentContent,
+  AttachmentMedia,
+  AttachmentTitle,
+} from "@workspace/ui/components/attachment";
+import { Bubble, BubbleContent } from "@workspace/ui/components/bubble";
+import { Button } from "@workspace/ui/components/button";
+import {
+  CodeBlock,
+  CodeBlockContent,
+} from "@workspace/ui/components/code-block";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@workspace/ui/components/dropdown-menu";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupTextarea,
+} from "@workspace/ui/components/input-group";
+import { Markdown } from "@workspace/ui/components/markdown";
 import {
   Message,
-  MessageAction,
-  MessageActions,
-  MessageBranch,
-  MessageBranchContent,
-  MessageBranchNext,
-  MessageBranchPage,
-  MessageBranchPrevious,
-  MessageBranchSelector,
   MessageContent,
-  MessageResponse,
-  MessageToolbar,
-} from "@workspace/ui/components/ai-elements/message";
-import {
-  PromptInput,
-  PromptInputActionAddAttachments,
-  PromptInputActionMenu,
-  PromptInputActionMenuContent,
-  PromptInputActionMenuTrigger,
-  PromptInputAttachment,
-  PromptInputAttachments,
-  PromptInputBody,
-  PromptInputFooter,
-  PromptInputHeader,
-  type PromptInputMessage,
-  PromptInputSelect,
-  PromptInputSelectContent,
-  PromptInputSelectItem,
-  PromptInputSelectTrigger,
-  PromptInputSelectValue,
-  PromptInputSpeechButton,
-  PromptInputSubmit,
-  PromptInputTextarea,
-  PromptInputTools,
-} from "@workspace/ui/components/ai-elements/prompt-input";
-import {
-  Reasoning,
-  ReasoningContent,
-  ReasoningTrigger,
-} from "@workspace/ui/components/ai-elements/reasoning";
-import {
-  Tool,
-  ToolContent,
-  ToolHeader,
-  ToolInput,
-  ToolOutput,
-} from "@workspace/ui/components/ai-elements/tool";
+  MessageFooter,
+} from "@workspace/ui/components/message";
 import {
   MessageScroller,
   MessageScrollerButton,
@@ -58,7 +53,30 @@ import {
   MessageScrollerProvider,
   MessageScrollerViewport,
 } from "@workspace/ui/components/message-scroller";
-import { type ReactNode, useCallback, useRef, useState } from "react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@workspace/ui/components/tooltip";
+import {
+  Trace,
+  TraceCollapsible,
+  TraceCollapsibleContent,
+  TraceCollapsibleTrigger,
+  TraceIcon,
+  TraceLine,
+  TraceTitle,
+} from "@workspace/ui/components/trace";
+import {
+  type ChangeEvent,
+  type ComponentProps,
+  type FormEvent,
+  type KeyboardEvent,
+  type ReactNode,
+  useCallback,
+  useRef,
+  useState,
+} from "react";
 
 // Stand-ins for what users type and models return. That's content, not UI
 // copy, so it stays out of the Lingui catalog.
@@ -76,8 +94,6 @@ const sample = {
 const result = streamText({ model, prompt });
 \`\`\`
 `,
-  answerAlt:
-    "In short: stream when someone is waiting on the answer, batch when nobody is.",
   models: [
     { label: "Llama 3.2 (Ollama)", value: "llama3.2" },
     { label: "Qwen 2.5 Coder (Ollama)", value: "qwen2.5-coder" },
@@ -89,14 +105,18 @@ const result = streamText({ model, prompt });
 2. Batching can be cheaper for offline jobs.
 
 A small table should make the trade-off clear.`,
+  tool: "web_search",
   toolError: "The search provider timed out after 10 s.",
-  toolInput: { query: "streaming vs batch LLM responses", results: 3 },
-  toolOutput: {
-    results: [
-      { title: "Streaming responses", url: "https://example.com/streaming" },
-      { title: "Batch inference", url: "https://example.com/batch" },
-    ],
-  },
+  toolOutput: JSON.stringify(
+    {
+      results: [
+        { title: "Streaming responses", url: "https://example.com/streaming" },
+        { title: "Batch inference", url: "https://example.com/batch" },
+      ],
+    },
+    null,
+    2
+  ),
 } as const;
 
 const Section = ({
@@ -112,6 +132,26 @@ const Section = ({
   </section>
 );
 
+/** A ghost icon button with its label as a tooltip (shadcn's Message pattern). */
+const MessageAction = ({
+  children,
+  label,
+  ...props
+}: ComponentProps<typeof Button> & { label: string }) => (
+  <Tooltip>
+    <TooltipTrigger
+      render={
+        <Button aria-label={label} size="icon-sm" variant="ghost" {...props} />
+      }
+    >
+      {children}
+    </TooltipTrigger>
+    <TooltipContent>
+      <p>{label}</p>
+    </TooltipContent>
+  </Tooltip>
+);
+
 const Conversation = () => {
   const { t } = useLingui();
   const copyAnswer = useCallback(() => {
@@ -119,6 +159,7 @@ const Conversation = () => {
     navigator.clipboard.writeText(sample.answer).catch(() => undefined);
   }, []);
   const noop = useCallback(() => undefined, []);
+  const { tool } = sample;
 
   return (
     <div className="h-[36rem] rounded-lg border border-border">
@@ -127,65 +168,89 @@ const Conversation = () => {
           <MessageScrollerViewport>
             <MessageScrollerContent className="p-4">
               <MessageScrollerItem messageId="user-1" scrollAnchor>
-                <Message from="user">
-                  <MessageContent>{sample.question}</MessageContent>
+                <Message align="end">
+                  <MessageContent>
+                    <Bubble align="end" variant="muted">
+                      <BubbleContent>{sample.question}</BubbleContent>
+                    </Bubble>
+                  </MessageContent>
                 </Message>
               </MessageScrollerItem>
               <MessageScrollerItem messageId="assistant-1">
-                <Message from="assistant">
-                  <MessageContent>
-                    <Reasoning defaultOpen={false} duration={4}>
-                      <ReasoningTrigger />
-                      <ReasoningContent>{sample.reasoning}</ReasoningContent>
-                    </Reasoning>
-                    <Tool defaultOpen>
-                      <ToolHeader
-                        state="output-available"
-                        type="tool-web_search"
-                      />
-                      <ToolContent>
-                        <ToolInput input={sample.toolInput} />
-                        <ToolOutput
-                          errorText={undefined}
-                          output={sample.toolOutput}
-                        />
-                      </ToolContent>
-                    </Tool>
-                    <Tool>
-                      <ToolHeader state="output-error" type="tool-web_search" />
-                      <ToolContent>
-                        <ToolInput input={sample.toolInput} />
-                        <ToolOutput
-                          errorText={sample.toolError}
-                          output={undefined}
-                        />
-                      </ToolContent>
-                    </Tool>
-                    <MessageBranch>
-                      <MessageBranchContent>
-                        <MessageResponse key="branch-1">
-                          {sample.answer}
-                        </MessageResponse>
-                        <MessageResponse key="branch-2">
-                          {sample.answerAlt}
-                        </MessageResponse>
-                      </MessageBranchContent>
-                      <MessageToolbar>
-                        <MessageBranchSelector from="assistant">
-                          <MessageBranchPrevious />
-                          <MessageBranchPage />
-                          <MessageBranchNext />
-                        </MessageBranchSelector>
-                        <MessageActions>
-                          <MessageAction onClick={copyAnswer} tooltip={t`Copy`}>
-                            <CopyIcon />
-                          </MessageAction>
-                          <MessageAction onClick={noop} tooltip={t`Retry`}>
-                            <RefreshCwIcon />
-                          </MessageAction>
-                        </MessageActions>
-                      </MessageToolbar>
-                    </MessageBranch>
+                <Message>
+                  <MessageContent className="gap-4">
+                    <Trace>
+                      <TraceCollapsible>
+                        <TraceCollapsibleTrigger>
+                          <TraceLine>
+                            <TraceIcon>
+                              <ReasoningIcon />
+                            </TraceIcon>
+                            <TraceTitle>
+                              <Trans>Thought for 4 seconds</Trans>
+                            </TraceTitle>
+                          </TraceLine>
+                        </TraceCollapsibleTrigger>
+                        <TraceCollapsibleContent className="text-sm">
+                          <Markdown>{sample.reasoning}</Markdown>
+                        </TraceCollapsibleContent>
+                      </TraceCollapsible>
+                      <TraceCollapsible defaultOpen>
+                        <TraceCollapsibleTrigger>
+                          <TraceLine>
+                            <TraceIcon>
+                              <ToolIcon />
+                            </TraceIcon>
+                            <TraceTitle>
+                              <Trans>Ran {tool}</Trans>
+                            </TraceTitle>
+                          </TraceLine>
+                        </TraceCollapsibleTrigger>
+                        <TraceCollapsibleContent>
+                          <CodeBlock size="sm">
+                            <CodeBlockContent className="max-h-64" wrap>
+                              {sample.toolOutput}
+                            </CodeBlockContent>
+                          </CodeBlock>
+                        </TraceCollapsibleContent>
+                      </TraceCollapsible>
+                      <TraceCollapsible>
+                        <TraceCollapsibleTrigger>
+                          <TraceLine status="error">
+                            <TraceIcon>
+                              <ToolIcon />
+                            </TraceIcon>
+                            <TraceTitle>
+                              <Trans>Failed to run {tool}</Trans>
+                            </TraceTitle>
+                          </TraceLine>
+                        </TraceCollapsibleTrigger>
+                        <TraceCollapsibleContent>
+                          <CodeBlock size="sm" variant="destructive">
+                            <CodeBlockContent wrap>
+                              {sample.toolError}
+                            </CodeBlockContent>
+                          </CodeBlock>
+                        </TraceCollapsibleContent>
+                      </TraceCollapsible>
+                      <TraceLine status="running">
+                        <TraceIcon>
+                          <ToolIcon />
+                        </TraceIcon>
+                        <TraceTitle>
+                          <Trans>Running {tool}</Trans>
+                        </TraceTitle>
+                      </TraceLine>
+                    </Trace>
+                    <Markdown>{sample.answer}</Markdown>
+                    <MessageFooter className="px-0">
+                      <MessageAction label={t`Copy`} onClick={copyAnswer}>
+                        <CopyIcon />
+                      </MessageAction>
+                      <MessageAction label={t`Retry`} onClick={noop}>
+                        <RefreshCwIcon />
+                      </MessageAction>
+                    </MessageFooter>
                   </MessageContent>
                 </Message>
               </MessageScrollerItem>
@@ -198,75 +263,178 @@ const Conversation = () => {
   );
 };
 
-const SubmittedNote = ({
-  text,
-  fileCount,
-}: {
-  text: string;
-  fileCount: number;
-}) => (
-  <p className="text-muted-foreground text-xs">
-    <Trans>
-      Would send “{text}” with{" "}
-      <Plural one="# attachment" other="# attachments" value={fileCount} />.
-    </Trans>
-  </p>
-);
+interface DemoFile {
+  readonly id: string;
+  readonly name: string;
+}
 
+const FileChip = ({
+  file,
+  onRemove,
+}: {
+  file: DemoFile;
+  onRemove: (id: string) => void;
+}) => {
+  const { t } = useLingui();
+  const remove = useCallback(() => onRemove(file.id), [file.id, onRemove]);
+  const { name } = file;
+  return (
+    <Attachment size="sm">
+      <AttachmentMedia>
+        <FileTextIcon />
+      </AttachmentMedia>
+      <AttachmentContent>
+        <AttachmentTitle>{name}</AttachmentTitle>
+      </AttachmentContent>
+      <AttachmentActions>
+        <AttachmentAction aria-label={t`Remove ${name}`} onClick={remove}>
+          <XIcon />
+        </AttachmentAction>
+      </AttachmentActions>
+    </Attachment>
+  );
+};
+
+// shadcn's Prompt Input pattern: an Input Group with attachments above the
+// field and the actions below it.
 const Composer = () => {
   const { t } = useLingui();
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const [submitted, setSubmitted] = useState<PromptInputMessage | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [text, setText] = useState("");
+  const [files, setFiles] = useState<readonly DemoFile[]>([]);
+  const [model, setModel] = useState<string>(sample.models[0].value);
+  const [submitted, setSubmitted] = useState<string | null>(null);
+  const current =
+    sample.models.find((item) => item.value === model) ?? sample.models[0];
+  const canSend = text.trim().length > 0;
 
   // No model behind this demo: echo what would have been sent.
-  const handleSubmit = useCallback((message: PromptInputMessage) => {
-    setSubmitted(message);
+  const submit = useCallback(
+    (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      if (!canSend) {
+        return;
+      }
+      setSubmitted(text);
+      setText("");
+      setFiles([]);
+    },
+    [canSend, text]
+  );
+  const attach = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+    const picked = event.target.files;
+    if (!picked) {
+      return;
+    }
+    const added = Array.from(picked, (file) => ({
+      id: crypto.randomUUID(),
+      name: file.name,
+    }));
+    setFiles((list) => [...list, ...added]);
+    event.target.value = "";
   }, []);
+  const remove = useCallback(
+    (id: string) => setFiles((list) => list.filter((file) => file.id !== id)),
+    []
+  );
+  const type = useCallback(
+    (event: ChangeEvent<HTMLTextAreaElement>) => setText(event.target.value),
+    []
+  );
+  const keyDown = useCallback((event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (
+      event.key === "Enter" &&
+      !event.shiftKey &&
+      !event.nativeEvent.isComposing
+    ) {
+      event.preventDefault();
+      formRef.current?.requestSubmit();
+    }
+  }, []);
+  const pickFiles = useCallback(() => inputRef.current?.click(), []);
 
   return (
     <div className="flex flex-col gap-2">
-      <PromptInput globalDrop multiple onSubmit={handleSubmit}>
-        <PromptInputHeader>
-          <PromptInputAttachments>
-            {(attachment) => <PromptInputAttachment data={attachment} />}
-          </PromptInputAttachments>
-        </PromptInputHeader>
-        <PromptInputBody>
-          <PromptInputTextarea ref={textareaRef} />
-        </PromptInputBody>
-        <PromptInputFooter>
-          <PromptInputTools>
-            <PromptInputActionMenu>
-              <PromptInputActionMenuTrigger />
-              <PromptInputActionMenuContent>
-                <PromptInputActionAddAttachments />
-              </PromptInputActionMenuContent>
-            </PromptInputActionMenu>
-            <PromptInputSpeechButton textareaRef={textareaRef} />
-            <PromptInputSelect
-              defaultValue={sample.models[0].value}
-              items={sample.models}
-            >
-              <PromptInputSelectTrigger aria-label={t`Model`}>
-                <PromptInputSelectValue />
-              </PromptInputSelectTrigger>
-              <PromptInputSelectContent>
-                {sample.models.map((model) => (
-                  <PromptInputSelectItem key={model.value} value={model.value}>
-                    {model.label}
-                  </PromptInputSelectItem>
-                ))}
-              </PromptInputSelectContent>
-            </PromptInputSelect>
-          </PromptInputTools>
-          <PromptInputSubmit status="ready" />
-        </PromptInputFooter>
-      </PromptInput>
-      {submitted === null ? null : (
-        <SubmittedNote
-          fileCount={submitted.files.length}
-          text={submitted.text}
+      <form onSubmit={submit} ref={formRef}>
+        <input
+          className="sr-only"
+          multiple
+          onChange={attach}
+          ref={inputRef}
+          tabIndex={-1}
+          type="file"
         />
+        <InputGroup>
+          {files.length > 0 ? (
+            <InputGroupAddon align="block-start" className="flex-wrap">
+              {files.map((file) => (
+                <FileChip file={file} key={file.id} onRemove={remove} />
+              ))}
+            </InputGroupAddon>
+          ) : null}
+          <InputGroupTextarea
+            className="p-3"
+            onChange={type}
+            onKeyDown={keyDown}
+            placeholder={t`What would you like to know?`}
+            value={text}
+          />
+          <InputGroupAddon align="block-end">
+            <InputGroupButton
+              aria-label={t`Attach files`}
+              className="rounded-full"
+              onClick={pickFiles}
+              size="icon-sm"
+              variant="outline"
+            >
+              <PlusIcon />
+            </InputGroupButton>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <InputGroupButton
+                    aria-label={t`Model: ${current.label}`}
+                    className="ms-auto"
+                    size="sm"
+                    variant="ghost"
+                  />
+                }
+              >
+                {current.label}
+                <ChevronDownIcon />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuRadioGroup onValueChange={setModel} value={model}>
+                  {sample.models.map((item) => (
+                    <DropdownMenuRadioItem
+                      closeOnClick
+                      key={item.value}
+                      value={item.value}
+                    >
+                      {item.label}
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <InputGroupButton
+              aria-label={t`Send`}
+              className="rounded-full"
+              disabled={!canSend}
+              size="icon-sm"
+              type="submit"
+              variant="default"
+            >
+              <ArrowUpIcon />
+            </InputGroupButton>
+          </InputGroupAddon>
+        </InputGroup>
+      </form>
+      {submitted === null ? null : (
+        <p className="text-muted-foreground text-xs">
+          <Trans>Would send “{submitted}”.</Trans>
+        </p>
       )}
     </div>
   );
@@ -274,7 +442,7 @@ const Composer = () => {
 
 export const AiElementsDemo = () => (
   <>
-    <Section title={<Trans>Conversation, message, reasoning and tool</Trans>}>
+    <Section title={<Trans>Message, reasoning and tool</Trans>}>
       <Conversation />
     </Section>
     <Section title={<Trans>Prompt input</Trans>}>
