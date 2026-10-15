@@ -698,6 +698,45 @@ const siteKindSchema = z
   })
   .prefault({});
 
+// Voice conversations (ticket 104/172): speech-to-text and text-to-speech,
+// both OpenAI-compatible HTTP. `local` is the default and the self-hosted
+// pair from the `voice` compose profile (Whisper via Speaches, Kokoro); no
+// URLs means no voice, and the call button stays hidden.
+const voiceSchema = z
+  .strictObject({
+    /** The most audio one utterance may upload. */
+    maxUploadMb: z.number().min(1).max(25).default(10),
+    /** `provider: openai`. The key falls back to `providers.openai.apiKey`. */
+    openai: z
+      .strictObject({
+        apiKey: secret.optional(),
+        baseURL: z.url().default("https://api.openai.com/v1"),
+        /** Speech-to-speech over WebRTC instead of the STT, chat, TTS loop. */
+        realtimeModel: z.string().min(1).default("gpt-realtime"),
+        sttModel: z.string().min(1).default("gpt-4o-mini-transcribe"),
+        ttsModel: z.string().min(1).default("gpt-4o-mini-tts"),
+        voice: z.string().min(1).default("alloy"),
+      })
+      .prefault({}),
+    /** Which pair of services does the talking. */
+    provider: z.enum(["local", "openai"]).default("local"),
+    stt: z
+      .strictObject({
+        model: z.string().min(1).default("Systran/faster-whisper-base.en"),
+        /** Base URL of an OpenAI-compatible server (`…/v1`). */
+        url: z.url().optional(),
+      })
+      .prefault({}),
+    tts: z
+      .strictObject({
+        model: z.string().min(1).default("kokoro"),
+        url: z.url().optional(),
+        voice: z.string().min(1).default("af_heart"),
+      })
+      .prefault({}),
+  })
+  .prefault({});
+
 const artifactsSchema = z
   .strictObject({
     /** Per-kind settings (the framework's instance layer), today sites. */
@@ -727,6 +766,7 @@ export const appConfigSchema = z
     search: searchSchema,
     storage: storageSchema,
     version: z.literal(1).default(1),
+    voice: voiceSchema,
   })
   .superRefine((config, context) => {
     // Every model reference must point at a configured provider or an alias,

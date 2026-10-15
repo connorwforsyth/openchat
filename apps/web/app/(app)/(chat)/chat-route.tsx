@@ -9,6 +9,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { ConnectedChat } from "@workspace/chat-ui/chat/connected-chat";
+import type { VoiceBridge } from "@workspace/chat-ui/voice/voice-engine";
 import {
   AUTO_TARGET,
   contextKey,
@@ -38,6 +39,7 @@ import { Brand } from "@/app/(app)/_shared/brand";
 import { useShellPlatform } from "@/app/(app)/_shared/desktop";
 import { createApiSandboxClient } from "@/app/(app)/_shared/sandbox-client";
 import { useAfterBoot } from "@/app/(app)/_shared/use-after-boot";
+import { ChatVoiceCall } from "@/app/(app)/(chat)/voice-call";
 import {
   DotHome,
   useDotForConversation,
@@ -460,6 +462,13 @@ export function ChatRoute({
     () => router.push(routes.settings()),
     [router]
   );
+  const renderVoice = useCallback(
+    (bridge: VoiceBridge) =>
+      conversationId ? (
+        <ChatVoiceCall bridge={bridge} conversationId={conversationId} />
+      ) : null,
+    [conversationId]
+  );
   const sandboxClient = useMemo(
     () =>
       conversationId && config.features.sandboxes
@@ -515,6 +524,7 @@ export function ChatRoute({
       skills={skills}
       target={target}
       theme={frame.theme}
+      voice={renderVoice}
     />
   );
 }

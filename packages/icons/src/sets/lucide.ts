@@ -12,6 +12,7 @@ import {
   Brain,
   Building2,
   Calendar,
+  Captions,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -59,6 +60,7 @@ import {
   Menu,
   MessageSquare,
   Mic,
+  MicOff,
   Minus,
   Monitor,
   Moon,
@@ -70,6 +72,8 @@ import {
   PanelRight,
   Paperclip,
   Pencil,
+  Phone,
+  PhoneOff,
   Pin,
   PinOff,
   Play,
@@ -126,6 +130,10 @@ export const EllipsisVerticalIcon: Icon = EllipsisVertical;
 export const GripVerticalIcon: Icon = GripVertical;
 export const LogOutIcon: Icon = LogOut;
 export const MicIcon: Icon = Mic;
+export const MicOffIcon: Icon = MicOff;
+export const PhoneIcon: Icon = Phone;
+export const PhoneOffIcon: Icon = PhoneOff;
+export const CaptionsIcon: Icon = Captions;
 export const MinusIcon: Icon = Minus;
 export const MoreHorizontalIcon: Icon = MoreHorizontal;
 export const PaperclipIcon: Icon = Paperclip;

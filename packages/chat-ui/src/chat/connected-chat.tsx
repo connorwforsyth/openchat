@@ -114,6 +114,7 @@ import type { Platform } from "../shell/platform";
 import type { ShellLayoutState } from "../shell/use-shell-layout";
 import type { Theme } from "../sidebar/account-menu";
 import type { ChatSidebarProps } from "../sidebar/chat-sidebar";
+import type { VoiceBridge, VoiceReply } from "../voice/voice-engine";
 import type {
   WorkspaceClient,
   WorkspaceFilesSource,
@@ -195,7 +196,54 @@ export interface ConnectedChatProps {
   /** What answers: a model or an agent. Omitted, the server's default does. */
   readonly target?: RunTarget | null;
   readonly theme: Theme;
+  /**
+   * A voice call on this chat (172): rendered in the header with the chat
+   * as a `VoiceBridge`, so what's said is sent and answered like typing.
+   * Only for a chat that exists.
+   */
+  readonly voice?: (bridge: VoiceBridge) => ReactNode;
 }
+
+/** The chat as a voice call sees it (172). */
+const useVoiceBridge = (
+  chat: { readonly messages: UIMessage[]; readonly status: string },
+  send: (text: string) => void,
+  stop: () => Promise<void>
+): VoiceBridge => {
+  const reply = useMemo(() => lastReply(chat.messages), [chat.messages]);
+  const busy = chat.status === "submitted" || chat.status === "streaming";
+  return useMemo(
+    () => ({
+      busy,
+      reply,
+      send,
+      stop: () => {
+        stop().catch(ignore);
+      },
+    }),
+    [busy, reply, send, stop]
+  );
+};
+
+/** The newest assistant message's text, for the voice call to speak. Pure. */
+export const lastReply = (
+  messages: readonly UIMessage[]
+): VoiceReply | null => {
+  const last = messages.at(-1);
+  if (last?.role !== "assistant") {
+    return null;
+  }
+  const text = last.parts
+    .flatMap((part) => (part.type === "text" ? [part.text] : []))
+    .join("\n\n");
+  return { id: last.id, text };
+};
+
+const voiceSlot = (
+  voice: ConnectedChatProps["voice"],
+  conversationId: ConversationId | null,
+  bridge: VoiceBridge
+): ReactNode => (voice && conversationId ? voice(bridge) : null);
 
 const fileUrl = (fileId: FileId): string => `/api/files/${fileId}/content`;
 /** A generated image's bytes (138), served by its artifact version. */
@@ -1461,6 +1509,7 @@ export function ConnectedChat({
   skills,
   target = null,
   theme,
+  voice,
 }: ConnectedChatProps) {
   const outgoingTarget = targetToSend(sendTarget, target);
   const { t } = useLingui();
@@ -1657,6 +1706,7 @@ export function ConnectedChat({
     composerStatus,
     stop
   );
+  const voiceBridge = useVoiceBridge(chat, send, stop);
 
   const { mutateAsync: revertMemory } = useMutation(
     api.memory.revert.mutationOptions()
@@ -1873,6 +1923,7 @@ export function ConnectedChat({
             title: current?.title ?? null,
           }}
           feedback={feedback.byMessage}
+          headerEnd={voiceSlot(voice, conversationId, voiceBridge)}
           layout={layout}
           messages={messages}
           onNewChat={newChat}

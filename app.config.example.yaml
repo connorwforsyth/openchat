@@ -124,3 +124,16 @@ artifacts:
         - https://fonts.gstatic.com
         - https://cdnjs.cloudflare.com
         - https://cdn.jsdelivr.net
+
+# Voice conversations (docs/voice.md). Off until configured: no URLs (local)
+# or no key (openai) and the call button stays hidden.
+#   local:  `docker compose --profile voice up -d` runs Whisper (Speaches) and
+#           Kokoro; both stay on this machine.
+#   openai: OpenAI's audio API and, for speech to speech, Realtime. The key
+#           falls back to providers.openai.apiKey.
+voice:
+  provider: local           # local | openai
+  stt: { url: "${VOICE_STT_URL}", model: Systran/faster-whisper-base.en }
+  tts: { url: "${VOICE_TTS_URL}", model: kokoro, voice: af_heart }
+  # openai: { apiKey: "${OPENAI_API_KEY}", sttModel: gpt-4o-mini-transcribe, ttsModel: gpt-4o-mini-tts, voice: alloy, realtimeModel: gpt-realtime }
+  maxUploadMb: 10

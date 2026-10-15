@@ -144,6 +144,8 @@ export interface ChatScreenProps {
   readonly composer: ComposerLoaderProps;
   readonly conversation: ChatScreenConversation;
   readonly feedback?: Readonly<Record<string, MessageFeedback>>;
+  /** Extra header controls before Share (the voice call, 172). */
+  readonly headerEnd?: ReactNode;
   /**
    * The shell's layout when the app owns it, so it survives leaving the chat
    * for another page with the same shell and can be restored before paint.
@@ -218,6 +220,7 @@ function ChatScreenBody({
   composer,
   conversation,
   feedback,
+  headerEnd,
   layout: sharedLayout,
   messages,
   onNewChat,
@@ -661,16 +664,20 @@ function ChatScreenBody({
     <AppHeader
       end={
         narrow ? (
-          <HeaderOverflowMenu
-            onCopyLink={conversation.onCopyLink}
-            onInvite={conversation.onInvite}
-            onTogglePanel={toggleHalf}
-            shareDisabled={conversation.id === null}
-            shown={shownHalf}
-          />
+          <div className="flex items-center gap-1">
+            {headerEnd}
+            <HeaderOverflowMenu
+              onCopyLink={conversation.onCopyLink}
+              onInvite={conversation.onInvite}
+              onTogglePanel={toggleHalf}
+              shareDisabled={conversation.id === null}
+              shown={shownHalf}
+            />
+          </div>
         ) : (
           // The CSS covers the moment before hydration knows the width.
           <div className="flex items-center gap-1 max-md:hidden">
+            {headerEnd}
             <ShareMenu
               disabled={conversation.id === null}
               onCopyLink={conversation.onCopyLink}

@@ -77,6 +77,8 @@ import {
   type ServicesOptions,
 } from "./services";
 import { createStorage } from "./storage/from-config";
+import { createVoice } from "./voice/from-config";
+import { mountVoiceRoutes } from "./voice/routes";
 
 // The whole server from the environment (025/038), for `apps/web` and later
 // `apps/worker`. In order: database (Postgres from DATABASE_URL, else the
@@ -609,6 +611,7 @@ export const createServerFromEnv = async (
         storage: storage.storage,
       });
       mountMcpRoutes(hono, { manager: mcp.manager, resolveSession });
+      mountVoiceRoutes(hono, { resolveSession, voice: createVoice(config) });
       mountLlmRoute(hono, {
         budget: services.budget,
         config,
