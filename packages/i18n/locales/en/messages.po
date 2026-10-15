@@ -1777,6 +1777,10 @@ msgstr "In <0/>"
 msgid "In a library"
 msgstr "In a library"
 
+#: ../composer/src/components/composer.tsx
+msgid "In an empty message, the up and down arrows bring back what you sent before."
+msgstr "In an empty message, the up and down arrows bring back what you sent before."
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "Informational"
 msgstr "Informational"

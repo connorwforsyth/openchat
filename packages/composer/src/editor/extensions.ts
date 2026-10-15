@@ -11,6 +11,7 @@ import { PluginKey } from "@tiptap/pm/state";
 import { Suggestion, type SuggestionOptions } from "@tiptap/suggestion";
 
 import type { SlashItem } from "../options";
+import type { PromptHistoryDirection } from "../prompt-history";
 import type { MentionCandidate } from "../schemas";
 
 // The editor schema is deliberately small: paragraphs, hard breaks, inline
@@ -45,6 +46,12 @@ export type MentionSuggestion = Omit<
 export interface ComposerKeyHandlers {
   /** Backspace in an empty editor; true if it took back an attachment. */
   readonly onBackspaceEmpty: () => boolean;
+  /**
+   * ArrowUp (`backward`) or ArrowDown (`forward`): true if it recalled a
+   * prompt (147). Return false while a suggestion menu is open, so the
+   * menu moves its selection, and whenever the caret should just move.
+   */
+  readonly onHistoryKey: (direction: PromptHistoryDirection) => boolean;
   /**
    * Enter or Mod+Enter. Return false while a suggestion menu is open: this
    * keymap runs before the Suggestion plugins, which then pick the option.
@@ -108,6 +115,11 @@ const ComposerKeys = Extension.create<{ keys: ComposerKeyHandlers }>({
   addKeyboardShortcuts() {
     const { keys } = this.options;
     return {
+      // Not while an input method is composing: its arrows pick candidates.
+      ArrowDown: () =>
+        !this.editor.view.composing && keys.onHistoryKey("forward"),
+      ArrowUp: () =>
+        !this.editor.view.composing && keys.onHistoryKey("backward"),
       Backspace: () => this.editor.isEmpty && keys.onBackspaceEmpty(),
       Enter: () => keys.onSubmitKey(),
       "Mod-Enter": () => keys.onSubmitKey(),
