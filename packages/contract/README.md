@@ -5,6 +5,21 @@ an oRPC contract for the procedures, and the OpenAPI 3.1 document generated
 from both. Frozen for the M1 workstreams; changes follow the process at the
 end of this file.
 
+## Changes (2026-10-16, 172)
+
+Dots: always-on agents with their own conversation, workspace and cron
+schedules (ChatGPT Tasks-style). Each scheduled or manual run posts the
+schedule's prompt into the Dot's conversation and answers it; the list shows
+unread results. Needs the owner's review before the feature branch
+(`t/172-dots-scheduled-agent`) can merge.
+
+| Change | Who needs it | Compatibility |
+|---|---|---|
+| New ids `dot` and `dotSchedule` (`schemas/common.ts`) and `schemas/dots.ts`: `dotSchema` `{ id, ownerId, name, target (runTarget), instructions, sandboxProvider (null = default), autoApproveTools, enabled, conversationId, schedules[], lastRun, nextRunAt, status (idle/running/failed), unread, createdAt, updatedAt }`, `dotScheduleSchema` `{ id, dotId, cron (5-field), timezone (IANA), prompt, enabled, lastRunAt, lastStatus, nextRunAt, … }`. | The Dots server (jobs, API) and the `/dots` page | Additive. |
+| `dots.list` `GET /dots`, `dots.get` `GET /dots/{id}`, `dots.create` `POST /dots`, `dots.update` `PATCH /dots/{id}`, `dots.delete` `DELETE /dots/{id}` (the conversation stays). | The `/dots` page and its dialog | New procedures and tag (`Dots`). The server's `implement(contract)` router needs handlers before it typechecks. |
+| `dots.createSchedule` `POST /dots/{dotId}/schedules`, `dots.updateSchedule` / `dots.deleteSchedule` on `/dot-schedules/{id}`. | Editing a Dot's schedules | New procedures, as above. |
+| `dots.runNow` `POST /dots/{id}/run` `{ id, prompt? }` → `createRunOutput`; `dots.markRead` `POST /dots/{id}/read`. Unattended runs refuse `ask` tools the Dot hasn't put in `autoApproveTools`, so a Dot's run never waits on an approval. | "Run now" and unread state | New procedures, as above. |
+
 ## Changes (2026-10-01, 101)
 
 Link previews for URL sources: each source chip shows the site's favicon and

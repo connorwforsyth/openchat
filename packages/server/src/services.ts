@@ -17,6 +17,13 @@ import {
 } from "./api/artifacts-context";
 import type { ApiServices } from "./api/router";
 import { type ConversationAccess, grantAccess } from "./context";
+import { dotJobHandlers } from "./dots/jobs";
+import {
+  type DotDeps,
+  type EnsureDotWorkspace,
+  settleDotRun,
+} from "./dots/service";
+import { dbDotPolicy, withDotPolicy } from "./dots/turn";
 import { createEvalJobHandlers } from "./evals/run";
 import { coreJobHandlers, shouldTitle } from "./jobs/handlers";
 import {
@@ -65,6 +72,8 @@ export interface ServicesOptions {
   readonly budget?: BudgetCheck;
   readonly config: AppConfig;
   readonly db: Db;
+  /** Creates a Dot's workspace on its provider before its first run (172). */
+  readonly ensureDotWorkspace?: EnsureDotWorkspace;
   /** Background jobs; `null` runs without titles or pruning. */
   readonly jobs: JobQueue<Jobs> | null;
   /** Keys from the database (012/013); defaults to instance keys from app.config.yaml. */
@@ -104,6 +113,8 @@ export interface ServicesOptions {
 export interface Services extends ApiServices {
   /** The artifact kinds this instance offers, with its settings applied (125). */
   readonly artifactKinds: ArtifactKindRegistry;
+  /** What the Dots API and jobs run on (172). */
+  readonly dots: DotDeps;
   readonly executor: InProcessExecutor;
   /** Handlers for the jobs this package owns; pass them to `registerJobs`. */
   readonly jobHandlers: JobHandlers;
@@ -159,6 +170,9 @@ export const createServices = (options: ServicesOptions): Services => {
     await recordRunUsage(db, config.models.prices, event).catch(
       (cause: unknown) => report("couldn't record usage", cause)
     );
+    await settleDotRun(db, event.run.id, event.status).catch((cause: unknown) =>
+      report("couldn't record a Dot's run", cause)
+    );
     if (!jobs) {
       return;
     }
@@ -192,10 +206,15 @@ export const createServices = (options: ServicesOptions): Services => {
     now: options.now,
     onSettled: afterRun,
     report,
-    // Memory wraps whichever resolver runs, so scripted test turns get it too.
-    resolveTurn: withChatMemory(
-      options.resolveTurn ?? createTurnResolver(turnDeps),
-      { db, report, settings: memory }
+    // Memory wraps whichever resolver runs, so scripted test turns get it
+    // too; a Dot's unattended policy (172) goes on last, over every tool.
+    resolveTurn: withDotPolicy(
+      withChatMemory(options.resolveTurn ?? createTurnResolver(turnDeps), {
+        db,
+        report,
+        settings: memory,
+      }),
+      dbDotPolicy(db)
     ),
     timeoutMs: config.limits.runTimeoutSeconds * 1000,
     writer: streams,
@@ -226,16 +245,26 @@ export const createServices = (options: ServicesOptions): Services => {
     },
   });
 
+  const budget = options.budget ?? budgetCheck(db, options.now);
+  const dots: DotDeps = {
+    db,
+    ensureWorkspace: options.ensureDotWorkspace,
+    now: options.now ?? (() => new Date()),
+    runs: { budget, db, defaultModel: config.models.default, executor },
+  };
+
   return {
     access: options.access ?? grantAccess(db),
     artifactKinds,
-    budget: options.budget ?? budgetCheck(db, options.now),
+    budget,
     db,
     defaultModel: config.models.default,
+    dots,
     executor,
     jobHandlers: {
       ...jobHandlers,
       ...testChatJobHandlers({ db, now: options.now }),
+      ...dotJobHandlers({ ...dots, queue: jobs }),
       ...createEvalJobHandlers({
         db,
         loadModel,

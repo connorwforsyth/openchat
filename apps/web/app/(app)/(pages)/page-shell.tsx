@@ -36,6 +36,9 @@ const SectionTitle = ({ pathname }: { readonly pathname: string }) => {
   if (pathname.startsWith(routes.artifacts)) {
     return <Trans>Artifacts</Trans>;
   }
+  if (pathname.startsWith(routes.dots)) {
+    return <Trans>Dots</Trans>;
+  }
   if (pathname.startsWith(routes.admin)) {
     return <Trans>Admin</Trans>;
   }
@@ -142,6 +145,7 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
           artifactsHref={routes.artifacts}
           brand={<Brand config={frame.config} />}
           chats={chats.data?.items ?? []}
+          dotsHref={routes.dots}
           libraryHref={routes.library}
           onNewChat={newChat}
           onOpenPalette={openPalette}

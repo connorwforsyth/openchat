@@ -6,6 +6,7 @@ import {
 } from "@workspace/ai/rag/ingest";
 import {
   conversationIdSchema,
+  dotScheduleIdSchema,
   runIdSchema,
   userIdSchema,
 } from "@workspace/contract/schemas/common";
@@ -24,6 +25,13 @@ import type { JobHandler, JobQueue, SendOptions } from "../ports/job-queue";
 // with). A job without a handler waits in the queue rather than being dropped.
 
 export const jobSchemas = {
+  /** Fires one claimed occurrence of a Dot's schedule (172). */
+  "dot.run": z.object({
+    occurrence: z.iso.datetime(),
+    scheduleId: dotScheduleIdSchema,
+  }),
+  /** Claims every Dot schedule that's due and enqueues a `dot.run` each; every minute. */
+  "dot.tick": z.object({}),
   /** Runs an `eval_run` (a dataset against an agent version) and stores its scores (041). */
   "eval.run": z.object({ evalRunId: z.uuid() }),
   /** Parses, chunks and embeds one uploaded file (PLAN.md §8 RAG). */
@@ -51,6 +59,10 @@ export const JOB_NAMES = Object.keys(jobSchemas) as JobName[];
 
 /** Defaults per job; callers may override. */
 export const jobDefaults: { readonly [N in JobName]: SendOptions } = {
+  // The occurrence's idempotency key makes a retry safe; one retry covers a blip.
+  "dot.run": { expireInSeconds: 300, retryDelaySeconds: 15, retryLimit: 1 },
+  // The next tick picks up whatever a failed one left.
+  "dot.tick": { retryLimit: 0 },
   "eval.run": { expireInSeconds: 3600, retryLimit: 0 },
   [INGEST_FILE_JOB]: {
     retryBackoff: true,

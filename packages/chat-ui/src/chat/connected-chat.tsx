@@ -136,11 +136,15 @@ export interface ConnectedChatProps {
    * `runtimeOriginFrom`. Omitted or `null`, previews fall back to `srcdoc`.
    */
   readonly artifactsRuntimeOrigin?: string | null;
+  /** A bar above the messages (a Dot's schedule, 172). */
+  readonly banner?: ReactNode;
   readonly brand?: ReactNode;
   readonly client: ApiClient;
   readonly config: PublicConfig;
   /** `null` opens a new, not-yet-created chat. */
   readonly conversationId: ConversationId | null;
+  /** Where the Dots page lives (172), for the sidebar. */
+  readonly dotsHref?: string;
   /**
    * The context a new chat starts in. Pass it with `onDraftContextChange` when
    * something outside the screen (the ⌘K palette) can change it too.
@@ -1425,6 +1429,8 @@ export function ConnectedChat({
   brand,
   client,
   artifactsHref,
+  banner,
+  dotsHref,
   config,
   conversationId,
   draftContext: draftContextProp,
@@ -1826,6 +1832,7 @@ export function ConnectedChat({
       <PlanStatusProvider value={planStatus}>
         <ChatScreen
           actions={actions}
+          banner={banner}
           brand={brand}
           composer={{
             agents,
@@ -1887,6 +1894,7 @@ export function ConnectedChat({
             activeId: conversationId,
             artifactsHref,
             chats: data.chats.data?.items ?? [],
+            dotsHref,
             libraryHref,
             onSelect: onNavigate,
           }}
