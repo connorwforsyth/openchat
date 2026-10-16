@@ -299,6 +299,21 @@ export interface DotOnboardingProps {
   readonly onCreated: (dot: Dot) => void;
 }
 
+// A Dot runs unattended and often, so it starts on the cheap `fast` alias
+// when the server has it; the owner can pick another.
+const FAST_TARGET = "model:fast";
+
+const defaultTarget = (
+  targets: readonly { readonly disabled?: boolean; readonly value: string }[]
+): string => {
+  const usable = targets.filter((option) => !option.disabled);
+  return (
+    usable.find((option) => option.value === FAST_TARGET)?.value ??
+    usable[0]?.value ??
+    ""
+  );
+};
+
 export function DotOnboarding({ existing, onCreated }: DotOnboardingProps) {
   const { t } = useLingui();
   const ids = useId();
@@ -315,10 +330,7 @@ export function DotOnboarding({ existing, onCreated }: DotOnboardingProps) {
     name: "",
     purpose: "",
   }));
-  const chosenTarget =
-    target === ""
-      ? (targets.find((option) => !option.disabled)?.value ?? "")
-      : target;
+  const chosenTarget = target === "" ? defaultTarget(targets) : target;
   const first = existing === 0;
   const trimmed = draft.name.trim();
   const name = trimmed === "" ? t`your Dot` : trimmed;

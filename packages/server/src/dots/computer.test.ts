@@ -60,7 +60,14 @@ describe("computerTurn", () => {
   it("survives the unattended policy, which still withholds what asks", () => {
     const turn = dotTurn(
       computerTurn(baseTurn, computers.tools(run.conversationId)),
-      { autoApproveTools: [], instructions: "", name: "Scout" }
+      {
+        autoApproveTools: [],
+        handle: "scout",
+        instructions: "",
+        name: "Scout",
+        rules: "",
+        unattended: true,
+      }
     );
     expect(Object.keys(turn.tools ?? {})).toEqual(["computer"]);
     expect(turn.unavailableTools).toHaveProperty("bash");
