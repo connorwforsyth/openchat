@@ -36,7 +36,10 @@ the first Dot is primary, deleting it promotes the newest remaining one).
 - **Extension slots** (`apps/web/app/(app)/(pages)/dots/dot-extensions.tsx`):
   `CallButton`, `ComputerTab`, `ComputerTabLabel`, each
   `ComponentType<{ dot: Dot }> | null`; `DotHome`/`DotProfile` also take an
-  `extensions` prop.
+  `extensions` prop. Filled: `CallButton` is the voice call (docs/voice.md)
+  with the Dot's own face in the orb, reaching the chat through
+  `VoiceBridgeContext` (the header's call stays for other chats);
+  `ComputerTab`/`ComputerTabLabel` are the live view below.
 
 ## Architecture
 
@@ -118,8 +121,10 @@ gateway. Only the latest three screenshots reach the model
 - **Approval:** the tool never asks; the computer is the Dot's own. It joins
   every turn in a Dot's conversation (`withDotComputer`) before the
   unattended policy, which still withholds anything else that asks.
-- **Live view:** opening the Workspace panel in a Dot's chat shows the screen
-  (noVNC through the preview proxy, `{id}-6080.sandbox.localhost:7071`),
+- **Live view:** the Dot bar's Computer button opens the Workspace panel,
+  where the screen is pinned; the profile's Computer tab shows it too (its
+  label goes live while the Dot works). The screen is noVNC
+  through the preview proxy ( `{id}-6080.sandbox.localhost:7071`),
   view-only. **Take over** gives the owner mouse and keyboard and makes the
   tool refuse input (a flag file in the desktop) until **Give back control**.
   Plain routes `GET /api/computer/:conversationId` and
