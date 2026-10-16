@@ -3,13 +3,14 @@
 import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ConversationId } from "@workspace/contract/schemas/common";
-import type { Dot, DotActivity } from "@workspace/contract/schemas/dots";
+import type { Dot } from "@workspace/contract/schemas/dots";
 import { MonitorIcon, PlayIcon, XIcon } from "@workspace/icons";
 import { Button } from "@workspace/ui/components/button";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useApi } from "@/app/(app)/_shared/api";
 
+import { unseenRuns } from "./activity";
 import { DotAvatar } from "./dot-avatar";
 import { type DotExtensions, dotExtensions } from "./dot-extensions";
 import { DotProfile, type DotProfileTab, RunStatusBadge } from "./dot-profile";
@@ -35,16 +36,6 @@ export const useDotForConversation = (
   });
   return dots.data?.find((each) => each.conversationId === conversationId);
 };
-
-/** Runs that finished after `since` (all of them before the first visit). */
-export const unseenRuns = (
-  activity: readonly DotActivity[],
-  since: string | null
-): DotActivity[] =>
-  activity.filter(
-    (item) =>
-      item.finishedAt !== null && (since === null || item.finishedAt > since)
-  );
 
 function SinceYouLooked({
   dot,

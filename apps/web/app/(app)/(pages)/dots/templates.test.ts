@@ -1,8 +1,7 @@
 import type { DotActivity } from "@workspace/contract/schemas/dots";
 import { describe, expect, it } from "vitest";
-
+import { unseenRuns } from "./activity";
 import { DOT_AVATAR_COLORS, DOT_AVATAR_STYLES } from "./dot-avatar";
-import { unseenRuns } from "./dot-home";
 import { describeCron } from "./schedule";
 import {
   createInputOf,
