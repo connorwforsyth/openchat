@@ -174,7 +174,7 @@ describe("PageShell", () => {
     expect(value.openNewOrg).toHaveBeenCalled();
   });
 
-  it("leaves the sidebar out while it's collapsed", () => {
+  it("leaves a rail in the sidebar's place while it's collapsed", () => {
     renderWithApi(
       <AppFrameProvider
         value={frame({
@@ -191,8 +191,9 @@ describe("PageShell", () => {
       api()
     );
     expect(screen.queryByRole("complementary", { name: "Chats" })).toBeNull();
-    // The header takes the sidebar toggle, and no New chat button (113).
+    // The header takes the sidebar toggle (113); New chat is on the rail (179).
     expect(screen.getByRole("button", { name: "Toggle sidebar" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "New chat" })).toBeNull();
+    const rail = screen.getByRole("navigation", { name: "Sidebar rail" });
+    expect(within(rail).getByRole("button", { name: "New chat" })).toBeTruthy();
   });
 });

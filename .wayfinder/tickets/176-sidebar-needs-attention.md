@@ -2,7 +2,7 @@
 id: "176"
 title: "Sidebar “Needs attention” section and unread"
 labels: [wayfinder:build]
-status: in-progress
+status: closed
 assignee: loop
 blockedBy: []
 ---
@@ -22,3 +22,7 @@ From the ChatGPT sidebar study (`.context/research/chatgpt-dots-and-sidebar.md`,
 ## Owns
 
 `packages/chat-ui/src/sidebar/**`, `packages/chat-ui/src/model/attention.ts` (new, pure). Contract via 176a only if needed.
+
+## Resolution (2026-10-20, branch t/181-sidebar-ux)
+
+Built without a contract change: unread is `lastMessageAt > myState.lastReadAt`, written through the existing `conversations.updateMyState`. Pure `model/attention.ts` (`isUnread`, `attentionFor`, `needsAttention`, `nextNeedingAttention`, `unreadMarker`); the open chat is marked read as messages land (`useMarkReadWhileOpen`). The section lists awaiting approval, failed, running and unread, with a status dot per row (Grok study). Run signals come from `dots.list` (Dot status) and the open chat's active run; background runs in other ordinary chats need a contract field (QUESTIONS 2026-10-20 #4). Keys: ⇧⌘U, ⌥⌘A, ⇧Esc. Tests: `attention.test.ts`, `chat-sidebar-list.test.tsx`.

@@ -200,7 +200,7 @@ export interface ConnectedChatProps {
   /** The sidebar's Dot slots (172): `top` and `dots` of `ChatSidebarProps`. */
   readonly sidebarDots?: Pick<
     ChatSidebarProps,
-    "dot" | "dots" | "nextRuns" | "signals" | "top"
+    "dot" | "dotFace" | "dots" | "nextRuns" | "signals" | "top"
   >;
   /** Skills the caller can use (127), for the composer's + menu and `/`. */
   readonly skills?: readonly SkillOption[];

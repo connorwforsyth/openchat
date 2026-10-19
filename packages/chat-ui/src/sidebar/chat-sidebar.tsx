@@ -81,6 +81,8 @@ export interface ChatSidebarProps {
    * list below, since it's pinned at the top in `top`.
    */
   readonly dot?: { readonly conversationId: ConversationId };
+  /** The Dot's face, small: the collapsed rail's Dot button (179). */
+  readonly dotFace?: ReactNode;
   /**
    * The Dots section (172): replaces the plain `dotsHref` link when the app
    * lists the owner's Dots itself.
@@ -763,6 +765,7 @@ export function ChatSidebar({
   brand,
   chats,
   dot,
+  dotFace: _dotFace,
   nextRuns = noRuns,
   now,
   onArchive,
@@ -886,7 +889,7 @@ export function ChatSidebar({
       onSelect={onSelect}
       onTogglePin={onTogglePin}
       onToggleUnread={onSetLastRead ? toggleUnread : undefined}
-      selected={selection.ids.has(chat.id)}
+      selected={pickable && selection.ids.has(chat.id)}
       selecting={selecting && pickable}
     />
   );

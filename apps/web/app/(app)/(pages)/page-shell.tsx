@@ -156,7 +156,6 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
       rail={
         <SidebarRail
           {...sidebarProps}
-          onExpand={toggleChats}
           onNewChat={newChat}
           onOpenPalette={openPalette}
         />

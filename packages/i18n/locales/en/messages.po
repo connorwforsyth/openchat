@@ -3191,10 +3191,6 @@ msgstr "Open plan: {0}"
 msgid "Open settings"
 msgstr "Open settings"
 
-#: ../chat-ui/src/sidebar/sidebar-rail.tsx
-msgid "Open sidebar"
-msgstr "Open sidebar"
-
 #: ../shortcuts/src/registry.ts
 msgid "Open the command palette"
 msgstr "Open the command palette"

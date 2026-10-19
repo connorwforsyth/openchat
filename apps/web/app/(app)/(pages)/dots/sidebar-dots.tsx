@@ -110,7 +110,10 @@ function DotLink({
 /** `top` and `dots` for `ChatSidebar`. */
 export const useSidebarDots = (
   activeId: ConversationId | null
-): Pick<ChatSidebarProps, "dot" | "dots" | "nextRuns" | "signals" | "top"> => {
+): Pick<
+  ChatSidebarProps,
+  "dot" | "dotFace" | "dots" | "nextRuns" | "signals" | "top"
+> => {
   const { query } = useApi();
   const list = useQuery({
     ...query.dots.list.queryOptions({ input: {} }),
@@ -170,6 +173,9 @@ export const useSidebarDots = (
     );
     return {
       dot: primary ? { conversationId: primary.conversationId } : undefined,
+      dotFace: primary ? (
+        <DotAvatar animated={false} avatar={primary.avatar} size="sm" />
+      ) : undefined,
       dots,
       nextRuns,
       signals,

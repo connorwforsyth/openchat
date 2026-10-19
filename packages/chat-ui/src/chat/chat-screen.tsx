@@ -765,7 +765,6 @@ function ChatScreenBody({
       rail={
         <SidebarRail
           {...sheetSidebar}
-          onExpand={toggleChats}
           onNewChat={newChat}
           onOpenPalette={openPalette}
         />

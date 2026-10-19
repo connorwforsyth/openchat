@@ -6,7 +6,6 @@ import {
   BotIcon,
   LibraryIcon,
   NewChatIcon,
-  PanelLeftIcon,
   SearchIcon,
   ShapesIcon,
 } from "@workspace/icons";
@@ -20,27 +19,24 @@ import type { ChatSidebarProps } from "./chat-sidebar";
 // The collapsed sidebar (179): a 48px rail of icons rather than nothing, as
 // in ChatGPT. It shows instantly (the toggle is keyboard-driven, so no
 // animation), and the shell's peek still opens the full sidebar from its edge.
+// The header's sidebar toggle, beside it, opens it again; a second toggle on
+// the rail would sit under the desktop app's traffic lights.
 
-export interface SidebarRailProps
-  extends Pick<
-    ChatSidebarProps,
-    | "account"
-    | "activeId"
-    | "artifactsHref"
-    | "chats"
-    | "dot"
-    | "dotsHref"
-    | "libraryHref"
-    | "onNewChat"
-    | "onOpenPalette"
-    | "onSelect"
-    | "signals"
-  > {
-  /** The Dot's face, small, for the Dot button. */
-  readonly dotFace?: ReactNode;
-  /** Opens the full sidebar again. */
-  readonly onExpand: () => void;
-}
+export type SidebarRailProps = Pick<
+  ChatSidebarProps,
+  | "account"
+  | "activeId"
+  | "artifactsHref"
+  | "chats"
+  | "dot"
+  | "dotFace"
+  | "dotsHref"
+  | "libraryHref"
+  | "onNewChat"
+  | "onOpenPalette"
+  | "onSelect"
+  | "signals"
+>;
 
 const railButton =
   "relative flex size-10 items-center justify-center rounded-lg text-sidebar-foreground outline-none transition-colors duration-(--motion-fast) hover:bg-sidebar-foreground/5 focus-visible:ring-2 focus-visible:ring-sidebar-ring [&_svg]:size-4";
@@ -82,7 +78,6 @@ export function SidebarRail({
   dotFace,
   dotsHref,
   libraryHref,
-  onExpand,
   onNewChat,
   onOpenPalette,
   onSelect,
@@ -115,9 +110,6 @@ export function SidebarRail({
       className="flex h-full w-12 flex-col items-center gap-1 border-sidebar-border border-e bg-sidebar py-2"
       data-slot="sidebar-rail"
     >
-      <RailItem label={t`Open sidebar`} onClick={onExpand}>
-        <PanelLeftIcon aria-hidden />
-      </RailItem>
       <RailItem label={t`New chat`} onClick={onNewChat}>
         <NewChatIcon aria-hidden />
       </RailItem>

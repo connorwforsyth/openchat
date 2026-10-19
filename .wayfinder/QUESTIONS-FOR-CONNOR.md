@@ -106,3 +106,11 @@ Done: 009 and 010 prototypes, 042 contract PR (#31), Docker verification (045, P
 - Connor approved both contract changes and said to merge: Sites (125, PR #105) and Documents (126, PR #109).
 - 138 (image generation, branch `t/138-image-generation`): additive contract changes await approval: the `image` artifact kind, the `image-output` model capability, and optional `ModelOption.imageModel`. Also open: a per-call `model` argument, a per-turn image model picker, and forcing image generation like web search (a run option, which is a contract change).
 - Connor approved the image generation contract changes (138) and said to merge.
+
+## Open (2026-10-20, from the sidebar build 176–179), defaults applied
+
+1. **Date headings ([177](tickets/177-sidebar-list-polish.md)):** ChatGPT's desktop app dropped them for a flat list. We kept Today / Yesterday / Previous 7 days / Older under "Last updated", and a flat list under "Created". *Assumption to confirm: keep the headings.*
+2. **⌘. is your Dot, so Switch model moved to ⇧⌘. ([177](tickets/177-sidebar-list-polish.md)):** both can't have ⌘.. *Default: Dot gets ⌘. (as in ChatGPT); rebindable in settings.*
+3. **Unread starts from first open ([176](tickets/176-sidebar-needs-attention.md)):** a chat you've never opened since this shipped (no read marker) counts as read, so old chats don't all light up. *Default: keep.*
+4. **Running / awaiting approval for ordinary chats ([176](tickets/176-sidebar-needs-attention.md)):** the conversation list carries no run state, so "Needs attention" knows Dot runs (from `dots.list`) and the open chat's own run, not background runs in other chats. A `Conversation.attention` field (contract PR) would cover them. *Default: wait until you want it.*
+5. **Not built tonight:** "Move" in the row menu (there are no projects to move to), ⌃Tab MRU switching (browsers keep ⌃Tab), ⌘1–9 row shortcuts (browsers keep them for tabs), draft rows and "hide but keep running" from the Grok study. *Default: follow-ups if you want them.*

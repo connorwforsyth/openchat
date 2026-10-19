@@ -2,7 +2,7 @@
 id: "177"
 title: "Sidebar list polish (sort, paging, rows, keyboard)"
 labels: [wayfinder:build]
-status: in-progress
+status: closed
 assignee: loop
 blockedBy: []
 ---
@@ -25,3 +25,7 @@ From the study (B1.8, B3, B4; ideas 6–8): sort menu, "Show more" paging, `cont
 ## Owns
 
 `packages/chat-ui/src/sidebar/**`, `packages/chat-ui/src/model/{date-groups,sidebar-list}.ts`, `packages/shortcuts/src/{ids,registry}.ts`.
+
+## Resolution (2026-10-20, branch t/181-sidebar-ux)
+
+Pure `model/sidebar-list.ts` (`buildSidebarList`, `visibleOrder`); sort menu (Last updated with date headings, Created flat) saved in localStorage; 50 rows then Show more / Show less; `content-visibility:auto` rows with an intrinsic block size; scroll-edge fade masks set from scroll without re-rendering; the ⋯ slot stays overlaid on the title fade. Registry (`packages/shortcuts`): ⇧⌘O new chat, ⇧⌘S sidebar, ⌘/ help, ⇧⌘A archive, ⌥⌘P pin, ⇧⌘U unread, ⇧⌘[ / ⇧⌘], ⌥⌘A, ⇧Esc, ⌘. Dot; Switch model moved to ⇧⌘. (QUESTIONS #2). ⌘Z undoes the last archive while its toast is up. The desktop menu lists the new ids in `OFF_MENU`. Not done: ⌃Tab MRU (browser-reserved).

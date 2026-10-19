@@ -253,17 +253,14 @@ describe("the chat list", () => {
 describe("SidebarRail", () => {
   it("offers the actions and a count of chats needing attention", async () => {
     const onSelect = vi.fn();
-    const onExpand = vi.fn();
     const props = base({
       chats: [chat(1, "Fresh", { read: "unread" })],
       onSelect,
     });
-    render(<SidebarRail {...props} onExpand={onExpand} />);
+    render(<SidebarRail {...props} />);
     await userEvent.click(
       screen.getByRole("button", { name: "1 chat needs attention" })
     );
     expect(onSelect).toHaveBeenCalledWith("c1");
-    await userEvent.click(screen.getByRole("button", { name: "Open sidebar" }));
-    expect(onExpand).toHaveBeenCalled();
   });
 });
