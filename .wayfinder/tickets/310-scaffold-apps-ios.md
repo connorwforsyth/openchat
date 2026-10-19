@@ -1,16 +1,16 @@
 ---
-id: "188"
+id: "310"
 title: "apps/ios exists: it builds, tests, connects to an instance and shows its health"
 labels: [wayfinder:build]
 status: open
-map: "179"
+map: "300"
 assignee:
-blockedBy: ["194"]
+blockedBy: ["316"]
 ---
 
 ## Question
 
-The skeleton every later iOS ticket builds on, in the layout [Xcode research](185-xcode-in-the-monorepo.md) recommends.
+The skeleton every later iOS ticket builds on, in the layout [Xcode research](307-xcode-in-the-monorepo.md) recommends.
 
 ## Done when
 

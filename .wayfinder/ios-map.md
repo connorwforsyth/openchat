@@ -1,5 +1,5 @@
 ---
-id: "179"
+id: "300"
 title: "iOS — a native SwiftUI app alongside the web app"
 labels: [wayfinder:map]
 status: open
@@ -18,30 +18,12 @@ Connor runs on a real phone.
 
 **This map carries execution**, like [the main map](map.md): build tickets are
 worked by the loop in [`LOOP.md`](LOOP.md), each in its own worktree, one PR
-each. Its tickets live in `tickets/` with `map: "179"` in their front matter.
+each. Its tickets live in `tickets/` with `map: "300"` in their front matter.
 
-**Settled while charting (2026-10-20, Connor):**
-- Native SwiftUI replaces the Expo app in the Mobile wave; Android is out of scope.
-- Talks to the server through the existing contract: `swift-openapi-generator`
-  over `/api/openapi.json`, a small `AsyncSequence` SSE parser for run streams,
-  Better Auth `bearer()` + `ASWebAuthenticationSession` + Keychain. New endpoints
-  (device registration, stream tickets) are their own contract PRs.
-- iOS 26 minimum. **Stock where it's chrome, bespoke where it's chat:**
-  navigation, lists, sheets, settings, menus stay stock SwiftUI and Liquid
-  Glass; the message column, composer, tool lines, approval cards and streaming
-  text get tasteful custom work, the way the web layers its theme over shadcn.
-  Light and dark both first-class.
-- Colours come from one source: a script turns `packages/ui` `globals.css`
-  semantic tokens into an asset catalog. Brand accent and font come from
-  instance config at runtime.
-- One instance per app, entered at first launch, switchable in Settings.
-- SwiftData caches the chat list and recent chats for an instant open; no
-  offline send queue in v1.
-- APNs key lives in the instance's `.env`; without it push is off and nothing
-  else breaks. Built and signed with Connor's Apple Developer account.
-- Gate per ticket: `xcodebuild test` locally in the worktree plus
-  `swift-format` via lefthook. No iOS job in CI (macOS minutes on the free plan).
-- Voice beyond system dictation waits for [voice](tickets/104-voice-mode.md).
+**What the app is** was settled while charting; the detail lives in
+[What the iOS app is, and how it's built](tickets/301-charting-decisions.md).
+Ticket references are by name; ids here start at 300 to stay clear of the
+main map's.
 
 **Skills:** `write-swift` for all Swift; `apple-design` and `emil-design-eng`
 for the chat surface; `grilling` for HITL tickets; `prototype` for the
@@ -51,26 +33,28 @@ prototype ticket. Server-side work follows the main map's standing constraints.
 
 <!-- one line per closed ticket -->
 
-- [Does a web run really carry on when the tab is closed?](tickets/181-web-run-survives-closed-tab.md): yes; what's missing is any notification, an approval hook, and limits on approvals that wait forever
-- [Which native renderer draws streaming markdown?](tickets/182-swiftui-streaming-markdown.md): MarkdownView 3.x behind our own wrapper; race SwiftStreamingMarkdown in the prototype
-- [How does an Xcode project live in the monorepo?](tickets/185-xcode-in-the-monorepo.md): XcodeGen + local Swift packages, generated project out of git, per-worktree build folder and simulator under the machine lock; Xcode must be installed first
-- [How does a self-hosted instance send push?](tickets/183-push-from-self-hosted.md): own `node:http2` APNs sender + `web-push`; ids-only payloads filled in by a notification extension; `push_device` table, `notify.run` job, push off without keys
-- [Does the generated Swift client work against our server?](tickets/184-swift-client-stack.md): yes after a preprocessing script (nullables, `const`); hand-written stream chunks; native social sign-in via a one-time-token route; no stream tickets in v1
+- [What the iOS app is, and how it's built](tickets/301-charting-decisions.md): SwiftUI replaces Expo; stock chrome, bespoke chat surface; generated client; push from the instance; v1 scope
+- [Does a web run really carry on when the tab is closed?](tickets/303-web-run-survives-closed-tab.md): yes; nothing notifies, and approvals wait forever
+- [Which native renderer draws streaming markdown?](tickets/304-swiftui-streaming-markdown.md): MarkdownView 3.x behind our own wrapper; race SwiftStreamingMarkdown in the prototype
+- [How does an Xcode project live in the monorepo?](tickets/307-xcode-in-the-monorepo.md): XcodeGen + local Swift packages, one simulator per worktree; Xcode isn't installed yet
+- [How does a self-hosted instance send push?](tickets/305-push-from-self-hosted.md): a small `node:http2` APNs sender and `web-push`, with content-free payloads
+- [Does the generated Swift client work against our server?](tickets/306-swift-client-stack.md): yes, after a preprocessing script and a native sign-in route
 
 ## Not yet specified
 
 - **Chat list and contexts:** sidebar shape on iPhone vs iPad, search, the
   personal/org/team switcher, shared-with-me. Graduates after the prototype.
 - **Chat screen:** streaming render, tool lines, approval cards, the
-  model/agent picker, resume from cursor on foreground. Hangs on the markdown
-  research and the prototype.
+  model/agent picker, resuming on foreground (stream chunks are pruned 600 s
+  after a run settles, so a late reopen falls back to the stored message).
+  Hangs on the prototype.
 - **Attachments:** photo picker, files, camera; upload path through the
   existing storage routes.
-- **Artifacts:** read-only `WKWebView` hosting the artifacts runtime, fed by
-  `postMessage` (no token in a URL; [184](tickets/184-swift-client-stack.md)).
+- **Artifacts:** read-only `WKWebView` hosting the artifacts runtime; how it's
+  fed is in [the Swift client research](tickets/306-swift-client-stack.md).
 - **Push on the phone:** registering the device, the notification service
-  extension (shared Keychain group), tapping into the chat, lock-screen
-  approve/deny for a single pending call with no file edits; later Live Activities.
+  extension, tapping into the chat, and lock-screen actions, as
+  [the push research](tickets/305-push-from-self-hosted.md) lays out.
 - **Web push:** the browser side of the same notifications.
 - **Local cache:** SwiftData model, invalidation from run events, sign-out wipe.
 - **Demo gate:** the `PLAN.md` §11 checks for this wave, rewritten for Swift.
@@ -79,3 +63,7 @@ prototype ticket. Server-side work follows the main map's standing constraints.
 
 - Android, and the Expo app.
 - A push relay hosted by the publisher (that's running a service; see main map).
+- On iOS in this effort: the agent, prompt, skill and MCP builders; admin; the
+  workspace and sandbox; annotate. They stay on the web.
+- An offline send queue, voice beyond system dictation (it follows
+  [voice](tickets/104-voice-mode.md)), and Live Activities: later efforts.
