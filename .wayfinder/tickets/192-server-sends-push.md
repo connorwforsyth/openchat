@@ -5,12 +5,12 @@ labels: [wayfinder:build]
 status: open
 map: "179"
 assignee:
-blockedBy: ["181", "191"]
+blockedBy: ["191", "193"]
 ---
 
 ## Question
 
-Implement 191's routes and a notification sender behind a small port (`Notifier`), APNs and web push adapters, wired where [the closed-tab research](181-web-run-survives-closed-tab.md) found the hook. Degrades to off without keys; drops tokens on 410; never pushes for a run the user is actively watching (if that's knowable cheaply).
+Implement 191's routes and a notification sender behind a small port (`Notifier`), APNs and web push adapters, wired where [the closed-tab research](181-web-run-survives-closed-tab.md) found the hooks: `afterRun` (`services.ts`) queues a "done" job, and a new `onAwaitingApproval` in the executor's `settle` queues a "needs you" job. The rules for expiry, interrupted runs and recipients come from [193](193-approval-expiry-and-interrupted-runs.md). Degrades to off without keys; drops tokens on 410; never pushes for a run the user is actively watching (if that's knowable cheaply).
 
 ## Done when
 

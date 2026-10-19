@@ -51,6 +51,8 @@ prototype ticket. Server-side work follows the main map's standing constraints.
 
 <!-- one line per closed ticket -->
 
+- [Does a web run really carry on when the tab is closed?](tickets/181-web-run-survives-closed-tab.md): yes; what's missing is any notification, an approval hook, and limits on approvals that wait forever
+
 ## Not yet specified
 
 - **Chat list and contexts:** sidebar shape on iPhone vs iPad, search, the
