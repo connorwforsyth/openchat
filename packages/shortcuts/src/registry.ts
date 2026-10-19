@@ -72,6 +72,14 @@ export const shortcutRegistry: readonly ShortcutDefinition[] = [
     "navigation",
     msg`Toggle the sidebar`
   ),
+  // ChatGPT opens its Dot with ⌘.; ours is taken by model.switch, so ⌘⇧D.
+  define(
+    "dot.open",
+    ["Mod+Shift+D"],
+    "global",
+    "navigation",
+    msg`Open your Dot`
+  ),
   define("chat.new", ["N"], "global", "navigation", msg`New chat`),
   define("chat.next", ["J"], "global", "navigation", msg`Next chat`),
   define("chat.prev", ["K"], "global", "navigation", msg`Previous chat`),

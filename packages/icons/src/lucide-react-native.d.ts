@@ -93,6 +93,7 @@ declare module "lucide-react-native" {
   export const Pencil: LucideIcon;
   export const Pin: LucideIcon;
   export const PinOff: LucideIcon;
+  export const Pause: LucideIcon;
   export const Play: LucideIcon;
   export const Plus: LucideIcon;
   export const RefreshCw: LucideIcon;

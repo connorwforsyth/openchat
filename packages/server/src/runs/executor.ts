@@ -789,6 +789,7 @@ export const createInProcessExecutor = (
       );
       const executions: Executions = new Map();
       const agentRun = await runAgent({
+        budget: turn.value.budget,
         generateMessageId: () => assistantMessageId,
         instructions: turn.value.instructions,
         maxSteps: deps.maxSteps,
@@ -796,6 +797,7 @@ export const createInProcessExecutor = (
         model: turn.value.model,
         parameters: turn.value.parameters,
         signal: controller.signal,
+        stopAfterTools: turn.value.stopAfterTools,
         timeoutMs: deps.timeoutMs,
         toolApproval: turn.value.toolApproval,
         tools: watchExecutions(turn.value.tools, executions),

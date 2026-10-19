@@ -6,6 +6,7 @@ import type {
   ConversationId,
   MessageId,
 } from "@workspace/contract/schemas/common";
+import type { Conversation } from "@workspace/contract/schemas/conversations";
 import type { ModelSelector } from "@workspace/contract/schemas/models";
 import type { Db } from "@workspace/db/client";
 import {
@@ -19,6 +20,10 @@ import {
   setParticipantState,
   updateConversation,
 } from "@workspace/db/queries/conversations";
+import {
+  pauseSchedulesFor,
+  scheduleSummaries,
+} from "@workspace/db/queries/dots";
 import {
   deleteMessage,
   getBranchPath,
@@ -42,6 +47,7 @@ import {
   type ConversationAccess,
   type RequestContext,
 } from "../context";
+import { toConversationSchedule } from "../dots/schedule-policy";
 import type { StreamChannel } from "../ports/stream-channel";
 import { type BudgetCheck, storeContext } from "../runs/chat-context";
 import { type CreateRunError, createRun, mayRun } from "../runs/create-run";
@@ -128,12 +134,37 @@ export const createChatRouter = (services: ApiServices) => {
     throw new ORPCError("NOT_FOUND");
   };
 
+  /** The caller's schedule on each conversation, for "Next run …" (173). */
+  const withSchedules = async (
+    actor: Actor,
+    items: readonly Conversation[]
+  ): Promise<Conversation[]> => {
+    const summaries = await scheduleSummaries(
+      db,
+      actor.userId,
+      items.map((each) => each.id)
+    );
+    return items.map((each) => {
+      const row = summaries.get(each.id);
+      return {
+        ...each,
+        schedule: row ? toConversationSchedule(row) : null,
+      };
+    });
+  };
+
   const viewOf = async (actor: Actor, id: ConversationId) => {
     const found = await getConversation(db, id, actor);
     if (!found.ok) {
       throw new ORPCError("NOT_FOUND");
     }
-    return toConversation(found.value, actor.userId);
+    const [view] = await withSchedules(actor, [
+      toConversation(found.value, actor.userId),
+    ]);
+    if (!view) {
+      throw new ORPCError("NOT_FOUND");
+    }
+    return view;
   };
 
   const runOf = async (row: RunRow) =>
@@ -271,8 +302,11 @@ export const createChatRouter = (services: ApiServices) => {
         throw invalidCursor();
       }
       return {
-        items: page.value.items.map((view) =>
-          toConversation(view, context.actor.userId)
+        items: await withSchedules(
+          context.actor,
+          page.value.items.map((view) =>
+            toConversation(view, context.actor.userId)
+          )
         ),
         nextCursor: page.value.nextCursor,
       };
@@ -321,6 +355,10 @@ export const createChatRouter = (services: ApiServices) => {
       ) {
         await requireAccess(actor, id, "write");
         await updateConversation(db, id, { archived, defaultTarget, title });
+        if (archived) {
+          // Archiving a chat pauses the schedules posting into it (173).
+          await pauseSchedulesFor(db, id);
+        }
       } else {
         await requireAccess(actor, id, "read");
       }

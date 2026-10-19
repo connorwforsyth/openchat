@@ -158,6 +158,8 @@ export interface ConnectedChatProps {
    * something outside the screen (the ⌘K palette) can change it too.
    */
   readonly draftContext?: ChatContext;
+  /** More of the header's end, before the call button: the chat's schedule (183). */
+  readonly headerExtra?: ReactNode;
   /** A new chat sends this once, as soon as it mounts ("Ask AI" in ⌘K). */
   readonly initialPrompt?: string | null;
   /** The shell's layout, when the app owns it (see `ChatScreenProps.layout`). */
@@ -228,6 +230,17 @@ const voiceSlot = (
   conversationId: ConversationId | null,
   bridge: VoiceBridge
 ): ReactNode => (voice && conversationId ? voice(bridge) : null);
+
+/** Extra header content, if any, sits before the voice slot. */
+const headerEndOf = (extra: ReactNode, voiceNode: ReactNode): ReactNode =>
+  extra ? (
+    <>
+      {extra}
+      {voiceNode}
+    </>
+  ) : (
+    voiceNode
+  );
 
 /** The bridge for call buttons outside the header; none before the chat exists. */
 const bridgeOf = (
@@ -1501,6 +1514,7 @@ export function ConnectedChat({
   target = null,
   theme,
   voice,
+  headerExtra,
 }: ConnectedChatProps) {
   const outgoingTarget = targetToSend(sendTarget, target);
   const { t } = useLingui();
@@ -1938,7 +1952,10 @@ export function ConnectedChat({
               title: current?.title ?? null,
             }}
             feedback={feedback.byMessage}
-            headerEnd={voiceSlot(voice, conversationId, voiceBridge)}
+            headerEnd={headerEndOf(
+              headerExtra,
+              voiceSlot(voice, conversationId, voiceBridge)
+            )}
             layout={layout}
             messages={messages}
             onNewChat={newChat}

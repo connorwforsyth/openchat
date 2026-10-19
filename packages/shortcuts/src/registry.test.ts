@@ -25,6 +25,7 @@ describe("shortcutRegistry", () => {
     expect(keys("help")).toEqual(["?"]);
     expect(keys("sidebar.toggle")).toEqual(["Mod+B"]);
     expect(keys("palette.open")).toEqual(["Mod+K"]);
+    expect(keys("dot.open")).toEqual(["Mod+Shift+D"]);
   });
 
   it("has no clashing defaults", () => {

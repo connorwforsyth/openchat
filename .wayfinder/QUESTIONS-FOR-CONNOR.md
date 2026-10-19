@@ -106,3 +106,15 @@ Done: 009 and 010 prototypes, 042 contract PR (#31), Docker verification (045, P
 - Connor approved both contract changes and said to merge: Sites (125, PR #105) and Documents (126, PR #109).
 - 138 (image generation, branch `t/138-image-generation`): additive contract changes await approval: the `image` artifact kind, the `image-output` model capability, and optional `ModelOption.imageModel`. Also open: a per-call `model` argument, a per-turn image model picker, and forcing image generation like web search (a run option, which is a contract change).
 - Connor approved the image generation contract changes (138) and said to merge.
+
+## Open (2026-10-20, from 173–175 and 183: Dots engine and schedules, branch `t/182-dots-engine-ux`), defaults proposed
+
+- **Can a schedule target any chat?** It currently can: any chat you can write, plus "a new chat each run". Default: keep. Runs on an ordinary chat are read-only unless you turn that off.
+- **Which model answers a schedule on an ordinary chat?** It's the cheap `schedules.defaultModel` (the `fast` alias), not the chat's own model; ChatGPT's heartbeats use the thread's model. Default: cheap, for cost. The Dot's own schedules use the Dot's model.
+- **Are the guardrail defaults right?** A 60-minute minimum interval, 24 runs a day (rolling 24 h, "Run now" included), 8 steps a run and 20k tokens a run. Schedules that predate 173 aren't re-checked against the minimum interval; only the daily cap limits them. Default: keep.
+- **When should a schedule tell you by default?** New schedules use `important`: only `needs_attention` and failures notify. Migrated Dot schedules use `all`, as before. Default: keep.
+- **What happens to extra Dots?** The migration keeps each owner's primary (or oldest) Dot. The others' chats stay as ordinary chats, and their schedules keep running on those chats; the spec said archive them. Default: keep them running, since nothing is lost.
+- **Which shortcut opens the Dot?** ⌘. is already Switch model, so it's ⌘⇧D. Default: keep ⌘⇧D, or move model.switch?
+- **Should the Dot be hidden from Recents?** `hideDotFromRecents` is left to the sidebar branch (t/181). Default: hide.
+- **Should the Proposed schedule card say Apply and Dismiss?** It uses the approval card's Approve and Reject, and there's no Edit on the card yet. Default: relabel later.
+- **Event, webhook and monitor triggers** (from the Grok Bot and ChatGPT studies) are out of scope because each check is a paid model call. Approvals as their own message type, with plain-English rules, are a follow-up too.

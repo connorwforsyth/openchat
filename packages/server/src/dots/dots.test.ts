@@ -1,7 +1,8 @@
 import { textStream, toolCallStream } from "@workspace/ai/testing/mock-models";
-import type { Dot, DotSchedule } from "@workspace/contract/schemas/dots";
+import type { Dot } from "@workspace/contract/schemas/dots";
 import type { BranchPath } from "@workspace/contract/schemas/messages";
 import type { CreateRunOutput, Run } from "@workspace/contract/schemas/runs";
+import type { Schedule } from "@workspace/contract/schemas/schedules";
 import { seedUser } from "@workspace/db/testing";
 import { tool } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
@@ -21,13 +22,19 @@ import { UNATTENDED_REFUSAL } from "./policy";
 let h: Harness;
 let request: Harness["request"];
 let clock: Date;
+let services: Harness["services"];
 
 beforeEach(async () => {
   h = await createHarness();
   clock = new Date();
-  const services = {
+  services = {
     ...h.services,
-    dots: { ...h.services.dots, now: () => clock },
+    // Every-minute schedules keep these tests fast; the default floor is 60.
+    dots: {
+      ...h.services.dots,
+      limits: { ...h.services.dots.limits, minIntervalMinutes: 1 },
+      now: () => clock,
+    },
   };
   const app = createApp({
     resolveSession: (req) => {
@@ -80,8 +87,7 @@ const getRun = async (id: string) =>
 /** Runs the tick, then the `dot.run` jobs it enqueued, then the runs. */
 const tick = async () => {
   await dotJobHandlers({
-    ...h.services.dots,
-    now: () => clock,
+    ...services.dots,
     queue: h.jobs,
   })["dot.tick"]?.(
     {
@@ -139,7 +145,7 @@ describe("dots API", () => {
     });
     expect(bad.status).toBe(422);
     expect(await bad.json()).toMatchObject({
-      data: { issues: [{ path: ["schedules", 0, "cron"] }] },
+      data: { issues: [{ path: ["schedules", 0, "recurrence"] }] },
     });
     const dot = await createDot();
     const zone = await request(`/api/dots/${dot.id}/schedules`, {
@@ -151,20 +157,24 @@ describe("dots API", () => {
 
   it("edits, pauses and deletes schedules, and deletes the Dot", async () => {
     const dot = await createDot();
-    const added = await json<DotSchedule>(
+    const added = await json<Schedule>(
       await request(`/api/dots/${dot.id}/schedules`, {
         json: { cron: "0 9 * * 1-5", prompt: "Weekday check", timezone: "UTC" },
         method: "POST",
       }),
       201
     );
-    const paused = await json<DotSchedule>(
+    const paused = await json<Schedule>(
       await request(`/api/dot-schedules/${added.id}`, {
         json: { enabled: false },
         method: "PATCH",
       })
     );
-    expect(paused).toMatchObject({ enabled: false, nextRunAt: null });
+    expect(paused).toMatchObject({
+      nextRunAt: null,
+      pausedReason: "user",
+      status: "paused",
+    });
     const removed = await request(`/api/dot-schedules/${added.id}`, {
       method: "DELETE",
     });
@@ -181,6 +191,41 @@ describe("dots API", () => {
       (await request(`/api/dots/${dot.id}`, { method: "DELETE" })).status
     ).toBe(204);
     expect(await listDots()).toEqual([]);
+  });
+
+  it("keeps one Dot per user: a second is a CONFLICT", async () => {
+    await createDot();
+    const second = await request("/api/dots", {
+      json: { ...MORNING, name: "Another" },
+      method: "POST",
+    });
+    expect(second.status).toBe(409);
+    expect(await second.json()).toMatchObject({
+      data: { reason: "already_exists" },
+    });
+    expect(await listDots()).toHaveLength(1);
+  });
+
+  it("refuses a schedule below the instance's minimum interval", async () => {
+    const dot = await createDot({ ...MORNING, schedules: [] });
+    const strict = createApp({
+      resolveSession: (req) => {
+        const userId = req.headers.get(USER_HEADER);
+        return Promise.resolve(userId ? { userId: userId as never } : null);
+      },
+      routers: createDotsRouter({
+        ...services.dots,
+        limits: { ...services.dots.limits, minIntervalMinutes: 60 },
+      }),
+      services,
+    });
+    const tooOften = await strict.request(`/api/dots/${dot.id}/schedules`, {
+      body: JSON.stringify({ cron: "*/15 * * * *", prompt: "Check" }),
+      headers: { "content-type": "application/json", [USER_HEADER]: h.ownerId },
+      method: "POST",
+    });
+    expect(tooOften.status).toBe(422);
+    expect(JSON.stringify(await tooOften.json())).toContain("60 minutes");
   });
 });
 
@@ -209,7 +254,7 @@ describe("scheduled runs", () => {
       status: "idle",
       unread: true,
     });
-    expect(after?.schedules[0]?.lastStatus).toBe("succeeded");
+    expect(after?.schedules[0]?.lastOutcome).toBe("update");
     expect(
       new Date(after?.schedules[0]?.nextRunAt ?? 0).getTime()
     ).toBeGreaterThan(clock.getTime());
@@ -219,6 +264,14 @@ describe("scheduled runs", () => {
       "assistant",
     ]);
     expect(path.messages[0]?.parts).toEqual([
+      {
+        data: {
+          scheduleId: after?.schedules[0]?.id,
+          title: "List /work and report.",
+        },
+        name: "scheduled-task",
+        type: "data",
+      },
       { text: "List /work and report.", type: "text" },
     ]);
 
@@ -314,9 +367,10 @@ describe("scheduled runs", () => {
     const [after] = await listDots();
     expect(after?.status).toBe("failed");
     expect(after?.schedules[0]).toMatchObject({
-      enabled: false,
-      lastStatus: "failed",
+      lastOutcome: "failed",
       nextRunAt: null,
+      pausedReason: "failures",
+      status: "paused",
     });
     expect(dot.id).toBe(after?.id);
   });

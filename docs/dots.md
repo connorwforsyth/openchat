@@ -1,5 +1,12 @@
 # Dots: always-on scheduled agents
 
+> **Since 173–175 and 183:** one Dot per user, and the Dot is a thread.
+> Schedules are separate objects (`schedules.*`) that target the Dot's
+> thread, any chat you can write, or a new chat each run. See
+> [Schedules](#schedules-173-175-183) below. The rest of this page
+> describes 172, and some of it (several Dots, a primary picker, cron-only
+> schedules) is superseded.
+
 A **Dot** is a persistent agent: a model plus instructions, or a published
 library agent (which brings its own tools, MCP servers and skills). Each Dot
 has its own conversation, its own workspace (sandbox) and one or more cron
@@ -207,6 +214,37 @@ curl -b cookies -H 'content-type: application/json' http://localhost:3000/api/do
 curl -b cookies http://localhost:3000/api/dots          # status, lastRun, unread
 curl -b cookies -X POST http://localhost:3000/api/dots/<id>/run -H 'content-type: application/json' -d '{}'
 ```
+
+## Schedules (173–175, 183)
+
+- **Object:** the `dot_schedule` table keeps its 172 name, and its rows are schedules.
+  - Fields: `owner_id`, `target_kind` (`dot | conversation | new_chat_each_run`), a nullable `dot_id` and `conversation_id`, `title` and `prompt`.
+  - Recurrence: `rrule` + `start_at` + `timezone`, or a legacy `cron`, plus `ends_at`.
+  - Settings: `notify`, `read_only`, `missed_run_policy` and `auto_approve_tools`.
+  - State: `enabled`, `paused_reason`, `completed_at`, `next_run_at` (with jitter) and `next_run_nominal_at`.
+  - History: `dot_run` is the run history, including skipped slots, with outcome, summary, `notified`, `read_at` and `missed_slots`.
+- **Recurrence** lives in the pure `packages/ai/src/schedules/recurrence.ts`.
+  - It takes an RRULE subset: MINUTELY to YEARLY, INTERVAL, BYDAY, BYMONTHDAY, BYMONTH, BYHOUR, BYMINUTE, and COUNT=1 for a one-off.
+  - Wall-clock rules compile to cron and expand with cron-parser, so 09:00 stays 09:00 across DST. Intervals count elapsed time from `startAt`.
+  - Slots on a round minute get a deterministic jitter of up to ±5 minutes. The UI shows the nominal time.
+- **The tick** (`planDue` in `dots/schedule-policy.ts`) decides what to do with each due row:
+  - overdue slots collapse into one run (`missedSlots` counts the others), or with `skip` they're recorded as skipped;
+  - a busy target (a run in flight or awaiting approval) defers the slot by 60 s, until the next slot would arrive, and then the slot is skipped as `busy`;
+  - when the daily cap is used up, the slot is skipped as `cap`;
+  - a one-off is completed once it fires;
+  - a chat schedule whose target chat is gone is paused.
+- **Posting:** the run posts as the owner through `createRun`. The message carries a `scheduled-task` data part, shown as "Sent by scheduled task · <name>". A new chat each run is titled `<name> · <date>`.
+- **Unattended guards** (`dots/turn.ts`):
+  - `ask` tools are refused unless auto-approved;
+  - an ordinary chat's schedule is read-only by default (plan mode's filter);
+  - a `report_outcome` tool ends the loop;
+  - a step and token budget applies, and going over fails the run with `budget_exceeded`.
+- **Outcome:** the report wins. Without one, text means `update`, and empty or `DONT_NOTIFY` means `no_update`.
+  - `shouldNotify(outcome, notify)` decides whether the run counts as unread.
+  - Quiet runs leave no unread, and the chat folds each one into a single line.
+- **Guardrails:** `app.config.yaml` `schedules:` sets `minIntervalMinutes` (60), `maxRunsPerUserPerDay` (24), `runStepBudget` (8), `runTokenBudget` (20000) and `defaultModel`. That's the model for ordinary chats; by default the `fast` alias. `GET /api/schedule-limits` shows them along with today's usage.
+- **Archiving** a chat pauses its schedules, and deleting it deletes them.
+- **UI:** the `/schedules` page (filters, search, run history, editor), the chat header's "Next run" button or clock, the Dot profile's Scheduled tab, the palette's "Open scheduled tasks", ⌘⇧D for your Dot, and the Proposed schedule card for the Dot's `schedule_task` call.
 
 ## Not yet
 

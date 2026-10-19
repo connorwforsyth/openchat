@@ -10,8 +10,7 @@ import {
   handleFrom,
   isDotRunKey,
   isUnread,
-  nextFor,
-  nextRunAt,
+  scheduleIdOfKey,
   shouldAutoPause,
   snippetOf,
   UNATTENDED_REFUSAL,
@@ -19,64 +18,6 @@ import {
 } from "./policy";
 
 const at = (iso: string) => new Date(iso);
-
-describe("nextRunAt", () => {
-  it("finds the next minute for every-minute", () => {
-    const next = nextRunAt("* * * * *", "UTC", at("2026-10-16T08:00:30Z"));
-    expect(next).toEqual({ ok: true, value: at("2026-10-16T08:01:00Z") });
-  });
-
-  it("is strictly after now", () => {
-    const next = nextRunAt("0 8 * * *", "UTC", at("2026-10-16T08:00:00Z"));
-    expect(next.ok && next.value.toISOString()).toBe(
-      "2026-10-17T08:00:00.000Z"
-    );
-  });
-
-  it("reads the hour in the schedule's time zone", () => {
-    // 08:00 in London during BST is 07:00 UTC.
-    const next = nextRunAt(
-      "0 8 * * *",
-      "Europe/London",
-      at("2026-07-01T00:00:00Z")
-    );
-    expect(next.ok && next.value.toISOString()).toBe(
-      "2026-07-01T07:00:00.000Z"
-    );
-  });
-
-  it("skips weekends for weekdays", () => {
-    // 2026-10-16 is a Friday; after 09:00 the next weekday is Monday.
-    const next = nextRunAt("0 9 * * 1-5", "UTC", at("2026-10-16T10:00:00Z"));
-    expect(next.ok && next.value.toISOString()).toBe(
-      "2026-10-19T09:00:00.000Z"
-    );
-  });
-
-  it("rejects a bad expression and an unknown zone as values", () => {
-    expect(nextRunAt("every day", "UTC", new Date())).toMatchObject({
-      error: { type: "invalid_cron" },
-      ok: false,
-    });
-    expect(nextRunAt("0 8 * * * *", "UTC", new Date())).toMatchObject({
-      error: { type: "invalid_cron" },
-      ok: false,
-    });
-    expect(nextRunAt("0 99 * * *", "UTC", new Date())).toMatchObject({
-      error: { type: "invalid_cron" },
-      ok: false,
-    });
-    expect(nextRunAt("0 8 * * *", "Mars/Olympus", new Date())).toMatchObject({
-      error: { type: "invalid_timezone" },
-      ok: false,
-    });
-  });
-
-  it("gives a disabled schedule no next run", () => {
-    const schedule = { cron: "* * * * *", enabled: false, timezone: "UTC" };
-    expect(nextFor(schedule, new Date())).toBeNull();
-  });
-});
 
 describe("unattendedApproval", () => {
   it("refuses ask tools, auto-approves allowed ones, leaves the rest", () => {
@@ -110,6 +51,7 @@ describe("unattendedApproval", () => {
 const lastRun = (overrides: Partial<DotLastRun>): DotLastRun => ({
   error: null,
   finishedAt: "2026-10-16T08:01:10.000Z",
+  outcome: null,
   runId: "0199f000-0000-7000-8000-000000000000" as RunId,
   scheduleId: null,
   snippet: null,
@@ -168,6 +110,25 @@ describe("dotRunKey", () => {
     expect(isDotRunKey(dotRunKey({ nonce: "n", type: "manual" }))).toBe(true);
     expect(isDotRunKey("composer-123")).toBe(false);
     expect(isDotRunKey(null)).toBe(false);
+  });
+});
+
+describe("scheduleIdOfKey", () => {
+  const id = "0199f000-0000-7000-8000-00000000000a";
+
+  it("reads a slot's and a Run now's schedule, not a Dot check-in's", () => {
+    expect(
+      scheduleIdOfKey(
+        dotRunKey({ occurrence: new Date(0), scheduleId: id, type: "schedule" })
+      )
+    ).toBe(id);
+    expect(
+      scheduleIdOfKey(dotRunKey({ nonce: `${id}:abc`, type: "manual" }))
+    ).toBe(id);
+    expect(
+      scheduleIdOfKey(dotRunKey({ nonce: "nonce", type: "manual" }))
+    ).toBeNull();
+    expect(scheduleIdOfKey("chat-key")).toBeNull();
   });
 });
 

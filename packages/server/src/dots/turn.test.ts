@@ -1,18 +1,18 @@
+import {
+  MANAGE_SCHEDULES_TOOL,
+  REPORT_TOOL,
+  SCHEDULE_TASK_TOOL,
+  scheduleTaskInputSchema,
+} from "@workspace/ai/schedules/tool";
 import { asSchema, tool } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-
 import type { Turn } from "../runs/turn";
 import { computerTurn } from "./computer";
 import { UNATTENDED_REFUSAL } from "./policy";
-import {
-  MANAGE_SCHEDULES_TOOL,
-  manageSchedulesInputSchema,
-  SCHEDULE_TASK_TOOL,
-  scheduleTaskInputSchema,
-} from "./schedule-tool";
-import { type DotPolicy, dotTurn } from "./turn";
+import { manageSchedulesInputSchema } from "./schedule-tool";
+import { chatScheduleTurn, type DotPolicy, dotTurn, guardedTurn } from "./turn";
 
 // The pure half of a Dot's turn (172): persona and schedule tools in its
 // chat, approval on adding work, and the unattended refusals on top.
@@ -105,5 +105,41 @@ describe("schedule tools' input schemas", () => {
     expect(
       prefixOf({ ...turnWith("x"), instructions: `Base.\n\n${VOLATILE}` })
     ).toContain("computer");
+  });
+});
+
+describe("unattended guards (175)", () => {
+  const guards = { budget: { steps: 8, tokens: 20_000 }, readOnly: false };
+
+  it("adds the report tool, stops after it, and carries the budget", () => {
+    const out = guardedTurn({ ...turn, tools: { read: noop } }, guards);
+    expect(Object.keys(out.tools ?? {}).sort()).toEqual(["read", REPORT_TOOL]);
+    expect(out.stopAfterTools).toEqual([REPORT_TOOL]);
+    expect(out.budget).toEqual(guards.budget);
+    expect(out.toolApproval?.[REPORT_TOOL]).toBe("not-applicable");
+    expect(out.instructions).toContain(REPORT_TOOL);
+  });
+
+  it("withholds writing tools on a read-only heartbeat", () => {
+    const out = chatScheduleTurn(
+      { ...turn, tools: { read: noop, write: noop } },
+      {
+        autoApproveTools: [],
+        run: { ...guards, readOnly: true },
+        title: "Release watch",
+      }
+    );
+    expect(Object.keys(out.tools ?? {})).not.toContain("write");
+    expect(out.unavailableTools?.write).toBeDefined();
+    expect(out.instructions).toContain('scheduled task "Release watch"');
+  });
+
+  it("puts the Dot's unattended run under the same guards", () => {
+    const out = dotTurn(turn, {
+      ...policy(true, [SCHEDULE_TASK_TOOL]),
+      run: guards,
+    });
+    expect(out.stopAfterTools).toEqual([REPORT_TOOL]);
+    expect(Object.keys(out.tools ?? {})).toContain(SCHEDULE_TASK_TOOL);
   });
 });
