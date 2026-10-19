@@ -81,7 +81,7 @@ function DotLink({
       <DotAvatar
         animated={large}
         avatar={dot.avatar}
-        size={large ? "md" : "sm"}
+        size={large ? "sm" : "xs"}
       />
       <span className="flex min-w-0 flex-1 flex-col">
         <span

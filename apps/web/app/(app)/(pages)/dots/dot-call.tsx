@@ -16,7 +16,7 @@ export function DotCallButton({ dot }: DotSurfaceProps) {
   const { avatar } = dot;
   const orb = useMemo(
     () => ({
-      face: <DotAvatar avatar={avatar} className="size-32" />,
+      face: <DotAvatar avatar={avatar} className="size-16" />,
       haloClassName: DOT_HALO[avatar.color],
     }),
     [avatar]

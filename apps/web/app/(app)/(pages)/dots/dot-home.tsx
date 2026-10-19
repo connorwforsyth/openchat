@@ -174,7 +174,7 @@ export function DotHome({
             onClick={openProfile}
             type="button"
           >
-            <DotAvatar avatar={dot.avatar} size="md" />
+            <DotAvatar avatar={dot.avatar} size="sm" />
             <span className="flex min-w-0 flex-col">
               <span className="truncate font-medium text-sm">
                 {dot.name}{" "}
