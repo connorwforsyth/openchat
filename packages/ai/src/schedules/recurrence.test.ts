@@ -276,6 +276,7 @@ describe("describeRecurrence", () => {
     ["0 7 * * *", { every: 1, time: { hour: 7, minute: 0 }, type: "daily" }],
     ["*/15 * * * *", { minutes: 15, type: "interval" }],
     ["0 * * * *", { minutes: 60, type: "interval" }],
+    ["* * * * *", { minutes: 1, type: "interval" }],
     ["0 9 1 * *", { rule: "0 9 1 * *", type: "custom" }],
   ])("says the cron %s simply when it can", (cron, meaning) => {
     expect(

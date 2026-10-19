@@ -128,6 +128,9 @@ const describeCron = (cron: string): RecurrenceMeaning => {
   if (rest.length > 0 || dayOfMonth !== "*" || month !== "*" || !dayOfWeek) {
     return custom;
   }
+  if (minuteField === "*" && hourField === "*" && dayOfWeek === "*") {
+    return { minutes: 1, type: "interval" };
+  }
   const step = CRON_STEP.exec(minuteField ?? "");
   if (step && hourField === "*" && dayOfWeek === "*") {
     return { minutes: Number(step[1]), type: "interval" };
