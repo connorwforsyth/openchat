@@ -166,6 +166,13 @@ export const shortcutRegistry: readonly ShortcutDefinition[] = [
     msg`Next chat that needs attention`
   ),
   define(
+    "attention.filter",
+    ["Mod+Alt+U"],
+    "global",
+    "navigation",
+    msg`Show only Priority chats`
+  ),
+  define(
     "unread.clear",
     ["Shift+Escape"],
     "global",

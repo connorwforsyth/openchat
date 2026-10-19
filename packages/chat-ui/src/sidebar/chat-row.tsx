@@ -136,7 +136,7 @@ function StatusMark({
         aria-hidden
         className={cn(
           "size-2 rounded-full",
-          attention === "unread" && "bg-primary",
+          attention === "unread" && "bg-unread",
           attention === "running" &&
             "animate-pulse bg-muted-foreground motion-reduce:animate-none",
           attention === "awaiting_approval" &&
@@ -149,8 +149,8 @@ function StatusMark({
   );
 }
 
-// ChatGPT's rhythm (071): 36px rows (44px on touch), a clear active fill in
-// both themes, and titles that fade out at the end rather than stopping at an
+// ChatGPT's rhythm (071, 181): 32px rows (44px on touch), regular weight
+// (unread is the dot, not a bold title), an 8% active fill in both themes, and titles that fade out at the end rather than stopping at an
 // ellipsis a button's width early. The ⋯ sits over the fade, which widens
 // while it shows (hover, focus, its menu open, and always on touch).
 const titleFade = cn(
@@ -240,7 +240,7 @@ export const ChatRow = memo(function ChatRowInner({
 
   if (renaming) {
     return (
-      <li className="flex h-9 pointer-coarse:h-11 items-center px-0.5">
+      <li className="flex h-8 pointer-coarse:h-11 items-center px-0.5">
         <RenameInput initial={chat.title ?? ""} onDone={finishRename} />
       </li>
     );
@@ -250,7 +250,7 @@ export const ChatRow = memo(function ChatRowInner({
     <li
       // Off-screen rows skip layout and paint (177); the intrinsic size
       // keeps the scrollbar honest until they're measured.
-      className="group/row relative [contain-intrinsic-block-size:auto_2.25rem] [content-visibility:auto] pointer-coarse:[contain-intrinsic-block-size:auto_2.75rem]"
+      className="group/row relative [contain-intrinsic-block-size:auto_2rem] [content-visibility:auto] pointer-coarse:[contain-intrinsic-block-size:auto_2.75rem]"
       data-menu-open={menuOpen ? "" : undefined}
       data-selected={selected ? "" : undefined}
     >
@@ -258,10 +258,8 @@ export const ChatRow = memo(function ChatRowInner({
         aria-current={active ? "page" : undefined}
         aria-pressed={selecting ? selected : undefined}
         className={cn(
-          "flex h-9 pointer-coarse:h-11 w-full min-w-0 items-center gap-2 rounded-lg px-2 text-start text-sm outline-none transition-colors duration-(--motion-fast) hover:bg-sidebar-foreground/5 focus-visible:ring-2 focus-visible:ring-sidebar-ring",
-          active &&
-            "bg-sidebar-foreground/8 font-medium hover:bg-sidebar-foreground/8",
-          unread && "font-semibold",
+          "flex h-8 pointer-coarse:h-11 w-full min-w-0 items-center gap-2 rounded-lg px-2 text-start text-sm outline-none transition-colors duration-(--motion-fast) hover:bg-sidebar-foreground/5 focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+          active && "bg-sidebar-foreground/8 hover:bg-sidebar-foreground/8",
           selected && "bg-sidebar-primary/10 hover:bg-sidebar-primary/15"
         )}
         data-chat-id={chat.id}

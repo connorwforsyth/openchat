@@ -1,13 +1,15 @@
 "use client";
 
 import { plural } from "@lingui/core/macro";
-import { Trans, useLingui } from "@lingui/react/macro";
+import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import type { ConversationId } from "@workspace/contract/schemas/common";
 import {
   ArchiveIcon,
   ArrowLeftIcon,
-  BotIcon,
+  CheckIcon,
+  ChevronDownIcon,
   ChevronsUpDownIcon,
+  EllipsisIcon,
   LibraryIcon,
   NewChatIcon,
   RotateCcwIcon,
@@ -15,12 +17,15 @@ import {
   ShapesIcon,
   XIcon,
 } from "@workspace/icons";
+import { ShortcutKbd } from "@workspace/shortcuts/react/shortcut-kbd";
 import { useShortcut } from "@workspace/shortcuts/react/use-shortcut";
 import { Button } from "@workspace/ui/components/button";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuGroup,
+  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
@@ -50,7 +55,6 @@ import {
 } from "../model/attention";
 import {
   buildSidebarList,
-  type ListSectionKey,
   SIDEBAR_PAGE_SIZE,
   type SidebarList,
   type SidebarSort,
@@ -84,17 +88,17 @@ export interface ChatSidebarProps {
   /** The Dot's face, small: the collapsed rail's Dot button (179). */
   readonly dotFace?: ReactNode;
   /**
-   * The Dots section (172): replaces the plain `dotsHref` link when the app
-   * lists the owner's Dots itself.
+   * The old Dots section (172). Unused since 181: there's one Dot, and its
+   * row is `top`. Kept so hosts can drop it in their own time.
    */
   readonly dots?: ReactNode;
-  /** Where the Dots page lives (172); a plain link. */
+  /** Where the Dots page lives: the rail's "Make your Dot" when there's none. */
   readonly dotsHref?: string;
   /** Where the library lives (ticket 017); a plain link. */
   readonly libraryHref?: string;
   /** When each schedule-targeted chat runs next (172). */
   readonly nextRuns?: ReadonlyMap<ConversationId, string>;
-  /** The clock for date groups; defaults to now. */
+  /** Unused since the list lost its date headings (181). */
   readonly now?: Date;
   /** Optimistic: hide it now; the undo toast calls `onRestore`. */
   readonly onArchive: (id: ConversationId) => void;
@@ -117,16 +121,19 @@ export interface ChatSidebarProps {
   readonly signals?: ReadonlyMap<ConversationId, RunSignal>;
   /** The sidebar toggle, at the end of the brand row (113). */
   readonly toggle?: ReactNode;
-  /** Above the actions: the owner's primary Dot (172). */
+  /** Under the actions: the owner's Dot row (172, 181). */
   readonly top?: ReactNode;
 }
 
-// Same rhythm as the chat rows (071): 36px, 44px on touch.
+// ChatGPT's sidebar rhythm (181): 32px rows (44px on touch), 8px inline
+// padding, the 10px row radius (`rounded-lg`), 14px text, 16px icons, a 5%
+// foreground wash on hover and 8% for the open page.
 export const navRowClass =
-  "flex h-9 w-full min-w-0 items-center gap-2 rounded-lg px-2 text-start text-sm outline-none transition-colors duration-(--motion-fast) hover:bg-sidebar-foreground/5 focus-visible:ring-2 focus-visible:ring-sidebar-ring pointer-coarse:h-11 [&_svg]:size-4 [&_svg]:shrink-0";
+  "flex h-8 w-full min-w-0 items-center gap-2 rounded-lg px-2 text-start text-sm outline-none transition-colors duration-(--motion-fast) hover:bg-sidebar-foreground/5 focus-visible:ring-2 focus-visible:ring-sidebar-ring pointer-coarse:h-11 [&_svg]:size-4 [&_svg]:shrink-0";
 
+/** A section header: quiet, sentence case, and a button that folds it. */
 const headingClass =
-  "px-2 pt-5 pb-1.5 font-medium text-muted-foreground text-xs";
+  "group/heading flex h-8 min-w-0 flex-1 items-center gap-1 rounded-lg px-2 text-start text-muted-foreground text-sm outline-none transition-colors duration-(--motion-fast) hover:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring";
 
 const noSignals: ReadonlyMap<ConversationId, RunSignal> = new Map();
 const noRuns: ReadonlyMap<ConversationId, string> = new Map();
@@ -163,24 +170,18 @@ const useSavedSort = (): [SidebarSort, (sort: SidebarSort) => void] => {
   return [sort, choose];
 };
 
-const useGroupLabel = () => {
+type SectionKey = "chats" | "pinned" | "priority";
+
+const useSectionLabel = () => {
   const { t } = useLingui();
   return useCallback(
-    (key: ListSectionKey | "pinned" | "attention"): string => {
+    (key: SectionKey): string => {
       switch (key) {
-        case "attention":
-          return t`Needs attention`;
+        case "priority":
+          return t`Priority`;
         case "pinned":
           return t`Pinned`;
-        case "today":
-          return t`Today`;
-        case "yesterday":
-          return t`Yesterday`;
-        case "previous7Days":
-          return t`Previous 7 days`;
-        case "older":
-          return t`Older`;
-        case "all":
+        case "chats":
           return t`Chats`;
         default:
           return key satisfies never;
@@ -189,6 +190,17 @@ const useGroupLabel = () => {
     [t]
   );
 };
+
+/**
+ * Is a menu or dialog open over `inside`? Escape belongs to it then. One that
+ * holds `inside` (the sidebar's own sheet on a phone) doesn't count.
+ */
+const popupOpen = (inside: Element | null): boolean =>
+  [
+    ...document.querySelectorAll(
+      '[role="menu"], [role="dialog"], [role="alertdialog"], [role="listbox"]'
+    ),
+  ].some((popup) => !(inside && popup.contains(inside)));
 
 /**
  * Fades the list's top and bottom edges while there's more to scroll that
@@ -391,10 +403,16 @@ interface ArchiveFlowInput {
   readonly onRestore: (id: ConversationId) => void;
 }
 
+interface UndoEntry {
+  readonly id: string;
+  readonly run: () => void;
+}
+
 /**
  * Archive with an undo toast and ⌘Z (177); bulk archive with a partial-failure
- * toast; and after a few archives from one date group, an offer to archive
- * the rest of it (178).
+ * toast; and after a few archives from the Chats list, an offer to archive
+ * the rest of it (178). ⌘Z only undoes while its toast is up, and an undone
+ * archive doesn't count towards the offer.
  */
 const useArchiveFlow = ({
   list,
@@ -406,12 +424,8 @@ const useArchiveFlow = ({
   const { isApple } = usePlatform();
   const showUndo = useUndoToast();
   const toasts = useToastManager();
-  const groupLabel = useGroupLabel();
-  const lastUndo = useRef<{
-    readonly id: string;
-    readonly run: () => void;
-  } | null>(null);
-  const archivedFrom = useRef(new Map<ListSectionKey, number>());
+  const lastUndo = useRef<UndoEntry | null>(null);
+  const archivedFromList = useRef(0);
 
   const archiveMany = useCallback(
     async (ids: readonly ConversationId[]) => {
@@ -424,7 +438,7 @@ const useArchiveFlow = ({
         failed > 0
           ? {
               priority: "high",
-              title: t`Archived ${done}; ${failed} failed`,
+              title: t`${plural(done, { one: "Archived # chat", other: "Archived # chats" })}; ${plural(failed, { one: "# failed", other: "# failed" })}`,
               type: "error",
             }
           : {
@@ -437,43 +451,55 @@ const useArchiveFlow = ({
   );
 
   const suggestRest = useCallback(
-    (key: ListSectionKey, archivedId: ConversationId) => {
-      const seen = (archivedFrom.current.get(key) ?? 0) + 1;
-      archivedFrom.current.set(key, seen);
-      const rest = (list.sections.find((each) => each.key === key)?.items ?? [])
+    (archivedId: ConversationId) => {
+      archivedFromList.current += 1;
+      const rest = list.items
         .filter((item) => item.id !== archivedId)
         .map((item) => item.id);
-      if (seen < SUGGEST_AFTER || rest.length === 0) {
+      if (archivedFromList.current < SUGGEST_AFTER || rest.length === 0) {
         return;
       }
-      archivedFrom.current.set(key, 0);
-      const group = groupLabel(key);
+      archivedFromList.current = 0;
       const remaining = rest.length;
       toasts.add({
         actionProps: {
-          children: t`Archive ${remaining}`,
+          children: t`${plural(remaining, { one: "Archive # chat", other: "Archive # chats" })}`,
           onClick: () => archiveMany(rest),
         },
         priority: "low",
         timeout: SUGGEST_TIMEOUT_MS,
-        title: t`Archive the remaining ${remaining} in ${group}?`,
+        title: t`${plural(remaining, { one: "Archive the remaining # chat?", other: "Archive the remaining # chats?" })}`,
       });
     },
-    [archiveMany, groupLabel, list, t, toasts]
+    [archiveMany, list, t, toasts]
   );
 
   const archive = useCallback(
     (chat: SidebarChat) => {
-      const key = list.sections.find((each) =>
-        each.items.some((item) => item.id === chat.id)
-      )?.key;
+      const fromList = list.items.some((item) => item.id === chat.id);
       onArchive(chat.id);
       const title = chat.title ?? t`New chat`;
-      const run = () => onRestore(chat.id);
-      const toastId = showUndo({ onUndo: run, title: t`Archived “${title}”` });
-      lastUndo.current = { id: toastId, run };
-      if (key && onArchiveMany) {
-        suggestRest(key, chat.id);
+      const run = () => {
+        if (fromList && archivedFromList.current > 0) {
+          archivedFromList.current -= 1;
+        }
+        onRestore(chat.id);
+      };
+      let entry: UndoEntry | null = null;
+      const toastId = showUndo({
+        // Once the toast is gone, so is ⌘Z's claim on it.
+        onClose: () => {
+          if (lastUndo.current === entry) {
+            lastUndo.current = null;
+          }
+        },
+        onUndo: run,
+        title: t`Archived “${title}”`,
+      });
+      entry = { id: toastId, run };
+      lastUndo.current = entry;
+      if (fromList && onArchiveMany) {
+        suggestRest(chat.id);
       }
     },
     [list, onArchive, onArchiveMany, onRestore, showUndo, suggestRest, t]
@@ -504,10 +530,12 @@ interface KeysInput {
   readonly archive: (chat: SidebarChat) => void;
   readonly attention: readonly AttentionItem<SidebarChat>[];
   readonly dotId: ConversationId | null;
+  readonly markAllRead: () => void;
   readonly onSelect: (id: ConversationId) => void;
   readonly onSetLastRead: ChatSidebarProps["onSetLastRead"];
   readonly onTogglePin: (id: ConversationId, pinned: boolean) => void;
   readonly order: readonly SidebarChat[];
+  readonly toggleFilter: () => void;
   readonly toggleUnread: (chat: SidebarChat, unread: boolean) => void;
 }
 
@@ -518,10 +546,12 @@ const useSidebarKeys = ({
   archive,
   attention,
   dotId,
+  markAllRead,
   onSelect,
   onSetLastRead,
   onTogglePin,
   order,
+  toggleFilter,
   toggleUnread,
 }: KeysInput) => {
   useShortcut("dot.open", () => dotId && onSelect(dotId), {
@@ -558,17 +588,10 @@ const useSidebarKeys = ({
       onSelect(next);
     }
   });
-  useShortcut(
-    "unread.clear",
-    () => {
-      for (const item of attention) {
-        if (item.attention === "unread" && item.chat.lastMessageAt) {
-          onSetLastRead?.(item.chat.id, item.chat.lastMessageAt);
-        }
-      }
-    },
-    { enabled: onSetLastRead !== undefined }
-  );
+  useShortcut("unread.clear", markAllRead, {
+    enabled: onSetLastRead !== undefined,
+  });
+  useShortcut("attention.filter", toggleFilter);
 };
 
 function SelectionBar({
@@ -581,24 +604,33 @@ function SelectionBar({
   readonly onClear: () => void;
 }) {
   const { t } = useLingui();
-  // Escape lets go of the selection, wherever focus is.
+  const bar = useRef<HTMLDivElement>(null);
+  // Escape lets go of the selection, wherever focus is, unless a menu or
+  // dialog is open: that Escape closes it, and the selection stays.
   useEffect(() => {
     const onKey = (event: globalThis.KeyboardEvent) => {
-      if (event.key === "Escape" && !event.defaultPrevented) {
+      if (
+        event.key === "Escape" &&
+        !event.defaultPrevented &&
+        !popupOpen(bar.current)
+      ) {
         onClear();
       }
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    // Capture: a closing menu is still in the DOM when this runs.
+    window.addEventListener("keydown", onKey, { capture: true });
+    return () =>
+      window.removeEventListener("keydown", onKey, { capture: true });
   }, [onClear]);
   return (
     <div
       aria-live="polite"
       className="mx-2 mt-2 flex items-center gap-1 rounded-lg bg-sidebar-foreground/5 py-1 ps-2 pe-1 text-sm"
       data-slot="chat-sidebar-selection"
+      ref={bar}
     >
       <span className="flex-1 font-medium">
-        <Trans>{count} selected</Trans>
+        <Plural one="# selected" other="# selected" value={count} />
       </span>
       <Button onClick={onArchive} size="xs" variant="ghost">
         <ArchiveIcon aria-hidden />
@@ -627,7 +659,7 @@ function ListTools({
 }) {
   const { t } = useLingui();
   return (
-    <div className="flex items-center gap-0.5 pt-4">
+    <div className="flex items-center gap-0.5">
       <SortMenu onSort={onSort} sort={sort} />
       {onOpenArchive ? (
         <Button
@@ -641,6 +673,54 @@ function ListTools({
         </Button>
       ) : null}
     </div>
+  );
+}
+
+function PriorityTools({
+  filtered,
+  onMarkAllRead,
+  onToggleFilter,
+  unread,
+}: {
+  readonly filtered: boolean;
+  readonly onMarkAllRead?: () => void;
+  readonly onToggleFilter: () => void;
+  readonly unread: number;
+}) {
+  const { t } = useLingui();
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            aria-label={t`Priority options`}
+            className="opacity-0 pointer-coarse:opacity-100 focus-visible:opacity-100 group-focus-within/section:opacity-100 group-hover/section:opacity-100 aria-expanded:opacity-100"
+            size="icon-xs"
+            title={t`Priority options`}
+            variant="ghost"
+          />
+        }
+      >
+        <EllipsisIcon aria-hidden />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuGroup>
+          {onMarkAllRead ? (
+            <DropdownMenuItem disabled={unread === 0} onClick={onMarkAllRead}>
+              <CheckIcon aria-hidden />
+              <Trans>Mark all as read</Trans>
+              <ShortcutKbd className="ms-auto" id="unread.clear" />
+            </DropdownMenuItem>
+          ) : null}
+          <DropdownMenuCheckboxItem
+            checked={filtered}
+            onCheckedChange={onToggleFilter}
+          >
+            <Trans>Show only Priority</Trans>
+          </DropdownMenuCheckboxItem>
+        </DropdownMenuGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -662,27 +742,18 @@ function Paging({
   if (!(hasMore || expanded)) {
     return null;
   }
+  const pageRow = cn(navRowClass, "text-muted-foreground");
   return (
-    <div className="flex gap-1 px-1 pt-2">
+    <div className="flex flex-col gap-px pt-px">
       {hasMore ? (
-        <Button
-          className="text-muted-foreground"
-          onClick={more}
-          size="sm"
-          variant="ghost"
-        >
+        <button className={pageRow} onClick={more} type="button">
           <Trans>Show more</Trans>
-        </Button>
+        </button>
       ) : null}
       {expanded ? (
-        <Button
-          className="text-muted-foreground"
-          onClick={less}
-          size="sm"
-          variant="ghost"
-        >
+        <button className={pageRow} onClick={less} type="button">
           <Trans>Show less</Trans>
-        </Button>
+        </button>
       ) : null}
     </div>
   );
@@ -690,31 +761,16 @@ function Paging({
 
 function PrimaryNav({
   artifactsHref,
-  dots,
-  dotsHref,
   libraryHref,
   onNewChat,
   onOpenPalette,
 }: Pick<
   ChatSidebarProps,
-  | "artifactsHref"
-  | "dots"
-  | "dotsHref"
-  | "libraryHref"
-  | "onNewChat"
-  | "onOpenPalette"
+  "artifactsHref" | "libraryHref" | "onNewChat" | "onOpenPalette"
 >) {
   const { t } = useLingui();
-  const dotsLink = dotsHref ? (
-    <a className={navRowClass} href={dotsHref}>
-      <BotIcon aria-hidden />
-      <span className="flex-1">
-        <Trans>Dots</Trans>
-      </span>
-    </a>
-  ) : null;
   return (
-    <nav aria-label={t`Primary`} className="flex flex-col gap-0.5 px-2">
+    <nav aria-label={t`Primary`} className="flex flex-col gap-px px-2">
       <button className={navRowClass} onClick={onNewChat} type="button">
         <NewChatIcon aria-hidden />
         <span className="flex-1">
@@ -726,10 +782,18 @@ function PrimaryNav({
         <button className={navRowClass} onClick={onOpenPalette} type="button">
           <SearchIcon aria-hidden />
           <span className="flex-1">
-            <Trans>Search</Trans>
+            <Trans>Search chats</Trans>
           </span>
           <ShortcutHint id="palette.open" />
         </button>
+      ) : null}
+      {libraryHref ? (
+        <a className={navRowClass} href={libraryHref}>
+          <LibraryIcon aria-hidden />
+          <span className="flex-1">
+            <Trans>Library</Trans>
+          </span>
+        </a>
       ) : null}
       {artifactsHref ? (
         <a className={navRowClass} href={artifactsHref}>
@@ -739,23 +803,63 @@ function PrimaryNav({
           </span>
         </a>
       ) : null}
-      {dots ?? dotsLink}
-      {libraryHref ? (
-        <a className={navRowClass} href={libraryHref}>
-          <LibraryIcon aria-hidden />
-          <span className="flex-1">
-            <Trans>Library</Trans>
-          </span>
-        </a>
-      ) : null}
     </nav>
   );
 }
 
+function Section({
+  children,
+  collapsed,
+  id,
+  label,
+  onToggle,
+  trailing,
+}: {
+  readonly children: ReactNode;
+  readonly collapsed: boolean;
+  readonly id: SectionKey;
+  readonly label: string;
+  readonly onToggle: (id: SectionKey) => void;
+  readonly trailing?: ReactNode;
+}) {
+  const toggle = useCallback(() => onToggle(id), [id, onToggle]);
+  return (
+    <section
+      aria-labelledby={`chat-group-${id}`}
+      className="group/section pt-3 first:pt-1"
+      data-section={id}
+    >
+      <div className="flex items-center gap-0.5 pe-1">
+        <h3 className="flex min-w-0 flex-1" id={`chat-group-${id}`}>
+          <button
+            aria-expanded={!collapsed}
+            className={headingClass}
+            onClick={toggle}
+            type="button"
+          >
+            <span className="truncate">{label}</span>
+            {/* ChatGPT's quiet fold control: it shows on hover or when folded. */}
+            <ChevronDownIcon
+              aria-hidden
+              className={cn(
+                "size-3.5 shrink-0 opacity-0 transition-opacity duration-(--motion-fast) group-hover/heading:opacity-100 group-focus-visible/heading:opacity-100",
+                collapsed && "-rotate-90 opacity-100"
+              )}
+            />
+          </button>
+        </h3>
+        {trailing}
+      </div>
+      <div hidden={collapsed}>{children}</div>
+    </section>
+  );
+}
+
 /**
- * The Classic sidebar (009, 176–178): your Dot, the actions, what needs your
- * attention, pinned chats, then the rest by date with a sort menu and "Show
- * more" paging; bulk select, an archive view and the account footer.
+ * The Classic sidebar (009, 176–178, 181), laid out like ChatGPT's: the
+ * actions and pages, your Dot, then Priority (chats running, waiting or
+ * unread), Pinned, and one flat Chats list with a sort menu and "Show more"
+ * paging; bulk select, an archive view and the account footer.
  */
 export function ChatSidebar({
   account,
@@ -766,8 +870,10 @@ export function ChatSidebar({
   chats,
   dot,
   dotFace: _dotFace,
+  dots: _dots,
+  dotsHref: _dotsHref,
   nextRuns = noRuns,
-  now,
+  now: _now,
   onArchive,
   onArchiveMany,
   onArchivedViewChange,
@@ -782,23 +888,22 @@ export function ChatSidebar({
   ...nav
 }: ChatSidebarProps) {
   const { platform } = usePlatform();
-  const groupLabel = useGroupLabel();
+  const sectionLabel = useSectionLabel();
   const [sort, setSort] = useSavedSort();
   const [limit, setLimit] = useState(SIDEBAR_PAGE_SIZE);
   const [view, setView] = useState<"archived" | "chats">("chats");
+  const [priorityOnly, setPriorityOnly] = useState(false);
+  const [collapsed, setCollapsed] = useState<ReadonlySet<SectionKey>>(
+    new Set()
+  );
   const [selection, dispatch] = useReducer(selectionReducer, emptySelection);
 
   const dotId = dot?.conversationId ?? null;
-  // Your Dot is pinned at the top; it isn't a recent chat as well.
+  // Your Dot has its own row above; it isn't a recent chat as well.
   const recents = useMemo(
     () => (dotId ? chats.filter((chat) => chat.id !== dotId) : chats),
     [chats, dotId]
   );
-  const list = useMemo(
-    () => buildSidebarList(recents, { limit, now: now ?? new Date(), sort }),
-    [limit, now, recents, sort]
-  );
-  const order = useMemo(() => visibleOrder(list), [list]);
   const tracksAttention = onSetLastRead !== undefined || signals.size > 0;
   const attention = useMemo(
     () => (tracksAttention ? needsAttention(recents, signals) : []),
@@ -807,6 +912,31 @@ export function ChatSidebar({
   const attentionById = useMemo(
     () => new Map(attention.map((item) => [item.chat.id, item.attention])),
     [attention]
+  );
+  const priority = useMemo(
+    () => attention.map((item) => item.chat),
+    [attention]
+  );
+  const unreadCount = useMemo(
+    () => attention.filter((item) => item.attention === "unread").length,
+    [attention]
+  );
+  // A chat in Priority isn't in Chats too (ChatGPT's rule). Pinned keeps its
+  // own: a pin is the user's say-so.
+  const prioritized = useMemo(
+    () => new Set(priority.map((chat) => chat.id)),
+    [priority]
+  );
+  const list = useMemo(
+    () => buildSidebarList(recents, { exclude: prioritized, limit, sort }),
+    [limit, prioritized, recents, sort]
+  );
+  const order = useMemo(
+    () =>
+      priorityOnly
+        ? priority
+        : visibleOrder(list, collapsed.has("priority") ? [] : priority),
+    [collapsed, list, priority, priorityOnly]
   );
   const active = useMemo(
     () => chats.find((chat) => chat.id === activeId),
@@ -833,6 +963,23 @@ export function ChatSidebar({
     },
     [onSetLastRead]
   );
+  const markAllRead = useCallback(() => {
+    for (const item of attention) {
+      if (item.attention === "unread" && item.chat.lastMessageAt) {
+        onSetLastRead?.(item.chat.id, item.chat.lastMessageAt);
+      }
+    }
+  }, [attention, onSetLastRead]);
+  const toggleFilter = useCallback(() => setPriorityOnly((only) => !only), []);
+  const toggleSection = useCallback(
+    (key: SectionKey) =>
+      setCollapsed((keys) =>
+        keys.has(key)
+          ? new Set([...keys].filter((each) => each !== key))
+          : new Set([...keys, key])
+      ),
+    []
+  );
 
   useSidebarKeys({
     active,
@@ -840,10 +987,12 @@ export function ChatSidebar({
     archive,
     attention,
     dotId,
+    markAllRead,
     onSelect,
     onSetLastRead,
     onTogglePin,
     order,
+    toggleFilter,
     toggleUnread,
   });
 
@@ -894,25 +1043,10 @@ export function ChatSidebar({
     />
   );
 
-  const group = (
-    key: ListSectionKey | "pinned" | "attention",
-    items: readonly SidebarChat[],
-    {
-      pickable = true,
-      trailing,
-    }: { pickable?: boolean; trailing?: ReactNode } = {}
-  ) => (
-    <section aria-labelledby={`chat-group-${key}`} key={key}>
-      <div className="flex items-center pe-1">
-        <h3 className={cn(headingClass, "flex-1")} id={`chat-group-${key}`}>
-          {groupLabel(key)}
-        </h3>
-        {trailing}
-      </div>
-      <ul className="flex flex-col gap-px">
-        {items.map((chat) => row(chat, pickable))}
-      </ul>
-    </section>
+  const rows = (items: readonly SidebarChat[], pickable = true) => (
+    <ul className="flex flex-col gap-px">
+      {items.map((chat) => row(chat, pickable))}
+    </ul>
   );
 
   const tools = (
@@ -923,33 +1057,65 @@ export function ChatSidebar({
     />
   );
 
+  const prioritySection =
+    priority.length > 0 || priorityOnly ? (
+      <Section
+        collapsed={collapsed.has("priority") && !priorityOnly}
+        id="priority"
+        label={sectionLabel("priority")}
+        onToggle={toggleSection}
+        trailing={
+          <PriorityTools
+            filtered={priorityOnly}
+            onMarkAllRead={onSetLastRead ? markAllRead : undefined}
+            onToggleFilter={toggleFilter}
+            unread={unreadCount}
+          />
+        }
+      >
+        {priority.length > 0 ? (
+          rows(priority, false)
+        ) : (
+          <p className="px-2 py-1.5 text-muted-foreground text-sm">
+            <Trans>Nothing needs attention</Trans>
+          </p>
+        )}
+      </Section>
+    ) : null;
+
   const chatsView =
     recents.length === 0 ? (
       <>
-        <div className="flex justify-end">{tools}</div>
+        <div className="flex justify-end pt-1">{tools}</div>
         <p className="px-2 pt-6 text-muted-foreground text-sm">
           <Trans>No chats yet. Start one and it shows up here.</Trans>
         </p>
       </>
     ) : (
       <>
-        {attention.length > 0
-          ? group(
-              "attention",
-              attention.map((item) => item.chat),
-              { pickable: false }
-            )
-          : null}
-        {list.pinned.length > 0 ? group("pinned", list.pinned) : null}
-        {list.sections.length === 0 ? (
-          <div className="flex justify-end">{tools}</div>
+        {prioritySection}
+        {!priorityOnly && list.pinned.length > 0 ? (
+          <Section
+            collapsed={collapsed.has("pinned")}
+            id="pinned"
+            label={sectionLabel("pinned")}
+            onToggle={toggleSection}
+          >
+            {rows(list.pinned)}
+          </Section>
         ) : null}
-        {list.sections.map((each, index) =>
-          group(each.key, each.items, {
-            trailing: index === 0 ? tools : null,
-          })
+        {priorityOnly ? null : (
+          <Section
+            collapsed={collapsed.has("chats")}
+            id="chats"
+            label={sectionLabel("chats")}
+            onToggle={toggleSection}
+            trailing={tools}
+          >
+            {rows(list.items)}
+            <Paging hasMore={list.hasMore} limit={limit} onLimit={setLimit} />
+          </Section>
         )}
-        <Paging hasMore={list.hasMore} limit={limit} onLimit={setLimit} />
       </>
     );
 
@@ -968,12 +1134,12 @@ export function ChatSidebar({
         {toggle}
       </div>
 
+      <PrimaryNav {...nav} />
       {top ? (
-        <div className="px-2 pb-1" data-slot="chat-sidebar-dot">
+        <div className="px-2 pt-px" data-slot="chat-sidebar-dot">
           {top}
         </div>
       ) : null}
-      <PrimaryNav {...nav} />
 
       {selecting ? (
         <SelectionBar
@@ -985,8 +1151,8 @@ export function ChatSidebar({
 
       <div
         className={cn(
-          "min-h-0 flex-1 overflow-y-auto px-2 pb-2",
-          "data-fade-top:mask-t-from-[calc(100%-1.5rem)] data-fade-bottom:mask-b-from-[calc(100%-1.5rem)]"
+          "mt-2 min-h-0 flex-1 overflow-y-auto px-2 pb-2",
+          "data-fade-top:mask-t-from-[calc(100%-1rem)] data-fade-bottom:mask-b-from-[calc(100%-2.5rem)]"
         )}
         data-slot="chat-sidebar-list"
         onScroll={fades.update}
@@ -1006,7 +1172,7 @@ export function ChatSidebar({
         </div>
       </div>
 
-      <div className="shrink-0 border-sidebar-border border-t p-2">
+      <div className="shrink-0 p-2">
         <AccountMenu {...account} />
       </div>
     </div>

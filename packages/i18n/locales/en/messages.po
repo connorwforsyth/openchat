@@ -99,6 +99,10 @@ msgstr "{count, plural, one {# item} other {# items}}"
 msgid "{count, plural, one {# knowledge file wasn't copied} other {# knowledge files weren't copied}}"
 msgstr "{count, plural, one {# knowledge file wasn't copied} other {# knowledge files weren't copied}}"
 
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "{count, plural, one {# selected} other {# selected}}"
+msgstr "{count, plural, one {# selected} other {# selected}}"
+
 #: ../chat-ui/src/conversation/generated-images.tsx
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "{count, plural, one {Made an image} other {Made # images}}"
@@ -124,10 +128,6 @@ msgstr "{count, plural, one {While you were away, I ran # task.} other {While yo
 msgid "{count} new"
 msgstr "{count} new"
 
-#: ../chat-ui/src/sidebar/chat-sidebar.tsx
-msgid "{count} selected"
-msgstr "{count} selected"
-
 #: ../code-ui/src/diff-view.tsx
 msgid "{deletions, plural, one {# line removed} other {# lines removed}}"
 msgstr "{deletions, plural, one {# line removed} other {# lines removed}}"
@@ -135,6 +135,10 @@ msgstr "{deletions, plural, one {# line removed} other {# lines removed}}"
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "{done, plural, one {Archived # chat} other {Archived # chats}}"
 msgstr "{done, plural, one {Archived # chat} other {Archived # chats}}"
+
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "{done, plural, one {Archived # chat} other {Archived # chats}}; {failed, plural, one {# failed} other {# failed}}"
+msgstr "{done, plural, one {Archived # chat} other {Archived # chats}}; {failed, plural, one {# failed} other {# failed}}"
 
 #: ../composer/src/components/attachment-list.tsx
 msgid "{fileName} is larger than {limit}."
@@ -200,6 +204,14 @@ msgstr "{position}/{total}"
 #: ../chat-ui/src/conversation/file-change-card.tsx
 msgid "{rejected, plural, one {# change rejected} other {# changes rejected}}"
 msgstr "{rejected, plural, one {# change rejected} other {# changes rejected}}"
+
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "{remaining, plural, one {Archive # chat} other {Archive # chats}}"
+msgstr "{remaining, plural, one {Archive # chat} other {Archive # chats}}"
+
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "{remaining, plural, one {Archive the remaining # chat?} other {Archive the remaining # chats?}}"
+msgstr "{remaining, plural, one {Archive the remaining # chat?} other {Archive the remaining # chats?}}"
 
 #: ../chat-ui/src/conversation/file-change-card.tsx
 msgid "{removed, plural, one {# line removed} other {# lines removed}}"
@@ -552,17 +564,9 @@ msgstr "Approved the plan"
 msgid "Archive"
 msgstr "Archive"
 
-#: ../chat-ui/src/sidebar/chat-sidebar.tsx
-msgid "Archive {remaining}"
-msgstr "Archive {remaining}"
-
 #: ../shortcuts/src/registry.ts
 msgid "Archive the chat"
 msgstr "Archive the chat"
-
-#: ../chat-ui/src/sidebar/chat-sidebar.tsx
-msgid "Archive the remaining {remaining} in {group}?"
-msgstr "Archive the remaining {remaining} in {group}?"
 
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "Archived"
@@ -571,10 +575,6 @@ msgstr "Archived"
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "Archived “{title}”"
 msgstr "Archived “{title}”"
-
-#: ../chat-ui/src/sidebar/chat-sidebar.tsx
-msgid "Archived {done}; {failed} failed"
-msgstr "Archived {done}; {failed} failed"
 
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "Archived chats"
@@ -1572,10 +1572,7 @@ msgstr "Documents, pages and diagrams from your chats, and ones shared with you.
 msgid "Done"
 msgstr "Done"
 
-#: ../../apps/web/app/(app)/(pages)/dots/sidebar-dots.tsx
 #: ../../apps/web/app/(app)/(pages)/page-shell.tsx
-#: ../chat-ui/src/sidebar/chat-sidebar.tsx
-#: ../chat-ui/src/sidebar/sidebar-rail.tsx
 msgid "Dots"
 msgstr "Dots"
 
@@ -2490,6 +2487,7 @@ msgid "Make something new"
 msgstr "Make something new"
 
 #: ../../apps/web/app/(app)/(pages)/dots/sidebar-dots.tsx
+#: ../chat-ui/src/sidebar/sidebar-rail.tsx
 msgid "Make your Dot"
 msgstr "Make your Dot"
 
@@ -2500,6 +2498,10 @@ msgstr "Makes images"
 #: ../../apps/web/app/(app)/(pages)/dots/dot-profile.tsx
 msgid "Manage memory"
 msgstr "Manage memory"
+
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "Mark all as read"
+msgstr "Mark all as read"
 
 #: ../chat-ui/src/sidebar/chat-row.tsx
 msgid "Mark as read"
@@ -2755,10 +2757,6 @@ msgstr "name@example.com"
 #: ../shortcuts/src/react/help-dialog.tsx
 msgid "Navigation"
 msgstr "Navigation"
-
-#: ../chat-ui/src/sidebar/chat-sidebar.tsx
-msgid "Needs attention"
-msgstr "Needs attention"
 
 #: ../composer/src/components/plus-menu.tsx
 #: ../composer/src/components/thinking-control.tsx
@@ -3062,6 +3060,10 @@ msgstr "Nothing matches."
 msgid "Nothing matches. Try another search or kind."
 msgstr "Nothing matches. Try another search or kind."
 
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "Nothing needs attention"
+msgstr "Nothing needs attention"
+
 #: ../../apps/web/app/(app)/(pages)/dots/dot-profile.tsx
 msgid "Nothing remembered yet."
 msgstr "Nothing remembered yet."
@@ -3100,10 +3102,6 @@ msgstr "Off"
 #: ../../apps/web/app/(app)/(pages)/admin/[orgId]/audit/page.tsx
 msgid "Off unless an owner turns it on. Admins see usage and metadata either way, never chat content."
 msgstr "Off unless an owner turns it on. Admins see usage and metadata either way, never chat content."
-
-#: ../chat-ui/src/sidebar/chat-sidebar.tsx
-msgid "Older"
-msgstr "Older"
 
 #: ../chat-ui/src/artifacts/artifact-view.tsx
 #: ../chat-ui/src/artifacts/document/document-view.tsx
@@ -3504,7 +3502,6 @@ msgid "Previews of this kind need the artifact runtime. Its source is in the Cod
 msgstr "Previews of this kind need the artifact runtime. Its source is in the Code tab."
 
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
-#: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "Previous 7 days"
 msgstr "Previous 7 days"
 
@@ -3527,6 +3524,14 @@ msgstr "Previous chat in the sidebar"
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "Primary"
 msgstr "Primary"
+
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "Priority"
+msgstr "Priority"
+
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "Priority options"
+msgstr "Priority options"
 
 #: ../library-ui/src/components/badges.tsx
 msgid "Private"
@@ -4104,7 +4109,6 @@ msgid "Sea"
 msgstr "Sea"
 
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
-#: ../chat-ui/src/sidebar/chat-sidebar.tsx
 #: ../chat-ui/src/sidebar/sidebar-rail.tsx
 #: ../composer/src/components/composer-footer.tsx
 #: ../library-ui/src/components/library-index.tsx
@@ -4122,6 +4126,10 @@ msgstr "Search archived chats"
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgid "Search artifacts"
 msgstr "Search artifacts"
+
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "Search chats"
+msgstr "Search chats"
 
 #: ../palette/src/command-palette.tsx
 msgid "Search chats, agents and settings, or run an action"
@@ -4328,6 +4336,14 @@ msgstr "Show less"
 #: ../library-ui/src/components/library-index.tsx
 msgid "Show more"
 msgstr "Show more"
+
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "Show only Priority"
+msgstr "Show only Priority"
+
+#: ../shortcuts/src/registry.ts
+msgid "Show only Priority chats"
+msgstr "Show only Priority chats"
 
 #: ../shortcuts/src/registry.ts
 msgid "Show or hide the files"
@@ -5173,7 +5189,6 @@ msgid "Title"
 msgstr "Title"
 
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
-#: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "Today"
 msgstr "Today"
 
@@ -5725,7 +5740,6 @@ msgid "Writing {code}"
 msgstr "Writing {code}"
 
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
-#: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "Yesterday"
 msgstr "Yesterday"
 

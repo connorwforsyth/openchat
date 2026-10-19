@@ -203,6 +203,7 @@ export const OFF_MENU: ReadonlyMap<ShortcutId, string> = new Map([
   ["sidebar.next", "sidebar key"],
   ["sidebar.prev", "sidebar key"],
   ["attention.next", "sidebar key"],
+  ["attention.filter", "sidebar key"],
   ["unread.clear", "sidebar key"],
 ]);
 
