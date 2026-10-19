@@ -163,7 +163,7 @@ closes (the M1 demo gate first). Their contents are in `PLAN.md` §2.
 - **Agents+:** test sets and eval runs, publish gates, sampled scoring,
   per-agent memory, the Jev adapter.
 - **Annotate:** the annotate-to-agent loop on artifacts and previews.
-- **Mobile and Swift:** the Expo app and the Swift spike.
+- **Mobile and Swift:** now its own map, [iOS](ios-map.md) (native SwiftUI replaces Expo, 2026-10-20).
 - **Sandbox follow-ups (from 019):** remote provider adapters (E2B, Vercel
   Sandbox, Microsandbox), an egress-proxy service for allowlist egress, WebSocket
   support in the preview proxy (hot reload), disk quotas on sandbox volumes.
