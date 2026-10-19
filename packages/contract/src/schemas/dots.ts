@@ -12,6 +12,7 @@ import {
 import { toolNameSchema } from "./message-parts";
 import { runStatusSchema, runTargetSchema } from "./runs";
 import { sandboxProviderSchema } from "./sandbox";
+import { scheduleRunOutcomeSchema, scheduleSchema } from "./schedules";
 
 // Dots (172): persistent, always-on agents. A Dot is an agent (or a model
 // plus instructions) with its own conversation, workspace and schedules. Each
@@ -31,22 +32,14 @@ export const timeZoneSchema = z.string().trim().min(1).max(64);
 /** The prompt a scheduled run posts as the user message. */
 export const dotPromptSchema = z.string().trim().min(1).max(10_000);
 
-export const dotScheduleSchema = z.object({
-  createdAt: timestampSchema,
-  cron: cronExpressionSchema,
-  dotId: dotIdSchema,
-  enabled: z.boolean(),
-  id: dotScheduleIdSchema,
-  /** When it last fired; `null` before the first time. */
-  lastRunAt: timestampSchema.nullable(),
-  /** How the last fired run ended; `null` before the first time. */
-  lastStatus: runStatusSchema.nullable(),
-  /** The next time it fires; `null` while it or its Dot is disabled. */
-  nextRunAt: timestampSchema.nullable(),
-  prompt: dotPromptSchema,
-  timezone: timeZoneSchema,
-  updatedAt: timestampSchema,
-});
+/**
+ * A Dot's schedule is a `Schedule` (173a) targeting its thread. Kept under
+ * this name for one release, with the `dots.*Schedule` routes as aliases of
+ * `schedules.*`.
+ *
+ * @deprecated Use `scheduleSchema` from `./schedules`.
+ */
+export const dotScheduleSchema = scheduleSchema;
 export type DotSchedule = z.infer<typeof dotScheduleSchema>;
 
 export const dotRunTriggerSchema = z.enum(["schedule", "manual"]);
@@ -57,6 +50,8 @@ export const dotLastRunSchema = z.object({
   /** Why it failed, when it did. */
   error: z.string().max(2000).nullable(),
   finishedAt: timestampSchema.nullable(),
+  /** What the run reported (173a); `null` while it's going. */
+  outcome: scheduleRunOutcomeSchema.nullable(),
   runId: runIdSchema,
   scheduleId: dotScheduleIdSchema.nullable(),
   /** The start of the reply's text, for the list; `null` until there is one. */
@@ -123,6 +118,11 @@ export type DotStatus = z.infer<typeof dotStatusSchema>;
 
 export const dotSchema = z.object({
   /**
+   * A notified run the owner hasn't seen asks for them: it failed, or it
+   * reported `needs_attention`. The sidebar's "Needs attention" reads this.
+   */
+  attention: z.boolean(),
+  /**
    * Tools the Dot may run unattended even where its agent says `ask`. Any
    * other `ask` tool is refused with a tool error on a scheduled or manual
    * run: nobody is there to approve it, and a Dot's run never waits.
@@ -146,8 +146,8 @@ export const dotSchema = z.object({
   nextRunAt: timestampSchema.nullable(),
   ownerId: userIdSchema,
   /**
-   * The owner's one primary Dot: first in the sidebar, where a new message
-   * to "your Dot" goes. Exactly one of the owner's Dots is primary.
+   * Always `true`: an owner has one Dot (174), pinned first in the sidebar.
+   * Kept for clients that read it.
    */
   primary: z.boolean(),
   /** When it may act on its own and when it should ask; see `dotRulesSchema`. */
@@ -158,9 +158,12 @@ export const dotSchema = z.object({
   status: dotStatusSchema,
   /** The agent, or the model, that answers each run. */
   target: runTargetSchema,
-  /** A run finished after the owner last opened the Dot. */
+  /**
+   * A run that notified (its schedule's `notify` policy said so) finished
+   * after the owner last opened the Dot. Silent `no_update` runs never count.
+   */
   unread: z.boolean(),
-  /** How many of its runs finished since the owner last opened it. */
+  /** How many notified runs finished since the owner last opened it. */
   unreadRuns: z.number().int().min(0),
   updatedAt: timestampSchema,
 });
@@ -182,7 +185,7 @@ export const createDotInputSchema = z.object({
   handle: dotHandleSchema.optional(),
   instructions: z.string().max(20_000).default(""),
   name: dotNameSchema,
-  /** Make it the primary Dot. The owner's first Dot is primary anyway. */
+  /** Ignored: an owner's one Dot is always primary (174). */
   primary: z.boolean().default(false),
   rules: dotRulesSchema.default(""),
   sandboxProvider: sandboxProviderSchema.nullable().default(null),
@@ -199,7 +202,7 @@ export const updateDotInputSchema = z.object({
   id: dotIdSchema,
   instructions: z.string().max(20_000).optional(),
   name: dotNameSchema.optional(),
-  /** `true` makes it the primary Dot (the previous one stops being). */
+  /** Ignored: an owner's one Dot is always primary (174). */
   primary: z.literal(true).optional(),
   rules: dotRulesSchema.optional(),
   sandboxProvider: sandboxProviderSchema.nullable().optional(),

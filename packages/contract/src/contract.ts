@@ -9,6 +9,7 @@ import { linkPreviews } from "./routes/link-preview";
 import { messages } from "./routes/messages";
 import { decisions, sandbox, search, usage } from "./routes/ops";
 import { runs } from "./routes/runs";
+import { schedules } from "./routes/schedules";
 import { grants, shareLinks } from "./routes/sharing";
 import { orgs, teams } from "./routes/tenancy";
 
@@ -36,6 +37,7 @@ export const contract = {
   orgs: oc.tag("Orgs").router(orgs),
   runs: oc.tag("Runs").router(runs),
   sandbox: oc.tag("Sandbox").router(sandbox),
+  schedules: oc.tag("Schedules").router(schedules),
   search: oc.tag("Search").router(search),
   shareLinks: oc.tag("Sharing").router(shareLinks),
   teams: oc.tag("Teams").router(teams),

@@ -39,10 +39,10 @@ export const dots = {
     .input(dotActivityInputSchema)
     .output(z.array(dotActivitySchema)),
   create: authed
-    .errors(featureError)
+    .errors({ ...conflictError, ...featureError })
     .route({
       description:
-        "Creates the Dot, its conversation and its schedules, and registers each enabled schedule with the job queue.",
+        "Creates the caller's Dot, its conversation and its schedules. An owner has one Dot: a second is a `CONFLICT` (`already_exists`).",
       method: "POST",
       path: "/dots",
       successStatus: 201,
@@ -56,7 +56,8 @@ export const dots = {
       method: "POST",
       path: "/dots/{dotId}/schedules",
       successStatus: 201,
-      summary: "Add a schedule to a Dot",
+      summary:
+        "Add a schedule to a Dot (alias of `schedules.create` with a cron)",
     })
     .input(createDotScheduleInputSchema)
     .output(dotScheduleSchema),
@@ -76,7 +77,7 @@ export const dots = {
       method: "DELETE",
       path: "/dot-schedules/{id}",
       successStatus: 204,
-      summary: "Delete a Dot schedule",
+      summary: "Delete a Dot schedule (alias of `schedules.delete`)",
     })
     .input(z.object({ id: dotScheduleIdSchema }))
     .output(z.void()),
@@ -87,7 +88,7 @@ export const dots = {
   list: authed
     .route({
       description:
-        "The caller's Dots, the primary one first and then newest first, with unread state.",
+        "The caller's Dot, as a list of at most one (174), with unread and attention state.",
       method: "GET",
       path: "/dots",
       summary: "List Dots",
@@ -136,7 +137,7 @@ export const dots = {
     .route({
       method: "PATCH",
       path: "/dot-schedules/{id}",
-      summary: "Update a Dot schedule",
+      summary: "Update a Dot schedule (alias of `schedules.update`)",
     })
     .input(updateDotScheduleInputSchema)
     .output(dotScheduleSchema),
