@@ -41,6 +41,11 @@ export type SidebarChat = Pick<
 > & {
   /** The caller's read marker; absent in older fixtures, read as "read". */
   readonly myState?: Pick<Conversation["myState"], "lastReadAt">;
+  /** The soonest schedule posting here (173a), for "Next run". */
+  readonly schedule?: Pick<
+    NonNullable<Conversation["schedule"]>,
+    "nextRunNominalAt"
+  > | null;
 };
 
 /** How a click with modifiers picks rows for bulk actions (178). */

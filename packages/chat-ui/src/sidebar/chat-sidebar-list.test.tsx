@@ -115,20 +115,18 @@ describe("Needs attention", () => {
     );
   });
 
-  it("keeps your Dot's chat out of the list and opens it with ⌘.", async () => {
-    const onSelect = vi.fn();
+  // ⌘. is bound once, app-wide, in the web app's GlobalSurfaces.
+  it("keeps your Dot's chat out of the list", () => {
     render(
       <ChatSidebar
         {...base({
           chats: [chat(1, "Dot thread"), chat(2, "Other")],
           dot: { conversationId: "c1" as ConversationId },
-          onSelect,
         })}
       />
     );
     expect(screen.queryByText("Dot thread")).toBeNull();
-    await userEvent.keyboard(`{${modKey()}>}.{/${modKey()}}`);
-    expect(onSelect).toHaveBeenCalledWith("c1");
+    expect(screen.getByText("Other")).toBeVisible();
   });
 });
 
