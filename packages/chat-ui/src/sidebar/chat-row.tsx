@@ -5,6 +5,9 @@ import type { ConversationId } from "@workspace/contract/schemas/common";
 import type { Conversation } from "@workspace/contract/schemas/conversations";
 import {
   ArchiveIcon,
+  CheckIcon,
+  CircleIcon,
+  ClockIcon,
   EllipsisIcon,
   PencilIcon,
   PinIcon,
@@ -20,22 +23,130 @@ import {
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
 import { cn } from "@workspace/ui/lib/utils";
-import { memo, useCallback, useRef, useState } from "react";
+import {
+  type MouseEvent,
+  memo,
+  type ReactNode,
+  useCallback,
+  useRef,
+  useState,
+} from "react";
 
+import type { Attention } from "../model/attention";
 import { RenameInput } from "./rename-input";
 
 export type SidebarChat = Pick<
   Conversation,
-  "id" | "lastMessageAt" | "pinned" | "title" | "updatedAt"
->;
+  "createdAt" | "id" | "lastMessageAt" | "pinned" | "title" | "updatedAt"
+> & {
+  /** The caller's read marker; absent in older fixtures, read as "read". */
+  readonly myState?: Pick<Conversation["myState"], "lastReadAt">;
+};
+
+/** How a click with modifiers picks rows for bulk actions (178). */
+export type RowPick = "range" | "toggle";
 
 export interface ChatRowProps {
   readonly active: boolean;
+  /** Why it needs the user, if it does: a status dot at the row's end. */
+  readonly attention?: Attention | null;
   readonly chat: SidebarChat;
+  /** When a schedule targeting this chat runs next (Dots, 172). */
+  readonly nextRunAt?: string | null;
   readonly onArchive: (chat: SidebarChat) => void;
+  /** ⌘/Ctrl- or ⇧-click; absent where rows can't be picked. */
+  readonly onPick?: (chat: SidebarChat, pick: RowPick) => void;
   readonly onRename: (id: ConversationId, title: string) => void;
   readonly onSelect: (id: ConversationId) => void;
   readonly onTogglePin: (id: ConversationId, pinned: boolean) => void;
+  /** Mark read (`false`) or unread (`true`); absent hides the menu item. */
+  readonly onToggleUnread?: (chat: SidebarChat, unread: boolean) => void;
+  /** Picked for a bulk action. */
+  readonly selected?: boolean;
+  /** Some row is picked: a plain click picks too, rather than opening. */
+  readonly selecting?: boolean;
+}
+
+function PickBox({ selected }: { readonly selected: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "flex size-4 shrink-0 items-center justify-center rounded border border-sidebar-border [&_svg]:size-3",
+        selected &&
+          "border-sidebar-primary bg-sidebar-primary text-sidebar-primary-foreground"
+      )}
+    >
+      {selected ? <CheckIcon /> : null}
+    </span>
+  );
+}
+
+/** A clock on rows a schedule targets; the time is in its tooltip. */
+function NextRunMark({ at }: { readonly at: string | null }) {
+  const { i18n, t } = useLingui();
+  if (at === null) {
+    return null;
+  }
+  const when = i18n.date(new Date(at), {
+    hour: "numeric",
+    minute: "2-digit",
+    weekday: "short",
+  });
+  return (
+    <span
+      className="flex shrink-0 items-center gap-1 text-muted-foreground text-xs transition-opacity duration-(--motion-fast) group-focus-within/row:opacity-0 group-hover/row:opacity-0 group-data-menu-open/row:opacity-0 [&_svg]:size-3"
+      title={t`Next run: ${when}`}
+    >
+      <ClockIcon aria-hidden />
+      <span className="sr-only">{t`Next run: ${when}`}</span>
+    </span>
+  );
+}
+
+function StatusMark({
+  attention,
+}: {
+  readonly attention: Attention | null | undefined;
+}): ReactNode {
+  const { t } = useLingui();
+  if (!attention) {
+    return null;
+  }
+  const label = (() => {
+    switch (attention) {
+      case "awaiting_approval":
+        return t`Waiting for your approval`;
+      case "failed":
+        return t`The last run failed`;
+      case "running":
+        return t`Working`;
+      case "unread":
+        return t`Unread`;
+      default:
+        return attention satisfies never;
+    }
+  })();
+  return (
+    <span
+      className="pointer-events-none flex pointer-coarse:hidden size-4 shrink-0 items-center justify-center transition-opacity duration-(--motion-fast) group-focus-within/row:opacity-0 group-hover/row:opacity-0 group-data-menu-open/row:opacity-0"
+      data-attention={attention}
+    >
+      <span
+        aria-hidden
+        className={cn(
+          "size-2 rounded-full",
+          attention === "unread" && "bg-primary",
+          attention === "running" &&
+            "animate-pulse bg-muted-foreground motion-reduce:animate-none",
+          attention === "awaiting_approval" &&
+            "bg-background ring-2 ring-primary",
+          attention === "failed" && "bg-destructive"
+        )}
+      />
+      <span className="sr-only">{label}</span>
+    </span>
+  );
 }
 
 // ChatGPT's rhythm (071): 36px rows (44px on touch), a clear active fill in
@@ -53,11 +164,17 @@ const titleFade = cn(
 /** A chat in the sidebar; hover or focus shows its actions (rename, pin, archive). */
 export const ChatRow = memo(function ChatRowInner({
   active,
+  attention,
   chat,
+  nextRunAt,
   onArchive,
+  onPick,
   onRename,
   onSelect,
   onTogglePin,
+  onToggleUnread,
+  selected = false,
+  selecting = false,
 }: ChatRowProps) {
   const { t } = useLingui();
   const [renaming, setRenaming] = useState(false);
@@ -70,7 +187,25 @@ export const ChatRow = memo(function ChatRowInner({
   const renameAfterClose = useRef(false);
   const title = chat.title ?? t`New chat`;
 
-  const select = useCallback(() => onSelect(chat.id), [chat.id, onSelect]);
+  const select = useCallback(
+    (event: MouseEvent) => {
+      if (onPick && (event.shiftKey || event.metaKey || event.ctrlKey)) {
+        event.preventDefault();
+        onPick(chat, event.shiftKey ? "range" : "toggle");
+      } else if (onPick && selecting) {
+        onPick(chat, "toggle");
+      } else {
+        onSelect(chat.id);
+      }
+    },
+    [chat, onPick, onSelect, selecting]
+  );
+  const unread = attention === "unread";
+  const toggleUnread = useCallback(
+    () => onToggleUnread?.(chat, !unread),
+    [chat, onToggleUnread, unread]
+  );
+
   const measure = useCallback(() => {
     const element = titleRef.current;
     setTruncated(
@@ -113,15 +248,21 @@ export const ChatRow = memo(function ChatRowInner({
 
   return (
     <li
-      className="group/row relative"
+      // Off-screen rows skip layout and paint (177); the intrinsic size
+      // keeps the scrollbar honest until they're measured.
+      className="group/row relative [contain-intrinsic-block-size:auto_2.25rem] [content-visibility:auto] pointer-coarse:[contain-intrinsic-block-size:auto_2.75rem]"
       data-menu-open={menuOpen ? "" : undefined}
+      data-selected={selected ? "" : undefined}
     >
       <button
         aria-current={active ? "page" : undefined}
+        aria-pressed={selecting ? selected : undefined}
         className={cn(
-          "flex h-9 pointer-coarse:h-11 w-full min-w-0 items-center rounded-lg px-2 text-start text-sm outline-none transition-colors duration-(--motion-fast) hover:bg-sidebar-foreground/5 focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+          "flex h-9 pointer-coarse:h-11 w-full min-w-0 items-center gap-2 rounded-lg px-2 text-start text-sm outline-none transition-colors duration-(--motion-fast) hover:bg-sidebar-foreground/5 focus-visible:ring-2 focus-visible:ring-sidebar-ring",
           active &&
-            "bg-sidebar-foreground/8 font-medium hover:bg-sidebar-foreground/8"
+            "bg-sidebar-foreground/8 font-medium hover:bg-sidebar-foreground/8",
+          unread && "font-semibold",
+          selected && "bg-sidebar-primary/10 hover:bg-sidebar-primary/15"
         )}
         data-chat-id={chat.id}
         onClick={select}
@@ -130,6 +271,7 @@ export const ChatRow = memo(function ChatRowInner({
         title={truncated ? title : undefined}
         type="button"
       >
+        {selecting ? <PickBox selected={selected} /> : null}
         <span
           className={cn(
             "min-w-0 flex-1 overflow-hidden whitespace-nowrap",
@@ -139,6 +281,8 @@ export const ChatRow = memo(function ChatRowInner({
         >
           {title}
         </span>
+        <NextRunMark at={nextRunAt ?? null} />
+        <StatusMark attention={attention} />
       </button>
       <DropdownMenu
         onOpenChange={setMenuOpen}
@@ -166,6 +310,16 @@ export const ChatRow = memo(function ChatRowInner({
               <PencilIcon aria-hidden />
               <Trans>Rename</Trans>
             </DropdownMenuItem>
+            {onToggleUnread && chat.lastMessageAt !== null ? (
+              <DropdownMenuItem onClick={toggleUnread}>
+                <CircleIcon aria-hidden />
+                {unread ? (
+                  <Trans>Mark as read</Trans>
+                ) : (
+                  <Trans>Mark as unread</Trans>
+                )}
+              </DropdownMenuItem>
+            ) : null}
             <DropdownMenuItem onClick={togglePin}>
               {chat.pinned ? (
                 <>

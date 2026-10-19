@@ -20,5 +20,13 @@ export const shortcutIdSchema = z.enum([
   "reply.copy",
   "panel.sandbox",
   "panel.artifacts",
+  "dot.open",
+  "chat.archive",
+  "chat.pin",
+  "chat.markUnread",
+  "sidebar.next",
+  "sidebar.prev",
+  "attention.next",
+  "unread.clear",
 ]);
 export type ShortcutId = z.infer<typeof shortcutIdSchema>;

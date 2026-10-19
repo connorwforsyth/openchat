@@ -11,6 +11,8 @@ import { AppShell } from "@workspace/chat-ui/shell/app-shell";
 import { SidebarToggle } from "@workspace/chat-ui/shell/sidebar-toggle";
 import { useNarrowScreen } from "@workspace/chat-ui/shell/use-narrow-screen";
 import { ChatSidebar } from "@workspace/chat-ui/sidebar/chat-sidebar";
+import { SidebarRail } from "@workspace/chat-ui/sidebar/sidebar-rail";
+import { useSidebarData } from "@workspace/chat-ui/sidebar/use-sidebar-data";
 import type { ConversationId } from "@workspace/contract/schemas/common";
 import { useShortcut } from "@workspace/shortcuts/react/use-shortcut";
 import { usePathname, useRouter } from "next/navigation";
@@ -60,6 +62,7 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
   );
   const update = useConversationUpdate(query);
   const sidebarDots = useSidebarDots(null);
+  const sidebarData = useSidebarData(query);
 
   const { toggleSidebar } = layout;
   const toggleChats = useCallback(() => {
@@ -119,6 +122,28 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
     />
   );
 
+  const sidebarProps = {
+    ...sidebarActions,
+    ...sidebarDots,
+    ...sidebarData,
+    account: {
+      onNewOrg: frame.openNewOrg,
+      // Org owners and admins reach admin too, not only the instance admin.
+      onOpenAdmin: canAdmin(me) ? () => router.push(routes.admin) : undefined,
+      onOpenSettings: () => router.push(routes.settings()),
+      onSignOut: frame.signOut,
+      onThemeChange: frame.setTheme,
+      theme: frame.theme,
+      user: me.user,
+    },
+    activeId: null,
+    artifactsHref: routes.artifacts,
+    chats: chats.data?.items ?? [],
+    dotsHref: routes.dots,
+    libraryHref: routes.library,
+    onSelect: selectChat,
+  };
+
   return (
     <AppShell
       header={header}
@@ -128,33 +153,21 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
       panelOpen={false}
       panelWidth={layout.layout.panelWidth}
       platform={platform}
-      sidebar={
-        <ChatSidebar
-          {...sidebarActions}
-          account={{
-            onNewOrg: frame.openNewOrg,
-            // Org owners and admins reach admin too, not only the instance admin.
-            onOpenAdmin: canAdmin(me)
-              ? () => router.push(routes.admin)
-              : undefined,
-            onOpenSettings: () => router.push(routes.settings()),
-            onSignOut: frame.signOut,
-            onThemeChange: frame.setTheme,
-            theme: frame.theme,
-            user: me.user,
-          }}
-          activeId={null}
-          artifactsHref={routes.artifacts}
-          brand={<Brand config={frame.config} />}
-          chats={chats.data?.items ?? []}
-          dots={sidebarDots.dots}
-          dotsHref={routes.dots}
-          libraryHref={routes.library}
+      rail={
+        <SidebarRail
+          {...sidebarProps}
+          onExpand={toggleChats}
           onNewChat={newChat}
           onOpenPalette={openPalette}
-          onSelect={selectChat}
+        />
+      }
+      sidebar={
+        <ChatSidebar
+          {...sidebarProps}
+          brand={<Brand config={frame.config} />}
+          onNewChat={newChat}
+          onOpenPalette={openPalette}
           toggle={sidebarToggle("sidebar")}
-          top={sidebarDots.top}
         />
       }
       sidebarOpen={layout.layout.sidebarOpen}

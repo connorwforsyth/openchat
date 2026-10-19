@@ -78,6 +78,7 @@ import {
 } from "../conversation/approval-state";
 import { PlanStatusProvider } from "../conversation/plan-card";
 import { staleEdits } from "../model/approval";
+import type { RunSignal } from "../model/attention";
 import { newestLeafUnder, type TreeNode } from "../model/branch";
 import {
   type FirstSend,
@@ -114,6 +115,10 @@ import type { Platform } from "../shell/platform";
 import type { ShellLayoutState } from "../shell/use-shell-layout";
 import type { Theme } from "../sidebar/account-menu";
 import type { ChatSidebarProps } from "../sidebar/chat-sidebar";
+import {
+  useMarkReadWhileOpen,
+  useSidebarData,
+} from "../sidebar/use-sidebar-data";
 import { VoiceBridgeContext } from "../voice/voice-bridge";
 import type { VoiceBridge, VoiceReply } from "../voice/voice-engine";
 import type {
@@ -193,7 +198,10 @@ export interface ConnectedChatProps {
    */
   readonly sendTarget?: RunTarget | null;
   /** The sidebar's Dot slots (172): `top` and `dots` of `ChatSidebarProps`. */
-  readonly sidebarDots?: Pick<ChatSidebarProps, "dots" | "top">;
+  readonly sidebarDots?: Pick<
+    ChatSidebarProps,
+    "dot" | "dots" | "nextRuns" | "signals" | "top"
+  >;
   /** Skills the caller can use (127), for the composer's + menu and `/`. */
   readonly skills?: readonly SkillOption[];
   /** What answers: a model or an agent. Omitted, the server's default does. */
@@ -1872,6 +1880,24 @@ export function ConnectedChat({
   useWorkspaceInSync(api, messages);
   useLibraryInSync(api, messages);
   const current = data.conversation.data;
+  const sidebarData = useSidebarData(api);
+  useMarkReadWhileOpen(current, sidebarData.onSetLastRead);
+  // The open chat's own run feeds "Needs attention" too (176): the list
+  // doesn't carry run state, but this screen knows it.
+  const activeStatus = data.activeRun?.state.status;
+  const dotSignals = sidebarDots?.signals;
+  const signals = useMemo(() => {
+    const merged = new Map<ConversationId, RunSignal>(dotSignals ?? []);
+    if (conversationId && activeStatus === "awaiting_approval") {
+      merged.set(conversationId, "awaiting_approval");
+    } else if (
+      conversationId &&
+      (activeStatus === "running" || activeStatus === "queued")
+    ) {
+      merged.set(conversationId, "running");
+    }
+    return merged;
+  }, [activeStatus, conversationId, dotSignals]);
   const planStatus = useMemo(
     () => ({
       approved: approvedPlanIds(messages),
@@ -1969,8 +1995,10 @@ export function ConnectedChat({
               chats: data.chats.data?.items ?? [],
               dotsHref,
               ...sidebarDots,
+              ...sidebarData,
               libraryHref,
               onSelect: onNavigate,
+              signals,
             }}
             streamingMessageId={streamingMessageId}
             workspace={{

@@ -66,6 +66,7 @@ import { ShortcutHelp } from "../shortcuts/shortcut-help";
 import { ShortcutHint } from "../shortcuts/shortcut-hint";
 import { useShortcuts } from "../shortcuts/use-shortcuts";
 import { ChatSidebar, type ChatSidebarProps } from "../sidebar/chat-sidebar";
+import { SidebarRail } from "../sidebar/sidebar-rail";
 import { LazyWorkspacePanel } from "../workspace/lazy-workspace-panel";
 import { type OpeningWatch, watchOpenings } from "../workspace/model/auto-open";
 import {
@@ -761,6 +762,14 @@ function ChatScreenBody({
       panelOpen={layout.panel !== null}
       panelWidth={layout.panelWidth}
       platform={platform}
+      rail={
+        <SidebarRail
+          {...sheetSidebar}
+          onExpand={toggleChats}
+          onNewChat={newChat}
+          onOpenPalette={openPalette}
+        />
+      }
       sidebar={
         <ChatSidebar
           {...sheetSidebar}
