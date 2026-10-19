@@ -8,6 +8,7 @@ import { type AsyncResult, err, ok } from "@workspace/shared/result";
 import {
   convertToModelMessages,
   getToolOrDynamicToolName,
+  hasToolCall,
   InvalidToolInputError,
   isStepCount,
   isToolUIPart,
@@ -15,6 +16,7 @@ import {
   type LanguageModelUsage,
   type ModelMessage,
   NoSuchToolError,
+  type StopCondition,
   type ToolApprovalStatus,
   ToolCallRepairError,
   type ToolCallRepairFunction,
@@ -62,6 +64,12 @@ import { keepRecentToolImages } from "./tool-images";
 export interface RunAgentInput {
   /** Tools whose names are listed here only; the rest stay defined but uncallable. */
   readonly activeTools?: readonly string[];
+  /**
+   * An unattended run's budget (175): when the loop would go on past this
+   * many steps or tokens (input plus output), it stops and the run fails
+   * with `budget_exceeded`, rather than quietly ending as `maxSteps` does.
+   */
+  readonly budget?: { readonly steps: number; readonly tokens: number };
   /** For the answer message; the executor usually passes the id it will store. */
   readonly generateMessageId?: () => string;
   readonly instructions?: string;
@@ -72,6 +80,8 @@ export interface RunAgentInput {
   readonly model: LanguageModel;
   readonly parameters?: ModelParameters;
   readonly signal?: AbortSignal;
+  /** The loop ends after a step that called one of these (a scheduled run's `report`). */
+  readonly stopAfterTools?: readonly string[];
   /** Wall clock for the whole turn (app.config.yaml `limits.runTimeoutSeconds`). */
   readonly timeoutMs?: number;
   readonly toolApproval?: Readonly<Record<string, ToolApprovalStatus>>;
@@ -112,6 +122,54 @@ export interface AgentRun {
 }
 
 const DEFAULT_MAX_STEPS = 20;
+
+const stepTokens = (step: { readonly usage: LanguageModelUsage }): number =>
+  (step.usage.inputTokens ?? 0) + (step.usage.outputTokens ?? 0);
+
+/**
+ * When the loop stops early. The SDK asks only when the model wants another
+ * step, so a budget that says stop here cut the run short: that's a failure
+ * the owner should see, not a quiet end.
+ */
+const stopConditions = (
+  input: Pick<RunAgentInput, "budget" | "maxSteps" | "stopAfterTools">,
+  fail: (error: RunError) => void
+): StopCondition<ToolSet>[] => {
+  const conditions: StopCondition<ToolSet>[] = [];
+  if (input.stopAfterTools && input.stopAfterTools.length > 0) {
+    conditions.push(hasToolCall(...input.stopAfterTools));
+  }
+  const { budget } = input;
+  if (budget) {
+    conditions.push(({ steps }) => {
+      if (
+        input.stopAfterTools &&
+        steps
+          .at(-1)
+          ?.toolCalls.some((call) =>
+            input.stopAfterTools?.includes(call.toolName)
+          )
+      ) {
+        return false;
+      }
+      const tokens = steps.reduce((sum, step) => sum + stepTokens(step), 0);
+      if (steps.length < budget.steps && tokens < budget.tokens) {
+        return false;
+      }
+      fail({
+        code: "budget_exceeded",
+        message:
+          steps.length >= budget.steps
+            ? `Stopped after ${steps.length} steps: the run's step budget.`
+            : `Stopped after ${tokens} tokens: the run's token budget.`,
+        retryable: false,
+      });
+      return true;
+    });
+  }
+  conditions.push(isStepCount(input.maxSteps ?? DEFAULT_MAX_STEPS));
+  return conditions;
+};
 
 const addUsage = (total: TokenUsage, step: LanguageModelUsage): TokenUsage => ({
   cachedInputTokens:
@@ -296,7 +354,9 @@ export const runAgent = async (
     repairToolCall: input.unavailableTools
       ? explainUnavailable(input.unavailableTools)
       : undefined,
-    stopWhen: isStepCount(input.maxSteps ?? DEFAULT_MAX_STEPS),
+    stopWhen: stopConditions(input, (error) => {
+      failure ??= error;
+    }),
     toolApproval: input.toolApproval,
     tools: input.tools,
   });

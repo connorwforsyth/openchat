@@ -71,6 +71,7 @@ import {
   PanelLeft,
   PanelRight,
   Paperclip,
+  Pause,
   Pencil,
   Phone,
   PhoneOff,
@@ -138,6 +139,7 @@ export const MinusIcon: Icon = Minus;
 export const MoreHorizontalIcon: Icon = MoreHorizontal;
 export const PaperclipIcon: Icon = Paperclip;
 export const PencilIcon: Icon = Pencil;
+export const PauseIcon: Icon = Pause;
 export const PlayIcon: Icon = Play;
 export const PlusIcon: Icon = Plus;
 export const RefreshCwIcon: Icon = RefreshCw;

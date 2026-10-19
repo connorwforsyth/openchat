@@ -66,6 +66,7 @@ describe("templates", () => {
 const run = (finishedAt: string | null): DotActivity => ({
   error: null,
   finishedAt,
+  outcome: null,
   runId: `run-${finishedAt}` as DotActivity["runId"],
   scheduleId: null,
   snippet: "Hi.",

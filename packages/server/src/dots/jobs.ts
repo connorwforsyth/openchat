@@ -6,9 +6,9 @@ import {
   jobDefaults,
 } from "../jobs/registry";
 import type { JobQueue } from "../ports/job-queue";
-import { claimDue, type DotDeps, fireDotSchedule } from "./service";
+import { claimDue, fireSchedule, type ScheduleDeps } from "./schedules";
 
-// The Dots' jobs (172). pg-boss keeps one cron per job name, so instead of a
+// The schedules' jobs (172, 173). pg-boss keeps one cron per job name, so instead of a
 // pg-boss schedule per Dot schedule, one `dot.tick` runs every minute and
 // claims whatever is due from `dot_schedule.next_run_at`; each occurrence
 // becomes its own `dot.run` job, so a slow run never holds up the tick.
@@ -17,11 +17,11 @@ import { claimDue, type DotDeps, fireDotSchedule } from "./service";
 export const DOT_TICK_CRON = "* * * * *";
 
 export const dotJobHandlers = (
-  deps: DotDeps & { readonly queue: JobQueue<Jobs> | null }
+  deps: ScheduleDeps & { readonly queue: JobQueue<Jobs> | null }
 ): JobHandlers => ({
-  "dot.run": async (job) => ok(await fireDotSchedule(deps, job.data)),
+  "dot.run": async (job) => ok(await fireSchedule(deps, job.data)),
   "dot.tick": async () => {
-    const due = await claimDue(deps.db, deps.now());
+    const due = await claimDue(deps, deps.now());
     if (deps.queue) {
       for (const occurrence of due) {
         // biome-ignore lint/performance/noAwaitInLoops: a few due schedules a minute; each enqueue is one insert.

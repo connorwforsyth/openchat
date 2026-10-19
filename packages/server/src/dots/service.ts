@@ -1,3 +1,4 @@
+import { SCHEDULED_TASK_DATA } from "@workspace/ai/schedules/tool";
 import type {
   ConversationId,
   DotId,
@@ -11,85 +12,76 @@ import type {
   DotActivity,
   DotActivityInput,
   DotLastRun,
-  DotSchedule,
   DotScheduleInput,
   UpdateDotInput,
   UpdateDotScheduleInput,
 } from "@workspace/contract/schemas/dots";
-import type {
-  CreateRunOutput,
-  RunStatus,
-} from "@workspace/contract/schemas/runs";
+import type { CreateRunOutput } from "@workspace/contract/schemas/runs";
 import type { SandboxProvider } from "@workspace/contract/schemas/sandbox";
+import type {
+  Schedule,
+  ScheduleRecurrence,
+} from "@workspace/contract/schemas/schedules";
 import type { Db } from "@workspace/db/client";
 import { createConversation } from "@workspace/db/queries/conversations";
 import {
-  claimDueDotSchedules,
-  type DotLastRunRow,
   type DotRow,
-  type DotScheduleRow,
   deleteDot as deleteDotRow,
-  deleteDotSchedule,
-  dotForRun,
   dotHandleTaken,
   getDot,
-  getDotById,
-  getDotSchedule,
-  getDotScheduleById,
+  getOwnersDot,
+  getSchedule,
   insertDot,
-  insertDotRun,
-  insertDotSchedules,
+  insertScheduleRun,
   latestDotRuns,
   latestMessageId,
-  listDotHandles,
   listDotRuns,
   listDotSchedules,
   listDots,
   markDotViewed,
-  promoteNewestDot,
-  recentScheduleStatuses,
-  setDotScheduleStatus,
-  setPrimaryDot,
-  unreadDotRunCounts,
+  type ScheduleRow,
+  type ScheduleRunView,
+  unreadDotRuns,
   updateDot as updateDotRow,
-  updateDotSchedule,
 } from "@workspace/db/queries/dots";
-import { loadPrincipals } from "@workspace/db/queries/teams";
 import { newId } from "@workspace/shared/ids";
 import { err, ok, type Result } from "@workspace/shared/result";
 
 import type { Actor } from "../context";
 import { storeContext } from "../runs/chat-context";
+import { createRun } from "../runs/create-run";
 import {
-  type CreateRunDeps,
-  type CreateRunError,
-  createRun,
-} from "../runs/create-run";
-import {
-  AUTO_PAUSE_AFTER_FAILURES,
-  type CronError,
   DEFAULT_DOT_PROMPT,
   dotRunKey,
   dotStatusOf,
   handleFrom,
-  isActiveRun,
   isUnread,
-  nextFor,
-  nextRunAt,
-  shouldAutoPause,
-  snippetOf,
 } from "./policy";
+import { toSchedule } from "./schedule-policy";
+import {
+  capCheck,
+  createSchedule,
+  ownerActor,
+  pauseSchedule,
+  removeSchedule,
+  resumeSchedule,
+  type ScheduleDeps,
+  type ScheduleEditDeps,
+  type ScheduleError,
+  toScheduleRun,
+  updateSchedule,
+} from "./schedules";
 
-// The Dots shell (172): the API handlers and the jobs call these. Each takes
+// The Dots shell (172, 174): one Dot per user, and the Dot is a thread.
+// Its schedules are ordinary schedules (173) targeting that thread; the
+// `dots.*Schedule` handlers here are aliases over `schedules`. Each takes
 // its ports as arguments and returns a `Result`; nothing here throws on a
 // user error.
 
 export type DotError =
-  | { readonly type: "not_found" }
-  | { readonly type: "no_personal_space" }
+  | ScheduleError
   | { readonly type: "handle_taken" }
-  | (CronError & { readonly path: readonly (string | number)[] })
-  | { readonly error: CreateRunError; readonly type: "run" };
+  | { readonly type: "dot_exists" };
 
 /**
  * Makes sure the Dot's conversation has its workspace on the Dot's provider
@@ -102,60 +94,50 @@ export type EnsureDotWorkspace = (
   provider: SandboxProvider
 ) => Promise<void>;
 
-export interface DotDeps {
-  readonly db: Db;
+export interface DotDeps extends ScheduleDeps {
   readonly ensureWorkspace?: EnsureDotWorkspace;
-  readonly now: () => Date;
-  readonly runs: CreateRunDeps;
 }
 
 const iso = (date: Date | null): string | null =>
   date ? date.toISOString() : null;
 
-export const toDotSchedule = (row: DotScheduleRow): DotSchedule => ({
-  createdAt: row.createdAt.toISOString(),
-  cron: row.cron,
-  dotId: row.dotId,
-  enabled: row.enabled,
-  id: row.id,
-  lastRunAt: iso(row.lastRunAt),
-  lastStatus: row.lastStatus ?? null,
-  nextRunAt: iso(row.nextRunAt),
-  prompt: row.prompt,
-  timezone: row.timezone,
-  updatedAt: row.updatedAt.toISOString(),
-});
-
-const RUN_ERROR_MESSAGE = "The run failed.";
-
-export const toDotLastRun = (row: DotLastRunRow): DotLastRun => ({
-  error:
-    row.status === "failed"
-      ? (row.error?.message ?? RUN_ERROR_MESSAGE).slice(0, 2000)
-      : null,
-  finishedAt: iso(row.finishedAt),
-  runId: row.runId,
-  scheduleId: row.scheduleId,
-  snippet: snippetOf(row.replyParts),
-  startedAt: (row.startedAt ?? row.createdAt).toISOString(),
-  status: row.status,
-  trigger: row.trigger,
-});
+export const toDotLastRun = (row: ScheduleRunView): DotLastRun => {
+  const run = toScheduleRun(row);
+  return {
+    error: run.error,
+    finishedAt: run.finishedAt,
+    outcome: run.outcome,
+    // Dot activity joins the run row, so a skipped slot never shows here.
+    runId: row.runId as NonNullable<ScheduleRunView["runId"]>,
+    scheduleId: run.scheduleId,
+    snippet: run.summary,
+    startedAt: (row.startedAt ?? row.createdAt).toISOString(),
+    status: run.status ?? "failed",
+    trigger: row.trigger,
+  };
+};
 
 /** The contract's `Dot` from its rows. Pure. */
 export const toDot = (
   row: DotRow,
-  schedules: readonly DotScheduleRow[],
-  last: DotLastRunRow | undefined,
-  unreadRuns = 0
+  schedules: readonly ScheduleRow[],
+  last: ScheduleRunView | undefined,
+  unread: { readonly attention: boolean; readonly count: number } = {
+    attention: false,
+    count: 0,
+  }
 ): Dot => {
   const lastRun = last ? toDotLastRun(last) : null;
+  const shaped = schedules.map(toSchedule);
   const upcoming = row.enabled
-    ? schedules
-        .filter((schedule) => schedule.enabled && schedule.nextRunAt)
-        .map((schedule) => schedule.nextRunAt?.getTime() ?? 0)
+    ? shaped.flatMap((schedule) =>
+        schedule.nextRunNominalAt
+          ? [new Date(schedule.nextRunNominalAt).getTime()]
+          : []
+      )
     : [];
   return {
+    attention: unread.attention,
     autoApproveTools: row.autoApproveTools,
     avatar: { color: row.avatarColor, style: row.avatarStyle },
     conversationId: row.conversationId,
@@ -172,14 +154,14 @@ export const toDot = (
         ? new Date(Math.min(...upcoming)).toISOString()
         : null,
     ownerId: row.ownerId,
-    primary: row.primary,
+    primary: true,
     rules: row.rules,
     sandboxProvider: row.sandboxProvider ?? null,
-    schedules: schedules.map(toDotSchedule),
+    schedules: shaped,
     status: dotStatusOf(lastRun),
     target: row.target,
-    unread: isUnread(lastRun, row.lastViewedAt),
-    unreadRuns,
+    unread: unread.count > 0 && isUnread(lastRun, row.lastViewedAt),
+    unreadRuns: unread.count,
     updatedAt: row.updatedAt.toISOString(),
   };
 };
@@ -189,14 +171,14 @@ const hydrate = async (db: Db, rows: readonly DotRow[]): Promise<Dot[]> => {
   const [schedules, last, unread] = await Promise.all([
     listDotSchedules(db, ids),
     latestDotRuns(db, ids),
-    unreadDotRunCounts(db, ids),
+    unreadDotRuns(db, ids),
   ]);
   return rows.map((row) =>
     toDot(
       row,
       schedules.filter((schedule) => schedule.dotId === row.id),
       last.find((run) => run.dotId === row.id),
-      unread.get(row.id) ?? 0
+      unread.get(row.id)
     )
   );
 };
@@ -209,19 +191,18 @@ const one = async (db: Db, row: DotRow): Promise<Dot> => {
   return dot;
 };
 
-/** A schedule's next firing, or the error with where it is in the input. */
-const checkSchedule = (
-  schedule: Pick<DotScheduleInput, "cron" | "timezone">,
-  now: Date,
-  path: readonly (string | number)[]
-): Result<Date, DotError> => {
-  const next = nextRunAt(schedule.cron, schedule.timezone, now);
-  if (next.ok) {
-    return next;
-  }
-  const field = next.error.type === "invalid_timezone" ? "timezone" : "cron";
-  return err({ ...next.error, path: [...path, field] });
-};
+/** A 172 cron schedule input as a recurrence. */
+const cronRecurrence = (
+  schedule: Pick<DotScheduleInput, "cron" | "timezone">
+): ScheduleRecurrence => ({
+  cron: schedule.cron,
+  endsAt: null,
+  kind: "cron",
+  timezone: schedule.timezone,
+});
+
+const titleFrom = (prompt: string): string =>
+  prompt.replace(/\s+/g, " ").trim().slice(0, 60) || "Scheduled task";
 
 export const listDotsFor = async (db: Db, ownerId: UserId): Promise<Dot[]> =>
   hydrate(db, await listDots(db, ownerId));
@@ -235,30 +216,24 @@ export const getDotFor = async (
   return row ? ok(await one(db, row)) : err({ type: "not_found" });
 };
 
+/**
+ * Makes the caller's Dot, with its conversation and starter schedules. An
+ * owner has one Dot (174): a second is `dot_exists`.
+ */
 export const createDot = async (
   deps: DotDeps,
   actor: Actor,
   input: CreateDotInput
 ): Promise<Result<Dot, DotError>> => {
   const { db } = deps;
-  const now = deps.now();
-  const firstRuns: Date[] = [];
-  for (const [index, schedule] of input.schedules.entries()) {
-    const next = checkSchedule(schedule, now, ["schedules", index]);
-    if (!next.ok) {
-      return next;
-    }
-    firstRuns.push(next.value);
+  if (await getOwnersDot(db, actor.userId)) {
+    return err({ type: "dot_exists" });
   }
   const context = await storeContext(db, actor, { type: "personal" });
   if (!context.ok) {
     return err({ type: "no_personal_space" });
   }
-  const handles = await listDotHandles(db, actor.userId);
-  if (input.handle && handles.includes(input.handle)) {
-    return err({ type: "handle_taken" });
-  }
-  const handle = input.handle ?? handleFrom(input.name, handles);
+  const handle = input.handle ?? handleFrom(input.name, []);
   const conversation = await createConversation(db, {
     context: context.value,
     defaultTarget: input.target,
@@ -279,24 +254,30 @@ export const createDot = async (
     sandboxProvider: input.sandboxProvider,
     target: input.target,
   });
-  await insertDotSchedules(
-    db,
-    input.schedules.map((schedule, index) => ({
-      cron: schedule.cron,
-      dotId: inserted.id,
-      enabled: schedule.enabled,
-      nextRunAt: schedule.enabled ? (firstRuns[index] ?? null) : null,
+  if (!inserted) {
+    // Lost a race with another tab making the same owner's Dot.
+    return err({ type: "dot_exists" });
+  }
+  for (const [index, schedule] of input.schedules.entries()) {
+    // biome-ignore lint/performance/noAwaitInLoops: a starter template has one or two schedules.
+    const made = await createSchedule(deps, actor, {
+      autoApproveTools: [],
+      missedRunPolicy: "run_once",
+      notify: "all",
+      paused: !schedule.enabled,
       prompt: schedule.prompt,
-      timezone: schedule.timezone,
-    }))
-  );
-  // The first Dot is the primary one; asking for it moves the mark here.
-  const makePrimary = input.primary || handles.length === 0;
-  const row =
-    makePrimary && (await setPrimaryDot(db, inserted.id, actor.userId))
-      ? await getDot(db, inserted.id, actor.userId)
-      : inserted;
-  return ok(await one(db, row ?? inserted));
+      recurrence: cronRecurrence(schedule),
+      target: { kind: "dot" },
+      title: titleFrom(schedule.prompt),
+    });
+    if (!made.ok) {
+      await deleteDotRow(db, inserted.id, actor.userId);
+      return "path" in made.error
+        ? err({ ...made.error, path: ["schedules", index, ...made.error.path] })
+        : made;
+    }
+  }
+  return ok(await one(db, inserted));
 };
 
 export const updateDot = async (
@@ -304,15 +285,12 @@ export const updateDot = async (
   actor: Actor,
   input: UpdateDotInput
 ): Promise<Result<Dot, DotError>> => {
-  const { avatar, id, primary, ...rest } = input;
+  const { avatar, id, primary: _primary, ...rest } = input;
   if (
     rest.handle &&
     (await dotHandleTaken(deps.db, actor.userId, rest.handle, id))
   ) {
     return err({ type: "handle_taken" });
-  }
-  if (primary && !(await setPrimaryDot(deps.db, id, actor.userId))) {
-    return err({ type: "not_found" });
   }
   const row = await updateDotRow(deps.db, id, actor.userId, {
     ...rest,
@@ -325,13 +303,10 @@ export const deleteDot = async (
   db: Db,
   actor: Actor,
   id: DotId
-): Promise<Result<void, DotError>> => {
-  if (!(await deleteDotRow(db, id, actor.userId))) {
-    return err({ type: "not_found" });
-  }
-  await promoteNewestDot(db, actor.userId);
-  return ok(undefined);
-};
+): Promise<Result<void, DotError>> =>
+  (await deleteDotRow(db, id, actor.userId))
+    ? ok(undefined)
+    : err({ type: "not_found" });
 
 /** The runs the Dot started, newest first, for its Activity tab. */
 export const listDotActivity = async (
@@ -347,12 +322,11 @@ export const listDotActivity = async (
   return ok(rows.map(toDotLastRun));
 };
 
-/** One Dot's schedules, for its own `manage_scheduled_tasks` tool. */
+/** The Dot's schedules, for its own `manage_scheduled_tasks` tool. */
 export const scheduleDotsListFor = async (
   db: Db,
   dotId: DotId
-): Promise<DotSchedule[]> =>
-  (await listDotSchedules(db, [dotId])).map(toDotSchedule);
+): Promise<Schedule[]> => (await listDotSchedules(db, [dotId])).map(toSchedule);
 
 export const markDotRead = async (
   deps: Pick<DotDeps, "db" | "now">,
@@ -363,111 +337,103 @@ export const markDotRead = async (
   return row ? ok(await one(deps.db, row)) : err({ type: "not_found" });
 };
 
+/** Alias (one release): `dots.createSchedule`, a cron schedule on the Dot. */
 export const addDotSchedule = async (
-  deps: Pick<DotDeps, "db" | "now">,
+  deps: ScheduleEditDeps,
   actor: Actor,
   input: CreateDotScheduleInput
-): Promise<Result<DotSchedule, DotError>> => {
+): Promise<Result<Schedule, DotError>> => {
   const dot = await getDot(deps.db, input.dotId, actor.userId);
   if (!dot) {
     return err({ type: "not_found" });
   }
-  const next = checkSchedule(input, deps.now(), []);
-  if (!next.ok) {
-    return next;
-  }
-  const [row] = await insertDotSchedules(deps.db, [
-    {
-      cron: input.cron,
-      dotId: dot.id,
-      enabled: input.enabled,
-      nextRunAt: input.enabled ? next.value : null,
-      prompt: input.prompt,
-      timezone: input.timezone,
-    },
-  ]);
-  return row ? ok(toDotSchedule(row)) : err({ type: "not_found" });
+  return createSchedule(deps, actor, {
+    autoApproveTools: [],
+    missedRunPolicy: "run_once",
+    notify: "all",
+    paused: !input.enabled,
+    prompt: input.prompt,
+    recurrence: cronRecurrence(input),
+    target: { kind: "dot" },
+    title: titleFrom(input.prompt),
+  });
 };
 
+/** Alias (one release): `dots.updateSchedule`. */
 export const editDotSchedule = async (
-  deps: Pick<DotDeps, "db" | "now">,
+  deps: ScheduleEditDeps,
   actor: Actor,
   input: UpdateDotScheduleInput
-): Promise<Result<DotSchedule, DotError>> => {
-  const found = await getDotSchedule(deps.db, input.id, actor.userId);
+): Promise<Result<Schedule, DotError>> => {
+  const found = await getSchedule(deps.db, input.id, actor.userId);
   if (!found) {
     return err({ type: "not_found" });
   }
-  const merged = {
-    cron: input.cron ?? found.schedule.cron,
-    enabled: input.enabled ?? found.schedule.enabled,
-    timezone: input.timezone ?? found.schedule.timezone,
-  };
-  const next = checkSchedule(merged, deps.now(), []);
-  if (!next.ok) {
-    return next;
-  }
-  const row = await updateDotSchedule(deps.db, input.id, {
-    ...merged,
-    nextRunAt: merged.enabled ? next.value : null,
+  const cron = input.cron ?? found.cron;
+  // Only a new cron or zone changes when it fires.
+  const recurrence =
+    (input.cron || input.timezone) && cron
+      ? cronRecurrence({ cron, timezone: input.timezone ?? found.timezone })
+      : undefined;
+  const updated = await updateSchedule(deps, actor, {
+    id: input.id,
     ...(input.prompt === undefined ? {} : { prompt: input.prompt }),
+    ...(recurrence ? { recurrence } : {}),
   });
-  return row ? ok(toDotSchedule(row)) : err({ type: "not_found" });
+  if (!updated.ok || input.enabled === undefined) {
+    return updated;
+  }
+  return input.enabled
+    ? resumeSchedule(deps, actor, input.id)
+    : pauseSchedule(deps, actor, input.id);
 };
 
-export const removeDotSchedule = async (
+/** Alias (one release): `dots.deleteSchedule`. */
+export const removeDotSchedule = (
   db: Db,
   actor: Actor,
   id: DotScheduleId
-): Promise<Result<void, DotError>> => {
-  const found = await getDotSchedule(db, id, actor.userId);
-  if (!found) {
-    return err({ type: "not_found" });
-  }
-  await deleteDotSchedule(db, id);
-  return ok(undefined);
-};
-
-/** Who the Dot runs as: its owner, with their teams and orgs, read now. */
-export const ownerActor = async (db: Db, userId: UserId): Promise<Actor> => ({
-  principals: await loadPrincipals(db, userId),
-  userId,
-});
-
-export type DotTrigger =
-  | {
-      readonly occurrence: Date;
-      readonly scheduleId: DotScheduleId;
-      readonly type: "schedule";
-    }
-  | { readonly type: "manual" };
+): Promise<Result<void, DotError>> => removeSchedule(db, actor, id);
 
 /**
- * Posts `prompt` into the Dot's conversation as its owner and starts the
- * run. `createRun` re-checks that the owner may still write there and use
- * the agent, so a revoked share or agent fails the run cleanly.
+ * "Check in now": posts `prompt` into the Dot's thread as its owner and
+ * starts an unattended run, outside any schedule. Counts toward the cap.
  */
-export const startDotRun = async (
+export const runDotNow = async (
   deps: DotDeps,
-  dot: DotRow,
-  prompt: string,
-  trigger: DotTrigger
+  actor: Actor,
+  input: { readonly id: DotId; readonly prompt?: string }
 ): Promise<Result<CreateRunOutput, DotError>> => {
   const { db } = deps;
-  const actor = await ownerActor(db, dot.ownerId);
-  if (dot.sandboxProvider && deps.ensureWorkspace) {
-    await deps.ensureWorkspace(actor, dot.conversationId, dot.sandboxProvider);
+  const dot = await getDot(db, input.id, actor.userId);
+  if (!dot) {
+    return err({ type: "not_found" });
   }
-  const created = await createRun(deps.runs, actor, {
+  const cap = await capCheck(deps, actor.userId);
+  if (!cap.ok) {
+    return cap;
+  }
+  const [first] = await listDotSchedules(db, [dot.id]);
+  const owner = await ownerActor(db, dot.ownerId);
+  if (dot.sandboxProvider && deps.ensureWorkspace) {
+    await deps.ensureWorkspace(owner, dot.conversationId, dot.sandboxProvider);
+  }
+  const created = await createRun(deps.runs, owner, {
     conversationId: dot.conversationId,
-    idempotencyKey: dotRunKey(
-      trigger.type === "schedule"
-        ? { ...trigger, type: "schedule" }
-        : { nonce: newId("job"), type: "manual" }
-    ),
+    idempotencyKey: dotRunKey({ nonce: newId("job"), type: "manual" }),
     input: {
       parentId: await latestMessageId(db, dot.conversationId),
-      parts: [{ text: prompt, type: "text" }],
+      parts: [
+        {
+          data: { scheduleId: null, title: "Check in" },
+          name: SCHEDULED_TASK_DATA,
+          type: "data",
+        },
+        {
+          text: input.prompt ?? first?.prompt ?? DEFAULT_DOT_PROMPT,
+          type: "text",
+        },
+      ],
       type: "message",
     },
     target: dot.target,
@@ -475,118 +441,21 @@ export const startDotRun = async (
   if (!created.ok) {
     return err({ error: created.error, type: "run" });
   }
-  await insertDotRun(db, {
+  await insertScheduleRun(db, {
+    conversationId: dot.conversationId,
     dotId: dot.id,
+    notified: false,
+    ownerId: dot.ownerId,
     runId: created.value.runId,
-    scheduleId: trigger.type === "schedule" ? trigger.scheduleId : null,
-    trigger: trigger.type,
+    scheduleId: null,
+    trigger: "manual",
   });
   return created;
 };
 
-export const runDotNow = async (
-  deps: DotDeps,
-  actor: Actor,
-  input: { readonly id: DotId; readonly prompt?: string }
-): Promise<Result<CreateRunOutput, DotError>> => {
-  const dot = await getDot(deps.db, input.id, actor.userId);
-  if (!dot) {
-    return err({ type: "not_found" });
-  }
-  const [first] = await listDotSchedules(deps.db, [dot.id]);
-  return startDotRun(
-    deps,
-    dot,
-    input.prompt ?? first?.prompt ?? DEFAULT_DOT_PROMPT,
-    { type: "manual" }
-  );
-};
-
-/** What a fired schedule did: a run, or why it didn't start one. */
-export type FireOutcome =
-  | { readonly runId: string; readonly type: "started" }
-  | {
-      readonly reason: "busy" | "disabled" | "gone" | "run_failed";
-      readonly type: "skipped";
-    };
-
-/**
- * Fires one claimed occurrence (the `dot.run` job). Skips quietly when the
- * schedule or Dot was removed or paused since the claim, or when the Dot's
- * last run is still going: a slow run is never stacked behind by its own
- * schedule.
- */
-export const fireDotSchedule = async (
-  deps: DotDeps,
-  data: { readonly occurrence: string; readonly scheduleId: DotScheduleId }
-): Promise<FireOutcome> => {
-  const { db } = deps;
-  const schedule = await getDotScheduleById(db, data.scheduleId);
-  const dot = schedule ? await getDotById(db, schedule.dotId) : null;
-  if (!(schedule && dot)) {
-    return { reason: "gone", type: "skipped" };
-  }
-  if (!(schedule.enabled && dot.enabled)) {
-    return { reason: "disabled", type: "skipped" };
-  }
-  const [last] = await latestDotRuns(db, [dot.id]);
-  if (last && isActiveRun(last.status)) {
-    return { reason: "busy", type: "skipped" };
-  }
-  const started = await startDotRun(deps, dot, schedule.prompt, {
-    occurrence: new Date(data.occurrence),
-    scheduleId: schedule.id,
-    type: "schedule",
-  });
-  if (!started.ok) {
-    await setDotScheduleStatus(db, schedule.id, "failed");
-    return { reason: "run_failed", type: "skipped" };
-  }
-  return { runId: started.value.runId, type: "started" };
-};
-
-/** The tick: claims due schedules and hands back each occurrence to fire. */
-export const claimDue = async (
+/** The owner's Dot conversation, for "is this run in the Dot's thread". */
+export const dotConversationOf = async (
   db: Db,
-  now: Date
-): Promise<
-  readonly { readonly occurrence: string; readonly scheduleId: DotScheduleId }[]
-> => {
-  const claimed = await claimDueDotSchedules(db, now, (schedule) =>
-    nextFor(schedule, now)
-  );
-  return claimed.map((schedule) => ({
-    occurrence: (schedule.nextRunAt ?? now).toISOString(),
-    scheduleId: schedule.id,
-  }));
-};
-
-/**
- * After any run settles: if a Dot's schedule started it, record how it
- * ended, and pause the schedule after repeated failures.
- */
-export const settleDotRun = async (
-  db: Db,
-  runId: Parameters<typeof dotForRun>[1],
-  status: RunStatus
-): Promise<void> => {
-  const found = await dotForRun(db, runId);
-  if (!found?.scheduleId) {
-    return;
-  }
-  await setDotScheduleStatus(db, found.scheduleId, status);
-  if (status !== "failed") {
-    return;
-  }
-  const recent = await recentScheduleStatuses(
-    db,
-    found.scheduleId,
-    AUTO_PAUSE_AFTER_FAILURES
-  );
-  if (shouldAutoPause(recent)) {
-    await updateDotSchedule(db, found.scheduleId, {
-      enabled: false,
-      nextRunAt: null,
-    });
-  }
-};
+  ownerId: UserId
+): Promise<ConversationId | null> =>
+  (await getOwnersDot(db, ownerId))?.conversationId ?? null;

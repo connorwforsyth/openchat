@@ -46,6 +46,7 @@ import {
   useDotForConversation,
 } from "@/app/(app)/(pages)/dots/dot-home";
 import { useSidebarDots } from "@/app/(app)/(pages)/dots/sidebar-dots";
+import { ChatSchedule } from "@/app/(app)/(pages)/schedules/chat-schedule";
 import { routeParams, routes } from "@/lib/routes";
 
 import { messageTarget, shownTarget } from "./message-target";
@@ -520,6 +521,15 @@ export function ChatRoute({
       conversationId={conversationId}
       dotsHref={routes.dots}
       draftContext={chat.draftContext}
+      headerExtra={
+        conversationId ? (
+          <ChatSchedule
+            conversationId={conversationId}
+            isDot={isDot}
+            schedule={conversation.data?.schedule}
+          />
+        ) : null
+      }
       initialPrompt={
         conversationId ? null : searchParams.get(routeParams.askAi)
       }

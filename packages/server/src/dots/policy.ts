@@ -1,83 +1,10 @@
 import type { DotLastRun, DotStatus } from "@workspace/contract/schemas/dots";
 import type { MessagePart } from "@workspace/contract/schemas/message-parts";
 import type { RunStatus } from "@workspace/contract/schemas/runs";
-import { err, ok, type Result } from "@workspace/shared/result";
 import type { ToolApprovalStatus } from "ai";
-import { CronExpressionParser } from "cron-parser";
 
 // The Dots' functional core (172): when a schedule fires next, what an
 // unattended run may do, and how a Dot reads in the list. No I/O here.
-
-/** Five fields only: cron-parser also takes seconds, which we don't offer. */
-const FIVE_FIELDS = /^\s*(\S+\s+){4}\S+\s*$/;
-
-export type CronError =
-  | { readonly type: "invalid_cron"; readonly message: string }
-  | { readonly type: "invalid_timezone"; readonly message: string };
-
-/** Whether `tz` is an IANA zone this runtime knows. */
-export const isTimeZone = (tz: string): boolean => {
-  try {
-    return (
-      new Intl.DateTimeFormat("en", { timeZone: tz }).resolvedOptions()
-        .timeZone !== ""
-    );
-  } catch {
-    return false;
-  }
-};
-
-/**
- * The first time strictly after `now` that `cron` fires in `tz`. A bad
- * expression or zone is an error value, so the API can say which.
- */
-export const nextRunAt = (
-  cron: string,
-  tz: string,
-  now: Date
-): Result<Date, CronError> => {
-  if (!isTimeZone(tz)) {
-    return err({
-      message: `Unknown time zone: ${tz}`,
-      type: "invalid_timezone",
-    });
-  }
-  if (!FIVE_FIELDS.test(cron)) {
-    return err({
-      message: "Use five fields: minute hour day month weekday.",
-      type: "invalid_cron",
-    });
-  }
-  try {
-    const expression = CronExpressionParser.parse(cron, {
-      currentDate: now,
-      strict: false,
-      tz,
-    });
-    return ok(expression.next().toDate());
-  } catch (cause) {
-    return err({
-      message: cause instanceof Error ? cause.message : "Invalid cron.",
-      type: "invalid_cron",
-    });
-  }
-};
-
-/** `nextRunAt` for a stored row: `null` when disabled or unparseable. */
-export const nextFor = (
-  schedule: {
-    readonly cron: string;
-    readonly enabled: boolean;
-    readonly timezone: string;
-  },
-  now: Date
-): Date | null => {
-  if (!schedule.enabled) {
-    return null;
-  }
-  const next = nextRunAt(schedule.cron, schedule.timezone, now);
-  return next.ok ? next.value : null;
-};
 
 /** What a tool error tells the model when an `ask` tool is refused. */
 export const UNATTENDED_REFUSAL =
@@ -204,6 +131,27 @@ export const dotRunKey = (
 
 export const isDotRunKey = (key: string | null | undefined): boolean =>
   key?.startsWith(DOT_RUN_KEY_PREFIX) ?? false;
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * The schedule a run's key names: `dot:s:<schedule>:<slot>` for a slot,
+ * `dot:m:<schedule>:<nonce>` for "Run now". A Dot's check-in
+ * (`dot:m:<nonce>`) has none. Read at turn time, before the run's history
+ * row exists.
+ */
+export const scheduleIdOfKey = (
+  key: string | null | undefined
+): string | null => {
+  if (!isDotRunKey(key)) {
+    return null;
+  }
+  const [, kind, id, rest] = (key ?? "").split(":");
+  if (kind === "s" || (kind === "m" && rest !== undefined)) {
+    return id && UUID.test(id) ? id : null;
+  }
+  return null;
+};
 
 const NOT_HANDLE = /[^a-z0-9_-]+/g;
 const EDGE_DASHES = /^[-_]+|[-_]+$/g;

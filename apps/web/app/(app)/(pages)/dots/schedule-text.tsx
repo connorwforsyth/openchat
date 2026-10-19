@@ -1,10 +1,10 @@
 "use client";
 
 import { useLingui } from "@lingui/react/macro";
-import type { Dot, DotSchedule } from "@workspace/contract/schemas/dots";
+import { useRecurrenceText } from "@workspace/chat-ui/conversation/schedule-text";
+import type { Dot } from "@workspace/contract/schemas/dots";
 import { formatRelativeTime } from "@workspace/i18n/format";
 import { useCallback } from "react";
-
 import { describeCron } from "./schedule";
 
 // Schedules in words (172), through Lingui: "Every day at 8:00 AM",
@@ -85,16 +85,17 @@ export const useNextRunText = () => {
 /** The Dot's schedules, summed up in one line. */
 export const useSchedulesSummary = () => {
   const { t } = useLingui();
-  const say = useScheduleText();
+  const say = useRecurrenceText();
   return useCallback(
     (dot: Pick<Dot, "schedules">): string => {
       const active = dot.schedules.filter(
-        (schedule: DotSchedule) => schedule.enabled
+        (schedule) => schedule.status === "active"
       );
       if (active.length === 0) {
         return dot.schedules.length === 0 ? t`No schedule` : t`Paused`;
       }
-      const label = say(active[0]?.cron ?? "");
+      const [first] = active;
+      const label = first ? say(first.recurrence) : "";
       const more = active.length - 1;
       return more > 0 ? t`${label} and ${more} more` : label;
     },

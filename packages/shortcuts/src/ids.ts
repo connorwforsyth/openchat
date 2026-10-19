@@ -9,6 +9,7 @@ export const shortcutIdSchema = z.enum([
   "help",
   "settings.open",
   "sidebar.toggle",
+  "dot.open",
   "chat.new",
   "chat.next",
   "chat.prev",

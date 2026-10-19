@@ -1,3 +1,7 @@
+import {
+  MANAGE_SCHEDULES_TOOL,
+  SCHEDULE_TASK_TOOL,
+} from "@workspace/ai/schedules/tool";
 import { textStream, toolCallStream } from "@workspace/ai/testing/mock-models";
 import type { Dot } from "@workspace/contract/schemas/dots";
 import type { BranchPath } from "@workspace/contract/schemas/messages";
@@ -5,12 +9,10 @@ import type { CreateRunOutput, Run } from "@workspace/contract/schemas/runs";
 import { seedUser } from "@workspace/db/testing";
 import { MockLanguageModelV4 } from "ai/test";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-
 import { createDotsRouter } from "../api/dots";
 import { createApp } from "../app";
 import { createHarness, type Harness, USER_HEADER } from "../testing/harness";
 import { UNATTENDED_REFUSAL } from "./policy";
-import { MANAGE_SCHEDULES_TOOL, SCHEDULE_TASK_TOOL } from "./schedule-tool";
 
 // A Dot's identity, activity and self-scheduling (172), end to end in
 // process: Hono's `app.request`, the real executor on a mock model, PGlite.
@@ -103,53 +105,32 @@ const runNow = async (id: string) => {
 };
 
 describe("Dot identity", () => {
-  it("makes the first Dot primary, derives free handles, and moves primary", async () => {
-    const first = await createDot(BUDDY);
-    expect(first).toMatchObject({
+  it("is the owner's one, pinned Dot with a handle from its name", async () => {
+    const dot = await createDot(BUDDY);
+    expect(dot).toMatchObject({
+      attention: false,
       avatar: { color: "sea", style: "orb" },
       handle: "pip",
       primary: true,
       rules: "",
       unreadRuns: 0,
     });
-    const second = await createDot({
-      ...BUDDY,
-      avatar: { color: "ember", style: "blob" },
-    });
-    expect(second).toMatchObject({
-      avatar: { color: "ember", style: "blob" },
-      handle: "pip-2",
-      primary: false,
-    });
-    expect((await listDots()).map((dot) => dot.id)).toEqual([
-      first.id,
-      second.id,
-    ]);
-
-    const moved = await json<Dot>(
-      await request(`/api/dots/${second.id}`, {
-        json: { primary: true },
+    const renamed = await json<Dot>(
+      await request(`/api/dots/${dot.id}`, {
+        json: { avatar: { color: "ember", style: "blob" }, handle: "pip-bot" },
         method: "PATCH",
       })
     );
-    expect(moved.primary).toBe(true);
-    expect((await listDots()).map((dot) => [dot.id, dot.primary])).toEqual([
-      [second.id, true],
-      [first.id, false],
-    ]);
-
-    const clash = await request(`/api/dots/${first.id}`, {
-      json: { handle: "pip-2" },
-      method: "PATCH",
+    expect(renamed).toMatchObject({
+      avatar: { color: "ember", style: "blob" },
+      handle: "pip-bot",
+      primary: true,
     });
-    expect(clash.status).toBe(422);
-    expect(await clash.json()).toMatchObject({
-      data: { issues: [{ path: ["handle"] }] },
+    const second = await request("/api/dots", {
+      json: BUDDY,
+      method: "POST",
     });
-
-    // Deleting the primary hands the mark to the one that's left.
-    await request(`/api/dots/${second.id}`, { method: "DELETE" });
-    expect(await listDots()).toMatchObject([{ id: first.id, primary: true }]);
+    expect(second.status).toBe(409);
   });
 });
 
@@ -202,17 +183,18 @@ describe("Dot self-scheduling", () => {
     const started = await runNow(dot.id);
     expect((await getRun(started.runId)).state.status).toBe("succeeded");
     expect((await listDots())[0]?.schedules[0]).toMatchObject({
-      enabled: false,
       nextRunAt: null,
+      status: "paused",
     });
   });
 
   it("refuses schedule_task on an unattended run unless the Dot allows it", async () => {
     const dot = await createDot(BUDDY);
     const weekly = {
-      cron: "0 9 * * 1",
       prompt: "Weekly review of my inbox.",
       timezone: "Europe/London",
+      title: "Weekly review",
+      when: "every monday at 9am",
     };
     h.nextTurn({ model: callThenAnswer(SCHEDULE_TASK_TOOL, weekly) });
     await runNow(dot.id);
@@ -229,7 +211,16 @@ describe("Dot self-scheduling", () => {
     h.nextTurn({ model: callThenAnswer(SCHEDULE_TASK_TOOL, weekly) });
     await runNow(dot.id);
     expect((await listDots())[0]?.schedules).toMatchObject([
-      { cron: "0 9 * * 1", enabled: true, timezone: "Europe/London" },
+      {
+        recurrence: {
+          kind: "rrule",
+          rrule: "FREQ=WEEKLY;BYDAY=MO;BYHOUR=9;BYMINUTE=0",
+          timezone: "Europe/London",
+        },
+        status: "active",
+        target: { kind: "dot" },
+        title: "Weekly review",
+      },
     ]);
   });
 });

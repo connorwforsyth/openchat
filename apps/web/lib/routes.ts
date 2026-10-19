@@ -46,6 +46,8 @@ export const routes = {
   libraryNew: (kind: LibraryKind) => `/library/new/${kind}`,
   /** Quick AI (118): the composer alone, for the desktop app's floating window. */
   quick: "/quick",
+  /** Scheduled tasks (183). */
+  schedules: "/schedules",
   settings: (section = "profile") => `/settings/${section}`,
   signIn: "/sign-in",
   signInThen: (next: string) =>

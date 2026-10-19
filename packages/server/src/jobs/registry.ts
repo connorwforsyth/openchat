@@ -27,6 +27,8 @@ import type { JobHandler, JobQueue, SendOptions } from "../ports/job-queue";
 export const jobSchemas = {
   /** Fires one claimed occurrence of a Dot's schedule (172). */
   "dot.run": z.object({
+    /** Overdue slots folded into this one after downtime (173). */
+    missedSlots: z.int().min(0).optional(),
     occurrence: z.iso.datetime(),
     scheduleId: dotScheduleIdSchema,
   }),

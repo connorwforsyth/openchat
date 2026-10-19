@@ -147,6 +147,15 @@ const useActions = (): readonly PaletteAction[] => {
       ),
       paletteAction(
         {
+          id: "action:schedules",
+          keywords: [t`scheduled`, t`tasks`, t`automations`],
+          section: "actions",
+          title: t`Open scheduled tasks`,
+        },
+        () => router.push(routes.schedules)
+      ),
+      paletteAction(
+        {
           id: "action:settings",
           section: "actions",
           shortcutId: "settings.open",
@@ -184,6 +193,13 @@ export const GlobalSurfaces = () => {
   useShortcut("chat.new", () => router.push(routes.home));
   // Switching model is a palette job: it lists the models it can switch to.
   useShortcut("model.switch", () => setPaletteOpen(true), { enabled: onChat });
+  // Your Dot (174): one thread, opened from anywhere.
+  useShortcut("dot.open", () => {
+    const [mine] = queryClient.getQueryData(
+      query.dots.list.queryKey({ input: {} })
+    ) ?? [undefined];
+    router.push(mine ? routes.chat(mine.conversationId) : routes.dots);
+  });
 
   const cachedChats = useCallback(
     () =>

@@ -9,6 +9,7 @@ import { createArtifactTools } from "@workspace/ai/tools/artifacts";
 import { instanceArtifactKinds } from "@workspace/artifacts-kit/instance";
 import type { ArtifactKindRegistry } from "@workspace/artifacts-kit/registry";
 import type { AppConfig } from "@workspace/config/schema";
+import type { ModelSelector } from "@workspace/contract/schemas/models";
 import type { Db } from "@workspace/db/client";
 
 import {
@@ -23,11 +24,8 @@ import {
   withDotComputer,
 } from "./dots/computer";
 import { dotJobHandlers } from "./dots/jobs";
-import {
-  type DotDeps,
-  type EnsureDotWorkspace,
-  settleDotRun,
-} from "./dots/service";
+import { settleScheduleRun } from "./dots/schedules";
+import type { DotDeps, EnsureDotWorkspace } from "./dots/service";
 import { dbDotPolicy, withDotPolicy } from "./dots/turn";
 import { createEvalJobHandlers } from "./evals/run";
 import { coreJobHandlers, shouldTitle } from "./jobs/handlers";
@@ -117,6 +115,17 @@ export interface ServicesOptions {
   >;
 }
 
+/**
+ * The model a schedule on an ordinary chat answers with (175): the
+ * configured one, else the `fast` alias, else the instance default. Cheap
+ * by default, since nobody's watching what it spends.
+ */
+export const scheduleModel = (config: AppConfig): ModelSelector | null =>
+  config.schedules.defaultModel ??
+  (config.models.aliases.fast ? "fast" : null) ??
+  config.models.auto.cheap ??
+  config.models.default;
+
 export interface Services extends ApiServices {
   /** The artifact kinds this instance offers, with its settings applied (125). */
   readonly artifactKinds: ArtifactKindRegistry;
@@ -173,12 +182,13 @@ export const createServices = (options: ServicesOptions): Services => {
   const loadModel = createModelLoader(turnDeps);
   const streams = createPostgresStreamChannel({ db, listen: options.listen });
 
+  const access = options.access ?? grantAccess(db);
   const afterRun = async (event: RunSettled) => {
     await recordRunUsage(db, config.models.prices, event).catch(
       (cause: unknown) => report("couldn't record usage", cause)
     );
-    await settleDotRun(db, event.run.id, event.status).catch((cause: unknown) =>
-      report("couldn't record a Dot's run", cause)
+    await settleScheduleRun(db, event.run.id, event.status).catch(
+      (cause: unknown) => report("couldn't record a scheduled run", cause)
     );
     if (!jobs) {
       return;
@@ -226,7 +236,12 @@ export const createServices = (options: ServicesOptions): Services => {
         options.computers,
         dbDotConversation(db)
       ),
-      dbDotPolicy(db, options.now)
+      dbDotPolicy({
+        access,
+        db,
+        limits: config.schedules,
+        now: options.now,
+      })
     ),
     timeoutMs: config.limits.runTimeoutSeconds * 1000,
     writer: streams,
@@ -259,14 +274,17 @@ export const createServices = (options: ServicesOptions): Services => {
 
   const budget = options.budget ?? budgetCheck(db, options.now);
   const dots: DotDeps = {
+    access,
     db,
+    defaultModel: scheduleModel(config),
     ensureWorkspace: options.ensureDotWorkspace,
+    limits: config.schedules,
     now: options.now ?? (() => new Date()),
     runs: { budget, db, defaultModel: config.models.default, executor },
   };
 
   return {
-    access: options.access ?? grantAccess(db),
+    access,
     artifactKinds,
     budget,
     db,
