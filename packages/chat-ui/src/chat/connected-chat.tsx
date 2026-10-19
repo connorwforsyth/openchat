@@ -114,8 +114,9 @@ import type { Platform } from "../shell/platform";
 import type { ShellLayoutState } from "../shell/use-shell-layout";
 import type { Theme } from "../sidebar/account-menu";
 import type { ChatSidebarProps } from "../sidebar/chat-sidebar";
+import { createRunReplyPorts, createVoiceReplies } from "../voice/reply";
 import { VoiceBridgeContext } from "../voice/voice-bridge";
-import type { VoiceBridge, VoiceReply } from "../voice/voice-engine";
+import type { VoiceBridge } from "../voice/voice-engine";
 import type {
   WorkspaceClient,
   WorkspaceFilesSource,
@@ -207,40 +208,20 @@ export interface ConnectedChatProps {
   readonly voice?: (bridge: VoiceBridge) => ReactNode;
 }
 
-/** The chat as a voice call sees it (172). */
+/**
+ * The chat as a voice call sees it (172): a turn is sent like typing, and
+ * its reply is followed by run, not guessed from what's on screen.
+ */
 const useVoiceBridge = (
-  chat: { readonly messages: UIMessage[]; readonly status: string },
-  send: (text: string) => void,
-  stop: () => Promise<void>
-): VoiceBridge => {
-  const reply = useMemo(() => lastReply(chat.messages), [chat.messages]);
-  const busy = chat.status === "submitted" || chat.status === "streaming";
-  return useMemo(
+  client: Pick<ApiClient, "messages" | "runs">,
+  send: (text: string) => Promise<RunId | null>
+): VoiceBridge =>
+  useMemo(
     () => ({
-      busy,
-      reply,
-      send,
-      stop: () => {
-        stop().catch(ignore);
-      },
+      replies: createVoiceReplies(createRunReplyPorts({ client, send })),
     }),
-    [busy, reply, send, stop]
+    [client, send]
   );
-};
-
-/** The newest assistant message's text, for the voice call to speak. Pure. */
-export const lastReply = (
-  messages: readonly UIMessage[]
-): VoiceReply | null => {
-  const last = messages.at(-1);
-  if (last?.role !== "assistant") {
-    return null;
-  }
-  const text = last.parts
-    .flatMap((part) => (part.type === "text" ? [part.text] : []))
-    .join("\n\n");
-  return { id: last.id, text };
-};
 
 const voiceSlot = (
   voice: ConnectedChatProps["voice"],
@@ -1637,8 +1618,11 @@ export function ConnectedChat({
   }, [refresh, watchTitle]);
   // The run this page started last, for Stop before the runs list has it.
   const createdRunId = useRef<RunId | null>(null);
+  // A voice turn waits here for the run its send started.
+  const runWaiters = useRef<((runId: RunId | null) => void)[]>([]);
   const onRunCreated = useCallback((run: RunCreated) => {
     createdRunId.current = run.runId;
+    runWaiters.current.shift()?.(run.runId);
   }, []);
   const { chat, messages, streamingMessageId } = useLiveTurn({
     client,
@@ -1716,7 +1700,24 @@ export function ConnectedChat({
     composerStatus,
     stop
   );
-  const voiceBridge = useVoiceBridge(chat, send, stop);
+  const sendForVoice = useCallback(
+    (text: string) =>
+      new Promise<RunId | null>((resolve) => {
+        runWaiters.current.push(resolve);
+        // Settles once the stream ends; by then the run was reported, and a
+        // send that failed before creating one answers `null`.
+        sendInTurn(text)
+          .catch(ignore)
+          .finally(() => {
+            runWaiters.current = runWaiters.current.filter(
+              (waiter) => waiter !== resolve
+            );
+            resolve(null);
+          });
+      }),
+    [sendInTurn]
+  );
+  const voiceBridge = useVoiceBridge(client, sendForVoice);
 
   const { mutateAsync: revertMemory } = useMutation(
     api.memory.revert.mutationOptions()

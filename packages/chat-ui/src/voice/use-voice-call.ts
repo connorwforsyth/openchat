@@ -14,7 +14,7 @@ import {
 // this hook wires them together and to the chat's `VoiceBridge`, so the
 // transcript is sent as a normal message and the reply is the chat's own.
 
-export type { TurnTimings, VoiceBridge, VoiceReply } from "./voice-engine";
+export type { TurnTimings, VoiceBridge } from "./voice-engine";
 
 export interface VoiceTranscript {
   readonly reply: string;
@@ -78,11 +78,6 @@ export const useVoiceCall = ({
       }
     }
   }, []);
-
-  // The reply, as the chat streams it.
-  useEffect(() => {
-    engineRef.current?.onBridge(bridge);
-  }, [bridge]);
 
   const start = useCallback(async () => {
     if (engine()) {

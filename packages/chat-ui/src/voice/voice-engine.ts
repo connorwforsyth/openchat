@@ -1,4 +1,4 @@
-import { advanceReply, EMPTY_CURSOR, type ReplyCursor } from "./sentences";
+import type { ReplyEvent, VoiceReplies } from "./reply";
 import {
   BARGE_IN_VAD,
   type CallEffect,
@@ -22,20 +22,13 @@ import {
 // the player. What happens next is decided by `callStep` and `vadStep`
 // (pure, in turn.ts); this carries out their effects and feeds them events.
 
-/** The chat as the call sees it. `ConnectedChat` builds it. */
+/**
+ * The chat as the call sees it. `ConnectedChat` builds it: a turn is sent
+ * through the chat (so it shows there) and its reply comes back as
+ * sentences and an explicit end (`reply.ts`).
+ */
 export interface VoiceBridge {
-  /** A run is streaming or about to. */
-  readonly busy: boolean;
-  /** The newest assistant message on screen, as markdown. */
-  readonly reply: VoiceReply | null;
-  readonly send: (text: string) => void;
-  /** Stops the reply's run on the server. */
-  readonly stop: () => void;
-}
-
-export interface VoiceReply {
-  readonly id: string;
-  readonly text: string;
+  readonly replies: VoiceReplies;
 }
 
 /** Milliseconds per stage of the last turn. */
@@ -64,8 +57,6 @@ export interface EngineOptions {
 export interface VoiceEngine {
   readonly close: () => void;
   readonly level: () => number;
-  /** Called whenever the bridge changes: follows the reply as it streams. */
-  readonly onBridge: (bridge: VoiceBridge) => void;
   readonly perform: (effect: CallEffect) => void;
   readonly setMuted: (muted: boolean) => void;
 }
@@ -89,24 +80,15 @@ registerProcessor("voice-tap", VoiceTap);
 `;
 
 interface Turn {
-  active: boolean;
-  cursor: ReplyCursor;
   firstAudio: number | null;
   firstText: number | null;
-  /** The assistant message that was newest before this turn's send. */
-  previousReply: string | null;
-  sawBusy: boolean;
   speechEnd: number | null;
   transcribed: number | null;
 }
 
 const newTurn = (): Turn => ({
-  active: false,
-  cursor: EMPTY_CURSOR,
   firstAudio: null,
   firstText: null,
-  previousReply: null,
-  sawBusy: false,
   speechEnd: null,
   transcribed: null,
 });
@@ -173,6 +155,8 @@ export const openVoiceEngine = async (
   let looping = false;
   let transcribing: AbortController | null = null;
   let turn = newTurn();
+  /** The reply being listened to; aborting it cancels its run. */
+  let replying: AbortController | null = null;
 
   const playOne = (buffer: AudioBuffer) =>
     new Promise<void>((resolve) => {
@@ -307,7 +291,57 @@ export const openVoiceEngine = async (
     }
   };
 
+  const stopReply = () => {
+    replying?.abort();
+    replying = null;
+  };
+
+  const onReply = (event: ReplyEvent, controller: AbortController) => {
+    switch (event.type) {
+      case "text":
+        turn.firstText ??= performance.now();
+        hooks.onReplyText(event.text);
+        return;
+      case "sentence":
+        speak(event.sentence);
+        return;
+      case "end": {
+        if (replying === controller) {
+          replying = null;
+        }
+        const pending = queue.length > 0 || playing !== null;
+        // A barge-in or hang-up cancelled it: the reducer has moved on.
+        if (controller.signal.aborted) {
+          return;
+        }
+        hooks.dispatch(
+          event.end === "failed" && turn.firstText === null
+            ? { error: "reply", type: "failed" }
+            : { pending, type: "reply-finished" }
+        );
+        return;
+      }
+      default: {
+        const unreachable: never = event;
+        return unreachable;
+      }
+    }
+  };
+
+  // Each turn's reply, sentence by sentence, until it says it's over.
+  const listen = async (text: string) => {
+    stopReply();
+    const controller = new AbortController();
+    replying = controller;
+    for await (const event of hooks
+      .bridge()
+      .replies.ask(text, controller.signal)) {
+      onReply(event, controller);
+    }
+  };
+
   const close = () => {
+    stopReply();
     stopSpeaking();
     tap.port.onmessage = null;
     for (const track of stream.getTracks()) {
@@ -331,18 +365,13 @@ export const openVoiceEngine = async (
       case "send":
         turn = {
           ...turn,
-          active: true,
-          previousReply: hooks.bridge().reply?.id ?? null,
           transcribed: turn.transcribed ?? performance.now(),
         };
-        hooks.bridge().send(effect.text);
+        listen(effect.text).catch(() => undefined);
         return;
       case "interrupt":
         stopSpeaking();
-        if (turn.active) {
-          turn.active = false;
-          hooks.bridge().stop();
-        }
+        stopReply();
         return;
       case "hang-up":
         close();
@@ -351,33 +380,6 @@ export const openVoiceEngine = async (
         const unreachable: never = effect;
         return unreachable;
       }
-    }
-  };
-
-  const onBridge = (bridge: VoiceBridge) => {
-    if (!turn.active) {
-      return;
-    }
-    turn.sawBusy ||= bridge.busy;
-    const finished = turn.sawBusy && !bridge.busy;
-    const { reply } = bridge;
-    if (reply && reply.id !== turn.previousReply) {
-      const step = advanceReply(turn.cursor, reply.text, finished);
-      turn.cursor = step.cursor;
-      if (reply.text) {
-        turn.firstText ??= performance.now();
-      }
-      for (const sentence of step.sentences) {
-        speak(sentence);
-      }
-      hooks.onReplyText(reply.text);
-    }
-    if (finished) {
-      turn.active = false;
-      hooks.dispatch({
-        pending: queue.length > 0 || playing !== null,
-        type: "reply-finished",
-      });
     }
   };
 
@@ -430,7 +432,6 @@ export const openVoiceEngine = async (
       output.getFloatTimeDomainData(outBuffer);
       return rms(outBuffer);
     },
-    onBridge,
     perform,
     setMuted: (muted) => {
       for (const track of stream.getAudioTracks()) {
