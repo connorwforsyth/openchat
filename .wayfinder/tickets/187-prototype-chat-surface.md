@@ -5,7 +5,7 @@ labels: [wayfinder:prototype]
 status: open
 map: "179"
 assignee:
-blockedBy: ["182", "185"]
+blockedBy: ["194"]
 ---
 
 ## Question

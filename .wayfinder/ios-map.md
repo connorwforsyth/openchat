@@ -53,6 +53,7 @@ prototype ticket. Server-side work follows the main map's standing constraints.
 
 - [Does a web run really carry on when the tab is closed?](tickets/181-web-run-survives-closed-tab.md): yes; what's missing is any notification, an approval hook, and limits on approvals that wait forever
 - [Which native renderer draws streaming markdown?](tickets/182-swiftui-streaming-markdown.md): MarkdownView 3.x behind our own wrapper; race SwiftStreamingMarkdown in the prototype
+- [How does an Xcode project live in the monorepo?](tickets/185-xcode-in-the-monorepo.md): XcodeGen + local Swift packages, generated project out of git, per-worktree build folder and simulator under the machine lock; Xcode must be installed first
 
 ## Not yet specified
 
