@@ -58,7 +58,9 @@ export const dotTurn = (turn: Turn, policy: DotPolicy): Turn => {
   if (!policy.unattended) {
     return {
       ...withTools,
-      instructions: [withTools.instructions, dotPersona(policy)]
+      // Static first: the persona leads, so the turn's own changing tail
+      // (mentions, memory) is all a prompt cache has to read again.
+      instructions: [dotPersona(policy), withTools.instructions]
         .filter(Boolean)
         .join("\n\n"),
     };
@@ -74,8 +76,8 @@ export const dotTurn = (turn: Turn, policy: DotPolicy): Turn => {
     }
   }
   const refusedNames = Object.keys(refused);
+  // Static first, as above; the turn's own instructions end it.
   const sections = [
-    withTools.instructions,
     `You are "${policy.name}", an always-on agent (a Dot). You run on a schedule with nobody watching: never ask the user a question or wait for a reply; do the task and report the result in this chat.`,
     policy.instructions.trim() === ""
       ? undefined
@@ -86,6 +88,7 @@ export const dotTurn = (turn: Turn, policy: DotPolicy): Turn => {
     refusedNames.length > 0
       ? `These tools need a person's approval, so they are unavailable in unattended runs: ${refusedNames.join(", ")}.`
       : undefined,
+    withTools.instructions,
   ].filter((section): section is string => Boolean(section));
   return {
     ...withTools,

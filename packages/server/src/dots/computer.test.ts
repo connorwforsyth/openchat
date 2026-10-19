@@ -54,7 +54,7 @@ describe("computerTurn", () => {
     const turn = computerTurn(baseTurn, computers.tools(run.conversationId));
     expect(Object.keys(turn.tools ?? {}).sort()).toEqual(["bash", "computer"]);
     expect(turn.toolApproval).toEqual({ bash: "user-approval" });
-    expect(turn.instructions).toBe(`Be brief.\n\n${COMPUTER_INSTRUCTIONS}`);
+    expect(turn.instructions).toBe(`${COMPUTER_INSTRUCTIONS}\n\nBe brief.`);
   });
 
   it("survives the unattended policy, which still withholds what asks", () => {

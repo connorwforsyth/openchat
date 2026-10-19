@@ -66,7 +66,8 @@ export const computerTurn = (
   );
   return {
     ...turn,
-    instructions: [turn.instructions, COMPUTER_INSTRUCTIONS]
+    // Ahead of the turn's own, whose tail changes per turn (prompt cache).
+    instructions: [COMPUTER_INSTRUCTIONS, turn.instructions]
       .filter((section): section is string => Boolean(section))
       .join("\n\n"),
     toolApproval: approvals,

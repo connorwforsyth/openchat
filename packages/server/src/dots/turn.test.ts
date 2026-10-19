@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 
 import type { Turn } from "../runs/turn";
+import { computerTurn } from "./computer";
 import { UNATTENDED_REFUSAL } from "./policy";
 import {
   MANAGE_SCHEDULES_TOOL,
@@ -77,5 +78,32 @@ describe("schedule tools' input schemas", () => {
     expect(asSchema(scheduleTaskInputSchema).jsonSchema).toMatchObject({
       type: "object",
     });
+  });
+
+  // Ollama (and every provider's prompt cache) reuses the longest prefix a
+  // turn shares with the last: the Dot's static sections go first, so only
+  // what changes per turn (mentions, memory) is read again.
+  it("keeps the prompt's prefix identical from one turn to the next", () => {
+    const VOLATILE = "<<turn>>";
+    const turnWith = (volatile: string): Turn => ({
+      ...turn,
+      instructions: `Base.\n\n${VOLATILE} ${volatile}`,
+    });
+    const prefixOf = (next: Turn) => {
+      const shaped = dotTurn(
+        computerTurn(next, { computer: noop }),
+        policy(false)
+      );
+      const text = shaped.instructions ?? "";
+      return text.slice(0, text.indexOf(VOLATILE));
+    };
+    const first = prefixOf(turnWith("Memory: likes tea. It is 09:00."));
+    const second = prefixOf(turnWith("Memory: likes coffee. It is 09:05."));
+    expect(first).toBe(second);
+    expect(first).toContain("You are Pip (@pip)");
+    expect(first).toContain("Base.");
+    expect(
+      prefixOf({ ...turnWith("x"), instructions: `Base.\n\n${VOLATILE}` })
+    ).toContain("computer");
   });
 });
