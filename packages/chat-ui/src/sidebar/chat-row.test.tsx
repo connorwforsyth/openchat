@@ -9,6 +9,7 @@ import { ChatRow, type SidebarChat } from "./chat-row";
 // A chat row's actions and inline rename (071).
 
 const chat = (n: number, title: string): SidebarChat => ({
+  createdAt: "2026-09-30T12:00:00.000Z",
   id: fixtureId("conversation", n),
   lastMessageAt: null,
   pinned: false,

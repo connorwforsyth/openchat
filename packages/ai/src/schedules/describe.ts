@@ -94,11 +94,73 @@ const describeWallClock = (
   }
 };
 
+const CRON_NUMBER = /^\d{1,2}$/;
+const CRON_STEP = /^\*\/(\d{1,2})$/;
+
+const cronNumber = (field: string | undefined, max: number): number | null => {
+  if (!(field && CRON_NUMBER.test(field))) {
+    return null;
+  }
+  const value = Number(field);
+  return value <= max ? value : null;
+};
+
+const cronDays = (field: string): readonly number[] | null => {
+  if (field === "1-5") {
+    return WEEKDAYS;
+  }
+  const days = field.split(",").map((part) => cronNumber(part, 7));
+  if (days.some((day) => day === null)) {
+    return null;
+  }
+  return [...new Set(days.map((day) => (day ?? 0) % 7))].sort((a, b) => a - b);
+};
+
+/**
+ * A five-field cron (schedules from before 173) as a simple rule when it is
+ * one: every n minutes, hourly, daily, weekdays or set weekdays.
+ */
+const describeCron = (cron: string): RecurrenceMeaning => {
+  const rule = cron.trim().replace(/\s+/g, " ");
+  const custom: RecurrenceMeaning = { rule, type: "custom" };
+  const [minuteField, hourField, dayOfMonth, month, dayOfWeek, ...rest] =
+    rule.split(" ");
+  if (rest.length > 0 || dayOfMonth !== "*" || month !== "*" || !dayOfWeek) {
+    return custom;
+  }
+  const step = CRON_STEP.exec(minuteField ?? "");
+  if (step && hourField === "*" && dayOfWeek === "*") {
+    return { minutes: Number(step[1]), type: "interval" };
+  }
+  const minute = cronNumber(minuteField, 59);
+  if (minute === null) {
+    return custom;
+  }
+  if (hourField === "*" && dayOfWeek === "*" && minute === 0) {
+    return { minutes: 60, type: "interval" };
+  }
+  const hour = cronNumber(hourField, 23);
+  if (hour === null) {
+    return custom;
+  }
+  const time = { hour, minute };
+  if (dayOfWeek === "*") {
+    return { every: 1, time, type: "daily" };
+  }
+  const days = cronDays(dayOfWeek);
+  if (days === null) {
+    return custom;
+  }
+  return sameDays(days, WEEKDAYS)
+    ? { time, type: "weekdays" }
+    : { days, every: 1, time, type: "weekly" };
+};
+
 export const describeRecurrence = (
   recurrence: ScheduleRecurrence
 ): RecurrenceMeaning => {
   if (recurrence.kind === "cron") {
-    return { rule: recurrence.cron, type: "custom" };
+    return describeCron(recurrence.cron);
   }
   const parsed = parseRrule(recurrence.rrule);
   if (!parsed.ok) {

@@ -266,4 +266,20 @@ describe("describeRecurrence", () => {
       type: "once",
     });
   });
+
+  it.each([
+    [
+      "0 9 * * 1",
+      { days: [1], every: 1, time: { hour: 9, minute: 0 }, type: "weekly" },
+    ],
+    ["30 8 * * 1-5", { time: { hour: 8, minute: 30 }, type: "weekdays" }],
+    ["0 7 * * *", { every: 1, time: { hour: 7, minute: 0 }, type: "daily" }],
+    ["*/15 * * * *", { minutes: 15, type: "interval" }],
+    ["0 * * * *", { minutes: 60, type: "interval" }],
+    ["0 9 1 * *", { rule: "0 9 1 * *", type: "custom" }],
+  ])("says the cron %s simply when it can", (cron, meaning) => {
+    expect(
+      describeRecurrence({ cron, endsAt: null, kind: "cron", timezone: "UTC" })
+    ).toEqual(meaning);
+  });
 });

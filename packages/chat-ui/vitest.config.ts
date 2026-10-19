@@ -57,6 +57,7 @@ export default defineProject({
       "@workspace/client > @orpc/tanstack-query",
       "@workspace/contract > @orpc/contract",
       "@workspace/shared > uuidv7",
+      "@workspace/shortcuts > @tanstack/react-hotkeys",
       "@workspace/icons > lucide-react",
       "@workspace/ui > @base-ui/react/avatar",
       "@workspace/ui > @base-ui/react/button",

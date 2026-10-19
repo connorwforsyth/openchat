@@ -20,7 +20,7 @@ describe("resolveBindings", () => {
     });
     expect(bindings.get("palette.open")).toEqual(["Mod+P"]);
     expect(bindings.get("chat.new")).toEqual([]);
-    expect(bindings.get("help")).toEqual(["?"]);
+    expect(bindings.get("help")).toEqual(["?", "Mod+/"]);
   });
 
   it("sets and resets without touching the input", () => {

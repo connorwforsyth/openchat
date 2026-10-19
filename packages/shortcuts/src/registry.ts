@@ -63,24 +63,28 @@ export const shortcutRegistry: readonly ShortcutDefinition[] = [
     "general",
     msg`Open the command palette`
   ),
-  define("help", ["?"], "global", "general", msg`Show keyboard shortcuts`),
+  define(
+    "help",
+    ["?", "Mod+/"],
+    "global",
+    "general",
+    msg`Show keyboard shortcuts`
+  ),
   define("settings.open", ["Mod+,"], "global", "general", msg`Open settings`),
   define(
     "sidebar.toggle",
-    ["Mod+B"],
+    ["Mod+B", "Mod+Shift+S"],
     "global",
     "navigation",
     msg`Toggle the sidebar`
   ),
-  // ChatGPT opens its Dot with ⌘.; ours is taken by model.switch, so ⌘⇧D.
   define(
-    "dot.open",
-    ["Mod+Shift+D"],
+    "chat.new",
+    ["N", "Mod+Shift+O"],
     "global",
     "navigation",
-    msg`Open your Dot`
+    msg`New chat`
   ),
-  define("chat.new", ["N"], "global", "navigation", msg`New chat`),
   define("chat.next", ["J"], "global", "navigation", msg`Next chat`),
   define("chat.prev", ["K"], "global", "navigation", msg`Previous chat`),
   define(
@@ -93,7 +97,14 @@ export const shortcutRegistry: readonly ShortcutDefinition[] = [
   define("branch.prev", ["["], "chat", "conversation", msg`Previous branch`),
   define("branch.next", ["]"], "chat", "conversation", msg`Next branch`),
   define("run.stop", ["Escape"], "chat", "conversation", msg`Stop generating`),
-  define("model.switch", ["Mod+."], "chat", "conversation", msg`Switch model`),
+  // ⌘. opens your Dot, as in ChatGPT (179); the model switcher moves over.
+  define(
+    "model.switch",
+    ["Mod+Shift+."],
+    "chat",
+    "conversation",
+    msg`Switch model`
+  ),
   // ChatGPT's ⌘⇧C is taken by browser devtools, which a page can't override.
   define(
     "reply.copy",
@@ -109,6 +120,64 @@ export const shortcutRegistry: readonly ShortcutDefinition[] = [
     "chat",
     "panels",
     msg`Show the workspace artifacts`
+  ),
+  // The sidebar's keys (176, 177), after ChatGPT's command registry.
+  // ⌘⇧D (from 182) stays as a second key; nothing else binds it.
+  define(
+    "dot.open",
+    ["Mod+.", "Mod+Shift+D"],
+    "global",
+    "navigation",
+    msg`Open your Dot`
+  ),
+  define(
+    "chat.archive",
+    ["Mod+Shift+A"],
+    "global",
+    "conversation",
+    msg`Archive the chat`
+  ),
+  define(
+    "chat.pin",
+    ["Mod+Alt+P"],
+    "global",
+    "conversation",
+    msg`Pin or unpin the chat`
+  ),
+  define(
+    "chat.markUnread",
+    ["Mod+Shift+U"],
+    "global",
+    "conversation",
+    msg`Mark the chat as unread`
+  ),
+  define(
+    "sidebar.next",
+    ["Mod+Shift+]"],
+    "global",
+    "navigation",
+    msg`Next chat in the sidebar`
+  ),
+  define(
+    "sidebar.prev",
+    ["Mod+Shift+["],
+    "global",
+    "navigation",
+    msg`Previous chat in the sidebar`
+  ),
+  define(
+    "attention.next",
+    ["Mod+Alt+A"],
+    "global",
+    "navigation",
+    msg`Next chat that needs attention`
+  ),
+  define(
+    "unread.clear",
+    ["Shift+Escape"],
+    "global",
+    "navigation",
+    msg`Mark every chat as read`
   ),
 ];
 

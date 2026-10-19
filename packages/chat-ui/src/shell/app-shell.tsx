@@ -77,12 +77,29 @@ export interface AppShellProps {
   readonly panelOpen: boolean;
   readonly panelWidth: number;
   readonly platform?: Platform;
+  /**
+   * Shown in the sidebar's place while it's collapsed on a wide screen (179):
+   * an icon rail, so collapsed isn't hidden. Without it, nothing shows.
+   */
+  readonly rail?: ReactNode;
   readonly sidebar: ReactNode;
   /** The sidebar beside the conversation (wide screens). */
   readonly sidebarOpen: boolean;
   /** The sidebar as a sheet (narrow screens). */
   readonly sidebarSheetOpen: boolean;
 }
+
+/** The collapsed sidebar's icon rail (179); no transition, as its toggle is a key (D28). */
+function RailSlot({ rail }: { readonly rail: ReactNode }) {
+  return rail ? (
+    <div className="flex shrink-0 max-md:hidden" data-slot="app-shell-rail">
+      {rail}
+    </div>
+  ) : null;
+}
+
+/** The peek edge sits beside the rail, if any, so its icons stay clickable. */
+const edgeStart = (rail: ReactNode): string => (rail ? "start-12" : "start-0");
 
 export function AppShell({
   children,
@@ -95,6 +112,7 @@ export function AppShell({
   panelOpen,
   panelWidth,
   platform = "web",
+  rail,
   sidebar,
   sidebarOpen,
   sidebarSheetOpen,
@@ -136,7 +154,8 @@ export function AppShell({
 
   // Collapsed, or with no room to dock beside the open panel: it peeks.
   const peekRef = useRef<HTMLElement>(null);
-  const peek = usePeek(peekRef, !narrow && columns.sidebar === null);
+  const collapsed = !narrow && columns.sidebar === null;
+  const peek = usePeek(peekRef, collapsed);
   const closePeekOnEscape = useCallback(
     (event: KeyboardEvent<HTMLElement>) => {
       if (event.key === "Escape" && !event.defaultPrevented) {
@@ -179,6 +198,7 @@ export function AppShell({
               )}
               data-slot="app-shell"
             >
+              <RailSlot rail={collapsed ? rail : undefined} />
               {columns.sidebar === null ? null : (
                 <div
                   className="relative flex shrink-0 max-md:hidden"
@@ -253,7 +273,10 @@ export function AppShell({
                   header's own sidebar toggle stays clickable. */}
                 <div
                   aria-hidden
-                  className="fixed start-0 top-12 bottom-0 z-30 pointer-coarse:hidden w-5 max-md:hidden"
+                  className={cn(
+                    "fixed top-12 bottom-0 z-30 pointer-coarse:hidden w-5 max-md:hidden",
+                    edgeStart(rail)
+                  )}
                   data-slot="app-shell-sidebar-edge"
                   onPointerEnter={peek.enter}
                   onPointerLeave={peek.leave}

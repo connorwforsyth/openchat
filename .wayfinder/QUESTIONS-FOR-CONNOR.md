@@ -114,7 +114,15 @@ Done: 009 and 010 prototypes, 042 contract PR (#31), Docker verification (045, P
 - **Are the guardrail defaults right?** A 60-minute minimum interval, 24 runs a day (rolling 24 h, "Run now" included), 8 steps a run and 20k tokens a run. Schedules that predate 173 aren't re-checked against the minimum interval; only the daily cap limits them. Default: keep.
 - **When should a schedule tell you by default?** New schedules use `important`: only `needs_attention` and failures notify. Migrated Dot schedules use `all`, as before. Default: keep.
 - **What happens to extra Dots?** The migration keeps each owner's primary (or oldest) Dot. The others' chats stay as ordinary chats, and their schedules keep running on those chats; the spec said archive them. Default: keep them running, since nothing is lost.
-- **Which shortcut opens the Dot?** ⌘. is already Switch model, so it's ⌘⇧D. Default: keep ⌘⇧D, or move model.switch?
-- **Should the Dot be hidden from Recents?** `hideDotFromRecents` is left to the sidebar branch (t/181). Default: hide.
+- **Which shortcut opens the Dot?** Resolved in the demo integration (t/180-dots-ux): ⌘. opens the Dot (from 179), Switch model moved to ⇧⌘., and ⌘⇧D stays as a second Dot key.
+- **Should the Dot be hidden from Recents?** The sidebar (t/181) hides it and pins it at the top. Default: hide.
 - **Should the Proposed schedule card say Apply and Dismiss?** It uses the approval card's Approve and Reject, and there's no Edit on the card yet. Default: relabel later.
 - **Event, webhook and monitor triggers** (from the Grok Bot and ChatGPT studies) are out of scope because each check is a paid model call. Approvals as their own message type, with plain-English rules, are a follow-up too.
+
+## Open (2026-10-20, from the sidebar build 176–179), defaults applied
+
+1. **Date headings ([177](tickets/177-sidebar-list-polish.md)):** ChatGPT's desktop app dropped them for a flat list. We kept Today / Yesterday / Previous 7 days / Older under "Last updated", and a flat list under "Created". *Assumption to confirm: keep the headings.*
+2. **⌘. is your Dot, so Switch model moved to ⇧⌘. ([177](tickets/177-sidebar-list-polish.md)):** both can't have ⌘.. *Default: Dot gets ⌘. (as in ChatGPT); rebindable in settings.*
+3. **Unread starts from first open ([176](tickets/176-sidebar-needs-attention.md)):** a chat you've never opened since this shipped (no read marker) counts as read, so old chats don't all light up. *Default: keep.*
+4. **Running / awaiting approval for ordinary chats ([176](tickets/176-sidebar-needs-attention.md)):** the conversation list carries no run state, so "Needs attention" knows Dot runs (from `dots.list`) and the open chat's own run, not background runs in other chats. A `Conversation.attention` field (contract PR) would cover them. *Default: wait until you want it.*
+5. **Not built tonight:** "Move" in the row menu (there are no projects to move to), ⌃Tab MRU switching (browsers keep ⌃Tab), ⌘1–9 row shortcuts (browsers keep them for tabs), draft rows and "hide but keep running" from the Grok study. *Default: follow-ups if you want them.*

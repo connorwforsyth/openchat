@@ -128,9 +128,17 @@ msgstr "{count, plural, one {While you were away, I ran # task.} other {While yo
 msgid "{count} new"
 msgstr "{count} new"
 
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "{count} selected"
+msgstr "{count} selected"
+
 #: ../code-ui/src/diff-view.tsx
 msgid "{deletions, plural, one {# line removed} other {# lines removed}}"
 msgstr "{deletions, plural, one {# line removed} other {# lines removed}}"
+
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "{done, plural, one {Archived # chat} other {Archived # chats}}"
+msgstr "{done, plural, one {Archived # chat} other {Archived # chats}}"
 
 #: ../composer/src/components/attachment-list.tsx
 msgid "{fileName} is larger than {limit}."
@@ -225,6 +233,10 @@ msgstr "{used} of {cap} runs used in the last 24 hours · every {min} minutes or
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "{used} of {limit}"
 msgstr "{used} of {limit}"
+
+#: ../chat-ui/src/sidebar/sidebar-rail.tsx
+msgid "{waiting, plural, one {# chat needs attention} other {# chats need attention}}"
+msgstr "{waiting, plural, one {# chat needs attention} other {# chats need attention}}"
 
 #. placeholder {0}: size.words
 #: ../composer/src/components/target-picker.tsx
@@ -554,12 +566,37 @@ msgid "Approved the plan"
 msgstr "Approved the plan"
 
 #: ../chat-ui/src/sidebar/chat-row.tsx
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "Archive"
 msgstr "Archive"
 
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "Archive {remaining}"
+msgstr "Archive {remaining}"
+
+#: ../shortcuts/src/registry.ts
+msgid "Archive the chat"
+msgstr "Archive the chat"
+
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "Archive the remaining {remaining} in {group}?"
+msgstr "Archive the remaining {remaining} in {group}?"
+
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "Archived"
+msgstr "Archived"
+
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "Archived “{title}”"
 msgstr "Archived “{title}”"
+
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "Archived {done}; {failed} failed"
+msgstr "Archived {done}; {failed} failed"
+
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "Archived chats"
+msgstr "Archived chats"
 
 #: ../chat-ui/src/artifacts/artifact-full-view.tsx
 msgid "Artifact"
@@ -577,6 +614,7 @@ msgstr "artifacts"
 #: ../chat-ui/src/artifacts/artifact-full-view.tsx
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
+#: ../chat-ui/src/sidebar/sidebar-rail.tsx
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Artifacts"
 msgstr "Artifacts"
@@ -662,6 +700,10 @@ msgstr "automations"
 #: ../chat-ui/src/workspace/preview.tsx
 msgid "Back"
 msgstr "Back"
+
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "Back to chats"
+msgstr "Back to chats"
 
 #: ../library-ui/src/components/item-builder.tsx
 msgid "Back to the library"
@@ -885,6 +927,7 @@ msgid "chats"
 msgstr "chats"
 
 #: ../chat-ui/src/shell/app-shell.tsx
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
 #: ../palette/src/command-palette.tsx
 msgid "Chats"
 msgstr "Chats"
@@ -970,6 +1013,10 @@ msgstr "Choose a longer password (at least 8 characters)."
 #: ../composer/src/components/target-picker.tsx
 msgid "Choose a model or agent"
 msgstr "Choose a model or agent"
+
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "Clear selection"
+msgstr "Clear selection"
 
 #: ../chat-ui/src/header/chat-title.tsx
 msgid "Click to rename"
@@ -1294,6 +1341,7 @@ msgid "Create your account with the email address the invitation was sent to."
 msgstr "Create your account with the email address the invitation was sent to."
 
 #: ../chat-ui/src/conversation/file-change-card.tsx
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "Created"
 msgstr "Created"
 
@@ -1561,6 +1609,7 @@ msgstr "Done"
 #: ../../apps/web/app/(app)/(pages)/dots/sidebar-dots.tsx
 #: ../../apps/web/app/(app)/(pages)/page-shell.tsx
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
+#: ../chat-ui/src/sidebar/sidebar-rail.tsx
 msgid "Dots"
 msgstr "Dots"
 
@@ -2393,6 +2442,10 @@ msgstr "Last ran {last} · {tail}"
 msgid "Last submitted value"
 msgstr "Last submitted value"
 
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "Last updated"
+msgstr "Last updated"
+
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "Last used"
 msgstr "Last used"
@@ -2425,6 +2478,7 @@ msgstr "Level for new shares"
 
 #: ../../apps/web/app/(app)/(pages)/page-shell.tsx
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
+#: ../chat-ui/src/sidebar/sidebar-rail.tsx
 #: ../library-ui/src/components/library-index.tsx
 #: ../library-ui/src/components/publish-dialog.tsx
 #: ../palette/src/command-palette.tsx
@@ -2477,6 +2531,10 @@ msgstr "Load theirs"
 #: ../ui/src/components/spinner.tsx
 msgid "Loading"
 msgstr "Loading"
+
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "Loading archived chats…"
+msgstr "Loading archived chats…"
 
 #: ../chat-ui/src/artifacts/artifact-view.tsx
 msgid "Loading artifact"
@@ -2542,6 +2600,22 @@ msgstr "Makes images"
 #: ../../apps/web/app/(app)/(pages)/dots/dot-profile.tsx
 msgid "Manage memory"
 msgstr "Manage memory"
+
+#: ../chat-ui/src/sidebar/chat-row.tsx
+msgid "Mark as read"
+msgstr "Mark as read"
+
+#: ../chat-ui/src/sidebar/chat-row.tsx
+msgid "Mark as unread"
+msgstr "Mark as unread"
+
+#: ../shortcuts/src/registry.ts
+msgid "Mark every chat as read"
+msgstr "Mark every chat as read"
+
+#: ../shortcuts/src/registry.ts
+msgid "Mark the chat as unread"
+msgstr "Mark the chat as unread"
 
 #: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../chat-ui/src/model/artifact-kinds.ts
@@ -2801,6 +2875,7 @@ msgstr "Navigation"
 
 #: ../../apps/web/app/(app)/(pages)/schedules/schedule-list.tsx
 #: ../chat-ui/src/conversation/schedule-text.tsx
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "Needs attention"
 msgstr "Needs attention"
 
@@ -2841,6 +2916,7 @@ msgstr "New"
 #: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
 #: ../chat-ui/src/sidebar/chat-row.tsx
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
+#: ../chat-ui/src/sidebar/sidebar-rail.tsx
 #: ../shortcuts/src/registry.ts
 msgid "New chat"
 msgstr "New chat"
@@ -2921,6 +2997,14 @@ msgstr "Next branch"
 msgid "Next chat"
 msgstr "Next chat"
 
+#: ../shortcuts/src/registry.ts
+msgid "Next chat in the sidebar"
+msgstr "Next chat in the sidebar"
+
+#: ../shortcuts/src/registry.ts
+msgid "Next chat that needs attention"
+msgstr "Next chat that needs attention"
+
 #: ../../apps/web/app/(app)/(pages)/dots/dot-home.tsx
 msgid "Next check-in {next}"
 msgstr "Next check-in {next}"
@@ -2928,6 +3012,15 @@ msgstr "Next check-in {next}"
 #: ../../apps/web/app/(app)/(pages)/schedules/chat-schedule.tsx
 msgid "Next run {next}"
 msgstr "Next run {next}"
+
+#: ../../apps/web/app/(app)/(pages)/dots/sidebar-dots.tsx
+#: ../chat-ui/src/sidebar/chat-row.tsx
+msgid "Next run: {when}"
+msgstr "Next run: {when}"
+
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "No archived chats."
+msgstr "No archived chats."
 
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgid "No artifacts yet. Ask for a document, a page or a diagram in a chat and it shows up here."
@@ -2978,6 +3071,10 @@ msgstr "No keys yet"
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "No label"
 msgstr "No label"
+
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "No matches."
+msgstr "No matches."
 
 #: ../../apps/web/app/(app)/(pages)/dots/onboarding.tsx
 msgid "No model is available yet. Ask your admin to add one."
@@ -3302,6 +3399,7 @@ msgstr "Open the library"
 msgid "Open the published site"
 msgstr "Open the published site"
 
+#: ../chat-ui/src/sidebar/sidebar-rail.tsx
 #: ../shortcuts/src/registry.ts
 msgid "Open your Dot"
 msgstr "Open your Dot"
@@ -3502,6 +3600,10 @@ msgstr "Picks a fast or strong model for each message"
 msgid "Pin"
 msgstr "Pin"
 
+#: ../shortcuts/src/registry.ts
+msgid "Pin or unpin the chat"
+msgstr "Pin or unpin the chat"
+
 #: ../library-ui/src/components/version-history.tsx
 msgid "Pin this version"
 msgstr "Pin this version"
@@ -3634,6 +3736,10 @@ msgstr "Previous branch"
 #: ../shortcuts/src/registry.ts
 msgid "Previous chat"
 msgstr "Previous chat"
+
+#: ../shortcuts/src/registry.ts
+msgid "Previous chat in the sidebar"
+msgstr "Previous chat in the sidebar"
 
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "Primary"
@@ -4230,6 +4336,8 @@ msgstr "scheduled"
 #: ../../apps/web/app/(app)/(pages)/dots/dot-profile.tsx
 #: ../../apps/web/app/(app)/(pages)/schedules/schedules-screen.tsx
 #: ../chat-ui/src/conversation/schedule-card.tsx
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+#: ../chat-ui/src/sidebar/sidebar-rail.tsx
 msgid "Scheduled"
 msgstr "Scheduled"
 
@@ -4245,6 +4353,10 @@ msgstr "Scheduled task"
 #: ../../apps/web/app/(app)/(pages)/schedules/chat-schedule.tsx
 msgid "Scheduled task: {title}"
 msgstr "Scheduled task: {title}"
+
+#: ../../apps/web/app/(app)/(pages)/page-shell.tsx
+msgid "Schedules"
+msgstr "Schedules"
 
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "Scopes"
@@ -4273,6 +4385,7 @@ msgstr "Sea"
 #: ../../apps/web/app/(app)/(pages)/schedules/schedules-screen.tsx
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
+#: ../chat-ui/src/sidebar/sidebar-rail.tsx
 #: ../composer/src/components/composer-footer.tsx
 #: ../library-ui/src/components/library-index.tsx
 msgid "Search"
@@ -4281,6 +4394,10 @@ msgstr "Search"
 #: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
 msgid "Search and commands"
 msgstr "Search and commands"
+
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "Search archived chats"
+msgstr "Search archived chats"
 
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgid "Search artifacts"
@@ -4489,8 +4606,13 @@ msgstr "Show contents"
 msgid "Show keyboard shortcuts"
 msgstr "Show keyboard shortcuts"
 
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "Show less"
+msgstr "Show less"
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
 #: ../library-ui/src/components/library-index.tsx
 msgid "Show more"
 msgstr "Show more"
@@ -4526,6 +4648,10 @@ msgstr "Show Window"
 #: ../chat-ui/src/shell/app-shell.tsx
 msgid "Side panel"
 msgstr "Side panel"
+
+#: ../chat-ui/src/sidebar/sidebar-rail.tsx
+msgid "Sidebar rail"
+msgstr "Sidebar rail"
 
 #: ../../apps/web/app/(auth)/_components/sign-in-form.tsx
 #: ../../apps/web/app/(auth)/invite/[token]/page.tsx
@@ -4617,6 +4743,14 @@ msgstr "Something went wrong and there's no answer."
 #: ../../apps/web/app/(auth)/_components/auth-problem.tsx
 msgid "Something went wrong. Try again."
 msgstr "Something went wrong. Try again."
+
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "Sort by"
+msgstr "Sort by"
+
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "Sort chats"
+msgstr "Sort chats"
 
 #: ../chat-ui/src/conversation/sources.tsx
 msgid "Sources"
@@ -5084,6 +5218,10 @@ msgstr "The invitation couldn't be sent. Try again."
 msgid "The key couldn't be added. Try again."
 msgstr "The key couldn't be added. Try again."
 
+#: ../chat-ui/src/sidebar/chat-row.tsx
+msgid "The last run failed"
+msgstr "The last run failed"
+
 #: ../../apps/web/app/dev/library/page.tsx
 msgid "The library and its builders over an in-memory API with fixtures. Edits, shares and publishes apply at once; switch on \"Refuse the next save and share\" to watch one roll back. The agent test chat echoes the draft instead of calling a model."
 msgstr "The library and its builders over an in-memory API with fixtures. Edits, shares and publishes apply at once; switch on \"Refuse the next save and share\" to watch one roll back. The agent test chat echoes the draft instead of calling a model."
@@ -5459,6 +5597,14 @@ msgstr "Turn off"
 msgid "Turned off on this instance"
 msgstr "Turned off on this instance"
 
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "Unarchive"
+msgstr "Unarchive"
+
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+msgid "Unarchive {title}"
+msgstr "Unarchive {title}"
+
 #: ../chat-ui/src/artifacts/document/document-toolbar.tsx
 #: ../chat-ui/src/conversation/memory-note.tsx
 #: ../chat-ui/src/shell/use-undo-toast.ts
@@ -5489,6 +5635,10 @@ msgstr "Unpin"
 #: ../chat-ui/src/artifacts/publish-dialog.tsx
 msgid "Unpublish"
 msgstr "Unpublish"
+
+#: ../chat-ui/src/sidebar/chat-row.tsx
+msgid "Unread"
+msgstr "Unread"
 
 #: ../chat-ui/src/workspace/file-view.tsx
 msgid "Unsaved"
@@ -5650,6 +5800,10 @@ msgstr "Voice chat"
 #: ../chat-ui/src/conversation/message-row.tsx
 msgid "Waiting for the answer before it…"
 msgstr "Waiting for the answer before it…"
+
+#: ../chat-ui/src/sidebar/chat-row.tsx
+msgid "Waiting for your approval"
+msgstr "Waiting for your approval"
 
 #: ../chat-ui/src/chat/connected-chat.tsx
 msgid "Waiting for your approval above. Send a new message to skip the pending change instead."
@@ -5871,6 +6025,10 @@ msgstr "Word (.docx)"
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "Work account"
 msgstr "Work account"
+
+#: ../chat-ui/src/sidebar/chat-row.tsx
+msgid "Working"
+msgstr "Working"
 
 #: ../../apps/web/app/(app)/(pages)/dots/dot-home.tsx
 msgid "Working on it…"
