@@ -58,7 +58,7 @@ const tags = Object.entries({
   Admin: "Instance administration.",
   Artifacts: "Artifacts produced in conversations, with versions.",
   Conversations: "Conversations, chat context and per-user state.",
-  Dots: "Always-on agents that run on a schedule into their own conversation.",
+  Dots: "Your always-on agent: one per user, and its own conversation.",
   Feedback: "Thumbs up/down on assistant messages.",
   Files: "Uploads, ingestion and semantic file search.",
   Keys: "Org, team and user provider keys (write-only).",
@@ -74,6 +74,8 @@ const tags = Object.entries({
   Orgs: "Orgs, members, invitations and org policy.",
   Runs: "Chat turns: create, stream, approve, cancel.",
   Sandbox: "Per-conversation sandboxes.",
+  Schedules:
+    "Scheduled tasks: a prompt on a recurrence, posted into your Dot, a chat, or a new chat each run.",
   Search: "Full-text search over conversations.",
   Sharing: "Grants (share) and public share links.",
   Teams: "The team tree and team membership.",

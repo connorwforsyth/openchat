@@ -34,6 +34,7 @@ export const annotationIdSchema = idSchema("annotation");
 export const jobIdSchema = idSchema("job");
 export const dotIdSchema = idSchema("dot");
 export const dotScheduleIdSchema = idSchema("dotSchedule");
+export const dotRunIdSchema = idSchema("dotRun");
 
 export type UserId = z.infer<typeof userIdSchema>;
 export type OrgId = z.infer<typeof orgIdSchema>;
@@ -61,6 +62,7 @@ export type AnnotationId = z.infer<typeof annotationIdSchema>;
 export type JobId = z.infer<typeof jobIdSchema>;
 export type DotId = z.infer<typeof dotIdSchema>;
 export type DotScheduleId = z.infer<typeof dotScheduleIdSchema>;
+export type DotRunId = z.infer<typeof dotRunIdSchema>;
 
 /** An ISO 8601 instant. Servers emit UTC (`Z`); offsets are accepted on input. */
 export const timestampSchema = z.iso.datetime({ offset: true });
