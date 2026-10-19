@@ -10,7 +10,7 @@ blockedBy: ["184", "188"]
 
 ## Question
 
-The approach [Swift client research](184-swift-client-stack.md) recommends: generated client, bearer sign-in via `ASWebAuthenticationSession`, token in Keychain, sign-out wipes token and cache.
+The approach [Swift client research](184-swift-client-stack.md) recommends: generated client, bearer sign-in via `ASWebAuthenticationSession`, token in a Keychain access group shared with the notification extension (after-first-unlock; [push research](183-push-from-self-hosted.md)), sign-out wipes token and cache.
 
 ## Done when
 

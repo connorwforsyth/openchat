@@ -54,6 +54,7 @@ prototype ticket. Server-side work follows the main map's standing constraints.
 - [Does a web run really carry on when the tab is closed?](tickets/181-web-run-survives-closed-tab.md): yes; what's missing is any notification, an approval hook, and limits on approvals that wait forever
 - [Which native renderer draws streaming markdown?](tickets/182-swiftui-streaming-markdown.md): MarkdownView 3.x behind our own wrapper; race SwiftStreamingMarkdown in the prototype
 - [How does an Xcode project live in the monorepo?](tickets/185-xcode-in-the-monorepo.md): XcodeGen + local Swift packages, generated project out of git, per-worktree build folder and simulator under the machine lock; Xcode must be installed first
+- [How does a self-hosted instance send push?](tickets/183-push-from-self-hosted.md): own `node:http2` APNs sender + `web-push`; ids-only payloads filled in by a notification extension; `push_device` table, `notify.run` job, push off without keys
 
 ## Not yet specified
 
@@ -66,8 +67,9 @@ prototype ticket. Server-side work follows the main map's standing constraints.
   existing storage routes.
 - **Artifacts:** read-only `WKWebView` of the artifacts origin; needs stream or
   view tickets so no bearer token rides in a URL.
-- **Push on the phone:** registering the device, tapping into the chat,
-  notification actions (approve from the lock screen?), later Live Activities.
+- **Push on the phone:** registering the device, the notification service
+  extension (shared Keychain group), tapping into the chat, lock-screen
+  approve/deny for a single pending call with no file edits; later Live Activities.
 - **Web push:** the browser side of the same notifications.
 - **Local cache:** SwiftData model, invalidation from run events, sign-out wipe.
 - **Demo gate:** the `PLAN.md` §11 checks for this wave, rewritten for Swift.
