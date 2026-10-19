@@ -6,8 +6,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderWithI18n } from "../testing/render";
 import { ChatSidebar, type ChatSidebarProps } from "./chat-sidebar";
 
-// The sidebar's Dot slots (172): the app's primary Dot above the actions,
-// and its Dots list in place of the plain link.
+// The sidebar's Dot slot (172, 181): ChatGPT's order, so the actions and
+// pages first, then your Dot's row; and no Dots link, since there's one Dot.
 
 const NEW_CHAT = /New chat/;
 
@@ -26,6 +26,7 @@ const props: ChatSidebarProps = {
   activeId: null,
   chats: [],
   dotsHref: "/dots",
+  libraryHref: "/library",
   onArchive: vi.fn(),
   onNewChat: vi.fn(),
   onRename: vi.fn(),
@@ -34,26 +35,23 @@ const props: ChatSidebarProps = {
   onTogglePin: vi.fn(),
 };
 
-describe("ChatSidebar Dot slots", () => {
-  it("shows the plain Dots link without slots", () => {
-    render(<ChatSidebar {...props} />);
-    expect(screen.getByRole("link", { name: "Dots" })).toBeVisible();
+describe("ChatSidebar Dot slot", () => {
+  it("has no Dots link", () => {
+    render(<ChatSidebar {...props} dots={<a href="/dots">My Dots</a>} />);
+    expect(screen.queryByRole("link", { name: "Dots" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "My Dots" })).toBeNull();
   });
 
-  it("puts `top` before the actions and `dots` in place of the link", () => {
-    render(
-      <ChatSidebar
-        {...props}
-        dots={<a href="/dots">My Dots</a>}
-        top={<a href="/c/1">Pip</a>}
-      />
-    );
-    expect(screen.queryByRole("link", { name: "Dots" })).toBeNull();
+  it("puts `top` after the actions and pages", () => {
+    render(<ChatSidebar {...props} top={<a href="/c/1">Pip</a>} />);
     const pip = screen.getByRole("link", { name: "Pip" });
     const newChat = screen.getByRole("button", { name: NEW_CHAT });
-    expect(pip.compareDocumentPosition(newChat)).toBe(
+    const library = screen.getByRole("link", { name: "Library" });
+    expect(newChat.compareDocumentPosition(pip)).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING
     );
-    expect(screen.getByRole("link", { name: "My Dots" })).toBeVisible();
+    expect(library.compareDocumentPosition(pip)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    );
   });
 });

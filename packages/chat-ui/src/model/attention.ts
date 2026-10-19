@@ -35,15 +35,18 @@ export type AttentionChat = Pick<
 
 /**
  * True when there's a message newer than the last time the user read the
- * chat. A chat never opened since read tracking began (`lastReadAt` null)
- * counts as read: otherwise every old chat would light up at once.
+ * chat. A chat never opened (`lastReadAt` null) that has any message counts
+ * as unread (176): a scheduled run or a Dot can start a chat the user has
+ * never seen. A chat the user starts is marked read as it opens.
  */
 export const isUnread = (chat: AttentionChat): boolean => {
-  const lastReadAt = chat.myState?.lastReadAt ?? null;
-  if (lastReadAt === null || chat.lastMessageAt === null) {
+  // No `myState` at all means the caller doesn't track reads: read.
+  if (chat.lastMessageAt === null || chat.myState === undefined) {
     return false;
   }
+  const { lastReadAt } = chat.myState;
   return (
+    lastReadAt === null ||
     new Date(chat.lastMessageAt).getTime() > new Date(lastReadAt).getTime()
   );
 };

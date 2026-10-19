@@ -16,9 +16,12 @@ export const useUndoToast = () => {
   const { add, close } = useToastManager();
   return useCallback(
     ({
+      onClose,
       onUndo,
       title,
     }: {
+      /** The toast went away (timed out, dismissed or undone). */
+      readonly onClose?: () => void;
       readonly onUndo: () => void;
       readonly title: string;
     }) => {
@@ -30,6 +33,7 @@ export const useUndoToast = () => {
             close(id);
           },
         },
+        onClose,
         priority: "low",
         timeout: UNDO_TIMEOUT_MS,
         title,

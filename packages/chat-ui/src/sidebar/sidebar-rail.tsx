@@ -121,6 +121,26 @@ export function SidebarRail({
           <SearchIcon aria-hidden />
         </RailItem>
       ) : null}
+      {libraryHref ? (
+        <RailItem href={libraryHref} label={t`Library`}>
+          <LibraryIcon aria-hidden />
+        </RailItem>
+      ) : null}
+      {artifactsHref ? (
+        <RailItem href={artifactsHref} label={t`Artifacts`}>
+          <ShapesIcon aria-hidden />
+        </RailItem>
+      ) : null}
+      {schedulesHref ? (
+        <RailItem href={schedulesHref} label={t`Scheduled`}>
+          <ClockIcon aria-hidden />
+        </RailItem>
+      ) : null}
+      {dotsHref && !dot ? (
+        <RailItem href={dotsHref} label={t`Make your Dot`}>
+          <BotIcon aria-hidden />
+        </RailItem>
+      ) : null}
       {dot ? (
         <RailItem label={t`Open your Dot`} onClick={openDot}>
           {dotFace ?? <BotIcon aria-hidden />}
@@ -138,26 +158,6 @@ export function SidebarRail({
           >
             {waiting}
           </span>
-        </RailItem>
-      ) : null}
-      {artifactsHref ? (
-        <RailItem href={artifactsHref} label={t`Artifacts`}>
-          <ShapesIcon aria-hidden />
-        </RailItem>
-      ) : null}
-      {dotsHref ? (
-        <RailItem href={dotsHref} label={t`Dots`}>
-          <BotIcon aria-hidden />
-        </RailItem>
-      ) : null}
-      {schedulesHref ? (
-        <RailItem href={schedulesHref} label={t`Scheduled`}>
-          <ClockIcon aria-hidden />
-        </RailItem>
-      ) : null}
-      {libraryHref ? (
-        <RailItem href={libraryHref} label={t`Library`}>
-          <LibraryIcon aria-hidden />
         </RailItem>
       ) : null}
       <div className="mt-auto">

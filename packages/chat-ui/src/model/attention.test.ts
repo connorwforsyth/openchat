@@ -40,8 +40,9 @@ describe("isUnread", () => {
     ).toBe(false);
   });
 
-  it("treats a chat never tracked as read", () => {
-    expect(isUnread(chat("a", "2026-10-02T10:00:00.000Z", null))).toBe(false);
+  it("treats a never-opened chat with activity as unread", () => {
+    expect(isUnread(chat("a", "2026-10-02T10:00:00.000Z", null))).toBe(true);
+    expect(isUnread(chat("b", null, null))).toBe(false);
   });
 });
 

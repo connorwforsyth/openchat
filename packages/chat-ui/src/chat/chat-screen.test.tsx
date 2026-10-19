@@ -934,7 +934,7 @@ describe("the Preview opens by itself (066)", () => {
 });
 
 describe("sidebar", () => {
-  it("groups chats by date and archives with an undo", async () => {
+  it("lists chats flat under Pinned and Chats, and archives with an undo", async () => {
     const onArchive = vi.fn();
     const onRestore = vi.fn();
     const base = props();
@@ -946,15 +946,10 @@ describe("sidebar", () => {
     const sidebar = within(
       screen.getByRole("complementary", { name: "Chats" })
     );
-    for (const heading of [
-      "Pinned",
-      "Today",
-      "Yesterday",
-      "Previous 7 days",
-      "Older",
-    ]) {
+    for (const heading of ["Pinned", "Chats"]) {
       expect(sidebar.getByRole("heading", { name: heading })).toBeTruthy();
     }
+    expect(sidebar.queryByRole("heading", { name: "Today" })).toBeNull();
 
     const title = chats[2]?.title ?? "";
     await userEvent.click(

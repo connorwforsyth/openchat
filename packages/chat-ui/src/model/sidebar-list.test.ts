@@ -8,7 +8,6 @@ import {
 
 const at = (day: number, hour = 12) =>
   new Date(2026, 8, day, hour, 0, 0).toISOString();
-const now = new Date(2026, 8, 27, 18);
 
 const chat = (
   id: string,
@@ -35,27 +34,31 @@ const chats = [
 const ids = (items: readonly ListableChat[]) => items.map((each) => each.id);
 
 describe("buildSidebarList", () => {
-  it("sorts by last update with date headings, pinned apart", () => {
-    const list = buildSidebarList(chats, { limit: 50, now, sort: "updated" });
+  it("sorts by last update as one flat list, pinned apart", () => {
+    const list = buildSidebarList(chats, { limit: 50, sort: "updated" });
     expect(ids(list.pinned)).toEqual(["pinned"]);
-    expect(
-      list.sections.map((section) => [section.key, ids(section.items)])
-    ).toEqual([
-      ["today", ["old-but-busy"]],
-      ["yesterday", ["yesterday"]],
-      ["previous7Days", ["fresh"]],
-    ]);
+    expect(ids(list.items)).toEqual(["old-but-busy", "yesterday", "fresh"]);
   });
 
   it("sorts by creation as one flat list", () => {
-    const list = buildSidebarList(chats, { limit: 50, now, sort: "created" });
-    expect(
-      list.sections.map((section) => [section.key, ids(section.items)])
-    ).toEqual([["all", ["yesterday", "fresh", "old-but-busy"]]]);
+    const list = buildSidebarList(chats, { limit: 50, sort: "created" });
+    expect(ids(list.items)).toEqual(["yesterday", "fresh", "old-but-busy"]);
+  });
+
+  it("leaves Priority chats out of the list, not out of Pinned", () => {
+    const exclude = new Set(["yesterday", "pinned"] as ListableChat["id"][]);
+    const list = buildSidebarList(chats, {
+      exclude,
+      limit: 50,
+      sort: "updated",
+    });
+    expect(ids(list.items)).toEqual(["old-but-busy", "fresh"]);
+    expect(ids(list.pinned)).toEqual(["pinned"]);
+    expect(list.total).toBe(2);
   });
 
   it("pages the unpinned chats and says there's more", () => {
-    const list = buildSidebarList(chats, { limit: 2, now, sort: "updated" });
+    const list = buildSidebarList(chats, { limit: 2, sort: "updated" });
     expect(ids(visibleOrder(list))).toEqual([
       "pinned",
       "old-but-busy",
@@ -63,8 +66,8 @@ describe("buildSidebarList", () => {
     ]);
     expect(list.hasMore).toBe(true);
     expect(list.total).toBe(3);
-    expect(
-      buildSidebarList(chats, { limit: 3, now, sort: "updated" }).hasMore
-    ).toBe(false);
+    expect(buildSidebarList(chats, { limit: 3, sort: "updated" }).hasMore).toBe(
+      false
+    );
   });
 });

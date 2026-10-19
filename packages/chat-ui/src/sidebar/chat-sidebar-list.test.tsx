@@ -11,10 +11,13 @@ import type { SidebarChat } from "./chat-row";
 import { ChatSidebar, type ChatSidebarProps } from "./chat-sidebar";
 import { SidebarRail } from "./sidebar-rail";
 
-// The sidebar's list (176–179): needs attention, sort, paging, bulk select,
-// the archive view, the keyboard set and the collapsed rail.
+// The sidebar's list (176–179, 181): Priority, Pinned, one flat Chats list,
+// sort, paging, bulk select, the archive view, the keyboard set and the
+// collapsed rail.
 
 const BOTH_TITLES = /^(Old but busy|Made yesterday)$/;
+const PRIORITY_OPTIONS = { name: "Priority options" };
+const MARK_ALL_READ = /Mark all as read/;
 
 afterEach(cleanup);
 beforeEach(() => window.localStorage.clear());
@@ -74,8 +77,8 @@ const base = (overrides: Partial<ChatSidebarProps> = {}): ChatSidebarProps => ({
 
 const section = (name: string) => screen.getByRole("region", { name });
 
-describe("Needs attention", () => {
-  it("lists unread and running chats, and hides when there are none", () => {
+describe("Priority", () => {
+  it("lists unread and running chats apart from Chats, and hides when there are none", () => {
     const { unmount } = render(
       <ChatSidebar
         {...base({
@@ -88,15 +91,60 @@ describe("Needs attention", () => {
         })}
       />
     );
-    const attention = section("Needs attention");
-    expect(within(attention).getByText("Busy one")).toBeVisible();
-    expect(within(attention).getByText("Fresh reply")).toBeVisible();
-    expect(within(attention).queryByText("Read one")).toBeNull();
+    const priority = section("Priority");
+    expect(within(priority).getByText("Busy one")).toBeVisible();
+    expect(within(priority).getByText("Fresh reply")).toBeVisible();
+    expect(within(priority).queryByText("Read one")).toBeNull();
+    const chats = section("Chats");
+    expect(within(chats).getByText("Read one")).toBeVisible();
+    expect(within(chats).queryByText("Fresh reply")).toBeNull();
+    expect(within(chats).queryByText("Busy one")).toBeNull();
     unmount();
     render(<ChatSidebar {...base({ chats: [chat(1, "Read one")] })} />);
+    expect(screen.queryByRole("region", { name: "Priority" })).toBeNull();
+  });
+
+  it("counts a never-opened chat with a message as unread", () => {
+    const never = {
+      ...chat(1, "Scheduled run"),
+      myState: { lastReadAt: null },
+    };
+    render(<ChatSidebar {...base({ chats: [never, chat(2, "Seen")] })} />);
     expect(
-      screen.queryByRole("region", { name: "Needs attention" })
-    ).toBeNull();
+      within(section("Priority")).getByText("Scheduled run")
+    ).toBeVisible();
+  });
+
+  it("marks all as read, and filters to Priority with an empty state", async () => {
+    const onSetLastRead = vi.fn();
+    const fresh = chat(2, "Fresh reply", { read: "unread" });
+    render(
+      <ChatSidebar
+        {...base({ chats: [chat(1, "Read one"), fresh], onSetLastRead })}
+      />
+    );
+    await userEvent.click(screen.getByRole("button", PRIORITY_OPTIONS));
+    await userEvent.click(
+      await screen.findByRole("menuitem", { name: MARK_ALL_READ })
+    );
+    expect(onSetLastRead).toHaveBeenCalledWith(fresh.id, fresh.lastMessageAt);
+    await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
+    await userEvent.click(screen.getByRole("button", PRIORITY_OPTIONS));
+    await userEvent.click(
+      await screen.findByRole("menuitemcheckbox", {
+        name: "Show only Priority",
+      })
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole("region", { name: "Chats" })).toBeNull()
+    );
+  });
+
+  it("shows “Nothing needs attention” when filtered with none", async () => {
+    render(<ChatSidebar {...base({ chats: [chat(1, "Read one")] })} />);
+    await userEvent.keyboard(`{${modKey()}>}{Alt>}u{/Alt}{/${modKey()}}`);
+    expect(await screen.findByText("Nothing needs attention")).toBeVisible();
+    expect(screen.queryByText("Read one")).toBeNull();
   });
 
   it("marks a chat unread from its menu", async () => {
@@ -131,7 +179,7 @@ describe("Needs attention", () => {
 });
 
 describe("the chat list", () => {
-  it("keeps date headings by last update, and goes flat sorted by creation", async () => {
+  it("is one flat list with no date headings, in either sort", async () => {
     render(
       <ChatSidebar
         {...base({
@@ -142,20 +190,33 @@ describe("the chat list", () => {
         })}
       />
     );
-    expect(section("Today")).toBeVisible();
-    expect(section("Yesterday")).toBeVisible();
+    expect(screen.queryByRole("region", { name: "Today" })).toBeNull();
+    const titles = () =>
+      within(section("Chats"))
+        .getAllByRole("button", { name: BOTH_TITLES })
+        .map((each) => each.textContent);
+    expect(titles()).toEqual(["Old but busy", "Made yesterday"]);
     await userEvent.click(screen.getByRole("button", { name: "Sort chats" }));
     await userEvent.click(
       await screen.findByRole("menuitemradio", { name: "Created" })
     );
     await waitFor(() =>
-      expect(screen.queryByRole("region", { name: "Today" })).toBeNull()
+      expect(titles()).toEqual(["Made yesterday", "Old but busy"])
     );
-    const titles = within(section("Chats"))
-      .getAllByRole("button", { name: BOTH_TITLES })
-      .map((each) => each.textContent);
-    expect(titles).toEqual(["Made yesterday", "Old but busy"]);
+    expect(screen.queryByRole("region", { name: "Yesterday" })).toBeNull();
     expect(window.localStorage.getItem("sidebar.sort")).toBe("created");
+  });
+
+  it("puts pinned chats in their own section", () => {
+    render(
+      <ChatSidebar
+        {...base({
+          chats: [{ ...chat(1, "Pinned one"), pinned: true }, chat(2, "Plain")],
+        })}
+      />
+    );
+    expect(within(section("Pinned")).getByText("Pinned one")).toBeVisible();
+    expect(within(section("Chats")).queryByText("Pinned one")).toBeNull();
   });
 
   it("shows 50 rows, then more on request", async () => {
@@ -190,7 +251,7 @@ describe("the chat list", () => {
     await userEvent.click(screen.getByRole("button", { name: "Archive" }));
     expect(onArchiveMany).toHaveBeenCalledWith(["c1", "c2", "c3"]);
     await waitFor(() =>
-      expect(document.body.textContent).toContain("Archived 2; 1 failed")
+      expect(document.body.textContent).toContain("Archived 2 chats; 1 failed")
     );
   });
 
@@ -213,6 +274,41 @@ describe("the chat list", () => {
     await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
     await userEvent.keyboard(`{${modKey()}>}z{/${modKey()}}`);
     expect(onRestore).toHaveBeenCalledWith("c1");
+  });
+
+  it("doesn't undo with ⌘Z once the toast has gone", async () => {
+    const onRestore = vi.fn();
+    render(<ChatSidebar {...base({ chats: [chat(1, "One")], onRestore })} />);
+    await userEvent.click(
+      screen.getByRole("button", { name: "Actions for One" })
+    );
+    await userEvent.click(
+      await screen.findByRole("menuitem", { name: "Archive" })
+    );
+    await screen.findByText("Archived “One”");
+    await userEvent.click(screen.getByRole("button", { name: "Close toast" }));
+    await waitFor(() =>
+      expect(screen.queryByText("Archived “One”")).toBeNull()
+    );
+    await userEvent.keyboard(`{${modKey()}>}z{/${modKey()}}`);
+    expect(onRestore).not.toHaveBeenCalled();
+  });
+
+  it("keeps the selection when Escape closes a menu", async () => {
+    render(
+      <ChatSidebar {...base({ chats: [chat(1, "One"), chat(2, "Two")] })} />
+    );
+    await userEvent.keyboard(`{${modKey()}>}`);
+    await userEvent.click(screen.getByRole("button", { name: "One" }));
+    await userEvent.keyboard(`{/${modKey()}}`);
+    expect(screen.getByText("1 selected")).toBeVisible();
+    await userEvent.click(screen.getByRole("button", { name: "Sort chats" }));
+    await screen.findByRole("menu");
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
+    expect(screen.getByText("1 selected")).toBeVisible();
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByText("1 selected")).toBeNull();
   });
 
   it("opens the archive view, searches and unarchives", async () => {
