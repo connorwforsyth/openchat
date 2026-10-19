@@ -55,6 +55,7 @@ prototype ticket. Server-side work follows the main map's standing constraints.
 - [Which native renderer draws streaming markdown?](tickets/182-swiftui-streaming-markdown.md): MarkdownView 3.x behind our own wrapper; race SwiftStreamingMarkdown in the prototype
 - [How does an Xcode project live in the monorepo?](tickets/185-xcode-in-the-monorepo.md): XcodeGen + local Swift packages, generated project out of git, per-worktree build folder and simulator under the machine lock; Xcode must be installed first
 - [How does a self-hosted instance send push?](tickets/183-push-from-self-hosted.md): own `node:http2` APNs sender + `web-push`; ids-only payloads filled in by a notification extension; `push_device` table, `notify.run` job, push off without keys
+- [Does the generated Swift client work against our server?](tickets/184-swift-client-stack.md): yes after a preprocessing script (nullables, `const`); hand-written stream chunks; native social sign-in via a one-time-token route; no stream tickets in v1
 
 ## Not yet specified
 
@@ -65,8 +66,8 @@ prototype ticket. Server-side work follows the main map's standing constraints.
   research and the prototype.
 - **Attachments:** photo picker, files, camera; upload path through the
   existing storage routes.
-- **Artifacts:** read-only `WKWebView` of the artifacts origin; needs stream or
-  view tickets so no bearer token rides in a URL.
+- **Artifacts:** read-only `WKWebView` hosting the artifacts runtime, fed by
+  `postMessage` (no token in a URL; [184](tickets/184-swift-client-stack.md)).
 - **Push on the phone:** registering the device, the notification service
   extension (shared Keychain group), tapping into the chat, lock-screen
   approve/deny for a single pending call with no file edits; later Live Activities.

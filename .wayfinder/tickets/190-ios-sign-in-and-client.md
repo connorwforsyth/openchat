@@ -5,12 +5,12 @@ labels: [wayfinder:build]
 status: open
 map: "179"
 assignee:
-blockedBy: ["184", "188"]
+blockedBy: ["188", "195"]
 ---
 
 ## Question
 
-The approach [Swift client research](184-swift-client-stack.md) recommends: generated client, bearer sign-in via `ASWebAuthenticationSession`, token in a Keychain access group shared with the notification extension (after-first-unlock; [push research](183-push-from-self-hosted.md)), sign-out wipes token and cache.
+The approach [Swift client research](184-swift-client-stack.md) recommends: the generated client behind its preprocessing script (nullables, `const` unions) and a millisecond date decoder; email sign-in by one cookie-less `POST`; social/OIDC through [the native sign-in route](195-native-sign-in-route.md); bearer sign-in via `ASWebAuthenticationSession`, token in a Keychain access group shared with the notification extension (after-first-unlock; [push research](183-push-from-self-hosted.md)), sign-out wipes token and cache.
 
 ## Done when
 
@@ -20,4 +20,4 @@ The approach [Swift client research](184-swift-client-stack.md) recommends: gene
 
 ## Owns
 
-`apps/ios/**/API/**`, `apps/ios/**/Auth/**`, the client generator config.
+`apps/ios/**/API/**`, `apps/ios/**/Auth/**`, the client generator config and preprocessing script.
