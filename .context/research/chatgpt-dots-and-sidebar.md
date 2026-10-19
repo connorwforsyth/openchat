@@ -255,7 +255,197 @@ This is the most useful finding for our design.
 - `prefers-reduced-motion` is honoured in the shell CSS (3 hits). No
   framer-motion in the shell.
 
-## Where we are (main and PR #133)
+## Schedules: a deep dive
+
+Same target and method. A second live capture with `observe_native_ui` timed
+out the same way (`xcrun`, 60 s), so this is static again. This pass also
+read the **main-process bundles** (`.vite/build/main-*.js`,
+`src-DCNiwad_.js`, `worker.js`), where the local scheduler lives. Evidence
+`main › …` and `src › …` names the minified function or the literal.
+
+### S1. Data model
+
+- **Local store (SQLite, `src › CREATE TABLE automations`):** `id`, `name`,
+  `prompt`, `status` (default `'ACTIVE'`; the bundle also has `PAUSED` and
+  `DELETED`), `next_run_at`, `last_run_at`, `cwds` (JSON), `target_type`,
+  `project_id`, **`rrule`** (default `FREQ=HOURLY;INTERVAL=24;BYMINUTE=0`),
+  `model`, `reasoning_effort`, `created_at` and `updated_at`.
+- **`automation_runs`:** **keyed by `thread_id`**, so every run is a thread.
+  It also has `automation_id`, `status`, **`read_at`**, `thread_title`,
+  `source_cwd`, **`inbox_title`**, **`inbox_summary`**, `created_at` and
+  `updated_at`. A run carries its own unread state and a short inbox
+  title and summary for list rows.
+- **The in-memory shape is a discriminated union** (`main › R_e/z_e`):
+  - `kind: "cron"`: `projectId`, `executionEnvironment` (`local | cloud`),
+    `model`, `reasoningEffort`, `pluginTemplateId`, and `autoArchive` (it
+    archives its own run chats);
+  - `kind: "heartbeat"`: **`targetThreadId`**, with `model` and
+    `reasoningEffort` forced to `null` (it inherits the thread's settings).
+
+  Both kinds carry `name`, `prompt`, `status`, `rrule`, `notificationPolicy`,
+  `nextRunAt`, **`nextRunNominalAt`** and `lastRunAt`. A cloud row without a
+  `target_thread_id` can't be a heartbeat.
+- **Cloud tasks** are a separate, server-held store (`inbox.automations.cloud.*`,
+  "Cloud scheduled task"). The "Sync your local automations" migration moves
+  local definitions to the account, keeps execution on the device, and
+  encrypts titles, prompts and paths (`habitatMigration.privacyDisclosure`).
+
+### S2. Recurrence, time zones and DST
+
+- **RRULE everywhere,** parsed with the bundled `rrule` library (`RRule`,
+  `DTSTART;TZID=…`). The UI presets compile to RRULE: Once (date and time,
+  within two years, and not in the past: `editor.dateInPast`,
+  `dateTooFar`), Interval in minutes or hours, Hourly, Daily, Weekdays,
+  Weekly, Monthly (day N), Yearly, and Custom (days of the week or month, an
+  "End repeat" date). "Edit schedule rule" is the raw editor. A one-time rule
+  is `COUNT=1` (`src › qF`); once it fires, the next is `null` and the task
+  shows **Completed**.
+- **Time zone:** a searchable picker ("Search time zones…") with friendly
+  names (Pacific, CET, IST…), stored as the TZID. DST is handled by
+  rrule's zone-aware expansion *(inferred)*: a "9:00 daily" stays 9:00 wall
+  time across the change. Interval schedules count elapsed time instead
+  (`ql`: `scheduleKind: wall_clock | interval`).
+- **Deterministic jitter** (`src › KF/YF/XF`): hourly, daily and weekly runs
+  on a round minute get a **±300 s** offset (±119 s if the rule has several
+  minutes). The offset is `sha256(salt:id:nominalTime)` with a per-install
+  salt file `.run-jitter-salt`. `nextRunNominalAt` keeps the true time for
+  display while `nextRunAt` is the jittered fire time, which avoids
+  thundering herds at :00.
+- **Natural language:** there's no parser in the UI. The conversational path
+  is the model itself: "Ask ChatGPT to schedule tasks, set reminders, or
+  monitor for updates", and "Create with ChatGPT" seeds the prompt *"Let's set
+  up a scheduled task together… interview me… what I need scheduled and when
+  it should run"*. The model then emits an `automation_update` directive.
+
+### S3. Where schedules are created and edited
+
+- **From chat:** the `automation_update` directive has modes **`create |
+  edit | delete | view | design`** (`main › mode` literals). It renders in
+  the transcript as **Proposed / Proposed update / Deleted** cards
+  (`automation.updateDirective.*`), plus an automation side-panel tab with
+  "**Create scheduled task**" / "**Apply changes**". The model proposes and
+  the user applies. The plan card is `chatgptConversations.automationPlan.*`
+  ("Open plan: {title}").
+- **Composer tips** suggest turning a repeated request into a task
+  (`composerTips.recurringWork`, "Schedule task"). The scheduled page has its
+  own composer ("Schedule a task", `automations.scheduled.composer.placeholder`).
+- **From a chat:** the thread header shows the attached task ("Loading
+  scheduled task…", "Scheduled task unavailable"), and the sidebar row shows
+  "Next run: …".
+- **Schedules page** ("Scheduled" in the nav): a list with search, filters
+  (Active / Paused / Completed, Personal / Team), Recommended suggestions,
+  templates, and a detail panel (Prompt, Schedule, Time zone, Model,
+  Reasoning, Runs on, Notifications, Project, Destination), with **Save** and
+  **Save and run now**.
+
+### S4. Lifecycle actions and run history
+
+- **Run now** ("Run the saved instructions once"). It's disabled for
+  event-triggered tasks, and it records `runTrigger: run_now` vs
+  `scheduled`.
+- **Pause/Resume** per row (`row.toggle`).
+- **Delete** asks first ("Delete {name}?… permanently delete the scheduled
+  task and stop future runs"). Archiving the target thread removes the
+  heartbeat (§A2).
+- **Run history:** in the detail panel and the scheduled sidebar ("No runs
+  yet", "Show older", "Run history is unavailable"). Each run has a status
+  (`in_progress | failed | no_update | completed`) and opens its thread. The
+  row reads "Last ran {time} · Next {time}" (`detailRunTiming`). "Mark all as
+  read" clears run unreads.
+
+### S5. Destinations and how runs post
+
+- **Cron** runs start a new thread each run (`automation_runs.thread_id`),
+  optionally in a project. "New chat for this task" reuses one dedicated
+  thread. `autoArchive` tidies them.
+- **Heartbeat** runs post the prompt into the target thread as a user turn
+  labelled "**Sent by scheduled task**", using that thread's model,
+  permissions and collaboration mode (`heartbeatThreadPermissions`,
+  `heartbeatThreadCollaborationModes`).
+- **A busy thread defers, it doesn't skip** (`main › xu/Kl`): if the target
+  thread is active (a turn in flight, or awaiting the user), the heartbeat
+  is "blocked by thread state" and retried every **60 s** (`Rl=6e4`) until it
+  can run or its next scheduled time arrives, whichever is first.
+
+### S6. Failure, missed runs and where execution happens
+
+- **Local ("This device") runs need the app running.** The scheduler is a
+  `setInterval` tick in the Electron main process (`unref`'d, aborted on
+  dispose), and it listens to `powerMonitor` suspend and resume. On start it
+  "settles interrupted automation runs", marking runs that were in flight
+  when the app quit.
+- **Missed runs collapse to one** (`src › KF`): the next time is computed from
+  `max(now, lastNominal)`. After sleep or a closed app, an overdue task fires
+  **once** on the next tick, then resumes its normal cadence. There's no
+  backfill of every missed slot. A one-time task that was missed still fires
+  once, late.
+- **Cloud runs** are server-side: they run "even when this device is offline".
+  The trade-off is stated in the UI: "Chat, project, model, and reasoning
+  settings aren't available for cloud tasks". One-time schedules, end dates
+  and event triggers require cloud (`configuration.localDateUnavailable`,
+  `localEventUnavailable`).
+- **Failure:** the run status is `failed`, the row shows "Last run failed ·
+  Retry", and there are save and status errors. **No automatic retry** shows
+  up in the scheduler path *(bounded negative)*. A failure notifies under
+  every policy except None.
+- **Restart safety:** the app won't restart for an update while
+  `automation.tick` or `automation.heartbeat` is running
+  (`getRestartBlockers`).
+
+### S7. Notifications: the model decides
+
+- **Policies:** All runs / Failed runs only / Important updates (`all |
+  failed_runs_only | …`).
+- **Decision protocol** (`src › AS/Po/Fo`):
+  - a cron run's last agent message ends with
+    `<decision>NOTIFY|DONT_NOTIFY</decision>`, plus an optional notification
+    text;
+  - a heartbeat reply of exactly `DONT_NOTIFY`, or an empty reply after a
+    successful turn, counts as **silent**;
+  - `failed_runs_only` overrides: it notifies only if the run didn't
+    complete.
+- **Silent heartbeats leave no trace:** `latestTurnIsSilentHeartbeat` means
+  the turn doesn't mark the thread unread and doesn't notify. The thread stays
+  quiet unless there's something to say.
+- **Channels:** desktop notifications (with an enable prompt), plus the Dot's
+  messaging channels for Dot-owned tasks.
+
+### S8. Limits, quotas and gating
+
+- **A minimum interval per account and per team,** fetched from the server:
+  "Your account allows runs every {minutes} minutes or longer", "This team
+  allows…", "Choose an interval of {minutes} minutes or longer". Polling
+  monitors: "This team cannot schedule checks at its current limit".
+- **Caps:** an instructions character limit (`instructionsCharacterLimit`),
+  one-time dates no more than 2 years out, and "Too many tasks to load" when
+  listing team scopes.
+- **Cost control by default:** local scheduled runs get a **read-only
+  sandbox** and `approvalPolicy: never` (`src › Nn`: `permissions:
+  ":read-only"`), so an unattended run can't ask and can't write. There's a
+  per-task model and reasoning choice, and the sidebar usage meter covers
+  everything.
+- **Plan gating:** Dots are plan-gated (`orbit.availability.planIneligible`).
+  No schedule-specific tier strings were found *(bounded negative)*. Interval
+  floors differ by account and team, which is the lever plans use
+  *(inferred)*.
+
+### S9. Mapping to our design and PR #133
+
+| ChatGPT | PR #133 today | Proposal |
+|---|---|---|
+| Union `cron \| heartbeat(targetThreadId)` | `dot_schedule.dot_id`; runs always post to the Dot's conversation | Schedules become their own object with `target: dot \| conversation` (decision: separate, can target the Dot). 173a/173. |
+| RRULE + TZID, Once, End repeat, `COUNT=1` → Completed | 5-field cron + IANA tz (`policy.ts › nextRunAt`, `cron-parser`); presets daily/weekdays/weekly | Keep cron as storage for now (cron-parser is DST-correct). Add `runOnceAt` and `endsAt` columns, and a `completed` status. RRULE only if monthly-by-weekday is needed. 173. |
+| `nextRunNominalAt` + deterministic ±300 s jitter | none | Add jitter to `nextFor` for round-minute schedules, deterministic per schedule id (pure, testable), and show the nominal time. 173. |
+| Missed runs collapse to one | the claim moves `next_run_at` from now: also collapses (server-side, so only server downtime misses) | Keep. Document it, and add a `missedSlots` count on the run for transparency. |
+| A busy thread defers every 60 s | skips if the last run is still going | **Defer** (re-claim next tick) up to the next slot instead of skipping, and skip if a human is mid-turn in the target thread. 173. |
+| `<decision>NOTIFY\|DONT_NOTIFY</decision>`, silent heartbeat | no notify policy; every run posts | Our `report` tool (175) is the structured equivalent. `no_update` = silent: no unread, collapsed in the thread. |
+| Read-only, `approvalPolicy: never` unattended | `withDotPolicy` withholds approval tools; `autoApproveTools` | Same idea, already done. Add **read-only by default** for heartbeats on non-Dot chats. 175. |
+| Minimum interval per account/team | none | `dots.minIntervalMinutes` in config, per user, with an org override later (D17). 175. |
+| Model proposes `automation_update` (create/edit/delete/view); user applies | `schedule_task` (asks approval when present) / `manage_scheduled_tasks` | Render the tool call as a **Proposed schedule card** with Apply/Edit (one component for create and update). New ticket 181. |
+| Run history per task, `read_at` and inbox summary per run | `dot_run` (trigger, run) + `dot.lastViewedAt` | Add `outcome`, `summary`, `readAt` to `dot_run` (renamed `schedule_run`). 173a/175. |
+| Cloud vs device | always server-side (pg-boss) | Nothing to copy. We're cloud-only by design (D4). Desktop "this device" runs are out of scope. |
+| Archive the thread → remove its task | not handled | Pause, and ask in the archive dialog. 173. |
+
 
 - **Sidebar** (`packages/chat-ui/src/sidebar/`, tickets 009 and 071): it has
   pinned, Today / Yesterday / Previous 7 days / Older groups
@@ -301,13 +491,22 @@ merged by Connor.
 ### 173a: Contract, schedules target a conversation; run outcome; notify policy
 - **Labels:** `wayfinder:build` (contract-only PR). **Blocked by:** #133.
 - **Owns:** `packages/contract/src/{schemas,routes}/dots.ts`, `packages/contract/openapi.json`.
-- **Change:** `DotSchedule` gains `target: { kind: "dot" } | { kind: "conversation", conversationId }`,
-  `destination: "thread" | "new_chat_each_run"`, `notify: "all" | "failures" | "important" | "none"`,
-  `endsAt?`, `runOnceAt?` (a one-time run). `DotRun` gains
-  `outcome: "update" | "no_update" | "needs_attention"` and `summary?`.
-  `Conversation` gains `schedule?: { id, nextRunAt }` for the sidebar row.
-- **Who needs it:** 173, 175. **Breaks:** clients of `dots.schedules.*` (web only) and the input shape.
-- **Done when:** the zod schemas, the OpenAPI regeneration and contract tests pass.
+- **Change** (revised after the schedules deep dive):
+  - **`Schedule`** (renamed from `DotSchedule`; the `dots.schedules.*` routes stay as aliases for one release) is a discriminated union on `target`:
+    - `{ kind: "dot" }`;
+    - `{ kind: "conversation", conversationId }`, a heartbeat that inherits the thread's model;
+    - `{ kind: "new_chat_each_run", agentRef?, model? }`.
+  - Common fields:
+    - `status: "active" | "paused" | "completed"`;
+    - `recurrence: { kind: "cron", cron, timezone, endsAt? } | { kind: "once", at, timezone }`;
+    - `notify: "all" | "failures" | "important" | "none"`;
+    - `nextRunAt` (jittered) and `nextRunNominalAt`;
+    - `lastRunAt`, `lastOutcome`.
+  - **`ScheduleRun`:** `trigger: "scheduled" | "run_now" | "chat"`, `outcome: "update" | "no_update" | "needs_attention" | "failed" | "skipped"`, `skipReason?: "cap" | "budget" | "target_archived"`, `summary?`, `readAt?`, `missedSlots`.
+  - **`Conversation`** gains `schedule?: { id, nextRunNominalAt, status }` for the sidebar row and thread header.
+  - **Routes:** `schedules.list/get/create/update/delete/pause/resume/runNow/runs` and `schedules.markRunsRead`.
+- **Who needs it:** 173, 175, 181. **Breaks:** clients of `dots.schedules.*` (web only, behind the alias), the input shape, and the OpenAPI.
+- **Done when:** the zod schemas, the OpenAPI regeneration and contract tests (union round-trips, `once` in the past refused at the schema level) pass.
 
 ### 173: Heartbeat schedules (engine)
 - **Blocked by:** 173a. **Owns:** `packages/db/src/schema/dots.ts` (additive migration), `packages/db/src/queries/dots.ts`, `packages/server/src/dots/**`, `packages/server/src/api/dots.ts`.
@@ -316,8 +515,18 @@ merged by Connor.
   - the posted message is attributed "Sent by scheduled task" (message metadata);
   - archiving or deleting the target conversation pauses the schedule, and the archive API reports the count it affected;
   - `new_chat_each_run` creates a chat titled `<task> · <date>`;
-  - existing Dot schedules migrate to `target = dot`.
-- **Tests:** a pure `resolveScheduleTarget` and `nextRunAt` with `endsAt` and `runOnceAt` (Vitest); PGlite tests for the migration and claim-with-target; an archive-coupling service test.
+  - existing Dot schedules migrate to `target = dot` (table renamed `schedule`, with `owner_id` and a nullable `dot_id`);
+  - `once` schedules fire one time and become `completed`, and `endsAt` stops a cron;
+  - **jitter:** round-minute hourly, daily and weekly schedules get a deterministic ±300 s offset from `hash(scheduleId, nominal)`, stored as `next_run_at` with `next_run_nominal_at` kept for display;
+  - **a busy target defers:** if the target conversation has an active run or a pending approval, the claim leaves the row due and re-checks next tick until the next nominal slot, then records `skipped` with `missedSlots`;
+  - missed slots after downtime collapse into one run (the current behaviour, now tested and documented in `docs/dots.md`).
+- **Tests:** pure tests (Vitest) for:
+  - `resolveScheduleTarget`;
+  - `nextFor` with `once`, `endsAt` and jitter (deterministic, within bounds, none for non-round minutes);
+  - DST spring-forward and fall-back for `0 9 * * *` in `Europe/London` and `America/New_York`;
+  - `deferOrSkip(targetState, now, nextNominal)`.
+
+  PGlite tests for the migration, claim-with-target and defer. A service test for archive coupling.
 
 ### 174: One Dot per user
 - **Blocked by:** #133. **Owns:** `apps/web/app/(app)/(pages)/dots/**`, `packages/server/src/dots/service.ts`, `packages/db` (a unique index on `dot.owner_id`, additive migration with merge-down of extras to archived).
@@ -337,7 +546,11 @@ merged by Connor.
   - notifications follow `notify` (in-app now; the push channel is later);
   - schedules below the minimum interval are refused at create and update;
   - a run over its step or token budget ends `failed` with a budget reason;
-  - the daily cap skips claims and records `skipped: cap`.
+  - the daily cap skips claims and records `skipped: cap`;
+  - **silent runs leave no trace:** `no_update` doesn't set unread, doesn't notify and isn't counted in "While you were away" (like ChatGPT's `DONT_NOTIFY` heartbeat);
+  - `failures` notifies only for `failed`, `important` only for `needs_attention`, and `all` for everything except `no_update`;
+  - **heartbeats on a non-Dot conversation run read-only by default:** write tools are withheld unless listed on the schedule;
+  - if the model never calls `report`, the outcome falls back to `update` when the run succeeded with text, and `no_update` when it was empty.
 - **Tests:** pure tests of `shouldNotify(outcome, policy, status)` and the budget checks; a mock-model (`MockLanguageModelV4`) turn test asserting `no_update` ends after one step; a config schema test. **No live model calls.**
 
 ### 176: Sidebar "Needs attention" section and unread
@@ -377,6 +590,19 @@ merged by Connor.
   - the inline pre-paint script restores rail vs open;
   - the rail has no animation on keyboard toggle (motion rule).
 - **Tests:** browser-mode tests for collapse, peek and restore, plus an e2e check for no layout shift on reload.
+
+### 181: Schedules UI: a proposed-schedule card, a schedules page, run history
+- **Blocked by:** 173a, 173. **Owns:** `apps/web/app/(app)/(pages)/schedules/**` (new; `/dots` keeps its Scheduled tab as a filtered view), `packages/chat-ui/src/parts/schedule-card.tsx` (new), `packages/server/src/dots/schedule-tool.ts`.
+- **Done when:**
+  - `schedule_task` / `manage_scheduled_tasks` render as a **Proposed schedule** card (name, prompt, a plain-English recurrence, timezone, target, notify) with Apply / Edit / Dismiss. Apply creates or updates the schedule, and in an unattended run the card is refused as today;
+  - one card component covers create, update and delete ("Proposed update", "Deleted");
+  - a `/schedules` page lists every schedule the user owns with search, filters (Active / Paused / Completed, target) and empty-state templates (Daily brief, Follow-up monitor, Weekly review);
+  - each row has Run now, Pause/Resume and Delete (with confirmation), and reads "Last ran … · Next …";
+  - a detail sheet shows the run history (status and outcome, opens the run's message), with "Show older" paging;
+  - the recurrence editor offers Once / Daily / Weekdays / Weekly / Monthly / Custom cron, a searchable IANA time zone and End repeat;
+  - "Create with chat" opens the Dot's thread with a seeded interview prompt;
+  - the sidebar row and thread header show "Next run …" for conversations with a schedule.
+- **Tests:** pure tests for `describeRecurrence` and `recurrenceToCron` (round-trip with the presets); browser-mode tests for the card's Apply path, the page filters and the editor validation (past dates, intervals below the minimum); e2e covering create from the card, then pause, run now (mock model) and delete.
 
 ### 180 (later): Reply chains in the Dot thread
 - Needs a contract PR (`Message.replyTo`) and grilling with Connor on how it
