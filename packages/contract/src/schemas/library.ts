@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import {
+  conversationIdSchema,
   descriptionSchema,
   fileIdSchema,
   jsonValueSchema,
@@ -425,13 +426,25 @@ export type ConnectorAvailability = z.infer<typeof connectorAvailabilitySchema>;
 export const connectorSchema = z.object({
   auth: z.enum(["none", "header", "oauth"]),
   availability: connectorAvailabilitySchema,
+  /**
+   * Listed for a chat (188): whether this chat's choice for the connector or
+   * any of its tools differs from the user's defaults.
+   */
+  customized: z.boolean().default(false),
   description: z.string().nullable(),
+  /**
+   * Tools switched off (188), by the server's tool name: the user's
+   * defaults, then the chat's, never one the operator requires.
+   */
+  disabledTools: z.array(z.string().min(1)).default([]),
   /** The user's effective choice (or the operator's, when locked). */
   enabled: z.boolean(),
   id: libraryItemIdSchema,
   lock: connectorLockSchema.nullable(),
   /** The tool-name prefix the model sees. */
   name: z.string().min(1),
+  /** Tools the operator requires (188): always on while the connector is. */
+  requiredTools: z.array(z.string().min(1)).default([]),
   /** `instance`: the operator's catalog; `library`: saved by the user or shared with them. */
   source: z.enum(["instance", "library"]),
   title: z.string().min(1),
@@ -450,14 +463,75 @@ export type UserServerPolicy = z.infer<typeof userServerPolicySchema>;
 
 export const connectorListSchema = z.object({
   connectors: z.array(connectorSchema),
+  /** Listed for a chat (188): whether any connector there is `customized`. */
+  customized: z.boolean().default(false),
   userServers: userServerPolicySchema,
 });
 export type ConnectorList = z.infer<typeof connectorListSchema>;
 
+/**
+ * Where a connector choice applies (188): the user's defaults, or, with a
+ * `conversationId`, that chat alone, layered on top of the defaults.
+ */
+const connectorScope = {
+  conversationId: conversationIdSchema.optional(),
+};
+
+export const listConnectorsInputSchema = z.object(connectorScope);
+export type ListConnectorsInput = z.infer<typeof listConnectorsInputSchema>;
+
 export const setConnectorEnabledInputSchema = z.object({
+  ...connectorScope,
   enabled: z.boolean(),
   id: libraryItemIdSchema,
 });
 export type SetConnectorEnabledInput = z.infer<
   typeof setConnectorEnabledInputSchema
+>;
+
+/** One of a connector's tools as the user (and a chat) has it (188). */
+export const connectorToolSchema = z.object({
+  description: z.string().nullable(),
+  enabled: z.boolean(),
+  /** `required`: the operator requires the tool, so it stays on. */
+  lock: connectorLockSchema.nullable(),
+  /** The server's tool name, as `/mcp/{id}/tools` lists it. */
+  name: toolNameSchema,
+});
+export type ConnectorTool = z.infer<typeof connectorToolSchema>;
+
+export const connectorToolListSchema = z.object({
+  /**
+   * Whether the server answered `tools/list`; `false` when it's down or the
+   * user hasn't signed in, and `tools` is empty.
+   */
+  reachable: z.boolean(),
+  /** Less any tool the operator denies: those never appear. */
+  tools: z.array(connectorToolSchema),
+});
+export type ConnectorToolList = z.infer<typeof connectorToolListSchema>;
+
+export const listConnectorToolsInputSchema = z.object({
+  ...connectorScope,
+  id: libraryItemIdSchema,
+});
+export type ListConnectorToolsInput = z.infer<
+  typeof listConnectorToolsInputSchema
+>;
+
+export const setConnectorToolEnabledInputSchema = z.object({
+  ...connectorScope,
+  enabled: z.boolean(),
+  id: libraryItemIdSchema,
+  tool: toolNameSchema,
+});
+export type SetConnectorToolEnabledInput = z.infer<
+  typeof setConnectorToolEnabledInputSchema
+>;
+
+export const resetConversationConnectorsInputSchema = z.object({
+  conversationId: conversationIdSchema,
+});
+export type ResetConversationConnectorsInput = z.infer<
+  typeof resetConversationConnectorsInputSchema
 >;
