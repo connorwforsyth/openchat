@@ -37,7 +37,12 @@ export type McpToolError = z.infer<typeof mcpToolErrorSchema>;
 /** The port 018 implements: a server's tools, keyed by the name the model sees. */
 export interface McpToolSource {
   tools: (
-    server: { readonly id: LibraryItemId; readonly tools?: readonly string[] },
+    server: {
+      /** Tools the caller switched off (188); they never reach the model. */
+      readonly exclude?: readonly string[];
+      readonly id: LibraryItemId;
+      readonly tools?: readonly string[];
+    },
     options?: { readonly signal?: AbortSignal }
   ) => AsyncResult<ToolSet, McpToolError>;
 }

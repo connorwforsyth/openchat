@@ -29,7 +29,7 @@ describe("mcp config (184)", () => {
       default: "on",
       headers: {},
       name: "docs",
-      tools: { deny: [] },
+      tools: { deny: [], required: [] },
       transport: "http",
       url: "https://mcp.example.test/mcp",
     });
@@ -50,7 +50,11 @@ describe("mcp config (184)", () => {
           default: "required",
           name: "wiki",
           reason: "Company knowledge base",
-          tools: { allow: ["search"], deny: ["delete"] },
+          tools: {
+            allow: ["search", "log"],
+            deny: ["delete"],
+            required: ["log"],
+          },
           url: "https://wiki.example.test/mcp",
         },
       ],
@@ -63,7 +67,7 @@ describe("mcp config (184)", () => {
     expect(servers[1]).toMatchObject({
       auth: { scopes: ["read"], type: "oauth" },
       default: "required",
-      tools: { allow: ["search"], deny: ["delete"] },
+      tools: { allow: ["search", "log"], deny: ["delete"], required: ["log"] },
     });
   });
 

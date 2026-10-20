@@ -111,10 +111,12 @@ describe("wire budget for large MCP results", () => {
       }),
       tools: {
         mcpFor: (id) => mcp.manager.toolSource(id),
-        mcpServersFor: () =>
-          Promise.resolve(
-            mcp.registry.instanceServers.map((server) => server.id)
-          ),
+        mcpSelectionFor: () =>
+          Promise.resolve({
+            disabled: new Set(),
+            enabled: mcp.registry.instanceServers.map((server) => server.id),
+            excludedTools: new Map(),
+          }),
       },
     });
     const app = createApp({

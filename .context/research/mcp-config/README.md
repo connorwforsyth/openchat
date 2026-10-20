@@ -59,4 +59,41 @@ fourth input later; it isn't built.
   effective state, so `off` means off until the user flips it.
 - stdio on the desktop: the merge already takes `surface: "desktop"`; the
   desktop app still has to spawn them.
-- Tool-level toggles per user (beyond the operator's allow/deny).
+- ~~Tool-level toggles per user~~: done in 188, below.
+
+## Tools and per-chat control (188)
+
+The merge is now connector × tool, with a fourth layer:
+
+```
+effectiveConnectors({ catalog, library, prefs, chat?, surface })
+  prefs  the user's defaults: per server { enabled | null, tools: {name: bool} }
+  chat   one chat's choices, same shape, over prefs until reset
+```
+
+Rules: locks win over every layer (a required connector stays on; an
+operator-fixed one stays at its default; a `tools.required` tool stays on).
+Otherwise chat, then user, then default. Tool names are the server's
+(`safeToolName`); an unlisted tool is on. Each connector carries
+`disabledTools`, `requiredTools` and `customized` (the chat differs from the
+defaults); `excludedTools` feeds every run (plain and agent), passed to the
+manager as a per-server deny on top of the operator's filter. Denied tools
+never appear in `tools/list` (the manager filters before listing).
+
+- DB: `mcp_connector_pref` gains `tools jsonb` and a nullable `enabled`;
+  `mcp_conversation_connector(conversation_id, user_id, mcp_server_id,
+  enabled, tools)` holds a chat's choices. Reset deletes the user's rows.
+- Contract (188a): `list`/`setEnabled` take `conversationId?`;
+  `GET /connectors/{id}/tools`, `PUT /connectors/{id}/tools/{tool}/enabled`,
+  `DELETE /conversations/{conversationId}/connectors`.
+- Runs: `mcpSelectionFor(userId, conversationId)` replaces
+  `mcpServersFor`/`mcpDisabledFor`.
+- UI: Settings > Connectors rows expand to their tools (fetched on open).
+  Composer: + menu > Connectors, a submenu per connector ("Use in this
+  chat" and a checkbox per tool), "Reset to my defaults", and a "Custom
+  tools" chip while the chat differs. `/` finds a connector by name and
+  switches it for the chat (reusing the slash menu; `@` stays for agents,
+  people and files, since a mention there means "address", not "switch").
+  A new chat keeps its choices client-side and saves them once the first
+  send has made the chat.
+- Dev: `bun scripts/dev/mcp-demo-server.ts` serves three harmless tools.

@@ -1,10 +1,20 @@
-import type { LibraryItemId, UserId } from "@workspace/contract/schemas/common";
+import type {
+  ConversationId,
+  LibraryItemId,
+  UserId,
+} from "@workspace/contract/schemas/common";
 import { type AsyncResult, err, ok } from "@workspace/shared/result";
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, ne, sql } from "drizzle-orm";
 
 import type { Db } from "../client";
 import { type NotFoundError, notFound } from "../errors";
-import { mcpConnectorPref, mcpOauthToken, mcpServer } from "../schema/library";
+import {
+  mcpConnectorPref,
+  mcpConversationConnector,
+  mcpOauthToken,
+  mcpServer,
+  type ToolChoices,
+} from "../schema/library";
 import type { McpServerRow } from "./library";
 
 // MCP connection state (ticket 018, D13, D24). Saved servers are written by
@@ -106,24 +116,55 @@ export const listMcpOauthTokensToReseal = (
 ): Promise<McpOauthTokenRow[]> =>
   db.select().from(mcpOauthToken).where(ne(mcpOauthToken.keyId, currentKeyId));
 
-// --- Connector choices (184): each user's on/off per server ---
+// --- Connector choices (184, 188): each user's on/off per server and tool,
+// and a chat's choices layered on top ---
 
-/** The user's stored on/off choices, by server id. */
+/** One layer's choice for a server: `enabled` null follows the layer below. */
+export interface ConnectorChoice {
+  readonly enabled: boolean | null;
+  readonly tools: ToolChoices;
+}
+
+export type ConnectorChoices = ReadonlyMap<LibraryItemId, ConnectorChoice>;
+
+const byServer = (
+  rows: readonly {
+    readonly enabled: boolean | null;
+    readonly mcpServerId: LibraryItemId;
+    readonly tools: ToolChoices;
+  }[]
+): ConnectorChoices =>
+  new Map(
+    rows.map((row) => [
+      row.mcpServerId,
+      { enabled: row.enabled, tools: row.tools },
+    ])
+  );
+
+/** The user's stored defaults, by server id. */
 export const listConnectorPrefs = async (
   db: Db,
   userId: UserId
-): Promise<ReadonlyMap<LibraryItemId, boolean>> => {
-  const rows = await db
-    .select({
-      enabled: mcpConnectorPref.enabled,
-      mcpServerId: mcpConnectorPref.mcpServerId,
-    })
-    .from(mcpConnectorPref)
-    .where(eq(mcpConnectorPref.userId, userId));
-  return new Map(rows.map((row) => [row.mcpServerId, row.enabled]));
-};
+): Promise<ConnectorChoices> =>
+  byServer(
+    await db
+      .select({
+        enabled: mcpConnectorPref.enabled,
+        mcpServerId: mcpConnectorPref.mcpServerId,
+        tools: mcpConnectorPref.tools,
+      })
+      .from(mcpConnectorPref)
+      .where(eq(mcpConnectorPref.userId, userId))
+  );
 
-/** Stores the user's choice for one server, replacing any earlier one. */
+/** One tool switch merged into a stored `tools` object. */
+const withTool = (
+  column: typeof mcpConnectorPref.tools | typeof mcpConversationConnector.tools,
+  tool: string,
+  enabled: boolean
+) => sql`${column} || jsonb_build_object(${tool}::text, ${enabled}::boolean)`;
+
+/** Stores the user's default for one server, replacing any earlier one. */
 export const setConnectorPref = async (
   db: Db,
   input: {
@@ -139,4 +180,118 @@ export const setConnectorPref = async (
       set: { enabled: input.enabled, updatedAt: new Date() },
       target: [mcpConnectorPref.userId, mcpConnectorPref.mcpServerId],
     });
+};
+
+interface ToolSwitch {
+  readonly enabled: boolean;
+  readonly mcpServerId: LibraryItemId;
+  readonly tool: string;
+  readonly userId: UserId;
+}
+
+/** Stores the user's default for one tool, leaving the server's switch alone. */
+export const setConnectorToolPref = async (
+  db: Db,
+  input: ToolSwitch
+): Promise<void> => {
+  await db
+    .insert(mcpConnectorPref)
+    .values({
+      enabled: null,
+      mcpServerId: input.mcpServerId,
+      tools: { [input.tool]: input.enabled },
+      userId: input.userId,
+    })
+    .onConflictDoUpdate({
+      set: {
+        tools: withTool(mcpConnectorPref.tools, input.tool, input.enabled),
+        updatedAt: new Date(),
+      },
+      target: [mcpConnectorPref.userId, mcpConnectorPref.mcpServerId],
+    });
+};
+
+interface ChatScope {
+  readonly conversationId: ConversationId;
+  readonly userId: UserId;
+}
+
+const inChat = (scope: ChatScope) =>
+  and(
+    eq(mcpConversationConnector.conversationId, scope.conversationId),
+    eq(mcpConversationConnector.userId, scope.userId)
+  );
+
+const chatTarget = [
+  mcpConversationConnector.conversationId,
+  mcpConversationConnector.userId,
+  mcpConversationConnector.mcpServerId,
+];
+
+/** One user's choices for one chat, by server id. */
+export const listConversationConnectors = async (
+  db: Db,
+  scope: ChatScope
+): Promise<ConnectorChoices> =>
+  byServer(
+    await db
+      .select({
+        enabled: mcpConversationConnector.enabled,
+        mcpServerId: mcpConversationConnector.mcpServerId,
+        tools: mcpConversationConnector.tools,
+      })
+      .from(mcpConversationConnector)
+      .where(inChat(scope))
+  );
+
+/** Stores a chat's choice for one server. */
+export const setConversationConnector = async (
+  db: Db,
+  input: ChatScope & {
+    readonly enabled: boolean;
+    readonly mcpServerId: LibraryItemId;
+  }
+): Promise<void> => {
+  await db
+    .insert(mcpConversationConnector)
+    .values(input)
+    .onConflictDoUpdate({
+      set: { enabled: input.enabled, updatedAt: new Date() },
+      target: chatTarget,
+    });
+};
+
+/** Stores a chat's choice for one tool. */
+export const setConversationConnectorTool = async (
+  db: Db,
+  input: ChatScope & ToolSwitch
+): Promise<void> => {
+  await db
+    .insert(mcpConversationConnector)
+    .values({
+      conversationId: input.conversationId,
+      enabled: null,
+      mcpServerId: input.mcpServerId,
+      tools: { [input.tool]: input.enabled },
+      userId: input.userId,
+    })
+    .onConflictDoUpdate({
+      set: {
+        tools: withTool(
+          mcpConversationConnector.tools,
+          input.tool,
+          input.enabled
+        ),
+        updatedAt: new Date(),
+      },
+      target: chatTarget,
+    });
+};
+
+/** Forgets one user's choices for a chat: it follows their defaults again. */
+export const resetConversationConnectors = async (
+  db: Db,
+  scope: ChatScope
+): Promise<void> => {
+  await db.delete(mcpConversationConnector).where(inChat(scope));
 };

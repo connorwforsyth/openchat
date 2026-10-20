@@ -120,6 +120,7 @@ import type {
 import { toTreePaths } from "../workspace/model/tree";
 import { ChatScreen } from "./chat-screen";
 import { useBranchFeedback } from "./use-branch-feedback";
+import { useChatConnectors } from "./use-chat-connectors";
 import { useChatQueries, useConversationUpdate } from "./use-chat-data";
 
 // The chat screen over the API (D11): TanStack Query for everything stored,
@@ -769,6 +770,7 @@ interface Queued {
  */
 const useFirstSend = ({
   api,
+  beforeFirstSend,
   client,
   context,
   conversationId,
@@ -780,6 +782,11 @@ const useFirstSend = ({
   target,
 }: {
   readonly api: QueryUtils;
+  /**
+   * Runs once the new chat exists, before its message goes: the chat's
+   * connector choices made before it existed are saved here (188).
+   */
+  readonly beforeFirstSend?: (id: ConversationId) => Promise<void>;
   readonly client: ApiClient;
   readonly context: ChatContext;
   readonly conversationId: ConversationId | null;
@@ -861,6 +868,7 @@ const useFirstSend = ({
       creation.current = made;
       const ready = order.current.then(async () => {
         const id = await made;
+        await beforeFirstSend?.(id);
         return { id, outgoing: await prepare(id, value) };
       });
       order.current = ready.catch(ignore);
@@ -882,7 +890,16 @@ const useFirstSend = ({
         throw error;
       }
     },
-    [context, conversationId, create, onNavigate, prepare, send, target]
+    [
+      beforeFirstSend,
+      context,
+      conversationId,
+      create,
+      onNavigate,
+      prepare,
+      send,
+      target,
+    ]
   );
   return { busy: firstSendBusy(first, conversationId), submit };
 };
@@ -1626,8 +1643,10 @@ export function ConnectedChat({
     },
     [plan, sendMessage, stopReading, t, waiting]
   );
+  const chatConnectors = useChatConnectors({ api, client, conversationId });
   const firstSend = useFirstSend({
     api,
+    beforeFirstSend: chatConnectors.flush,
     client,
     context: draftContext,
     conversationId,
@@ -1830,6 +1849,7 @@ export function ConnectedChat({
           composer={{
             agents,
             attachmentLimits,
+            connectors: chatConnectors.composer,
             ...composerDrafts,
             models,
             onPlanChange: plan.set,
