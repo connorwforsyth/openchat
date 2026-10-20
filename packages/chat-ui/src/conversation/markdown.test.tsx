@@ -108,9 +108,12 @@ describe("code blocks in markdown", () => {
       { timeout: SHIKI_TIMEOUT }
     );
 
-    // A streamed chunk on a long block re-tokenises one line, so the update,
-    // render included, lands well inside a frame budget a user would notice.
-    const started = performance.now();
+    // A streamed chunk on a long block re-tokenises one line, so it shows
+    // coloured in the same render. Re-tokenising the whole block would go
+    // through the sliced, asynchronous path and leave the old 2,000 lines up.
+    // There's no wall-clock budget. Rendering 2,000 lines takes about 160 ms
+    // on an idle laptop, 1.3 s at 4x CPU throttling and up to 3.6 s on a busy
+    // CI runner, so a fixed budget fails on load, not on a regression.
     act(() => {
       view.rerender(
         <Markdown streaming>
@@ -118,11 +121,11 @@ describe("code blocks in markdown", () => {
         </Markdown>
       );
     });
-    await vi.waitFor(() => {
-      expect(body()?.querySelectorAll("code > span")).toHaveLength(2001);
-    });
-    expect(performance.now() - started).toBeLessThan(1000);
-    expect(body()?.textContent).toContain("const more = 1;");
+    expect(body()?.querySelectorAll("code > span")).toHaveLength(2001);
+    const last = body()?.querySelector<HTMLElement>("code > span:last-child");
+    expect(last?.textContent).toBe("const more = 1;");
+    const colours = last ? tokenColours(last) : [];
+    expect(colours.some((colour) => colour.includes("var(--chart"))).toBe(true);
   });
 
   it("still copies and downloads the code", async () => {
