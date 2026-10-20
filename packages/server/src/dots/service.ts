@@ -55,6 +55,7 @@ import { toSchedule } from "./schedule-policy";
 import {
   claimRunNow,
   createSchedule,
+  isArchived,
   ownerActor,
   type ScheduleDeps,
   type ScheduleError,
@@ -344,6 +345,9 @@ export const runDotNow = async (
   if (!dot) {
     return err({ type: "not_found" });
   }
+  if (await isArchived(db, actor, dot.conversationId)) {
+    return err({ type: "target_archived" });
+  }
   const claim = await claimRunNow(deps, {
     conversationId: dot.conversationId,
     dotId: dot.id,
@@ -383,8 +387,11 @@ export const runDotNow = async (
     },
     { type: "check_in" }
   );
-  await settleClaim(db, claim.value.id, created);
-  return created.ok ? created : err({ error: created.error, type: "run" });
+  return settleClaim(
+    deps,
+    claim.value.id,
+    created.ok ? created : err({ error: created.error, type: "run" })
+  );
 };
 
 /** The owner's Dot conversation, for "is this run in the Dot's thread". */

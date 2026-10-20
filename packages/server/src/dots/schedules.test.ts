@@ -351,6 +351,42 @@ describe("schedules API", () => {
     expect(edited.status).toBe(409);
   });
 
+  it("refuses Run now into an archived chat", async () => {
+    const dot = await json<Dot>(
+      await request("/api/dots", {
+        json: { name: "Pip", target: { model: "test:model", type: "model" } },
+        method: "POST",
+      }),
+      201
+    );
+    const chat = await newChat();
+    const onChat = await create({
+      target: { conversationId: chat.id, kind: "conversation" },
+    });
+    const onDot = await create({ target: { kind: "dot" }, title: "Dot" });
+    for (const id of [chat.id, dot.conversationId]) {
+      // biome-ignore lint/performance/noAwaitInLoops: two archives, in order.
+      await request(`/api/conversations/${id}`, {
+        json: { archived: true },
+        method: "PATCH",
+      });
+    }
+
+    const sent = [
+      await request(`/api/schedules/${onChat.id}/run`, { method: "POST" }),
+      await request(`/api/schedules/${onDot.id}/run`, { method: "POST" }),
+      await request(`/api/dots/${dot.id}/run`, { json: {}, method: "POST" }),
+    ];
+    expect(sent.map((response) => response.status)).toEqual([409, 409, 409]);
+    for (const response of sent) {
+      // biome-ignore lint/performance/noAwaitInLoops: reading bodies already sent.
+      expect(await response.json()).toMatchObject({
+        data: { reason: "target_archived" },
+      });
+    }
+    expect((await limitsNow()).runsToday).toBe(0);
+  });
+
   it("reports the guardrails and today's usage", async () => {
     const limits = await json<ScheduleLimits>(
       await request("/api/schedule-limits")
@@ -707,6 +743,38 @@ describe("claims", () => {
     await h.jobs.drain();
     expect(await runsOf(schedule.id)).toEqual([]);
     expect((await limitsNow()).runsToday).toBe(0);
+    expect(
+      await json<Schedule>(await request(`/api/schedules/${schedule.id}`))
+    ).toMatchObject({ lastOutcome: "failed" });
+  });
+
+  it("cancels a run whose claim the tick gave back while it started", async () => {
+    const { executor } = services.dots.runs;
+    let started: string | null = null;
+    await withDots({
+      runs: {
+        ...services.dots.runs,
+        executor: {
+          ...executor,
+          start: async (run) => {
+            started = run.runId;
+            clock = new Date("2026-10-20T09:22:00.000Z");
+            await claimDue();
+            return executor.start(run);
+          },
+        },
+      },
+    });
+    const schedule = await create({ target: { kind: "new_chat_each_run" } });
+    h.nextTurn({ model: reporting("update").model });
+    const before = await chats();
+    clock = new Date("2026-10-20T09:06:00.000Z");
+    await tick();
+
+    expect(started).not.toBeNull();
+    expect(await runsOf(schedule.id)).toEqual([]);
+    expect((await limitsNow()).runsToday).toBe(0);
+    expect(await chats()).toEqual(before);
     expect(
       await json<Schedule>(await request(`/api/schedules/${schedule.id}`))
     ).toMatchObject({ lastOutcome: "failed" });

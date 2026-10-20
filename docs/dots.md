@@ -244,8 +244,8 @@ curl -b cookies -X POST http://localhost:3000/api/dots/<id>/run -H 'content-type
   - when the daily cap is used up, the slot is skipped as `cap`;
   - a one-off is completed once it fires or is skipped;
   - a chat schedule whose target chat is gone is paused.
-- **Daily cap:** each fired slot and each "Run now" first records a claim (a `dot_run` row with no run yet) on the owner's cap. The claim is taken in the transaction that counts the cap, under a per-owner advisory lock, so two ticks or Run nows can't both spend the last run. A start that fails gives its claim back, records `failed` as the schedule's last outcome and deletes a chat made for the run. The tick gives back a claim that no run started within 15 minutes and marks its schedule failed. The history lists a claim once its run starts.
-- **Archived targets:** creating, retargeting, resuming or reviving a schedule onto an archived chat, the Dot's included, is a `CONFLICT`.
+- **Daily cap:** each fired slot and each "Run now" first records a claim (a `dot_run` row with no run yet) on the owner's cap. The claim is taken in the transaction that counts the cap, under a per-owner advisory lock, so two ticks or Run nows can't both spend the last run. A start that fails gives its claim back, records `failed` as the schedule's last outcome and deletes a chat made for the run. The tick gives back a claim that no run started within 15 minutes and marks its schedule failed; a run that starts after its claim was given back is cancelled. The history lists a claim once its run starts.
+- **Archived targets:** creating, retargeting, resuming or reviving a schedule onto an archived chat, the Dot's included, is a `CONFLICT`, and so is Run now or a Dot check-in there.
 - **Posting:** the run posts as the owner through `createUnattendedRun`. The message carries a `scheduled-task` data part, shown as "Sent by scheduled task · <name>". A new chat each run is titled `<name> · <date>`.
 - **Unattended guards** (`dots/turn.ts`):
   - `ask` tools are refused unless auto-approved;

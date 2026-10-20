@@ -677,12 +677,18 @@ export const scheduleRunFor = async (
   return row ?? null;
 };
 
+/** Whether the row was still there to update. */
 export const updateScheduleRun = async (
   db: Db,
   id: DotRunId,
   patch: ScheduleRunPatch
-): Promise<void> => {
-  await db.update(dotRun).set(patch).where(eq(dotRun.id, id));
+): Promise<boolean> => {
+  const updated = await db
+    .update(dotRun)
+    .set(patch)
+    .where(eq(dotRun.id, id))
+    .returning({ id: dotRun.id });
+  return updated.length > 0;
 };
 
 /** Each Dot's latest run (skipped slots aside). */

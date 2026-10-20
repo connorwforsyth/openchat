@@ -162,7 +162,7 @@ export const toScheduleRun = (row: ScheduleRunView): ScheduleRun => {
   };
 };
 
-const isArchived = async (
+export const isArchived = async (
   db: Db,
   actor: Actor,
   conversationId: ConversationId
@@ -490,17 +490,31 @@ const dateLabel = (at: Date, timeZone: string): string => {
   }
 };
 
-export const settleClaim = (
-  db: Db,
+/**
+ * Records the started run on its claim, or gives back the claim of a run
+ * that didn't start. The tick gives back a claim no run took within
+ * `CLAIM_STALE_MS`; a run that starts after that has no place under the
+ * cap, so it's cancelled.
+ */
+export const settleClaim = async (
+  deps: Pick<ScheduleDeps, "db" | "runs">,
   claimId: DotRunId,
-  started: Result<CreateRunOutput, unknown>
-): Promise<void> =>
-  started.ok
-    ? updateScheduleRun(db, claimId, {
-        conversationId: started.value.conversationId,
-        runId: started.value.runId,
-      })
-    : releaseClaim(db, claimId);
+  started: Result<CreateRunOutput, ScheduleError>
+): Promise<Result<CreateRunOutput, ScheduleError>> => {
+  if (!started.ok) {
+    await releaseClaim(deps.db, claimId);
+    return started;
+  }
+  const recorded = await updateScheduleRun(deps.db, claimId, {
+    conversationId: started.value.conversationId,
+    runId: started.value.runId,
+  });
+  if (recorded) {
+    return started;
+  }
+  await deps.runs.executor.cancel(started.value.runId, null);
+  return err({ retryAfterSeconds: 3600, type: "cap" });
+};
 
 /**
  * Posts the schedule's prompt into its target as the owner, labelled with a
@@ -556,11 +570,16 @@ const postScheduleRun = async (
     },
     { scheduleId: schedule.id, type: "schedule" }
   );
+  const settled = await settleClaim(
+    deps,
+    claim.id,
+    created.ok ? created : err({ error: created.error, type: "run" })
+  );
   // A retried claim finds its run in the chat the first attempt made.
-  if (made && (!created.ok || created.value.conversationId !== made)) {
+  if (made && (!settled.ok || settled.value.conversationId !== made)) {
     await deleteConversation(db, made);
   }
-  return created.ok ? created : err({ error: created.error, type: "run" });
+  return settled;
 };
 
 export const startScheduleRun = async (
@@ -569,7 +588,6 @@ export const startScheduleRun = async (
   claim: ScheduleRunRow
 ): Promise<Result<CreateRunOutput, ScheduleError>> => {
   const started = await postScheduleRun(deps, schedule, claim);
-  await settleClaim(deps.db, claim.id, started);
   await updateScheduleRow(
     deps.db,
     schedule.id,
@@ -598,7 +616,8 @@ export const claimRunNow = async (
 
 /**
  * "Run now": the saved prompt once, unattended. Counts toward the daily
- * cap, and a target already answering something is `busy`.
+ * cap; a target already answering something is `busy`, and an archived
+ * one is refused as resume refuses it.
  */
 export const runScheduleNow = async (
   deps: ScheduleDeps,
@@ -612,12 +631,13 @@ export const runScheduleNow = async (
   const target = found.dotId
     ? (await getDotById(deps.db, found.dotId))?.conversationId
     : found.conversationId;
-  if (
-    found.targetKind !== "new_chat_each_run" &&
-    target &&
-    (await conversationBusy(deps.db, target))
-  ) {
-    return err({ type: "busy" });
+  if (found.targetKind !== "new_chat_each_run" && target) {
+    if (await isArchived(deps.db, actor, target)) {
+      return err({ type: "target_archived" });
+    }
+    if (await conversationBusy(deps.db, target)) {
+      return err({ type: "busy" });
+    }
   }
   const claim = await claimRunNow(deps, {
     conversationId: found.conversationId,
