@@ -1,7 +1,7 @@
 "use client";
 
 import { Trans, useLingui } from "@lingui/react/macro";
-import { sidebarLayoutSchema } from "@workspace/chat-ui/shell/sidebar-layout";
+import { sidebarLayoutSchema } from "@workspace/contract/schemas/meta";
 import { MonitorIcon, MoonIcon, SunIcon } from "@workspace/icons";
 import {
   ToggleGroup,
