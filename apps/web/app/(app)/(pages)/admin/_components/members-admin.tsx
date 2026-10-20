@@ -126,10 +126,16 @@ const COPIED_MS = 2000;
 const NO_TEAM = "none";
 
 /** "None", then the space's sub-spaces as a tree, for the invitation's sub-space. */
-const useTeamOptions = (orgId: OrgId): readonly Option<string>[] => {
+const useTeamOptions = (
+  orgId: OrgId,
+  enabled: boolean
+): readonly Option<string>[] => {
   const { t } = useLingui();
   const { query } = useApi();
-  const teams = useQuery(query.teams.list.queryOptions({ input: { orgId } }));
+  const teams = useQuery({
+    ...query.teams.list.queryOptions({ input: { orgId } }),
+    enabled,
+  });
   return useMemo(
     () => [
       { label: t`None (the whole space)`, value: NO_TEAM },
@@ -200,17 +206,20 @@ const InviteLink = ({ link }: { readonly link: string }) => {
   );
 };
 
-const InviteForm = ({
+/** Invites into the root space; with `teamId`, straight into that sub-space. */
+export const InviteForm = ({
   onInvited,
   orgId,
+  teamId,
 }: {
-  readonly onInvited: () => void;
+  readonly onInvited?: () => void;
   readonly orgId: OrgId;
+  readonly teamId?: TeamId;
 }) => {
   const { t } = useLingui();
   const { query } = useApi();
   const roles = useRoleOptions();
-  const teamOptions = useTeamOptions(orgId);
+  const teamOptions = useTeamOptions(orgId, teamId === undefined);
   const [role, setRole] = useState<OrgRole>("member");
   const [team, setTeam] = useState<string>(NO_TEAM);
   const [problem, setProblem] = useState<
@@ -232,11 +241,12 @@ const InviteForm = ({
       }
       setProblem(null);
       setLink(null);
-      const teamIds = teamOptions.some(
+      const chosen = teamOptions.some(
         (option) => option.value === team && team !== NO_TEAM
       )
         ? [team as TeamId]
         : [];
+      const teamIds = teamId ? [teamId] : chosen;
       mutate(
         { email: parsed.data.email, orgId, role, teamIds },
         {
@@ -252,12 +262,12 @@ const InviteForm = ({
                   ).toString()
                 : null
             );
-            onInvited();
+            onInvited?.();
           },
         }
       );
     },
-    [mutate, onInvited, orgId, role, team, teamOptions]
+    [mutate, onInvited, orgId, role, team, teamId, teamOptions]
   );
   return (
     <form onSubmit={submit}>
@@ -287,17 +297,19 @@ const InviteForm = ({
               value={role}
             />
           </Field>
-          <Field className="sm:w-48">
-            <FieldLabel htmlFor="invite-team">
-              <Trans>Sub-space</Trans>
-            </FieldLabel>
-            <OptionSelect
-              id="invite-team"
-              onChange={setTeam}
-              options={teamOptions}
-              value={team}
-            />
-          </Field>
+          {teamId ? null : (
+            <Field className="sm:w-48">
+              <FieldLabel htmlFor="invite-team">
+                <Trans>Sub-space</Trans>
+              </FieldLabel>
+              <OptionSelect
+                id="invite-team"
+                onChange={setTeam}
+                options={teamOptions}
+                value={team}
+              />
+            </Field>
+          )}
           <Button disabled={invite.isPending} type="submit">
             <MailIcon data-icon="inline-start" />
             <Trans>Invite</Trans>

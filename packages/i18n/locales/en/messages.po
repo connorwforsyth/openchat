@@ -489,8 +489,8 @@ msgid "Add people, teams or orgs"
 msgstr "Add people, teams or orgs"
 
 #: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
-msgid "Add someone from the space above"
-msgstr "Add someone from the space above"
+msgid "Add someone from {rootName}"
+msgstr "Add someone from {rootName}"
 
 #: ../composer/src/components/plus-menu.tsx
 msgid "Add to message"
@@ -2495,6 +2495,10 @@ msgstr "Invite people…"
 msgid "Invite someone"
 msgstr "Invite someone"
 
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "Invite someone to {name}"
+msgstr "Invite someone to {name}"
+
 #: ../chat-ui/src/workspace/save-site-dialog.tsx
 msgid "It can't be saved as a site yet:"
 msgstr "It can't be saved as a site yet:"
@@ -3598,6 +3602,10 @@ msgstr "Once, {at}"
 #: ../chat-ui/src/conversation/schedule-card.tsx
 msgid "Only if a run fails"
 msgstr "Only if a run fails"
+
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "Only owners and admins of {rootName} can invite new people. You can add someone already in {rootName}."
+msgstr "Only owners and admins of {rootName} can invite new people. You can add someone already in {rootName}."
 
 #. placeholder {0}: active.name
 #: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
