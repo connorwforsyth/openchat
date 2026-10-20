@@ -80,7 +80,7 @@ const CHECKS: readonly Check[] = [
   },
   {
     config: "RunQueueSendOnly.cfg",
-    expect: "violated",
+    expect: "holds",
     invariants: ["StopReachesPass"],
     name: "double-start",
     view: "View",
@@ -123,7 +123,7 @@ const CHECKS: readonly Check[] = [
   {
     // The slowest check, so it runs only by name. See SKILL.md, finding 1.
     config: "RunQueueApprovals.cfg",
-    expect: "violated",
+    expect: "holds",
     invariants: ["NoStuckRun"],
     name: "approval-lost",
     optIn: true,
@@ -371,6 +371,12 @@ const statusOf = (state: TraceState, run: number): Value | undefined =>
 const changed = (step: Step, name: string): boolean =>
   key(step.before.vars.get(name)) !== key(step.after.vars.get(name));
 
+const TERMINAL: ReadonlySet<string> = new Set([
+  "cancelled",
+  "failed",
+  "succeeded",
+]);
+
 const transition = (step: Step, run: number, lost: string): string => {
   const before = statusOf(step.before, run);
   const after = statusOf(step.after, run);
@@ -383,13 +389,13 @@ const STEPS: Readonly<Record<string, (step: Step, run: number) => string>> = {
       ? "no decision comes"
       : `submitApprovals(r${run}): recordDecisions locks the run (awaiting_approval)`,
   D_Resume: (step, run) =>
-    `recordDecisions(r${run}): transitionRun(resume) ${transition(step, run, "lost")}, COMMIT`,
+    changed(step, "active")
+      ? `storeDecisions(r${run}): transitionRun(resume) ${transition(step, run, "lost")}; active.set(r${run}, controller); COMMIT`
+      : `storeDecisions(r${run}): transitionRun(resume) ${transition(step, run, "lost")}, COMMIT`,
   D_Spawn: (step, run) =>
     changed(step, "spawned")
-      ? `submitApprovals(r${run}): active.get finds a controller, the resumed pass starts`
-      : `submitApprovals(r${run}): active.get finds no controller, so no pass starts`,
-  D_Store: (_, run) =>
-    `storeDecisions(r${run}): active.set(r${run}, new controller)`,
+      ? `submitApprovals(r${run}): the resumed pass starts with the decision's controller`
+      : `submitApprovals(r${run}): not resumed, so no pass starts`,
   F_List: (_, run) =>
     `finishTerminal(r${run}): writer.close, onSettled, promoteAfter's listQueuedAfter`,
   F_Loop: (step, run) => {
@@ -425,22 +431,20 @@ const STEPS: Readonly<Record<string, (step: Step, run: number) => string>> = {
     `settle(r${run}): transitionRun(${String(local(step, "outcome", "before"))}) ${transition(step, run, "lost")}`,
   S_Ahead: (step, run) => {
     const ahead = Number(local(step, "srAfter", "before"));
-    return changed(step, "active")
-      ? `startRun(r${run}): getRun(r${ahead}) is ${String(statusOf(step.after, ahead))}; active.set(r${run}, new controller)`
-      : `startRun(r${run}): getRun(r${ahead}) is ${String(statusOf(step.after, ahead))}; still waiting`;
+    const status = String(statusOf(step.after, ahead));
+    return TERMINAL.has(status)
+      ? `startRun(r${run}): getRun(r${ahead}) is ${status}; claim`
+      : `startRun(r${run}): getRun(r${ahead}) is ${status}; still waiting`;
   },
   S_Claim: (step, run) =>
     changed(step, "spawned")
-      ? `startRun(r${run}): claim ${transition(step, run, "")}; track(execute) starts its pass`
-      : `startRun(r${run}): claim lost (${String(statusOf(step.after, run))}); active.delete(r${run})`,
+      ? `startRun(r${run}): claim ${transition(step, run, "")}; active.set(r${run}, controller), COMMIT; track(execute) starts its pass`
+      : `startRun(r${run}): claim lost (${String(statusOf(step.after, run))}), rolled back`,
   S_Read: (step, run) => {
     const status = String(statusOf(step.before, run));
     const ahead = seqOf(step.before.vars.get("after"))[run - 1];
     const read = `getRun (${status}${ahead ? ` behind r${String(ahead)}` : ""})`;
-    if (changed(step, "active")) {
-      return `startRun(r${run}): ${read}; active.set(r${run}, new controller)`;
-    }
-    return status === "queued" && ahead
+    return status === "queued"
       ? `startRun(r${run}): ${read}`
       : `startRun(r${run}): ${read}: already started`;
   },

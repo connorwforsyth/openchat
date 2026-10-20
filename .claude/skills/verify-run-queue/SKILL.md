@@ -35,21 +35,24 @@ Last confirmed against the last commit that changed `model/`: a model change lan
 
 | Check | Config | Property | Expected | Trace |
 | --- | --- | --- | --- | --- |
-| `queue` | SendOnly | all but `StopReachesPass` | holds | about 285,000 distinct states |
-| `double-start` | SendOnly | `StopReachesPass` | violated | finding 1, 15 steps |
-| `stop-start` | Stop | `EndedRunsAreIdle` | violated | finding 2, 6 steps |
-| `stop-branch` | Stop | `OneRunPerBranch` | violated | finding 2, 11 steps |
+| `queue` | SendOnly | all but `StopReachesPass` | holds | about 165,000 distinct states |
+| `double-start` | SendOnly | `StopReachesPass` | holds | finding 1, fixed; about 44,000 distinct states |
+| `stop-start` | Stop | `EndedRunsAreIdle` | violated | finding 2, 7 steps |
+| `stop-branch` | Stop | `OneRunPerBranch` | violated | finding 2, 10 steps |
 | `stop-settled` | Stop | `SettledOnce` | violated | finding 2, 11 steps |
 | `stop-stranded` | Stop | `NoStuckRun` | violated | finding 4, 21 steps |
-| `stop-approval` | StopApproval | `EndedRunsAreIdle` | violated | finding 3, 12 steps |
-| `approval-lost` (slowest; run by name) | Approvals | `NoStuckRun` | violated | finding 1, 27 steps |
+| `stop-approval` | StopApproval | `EndedRunsAreIdle` | violated | finding 3, 11 steps |
+| `approval-lost` (slowest; run by name) | Approvals | `NoStuckRun` | holds | finding 1, fixed; about 262,000 distinct states |
 
-## Findings in the current code
+## Findings
+
+`executor.races.test.ts` (next to `executor.ts`) replays each finding's interleaving against PGlite by holding requests at the awaits its trace names.
 
 1. **A run started twice loses its controller.** A turn queued behind a run that finishes just as the turn is sent gets two `startRun` calls: one from its own `createRun` (`executor.start`), one from the finished run's `promoteAfter`. Both pass their checks.
    - Each call does `active.set(run.runId, controller)`. One claim wins, and the loser's `active.delete(run.runId)` removes whatever is there.
    - The executing pass's controller is now gone, so Stop aborts the wrong controller or none (`double-start`).
    - `approval-lost` shows the rarer consequence. If the losing claim's reply lands after the run has paused and a decision has registered its controller, that controller is deleted too. `submitApprovals` then starts no pass, and the run stays `running` with nothing executing. That needs the losing claim to take as long as a whole pass.
+   - **Fixed.** The claim's compare-and-set is the only gate. `claim` sets `active` inside its transaction once its `transitionRun(start)` has won, so a losing claim never touches it, and `execute`'s `finally` releases only its own controller. `submitApprovals` starts the resumed pass with the controller it registered rather than reading `active` back.
 2. **Stop on a run that is starting cancels it under its pass.** `cancel` reads the run as `queued` and finds no controller, so it calls `cancelIdle`. Then `startRun` claims the run and its pass starts. `cancelIdle`'s `transitionRun(cancel)` still succeeds, because `FROM.cancel` includes `running`.
    - The pass runs to the end on a cancelled run (`stop-start`).
    - The run looks finished, so a turn sent after it starts at once while the zombie pass is still writing the answer above it (`stop-branch`).
@@ -93,7 +96,7 @@ Last confirmed against the last commit that changed `model/`: a model change lan
 
 - **One label per await.** A label is one database statement or transaction taking effect, plus the synchronous JavaScript that handles its result up to the next await. Synchronous code never interleaves (one JavaScript thread), so code between two awaits stays in one label. A new await splits a label.
 - **Postgres.** READ COMMITTED. A transaction's writes land together at commit, and reads inside it see other commits. `lockRun`'s `FOR UPDATE` is `locked`: writers to that row wait, readers don't.
-- **Executor memory.** The executor's maps are `active` and `running`. Controllers are numbered per run, and `aborted` holds those `abort()` was called on. `spawned` holds passes in their agent loop; `P_Loop` ends the loop and picks the outcome. A failed outcome lands like a succeeded one here, so it is left out.
+- **Executor memory.** The executor's maps are `active` and `running`. Controllers are numbered per run, and `aborted` holds those `abort()` was called on. A controller enters `active` only in the step whose claim or resume wins. `spawned` holds passes in their agent loop; `P_Loop` ends the loop and picks the outcome. A failed outcome lands like a succeeded one here, so it is left out.
 - **Ghosts.** `ansAbove`, `parent` and `settled` feed only the properties. Each check's `VIEW` (in `RunQueue.tla`) drops data no later step reads, and must keep every ghost its property reads.
 - **Translation.** `RunQueue.tla` keeps its PlusCal untranslated, and `check.ts` translates a scratch copy on every run. Edit the algorithm and the definitions, and leave the `BEGIN`/`END TRANSLATION` markers empty.
 - **Configs.** The `.cfg` files set the bounds; `check.ts` adds `VIEW` and `INVARIANTS`. A request that can never return shows up as a TLC deadlock, which `check.ts` counts against `NoStuckRun`.
