@@ -119,6 +119,12 @@ export interface ChatSidebarProps {
   readonly onSetLastRead?: (id: ConversationId, lastReadAt: string) => void;
   readonly onTogglePin: (id: ConversationId, pinned: boolean) => void;
   /**
+   * What the panel shows when the rail points somewhere other than Chats
+   * (181): Scheduled, Library or Artifacts' own navigation, under New chat
+   * and Search, in place of your Dot and the chat list.
+   */
+  readonly panel?: ReactNode;
+  /**
    * The icon rail is beside it on wide screens (181): Library, Artifacts and
    * the account menu live there, so the panel hides its own from `md` up
    * (they stay in the narrow-screen sheet, which has no rail).
@@ -138,7 +144,7 @@ export interface ChatSidebarProps {
 // padding, the 10px row radius (`rounded-lg`), 14px text, 16px icons, a 5%
 // foreground wash on hover and 8% for the open page.
 export const navRowClass =
-  "flex h-7.5 w-full min-w-0 items-center gap-2 rounded-xl px-2 text-start text-sm outline-none transition-colors duration-(--motion-fast) hover:bg-sidebar-foreground/5 focus-visible:ring-2 focus-visible:ring-sidebar-ring pointer-coarse:h-11 [&_svg]:size-4 [&_svg]:shrink-0";
+  "flex h-7.5 w-full min-w-0 items-center gap-2 rounded-xl px-2 text-start text-sm outline-none transition-colors duration-(--motion-fast) hover:bg-sidebar-foreground/5 focus-visible:ring-2 focus-visible:ring-sidebar-ring pointer-coarse:h-10 [&_svg]:size-4 [&_svg]:shrink-0";
 
 /** A section header: quiet, sentence case, and a button that folds it. */
 const headingClass =
@@ -302,7 +308,7 @@ function ArchivedRow({
   const title = chat.title ?? t`New chat`;
   const restore = useCallback(() => onRestore(chat.id), [chat.id, onRestore]);
   return (
-    <li className="flex h-9 pointer-coarse:h-11 items-center gap-2 rounded-lg ps-2 pe-1 text-sm hover:bg-sidebar-foreground/5">
+    <li className="flex h-9 pointer-coarse:h-10 items-center gap-2 rounded-lg ps-2 pe-1 text-sm hover:bg-sidebar-foreground/5">
       <span className="min-w-0 flex-1 truncate">{title}</span>
       <Button
         aria-label={t`Unarchive ${title}`}
@@ -887,6 +893,34 @@ function Section({
   );
 }
 
+/** The rail destination's panel in place of the chats, when there is one. */
+function PanelOr({
+  children,
+  panel,
+}: {
+  readonly children: ReactNode;
+  readonly panel: ReactNode | undefined;
+}): ReactNode {
+  if (panel === undefined) {
+    return children;
+  }
+  return panel;
+}
+
+/** What shows only with the chats: hidden while a panel replaces them. */
+function ChatsOnly({
+  children,
+  panel,
+}: {
+  readonly children: ReactNode;
+  readonly panel: ReactNode | undefined;
+}): ReactNode {
+  if (panel === undefined) {
+    return children;
+  }
+  return null;
+}
+
 /**
  * The Classic sidebar (009, 176–178, 181), laid out like ChatGPT's: the
  * actions and pages, your Dot, then Priority (chats running, waiting or
@@ -914,6 +948,7 @@ export function ChatSidebar({
   onSelect,
   onSetLastRead,
   onTogglePin,
+  panel,
   signals = noSignals,
   toggle,
   top,
@@ -1152,6 +1187,18 @@ export function ChatSidebar({
       </>
     );
 
+  const listView =
+    view === "archived" ? (
+      <ArchiveView
+        chats={archivedChats}
+        loading={archivedLoading}
+        onBack={closeArchive}
+        onRestore={onRestore}
+      />
+    ) : (
+      chatsView
+    );
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div
@@ -1168,19 +1215,20 @@ export function ChatSidebar({
       </div>
 
       <PrimaryNav {...nav} />
-      {top ? (
-        <div className="px-2 pt-px" data-slot="chat-sidebar-dot">
-          {top}
-        </div>
-      ) : null}
-
-      {selecting ? (
-        <SelectionBar
-          count={selection.ids.size}
-          onArchive={archiveSelected}
-          onClear={clearSelection}
-        />
-      ) : null}
+      <ChatsOnly panel={panel}>
+        {top ? (
+          <div className="px-2 pt-px" data-slot="chat-sidebar-dot">
+            {top}
+          </div>
+        ) : null}
+        {selecting ? (
+          <SelectionBar
+            count={selection.ids.size}
+            onArchive={archiveSelected}
+            onClear={clearSelection}
+          />
+        ) : null}
+      </ChatsOnly>
 
       <div
         className={cn(
@@ -1192,16 +1240,7 @@ export function ChatSidebar({
         ref={fades.ref}
       >
         <div ref={fades.content}>
-          {view === "archived" ? (
-            <ArchiveView
-              chats={archivedChats}
-              loading={archivedLoading}
-              onBack={closeArchive}
-              onRestore={onRestore}
-            />
-          ) : (
-            chatsView
-          )}
+          <PanelOr panel={panel}>{listView}</PanelOr>
         </div>
       </div>
 

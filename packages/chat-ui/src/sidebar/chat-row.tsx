@@ -26,8 +26,10 @@ import { cn } from "@workspace/ui/lib/utils";
 import {
   type MouseEvent,
   memo,
+  type PointerEvent,
   type ReactNode,
   useCallback,
+  useEffect,
   useRef,
   useState,
 } from "react";
@@ -87,6 +89,87 @@ function PickBox({ selected }: { readonly selected: boolean }) {
   );
 }
 
+// The trailing status (unread dot, schedule clock) gives way to the ⋯ where
+// a mouse can hover; on touch there's no hover, so it stays, and a long
+// press opens the actions instead of a ⋯ drawn over it (181).
+const indicatorClass =
+  "transition-opacity duration-(--motion-fast) pointer-fine:group-focus-within/row:opacity-0 pointer-fine:group-hover/row:opacity-0 group-data-menu-open/row:opacity-0";
+
+/** How long a touch rests on a row before its actions open (iOS's beat). */
+const LONG_PRESS_MS = 500;
+/** A finger that drifts further than this is scrolling, not pressing. */
+const LONG_PRESS_SLOP_PX = 10;
+
+/**
+ * A long press on touch, for the row's actions. iOS Safari fires no
+ * `contextmenu` on a long press, so it's timed here; the click that follows
+ * the release is swallowed (`consume`).
+ */
+const useLongPress = (onLongPress: () => void) => {
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const origin = useRef<{ readonly x: number; readonly y: number } | null>(
+    null
+  );
+  const fired = useRef(false);
+  const cancel = useCallback(() => {
+    if (timer.current !== null) {
+      clearTimeout(timer.current);
+      timer.current = null;
+    }
+    origin.current = null;
+  }, []);
+  useEffect(() => cancel, [cancel]);
+  const onPointerDown = useCallback(
+    (event: PointerEvent) => {
+      if (event.pointerType !== "touch") {
+        return;
+      }
+      cancel();
+      fired.current = false;
+      origin.current = { x: event.clientX, y: event.clientY };
+      timer.current = setTimeout(() => {
+        timer.current = null;
+        fired.current = true;
+        onLongPress();
+      }, LONG_PRESS_MS);
+    },
+    [cancel, onLongPress]
+  );
+  const onPointerMove = useCallback(
+    (event: PointerEvent) => {
+      if (
+        // biome-ignore lint/suspicious/noUnnecessaryConditions: a ref the timer and the pointer handlers write; Biome reads only its initial value.
+        origin.current &&
+        Math.hypot(
+          event.clientX - origin.current.x,
+          event.clientY - origin.current.y
+        ) > LONG_PRESS_SLOP_PX
+      ) {
+        cancel();
+      }
+    },
+    [cancel]
+  );
+  /** Whether a long press just fired; reading it resets it. */
+  const consume = useCallback((): boolean => {
+    // biome-ignore lint/suspicious/noUnnecessaryConditions: a ref the timer and the pointer handlers write; Biome reads only its initial value.
+    if (fired.current) {
+      fired.current = false;
+      return true;
+    }
+    return false;
+  }, []);
+  return {
+    consume,
+    handlers: {
+      onPointerCancel: cancel,
+      onPointerDown,
+      onPointerMove,
+      onPointerUp: cancel,
+    },
+  };
+};
+
 /** A clock on rows a schedule targets; the time is in its tooltip. */
 function NextRunMark({ at }: { readonly at: string | null }) {
   const { i18n, t } = useLingui();
@@ -100,7 +183,10 @@ function NextRunMark({ at }: { readonly at: string | null }) {
   });
   return (
     <span
-      className="flex shrink-0 items-center gap-1 text-muted-foreground text-xs transition-opacity duration-(--motion-fast) group-focus-within/row:opacity-0 group-hover/row:opacity-0 group-data-menu-open/row:opacity-0 [&_svg]:size-3"
+      className={cn(
+        "flex shrink-0 items-center gap-1 text-muted-foreground text-xs [&_svg]:size-3",
+        indicatorClass
+      )}
       title={t`Next run: ${when}`}
     >
       <ClockIcon aria-hidden />
@@ -134,7 +220,10 @@ function StatusMark({
   })();
   return (
     <span
-      className="pointer-events-none flex pointer-coarse:hidden size-4 shrink-0 items-center justify-center transition-opacity duration-(--motion-fast) group-focus-within/row:opacity-0 group-hover/row:opacity-0 group-data-menu-open/row:opacity-0"
+      className={cn(
+        "pointer-events-none flex size-4 shrink-0 items-center justify-center",
+        indicatorClass
+      )}
       data-attention={attention}
     >
       <span
@@ -154,19 +243,23 @@ function StatusMark({
   );
 }
 
-// ChatGPT's rhythm (071, 181): 32px rows (44px on touch), regular weight
-// (unread is the dot, not a bold title), an 8% active fill in both themes, and titles that fade out at the end rather than stopping at an
-// ellipsis a button's width early. The ⋯ sits over the fade, which widens
-// while it shows (hover, focus, its menu open, and always on touch).
+// ChatGPT's rhythm (071, 181): 32px rows (40px on touch, with a 44px hit
+// area), regular weight (unread is the dot, not a bold title), an 8% active
+// fill in both themes, and titles that fade out at the end rather than
+// stopping at an ellipsis a button's width early. The ⋯ sits over the fade,
+// which widens while it shows (hover, focus, its menu open). Touch has no ⋯:
+// a long press opens the menu, and the status keeps the row's end.
 const titleFade = cn(
   "ltr:mask-r-from-[calc(100%-1.5rem)] rtl:mask-l-from-[calc(100%-1.5rem)]",
   "ltr:group-hover/row:mask-r-from-[calc(100%-3rem)] ltr:group-hover/row:mask-r-to-[calc(100%-1.75rem)] rtl:group-hover/row:mask-l-from-[calc(100%-3rem)] rtl:group-hover/row:mask-l-to-[calc(100%-1.75rem)]",
   "ltr:group-focus-within/row:mask-r-from-[calc(100%-3rem)] ltr:group-focus-within/row:mask-r-to-[calc(100%-1.75rem)] rtl:group-focus-within/row:mask-l-from-[calc(100%-3rem)] rtl:group-focus-within/row:mask-l-to-[calc(100%-1.75rem)]",
-  "ltr:group-data-menu-open/row:mask-r-from-[calc(100%-3rem)] ltr:group-data-menu-open/row:mask-r-to-[calc(100%-1.75rem)] rtl:group-data-menu-open/row:mask-l-from-[calc(100%-3rem)] rtl:group-data-menu-open/row:mask-l-to-[calc(100%-1.75rem)]",
-  "ltr:pointer-coarse:mask-r-from-[calc(100%-3rem)] ltr:pointer-coarse:mask-r-to-[calc(100%-1.75rem)] rtl:pointer-coarse:mask-l-from-[calc(100%-3rem)] rtl:pointer-coarse:mask-l-to-[calc(100%-1.75rem)]"
+  "ltr:group-data-menu-open/row:mask-r-from-[calc(100%-3rem)] ltr:group-data-menu-open/row:mask-r-to-[calc(100%-1.75rem)] rtl:group-data-menu-open/row:mask-l-from-[calc(100%-3rem)] rtl:group-data-menu-open/row:mask-l-to-[calc(100%-1.75rem)]"
 );
 
-/** A chat in the sidebar; hover or focus shows its actions (rename, pin, archive). */
+/**
+ * A chat in the sidebar; hover or focus shows its actions (rename, pin,
+ * archive), and so does a long press or a right-click.
+ */
 export const ChatRow = memo(function ChatRowInner({
   active,
   attention,
@@ -192,9 +285,19 @@ export const ChatRow = memo(function ChatRowInner({
   const renameAfterClose = useRef(false);
   const title = chat.title ?? t`New chat`;
 
+  const openMenu = useCallback(() => setMenuOpen(true), []);
+  const longPress = useLongPress(openMenu);
+  const { consume: consumeLongPress } = longPress;
+  const openMenuHere = useCallback((event: MouseEvent) => {
+    event.preventDefault();
+    setMenuOpen(true);
+  }, []);
+
   const select = useCallback(
     (event: MouseEvent) => {
-      if (onPick && (event.shiftKey || event.metaKey || event.ctrlKey)) {
+      if (consumeLongPress()) {
+        event.preventDefault();
+      } else if (onPick && (event.shiftKey || event.metaKey || event.ctrlKey)) {
         event.preventDefault();
         onPick(chat, event.shiftKey ? "range" : "toggle");
       } else if (onPick && selecting) {
@@ -203,7 +306,7 @@ export const ChatRow = memo(function ChatRowInner({
         onSelect(chat.id);
       }
     },
-    [chat, onPick, onSelect, selecting]
+    [chat, consumeLongPress, onPick, onSelect, selecting]
   );
   const unread = attention === "unread";
   const toggleUnread = useCallback(
@@ -245,7 +348,7 @@ export const ChatRow = memo(function ChatRowInner({
 
   if (renaming) {
     return (
-      <li className="flex h-8 pointer-coarse:h-11 items-center px-0.5">
+      <li className="flex h-8 pointer-coarse:h-10 items-center px-0.5">
         <RenameInput initial={chat.title ?? ""} onDone={finishRename} />
       </li>
     );
@@ -255,7 +358,7 @@ export const ChatRow = memo(function ChatRowInner({
     <li
       // Off-screen rows skip layout and paint (177); the intrinsic size
       // keeps the scrollbar honest until they're measured.
-      className="group/row relative [contain-intrinsic-block-size:auto_2rem] [content-visibility:auto] pointer-coarse:[contain-intrinsic-block-size:auto_2.75rem]"
+      className="group/row relative [contain-intrinsic-block-size:auto_2rem] [content-visibility:auto] pointer-coarse:[contain-intrinsic-block-size:auto_2.5rem]"
       data-menu-open={menuOpen ? "" : undefined}
       data-selected={selected ? "" : undefined}
     >
@@ -263,16 +366,20 @@ export const ChatRow = memo(function ChatRowInner({
         aria-current={active ? "page" : undefined}
         aria-pressed={selecting ? selected : undefined}
         className={cn(
-          "flex h-8 pointer-coarse:h-11 w-full min-w-0 items-center gap-2 rounded-lg px-2 text-start text-sm outline-none transition-colors duration-(--motion-fast) hover:bg-sidebar-foreground/5 focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+          "relative flex h-8 pointer-coarse:h-10 w-full min-w-0 select-none items-center gap-2 rounded-lg px-2 text-start text-sm outline-none transition-colors duration-(--motion-fast) [-webkit-touch-callout:none] hover:bg-sidebar-foreground/5 focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+          // 40px drawn, 44px to the finger (Apple's minimum hit target).
+          "pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-0.5",
           active && "bg-sidebar-foreground/8 hover:bg-sidebar-foreground/8",
           selected && "bg-sidebar-primary/10 hover:bg-sidebar-primary/15"
         )}
         data-chat-id={chat.id}
         onClick={select}
+        onContextMenu={openMenuHere}
         onFocus={measure}
         onPointerEnter={measure}
         title={truncated ? title : undefined}
         type="button"
+        {...longPress.handlers}
       >
         {selecting ? <PickBox selected={selected} /> : null}
         <span
@@ -290,12 +397,13 @@ export const ChatRow = memo(function ChatRowInner({
       <DropdownMenu
         onOpenChange={setMenuOpen}
         onOpenChangeComplete={onMenuOpenChangeComplete}
+        open={menuOpen}
       >
         <DropdownMenuTrigger
           render={
             <Button
               aria-label={t`Actions for ${title}`}
-              className="absolute end-1.5 top-1/2 -translate-y-1/2 opacity-0 pointer-coarse:opacity-100 focus-visible:opacity-100 group-focus-within/row:opacity-100 group-hover/row:opacity-100 aria-expanded:opacity-100"
+              className="pointer-coarse:pointer-events-none absolute end-1.5 top-1/2 -translate-y-1/2 opacity-0 focus-visible:opacity-100 pointer-fine:group-focus-within/row:opacity-100 pointer-fine:group-hover/row:opacity-100 aria-expanded:opacity-100"
               size="icon-xs"
               variant="ghost"
             />

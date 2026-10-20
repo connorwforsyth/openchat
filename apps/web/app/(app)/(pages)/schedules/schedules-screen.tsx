@@ -18,10 +18,19 @@ import {
 } from "@workspace/ui/components/empty";
 import { Input } from "@workspace/ui/components/input";
 import { Tabs, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
-import { type ChangeEvent, useCallback, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import {
+  type ChangeEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { useApi } from "@/app/(app)/_shared/api";
 import { QueryState } from "@/app/(app)/_shared/query-state";
+import { routeParams } from "@/lib/routes";
 
 import { ScheduleEditor, type ScheduleSeed } from "./schedule-editor";
 import { ScheduleRow } from "./schedule-list";
@@ -82,6 +91,26 @@ export function SchedulesScreen() {
     (schedule: Schedule) => setEditing({ schedule, seed: null }),
     []
   );
+  // The rail panel links here with `?edit=<id>` or `?edit=new` (181): open
+  // that one in the editor, once per link followed.
+  const asked = useSearchParams().get(routeParams.edit);
+  const handled = useRef<string | null>(null);
+  const loaded = schedules.data;
+  useEffect(() => {
+    if (!asked || handled.current === asked) {
+      return;
+    }
+    if (asked === "new") {
+      handled.current = asked;
+      setEditing({ schedule: null, seed: null });
+      return;
+    }
+    const found = loaded?.find((schedule) => schedule.id === asked);
+    if (found) {
+      handled.current = asked;
+      setEditing({ schedule: found, seed: null });
+    }
+  }, [asked, loaded]);
   const close = useCallback((open: boolean) => {
     if (!open) {
       setEditing(null);
