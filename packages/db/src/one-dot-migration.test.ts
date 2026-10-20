@@ -34,6 +34,7 @@ const migratedBefore = async (before: string): Promise<PGlite> => {
 };
 
 const MODEL = JSON.stringify({ model: "test:model", type: "model" });
+const CUT = "\n[Cut to fit the 4,000-character prompt limit.]";
 
 describe("the one-Dot migration", () => {
   it("keeps the primary Dot and turns an extra Dot's schedules into guarded chat schedules", async () => {
@@ -56,7 +57,7 @@ describe("the one-Dot migration", () => {
       randomUUID(),
       randomUUID(),
     ];
-    const long = `Summarise the week. ${"x".repeat(3940)}`;
+    const long = `Summarise the week. ${"x".repeat(3920)}`;
     const [message, extraRun] = [randomUUID(), randomUUID()];
 
     await db.query(
@@ -79,7 +80,7 @@ describe("the one-Dot migration", () => {
       [primary, extra, bos, ann, primaryChat, extraChat, bo, MODEL, boChat]
     );
     await db.query(
-      `insert into dot (id, owner_id, conversation_id, name, handle, target, created_at, enabled, instructions, rules) values ($1, $2, $3, 'Weekly', 'weekly', $4, '2026-10-03', false, E'\n  Keep it short.\n', E' \n')`,
+      `insert into dot (id, owner_id, conversation_id, name, handle, target, created_at, enabled, instructions, rules) values ($1, $2, $3, 'Weekly', 'weekly', $4, '2026-10-03', false, E'\n  Keep it short. Lead with what changed.\n', E' \n')`,
       [off, ann, offChat, MODEL]
     );
     await db.query(
@@ -161,11 +162,7 @@ describe("the one-Dot migration", () => {
         next_run_at: null,
         owner_id: ann,
         paused_reason: "user",
-        prompt:
-          `${long}\n\nStanding instructions from the owner:\nKeep it short.`.slice(
-            0,
-            4000
-          ),
+        prompt: `${long}${"\n\nStanding instructions from the owner:\nKeep it short. Lead with what changed.".slice(0, 4000 - long.length - CUT.length)}${CUT}`,
         read_only: true,
         target_kind: "conversation",
         title: long.slice(0, 60),
