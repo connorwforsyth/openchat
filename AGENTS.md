@@ -228,7 +228,8 @@ frozen interfaces parallel work builds against.
 The product's name is a working codename and will change. It may appear only
 in: the `brand:` block of `app.config.yaml` / `app.config.example.yaml`, the
 root `package.json` `name`, Docker image and container names, `PLAN.md`,
-`.wayfinder/`, `.github/` and `bun.lock`. Everywhere else, read the name from
+`.wayfinder/`, `.github/`, `bun.lock`, and dated history (`.context/`,
+`docs/decisions/`). Everywhere else, read the name from
 config at runtime. Packages use `@workspace/*`, never the brand.
 
 ## CI guards (`scripts/ci/`)

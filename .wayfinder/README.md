@@ -4,6 +4,10 @@ No issue tracker is configured for this repo, so wayfinder uses the
 local-markdown tracker (the same conventions as the doma repo). Conventions:
 
 - The map is `map.md` (label: `wayfinder:map`).
+- A separate effort can have its own map, `<name>-map.md` (today `ios-map.md`,
+  id 300). Its tickets live in the same `tickets/` folder with `map: "<map id>"`
+  in their front matter, so the loop and `frontier.ts` see them like any other.
+  Tickets without `map:` belong to `map.md`.
 - Tickets are `tickets/<id>-<slug>.md`. Ids are zero-padded and monotonic; split
   sub-tickets take the next free id.
 - Each ticket's front matter carries `id`, `title`, `labels`, `status`,
@@ -15,6 +19,8 @@ local-markdown tracker (the same conventions as the doma repo). Conventions:
 - A build ticket is closed only when its PR has **merged** into `main`.
 - Resolutions are appended to the ticket under `## Resolution (date, who)`, and
   gisted into the map's *Decisions so far* (or *Built*) with a link.
+- Work only Connor can do (an account, a purchase, a local install) is a
+  `wayfinder:task` with `assignee: connor`, so the loop never claims it.
 - Labels: `wayfinder:build`, `wayfinder:task`, `wayfinder:research` (AFK),
   `wayfinder:grilling` and `wayfinder:prototype` (HITL: they need Connor).
 
