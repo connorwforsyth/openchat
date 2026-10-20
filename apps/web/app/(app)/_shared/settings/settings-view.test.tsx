@@ -4,6 +4,8 @@ import type { Space } from "@workspace/contract/schemas/spaces";
 import { useCallback, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
+import { AppFrameProvider } from "@/app/(app)/_shared/app-frame";
+import { testFrame } from "@/app/(app)/_shared/frame-fixture";
 import { fakeApi, renderWithApi } from "@/app/(app)/_shared/test-harness";
 import type { SettingsRoute, SettingsSection } from "./settings-route";
 import { SettingsView } from "./settings-view";
@@ -53,8 +55,9 @@ const Harness = ({
     (section?: SettingsSection) => setRoute(section ?? "index"),
     []
   );
+  // Appearance reads the sidebar layout from the frame (181).
   return (
-    <>
+    <AppFrameProvider value={testFrame()}>
       <button onClick={open} type="button">
         Open settings
       </button>
@@ -65,7 +68,7 @@ const Harness = ({
         route={route}
         space={space}
       />
-    </>
+    </AppFrameProvider>
   );
 };
 
