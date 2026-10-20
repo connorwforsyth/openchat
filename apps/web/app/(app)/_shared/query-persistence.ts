@@ -110,16 +110,17 @@ export const pickPersisted = (client: PersistedClient): PersistedClient => {
 };
 
 /**
- * A conversation's stored messages restore as stale, so they render at
- * once and refetch on mount. Restored with their fetch time they'd count as
- * fresh for `staleTime`, and a reload soon after activity would show an
- * answer as it was minutes ago: no approval card, "stopped early" on one
- * still running (072, audit F2). The shell's queries keep their age.
+ * Everything restores as stale, so it renders at once and refetches on
+ * mount. The snapshot trails the cache (writes are batched and an unload
+ * drops the last one), so its fetch times overstate how current it is.
+ * Restored with them, a reload soon after activity counted as fresh for
+ * `staleTime`: an answer as it was minutes ago (072, audit F2), or a new
+ * chat listed without its title.
  */
-const revalidated = (query: DehydratedQuery): DehydratedQuery =>
-  CONVERSATION_PATHS.has(pathOf(query.queryKey))
-    ? { ...query, state: { ...query.state, isInvalidated: true } }
-    : query;
+const revalidated = (query: DehydratedQuery): DehydratedQuery => ({
+  ...query,
+  state: { ...query.state, isInvalidated: true },
+});
 
 /**
  * An IndexedDB persister. Every storage call can fail (private windows,

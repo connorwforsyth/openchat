@@ -4,10 +4,33 @@ import {
   conversationScheduleSchema,
   createScheduleInputSchema,
   scheduleRecurrenceSchema,
+  scheduleRunSchema,
   scheduleTargetSchema,
 } from "./schedules";
 
 const CONVERSATION = "0199f0c4-6d1c-7000-8000-000000000001";
+
+const slot = {
+  conversationId: CONVERSATION,
+  createdAt: "2026-10-20T07:00:00.000Z",
+  id: "0199f0c4-6d1c-7000-8000-000000000002",
+  missedSlots: 0,
+  nominalAt: "2026-10-20T07:00:00.000Z",
+  notified: false,
+  readAt: null,
+  scheduleId: "0199f0c4-6d1c-7000-8000-000000000003",
+  trigger: "scheduled",
+};
+
+const started = {
+  ...slot,
+  error: null,
+  finishedAt: null,
+  outcome: null,
+  runId: "0199f0c4-6d1c-7000-8000-000000000004",
+  status: "running",
+  summary: null,
+};
 
 describe("schedule schemas", () => {
   it("round-trips each target", () => {
@@ -86,5 +109,28 @@ describe("schedule schemas", () => {
         title: "Heartbeat",
       }).status
     ).toBe("paused");
+  });
+
+  it("parses a run in flight and a skipped slot as the two run shapes", () => {
+    expect(scheduleRunSchema.parse(started)).toEqual(started);
+    const skipped = { ...slot, outcome: "skipped", skipReason: "cap" };
+    expect(scheduleRunSchema.parse(skipped)).toEqual(skipped);
+  });
+
+  it("refuses a skipped slot without a reason", () => {
+    expect(
+      scheduleRunSchema.safeParse({ ...slot, outcome: "skipped" }).success
+    ).toBe(false);
+  });
+
+  it("refuses a run that isn't skipped but has no run", () => {
+    expect(
+      scheduleRunSchema.safeParse({
+        ...started,
+        outcome: "update",
+        runId: null,
+        status: null,
+      }).success
+    ).toBe(false);
   });
 });
