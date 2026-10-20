@@ -207,11 +207,12 @@ const VNC_RUNNING = "if pgrep -x x11vnc >/dev/null; then";
  * flag, so the flag is set before input turns on and cleared only once it's
  * off. A VNC server that isn't running reads the flag when it restarts
  * (`desktop-session`); one that is running and won't switch fails the
- * command. Pure.
+ * command, and a take that fails clears the flag so the agent can still
+ * drive. Pure.
  */
 export const controlCommand = (holder: ComputerHolder): string =>
   holder === "user"
-    ? `touch ${CONTROL_FLAG} && ${VNC_RUNNING} x11vnc -sync -R noviewonly; fi`
+    ? `touch ${CONTROL_FLAG} && { ${VNC_RUNNING} x11vnc -sync -R noviewonly; fi || { rm -f ${CONTROL_FLAG}; exit 1; }; }`
     : `${VNC_RUNNING} x11vnc -sync -R viewonly; fi && rm -f ${CONTROL_FLAG}`;
 
 /** Prints who has control: `user` or `agent`. */
