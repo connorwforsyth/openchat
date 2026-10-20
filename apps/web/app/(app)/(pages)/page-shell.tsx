@@ -20,6 +20,7 @@ import { useApi } from "@/app/(app)/_shared/api";
 import { canAdmin, useAppFrame } from "@/app/(app)/_shared/app-frame";
 import { Brand } from "@/app/(app)/_shared/brand";
 import { useShellPlatform } from "@/app/(app)/_shared/desktop";
+import { SpaceSwitcher } from "@/app/(app)/_shared/spaces/space-switcher";
 import { routes } from "@/lib/routes";
 
 // Library, settings and admin inside the app shell (009): the same sidebar
@@ -38,6 +39,9 @@ const SectionTitle = ({ pathname }: { readonly pathname: string }) => {
   }
   if (pathname.startsWith(routes.admin)) {
     return <Trans>Admin</Trans>;
+  }
+  if (pathname.startsWith(routes.space)) {
+    return <Trans>Space</Trans>;
   }
   return <Trans>Settings</Trans>;
 };
@@ -140,7 +144,7 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
           }}
           activeId={null}
           artifactsHref={routes.artifacts}
-          brand={<Brand config={frame.config} />}
+          brand={<SpaceSwitcher fallback={<Brand config={frame.config} />} />}
           chats={chats.data?.items ?? []}
           libraryHref={routes.library}
           onNewChat={newChat}

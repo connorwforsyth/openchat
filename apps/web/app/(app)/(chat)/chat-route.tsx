@@ -37,6 +37,7 @@ import { canAdmin, useAppFrame } from "@/app/(app)/_shared/app-frame";
 import { Brand } from "@/app/(app)/_shared/brand";
 import { useShellPlatform } from "@/app/(app)/_shared/desktop";
 import { createApiSandboxClient } from "@/app/(app)/_shared/sandbox-client";
+import { SpaceSwitcher } from "@/app/(app)/_shared/spaces/space-switcher";
 import { useAfterBoot } from "@/app/(app)/_shared/use-after-boot";
 import { routeParams, routes } from "@/lib/routes";
 
@@ -476,7 +477,7 @@ export function ChatRoute({
       agents={agents}
       artifactsHref={routes.artifacts}
       artifactsRuntimeOrigin={artifactsRuntimeOrigin}
-      brand={<Brand config={config} />}
+      brand={<SpaceSwitcher fallback={<Brand config={config} />} />}
       client={client}
       config={config}
       conversationId={conversationId}

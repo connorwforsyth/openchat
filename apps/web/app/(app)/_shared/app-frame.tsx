@@ -59,6 +59,11 @@ import {
   type SettingsSection,
 } from "./settings/settings-route";
 import { SHELL_LAYOUT_KEY, SIDEBAR_ATTRIBUTE } from "./shell-prepaint";
+import {
+  readActiveSpace,
+  spaceFromQuery,
+  writeActiveSpace,
+} from "./spaces/active-space";
 import { useAfterBoot } from "./use-after-boot";
 
 // The signed-in app's client frame (039): the query cache (persisted to
@@ -293,9 +298,23 @@ const Frame = ({
   const layout = useSharedShellLayout();
   const { setTheme, theme } = useFrameTheme();
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const [draftContext, setDraftContext] = useState<ChatContext>({
+  const [draftContext, setDraftContextState] = useState<ChatContext>({
     type: "personal",
   });
+  // The active space (191) is remembered per browser; read after mount so
+  // the server render and the first client render agree.
+  // A link to one space's settings (`?space=team:<id>`) makes it active.
+  useEffect(() => {
+    const linked = spaceFromQuery(window.location.search);
+    if (linked) {
+      writeActiveSpace(window.localStorage, linked);
+    }
+    setDraftContextState(linked ?? readActiveSpace(window.localStorage));
+  }, []);
+  const setDraftContext = useCallback((context: ChatContext) => {
+    setDraftContextState(context);
+    writeActiveSpace(window.localStorage, context);
+  }, []);
   const [target, setTarget] = useState<RunTarget | null>(null);
   const [paletteContext, setPaletteContext] = useState<
     PaletteContext | undefined
@@ -335,6 +354,7 @@ const Frame = ({
     [
       config,
       draftContext,
+      setDraftContext,
       layout,
       me,
       onSignOut,

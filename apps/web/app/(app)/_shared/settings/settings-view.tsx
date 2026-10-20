@@ -2,15 +2,21 @@
 
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useNarrowScreen } from "@workspace/chat-ui/shell/use-narrow-screen";
+import type { OrgId } from "@workspace/contract/schemas/common";
+import type { Space } from "@workspace/contract/schemas/spaces";
 import {
   ArrowLeftIcon,
   BrainIcon,
   ChevronLeftIcon,
+  EyeIcon,
   KeyboardIcon,
   KeyRoundIcon,
+  NetworkIcon,
   PaletteIcon,
   ShieldIcon,
   UserIcon,
+  UsersIcon,
+  WalletIcon,
 } from "@workspace/icons";
 import { ShortcutsEditor } from "@workspace/shortcuts/react/shortcuts-editor";
 import { Button } from "@workspace/ui/components/button";
@@ -22,16 +28,28 @@ import {
 import { cn } from "@workspace/ui/lib/utils";
 import { type MouseEvent, type ReactNode, useCallback } from "react";
 
+import { AuditPolicy } from "@/app/(app)/(pages)/admin/_components/audit-policy";
+import { OrgPolicyForm } from "@/app/(app)/(pages)/admin/_components/org-policy-form";
+import { UsageAdmin } from "@/app/(app)/(pages)/admin/_components/usage-admin";
+import { useActiveSpace } from "../spaces/space-switcher";
 import { AppearanceSettings } from "./appearance-settings";
 import { MemorySettings } from "./memory-settings";
 import { PersonalKeys } from "./personal-keys";
 import { ProfileSettings } from "./profile-settings";
 import {
   DEFAULT_SETTINGS_SECTION,
+  PERSONAL_SECTIONS,
   type SettingsRoute,
   type SettingsSection,
+  SPACE_SECTIONS,
   settingsSectionSchema,
 } from "./settings-route";
+import {
+  SpaceAllowance,
+  SpaceKeys,
+  SpaceMembers,
+  SubSpaces,
+} from "./space-settings";
 
 // Settings as a full-screen view (185): while it's open the app sidebar is
 // replaced by the settings sidebar ("Back to app", then the sections) and the
@@ -52,7 +70,29 @@ interface SectionInfo {
   readonly title: ReactNode;
 }
 
-const sectionInfo = (section: SettingsSection): SectionInfo => {
+/** Whether a space section applies to the active space. */
+const spaceSectionShown = (
+  section: SettingsSection,
+  space: Space | undefined
+): boolean => {
+  if (!space || space.isPersonal) {
+    return false;
+  }
+  switch (section) {
+    case "space-keys":
+      return space.canManage;
+    case "space-budgets":
+    case "space-policies":
+    case "space-audit":
+      // Policies and audit are a root space's (the org's, D17).
+      return space.type === "org" && space.canManage;
+    default:
+      return true;
+  }
+};
+
+const sectionInfo = (section: SettingsSection, space?: Space): SectionInfo => {
+  const name = space?.name ?? "";
   switch (section) {
     case "profile":
       return {
@@ -105,6 +145,90 @@ const sectionInfo = (section: SettingsSection): SectionInfo => {
         label: <Trans>Appearance</Trans>,
         title: <Trans>Appearance</Trans>,
       };
+    case "space-members":
+      return {
+        content: <SpaceMembers />,
+        description: (
+          <Trans>
+            Who is in {name}. Owners add people from the space above and promote
+            them.
+          </Trans>
+        ),
+        icon: <UsersIcon />,
+        label: <Trans>Members</Trans>,
+        title: <Trans>Members of {name}</Trans>,
+      };
+    case "space-subspaces":
+      return {
+        content: <SubSpaces />,
+        description: (
+          <Trans>
+            What's shared in {name} is visible in every space below it, never
+            above or beside it.
+          </Trans>
+        ),
+        icon: <NetworkIcon />,
+        label: <Trans>Sub-spaces</Trans>,
+        title: <Trans>Sub-spaces of {name}</Trans>,
+      };
+    case "space-allowance":
+      return {
+        content: <SpaceAllowance />,
+        description: (
+          <Trans>
+            A monthly token pool for {name}. Members draw on it once an owner
+            approves their request.
+          </Trans>
+        ),
+        icon: <WalletIcon />,
+        label: <Trans>Token allowance</Trans>,
+        title: <Trans>Token allowance</Trans>,
+      };
+    case "space-keys":
+      return {
+        content: <SpaceKeys />,
+        description: (
+          <Trans>
+            Provider keys {name}'s chats use, and the tokens each one has paid
+            for this month.
+          </Trans>
+        ),
+        icon: <KeyRoundIcon />,
+        label: <Trans>Keys and usage</Trans>,
+        title: <Trans>Keys and usage</Trans>,
+      };
+    case "space-budgets":
+      return {
+        content: space ? <UsageAdmin orgId={space.id as OrgId} /> : null,
+        description: (
+          <Trans>
+            Spending limits in money for {name}, its sub-spaces and members.
+          </Trans>
+        ),
+        icon: <WalletIcon />,
+        label: <Trans>Budgets and usage</Trans>,
+        title: <Trans>Budgets and usage</Trans>,
+      };
+    case "space-policies":
+      return {
+        content: space ? <OrgPolicyForm orgId={space.id as OrgId} /> : null,
+        description: (
+          <Trans>
+            Choices for {name}, within the limits this server's configuration
+            sets.
+          </Trans>
+        ),
+        icon: <ShieldIcon />,
+        label: <Trans>Policies</Trans>,
+        title: <Trans>Policies</Trans>,
+      };
+    case "space-audit":
+      return {
+        content: space ? <AuditPolicy orgId={space.id as OrgId} /> : null,
+        icon: <EyeIcon />,
+        label: <Trans>Audit policy</Trans>,
+        title: <Trans>Audit policy</Trans>,
+      };
     default: {
       const unreachable: never = section;
       return unreachable;
@@ -120,8 +244,10 @@ const SectionList = ({
   onClose,
   onOpenAdmin,
   onSelect,
+  space,
 }: {
   readonly current: SettingsSection | null;
+  readonly space: Space | undefined;
   readonly onClose: () => void;
   readonly onOpenAdmin?: () => void;
   readonly onSelect: (section: SettingsSection) => void;
@@ -145,27 +271,15 @@ const SectionList = ({
         <Trans>Back to app</Trans>
       </button>
       <ul className="flex flex-col gap-0.5">
-        {settingsSectionSchema.options.map((section) => {
-          const info = sectionInfo(section);
-          const selected = section === current;
-          return (
-            <li key={section}>
-              <button
-                aria-current={selected ? "page" : undefined}
-                className={cn(
-                  itemClass,
-                  selected && "bg-sidebar-accent text-sidebar-accent-foreground"
-                )}
-                data-section={section}
-                onClick={select}
-                type="button"
-              >
-                {info.icon}
-                {info.label}
-              </button>
-            </li>
-          );
-        })}
+        {PERSONAL_SECTIONS.map((section) => (
+          <SectionItem
+            key={section}
+            onSelect={select}
+            section={section}
+            selected={section === current}
+            space={space}
+          />
+        ))}
         {onOpenAdmin ? (
           <li>
             <button className={itemClass} onClick={onOpenAdmin} type="button">
@@ -175,7 +289,58 @@ const SectionList = ({
           </li>
         ) : null}
       </ul>
+      {space && !space.isPersonal ? (
+        <div className="flex flex-col gap-1">
+          <h2 className="px-2 font-medium text-muted-foreground text-xs">
+            <Trans>Space: {space.name}</Trans>
+          </h2>
+          <ul className="flex flex-col gap-0.5">
+            {SPACE_SECTIONS.filter((section) =>
+              spaceSectionShown(section, space)
+            ).map((section) => (
+              <SectionItem
+                key={section}
+                onSelect={select}
+                section={section}
+                selected={section === current}
+                space={space}
+              />
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </nav>
+  );
+};
+
+const SectionItem = ({
+  onSelect,
+  section,
+  selected,
+  space,
+}: {
+  readonly onSelect: (event: MouseEvent<HTMLButtonElement>) => void;
+  readonly section: SettingsSection;
+  readonly selected: boolean;
+  readonly space: Space | undefined;
+}) => {
+  const info = sectionInfo(section, space);
+  return (
+    <li>
+      <button
+        aria-current={selected ? "page" : undefined}
+        className={cn(
+          itemClass,
+          selected && "bg-sidebar-accent text-sidebar-accent-foreground"
+        )}
+        data-section={section}
+        onClick={onSelect}
+        type="button"
+      >
+        {info.icon}
+        {info.label}
+      </button>
+    </li>
   );
 };
 
@@ -193,11 +358,12 @@ export const SettingsView = ({
   readonly route: SettingsRoute;
 }) => {
   const narrow = useNarrowScreen();
+  const { active: space } = useActiveSpace();
   const open = route !== null;
   const showing = route ?? "index";
   const fallback = narrow ? null : DEFAULT_SETTINGS_SECTION;
   const section = showing === "index" ? fallback : showing;
-  const info = section ? sectionInfo(section) : null;
+  const info = section ? sectionInfo(section, space) : null;
 
   const openChange = useCallback(
     (next: boolean) => {
@@ -234,6 +400,7 @@ export const SettingsView = ({
               onClose={onClose}
               onOpenAdmin={onOpenAdmin}
               onSelect={onSelect}
+              space={space}
             />
           </aside>
         )}

@@ -311,6 +311,7 @@ describe("spaces.keyUsage", () => {
     expect(usage.rows).toEqual([
       expect.objectContaining({
         costMicros: 350,
+        createdBy: expect.objectContaining({ name: "Owner" }),
         keyId: key?.id,
         label: "Brand team key",
         tokens: 350,

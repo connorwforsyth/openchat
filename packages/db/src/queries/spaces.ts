@@ -40,7 +40,10 @@ const heldBySpaces = (spaces: readonly SpaceRef[]): SQL =>
 
 export interface SpaceContentRow {
   readonly grantedAt: Date;
-  readonly grantedBy: typeof user.$inferSelect;
+  readonly grantedBy: Pick<
+    typeof user.$inferSelect,
+    "email" | "id" | "image" | "name"
+  >;
   readonly resourceId: string;
   readonly resourceType: SpaceContentType;
   readonly space: SpaceRef;
@@ -60,7 +63,11 @@ export const listSpaceContent = async (
       agentName: agent.name,
       chatTitle: conversation.title,
       grant: resourceGrant,
-      grantedBy: user,
+      // Named fields: whole tables would collide on `id` and `created_at`.
+      granterEmail: user.email,
+      granterId: user.id,
+      granterImage: user.image,
+      granterName: user.name,
       skillName: skill.name,
     })
     .from(resourceGrant)
@@ -102,7 +109,12 @@ export const listSpaceContent = async (
     return [
       {
         grantedAt: row.grant.createdAt,
-        grantedBy: row.grantedBy,
+        grantedBy: {
+          email: row.granterEmail,
+          id: row.granterId,
+          image: row.granterImage,
+          name: row.granterName,
+        },
         resourceId: row.grant.resourceId,
         resourceType: row.grant.resourceType as SpaceContentType,
         space: {
@@ -308,7 +320,10 @@ export interface KeyUsageRow {
   readonly costMicros: number;
   readonly key:
     | (typeof providerKey.$inferSelect & {
-        readonly creator: typeof user.$inferSelect | null;
+        readonly creator: Pick<
+          typeof user.$inferSelect,
+          "email" | "id" | "image" | "name"
+        > | null;
       })
     | null;
   readonly tokens: number;
@@ -327,7 +342,15 @@ export const keyUsageForSpace = async (
 ): Promise<KeyUsageRow[]> => {
   const { from, to } = monthOf(now);
   const keys = await db
-    .select({ creator: user, key: providerKey })
+    // Named fields: selecting both whole tables collides on `id` and
+    // `created_at`, and the joined user comes back empty.
+    .select({
+      creatorEmail: user.email,
+      creatorId: user.id,
+      creatorImage: user.image,
+      creatorName: user.name,
+      key: providerKey,
+    })
     .from(providerKey)
     .leftJoin(user, eq(user.id, providerKey.createdBy))
     .where(
@@ -355,8 +378,18 @@ export const keyUsageForSpace = async (
     )
     .groupBy(transaction.providerKeyId);
   const byKey = new Map(sums.map((row) => [row.keyId ?? "", row]));
-  const rows: KeyUsageRow[] = keys.map(({ creator, key }) => {
+  const rows: KeyUsageRow[] = keys.map((row) => {
+    const { key } = row;
     const sum = byKey.get(key.id);
+    const creator =
+      row.creatorId && row.creatorEmail && row.creatorName
+        ? {
+            email: row.creatorEmail,
+            id: row.creatorId,
+            image: row.creatorImage,
+            name: row.creatorName,
+          }
+        : null;
     return {
       costMicros: Number(sum?.cost ?? 0),
       key: { ...key, creator },

@@ -53,6 +53,14 @@ export const routes = {
   signUp: "/sign-up",
   signUpForInvite: (token: string) =>
     withQuery("/sign-up", { [routeParams.invite]: token }),
+  /** The active space's shared chats, agents and skills (187). */
+  space: "/space",
+  /** Settings for one space, which becomes the active one (187). */
+  spaceSettings: (
+    space: { id: string; type: "org" | "team" },
+    section: string
+  ) =>
+    `/settings/${section}?${new URLSearchParams({ space: `${space.type}:${space.id}` })}`,
 } as const;
 
 const SAFE_NEXT = /^\/(?![/\\])[^\s\\]*$/;

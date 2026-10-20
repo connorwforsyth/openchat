@@ -14,7 +14,23 @@ export const settingsSectionSchema = z.enum([
   "memory",
   "shortcuts",
   "appearance",
+  // The active space's (187): shown under its name, not with yours.
+  "space-members",
+  "space-subspaces",
+  "space-allowance",
+  "space-keys",
+  "space-budgets",
+  "space-policies",
+  "space-audit",
 ]);
+
+/** Sections about you, then sections about the active space. */
+export const PERSONAL_SECTIONS = settingsSectionSchema.options.filter(
+  (section) => !section.startsWith("space-")
+);
+export const SPACE_SECTIONS = settingsSectionSchema.options.filter((section) =>
+  section.startsWith("space-")
+);
 
 export type SettingsSection = z.infer<typeof settingsSectionSchema>;
 
