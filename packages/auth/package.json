@@ -11,6 +11,7 @@
     "./handlers": "./src/handlers/index.ts",
     "./handlers/context": "./src/handlers/context.ts",
     "./microsoft": "./src/microsoft.ts",
+    "./ports/*": "./src/ports/*.ts",
     "./resources": "./src/resources.ts",
     "./server": "./src/server.ts",
     "./signup": "./src/signup.ts",
