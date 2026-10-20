@@ -138,7 +138,7 @@ export interface ChatSidebarProps {
 // padding, the 10px row radius (`rounded-lg`), 14px text, 16px icons, a 5%
 // foreground wash on hover and 8% for the open page.
 export const navRowClass =
-  "flex h-7.5 w-full min-w-0 items-center gap-2 rounded-xl px-2 text-start text-sm outline-none transition-colors duration-(--motion-fast) hover:bg-sidebar-foreground/5 focus-visible:ring-2 focus-visible:ring-sidebar-ring pointer-coarse:h-11 [&_svg]:size-4 [&_svg]:shrink-0";
+  "flex h-7.5 w-full min-w-0 items-center gap-2 rounded-xl px-2 text-start text-sm outline-none transition-colors duration-(--motion-fast) hover:bg-sidebar-foreground/5 focus-visible:ring-2 focus-visible:ring-sidebar-ring pointer-coarse:h-10 [&_svg]:size-4 [&_svg]:shrink-0";
 
 /** A section header: quiet, sentence case, and a button that folds it. */
 const headingClass =
@@ -302,7 +302,7 @@ function ArchivedRow({
   const title = chat.title ?? t`New chat`;
   const restore = useCallback(() => onRestore(chat.id), [chat.id, onRestore]);
   return (
-    <li className="flex h-9 pointer-coarse:h-11 items-center gap-2 rounded-lg ps-2 pe-1 text-sm hover:bg-sidebar-foreground/5">
+    <li className="flex h-9 pointer-coarse:h-10 items-center gap-2 rounded-lg ps-2 pe-1 text-sm hover:bg-sidebar-foreground/5">
       <span className="min-w-0 flex-1 truncate">{title}</span>
       <Button
         aria-label={t`Unarchive ${title}`}
