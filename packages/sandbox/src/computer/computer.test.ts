@@ -25,7 +25,7 @@ const fakeHost = (exitCode = 0) => {
   const sandbox = {
     exec: (command: string) => {
       commands.push(command);
-      if (command === `touch ${CONTROL_FLAG}`) {
+      if (command.startsWith(`touch ${CONTROL_FLAG}`)) {
         userHas = true;
       }
       return Promise.resolve(
@@ -146,5 +146,14 @@ describe("the live view", () => {
     );
     const taken = await computers.setControl(conversationId, "user");
     expect(taken).toMatchObject({ ok: true, value: { holder: "user" } });
+  });
+
+  it("fails the hand-over when the VNC server won't switch input", async () => {
+    const { host } = fakeHost(1);
+    const computers = createComputers({ host });
+    expect(await computers.setControl(conversationId, "agent")).toMatchObject({
+      error: { type: "unavailable" },
+      ok: false,
+    });
   });
 });

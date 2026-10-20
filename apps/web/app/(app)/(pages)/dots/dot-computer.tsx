@@ -5,11 +5,17 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ConversationId } from "@workspace/contract/schemas/common";
 import type { Dot } from "@workspace/contract/schemas/dots";
 import { KeyboardIcon, MonitorIcon, RotateCcwIcon } from "@workspace/icons";
+import {
+  type ComputerView,
+  computerViewSchema,
+} from "@workspace/server/dots/computer-view";
 import { Button } from "@workspace/ui/components/button";
 import { useCallback } from "react";
 import { z } from "zod";
+import { codeOf } from "@/app/(app)/_shared/query-state";
 import type { DotSurfaceProps } from "./dot-extensions";
 import { DOTS_REFRESH_MS, useDotForConversation } from "./dot-home";
+import { useScreenLink } from "./screen-link";
 
 // A Dot's own computer, live (172): pinned above the Workspace panel in the
 // Dot's chat (the bar's "Computer" button opens it) and the body of the
@@ -19,27 +25,22 @@ import { DOTS_REFRESH_MS, useDotForConversation } from "./dot-home";
 // `computer` tool refuse input until "Give back control". Nothing renders
 // for an ordinary chat.
 
-const viewSchema = z.object({
-  holder: z.enum(["user", "agent"]),
-  url: z.url(),
-});
-type ComputerView = z.infer<typeof viewSchema>;
-
 const computerPath = (conversationId: string) =>
   `/api/computer/${conversationId}`;
 
+const problemSchema = z.object({ code: z.string() });
+
+/** The view, or a failure carrying the server's `code` for `codeOf`. */
 const readView = async (response: Response): Promise<ComputerView> => {
   if (!response.ok) {
-    throw new Error(String(response.status));
+    const body = problemSchema.safeParse(
+      await response.json().catch(() => null)
+    );
+    throw Object.assign(new Error(String(response.status)), {
+      code: body.success ? body.data.code : null,
+    });
   }
-  return viewSchema.parse(await response.json());
-};
-
-/** The view's URL with input on or off. */
-const screenUrl = (view: ComputerView) => {
-  const url = new URL(view.url);
-  url.searchParams.set("view_only", view.holder === "user" ? "0" : "1");
-  return url.toString();
+  return computerViewSchema.parse(await response.json());
 };
 
 const viewKey = (conversationId: ConversationId) =>
@@ -90,8 +91,13 @@ export function DotComputerView({ dot }: { readonly dot: Dot }) {
     queryFn: () =>
       fetch(computerPath(conversationId), { cache: "no-store" }).then(readView),
     queryKey: key,
-    refetchInterval: DOTS_REFRESH_MS,
-    retry: 1,
+    // A server without computers won't grow them by asking again.
+    refetchInterval: (query) =>
+      codeOf(query.state.error) === "FEATURE_DISABLED"
+        ? false
+        : DOTS_REFRESH_MS,
+    retry: (failures, error) =>
+      failures < 1 && codeOf(error) !== "FEATURE_DISABLED",
   });
   const control = useMutation({
     mutationFn: (next: ComputerView["holder"]) =>
@@ -112,11 +118,20 @@ export function DotComputerView({ dot }: { readonly dot: Dot }) {
     [holder, mutate]
   );
 
+  const screen = useScreenLink();
+
   const current = view.data;
+  const disabled = codeOf(view.error) === "FEATURE_DISABLED";
   const userHas = holder === "user";
   const status = (): string => {
+    if (current && screen.failed) {
+      return t`Screen disconnected`;
+    }
     if (current) {
       return userHas ? t`You have control` : t`${dot.name} has control`;
+    }
+    if (disabled) {
+      return t`Computers aren't set up on this server`;
     }
     return view.isError ? t`Not available right now` : t`Starting…`;
   };
@@ -140,8 +155,12 @@ export function DotComputerView({ dot }: { readonly dot: Dot }) {
         >
           {status()}
         </span>
-        {view.isError ? (
-          <Button onClick={retry} size="sm" variant="ghost">
+        {(view.isError && !disabled) || screen.failed ? (
+          <Button
+            onClick={screen.failed ? screen.reconnect : retry}
+            size="sm"
+            variant="ghost"
+          >
             <RotateCcwIcon aria-hidden />
             <Trans>Retry</Trans>
           </Button>
@@ -167,10 +186,13 @@ export function DotComputerView({ dot }: { readonly dot: Dot }) {
           <iframe
             allow="clipboard-read; clipboard-write"
             className="absolute inset-0 size-full border-0"
-            // A new src when control changes: noVNC reconnects with input on or off.
-            key={current.holder}
+            // The desktop ignores input until the person takes over; until
+            // then the frame shouldn't take focus or keystrokes either.
+            inert={!userHas}
+            key={screen.attempt}
+            ref={screen.ref}
             sandbox="allow-scripts"
-            src={screenUrl(current)}
+            src={current.url}
             title={t`${dot.name}'s screen`}
           />
         ) : null}
