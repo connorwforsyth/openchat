@@ -9,6 +9,7 @@ import {
   CheckIcon,
   ChevronDownIcon,
   ChevronsUpDownIcon,
+  ClockIcon,
   EllipsisIcon,
   LibraryIcon,
   NewChatIcon,
@@ -118,11 +119,13 @@ export interface ChatSidebarProps {
   readonly onSetLastRead?: (id: ConversationId, lastReadAt: string) => void;
   readonly onTogglePin: (id: ConversationId, pinned: boolean) => void;
   /**
-   * The icon rail is beside it on wide screens (181): Library, Artifacts and
-   * the account menu live there, so the panel hides its own from `md` up
+   * The icon rail is beside it on wide screens (181): Library, Artifacts,
+   * Scheduled and the account menu live there, so the panel hides its own from `md` up
    * (they stay in the narrow-screen sheet, which has no rail).
    */
   readonly railed?: boolean;
+  /** Where schedules live; a page row beside Library and Artifacts (181). */
+  readonly scheduledHref?: string;
   /** Runs in flight or waiting, by chat, for "Needs attention" (176). */
   readonly signals?: ReadonlyMap<ConversationId, RunSignal>;
   /** The sidebar toggle, at the end of the brand row (113). */
@@ -783,9 +786,15 @@ function PrimaryNav({
   onNewChat,
   onOpenPalette,
   railed,
+  scheduledHref,
 }: Pick<
   ChatSidebarProps,
-  "artifactsHref" | "libraryHref" | "onNewChat" | "onOpenPalette" | "railed"
+  | "artifactsHref"
+  | "libraryHref"
+  | "onNewChat"
+  | "onOpenPalette"
+  | "railed"
+  | "scheduledHref"
 >) {
   const { t } = useLingui();
   const pageRow = cn(navRowClass, railed && "md:hidden");
@@ -820,6 +829,14 @@ function PrimaryNav({
           <ShapesIcon aria-hidden />
           <span className="flex-1">
             <Trans>Artifacts</Trans>
+          </span>
+        </a>
+      ) : null}
+      {scheduledHref ? (
+        <a className={pageRow} href={scheduledHref}>
+          <ClockIcon aria-hidden />
+          <span className="flex-1">
+            <Trans>Scheduled</Trans>
           </span>
         </a>
       ) : null}

@@ -1,4 +1,5 @@
 import { cleanup, screen, waitFor, within } from "@testing-library/react";
+import { SidebarLayoutProvider } from "@workspace/chat-ui/shell/sidebar-layout";
 import {
   conversation,
   fixtureId,
@@ -8,7 +9,6 @@ import {
 import type { Me, PublicConfig } from "@workspace/contract/schemas/meta";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
-
 import {
   AppFrameProvider,
   type AppFrameValue,
@@ -90,7 +90,9 @@ const frame = (overrides: Partial<AppFrameValue> = {}): AppFrameValue => ({
   openPalette: vi.fn(),
   paletteOpen: false,
   setPaletteOpen: vi.fn(),
+  setSidebarLayout: vi.fn(),
   setTheme: vi.fn(),
+  sidebarLayout: "rail",
   signOut: vi.fn(),
   theme: "system",
   ...overrides,
@@ -204,5 +206,71 @@ describe("PageShell", () => {
       screen.getAllByRole("button", { name: "Toggle sidebar" })
     ).toHaveLength(1);
     expect(within(rail).getByRole("button", { name: "Chats" })).toBeTruthy();
+  });
+
+  describe("classic layout (181)", () => {
+    const renderClassic = (sidebarOpen: boolean) => {
+      const value = frame({
+        layout: {
+          ...frame().layout,
+          layout: { panel: null, panelWidth: 400, sidebarOpen },
+        },
+        sidebarLayout: "classic",
+      });
+      renderWithApi(
+        <AppFrameProvider value={value}>
+          <SidebarLayoutProvider value="classic">
+            <PageShell>
+              <p>Page</p>
+            </PageShell>
+          </SidebarLayoutProvider>
+        </AppFrameProvider>,
+        api()
+      );
+      return value;
+    };
+
+    it("has no rail, and every page in the sidebar's nav", () => {
+      renderClassic(true);
+      expect(
+        screen.queryByRole("navigation", { name: "Sidebar rail" })
+      ).toBeNull();
+      const nav = within(screen.getByRole("navigation", { name: "Primary" }));
+      expect(nav.getByRole("button", { name: NEW_CHAT })).toBeTruthy();
+      expect(nav.getByRole("button", { name: SEARCH })).toBeTruthy();
+      expect(nav.getByRole("link", { name: "Library" })).toBeTruthy();
+      expect(nav.getByRole("link", { name: "Artifacts" })).toBeTruthy();
+      expect(nav.getByRole("link", { name: "Scheduled" })).toBeTruthy();
+      // The account menu is at the sidebar's foot.
+      const sidebar = within(
+        screen.getByRole("complementary", { name: "Chats" })
+      );
+      expect(
+        sidebar.getByRole("button", { name: `Account: ${me.user.name}` })
+      ).toBeTruthy();
+    });
+
+    it("puts the toggle in the sidebar's top row while it's open", async () => {
+      const value = renderClassic(true);
+      const sidebar = within(
+        screen.getByRole("complementary", { name: "Chats" })
+      );
+      const toggles = screen.getAllByRole("button", { name: "Toggle sidebar" });
+      expect(toggles).toHaveLength(1);
+      await userEvent.click(
+        sidebar.getByRole("button", { name: "Toggle sidebar" })
+      );
+      expect(value.layout.toggleSidebar).toHaveBeenCalledTimes(1);
+    });
+
+    it("hides the sidebar when collapsed, with the toggle in the header", () => {
+      renderClassic(false);
+      expect(
+        screen.queryByRole("navigation", { name: "Sidebar rail" })
+      ).toBeNull();
+      expect(screen.queryByRole("complementary", { name: "Chats" })).toBeNull();
+      const toggle = screen.getByRole("button", { name: "Toggle sidebar" });
+      expect(toggle.closest("header")).not.toBeNull();
+    });
   });
 });

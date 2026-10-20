@@ -56,6 +56,7 @@ import {
 import { AppShell } from "../shell/app-shell";
 import { type Platform, PlatformProvider } from "../shell/platform";
 import { RightPanel } from "../shell/right-panel";
+import { useSidebarLayout } from "../shell/sidebar-layout";
 import { SidebarToggle } from "../shell/sidebar-toggle";
 import { useNarrowScreen } from "../shell/use-narrow-screen";
 import {
@@ -66,7 +67,7 @@ import { ShortcutHelp } from "../shortcuts/shortcut-help";
 import { ShortcutHint } from "../shortcuts/shortcut-hint";
 import { useShortcuts } from "../shortcuts/use-shortcuts";
 import { ChatSidebar, type ChatSidebarProps } from "../sidebar/chat-sidebar";
-import { SidebarRail } from "../sidebar/sidebar-rail";
+import { type RailDestination, SidebarRail } from "../sidebar/sidebar-rail";
 import { LazyWorkspacePanel } from "../workspace/lazy-workspace-panel";
 import { type OpeningWatch, watchOpenings } from "../workspace/model/auto-open";
 import {
@@ -219,6 +220,18 @@ const textValue = (text: string): ComposerValue => ({
   text,
 });
 
+/** The rail lights the Dot while its chat is open, else Chats. */
+const railCurrent = (
+  activeId: ConversationId | null,
+  dotId: ConversationId | undefined
+): RailDestination =>
+  dotId !== undefined && activeId === dotId ? "dot" : "chats";
+
+/** Schedules live on the Dot's page for now. */
+const scheduledHrefOf = (
+  sidebar: Pick<ChatSidebarProps, "dotsHref" | "scheduledHref">
+): string | undefined => sidebar.scheduledHref ?? sidebar.dotsHref;
+
 function ChatScreenBody({
   actions,
   banner,
@@ -248,6 +261,8 @@ function ChatScreenBody({
   const { layout, setPanel, setPanelWidth, togglePanel, toggleSidebar } =
     sharedLayout ?? ownLayout;
   const narrow = useNarrowScreen();
+  const railed = useSidebarLayout() === "rail";
+  const scheduledHref = scheduledHrefOf(sidebar);
   const [sidebarSheetOpen, setSidebarSheetOpen] = useState(false);
   // The panel's last section: a narrow screen's sheet keeps showing it
   // while it fades out.
@@ -770,16 +785,15 @@ function ChatScreenBody({
       panelWidth={layout.panelWidth}
       platform={platform}
       rail={
-        <SidebarRail
-          {...sheetSidebar}
-          current={
-            dotId !== undefined && sidebar.activeId === dotId ? "dot" : "chats"
-          }
-          onShowChats={showChats}
-          // Schedules live on the Dot's page for now.
-          scheduledHref={sheetSidebar.dotsHref}
-          toggle={sidebarToggle("rail")}
-        />
+        railed ? (
+          <SidebarRail
+            {...sheetSidebar}
+            current={railCurrent(sidebar.activeId, dotId)}
+            onShowChats={showChats}
+            scheduledHref={scheduledHref}
+            toggle={sidebarToggle("rail")}
+          />
+        ) : undefined
       }
       sidebar={
         <ChatSidebar
@@ -787,7 +801,8 @@ function ChatScreenBody({
           brand={brand}
           onNewChat={newChat}
           onOpenPalette={openPalette}
-          railed
+          railed={railed}
+          scheduledHref={scheduledHref}
           toggle={sidebarToggle("sidebar")}
         />
       }

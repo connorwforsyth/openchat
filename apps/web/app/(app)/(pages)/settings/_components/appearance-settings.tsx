@@ -1,6 +1,7 @@
 "use client";
 
 import { Trans, useLingui } from "@lingui/react/macro";
+import { sidebarLayoutSchema } from "@workspace/chat-ui/shell/sidebar-layout";
 import { MonitorIcon, MoonIcon, SunIcon } from "@workspace/icons";
 import {
   ToggleGroup,
@@ -9,6 +10,8 @@ import {
 import { useTheme } from "next-themes";
 import { useCallback, useSyncExternalStore } from "react";
 import { z } from "zod";
+
+import { useAppFrame } from "@/app/(app)/_shared/app-frame";
 
 // Appearance: light, dark or follow the system. next-themes keeps the choice
 // in this browser and applies it before paint; `D` toggles it anywhere.
@@ -19,7 +22,47 @@ const subscribeNever = () => () => undefined;
 const isClient = () => true;
 const isServer = () => false;
 
-export const AppearanceSettings = () => {
+/** Rail (181, the format going forward) or the classic single sidebar. */
+const SidebarLayoutSetting = () => {
+  const { setSidebarLayout, sidebarLayout } = useAppFrame();
+  const onChange = useCallback(
+    (values: readonly string[]) => {
+      const next = sidebarLayoutSchema.safeParse(values[0]);
+      if (next.success) {
+        setSidebarLayout(next.data);
+      }
+    },
+    [setSidebarLayout]
+  );
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="font-medium text-sm" id="sidebar-layout-label">
+        <Trans>Sidebar layout</Trans>
+      </p>
+      <ToggleGroup
+        aria-labelledby="sidebar-layout-label"
+        onValueChange={onChange}
+        value={[sidebarLayout]}
+        variant="outline"
+      >
+        <ToggleGroupItem value="rail">
+          <Trans>Rail (recommended)</Trans>
+        </ToggleGroupItem>
+        <ToggleGroupItem value="classic">
+          <Trans>Classic</Trans>
+        </ToggleGroupItem>
+      </ToggleGroup>
+      <p className="text-muted-foreground text-sm">
+        <Trans>
+          Rail keeps an icon bar beside the chat list. Classic puts everything
+          in one sidebar that hides when collapsed.
+        </Trans>
+      </p>
+    </div>
+  );
+};
+
+const ThemeSetting = () => {
   const { t } = useLingui();
   const { setTheme, theme } = useTheme();
   // The theme is only known in the browser; render no selection until then.
@@ -64,8 +107,15 @@ export const AppearanceSettings = () => {
         </ToggleGroupItem>
       </ToggleGroup>
       <p className="text-muted-foreground text-sm">
-        <Trans>Saved in this browser.</Trans>
+        <Trans>The theme is saved in this browser.</Trans>
       </p>
     </div>
   );
 };
+
+export const AppearanceSettings = () => (
+  <div className="flex flex-col gap-6">
+    <ThemeSetting />
+    <SidebarLayoutSetting />
+  </div>
+);

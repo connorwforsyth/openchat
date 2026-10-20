@@ -993,6 +993,10 @@ msgstr "Choose a longer password (at least 8 characters)."
 msgid "Choose a model or agent"
 msgstr "Choose a model or agent"
 
+#: ../../apps/web/app/(app)/(pages)/settings/_components/appearance-settings.tsx
+msgid "Classic"
+msgstr "Classic"
+
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "Clear selection"
 msgstr "Clear selection"
@@ -2101,8 +2105,8 @@ msgid "How should {name} look?"
 msgstr "How should {name} look?"
 
 #: ../../apps/web/app/(app)/(pages)/settings/appearance/page.tsx
-msgid "How the app looks on this device."
-msgstr "How the app looks on this device."
+msgid "How the app looks."
+msgstr "How the app looks."
 
 #: ../../apps/desktop/src/renderer/setup-screen.tsx
 msgid "https://chat.example.com"
@@ -3700,6 +3704,14 @@ msgstr "Quit"
 msgid "Quote"
 msgstr "Quote"
 
+#: ../../apps/web/app/(app)/(pages)/settings/_components/appearance-settings.tsx
+msgid "Rail (recommended)"
+msgstr "Rail (recommended)"
+
+#: ../../apps/web/app/(app)/(pages)/settings/_components/appearance-settings.tsx
+msgid "Rail keeps an icon bar beside the chat list. Classic puts everything in one sidebar that hides when collapsed."
+msgstr "Rail keeps an icon bar beside the chat list. Classic puts everything in one sidebar that hides when collapsed."
+
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Ran {code}"
 msgstr "Ran {code}"
@@ -4051,10 +4063,6 @@ msgstr "Saved"
 msgid "Saved \"{saved}\". It's with this chat's artifacts, and on your Artifacts page."
 msgstr "Saved \"{saved}\". It's with this chat's artifacts, and on your Artifacts page."
 
-#: ../../apps/web/app/(app)/(pages)/settings/_components/appearance-settings.tsx
-msgid "Saved in this browser."
-msgstr "Saved in this browser."
-
 #: ../chat-ui/src/artifacts/document/document-view.tsx
 #: ../chat-ui/src/workspace/file-view.tsx
 #: ../library-ui/src/components/item-builder.tsx
@@ -4078,6 +4086,7 @@ msgid "Schedule {position} on"
 msgstr "Schedule {position} on"
 
 #: ../../apps/web/app/(app)/(pages)/dots/dot-profile.tsx
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
 #: ../chat-ui/src/sidebar/sidebar-rail.tsx
 msgid "Scheduled"
 msgstr "Scheduled"
@@ -4374,6 +4383,10 @@ msgstr "Show Window"
 #: ../chat-ui/src/shell/app-shell.tsx
 msgid "Side panel"
 msgstr "Side panel"
+
+#: ../../apps/web/app/(app)/(pages)/settings/_components/appearance-settings.tsx
+msgid "Sidebar layout"
+msgstr "Sidebar layout"
 
 #: ../chat-ui/src/sidebar/sidebar-rail.tsx
 msgid "Sidebar rail"
@@ -4982,6 +4995,10 @@ msgstr "The team couldn't be created. Try again."
 #: ../library-ui/src/components/item-builder.tsx
 msgid "The test chat needs a server to run against."
 msgstr "The test chat needs a server to run against."
+
+#: ../../apps/web/app/(app)/(pages)/settings/_components/appearance-settings.tsx
+msgid "The theme is saved in this browser."
+msgstr "The theme is saved in this browser."
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-keys-admin.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
