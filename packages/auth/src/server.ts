@@ -40,8 +40,9 @@ import {
   resolveSecret,
   type SecretProblem,
 } from "./env";
-import { type AvatarStore, microsoftSso } from "./microsoft";
+import { microsoftSso } from "./microsoft";
 import { trustedOriginsFor } from "./origins";
+import type { AvatarStore } from "./ports/avatar-store";
 import { decideSignUp, type SignUpRefusal } from "./signup";
 import {
   bootstrapUser,
@@ -50,6 +51,7 @@ import {
   isPersonalOrg,
   joinInvitedTeams,
   leaveOrgTeams,
+  profileStoreFor,
 } from "./store";
 
 // The Better Auth server (D22): email and password, GitHub and Google when
@@ -248,7 +250,12 @@ const buildAuth = (
   const google = socialCredentials(config, env, "google");
   const microsoftConfig = microsoftSsoOf(config.auth);
   const microsoft = microsoftConfig
-    ? microsoftSso(microsoftConfig, { avatars, fetch: fetchFn, warn: log.warn })
+    ? microsoftSso(microsoftConfig, {
+        avatars,
+        fetch: fetchFn,
+        profiles: profileStoreFor(db),
+        warn: log.warn,
+      })
     : undefined;
   const orgs = orgPlugin(db);
   const auth = betterAuth({
@@ -332,6 +339,23 @@ const buildAuth = (
     // Unset, Better Auth trusts the origin each request arrives on.
     trustedOrigins: [...origins],
     user: {
+      additionalFields: {
+        // What the last sign-in copied from a provider (186), so an edit
+        // the person made since isn't overwritten. `input` because Better
+        // Auth only takes a provider's extra profile fields when it is.
+        syncedImage: {
+          input: true,
+          required: false,
+          returned: false,
+          type: "string",
+        },
+        syncedName: {
+          input: true,
+          required: false,
+          returned: false,
+          type: "string",
+        },
+      },
       validateUserInfo: async ({ source, user: incoming }) => {
         const email = typeof incoming.email === "string" ? incoming.email : "";
         // Tenant and domain allow-lists hold on every sign-in, not just the first.

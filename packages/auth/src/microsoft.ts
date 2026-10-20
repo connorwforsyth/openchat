@@ -6,6 +6,8 @@ import { err, ok, type Result } from "@workspace/shared/result";
 import { type MicrosoftOptions, microsoft } from "better-auth/social-providers";
 import { z } from "zod";
 
+import type { AvatarStore } from "./ports/avatar-store";
+import type { ProfileStore, StoredProfile } from "./ports/profile-store";
 import { emailDomain } from "./signup";
 
 // Sign in with Microsoft (Entra ID, ticket 186). One call turns
@@ -23,25 +25,11 @@ const PHOTO_TYPES: ReadonlySet<string> = new Set([
   "image/webp",
 ]);
 
-/**
- * Where avatars live: the shell backs it with the Storage port and serves
- * `url(key)` itself. Keys are ours and change whenever the photo does.
- */
-export interface AvatarStore {
-  /** The URL of a stored avatar, or `undefined` when there isn't one. */
-  readonly find: (key: string) => Promise<string | undefined>;
-  /** Stores the bytes and returns their URL. */
-  readonly put: (
-    key: string,
-    bytes: Uint8Array,
-    contentType: string
-  ) => Promise<Result<string, string>>;
-}
-
 export interface MicrosoftSsoPorts {
   /** Without it, photos are skipped and Microsoft's sign-in still works. */
   readonly avatars?: AvatarStore;
   readonly fetch: typeof fetch;
+  readonly profiles: ProfileStore;
   readonly warn: (message: string) => void;
 }
 
@@ -164,7 +152,11 @@ export type PhotoSync =
 export const syncMicrosoftPhoto = async (
   { accessToken, oid }: { readonly accessToken: string; readonly oid: string },
   { maxBytes }: { readonly maxBytes: number },
-  { avatars, fetch: fetchFn, warn }: Required<MicrosoftSsoPorts>
+  {
+    avatars,
+    fetch: fetchFn,
+    warn,
+  }: Required<Pick<MicrosoftSsoPorts, "avatars" | "fetch" | "warn">>
 ): Promise<PhotoSync> => {
   const headers = { authorization: `Bearer ${accessToken}` };
   const meta = await fetchFn(`${GRAPH}/me/photo`, { headers });
@@ -216,6 +208,62 @@ export const syncMicrosoftPhoto = async (
   return { kind: "stored", url: stored.value };
 };
 
+/** What the directory said about the photo this sign-in. */
+export type DirectoryPhoto =
+  | { readonly kind: "photo"; readonly url: string }
+  | { readonly kind: "none" }
+  /** Graph failed, or photos are off: leave the image and its record alone. */
+  | { readonly kind: "unknown" };
+
+const directoryPhotoOf = (synced: PhotoSync): DirectoryPhoto => {
+  switch (synced.kind) {
+    case "stored":
+    case "unchanged":
+      return { kind: "photo", url: synced.url };
+    case "no_photo":
+      return { kind: "none" };
+    case "skipped":
+      return { kind: "unknown" };
+    default:
+      return synced satisfies never;
+  }
+};
+
+/**
+ * The user's name and image after a Microsoft sign-in, and the values to
+ * record as synced. A field follows the directory only while it still
+ * equals what the last sign-in copied, so a person's own edit sticks. The
+ * record always takes the directory's latest value.
+ */
+export const decideProfileSync = (
+  stored: StoredProfile | undefined,
+  directory: { readonly name: string; readonly photo: DirectoryPhoto }
+): StoredProfile => {
+  const current = stored ?? {
+    image: null,
+    name: directory.name,
+    syncedImage: null,
+    syncedName: directory.name,
+  };
+  const name =
+    current.name === current.syncedName ? directory.name : current.name;
+  if (directory.photo.kind === "unknown") {
+    return {
+      image: current.image,
+      name,
+      syncedImage: current.syncedImage,
+      syncedName: directory.name,
+    };
+  }
+  const photo = directory.photo.kind === "photo" ? directory.photo.url : null;
+  return {
+    image: current.image === current.syncedImage ? photo : current.image,
+    name,
+    syncedImage: photo,
+    syncedName: directory.name,
+  };
+};
+
 /** An account row Better Auth is about to write, minus any token. */
 const withoutTokens = <T extends { readonly providerId?: string }>(
   account: T
@@ -246,9 +294,9 @@ export interface MicrosoftSso {
 }
 
 /**
- * Better Auth's Microsoft provider for `auth.microsoft`. Name and email
- * follow the directory on each sign-in (`overrideUserInfoOnSignIn`), and so
- * does the photo when `photo.enabled` and the shell gave us `avatars`.
+ * Better Auth's Microsoft provider for `auth.microsoft`. Email follows the
+ * directory on each sign-in; name and photo follow it until the person edits
+ * them (`decideProfileSync`). Photos need `photo.enabled` and `avatars`.
  */
 export const microsoftSso = (
   config: MicrosoftSsoConfig,
@@ -266,6 +314,23 @@ export const microsoftSso = (
   const decode = microsoft(base).getUserInfo;
   const { avatars } = ports;
   const photos = config.photo.enabled && avatars ? { ...ports, avatars } : null;
+  const directoryPhoto = async (
+    accessToken: string | undefined,
+    oid: string
+  ): Promise<DirectoryPhoto> => {
+    if (!(photos && accessToken)) {
+      return { kind: "unknown" };
+    }
+    const synced = await syncMicrosoftPhoto(
+      { accessToken, oid },
+      config.photo,
+      photos
+    ).catch((cause: unknown): PhotoSync => {
+      ports.warn(`[auth] Microsoft photo: ${String(cause)}`);
+      return { kind: "skipped", reason: "graph_error" };
+    });
+    return directoryPhotoOf(synced);
+  };
   return {
     accountData: withoutTokens,
     provider: {
@@ -273,21 +338,32 @@ export const microsoftSso = (
       disableSignUp: false,
       getUserInfo: async (token) => {
         const info = await decode(token);
-        if (!(info && photos && token.accessToken)) {
+        if (!info) {
           return info;
         }
         const oid = claimsSchema.parse(info.data).oid ?? "";
-        const synced = await syncMicrosoftPhoto(
-          { accessToken: token.accessToken, oid },
-          config.photo,
-          photos
-        ).catch((cause: unknown): PhotoSync => {
-          ports.warn(`[auth] Microsoft photo: ${String(cause)}`);
-          return { kind: "skipped", reason: "graph_error" };
+        const photo = await directoryPhoto(token.accessToken, oid);
+        const stored = await ports.profiles.find({
+          accountId: oid,
+          email: info.user.email ?? "",
+          providerId: MICROSOFT_PROVIDER_ID,
         });
-        return synced.kind === "stored" || synced.kind === "unchanged"
-          ? { ...info, user: { ...info.user, image: synced.url } }
-          : info;
+        const profile = decideProfileSync(stored, {
+          name: info.user.name ?? "",
+          photo,
+        });
+        // Better Auth writes these on sign-up and, through
+        // `overrideUserInfoOnSignIn`, on every later sign-in.
+        return {
+          ...info,
+          user: {
+            ...info.user,
+            ...profile,
+            // Typed `string | undefined`, but `null` reaches the row, and
+            // `undefined` would keep a photo we mean to remove.
+            image: profile.image as string | undefined,
+          },
+        };
       },
       overrideUserInfoOnSignIn: true,
     },

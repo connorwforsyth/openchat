@@ -1,4 +1,4 @@
-import type { AvatarStore } from "@workspace/auth/microsoft";
+import type { AvatarStore } from "@workspace/auth/ports/avatar-store";
 import { err, ok } from "@workspace/shared/result";
 import type { Hono } from "hono";
 

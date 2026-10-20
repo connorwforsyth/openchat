@@ -37,6 +37,10 @@ export const user = pgTable("user", {
   name: text("name").notNull(),
   /** Admin plugin: `admin` is the instance admin (the first user, D22). */
   role: text("role"),
+  /** What the last provider sign-in copied into `image` (186). */
+  syncedImage: text("synced_image"),
+  /** What the last provider sign-in copied into `name` (186). */
+  syncedName: text("synced_name"),
   updatedAt: updatedAt(),
 });
 
