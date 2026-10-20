@@ -136,6 +136,17 @@ describe("callStep", () => {
     expect(state.phase).toBe("thinking");
   });
 
+  it("keeps speaking what's queued when the speech service goes down mid-reply", () => {
+    const { state } = run([
+      { type: "ready" },
+      { text: "Tell me a long story", type: "heard-text" },
+      { type: "audio-started" },
+      { error: "unavailable", type: "failed" },
+    ]);
+    expect(state.phase).toBe("speaking");
+    expect(state.error).toBe("unavailable");
+  });
+
   it("ignores speech while muted and drops a half-heard utterance on mute", () => {
     const heard = run([{ type: "ready" }, { type: "speech-start" }]);
     const muted = run(
