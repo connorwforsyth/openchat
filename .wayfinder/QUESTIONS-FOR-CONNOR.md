@@ -137,5 +137,5 @@ Ticket [187](tickets/187-spaces.md). Resolved AFK from D17 so the demo could be 
 4. **Active space** ([191](tickets/191-active-space.md)): the sidebar switcher sets the context of new chats; remembered per browser. *Default: keep.*
 5. **Allowance in tokens, not money** ([192](tickets/192-space-allowance.md)): a monthly token pool per space; members request a monthly grant, an owner approves or denies. *Default: keep.* The allowance is **not yet enforced before a run** (follow-up); runs are still gated by money budgets.
 6. **Per-key usage** ([193](tickets/193-per-key-usage.md)): attributed when usage is recorded, to the newest key of the paying scope and provider. Earlier usage shows as "Unattributed". *Default: keep.*
-7. **Sub-space members must already be in the root space** (as teams are today). Inviting someone straight into a sub-space would invite them to the root too. *Default: keep.*
+7. **Sub-space members are always in the root space too** (as teams are today). A sub-space's members settings now invite someone straight in: the invitation adds them to the root space as a member and to the sub-space on accept. Only someone who manages the root space can send it; a sub-space owner who doesn't is told who can. *Default: keep.*
 8. **Contract** ([187a](tickets/187a-contract-spaces.md)): the additive `spaces` group awaits your approval (draft PR).
