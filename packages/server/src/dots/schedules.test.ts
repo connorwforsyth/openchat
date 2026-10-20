@@ -712,6 +712,38 @@ describe("claims", () => {
     ).toMatchObject({ lastOutcome: "failed" });
   });
 
+  it("cancels a run whose claim the tick gave back while it started", async () => {
+    const { executor } = services.dots.runs;
+    let started: string | null = null;
+    await withDots({
+      runs: {
+        ...services.dots.runs,
+        executor: {
+          ...executor,
+          start: async (run) => {
+            started = run.runId;
+            clock = new Date("2026-10-20T09:22:00.000Z");
+            await claimDue();
+            return executor.start(run);
+          },
+        },
+      },
+    });
+    const schedule = await create({ target: { kind: "new_chat_each_run" } });
+    h.nextTurn({ model: reporting("update").model });
+    const before = await chats();
+    clock = new Date("2026-10-20T09:06:00.000Z");
+    await tick();
+
+    expect(started).not.toBeNull();
+    expect(await runsOf(schedule.id)).toEqual([]);
+    expect((await limitsNow()).runsToday).toBe(0);
+    expect(await chats()).toEqual(before);
+    expect(
+      await json<Schedule>(await request(`/api/schedules/${schedule.id}`))
+    ).toMatchObject({ lastOutcome: "failed" });
+  });
+
   it("starts a retried claim's run once, in one chat", async () => {
     const schedule = await create({ target: { kind: "new_chat_each_run" } });
     h.nextTurn({ model: reporting("update").model });
