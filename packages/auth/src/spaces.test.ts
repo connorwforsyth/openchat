@@ -137,6 +137,18 @@ describe("allowanceFor", () => {
     ).toBe(0);
   });
 
+  it("lets owners use what's left of the pool without a grant", () => {
+    expect(
+      allowanceFor({
+        grant: null,
+        owner: true,
+        poolTokens: 1000,
+        poolUsed: 250,
+        userUsed: 0,
+      })
+    ).toBe(750);
+  });
+
   it("is what's left of the grant, capped by what's left of the pool", () => {
     const grant = { monthlyTokens: 500, status: "approved" } as const;
     expect(

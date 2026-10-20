@@ -161,6 +161,8 @@ export interface AllowanceFacts {
     readonly monthlyTokens: number;
     readonly status: "pending" | "approved" | "denied";
   } | null;
+  /** Owners (whoever manages the space) draw on the pool without a grant. */
+  readonly owner?: boolean;
   /** The space's monthly pool; `null` when it has none. */
   readonly poolTokens: number | null;
   /** Tokens everyone used in the space this month. */
@@ -171,13 +173,20 @@ export interface AllowanceFacts {
 
 /**
  * Tokens the caller may still use this month in a space (192): what's left
- * of an approved grant, capped by what's left of the pool.
+ * of an approved grant, capped by what's left of the pool. Owners draw on
+ * the pool directly.
  */
 export const allowanceFor = (facts: AllowanceFacts): number => {
-  if (facts.grant?.status !== "approved" || facts.poolTokens === null) {
+  if (facts.poolTokens === null) {
+    return 0;
+  }
+  const poolLeft = facts.poolTokens - facts.poolUsed;
+  if (facts.owner) {
+    return Math.max(0, poolLeft);
+  }
+  if (facts.grant?.status !== "approved") {
     return 0;
   }
   const grantLeft = facts.grant.monthlyTokens - facts.userUsed;
-  const poolLeft = facts.poolTokens - facts.poolUsed;
   return Math.max(0, Math.min(grantLeft, poolLeft));
 };

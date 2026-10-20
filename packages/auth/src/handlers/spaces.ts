@@ -217,6 +217,7 @@ const allowanceView = async (
     monthlyTokens: pool?.monthlyTokens ?? null,
     myRemainingTokens: allowanceFor({
       grant: mine,
+      owner: located.space.canManage,
       poolTokens: pool?.monthlyTokens ?? null,
       poolUsed,
       userUsed: used.get(userId) ?? 0,
