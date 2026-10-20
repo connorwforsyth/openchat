@@ -147,9 +147,18 @@ describe("dots API", () => {
     expect(await bad.json()).toMatchObject({
       data: { issues: [{ path: ["schedules", 0, "recurrence"] }] },
     });
-    const dot = await createDot();
-    const zone = await request(`/api/dots/${dot.id}/schedules`, {
-      json: { cron: "0 8 * * *", prompt: "hi", timezone: "Nowhere/Land" },
+    await createDot();
+    const zone = await request("/api/schedules", {
+      json: {
+        prompt: "hi",
+        recurrence: {
+          cron: "0 8 * * *",
+          kind: "cron",
+          timezone: "Nowhere/Land",
+        },
+        target: { kind: "dot" },
+        title: "Hi",
+      },
       method: "POST",
     });
     expect(zone.status).toBe(422);
@@ -158,24 +167,26 @@ describe("dots API", () => {
   it("edits, pauses and deletes schedules, and deletes the Dot", async () => {
     const dot = await createDot();
     const added = await json<Schedule>(
-      await request(`/api/dots/${dot.id}/schedules`, {
-        json: { cron: "0 9 * * 1-5", prompt: "Weekday check", timezone: "UTC" },
+      await request("/api/schedules", {
+        json: {
+          prompt: "Weekday check",
+          recurrence: { cron: "0 9 * * 1-5", kind: "cron", timezone: "UTC" },
+          target: { kind: "dot" },
+          title: "Weekday check",
+        },
         method: "POST",
       }),
       201
     );
     const paused = await json<Schedule>(
-      await request(`/api/dot-schedules/${added.id}`, {
-        json: { enabled: false },
-        method: "PATCH",
-      })
+      await request(`/api/schedules/${added.id}/pause`, { method: "POST" })
     );
     expect(paused).toMatchObject({
       nextRunAt: null,
       pausedReason: "user",
       status: "paused",
     });
-    const removed = await request(`/api/dot-schedules/${added.id}`, {
+    const removed = await request(`/api/schedules/${added.id}`, {
       method: "DELETE",
     });
     expect(removed.status).toBe(204);
@@ -196,21 +207,13 @@ describe("dots API", () => {
   it("names a Dot's schedules at a whole word, not mid-word", async () => {
     const prompt =
       "Every morning look through the team inbox and summarise anything from customers about billing";
-    const dot = await createDot({
+    await createDot({
       ...MORNING,
       schedules: [{ cron: "* * * * *", prompt }],
     });
-    const added = await json<Schedule>(
-      await request(`/api/dots/${dot.id}/schedules`, {
-        json: { cron: "0 9 * * 1-5", prompt, timezone: "UTC" },
-        method: "POST",
-      }),
-      201
-    );
     const title = "Every morning look through the team inbox and summarise…";
-    expect(added.title).toBe(title);
     const listed = await json<Schedule[]>(await request("/api/schedules"));
-    expect(listed.map((each) => each.title)).toEqual([title, title]);
+    expect(listed.map((each) => each.title)).toEqual([title]);
   });
 
   it("keeps one Dot per user: a second is a CONFLICT", async () => {
@@ -227,7 +230,7 @@ describe("dots API", () => {
   });
 
   it("refuses a schedule below the instance's minimum interval", async () => {
-    const dot = await createDot({ ...MORNING, schedules: [] });
+    await createDot({ ...MORNING, schedules: [] });
     const strict = createApp({
       resolveSession: (req) => {
         const userId = req.headers.get(USER_HEADER);
@@ -239,8 +242,13 @@ describe("dots API", () => {
       }),
       services,
     });
-    const tooOften = await strict.request(`/api/dots/${dot.id}/schedules`, {
-      body: JSON.stringify({ cron: "*/15 * * * *", prompt: "Check" }),
+    const tooOften = await strict.request("/api/schedules", {
+      body: JSON.stringify({
+        prompt: "Check",
+        recurrence: { cron: "*/15 * * * *", kind: "cron", timezone: "UTC" },
+        target: { kind: "dot" },
+        title: "Check",
+      }),
       headers: { "content-type": "application/json", [USER_HEADER]: h.ownerId },
       method: "POST",
     });
