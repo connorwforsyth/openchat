@@ -1,7 +1,6 @@
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-
 import { createMemoryKeyStore } from "@workspace/ai/keys/key-store.memory";
 import { createMemoryProviderRegistry } from "@workspace/ai/ports/provider-registry.memory";
 import { createMemorySearchBackend } from "@workspace/ai/ports/search-backend.memory";
@@ -14,6 +13,7 @@ import { textStream } from "@workspace/ai/testing/mock-models";
 import { createArtifactTools } from "@workspace/ai/tools/artifacts";
 import { resolveTools } from "@workspace/ai/tools/resolve";
 import { buildToolSet } from "@workspace/ai/tools/tool-set";
+import { appConfigSchema } from "@workspace/config/schema";
 import type { LibraryItemId, UserId } from "@workspace/contract/schemas/common";
 import type { Conversation } from "@workspace/contract/schemas/conversations";
 import type { AgentDefinition } from "@workspace/contract/schemas/library";
@@ -199,11 +199,9 @@ const toolsOfTurn = async (
     allowPrivateNetworks: true,
     config: {
       brand: { name: "Test" } as never,
-      mcp: {
-        servers: [
-          { headers: {}, name: "open", transport: "http", url: mcpServer.url },
-        ],
-      },
+      mcp: appConfigSchema.shape.mcp.parse({
+        servers: [{ name: "open", url: mcpServer.url }],
+      }),
     },
     db,
     env: {},

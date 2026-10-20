@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { appConfigSchema } from "@workspace/config/schema";
 
 import type { LibraryItemId, UserId } from "@workspace/contract/schemas/common";
 import { upsertGrant } from "@workspace/db/queries/grants";
@@ -145,11 +146,9 @@ describe("mcp handlers", () => {
       allowPrivateNetworks: true,
       config: {
         brand: { name: "Test" } as never,
-        mcp: {
-          servers: [
-            { headers: {}, name: "open", transport: "http", url: plain.url },
-          ],
-        },
+        mcp: appConfigSchema.shape.mcp.parse({
+          servers: [{ name: "open", url: plain.url }],
+        }),
       },
       db: testDb.db,
       env: { ENCRYPTION_KEY: randomBytes(32).toString("base64") },
@@ -299,11 +298,9 @@ describe("mcp handlers", () => {
       allowPrivateNetworks: true,
       config: {
         brand: { name: "Test" } as never,
-        mcp: {
-          servers: [
-            { headers: {}, name: "open", transport: "http", url: plain.url },
-          ],
-        },
+        mcp: appConfigSchema.shape.mcp.parse({
+          servers: [{ name: "open", url: plain.url }],
+        }),
       },
       env: {},
     }));

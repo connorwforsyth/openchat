@@ -108,17 +108,47 @@ export const instanceServerId = (name: string): LibraryItemId => {
 };
 
 export type InstanceServerEntry = AppConfig["mcp"]["servers"][number];
+/** A catalog entry the server can connect to itself (not stdio). */
+export type RemoteInstanceEntry = Extract<
+  InstanceServerEntry,
+  { readonly transport: "http" | "sse" }
+>;
+type RemoteEntryInput = Pick<
+  RemoteInstanceEntry,
+  "name" | "transport" | "url"
+> &
+  Partial<Pick<RemoteInstanceEntry, "auth" | "headers" | "tools">>;
 
-export const fromInstanceConfig = (
+export const isRemoteEntry = (
   entry: InstanceServerEntry
-): McpServerConfig =>
+): entry is RemoteInstanceEntry => entry.transport !== "stdio";
+
+/**
+ * The `${ENV}` references in an entry that came out unset, by header or env
+ * name. Names only: the values are secrets, and they're missing anyway.
+ */
+export const missingSecrets = (entry: InstanceServerEntry): readonly string[] =>
+  Object.entries(isRemoteEntry(entry) ? entry.headers : entry.env)
+    .filter(([, value]) => value === undefined || value === "")
+    .map(([name]) => name);
+
+export const fromInstanceConfig = (entry: RemoteEntryInput): McpServerConfig =>
   withVersion({
-    auth: { type: "none" },
-    headers: entry.headers,
+    auth:
+      entry.auth?.type === "oauth"
+        ? { scopes: entry.auth.scopes, type: "oauth" }
+        : { type: "none" },
+    headers: Object.fromEntries(
+      Object.entries(entry.headers ?? {}).filter(
+        (pair): pair is [string, string] => pair[1] !== undefined
+      )
+    ),
     id: instanceServerId(entry.name),
     name: entry.name,
     owner: null,
-    tools: { deny: [] },
+    tools: entry.tools?.allow
+      ? { allow: entry.tools.allow, deny: entry.tools.deny }
+      : { deny: entry.tools?.deny ?? [] },
     transport: entry.transport,
     trusted: true,
     url: entry.url,

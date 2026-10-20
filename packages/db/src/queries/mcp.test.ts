@@ -3,11 +3,14 @@ import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
 import { createTestDb, expectOk, seedUser, type TestDb } from "../testing";
 import { createMcpServer } from "./library";
+import { deleteUnversionedItem } from "./library-items";
 import {
   deleteMcpOauthToken,
   getMcpOauthToken,
   getMcpServer,
+  listConnectorPrefs,
   listMcpOauthTokensToReseal,
+  setConnectorPref,
   upsertMcpOauthToken,
 } from "./mcp";
 
@@ -60,5 +63,72 @@ describe("mcp queries", () => {
 
     expect(await deleteMcpOauthToken(db, server.id, user.id)).toBe(true);
     expect(await deleteMcpOauthToken(db, server.id, user.id)).toBe(false);
+  });
+
+  test("stores connector choices per user, for servers with or without a row", async () => {
+    const { db } = testDb;
+    const user = await seedUser(db);
+    const other = await seedUser(db);
+    // An instance server's id: no mcp_server row behind it.
+    const instance = newId("libraryItem");
+    const server = await createMcpServer(db, {
+      createdBy: user.id,
+      definition: {
+        auth: { scopes: [], type: "oauth" },
+        kind: "mcp_server",
+        transport: "http",
+        url: "https://mcp.example.test/mcp",
+      },
+      name: "Notes",
+      owner: { id: user.id, type: "user" },
+    });
+
+    expect((await listConnectorPrefs(db, user.id)).size).toBe(0);
+    await setConnectorPref(db, {
+      enabled: false,
+      mcpServerId: instance,
+      userId: user.id,
+    });
+    await setConnectorPref(db, {
+      enabled: true,
+      mcpServerId: instance,
+      userId: user.id,
+    });
+    await setConnectorPref(db, {
+      enabled: false,
+      mcpServerId: server.id,
+      userId: user.id,
+    });
+    expect(await listConnectorPrefs(db, user.id)).toEqual(
+      new Map([
+        [instance, true],
+        [server.id, false],
+      ])
+    );
+    expect((await listConnectorPrefs(db, other.id)).size).toBe(0);
+
+    // OAuth tokens for an instance server have no row to point at either.
+    await upsertMcpOauthToken(db, {
+      ciphertext: "sealed",
+      expiresAt: null,
+      keyId: "k1",
+      mcpServerId: instance,
+      userId: user.id,
+    });
+    await upsertMcpOauthToken(db, {
+      ciphertext: "sealed",
+      expiresAt: null,
+      keyId: "k1",
+      mcpServerId: server.id,
+      userId: user.id,
+    });
+    expect(await getMcpOauthToken(db, instance, user.id)).toBeDefined();
+
+    // Deleting a library server takes its tokens and choices with it.
+    expectOk(await deleteUnversionedItem(db, "mcp_server", server.id));
+    expect(await getMcpOauthToken(db, server.id, user.id)).toBeUndefined();
+    expect(await listConnectorPrefs(db, user.id)).toEqual(
+      new Map([[instance, true]])
+    );
   });
 });

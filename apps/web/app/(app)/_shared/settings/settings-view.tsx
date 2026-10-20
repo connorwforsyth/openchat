@@ -8,6 +8,7 @@ import {
   ChevronLeftIcon,
   KeyboardIcon,
   KeyRoundIcon,
+  NetworkIcon,
   PaletteIcon,
   ShieldIcon,
   UserIcon,
@@ -23,6 +24,7 @@ import { cn } from "@workspace/ui/lib/utils";
 import { type MouseEvent, type ReactNode, useCallback } from "react";
 
 import { AppearanceSettings } from "./appearance-settings";
+import { ConnectorsSettings } from "./connectors-settings";
 import { MemorySettings } from "./memory-settings";
 import { PersonalKeys } from "./personal-keys";
 import { ProfileSettings } from "./profile-settings";
@@ -73,6 +75,19 @@ const sectionInfo = (section: SettingsSection): SectionInfo => {
         icon: <KeyRoundIcon />,
         label: <Trans>Provider keys</Trans>,
         title: <Trans>Provider keys</Trans>,
+      };
+    case "connectors":
+      return {
+        content: <ConnectorsSettings />,
+        description: (
+          <Trans>
+            MCP servers give chats extra tools. Turn on the ones you want; your
+            administrator may require some or let you add your own.
+          </Trans>
+        ),
+        icon: <NetworkIcon />,
+        label: <Trans>Connectors</Trans>,
+        title: <Trans>Connectors</Trans>,
       };
     case "memory":
       return {
