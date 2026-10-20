@@ -5,9 +5,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ConversationId } from "@workspace/contract/schemas/common";
 import type { Dot } from "@workspace/contract/schemas/dots";
 import { KeyboardIcon, MonitorIcon, RotateCcwIcon } from "@workspace/icons";
+import {
+  type ComputerView,
+  computerViewSchema,
+} from "@workspace/server/dots/computer-view";
 import { Button } from "@workspace/ui/components/button";
 import { useCallback } from "react";
-import { z } from "zod";
 import type { DotSurfaceProps } from "./dot-extensions";
 import { DOTS_REFRESH_MS, useDotForConversation } from "./dot-home";
 
@@ -19,12 +22,6 @@ import { DOTS_REFRESH_MS, useDotForConversation } from "./dot-home";
 // `computer` tool refuse input until "Give back control". Nothing renders
 // for an ordinary chat.
 
-const viewSchema = z.object({
-  holder: z.enum(["user", "agent"]),
-  url: z.url(),
-});
-type ComputerView = z.infer<typeof viewSchema>;
-
 const computerPath = (conversationId: string) =>
   `/api/computer/${conversationId}`;
 
@@ -32,7 +29,7 @@ const readView = async (response: Response): Promise<ComputerView> => {
   if (!response.ok) {
     throw new Error(String(response.status));
   }
-  return viewSchema.parse(await response.json());
+  return computerViewSchema.parse(await response.json());
 };
 
 /** The view's URL with input on or off. */

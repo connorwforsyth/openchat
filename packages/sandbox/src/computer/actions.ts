@@ -1,3 +1,4 @@
+import type { ComputerHolder } from "@workspace/server/dots/computer-view";
 import { err, ok, type Result } from "@workspace/shared/result";
 import { z } from "zod";
 
@@ -199,7 +200,7 @@ export const computerCommand = (action: ComputerAction): string => {
 };
 
 /** Hands control to the person (`user`) or back to the agent. Pure. */
-export const controlCommand = (holder: "user" | "agent"): string =>
+export const controlCommand = (holder: ComputerHolder): string =>
   holder === "user" ? `touch ${CONTROL_FLAG}` : `rm -f ${CONTROL_FLAG}`;
 
 /** Prints who has control: `user` or `agent`. */

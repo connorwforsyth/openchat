@@ -5,7 +5,8 @@ import type { Hono } from "hono";
 import { z } from "zod";
 
 import type { SessionResolver } from "../context";
-import { computerHolderSchema, type DotComputers } from "../dots/computer";
+import type { DotComputers } from "../dots/computer";
+import { computerHolderSchema } from "../dots/computer-view";
 import { problem } from "./problem";
 
 // The live view of a Dot's computer (172): where to watch it, and who drives
