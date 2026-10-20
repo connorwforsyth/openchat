@@ -1,6 +1,7 @@
 import { appConfigSchema } from "@workspace/config/schema";
 import { account, user } from "@workspace/db/schema/auth";
 import { createTestDb, type TestDb } from "@workspace/db/testing";
+import { eq } from "drizzle-orm";
 import { HttpResponse, http } from "msw";
 import { setupServer } from "msw/node";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
@@ -13,7 +14,7 @@ import {
 import type { AvatarStore } from "./ports/avatar-store";
 import { createMemoryAvatarStore } from "./ports/avatar-store.memory";
 import { type Auth, createAuth } from "./server";
-import { fastTestHasher } from "./testing";
+import { fastTestHasher, signUp } from "./testing";
 
 // Ticket 186. Microsoft's endpoints are MSW handlers: nothing leaves the
 // process. The sign-in tests drive the real Better Auth callback.
@@ -304,13 +305,15 @@ afterEach(async () => {
 
 const microsoftAuth = async (
   microsoft: Record<string, unknown>,
-  avatars: AvatarStore
+  avatars: AvatarStore,
+  auth: Record<string, unknown> = {}
 ): Promise<Auth> => {
   testDb = await createTestDb();
   const created = createAuth({
     avatars,
     config: appConfigSchema.parse({
       auth: {
+        ...auth,
         microsoft: { clientId: "client-id", clientSecret: "shh", ...microsoft },
       },
     }),
@@ -503,7 +506,7 @@ describe("Sign in with Microsoft", () => {
 
   it("auto-provisions allowed users past `signup: invite`", async () => {
     const auth = await microsoftAuth(
-      { allowedDomains: ["contoso.com"], autoProvision: true },
+      { allowedTenants: [TENANT], autoProvision: true },
       createMemoryAvatarStore()
     );
     tokenEndpoint({ email: "first@contoso.com", oid: "oid-1" });
@@ -526,6 +529,122 @@ describe("Sign in with Microsoft", () => {
     expect(new URL(location ?? "", APP).searchParams.get("error")).toBe(
       "invite_required"
     );
+  });
+});
+
+describe("what a Microsoft email proves", () => {
+  /** The first user, their org and a pending invitation for `email`. */
+  const invite = async (auth: Auth, email: string) => {
+    const admin = await signUp(auth, "admin@example.test");
+    const org = await auth.api.createOrganization({
+      body: { name: "Acme", slug: "acme" },
+      headers: admin.headers,
+    });
+    await auth.api.createInvitation({
+      body: { email, organizationId: org.id, role: "member" },
+      headers: admin.headers,
+    });
+  };
+  const errorOf = (location: string | null) =>
+    new URL(location ?? "", APP).searchParams.get("error");
+
+  // Another tenant's admin can give their own user the invitee's address.
+  it("doesn't let any tenant claim an invitation with an unverified email", async () => {
+    const auth = await microsoftAuth({}, createMemoryAvatarStore());
+    await invite(auth, "invitee@contoso.com");
+    tokenEndpoint({ email: "invitee@contoso.com", tid: OTHER_TENANT });
+    photoHandlers();
+
+    expect(errorOf((await signInWithMicrosoft(auth)).location)).toBe(
+      "invite_required"
+    );
+    expect(
+      await (testDb as TestDb).db
+        .select({ email: user.email })
+        .from(user)
+        .where(eq(user.email, "invitee@contoso.com"))
+    ).toEqual([]);
+  });
+
+  it("accepts an invitation when the token verifies the email", async () => {
+    const auth = await microsoftAuth({}, createMemoryAvatarStore());
+    await invite(auth, "invitee@contoso.com");
+    tokenEndpoint({
+      email: "invitee@contoso.com",
+      verified_primary_email: ["invitee@contoso.com"],
+    });
+    photoHandlers();
+
+    expect((await signInWithMicrosoft(auth)).location).toBe("/");
+  });
+
+  it("refuses a sign-in whose new directory email is another account's", async () => {
+    const auth = await microsoftAuth({}, createMemoryAvatarStore(), {
+      signup: "open",
+    });
+    tokenEndpoint({ email: "ada@contoso.com" });
+    photoHandlers();
+    await signInWithMicrosoft(auth);
+    await signUp(auth, "bob@contoso.com");
+
+    tokenEndpoint({ email: "bob@contoso.com" });
+    expect(errorOf((await signInWithMicrosoft(auth)).location)).toBe(
+      "microsoft_email_in_use"
+    );
+    const emails = await (testDb as TestDb).db
+      .select({ email: user.email })
+      .from(user)
+      .orderBy(user.email);
+    expect(emails).toEqual([
+      { email: "ada@contoso.com" },
+      { email: "bob@contoso.com" },
+    ]);
+  });
+});
+
+describe("the synced profile fields", () => {
+  const post = (auth: Auth, path: string, body: unknown, headers = {}) =>
+    auth.handler(
+      new Request(`${APP}/api/auth${path}`, {
+        body: JSON.stringify(body),
+        headers: {
+          "content-type": "application/json",
+          origin: APP,
+          ...headers,
+        },
+        method: "POST",
+      })
+    );
+
+  it("can't be written through `/update-user`", async () => {
+    const auth = await microsoftAuth({}, createMemoryAvatarStore());
+    const ada = await signUp(auth, "ada@contoso.com");
+
+    const response = await post(
+      auth,
+      "/update-user",
+      { name: "Ada", syncedImage: "x", syncedName: "Ada" },
+      Object.fromEntries(ada.headers)
+    );
+    expect(response.status).toBe(400);
+    const [row] = await (testDb as TestDb).db.select().from(user);
+    expect(row).toMatchObject({
+      name: "ada",
+      syncedImage: null,
+      syncedName: null,
+    });
+  });
+
+  it("can't be set at sign-up", async () => {
+    const auth = await microsoftAuth({}, createMemoryAvatarStore());
+    const response = await post(auth, "/sign-up/email", {
+      email: "ada@contoso.com",
+      name: "Ada",
+      password: "correct-horse-battery",
+      syncedName: "Ada",
+    });
+    expect(response.status).toBe(400);
+    expect(await (testDb as TestDb).db.select().from(user)).toEqual([]);
   });
 });
 

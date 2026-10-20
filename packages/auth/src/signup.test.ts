@@ -133,22 +133,32 @@ describe("emailDomain", () => {
 });
 
 describe("decideSignUp with Microsoft (186)", () => {
+  const TENANT = "4f1c9a7e-2b3d-4e5f-8a9b-0c1d2e3f4a5b";
   const microsoft = { clientId: "id", clientSecret: "secret" };
+  const pinned = { ...microsoft, tenantId: TENANT };
   const viaMicrosoft: SignUpRequest = {
     email: "ada@contoso.com",
     method: "oauth",
     providerId: "microsoft",
   };
   const facts = { hasPendingInvitation: false, isFirstUser: false };
+  const invited = { hasPendingInvitation: true, isFirstUser: false };
 
-  it("counts as SSO for `signup: sso`", () => {
+  it("counts as SSO for `signup: sso` from a pinned tenant only", () => {
     expect(
       decideSignUp(
-        authConfig({ microsoft, signup: "sso" }),
+        authConfig({ microsoft: pinned, signup: "sso" }),
         viaMicrosoft,
         facts
       ).ok
     ).toBe(true);
+    expect(
+      decideSignUp(
+        authConfig({ microsoft, oidc, signup: "sso" }),
+        viaMicrosoft,
+        facts
+      )
+    ).toEqual({ error: "sso_required", ok: false });
   });
 
   it("passes `signup: invite` only with `autoProvision`", () => {
@@ -160,7 +170,7 @@ describe("decideSignUp with Microsoft (186)", () => {
         authConfig({
           microsoft: {
             ...microsoft,
-            allowedDomains: ["contoso.com"],
+            allowedTenants: [TENANT],
             autoProvision: true,
           },
         }),
@@ -168,6 +178,54 @@ describe("decideSignUp with Microsoft (186)", () => {
         facts
       ).ok
     ).toBe(true);
+  });
+
+  // Any tenant's admin can set any email on their own users (nOAuth), so
+  // the address only counts from a pinned tenant or a verified-email claim.
+  it.each<{
+    auth: Record<string, unknown>;
+    emailVerified?: boolean;
+    expected: string;
+    name: string;
+  }>([
+    {
+      auth: { microsoft },
+      expected: "invite_required",
+      name: "an invitation from any tenant with an unverified email",
+    },
+    {
+      auth: { microsoft },
+      emailVerified: true,
+      expected: "ok",
+      name: "an invitation with a verified email",
+    },
+    {
+      auth: { microsoft: pinned },
+      expected: "ok",
+      name: "an invitation from the pinned tenant",
+    },
+    {
+      auth: { microsoft: { ...microsoft, allowedTenants: [TENANT] } },
+      expected: "ok",
+      name: "an invitation from an allowed tenant",
+    },
+    {
+      auth: { domains: ["contoso.com"], microsoft, signup: "domain" },
+      expected: "domain_not_allowed",
+      name: "`signup: domain` from any tenant with an unverified email",
+    },
+    {
+      auth: { domains: ["contoso.com"], microsoft: pinned, signup: "domain" },
+      expected: "ok",
+      name: "`signup: domain` from the pinned tenant",
+    },
+  ])("$name: $expected", ({ auth, emailVerified, expected }) => {
+    const decision = decideSignUp(
+      authConfig(auth),
+      { ...viaMicrosoft, emailVerified },
+      invited
+    );
+    expect(decision.ok ? "ok" : decision.error).toBe(expected);
   });
 
   it("does nothing once switched off", () => {

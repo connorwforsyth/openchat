@@ -89,10 +89,10 @@ describe("auth.microsoft (186)", () => {
     ).toBe(false);
   });
 
-  it("allows auto-provisioning once something narrows who can sign in", () => {
-    for (const narrowing of [
+  it("allows auto-provisioning once the tenant is pinned", () => {
+    for (const pinned of [
       { tenantId: TENANT },
-      { allowedDomains: ["contoso.com"] },
+      { tenantId: "contoso.onmicrosoft.com" },
       { allowedTenants: [TENANT] },
     ]) {
       expect(
@@ -100,20 +100,42 @@ describe("auth.microsoft (186)", () => {
           autoProvision: true,
           clientId: "id",
           clientSecret: "secret",
-          ...narrowing,
+          ...pinned,
         }).success
       ).toBe(true);
     }
   });
 
-  it("satisfies `signup: sso` on its own", () => {
-    expect(
+  // Any tenant's admin can give a user any email address (nOAuth), so a
+  // domain list filters who signs in but can't vouch for anyone.
+  it.each(["common", "organizations"])(
+    "refuses auto-provisioning on `%s` narrowed only by `allowedDomains`",
+    (tenantId) => {
+      const result = withMicrosoft({
+        allowedDomains: ["contoso.com"],
+        autoProvision: true,
+        clientId: "id",
+        clientSecret: "secret",
+        tenantId,
+      });
+      expect(result.error?.issues.map((issue) => issue.path)).toEqual([
+        ["auth", "microsoft", "autoProvision"],
+      ]);
+    }
+  );
+
+  it("satisfies `signup: sso` once its tenant is pinned", () => {
+    const sso = (microsoft: Record<string, unknown>) =>
       appConfigSchema.safeParse({
         auth: {
-          microsoft: { clientId: "id", clientSecret: "secret" },
+          microsoft: { clientId: "id", clientSecret: "secret", ...microsoft },
           signup: "sso",
         },
-      }).success
-    ).toBe(true);
+      }).success;
+    expect(sso({ tenantId: TENANT })).toBe(true);
+    expect(sso({ allowedTenants: [TENANT] })).toBe(true);
+    // Otherwise every Microsoft account in the world could make one.
+    expect(sso({})).toBe(false);
+    expect(sso({ allowedDomains: ["contoso.com"] })).toBe(false);
   });
 });
