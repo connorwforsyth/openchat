@@ -57,6 +57,8 @@ const tags = Object.entries({
   Account: "The signed-in user and their settings.",
   Admin: "Instance administration.",
   Artifacts: "Artifacts produced in conversations, with versions.",
+  Connectors:
+    "Which MCP servers each user has on: the operator catalog plus their library.",
   Conversations: "Conversations, chat context and per-user state.",
   Feedback: "Thumbs up/down on assistant messages.",
   Files: "Uploads, ingestion and semantic file search.",

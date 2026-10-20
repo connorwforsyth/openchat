@@ -91,6 +91,7 @@ export interface ServicesOptions {
     | "images"
     | "knowledge"
     | "mcp"
+    | "mcpDisabledFor"
     | "mcpFor"
     | "mcpServersFor"
     | "orgPolicy"

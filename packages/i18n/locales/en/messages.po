@@ -280,6 +280,10 @@ msgstr "Add a starter"
 msgid "Add a workspace file"
 msgstr "Add a workspace file"
 
+#: ../../apps/web/app/(app)/(pages)/settings/_components/connectors-settings.tsx
+msgid "Add an MCP server by its URL to give chats more tools. Only you can use it until you share it."
+msgstr "Add an MCP server by its URL to give chats more tools. Only you can use it until you share it."
+
 #: ../library-ui/src/components/agent-form.tsx
 msgid "Add an MCP server to your library to connect it here."
 msgstr "Add an MCP server to your library to connect it here."
@@ -309,6 +313,10 @@ msgstr "Add people, teams or orgs"
 #: ../composer/src/components/plus-menu.tsx
 msgid "Add to message"
 msgstr "Add to message"
+
+#: ../../apps/web/app/(app)/(pages)/settings/_components/connectors-settings.tsx
+msgid "Add your own"
+msgstr "Add your own"
 
 #: ../chat-ui/src/workspace/preview.tsx
 msgid "Address"
@@ -890,6 +898,7 @@ msgid "Composer"
 msgstr "Composer"
 
 #: ../../apps/desktop/src/renderer/setup-screen.tsx
+#: ../../apps/web/app/(app)/(pages)/settings/_components/connectors-settings.tsx
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "Connect"
 msgstr "Connect"
@@ -909,6 +918,11 @@ msgstr "Connecting to port {port}…"
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "Connection"
 msgstr "Connection"
+
+#: ../../apps/web/app/(app)/(pages)/settings/connectors/page.tsx
+#: ../../apps/web/app/(app)/(pages)/settings/layout.tsx
+msgid "Connectors"
+msgstr "Connectors"
 
 #: ../chat-ui/src/artifacts/spreadsheet/spreadsheet-view.tsx
 msgid "Contents of cell {address}"
@@ -1267,6 +1281,10 @@ msgstr "Description"
 msgid "Description for {name}"
 msgstr "Description for {name}"
 
+#: ../../apps/web/app/(app)/(pages)/settings/_components/connectors-settings.tsx
+msgid "Desktop app only"
+msgstr "Desktop app only"
+
 #: ../../apps/web/app/dev/library/page.tsx
 msgid "Developer gallery"
 msgstr "Developer gallery"
@@ -1357,6 +1375,7 @@ msgstr "Disabled"
 msgid "Discard"
 msgstr "Discard"
 
+#: ../../apps/web/app/(app)/(pages)/settings/_components/connectors-settings.tsx
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "Disconnect"
 msgstr "Disconnect"
@@ -1713,6 +1732,10 @@ msgstr "Formatting"
 #: ../chat-ui/src/workspace/preview.tsx
 msgid "Forward"
 msgstr "Forward"
+
+#: ../../apps/web/app/(app)/(pages)/settings/_components/connectors-settings.tsx
+msgid "From your administrator"
+msgstr "From your administrator"
 
 #: ../library-ui/src/components/skill-form.tsx
 msgid "Frontmatter with a name and description, then the instructions the agent follows."
@@ -2228,6 +2251,10 @@ msgstr "MCP server"
 msgid "MCP servers"
 msgstr "MCP servers"
 
+#: ../../apps/web/app/(app)/(pages)/settings/connectors/page.tsx
+msgid "MCP servers give chats extra tools. Turn on the ones you want; your administrator may require some or let you add your own."
+msgstr "MCP servers give chats extra tools. Turn on the ones you want; your administrator may require some or let you add your own."
+
 #: ../composer/src/components/thinking-control.tsx
 msgid "Medium"
 msgstr "Medium"
@@ -2407,6 +2434,10 @@ msgstr "Navigation"
 msgid "Needs server support"
 msgstr "Needs server support"
 
+#: ../../apps/web/app/(app)/(pages)/settings/_components/connectors-settings.tsx
+msgid "Needs setup by your administrator"
+msgstr "Needs setup by your administrator"
+
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "Needs you to sign in"
 msgstr "Needs you to sign in"
@@ -2523,6 +2554,10 @@ msgstr "No changes to {path}"
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "No chats yet. Start one and it shows up here."
 msgstr "No chats yet. Start one and it shows up here."
+
+#: ../../apps/web/app/(app)/(pages)/settings/_components/connectors-settings.tsx
+msgid "No connectors yet"
+msgstr "No connectors yet"
 
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "No files yet"
@@ -3428,6 +3463,14 @@ msgstr "Rename chat: {shown}"
 msgid "Rendering {file}…"
 msgstr "Rendering {file}…"
 
+#: ../../apps/web/app/(app)/(pages)/settings/_components/connectors-settings.tsx
+msgid "Required"
+msgstr "Required"
+
+#: ../../apps/web/app/(app)/(pages)/settings/_components/connectors-settings.tsx
+msgid "Required by your administrator"
+msgstr "Required by your administrator"
+
 #: ../library-ui/src/components/fields.tsx
 msgid "Required."
 msgstr "Required."
@@ -3726,6 +3769,10 @@ msgstr "Server config"
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "Set budget"
 msgstr "Set budget"
+
+#: ../../apps/web/app/(app)/(pages)/settings/_components/connectors-settings.tsx
+msgid "Set by your administrator"
+msgstr "Set by your administrator"
 
 #: ../palette/src/context-actions.ts
 msgid "Set permission mode to {label}"
@@ -4172,6 +4219,7 @@ msgstr "That address answered, but it isn't a chat server."
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
+#: ../../apps/web/app/(app)/(pages)/settings/_components/connectors-settings.tsx
 #: ../../apps/web/app/(app)/(pages)/settings/_components/profile-settings.tsx
 msgid "That change couldn't be saved. Try again."
 msgstr "That change couldn't be saved. Try again."
@@ -4716,6 +4764,10 @@ msgstr "Unpin"
 msgid "Unpublish"
 msgstr "Unpublish"
 
+#: ../../apps/web/app/(app)/(pages)/settings/_components/connectors-settings.tsx
+msgid "Unreachable"
+msgstr "Unreachable"
+
 #: ../chat-ui/src/workspace/file-view.tsx
 msgid "Unsaved"
 msgstr "Unsaved"
@@ -4759,6 +4811,10 @@ msgstr "Use {example} for a value people fill in when they use the prompt."
 #: ../chat-ui/src/artifacts/artifact-actions.tsx
 msgid "Use {title} in a chat"
 msgstr "Use {title} in a chat"
+
+#: ../../apps/web/app/(app)/(pages)/settings/_components/connectors-settings.tsx
+msgid "Use {title} in chats"
+msgstr "Use {title} in chats"
 
 #: ../composer/src/components/plus-menu.tsx
 msgid "Use a prompt"
@@ -5148,6 +5204,14 @@ msgstr "You're up to date"
 msgid "You've been invited"
 msgstr "You've been invited"
 
+#: ../../apps/web/app/(app)/(pages)/settings/_components/connectors-settings.tsx
+msgid "Your administrator doesn't allow adding servers."
+msgstr "Your administrator doesn't allow adding servers."
+
+#: ../../apps/web/app/(app)/(pages)/settings/_components/connectors-settings.tsx
+msgid "Your administrator hasn't set up any connectors, and adding your own is turned off."
+msgstr "Your administrator hasn't set up any connectors, and adding your own is turned off."
+
 #: ../shortcuts/src/react/shortcuts-editor.tsx
 msgid "Your browser keeps that combination; pick another one."
 msgstr "Your browser keeps that combination; pick another one."
@@ -5195,6 +5259,10 @@ msgstr "Your own keys pay for your Personal chats, and for team or org chats whe
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgid "Yours"
 msgstr "Yours"
+
+#: ../../apps/web/app/(app)/(pages)/settings/_components/connectors-settings.tsx
+msgid "Yours and shared with you"
+msgstr "Yours and shared with you"
 
 #: ../chat-ui/src/artifacts/diagram/diagram-canvas.tsx
 msgid "Zoom"
