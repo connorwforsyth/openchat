@@ -496,16 +496,16 @@ const dateLabel = (at: Date, timeZone: string): string => {
  * `CLAIM_STALE_MS`; a run that starts after that has no place under the
  * cap, so it's cancelled.
  */
-export const settleClaim = async <E>(
+export const settleClaim = async (
   deps: Pick<ScheduleDeps, "db" | "runs">,
-  claim: Pick<ScheduleRunRow, "id" | "ownerId">,
-  started: Result<CreateRunOutput, E>
-): Promise<Result<CreateRunOutput, E | ScheduleError>> => {
+  claimId: DotRunId,
+  started: Result<CreateRunOutput, ScheduleError>
+): Promise<Result<CreateRunOutput, ScheduleError>> => {
   if (!started.ok) {
-    await releaseClaim(deps.db, claim.id);
+    await releaseClaim(deps.db, claimId);
     return started;
   }
-  const recorded = await updateScheduleRun(deps.db, claim.id, {
+  const recorded = await updateScheduleRun(deps.db, claimId, {
     conversationId: started.value.conversationId,
     runId: started.value.runId,
   });
@@ -572,8 +572,8 @@ const postScheduleRun = async (
   );
   const settled = await settleClaim(
     deps,
-    claim,
-    created.ok ? created : err({ error: created.error, type: "run" } as const)
+    claim.id,
+    created.ok ? created : err({ error: created.error, type: "run" })
   );
   // A retried claim finds its run in the chat the first attempt made.
   if (made && (!settled.ok || settled.value.conversationId !== made)) {

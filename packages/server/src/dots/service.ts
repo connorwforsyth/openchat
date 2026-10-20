@@ -389,8 +389,8 @@ export const runDotNow = async (
   );
   return settleClaim(
     deps,
-    claim.value,
-    created.ok ? created : err({ error: created.error, type: "run" } as const)
+    claim.value.id,
+    created.ok ? created : err({ error: created.error, type: "run" })
   );
 };
 
