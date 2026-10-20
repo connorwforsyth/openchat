@@ -7,6 +7,7 @@ import {
   CREATE_ARTIFACT_TOOL,
   UPDATE_ARTIFACT_TOOL,
 } from "@workspace/ai/tools/artifacts";
+import { appConfigSchema } from "@workspace/config/schema";
 import type {
   ArtifactId,
   ConversationId,
@@ -347,16 +348,9 @@ describe("MCP in plain chats", () => {
       allowPrivateNetworks: true,
       config: {
         brand: { name: "Test" } as never,
-        mcp: {
-          servers: [
-            {
-              headers: {},
-              name: "open",
-              transport: "http",
-              url: openServer.url,
-            },
-          ],
-        },
+        mcp: appConfigSchema.shape.mcp.parse({
+          servers: [{ name: "open", url: openServer.url }],
+        }),
       },
       db,
       env: {},

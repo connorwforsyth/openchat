@@ -671,6 +671,73 @@ const cases: Record<string, Cases> = {
       { instructions: "", kind: "agent", model: "fast" },
     ],
   },
+  "library.connectorAvailabilitySchema": {
+    invalid: [{ state: "unconfigured" }, { state: "gone" }],
+    valid: [
+      { state: "available" },
+      { state: "desktop_only" },
+      { message: "Set DOCS_MCP_TOKEN", state: "unconfigured" },
+    ],
+  },
+  "library.connectorListSchema": {
+    invalid: [{ connectors: [] }],
+    valid: [
+      {
+        connectors: [
+          {
+            auth: "none",
+            availability: { state: "available" },
+            description: null,
+            enabled: true,
+            id: itemId,
+            lock: { reason: "Company policy", type: "required" },
+            name: "docs",
+            source: "instance",
+            title: "Docs",
+            transport: "http",
+          },
+        ],
+        userServers: { allowed: true, hosts: [], transports: ["http"] },
+      },
+    ],
+  },
+  "library.connectorLockSchema": {
+    invalid: [{ reason: null, type: "admin" }],
+    valid: [
+      { reason: null, type: "operator" },
+      { reason: "Audit", type: "required" },
+    ],
+  },
+  "library.connectorSchema": {
+    invalid: [
+      {
+        auth: "none",
+        availability: { state: "available" },
+        description: null,
+        enabled: true,
+        id: itemId,
+        lock: null,
+        name: "fs",
+        source: "plugin",
+        title: "Files",
+        transport: "stdio",
+      },
+    ],
+    valid: [
+      {
+        auth: "oauth",
+        availability: { state: "desktop_only" },
+        description: "Local files",
+        enabled: false,
+        id: itemId,
+        lock: null,
+        name: "fs",
+        source: "library",
+        title: "Files",
+        transport: "stdio",
+      },
+    ],
+  },
   "library.createLibraryItemInputSchema": {
     invalid: [
       { definition: { kind: "agent" }, name: "A" },
@@ -879,6 +946,10 @@ const cases: Record<string, Cases> = {
     invalid: [{ id: itemId }],
     valid: [{ id: itemId, versionId: agentVersion.id }],
   },
+  "library.setConnectorEnabledInputSchema": {
+    invalid: [{ enabled: "yes", id: itemId }],
+    valid: [{ enabled: false, id: itemId }],
+  },
   "library.setMaintainersInputSchema": {
     invalid: [{ id: itemId, userIds: [] }],
     valid: [{ id: itemId, userIds: [uid] }],
@@ -912,6 +983,14 @@ const cases: Record<string, Cases> = {
       { definition: reviewerDefinition, icon: null, id: itemId },
     ],
   },
+  "library.userServerPolicySchema": {
+    invalid: [{ allowed: true, hosts: [], transports: ["stdio"] }],
+    valid: [
+      { allowed: false, hosts: [], transports: [] },
+      { allowed: true, hosts: ["*.example.com"], transports: ["http", "sse"] },
+    ],
+  },
+
   // link previews (101)
   "linkPreview.linkPreviewImageInputSchema": {
     invalid: [{}, { src: "" }, { src: "x".repeat(8193) }],

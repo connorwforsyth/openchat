@@ -49,7 +49,7 @@ export interface CreateAppOptions {
 
 /** Procedure groups that need the database, for the "no database" answer. */
 const DATABASE_PATHS = [
-  /^\/api\/(artifacts|budgets|conversations|decisions|files|grants|invitations|keys|library|llm|mcp|me|memory|messages|models|orgs|runs|sandboxes|search|share|share-links|teams|usage)(\/|$)/,
+  /^\/api\/(artifacts|budgets|connectors|conversations|decisions|files|grants|invitations|keys|library|llm|mcp|me|memory|messages|models|orgs|runs|sandboxes|search|share|share-links|teams|usage)(\/|$)/,
 ];
 
 const noDatabase = () =>

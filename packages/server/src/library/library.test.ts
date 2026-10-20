@@ -476,6 +476,46 @@ describe("drafts and versions", () => {
 });
 
 describe("MCP servers", () => {
+  it("holds user servers to the operator's mcp.userServers policy (184)", async () => {
+    current = await createTestAuth({}, {});
+    const t = current;
+    const router = createLibraryRouter({
+      db: t.db,
+      keys: ok(keyRingOf(KEY)),
+      userServers: {
+        allowed: true,
+        hosts: ["*.corp.example.test"],
+        transports: ["http"],
+      },
+    });
+    const ada = await signUp(t.auth, "ada@example.test");
+    const create = (url: string, transport: "http" | "sse" = "http") =>
+      call(
+        router.library.create,
+        {
+          definition: {
+            auth: { type: "none" },
+            kind: "mcp_server",
+            transport,
+            url,
+          },
+          name: "Mine",
+        },
+        as(ada)
+      );
+    await expect(
+      create("https://mcp.corp.example.test/mcp")
+    ).resolves.toBeTruthy();
+    await expect(
+      create("https://mcp.elsewhere.test/mcp")
+    ).rejects.toMatchObject({
+      code: "VALIDATION",
+    });
+    await expect(
+      create("https://mcp.corp.example.test/sse", "sse")
+    ).rejects.toMatchObject({ code: "VALIDATION" });
+  });
+
   it("seals header secrets, never returns them, and drops them when the URL changes", async () => {
     const { router, t } = await setup();
     const ada = await signUp(t.auth, "ada@example.test");

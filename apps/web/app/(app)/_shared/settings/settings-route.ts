@@ -11,6 +11,7 @@ import { z } from "zod";
 export const settingsSectionSchema = z.enum([
   "profile",
   "keys",
+  "connectors",
   "memory",
   "shortcuts",
   "appearance",
