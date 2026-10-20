@@ -3,7 +3,6 @@
 import { plural } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
 import {
-  BotIcon,
   ClockIcon,
   LibraryIcon,
   MessageSquareIcon,
@@ -15,7 +14,7 @@ import {
   TooltipTrigger,
 } from "@workspace/ui/components/tooltip";
 import { cn } from "@workspace/ui/lib/utils";
-import { type ReactNode, useCallback, useMemo } from "react";
+import { type ReactNode, useMemo } from "react";
 
 import { needsAttention } from "../model/attention";
 import { usePlatform } from "../shell/platform";
@@ -41,10 +40,7 @@ export type SidebarRailProps = Pick<
   | "artifactsHref"
   | "chats"
   | "dot"
-  | "dotFace"
-  | "dotsHref"
   | "libraryHref"
-  | "onSelect"
   | "schedulesHref"
   | "signals"
 > & {
@@ -123,10 +119,7 @@ export function SidebarRail({
   chats,
   current,
   dot,
-  dotFace,
-  dotsHref,
   libraryHref,
-  onSelect,
   onShowChats,
   schedulesHref,
   signals,
@@ -140,11 +133,6 @@ export function SidebarRail({
         signals ?? new Map()
       ).length,
     [chats, dot, signals]
-  );
-  const dotId = dot?.conversationId;
-  const openDot = useCallback(
-    () => dotId && onSelect(dotId),
-    [dotId, onSelect]
   );
   return (
     <nav
@@ -168,24 +156,6 @@ export function SidebarRail({
       >
         <MessageSquareIcon aria-hidden />
       </RailItem>
-      {dot ? (
-        <RailItem
-          active={current === "dot"}
-          label={t`Your Dot`}
-          onClick={openDot}
-        >
-          {dotFace ?? <BotIcon aria-hidden />}
-        </RailItem>
-      ) : null}
-      {!dot && dotsHref ? (
-        <RailItem
-          active={current === "dot"}
-          href={dotsHref}
-          label={t`Your Dot`}
-        >
-          <BotIcon aria-hidden />
-        </RailItem>
-      ) : null}
       {schedulesHref ? (
         <RailItem
           active={current === "scheduled"}
