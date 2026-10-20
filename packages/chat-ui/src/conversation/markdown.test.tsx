@@ -109,11 +109,9 @@ describe("code blocks in markdown", () => {
     );
 
     // A streamed chunk on a long block re-tokenises one line, so it shows
-    // coloured in the same render. Re-tokenising the whole block would go
-    // through the sliced, asynchronous path and leave the old 2,000 lines up.
-    // There's no wall-clock budget. Rendering 2,000 lines takes about 160 ms
-    // on an idle laptop, 1.3 s at 4x CPU throttling and up to 3.6 s on a busy
-    // CI runner, so a fixed budget fails on load, not on a regression.
+    // coloured in the same render. Re-tokenising the whole block would take
+    // the sliced, asynchronous path. Asserting this instead of a wall-clock
+    // budget keeps the test about the code, not the runner's load.
     act(() => {
       view.rerender(
         <Markdown streaming>

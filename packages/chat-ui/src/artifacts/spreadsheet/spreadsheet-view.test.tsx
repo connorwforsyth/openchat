@@ -20,8 +20,8 @@ import { gridTheme, readGridTokens, toHex } from "./theme";
 // checked by the kind's rules and saved as a version after a pause, and
 // read only for a viewer and for an older version.
 
-// The grid's chunk, warmed under hookTimeout (ticket 037). On a fresh, busy
-// Vite server its first load took 2 to 5.5 s, inside the first test's wait.
+// Loads the grid's lazy chunk under hookTimeout (ticket 037), not inside the
+// first test's wait, where a cold Vite server can take seconds.
 beforeAll(async () => {
   await import("./spreadsheet-grid");
 });

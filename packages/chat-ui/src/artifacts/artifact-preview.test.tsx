@@ -24,9 +24,6 @@ const props: ArtifactPreviewProps = {
 
 const frame = () => screen.getByTitle<HTMLIFrameElement>(PREVIEW);
 
-// Dispatched in `act`, so the panel has handled the message before the test
-// goes on, including the render it posts on `ready`. A fixed wait is too
-// short on a busy runner.
 const fromFrame = (data: unknown, source = frame().contentWindow) =>
   act(() => {
     window.dispatchEvent(
