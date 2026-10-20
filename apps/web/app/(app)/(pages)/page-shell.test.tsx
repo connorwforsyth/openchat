@@ -1,18 +1,13 @@
 import { cleanup, screen, waitFor, within } from "@testing-library/react";
 import { SidebarLayoutProvider } from "@workspace/chat-ui/shell/sidebar-layout";
-import {
-  conversation,
-  fixtureId,
-  org,
-  userAda,
-} from "@workspace/contract/fixtures";
-import type { Me, PublicConfig } from "@workspace/contract/schemas/meta";
+import { conversation } from "@workspace/contract/fixtures";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
+import { AppFrameProvider } from "@/app/(app)/_shared/app-frame";
 import {
-  AppFrameProvider,
-  type AppFrameValue,
-} from "@/app/(app)/_shared/app-frame";
+  testFrame as frame,
+  testMe as me,
+} from "@/app/(app)/_shared/frame-fixture";
 import { fakeApi, renderWithApi } from "@/app/(app)/_shared/test-harness";
 
 import { PageShell } from "./page-shell";
@@ -34,68 +29,6 @@ beforeAll(async () => {
 afterEach(() => {
   cleanup();
   push.mockReset();
-});
-
-const me: Me = {
-  orgs: [org],
-  persistClientCache: true,
-  personalOrgId: fixtureId("org", 9),
-  teams: [],
-  user: {
-    email: "ada@example.test",
-    id: userAda.id,
-    image: null,
-    isAdmin: false,
-    locale: null,
-    name: userAda.name,
-  },
-};
-
-const config: PublicConfig = {
-  artifacts: { siteOrigins: [] },
-  auth: { providers: [], signup: "invite" },
-  brand: { faviconUrl: null, logoUrl: null, name: "Test Chat" },
-  features: {
-    fileUploads: true,
-    importers: false,
-    memory: true,
-    publicLinks: false,
-    sandboxes: false,
-    webSearch: false,
-  },
-  limits: { memoryMaxChars: 4000, uploadMaxMb: 20 },
-  policies: { chatContexts: ["personal", "team", "org"] },
-  sandbox: { default: null, providers: [] },
-};
-
-const frame = (overrides: Partial<AppFrameValue> = {}): AppFrameValue => ({
-  chat: {
-    draftContext: { type: "personal" },
-    paletteContext: undefined,
-    setDraftContext: vi.fn(),
-    setPaletteContext: vi.fn(),
-    setTarget: vi.fn(),
-    target: null,
-  },
-  config,
-  layout: {
-    layout: { panel: null, panelWidth: 400, sidebarOpen: true },
-    setPanel: vi.fn(),
-    setPanelWidth: vi.fn(),
-    togglePanel: vi.fn(),
-    toggleSidebar: vi.fn(),
-  },
-  me,
-  openNewOrg: vi.fn(),
-  openPalette: vi.fn(),
-  paletteOpen: false,
-  setPaletteOpen: vi.fn(),
-  setSidebarLayout: vi.fn(),
-  setTheme: vi.fn(),
-  sidebarLayout: "rail",
-  signOut: vi.fn(),
-  theme: "system",
-  ...overrides,
 });
 
 const api = () =>
