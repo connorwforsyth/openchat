@@ -121,6 +121,9 @@ export const callErrorOf = async (
   return stage === "transcribe" ? "transcription" : "speech";
 };
 
+const lengthOf = (frames: readonly Float32Array[]) =>
+  frames.reduce((sum, frame) => sum + frame.length, 0);
+
 const isTalking = (phase: CallState["phase"]) =>
   phase === "speaking" ||
   phase === "paused" ||
@@ -308,17 +311,17 @@ export const openVoiceEngine = async (
     const controller = new AbortController();
     transcribing = controller;
     try {
-      const heardText = await upload(wav, controller.signal).catch(() =>
+      const transcript = await upload(wav, controller.signal).catch(() =>
         err<CallError>("transcription")
       );
       if (controller.signal.aborted) {
         return;
       }
-      if (heardText.ok) {
+      if (transcript.ok) {
         turn.transcribed = performance.now();
-        hooks.dispatch({ text: heardText.value, type: "transcribed" });
+        hooks.dispatch({ text: transcript.value, type: "transcribed" });
       } else {
-        hooks.dispatch({ error: heardText.error, type: "failed" });
+        hooks.dispatch({ error: transcript.error, type: "failed" });
       }
     } finally {
       if (transcribing === controller) {
@@ -391,16 +394,13 @@ export const openVoiceEngine = async (
     switch (effect.type) {
       case "start-recording":
         utterance = [...preroll];
-        utteranceLength = preroll.reduce((sum, frame) => sum + frame.length, 0);
+        utteranceLength = lengthOf(preroll);
         return;
       case "resume-recording":
         transcribing?.abort();
         transcribing = null;
         utterance = [...heard, ...preroll];
-        utteranceLength = utterance.reduce(
-          (sum, frame) => sum + frame.length,
-          0
-        );
+        utteranceLength = lengthOf(utterance);
         heard = [];
         return;
       case "discard-recording":
