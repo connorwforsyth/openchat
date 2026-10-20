@@ -490,17 +490,31 @@ const dateLabel = (at: Date, timeZone: string): string => {
   }
 };
 
-export const settleClaim = (
-  db: Db,
-  claimId: DotRunId,
-  started: Result<CreateRunOutput, unknown>
-): Promise<void> =>
-  started.ok
-    ? updateScheduleRun(db, claimId, {
-        conversationId: started.value.conversationId,
-        runId: started.value.runId,
-      })
-    : releaseClaim(db, claimId);
+/**
+ * Records the started run on its claim, or gives back the claim of a run
+ * that didn't start. The tick gives back a claim no run took within
+ * `CLAIM_STALE_MS`; a run that starts after that has no place under the
+ * cap, so it's cancelled.
+ */
+export const settleClaim = async <E>(
+  deps: Pick<ScheduleDeps, "db" | "runs">,
+  claim: Pick<ScheduleRunRow, "id" | "ownerId">,
+  started: Result<CreateRunOutput, E>
+): Promise<Result<CreateRunOutput, E | ScheduleError>> => {
+  if (!started.ok) {
+    await releaseClaim(deps.db, claim.id);
+    return started;
+  }
+  const recorded = await updateScheduleRun(deps.db, claim.id, {
+    conversationId: started.value.conversationId,
+    runId: started.value.runId,
+  });
+  if (recorded) {
+    return started;
+  }
+  await deps.runs.executor.cancel(started.value.runId, null);
+  return err({ retryAfterSeconds: 3600, type: "cap" });
+};
 
 /**
  * Posts the schedule's prompt into its target as the owner, labelled with a
@@ -556,11 +570,16 @@ const postScheduleRun = async (
     },
     { scheduleId: schedule.id, type: "schedule" }
   );
+  const settled = await settleClaim(
+    deps,
+    claim,
+    created.ok ? created : err({ error: created.error, type: "run" } as const)
+  );
   // A retried claim finds its run in the chat the first attempt made.
-  if (made && (!created.ok || created.value.conversationId !== made)) {
+  if (made && (!settled.ok || settled.value.conversationId !== made)) {
     await deleteConversation(db, made);
   }
-  return created.ok ? created : err({ error: created.error, type: "run" });
+  return settled;
 };
 
 export const startScheduleRun = async (
@@ -569,7 +588,6 @@ export const startScheduleRun = async (
   claim: ScheduleRunRow
 ): Promise<Result<CreateRunOutput, ScheduleError>> => {
   const started = await postScheduleRun(deps, schedule, claim);
-  await settleClaim(deps.db, claim.id, started);
   await updateScheduleRow(
     deps.db,
     schedule.id,

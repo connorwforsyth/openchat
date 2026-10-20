@@ -383,8 +383,11 @@ export const runDotNow = async (
     },
     { type: "check_in" }
   );
-  await settleClaim(db, claim.value.id, created);
-  return created.ok ? created : err({ error: created.error, type: "run" });
+  return settleClaim(
+    deps,
+    claim.value,
+    created.ok ? created : err({ error: created.error, type: "run" } as const)
+  );
 };
 
 /** The owner's Dot conversation, for "is this run in the Dot's thread". */
