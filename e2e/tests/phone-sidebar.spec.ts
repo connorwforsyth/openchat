@@ -45,11 +45,11 @@ test.afterEach(async ({ baseURL, page }) => {
   }
 });
 
-test("rows are 40px with a 44px hit area and no ⋯ over the status", async ({
+test("rows are 36px with a 40px hit area and no ⋯ over the status", async ({
   page,
 }) => {
   const box = await row(page).boundingBox();
-  expect(Math.round(box?.height ?? 0)).toBe(40);
+  expect(Math.round(box?.height ?? 0)).toBe(36);
   expect(
     await row(page).evaluate((node) => {
       const after = getComputedStyle(node, "::after");
@@ -57,7 +57,7 @@ test("rows are 40px with a 44px hit area and no ⋯ over the status", async ({
         node.getBoundingClientRect().height - 2 * Number.parseFloat(after.top)
       );
     })
-  ).toBe(44);
+  ).toBe(40);
 
   const actions = sheet(page).getByRole("button", {
     name: `Actions for ${TITLE}`,
