@@ -13,9 +13,11 @@ import type {
   ScheduleLimits,
   ScheduleRun,
 } from "@workspace/contract/schemas/schedules";
+import { dotRun } from "@workspace/db/schema/dots";
 import { seedUser } from "@workspace/db/testing";
 import { tool } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
+import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { createDotsRouter } from "../api/dots";
@@ -662,6 +664,69 @@ describe("scheduled runs", () => {
       method: "POST",
     });
     expect(resumed.status).toBe(409);
+  });
+});
+
+describe("claims", () => {
+  const chats = async () =>
+    (await json<{ items: Conversation[] }>(await request("/api/conversations")))
+      .items;
+
+  it("gives a claim back when its schedule is paused before it starts", async () => {
+    const schedule = await create({ target: { kind: "new_chat_each_run" } });
+    clock = new Date("2026-10-20T09:06:00.000Z");
+    await claimDue();
+    await request(`/api/schedules/${schedule.id}/pause`, { method: "POST" });
+    await h.jobs.drain();
+
+    expect(await runsOf(schedule.id)).toEqual([]);
+    expect((await limitsNow()).runsToday).toBe(0);
+  });
+
+  it("fails a claim no run ever started, so it stops spending the cap", async () => {
+    const schedule = await create({ target: { kind: "new_chat_each_run" } });
+    clock = new Date("2026-10-20T09:06:00.000Z");
+    await claimDue();
+    expect((await limitsNow()).runsToday).toBe(1);
+
+    clock = new Date("2026-10-20T09:22:00.000Z");
+    await claimDue();
+    await h.jobs.drain();
+    expect(
+      (await runsOf(schedule.id)).map((run) => [run.outcome, run.runId])
+    ).toEqual([["failed", null]]);
+    expect((await limitsNow()).runsToday).toBe(0);
+  });
+
+  it("starts a retried claim's run once, in one chat", async () => {
+    const schedule = await create({ target: { kind: "new_chat_each_run" } });
+    h.nextTurn({ model: reporting("update").model });
+    clock = new Date("2026-10-20T09:06:00.000Z");
+    await tick();
+    const [first] = await runsOf(schedule.id);
+    if (!first) {
+      throw new Error("the slot didn't run");
+    }
+    const before = await chats();
+    const retry = () =>
+      dotJobHandlers({ ...services.dots, queue: h.jobs })["dot.run"]?.(
+        jobOf("dot.run", { claimId: first.id }),
+        new AbortController().signal
+      );
+
+    await retry();
+    // As if the first attempt had crashed before it recorded its run.
+    await h.db
+      .update(dotRun)
+      .set({ outcome: null, runId: null })
+      .where(eq(dotRun.id, first.id));
+    await retry();
+    await h.services.executor.idle();
+
+    expect(
+      (await runsOf(schedule.id)).map((run) => [run.id, run.runId])
+    ).toEqual([[first.id, first.runId]]);
+    expect(await chats()).toEqual(before);
   });
 });
 

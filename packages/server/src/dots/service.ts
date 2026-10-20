@@ -32,7 +32,6 @@ import {
   getOwnersDot,
   getSchedule,
   insertDot,
-  insertScheduleRun,
   latestDotRuns,
   latestMessageId,
   listDotRuns,
@@ -44,7 +43,6 @@ import {
   unreadDotRuns,
   updateDot as updateDotRow,
 } from "@workspace/db/queries/dots";
-import { newId } from "@workspace/shared/ids";
 import { err, ok, type Result } from "@workspace/shared/result";
 
 import type { Actor } from "../context";
@@ -59,7 +57,7 @@ import {
 } from "./policy";
 import { toSchedule } from "./schedule-policy";
 import {
-  capCheck,
+  claimRunNow,
   createSchedule,
   ownerActor,
   pauseSchedule,
@@ -68,6 +66,7 @@ import {
   type ScheduleDeps,
   type ScheduleEditDeps,
   type ScheduleError,
+  settleClaim,
   toScheduleRun,
   updateSchedule,
 } from "./schedules";
@@ -409,9 +408,14 @@ export const runDotNow = async (
   if (!dot) {
     return err({ type: "not_found" });
   }
-  const cap = await capCheck(deps, actor.userId);
-  if (!cap.ok) {
-    return cap;
+  const claim = await claimRunNow(deps, {
+    conversationId: dot.conversationId,
+    dotId: dot.id,
+    ownerId: dot.ownerId,
+    scheduleId: null,
+  });
+  if (!claim.ok) {
+    return claim;
   }
   const [first] = await listDotSchedules(db, [dot.id]);
   const owner = await ownerActor(db, dot.ownerId);
@@ -423,7 +427,7 @@ export const runDotNow = async (
     owner,
     {
       conversationId: dot.conversationId,
-      idempotencyKey: dotRunKey({ nonce: newId("job"), type: "manual" }),
+      idempotencyKey: dotRunKey(claim.value.id),
       input: {
         parentId: await latestMessageId(db, dot.conversationId),
         parts: [
@@ -443,19 +447,8 @@ export const runDotNow = async (
     },
     { type: "check_in" }
   );
-  if (!created.ok) {
-    return err({ error: created.error, type: "run" });
-  }
-  await insertScheduleRun(db, {
-    conversationId: dot.conversationId,
-    dotId: dot.id,
-    notified: false,
-    ownerId: dot.ownerId,
-    runId: created.value.runId,
-    scheduleId: null,
-    trigger: "manual",
-  });
-  return created;
+  await settleClaim(db, claim.value.id, created);
+  return created.ok ? created : err({ error: created.error, type: "run" });
 };
 
 /** The owner's Dot conversation, for "is this run in the Dot's thread". */

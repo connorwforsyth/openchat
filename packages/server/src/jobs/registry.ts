@@ -6,7 +6,7 @@ import {
 } from "@workspace/ai/rag/ingest";
 import {
   conversationIdSchema,
-  dotScheduleIdSchema,
+  dotRunIdSchema,
   runIdSchema,
   userIdSchema,
 } from "@workspace/contract/schemas/common";
@@ -25,13 +25,8 @@ import type { JobHandler, JobQueue, SendOptions } from "../ports/job-queue";
 // with). A job without a handler waits in the queue rather than being dropped.
 
 export const jobSchemas = {
-  /** Fires one claimed occurrence of a Dot's schedule (172). */
-  "dot.run": z.object({
-    /** Overdue slots folded into this one after downtime (173). */
-    missedSlots: z.int().min(0).optional(),
-    occurrence: z.iso.datetime(),
-    scheduleId: dotScheduleIdSchema,
-  }),
+  /** Starts the run for one slot the tick claimed (172, 175): its `dot_run` row. */
+  "dot.run": z.object({ claimId: dotRunIdSchema }),
   /** Claims every Dot schedule that's due and enqueues a `dot.run` each; every minute. */
   "dot.tick": z.object({}),
   /** Runs an `eval_run` (a dataset against an agent version) and stores its scores (041). */
@@ -61,7 +56,7 @@ export const JOB_NAMES = Object.keys(jobSchemas) as JobName[];
 
 /** Defaults per job; callers may override. */
 export const jobDefaults: { readonly [N in JobName]: SendOptions } = {
-  // The occurrence's idempotency key makes a retry safe; one retry covers a blip.
+  // The claim's idempotency key makes a retry safe; one retry covers a blip.
   "dot.run": { expireInSeconds: 300, retryDelaySeconds: 15, retryLimit: 1 },
   // The next tick picks up whatever a failed one left.
   "dot.tick": { retryLimit: 0 },

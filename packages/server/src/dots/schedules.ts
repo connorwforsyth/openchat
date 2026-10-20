@@ -2,6 +2,7 @@ import { nextNominal } from "@workspace/ai/schedules/recurrence";
 import { SCHEDULED_TASK_DATA } from "@workspace/ai/schedules/tool";
 import type {
   ConversationId,
+  DotRunId,
   DotScheduleId,
   UserId,
 } from "@workspace/contract/schemas/common";
@@ -24,26 +25,32 @@ import type {
 import type { Db } from "@workspace/db/client";
 import {
   createConversation,
+  deleteConversation,
   getConversation,
 } from "@workspace/db/queries/conversations";
 import {
   claimDueSchedules,
+  claimRun,
   conversationBusy,
   type DotRow,
   deleteSchedule as deleteScheduleRow,
+  failStaleClaims,
   getDotById,
   getOwnersDot,
   getSchedule,
   getScheduleById,
-  insertScheduleRun,
+  getScheduleRunById,
   insertSchedules,
   latestMessageId,
   listScheduleRuns,
   listSchedules,
   markScheduleRunsRead,
+  type NewScheduleRun,
   recentScheduleStatuses,
+  releaseClaim,
   runsInLastDay,
   type ScheduleRow,
+  type ScheduleRunRow,
   type ScheduleRunView,
   scheduleRunFor,
   updateSchedule as updateScheduleRow,
@@ -69,6 +76,7 @@ import {
   snippetOf,
 } from "./policy";
 import {
+  CLAIM_STALE_MS,
   checkRecurrence,
   concludeRun,
   nextColumns,
@@ -141,6 +149,15 @@ export const toScheduleRun = (row: ScheduleRunView): ScheduleRun => ({
   trigger: row.trigger === "schedule" ? "scheduled" : "run_now",
 });
 
+const isArchived = async (
+  db: Db,
+  actor: Actor,
+  conversationId: ConversationId
+): Promise<boolean> => {
+  const found = await getConversation(db, conversationId, actor);
+  return found.ok && found.value.archivedAt !== null;
+};
+
 /** Where a schedule's runs land, checked for the owner. */
 const resolveTarget = async (
   deps: Pick<ScheduleDeps, "access" | "db">,
@@ -158,19 +175,24 @@ const resolveTarget = async (
   switch (target.kind) {
     case "dot": {
       const dot = await getOwnersDot(deps.db, actor.userId);
-      return dot
-        ? ok({ conversationId: dot.conversationId, dotId: dot.id })
-        : err({ type: "no_dot" });
+      if (!dot) {
+        return err({ type: "no_dot" });
+      }
+      return (await isArchived(deps.db, actor, dot.conversationId))
+        ? err({ type: "target_archived" })
+        : ok({ conversationId: dot.conversationId, dotId: dot.id });
     }
     case "conversation": {
-      if (await deps.access(actor, target.conversationId, "write")) {
-        return ok({ conversationId: target.conversationId, dotId: null });
+      if (!(await deps.access(actor, target.conversationId, "write"))) {
+        return err(
+          (await deps.access(actor, target.conversationId, "read"))
+            ? { type: "forbidden" }
+            : { type: "not_found" }
+        );
       }
-      return err(
-        (await deps.access(actor, target.conversationId, "read"))
-          ? { type: "forbidden" }
-          : { type: "not_found" }
-      );
+      return (await isArchived(deps.db, actor, target.conversationId))
+        ? err({ type: "target_archived" })
+        : ok({ conversationId: target.conversationId, dotId: null });
     }
     case "new_chat_each_run":
       return ok({ conversationId: null, dotId: null });
@@ -308,6 +330,16 @@ export const updateSchedule = async (
   if (!timing.ok) {
     return timing;
   }
+  // A new rule revives a completed schedule, which archiving didn't pause.
+  if (
+    input.recurrence &&
+    found.completedAt &&
+    !target &&
+    found.conversationId &&
+    (await isArchived(deps.db, actor, found.conversationId))
+  ) {
+    return err({ type: "target_archived" });
+  }
   const row = await updateScheduleRow(deps.db, found.id, {
     ...timing.value,
     ...(target?.ok
@@ -369,11 +401,11 @@ export const resumeSchedule = async (
   if (found.completedAt) {
     return err({ type: "completed" });
   }
-  if (found.targetKind === "conversation" && found.conversationId) {
-    const target = await getConversation(deps.db, found.conversationId, actor);
-    if (target.ok && target.value.archivedAt) {
-      return err({ type: "target_archived" });
-    }
+  if (
+    found.conversationId &&
+    (await isArchived(deps.db, actor, found.conversationId))
+  ) {
+    return err({ type: "target_archived" });
   }
   const recurrence = recurrenceOf(found);
   const next = nextNominal(recurrence, deps.now());
@@ -433,14 +465,6 @@ export const markRunsRead = async (
   return ok(undefined);
 };
 
-export type ScheduleTrigger =
-  | {
-      readonly missedSlots: number;
-      readonly nominal: Date;
-      readonly type: "schedule";
-    }
-  | { readonly type: "manual" };
-
 const dateLabel = (at: Date, timeZone: string): string => {
   try {
     return new Intl.DateTimeFormat("en-GB", {
@@ -453,49 +477,60 @@ const dateLabel = (at: Date, timeZone: string): string => {
   }
 };
 
+export const settleClaim = (
+  db: Db,
+  claimId: DotRunId,
+  started: Result<CreateRunOutput, unknown>
+): Promise<void> =>
+  updateScheduleRun(
+    db,
+    claimId,
+    started.ok
+      ? {
+          conversationId: started.value.conversationId,
+          runId: started.value.runId,
+        }
+      : { outcome: "failed" }
+  );
+
 /**
  * Posts the schedule's prompt into its target as the owner, labelled with a
  * `scheduled-task` data part, and starts the run. `createUnattendedRun` re-checks that
  * the owner may still write there and use the agent, so a revoked share or
- * agent fails the run cleanly.
+ * agent fails the run cleanly. A chat made for a run that didn't start is
+ * deleted again.
  */
-export const startScheduleRun = async (
+const postScheduleRun = async (
   deps: ScheduleDeps,
   schedule: ScheduleRow,
-  trigger: ScheduleTrigger
+  claim: ScheduleRunRow
 ): Promise<Result<CreateRunOutput, ScheduleError>> => {
   const { db } = deps;
   const actor = await ownerActor(db, schedule.ownerId);
   const dot = schedule.dotId ? await getDotById(db, schedule.dotId) : null;
   let conversationId = dot?.conversationId ?? schedule.conversationId;
+  let made: ConversationId | null = null;
   const target = runTargetOf(dot, deps.defaultModel);
   if (schedule.targetKind === "new_chat_each_run" || !conversationId) {
     const context = await storeContext(db, actor, { type: "personal" });
     if (!context.ok) {
       return err({ type: "no_personal_space" });
     }
-    const made = await createConversation(db, {
+    const chat = await createConversation(db, {
       context: context.value,
       defaultTarget: target,
       ownerId: schedule.ownerId,
-      title: `${schedule.title || "Scheduled task"} · ${dateLabel(trigger.type === "schedule" ? trigger.nominal : deps.now(), schedule.timezone)}`,
+      title: `${schedule.title || "Scheduled task"} · ${dateLabel(claim.nominalAt ?? deps.now(), schedule.timezone)}`,
     });
-    conversationId = made.id;
+    made = chat.id;
+    conversationId = chat.id;
   }
   const created = await createUnattendedRun(
     deps.runs,
     actor,
     {
       conversationId,
-      idempotencyKey: dotRunKey(
-        trigger.type === "schedule"
-          ? {
-              occurrence: trigger.nominal,
-              scheduleId: schedule.id,
-              type: "schedule",
-            }
-          : { nonce: newId("job"), type: "manual" }
-      ),
+      idempotencyKey: dotRunKey(claim.id),
       input: {
         parentId: await latestMessageId(db, conversationId),
         parts: [
@@ -512,25 +547,44 @@ export const startScheduleRun = async (
     },
     { scheduleId: schedule.id, type: "schedule" }
   );
-  if (!created.ok) {
-    return err({ error: created.error, type: "run" });
+  // A retried claim finds its run in the chat the first attempt made.
+  if (made && (!created.ok || created.value.conversationId !== made)) {
+    await deleteConversation(db, made);
   }
-  await insertScheduleRun(db, {
-    conversationId,
-    dotId: schedule.dotId,
-    missedSlots: trigger.type === "schedule" ? trigger.missedSlots : 0,
-    nominalAt: trigger.type === "schedule" ? trigger.nominal : null,
-    notified: false,
-    ownerId: schedule.ownerId,
-    runId: created.value.runId,
-    scheduleId: schedule.id,
-    trigger: trigger.type,
-  });
-  await updateScheduleRow(db, schedule.id, {
-    lastRunAt: deps.now(),
-    lastStatus: "queued",
-  });
-  return created;
+  return created.ok ? created : err({ error: created.error, type: "run" });
+};
+
+export const startScheduleRun = async (
+  deps: ScheduleDeps,
+  schedule: ScheduleRow,
+  claim: ScheduleRunRow
+): Promise<Result<CreateRunOutput, ScheduleError>> => {
+  const started = await postScheduleRun(deps, schedule, claim);
+  await settleClaim(deps.db, claim.id, started);
+  await updateScheduleRow(
+    deps.db,
+    schedule.id,
+    started.ok
+      ? { lastRunAt: deps.now(), lastStatus: "queued" }
+      : { lastOutcome: "failed", lastStatus: "failed" }
+  );
+  return started;
+};
+
+export const claimRunNow = async (
+  deps: Pick<ScheduleDeps, "db" | "limits" | "now">,
+  claim: Pick<
+    NewScheduleRun,
+    "conversationId" | "dotId" | "ownerId" | "scheduleId"
+  >
+): Promise<Result<ScheduleRunRow, ScheduleError>> => {
+  const row = await claimRun(
+    deps.db,
+    { ...claim, notified: false, trigger: "manual" },
+    deps.now(),
+    deps.limits.maxRunsPerUserPerDay
+  );
+  return row ? ok(row) : err({ retryAfterSeconds: 3600, type: "cap" });
 };
 
 /**
@@ -546,10 +600,6 @@ export const runScheduleNow = async (
   if (!found) {
     return err({ type: "not_found" });
   }
-  const cap = await capCheck(deps, actor.userId);
-  if (!cap.ok) {
-    return cap;
-  }
   const target = found.dotId
     ? (await getDotById(deps.db, found.dotId))?.conversationId
     : found.conversationId;
@@ -560,18 +610,13 @@ export const runScheduleNow = async (
   ) {
     return err({ type: "busy" });
   }
-  return startScheduleRun(deps, found, { type: "manual" });
-};
-
-/** The daily cap, checked before a manual run (the tick checks its own). */
-export const capCheck = async (
-  deps: Pick<ScheduleDeps, "db" | "limits" | "now">,
-  ownerId: UserId
-): Promise<Result<void, ScheduleError>> => {
-  const used = await runsInLastDay(deps.db, ownerId, deps.now());
-  return used >= deps.limits.maxRunsPerUserPerDay
-    ? err({ retryAfterSeconds: 3600, type: "cap" })
-    : ok(undefined);
+  const claim = await claimRunNow(deps, {
+    conversationId: found.conversationId,
+    dotId: found.dotId,
+    ownerId: found.ownerId,
+    scheduleId: found.id,
+  });
+  return claim.ok ? startScheduleRun(deps, found, claim.value) : claim;
 };
 
 /** What a fired slot did: a run, or why it didn't start one. */
@@ -583,66 +628,55 @@ export type FireOutcome =
     };
 
 /**
- * Fires one claimed slot (the `dot.run` job). Skips quietly when the
- * schedule was removed or paused since the claim.
+ * Starts one claimed slot (the `dot.run` job). Gives the claim back when
+ * the schedule was removed or paused since the tick claimed it.
  */
 export const fireSchedule = async (
   deps: ScheduleDeps,
-  data: {
-    readonly missedSlots?: number;
-    readonly occurrence: string;
-    readonly scheduleId: DotScheduleId;
-  }
+  claimId: DotRunId
 ): Promise<FireOutcome> => {
-  const schedule = await getScheduleById(deps.db, data.scheduleId);
-  if (!schedule) {
+  const claim = await getScheduleRunById(deps.db, claimId);
+  if (claim?.runId) {
+    return { runId: claim.runId, type: "started" };
+  }
+  if (claim?.outcome) {
+    return { reason: "run_failed", type: "skipped" };
+  }
+  const schedule = claim?.scheduleId
+    ? await getScheduleById(deps.db, claim.scheduleId)
+    : null;
+  if (!(claim && schedule)) {
+    if (claim) {
+      await releaseClaim(deps.db, claim.id);
+    }
     return { reason: "gone", type: "skipped" };
   }
   // The claim already moved it on (and may have completed a one-off), so
   // only a pause since then stops it.
-  if (!schedule.enabled && schedule.completedAt === null) {
+  const dot = schedule.dotId ? await getDotById(deps.db, schedule.dotId) : null;
+  if (
+    (!schedule.enabled && schedule.completedAt === null) ||
+    (schedule.dotId && !dot?.enabled)
+  ) {
+    await releaseClaim(deps.db, claim.id);
     return { reason: "disabled", type: "skipped" };
   }
-  if (schedule.dotId) {
-    const dot = await getDotById(deps.db, schedule.dotId);
-    if (!dot?.enabled) {
-      return { reason: "disabled", type: "skipped" };
-    }
-  }
-  const started = await startScheduleRun(deps, schedule, {
-    missedSlots: data.missedSlots ?? 0,
-    nominal: new Date(data.occurrence),
-    type: "schedule",
-  });
-  if (!started.ok) {
-    await updateScheduleRow(deps.db, schedule.id, {
-      lastOutcome: "failed",
-      lastStatus: "failed",
-    });
-    return { reason: "run_failed", type: "skipped" };
-  }
-  return { runId: started.value.runId, type: "started" };
+  const started = await startScheduleRun(deps, schedule, claim);
+  return started.ok
+    ? { runId: started.value.runId, type: "started" }
+    : { reason: "run_failed", type: "skipped" };
 };
 
-/** The tick: claims due schedules under the policy and returns the slots to fire. */
+/** The tick: claims due schedules under the policy and returns the claims to start. */
 export const claimDue = async (
   deps: Pick<ScheduleDeps, "db" | "limits">,
   now: Date
-): Promise<
-  readonly {
-    readonly missedSlots: number;
-    readonly occurrence: string;
-    readonly scheduleId: DotScheduleId;
-  }[]
-> => {
-  const fired = await claimDueSchedules(deps.db, now, (row, context) =>
+): Promise<readonly DotRunId[]> => {
+  await failStaleClaims(deps.db, new Date(now.getTime() - CLAIM_STALE_MS));
+  const claims = await claimDueSchedules(deps.db, now, (row, context) =>
     planDue(row, now, context, deps.limits)
   );
-  return fired.map((slot) => ({
-    missedSlots: slot.missedSlots,
-    occurrence: slot.nominal.toISOString(),
-    scheduleId: slot.schedule.id,
-  }));
+  return claims.map((claim) => claim.id);
 };
 
 /**
