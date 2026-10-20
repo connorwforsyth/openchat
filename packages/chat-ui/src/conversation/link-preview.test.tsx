@@ -52,6 +52,15 @@ const FAR = /far\.example\.test/;
 
 const chip = () => screen.getByRole("link", { name: CHIP_NAME });
 
+// Tests share one pointer. A chip that mounts under where the last test left
+// it gets its mouseenter before the hover card listens, and hovering it again
+// is only a move, which the card ignores. Moving off first makes the hover a
+// real enter.
+const hoverChip = async () => {
+  await userEvent.unhover(chip());
+  await userEvent.hover(chip());
+};
+
 describe("UrlSourceChip", () => {
   it("shows a letter while loading, then the favicon and site name", async () => {
     let resolve: (value: Awaited<ReturnType<LinkPreviewLoader>>) => void = () =>
@@ -94,7 +103,7 @@ describe("UrlSourceChip", () => {
     );
     expect(container.querySelector("[data-slot=favicon]")).toBeNull();
     expect(chip().textContent).toContain("news.example.test");
-    await userEvent.hover(chip());
+    await hoverChip();
     await new Promise((done) => setTimeout(done, 500));
     expect(document.querySelector("[data-slot=link-preview-card]")).toBeNull();
   });
@@ -102,7 +111,7 @@ describe("UrlSourceChip", () => {
   it("opens the card on hover, with image, site, title, description, host and Open", async () => {
     renderChip(ready());
     await screen.findByText("Example News");
-    await userEvent.hover(chip());
+    await hoverChip();
     const card = await waitFor(() => {
       const found = document.querySelector("[data-slot=link-preview-card]");
       expect(found).not.toBeNull();
@@ -135,7 +144,7 @@ describe("UrlSourceChip", () => {
   it("shows a blurred fallback when the page has no image", async () => {
     renderChip(ready(preview({ image: undefined })));
     await screen.findByText("Example News");
-    await userEvent.hover(chip());
+    await hoverChip();
     await waitFor(() =>
       expect(document.querySelector("[data-fallback]")).not.toBeNull()
     );
