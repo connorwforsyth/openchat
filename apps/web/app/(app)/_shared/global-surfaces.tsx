@@ -24,6 +24,7 @@ import { routes } from "@/lib/routes";
 
 import { useApi } from "./api";
 import { canAdmin, useAppFrame } from "./app-frame";
+import { DOT_WAIT_MS, dotRoute } from "./dot-route";
 import { chatsFromCache, libraryFromCache } from "./palette-cache";
 import {
   closeSettings,
@@ -231,13 +232,18 @@ export const GlobalSurfaces = () => {
   // Switching model is a palette job: it lists the models it can switch to.
   useShortcut("model.switch", () => setPaletteOpen(true), { enabled: onChat });
   // Your Dot (174): one thread, opened from anywhere.
-  // Waits for the list: on a cold load it may still be in flight, and an
-  // empty cache isn't "no Dot".
   useShortcut("dot.open", async () => {
-    const [mine] = await queryClient
-      .ensureQueryData(query.dots.list.queryOptions({ input: {} }))
-      .catch(() => []);
-    router.push(mine ? routes.chat(mine.conversationId) : routes.dots);
+    const next = await dotRoute({
+      listDots: () =>
+        queryClient.ensureQueryData(
+          query.dots.list.queryOptions({ input: {} })
+        ),
+      location: () => window.location.href,
+      waitMs: DOT_WAIT_MS,
+    });
+    if (next) {
+      router.push(next);
+    }
   });
 
   const changeShortcuts = useCallback(() => {
