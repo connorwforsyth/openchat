@@ -57,4 +57,45 @@ created within that team."
 `packages/db/src/seed/**`, `packages/db/drizzle/*spaces*`,
 `packages/db/src/queries/usage.ts` (key attribution only),
 `apps/web/app/(app)/**/spaces/**`, `apps/web/app/(app)/_shared/settings/space-*`,
-`apps/web/app/(app)/(pages)/admin/**`, sidebar header switcher.
+`apps/web/app/(app)/(pages)/admin/**`, sidebar header switcher
+(`page-shell.tsx`, `chat-route.tsx`), `apps/web/app/(app)/_shared/{app-frame,global-surfaces}.tsx`
+(active space), `apps/web/app/(app)/_shared/settings/settings-{route,view}*`,
+`apps/web/app/(app)/(pages)/space/**`, `apps/web/lib/routes.ts`, `apps/web/proxy.ts`,
+`packages/auth/scripts/seed-spaces.ts`, `packages/db/src/schema/usage.ts` (one column),
+`e2e/support/admin.ts`, `e2e/tests/orgs.spec.ts`.
+
+## Results (2026-10-20, loop)
+
+- **Contract** (187a, draft PR #148): additive `spaces` group.
+- **Core** (`packages/auth/src/spaces.ts`, pure): `effectiveSpaceAccess` (my
+  spaces as an outline, with access `member | admin | root_member`, my role
+  and `canManage`), `contentSpacesFor` (a space and its ancestors: content
+  flows down), `canSeeContent`, `allowanceFor` (grant left capped by pool
+  left; owners draw on the pool directly).
+- **DB**: `space_allowance`, `space_allowance_grant`,
+  `transaction.provider_key_id` (migration `20261020100252_spaces`);
+  `recordTransaction` attributes usage to the paying scope's newest key for
+  the model's provider. Queries in `packages/db/src/queries/spaces.ts`.
+- **Handlers** (`packages/auth/src/handlers/spaces.ts`): the 14 procedures.
+  Sharing is a `resource_grant` to the space (`use` for agents and skills,
+  `viewer` for chats) and needs `manage` on the item. Root-space member
+  changes go through the org handlers (Better Auth).
+- **UI**: space switcher in the sidebar header (sets the new-chat context,
+  remembered per browser); `/space` lists the active space's content with
+  "From <parent>" badges and a share control; Settings gains a "Space:
+  <name>" group (Members, Sub-spaces, Token allowance, Keys and usage, and
+  for root spaces Budgets, Policies, Audit). `/admin/[orgId]/*` redirect
+  there; no second sidebar.
+- **Scripts**: `bun run --cwd packages/auth seed:spaces` (demo tree) and
+  `bun run --cwd packages/db spaces:chain <org-slug> "A/B/C"`.
+- **Tests**: pure core (9), PGlite handler tests (6: tree and roles,
+  flow-down visibility, share refusal, owner promotion, allowance approval,
+  per-key usage), settings view (2 new). e2e `orgs.spec` and the account
+  setup moved to Space settings.
+
+### Not done (follow-ups)
+
+- The token allowance isn't enforced before a run yet (shown and approved only).
+- Sidebar chat rows don't show their space; `/space` does.
+- Root-space sub-spaces still use the team-tree editor, worded "team".
+- Inviting straight into a sub-space (today: invite to the root, then add).
