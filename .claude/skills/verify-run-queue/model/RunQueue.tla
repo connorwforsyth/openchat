@@ -119,55 +119,48 @@ variables
   ansAbove = [r \in Runs |-> {}],          \* answers above this turn's message
   settled = [r \in Runs |-> 0];            \* onSettled calls per run
 
-\* execute()'s `finally` (active.delete) and track()'s (running.delete if it
-\* is still this pass), and the pass's promise settling.
+\* execute()'s `finally` (release: active.delete if it is still this pass's
+\* controller) and track()'s (running.delete if it is still this pass), and
+\* the pass's promise settling.
 macro passFinally(run, c) begin
-  active[run] := NoCtl;
+  active[run] := IF active[run] = c THEN NoCtl ELSE active[run];
   running[run] := IF running[run] = c THEN NoCtl ELSE running[run];
   ended := ended \cup {c};
 end macro;
 
 \* startRun(run) in executor.ts.
 procedure startRun(sr)
-variables srAfter = NoRun, srCtl = NoCtl;
+variables srAfter = NoRun;
 begin
 S_Read:
-  \* `getRun(db, run.runId)`, then
-  \* `row.status !== "queued" || active.has(run.runId)` -> already_started
-  if status[sr] # "queued" \/ active[sr] # NoCtl then
+  \* `getRun(db, run.runId)`, then `row.status !== "queued"` -> already_started
+  if status[sr] # "queued" then
     return;
   elsif after[sr] # NoRun then
     srAfter := after[sr];
     goto S_Ahead;
   else
-    \* `active.set(run.runId, controller)`, then claim(run)
-    srCtl := <<sr, nextCtl[sr]>>;
-    active[sr] := <<sr, nextCtl[sr]>>;
-    nextCtl[sr] := nextCtl[sr] + 1;
     goto S_Claim;
   end if;
 S_Ahead:
   \* `getRun(db, row.afterRunId)`: still waiting its turn -> ok, the run
-  \* ahead starts it when it ends. Else `active.set`, then claim(run).
+  \* ahead starts it when it ends. Else claim(run, new controller).
   if status[srAfter] \notin Terminal then
     return;
-  else
-    srCtl := <<sr, nextCtl[sr]>>;
-    active[sr] := <<sr, nextCtl[sr]>>;
-    nextCtl[sr] := nextCtl[sr] + 1;
   end if;
 S_Claim:
-  \* claim(run): one transaction inserts the empty answer and runs
-  \* transitionRun(start). Lost -> `active.delete(run.runId)`.
-  \* Won -> `track(run.runId, execute(..., controller))`.
+  \* claim(run, controller): one transaction inserts the empty answer and
+  \* runs transitionRun(start); won -> `active.set(run.runId, controller)`
+  \* before COMMIT, then `track(run.runId, execute(..., controller))`. Lost
+  \* -> rolled back, `active` untouched.
   await ~locked[sr];
   if status[sr] \in From.start then
     status[sr] := Target.start;
     hasAnswer[sr] := TRUE;
-    spawned[sr] := spawned[sr] \cup {srCtl};
-    running[sr] := srCtl;
-  else
-    active[sr] := NoCtl;
+    active[sr] := <<sr, nextCtl[sr]>>;
+    spawned[sr] := spawned[sr] \cup {<<sr, nextCtl[sr]>>};
+    running[sr] := <<sr, nextCtl[sr]>>;
+    nextCtl[sr] := nextCtl[sr] + 1;
   end if;
   return;
 end procedure;
@@ -362,7 +355,7 @@ end process;
 \* An approval decision: submitApprovals(runId, decisions, by) in executor.ts.
 \* One decision answers every pending call of the pause.
 process Decide \in DecideIds
-variables dtgt = NoRun, resumed = FALSE;
+variables dtgt = NoRun, dctl = NoCtl, resumed = FALSE;
 begin
 D_Lock:
   \* recordDecisions: `lockRun(tx, runId)` (SELECT ... FOR UPDATE) on a run
@@ -376,27 +369,24 @@ D_Lock:
   or
     goto Done;
   end either;
-D_Store:
-  \* storeDecisions: updateMessage, every call decided ->
-  \* `active.set(row.id, new AbortController())`, then transitionRun(resume)
-  active[dtgt] := <<dtgt, nextCtl[dtgt]>>;
-  nextCtl[dtgt] := nextCtl[dtgt] + 1;
 D_Resume:
-  \* transitionRun(resume) (`!resumed.ok` -> active.delete); COMMIT
-  \* releases the row lock
+  \* storeDecisions: updateMessage, every call decided -> transitionRun
+  \* (resume); resumed -> `active.set(row.id, controller)`, the request's
+  \* own. COMMIT releases the row lock.
   if status[dtgt] \in From.resume then
     status[dtgt] := Target.resume;
+    dctl := <<dtgt, nextCtl[dtgt]>>;
+    active[dtgt] := <<dtgt, nextCtl[dtgt]>>;
+    nextCtl[dtgt] := nextCtl[dtgt] + 1;
     resumed := TRUE;
-  else
-    active[dtgt] := NoCtl;
   end if;
   locked[dtgt] := FALSE;
 D_Spawn:
-  \* submitApprovals, after announce: `controller = active.get(runId)`;
-  \* resumed and a controller -> track(runId, execute(..., controller))
-  if resumed /\ active[dtgt] # NoCtl then
-    spawned[dtgt] := spawned[dtgt] \cup {active[dtgt]};
-    running[dtgt] := active[dtgt];
+  \* submitApprovals, after announce: resumed ->
+  \* track(runId, execute(..., controller))
+  if resumed then
+    spawned[dtgt] := spawned[dtgt] \cup {dctl};
+    running[dtgt] := dctl;
   end if;
 end process;
 
@@ -451,7 +441,7 @@ CheckedSpec == Init /\ [][Next \/ (Quiet /\ UNCHANGED vars)]_vars
 
 LiveCtls == UNION {spawned[r] : r \in Runs}
               \cup {active[r] : r \in Runs}
-              \cup {srCtl[p] : p \in ProcSet}
+              \cup {dctl[p] : p \in {q \in DecideIds : pc[q] # "Done"}}
 Locals ==
   << [p \in SendIds |-> IF pc[p] = "Done" THEN <<>> ELSE tail[p]],
      [p \in PassIds |->
@@ -460,11 +450,11 @@ Locals ==
         IF pc[p] = "Done" THEN <<>>
         ELSE <<tgt[p], rowSt[p], rowAfter[p], waitFor[p]>>],
      [p \in DecideIds |->
-        IF pc[p] = "Done" THEN <<>> ELSE <<dtgt[p], resumed[p]>>] >>
+        IF pc[p] = "Done" THEN <<>> ELSE <<dtgt[p], dctl[p], resumed[p]>>] >>
 View ==
   << status, after, createdAt, hasAnswer, locked, active, running,
      aborted \cap LiveCtls, ended \cap {waitFor[p] : p \in StopIds},
-     spawned, pauses, pc, stack, sr, srAfter, srCtl, fr, fctl, queue, cur,
+     spawned, pauses, pc, stack, sr, srAfter, fr, fctl, queue, cur,
      Locals >>
 \* OneRunPerBranch reads the message-tree ghost.
 ViewBranch ==
