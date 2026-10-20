@@ -23,6 +23,8 @@ export const conflictReasonSchema = z.enum([
   "last_owner",
   "run_active",
   "not_empty",
+  "schedule_completed",
+  "target_archived",
 ]);
 export type ConflictReason = z.infer<typeof conflictReasonSchema>;
 
