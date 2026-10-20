@@ -198,7 +198,7 @@ const ConnectorRow = ({
             {connector.description}
           </p>
         ) : null}
-        {unconfigured ? (
+        {connector.availability.state === "unconfigured" ? (
           <p className="text-muted-foreground text-xs">
             {connector.availability.message}
           </p>
