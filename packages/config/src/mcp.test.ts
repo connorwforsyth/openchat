@@ -35,6 +35,28 @@ describe("mcp config (184)", () => {
     });
   });
 
+  it("takes an optional icon: an emoji or an http(s) image URL (193)", () => {
+    const url = "https://cdn.example.test/docs.png";
+    const icons = mcpOf({
+      servers: [
+        { icon: "📚", name: "docs", url: "https://mcp.example.test/mcp" },
+        { icon: url, name: "wiki", url: "https://mcp.example.test/wiki" },
+      ],
+    }).servers.map((server) => server.icon);
+    expect(icons).toEqual(["📚", url]);
+    expect(() =>
+      mcpOf({
+        servers: [
+          {
+            icon: "this is far too long to be an emoji",
+            name: "docs",
+            url: "https://mcp.example.test/mcp",
+          },
+        ],
+      })
+    ).toThrow();
+  });
+
   it("accepts stdio, oauth, required and tool filters", () => {
     const { servers } = mcpOf({
       servers: [

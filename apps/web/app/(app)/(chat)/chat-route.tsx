@@ -40,6 +40,7 @@ import { Brand } from "@/app/(app)/_shared/brand";
 import { useShellPlatform } from "@/app/(app)/_shared/desktop";
 import { createApiSandboxClient } from "@/app/(app)/_shared/sandbox-client";
 import { SpaceSwitcher } from "@/app/(app)/_shared/spaces/space-switcher";
+import { useTerms } from "@/app/(app)/_shared/terms";
 import { useAfterBoot } from "@/app/(app)/_shared/use-after-boot";
 import { DotComputer } from "@/app/(app)/(pages)/dots/dot-computer";
 import {
@@ -258,6 +259,20 @@ const useAgentParam = (
   return parsed.success ? parsed.data : null;
 };
 
+/** `/?mcp=<id>` ("Try now" in Customize, 193) starts the new chat with that server on. */
+const useMcpParam = (
+  conversationId: ConversationId | null | undefined
+): LibraryItemId | null => {
+  const searchParams = useSearchParams();
+  if (conversationId !== null) {
+    return null;
+  }
+  const parsed = libraryItemIdSchema.safeParse(
+    searchParams.get(routeParams.mcp)
+  );
+  return parsed.success ? parsed.data : null;
+};
+
 /**
  * Picking what answers (044). In a new chat it's the draft's choice; in an
  * existing one it becomes the chat's default, so the chat continues with it
@@ -370,6 +385,7 @@ export function ChatRoute({
   const conversationId = useConversationId();
   const { client, query } = useApi();
   const frame = useAppFrame();
+  const terms = useTerms();
   const platform = useShellPlatform();
   const { chat, config, layout, me } = frame;
 
@@ -402,6 +418,7 @@ export function ChatRoute({
         "agent"
   );
   const skills = useSkillsForPicker(booted);
+  const initialMcp = useMcpParam(conversationId);
   const changeContext = useContextChange(conversationId ?? null);
   const { changeTarget, pickedHere } = useTargetChange({
     contextOptions,
@@ -532,6 +549,7 @@ export function ChatRoute({
           />
         ) : null
       }
+      initialMcp={initialMcp}
       initialPrompt={
         conversationId ? null : searchParams.get(routeParams.askAi)
       }
@@ -554,6 +572,7 @@ export function ChatRoute({
       sidebarDots={sidebarDots}
       skills={skills}
       target={target}
+      terms={terms}
       theme={frame.theme}
       voice={renderVoice}
     />

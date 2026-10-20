@@ -7,8 +7,9 @@ import { navRowClass } from "./chat-sidebar";
 
 // The panel beside the rail follows the rail (181), as ChatGPT's does: Chats
 // shows the chat list, and Scheduled, Library and Artifacts show their own
-// navigation here, in the same rows and rhythm. New chat and Search stay at
-// the top of every panel (ChatSidebar draws them); this is what goes under.
+// navigation here, in the same rows and rhythm. Each panel keeps to its own
+// focus: New chat and Search chats belong to Chats alone, and a panel brings
+// its own primary action ("New task") instead.
 
 export interface RailPanelLink {
   /** The page it's showing: filled, and `aria-current`. */
@@ -17,6 +18,11 @@ export interface RailPanelLink {
   readonly icon?: ReactNode;
   readonly id: string;
   readonly label: string;
+  /**
+   * A ⋯ menu at the row's end (193): shown on hover or focus, beside the
+   * link rather than in it, so it's its own button.
+   */
+  readonly menu?: ReactNode;
   /** Quiet text at the row's end (a time, a status). */
   readonly meta?: ReactNode;
 }
@@ -42,13 +48,15 @@ const headingClass = "px-2 pt-3 pb-1 font-medium text-muted-foreground text-xs";
 
 function PanelRow({ link }: { readonly link: RailPanelLink }) {
   return (
-    <li>
+    <li className="group/row relative">
       <a
         aria-current={link.active ? "page" : undefined}
         className={cn(
           navRowClass,
           "rounded-lg",
-          link.active && "bg-sidebar-foreground/8 hover:bg-sidebar-foreground/8"
+          link.active &&
+            "bg-sidebar-foreground/8 hover:bg-sidebar-foreground/8",
+          link.menu && "pe-8"
         )}
         href={link.href}
       >
@@ -60,6 +68,11 @@ function PanelRow({ link }: { readonly link: RailPanelLink }) {
           </span>
         ) : null}
       </a>
+      {link.menu ? (
+        <div className="absolute inset-y-0 end-1 flex items-center opacity-0 pointer-coarse:opacity-100 focus-within:opacity-100 group-hover/row:opacity-100 has-aria-expanded:opacity-100">
+          {link.menu}
+        </div>
+      ) : null}
     </li>
   );
 }

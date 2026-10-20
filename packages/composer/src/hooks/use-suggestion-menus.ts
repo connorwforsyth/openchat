@@ -24,7 +24,7 @@ export type MenuList =
   | "mentions"
   | "prompts"
   | "prompts-skills"
-  | "connectors"
+  | "mcp"
   | "skills";
 
 export interface OpenMenu {
@@ -69,8 +69,8 @@ const slashList = (query: string, items: readonly SlashItem[]): MenuList => {
   if (items.some((item) => item.kind === "command")) {
     return "commands";
   }
-  if (items.length > 0 && items.every((item) => item.kind === "connector")) {
-    return "connectors";
+  if (items.length > 0 && items.every((item) => item.kind === "mcp-server")) {
+    return "mcp";
   }
   const skills = items.some((item) => item.kind === "skill");
   if (!skills) {

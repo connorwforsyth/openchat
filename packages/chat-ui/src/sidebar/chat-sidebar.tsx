@@ -11,6 +11,7 @@ import {
   ChevronsUpDownIcon,
   ClockIcon,
   EllipsisIcon,
+  LayersIcon,
   LibraryIcon,
   NewChatIcon,
   RotateCcwIcon,
@@ -81,6 +82,8 @@ export interface ChatSidebarProps {
   /** The org or brand at the top of the sidebar. */
   readonly brand?: ReactNode;
   readonly chats: readonly SidebarChat[];
+  /** Customize (193): MCP servers and skills; a plain link. */
+  readonly customizeHref?: string;
   /**
    * The owner's Dot (172): ⌘. opens its chat, and its chat stays out of the
    * list below, since it's pinned at the top in `top`.
@@ -120,8 +123,8 @@ export interface ChatSidebarProps {
   readonly onTogglePin: (id: ConversationId, pinned: boolean) => void;
   /**
    * What the panel shows when the rail points somewhere other than Chats
-   * (181): Scheduled, Library or Artifacts' own navigation, under New chat
-   * and Search, in place of your Dot and the chat list.
+   * (181): Scheduled, Library, Artifacts or Customize's own navigation, in
+   * place of New chat, Search, your Dot and the chat list.
    */
   readonly panel?: ReactNode;
   /**
@@ -783,14 +786,20 @@ function AccountFooter({
 
 function PrimaryNav({
   artifactsHref,
+  chatActions,
+  customizeHref,
   libraryHref,
   onNewChat,
   onOpenPalette,
   railed,
   schedulesHref,
-}: Pick<
+}: {
+  /** New chat and Search chats belong to the Chats focus only (181). */
+  readonly chatActions: boolean;
+} & Pick<
   ChatSidebarProps,
   | "artifactsHref"
+  | "customizeHref"
   | "libraryHref"
   | "onNewChat"
   | "onOpenPalette"
@@ -801,14 +810,16 @@ function PrimaryNav({
   const pageRow = cn(navRowClass, railed && "md:hidden");
   return (
     <nav aria-label={t`Primary`} className="flex flex-col gap-px px-2">
-      <button className={navRowClass} onClick={onNewChat} type="button">
-        <NewChatIcon aria-hidden />
-        <span className="flex-1">
-          <Trans>New chat</Trans>
-        </span>
-        <ShortcutHint id="chat.new" />
-      </button>
-      {onOpenPalette ? (
+      {chatActions ? (
+        <button className={navRowClass} onClick={onNewChat} type="button">
+          <NewChatIcon aria-hidden />
+          <span className="flex-1">
+            <Trans>New chat</Trans>
+          </span>
+          <ShortcutHint id="chat.new" />
+        </button>
+      ) : null}
+      {chatActions && onOpenPalette ? (
         <button className={navRowClass} onClick={onOpenPalette} type="button">
           <SearchIcon aria-hidden />
           <span className="flex-1">
@@ -838,6 +849,14 @@ function PrimaryNav({
           <ClockIcon aria-hidden />
           <span className="flex-1">
             <Trans>Scheduled</Trans>
+          </span>
+        </a>
+      ) : null}
+      {customizeHref ? (
+        <a className={pageRow} href={customizeHref}>
+          <LayersIcon aria-hidden />
+          <span className="flex-1">
+            <Trans>Customize</Trans>
           </span>
         </a>
       ) : null}
@@ -1214,7 +1233,7 @@ export function ChatSidebar({
         {toggle}
       </div>
 
-      <PrimaryNav {...nav} />
+      <PrimaryNav {...nav} chatActions={panel === undefined} />
       <ChatsOnly panel={panel}>
         {top ? (
           <div className="px-2 pt-px" data-slot="chat-sidebar-dot">

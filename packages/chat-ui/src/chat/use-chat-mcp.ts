@@ -1,66 +1,59 @@
 "use client";
 
-import {
-  useMutation,
-  useQueries,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ApiClient, QueryUtils } from "@workspace/client/api";
-import type { ComposerConnectors } from "@workspace/composer/props";
+import type { ComposerMcp } from "@workspace/composer/props";
 import type {
   ConversationId,
   LibraryItemId,
 } from "@workspace/contract/schemas/common";
-import type { ConnectorToolList } from "@workspace/contract/schemas/library";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import {
-  addPending,
-  type PendingChange,
-  toolsWithPending,
-  withPending,
-} from "./pending-connectors";
+import { addPending, type PendingChange, withPending } from "./pending-mcp";
 
-// A chat's connectors for the composer (188). In a chat, every switch is
+// A chat's MCP servers for the composer (188). In a chat, every switch is
 // saved for that chat at once and the list refetched: the server's merge
 // is the only one. In a new chat there's nothing to save to yet, so the
-// changes wait (`pending-connectors.ts`) and `flush` saves them once the
-// first send has made the chat, before its message goes.
+// changes wait (`pending-mcp.ts`) and `flush` saves them once the first
+// send has made the chat, before its message goes. Per-tool switches live
+// in settings, not here.
 
-const NO_TOOLS: Readonly<Partial<Record<LibraryItemId, ConnectorToolList>>> =
-  {};
-
-export const useChatConnectors = ({
+export const useChatMcp = ({
   api,
   client,
   conversationId,
+  initialOn = null,
+  term,
 }: {
   readonly api: QueryUtils;
   readonly client: ApiClient;
   readonly conversationId: ConversationId | null;
+  /**
+   * A server a new chat starts with on ("Try now" in Customize, 193): a
+   * pending change like any other, saved with the first send.
+   */
+  readonly initialOn?: LibraryItemId | null;
+  /** What this instance calls MCP servers (191). */
+  readonly term: ComposerMcp["term"];
 }): {
-  readonly composer: ComposerConnectors | undefined;
+  readonly composer: ComposerMcp | undefined;
   readonly flush: (id: ConversationId) => Promise<void>;
 } => {
   const queryClient = useQueryClient();
   const input = conversationId ? { conversationId } : {};
   const list = useQuery(api.connectors.list.queryOptions({ input }));
-  const [wanted, setWanted] = useState<readonly LibraryItemId[]>([]);
   const [pending, setPending] = useState<readonly PendingChange[]>([]);
   const pendingRef = useRef(pending);
   pendingRef.current = pending;
-
-  const toolData = useQueries({
-    combine: (results) => results.map((result) => result.data),
-    queries: wanted.map((id) =>
-      api.connectors.tools.queryOptions({
-        input: conversationId ? { conversationId, id } : { id },
-        // The server caches tools per connection; a minute here is plenty.
-        staleTime: 60_000,
-      })
-    ),
-  });
+  const seeded = useRef<LibraryItemId | null>(null);
+  useEffect(() => {
+    if (conversationId === null && initialOn && seeded.current !== initialOn) {
+      seeded.current = initialOn;
+      setPending((current) =>
+        addPending(current, { enabled: true, id: initialOn, kind: "server" })
+      );
+    }
+  }, [conversationId, initialOn]);
 
   const refresh = useCallback(
     () => queryClient.invalidateQueries({ queryKey: api.connectors.key() }),
@@ -68,9 +61,6 @@ export const useChatConnectors = ({
   );
   const { mutate: setEnabled } = useMutation(
     api.connectors.setEnabled.mutationOptions({ onSettled: refresh })
-  );
-  const { mutate: setToolEnabled } = useMutation(
-    api.connectors.setToolEnabled.mutationOptions({ onSettled: refresh })
   );
   const { mutate: reset } = useMutation(
     api.connectors.resetConversation.mutationOptions({ onSettled: refresh })
@@ -82,23 +72,11 @@ export const useChatConnectors = ({
         setEnabled({ conversationId, enabled, id });
       } else {
         setPending((current) =>
-          addPending(current, { enabled, id, kind: "connector" })
+          addPending(current, { enabled, id, kind: "server" })
         );
       }
     },
     [conversationId, setEnabled]
-  );
-  const onToggleTool = useCallback(
-    (id: LibraryItemId, tool: string, enabled: boolean) => {
-      if (conversationId) {
-        setToolEnabled({ conversationId, enabled, id, tool });
-      } else {
-        setPending((current) =>
-          addPending(current, { enabled, id, kind: "tool", tool })
-        );
-      }
-    },
-    [conversationId, setToolEnabled]
   );
   const onReset = useCallback(() => {
     if (conversationId) {
@@ -107,13 +85,6 @@ export const useChatConnectors = ({
       setPending([]);
     }
   }, [conversationId, reset]);
-  const onWantTools = useCallback(
-    (id: LibraryItemId) =>
-      setWanted((current) =>
-        current.includes(id) ? current : [...current, id]
-      ),
-    []
-  );
 
   const flush = useCallback(
     async (id: ConversationId) => {
@@ -125,7 +96,7 @@ export const useChatConnectors = ({
       // In order: a later change to the same switch wins.
       for (const change of changes) {
         // biome-ignore lint/performance/noAwaitInLoops: each change lands before the next, as made.
-        await (change.kind === "connector"
+        await (change.kind === "server"
           ? client.connectors.setEnabled({
               conversationId: id,
               enabled: change.enabled,
@@ -146,39 +117,19 @@ export const useChatConnectors = ({
     () => (list.data ? withPending(list.data, pending) : undefined),
     [list.data, pending]
   );
-  const tools = useMemo(() => {
-    if (wanted.length === 0) {
-      return NO_TOOLS;
-    }
-    const byId: Partial<Record<LibraryItemId, ConnectorToolList>> = {};
-    wanted.forEach((id, index) => {
-      const data = toolData[index];
-      if (data) {
-        byId[id] = conversationId
-          ? data
-          : toolsWithPending(
-              shown?.connectors.find((each) => each.id === id),
-              data
-            );
-      }
-    });
-    return byId;
-  }, [conversationId, shown, toolData, wanted]);
 
   const composer = useMemo(
-    (): ComposerConnectors | undefined =>
+    (): ComposerMcp | undefined =>
       shown && shown.connectors.length > 0
         ? {
-            connectors: shown.connectors,
             customized: shown.customized,
             onReset,
             onToggle,
-            onToggleTool,
-            onWantTools,
-            tools,
+            servers: shown.connectors,
+            term,
           }
         : undefined,
-    [onReset, onToggle, onToggleTool, onWantTools, shown, tools]
+    [onReset, onToggle, shown, term]
   );
   return { composer, flush };
 };

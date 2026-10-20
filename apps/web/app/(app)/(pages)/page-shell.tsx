@@ -53,7 +53,8 @@ const SectionTitle = ({ pathname }: { readonly pathname: string }) => {
     pathname.startsWith(routes.artifacts) ||
     pathname.startsWith(routes.dots) ||
     pathname.startsWith(routes.schedules) ||
-    pathname.startsWith(routes.space)
+    pathname.startsWith(routes.space) ||
+    pathname.startsWith(routes.customize)
   ) {
     return null;
   }
@@ -81,12 +82,16 @@ const railDestination = (pathname: string): RailDestination => {
   if (pathname.startsWith(routes.schedules)) {
     return "scheduled";
   }
+  if (pathname.startsWith(routes.customize)) {
+    return "customize";
+  }
   return "chats";
 };
 
 /** Destinations whose panel isn't the chat list (181). */
 const ownPanel = (destination: RailDestination): boolean =>
   destination === "artifacts" ||
+  destination === "customize" ||
   destination === "library" ||
   destination === "scheduled";
 

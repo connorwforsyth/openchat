@@ -65,7 +65,7 @@ import { listReadableIndexedFileIds } from "@workspace/db/queries/files";
 import { resolvePublishedVersion } from "@workspace/db/queries/library";
 import { getMessage } from "@workspace/db/queries/messages";
 import { teamLineage } from "@workspace/db/queries/teams";
-import type { McpSelection } from "@workspace/mcp/connector-service";
+import type { McpSelection } from "@workspace/mcp/service";
 import {
   type AsyncResult,
   err,

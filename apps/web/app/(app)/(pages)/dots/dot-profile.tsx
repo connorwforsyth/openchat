@@ -50,6 +50,7 @@ import {
 } from "react";
 import { useApi } from "@/app/(app)/_shared/api";
 import { useAppFrame } from "@/app/(app)/_shared/app-frame";
+import { useTerms } from "@/app/(app)/_shared/terms";
 import { routes } from "@/lib/routes";
 import { ScheduleEditor } from "../schedules/schedule-editor";
 import { ScheduleRow } from "../schedules/schedule-list";
@@ -343,6 +344,7 @@ function RulesTab({ dot }: { readonly dot: Dot }) {
 }
 
 function MemoryTab({ dot }: { readonly dot: Dot }) {
+  const terms = useTerms();
   const { query } = useApi();
   const memory = useQuery(query.memory.get.queryOptions());
   const content = memory.data?.content.trim() ?? "";
@@ -367,7 +369,7 @@ function MemoryTab({ dot }: { readonly dot: Dot }) {
       ) : null}
       <a
         className="self-start text-sm underline underline-offset-4"
-        href={routes.settings("memory")}
+        href={routes.settings(terms, "memory")}
       >
         <Trans>Manage memory</Trans>
       </a>

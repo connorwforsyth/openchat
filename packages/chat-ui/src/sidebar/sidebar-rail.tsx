@@ -4,6 +4,7 @@ import { plural } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
 import {
   ClockIcon,
+  LayersIcon,
   LibraryIcon,
   MessageSquareIcon,
   ShapesIcon,
@@ -32,6 +33,7 @@ import type { ChatSidebarProps } from "./chat-sidebar";
 export type RailDestination =
   | "artifacts"
   | "chats"
+  | "customize"
   | "dot"
   | "library"
   | "scheduled";
@@ -41,6 +43,7 @@ export type SidebarRailProps = Pick<
   | "account"
   | "artifactsHref"
   | "chats"
+  | "customizeHref"
   | "dot"
   | "libraryHref"
   | "schedulesHref"
@@ -114,6 +117,7 @@ export function SidebarRail({
   artifactsHref,
   chats,
   current,
+  customizeHref,
   dot,
   libraryHref,
   onShowChats,
@@ -184,6 +188,15 @@ export function SidebarRail({
           label={t`Artifacts`}
         >
           <ShapesIcon aria-hidden />
+        </RailItem>
+      ) : null}
+      {customizeHref ? (
+        <RailItem
+          active={current === "customize"}
+          href={customizeHref}
+          label={t`Customize`}
+        >
+          <LayersIcon aria-hidden />
         </RailItem>
       ) : null}
       <div className="mt-auto">

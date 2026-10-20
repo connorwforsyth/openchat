@@ -11,12 +11,12 @@ import type {
 import type { Db } from "@workspace/db/client";
 import { getReadableFile } from "@workspace/db/queries/files";
 import type { SkillFileEntry } from "@workspace/db/queries/library-items";
-import { checkUserServer } from "@workspace/mcp/connectors";
 import {
   MCP_HEADER_SECRET_AAD,
   type SealedSecret,
   seal,
 } from "@workspace/mcp/crypto";
+import { checkUserServer } from "@workspace/mcp/effective";
 import { type AsyncResult, err, ok } from "@workspace/shared/result";
 
 import type { Caller } from "./access";

@@ -6,9 +6,11 @@ import { requestLocale } from "@/lib/i18n";
 import { getPublicConfig } from "@/lib/public-config";
 import { routes } from "@/lib/routes";
 import { getViewer } from "@/lib/server-session";
+import { getTerms } from "@/lib/terms";
 
 import { AppFrame } from "./_shared/app-frame";
 import { shellPrepaintScript } from "./_shared/shell-prepaint";
+import { TermsProvider } from "./_shared/terms";
 import { BadConfigNotice } from "./_shared/unavailable";
 import "./shell.css";
 
@@ -24,8 +26,13 @@ export default async function SignedInLayout({
 }: {
   readonly children: ReactNode;
 }) {
-  initLingui(await requestLocale());
-  const [config, viewer] = await Promise.all([getPublicConfig(), getViewer()]);
+  const locale = await requestLocale();
+  initLingui(locale);
+  const [config, viewer, terms] = await Promise.all([
+    getPublicConfig(),
+    getViewer(),
+    getTerms(locale),
+  ]);
   if (!config.ok) {
     return <BadConfigNotice />;
   }
@@ -38,12 +45,14 @@ export default async function SignedInLayout({
         // biome-ignore lint/security/noDangerouslySetInnerHtml: a constant written in this repo, not user input; it has to run before paint (D28).
         dangerouslySetInnerHTML={{ __html: shellPrepaintScript }}
       />
-      <AppFrame
-        config={config.config}
-        initialMe={viewer.kind === "signed_in" ? viewer.me : null}
-      >
-        {children}
-      </AppFrame>
+      <TermsProvider terms={terms}>
+        <AppFrame
+          config={config.config}
+          initialMe={viewer.kind === "signed_in" ? viewer.me : null}
+        >
+          {children}
+        </AppFrame>
+      </TermsProvider>
     </>
   );
 }

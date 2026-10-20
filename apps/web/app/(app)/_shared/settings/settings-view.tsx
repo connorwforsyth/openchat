@@ -2,6 +2,7 @@
 
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useNarrowScreen } from "@workspace/chat-ui/shell/use-narrow-screen";
+import type { Terms } from "@workspace/config/terms";
 import type { OrgId } from "@workspace/contract/schemas/common";
 import type { Space } from "@workspace/contract/schemas/spaces";
 import {
@@ -31,8 +32,9 @@ import { type MouseEvent, type ReactNode, useCallback } from "react";
 import { AuditPolicy } from "@/app/(app)/(pages)/admin/_components/audit-policy";
 import { OrgPolicyForm } from "@/app/(app)/(pages)/admin/_components/org-policy-form";
 import { UsageAdmin } from "@/app/(app)/(pages)/admin/_components/usage-admin";
+import { useTerms } from "../terms";
 import { AppearanceSettings } from "./appearance-settings";
-import { ConnectorsSettings } from "./connectors-settings";
+import { McpSettings } from "./mcp/mcp-settings";
 import { MemorySettings } from "./memory-settings";
 import { PersonalKeys } from "./personal-keys";
 import { ProfileSettings } from "./profile-settings";
@@ -91,7 +93,11 @@ const spaceSectionShown = (
   }
 };
 
-const sectionInfo = (section: SettingsSection, space?: Space): SectionInfo => {
+const sectionInfo = (
+  section: SettingsSection,
+  terms: Terms,
+  space?: Space
+): SectionInfo => {
   const name = space?.name ?? "";
   switch (section) {
     case "profile":
@@ -114,19 +120,22 @@ const sectionInfo = (section: SettingsSection, space?: Space): SectionInfo => {
         label: <Trans>Provider keys</Trans>,
         title: <Trans>Provider keys</Trans>,
       };
-    case "connectors":
+    case "mcp": {
+      // The configured name (191), a heading as given.
+      const { label } = terms.mcp;
       return {
-        content: <ConnectorsSettings />,
+        content: <McpSettings />,
         description: (
           <Trans>
-            MCP servers give chats extra tools. Turn on the ones you want; your
+            {label} give chats extra tools. Turn on the ones you want; your
             administrator may require some or let you add your own.
           </Trans>
         ),
         icon: <NetworkIcon />,
-        label: <Trans>Connectors</Trans>,
-        title: <Trans>Connectors</Trans>,
+        label,
+        title: label,
       };
+    }
     case "memory":
       return {
         content: <MemorySettings />,
@@ -337,7 +346,7 @@ const SectionItem = ({
   readonly selected: boolean;
   readonly space: Space | undefined;
 }) => {
-  const info = sectionInfo(section, space);
+  const info = sectionInfo(section, useTerms(), space);
   return (
     <li>
       <button
@@ -374,11 +383,12 @@ export const SettingsView = ({
   readonly space?: Space;
 }) => {
   const narrow = useNarrowScreen();
+  const terms = useTerms();
   const open = route !== null;
   const showing = route ?? "index";
   const fallback = narrow ? null : DEFAULT_SETTINGS_SECTION;
   const section = showing === "index" ? fallback : showing;
-  const info = section ? sectionInfo(section, space) : null;
+  const info = section ? sectionInfo(section, terms, space) : null;
 
   const openChange = useCallback(
     (next: boolean) => {

@@ -36,11 +36,13 @@ import type {
   SkillOption,
 } from "@workspace/composer/schemas";
 import type { ModelVariant } from "@workspace/composer/variants";
+import { defaultTerms, type Terms } from "@workspace/config/terms";
 import type {
   ArtifactId,
   ArtifactVersionId,
   ConversationId,
   FileId,
+  LibraryItemId,
   MessageId,
   RunId,
   SandboxId,
@@ -129,8 +131,8 @@ import type {
 import { toTreePaths } from "../workspace/model/tree";
 import { ChatScreen } from "./chat-screen";
 import { useBranchFeedback } from "./use-branch-feedback";
-import { useChatConnectors } from "./use-chat-connectors";
 import { useChatQueries, useConversationUpdate } from "./use-chat-data";
+import { useChatMcp } from "./use-chat-mcp";
 
 // The chat screen over the API (D11): TanStack Query for everything stored,
 // `useRunChat` for the turn that's streaming. Ticket 025 mounts this in the
@@ -166,6 +168,8 @@ export interface ConnectedChatProps {
   readonly draftContext?: ChatContext;
   /** More of the header's end, before the call button: the chat's schedule (183). */
   readonly headerExtra?: ReactNode;
+  /** A new chat starts with this MCP server on ("Try now", 193). */
+  readonly initialMcp?: LibraryItemId | null;
   /** A new chat sends this once, as soon as it mounts ("Ask AI" in ⌘K). */
   readonly initialPrompt?: string | null;
   /** The shell's layout, when the app owns it (see `ChatScreenProps.layout`). */
@@ -208,6 +212,7 @@ export interface ConnectedChatProps {
     | "dotFace"
     | "dots"
     | "nextRuns"
+    | "customizeHref"
     | "schedulesHref"
     | "signals"
     | "top"
@@ -216,6 +221,8 @@ export interface ConnectedChatProps {
   readonly skills?: readonly SkillOption[];
   /** What answers: a model or an agent. Omitted, the server's default does. */
   readonly target?: RunTarget | null;
+  /** What this instance calls its features (191); the defaults when left out. */
+  readonly terms?: Terms;
   readonly theme: Theme;
   /**
    * A voice call on this chat (172): rendered in the header with the chat
@@ -1523,6 +1530,7 @@ export function ConnectedChat({
   config,
   conversationId,
   draftContext: draftContextProp,
+  initialMcp,
   initialPrompt,
   layout,
   libraryHref,
@@ -1543,6 +1551,7 @@ export function ConnectedChat({
   sidebarDots,
   skills,
   target = null,
+  terms = defaultTerms,
   theme,
   voice,
   headerExtra,
@@ -1727,10 +1736,16 @@ export function ConnectedChat({
     },
     [plan, sendMessage, stopReading, t, waiting]
   );
-  const chatConnectors = useChatConnectors({ api, client, conversationId });
+  const chatMcp = useChatMcp({
+    api,
+    client,
+    conversationId,
+    initialOn: initialMcp,
+    term: terms.mcp,
+  });
   const firstSend = useFirstSend({
     api,
-    beforeFirstSend: chatConnectors.flush,
+    beforeFirstSend: chatMcp.flush,
     client,
     context: draftContext,
     conversationId,
@@ -1973,7 +1988,7 @@ export function ConnectedChat({
             composer={{
               agents,
               attachmentLimits,
-              connectors: chatConnectors.composer,
+              mcp: chatMcp.composer,
               ...composerDrafts,
               models,
               onPlanChange: plan.set,

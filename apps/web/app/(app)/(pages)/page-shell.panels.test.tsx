@@ -10,8 +10,8 @@ import { fakeApi, renderWithApi } from "@/app/(app)/_shared/test-harness";
 import { PageShell } from "./page-shell";
 
 // The panel follows the rail (181): Scheduled, Library and Artifacts show
-// their own navigation under New chat and Search; Chats keeps the chat
-// list; Classic keeps the chat list everywhere. And a page's title shows
+// only their own focus (New chat and Search chats belong to Chats alone);
+// Chats keeps the chat list; Classic keeps the chat list everywhere. And a page's title shows
 // once: its own heading, not the header's as well.
 
 const where = vi.hoisted(() => ({ pathname: "/library", search: "" }));
@@ -44,10 +44,38 @@ const artifact = {
   title: "Launch page",
 };
 
+const docs = {
+  auth: "none",
+  availability: { state: "available" },
+  customized: false,
+  description: null,
+  disabledTools: [],
+  enabled: true,
+  id: fixtureId("libraryItem", 1),
+  lock: null,
+  name: "docs",
+  requiredTools: [],
+  source: "instance",
+  title: "Docs",
+  transport: "http",
+};
+const offServer = {
+  ...docs,
+  enabled: false,
+  id: fixtureId("libraryItem", 2),
+  title: "Off server",
+};
+
 const api = () =>
   fakeApi({
     "GET /artifacts": () => ({ items: [artifact], nextCursor: null }),
+    "GET /connectors": () => ({
+      connectors: [docs, offServer],
+      customized: false,
+      userServers: { allowed: false, hosts: [], transports: [] },
+    }),
     "GET /conversations": () => ({ items: [conversation], nextCursor: null }),
+    "GET /library": () => ({ items: [], nextCursor: null }),
     "GET /schedules": () => schedules,
   });
 
@@ -76,7 +104,7 @@ const MORNING_BRIEF = /Morning brief/;
 const WEEKLY_REVIEW = /Weekly review/;
 const SEARCH = /Search/;
 
-/** New chat and Search stay at the top of every panel. */
+/** New chat and Search chats: Chats' actions, not every panel's. */
 const actionsOf = (panel: ReturnType<typeof show>) => [
   panel.queryByRole("button", { name: NEW_CHAT }),
   panel.queryByRole("button", { name: SEARCH }),
@@ -85,7 +113,7 @@ const actionsOf = (panel: ReturnType<typeof show>) => [
 describe("the panel follows the rail (181)", () => {
   it("Scheduled lists each task with its next run, and New task", async () => {
     const panel = show("/schedules", `edit=${fixtureId("dotSchedule", 1)}`);
-    expect(actionsOf(panel).every(Boolean)).toBe(true);
+    expect(actionsOf(panel).every((each) => each === null)).toBe(true);
     const nav = within(
       await panel.findByRole("navigation", { name: "Scheduled" })
     );
@@ -112,7 +140,7 @@ describe("the panel follows the rail (181)", () => {
 
   it("Library shows its kinds and sources, the current one filled", () => {
     const panel = show("/library", "kind=skill");
-    expect(actionsOf(panel).every(Boolean)).toBe(true);
+    expect(actionsOf(panel).every((each) => each === null)).toBe(true);
     const nav = within(panel.getByRole("navigation", { name: "Library" }));
     for (const name of [
       "All",
@@ -138,11 +166,14 @@ describe("the panel follows the rail (181)", () => {
     expect(
       nav.getByRole("link", { name: "Shared with me" }).getAttribute("href")
     ).toBe("/library?tab=shared");
+    expect(nav.getByRole("link", { name: "New" }).getAttribute("href")).toBe(
+      "/library/new/skill"
+    );
   });
 
   it("Artifacts shows the kinds and the recent artifacts", async () => {
     const panel = show("/artifacts");
-    expect(actionsOf(panel).every(Boolean)).toBe(true);
+    expect(actionsOf(panel).every((each) => each === null)).toBe(true);
     const nav = within(panel.getByRole("navigation", { name: "Artifacts" }));
     expect(
       nav.getByRole("link", { name: "All kinds" }).getAttribute("aria-current")
@@ -151,16 +182,40 @@ describe("the panel follows the rail (181)", () => {
     expect(recent.getAttribute("href")).toBe(`/artifacts/${artifact.id}`);
   });
 
+  it("Customize shows its catalogs and what's installed, not chats (193)", async () => {
+    const panel = show(`/customize/mcp/${docs.id}`);
+    expect(actionsOf(panel).every((each) => each === null)).toBe(true);
+    const nav = within(panel.getByRole("navigation", { name: "Customize" }));
+    expect(
+      nav.getByRole("link", { name: "MCP servers" }).getAttribute("href")
+    ).toBe("/customize/mcp");
+    expect(nav.getByRole("link", { name: "Skills" }).getAttribute("href")).toBe(
+      "/customize/skills"
+    );
+    const installed = await nav.findByRole("link", { name: "Docs" });
+    expect(installed.getAttribute("aria-current")).toBe("page");
+    expect(nav.queryByRole("link", { name: "Off server" })).toBeNull();
+    expect(nav.getByRole("button", { name: "Options for Docs" })).toBeTruthy();
+    expect(
+      screen
+        .getByRole("navigation", { name: "Sidebar rail" })
+        .querySelector('[aria-current="page"]')
+        ?.getAttribute("aria-label")
+    ).toBe("Customize");
+  });
+
   it("Chats keeps the chat list", async () => {
     const panel = show("/settings/profile");
     expect(await panel.findByText(conversation.title ?? "")).toBeTruthy();
     expect(panel.queryByRole("navigation", { name: "Library" })).toBeNull();
+    expect(actionsOf(panel).every(Boolean)).toBe(true);
   });
 
   it("Classic keeps the chat list on every page", async () => {
     const panel = show("/library", "", "classic");
     expect(await panel.findByText(conversation.title ?? "")).toBeTruthy();
     expect(panel.queryByRole("navigation", { name: "Library" })).toBeNull();
+    expect(actionsOf(panel).every(Boolean)).toBe(true);
   });
 });
 
