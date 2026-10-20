@@ -233,7 +233,7 @@ export const SettingsDialog = ({
             aria-labelledby="settings-section-title"
             className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto"
           >
-            <div className="flex flex-col gap-6 p-4 pe-12 md:p-6 md:pe-12">
+            <div className="flex flex-col gap-6 p-4 md:p-6 md:pe-12">
               {narrow ? (
                 <Button
                   className="-ms-2 self-start"

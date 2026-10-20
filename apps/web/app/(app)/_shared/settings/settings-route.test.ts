@@ -68,6 +68,13 @@ describe("opening and closing", () => {
     expect(history.url()).toBe("/library");
   });
 
+  it("hands the router none of its own state when switching section", () => {
+    const history = fakeHistory("/settings", { __NA: true });
+    selectSettingsSection(history, "memory");
+    expect(history.url()).toBe("/settings/memory");
+    expect(history.state).toBeNull();
+  });
+
   it("a hard load of the address closes onto the new chat", () => {
     const history = fakeHistory("/settings/keys");
     closeSettings(history, "/");

@@ -78,11 +78,13 @@ export const selectSettingsSection = (
   history: SettingsHistory,
   section?: SettingsSection
 ): void => {
-  const state =
-    typeof history.state === "object" && history.state !== null
-      ? history.state
-      : {};
-  history.replaceState({ ...state }, "", settingsPath(section));
+  // Only our mark: passing the router's own state back makes Next treat the
+  // call as its own and skip syncing `usePathname`.
+  history.replaceState(
+    pushedByDialog(history.state) ? { [OVERLAY_KEY]: true } : null,
+    "",
+    settingsPath(section)
+  );
 };
 
 /**
