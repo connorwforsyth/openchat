@@ -11,7 +11,10 @@ import { AppShell } from "@workspace/chat-ui/shell/app-shell";
 import { SidebarToggle } from "@workspace/chat-ui/shell/sidebar-toggle";
 import { useNarrowScreen } from "@workspace/chat-ui/shell/use-narrow-screen";
 import { ChatSidebar } from "@workspace/chat-ui/sidebar/chat-sidebar";
-import { SidebarRail } from "@workspace/chat-ui/sidebar/sidebar-rail";
+import {
+  type RailDestination,
+  SidebarRail,
+} from "@workspace/chat-ui/sidebar/sidebar-rail";
 import { useSidebarData } from "@workspace/chat-ui/sidebar/use-sidebar-data";
 import type { ConversationId } from "@workspace/contract/schemas/common";
 import { useShortcut } from "@workspace/shortcuts/react/use-shortcut";
@@ -48,6 +51,20 @@ const SectionTitle = ({ pathname }: { readonly pathname: string }) => {
   return <Trans>Settings</Trans>;
 };
 
+/** Which rail button is current on a page. */
+const railDestination = (pathname: string): RailDestination => {
+  if (pathname.startsWith(routes.library)) {
+    return "library";
+  }
+  if (pathname.startsWith(routes.artifacts)) {
+    return "artifacts";
+  }
+  if (pathname.startsWith(routes.dots)) {
+    return "dot";
+  }
+  return "chats";
+};
+
 export function PageShell({ children }: { readonly children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -73,6 +90,14 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
     }
   }, [narrow, toggleSidebar]);
   useShortcut("sidebar.toggle", toggleChats);
+
+  // The rail's Chats button: back to chatting, with the chat panel open.
+  const showChats = useCallback(() => {
+    if (!layout.layout.sidebarOpen) {
+      toggleSidebar();
+    }
+    router.push(routes.home);
+  }, [layout.layout.sidebarOpen, router, toggleSidebar]);
 
   const newChat = useCallback(() => {
     setSheetOpen(false);
@@ -156,8 +181,9 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
       rail={
         <SidebarRail
           {...sidebarProps}
-          onNewChat={newChat}
-          onOpenPalette={openPalette}
+          current={railDestination(pathname)}
+          onShowChats={showChats}
+          scheduledHref={routes.dots}
         />
       }
       sidebar={
@@ -166,6 +192,7 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
           brand={<Brand config={frame.config} />}
           onNewChat={newChat}
           onOpenPalette={openPalette}
+          railed
           toggle={sidebarToggle("sidebar")}
         />
       }

@@ -293,6 +293,13 @@ function ChatScreenBody({
     }
   }, [narrow, toggleSidebar]);
   const closeSidebarSheet = useCallback(() => setSidebarSheetOpen(false), []);
+  const dotId = sidebar.dot?.conversationId;
+  // The rail's Chats button shows the chat panel; it never hides it.
+  const showChats = useCallback(() => {
+    if (!layout.sidebarOpen) {
+      toggleSidebar();
+    }
+  }, [layout.sidebarOpen, toggleSidebar]);
   // Picking a chat, starting one or searching is done with the sheet.
   const sheetSidebar = useMemo(
     () => ({
@@ -765,8 +772,12 @@ function ChatScreenBody({
       rail={
         <SidebarRail
           {...sheetSidebar}
-          onNewChat={newChat}
-          onOpenPalette={openPalette}
+          current={
+            dotId !== undefined && sidebar.activeId === dotId ? "dot" : "chats"
+          }
+          onShowChats={showChats}
+          // Schedules live on the Dot's page for now.
+          scheduledHref={sheetSidebar.dotsHref}
         />
       }
       sidebar={
@@ -775,6 +786,7 @@ function ChatScreenBody({
           brand={brand}
           onNewChat={newChat}
           onOpenPalette={openPalette}
+          railed
           toggle={sidebarToggle("sidebar")}
         />
       }

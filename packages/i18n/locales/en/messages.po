@@ -160,6 +160,10 @@ msgstr "{files} changed after the agent proposed this, so the change can't be ap
 msgid "{label} and {more} more"
 msgstr "{label} and {more} more"
 
+#: ../chat-ui/src/sidebar/sidebar-rail.tsx
+msgid "{label}, {badge}"
+msgstr "{label}, {badge}"
+
 #: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
 msgid "{length} of {max} characters"
 msgstr "{length} of {max} characters"
@@ -235,8 +239,8 @@ msgid "{used} of {limit}"
 msgstr "{used} of {limit}"
 
 #: ../chat-ui/src/sidebar/sidebar-rail.tsx
-msgid "{waiting, plural, one {# chat needs attention} other {# chats need attention}}"
-msgstr "{waiting, plural, one {# chat needs attention} other {# chats need attention}}"
+msgid "{waiting, plural, one {# needs attention} other {# need attention}}"
+msgstr "{waiting, plural, one {# needs attention} other {# need attention}}"
 
 #: ../../apps/web/app/(app)/(pages)/dots/dot-profile.tsx
 msgid "{when} on"
@@ -902,6 +906,7 @@ msgstr "chats"
 
 #: ../chat-ui/src/shell/app-shell.tsx
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
+#: ../chat-ui/src/sidebar/sidebar-rail.tsx
 #: ../palette/src/command-palette.tsx
 msgid "Chats"
 msgstr "Chats"
@@ -2487,7 +2492,6 @@ msgid "Make something new"
 msgstr "Make something new"
 
 #: ../../apps/web/app/(app)/(pages)/dots/sidebar-dots.tsx
-#: ../chat-ui/src/sidebar/sidebar-rail.tsx
 msgid "Make your Dot"
 msgstr "Make your Dot"
 
@@ -2787,7 +2791,6 @@ msgstr "New"
 #: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
 #: ../chat-ui/src/sidebar/chat-row.tsx
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
-#: ../chat-ui/src/sidebar/sidebar-rail.tsx
 #: ../shortcuts/src/registry.ts
 msgid "New chat"
 msgstr "New chat"
@@ -3201,7 +3204,6 @@ msgstr "Open the library"
 msgid "Open the published site"
 msgstr "Open the published site"
 
-#: ../chat-ui/src/sidebar/sidebar-rail.tsx
 #: ../shortcuts/src/registry.ts
 msgid "Open your Dot"
 msgstr "Open your Dot"
@@ -4076,6 +4078,7 @@ msgid "Schedule {position} on"
 msgstr "Schedule {position} on"
 
 #: ../../apps/web/app/(app)/(pages)/dots/dot-profile.tsx
+#: ../chat-ui/src/sidebar/sidebar-rail.tsx
 msgid "Scheduled"
 msgstr "Scheduled"
 
@@ -4109,7 +4112,6 @@ msgid "Sea"
 msgstr "Sea"
 
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
-#: ../chat-ui/src/sidebar/sidebar-rail.tsx
 #: ../composer/src/components/composer-footer.tsx
 #: ../library-ui/src/components/library-index.tsx
 msgid "Search"
@@ -5824,6 +5826,10 @@ msgstr "Your decision didn't reach the server."
 #: ../../apps/web/app/(app)/(pages)/dots/onboarding.tsx
 msgid "your Dot"
 msgstr "your Dot"
+
+#: ../chat-ui/src/sidebar/sidebar-rail.tsx
+msgid "Your Dot"
+msgstr "Your Dot"
 
 #: ../../apps/web/app/(app)/(pages)/dots/dots-screen.tsx
 msgid "Your Dots"

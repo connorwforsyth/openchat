@@ -82,7 +82,7 @@ export function AccountMenu({
         aria-label={t`Account: ${user.name}`}
         className={cn(
           "flex h-11 min-w-0 items-center gap-2 rounded-md text-start text-sm outline-none transition-colors duration-(--motion-fast) hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring aria-expanded:bg-sidebar-accent",
-          compact ? "size-10 justify-center" : "w-full px-2"
+          compact ? "size-9 justify-center rounded-xl" : "w-full px-2"
         )}
       >
         <Avatar size="sm">

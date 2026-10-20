@@ -970,7 +970,7 @@ describe("narrow screens", () => {
     await page.viewport(375, 812);
   });
   afterEach(async () => {
-    await page.viewport(1280, 800);
+    await page.viewport(1336, 800);
   });
 
   const sheet = (name: string) => screen.findByRole("dialog", { name });
@@ -1064,7 +1064,7 @@ describe("narrow screens", () => {
     await userEvent.keyboard("a");
     expect(await sheet("Side panel")).toBeTruthy();
 
-    await page.viewport(1280, 800);
+    await page.viewport(1336, 800);
     await waitFor(() =>
       expect(screen.queryByRole("dialog", { name: "Side panel" })).toBeNull()
     );
