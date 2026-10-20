@@ -2,6 +2,7 @@
 
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useNarrowScreen } from "@workspace/chat-ui/shell/use-narrow-screen";
+import type { Terms } from "@workspace/config/terms";
 import {
   ArrowLeftIcon,
   BrainIcon,
@@ -22,9 +23,9 @@ import {
 } from "@workspace/ui/components/dialog";
 import { cn } from "@workspace/ui/lib/utils";
 import { type MouseEvent, type ReactNode, useCallback } from "react";
-
+import { useTerms } from "../terms";
 import { AppearanceSettings } from "./appearance-settings";
-import { ConnectorsSettings } from "./connectors-settings";
+import { McpSettings } from "./mcp/mcp-settings";
 import { MemorySettings } from "./memory-settings";
 import { PersonalKeys } from "./personal-keys";
 import { ProfileSettings } from "./profile-settings";
@@ -54,7 +55,7 @@ interface SectionInfo {
   readonly title: ReactNode;
 }
 
-const sectionInfo = (section: SettingsSection): SectionInfo => {
+const sectionInfo = (section: SettingsSection, terms: Terms): SectionInfo => {
   switch (section) {
     case "profile":
       return {
@@ -76,19 +77,22 @@ const sectionInfo = (section: SettingsSection): SectionInfo => {
         label: <Trans>Provider keys</Trans>,
         title: <Trans>Provider keys</Trans>,
       };
-    case "connectors":
+    case "mcp": {
+      // The configured name (191), a heading as given.
+      const { label } = terms.mcp;
       return {
-        content: <ConnectorsSettings />,
+        content: <McpSettings />,
         description: (
           <Trans>
-            MCP servers give chats extra tools. Turn on the ones you want; your
+            {label} give chats extra tools. Turn on the ones you want; your
             administrator may require some or let you add your own.
           </Trans>
         ),
         icon: <NetworkIcon />,
-        label: <Trans>Connectors</Trans>,
-        title: <Trans>Connectors</Trans>,
+        label,
+        title: label,
       };
+    }
     case "memory":
       return {
         content: <MemorySettings />,
@@ -142,6 +146,7 @@ const SectionList = ({
   readonly onSelect: (section: SettingsSection) => void;
 }) => {
   const { t } = useLingui();
+  const terms = useTerms();
   const select = useCallback(
     (event: MouseEvent<HTMLButtonElement>) => {
       const picked = settingsSectionSchema.safeParse(
@@ -161,7 +166,7 @@ const SectionList = ({
       </button>
       <ul className="flex flex-col gap-0.5">
         {settingsSectionSchema.options.map((section) => {
-          const info = sectionInfo(section);
+          const info = sectionInfo(section, terms);
           const selected = section === current;
           return (
             <li key={section}>
@@ -208,11 +213,12 @@ export const SettingsView = ({
   readonly route: SettingsRoute;
 }) => {
   const narrow = useNarrowScreen();
+  const terms = useTerms();
   const open = route !== null;
   const showing = route ?? "index";
   const fallback = narrow ? null : DEFAULT_SETTINGS_SECTION;
   const section = showing === "index" ? fallback : showing;
-  const info = section ? sectionInfo(section) : null;
+  const info = section ? sectionInfo(section, terms) : null;
 
   const openChange = useCallback(
     (next: boolean) => {

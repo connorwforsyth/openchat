@@ -454,8 +454,8 @@ describe("slashItems", () => {
           return item.file.path;
         case "skill":
           return `skill:${item.skill.name}`;
-        case "connector":
-          return `connector:${item.connector.name}`;
+        case "mcp-server":
+          return `mcp:${item.server.name}`;
         default:
           return item.prompt.name;
       }
@@ -472,7 +472,7 @@ describe("slashItems", () => {
     ).toEqual(["/new-file", "New feature"]);
   });
 
-  it("finds connectors to switch for this chat, after the rest (188)", () => {
+  it("finds MCP servers to switch for this chat, after the rest (188)", () => {
     const docs = {
       auth: "none" as const,
       availability: { state: "available" as const },
@@ -490,14 +490,14 @@ describe("slashItems", () => {
     };
     expect(
       kinds(
-        slashItems("", { commands: [], connectors: [docs], files, prompts })
+        slashItems("", { commands: [], files, mcpServers: [docs], prompts })
       )
     ).toEqual(["New feature"]);
     expect(
       kinds(
-        slashItems("doc", { commands: [], connectors: [docs], files, prompts })
+        slashItems("doc", { commands: [], files, mcpServers: [docs], prompts })
       )
-    ).toEqual(["connector:docs"]);
+    ).toEqual(["mcp:docs"]);
   });
 
   it("offers no commands the host didn't ask for", () => {

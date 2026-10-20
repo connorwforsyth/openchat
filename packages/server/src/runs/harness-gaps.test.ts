@@ -35,12 +35,9 @@ import {
   seedUser,
   type TestDb,
 } from "@workspace/db/testing";
-import {
-  connectorHandlers,
-  mcpSelectionFor,
-} from "@workspace/mcp/connector-service";
 import { createMcp } from "@workspace/mcp/create";
 import { listUsableServers } from "@workspace/mcp/manager";
+import { connectorHandlers, mcpSelectionFor } from "@workspace/mcp/service";
 import {
   type McpFixture,
   startMcpFixture,

@@ -5,11 +5,7 @@ import type {
 } from "@workspace/contract/schemas/library";
 import { describe, expect, it } from "vitest";
 
-import {
-  addPending,
-  toolsWithPending,
-  withPending,
-} from "./pending-connectors";
+import { addPending, toolsWithPending, withPending } from "./pending-mcp";
 
 const id = "0199a000-0000-7000-8000-0000000000aa" as LibraryItemId;
 const docs: Connector = {
@@ -33,13 +29,13 @@ const list: ConnectorList = {
   userServers: { allowed: true, hosts: [], transports: ["http"] },
 };
 
-describe("pending connector changes (188)", () => {
+describe("pending server changes (188)", () => {
   it("keeps the last change per switch", () => {
     const pending = addPending(
-      addPending([], { enabled: false, id, kind: "connector" }),
-      { enabled: true, id, kind: "connector" }
+      addPending([], { enabled: false, id, kind: "server" }),
+      { enabled: true, id, kind: "server" }
     );
-    expect(pending).toEqual([{ enabled: true, id, kind: "connector" }]);
+    expect(pending).toEqual([{ enabled: true, id, kind: "server" }]);
   });
 
   it("shows changes over the defaults and marks the chat customized", () => {
@@ -62,7 +58,7 @@ describe("pending connector changes (188)", () => {
   });
 
   it("isn't customized when the changes undo themselves", () => {
-    const pending = addPending([], { enabled: true, id, kind: "connector" });
+    const pending = addPending([], { enabled: true, id, kind: "server" });
     expect(withPending(list, pending).customized).toBe(false);
   });
 });

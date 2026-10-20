@@ -1,9 +1,9 @@
 import type { Connector } from "@workspace/contract/schemas/library";
 import { describe, expect, it } from "vitest";
 
-import { matchConnectors, usableConnectors } from "./connectors";
+import { matchMcpServers, usableMcpServers } from "./mcp";
 
-const connector = (overrides: Partial<Connector>): Connector => ({
+const server = (overrides: Partial<Connector>): Connector => ({
   auth: "none",
   availability: { state: "available" },
   customized: false,
@@ -20,14 +20,14 @@ const connector = (overrides: Partial<Connector>): Connector => ({
   ...overrides,
 });
 
-describe("usableConnectors", () => {
+describe("usableMcpServers", () => {
   it("keeps what this surface can run", () => {
-    const docs = connector({});
+    const docs = server({});
     expect(
-      usableConnectors([
+      usableMcpServers([
         docs,
-        connector({ availability: { state: "desktop_only" }, name: "files" }),
-        connector({
+        server({ availability: { state: "desktop_only" }, name: "files" }),
+        server({
           availability: { message: "Needs X", state: "unconfigured" },
           name: "search",
         }),
@@ -36,21 +36,21 @@ describe("usableConnectors", () => {
   });
 });
 
-describe("matchConnectors", () => {
-  const docs = connector({});
-  const audit = connector({
+describe("matchMcpServers", () => {
+  const docs = server({});
+  const audit = server({
     lock: { reason: null, type: "required" },
     name: "audit",
     title: "Audit log",
   });
 
   it("finds by name or title, ignoring case", () => {
-    expect(matchConnectors([docs, audit], "COMPANY")).toEqual([docs]);
-    expect(matchConnectors([docs, audit], "doc")).toEqual([docs]);
+    expect(matchMcpServers([docs, audit], "COMPANY")).toEqual([docs]);
+    expect(matchMcpServers([docs, audit], "doc")).toEqual([docs]);
   });
 
-  it("lists nothing for a bare slash, and never a locked connector", () => {
-    expect(matchConnectors([docs], "")).toEqual([]);
-    expect(matchConnectors([audit], "audit")).toEqual([]);
+  it("lists nothing for a bare slash, and never a locked server", () => {
+    expect(matchMcpServers([docs], "")).toEqual([]);
+    expect(matchMcpServers([audit], "audit")).toEqual([]);
   });
 });

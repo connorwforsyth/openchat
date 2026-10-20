@@ -1,4 +1,7 @@
+import { idForSlug, type Terms } from "@workspace/config/terms";
 import { z } from "zod";
+
+import { routes } from "@/lib/routes";
 
 // Settings is a full-screen view over whatever page you're on (185), so
 // "Back to app" returns to exactly where you were. Its address is still
@@ -7,11 +10,16 @@ import { z } from "zod";
 // stays put), switching sections replaces it, and closing goes back. A hard
 // load of the address is a real route that renders the new-chat screen, with
 // settings over it.
+//
+// A section's address segment is its id, except where `terms:` names the
+// feature (191): `mcp` lives at `/settings/<terms.mcp.slug>`, and its old
+// addresses (`/settings/connectors`, `/settings/mcp` when the slug differs)
+// redirect there.
 
 export const settingsSectionSchema = z.enum([
   "profile",
   "keys",
-  "connectors",
+  "mcp",
   "memory",
   "shortcuts",
   "appearance",
@@ -31,20 +39,59 @@ export type SettingsRoute = SettingsSection | "index" | null;
 
 const SETTINGS_PATH = /^\/settings(?:\/([^/]+))?\/?$/;
 
-export const settingsRouteFromPath = (pathname: string): SettingsRoute => {
+type Parsed =
+  | { readonly kind: "closed" }
+  | { readonly kind: "index" }
+  | {
+      readonly canonical: boolean;
+      readonly kind: "section";
+      readonly section: SettingsSection;
+    };
+
+const parse = (pathname: string, terms: Terms): Parsed => {
   const match = SETTINGS_PATH.exec(pathname);
   if (!match) {
-    return null;
+    return { kind: "closed" };
   }
   if (match[1] === undefined) {
-    return "index";
+    return { kind: "index" };
   }
-  const section = settingsSectionSchema.safeParse(match[1]);
-  return section.success ? section.data : null;
+  const found = idForSlug(terms, settingsSectionSchema.options, match[1]);
+  return found
+    ? { canonical: found.canonical, kind: "section", section: found.id }
+    : { kind: "closed" };
 };
 
-export const settingsPath = (section?: SettingsSection): string =>
-  section ? `/settings/${section}` : "/settings";
+/** An old address still opens its section; the page redirects it too. */
+export const settingsRouteFromPath = (
+  pathname: string,
+  terms: Terms
+): SettingsRoute => {
+  const parsed = parse(pathname, terms);
+  switch (parsed.kind) {
+    case "closed":
+      return null;
+    case "index":
+      return "index";
+    case "section":
+      return parsed.section;
+    default: {
+      const unreachable: never = parsed;
+      return unreachable;
+    }
+  }
+};
+
+/** Where an old address for a section now lives; `null` if it's current. */
+export const settingsRedirect = (
+  pathname: string,
+  terms: Terms
+): string | null => {
+  const parsed = parse(pathname, terms);
+  return parsed.kind === "section" && !parsed.canonical
+    ? routes.settings(terms, parsed.section)
+    : null;
+};
 
 /** The bit of `window.history` the view drives; a port, so tests can fake it. */
 export interface SettingsHistory {
@@ -66,18 +113,24 @@ const pushedBySettings = (state: unknown): boolean =>
 export const openSettings = (
   history: SettingsHistory,
   pathname: string,
+  terms: Terms,
   section?: SettingsSection
 ): void => {
-  if (settingsRouteFromPath(pathname) !== null) {
-    selectSettingsSection(history, section);
+  if (settingsRouteFromPath(pathname, terms) !== null) {
+    selectSettingsSection(history, terms, section);
     return;
   }
-  history.pushState({ [OVERLAY_KEY]: true }, "", settingsPath(section));
+  history.pushState(
+    { [OVERLAY_KEY]: true },
+    "",
+    routes.settings(terms, section)
+  );
 };
 
 /** Another section, same history entry: Back still closes the view. */
 export const selectSettingsSection = (
   history: SettingsHistory,
+  terms: Terms,
   section?: SettingsSection
 ): void => {
   // Only our mark: passing the router's own state back makes Next treat the
@@ -85,7 +138,7 @@ export const selectSettingsSection = (
   history.replaceState(
     pushedBySettings(history.state) ? { [OVERLAY_KEY]: true } : null,
     "",
-    settingsPath(section)
+    routes.settings(terms, section)
   );
 };
 

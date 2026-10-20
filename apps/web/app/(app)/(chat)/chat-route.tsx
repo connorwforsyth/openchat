@@ -37,6 +37,7 @@ import { canAdmin, useAppFrame } from "@/app/(app)/_shared/app-frame";
 import { Brand } from "@/app/(app)/_shared/brand";
 import { useShellPlatform } from "@/app/(app)/_shared/desktop";
 import { createApiSandboxClient } from "@/app/(app)/_shared/sandbox-client";
+import { useTerms } from "@/app/(app)/_shared/terms";
 import { useAfterBoot } from "@/app/(app)/_shared/use-after-boot";
 import { routeParams, routes } from "@/lib/routes";
 
@@ -360,6 +361,7 @@ export function ChatRoute({
   const conversationId = useConversationId();
   const { client, query } = useApi();
   const frame = useAppFrame();
+  const terms = useTerms();
   const platform = useShellPlatform();
   const { chat, config, layout, me } = frame;
 
@@ -502,6 +504,7 @@ export function ChatRoute({
       sendTarget={sendTarget}
       skills={skills}
       target={target}
+      terms={terms}
       theme={frame.theme}
     />
   );

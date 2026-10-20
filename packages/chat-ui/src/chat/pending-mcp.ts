@@ -5,7 +5,7 @@ import type {
   ConnectorToolList,
 } from "@workspace/contract/schemas/library";
 
-// A new chat's connector choices (188), made before the chat exists. They
+// A new chat's MCP server choices (188), made before the chat exists. They
 // can't be saved yet, so they're kept here, shown over the defaults, and
 // saved once the first send has made the chat. Pure.
 
@@ -13,7 +13,7 @@ export type PendingChange =
   | {
       readonly enabled: boolean;
       readonly id: LibraryItemId;
-      readonly kind: "connector";
+      readonly kind: "server";
     }
   | {
       readonly enabled: boolean;
@@ -25,7 +25,7 @@ export type PendingChange =
 const sameTarget = (a: PendingChange, b: PendingChange): boolean =>
   a.kind === b.kind &&
   a.id === b.id &&
-  (a.kind === "connector" || (b.kind === "tool" && a.tool === b.tool));
+  (a.kind === "server" || (b.kind === "tool" && a.tool === b.tool));
 
 /** Adds a change, replacing an earlier one for the same switch. */
 export const addPending = (
@@ -37,16 +37,16 @@ export const addPending = (
 ];
 
 const applyTo = (
-  connector: Connector,
+  server: Connector,
   pending: readonly PendingChange[]
 ): Connector => {
-  let next = connector;
+  let next = server;
   for (const change of pending) {
-    if (change.id !== connector.id) {
+    if (change.id !== server.id) {
       continue;
     }
-    if (change.kind === "connector") {
-      next = connector.lock ? next : { ...next, enabled: change.enabled };
+    if (change.kind === "server") {
+      next = server.lock ? next : { ...next, enabled: change.enabled };
     } else if (!next.requiredTools.includes(change.tool)) {
       const others = next.disabledTools.filter((name) => name !== change.tool);
       next = {
@@ -58,8 +58,8 @@ const applyTo = (
     }
   }
   const customized =
-    next.enabled !== connector.enabled ||
-    next.disabledTools.join("\n") !== connector.disabledTools.join("\n");
+    next.enabled !== server.enabled ||
+    next.disabledTools.join("\n") !== server.disabledTools.join("\n");
   return { ...next, customized };
 };
 
@@ -79,18 +79,18 @@ export const withPending = (
   };
 };
 
-/** A connector's tools with the pending changes' switches shown. */
+/** A server's tools with the pending changes' switches shown. */
 export const toolsWithPending = (
-  connector: Connector | undefined,
+  server: Connector | undefined,
   tools: ConnectorToolList
 ): ConnectorToolList =>
-  connector
+  server
     ? {
         ...tools,
         tools: tools.tools.map((tool) => ({
           ...tool,
           enabled:
-            tool.lock !== null || !connector.disabledTools.includes(tool.name),
+            tool.lock !== null || !server.disabledTools.includes(tool.name),
         })),
       }
     : tools;

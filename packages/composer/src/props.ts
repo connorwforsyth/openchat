@@ -1,8 +1,6 @@
+import type { Term } from "@workspace/config/terms";
 import type { LibraryItemId } from "@workspace/contract/schemas/common";
-import type {
-  Connector,
-  ConnectorToolList,
-} from "@workspace/contract/schemas/library";
+import type { Connector } from "@workspace/contract/schemas/library";
 import type { ModelOption } from "@workspace/contract/schemas/models";
 import type { RunTarget } from "@workspace/contract/schemas/runs";
 import type { UserSummary } from "@workspace/contract/schemas/tenancy";
@@ -47,12 +45,6 @@ export interface ComposerProps {
    * `onCommand`. Left out, `/` lists prompts only.
    */
   readonly commands?: readonly ComposerCommand[];
-  /**
-   * MCP connectors for this chat (188): the + menu's Connectors submenu
-   * switches each, and its tools, for this chat only, and `/` finds them by
-   * name. Left out, neither is offered.
-   */
-  readonly connectors?: ComposerConnectors;
   readonly disabled?: boolean;
   /**
    * Keeps the unsent draft (text, mentions, picked skills) in `store` under
@@ -76,6 +68,12 @@ export interface ComposerProps {
    * (147). Left out, ArrowUp only moves the caret.
    */
   readonly history?: readonly PromptHistoryEntry[];
+  /**
+   * MCP servers for this chat (188): the + menu's submenu for them
+   * switches each, and its tools, for this chat only, and `/` finds them by
+   * name. Left out, neither is offered.
+   */
+  readonly mcp?: ComposerMcp;
   /** Models for the picker, as `meta.listModels` returns them. */
   readonly models?: readonly ModelOption[];
   readonly onAttachmentsChange?: (
@@ -142,29 +140,19 @@ export interface ComposerProps {
 }
 
 /**
- * This chat's connectors and the host's handlers for them (188). The host
+ * This chat's MCP servers and the host's handlers for them (188). The host
  * owns the data and saves every change; the composer only shows it.
  */
-export interface ComposerConnectors {
-  /** As `connectors.list` returns them for this chat. */
-  readonly connectors: readonly Connector[];
+export interface ComposerMcp {
   /** Whether this chat differs from the person's defaults. */
   readonly customized: boolean;
   /** Back to the person's defaults for this chat. */
   readonly onReset: () => void;
   readonly onToggle: (id: LibraryItemId, enabled: boolean) => void;
-  readonly onToggleTool: (
-    id: LibraryItemId,
-    tool: string,
-    enabled: boolean
-  ) => void;
-  /**
-   * A connector's submenu opened: the host loads its tools and passes them
-   * back in `tools`. Lists are fetched only when someone looks.
-   */
-  readonly onWantTools: (id: LibraryItemId) => void;
-  /** Tools by connector id; absent while loading (or never asked for). */
-  readonly tools: Readonly<Partial<Record<LibraryItemId, ConnectorToolList>>>;
+  /** As `connectors.list` returns them for this chat. */
+  readonly servers: readonly Connector[];
+  /** What this instance calls them (191): "MCP servers" unless configured. */
+  readonly term: Pick<Term, "label" | "singular">;
 }
 
 /** Where the draft is kept; see `ComposerProps.draft`. */

@@ -44,7 +44,7 @@ import {
 } from "../options";
 import type { Draft } from "../ports/draft-store";
 import type { PromptHistoryDirection } from "../prompt-history";
-import type { ComposerHandoff, ComposerProps } from "../props";
+import type { ComposerHandoff, ComposerMcp, ComposerProps } from "../props";
 import type {
   AttachmentLimits,
   AttachmentRejection,
@@ -104,13 +104,17 @@ export const READY_MARK = "composer:ready";
  * Client-only: render it through ComposerLoader, which paints ComposerShell
  * first (and on the server) and loads this module as its own chunk.
  */
+/** The `/` menu's title for MCP servers: whatever the host calls them (191). */
+const termLabel = (mcp: ComposerMcp | undefined): string =>
+  mcp?.term.label ?? "";
+
 export function Composer({
   agents = NONE,
   appearance = "default",
   attachmentLimits = NO_LIMITS,
   className,
   commands = NONE,
-  connectors,
+  mcp,
   disabled = false,
   draft,
   files: workspaceFiles = NONE,
@@ -173,12 +177,12 @@ export function Composer({
   const slash = useMemo(
     (): SlashSources => ({
       commands,
-      connectors: connectors?.connectors,
       files: workspaceFiles.map(fileCandidate),
+      mcpServers: mcp?.servers,
       prompts,
       skills: skillsToPick,
     }),
-    [commands, connectors?.connectors, prompts, skillsToPick, workspaceFiles]
+    [commands, mcp?.servers, prompts, skillsToPick, workspaceFiles]
   );
 
   const busy = status === "submitted" || status === "streaming";
@@ -420,16 +424,16 @@ export function Composer({
           current.chain().focus().deleteRange(range).run();
           addSkill(item.skill);
           return;
-        case "connector":
+        case "mcp-server":
           // A switch for this chat (188), not words to send.
           current.chain().focus().deleteRange(range).run();
-          connectors?.onToggle(item.connector.id, !item.connector.enabled);
+          mcp?.onToggle(item.server.id, !item.server.enabled);
           return;
         default:
           return item satisfies never;
       }
     },
-    [addSkill, choosePrompt, connectors, onCommand, slash.files.length]
+    [addSkill, choosePrompt, mcp, onCommand, slash.files.length]
   );
 
   // From the + menu: the same file mention `@` makes, at the caret.
@@ -616,8 +620,8 @@ export function Composer({
   const openFilePicker = useCallback(() => fileInputRef.current?.click(), []);
   const menuTitles: Record<MenuList, string> = {
     commands: t`Commands`,
-    connectors: t`Connectors`,
     files: t`Files`,
+    mcp: termLabel(mcp),
     mentions: t`Mention`,
     prompts: t`Prompts`,
     "prompts-skills": t`Prompts and skills`,
@@ -694,9 +698,9 @@ export function Composer({
           attachDisabled={disabled || files.atLimit}
           busy={busy}
           canSubmit={canSubmit}
-          connectors={connectors}
           disabled={disabled}
           files={slash.files}
+          mcp={mcp}
           models={models}
           onAddFile={addWorkspaceFile}
           onAddSkill={pickSkill}

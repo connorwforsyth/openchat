@@ -11,7 +11,7 @@ import type {
   ChatContextType,
 } from "@workspace/contract/schemas/tenancy";
 import { brandName } from "@workspace/icons/brands";
-import { matchConnectors } from "./connectors";
+import { matchMcpServers } from "./mcp";
 import {
   type AgentOption,
   type AgentSource,
@@ -488,15 +488,15 @@ export type SlashItem =
   | { readonly file: FileCandidate; readonly kind: "file" }
   | { readonly kind: "prompt"; readonly prompt: PromptOption }
   | { readonly kind: "skill"; readonly skill: SkillOption }
-  /** Switches a connector on or off for this chat (188). */
-  | { readonly connector: Connector; readonly kind: "connector" };
+  /** Switches a server on or off for this chat (188). */
+  | { readonly server: Connector; readonly kind: "mcp-server" };
 
 export interface SlashSources {
   /** The file commands the host handles; the rest aren't offered. */
   readonly commands: readonly ComposerCommand[];
-  /** This chat's connectors (188), found by name after a word is typed. */
-  readonly connectors?: readonly Connector[];
   readonly files: readonly FileCandidate[];
+  /** This chat's MCP servers (188), found by name after a word is typed. */
+  readonly mcpServers?: readonly Connector[];
   readonly prompts: readonly PromptOption[];
   /** Skills to pick (127), less those already on the message. */
   readonly skills?: readonly SkillOption[];
@@ -504,13 +504,13 @@ export interface SlashSources {
 
 /**
  * The `/` menu for a query: the host's file commands (always in the same
- * order), then prompt templates, then skills (127), then connectors to
+ * order), then prompt templates, then skills (127), then MCP servers to
  * switch for this chat (188); or, after `/open`, the
  * files to open.
  */
 export const slashItems = (
   query: string,
-  { commands, connectors = [], files, prompts, skills = [] }: SlashSources
+  { commands, mcpServers = [], files, prompts, skills = [] }: SlashSources
 ): readonly SlashItem[] => {
   const stage = slashStage(query);
   if (stage.stage === "open") {
@@ -531,8 +531,8 @@ export const slashItems = (
     ...filterSkills(skills, stage.query).map(
       (skill): SlashItem => ({ kind: "skill", skill })
     ),
-    ...matchConnectors(connectors, stage.query).map(
-      (connector): SlashItem => ({ connector, kind: "connector" })
+    ...matchMcpServers(mcpServers, stage.query).map(
+      (server): SlashItem => ({ kind: "mcp-server", server })
     ),
   ];
 };

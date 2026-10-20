@@ -12,6 +12,7 @@ import { instancePolicySchema } from "@workspace/contract/schemas/tenancy";
 import { z } from "zod";
 
 import { DEFAULT_SITE_ORIGINS, isSiteOrigin } from "./sites";
+import { termsSchema } from "./terms";
 
 // The `app.config.yaml` schema (PLAN.md §9, D18). The YAML sets instance-wide
 // settings and limits; orgs choose within them in the database. Every section
@@ -810,6 +811,8 @@ export const appConfigSchema = z
     sandbox: sandboxSchema,
     search: searchSchema,
     storage: storageSchema,
+    /** What the UI calls features, and their addresses (191). */
+    terms: termsSchema,
     version: z.literal(1).default(1),
   })
   .superRefine((config, context) => {
