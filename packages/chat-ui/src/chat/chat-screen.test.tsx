@@ -202,7 +202,8 @@ describe("header (D14)", () => {
             button.getAttribute("aria-label")?.startsWith("Rename chat")
           )
       );
-    const expected = ["Toggle sidebar", "Share", "Files", "Browser"];
+    // The sidebar toggle is in the rail on a wide screen (181).
+    const expected = ["Share", "Files", "Browser"];
     expect(controls).toEqual(
       expected.map((name) => header().getByRole("button", { name }))
     );
@@ -213,26 +214,42 @@ describe("header (D14)", () => {
     ).toBeNull();
   });
 
-  it("keeps the sidebar toggle in the sidebar while it's open (113)", async () => {
+  it("keeps the sidebar toggle first in the rail, open or collapsed (181)", async () => {
     renderWithI18n(<ChatScreen {...props()} />);
+    const rail = () => screen.getByRole("navigation", { name: "Sidebar rail" });
     const sidebar = within(
       screen.getByRole("complementary", { name: "Chats" })
     );
-    const toggle = sidebar.getByRole("button", { name: "Toggle sidebar" });
+    const toggle = within(rail()).getByRole("button", {
+      name: "Toggle sidebar",
+    });
+    expect(rail().querySelector("a, button")).toBe(toggle);
     expect(toggle.getAttribute("aria-expanded")).toBe("true");
     expect(
-      header().queryByRole("button", { name: "Toggle sidebar" })
+      sidebar.queryByRole("button", { name: "Toggle sidebar" })
     ).toBeNull();
-    expect(header().queryByRole("button", { name: "New chat" })).toBeNull();
-
-    await userEvent.click(toggle);
-    const reopen = header().getByRole("button", { name: "Toggle sidebar" });
-    expect(reopen.getAttribute("aria-expanded")).toBe("false");
-    expect(header().queryByRole("button", { name: "New chat" })).toBeNull();
-    await userEvent.click(reopen);
     expect(
       header().queryByRole("button", { name: "Toggle sidebar" })
     ).toBeNull();
+    expect(header().queryByRole("button", { name: "New chat" })).toBeNull();
+    const before = toggle.getBoundingClientRect();
+
+    await userEvent.click(toggle);
+    expect(screen.queryByRole("complementary", { name: "Chats" })).toBeNull();
+    const collapsed = within(rail()).getByRole("button", {
+      name: "Toggle sidebar",
+    });
+    expect(collapsed.getAttribute("aria-expanded")).toBe("false");
+    const after = collapsed.getBoundingClientRect();
+    expect([after.x, after.y]).toEqual([before.x, before.y]);
+    expect(
+      header().queryByRole("button", { name: "Toggle sidebar" })
+    ).toBeNull();
+    expect(
+      screen.getAllByRole("button", { name: "Toggle sidebar" })
+    ).toHaveLength(1);
+    await userEvent.click(collapsed);
+    expect(screen.getByRole("complementary", { name: "Chats" })).toBeTruthy();
   });
 
   // 137: Files and Browser in place of one Workspace toggle.

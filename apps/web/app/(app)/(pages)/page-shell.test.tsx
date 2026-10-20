@@ -144,10 +144,11 @@ describe("PageShell", () => {
       </AppFrameProvider>,
       api()
     );
-    const chats = within(screen.getByRole("complementary", { name: "Chats" }));
-    await userEvent.click(
-      chats.getByRole("button", { name: "Toggle sidebar" })
+    // The toggle is the rail's first button on a wide screen (181).
+    const rail = within(
+      screen.getByRole("navigation", { name: "Sidebar rail" })
     );
+    await userEvent.click(rail.getByRole("button", { name: "Toggle sidebar" }));
     expect(value.layout.toggleSidebar).toHaveBeenCalledTimes(1);
     await userEvent.keyboard("{Meta>}b{/Meta}");
     await waitFor(() =>
@@ -193,10 +194,15 @@ describe("PageShell", () => {
       api()
     );
     expect(screen.queryByRole("complementary", { name: "Chats" })).toBeNull();
-    // The header takes the sidebar toggle (113); the rail stays (181), with
-    // the page's destination current.
-    expect(screen.getByRole("button", { name: "Toggle sidebar" })).toBeTruthy();
+    // The rail stays (181) and keeps the only sidebar toggle; the header
+    // has none.
     const rail = screen.getByRole("navigation", { name: "Sidebar rail" });
+    expect(
+      within(rail).getByRole("button", { name: "Toggle sidebar" })
+    ).toBeTruthy();
+    expect(
+      screen.getAllByRole("button", { name: "Toggle sidebar" })
+    ).toHaveLength(1);
     expect(within(rail).getByRole("button", { name: "Chats" })).toBeTruthy();
   });
 });

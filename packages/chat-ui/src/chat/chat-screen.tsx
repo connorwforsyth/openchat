@@ -659,7 +659,7 @@ function ChatScreenBody({
     [composer, composerFill, onSubmit, workspaceComposer]
   );
   const sidebarExpanded = narrow ? sidebarSheetOpen : layout.sidebarOpen;
-  const sidebarToggle = (where: "header" | "sidebar") => (
+  const sidebarToggle = (where: "header" | "rail" | "sidebar") => (
     <SidebarToggle
       expanded={sidebarExpanded}
       hint={<ShortcutHint id="sidebar.toggle" />}
@@ -776,6 +776,7 @@ function ChatScreenBody({
             dotId !== undefined && sidebar.activeId === dotId ? "dot" : "chats"
           }
           onShowChats={showChats}
+          toggle={sidebarToggle("rail")}
         />
       }
       sidebar={

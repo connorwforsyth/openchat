@@ -133,7 +133,7 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
     [update]
   );
 
-  const sidebarToggle = (where: "header" | "sidebar") => (
+  const sidebarToggle = (where: "header" | "rail" | "sidebar") => (
     <SidebarToggle
       expanded={narrow ? sheetOpen : layout.layout.sidebarOpen}
       onToggle={toggleChats}
@@ -147,8 +147,8 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
           <SectionTitle pathname={pathname} />
         </span>
       }
-      // The sidebar toggle is here only while the sidebar isn't docked;
-      // otherwise it's in the sidebar's top row (113).
+      // The sidebar toggle is here only on a narrow screen; on a wide one
+      // it is the rail's first button (181).
       start={sidebarToggle("header")}
     />
   );
@@ -189,6 +189,7 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
           {...sidebarProps}
           current={railDestination(pathname)}
           onShowChats={showChats}
+          toggle={sidebarToggle("rail")}
         />
       }
       sidebar={

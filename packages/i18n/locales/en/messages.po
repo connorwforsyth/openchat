@@ -6185,7 +6185,6 @@ msgid "your Dot"
 msgstr "your Dot"
 
 #: ../../apps/web/app/(app)/(pages)/schedules/schedule-list.tsx
-#: ../chat-ui/src/sidebar/sidebar-rail.tsx
 msgid "Your Dot"
 msgstr "Your Dot"
 
