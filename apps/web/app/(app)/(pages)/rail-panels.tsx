@@ -105,8 +105,16 @@ export function LibraryPanel() {
   const tab = libraryTabSchema.catch("mine").parse(params.get(routeParams.tab));
   const inSpace = usePathname().startsWith(routes.space);
   const browsing = tab === "mine" && !inSpace;
+  const newKind =
+    BUILDABLE_KINDS.find((each) => each === kind) ?? BUILDABLE_KINDS[0];
   return (
     <RailPanel
+      action={{
+        href: routes.libraryNew(newKind),
+        icon: <PlusIcon aria-hidden className={iconClass} />,
+        id: "new",
+        label: t`New`,
+      }}
       label={t`Library`}
       sections={[
         {
