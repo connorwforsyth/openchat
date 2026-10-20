@@ -41,6 +41,11 @@ import {
   InputGroupInput,
 } from "@workspace/ui/components/input-group";
 import { Skeleton } from "@workspace/ui/components/skeleton";
+import { Tabs, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
+import {
+  ToggleGroup,
+  ToggleGroupItem,
+} from "@workspace/ui/components/toggle-group";
 import {
   type ChangeEvent,
   type ComponentType,
@@ -73,8 +78,9 @@ import { ConfirmDelete } from "./confirm-delete";
 import { KindTile, useKindLabels, useKindPlurals } from "./kind";
 
 // The library (D13): one list of cards for a tab (My library, Shared with
-// me, Spaces) and a kind, with search. The page's panel picks the tab and
-// kind (181), so the index shows no filters of its own. Opening an item goes
+// me, Spaces) and a kind, with search. Where the page has a panel, the panel
+// picks the tab and kind (181); where it has none, the index offers them
+// itself (`onFilterChange`). Opening an item goes
 // to its builder; the page decides the URLs (`itemHref`, `newHref`) and the
 // link component, so this works under Next or anywhere else.
 
@@ -90,6 +96,11 @@ const PlainLink: LinkComponent = ({ children, className, href }) => (
   </a>
 );
 
+export interface LibraryFilter {
+  readonly kind?: LibraryKind;
+  readonly tab: LibraryTab;
+}
+
 export interface LibraryIndexProps {
   /**
    * Where "Use in chat" goes for a published agent (044); `null` or left
@@ -102,6 +113,11 @@ export interface LibraryIndexProps {
   readonly link?: LinkComponent;
   /** Where "New" goes for each kind. */
   readonly newHref: (kind: LibraryKind) => string;
+  /**
+   * Shows the index's own tabs and kinds, for a page without the panel
+   * that otherwise picks them; called with the filter chosen.
+   */
+  readonly onFilterChange?: (filter: LibraryFilter) => void;
   /** After an import, open the new item. */
   readonly onImported?: (item: LibraryItem) => void;
   readonly tab?: LibraryTab;
@@ -113,6 +129,7 @@ export function LibraryIndex({
   kind,
   link: Link = PlainLink,
   newHref,
+  onFilterChange,
   onImported,
   tab = "mine",
 }: LibraryIndexProps) {
@@ -133,6 +150,19 @@ export function LibraryIndex({
     (event: ChangeEvent<HTMLInputElement>) =>
       setSearch(event.currentTarget.value),
     []
+  );
+  const changeTab = useCallback(
+    (next: LibraryTab) => onFilterChange?.({ kind, tab: next }),
+    [kind, onFilterChange]
+  );
+  // A toggle group can be emptied; empty means every kind.
+  const changeKind = useCallback(
+    (values: string[]) =>
+      onFilterChange?.({
+        kind: BUILDABLE_KINDS.find((each) => each === values[0]),
+        tab,
+      }),
+    [onFilterChange, tab]
   );
 
   return (
@@ -168,18 +198,54 @@ export function LibraryIndex({
         </div>
       </header>
 
-      <InputGroup className="max-w-xs">
-        <InputGroupInput
-          aria-label={t`Search the library`}
-          onChange={changeSearch}
-          placeholder={t`Search`}
-          type="search"
-          value={search}
-        />
-        <InputGroupAddon>
-          <SearchIcon />
-        </InputGroupAddon>
-      </InputGroup>
+      {onFilterChange ? (
+        <Tabs onValueChange={changeTab} value={tab}>
+          <TabsList>
+            <TabsTrigger value="mine">
+              <Trans>My library</Trans>
+            </TabsTrigger>
+            <TabsTrigger value="shared">
+              <Trans>Shared with me</Trans>
+            </TabsTrigger>
+            <TabsTrigger value="libraries">
+              <Trans>Spaces</Trans>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      ) : null}
+
+      <div className="flex flex-wrap items-center gap-3">
+        <InputGroup className="max-w-xs">
+          <InputGroupInput
+            aria-label={t`Search the library`}
+            onChange={changeSearch}
+            placeholder={t`Search`}
+            type="search"
+            value={search}
+          />
+          <InputGroupAddon>
+            <SearchIcon />
+          </InputGroupAddon>
+        </InputGroup>
+        {onFilterChange ? (
+          <ToggleGroup
+            aria-label={t`Kind`}
+            onValueChange={changeKind}
+            size="sm"
+            value={[kind ?? "all"]}
+            variant="outline"
+          >
+            <ToggleGroupItem value="all">
+              <Trans>All</Trans>
+            </ToggleGroupItem>
+            {BUILDABLE_KINDS.map((each) => (
+              <ToggleGroupItem key={each} value={each}>
+                {plurals[each]}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        ) : null}
+      </div>
 
       <ItemList
         chatHref={chatHref}

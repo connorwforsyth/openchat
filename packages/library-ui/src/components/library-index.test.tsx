@@ -10,7 +10,7 @@ import type {
   LibraryItem,
   LibraryKind,
 } from "@workspace/contract/schemas/library";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 
 import { createFakeLibraryClient } from "../testing/fake-client";
@@ -32,7 +32,7 @@ const newHref = (kind: LibraryKind) => `/library/new/${kind}`;
 
 const renderIndex = (
   client = createFakeLibraryClient(),
-  filter: Pick<LibraryIndexProps, "kind" | "tab"> = {}
+  filter: Pick<LibraryIndexProps, "kind" | "onFilterChange" | "tab"> = {}
 ) => {
   const providers = createTestProviders(client);
   return render(
@@ -75,6 +75,38 @@ describe("LibraryIndex", () => {
     await waitFor(() => expect(names()).toHaveLength(3));
     expect(screen.queryByRole("tab")).toBeNull();
     expect(screen.queryByRole("group", { name: "Kind" })).toBeNull();
+  });
+
+  it("offers its own tabs and kinds when the page has no panel", async () => {
+    const onFilterChange = vi.fn();
+    renderIndex(undefined, { kind: "prompt", onFilterChange, tab: "mine" });
+    await waitFor(() => expect(names()).toEqual(["Explain a concept"]));
+    expect(
+      screen
+        .getAllByRole("tab")
+        .map((each) => [each.textContent, each.getAttribute("aria-selected")])
+    ).toEqual([
+      ["My library", "true"],
+      ["Shared with me", "false"],
+      ["Spaces", "false"],
+    ]);
+    const kinds = within(screen.getByRole("group", { name: "Kind" }));
+    expect(
+      kinds
+        .getByRole("button", { name: "Prompts" })
+        .getAttribute("aria-pressed")
+    ).toBe("true");
+
+    await userEvent.click(screen.getByRole("tab", { name: "Shared with me" }));
+    expect(onFilterChange).toHaveBeenLastCalledWith({
+      kind: "prompt",
+      tab: "shared",
+    });
+    await userEvent.click(kinds.getByRole("button", { name: "All" }));
+    expect(onFilterChange).toHaveBeenLastCalledWith({
+      kind: undefined,
+      tab: "mine",
+    });
   });
 
   it("shows one kind, named in the heading", async () => {
