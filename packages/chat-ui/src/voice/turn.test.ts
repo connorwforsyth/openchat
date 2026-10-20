@@ -136,15 +136,38 @@ describe("callStep", () => {
     expect(state.phase).toBe("thinking");
   });
 
-  it("keeps speaking what's queued when the speech service goes down mid-reply", () => {
-    const { state } = run([
+  it("ends the reply, its audio and its run when the speech service goes down", () => {
+    for (const playing of [[], [{ type: "audio-idle" }]] as const) {
+      const { effects, state } = run([
+        { type: "ready" },
+        { text: "Tell me a long story", type: "heard-text" },
+        { type: "audio-started" },
+        ...playing,
+        { error: "unavailable", type: "failed" },
+      ]);
+      expect(effects).toEqual(["send", "interrupt"]);
+      expect(state).toMatchObject({
+        error: "unavailable",
+        phase: "listening",
+        replyDone: true,
+      });
+    }
+  });
+
+  it("goes on with the reply when one sentence can't be spoken", () => {
+    const failed = run([
       { type: "ready" },
       { text: "Tell me a long story", type: "heard-text" },
       { type: "audio-started" },
-      { error: "unavailable", type: "failed" },
+      { error: "speech", type: "failed" },
     ]);
-    expect(state.phase).toBe("speaking");
-    expect(state.error).toBe("unavailable");
+    expect(failed.effects).toEqual(["send"]);
+    expect(failed.state).toMatchObject({ error: "speech", phase: "speaking" });
+    // The run is still going: the queue running dry isn't the user's turn yet.
+    const idle = run([{ type: "audio-idle" }], failed.state);
+    expect(idle.state.phase).toBe("paused");
+    const done = run([{ pending: false, type: "reply-finished" }], idle.state);
+    expect(done.state.phase).toBe("listening");
   });
 
   it("ignores speech while muted and drops a half-heard utterance on mute", () => {
