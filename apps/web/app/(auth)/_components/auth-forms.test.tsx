@@ -17,6 +17,7 @@ const INVITE_ONLY = /This server is invite-only/;
 const ORIGIN_REJECTED = /This address isn't allowed to sign in/;
 const UNREACHABLE = /Couldn't reach the server/;
 const TRUSTED_ORIGINS_HINT = /ask them to add this one/;
+const MICROSOFT = /Microsoft/;
 
 const i18n = setupI18n({ locale: "en", messages: { en: {} } });
 const renderWithI18n = (ui: ReactNode) =>
@@ -170,6 +171,39 @@ describe("AcceptInvite", () => {
     expect(await requestOf(fetcher)).toEqual({
       body: { token },
       url: "/api/invitations/accept",
+    });
+  });
+});
+
+describe("SocialButtons, Microsoft (186)", () => {
+  it("shows a Microsoft button only when it's configured, and starts sign-in", async () => {
+    const { SocialButtons } = await import("./social-buttons");
+    const { unmount } = renderWithI18n(
+      <SocialButtons callbackUrl="/" providers={[]} />
+    );
+    expect(screen.queryByRole("button", { name: MICROSOFT })).toBeNull();
+    unmount();
+
+    const fetcher = answer(200, {
+      redirect: false,
+      url: "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
+    });
+    vi.stubGlobal("fetch", fetcher);
+    renderWithI18n(
+      <SocialButtons
+        callbackUrl="/chats"
+        providers={[{ id: "microsoft", name: "Microsoft" }]}
+      />
+    );
+    const button = screen.getByRole("button", {
+      name: "Continue with Microsoft",
+    });
+    expect(button.querySelector('svg[data-brand="microsoft"]')).toBeTruthy();
+    await userEvent.click(button);
+    await vi.waitFor(() => expect(fetcher).toHaveBeenCalled());
+    expect(await requestOf(fetcher)).toEqual({
+      body: { callbackURL: "/chats", provider: "microsoft" },
+      url: "/api/auth/sign-in/social",
     });
   });
 });
