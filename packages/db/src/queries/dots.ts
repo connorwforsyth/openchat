@@ -78,7 +78,13 @@ export type NewScheduleRun = Omit<
 export type ScheduleRunPatch = Partial<
   Pick<
     ScheduleRunRow,
-    "notified" | "outcome" | "readAt" | "skipReason" | "summary"
+    | "conversationId"
+    | "notified"
+    | "outcome"
+    | "readAt"
+    | "runId"
+    | "skipReason"
+    | "summary"
   >
 >;
 
@@ -134,6 +140,16 @@ const ACTIVE_RUN: readonly RunStatus[] = [
   "running",
   "awaiting_approval",
 ];
+
+const spendsCap = isNull(dotRun.skipReason);
+
+const CAP_LOCK_SPACE = 175;
+
+const lockCap = async (tx: Db, ownerId: UserId): Promise<void> => {
+  await tx.execute(
+    sql`select pg_advisory_xact_lock(${CAP_LOCK_SPACE}, hashtext(${ownerId}))`
+  );
+};
 
 // --- Dots -----------------------------------------------------------------
 
@@ -463,24 +479,69 @@ export interface DueDecision {
   readonly skip: Omit<NewScheduleRun, "ownerId" | "scheduleId"> | null;
 }
 
+const lockedRunsToday = async (
+  tx: Db,
+  ownerIds: readonly UserId[],
+  now: Date
+): Promise<Map<UserId, number>> => {
+  const owners = [...new Set(ownerIds)].sort();
+  for (const owner of owners) {
+    // biome-ignore lint/performance/noAwaitInLoops: the locks must be taken one at a time, in order.
+    await lockCap(tx, owner);
+  }
+  const counted = await tx
+    .select({ n: count(), ownerId: dotRun.ownerId })
+    .from(dotRun)
+    .where(
+      and(
+        inArray(dotRun.ownerId, owners),
+        spendsCap,
+        gt(dotRun.createdAt, new Date(now.getTime() - 86_400_000))
+      )
+    )
+    .groupBy(dotRun.ownerId);
+  return new Map(counted.map((row) => [row.ownerId, Number(row.n)]));
+};
+
+const insertSlotClaim = async (
+  tx: Db,
+  schedule: ScheduleRow,
+  fire: NonNullable<DueDecision["fire"]>,
+  now: Date
+): Promise<ScheduleRunRow> => {
+  const [claim] = await tx
+    .insert(dotRun)
+    .values({
+      conversationId: schedule.conversationId,
+      createdAt: now,
+      dotId: schedule.dotId,
+      missedSlots: fire.missedSlots,
+      nominalAt: fire.nominal,
+      notified: false,
+      ownerId: schedule.ownerId,
+      scheduleId: schedule.id,
+      trigger: "schedule",
+    })
+    .returning();
+  if (!claim) {
+    throw new Error("insert returned no row");
+  }
+  return claim;
+};
+
 /**
  * Claims every active schedule due at `now`, in one transaction with `skip
  * locked` so two ticks (or processes) never fire the same slot. `decide` is
- * the pure policy (fire, defer, skip, complete); this applies its patch and
- * records its skips. Returns the slots to fire.
+ * the pure policy (fire, defer, skip, complete); this applies its patch,
+ * records its skips, and records each slot it fires as a claim on the
+ * owner's cap. Returns the claims, for `dot.run` to start.
  */
 export const claimDueSchedules = (
   db: Db,
   now: Date,
   decide: (schedule: ScheduleRow, context: DueContext) => DueDecision,
   limit = 100
-): Promise<
-  readonly {
-    readonly missedSlots: number;
-    readonly nominal: Date;
-    readonly schedule: ScheduleRow;
-  }[]
-> =>
+): Promise<readonly ScheduleRunRow[]> =>
   db.transaction(async (tx) => {
     const due = await tx
       .select()
@@ -495,7 +556,9 @@ export const claimDueSchedules = (
       )
       .orderBy(asc(dotSchedule.nextRunAt))
       .limit(limit)
-      .for("update", { skipLocked: true });
+      // Not `update`: a Run now claim's foreign key takes `key share` on the
+      // row while holding the cap lock the tick is about to wait for.
+      .for("no key update", { skipLocked: true });
     if (due.length === 0) {
       return [];
     }
@@ -515,26 +578,12 @@ export const claimDueSchedules = (
               )
             );
     const busy = new Set(busyRows.map((row) => row.conversationId));
-    const owners = [...new Set(due.map((row) => row.ownerId))];
-    const counted = await tx
-      .select({ n: count(), ownerId: dotRun.ownerId })
-      .from(dotRun)
-      .where(
-        and(
-          inArray(dotRun.ownerId, owners),
-          isNotNull(dotRun.runId),
-          gt(dotRun.createdAt, new Date(now.getTime() - 86_400_000))
-        )
-      )
-      .groupBy(dotRun.ownerId);
-    const runsToday = new Map(
-      counted.map((row) => [row.ownerId, Number(row.n)])
+    const runsToday = await lockedRunsToday(
+      tx,
+      due.map((row) => row.ownerId),
+      now
     );
-    const fired: {
-      missedSlots: number;
-      nominal: Date;
-      schedule: ScheduleRow;
-    }[] = [];
+    const claims: ScheduleRunRow[] = [];
     for (const schedule of due) {
       const decision = decide(schedule, {
         busy: schedule.conversationId
@@ -559,23 +608,58 @@ export const claimDueSchedules = (
           schedule.ownerId,
           (runsToday.get(schedule.ownerId) ?? 0) + 1
         );
-        fired.push({ ...decision.fire, schedule });
+        claims.push(await insertSlotClaim(tx, schedule, decision.fire, now));
       }
     }
-    return fired;
+    return claims;
   });
 
 // --- Runs -----------------------------------------------------------------
 
-export const insertScheduleRun = async (
+export const getScheduleRunById = async (
   db: Db,
-  input: NewScheduleRun
-): Promise<void> => {
-  await db.insert(dotRun).values(input).onConflictDoNothing();
+  id: DotRunId
+): Promise<ScheduleRunRow | null> => {
+  const [row] = await db.select().from(dotRun).where(eq(dotRun.id, id));
+  return row ?? null;
 };
 
-/** @deprecated The 172 name. */
-export const insertDotRun = insertScheduleRun;
+export const releaseClaim = async (db: Db, id: DotRunId): Promise<void> => {
+  await db.delete(dotRun).where(and(eq(dotRun.id, id), isNull(dotRun.runId)));
+};
+
+/**
+ * Gives back claims no run started (a crash, a lost job) and marks their
+ * schedules failed, so a lost slot frees the cap and still shows.
+ */
+export const releaseStaleClaims = async (
+  db: Db,
+  before: Date
+): Promise<void> => {
+  const released = await db
+    .delete(dotRun)
+    .where(
+      and(
+        isNull(dotRun.runId),
+        isNull(dotRun.skipReason),
+        lt(dotRun.createdAt, before)
+      )
+    )
+    .returning({ scheduleId: dotRun.scheduleId });
+  const schedules = released.flatMap((row) =>
+    row.scheduleId ? [row.scheduleId] : []
+  );
+  if (schedules.length > 0) {
+    await db
+      .update(dotSchedule)
+      .set({
+        lastOutcome: "failed",
+        lastStatus: "failed",
+        updatedAt: new Date(),
+      })
+      .where(inArray(dotSchedule.id, schedules));
+  }
+};
 
 /** The schedule-run row (and its schedule) that started `runId`, if any. */
 export const scheduleRunFor = async (
@@ -652,6 +736,8 @@ export const listScheduleRuns = async (
     .where(
       and(
         eq(dotRun.scheduleId, scheduleId),
+        // A claim shows once its run starts.
+        or(isNotNull(dotRun.runId), isNotNull(dotRun.skipReason)),
         before ? lt(dotRun.createdAt, before) : undefined
       )
     )
@@ -718,7 +804,7 @@ export const markScheduleRunsRead = async (
     .where(and(eq(dotRun.scheduleId, scheduleId), isNull(dotRun.readAt)));
 };
 
-/** Runs the owner started from schedules (or "Run now") in the 24 hours before `now`. */
+/** Runs the owner started from schedules (or "Run now") in the 24 hours before `now`, claims included. */
 export const runsInLastDay = async (
   db: Db,
   ownerId: UserId,
@@ -730,12 +816,33 @@ export const runsInLastDay = async (
     .where(
       and(
         eq(dotRun.ownerId, ownerId),
-        isNotNull(dotRun.runId),
+        spendsCap,
         gt(dotRun.createdAt, new Date(now.getTime() - 86_400_000))
       )
     );
   return Number(row?.n ?? 0);
 };
+
+export const claimRun = (
+  db: Db,
+  claim: NewScheduleRun,
+  now: Date,
+  cap: number
+): Promise<ScheduleRunRow | null> =>
+  db.transaction(async (tx) => {
+    await lockCap(tx, claim.ownerId);
+    if ((await runsInLastDay(tx, claim.ownerId, now)) >= cap) {
+      return null;
+    }
+    const [row] = await tx
+      .insert(dotRun)
+      .values({ ...claim, createdAt: now })
+      .returning();
+    if (!row) {
+      throw new Error("insert returned no row");
+    }
+    return row;
+  });
 
 /** Whether the conversation has a run in flight or waiting on approval. */
 export const conversationBusy = async (

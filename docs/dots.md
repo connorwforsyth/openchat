@@ -53,15 +53,17 @@ the first Dot is primary, deleting it promotes the newest remaining one).
 ```
             every minute (pg-boss cron "dot.tick")
                           │
-              claimDueDotSchedules (FOR UPDATE SKIP LOCKED)
-              moves next_run_at on with nextRunAt(cron, tz, now)
-                          │ one job per occurrence
+              claimDueSchedules (FOR NO KEY UPDATE SKIP LOCKED,
+              the owners' cap locks) moves next_run_at on and
+              records a claim (a dot_run row) per fired slot
+                          │ one job per claim
                           ▼
-                 "dot.run" { scheduleId, occurrence }
-                          │ fireDotSchedule: re-checks Dot + schedule enabled,
-                          │ skips if the last run is still going
+                 "dot.run" { claimId }
+                          │ fireSchedule: re-checks Dot + schedule enabled,
+                          │ gives the claim back if not
                           ▼
-   createRun(as owner, idempotencyKey "dot:s:<schedule>:<occurrence>")
+   createUnattendedRun(as owner, unattended { type: "schedule", scheduleId },
+                       idempotencyKey "dot:<claimId>")
                           │ in-process executor
                           ▼
    turn resolver ─► withChatMemory ─► withDotPolicy (unattended rules)
@@ -80,14 +82,22 @@ the first Dot is primary, deleting it promotes the newest remaining one).
   frozen. The database is the source of truth for `next_run_at`; the tick
   claims due rows with `skip locked`, so two web processes (or a later
   `apps/worker`) never fire one occurrence twice. Minute granularity.
-- **Idempotency:** a scheduled run's key is `dot:s:<scheduleId>:<occurrence>`,
-  so a retried `dot.run` job returns the same run instead of posting again.
+- **Idempotency:** a scheduled run's key is `dot:<claimId>`, so a retried
+  `dot.run` job returns the same run instead of posting again, and a claim
+  already tied to a run is never started again.
+  The `dot:` prefix is the server's: `runs.create` refuses a client key that
+  starts with it.
 - **Unattended policy** (`packages/server/src/dots/policy.ts`,
   `unattendedApproval`): on a Dot's run, a tool that would ask for approval
   is withheld and a call to it is answered with a clear tool error, unless the
   Dot lists the tool in `autoApproveTools`. A Dot's run never pauses for an
-  approval. Manual chat in the Dot's conversation keeps normal approvals; the
-  policy keys off the run's `dot:` idempotency key.
+  approval. Manual chat in the Dot's conversation keeps normal approvals. The
+  policy keys off the run's `unattended` column, which only
+  `createUnattendedRun` sets (the schedules engine and a Dot's check-in),
+  never off its idempotency key. A run's schedule loads only when the run's
+  creator owns it, and a Dot's persona and approvals apply only to its
+  owner's runs. A server-started run whose schedule is gone runs read-only
+  with nothing auto-approved.
 - **Standing instructions** join the turn's system instructions (not the
   posted message), with a note that nobody is watching.
 - **Access:** the run is created as the Dot's owner, through `createRun`,
@@ -230,10 +240,13 @@ curl -b cookies -X POST http://localhost:3000/api/dots/<id>/run -H 'content-type
 - **The tick** (`planDue` in `dots/schedule-policy.ts`) decides what to do with each due row:
   - overdue slots collapse into one run (`missedSlots` counts the others), or with `skip` they're recorded as skipped;
   - a busy target (a run in flight or awaiting approval) defers the slot by 60 s, until the next slot would arrive, and then the slot is skipped as `busy`;
+  - a one-off has no next slot, so it waits on a busy target for an hour from its time, then is skipped as `busy`;
   - when the daily cap is used up, the slot is skipped as `cap`;
-  - a one-off is completed once it fires;
+  - a one-off is completed once it fires or is skipped;
   - a chat schedule whose target chat is gone is paused.
-- **Posting:** the run posts as the owner through `createRun`. The message carries a `scheduled-task` data part, shown as "Sent by scheduled task · <name>". A new chat each run is titled `<name> · <date>`.
+- **Daily cap:** each fired slot and each "Run now" first records a claim (a `dot_run` row with no run yet) on the owner's cap. The claim is taken in the transaction that counts the cap, under a per-owner advisory lock, so two ticks or Run nows can't both spend the last run. A start that fails gives its claim back, records `failed` as the schedule's last outcome and deletes a chat made for the run. The tick gives back a claim that no run started within 15 minutes and marks its schedule failed. The history lists a claim once its run starts.
+- **Archived targets:** creating, retargeting, resuming or reviving a schedule onto an archived chat, the Dot's included, is a `CONFLICT`.
+- **Posting:** the run posts as the owner through `createUnattendedRun`. The message carries a `scheduled-task` data part, shown as "Sent by scheduled task · <name>". A new chat each run is titled `<name> · <date>`.
 - **Unattended guards** (`dots/turn.ts`):
   - `ask` tools are refused unless auto-approved;
   - an ordinary chat's schedule is read-only by default (plan mode's filter);
