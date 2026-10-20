@@ -271,6 +271,9 @@ describe("schedules API", () => {
       method: "POST",
     });
     expect(resumed.status).toBe(409);
+    expect(await resumed.json()).toMatchObject({
+      data: { reason: "target_archived" },
+    });
     const added = await request("/api/schedules", {
       json: {
         prompt: "x",
@@ -400,7 +403,9 @@ describe("scheduled runs", () => {
       summary: "The release is out.",
       trigger: "scheduled",
     });
-    const turn = await getRun(run?.runId ?? "");
+    const turn = await getRun(
+      run && run.outcome !== "skipped" ? run.runId : ""
+    );
     expect(turn.state.status).toBe("succeeded");
     const after = await json<Schedule>(
       await request(`/api/schedules/${schedule.id}`)
@@ -468,8 +473,11 @@ describe("scheduled runs", () => {
     clock = new Date("2026-10-20T09:06:00.000Z");
     await tick();
     const [run] = await runsOf(schedule.id);
-    expect(run).toMatchObject({ outcome: "failed", status: "failed" });
-    expect(run?.error).toContain("token budget");
+    expect(run).toMatchObject({
+      error: expect.stringContaining("token budget"),
+      outcome: "failed",
+      status: "failed",
+    });
   });
 
   it("defers while the chat is busy, then skips the slot as busy", async () => {
@@ -521,9 +529,9 @@ describe("scheduled runs", () => {
     expect(skipped).toMatchObject({
       notified: false,
       outcome: "skipped",
-      runId: null,
       skipReason: "busy",
     });
+    expect(skipped).not.toHaveProperty("runId");
   });
 
   it("skips slots once the daily cap is used, and refuses Run now", async () => {
@@ -546,7 +554,11 @@ describe("scheduled runs", () => {
     await tick();
     const runs = await runsOf(schedule.id);
     expect(
-      runs.map((run) => [run.trigger, run.outcome, run.skipReason])
+      runs.map((run) => [
+        run.trigger,
+        run.outcome,
+        run.outcome === "skipped" ? run.skipReason : null,
+      ])
     ).toEqual([
       ["scheduled", "skipped", "cap"],
       ["run_now", "update", null],
@@ -664,6 +676,9 @@ describe("scheduled runs", () => {
       method: "POST",
     });
     expect(resumed.status).toBe(409);
+    expect(await resumed.json()).toMatchObject({
+      data: { reason: "schedule_completed" },
+    });
   });
 });
 

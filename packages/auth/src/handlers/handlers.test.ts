@@ -209,6 +209,36 @@ describe("me", () => {
       )
     ).toBe("FORBIDDEN");
   });
+
+  it("keeps the sidebar layout, unset until the user picks one", async () => {
+    const t = await setup();
+    const ctx = await contextOf(t, await signUp(t.auth, "rail@example.test"));
+    const settings = () =>
+      call(authRouter.me.settings, undefined, { context: ctx });
+    expect(await settings()).not.toHaveProperty("sidebarLayout");
+    expect(
+      await call(
+        authRouter.me.updateSettings,
+        { sidebarLayout: "classic" },
+        { context: ctx }
+      )
+    ).toMatchObject({ sidebarLayout: "classic" });
+    await call(
+      authRouter.me.updateSettings,
+      { locale: "en-GB" },
+      { context: ctx }
+    );
+    expect(await settings()).toMatchObject({
+      locale: "en-GB",
+      sidebarLayout: "classic",
+    });
+    await call(
+      authRouter.me.updateSettings,
+      { sidebarLayout: "rail" },
+      { context: ctx }
+    );
+    expect(await settings()).toMatchObject({ sidebarLayout: "rail" });
+  });
 });
 
 describe("orgs", () => {

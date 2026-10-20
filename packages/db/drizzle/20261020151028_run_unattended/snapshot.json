@@ -1,12 +1,8 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "e881e81b-3c50-498e-b4ec-812e6b816a53",
-  "prevIds": [
-    "545d5c26-ff07-43e8-94da-9adcf0fa2e85",
-    "a13b1996-e191-4764-a384-0bc915c27385",
-    "bb2435fc-5064-48cb-8342-61718d0ecbb2"
-  ],
+  "id": "1e1b643c-6f38-4bc7-9d15-365cc62a9dda",
+  "prevIds": ["ff20b41f-de29-482f-bcc8-0a260291da34"],
   "ddl": [
     {
       "isRlsEnabled": false,
@@ -1333,6 +1329,19 @@
       "generated": null,
       "identity": null,
       "name": "shortcuts",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "user_settings"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "sidebar_layout",
       "entityType": "columns",
       "schema": "public",
       "table": "user_settings"
