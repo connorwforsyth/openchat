@@ -50,12 +50,17 @@ import {
 } from "../model/artifacts";
 import { useElementWidth } from "../workspace/use-element-width";
 import { ArtifactPreview, SrcdocPreview } from "./artifact-preview";
+import { DiagramArtifact } from "./diagram/diagram-artifact";
+import { DiagramView } from "./diagram/diagram-view";
 import { DocumentArtifact } from "./document/document-artifact";
 import { DocumentView } from "./document/document-view";
 import { fitArtifactHeader } from "./header-fit";
 import { ImageArtifactPreview } from "./image-preview";
 import { type PlanEditing, PlanEditor } from "./plan-editor";
+import { PresentationPreview } from "./presentation-preview";
 import { isRuntimeKind } from "./runtime-protocol";
+import { SpreadsheetArtifact } from "./spreadsheet/spreadsheet-artifact";
+import { SpreadsheetView } from "./spreadsheet/spreadsheet-view";
 
 // One artifact in the Workspace panel (D16, D27, 060): its preview, source
 // (CodeView) and what changed since the previous version (DiffView), with
@@ -171,6 +176,60 @@ export function ArtifactView({
       <DocumentView
         access={null}
         actions={actions}
+        artifact={artifact}
+        header={header}
+        key={artifact.id}
+        onSave={readOnly}
+        onSelect={onSelect}
+        versionId={versionId}
+        versions={versions}
+      />
+    );
+  }
+  // A Spreadsheet (166) is its own grid.
+  if (artifact.kind === "spreadsheet" && versions && versions.length > 0) {
+    return api ? (
+      <SpreadsheetArtifact
+        actions={actions}
+        api={api}
+        artifact={artifact}
+        header={header}
+        info={info}
+        key={artifact.id}
+        onSelect={onSelect}
+        versionId={versionId}
+        versions={versions}
+      />
+    ) : (
+      <SpreadsheetView
+        access={null}
+        actions={actions}
+        artifact={artifact}
+        header={header}
+        key={artifact.id}
+        onSave={readOnly}
+        onSelect={onSelect}
+        versionId={versionId}
+        versions={versions}
+      />
+    );
+  }
+  // A Diagram (165) is its own canvas.
+  if (artifact.kind === "diagram" && versions && versions.length > 0) {
+    return api ? (
+      <DiagramArtifact
+        api={api}
+        artifact={artifact}
+        header={header}
+        info={info}
+        key={artifact.id}
+        onSelect={onSelect}
+        versionId={versionId}
+        versions={versions}
+      />
+    ) : (
+      <DiagramView
+        access={null}
         artifact={artifact}
         header={header}
         key={artifact.id}
@@ -399,7 +458,19 @@ function ArtifactDetail({
       <div className="flex min-h-0 flex-1 flex-col overflow-auto">
         {preview === "none" ? null : (
           <TabsContent className="flex min-h-0 flex-col" value="preview">
-            {preview === "runtime" && isRuntimeKind(artifact.kind) ? (
+            {preview === "runtime" &&
+            artifact.kind === "presentation" &&
+            runtimeOrigin ? (
+              // A deck presents and exports (164), so it has a view of its own.
+              <PresentationPreview
+                content={version.content}
+                runtimeOrigin={runtimeOrigin}
+                title={artifact.title}
+              />
+            ) : null}
+            {preview === "runtime" &&
+            artifact.kind !== "presentation" &&
+            isRuntimeKind(artifact.kind) ? (
               <ArtifactPreview
                 content={version.content}
                 fileName={path}

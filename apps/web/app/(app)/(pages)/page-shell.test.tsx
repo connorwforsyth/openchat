@@ -17,7 +17,7 @@ const SEARCH = /Search/;
 
 const push = vi.fn();
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/library",
+  usePathname: () => "/settings/profile",
   useRouter: () => ({ push, refresh: vi.fn(), replace: vi.fn() }),
 }));
 

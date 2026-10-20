@@ -9,6 +9,5 @@ export const mermaidKind = textKind({
   render: { panel: "source", runtime: "mermaid" },
   shape:
     /^\s*(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|mindmap|timeline)\b/,
-  starter: {},
   thumbnail: "runtime",
 });

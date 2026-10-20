@@ -58,6 +58,7 @@ import {
   artifactKindLabels,
   artifactKinds,
   starterKinds,
+  starterLabels,
 } from "../model/artifact-kinds";
 import { type ArtifactLinks, ArtifactMenu } from "./artifact-actions";
 import { ArtifactThumbnail } from "./artifact-thumbnail";
@@ -88,6 +89,8 @@ export interface ArtifactPageLinks extends ArtifactLinks {
 
 export interface ArtifactsPageProps {
   readonly api: QueryUtils;
+  /** The kind filter to start on, say from the panel's kinds (181). */
+  readonly initialKind?: ArtifactKind;
   /**
    * The kinds this instance offers, for "Make something new" (161); every
    * built-in kind when left out.
@@ -117,6 +120,7 @@ const seenAt = (item: ArtifactListItem): number =>
 
 export function ArtifactsPage({
   api,
+  initialKind,
   kinds,
   link = PlainLink,
   links,
@@ -127,7 +131,7 @@ export function ArtifactsPage({
 }: ArtifactsPageProps) {
   const { t } = useLingui();
   const [scope, setScope] = useState<ArtifactScope>("all");
-  const [kind, setKind] = useState<ArtifactKind | "all">("all");
+  const [kind, setKind] = useState<ArtifactKind | "all">(initialKind ?? "all");
   const [view, setView] = useState<View>("list");
   const [search, setSearch] = useState("");
   const query = useDeferredValue(search.trim());
@@ -267,7 +271,7 @@ function StarterCard({
   readonly onStart: (prompt: string) => void;
 }) {
   const { i18n, t } = useLingui();
-  const label = i18n._(artifactKindLabels[kind]);
+  const label = i18n._(starterLabels[kind] ?? artifactKindLabels[kind]);
   const Glyph = kindIcon(kind);
   const badge = artifactKindDefinition(kind).starter?.badge;
   const start = useCallback(

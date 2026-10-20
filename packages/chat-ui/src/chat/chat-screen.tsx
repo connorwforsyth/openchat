@@ -456,9 +456,13 @@ function ChatScreenBody({
       select({
         artifactId: ref.artifactId,
         kind: "artifact",
-        // A Document (126) opens as itself, at its latest, to edit; its
-        // older versions are a step away in its own title bar.
-        versionId: ref.kind === "document" ? undefined : ref.versionId,
+        // A Document (126) or Spreadsheet (166) opens as itself, at its
+        // latest, to edit; its older versions are a step away in its own
+        // title bar.
+        versionId:
+          ref.kind === "document" || ref.kind === "spreadsheet"
+            ? undefined
+            : ref.versionId,
       });
       actions.onOpenArtifact?.(ref);
     },

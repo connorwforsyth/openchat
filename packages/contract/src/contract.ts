@@ -1,6 +1,7 @@
 import { oc } from "@orpc/contract";
 
 import { feedback, keys, me, memory, meta } from "./routes/account";
+import { connectors } from "./routes/connectors";
 import { conversations } from "./routes/conversations";
 import { dots } from "./routes/dots";
 import { artifacts, files } from "./routes/files";
@@ -11,6 +12,7 @@ import { decisions, sandbox, search, usage } from "./routes/ops";
 import { runs } from "./routes/runs";
 import { schedules } from "./routes/schedules";
 import { grants, shareLinks } from "./routes/sharing";
+import { spaces } from "./routes/spaces";
 import { orgs, teams } from "./routes/tenancy";
 
 // The M1 API surface (D26): one oRPC contract that the Hono handlers
@@ -20,6 +22,7 @@ import { orgs, teams } from "./routes/tenancy";
 
 export const contract = {
   artifacts: oc.tag("Artifacts").router(artifacts),
+  connectors: oc.tag("Connectors").router(connectors),
   conversations: oc.tag("Conversations").router(conversations),
   decisions: oc.tag("Admin").router(decisions),
   dots: oc.tag("Dots").router(dots),
@@ -40,6 +43,7 @@ export const contract = {
   schedules: oc.tag("Schedules").router(schedules),
   search: oc.tag("Search").router(search),
   shareLinks: oc.tag("Sharing").router(shareLinks),
+  spaces: oc.tag("Spaces").router(spaces),
   teams: oc.tag("Teams").router(teams),
   usage: oc.tag("Usage").router(usage),
 };

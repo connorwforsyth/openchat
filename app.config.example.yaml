@@ -115,8 +115,49 @@ features:
   importers: true
   publicLinks: false
 
+# Connectors (184): MCP servers you offer every user. Each user sees them in
+# Settings > Connectors and can turn them on or off, unless you say otherwise:
+#   default: on | off | required   on (the default) or off until a user flips it;
+#                                  required is always on and can't be turned off
+#   allowUserOverride: false       fixes the toggle at `default` (shown locked)
+#   reason: "..."                  shown next to a locked toggle
+#   tools: { allow: [...], deny: [...], required: [...] }   by the server's own tool names;
+#     denied tools never reach users; required ones stay on (users switch the rest, 188)
+# Secrets go in ${ENV} references, never in this file. A header or env value
+# whose variable is unset marks only that server "needs setup"; boot carries on.
+# stdio servers run in the desktop app only; the web app lists them as such.
 mcp:
-  servers: []               # instance-wide: [{ name, url, transport: http }]
+  servers: []
+  # servers:
+  #   # A remote (Streamable HTTP) server with a token from the environment.
+  #   - name: docs                      # tool prefix: docs__search, ...
+  #     title: Company docs
+  #     description: Search the handbook and runbooks
+  #     url: https://mcp.example.com/mcp
+  #     headers: { Authorization: "${DOCS_MCP_AUTHORIZATION}" }   # e.g. "Bearer ..."
+  #     tools: { deny: [delete_page] }
+  #   # Each user signs in with their own account (per-user OAuth tokens).
+  #   - name: tracker
+  #     url: https://mcp.tracker.example.com/mcp
+  #     auth: { type: oauth, scopes: [read] }
+  #     default: off
+  #   # Always on for everyone; users see why it's locked.
+  #   - name: audit
+  #     title: Audit log
+  #     url: "${AUDIT_MCP_URL:-http://audit-mcp:8080/mcp}"
+  #     default: required
+  #     reason: Required by IT for compliance
+  #   # A local stdio server, for the desktop app.
+  #   - name: files
+  #     transport: stdio
+  #     command: npx
+  #     args: ["-y", "@modelcontextprotocol/server-filesystem", "~/Documents"]
+  #     default: off
+  # Whether users may add their own servers in the MCP Library.
+  userServers:
+    allowed: true
+    transports: [http, sse]
+    hosts: []                 # e.g. ["*.example.com"]; empty means any public host
 
 artifacts:
   origin: null              # a separate origin for artifacts and previews, e.g. https://artifacts.example.com

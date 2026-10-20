@@ -6,13 +6,14 @@ import {
   ArtifactsPage,
 } from "@workspace/chat-ui/artifacts/artifacts-page";
 import type { ArtifactId } from "@workspace/contract/schemas/common";
+import { artifactKindSchema } from "@workspace/contract/schemas/message-parts";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useMemo } from "react";
 
 import { useApi } from "@/app/(app)/_shared/api";
 import { useAppFrame } from "@/app/(app)/_shared/app-frame";
-import { routes } from "@/lib/routes";
+import { routeParams, routes } from "@/lib/routes";
 
 // The Artifacts page and an artifact's own page (124), over the app's API
 // client and router. The screens live in chat-ui; this names the routes.
@@ -41,6 +42,12 @@ export function ArtifactsScreen() {
   const { me } = useAppFrame();
   const router = useRouter();
   const links = useLinks();
+  // The rail panel's kinds link here with `?kind=` (181).
+  const params = useSearchParams();
+  const kind = artifactKindSchema
+    .optional()
+    .catch(undefined)
+    .parse(params.get(routeParams.kind) ?? undefined);
   const start = useCallback(
     (prompt: string) => router.push(routes.askAi(prompt)),
     [router]
@@ -48,6 +55,8 @@ export function ArtifactsScreen() {
   return (
     <ArtifactsPage
       api={query}
+      initialKind={kind}
+      key={kind ?? "all"}
       link={NextLink}
       links={links}
       me={me}

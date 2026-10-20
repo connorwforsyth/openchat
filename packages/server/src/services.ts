@@ -106,7 +106,7 @@ export interface ServicesOptions {
     | "knowledge"
     | "mcp"
     | "mcpFor"
-    | "mcpServersFor"
+    | "mcpSelectionFor"
     | "orgPolicy"
     | "routeAuto"
     | "sandbox"

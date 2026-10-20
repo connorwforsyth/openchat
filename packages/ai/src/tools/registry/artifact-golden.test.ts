@@ -179,12 +179,24 @@ type WrittenKind = (typeof WRITTEN_KINDS)[number];
 /** One valid content per kind, to update from. */
 const BASES: Readonly<Record<WrittenKind, string>> = {
   code: "print(1)",
+  diagram: '{"nodes":[{"id":"a","label":"A"}]}',
   document: "# Notes",
   html: "<p>hi</p>",
   markdown: "# Notes",
   mermaid: "graph TD",
+  presentation: JSON.stringify({
+    slides: [
+      {
+        id: "intro",
+        source:
+          'import { Title } from "@workspace/slide-ui";\nexport default () => <Title title="Hi" />;',
+      },
+    ],
+    title: "Deck",
+  }),
   react: "export default 1",
   site: '{"files": {"index.html": "<p>hi</p>"}}',
+  spreadsheet: "| 1 | =A1*2 |",
   svg: "<svg></svg>",
 };
 

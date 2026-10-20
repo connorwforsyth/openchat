@@ -677,19 +677,103 @@ const featuresSchema = z
     return { ...featureDefaults, ...set, linkPreviews };
   });
 
+// MCP connectors (D18, 184). The operator's catalog: each entry says
+// whether it starts on, off or is required for everyone, and whether users
+// may flip it. Secrets come in as `${ENV}`; a header or env value whose
+// variable is unset is absent, which marks that one server unconfigured
+// instead of failing boot.
+const connectorFields = {
+  /** Whether users may turn it on or off; `default: required` ignores this. */
+  allowUserOverride: z.boolean().default(true),
+  default: z.enum(["on", "off", "required"]).default("on"),
+  description: z.string().max(500).optional(),
+  /** What the model sees before `__` in each tool name. */
+  name: z.string().regex(/^[a-z][a-z0-9-]*$/, "a lowercase name"),
+  /** Shown next to a locked toggle, e.g. "Required by IT for audit". */
+  reason: z.string().max(500).optional(),
+  /** Display name; defaults to `name`. */
+  title: z.string().max(100).optional(),
+  /**
+   * By the server's own tool names. Omitted `allow` means all; `deny` wins.
+   * `required` tools stay on while the connector is: users can't switch
+   * them off (188).
+   */
+  tools: z
+    .strictObject({
+      allow: z.array(z.string()).optional(),
+      deny: z.array(z.string()).default([]),
+      required: z.array(z.string()).default([]),
+    })
+    .prefault({}),
+};
+
+/** A value that may be absent because its `${ENV}` was unset. */
+const maybeSecretMap = z.record(z.string(), z.string().optional()).default({});
+
+const remoteServerFields = {
+  ...connectorFields,
+  /** `oauth`: each user signs in for themselves (per-user tokens, D24). */
+  auth: z
+    .discriminatedUnion("type", [
+      z.strictObject({ type: z.literal("none") }),
+      z.strictObject({
+        scopes: z.array(z.string()).default([]),
+        type: z.literal("oauth"),
+      }),
+    ])
+    .default({ type: "none" }),
+  headers: maybeSecretMap,
+  url: z.url(),
+};
+
+const instanceServerSchema = z.preprocess(
+  // `transport` was optional before stdio existed; keep `http` the default.
+  (value) =>
+    value !== null && typeof value === "object" && !("transport" in value)
+      ? { ...value, transport: "http" }
+      : value,
+  z.discriminatedUnion("transport", [
+    z.strictObject({ ...remoteServerFields, transport: z.literal("http") }),
+    z.strictObject({ ...remoteServerFields, transport: z.literal("sse") }),
+    /** Runs on the desktop app only; the server lists it but never spawns it. */
+    z.strictObject({
+      ...connectorFields,
+      args: z.array(z.string()).default([]),
+      command: z.string().min(1),
+      env: maybeSecretMap,
+      transport: z.literal("stdio"),
+    }),
+  ])
+);
+
 const mcpSchema = z
   .strictObject({
-    /** Instance-wide MCP servers every agent can use (D18). */
+    /** The operator's catalog, offered to every user (D18). */
     servers: z
-      .array(
-        z.strictObject({
-          headers: z.record(z.string(), z.string()).default({}),
-          name: z.string().regex(/^[a-z][a-z0-9-]*$/, "a lowercase name"),
-          transport: z.enum(["http", "sse"]).default("http"),
-          url: z.url(),
-        })
-      )
-      .default([]),
+      .array(instanceServerSchema)
+      .default([])
+      .superRefine((servers, context) => {
+        const seen = new Set<string>();
+        for (const [index, server] of servers.entries()) {
+          if (seen.has(server.name)) {
+            context.addIssue({
+              code: "custom",
+              message: `another server is already named "${server.name}"`,
+              path: [index, "name"],
+            });
+          }
+          seen.add(server.name);
+        }
+      }),
+    /** Whether users may save servers of their own in the MCP Library. */
+    userServers: z
+      .strictObject({
+        allowed: z.boolean().default(true),
+        /** `example.com` or `*.example.com`; empty means any public host. */
+        hosts: z.array(z.string().min(1)).default([]),
+        transports: z.array(z.enum(["http", "sse"])).default(["http", "sse"]),
+      })
+      .prefault({}),
   })
   .prefault({});
 

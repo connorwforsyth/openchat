@@ -10,7 +10,7 @@ import {
 
 import type { Teardown } from "./documents";
 import { runtimeError } from "./errors";
-import { rendererFor } from "./renderers";
+import { type RenderControl, rendererFor } from "./renderers";
 
 // The artifact runtime (D24): the page the artifacts panel loads in a
 // sandboxed iframe on this separate origin. It says `ready`, then renders
@@ -28,6 +28,8 @@ const start = (container: HTMLElement, parentOrigin: string) => {
   // The render on screen; replies for anything older are dropped.
   let current: RenderRequest | null = null;
   let teardown: Teardown | null = null;
+  // What the render on screen does with the host's requests (a deck's, 164).
+  let onControl: ((control: RenderControl) => void) | null = null;
 
   const isCurrent = (request: RenderRequest) => current === request;
   const fail = (request: RenderRequest, error: RuntimeError) => {
@@ -45,6 +47,7 @@ const start = (container: HTMLElement, parentOrigin: string) => {
     current = request;
     teardown?.();
     teardown = null;
+    onControl = null;
     container.replaceChildren();
     document.documentElement.style.colorScheme = request.theme;
     document.title = request.title;
@@ -57,6 +60,16 @@ const start = (container: HTMLElement, parentOrigin: string) => {
       done: () => done(request),
       fail: (error) => fail(request, error),
       isCurrent: () => isCurrent(request),
+      listen: (handler) => {
+        if (isCurrent(request)) {
+          onControl = handler;
+        }
+      },
+      post: (message) => {
+        if (isCurrent(request)) {
+          post(message);
+        }
+      },
     });
     if (isCurrent(request)) {
       teardown = undo;
@@ -71,12 +84,17 @@ const start = (container: HTMLElement, parentOrigin: string) => {
       origin: parentOrigin,
       source: window.parent,
     });
-    if (message.ok) {
+    if (!message.ok) {
+      return;
+    }
+    if (message.value.type === "render") {
       render(message.value).catch((error: unknown) => {
         if (current) {
           fail(current, runtimeError("render", error));
         }
       });
+    } else if (current && message.value.id === current.id) {
+      onControl?.(message.value);
     }
   });
 

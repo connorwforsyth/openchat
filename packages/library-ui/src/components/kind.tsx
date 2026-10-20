@@ -22,6 +22,9 @@ const ICONS: Record<LibraryKind, Icon> = {
   skill: SparklesIcon,
 };
 
+/** The kind's glyph alone, for rows that draw their own (the rail panel). */
+export const libraryKindIcon = (kind: LibraryKind): Icon => ICONS[kind];
+
 export const useKindLabels = (): Record<LibraryKind, string> => {
   const { t } = useLingui();
   return {

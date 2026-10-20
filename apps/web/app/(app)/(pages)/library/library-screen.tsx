@@ -1,14 +1,16 @@
 "use client";
 
-import type {
-  LibraryItem,
-  LibraryKind,
+import {
+  type LibraryItem,
+  type LibraryKind,
+  libraryKindSchema,
+  libraryTabSchema,
 } from "@workspace/contract/schemas/library";
 import { LibraryIndex } from "@workspace/library-ui/components/library-index";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
 
-import { routes } from "@/lib/routes";
+import { routeParams, routes } from "@/lib/routes";
 
 import { NextLink } from "./next-link";
 
@@ -18,6 +20,17 @@ const chatHref = (item: LibraryItem) => routes.chatWithAgent(item.id);
 
 export function LibraryScreen() {
   const router = useRouter();
+  // The rail panel's sections link here with `?kind=` or `?tab=` (181); a
+  // new link starts the index afresh on that filter.
+  const params = useSearchParams();
+  const kind = libraryKindSchema
+    .optional()
+    .catch(undefined)
+    .parse(params.get(routeParams.kind) ?? undefined);
+  const tab = libraryTabSchema
+    .optional()
+    .catch(undefined)
+    .parse(params.get(routeParams.tab) ?? undefined);
   const opened = useCallback(
     (item: LibraryItem) => router.push(itemHref(item)),
     [router]
@@ -25,7 +38,10 @@ export function LibraryScreen() {
   return (
     <LibraryIndex
       chatHref={chatHref}
+      initialKind={kind}
+      initialTab={tab}
       itemHref={itemHref}
+      key={params.toString()}
       link={NextLink}
       newHref={newHref}
       onImported={opened}

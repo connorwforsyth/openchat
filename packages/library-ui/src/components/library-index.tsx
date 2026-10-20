@@ -100,6 +100,8 @@ export interface LibraryIndexProps {
    * out, the card has no such link.
    */
   readonly chatHref?: (item: LibraryItem) => string | null;
+  /** The kind filter to start on, say from the panel's sections (181). */
+  readonly initialKind?: LibraryKind;
   readonly initialTab?: LibraryTab;
   readonly itemHref: (item: LibraryItem) => string;
   readonly link?: LinkComponent;
@@ -114,6 +116,7 @@ type KindFilter = LibraryKind | "all";
 
 export function LibraryIndex({
   chatHref,
+  initialKind,
   initialTab = "mine",
   itemHref,
   link: Link = PlainLink,
@@ -123,7 +126,7 @@ export function LibraryIndex({
 }: LibraryIndexProps) {
   const { t } = useLingui();
   const [tab, setTab] = useState<LibraryTab>(initialTab);
-  const [kind, setKind] = useState<KindFilter>("all");
+  const [kind, setKind] = useState<KindFilter>(initialKind ?? "all");
   const [search, setSearch] = useState("");
   // Typing stays responsive; the list follows a beat behind.
   const query = useDeferredValue(search.trim());

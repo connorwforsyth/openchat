@@ -114,6 +114,27 @@ describe("connection manager", () => {
     ]);
   });
 
+  it("never hands the model a tool the user switched off (188)", async () => {
+    const docs = instance(fixture.url);
+    const manager = managerFor([docs]);
+    const plan = resolveTools(
+      agent([{ id: docs.id }]),
+      { builtins: new Set(), modelSupportsTools: true },
+      {
+        mcpExcludedTools: new Map([[docs.id, ["echo"]]]),
+        mcpServers: new Set([docs.id]),
+      }
+    );
+    const built = await buildToolSet(plan, {
+      builtins: {},
+      mcp: manager.toolSource(alice),
+    });
+    expect(Object.keys(built.tools).sort()).toEqual([
+      "docs__add",
+      "docs__whoami",
+    ]);
+  });
+
   it("merges MCP tools into an agent's tool set and runs one", async () => {
     const docs = instance(fixture.url);
     const manager = managerFor([docs]);

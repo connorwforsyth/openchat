@@ -9,6 +9,7 @@ import type { Id } from "@workspace/shared/ids";
 import { sql } from "drizzle-orm";
 import {
   type AnyPgColumn,
+  boolean,
   check,
   index,
   integer,
@@ -21,6 +22,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
+import { conversation } from "./chat";
 import {
   createdAt,
   idColumn,
@@ -214,7 +216,12 @@ export const mcpServer = pgTable(
   ]
 );
 
-/** A user's OAuth tokens for an MCP server; each user authorises for themselves. */
+/**
+ * A user's OAuth tokens for an MCP server; each user authorises for
+ * themselves. `mcpServerId` is a library server or an instance server from
+ * app.config.yaml (184), which has no row, so it isn't a foreign key:
+ * deleting a library server deletes its tokens explicitly.
+ */
 export const mcpOauthToken = pgTable(
   "mcp_oauth_token",
   {
@@ -222,15 +229,61 @@ export const mcpOauthToken = pgTable(
     createdAt: createdAt(),
     expiresAt: instant("expires_at"),
     keyId: text("key_id").notNull(),
-    mcpServerId: idRef("mcp_server_id", "libraryItem")
-      .notNull()
-      .references(() => mcpServer.id, { onDelete: "cascade" }),
+    mcpServerId: idRef("mcp_server_id", "libraryItem").notNull(),
     updatedAt: updatedAt(),
     userId: idRef("user_id", "user")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
   },
   (t) => [primaryKey({ columns: [t.mcpServerId, t.userId] })]
+);
+
+/**
+ * Per-tool switches (188), by the server's tool name: `false` is off. A tool
+ * not listed takes the layer below (the user's default, then on).
+ */
+export type ToolChoices = Readonly<Record<string, boolean>>;
+
+/**
+ * A user's on/off choice for one connector (184): an instance server or a
+ * library server, and its tools (188). `enabled` null means the operator's
+ * default (instance) or on (library); a missing row means both. Not a
+ * foreign key, for the same reason as `mcp_oauth_token`.
+ */
+export const mcpConnectorPref = pgTable(
+  "mcp_connector_pref",
+  {
+    enabled: boolean("enabled"),
+    mcpServerId: idRef("mcp_server_id", "libraryItem").notNull(),
+    tools: jsonb("tools").$type<ToolChoices>().notNull().default({}),
+    updatedAt: updatedAt(),
+    userId: idRef("user_id", "user")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.mcpServerId] })]
+);
+
+/**
+ * One chat's connector choices for one user (188), layered over their
+ * `mcp_connector_pref`: `enabled` null and an absent tool follow the
+ * defaults. Deleting a user's rows for a chat is "reset to my defaults".
+ */
+export const mcpConversationConnector = pgTable(
+  "mcp_conversation_connector",
+  {
+    conversationId: idRef("conversation_id", "conversation")
+      .notNull()
+      .references(() => conversation.id, { onDelete: "cascade" }),
+    enabled: boolean("enabled"),
+    mcpServerId: idRef("mcp_server_id", "libraryItem").notNull(),
+    tools: jsonb("tools").$type<ToolChoices>().notNull().default({}),
+    updatedAt: updatedAt(),
+    userId: idRef("user_id", "user")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.conversationId, t.userId, t.mcpServerId] })]
 );
 
 /** Model, parameters and instructions. */

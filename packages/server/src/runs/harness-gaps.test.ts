@@ -7,6 +7,7 @@ import {
   CREATE_ARTIFACT_TOOL,
   UPDATE_ARTIFACT_TOOL,
 } from "@workspace/ai/tools/artifacts";
+import { appConfigSchema } from "@workspace/config/schema";
 import type {
   ArtifactId,
   ConversationId,
@@ -34,6 +35,10 @@ import {
   seedUser,
   type TestDb,
 } from "@workspace/db/testing";
+import {
+  connectorHandlers,
+  mcpSelectionFor,
+} from "@workspace/mcp/connector-service";
 import { createMcp } from "@workspace/mcp/create";
 import { listUsableServers } from "@workspace/mcp/manager";
 import {
@@ -178,7 +183,7 @@ const setup = (
     );
     await services.executor.idle();
   };
-  return { answerOf, approve, say, services };
+  return { answerOf, approve, post, say, services };
 };
 
 describe("web search in runs", () => {
@@ -347,16 +352,9 @@ describe("MCP in plain chats", () => {
       allowPrivateNetworks: true,
       config: {
         brand: { name: "Test" } as never,
-        mcp: {
-          servers: [
-            {
-              headers: {},
-              name: "open",
-              transport: "http",
-              url: openServer.url,
-            },
-          ],
-        },
+        mcp: appConfigSchema.shape.mcp.parse({
+          servers: [{ name: "open", url: openServer.url }],
+        }),
       },
       db,
       env: {},
@@ -385,6 +383,11 @@ describe("MCP in plain chats", () => {
         { db, instanceServers: mcp.registry.instanceServers },
         userId
       );
+    const selection = async (userId: UserId) => ({
+      disabled: new Set<never>(),
+      enabled: await usable(userId),
+      excludedTools: new Map(),
+    });
     const chat = async (userId: UserId) => {
       const model = scripted([
         () => toolCallStream("open__echo", { text: "hello from mcp" }),
@@ -392,7 +395,7 @@ describe("MCP in plain chats", () => {
       const { answerOf, approve, say, services } = setup(model, {
         tools: {
           mcpFor: (id) => mcp.manager.toolSource(id),
-          mcpServersFor: usable,
+          mcpSelectionFor: selection,
         },
       });
       try {
@@ -478,6 +481,59 @@ describe("MCP in plain chats", () => {
       expect(await usable(alice)).not.toContain(shared.id);
       expect(await usable(stranger)).not.toContain(shared.id);
     } finally {
+      await mcp.manager.close();
+    }
+  });
+});
+
+describe("connector switches at runtime (188)", () => {
+  it("hands the model only the tools on in that chat", async () => {
+    const { db } = testDb;
+    const ada = await someone();
+    const config = appConfigSchema.shape.mcp.parse({
+      servers: [{ name: "open", url: openServer.url }],
+    });
+    const mcp = createMcp({
+      allowPrivateNetworks: true,
+      config: { brand: { name: "Test" } as never, mcp: config },
+      db,
+      env: {},
+    });
+    const deps = {
+      catalog: mcp.registry.catalog,
+      db,
+      userServers: config.userServers,
+    };
+    const model = scripted([]);
+    const { post, say, services } = setup(model, {
+      tools: {
+        mcpFor: (id) => mcp.manager.toolSource(id),
+        mcpSelectionFor: (userId, conversationId) =>
+          mcpSelectionFor(deps, { conversationId, userId }),
+      },
+    });
+    try {
+      const chat = await post<Conversation>(ada, "/api/conversations", {});
+      const id = mcp.registry.instanceServers[0]?.id;
+      if (!id) {
+        throw new Error("no instance server");
+      }
+      expectOk(
+        await connectorHandlers.setToolEnabled(
+          deps,
+          { userId: ada },
+          { conversationId: chat.id, enabled: false, id, tool: "add" }
+        )
+      );
+      await say(ada, "Hello.", { conversationId: chat.id });
+      expect(offered(model)).toContain("open__echo");
+      expect(offered(model)).not.toContain("open__add");
+
+      // Another chat follows the defaults: everything on.
+      await say(ada, "Hello again.");
+      expect(offered(model, 1)).toContain("open__add");
+    } finally {
+      await services.stop();
       await mcp.manager.close();
     }
   });

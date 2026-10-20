@@ -6,6 +6,7 @@ import {
   org,
   teamPlatform,
 } from "@workspace/contract/fixtures";
+import type { LibraryItemId } from "@workspace/contract/schemas/common";
 import type { ModelOption } from "@workspace/contract/schemas/models";
 import { describe, expect, it } from "vitest";
 import { fileCandidate } from "./mentions";
@@ -453,6 +454,8 @@ describe("slashItems", () => {
           return item.file.path;
         case "skill":
           return `skill:${item.skill.name}`;
+        case "connector":
+          return `connector:${item.connector.name}`;
         default:
           return item.prompt.name;
       }
@@ -467,6 +470,34 @@ describe("slashItems", () => {
     expect(
       kinds(slashItems("new", { commands: ["new-file"], files, prompts }))
     ).toEqual(["/new-file", "New feature"]);
+  });
+
+  it("finds connectors to switch for this chat, after the rest (188)", () => {
+    const docs = {
+      auth: "none" as const,
+      availability: { state: "available" as const },
+      customized: false,
+      description: null,
+      disabledTools: [],
+      enabled: true,
+      id: "0199a000-0000-7000-8000-0000000000aa" as LibraryItemId,
+      lock: null,
+      name: "docs",
+      requiredTools: [],
+      source: "instance" as const,
+      title: "Company docs",
+      transport: "http" as const,
+    };
+    expect(
+      kinds(
+        slashItems("", { commands: [], connectors: [docs], files, prompts })
+      )
+    ).toEqual(["New feature"]);
+    expect(
+      kinds(
+        slashItems("doc", { commands: [], connectors: [docs], files, prompts })
+      )
+    ).toEqual(["connector:docs"]);
   });
 
   it("offers no commands the host didn't ask for", () => {

@@ -4,9 +4,11 @@ import { type OrgId, orgIdSchema } from "@workspace/contract/schemas/common";
 import { clickHydrated } from "./hydration";
 
 // The admin screens as a person uses them: the account menu's "New
-// organisation", the team tree, and invitations from Members (044).
+// organisation", the team tree, and invitations from Members (044). They
+// live in Space settings now (187), over the app, for the active space.
 
-const ADMIN_ORG_URL = /\/admin\/([0-9a-f-]{36})\/teams$/;
+const SPACE_SETTINGS_URL =
+  /\/settings\/space-subspaces\?space=org(?::|%3A)([0-9a-f-]{36})$/;
 const INVITE_LINK = /\/invite\/[A-Za-z0-9_-]{32,}$/;
 
 /** Opens the account menu in the sidebar footer. */
@@ -14,7 +16,7 @@ export const openAccountMenu = async (page: Page, name: string) => {
   await clickHydrated(page.getByRole("button", { name: `Account: ${name}` }));
 };
 
-/** Creates an org from the account menu; the app lands on its teams. */
+/** Creates an org from the account menu; the app lands on its sub-spaces. */
 export const createOrg = async (
   page: Page,
   { name, owner }: { readonly name: string; readonly owner: string }
@@ -24,11 +26,11 @@ export const createOrg = async (
   const dialog = page.getByRole("dialog", { name: "New organisation" });
   await dialog.getByLabel("Organisation name").fill(name);
   await dialog.getByRole("button", { name: "Create organisation" }).click();
-  await expect(page).toHaveURL(ADMIN_ORG_URL);
+  await expect(page).toHaveURL(SPACE_SETTINGS_URL);
   await expect(
-    page.getByRole("button", { name: `Organisation: ${name}` })
+    page.getByRole("heading", { name: `Space: ${name}` })
   ).toBeVisible();
-  return orgIdSchema.parse(ADMIN_ORG_URL.exec(page.url())?.[1]);
+  return orgIdSchema.parse(SPACE_SETTINGS_URL.exec(page.url())?.[1]);
 };
 
 /** Adds a team on the teams page, top level or inside `parent`. */

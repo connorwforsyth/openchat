@@ -28,11 +28,15 @@ import type { AppConfig } from "@workspace/config/schema";
 import type { UserId } from "@workspace/contract/schemas/common";
 import type { Db } from "@workspace/db/client";
 import { logDecision } from "@workspace/db/queries/decisions";
+import {
+  type ConnectorDeps,
+  mcpSelectionFor,
+} from "@workspace/mcp/connector-service";
 import { createMcp } from "@workspace/mcp/create";
 import { loadKeyRing } from "@workspace/mcp/crypto";
-import { listUsableServers } from "@workspace/mcp/manager";
 
 import { createArtifactsRouter } from "./api/artifacts";
+import { createConnectorsRouter } from "./api/connectors";
 import { createDecisionsRouter } from "./api/decisions";
 import { createDotsRouter } from "./api/dots";
 import { createFilesRouter } from "./api/files";
@@ -465,6 +469,14 @@ export const createServerFromEnv = async (
     oauthRedirectUrl: `${origin}${MCP_OAUTH_CALLBACK_PATH}`,
     warn: log,
   });
+  // Connectors (184): the operator's catalog, each user's library and choices.
+  const connectorDeps: ConnectorDeps = {
+    catalog: mcp.registry.catalog,
+    db,
+    // The settings' and composer's tool lists (188): the user's connection.
+    listTools: (id, userId) => mcp.manager.listTools(id, userId),
+    userServers: config.mcp.userServers,
+  };
 
   const sandbox = options.sandbox?.({
     config,
@@ -499,12 +511,10 @@ export const createServerFromEnv = async (
       images: imageModelsOf(registry),
       knowledge: embedder ? { embedder } : undefined,
       mcpFor: (userId) => mcp.manager.toolSource(userId),
-      // Plain chats: every server the caller may use (078).
-      mcpServersFor: (userId) =>
-        listUsableServers(
-          { db, instanceServers: mcp.registry.instanceServers },
-          userId
-        ),
+      // Plain chats get every server the caller has on in that chat (078,
+      // 184, 188); every run leaves out what they or the operator turned off.
+      mcpSelectionFor: (userId, conversationId) =>
+        mcpSelectionFor(connectorDeps, { conversationId, userId }),
       orgPolicy,
       sandbox: sandbox?.turnTools,
       webSearch: webSearchFor(config, env, report),
@@ -582,6 +592,7 @@ export const createServerFromEnv = async (
         db,
         defaultModel: config.models.default,
         keys: keyRing,
+        userServers: config.mcp.userServers,
       }),
       ...createFilesRouter({
         db,
@@ -595,6 +606,7 @@ export const createServerFromEnv = async (
         search: createSearchHandlers({ db }),
       }),
       ...createMcpRouter({ db, manager: mcp.manager }),
+      ...createConnectorsRouter(connectorDeps),
       ...linkPreviewsFromEnv({ config, env, log }),
       ...createSandboxRouter({ api: sandboxApi, db }),
       ...(auth ? authRouter : {}),

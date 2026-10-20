@@ -12,6 +12,7 @@ export const authContract = {
   me: contract.me,
   orgs: contract.orgs,
   shareLinks: contract.shareLinks,
+  spaces: contract.spaces,
   teams: contract.teams,
 };
 
