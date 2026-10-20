@@ -118,8 +118,10 @@ function RunItem({
 }) {
   const { i18n } = useLingui();
   const at = formatAt(i18n.locale, run.createdAt, timezone);
+  const started = run.outcome === "skipped" ? null : run;
+  const skipReason = run.outcome === "skipped" ? run.skipReason : null;
   const href =
-    run.conversationId && run.runId ? routes.chat(run.conversationId) : null;
+    run.conversationId && started ? routes.chat(run.conversationId) : null;
   return (
     <li className="flex flex-col gap-1 rounded-lg border border-border p-3">
       <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -129,11 +131,9 @@ function RunItem({
           {run.trigger === "scheduled" && run.missedSlots > 0 ? (
             <Trans>Caught up {run.missedSlots} missed</Trans>
           ) : null}
-          {run.skipReason === "cap" ? (
-            <Trans>Daily run limit reached</Trans>
-          ) : null}
-          {run.skipReason === "busy" ? <Trans>The chat was busy</Trans> : null}
-          {run.skipReason === "missed" ? (
+          {skipReason === "cap" ? <Trans>Daily run limit reached</Trans> : null}
+          {skipReason === "busy" ? <Trans>The chat was busy</Trans> : null}
+          {skipReason === "missed" ? (
             <Trans>Missed while the server was down</Trans>
           ) : null}
         </span>
@@ -144,11 +144,11 @@ function RunItem({
           {at}
         </time>
       </div>
-      {run.error ? (
-        <p className="text-destructive text-sm">{run.error}</p>
+      {started?.error ? (
+        <p className="text-destructive text-sm">{started.error}</p>
       ) : null}
-      {run.summary ? (
-        <p className="line-clamp-3 text-sm">{run.summary}</p>
+      {started?.summary ? (
+        <p className="line-clamp-3 text-sm">{started.summary}</p>
       ) : null}
       {href ? (
         <a
