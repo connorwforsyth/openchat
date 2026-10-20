@@ -106,3 +106,16 @@ Done: 009 and 010 prototypes, 042 contract PR (#31), Docker verification (045, P
 - Connor approved both contract changes and said to merge: Sites (125, PR #105) and Documents (126, PR #109).
 - 138 (image generation, branch `t/138-image-generation`): additive contract changes await approval: the `image` artifact kind, the `image-output` model capability, and optional `ModelOption.imageModel`. Also open: a per-call `model` argument, a per-turn image model picker, and forcing image generation like web search (a run option, which is a contract change).
 - Connor approved the image generation contract changes (138) and said to merge.
+
+## Spaces
+
+Ticket [187](tickets/187-spaces.md). Resolved AFK from D17 so the demo could be built; each is a default you can overturn.
+
+1. **Space = org + team tree** ([188](tickets/188-space-is-org-plus-team-tree.md)): a root space is an org, a sub-space is a team. No new tenancy tables; the UI and a new `spaces` API say "space". *Default: keep.*
+2. **Visibility flows down only** ([189](tickets/189-space-visibility.md)): content shared to a space is visible in it and every sub-space below it, never up or sideways. Being in several spaces gives the union. *Default: keep.*
+3. **Roles** ([190](tickets/190-space-roles.md)): owner, admin, member. A sub-space's owner is stored as team `admin`. No viewer role. *Default: keep.*
+4. **Active space** ([191](tickets/191-active-space.md)): the sidebar switcher sets the context of new chats; remembered per browser. *Default: keep.*
+5. **Allowance in tokens, not money** ([192](tickets/192-space-allowance.md)): a monthly token pool per space; members request a monthly grant, an owner approves or denies. *Default: keep.* The allowance is **not yet enforced before a run** (follow-up); runs are still gated by money budgets.
+6. **Per-key usage** ([193](tickets/193-per-key-usage.md)): attributed when usage is recorded, to the newest key of the paying scope and provider. Earlier usage shows as "Unattributed". *Default: keep.*
+7. **Sub-space members must already be in the root space** (as teams are today). Inviting someone straight into a sub-space would invite them to the root too. *Default: keep.*
+8. **Contract** ([187a](tickets/187a-contract-spaces.md)): the additive `spaces` group awaits your approval (draft PR).

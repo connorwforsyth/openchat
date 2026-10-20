@@ -149,6 +149,10 @@ brief, and their findings land in `.context/research/`.
 - [Desktop: updates are a visible state with menu items, and tested against a local feed](tickets/149-desktop-update-state.md): desktop update state with menu items ([PR #120](https://github.com/connorwforsyth/openchat/pull/120))
 - [Contract: `presentation`, `spreadsheet` and `diagram` artifact kinds](tickets/162-contract-new-artifact-kinds.md): presentation, spreadsheet and diagram artifact kinds (contract + placeholders) ([PR #125](https://github.com/connorwforsyth/openchat/pull/125))
 
+## Spaces (187)
+
+Destination: spaces replace orgs in the product: nested spaces, multi-membership, owner-managed membership and roles, scoped skills, agents and chats shared within a space and visible to its sub-spaces, a token allowance granted by the owner, and admin-created keys with usage per key. Decisions 188–193 (resolved AFK, see [187](tickets/187-spaces.md) and [QUESTIONS-FOR-CONNOR.md](QUESTIONS-FOR-CONNOR.md#spaces)); contract [187a](tickets/187a-contract-spaces.md).
+
 ## Not yet specified
 
 These waves are in scope. Each one graduates into tickets when the gate before it

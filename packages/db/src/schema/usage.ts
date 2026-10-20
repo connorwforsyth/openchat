@@ -98,6 +98,14 @@ export const transaction = pgTable(
     paidByType: text("paid_by_type")
       .$type<(typeof PAYER_TYPES)[number]>()
       .notNull(),
+    /**
+     * The stored key that paid (ticket 193), resolved when usage is recorded.
+     * `null` for instance keys and for rows recorded before 193.
+     */
+    providerKeyId: idRef("provider_key_id", "providerKey").references(
+      () => providerKey.id,
+      { onDelete: "set null" }
+    ),
     reasoningTokens: integer("reasoning_tokens"),
     runId: idRef("run_id", "run").references(() => run.id, {
       onDelete: "set null",
@@ -115,6 +123,7 @@ export const transaction = pgTable(
     ),
     index("transaction_org_idx").on(t.orgId, t.createdAt),
     index("transaction_run_idx").on(t.runId),
+    index("transaction_provider_key_idx").on(t.providerKeyId, t.createdAt),
     check("transaction_kind", oneOf(t.kind, usageKindSchema.options)),
     check(
       "transaction_context_type",

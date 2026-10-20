@@ -1,11 +1,16 @@
 import type {
   BudgetId,
   OrgId,
+  ProviderKeyId,
   RunId,
   TeamId,
   UserId,
 } from "@workspace/contract/schemas/common";
-import type { ModelRef, TokenUsage } from "@workspace/contract/schemas/models";
+import type {
+  ModelRef,
+  ProviderId,
+  TokenUsage,
+} from "@workspace/contract/schemas/models";
 import type { Principal } from "@workspace/contract/schemas/tenancy";
 import type {
   Budget,
@@ -31,7 +36,7 @@ import type { Db } from "../client";
 import { type NotFoundError, notFound } from "../errors";
 import type { PrincipalId } from "../schema/columns";
 import { budget } from "../schema/tenancy";
-import { balance, transaction } from "../schema/usage";
+import { balance, providerKey, transaction } from "../schema/usage";
 import type { StoredContext } from "./conversations";
 import {
   decodeCursor,
@@ -103,6 +108,34 @@ const chargedPrincipals = async (
   ];
 };
 
+/**
+ * The stored key that paid (ticket 193): the newest key of the paying scope
+ * for the model's provider, which is the one key resolution picks. Resolved
+ * here so the key ports needn't carry key ids.
+ */
+const payingKeyId = async (
+  db: Db,
+  input: NewTransaction
+): Promise<ProviderKeyId | null> => {
+  if (input.paidBy.type === "instance") {
+    return null;
+  }
+  const provider = input.model.slice(0, input.model.indexOf(":"));
+  const [row] = await db
+    .select({ id: providerKey.id })
+    .from(providerKey)
+    .where(
+      and(
+        eq(providerKey.scopeType, input.paidBy.type),
+        eq(providerKey.scopeId, input.paidBy.id),
+        eq(providerKey.provider, provider as ProviderId)
+      )
+    )
+    .orderBy(desc(providerKey.createdAt))
+    .limit(1);
+  return row?.id ?? null;
+};
+
 /** Records a model call and adds its cost to every balance it counts toward. */
 export const recordTransaction = (
   db: Db,
@@ -110,6 +143,7 @@ export const recordTransaction = (
   now: Date = new Date()
 ): Promise<TransactionRow> =>
   db.transaction(async (tx) => {
+    const providerKeyId = await payingKeyId(tx, input);
     const [row] = await tx
       .insert(transaction)
       .values({
@@ -125,6 +159,7 @@ export const recordTransaction = (
         outputTokens: input.usage.outputTokens,
         paidById: input.paidBy.type === "instance" ? null : input.paidBy.id,
         paidByType: input.paidBy.type,
+        providerKeyId,
         reasoningTokens: input.usage.reasoningTokens ?? null,
         runId: input.runId ?? null,
         userId: input.userId,
