@@ -28,7 +28,7 @@ export const scheduleTimeZoneSchema = z.string().trim().min(1).max(64);
  *   expanded in `timezone` from `startAt`. Supported parts: `FREQ` (MINUTELY
  *   to YEARLY), `INTERVAL`, `BYDAY` (no ordinals), `BYMONTHDAY`, `BYMONTH`,
  *   `BYHOUR`, `BYMINUTE` and `COUNT=1` (a one-off at `startAt`, at most two
- *   years out). Anything else is a `BAD_REQUEST`. Wall-clock rules keep their
+ *   years out). Anything else is a `VALIDATION` error. Wall-clock rules keep their
  *   local time across DST; MINUTELY and HOURLY count elapsed time.
  * - `cron`: five fields, for schedules made before RRULE and the raw editor.
  *
@@ -175,12 +175,9 @@ export type Schedule = z.infer<typeof scheduleSchema>;
 export const scheduleRunTriggerSchema = z.enum(["scheduled", "run_now"]);
 export type ScheduleRunTrigger = z.infer<typeof scheduleRunTriggerSchema>;
 
-/** One firing: a run that happened, or a slot that was skipped and why. */
-export const scheduleRunSchema = z.object({
+const scheduleRunFields = {
   conversationId: conversationIdSchema.nullable(),
   createdAt: timestampSchema,
-  error: z.string().max(2000).nullable(),
-  finishedAt: timestampSchema.nullable(),
   id: dotRunIdSchema,
   /** Overdue slots folded into this one after downtime. */
   missedSlots: z.number().int().min(0),
@@ -188,19 +185,32 @@ export const scheduleRunSchema = z.object({
   nominalAt: timestampSchema.nullable(),
   /** Whether it told the owner (the notify policy applied to the outcome). */
   notified: z.boolean(),
-  /** `null` while the run is going. */
-  outcome: scheduleRunOutcomeSchema.nullable(),
   readAt: timestampSchema.nullable(),
-  /** `null` when the slot was skipped. */
-  runId: runIdSchema.nullable(),
   scheduleId: dotScheduleIdSchema.nullable(),
-  skipReason: scheduleSkipReasonSchema.nullable(),
-  /** The run's own status; `null` when skipped. */
-  status: runStatusSchema.nullable(),
-  /** The run's one-line summary, or the start of its reply. */
-  summary: z.string().max(500).nullable(),
   trigger: scheduleRunTriggerSchema,
-});
+};
+
+/**
+ * One firing, keyed on `outcome`: a run that started (its outcome is `null`
+ * while it's going), or a slot that was `skipped` and why.
+ */
+export const scheduleRunSchema = z.discriminatedUnion("outcome", [
+  z.object({
+    ...scheduleRunFields,
+    error: z.string().max(2000).nullable(),
+    finishedAt: timestampSchema.nullable(),
+    outcome: scheduleRunOutcomeSchema.exclude(["skipped"]).nullable(),
+    runId: runIdSchema,
+    status: runStatusSchema,
+    /** The run's one-line summary, or the start of its reply. */
+    summary: z.string().max(500).nullable(),
+  }),
+  z.object({
+    ...scheduleRunFields,
+    outcome: z.literal("skipped"),
+    skipReason: scheduleSkipReasonSchema,
+  }),
+]);
 export type ScheduleRun = z.infer<typeof scheduleRunSchema>;
 
 /** The guardrails that apply to the caller, and how much of today's cap is used. */

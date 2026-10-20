@@ -5,6 +5,18 @@ an oRPC contract for the procedures, and the OpenAPI 3.1 document generated
 from both. Frozen for the M1 workstreams; changes follow the process at the
 end of this file.
 
+## Changes (2026-10-20, 173a review)
+
+Review fixes to the schedules contract (173a). Needs the owner's review
+before `pstack/schedules-contract-impl` (the server and web side) can merge.
+
+| Change | Who needs it | Compatibility |
+|---|---|---|
+| `dots.createSchedule`, `dots.updateSchedule` and `dots.deleteSchedule`, with `dotScheduleSchema`, `DotSchedule`, `createDotScheduleInputSchema` and `updateDotScheduleInputSchema`, are deleted. `Dot.schedules` is `Schedule[]`. | Nobody: no client called them, and `schedules.*` replaces them | Breaking for the server, which drops their handlers. |
+| `ScheduleRun` is a union on `outcome`: a run (`runId` and `status` set, `outcome` `null` while it's going) or a `skipped` slot (`skipReason` set, no run fields). | The schedules page's run history | Breaking for TypeScript readers, who narrow on `outcome`. The wire shape of well-formed runs is the same. |
+| `CONFLICT` reasons `schedule_completed` and `target_archived`, which `schedules.resume` returns (it returned `already_exists`). | The schedules page's Resume button | Additive. |
+| An unparseable cron or unsupported RRULE is documented as `VALIDATION` (422), which the server already returns, not `BAD_REQUEST`. | Clients mapping errors to fields | Docs only. |
+
 ## Changes (2026-10-16, 172)
 
 Dots: always-on agents with their own conversation, workspace and cron

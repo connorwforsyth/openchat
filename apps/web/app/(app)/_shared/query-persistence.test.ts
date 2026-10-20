@@ -1,8 +1,10 @@
-import type {
-  PersistedClient,
-  Persister,
+import { QueryClient, QueryObserver } from "@tanstack/react-query";
+import {
+  type PersistedClient,
+  type Persister,
+  persistQueryClientRestore,
 } from "@tanstack/react-query-persist-client";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   gatePersister,
@@ -105,16 +107,52 @@ describe("pickPersisted", () => {
     ]);
   });
 
-  it("restores a conversation's messages as stale, so they refetch on mount", () => {
-    const me = query([["me", "get"], { type: "query" }]);
-    const messages = query(path("c1"), { updatedAt: 5 });
-    const [shell, restored] = pickPersisted(client([me, messages])).clientState
-      .queries;
-    expect(shell?.state.isInvalidated).toBe(false);
-    expect(restored?.state).toMatchObject({
-      dataUpdatedAt: 5,
-      isInvalidated: true,
+  it("restores every query as stale, so a reload refetches what the snapshot missed", async () => {
+    // The snapshot is written a second behind the cache and not at all on
+    // unload, so one only a second old can still lack a new chat's title.
+    const sidebar = [
+      ["conversations", "list"],
+      { input: { archived: false, limit: 100 }, type: "query" },
+    ];
+    const updatedAt = Date.now() - 1000;
+    const snapshot = pickPersisted({
+      ...client([
+        query(sidebar, { updatedAt }),
+        query(path("c1"), { updatedAt }),
+      ]),
+      timestamp: updatedAt,
     });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { staleTime: 30_000 } },
+    });
+    await persistQueryClientRestore({
+      buster: "user",
+      persister: {
+        persistClient: () => undefined,
+        removeClient: () => undefined,
+        restoreClient: () => snapshot,
+      },
+      queryClient,
+    });
+
+    const fetched: string[] = [];
+    const observers = [sidebar, path("c1")].map((queryKey) =>
+      new QueryObserver(queryClient, {
+        queryFn: () => {
+          fetched.push(JSON.stringify(queryKey));
+          return { items: [] };
+        },
+        queryKey,
+      }).subscribe(() => undefined)
+    );
+    await vi.waitFor(() =>
+      expect(fetched.sort()).toEqual(
+        [JSON.stringify(sidebar), JSON.stringify(path("c1"))].sort()
+      )
+    );
+    for (const unsubscribe of observers) {
+      unsubscribe();
+    }
   });
 
   it("never keeps mutations", () => {
