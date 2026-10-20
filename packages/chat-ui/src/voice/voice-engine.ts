@@ -259,7 +259,9 @@ export const openVoiceEngine = async (
       signal,
     });
     if (!response.ok) {
-      throw new Error(`transcribe ${response.status}`);
+      throw Object.assign(new Error(`transcribe ${response.status}`), {
+        status: response.status,
+      });
     }
     const body = (await response.json()) as { text?: unknown };
     return typeof body.text === "string" ? body.text : "";
@@ -280,9 +282,17 @@ export const openVoiceEngine = async (
       const text = await upload(wav, controller.signal);
       turn.transcribed = performance.now();
       hooks.dispatch({ text, type: "transcribed" });
-    } catch {
+    } catch (cause) {
       if (!controller.signal.aborted) {
-        hooks.dispatch({ error: "transcription", type: "failed" });
+        const down =
+          typeof cause === "object" &&
+          cause !== null &&
+          "status" in cause &&
+          cause.status === 503;
+        hooks.dispatch({
+          error: down ? "unavailable" : "transcription",
+          type: "failed",
+        });
       }
     } finally {
       if (transcribing === controller) {

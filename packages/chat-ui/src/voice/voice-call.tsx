@@ -164,6 +164,8 @@ function useErrorText(error: CallError | null): string | null {
       return t`Couldn't use the microphone. Check the browser's permission.`;
     case "transcription":
       return t`Couldn't hear that. Try again.`;
+    case "unavailable":
+      return t`Voice isn't answering right now. Try again in a moment.`;
     case "speech":
       return t`Couldn't play the answer. It's in the chat.`;
     case "reply":

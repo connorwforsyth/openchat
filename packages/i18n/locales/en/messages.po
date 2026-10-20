@@ -1201,6 +1201,10 @@ msgstr "Composer"
 msgid "Computer"
 msgstr "Computer"
 
+#: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
+msgid "Computers aren't set up on this server"
+msgstr "Computers aren't set up on this server"
+
 #: ../../apps/desktop/src/renderer/setup-screen.tsx
 #: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
 #: ../library-ui/src/components/mcp-form.tsx
@@ -4746,6 +4750,10 @@ msgstr "Scopes"
 msgid "Score a sample of this org's chats to catch quality drops."
 msgstr "Score a sample of this org's chats to catch quality drops."
 
+#: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
+msgid "Screen disconnected"
+msgstr "Screen disconnected"
+
 #: ../library-ui/src/components/skill-form.tsx
 msgid "Scripts and resources the skill refers to, by path."
 msgstr "Scripts and resources the skill refers to, by path."
@@ -6366,6 +6374,10 @@ msgstr "Viewer"
 #: ../chat-ui/src/voice/voice-call.tsx
 msgid "Voice chat"
 msgstr "Voice chat"
+
+#: ../chat-ui/src/voice/voice-call.tsx
+msgid "Voice isn't answering right now. Try again in a moment."
+msgstr "Voice isn't answering right now. Try again in a moment."
 
 #: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
 msgid "Waiting for an owner"

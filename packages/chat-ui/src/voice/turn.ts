@@ -147,7 +147,13 @@ export interface CallState {
   readonly replyDone: boolean;
 }
 
-export type CallError = "microphone" | "transcription" | "speech" | "reply";
+export type CallError =
+  | "microphone"
+  | "transcription"
+  /** The server's speech service is down (503), not the user's audio. */
+  | "unavailable"
+  | "speech"
+  | "reply";
 
 export const INITIAL_CALL: CallState = {
   error: null,

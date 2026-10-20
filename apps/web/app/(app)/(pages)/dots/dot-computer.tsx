@@ -18,6 +18,7 @@ import {
   useState,
 } from "react";
 import { z } from "zod";
+import { codeOf } from "@/app/(app)/_shared/query-state";
 import type { DotSurfaceProps } from "./dot-extensions";
 import { DOTS_REFRESH_MS, useDotForConversation } from "./dot-home";
 
@@ -32,9 +33,17 @@ import { DOTS_REFRESH_MS, useDotForConversation } from "./dot-home";
 const computerPath = (conversationId: string) =>
   `/api/computer/${conversationId}`;
 
+const problemSchema = z.object({ code: z.string() });
+
+/** The view, or a failure carrying the server's `code` for `codeOf`. */
 const readView = async (response: Response): Promise<ComputerView> => {
   if (!response.ok) {
-    throw new Error(String(response.status));
+    const body = problemSchema.safeParse(
+      await response.json().catch(() => null)
+    );
+    throw Object.assign(new Error(String(response.status)), {
+      code: body.success ? body.data.code : null,
+    });
   }
   return computerViewSchema.parse(await response.json());
 };
@@ -120,8 +129,13 @@ export function DotComputerView({ dot }: { readonly dot: Dot }) {
     queryFn: () =>
       fetch(computerPath(conversationId), { cache: "no-store" }).then(readView),
     queryKey: key,
-    refetchInterval: DOTS_REFRESH_MS,
-    retry: 1,
+    // A server without computers won't grow them by asking again.
+    refetchInterval: (query) =>
+      codeOf(query.state.error) === "FEATURE_DISABLED"
+        ? false
+        : DOTS_REFRESH_MS,
+    retry: (failures, error) =>
+      failures < 1 && codeOf(error) !== "FEATURE_DISABLED",
   });
   const control = useMutation({
     mutationFn: (next: ComputerView["holder"]) =>
@@ -146,13 +160,17 @@ export function DotComputerView({ dot }: { readonly dot: Dot }) {
   const screen = useScreenLink(frame);
 
   const current = view.data;
+  const disabled = codeOf(view.error) === "FEATURE_DISABLED";
   const userHas = holder === "user";
   const status = (): string => {
     if (current && screen.failed) {
-      return t`Couldn't connect to the screen`;
+      return t`Screen disconnected`;
     }
     if (current) {
       return userHas ? t`You have control` : t`${dot.name} has control`;
+    }
+    if (disabled) {
+      return t`Computers aren't set up on this server`;
     }
     return view.isError ? t`Not available right now` : t`Starting…`;
   };
@@ -176,7 +194,7 @@ export function DotComputerView({ dot }: { readonly dot: Dot }) {
         >
           {status()}
         </span>
-        {view.isError || screen.failed ? (
+        {(view.isError && !disabled) || screen.failed ? (
           <Button
             onClick={screen.failed ? screen.reconnect : retry}
             size="sm"

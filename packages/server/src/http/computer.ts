@@ -43,8 +43,8 @@ export const mountComputerRoutes = (
     }
     if (!computers) {
       return problem(
-        503,
-        "UNAVAILABLE",
+        403,
+        "FEATURE_DISABLED",
         "Computers need the sandbox runner (sandbox.docker in app.config.yaml)."
       );
     }
