@@ -133,6 +133,7 @@ mcp:
   #   - name: docs                      # tool prefix: docs__search, ...
   #     title: Company docs
   #     description: Search the handbook and runbooks
+  #     icon: "📚"                      # or an https:// image URL: its tile in Customize
   #     url: https://mcp.example.com/mcp
   #     headers: { Authorization: "${DOCS_MCP_AUTHORIZATION}" }   # e.g. "Bearer ..."
   #     tools: { deny: [delete_page] }

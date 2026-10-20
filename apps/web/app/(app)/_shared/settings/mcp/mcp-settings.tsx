@@ -51,7 +51,7 @@ import { routes } from "@/lib/routes";
 // the operator denies; required ones are locked on. A switch here is the
 // user's default for every chat; a chat can still differ (the composer).
 
-const OAuthStatus = ({ server }: { readonly server: Connector }) => {
+export const OAuthStatus = ({ server }: { readonly server: Connector }) => {
   const { query } = useApi();
   const queryClient = useQueryClient();
   const { id } = server;
@@ -117,7 +117,7 @@ const OAuthStatus = ({ server }: { readonly server: Connector }) => {
   );
 };
 
-const Availability = ({ server }: { readonly server: Connector }) => {
+export const Availability = ({ server }: { readonly server: Connector }) => {
   const { availability } = server;
   switch (availability.state) {
     case "available":
@@ -141,7 +141,7 @@ const Availability = ({ server }: { readonly server: Connector }) => {
   }
 };
 
-const LockNote = ({ server }: { readonly server: Connector }) => {
+export const LockNote = ({ server }: { readonly server: Connector }) => {
   const { lock } = server;
   if (!lock) {
     return null;
@@ -265,7 +265,7 @@ const ToolList = ({ server }: { readonly server: Connector }) => {
 };
 
 /** The server's tile: its first letter, so a long list scans by shape. */
-const ServerTile = ({
+export const ServerTile = ({
   server,
   size = "sm",
 }: {
@@ -325,12 +325,15 @@ const ToolsSummary = ({ server }: { readonly server: Connector }) => {
  * page): who it's from, what it does, its state, then its tools, each with
  * its own switch. Opened from the list; Back returns to it.
  */
-const ServerDetail = ({
+export const ServerDetail = ({
+  backLabel,
   onBack,
   onToggle,
   pending,
   server,
 }: {
+  /** What Back returns to; the servers' name by default. */
+  readonly backLabel?: string;
   readonly onBack: () => void;
   readonly onToggle: (server: Connector, enabled: boolean) => void;
   readonly pending: boolean;
@@ -347,7 +350,7 @@ const ServerDetail = ({
         variant="ghost"
       >
         <ChevronLeftIcon />
-        {label}
+        {backLabel ?? label}
       </Button>
       <header className="flex items-start gap-4">
         <ServerTile server={server} size="lg" />
@@ -475,9 +478,17 @@ const ServerGroup = ({
   </section>
 );
 
-const McpBody = ({ list }: { readonly list: ConnectorList }) => {
+/**
+ * The user's default for a server, saved and written into the cached list.
+ * Shared with Customize's Manage page (193).
+ */
+export const useMcpToggle = (): {
+  readonly failed: boolean;
+  readonly onToggle: (server: Connector, enabled: boolean) => void;
+  /** The server whose switch is saving: an id, as the mutation was sent. */
+  readonly pendingId: string | null;
+} => {
   const { query } = useApi();
-  const { label, singular } = useTerms().mcp;
   const queryClient = useQueryClient();
   const listKey = query.connectors.list.queryKey({ input: {} });
   const setEnabled = useMutation(
@@ -500,7 +511,15 @@ const McpBody = ({ list }: { readonly list: ConnectorList }) => {
     (server: Connector, enabled: boolean) => mutate({ enabled, id: server.id }),
     [mutate]
   );
-  const pendingId = setEnabled.isPending ? setEnabled.variables?.id : null;
+  const pendingId = setEnabled.isPending
+    ? (setEnabled.variables?.id ?? null)
+    : null;
+  return { failed: setEnabled.isError, onToggle, pendingId };
+};
+
+const McpBody = ({ list }: { readonly list: ConnectorList }) => {
+  const { label, singular } = useTerms().mcp;
+  const { failed, onToggle, pendingId } = useMcpToggle();
   const [openId, setOpenId] = useState<Connector["id"] | null>(null);
   const openServer = useCallback(
     (server: Connector) => setOpenId(server.id),
@@ -546,7 +565,7 @@ const McpBody = ({ list }: { readonly list: ConnectorList }) => {
 
   return (
     <div className="flex flex-col gap-6">
-      {setEnabled.isError ? (
+      {failed ? (
         <p className="text-destructive text-sm" role="alert">
           <Trans>That change couldn't be saved. Try again.</Trans>
         </p>
@@ -610,10 +629,26 @@ const McpBody = ({ list }: { readonly list: ConnectorList }) => {
 
 export const McpSettings = () => {
   const { query } = useApi();
+  const terms = useTerms();
   const list = useQuery(query.connectors.list.queryOptions({ input: {} }));
   return (
-    <QueryState query={list} skeleton={3}>
-      {(data) => <McpBody list={data} />}
-    </QueryState>
+    <div className="flex flex-col gap-6">
+      {/* Settings keeps your defaults; browsing and trying live in Customize (193). */}
+      <p className="text-muted-foreground text-sm">
+        <Trans>
+          Browse, try and manage them in{" "}
+          <a
+            className="text-foreground underline underline-offset-4"
+            href={routes.customizeKind(terms, "mcp")}
+          >
+            Customize
+          </a>
+          .
+        </Trans>
+      </p>
+      <QueryState query={list} skeleton={3}>
+        {(data) => <McpBody list={data} />}
+      </QueryState>
+    </div>
   );
 };

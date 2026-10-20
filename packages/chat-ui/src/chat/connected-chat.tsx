@@ -42,6 +42,7 @@ import type {
   ArtifactVersionId,
   ConversationId,
   FileId,
+  LibraryItemId,
   MessageId,
   RunId,
   SandboxId,
@@ -167,6 +168,8 @@ export interface ConnectedChatProps {
   readonly draftContext?: ChatContext;
   /** More of the header's end, before the call button: the chat's schedule (183). */
   readonly headerExtra?: ReactNode;
+  /** A new chat starts with this MCP server on ("Try now", 193). */
+  readonly initialMcp?: LibraryItemId | null;
   /** A new chat sends this once, as soon as it mounts ("Ask AI" in ⌘K). */
   readonly initialPrompt?: string | null;
   /** The shell's layout, when the app owns it (see `ChatScreenProps.layout`). */
@@ -209,6 +212,7 @@ export interface ConnectedChatProps {
     | "dotFace"
     | "dots"
     | "nextRuns"
+    | "customizeHref"
     | "schedulesHref"
     | "signals"
     | "top"
@@ -1526,6 +1530,7 @@ export function ConnectedChat({
   config,
   conversationId,
   draftContext: draftContextProp,
+  initialMcp,
   initialPrompt,
   layout,
   libraryHref,
@@ -1735,6 +1740,7 @@ export function ConnectedChat({
     api,
     client,
     conversationId,
+    initialOn: initialMcp,
     term: terms.mcp,
   });
   const firstSend = useFirstSend({

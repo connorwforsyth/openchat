@@ -7,7 +7,7 @@ import type {
   ConversationId,
   LibraryItemId,
 } from "@workspace/contract/schemas/common";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { addPending, type PendingChange, withPending } from "./pending-mcp";
 
@@ -22,11 +22,17 @@ export const useChatMcp = ({
   api,
   client,
   conversationId,
+  initialOn = null,
   term,
 }: {
   readonly api: QueryUtils;
   readonly client: ApiClient;
   readonly conversationId: ConversationId | null;
+  /**
+   * A server a new chat starts with on ("Try now" in Customize, 193): a
+   * pending change like any other, saved with the first send.
+   */
+  readonly initialOn?: LibraryItemId | null;
   /** What this instance calls MCP servers (191). */
   readonly term: ComposerMcp["term"];
 }): {
@@ -39,6 +45,15 @@ export const useChatMcp = ({
   const [pending, setPending] = useState<readonly PendingChange[]>([]);
   const pendingRef = useRef(pending);
   pendingRef.current = pending;
+  const seeded = useRef<LibraryItemId | null>(null);
+  useEffect(() => {
+    if (conversationId === null && initialOn && seeded.current !== initialOn) {
+      seeded.current = initialOn;
+      setPending((current) =>
+        addPending(current, { enabled: true, id: initialOn, kind: "server" })
+      );
+    }
+  }, [conversationId, initialOn]);
 
   const refresh = useCallback(
     () => queryClient.invalidateQueries({ queryKey: api.connectors.key() }),

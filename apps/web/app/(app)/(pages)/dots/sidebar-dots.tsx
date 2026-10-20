@@ -90,7 +90,13 @@ export const useSidebarDots = (
   activeId: ConversationId | null
 ): Pick<
   ChatSidebarProps,
-  "dot" | "dotFace" | "nextRuns" | "schedulesHref" | "signals" | "top"
+  | "customizeHref"
+  | "dot"
+  | "dotFace"
+  | "nextRuns"
+  | "schedulesHref"
+  | "signals"
+  | "top"
 > => {
   const { query } = useApi();
   const list = useQuery({
@@ -125,6 +131,7 @@ export const useSidebarDots = (
       )
     );
     return {
+      customizeHref: routes.customize,
       dot: primary ? { conversationId: primary.conversationId } : undefined,
       dotFace: primary ? (
         <DotAvatar animated={false} avatar={primary.avatar} size="sm" />

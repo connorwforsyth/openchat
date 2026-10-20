@@ -26,11 +26,16 @@ export const routeParams = {
   invite: "invite",
   /** `/library?kind=`, `/artifacts?kind=`: the kind filter to open on (181). */
   kind: "kind",
+  /** `/?mcp=:id` starts a new chat with that MCP server on ("Try now", 193). */
+  mcp: "mcp",
   /** `/sign-in?next=` is where to go once signed in. */
   next: "next",
   /** `/library?tab=`: the library tab to open on (181). */
   tab: "tab",
 } as const;
+
+/** What Customize lists (193): `mcp` is named by `terms:`, skills by id. */
+export type CustomizeKind = "mcp" | "skills";
 
 const withQuery = (path: string, query: Record<string, string>) =>
   `${path}?${new URLSearchParams(query)}`;
@@ -49,6 +54,17 @@ export const routes = {
   // A search hit names the message; the fragment keeps it in the address.
   chatWithAgent: (agentId: LibraryItemId) =>
     withQuery("/", { [routeParams.agent]: agentId }),
+  /** Customize (193): MCP servers and skills, a rail destination of its own. */
+  customize: "/customize",
+  /** One server's or skill's page, like an app store's. */
+  customizeItem: (terms: Terms, kind: CustomizeKind, id: LibraryItemId) =>
+    `/customize/${slugFor(terms, kind)}/${id}`,
+  /** A catalog: `/customize/<terms slug>` for MCP servers, `/customize/skills`. */
+  customizeKind: (terms: Terms, kind: CustomizeKind) =>
+    `/customize/${slugFor(terms, kind)}`,
+  /** A server's controls ("Manage"): its switch, tools and sign-in. */
+  customizeManage: (terms: Terms, id: LibraryItemId) =>
+    `/customize/${slugFor(terms, "mcp")}/${id}/manage`,
   /** Always-on agents (172). */
   dots: "/dots",
   home: "/",
@@ -60,6 +76,9 @@ export const routes = {
     withQuery("/library", { [routeParams.kind]: kind }),
   libraryTab: (tab: LibraryTab) =>
     withQuery("/library", { [routeParams.tab]: tab }),
+  /** A new chat with this MCP server on for it ("Try now", 193). */
+  newChatWithMcp: (id: LibraryItemId) =>
+    withQuery("/", { [routeParams.mcp]: id }),
   /** Quick AI (118): the composer alone, for the desktop app's floating window. */
   quick: "/quick",
   /** The schedules page with one open in the editor, or a new one (181). */

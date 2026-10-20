@@ -259,6 +259,20 @@ const useAgentParam = (
   return parsed.success ? parsed.data : null;
 };
 
+/** `/?mcp=<id>` ("Try now" in Customize, 193) starts the new chat with that server on. */
+const useMcpParam = (
+  conversationId: ConversationId | null | undefined
+): LibraryItemId | null => {
+  const searchParams = useSearchParams();
+  if (conversationId !== null) {
+    return null;
+  }
+  const parsed = libraryItemIdSchema.safeParse(
+    searchParams.get(routeParams.mcp)
+  );
+  return parsed.success ? parsed.data : null;
+};
+
 /**
  * Picking what answers (044). In a new chat it's the draft's choice; in an
  * existing one it becomes the chat's default, so the chat continues with it
@@ -404,6 +418,7 @@ export function ChatRoute({
         "agent"
   );
   const skills = useSkillsForPicker(booted);
+  const initialMcp = useMcpParam(conversationId);
   const changeContext = useContextChange(conversationId ?? null);
   const { changeTarget, pickedHere } = useTargetChange({
     contextOptions,
@@ -534,6 +549,7 @@ export function ChatRoute({
           />
         ) : null
       }
+      initialMcp={initialMcp}
       initialPrompt={
         conversationId ? null : searchParams.get(routeParams.askAi)
       }

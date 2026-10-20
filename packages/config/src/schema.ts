@@ -688,6 +688,14 @@ const connectorFields = {
   allowUserOverride: z.boolean().default(true),
   default: z.enum(["on", "off", "required"]).default("on"),
   description: z.string().max(500).optional(),
+  /**
+   * Its tile in Customize (193): an image URL or an emoji. Read and checked
+   * here; the connector contract doesn't carry it to the browser yet, so
+   * tiles show the first letter until it does.
+   */
+  icon: z
+    .union([z.url({ protocol: /^https?$/ }), z.string().min(1).max(16)])
+    .optional(),
   /** What the model sees before `__` in each tool name. */
   name: z.string().regex(/^[a-z][a-z0-9-]*$/, "a lowercase name"),
   /** Shown next to a locked toggle, e.g. "Required by IT for audit". */

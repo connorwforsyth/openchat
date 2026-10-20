@@ -44,10 +44,38 @@ const artifact = {
   title: "Launch page",
 };
 
+const docs = {
+  auth: "none",
+  availability: { state: "available" },
+  customized: false,
+  description: null,
+  disabledTools: [],
+  enabled: true,
+  id: fixtureId("libraryItem", 1),
+  lock: null,
+  name: "docs",
+  requiredTools: [],
+  source: "instance",
+  title: "Docs",
+  transport: "http",
+};
+const offServer = {
+  ...docs,
+  enabled: false,
+  id: fixtureId("libraryItem", 2),
+  title: "Off server",
+};
+
 const api = () =>
   fakeApi({
     "GET /artifacts": () => ({ items: [artifact], nextCursor: null }),
+    "GET /connectors": () => ({
+      connectors: [docs, offServer],
+      customized: false,
+      userServers: { allowed: false, hosts: [], transports: [] },
+    }),
     "GET /conversations": () => ({ items: [conversation], nextCursor: null }),
+    "GET /library": () => ({ items: [], nextCursor: null }),
     "GET /schedules": () => schedules,
   });
 
@@ -152,6 +180,28 @@ describe("the panel follows the rail (181)", () => {
     ).toBe("page");
     const recent = await nav.findByRole("link", { name: "Launch page" });
     expect(recent.getAttribute("href")).toBe(`/artifacts/${artifact.id}`);
+  });
+
+  it("Customize shows its catalogs and what's installed, not chats (193)", async () => {
+    const panel = show(`/customize/mcp/${docs.id}`);
+    expect(actionsOf(panel).every((each) => each === null)).toBe(true);
+    const nav = within(panel.getByRole("navigation", { name: "Customize" }));
+    expect(
+      nav.getByRole("link", { name: "MCP servers" }).getAttribute("href")
+    ).toBe("/customize/mcp");
+    expect(nav.getByRole("link", { name: "Skills" }).getAttribute("href")).toBe(
+      "/customize/skills"
+    );
+    const installed = await nav.findByRole("link", { name: "Docs" });
+    expect(installed.getAttribute("aria-current")).toBe("page");
+    expect(nav.queryByRole("link", { name: "Off server" })).toBeNull();
+    expect(nav.getByRole("button", { name: "Options for Docs" })).toBeTruthy();
+    expect(
+      screen
+        .getByRole("navigation", { name: "Sidebar rail" })
+        .querySelector('[aria-current="page"]')
+        ?.getAttribute("aria-label")
+    ).toBe("Customize");
   });
 
   it("Chats keeps the chat list", async () => {

@@ -133,6 +133,10 @@ msgstr "{count, plural, one {# knowledge file wasn't copied} other {# knowledge 
 msgid "{count, plural, one {# selected} other {# selected}}"
 msgstr "{count, plural, one {# selected} other {# selected}}"
 
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
+msgid "{count, plural, one {# tool} other {# tools}}"
+msgstr "{count, plural, one {# tool} other {# tools}}"
+
 #: ../chat-ui/src/conversation/generated-images.tsx
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "{count, plural, one {Made an image} other {Made # images}}"
@@ -189,6 +193,10 @@ msgstr "{files} changed after the agent proposed this, so the change can't be ap
 #: ../../apps/web/app/(app)/(pages)/dots/schedule-text.tsx
 msgid "{label} and {more} more"
 msgstr "{label} and {more} more"
+
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
+msgid "{label} give chats extra tools. Open one to see what it does, try it, or manage it."
+msgstr "{label} give chats extra tools. Open one to see what it does, try it, or manage it."
 
 #: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
 msgid "{label} give chats extra tools. Turn on the ones you want; your administrator may require some or let you add your own."
@@ -354,6 +362,10 @@ msgstr "A secret is saved. It's never shown; type a new one to replace it."
 msgid "A short name, like a nickname."
 msgstr "A short name, like a nickname."
 
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
+msgid "A skill is instructions a chat can follow when you pick it. Make one, or ask someone to share theirs."
+msgstr "A skill is instructions a chat can follow when you pick it. Make one, or ask someone to share theirs."
+
 #: ../chat-ui/src/artifacts/presentation-preview.tsx
 msgid "A slide in this deck failed to draw."
 msgstr "A slide in this deck failed to draw."
@@ -429,6 +441,10 @@ msgstr "Activity"
 #: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
 msgid "Add"
 msgstr "Add"
+
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
+msgid "Add a {singular}"
+msgstr "Add a {singular}"
 
 #: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
 msgid "Add a {singular} by its URL to give chats more tools. Only you can use it until you share it."
@@ -848,9 +864,17 @@ msgstr "Bold"
 msgid "Branches"
 msgstr "Branches"
 
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
+msgid "Breadcrumb"
+msgstr "Breadcrumb"
+
 #: ../../apps/web/app/(app)/(pages)/dots/onboarding.tsx
 msgid "Brief me every morning: what's on today, what changed overnight, and the one thing to do first."
 msgstr "Brief me every morning: what's on today, what changed overnight, and the one thing to do first."
+
+#: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
+msgid "Browse, try and manage them in <0>Customize</0>."
+msgstr "Browse, try and manage them in <0>Customize</0>."
 
 #: ../chat-ui/src/header/overflow-menu.tsx
 #: ../chat-ui/src/header/panel-toggles.tsx
@@ -1378,6 +1402,10 @@ msgstr "Couldn't publish a skill"
 msgid "Couldn't publish the skill {name}"
 msgstr "Couldn't publish the skill {name}"
 
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
+msgid "Couldn't reach it"
+msgstr "Couldn't reach it"
+
 #: ../../apps/desktop/src/renderer/setup-screen.tsx
 msgid "Couldn't reach that server. Check the address and your connection."
 msgstr "Couldn't reach that server. Check the address and your connection."
@@ -1532,6 +1560,12 @@ msgstr "Custom ({rule})"
 msgid "Custom tools"
 msgstr "Custom tools"
 
+#: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
+#: ../chat-ui/src/sidebar/chat-sidebar.tsx
+#: ../chat-ui/src/sidebar/sidebar-rail.tsx
+msgid "Customize"
+msgstr "Customize"
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "Daily"
 msgstr "Daily"
@@ -1650,6 +1684,10 @@ msgstr "Description for {name}"
 #: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
 msgid "Desktop app only"
 msgstr "Desktop app only"
+
+#: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
+msgid "Details"
+msgstr "Details"
 
 #: ../../apps/web/app/dev/library/page.tsx
 msgid "Developer gallery"
@@ -1866,6 +1904,10 @@ msgstr "Dusk"
 #: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
 msgid "e.g. 1000000"
 msgstr "e.g. 1000000"
+
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
+msgid "Each person signs in"
+msgstr "Each person signs in"
 
 #: ../../apps/web/app/(app)/(pages)/dots/dot-profile.tsx
 #: ../../apps/web/app/(app)/(pages)/schedules/schedule-list.tsx
@@ -2233,15 +2275,21 @@ msgstr "Forward"
 msgid "From {0}"
 msgstr "From {0}"
 
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
+msgid "From a space"
+msgstr "From a space"
+
 #: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
 msgid "From others"
 msgstr "From others"
 
 #: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
 msgid "From your administrator"
 msgstr "From your administrator"
 
 #: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
 msgid "From your library"
 msgstr "From your library"
 
@@ -2425,6 +2473,10 @@ msgstr "In a library"
 msgid "In an empty message, the up and down arrows bring back what you sent before."
 msgstr "In an empty message, the up and down arrows bring back what you sent before."
 
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
+msgid "Information"
+msgstr "Information"
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "Informational"
 msgstr "Informational"
@@ -2462,9 +2514,17 @@ msgstr "Insert table"
 msgid "Inside"
 msgstr "Inside"
 
+#: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
+msgid "Installed"
+msgstr "Installed"
+
 #: ../library-ui/src/components/agent-form.tsx
 msgid "Instructions"
 msgstr "Instructions"
+
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
+msgid "Instructions a chat follows when you pick them. Open one to try it or change it."
+msgstr "Instructions a chat follows when you pick them. Open one to try it or change it."
 
 #: ../composer/src/components/target-picker.tsx
 msgid "Intelligence"
@@ -2514,6 +2574,11 @@ msgstr "It couldn't be saved. The handle may be taken by another of your Dots."
 #: ../library-ui/src/components/item-builder.tsx
 msgid "It may have been deleted, or it isn't shared with you."
 msgstr "It may have been deleted, or it isn't shared with you."
+
+#. placeholder {0}: parent.label
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
+msgid "It may have been removed, or it isn't available to you. <0>Back to {0}</0>"
+msgstr "It may have been removed, or it isn't available to you. <0>Back to {0}</0>"
 
 #: ../../apps/web/app/(app)/(pages)/schedules/schedule-editor.tsx
 msgid "It runs on its own, with nobody watching, and posts what it finds."
@@ -2765,6 +2830,10 @@ msgstr "Loading workspace"
 msgid "Loading…"
 msgstr "Loading…"
 
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
+msgid "Local (desktop app)"
+msgstr "Local (desktop app)"
+
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
 msgid "locale"
 msgstr "locale"
@@ -2804,6 +2873,11 @@ msgstr "Make your Dot"
 #: ../composer/src/components/target-picker.tsx
 msgid "Makes images"
 msgstr "Makes images"
+
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
+#: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
+msgid "Manage"
+msgstr "Manage"
 
 #: ../../apps/web/app/(app)/(pages)/dots/dot-profile.tsx
 msgid "Manage memory"
@@ -3202,6 +3276,10 @@ msgstr "New organisation"
 msgid "New scheduled task"
 msgstr "New scheduled task"
 
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
+msgid "New skill"
+msgstr "New skill"
+
 #: ../chat-ui/src/artifacts/diagram/diagram-view.tsx
 msgid "New step"
 msgstr "New step"
@@ -3269,6 +3347,7 @@ msgid "Next run: {when}"
 msgstr "Next run: {when}"
 
 #: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
 msgid "No {label} yet"
 msgstr "No {label} yet"
 
@@ -3395,6 +3474,10 @@ msgstr "No Shortcut"
 msgid "No skills shared here yet."
 msgstr "No skills shared here yet."
 
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
+msgid "No skills yet"
+msgstr "No skills yet"
+
 #: ../../apps/web/app/(app)/(pages)/space/space-home.tsx
 msgid "No spaces yet."
 msgstr "No spaces yet."
@@ -3439,6 +3522,10 @@ msgstr "Node label"
 msgid "None"
 msgstr "None"
 
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
+msgid "None needed"
+msgstr "None needed"
+
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "None yet"
 msgstr "None yet"
@@ -3450,6 +3537,10 @@ msgstr "Not a member"
 #: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
 msgid "Not available right now"
 msgstr "Not available right now"
+
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
+msgid "Not found"
+msgstr "Not found"
 
 #: ../chat-ui/src/workspace/file-view.tsx
 msgid "Not saved"
@@ -3499,6 +3590,10 @@ msgstr "Nothing has changed since the last version."
 msgid "Nothing here yet"
 msgstr "Nothing here yet"
 
+#: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
+msgid "Nothing installed yet."
+msgstr "Nothing installed yet."
+
 #: ../chat-ui/src/workspace/preview.tsx
 msgid "Nothing is running on port {port} yet. Ask the agent to start the app."
 msgstr "Nothing is running on port {port} yet. Ask the agent to start the app."
@@ -3506,6 +3601,10 @@ msgstr "Nothing is running on port {port} yet. Ask the agent to start the app."
 #: ../library-ui/src/components/library-index.tsx
 msgid "Nothing matches"
 msgstr "Nothing matches"
+
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
+msgid "Nothing matches that."
+msgstr "Nothing matches that."
 
 #: ../../apps/web/app/(app)/(pages)/schedules/schedules-screen.tsx
 #: ../composer/src/components/target-picker.tsx
@@ -3575,6 +3674,10 @@ msgstr "OAuth"
 msgid "Off"
 msgstr "Off"
 
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
+msgid "Off in new chats"
+msgstr "Off in new chats"
+
 #: ../chat-ui/src/artifacts/artifact-view.tsx
 #: ../chat-ui/src/artifacts/diagram/diagram-view.tsx
 #: ../chat-ui/src/artifacts/document/document-view.tsx
@@ -3582,9 +3685,14 @@ msgstr "Off"
 msgid "Older version"
 msgstr "Older version"
 
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
 #: ../composer/src/components/thinking-control.tsx
 msgid "On"
 msgstr "On"
+
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
+msgid "On in new chats"
+msgstr "On in new chats"
 
 #: ../chat-ui/src/conversation/schedule-text.tsx
 msgid "Once, {at}"
@@ -3741,6 +3849,10 @@ msgstr "Optional: tell the agent why"
 #: ../library-ui/src/components/publish-dialog.tsx
 msgid "Optional. Shown in the version history."
 msgstr "Optional. Shown in the version history."
+
+#: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
+msgid "Options for {name}"
+msgstr "Options for {name}"
 
 #: ../../apps/web/app/(auth)/_components/social-buttons.tsx
 msgid "or"
@@ -4447,6 +4559,7 @@ msgid "Requests"
 msgstr "Requests"
 
 #: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
 msgid "Required"
 msgstr "Required"
 
@@ -4770,6 +4883,10 @@ msgstr "Sea"
 msgid "Search"
 msgstr "Search"
 
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
+msgid "Search {label}"
+msgstr "Search {label}"
+
 #: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
 msgid "Search and commands"
 msgstr "Search and commands"
@@ -4814,6 +4931,10 @@ msgstr "Search or type a command…"
 #: ../../apps/web/app/(app)/(pages)/schedules/schedules-screen.tsx
 msgid "Search scheduled tasks"
 msgstr "Search scheduled tasks"
+
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
+msgid "Search skills"
+msgstr "Search skills"
 
 #: ../library-ui/src/components/library-index.tsx
 msgid "Search the library"
@@ -4896,6 +5017,10 @@ msgstr "Server config"
 #: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
 msgid "Server default"
 msgstr "Server default"
+
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
+msgid "Server-sent events"
+msgstr "Server-sent events"
 
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
 msgid "servers"
@@ -4985,6 +5110,7 @@ msgstr "Shared in {label}"
 msgid "Shared with me"
 msgstr "Shared with me"
 
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgid "Shared with you"
 msgstr "Shared with you"
@@ -5025,6 +5151,11 @@ msgstr "Show keyboard shortcuts"
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "Show less"
 msgstr "Show less"
+
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
+#: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
+msgid "Show me what the {name} skill can do."
+msgstr "Show me what the {name} skill can do."
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
@@ -5091,6 +5222,10 @@ msgstr "Sign in"
 msgid "Sign out"
 msgstr "Sign out"
 
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
+msgid "Sign-in"
+msgstr "Sign-in"
+
 #: ../../apps/web/app/(auth)/_components/auth-problem.tsx
 msgid "Sign-in isn't available on this server right now. An administrator needs to finish setting it up."
 msgstr "Sign-in isn't available on this server right now. An administrator needs to finish setting it up."
@@ -5133,6 +5268,8 @@ msgstr "SKILL.md is unchanged."
 msgid "skills"
 msgstr "skills"
 
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
+#: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
 #: ../../apps/web/app/(app)/(pages)/space/space-home.tsx
 #: ../composer/src/components/composer.tsx
 #: ../composer/src/components/plus-menu.tsx
@@ -5192,6 +5329,10 @@ msgstr "Sort by"
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "Sort chats"
 msgstr "Sort chats"
+
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
+msgid "Source"
+msgstr "Source"
 
 #: ../chat-ui/src/conversation/sources.tsx
 msgid "Sources"
@@ -5313,6 +5454,7 @@ msgid "Static render of {file}"
 msgstr "Static render of {file}"
 
 #: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
 msgid "Status"
 msgstr "Status"
 
@@ -5354,6 +5496,7 @@ msgstr "Stored encrypted and never shown again; only its last characters are."
 msgid "Stored encrypted and never shown again. Changing the URL or header name needs it typed again."
 msgstr "Stored encrypted and never shown again. Changing the URL or header name needs it typed again."
 
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "Streamable HTTP"
 msgstr "Streamable HTTP"
@@ -5527,6 +5670,7 @@ msgstr "That address answered, but it isn't a chat server."
 #: ../../apps/web/app/(app)/_shared/settings/profile-settings.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
 msgid "That change couldn't be saved. Try again."
 msgstr "That change couldn't be saved. Try again."
 
@@ -6083,6 +6227,7 @@ msgid "tools"
 msgstr "tools"
 
 #: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
 #: ../library-ui/src/components/agent-form.tsx
 msgid "Tools"
 msgstr "Tools"
@@ -6099,6 +6244,7 @@ msgstr "Top level"
 msgid "Transcript"
 msgstr "Transcript"
 
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "Transport"
 msgstr "Transport"
@@ -6115,6 +6261,11 @@ msgstr "Try again"
 #: ../library-ui/src/components/library-index.tsx
 msgid "Try another search or kind."
 msgstr "Try another search or kind."
+
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
+#: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
+msgid "Try now"
+msgstr "Try now"
 
 #: ../library-ui/src/components/test-chat.tsx
 msgid "Try the draft before you publish it."
@@ -6166,6 +6317,10 @@ msgstr "Unified"
 msgid "Unique on this server: lowercase letters, digits and dashes."
 msgstr "Unique on this server: lowercase letters, digits and dashes."
 
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
+msgid "Unknown"
+msgstr "Unknown"
+
 #: ../composer/src/components/target-picker.tsx
 msgid "Unknown agent"
 msgstr "Unknown agent"
@@ -6206,6 +6361,10 @@ msgstr "Untitled chat"
 #: ../chat-ui/src/conversation/schedule-text.tsx
 msgid "Update"
 msgstr "Update"
+
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
+msgid "Updated"
+msgstr "Updated"
 
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgid "Updated {when}"
@@ -6323,6 +6482,10 @@ msgstr "v{number} of {total}"
 #: ../library-ui/src/components/prompt-form.tsx
 msgid "Variables"
 msgstr "Variables"
+
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
+msgid "Version"
+msgstr "Version"
 
 #: ../../apps/web/app/(app)/_shared/settings/memory-settings.tsx
 msgid "Version {number}"
@@ -6490,6 +6653,11 @@ msgstr "What agents remember about you across chats."
 #: ../chat-ui/src/conversation/empty-state.tsx
 msgid "What can I help with?"
 msgstr "What can I help with?"
+
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
+#: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
+msgid "What can you help me with using {title}?"
+msgstr "What can you help me with using {title}?"
 
 #: ../library-ui/src/components/publish-dialog.tsx
 msgid "What changed"
@@ -6737,6 +6905,14 @@ msgstr "Your administrator doesn't allow adding {label}."
 msgid "Your administrator hasn't set up any {label}, and adding your own is turned off."
 msgstr "Your administrator hasn't set up any {label}, and adding your own is turned off."
 
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
+msgid "Your administrator hasn't set up any {label}."
+msgstr "Your administrator hasn't set up any {label}."
+
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
+msgid "Your administrator's catalog"
+msgstr "Your administrator's catalog"
+
 #: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
 msgid "Your allowance"
 msgstr "Your allowance"
@@ -6785,6 +6961,10 @@ msgstr "Your edits are saved as you go. Approve to build this plan."
 msgid "your library"
 msgstr "your library"
 
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
+msgid "Your library"
+msgstr "Your library"
+
 #: ../../apps/web/app/(app)/_shared/settings/memory-settings.tsx
 msgid "Your memory"
 msgstr "Your memory"
@@ -6801,11 +6981,13 @@ msgstr "Your own keys pay for your Personal chats, and for team or org chats whe
 msgid "Your primary Dot opens from the top of the sidebar."
 msgstr "Your primary Dot opens from the top of the sidebar."
 
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgid "Yours"
 msgstr "Yours"
 
 #: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
+#: ../../apps/web/app/(app)/(pages)/customize/customize-screen.tsx
 msgid "Yours and shared with you"
 msgstr "Yours and shared with you"
 
