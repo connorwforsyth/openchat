@@ -1,3 +1,5 @@
+import type { ConversationId } from "@workspace/contract/schemas/common";
+import type { Conversation } from "@workspace/contract/schemas/conversations";
 import type { Space } from "@workspace/contract/schemas/spaces";
 import {
   type ChatContext,
@@ -20,6 +22,18 @@ export const spaceForContext = (
     : spaces.find(
         (space) => space.type === context.type && space.id === context.id
       );
+
+/** Each chat's space by name, for its sidebar row; personal chats are absent. */
+export const spaceNamesByChat = (
+  chats: readonly Pick<Conversation, "context" | "id">[],
+  spaces: readonly Space[]
+): ReadonlyMap<ConversationId, string> =>
+  new Map(
+    chats.flatMap((chat) => {
+      const space = spaceForContext(spaces, chat.context);
+      return space && !space.isPersonal ? [[chat.id, space.name] as const] : [];
+    })
+  );
 
 /** The chat context a space stands for. */
 export const contextForSpace = (space: Space): ChatContext => {

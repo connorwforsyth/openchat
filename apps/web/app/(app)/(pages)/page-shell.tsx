@@ -32,7 +32,10 @@ import { useApi } from "@/app/(app)/_shared/api";
 import { canAdmin, useAppFrame } from "@/app/(app)/_shared/app-frame";
 import { Brand } from "@/app/(app)/_shared/brand";
 import { useShellPlatform } from "@/app/(app)/_shared/desktop";
-import { SpaceSwitcher } from "@/app/(app)/_shared/spaces/space-switcher";
+import {
+  SpaceSwitcher,
+  useSidebarSpaces,
+} from "@/app/(app)/_shared/spaces/space-switcher";
 import { useSidebarDots } from "@/app/(app)/(pages)/dots/sidebar-dots";
 import { RailPanelFor } from "@/app/(app)/(pages)/rail-panels";
 import { routes } from "@/lib/routes";
@@ -104,6 +107,7 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
     query.conversations.list.queryOptions({ input: SIDEBAR_LIST_INPUT })
   );
   const update = useConversationUpdate(query);
+  const spaces = useSidebarSpaces(chats.data?.items);
   const sidebarDots = useSidebarDots(null);
   const destination = railDestination(pathname);
   // With the rail on a wide screen, the panel follows it; classic, and the
@@ -202,6 +206,7 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
     dotsHref: routes.dots,
     libraryHref: routes.library,
     onSelect: selectChat,
+    spaces,
   };
 
   return (
