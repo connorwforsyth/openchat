@@ -4,13 +4,15 @@ import { BRAND_NAME } from "../support/brand";
 import { chatHeader, composer, composerReady } from "../support/chat";
 import { clickHydrated } from "../support/hydration";
 import {
-  LIBRARY_URL,
   SETTINGS_URL,
   SIGN_IN_FOR_LIBRARY_URL,
   SIGN_IN_URL,
 } from "../support/urls";
 import { signIn, storageStateFor, users } from "../support/users";
 
+const KEYS_URL = /\/settings\/keys$/;
+const HOME_URL = /\/$/;
+const LIBRARY_URL = /\/library$/;
 // The signed-in shell (039): sign-out and back in, sign-in at another
 // loopback name (054), a stale session cookie, the persisted query cache
 // (D28: gone after sign-out), the sidebar's collapsed state restored before
@@ -267,9 +269,17 @@ test.describe("shell", () => {
     await expect(chats).toBeVisible();
     await expect(page.getByRole("heading", { name: "Library" })).toBeVisible();
 
+    // Settings is a dialog over a page (185); its address loads it over the
+    // new chat.
     await page.goto("/settings/profile");
-    await expect(chats).toBeVisible();
-    await expect(page.getByText(users.ada.email)).toBeVisible();
+    const settings = page.getByRole("dialog", { name: "Settings" });
+    await expect(settings).toBeVisible();
+    await expect(settings.getByText(users.ada.email)).toBeVisible();
+    await settings.getByRole("button", { name: "Provider keys" }).click();
+    await expect(page).toHaveURL(KEYS_URL);
+    await page.keyboard.press("Escape");
+    await expect(settings).toBeHidden();
+    await expect(page).toHaveURL(HOME_URL);
 
     await page.goto("/admin");
     await expect(chats).toBeVisible();
@@ -294,5 +304,10 @@ test.describe("shell", () => {
     await page.getByPlaceholder("Search or type a command…").fill("settings");
     await page.getByRole("option", { name: "Open settings" }).click();
     await expect(page).toHaveURL(SETTINGS_URL);
+    // Over the page it was opened from; closing goes back to it.
+    await expect(page.getByRole("dialog", { name: "Settings" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Library" })).toBeAttached();
+    await page.keyboard.press("Escape");
+    await expect(page).toHaveURL(LIBRARY_URL);
   });
 });

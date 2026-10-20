@@ -451,9 +451,10 @@ export function ChatRoute({
     [router]
   );
   const openAdmin = useCallback(() => router.push(routes.admin), [router]);
+  const { openSettings: openSettingsDialog } = frame;
   const openSettings = useCallback(
-    () => router.push(routes.settings()),
-    [router]
+    () => openSettingsDialog(),
+    [openSettingsDialog]
   );
   const sandboxClient = useMemo(
     () =>
