@@ -5,16 +5,19 @@ import type { FileId, LibraryItemId } from "@workspace/contract/schemas/common";
 import type { AgentDefinition } from "@workspace/contract/schemas/library";
 import type { ModelOption } from "@workspace/contract/schemas/models";
 import type { SandboxProvider } from "@workspace/contract/schemas/sandbox";
-import { PaperclipIcon, PlusIcon, XIcon } from "@workspace/icons";
+import {
+  PaperclipIcon,
+  PlusIcon,
+  SparklesIcon,
+  ToolIcon,
+  XIcon,
+} from "@workspace/icons";
 import { Button } from "@workspace/ui/components/button";
-import { Checkbox } from "@workspace/ui/components/checkbox";
 import {
   Field,
   FieldDescription,
   FieldGroup,
   FieldLabel,
-  FieldLegend,
-  FieldSet,
 } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import {
@@ -25,14 +28,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@workspace/ui/components/select";
-import { type ChangeEvent, useCallback, useId } from "react";
+import { Switch } from "@workspace/ui/components/switch";
+import { type ChangeEvent, type ReactNode, useCallback, useId } from "react";
 
 import type { FormIssues } from "../form";
+import { EditorSection } from "./editor-shell";
 import { issueAt, TextAreaField } from "./fields";
 
-// The Agent Builder's form (D13, 010): instructions, model, tools, MCP
-// servers, skills, knowledge files, conversation starters and the sandbox
-// provider. Controlled and stateless: the builder owns the draft.
+// The Agent Builder's form (D13, 010, 192): instructions, conversation
+// starters, knowledge, capabilities, connections (MCP servers and skills),
+// then the model and sandbox, as titled sections in the order ChatGPT's GPT
+// builder uses. Controlled and stateless: the builder owns the draft.
 
 export interface Choice {
   readonly id: LibraryItemId;
@@ -87,6 +93,11 @@ export function AgentForm({
     bash: t`Run code in the sandbox`,
     file_search: t`Search knowledge files`,
     web_search: t`Search the web`,
+  };
+  const toolHints: Record<(typeof BUILTIN_TOOLS)[number], string> = {
+    bash: t`Write and run code, and load skills.`,
+    file_search: t`Look things up in the knowledge files.`,
+    web_search: t`Find current information online.`,
   };
   const modelItems = models.map((model) => ({
     label: model.label,
@@ -208,163 +219,46 @@ export function AgentForm({
   );
 
   return (
-    <FieldGroup>
-      <TextAreaField
-        className="min-h-48 font-mono text-sm"
+    <>
+      <EditorSection
         description={t`What the agent is for and how it should behave. People who can only use the agent never see this.`}
-        issue={issueAt(issues, "definition.instructions")}
-        label={t`Instructions`}
-        name="instructions"
-        onValueChange={setInstructions}
-        readOnly={readOnly}
-        value={value.instructions}
-      />
+        title={<Trans>Instructions</Trans>}
+      >
+        <TextAreaField
+          className="min-h-64 font-mono text-sm leading-relaxed"
+          issue={issueAt(issues, "definition.instructions")}
+          label={<span className="sr-only">{t`Instructions`}</span>}
+          name="instructions"
+          onValueChange={setInstructions}
+          placeholder={t`You help people… Always… Never…`}
+          readOnly={readOnly}
+          value={value.instructions}
+        />
+      </EditorSection>
 
-      <Field>
-        <FieldLabel htmlFor={modelId}>
-          <Trans>Model</Trans>
-        </FieldLabel>
-        <Select
-          disabled={readOnly}
-          items={modelItems}
-          onValueChange={setModel}
-          value={value.model}
-        >
-          <SelectTrigger className="w-full max-w-xs" id={modelId}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              {modelItems.map((item) => (
-                <SelectItem key={item.value} value={item.value}>
-                  {item.label}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-        <FieldDescription>
-          <Trans>An alias follows whatever the instance maps it to.</Trans>
-        </FieldDescription>
-      </Field>
-
-      <FieldSet>
-        <FieldLegend variant="label">
-          <Trans>Tools</Trans>
-        </FieldLegend>
-        {BUILTIN_TOOLS.map((tool) => (
-          <CheckRow
-            checked={value.tools.includes(tool)}
-            disabled={readOnly}
-            id={tool}
-            key={tool}
-            label={toolLabels[tool]}
-            onToggle={toggleTool}
-          />
-        ))}
-      </FieldSet>
-
-      <FieldSet>
-        <FieldLegend variant="label">
-          <Trans>MCP servers</Trans>
-        </FieldLegend>
-        {mcpServers.length === 0 ? (
-          <FieldDescription>
-            <Trans>Add an MCP server to your library to connect it here.</Trans>
-          </FieldDescription>
-        ) : (
-          mcpServers.map((server) => (
-            <CheckRow
-              checked={value.mcpServers.some((each) => each.id === server.id)}
-              disabled={readOnly}
-              id={server.id}
-              key={server.id}
-              label={server.name}
-              onToggle={toggleServer}
-            />
-          ))
-        )}
-      </FieldSet>
-
-      <FieldSet>
-        <FieldLegend variant="label">
-          <Trans>Skills</Trans>
-        </FieldLegend>
-        {skills.length === 0 ? (
-          <FieldDescription>
-            <Trans>Build a skill to load it into this agent's sandbox.</Trans>
-          </FieldDescription>
-        ) : (
-          skills.map((skill) => (
-            <CheckRow
-              checked={value.skills.some((each) => each.id === skill.id)}
-              disabled={readOnly}
-              id={skill.id}
-              key={skill.id}
-              label={skill.name}
-              onToggle={toggleSkill}
-            />
-          ))
-        )}
-      </FieldSet>
-
-      <FieldSet>
-        <FieldLegend variant="label">
-          <Trans>Knowledge files</Trans>
-        </FieldLegend>
-        <FieldDescription>
-          <Trans>
-            Searched with file search. Only people who can view the agent can
-            read them.
-          </Trans>
-        </FieldDescription>
-        {value.knowledgeFileIds.length > 0 ? (
-          <ul className="flex flex-col gap-1">
-            {value.knowledgeFileIds.map((id) => (
-              <KnowledgeRow
-                id={id}
-                key={id}
-                name={
-                  knowledgeFiles.find((file) => file.id === id)?.name ??
-                  t`Attached file`
-                }
-                onRemove={readOnly ? undefined : removeFile}
+      <EditorSection
+        description={t`Suggestions shown when a chat with the agent starts.`}
+        title={<Trans>Conversation starters</Trans>}
+      >
+        {value.conversationStarters.length > 0 ? (
+          <div className="flex flex-col gap-2">
+            {value.conversationStarters.map((starter, index) => (
+              <StarterRow
+                index={index}
+                invalid={Boolean(
+                  issueAt(issues, `definition.conversationStarters.${index}`)
+                )}
+                // Starters have no ids; position is their identity while editing.
+                // biome-ignore lint/suspicious/noArrayIndexKey: see above.
+                key={index}
+                onChange={setStarter}
+                onRemove={removeStarter}
+                readOnly={readOnly}
+                value={starter}
               />
             ))}
-          </ul>
+          </div>
         ) : null}
-        {onAddKnowledge && !readOnly ? (
-          <Button
-            className="self-start"
-            onClick={addFiles}
-            size="sm"
-            variant="outline"
-          >
-            <PlusIcon data-icon="inline-start" />
-            <Trans>Add files</Trans>
-          </Button>
-        ) : null}
-      </FieldSet>
-
-      <FieldSet>
-        <FieldLegend variant="label">
-          <Trans>Conversation starters</Trans>
-        </FieldLegend>
-        {value.conversationStarters.map((starter, index) => (
-          <StarterRow
-            index={index}
-            invalid={Boolean(
-              issueAt(issues, `definition.conversationStarters.${index}`)
-            )}
-            // Starters have no ids; position is their identity while editing.
-            // biome-ignore lint/suspicious/noArrayIndexKey: see above.
-            key={index}
-            onChange={setStarter}
-            onRemove={removeStarter}
-            readOnly={readOnly}
-            value={starter}
-          />
-        ))}
         {readOnly ||
         value.conversationStarters.length >= MAX_STARTERS ? null : (
           <Button
@@ -377,69 +271,252 @@ export function AgentForm({
             <Trans>Add a starter</Trans>
           </Button>
         )}
-      </FieldSet>
+      </EditorSection>
 
-      <Field>
-        <FieldLabel htmlFor={sandboxId}>
-          <Trans>Sandbox</Trans>
-        </FieldLabel>
-        <Select
-          disabled={readOnly}
-          items={sandboxItems}
-          onValueChange={setSandbox}
-          value={value.sandboxProvider ?? NO_SANDBOX}
-        >
-          <SelectTrigger className="w-full max-w-xs" id={sandboxId}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              {sandboxItems.map((item) => (
-                <SelectItem key={item.value} value={item.value}>
-                  {item.label}
-                </SelectItem>
+      <EditorSection
+        description={t`Searched with file search. Only people who can view the agent can read them.`}
+        title={<Trans>Knowledge</Trans>}
+      >
+        {value.knowledgeFileIds.length > 0 ? (
+          <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
+            {value.knowledgeFileIds.map((id) => (
+              <KnowledgeRow
+                id={id}
+                key={id}
+                name={
+                  knowledgeFiles.find((file) => file.id === id)?.name ??
+                  t`Attached file`
+                }
+                onRemove={readOnly ? undefined : removeFile}
+              />
+            ))}
+          </ul>
+        ) : (
+          <p className="rounded-lg border border-border border-dashed px-4 py-6 text-center text-muted-foreground text-sm">
+            <Trans>No files yet.</Trans>
+          </p>
+        )}
+        {onAddKnowledge && !readOnly ? (
+          <Button
+            className="self-start"
+            onClick={addFiles}
+            size="sm"
+            variant="outline"
+          >
+            <PlusIcon data-icon="inline-start" />
+            <Trans>Add files</Trans>
+          </Button>
+        ) : null}
+      </EditorSection>
+
+      <EditorSection
+        description={t`Built-in tools the agent may call.`}
+        title={<Trans>Capabilities</Trans>}
+      >
+        <ToggleList label={t`Capabilities`}>
+          {BUILTIN_TOOLS.map((tool) => (
+            <SwitchRow
+              checked={value.tools.includes(tool)}
+              description={toolHints[tool]}
+              disabled={readOnly}
+              id={tool}
+              key={tool}
+              label={toolLabels[tool]}
+              onToggle={toggleTool}
+            />
+          ))}
+        </ToggleList>
+      </EditorSection>
+
+      <EditorSection
+        description={t`MCP servers and skills from your library.`}
+        title={<Trans>Connections</Trans>}
+      >
+        <div className="flex flex-col gap-2">
+          <h3 className="font-medium text-muted-foreground text-xs">
+            <Trans>MCP servers</Trans>
+          </h3>
+          {mcpServers.length === 0 ? (
+            <p className="text-muted-foreground text-sm">
+              <Trans>
+                Add an MCP server to your library to connect it here.
+              </Trans>
+            </p>
+          ) : (
+            <ToggleList label={t`MCP servers`}>
+              {mcpServers.map((server) => (
+                <SwitchRow
+                  checked={value.mcpServers.some(
+                    (each) => each.id === server.id
+                  )}
+                  disabled={readOnly}
+                  icon={<ToolIcon />}
+                  id={server.id}
+                  key={server.id}
+                  label={server.name}
+                  onToggle={toggleServer}
+                />
               ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-        <FieldDescription>
-          <Trans>Where the agent runs code and loads its skills.</Trans>
-        </FieldDescription>
-      </Field>
-    </FieldGroup>
+            </ToggleList>
+          )}
+        </div>
+        <div className="flex flex-col gap-2">
+          <h3 className="font-medium text-muted-foreground text-xs">
+            <Trans>Skills</Trans>
+          </h3>
+          {skills.length === 0 ? (
+            <p className="text-muted-foreground text-sm">
+              <Trans>Build a skill to load it into this agent's sandbox.</Trans>
+            </p>
+          ) : (
+            <ToggleList label={t`Skills`}>
+              {skills.map((skill) => (
+                <SwitchRow
+                  checked={value.skills.some((each) => each.id === skill.id)}
+                  disabled={readOnly}
+                  icon={<SparklesIcon />}
+                  id={skill.id}
+                  key={skill.id}
+                  label={skill.name}
+                  onToggle={toggleSkill}
+                />
+              ))}
+            </ToggleList>
+          )}
+        </div>
+      </EditorSection>
+
+      <EditorSection title={<Trans>Model and runtime</Trans>}>
+        <FieldGroup className="gap-5 sm:flex-row">
+          <Field className="min-w-0 flex-1">
+            <FieldLabel htmlFor={modelId}>
+              <Trans>Model</Trans>
+            </FieldLabel>
+            <Select
+              disabled={readOnly}
+              items={modelItems}
+              onValueChange={setModel}
+              value={value.model}
+            >
+              <SelectTrigger className="w-full" id={modelId}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {modelItems.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            <FieldDescription>
+              <Trans>An alias follows whatever the instance maps it to.</Trans>
+            </FieldDescription>
+          </Field>
+          <Field className="min-w-0 flex-1">
+            <FieldLabel htmlFor={sandboxId}>
+              <Trans>Sandbox</Trans>
+            </FieldLabel>
+            <Select
+              disabled={readOnly}
+              items={sandboxItems}
+              onValueChange={setSandbox}
+              value={value.sandboxProvider ?? NO_SANDBOX}
+            >
+              <SelectTrigger className="w-full" id={sandboxId}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {sandboxItems.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            <FieldDescription>
+              <Trans>Where the agent runs code and loads its skills.</Trans>
+            </FieldDescription>
+          </Field>
+        </FieldGroup>
+      </EditorSection>
+    </>
   );
 }
 
-function CheckRow({
+/** A bordered list of switch rows, like settings. */
+function ToggleList({
+  children,
+  label,
+}: {
+  readonly children: ReactNode;
+  readonly label: string;
+}) {
+  return (
+    <ul
+      aria-label={label}
+      className="flex flex-col divide-y divide-border rounded-lg border border-border"
+    >
+      {children}
+    </ul>
+  );
+}
+
+function SwitchRow({
   checked,
+  description,
   disabled,
+  icon,
   id,
   label,
   onToggle,
 }: {
   readonly checked: boolean;
+  readonly description?: string;
   readonly disabled?: boolean;
+  readonly icon?: ReactNode;
   readonly id: string;
   readonly label: string;
   readonly onToggle: (id: string, on: boolean) => void;
 }) {
   const controlId = useId();
+  const hintId = useId();
   const handleChange = useCallback(
     (next: boolean) => onToggle(id, next),
     [id, onToggle]
   );
   return (
-    <Field orientation="horizontal">
-      <Checkbox
+    <li className="flex items-center gap-3 px-3 py-2.5">
+      {icon ? (
+        <span
+          aria-hidden
+          className="flex size-7 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground [&_svg]:size-3.5"
+        >
+          {icon}
+        </span>
+      ) : null}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <label className="truncate text-sm" htmlFor={controlId}>
+          {label}
+        </label>
+        {description ? (
+          <p className="text-muted-foreground text-xs" id={hintId}>
+            {description}
+          </p>
+        ) : null}
+      </div>
+      <Switch
+        aria-describedby={description ? hintId : undefined}
         checked={checked}
         disabled={disabled}
         id={controlId}
         onCheckedChange={handleChange}
       />
-      <FieldLabel className="font-normal" htmlFor={controlId}>
-        {label}
-      </FieldLabel>
-    </Field>
+    </li>
   );
 }
 
@@ -455,7 +532,7 @@ function KnowledgeRow({
   const { t } = useLingui();
   const remove = useCallback(() => onRemove?.(id), [id, onRemove]);
   return (
-    <li className="flex items-center gap-2 text-sm">
+    <li className="flex items-center gap-2 px-3 py-2 text-sm">
       <PaperclipIcon className="size-4 text-muted-foreground" />
       <span className="min-w-0 flex-1 truncate">{name}</span>
       {onRemove ? (

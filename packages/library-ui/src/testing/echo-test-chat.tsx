@@ -59,11 +59,12 @@ const useEchoSession = (instructions: string): TestChatSession => {
   };
 };
 
-export function EchoTestChat({ definition, dirty }: TestChatProps) {
+export function EchoTestChat({ definition, dirty, identity }: TestChatProps) {
   const session = useEchoSession(definition.instructions);
   return (
     <TestChatPanel
       definition={definition}
+      identity={identity}
       notice={
         dirty ? (
           <Trans>Testing what's on screen; save to keep it.</Trans>

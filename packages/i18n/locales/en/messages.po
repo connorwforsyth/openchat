@@ -90,6 +90,10 @@ msgstr "{count, plural, one {Wants to make an image} other {Wants to make # imag
 msgid "{deletions, plural, one {# line removed} other {# lines removed}}"
 msgstr "{deletions, plural, one {# line removed} other {# lines removed}}"
 
+#: ../library-ui/src/components/skill-form.tsx
+msgid "{descriptionLength} of {SKILL_DESCRIPTION_MAX} characters. Say what it does and when to use it."
+msgstr "{descriptionLength} of {SKILL_DESCRIPTION_MAX} characters. Say what it does and when to use it."
+
 #: ../composer/src/components/attachment-list.tsx
 msgid "{fileName} is larger than {limit}."
 msgstr "{fileName} is larger than {limit}."
@@ -193,6 +197,10 @@ msgstr "A React artifact needs a default export: a component or an element."
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "A secret is saved. It's never shown; type a new one to replace it."
 msgstr "A secret is saved. It's never shown; type a new one to replace it."
+
+#: ../library-ui/src/components/item-builder.tsx
+msgid "A short line people see in the library and the picker."
+msgstr "A short line people see in the library and the picker."
 
 #: ../chat-ui/src/artifacts/presentation-preview.tsx
 msgid "A slide in this deck failed to draw."
@@ -356,6 +364,10 @@ msgstr "Agents"
 #: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
 msgid "Agents propose memory edits as a diff for you to approve, instead of saving them right away."
 msgstr "Agents propose memory edits as a diff for you to approve, instead of saving them right away."
+
+#: ../library-ui/src/components/skill-form.tsx
+msgid "Agents read the name and description to decide when to load the skill, then follow its instructions."
+msgstr "Agents read the name and description to decide when to load the skill, then follow its instructions."
 
 #: ../library-ui/src/components/library-index.tsx
 msgid "Agents, prompts, skills and MCP servers: yours, shared with you, and published to your teams."
@@ -622,6 +634,10 @@ msgstr "Build a skill to load it into this agent's sandbox."
 msgid "Build an agent, prompt, skill or MCP server, or import one."
 msgstr "Build an agent, prompt, skill or MCP server, or import one."
 
+#: ../library-ui/src/components/agent-form.tsx
+msgid "Built-in tools the agent may call."
+msgstr "Built-in tools the agent may call."
+
 #: ../chat-ui/src/artifacts/document/document-toolbar.tsx
 msgid "Bulleted list"
 msgstr "Bulleted list"
@@ -666,6 +682,10 @@ msgstr "Cancel"
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 msgid "Cancel the invitation for {email}"
 msgstr "Cancel the invitation for {email}"
+
+#: ../library-ui/src/components/agent-form.tsx
+msgid "Capabilities"
+msgstr "Capabilities"
 
 #: ../chat-ui/src/artifacts/spreadsheet/spreadsheet-grid.tsx
 msgid "Cells of {sheetName}"
@@ -889,6 +909,10 @@ msgstr "Comment for the agent on change {number}"
 msgid "Composer"
 msgstr "Composer"
 
+#: ../library-ui/src/components/editor-shell.tsx
+msgid "Configure"
+msgstr "Configure"
+
 #: ../../apps/desktop/src/renderer/setup-screen.tsx
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "Connect"
@@ -906,9 +930,14 @@ msgstr "Connected · {count} tools"
 msgid "Connecting to port {port}…"
 msgstr "Connecting to port {port}…"
 
+#: ../library-ui/src/components/item-builder.tsx
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "Connection"
 msgstr "Connection"
+
+#: ../library-ui/src/components/agent-form.tsx
+msgid "Connections"
+msgstr "Connections"
 
 #: ../chat-ui/src/artifacts/spreadsheet/spreadsheet-view.tsx
 msgid "Contents of cell {address}"
@@ -1450,6 +1479,10 @@ msgstr "Draft a document"
 msgid "Draft a one-page project brief as a Markdown file: goal, scope, risks and next steps."
 msgstr "Draft a one-page project brief as a Markdown file: goal, scope, risks and next steps."
 
+#: ../library-ui/src/components/item-builder.tsx
+msgid "Draft saved"
+msgstr "Draft saved"
+
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Drop to add to the workspace"
 msgstr "Drop to add to the workspace"
@@ -1514,6 +1547,10 @@ msgstr "Editing {title}"
 #: ../chat-ui/src/header/share-menu.tsx
 msgid "Editor"
 msgstr "Editor"
+
+#: ../library-ui/src/components/editor-shell.tsx
+msgid "Editor view"
+msgstr "Editor view"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 #: ../../apps/web/app/(auth)/_components/sign-in-form.tsx
@@ -1630,6 +1667,10 @@ msgstr "Fast mode"
 msgid "Fast mode is on. Turn it off"
 msgstr "Fast mode is on. Turn it off"
 
+#: ../library-ui/src/components/skill-form.tsx
+msgid "Fields"
+msgstr "Fields"
+
 #: ../../apps/web/app/dev/code/demo.tsx
 msgid "File"
 msgstr "File"
@@ -1657,6 +1698,7 @@ msgstr "files"
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 #: ../code-ui/src/file-tree.tsx
 #: ../composer/src/components/composer.tsx
+#: ../library-ui/src/components/item-builder.tsx
 #: ../library-ui/src/components/skill-form.tsx
 msgid "Files"
 msgstr "Files"
@@ -1680,6 +1722,14 @@ msgstr "Fill in every field to insert the prompt."
 #: ../library-ui/src/components/prompt-form.tsx
 msgid "Fill in every variable to see the message."
 msgstr "Fill in every variable to see the message."
+
+#: ../library-ui/src/components/skill-form.tsx
+msgid "Fills in PDF forms. Use when someone shares a PDF form."
+msgstr "Fills in PDF forms. Use when someone shares a PDF form."
+
+#: ../library-ui/src/components/agent-form.tsx
+msgid "Find current information online."
+msgstr "Find current information online."
 
 #: ../chat-ui/src/artifacts/artifact-actions.tsx
 #: ../library-ui/src/components/share-dialog.tsx
@@ -1817,6 +1867,10 @@ msgstr "hotkeys"
 msgid "How the app looks on this device."
 msgstr "How the app looks on this device."
 
+#: ../library-ui/src/components/skill-form.tsx
+msgid "How to edit SKILL.md"
+msgstr "How to edit SKILL.md"
+
 #: ../../apps/desktop/src/renderer/setup-screen.tsx
 msgid "https://chat.example.com"
 msgstr "https://chat.example.com"
@@ -1896,6 +1950,7 @@ msgid "Inside"
 msgstr "Inside"
 
 #: ../library-ui/src/components/agent-form.tsx
+#: ../library-ui/src/components/skill-form.tsx
 msgid "Instructions"
 msgstr "Instructions"
 
@@ -2026,8 +2081,8 @@ msgid "Kind: {current}"
 msgstr "Kind: {current}"
 
 #: ../library-ui/src/components/agent-form.tsx
-msgid "Knowledge files"
-msgstr "Knowledge files"
+msgid "Knowledge"
+msgstr "Knowledge"
 
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "Label"
@@ -2160,6 +2215,10 @@ msgstr "Locked by server config"
 msgid "Look first, change nothing"
 msgstr "Look first, change nothing"
 
+#: ../library-ui/src/components/agent-form.tsx
+msgid "Look things up in the knowledge files."
+msgstr "Look things up in the knowledge files."
+
 #: ../composer/src/components/thinking-control.tsx
 msgid "Low"
 msgstr "Low"
@@ -2167,6 +2226,10 @@ msgstr "Low"
 #: ../library-ui/src/components/prompt-form.tsx
 msgid "Lowercase letters, digits and dashes. Type / and this in the composer to use it."
 msgstr "Lowercase letters, digits and dashes. Type / and this in the composer to use it."
+
+#: ../library-ui/src/components/skill-form.tsx
+msgid "Lowercase words joined by hyphens, up to {SKILL_NAME_MAX} characters."
+msgstr "Lowercase words joined by hyphens, up to {SKILL_NAME_MAX} characters."
 
 #: ../library-ui/src/components/badges.tsx
 msgid "Maintainer"
@@ -2227,6 +2290,10 @@ msgstr "MCP server"
 #: ../library-ui/src/components/kind.tsx
 msgid "MCP servers"
 msgstr "MCP servers"
+
+#: ../library-ui/src/components/agent-form.tsx
+msgid "MCP servers and skills from your library."
+msgstr "MCP servers and skills from your library."
 
 #: ../composer/src/components/thinking-control.tsx
 msgid "Medium"
@@ -2335,6 +2402,10 @@ msgstr "model"
 msgid "Model"
 msgstr "Model"
 
+#: ../library-ui/src/components/agent-form.tsx
+msgid "Model and runtime"
+msgstr "Model and runtime"
+
 #: ../composer/src/components/target-picker.tsx
 msgid "Model or agent: {label}"
 msgstr "Model or agent: {label}"
@@ -2423,6 +2494,11 @@ msgstr "New"
 msgctxt "artifact kind badge"
 msgid "New"
 msgstr "New"
+
+#. placeholder {0}: labels[kind]
+#: ../library-ui/src/components/item-builder.tsx
+msgid "New {0}"
+msgstr "New {0}"
 
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
 #: ../chat-ui/src/artifacts/artifact-actions.tsx
@@ -2528,6 +2604,10 @@ msgstr "No chats yet. Start one and it shows up here."
 msgid "No files yet"
 msgstr "No files yet"
 
+#: ../library-ui/src/components/agent-form.tsx
+msgid "No files yet."
+msgstr "No files yet."
+
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "No files yet. Ask for one, drop a file here, or type /new-file"
 msgstr "No files yet. Ask for one, drop a file here, or type /new-file"
@@ -2605,6 +2685,10 @@ msgstr "None"
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "None yet"
 msgstr "None yet"
+
+#: ../library-ui/src/components/item-builder.tsx
+msgid "Not created yet"
+msgstr "Not created yet"
 
 #: ../chat-ui/src/workspace/file-view.tsx
 msgid "Not saved"
@@ -2710,6 +2794,10 @@ msgstr "Older version"
 #: ../composer/src/components/thinking-control.tsx
 msgid "On"
 msgstr "On"
+
+#: ../library-ui/src/components/skill-form.tsx
+msgid "Only {SKILL_MD} so far."
+msgstr "Only {SKILL_MD} so far."
 
 #: ../chat-ui/src/workspace/preview.tsx
 msgid "Only pages in this preview can open here."
@@ -3051,6 +3139,7 @@ msgstr "preview"
 #: ../chat-ui/src/workspace/mode-toggle.tsx
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 #: ../composer/src/components/suggestion-menu.tsx
+#: ../library-ui/src/components/item-builder.tsx
 #: ../library-ui/src/components/prompt-form.tsx
 msgid "Preview"
 msgstr "Preview"
@@ -3874,12 +3963,17 @@ msgid "site (the whole workspace if empty)"
 msgstr "site (the whole workspace if empty)"
 
 #: ../library-ui/src/components/kind.tsx
+#: ../library-ui/src/components/skill-form.tsx
 msgid "Skill"
 msgstr "Skill"
 
 #: ../library-ui/src/components/skill-form.tsx
 msgid "Skill files"
 msgstr "Skill files"
+
+#: ../library-ui/src/components/skill-form.tsx
+msgid "Skill name"
+msgstr "Skill name"
 
 #: ../chat-ui/src/conversation/skill-card.tsx
 msgid "Skill: {name}"
@@ -4016,6 +4110,10 @@ msgstr "Static render of {file}"
 msgid "Status unavailable"
 msgstr "Status unavailable"
 
+#: ../library-ui/src/components/skill-form.tsx
+msgid "Step by step, what the agent should do. Refer to bundled files by path."
+msgstr "Step by step, what the agent should do. Refer to bundled files by path."
+
 #: ../chat-ui/src/conversation/message-row.tsx
 msgid "Still working on this answer…"
 msgstr "Still working on this answer…"
@@ -4060,6 +4158,10 @@ msgstr "Submit review"
 #: ../chat-ui/src/conversation/empty-state.tsx
 msgid "Suggestions"
 msgstr "Suggestions"
+
+#: ../library-ui/src/components/agent-form.tsx
+msgid "Suggestions shown when a chat with the agent starts."
+msgstr "Suggestions shown when a chat with the agent starts."
 
 #: ../ui/src/components/markdown.tsx
 msgid "SVG"
@@ -4535,6 +4637,10 @@ msgstr "This file can't be shown here."
 msgid "This file changed since you opened it. Reload to see the new version, or overwrite it with yours."
 msgstr "This file changed since you opened it. Reload to see the new version, or overwrite it with yours."
 
+#: ../library-ui/src/components/skill-form.tsx
+msgid "This frontmatter spans several lines, so it's edited as the file."
+msgstr "This frontmatter spans several lines, so it's edited as the file."
+
 #: ../../apps/web/app/(auth)/_components/accept-invite.tsx
 msgid "This invitation has expired, was cancelled or was already used."
 msgstr "This invitation has expired, was cancelled or was already used."
@@ -4652,10 +4758,6 @@ msgstr "Too many attempts. Wait a few seconds and try again."
 msgid "Tool use"
 msgstr "Tool use"
 
-#: ../library-ui/src/components/agent-form.tsx
-msgid "Tools"
-msgstr "Tools"
-
 #: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
 msgid "Top level"
 msgstr "Top level"
@@ -4755,6 +4857,10 @@ msgstr "Use"
 #: ../library-ui/src/components/prompt-form.tsx
 msgid "Use {example} for a value people fill in when they use the prompt."
 msgstr "Use {example} for a value people fill in when they use the prompt."
+
+#: ../library-ui/src/components/skill-form.tsx
+msgid "Use {suggested}"
+msgstr "Use {suggested}"
 
 #: ../chat-ui/src/artifacts/artifact-actions.tsx
 msgid "Use {title} in a chat"
@@ -5010,6 +5116,10 @@ msgstr "When someone shares an item with you or your team, it shows up here."
 msgid "When spent"
 msgstr "When spent"
 
+#: ../library-ui/src/components/skill-form.tsx
+msgid "When to use it"
+msgstr "When to use it"
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "Where members of this org may hold chats. The context decides whose keys pay and where usage counts."
 msgstr "Where members of this org may hold chats. The context decides whose keys pay and where usage counts."
@@ -5082,6 +5192,10 @@ msgstr "Would send “{submitted}”."
 msgid "Write a small TypeScript function that groups a list of dates by ISO week, with a couple of tests."
 msgstr "Write a small TypeScript function that groups a list of dates by ISO week, with a couple of tests."
 
+#: ../library-ui/src/components/agent-form.tsx
+msgid "Write and run code, and load skills."
+msgstr "Write and run code, and load skills."
+
 #: ../chat-ui/src/conversation/empty-state.tsx
 msgid "Write some code"
 msgstr "Write some code"
@@ -5122,6 +5236,10 @@ msgstr "You edited it"
 #: ../library-ui/src/components/publish-dialog.tsx
 msgid "You have unsaved changes. Save the draft first to publish them."
 msgstr "You have unsaved changes. Save the draft first to publish them."
+
+#: ../library-ui/src/components/agent-form.tsx
+msgid "You help people… Always… Never…"
+msgstr "You help people… Always… Never…"
 
 #: ../../apps/web/app/(app)/_shared/new-org-dialog.tsx
 msgid "You'll be its owner. Next, add teams and invite people."

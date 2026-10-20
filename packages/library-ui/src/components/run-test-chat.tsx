@@ -7,6 +7,8 @@ import type { RunTarget } from "@workspace/contract/schemas/runs";
 import { Badge } from "@workspace/ui/components/badge";
 import { useEffect, useRef, useState } from "react";
 
+import { KindTile } from "./kind";
+
 import {
   type TestChatComponent,
   type TestChatDraft,
@@ -125,6 +127,7 @@ function DraftTestChat({
   definition,
   dirty,
   draft,
+  identity,
 }: Omit<TestChatProps, "draft"> & {
   readonly client: RunClient;
   readonly draft: TestChatDraft;
@@ -143,6 +146,7 @@ function DraftTestChat({
         </Badge>
       }
       definition={definition}
+      identity={identity}
       notice={
         dirty ? (
           <Trans>
@@ -160,9 +164,18 @@ export const createRunTestChat = (client: RunClient): TestChatComponent =>
   function RunTestChat({ draft, ...props }: TestChatProps) {
     if (!draft) {
       return (
-        <p className="text-muted-foreground text-sm">
-          <Trans>Create the agent to try it in a test chat.</Trans>
-        </p>
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
+          <KindTile
+            className="size-14 rounded-xl [&_svg]:size-6"
+            kind="agent"
+          />
+          {props.identity?.name ? (
+            <p className="font-medium text-lg">{props.identity.name}</p>
+          ) : null}
+          <p className="max-w-xs text-pretty text-muted-foreground text-sm">
+            <Trans>Create the agent to try it in a test chat.</Trans>
+          </p>
+        </div>
       );
     }
     // Keyed by item so opening another agent starts a fresh chat.

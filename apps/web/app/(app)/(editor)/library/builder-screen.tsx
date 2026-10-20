@@ -13,11 +13,9 @@ import {
 import { createRunTestChat } from "@workspace/library-ui/components/run-test-chat";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
-
+import { NextLink } from "@/app/(app)/(pages)/library/next-link";
+import { useApiClient } from "@/app/(app)/(pages)/library/providers";
 import { routes } from "@/lib/routes";
-
-import { NextLink } from "./next-link";
-import { useApiClient } from "./providers";
 
 // Pins (D13) have no server field yet, so they're a per-browser choice kept
 // in localStorage; storage can be missing or refuse, and then pins just

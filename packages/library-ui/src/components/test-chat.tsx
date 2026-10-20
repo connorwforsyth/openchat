@@ -28,6 +28,8 @@ import {
 import type { UIMessage } from "ai";
 import { type ComponentType, memo, type ReactNode, useCallback } from "react";
 
+import { KindTile } from "./kind";
+
 // The builder's live test chat (010): the real composer over a small
 // message list. It doesn't depend on the chat UI package; where the answers
 // come from is a `TestChatSession` the page provides (runs against the
@@ -61,6 +63,13 @@ export interface TestChatProps {
   readonly dirty: boolean;
   /** `null` until the agent has been created (or for someone who can't edit it). */
   readonly draft: TestChatDraft | null;
+  /** The name and description on screen, to greet the tester with. */
+  readonly identity?: TestChatIdentity;
+}
+
+export interface TestChatIdentity {
+  readonly description: string;
+  readonly name: string;
 }
 
 /** How the page plugs a session in: a hook-backed component per builder. */
@@ -112,6 +121,7 @@ export interface TestChatPanelProps {
   /** Beside the heading, like what the test runs against. */
   readonly badge?: ReactNode;
   readonly definition: AgentDefinition;
+  readonly identity?: TestChatIdentity;
   /** A note above the chat. */
   readonly notice?: ReactNode;
   readonly session: TestChatSession;
@@ -120,6 +130,7 @@ export interface TestChatPanelProps {
 export function TestChatPanel({
   badge,
   definition,
+  identity,
   notice,
   session,
 }: TestChatPanelProps) {
@@ -170,6 +181,18 @@ export function TestChatPanel({
             <MessageScrollerContent className="p-4">
               {session.messages.length === 0 ? (
                 <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
+                  <KindTile
+                    className="size-14 rounded-xl [&_svg]:size-6"
+                    kind="agent"
+                  />
+                  {identity?.name ? (
+                    <p className="font-medium text-lg">{identity.name}</p>
+                  ) : null}
+                  {identity?.description ? (
+                    <p className="max-w-sm text-pretty text-muted-foreground text-sm">
+                      {identity.description}
+                    </p>
+                  ) : null}
                   <p className="text-muted-foreground text-sm">
                     <Trans>Try the draft before you publish it.</Trans>
                   </p>
