@@ -4,7 +4,7 @@ import { and, eq, ne } from "drizzle-orm";
 
 import type { Db } from "../client";
 import { type NotFoundError, notFound } from "../errors";
-import { mcpOauthToken, mcpServer } from "../schema/library";
+import { mcpConnectorPref, mcpOauthToken, mcpServer } from "../schema/library";
 import type { McpServerRow } from "./library";
 
 // MCP connection state (ticket 018, D13, D24). Saved servers are written by
@@ -105,3 +105,38 @@ export const listMcpOauthTokensToReseal = (
   currentKeyId: string
 ): Promise<McpOauthTokenRow[]> =>
   db.select().from(mcpOauthToken).where(ne(mcpOauthToken.keyId, currentKeyId));
+
+// --- Connector choices (184): each user's on/off per server ---
+
+/** The user's stored on/off choices, by server id. */
+export const listConnectorPrefs = async (
+  db: Db,
+  userId: UserId
+): Promise<ReadonlyMap<LibraryItemId, boolean>> => {
+  const rows = await db
+    .select({
+      enabled: mcpConnectorPref.enabled,
+      mcpServerId: mcpConnectorPref.mcpServerId,
+    })
+    .from(mcpConnectorPref)
+    .where(eq(mcpConnectorPref.userId, userId));
+  return new Map(rows.map((row) => [row.mcpServerId, row.enabled]));
+};
+
+/** Stores the user's choice for one server, replacing any earlier one. */
+export const setConnectorPref = async (
+  db: Db,
+  input: {
+    readonly enabled: boolean;
+    readonly mcpServerId: LibraryItemId;
+    readonly userId: UserId;
+  }
+): Promise<void> => {
+  await db
+    .insert(mcpConnectorPref)
+    .values(input)
+    .onConflictDoUpdate({
+      set: { enabled: input.enabled, updatedAt: new Date() },
+      target: [mcpConnectorPref.userId, mcpConnectorPref.mcpServerId],
+    });
+};

@@ -35,6 +35,7 @@ const fakeHistory = (path: string, state: unknown = null) => {
 describe("settingsRouteFromPath", () => {
   it("reads the section from the address", () => {
     expect(settingsRouteFromPath("/settings/keys")).toBe("keys");
+    expect(settingsRouteFromPath("/settings/connectors")).toBe("connectors");
     expect(settingsRouteFromPath("/settings/appearance/")).toBe("appearance");
     expect(settingsRouteFromPath("/settings")).toBe("index");
   });

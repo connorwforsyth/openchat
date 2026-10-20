@@ -11,6 +11,7 @@ import type {
 import type { Db } from "@workspace/db/client";
 import { getReadableFile } from "@workspace/db/queries/files";
 import type { SkillFileEntry } from "@workspace/db/queries/library-items";
+import { checkUserServer } from "@workspace/mcp/connectors";
 import {
   MCP_HEADER_SECRET_AAD,
   type SealedSecret,
@@ -243,6 +244,12 @@ export const prepareDefinition = async (
     case "skill":
       return await prepareSkill(deps, caller, input, previous);
     case "mcp_server": {
+      const allowed = deps.userServers
+        ? checkUserServer(deps.userServers, input)
+        : ok(undefined);
+      if (!allowed.ok) {
+        return err(invalid(allowed.error.message, ["definition", "url"]));
+      }
       const secret = secretChange(deps, input, previous);
       if ("error" in secret) {
         return err(secret.error);

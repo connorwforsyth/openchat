@@ -1,6 +1,7 @@
 import { oc } from "@orpc/contract";
 
 import { feedback, keys, me, memory, meta } from "./routes/account";
+import { connectors } from "./routes/connectors";
 import { conversations } from "./routes/conversations";
 import { dots } from "./routes/dots";
 import { artifacts, files } from "./routes/files";
@@ -21,6 +22,7 @@ import { orgs, teams } from "./routes/tenancy";
 
 export const contract = {
   artifacts: oc.tag("Artifacts").router(artifacts),
+  connectors: oc.tag("Connectors").router(connectors),
   conversations: oc.tag("Conversations").router(conversations),
   decisions: oc.tag("Admin").router(decisions),
   dots: oc.tag("Dots").router(dots),

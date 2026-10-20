@@ -65,6 +65,15 @@ const useSettingsEntries = (): readonly PaletteAction[] => {
         go("keys")
       ),
       paletteAction(
+        {
+          id: "settings:connectors",
+          keywords: [t`MCP`, t`servers`, t`tools`],
+          section: "settings",
+          title: t`Connectors`,
+        },
+        go("connectors")
+      ),
+      paletteAction(
         { id: "settings:memory", section: "settings", title: t`Memory` },
         go("memory")
       ),

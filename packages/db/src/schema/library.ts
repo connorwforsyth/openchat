@@ -9,6 +9,7 @@ import type { Id } from "@workspace/shared/ids";
 import { sql } from "drizzle-orm";
 import {
   type AnyPgColumn,
+  boolean,
   check,
   index,
   integer,
@@ -214,7 +215,12 @@ export const mcpServer = pgTable(
   ]
 );
 
-/** A user's OAuth tokens for an MCP server; each user authorises for themselves. */
+/**
+ * A user's OAuth tokens for an MCP server; each user authorises for
+ * themselves. `mcpServerId` is a library server or an instance server from
+ * app.config.yaml (184), which has no row, so it isn't a foreign key:
+ * deleting a library server deletes its tokens explicitly.
+ */
 export const mcpOauthToken = pgTable(
   "mcp_oauth_token",
   {
@@ -222,15 +228,31 @@ export const mcpOauthToken = pgTable(
     createdAt: createdAt(),
     expiresAt: instant("expires_at"),
     keyId: text("key_id").notNull(),
-    mcpServerId: idRef("mcp_server_id", "libraryItem")
-      .notNull()
-      .references(() => mcpServer.id, { onDelete: "cascade" }),
+    mcpServerId: idRef("mcp_server_id", "libraryItem").notNull(),
     updatedAt: updatedAt(),
     userId: idRef("user_id", "user")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
   },
   (t) => [primaryKey({ columns: [t.mcpServerId, t.userId] })]
+);
+
+/**
+ * A user's on/off choice for one connector (184): an instance server or a
+ * library server. No row means the operator's default (instance) or on
+ * (library). Not a foreign key, for the same reason as `mcp_oauth_token`.
+ */
+export const mcpConnectorPref = pgTable(
+  "mcp_connector_pref",
+  {
+    enabled: boolean("enabled").notNull(),
+    mcpServerId: idRef("mcp_server_id", "libraryItem").notNull(),
+    updatedAt: updatedAt(),
+    userId: idRef("user_id", "user")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.mcpServerId] })]
 );
 
 /** Model, parameters and instructions. */

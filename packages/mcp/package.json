@@ -5,6 +5,8 @@
   "sideEffects": false,
   "type": "module",
   "exports": {
+    "./connector-service": "./src/connector-service.ts",
+    "./connectors": "./src/connectors.ts",
     "./create": "./src/create.ts",
     "./crypto": "./src/crypto.ts",
     "./errors": "./src/errors.ts",

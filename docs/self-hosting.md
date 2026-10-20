@@ -415,6 +415,53 @@ features:
 lets them preview a fixture site on loopback). Don't set it: it's ignored in
 production unless the instance itself is served from loopback.
 
+### Configuring connectors for your fork
+
+Connectors are MCP servers whose tools chats can use. You decide which ones
+every user gets in the `mcp` block of `app.config.yaml`; each user then
+turns them on or off in **Settings > Connectors**, connects the ones that
+need their own sign-in, and adds servers of their own if you allow it.
+
+```yaml
+mcp:
+  servers:
+    - name: docs                        # tool prefix the model sees: docs__…
+      title: Company docs
+      url: https://mcp.example.com/mcp
+      headers: { Authorization: "${DOCS_MCP_AUTHORIZATION}" }
+    - name: tracker                     # each user signs in for themselves
+      url: https://mcp.tracker.example.com/mcp
+      auth: { type: oauth, scopes: [read] }
+      default: off
+    - name: audit
+      url: https://audit.internal/mcp
+      default: required                 # always on; users see it locked
+      reason: Required by IT for compliance
+  userServers:
+    allowed: true                       # false hides "Add your own"
+    transports: [http, sse]
+    hosts: ["*.example.com"]            # empty: any public host
+```
+
+How a user's list is worked out (`effectiveConnectors` in `packages/mcp`):
+
+- `default: on` (the default) or `off` is where a server starts; the user's
+  own choice wins over it.
+- `default: required` is always on, for everyone, and the toggle is locked
+  with your `reason`.
+- `allowUserOverride: false` fixes a server at its `default` (locked too).
+- Servers in a user's MCP Library (theirs, or shared with them) follow, on
+  until they turn them off.
+- A server that's off is left out of every chat, agent chats included.
+
+Secrets belong in the environment, referenced as `${NAME}`; never write them
+in the file. If a referenced variable is unset, only that server shows
+"needs setup" and boot carries on. `tools: { allow, deny }` limits which of
+a server's tools are offered. `transport: stdio` entries (`command`,
+`args`, `env`) run in the desktop app only; the web app lists them as such.
+Servers you configure may reach your private network; servers users add may
+not. Changes apply on restart. `app.config.example.yaml` has more examples.
+
 ### Icon set
 
 The icon set is compiled in, so it's read at build time, from the `icons`

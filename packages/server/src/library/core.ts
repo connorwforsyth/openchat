@@ -11,6 +11,7 @@ import type {
   LibraryItem,
   LibraryItemDetail,
   LibraryKind,
+  UserServerPolicy,
 } from "@workspace/contract/schemas/library";
 import type { ModelSelector } from "@workspace/contract/schemas/models";
 import type {
@@ -86,6 +87,8 @@ export interface LibraryDeps {
   readonly keys: Result<KeyRing, CryptoError>;
   readonly now?: () => Date;
   readonly publishGate?: PublishGateCheck;
+  /** The operator's `mcp.userServers` (184); omitted means any http/sse server. */
+  readonly userServers?: UserServerPolicy;
 }
 
 export const isVersionedKind = (kind: LibraryKind): kind is VersionedKind =>

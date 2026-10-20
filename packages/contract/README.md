@@ -99,7 +99,7 @@ Schemas, by file:
 | `link-preview` | `LinkPreview` and the image route's input; the raster types it serves. |
 | `sandbox`, `search`, `meta`, `models` | Sandbox records, exec shapes and workspace file writes; chat search and web search results; `me`, public config, model refs and picker options. |
 
-Procedure groups: `conversations`, `messages`, `runs`, `library`, `mcp`,
+Procedure groups: `conversations`, `messages`, `runs`, `library`, `mcp`, `connectors`,
 `orgs`, `teams`, `grants`, `shareLinks`, `files`, `artifacts`, `memory`,
 `feedback`, `keys`, `usage`, `sandbox`, `search`, `decisions`, `me`, `meta`,
 `linkPreviews`.
