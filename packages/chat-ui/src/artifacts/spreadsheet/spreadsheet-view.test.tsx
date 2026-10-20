@@ -7,7 +7,7 @@ import type {
   ArtifactVersion,
 } from "@workspace/contract/schemas/files";
 import type { ReactNode } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 
 import { renderWithI18n } from "../../testing/render";
@@ -19,6 +19,12 @@ import { gridTheme, readGridTokens, toHex } from "./theme";
 // theme's tokens, a formula bar for the selected cell, a person's edit
 // checked by the kind's rules and saved as a version after a pause, and
 // read only for a viewer and for an older version.
+
+// The grid's chunk, warmed under hookTimeout (ticket 037). On a fresh, busy
+// Vite server its first load took 2 to 5.5 s, inside the first test's wait.
+beforeAll(async () => {
+  await import("./spreadsheet-grid");
+});
 
 afterEach(cleanup);
 
