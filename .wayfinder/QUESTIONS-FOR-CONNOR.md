@@ -139,3 +139,8 @@ Ticket [187](tickets/187-spaces.md). Resolved AFK from D17 so the demo could be 
 6. **Per-key usage** ([193](tickets/193-per-key-usage.md)): attributed when usage is recorded, to the newest key of the paying scope and provider. Earlier usage shows as "Unattributed". *Default: keep.*
 7. **Sub-space members must already be in the root space** (as teams are today). Inviting someone straight into a sub-space would invite them to the root too. *Default: keep.*
 8. **Contract** ([187a](tickets/187a-contract-spaces.md)): the additive `spaces` group awaits your approval (draft PR).
+
+## Dots guards (review fixes for #141), defaults applied
+
+1. **How long does a one-off wait for a busy chat?** A one-off has no next slot to give way to, so it now waits on a busy chat (a run in flight or awaiting approval) for an hour from its time, then is skipped as `busy` and completes. A recurring slot still waits until the next one. *Default: an hour.*
+2. **Should a schedule whose run can't start pause itself?** A failed start (no model, a revoked agent or share) is now kept in the history as `failed`, but it doesn't count toward the three-failures auto-pause, and the history shows no reason. *Default: leave it; a follow-up can count failed starts and show the reason.*
