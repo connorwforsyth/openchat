@@ -9,7 +9,7 @@ import type {
   ComputerHolder,
   ComputerView,
 } from "@workspace/server/dots/computer-view";
-import { type AsyncResult, ok } from "@workspace/shared/result";
+import { type AsyncResult, err, ok } from "@workspace/shared/result";
 import { type Tool, tool } from "ai";
 
 import type { DockerSandboxFactory } from "../docker/client";
@@ -195,7 +195,16 @@ export const createComputers = ({
       const ran = await sandbox.value.exec(controlCommand(holder), {
         timeoutMs: 5000,
       });
-      return ran.ok ? view(conversationId) : ran;
+      if (!ran.ok) {
+        return ran;
+      }
+      if (ran.value.exitCode !== 0) {
+        return err({
+          message: `the screen's input couldn't be switched (exit ${ran.value.exitCode})`,
+          type: "unavailable",
+        });
+      }
+      return view(conversationId);
     },
     tools: (conversationId) => ({
       computer: computerTool((input, signal) =>

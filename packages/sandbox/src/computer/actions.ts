@@ -199,16 +199,20 @@ export const computerCommand = (action: ComputerAction): string => {
     .join(" && ");
 };
 
+const VNC_RUNNING = "if pgrep -x x11vnc >/dev/null; then";
+
 /**
  * Hands control to the person (`user`) or back to the agent, and switches
- * the VNC server's input on or off to match, so no viewer can drive the
- * desktop while the agent has it. The flag goes first: a VNC server that
- * restarts reads it (`desktop-session`). Pure.
+ * the VNC server's input on or off to match. The agent stands down on the
+ * flag, so the flag is set before input turns on and cleared only once it's
+ * off. A VNC server that isn't running reads the flag when it restarts
+ * (`desktop-session`); one that is running and won't switch fails the
+ * command. Pure.
  */
 export const controlCommand = (holder: ComputerHolder): string =>
   holder === "user"
-    ? `touch ${CONTROL_FLAG} && x11vnc -sync -R noviewonly`
-    : `rm -f ${CONTROL_FLAG} && x11vnc -sync -R viewonly`;
+    ? `touch ${CONTROL_FLAG} && ${VNC_RUNNING} x11vnc -sync -R noviewonly; fi`
+    : `${VNC_RUNNING} x11vnc -sync -R viewonly; fi && rm -f ${CONTROL_FLAG}`;
 
 /** Prints who has control: `user` or `agent`. */
 export const CONTROL_STATUS_COMMAND = `if [ -e ${CONTROL_FLAG} ]; then echo user; else echo agent; fi`;
