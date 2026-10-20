@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { requestLocale } from "@/lib/i18n";
 import { getPublicConfig } from "@/lib/public-config";
 import { routes } from "@/lib/routes";
-import { getViewer } from "@/lib/server-session";
+import { getViewer, getViewerSettings } from "@/lib/server-session";
 import { getTerms } from "@/lib/terms";
 
 import { AppFrame } from "./_shared/app-frame";
@@ -28,9 +28,10 @@ export default async function SignedInLayout({
 }) {
   const locale = await requestLocale();
   initLingui(locale);
-  const [config, viewer, terms] = await Promise.all([
+  const [config, viewer, settings, terms] = await Promise.all([
     getPublicConfig(),
     getViewer(),
+    getViewerSettings(),
     getTerms(locale),
   ]);
   if (!config.ok) {
@@ -49,6 +50,7 @@ export default async function SignedInLayout({
         <AppFrame
           config={config.config}
           initialMe={viewer.kind === "signed_in" ? viewer.me : null}
+          initialSettings={settings}
         >
           {children}
         </AppFrame>
