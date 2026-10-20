@@ -1,4 +1,7 @@
-import type { JsonValue } from "@workspace/contract/schemas/common";
+import type {
+  DotScheduleId,
+  JsonValue,
+} from "@workspace/contract/schemas/common";
 import {
   type MessagePart,
   PARTS_VERSION,
@@ -213,6 +216,10 @@ export const message = pgTable(
   ]
 );
 
+export type RunUnattended =
+  | { readonly scheduleId: DotScheduleId; readonly type: "schedule" }
+  | { readonly type: "check_in" };
+
 /**
  * A chat turn (D4). Status-specific data (`afterRunId`, `approvals`, `error`,
  * `cancelledBy`, timings) sits in nullable columns; `runStateFromRow` turns a
@@ -266,6 +273,7 @@ export const run = pgTable(
       .$type<(typeof runStatusSchema.options)[number]>()
       .notNull(),
     target: jsonb("target").$type<RunTarget>().notNull(),
+    unattended: jsonb("unattended").$type<RunUnattended>(),
     updatedAt: updatedAt(),
     usage: jsonb("usage").$type<TokenUsage>(),
     userMessageId: idRef("user_message_id", "message")
