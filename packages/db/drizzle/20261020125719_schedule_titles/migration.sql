@@ -1,8 +1,10 @@
--- Schedules titled by 20261019140208_schedules got the first 60 characters
--- of their prompt, often cut mid-word. Retitle those rows the way
--- `titleFromPrompt` (packages/server/src/dots/schedule-policy.ts) names a
--- task: its first clause, ended at a whole word with an ellipsis past 60
--- characters. Rows someone has titled since don't match and stay as they are.
+-- Schedules titled by 20261019140208_schedules, or by the Dot service before
+-- `titleFromPrompt`, got the first 60 characters of their prompt, often cut
+-- mid-word. Retitle those rows the way `titleFromPrompt`
+-- (packages/server/src/dots/schedule-policy.ts) names a task: its first
+-- clause, ended at a whole word with an ellipsis past 60 characters. Only a
+-- prompt longer than 60 characters could have been cut, so a title that is a
+-- whole short prompt, or anything else someone typed, stays as it is.
 UPDATE "dot_schedule" s
 SET "title" = CASE
   WHEN length(c.clause) <= 60 THEN c.clause
@@ -15,8 +17,13 @@ SET "title" = CASE
   ) || '…'
 END
 FROM (
-  SELECT t."id", coalesce(nullif(substring(t.text FROM '^(.*?)[.!?:;](\s|$)'), ''), t.text) AS clause
-  FROM (SELECT "id", btrim(regexp_replace("prompt", '\s+', ' ', 'g')) AS text FROM "dot_schedule") t
+  SELECT
+    t."id",
+    coalesce(nullif(substring(t.text FROM '(?i)^(.*?)(?<!\y(?:e\.g|i\.e|etc|vs))[.!?:;](\s|$)'), ''), t.text) AS clause
+  FROM (
+    SELECT "id", "title", regexp_replace("prompt", '\s+', ' ', 'g') AS spaced, btrim(regexp_replace("prompt", '\s+', ' ', 'g')) AS text
+    FROM "dot_schedule"
+  ) t
+  WHERE length(t.text) > 60 AND t."title" IN (left(t.spaced, 60), left(t.text, 60))
 ) c
-WHERE c."id" = s."id"
-  AND s."title" = left(regexp_replace(s."prompt", '\s+', ' ', 'g'), 60);
+WHERE c."id" = s."id";

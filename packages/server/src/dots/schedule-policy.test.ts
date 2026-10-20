@@ -81,6 +81,25 @@ describe("titleFromPrompt", () => {
     ).toBe("Every morning look through the team inbox and summarise…");
     expect(titleFromPrompt("x".repeat(90))).toBe(`${"x".repeat(59)}…`);
   });
+
+  it("cuts by characters, never inside an emoji", () => {
+    expect(titleFromPrompt("🚀".repeat(70))).toBe(`${"🚀".repeat(59)}…`);
+    expect(titleFromPrompt(`${"🚀".repeat(52)} launch`)).toBe(
+      `${"🚀".repeat(52)} launch`
+    );
+  });
+
+  it("reads past e.g., i.e., etc. and vs.", () => {
+    expect(titleFromPrompt("Summarise the news, e.g. tech and markets")).toBe(
+      "Summarise the news, e.g. tech and markets"
+    );
+    expect(titleFromPrompt("Pick one, i.e. the cheapest. Then book it")).toBe(
+      "Pick one, i.e. the cheapest"
+    );
+    expect(titleFromPrompt("Compare us vs. them. Keep it short")).toBe(
+      "Compare us vs. them"
+    );
+  });
 });
 
 describe("planDue", () => {

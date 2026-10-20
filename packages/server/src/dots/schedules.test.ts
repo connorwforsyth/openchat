@@ -266,23 +266,27 @@ describe("schedules API", () => {
   it("retitles schedules the schedules migration cut mid-word", async () => {
     const chat = await newChat();
     const target = { conversationId: chat.id, kind: "conversation" };
-    const prompts = [
+    const cut = [
       "Give me a short brief for today: what's on, what changed overnight, and anything I should look at first.",
       "Every morning look through the team inbox and summarise anything from customers about billing",
-      "Check the build",
+      "Summarise the news, e.g. tech, markets and anything about our launch this week",
+      "🚀".repeat(70),
     ];
-    for (const prompt of prompts) {
+    // Titled as the old migration titled them, and as someone could have:
+    // a whole short prompt, or a name shorter than the prompt.
+    const short = "Standup notes. Post them in the team channel";
+    const named = {
+      prompt:
+        "Watch the deploy queue and tell me when it drains overnight please",
+      title: "Watch the deploy queue",
+    };
+    for (const prompt of [...cut, short]) {
       // biome-ignore lint/performance/noAwaitInLoops: kept in order.
       await create({ prompt, target });
     }
-    const kept = await create({
-      prompt:
-        "Watch the deploy queue and tell me when it drains overnight please",
-      target,
-      title: "Deploy queue",
-    });
+    await create({ ...named, target });
     await h.db.execute(
-      sql`update dot_schedule set title = left(regexp_replace(prompt, '\\s+', ' ', 'g'), 60) where id <> ${kept.id}`
+      sql`update dot_schedule set title = left(regexp_replace(prompt, '\\s+', ' ', 'g'), 60) where prompt <> ${named.prompt}`
     );
 
     await h.db.execute(
@@ -299,10 +303,11 @@ describe("schedules API", () => {
 
     const listed = await json<Schedule[]>(await request("/api/schedules"));
     const titles = new Map(listed.map((each) => [each.prompt, each.title]));
-    for (const prompt of prompts) {
+    expect(titles.get(short)).toBe(short);
+    expect(titles.get(named.prompt)).toBe(named.title);
+    for (const prompt of cut) {
       expect(titles.get(prompt)).toBe(titleFromPrompt(prompt));
     }
-    expect(titles.get(kept.prompt)).toBe("Deploy queue");
   });
 
   it("reports the guardrails and today's usage", async () => {
