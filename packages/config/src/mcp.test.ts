@@ -106,9 +106,9 @@ describe("mcp config (184)", () => {
     expect(parsed.ok).toBe(true);
     if (parsed.ok) {
       const [server] = parsed.value.mcp.servers;
-      expect(server && "headers" in server && server.headers).toEqual({
-        Authorization: undefined,
-      });
+      expect(
+        server && "headers" in server && Object.keys(server.headers)
+      ).toEqual(["Authorization"]);
     }
   });
 

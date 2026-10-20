@@ -3471,10 +3471,6 @@ msgstr "Required"
 msgid "Required by your administrator"
 msgstr "Required by your administrator"
 
-#: ../../apps/web/app/(app)/(pages)/settings/_components/connectors-settings.tsx
-msgid "Required by your administrator: {reason}"
-msgstr "Required by your administrator: {reason}"
-
 #: ../library-ui/src/components/fields.tsx
 msgid "Required."
 msgstr "Required."
@@ -3777,10 +3773,6 @@ msgstr "Set budget"
 #: ../../apps/web/app/(app)/(pages)/settings/_components/connectors-settings.tsx
 msgid "Set by your administrator"
 msgstr "Set by your administrator"
-
-#: ../../apps/web/app/(app)/(pages)/settings/_components/connectors-settings.tsx
-msgid "Set by your administrator: {reason}"
-msgstr "Set by your administrator: {reason}"
 
 #: ../palette/src/context-actions.ts
 msgid "Set permission mode to {label}"

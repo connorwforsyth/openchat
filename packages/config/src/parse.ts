@@ -27,6 +27,17 @@ const WHOLE_REFERENCE = new RegExp(`^\\$\\{(${ENV_NAME})(?::-([^}]*))?\\}$`);
 type Path = (string | number)[];
 
 /**
+ * An MCP server's `headers` and `env` keep a key whose reference is unset,
+ * as `undefined`, so the server can be marked unconfigured by name instead
+ * of silently connecting without its credential (184).
+ */
+const keepsUnset = (path: Path): boolean =>
+  path.length === 4 &&
+  path[0] === "mcp" &&
+  path[1] === "servers" &&
+  (path[3] === "headers" || path[3] === "env");
+
+/**
  * Replaces `${NAME}` references in string values. Values, not raw text, so an
  * env value can never inject YAML structure.
  *
@@ -84,7 +95,9 @@ export const interpolateEnv = (
       errors: results.flatMap(([, result]) => result.errors),
       value: Object.fromEntries(
         results
-          .filter(([, result]) => result.value !== undefined)
+          .filter(
+            ([, result]) => result.value !== undefined || keepsUnset(path)
+          )
           .map(([key, result]) => [key, result.value])
       ),
     };

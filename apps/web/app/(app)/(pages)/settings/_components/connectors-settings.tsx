@@ -135,18 +135,12 @@ const LockNote = ({ connector }: { readonly connector: Connector }) => {
   }
   const { reason } = lock;
   let note: ReactNode;
-  if (lock.type === "required") {
-    note = reason ? (
-      <Trans>Required by your administrator: {reason}</Trans>
-    ) : (
-      <Trans>Required by your administrator</Trans>
-    );
+  if (reason) {
+    note = reason;
+  } else if (lock.type === "required") {
+    note = <Trans>Required by your administrator</Trans>;
   } else {
-    note = reason ? (
-      <Trans>Set by your administrator: {reason}</Trans>
-    ) : (
-      <Trans>Set by your administrator</Trans>
-    );
+    note = <Trans>Set by your administrator</Trans>;
   }
   return (
     <p className="flex items-center gap-1.5 text-muted-foreground text-xs">
@@ -215,7 +209,11 @@ const ConnectorRow = ({
         <Switch
           aria-label={t`Use ${title} in chats`}
           checked={connector.enabled}
-          disabled={connector.lock !== null || pending}
+          disabled={
+            connector.lock !== null ||
+            connector.availability.state === "unconfigured" ||
+            pending
+          }
           onCheckedChange={toggle}
         />
       </div>

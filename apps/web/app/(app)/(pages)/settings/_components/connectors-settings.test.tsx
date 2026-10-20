@@ -66,9 +66,7 @@ describe("ConnectorsSettings", () => {
     expect(
       screen.getByRole("switch", { name: "Use Audit log in chats" })
     ).toHaveProperty("ariaDisabled", "true");
-    expect(
-      screen.getByText("Required by your administrator: Audit trail")
-    ).toBeTruthy();
+    expect(screen.getByText("Audit trail")).toBeTruthy();
     expect(screen.getByText("Desktop app only")).toBeTruthy();
     expect(screen.getByText("Search the handbook")).toBeTruthy();
 
