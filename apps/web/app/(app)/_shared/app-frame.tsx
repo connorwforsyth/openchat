@@ -59,6 +59,7 @@ import {
   type SettingsSection,
 } from "./settings/settings-route";
 import { SHELL_LAYOUT_KEY, SIDEBAR_ATTRIBUTE } from "./shell-prepaint";
+import { useTerms } from "./terms";
 import { useAfterBoot } from "./use-after-boot";
 
 // The signed-in app's client frame (039): the query cache (persisted to
@@ -301,10 +302,16 @@ const Frame = ({
     PaletteContext | undefined
   >();
   const openPalette = useCallback(() => setPaletteOpen(true), []);
+  const terms = useTerms();
   const openSettings = useCallback(
     (section?: SettingsSection) =>
-      openSettingsView(window.history, window.location.pathname, section),
-    []
+      openSettingsView(
+        window.history,
+        window.location.pathname,
+        terms,
+        section
+      ),
+    [terms]
   );
   const booted = useAfterBoot();
   const newOrg = useNewOrg();

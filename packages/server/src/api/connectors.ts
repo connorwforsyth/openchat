@@ -1,10 +1,7 @@
 import { implement, ORPCError } from "@orpc/server";
 import { contract } from "@workspace/contract/contract";
-import {
-  type ConnectorDeps,
-  connectorHandlers,
-} from "@workspace/mcp/connector-service";
 import type { McpHandlerError } from "@workspace/mcp/handlers";
+import { connectorHandlers, type McpDeps } from "@workspace/mcp/service";
 import type { Result } from "@workspace/shared/result";
 
 import type { RequestContext } from "../context";
@@ -14,7 +11,7 @@ import { forbiddenError, notFoundError, validationError } from "./errors";
 // MCP catalog and their library, and the switch for each; and (188) each
 // connector's tools, and a chat's own choices over the defaults.
 
-export const createConnectorsRouter = (deps: ConnectorDeps) => {
+export const createConnectorsRouter = (deps: McpDeps) => {
   const os = implement({
     connectors: contract.connectors,
   }).$context<RequestContext>();

@@ -24,7 +24,7 @@ export interface ServerRegistry {
   readonly catalog: readonly InstanceServerEntry[];
   /**
    * Instance servers this process can connect to: remote entries whose
-   * `${ENV}` secrets are all set. Who has which on is `effectiveConnectors`.
+   * `${ENV}` secrets are all set. Who has which on is `effectiveMcpServers`.
    */
   readonly instanceServers: readonly McpServerConfig[];
   readonly resolve: (

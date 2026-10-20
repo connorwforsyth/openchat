@@ -36,6 +36,7 @@ import type {
   SkillOption,
 } from "@workspace/composer/schemas";
 import type { ModelVariant } from "@workspace/composer/variants";
+import { defaultTerms, type Terms } from "@workspace/config/terms";
 import type {
   ArtifactId,
   ArtifactVersionId,
@@ -120,8 +121,8 @@ import type {
 import { toTreePaths } from "../workspace/model/tree";
 import { ChatScreen } from "./chat-screen";
 import { useBranchFeedback } from "./use-branch-feedback";
-import { useChatConnectors } from "./use-chat-connectors";
 import { useChatQueries, useConversationUpdate } from "./use-chat-data";
+import { useChatMcp } from "./use-chat-mcp";
 
 // The chat screen over the API (D11): TanStack Query for everything stored,
 // `useRunChat` for the turn that's streaming. Ticket 025 mounts this in the
@@ -186,6 +187,8 @@ export interface ConnectedChatProps {
   readonly skills?: readonly SkillOption[];
   /** What answers: a model or an agent. Omitted, the server's default does. */
   readonly target?: RunTarget | null;
+  /** What this instance calls its features (191); the defaults when left out. */
+  readonly terms?: Terms;
   readonly theme: Theme;
 }
 
@@ -1464,6 +1467,7 @@ export function ConnectedChat({
   sendTarget,
   skills,
   target = null,
+  terms = defaultTerms,
   theme,
 }: ConnectedChatProps) {
   const outgoingTarget = targetToSend(sendTarget, target);
@@ -1643,10 +1647,15 @@ export function ConnectedChat({
     },
     [plan, sendMessage, stopReading, t, waiting]
   );
-  const chatConnectors = useChatConnectors({ api, client, conversationId });
+  const chatMcp = useChatMcp({
+    api,
+    client,
+    conversationId,
+    term: terms.mcp,
+  });
   const firstSend = useFirstSend({
     api,
-    beforeFirstSend: chatConnectors.flush,
+    beforeFirstSend: chatMcp.flush,
     client,
     context: draftContext,
     conversationId,
@@ -1849,7 +1858,7 @@ export function ConnectedChat({
           composer={{
             agents,
             attachmentLimits,
-            connectors: chatConnectors.composer,
+            mcp: chatMcp.composer,
             ...composerDrafts,
             models,
             onPlanChange: plan.set,

@@ -30,7 +30,7 @@ import { safeToolName } from "./tool-names";
 // Pure: the shell (`connector-service.ts`) loads the three and hands them in.
 
 /** A library server as the merge needs it; no secrets, no URL. */
-export interface LibraryConnector {
+export interface LibraryMcpServer {
   readonly auth: Connector["auth"];
   readonly description: string;
   readonly id: LibraryItemId;
@@ -43,26 +43,26 @@ export interface LibraryConnector {
  * One layer's choice for a server (the user's defaults, or a chat's):
  * `enabled` null, and a tool not in `tools`, follow the layer below.
  */
-export interface ConnectorChoice {
+export interface McpChoice {
   readonly enabled: boolean | null;
   /** By the server's tool name; `false` is off. */
   readonly tools: Readonly<Record<string, boolean>>;
 }
 
-export type ConnectorChoices = ReadonlyMap<LibraryItemId, ConnectorChoice>;
+export type McpChoices = ReadonlyMap<LibraryItemId, McpChoice>;
 
-export interface ConnectorInputs {
+export interface McpInputs {
   readonly catalog: readonly InstanceServerEntry[];
   /** One chat's choices (188), over `prefs`; left out, the defaults alone. */
-  readonly chat?: ConnectorChoices;
-  readonly library: readonly LibraryConnector[];
+  readonly chat?: McpChoices;
+  readonly library: readonly LibraryMcpServer[];
   /** The user's stored defaults by server id; absent means "the default". */
-  readonly prefs: ConnectorChoices;
+  readonly prefs: McpChoices;
   /** The server can't spawn stdio servers; the desktop app can. */
   readonly surface?: "desktop" | "server";
 }
 
-const NO_CHOICES: ConnectorChoices = new Map();
+const NO_CHOICES: McpChoices = new Map();
 
 /** Whether a tool name is in a list written with either the raw or the safe name. */
 const listed = (names: readonly string[], tool: string): boolean =>
@@ -71,7 +71,7 @@ const listed = (names: readonly string[], tool: string): boolean =>
 /** The layers' switch for the connector itself: the chat's, else the user's. */
 const chosenEnabled = (
   id: LibraryItemId,
-  layers: readonly ConnectorChoices[]
+  layers: readonly McpChoices[]
 ): boolean | undefined => {
   for (const layer of layers) {
     const enabled = layer.get(id)?.enabled;
@@ -84,7 +84,7 @@ const chosenEnabled = (
 /** The tools some layer switched off, chat over user, never a required one. */
 const offTools = (
   id: LibraryItemId,
-  layers: readonly ConnectorChoices[],
+  layers: readonly McpChoices[],
   required: readonly string[]
 ): string[] => {
   const names = new Set(
@@ -119,7 +119,7 @@ const availabilityOf = (
 
 const fromCatalog = (
   entry: InstanceServerEntry,
-  layers: readonly ConnectorChoices[],
+  layers: readonly McpChoices[],
   surface: "desktop" | "server"
 ): Connector => {
   const id = instanceServerId(entry.name);
@@ -160,8 +160,8 @@ const fromCatalog = (
 };
 
 const fromLibrary = (
-  server: LibraryConnector,
-  layers: readonly ConnectorChoices[],
+  server: LibraryMcpServer,
+  layers: readonly McpChoices[],
   surface: "desktop" | "server"
 ): Connector => {
   const transport =
@@ -186,8 +186,8 @@ const fromLibrary = (
 };
 
 const merge = (
-  { catalog, library, surface = "server" }: ConnectorInputs,
-  layers: readonly ConnectorChoices[]
+  { catalog, library, surface = "server" }: McpInputs,
+  layers: readonly McpChoices[]
 ): readonly Connector[] => {
   const instance = catalog.map((entry) => fromCatalog(entry, layers, surface));
   const taken = new Set(instance.map((connector) => connector.id));
@@ -209,8 +209,8 @@ const sameChoice = (a: Connector, b: Connector | undefined): boolean =>
  * With `chat`, each says whether that chat's choice differs from the
  * user's defaults (`customized`), for the composer's "differs" mark.
  */
-export const effectiveConnectors = (
-  inputs: ConnectorInputs
+export const effectiveMcpServers = (
+  inputs: McpInputs
 ): readonly Connector[] => {
   const chat = inputs.chat ?? NO_CHOICES;
   const defaults = merge(inputs, [inputs.prefs]);
@@ -271,7 +271,7 @@ export const toolEnabled = (connector: Connector, tool: string): boolean =>
  * A connector's tools as the server listed them (already less what the
  * operator denies), each with its switch and lock.
  */
-export const connectorTools = (
+export const mcpServerTools = (
   connector: Connector,
   tools: readonly McpTool[]
 ): readonly ConnectorTool[] =>
@@ -284,15 +284,15 @@ export const connectorTools = (
     name: tool.name,
   }));
 
-export interface ConnectorLocked {
+export interface McpLocked {
   readonly type: "locked";
 }
 
 /** The connector after the user flips it, or why they can't. */
-export const toggleConnector = (
+export const toggleMcpServer = (
   connector: Connector,
   enabled: boolean
-): Result<Connector, ConnectorLocked> =>
+): Result<Connector, McpLocked> =>
   connector.lock ? err({ type: "locked" }) : ok({ ...connector, enabled });
 
 const hostAllowed = (host: string, patterns: readonly string[]): boolean =>
@@ -330,11 +330,11 @@ export const checkUserServer = (
 };
 
 /** One tool after the user flips it, or why they can't: the operator requires it. */
-export const toggleConnectorTool = (
+export const toggleMcpServerTool = (
   connector: Connector,
   tool: string,
   enabled: boolean
-): Result<Connector, ConnectorLocked> => {
+): Result<Connector, McpLocked> => {
   if (listed(connector.requiredTools, tool)) {
     return err({ type: "locked" });
   }

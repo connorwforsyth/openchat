@@ -5,26 +5,26 @@ import { describe, expect, it } from "vitest";
 
 import {
   anyCustomized,
-  type ConnectorChoice,
-  type ConnectorChoices,
-  type ConnectorInputs,
   checkUserServer,
-  connectorTools,
   disabledServerIds,
-  effectiveConnectors,
+  effectiveMcpServers,
   enabledServerIds,
   excludedTools,
-  type LibraryConnector,
-  toggleConnector,
-  toggleConnectorTool,
-} from "./connectors";
+  type LibraryMcpServer,
+  type McpChoice,
+  type McpChoices,
+  type McpInputs,
+  mcpServerTools,
+  toggleMcpServer,
+  toggleMcpServerTool,
+} from "./effective";
 import { instanceServerId } from "./server-config";
 
 const catalogOf = (servers: unknown[]) =>
   appConfigSchema.shape.mcp.parse({ servers }).servers;
 
 const libraryId = "0199a000-0000-7000-8000-000000000001" as LibraryItemId;
-const mine: LibraryConnector = {
+const mine: LibraryMcpServer = {
   auth: "oauth",
   description: "",
   id: libraryId,
@@ -36,13 +36,13 @@ const choices = (
   entries: readonly (readonly [
     LibraryItemId,
     boolean | null,
-    ConnectorChoice["tools"]?,
+    McpChoice["tools"]?,
   ])[]
-): ConnectorChoices =>
+): McpChoices =>
   new Map(entries.map(([id, enabled, tools = {}]) => [id, { enabled, tools }]));
 
-const run = (overrides: Partial<ConnectorInputs>) =>
-  effectiveConnectors({
+const run = (overrides: Partial<McpInputs>) =>
+  effectiveMcpServers({
     catalog: [],
     library: [],
     prefs: new Map(),
@@ -51,7 +51,7 @@ const run = (overrides: Partial<ConnectorInputs>) =>
 
 const docs = { name: "docs", url: "https://docs.example.test/mcp" };
 
-describe("effectiveConnectors", () => {
+describe("effectiveMcpServers", () => {
   it("is empty with no catalog and no library", () => {
     expect(run({})).toEqual([]);
   });
@@ -266,7 +266,7 @@ describe("tools (188)", () => {
       { description: "Audit", inputSchema: {}, name: "log_event" },
       { description: null, inputSchema: {}, name: "fetch" },
     ];
-    expect(connector && connectorTools(connector, listed)).toEqual([
+    expect(connector && mcpServerTools(connector, listed)).toEqual([
       { description: null, enabled: false, lock: null, name: "search" },
       {
         description: "Audit",
@@ -283,34 +283,34 @@ describe("tools (188)", () => {
     if (!connector) {
       throw new Error("no connector");
     }
-    const off = toggleConnectorTool(connector, "search", false);
+    const off = toggleMcpServerTool(connector, "search", false);
     if (!off.ok) {
       throw new Error("not toggled");
     }
     expect(off.value.disabledTools).toEqual(["search"]);
-    const back = toggleConnectorTool(off.value, "search", true);
+    const back = toggleMcpServerTool(off.value, "search", true);
     expect(back.ok ? back.value.disabledTools : null).toEqual([]);
-    expect(toggleConnectorTool(connector, "log_event", false)).toEqual({
+    expect(toggleMcpServerTool(connector, "log_event", false)).toEqual({
       error: { type: "locked" },
       ok: false,
     });
   });
 });
 
-describe("toggleConnector", () => {
+describe("toggleMcpServer", () => {
   const [open, required] = run({
     catalog: catalogOf([docs, { ...docs, default: "required", name: "audit" }]),
   });
 
   it("returns the new state for an unlocked connector", () => {
-    expect(open && toggleConnector(open, false)).toEqual({
+    expect(open && toggleMcpServer(open, false)).toEqual({
       ok: true,
       value: { ...open, enabled: false },
     });
   });
 
   it("refuses a locked connector", () => {
-    expect(required && toggleConnector(required, false)).toEqual({
+    expect(required && toggleMcpServer(required, false)).toEqual({
       error: { type: "locked" },
       ok: false,
     });

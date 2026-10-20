@@ -1,3 +1,4 @@
+import { slugFor, type Terms } from "@workspace/config/terms";
 import type {
   ArtifactId,
   ConversationId,
@@ -44,9 +45,13 @@ export const routes = {
   libraryNew: (kind: LibraryKind) => `/library/new/${kind}`,
   /** Quick AI (118): the composer alone, for the desktop app's floating window. */
   quick: "/quick",
-  /** Settings, a full-screen view over the current page (185); see `settings-route.ts`. */
-  settings: (section?: string) =>
-    section ? `/settings/${section}` : "/settings",
+  /**
+   * Settings, a full-screen view over the current page (185); see
+   * `settings-route.ts`. A section named by `terms:` (191) is addressed by
+   * its configured slug, so links follow a fork's renames.
+   */
+  settings: (terms: Terms, section?: string) =>
+    section ? `/settings/${slugFor(terms, section)}` : "/settings",
   signIn: "/sign-in",
   signInThen: (next: string) =>
     withQuery("/sign-in", { [routeParams.next]: next }),

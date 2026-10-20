@@ -18,7 +18,7 @@ import {
 import { useCallback, useRef } from "react";
 
 import { useModelVariants } from "../hooks/use-model-variants";
-import type { ComposerAppearance, ComposerConnectors } from "../props";
+import type { ComposerAppearance, ComposerMcp } from "../props";
 import type {
   AgentOption,
   FileCandidate,
@@ -38,10 +38,10 @@ export interface ComposerFooterProps {
   readonly attachDisabled: boolean;
   readonly busy: boolean;
   readonly canSubmit: boolean;
-  /** This chat's connectors (188), for the + menu and the "differs" chip. */
-  readonly connectors?: ComposerConnectors | undefined;
   readonly disabled: boolean;
   readonly files: readonly FileCandidate[];
+  /** This chat's mcp (188), for the + menu and the "differs" chip. */
+  readonly mcp?: ComposerMcp | undefined;
   readonly models: readonly ModelOption[];
   readonly onAddFile: ((file: FileCandidate) => void) | undefined;
   readonly onAddSkill?: ((skill: SkillOption) => void) | undefined;
@@ -77,7 +77,7 @@ export function ComposerFooter({
   attachDisabled,
   busy,
   canSubmit,
-  connectors,
+  mcp,
   disabled,
   files,
   models,
@@ -100,6 +100,7 @@ export function ComposerFooter({
   webSearch,
 }: ComposerFooterProps) {
   const { t } = useLingui();
+  const mcpLabel = mcp?.term.label ?? "";
   const plusRef = useRef<HTMLButtonElement>(null);
   const variants = useModelVariants({
     models,
@@ -120,10 +121,10 @@ export function ComposerFooter({
     onPlanChange?.(false);
     plusRef.current?.focus();
   }, [onPlanChange]);
-  const resetConnectors = useCallback(() => {
-    connectors?.onReset();
+  const resetMcp = useCallback(() => {
+    mcp?.onReset();
     plusRef.current?.focus();
-  }, [connectors]);
+  }, [mcp]);
   const turnOffFast = useCallback(() => {
     setFast(false);
     plusRef.current?.focus();
@@ -144,10 +145,10 @@ export function ComposerFooter({
       <div className="flex min-w-0 shrink-0 items-center gap-1">
         <PlusMenu
           attachDisabled={attachDisabled}
-          connectors={connectors}
           disabled={disabled}
           fast={picking ? variants.fast : undefined}
           files={files}
+          mcp={mcp}
           onAddFile={onAddFile}
           onAddSkill={onAddSkill}
           onAttach={onAttach}
@@ -196,12 +197,12 @@ export function ComposerFooter({
             </span>
           </InputGroupButton>
         ) : null}
-        {connectors?.customized ? (
+        {mcp?.customized ? (
           <InputGroupButton
-            aria-label={t`Connectors differ from your defaults in this chat. Reset them`}
+            aria-label={t`${mcpLabel} differ from your defaults in this chat. Reset them`}
             className="rounded-full text-foreground"
             disabled={disabled}
-            onClick={resetConnectors}
+            onClick={resetMcp}
             size="sm"
             title={t`Reset to my defaults`}
             type="button"

@@ -37,24 +37,24 @@ import { z } from "zod";
 
 import {
   anyCustomized,
-  type ConnectorChoices,
-  connectorTools,
   disabledServerIds,
-  effectiveConnectors,
+  effectiveMcpServers,
   enabledServerIds,
   excludedTools,
-  type LibraryConnector,
-  toggleConnector,
-  toggleConnectorTool,
-} from "./connectors";
+  type LibraryMcpServer,
+  type McpChoices,
+  mcpServerTools,
+  toggleMcpServer,
+  toggleMcpServerTool,
+} from "./effective";
 import type { McpHandlerError } from "./handlers";
 import type { InstanceServerEntry } from "./server-config";
 
-// The shell around `effectiveConnectors` (184): loads the user's library
+// The shell around `effectiveMcpServers` (184): loads the user's library
 // servers and stored choices, merges them with the operator's catalog, and
 // serves the contract's `connectors` group and the runs' server lists.
 
-export interface ConnectorDeps {
+export interface McpDeps {
   readonly catalog: readonly InstanceServerEntry[];
   /** `undefined` without DATABASE_URL: the catalog alone, at its defaults. */
   readonly db?: Db;
@@ -85,7 +85,7 @@ const storedAuthSchema = z
   })
   .catch({ auth: { type: "none" }, transport: "unknown" });
 
-const toLibraryConnector = (row: McpServerRow): LibraryConnector => {
+const toLibraryMcpServer = (row: McpServerRow): LibraryMcpServer => {
   const definition = storedAuthSchema.parse(row.definition);
   return {
     auth: definition.auth.type,
@@ -120,14 +120,14 @@ const loadLibrary = async (
   return [...rows.values()].sort((a, b) => a.name.localeCompare(b.name));
 };
 
-const NONE: ConnectorChoices = new Map();
+const NONE: McpChoices = new Map();
 
-export const loadConnectors = async (
-  deps: ConnectorDeps,
+export const loadMcpServers = async (
+  deps: McpDeps,
   scope: Scope
 ): Promise<readonly Connector[]> => {
   if (!deps.db) {
-    return effectiveConnectors({
+    return effectiveMcpServers({
       catalog: deps.catalog,
       library: [],
       prefs: NONE,
@@ -141,10 +141,10 @@ export const loadConnectors = async (
       ? listConversationConnectors(deps.db, { conversationId, userId })
       : NONE,
   ]);
-  return effectiveConnectors({
+  return effectiveMcpServers({
     catalog: deps.catalog,
     chat,
-    library: library.map(toLibraryConnector),
+    library: library.map(toLibraryMcpServer),
     prefs,
   });
 };
@@ -160,10 +160,10 @@ export interface McpSelection {
 }
 
 export const mcpSelectionFor = async (
-  deps: ConnectorDeps,
+  deps: McpDeps,
   scope: Scope
 ): Promise<McpSelection> => {
-  const connectors = await loadConnectors(deps, scope);
+  const connectors = await loadMcpServers(deps, scope);
   return {
     disabled: disabledServerIds(connectors),
     enabled: enabledServerIds(connectors),
@@ -173,17 +173,17 @@ export const mcpSelectionFor = async (
 
 /** For plain chats: every server the user has on and this server can run. */
 export const enabledServersFor = async (
-  deps: ConnectorDeps,
+  deps: McpDeps,
   userId: UserId
 ): Promise<readonly LibraryItemId[]> =>
-  enabledServerIds(await loadConnectors(deps, { userId }));
+  enabledServerIds(await loadMcpServers(deps, { userId }));
 
 /** For every run: the servers the user (or the operator) turned off. */
 export const disabledServersFor = async (
-  deps: ConnectorDeps,
+  deps: McpDeps,
   userId: UserId
 ): Promise<ReadonlySet<LibraryItemId>> =>
-  disabledServerIds(await loadConnectors(deps, { userId }));
+  disabledServerIds(await loadMcpServers(deps, { userId }));
 
 const needsDb = (): McpHandlerError => ({
   code: "VALIDATION",
@@ -206,8 +206,8 @@ const canSeeChat = async (
 };
 
 /** The caller's connector in this scope, or why it can't be changed. */
-const findConnector = async (
-  deps: ConnectorDeps,
+const findMcpServer = async (
+  deps: McpDeps,
   scope: Scope,
   id: LibraryItemId
 ): AsyncResult<{ connector: Connector; db: Db }, McpHandlerError> => {
@@ -219,7 +219,7 @@ const findConnector = async (
   ) {
     return err({ code: "NOT_FOUND" });
   }
-  const connector = (await loadConnectors(deps, scope)).find(
+  const connector = (await loadMcpServers(deps, scope)).find(
     (item) => item.id === id
   );
   if (!connector) {
@@ -236,11 +236,11 @@ const scopeOf = (
 export const connectorHandlers = {
   /** GET /connectors, for the defaults or one chat. */
   list: async (
-    deps: ConnectorDeps,
+    deps: McpDeps,
     session: { readonly userId: UserId },
     input: ListConnectorsInput = {}
   ): Promise<ConnectorList> => {
-    const connectors = await loadConnectors(deps, scopeOf(session, input));
+    const connectors = await loadMcpServers(deps, scopeOf(session, input));
     return {
       connectors: [...connectors],
       customized: anyCustomized(connectors),
@@ -250,7 +250,7 @@ export const connectorHandlers = {
 
   /** DELETE /conversations/{conversationId}/connectors. */
   resetConversation: async (
-    deps: ConnectorDeps,
+    deps: McpDeps,
     session: { readonly userId: UserId },
     input: ResetConversationConnectorsInput
   ): AsyncResult<void, McpHandlerError> => {
@@ -269,16 +269,16 @@ export const connectorHandlers = {
 
   /** PUT /connectors/{id}/enabled, for the defaults or one chat. */
   setEnabled: async (
-    deps: ConnectorDeps,
+    deps: McpDeps,
     session: { readonly userId: UserId },
     input: SetConnectorEnabledInput
   ): AsyncResult<Connector, McpHandlerError> => {
     const scope = scopeOf(session, input);
-    const found = await findConnector(deps, scope, input.id);
+    const found = await findMcpServer(deps, scope, input.id);
     if (!found.ok) {
       return found;
     }
-    const toggled = toggleConnector(found.value.connector, input.enabled);
+    const toggled = toggleMcpServer(found.value.connector, input.enabled);
     if (!toggled.ok) {
       return err({ code: "FORBIDDEN" });
     }
@@ -292,7 +292,7 @@ export const connectorHandlers = {
         })
       : setConnectorPref(db, { ...base, userId: session.userId }));
     return ok(
-      (await loadConnectors(deps, scope)).find(
+      (await loadMcpServers(deps, scope)).find(
         (item) => item.id === input.id
       ) ?? toggled.value
     );
@@ -300,15 +300,15 @@ export const connectorHandlers = {
 
   /** PUT /connectors/{id}/tools/{tool}/enabled, for the defaults or one chat. */
   setToolEnabled: async (
-    deps: ConnectorDeps,
+    deps: McpDeps,
     session: { readonly userId: UserId },
     input: SetConnectorToolEnabledInput
   ): AsyncResult<ConnectorTool, McpHandlerError> => {
-    const found = await findConnector(deps, scopeOf(session, input), input.id);
+    const found = await findMcpServer(deps, scopeOf(session, input), input.id);
     if (!found.ok) {
       return found;
     }
-    const toggled = toggleConnectorTool(
+    const toggled = toggleMcpServerTool(
       found.value.connector,
       input.tool,
       input.enabled
@@ -339,7 +339,7 @@ export const connectorHandlers = {
 
   /** GET /connectors/{id}/tools, for the defaults or one chat. */
   tools: async (
-    deps: ConnectorDeps,
+    deps: McpDeps,
     session: { readonly userId: UserId },
     input: ListConnectorToolsInput
   ): AsyncResult<ConnectorToolList, McpHandlerError> => {
@@ -351,7 +351,7 @@ export const connectorHandlers = {
     ) {
       return err({ code: "NOT_FOUND" });
     }
-    const connector = (await loadConnectors(deps, scope)).find(
+    const connector = (await loadMcpServers(deps, scope)).find(
       (item) => item.id === input.id
     );
     if (!connector) {
@@ -365,7 +365,7 @@ export const connectorHandlers = {
       listed?.ok
         ? {
             reachable: true,
-            tools: [...connectorTools(connector, listed.value)],
+            tools: [...mcpServerTools(connector, listed.value)],
           }
         : { reachable: false, tools: [] }
     );

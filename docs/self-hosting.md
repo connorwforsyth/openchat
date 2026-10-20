@@ -415,11 +415,11 @@ features:
 lets them preview a fixture site on loopback). Don't set it: it's ignored in
 production unless the instance itself is served from loopback.
 
-### Configuring connectors for your fork
+### Configuring MCP servers for your fork
 
-Connectors are MCP servers whose tools chats can use. You decide which ones
+MCP servers give chats tools. You decide which ones
 every user gets in the `mcp` block of `app.config.yaml`; each user then
-turns them on or off in **Settings > Connectors**, connects the ones that
+turns them on or off in **Settings > MCP servers**, connects the ones that
 need their own sign-in, and adds servers of their own if you allow it.
 
 ```yaml
@@ -443,7 +443,7 @@ mcp:
     hosts: ["*.example.com"]            # empty: any public host
 ```
 
-How a user's list is worked out (`effectiveConnectors` in `packages/mcp`):
+How a user's list is worked out (`effectiveMcpServers` in `packages/mcp`):
 
 - `default: on` (the default) or `off` is where a server starts; the user's
   own choice wins over it.
@@ -461,6 +461,34 @@ a server's tools are offered. `transport: stdio` entries (`command`,
 `args`, `env`) run in the desktop app only; the web app lists them as such.
 Servers you configure may reach your private network; servers users add may
 not. Changes apply on restart. `app.config.example.yaml` has more examples.
+
+### Renaming features for your fork
+
+The words the UI uses for a feature, and its address, come from `terms:`
+in `app.config.yaml`. Code always calls the feature by its id (`mcp`), so a
+rename never touches code, the database or the API (which stays at
+`/api/connectors`).
+
+```yaml
+terms:
+  mcp:
+    label: Plugins          # plural, for headings and menus (default "MCP servers")
+    singular: plugin        # one of them, used mid-sentence (default "MCP server")
+    slug: plugins           # Settings lives at /settings/plugins (default "mcp")
+    locales:                # for languages that inflect; either word may be left out
+      de: { label: Erweiterungen, singular: Erweiterung }
+```
+
+- Leave the block out and the defaults apply.
+- Words appear both as headings and inside sentences ("No plugins yet"), so
+  write them the way they'd read mid-sentence, unless they're a name.
+- `locales` keys are locale tags; `pt-BR` is tried before `pt`.
+- Old addresses keep working: `/settings/connectors`, and `/settings/mcp`
+  when you've set another slug, redirect to the configured one.
+- Choose a slug no other settings section uses (`profile`, `keys`, `memory`,
+  `shortcuts`, `appearance`).
+
+Changes apply on restart.
 
 ### Icon set
 
