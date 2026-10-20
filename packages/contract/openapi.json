@@ -4639,6 +4639,67 @@
         },
         "required": ["email", "id", "image", "name"]
       },
+      "ALLOWANCE_SPENTError": {
+        "properties": {
+          "code": {
+            "const": "ALLOWANCE_SPENT"
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "resetsAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "space": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "org id (UUIDv7)"
+                      },
+                      "type": {
+                        "const": "org"
+                      }
+                    },
+                    "required": ["id", "type"]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "team id (UUIDv7)"
+                      },
+                      "type": {
+                        "const": "team"
+                      }
+                    },
+                    "required": ["id", "type"]
+                  }
+                ]
+              }
+            },
+            "required": ["resetsAt", "space"]
+          },
+          "defined": {
+            "const": true
+          },
+          "message": {
+            "default": "Your token allowance in this space is spent for the month.",
+            "type": "string"
+          },
+          "status": {
+            "const": 402
+          }
+        },
+        "required": ["defined", "code", "status", "message", "data"],
+        "type": "object"
+      },
       "BUDGET_EXCEEDEDError": {
         "properties": {
           "code": {
@@ -14571,6 +14632,9 @@
               "application/json": {
                 "schema": {
                   "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ALLOWANCE_SPENTError"
+                    },
                     {
                       "$ref": "#/components/schemas/BUDGET_EXCEEDEDError"
                     },
@@ -25594,6 +25658,9 @@
                 "schema": {
                   "oneOf": [
                     {
+                      "$ref": "#/components/schemas/ALLOWANCE_SPENTError"
+                    },
+                    {
                       "$ref": "#/components/schemas/BUDGET_EXCEEDEDError"
                     },
                     {
@@ -30950,6 +31017,9 @@
               "application/json": {
                 "schema": {
                   "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ALLOWANCE_SPENTError"
+                    },
                     {
                       "$ref": "#/components/schemas/BUDGET_EXCEEDEDError"
                     },
@@ -37206,6 +37276,9 @@
                 "schema": {
                   "oneOf": [
                     {
+                      "$ref": "#/components/schemas/ALLOWANCE_SPENTError"
+                    },
+                    {
                       "$ref": "#/components/schemas/BUDGET_EXCEEDEDError"
                     },
                     {
@@ -37215,7 +37288,7 @@
                 }
               }
             },
-            "description": "The budget for this period is spent."
+            "description": "Your token allowance in this space is spent for the month. The budget for this period is spent."
           },
           "403": {
             "content": {
