@@ -203,11 +203,8 @@ describe("askReply", () => {
     expect(events.at(-1)).toEqual({ end: "cancelled", type: "end" });
   });
 
-  it.each([
-    ["succeeded", "while its run is looked up"],
-    ["failed", "while its run is looked up"],
-  ] as const)(
-    "ends cancelled, unflushed, when a %s run's caller aborts %s",
+  it.each(["succeeded", "failed"] as const)(
+    "ends cancelled and unflushed when the caller of a %s run aborts during its lookup",
     async (status) => {
       const controller = new AbortController();
       const world = portsOf({

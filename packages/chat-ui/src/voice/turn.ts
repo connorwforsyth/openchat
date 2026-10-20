@@ -153,7 +153,7 @@ export interface CallState {
 export type CallError =
   | "microphone"
   | "transcription"
-  /** The server's speech service is down (503), not the user's audio. */
+  /** The server says its speech service is down, not that the audio was bad. */
   | "unavailable"
   | "speech"
   | "reply";
@@ -307,7 +307,8 @@ const onFailed: Handler<"failed"> = (state, event) => {
   }
   // A sentence that couldn't be spoken doesn't stop the rest.
   const phase =
-    event.error === "speech" && state.phase === "speaking"
+    (event.error === "speech" || event.error === "unavailable") &&
+    state.phase === "speaking"
       ? "speaking"
       : "listening";
   return stay({ ...state, error: event.error, phase, replyDone: true });

@@ -1,7 +1,11 @@
+import { err, ok, type Result } from "@workspace/shared/result";
+import { z } from "zod";
+
 import type { ReplyEvent, VoiceReplies } from "./reply";
 import {
   BARGE_IN_VAD,
   type CallEffect,
+  type CallError,
   type CallEvent,
   type CallState,
   DEFAULT_VAD,
@@ -102,6 +106,20 @@ export const timingsOf = (turn: Turn): TurnTimings => ({
   firstTextMs: span(turn.transcribed, turn.firstText),
   transcribeMs: span(turn.speechEnd, turn.transcribed),
 });
+
+const problemSchema = z.object({ code: z.string() });
+
+/** What a failed `/api/voice/*` answer means for the call, by the server's code. */
+export const callErrorOf = async (
+  stage: "transcribe" | "speak",
+  response: Response
+): Promise<CallError> => {
+  const body = problemSchema.safeParse(await response.json().catch(() => null));
+  if (body.success && body.data.code === "SERVICE_UNAVAILABLE") {
+    return "unavailable";
+  }
+  return stage === "transcribe" ? "transcription" : "speech";
+};
 
 const isTalking = (phase: CallState["phase"]) =>
   phase === "speaking" ||
@@ -213,28 +231,34 @@ export const openVoiceEngine = async (
   // the cores and the first sentence (the one that matters) comes later.
   let synthesis: Promise<unknown> = Promise.resolve();
 
+  const synthesize = async (
+    sentence: string,
+    signal: AbortSignal
+  ): Promise<Result<AudioBuffer, CallError>> => {
+    const response = await options.fetch(api("speak"), {
+      body: JSON.stringify({ text: sentence }),
+      credentials: "same-origin",
+      headers: { "content-type": "application/json" },
+      method: "POST",
+      signal,
+    });
+    if (!response.ok) {
+      return err(await callErrorOf("speak", response));
+    }
+    return ok(await context.decodeAudioData(await response.arrayBuffer()));
+  };
+
   const speak = (sentence: string) => {
     const controller = new AbortController();
     const audio = synthesis
-      .then(() =>
-        options.fetch(api("speak"), {
-          body: JSON.stringify({ text: sentence }),
-          credentials: "same-origin",
-          headers: { "content-type": "application/json" },
-          method: "POST",
-          signal: controller.signal,
-        })
-      )
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`speak ${response.status}`);
+      .then(() => synthesize(sentence, controller.signal))
+      .catch(() => err<CallError>("speech"))
+      .then((spoken) => {
+        if (spoken.ok) {
+          return spoken.value;
         }
-        return response.arrayBuffer();
-      })
-      .then((bytes) => context.decodeAudioData(bytes))
-      .catch(() => {
         if (!controller.signal.aborted) {
-          hooks.dispatch({ error: "speech", type: "failed" });
+          hooks.dispatch({ error: spoken.error, type: "failed" });
         }
         return null;
       });
@@ -265,12 +289,10 @@ export const openVoiceEngine = async (
       signal,
     });
     if (!response.ok) {
-      throw Object.assign(new Error(`transcribe ${response.status}`), {
-        status: response.status,
-      });
+      return err(await callErrorOf("transcribe", response));
     }
     const body = (await response.json()) as { text?: unknown };
-    return typeof body.text === "string" ? body.text : "";
+    return ok(typeof body.text === "string" ? body.text : "");
   };
 
   const transcribe = async () => {
@@ -286,20 +308,17 @@ export const openVoiceEngine = async (
     const controller = new AbortController();
     transcribing = controller;
     try {
-      const text = await upload(wav, controller.signal);
-      turn.transcribed = performance.now();
-      hooks.dispatch({ text, type: "transcribed" });
-    } catch (cause) {
-      if (!controller.signal.aborted) {
-        const down =
-          typeof cause === "object" &&
-          cause !== null &&
-          "status" in cause &&
-          cause.status === 503;
-        hooks.dispatch({
-          error: down ? "unavailable" : "transcription",
-          type: "failed",
-        });
+      const heardText = await upload(wav, controller.signal).catch(() =>
+        err<CallError>("transcription")
+      );
+      if (controller.signal.aborted) {
+        return;
+      }
+      if (heardText.ok) {
+        turn.transcribed = performance.now();
+        hooks.dispatch({ text: heardText.value, type: "transcribed" });
+      } else {
+        hooks.dispatch({ error: heardText.error, type: "failed" });
       }
     } finally {
       if (transcribing === controller) {
