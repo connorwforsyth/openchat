@@ -131,3 +131,60 @@ describe("emailDomain", () => {
     expect(emailDomain(email)).toBe(domain);
   });
 });
+
+describe("decideSignUp with Microsoft (186)", () => {
+  const microsoft = { clientId: "id", clientSecret: "secret" };
+  const viaMicrosoft: SignUpRequest = {
+    email: "ada@contoso.com",
+    method: "oauth",
+    providerId: "microsoft",
+  };
+  const facts = { hasPendingInvitation: false, isFirstUser: false };
+
+  it("counts as SSO for `signup: sso`", () => {
+    expect(
+      decideSignUp(
+        authConfig({ microsoft, signup: "sso" }),
+        viaMicrosoft,
+        facts
+      ).ok
+    ).toBe(true);
+  });
+
+  it("passes `signup: invite` only with `autoProvision`", () => {
+    expect(
+      decideSignUp(authConfig({ microsoft }), viaMicrosoft, facts)
+    ).toEqual({ error: "invite_required", ok: false });
+    expect(
+      decideSignUp(
+        authConfig({
+          microsoft: {
+            ...microsoft,
+            allowedDomains: ["contoso.com"],
+            autoProvision: true,
+          },
+        }),
+        viaMicrosoft,
+        facts
+      ).ok
+    ).toBe(true);
+  });
+
+  it("does nothing once switched off", () => {
+    expect(
+      decideSignUp(
+        authConfig({
+          microsoft: { ...microsoft, enabled: false },
+          signup: "open",
+        }),
+        viaMicrosoft,
+        facts
+      ).ok
+    ).toBe(true);
+    expect(
+      appConfigSchema.safeParse({
+        auth: { microsoft: { ...microsoft, enabled: false }, signup: "sso" },
+      }).success
+    ).toBe(false);
+  });
+});

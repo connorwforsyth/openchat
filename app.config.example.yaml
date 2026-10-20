@@ -23,6 +23,17 @@ auth:
   oidc: []                  # SSO: [{ id, name, issuer, clientId, clientSecret }]
   # social:
   #   github: { clientId: ${GITHUB_CLIENT_ID}, clientSecret: ${GITHUB_CLIENT_SECRET} }
+  # Sign in with Microsoft (Entra ID). Off until both credentials are set;
+  # see docs/self-hosting.md, "Sign in with Microsoft (Entra ID)".
+  # microsoft:
+  #   clientId: ${MICROSOFT_CLIENT_ID}
+  #   clientSecret: ${MICROSOFT_CLIENT_SECRET}
+  #   tenantId: organizations   # common | organizations | consumers | <tenant GUID or domain>
+  #   allowedDomains: []        # e.g. [contoso.com]; empty allows any
+  #   allowedTenants: []        # tenant GUIDs (the `tid` claim); empty allows any
+  #   autoProvision: false      # true: allowed users get an account without an invite
+  #   name: Microsoft           # the button reads "Continue with <name>"
+  #   photo: { enabled: true, maxBytes: 1048576 }
 
 providers:
   anthropic: { apiKey: "${ANTHROPIC_API_KEY}" }

@@ -902,6 +902,10 @@ msgstr "Connect to your server"
 msgid "Connected · {count} tools"
 msgstr "Connected · {count} tools"
 
+#: ../../apps/web/app/(app)/(pages)/settings/_components/profile-settings.tsx
+msgid "Connected accounts"
+msgstr "Connected accounts"
+
 #: ../chat-ui/src/workspace/preview.tsx
 msgid "Connecting to port {port}…"
 msgstr "Connecting to port {port}…"
@@ -1521,6 +1525,10 @@ msgstr "Editor"
 msgid "Email"
 msgstr "Email"
 
+#: ../../apps/web/app/(app)/(pages)/settings/_components/connected-accounts.tsx
+msgid "Email and password"
+msgstr "Email and password"
+
 #: ../../apps/web/app/(auth)/_components/auth-problem.tsx
 msgid "Enter a valid email address."
 msgstr "Enter a valid email address."
@@ -2105,6 +2113,10 @@ msgstr "Link address"
 msgid "Link copied"
 msgstr "Link copied"
 
+#: ../../apps/web/app/(app)/(pages)/settings/_components/connected-accounts.tsx
+msgid "Linked {since}"
+msgstr "Linked {since}"
+
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgid "List"
 msgstr "List"
@@ -2569,6 +2581,10 @@ msgstr "No sandbox"
 #: ../../apps/desktop/src/main/menu.ts
 msgid "No Shortcut"
 msgstr "No Shortcut"
+
+#: ../../apps/web/app/(app)/(pages)/settings/_components/connected-accounts.tsx
+msgid "No sign-in methods are linked."
+msgstr "No sign-in methods are linked."
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 msgid "No team"
@@ -4415,6 +4431,10 @@ msgstr "The team couldn't be created. Try again."
 #: ../library-ui/src/components/item-builder.tsx
 msgid "The test chat needs a server to run against."
 msgstr "The test chat needs a server to run against."
+
+#: ../../apps/web/app/(app)/(pages)/settings/_components/profile-settings.tsx
+msgid "The ways you can sign in to this account."
+msgstr "The ways you can sign in to this account."
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-keys-admin.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx

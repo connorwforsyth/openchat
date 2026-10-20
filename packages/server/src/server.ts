@@ -51,6 +51,7 @@ import { type App, createApp } from "./app";
 import { type DatabaseProblem, openDatabase } from "./boot/database";
 import type { Session, SessionResolver } from "./context";
 import { mountArtifactImageRoutes } from "./http/artifact-images";
+import { avatarStoreFor, mountAvatarRoutes } from "./http/avatars";
 import { mountFileRoutes } from "./http/files";
 import { mountLlmRoute } from "./http/llm";
 import { MCP_OAUTH_CALLBACK_PATH, mountMcpRoutes } from "./http/mcp";
@@ -371,8 +372,18 @@ export const createServerFromEnv = async (
   const { database } = opened;
   const { db } = database;
   const origin = appOriginOf(env);
+  const storage = createStorage(config, {
+    baseUrl: `${origin}/api/storage`,
+    env,
+    signingSecret: storageSigningSecret(env),
+  });
+  if (storage.problem) {
+    report(`uploads are unavailable: ${storage.problem}`, null);
+  }
 
   const created = createAuth({
+    // Microsoft profile photos (186) live beside uploads.
+    avatars: avatarStoreFor(storage.storage, origin),
     config,
     db,
     env,
@@ -420,15 +431,6 @@ export const createServerFromEnv = async (
       registry,
     });
   const embedder = embedderFor(config, registry, report);
-
-  const storage = createStorage(config, {
-    baseUrl: `${origin}/api/storage`,
-    env,
-    signingSecret: storageSigningSecret(env),
-  });
-  if (storage.problem) {
-    report(`uploads are unavailable: ${storage.problem}`, null);
-  }
 
   const mcp = createMcp({
     config,
@@ -578,6 +580,7 @@ export const createServerFromEnv = async (
         db,
         resolveSession,
       });
+      mountAvatarRoutes(hono, { resolveSession, storage: storage.storage });
       mountFileRoutes(hono, {
         db,
         resolveSession,
