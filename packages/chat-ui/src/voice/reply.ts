@@ -181,25 +181,32 @@ async function* answerFrom(
   speaker: Speaker,
   runsLeft: number
 ): AsyncGenerator<ReplyEvent> {
+  // Flushes the half-said sentence, unless the caller cut it off on purpose.
+  async function* finish(value: ReplyEnd): AsyncGenerator<ReplyEvent> {
+    if (signal.aborted) {
+      await ports.cancel(id);
+      yield end("cancelled");
+      return;
+    }
+    yield* speaker.speak(speaker.said(), true);
+    yield end(value);
+  }
   const outcome = signal.aborted
     ? ({ kind: "aborted" } as const)
     : yield* followRun(ports, id, signal, speaker);
   if (outcome.kind === "aborted") {
-    // No flush: the half-said sentence was cut off on purpose.
-    await ports.cancel(id);
-    yield end("cancelled");
+    yield* finish("cancelled");
     return;
   }
   const { run } = outcome;
   if (run?.status === "succeeded") {
     if (!speaker.said().trim() && run.assistantMessageId) {
       const stored = await ports.answer(run.assistantMessageId);
-      if (stored.ok) {
+      if (stored.ok && !signal.aborted) {
         yield* speaker.speak(stored.value, false);
       }
     }
-    yield* speaker.speak(speaker.said(), true);
-    yield end("finished");
+    yield* finish("finished");
     return;
   }
   // Stopped or failed before saying anything: carry on with whichever run
@@ -212,8 +219,7 @@ async function* answerFrom(
     yield* answerFrom(ports, next, signal, speaker, runsLeft - 1);
     return;
   }
-  yield* speaker.speak(speaker.said(), true);
-  yield end(run?.status === "cancelled" ? "cancelled" : "failed");
+  yield* finish(run?.status === "cancelled" ? "cancelled" : "failed");
 }
 
 /**
