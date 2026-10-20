@@ -13,9 +13,12 @@ Connor (2026-10-20): "set up another adapter/module to help people connect to Az
 
 ## Done when
 
-- **Config:** `auth.microsoft` in app.config.yaml with `clientId`/`clientSecret` (from `${ENV}`), `tenantId` (`common` | `organizations` | `consumers` | a tenant GUID or domain), `allowedDomains`, `allowedTenants`, `autoProvision`, `name` (the button label), `photo { enabled, maxBytes }` and `enabled`. It's a zod schema. With no block, or with the credentials unset, the app boots exactly as before. `autoProvision` on a multi-tenant endpoint with no allow-list is refused. `signup: sso` counts Microsoft.
+- **Config:** `auth.microsoft` in app.config.yaml with `clientId`/`clientSecret` (from `${ENV}`), `tenantId` (`common` | `organizations` | `consumers` | a tenant GUID or domain), `allowedDomains`, `allowedTenants`, `autoProvision`, `name` (the button label), `photo { enabled, maxBytes }` and `enabled`. It's a zod schema. With no block, or with the credentials unset, the app boots exactly as before. `autoProvision` and `signup: sso` need a pinned tenant (a specific `tenantId` or `allowedTenants`); `allowedDomains` is a filter and doesn't count, because any tenant can give its users any email (nOAuth).
 - **Adapter:** `microsoftSso(config, { fetch, avatars, warn })` returns Better Auth's provider options, a `validateUserInfo` refusal and an account-row filter.
   - The tenant and domain allow-lists apply to every sign-in, sign-up and link.
+  - An invitation or `signup: domain` matches a Microsoft email only from a pinned tenant or when the token verifies the email.
+  - A sign-in whose directory email belongs to another account is refused with `microsoft_email_in_use`.
+  - `user.syncedName` and `user.syncedImage` are `input: false`; only the `user` database hooks write them, during a Microsoft sign-in.
   - Email follows the directory. Name and photo follow it until the person edits them: each sign-in records what it copied (`user.syncedName`, `user.syncedImage`) and only replaces a field that still equals that record. When Microsoft has no photo, a synced one is removed and the person's own is kept (defaults, see QUESTIONS-FOR-CONNOR).
   - The Graph photo is copied into Storage under `avatars/`, keyed by `oid` and the photo's ETag, so a later sign-in only re-downloads it when it has changed. A 404 is treated as no photo, and an oversized photo or anything that isn't an image is skipped. None of these blocks sign-in.
   - Microsoft's tokens are never stored.

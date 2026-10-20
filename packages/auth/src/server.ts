@@ -52,6 +52,7 @@ import {
   joinInvitedTeams,
   leaveOrgTeams,
   profileStoreFor,
+  userIdByEmail,
 } from "./store";
 
 // The Better Auth server (D22): email and password, GitHub and Google when
@@ -254,9 +255,13 @@ const buildAuth = (
         avatars,
         fetch: fetchFn,
         profiles: profileStoreFor(db),
+        userIdByEmail: (email) => userIdByEmail(db, email),
         warn: log.warn,
       })
     : undefined;
+  // What a Microsoft sign-in synced, for the `user` hooks (186).
+  const withSynced = async <T extends object>(data: T) =>
+    microsoft ? { data: await microsoft.userData(data) } : undefined;
   const orgs = orgPlugin(db);
   const auth = betterAuth({
     advanced: {
@@ -315,7 +320,9 @@ const buildAuth = (
               name: created.name,
             });
           },
+          before: withSynced,
         },
+        update: { before: withSynced },
       },
     },
     disabledPaths: httpDisabledPaths(orgs),
@@ -341,16 +348,16 @@ const buildAuth = (
     user: {
       additionalFields: {
         // What the last sign-in copied from a provider (186), so an edit
-        // the person made since isn't overwritten. `input` because Better
-        // Auth only takes a provider's extra profile fields when it is.
+        // the person made since isn't overwritten. Only the `user` hooks
+        // write them.
         syncedImage: {
-          input: true,
+          input: false,
           required: false,
           returned: false,
           type: "string",
         },
         syncedName: {
-          input: true,
+          input: false,
           required: false,
           returned: false,
           type: "string",
@@ -359,10 +366,12 @@ const buildAuth = (
       validateUserInfo: async ({ source, user: incoming }) => {
         const email = typeof incoming.email === "string" ? incoming.email : "";
         // Tenant and domain allow-lists hold on every sign-in, not just the first.
-        const refused = microsoft?.refusal({
+        const refused = await microsoft?.refusal({
+          action: source.action,
           email,
           profile: source.oauth?.profile,
           providerId: source.oauth?.providerId,
+          userId: incoming.id,
         });
         if (refused) {
           return refused;
@@ -378,6 +387,7 @@ const buildAuth = (
           config.auth,
           {
             email,
+            emailVerified: incoming.emailVerified === true,
             method: source.method,
             providerId: source.oauth?.providerId ?? source.sso?.providerId,
           },

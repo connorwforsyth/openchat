@@ -1,3 +1,4 @@
+import { defineRequestState, hasRequestState } from "@better-auth/core/context";
 import {
   MICROSOFT_PROVIDER_ID,
   type MicrosoftSsoConfig,
@@ -30,21 +31,32 @@ export interface MicrosoftSsoPorts {
   readonly avatars?: AvatarStore;
   readonly fetch: typeof fetch;
   readonly profiles: ProfileStore;
+  /** Who has this email here, if anyone. */
+  readonly userIdByEmail: (email: string) => Promise<string | undefined>;
   readonly warn: (message: string) => void;
 }
 
 export const microsoftRefusalSchema = z.enum([
   "microsoft_tenant_not_allowed",
   "microsoft_domain_not_allowed",
+  /** The directory's email, which sign-in copies, is another account's here. */
+  "microsoft_email_in_use",
 ]);
 export type MicrosoftRefusal = z.infer<typeof microsoftRefusalSchema>;
 
 const REFUSAL_MESSAGES: Record<MicrosoftRefusal, string> = {
   microsoft_domain_not_allowed:
     "This Microsoft account's email domain can't sign in here.",
+  microsoft_email_in_use:
+    "This Microsoft account's email belongs to another account here. Ask an admin to sort it out.",
   microsoft_tenant_not_allowed:
     "This Microsoft account's organization can't sign in here.",
 };
+
+const refusalOf = (error: MicrosoftRefusal) => ({
+  error,
+  errorDescription: REFUSAL_MESSAGES[error],
+});
 
 const claimsSchema = z.looseObject({
   oid: z.string().optional(),
@@ -277,6 +289,8 @@ const withoutTokens = <T extends { readonly providerId?: string }>(
       }
     : account;
 
+type Synced = Pick<StoredProfile, "syncedImage" | "syncedName">;
+
 export interface MicrosoftSso {
   /** For Better Auth's `account` create and update `before` hooks. */
   readonly accountData: typeof withoutTokens;
@@ -284,13 +298,24 @@ export interface MicrosoftSso {
   readonly provider: MicrosoftOptions;
   /**
    * For `user.validateUserInfo`: refuses Microsoft accounts outside the
-   * allow-lists on sign-up, sign-in and linking; ignores other providers.
+   * allow-lists on sign-up, sign-in and linking, and a sign-in whose
+   * directory email another account has; ignores other providers.
    */
   readonly refusal: (data: {
+    readonly action: string;
     readonly email: string;
-    readonly providerId: string | undefined;
     readonly profile: Record<string, unknown> | undefined;
-  }) => { error: MicrosoftRefusal; errorDescription: string } | undefined;
+    readonly providerId: string | undefined;
+    readonly userId: string | undefined;
+  }) => Promise<
+    { error: MicrosoftRefusal; errorDescription: string } | undefined
+  >;
+  /**
+   * For Better Auth's `user` create and update `before` hooks: adds what
+   * this request's Microsoft sign-in synced. People can't set these fields
+   * themselves (`input: false`), so this is their only writer.
+   */
+  readonly userData: <T extends object>(user: T) => Promise<T>;
 }
 
 /**
@@ -312,6 +337,7 @@ export const microsoftSso = (
     tenantId: config.tenantId,
   };
   const decode = microsoft(base).getUserInfo;
+  const syncedThisRequest = defineRequestState<Synced | null>(() => null);
   const { avatars } = ports;
   const photos = config.photo.enabled && avatars ? { ...ports, avatars } : null;
   const directoryPhoto = async (
@@ -348,26 +374,27 @@ export const microsoftSso = (
           email: info.user.email ?? "",
           providerId: MICROSOFT_PROVIDER_ID,
         });
-        const profile = decideProfileSync(stored, {
-          name: info.user.name ?? "",
-          photo,
-        });
+        const { image, name, syncedImage, syncedName } = decideProfileSync(
+          stored,
+          { name: info.user.name ?? "", photo }
+        );
+        await syncedThisRequest.set({ syncedImage, syncedName });
         // Better Auth writes these on sign-up and, through
         // `overrideUserInfoOnSignIn`, on every later sign-in.
         return {
           ...info,
           user: {
             ...info.user,
-            ...profile,
             // Typed `string | undefined`, but `null` reaches the row, and
             // `undefined` would keep a photo we mean to remove.
-            image: profile.image as string | undefined,
+            image: image as string | undefined,
+            name,
           },
         };
       },
       overrideUserInfoOnSignIn: true,
     },
-    refusal: ({ email, profile, providerId }) => {
+    refusal: async ({ action, email, profile, providerId, userId }) => {
       if (providerId !== MICROSOFT_PROVIDER_ID) {
         return;
       }
@@ -375,12 +402,23 @@ export const microsoftSso = (
         email,
         tenantId: claimsSchema.safeParse(profile ?? {}).data?.tid,
       });
-      return decision.ok
-        ? undefined
-        : {
-            error: decision.error,
-            errorDescription: REFUSAL_MESSAGES[decision.error],
-          };
+      if (!decision.ok) {
+        return refusalOf(decision.error);
+      }
+      // Sign-in copies the directory's email over this user's, which can't
+      // take an address another account already has.
+      if (action === "sign-in") {
+        const owner = await ports.userIdByEmail(email);
+        if (owner !== undefined && owner !== userId) {
+          return refusalOf("microsoft_email_in_use");
+        }
+      }
+    },
+    userData: async (user) => {
+      const synced = (await hasRequestState())
+        ? await syncedThisRequest.get()
+        : null;
+      return synced ? { ...user, ...synced } : user;
     },
   };
 };

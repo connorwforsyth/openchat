@@ -27,9 +27,24 @@ const MULTI_TENANT: ReadonlySet<string> = new Set([
   "consumers",
 ]);
 
+/**
+ * Sign-in is limited to tenants the admin chose: one `tenantId`, or an
+ * `allowedTenants` list checked against the token's `tid`. Only then does a
+ * Microsoft email name an address someone here vouched for, so only then
+ * may Microsoft create accounts on its own.
+ */
+export const microsoftTenantPinned = (
+  microsoft: Pick<MicrosoftSsoConfig, "allowedTenants" | "tenantId">
+): boolean =>
+  !MULTI_TENANT.has(microsoft.tenantId) || microsoft.allowedTenants.length > 0;
+
 const strictMicrosoftSchema = z
   .strictObject({
-    /** Email domains that may sign in (`[contoso.com]`); empty allows any. */
+    /**
+     * Email domains that may sign in (`[contoso.com]`); empty allows any. A
+     * filter, not a security boundary: any tenant's admin can give their own
+     * users any email address, so only the tenant vouches for one.
+     */
     allowedDomains: z
       .array(
         z
@@ -45,7 +60,8 @@ const strictMicrosoftSchema = z
       .default([]),
     /**
      * Create accounts for allowed Microsoft users even when `signup` is
-     * `invite` or `domain`. Off, Microsoft sign-ups follow `signup`.
+     * `invite` or `domain`. Off, Microsoft sign-ups follow `signup`. Needs a
+     * pinned tenant (`microsoftTenantPinned`).
      */
     autoProvision: z.boolean().default(false),
     clientId: z.string().min(1),
@@ -68,15 +84,11 @@ const strictMicrosoftSchema = z
     tenantId: tenantIdSchema.default("common"),
   })
   .superRefine((microsoft, context) => {
-    const narrowed =
-      !MULTI_TENANT.has(microsoft.tenantId) ||
-      microsoft.allowedDomains.length > 0 ||
-      microsoft.allowedTenants.length > 0;
-    if (microsoft.autoProvision && !narrowed) {
+    if (microsoft.autoProvision && !microsoftTenantPinned(microsoft)) {
       context.addIssue({
         code: "custom",
         message:
-          "`autoProvision` needs a specific `tenantId`, `allowedDomains` or `allowedTenants`; otherwise any Microsoft account could create one",
+          "`autoProvision` needs a specific `tenantId` or `allowedTenants`. `allowedDomains` alone isn't enough: any Microsoft tenant can give its users an email at your domain",
         path: ["autoProvision"],
       });
     }

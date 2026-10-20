@@ -169,12 +169,23 @@ auth:
 - `allowedTenants` (tenant GUIDs) and `allowedDomains` (email domains) are
   checked by the server on every sign-in, not just the first; an account
   outside them is turned away.
+- `allowedDomains` is a filter, not a security boundary. Any Microsoft
+  tenant's admin can give their own users an email at your domain, so only
+  the tenant vouches for an address. The tenant is pinned when `tenantId`
+  names one tenant or `allowedTenants` lists them.
 - Without `autoProvision`, a Microsoft account that has no account here
   follows `signup` (invite-only by default; the first user is always the
-  admin). With it, any allowed account gets one. Because that would admit
-  every Microsoft account on `common` or `organizations`, it needs a
-  specific `tenantId`, `allowedDomains` or `allowedTenants`.
-- `signup: sso` counts Microsoft as single sign-on.
+  admin). With it, any allowed account gets one, so it needs a pinned
+  tenant.
+- An invitation, or `signup: domain`, matches a Microsoft account's email
+  only from a pinned tenant, or when the token marks the email verified
+  (add the `verified_primary_email` optional claim in the app
+  registration's **Token configuration**).
+- `signup: sso` counts Microsoft as single sign-on once the tenant is
+  pinned.
+- Each sign-in copies the email from the directory. If another account here
+  already has that email, the sign-in is refused with
+  `microsoft_email_in_use` until an admin changes one of them.
 - `photo.maxBytes` (default 1 MiB) skips larger photos; `photo.enabled:
   false` skips them altogether. No photo, or a failed photo request, never
   stops a sign-in. When Microsoft no longer has a photo, the copy the app

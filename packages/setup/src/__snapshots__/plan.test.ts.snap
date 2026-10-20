@@ -157,9 +157,9 @@ auth:
   #   clientId: \${MICROSOFT_CLIENT_ID}
   #   clientSecret: \${MICROSOFT_CLIENT_SECRET}
   #   tenantId: organizations   # common | organizations | consumers | <tenant GUID or domain>
-  #   allowedDomains: []        # e.g. [contoso.com]; empty allows any
+  #   allowedDomains: []        # e.g. [contoso.com]; empty allows any. A filter, not a security boundary
   #   allowedTenants: []        # tenant GUIDs (the \`tid\` claim); empty allows any
-  #   autoProvision: false      # true: allowed users get an account without an invite
+  #   autoProvision: false      # true: allowed users get an account without an invite; needs a tenant GUID or allowedTenants
   #   name: Microsoft           # the button reads "Continue with <name>"
   #   photo: { enabled: true, maxBytes: 1048576 }
 
@@ -508,9 +508,9 @@ auth:
   #   clientId: \${MICROSOFT_CLIENT_ID}
   #   clientSecret: \${MICROSOFT_CLIENT_SECRET}
   #   tenantId: organizations   # common | organizations | consumers | <tenant GUID or domain>
-  #   allowedDomains: []        # e.g. [contoso.com]; empty allows any
+  #   allowedDomains: []        # e.g. [contoso.com]; empty allows any. A filter, not a security boundary
   #   allowedTenants: []        # tenant GUIDs (the \`tid\` claim); empty allows any
-  #   autoProvision: false      # true: allowed users get an account without an invite
+  #   autoProvision: false      # true: allowed users get an account without an invite; needs a tenant GUID or allowedTenants
   #   name: Microsoft           # the button reads "Continue with <name>"
   #   photo: { enabled: true, maxBytes: 1048576 }
 
@@ -845,9 +845,9 @@ auth:
   #   clientId: \${MICROSOFT_CLIENT_ID}
   #   clientSecret: \${MICROSOFT_CLIENT_SECRET}
   #   tenantId: organizations   # common | organizations | consumers | <tenant GUID or domain>
-  #   allowedDomains: []        # e.g. [contoso.com]; empty allows any
+  #   allowedDomains: []        # e.g. [contoso.com]; empty allows any. A filter, not a security boundary
   #   allowedTenants: []        # tenant GUIDs (the \`tid\` claim); empty allows any
-  #   autoProvision: false      # true: allowed users get an account without an invite
+  #   autoProvision: false      # true: allowed users get an account without an invite; needs a tenant GUID or allowedTenants
   #   name: Microsoft           # the button reads "Continue with <name>"
   #   photo: { enabled: true, maxBytes: 1048576 }
 

@@ -11,7 +11,11 @@ import { sandboxProviderSchema } from "@workspace/contract/schemas/sandbox";
 import { instancePolicySchema } from "@workspace/contract/schemas/tenancy";
 import { z } from "zod";
 
-import { microsoftSsoOf, microsoftSsoSchema } from "./microsoft";
+import {
+  microsoftSsoOf,
+  microsoftSsoSchema,
+  microsoftTenantPinned,
+} from "./microsoft";
 import { DEFAULT_SITE_ORIGINS, isSiteOrigin } from "./sites";
 import { termsSchema } from "./terms";
 
@@ -223,15 +227,16 @@ const authSchema = z
         path: ["domains"],
       });
     }
+    const microsoft = microsoftSsoOf(auth);
     if (
       auth.signup === "sso" &&
       auth.oidc.length === 0 &&
-      !microsoftSsoOf(auth)
+      !(microsoft && microsoftTenantPinned(microsoft))
     ) {
       context.addIssue({
         code: "custom",
         message:
-          "`signup: sso` needs at least one `oidc` provider or `microsoft`",
+          "`signup: sso` needs at least one `oidc` provider, or `microsoft` with a specific `tenantId` or `allowedTenants`",
         path: ["oidc"],
       });
     }

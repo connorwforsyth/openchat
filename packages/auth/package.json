@@ -25,6 +25,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@better-auth/core": "catalog:",
     "@better-auth/drizzle-adapter": "catalog:",
     "@orpc/server": "catalog:",
     "@workspace/config": "workspace:*",
