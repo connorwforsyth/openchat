@@ -87,6 +87,55 @@ describe("callStep", () => {
     expect(state.phase).toBe("thinking");
   });
 
+  it("lets the user talk over a pause between the reply's sentences", () => {
+    const { effects, state } = run([
+      { type: "ready" },
+      { text: "Tell me a long story", type: "heard-text" },
+      { type: "audio-started" },
+      { type: "audio-idle" },
+      { type: "speech-start" },
+    ]);
+    expect(effects).toEqual(["send", "interrupt", "start-recording"]);
+    expect(state.phase).toBe("hearing");
+  });
+
+  it("shows a pause between sentences as thinking, then speaks on", () => {
+    const paused = run([
+      { type: "ready" },
+      { text: "Tell me a long story", type: "heard-text" },
+      { type: "audio-started" },
+      { type: "audio-idle" },
+    ]);
+    expect(orbStateOf(paused.state.phase)).toBe("thinking");
+    const resumed = run([{ type: "audio-started" }], paused.state);
+    expect(resumed.state.phase).toBe("speaking");
+    const done = run(
+      [{ pending: false, type: "reply-finished" }],
+      paused.state
+    );
+    expect(done.state.phase).toBe("listening");
+  });
+
+  it("keeps listening when the user goes on while the first clause transcribes", () => {
+    const { effects, state } = run([
+      { type: "ready" },
+      { type: "speech-start" },
+      { type: "speech-end" },
+      { type: "speech-start" },
+      { text: "What's next", type: "transcribed" },
+      { type: "speech-end" },
+      { text: "What's next on my list?", type: "transcribed" },
+    ]);
+    expect(effects).toEqual([
+      "start-recording",
+      "transcribe",
+      "resume-recording",
+      "transcribe",
+      "send",
+    ]);
+    expect(state.phase).toBe("thinking");
+  });
+
   it("ignores speech while muted and drops a half-heard utterance on mute", () => {
     const heard = run([{ type: "ready" }, { type: "speech-start" }]);
     const muted = run(
