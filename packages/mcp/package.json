@@ -16,6 +16,7 @@
     "./oauth": "./src/oauth.ts",
     "./registry": "./src/registry.ts",
     "./server-config": "./src/server-config.ts",
+    "./testing/demo-server": "./src/testing/demo-server.ts",
     "./testing/fixture-server": "./src/testing/fixture-server.ts",
     "./token-store": "./src/token-store.ts",
     "./tool-names": "./src/tool-names.ts"

@@ -5,8 +5,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   Connector,
   ConnectorList,
+  ConnectorTool,
 } from "@workspace/contract/schemas/library";
 import {
+  ChevronRightIcon,
   CircleAlertIcon,
   LockIcon,
   MonitorIcon,
@@ -15,6 +17,11 @@ import {
 } from "@workspace/icons";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button, buttonVariants } from "@workspace/ui/components/button";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@workspace/ui/components/collapsible";
 import {
   Empty,
   EmptyDescription,
@@ -38,6 +45,11 @@ import { routes } from "@/lib/routes";
 // A section of the full-screen settings (185). Links are plain anchors:
 // next/link can't load in the browser test runner, and leaving settings for
 // the library is a full page anyway.
+//
+// Tools (188): each usable connector expands to its tools, listed from the
+// server's `tools/list` (cached per connection) only when opened, less any
+// the operator denies; required ones are locked on. A switch here is the
+// user's default for every chat; a chat can still differ (the composer).
 
 const OAuthStatus = ({ connector }: { readonly connector: Connector }) => {
   const { query } = useApi();
@@ -151,6 +163,123 @@ const LockNote = ({ connector }: { readonly connector: Connector }) => {
   );
 };
 
+const ToolRow = ({
+  connector,
+  tool,
+}: {
+  readonly connector: Connector;
+  readonly tool: ConnectorTool;
+}) => {
+  const { t } = useLingui();
+  const { query } = useApi();
+  const queryClient = useQueryClient();
+  const { id } = connector;
+  const { mutate, isPending } = useMutation(
+    query.connectors.setToolEnabled.mutationOptions({
+      onSettled: () =>
+        queryClient.invalidateQueries({ queryKey: query.connectors.key() }),
+    })
+  );
+  const toggle = useCallback(
+    (enabled: boolean) => mutate({ enabled, id, tool: tool.name }),
+    [id, mutate, tool.name]
+  );
+  const { name } = tool;
+  return (
+    <li className="flex items-start gap-3 py-2">
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="flex items-center gap-1.5 font-mono text-xs">
+          {name}
+          {tool.lock ? (
+            <LockIcon
+              aria-label={t`Required by your administrator`}
+              className="size-3 text-muted-foreground"
+            />
+          ) : null}
+        </span>
+        {tool.description ? (
+          <span className="text-muted-foreground text-xs">
+            {tool.description}
+          </span>
+        ) : null}
+      </div>
+      <Switch
+        aria-label={t`Use the ${name} tool`}
+        checked={tool.enabled}
+        disabled={tool.lock !== null || !connector.enabled || isPending}
+        onCheckedChange={toggle}
+        size="sm"
+      />
+    </li>
+  );
+};
+
+const ToolList = ({ connector }: { readonly connector: Connector }) => {
+  const { query } = useApi();
+  const tools = useQuery(
+    query.connectors.tools.queryOptions({
+      input: { id: connector.id },
+      staleTime: 60_000,
+    })
+  );
+  if (tools.isPending) {
+    return (
+      <div className="flex flex-col gap-2 py-2">
+        <Skeleton className="h-4 w-40" />
+        <Skeleton className="h-4 w-32" />
+      </div>
+    );
+  }
+  if (tools.isError || !tools.data.reachable) {
+    return (
+      <p className="py-2 text-muted-foreground text-xs">
+        {connector.auth === "oauth" ? (
+          <Trans>Connect to see this connector's tools.</Trans>
+        ) : (
+          <Trans>Couldn't reach this connector to list its tools.</Trans>
+        )}
+      </p>
+    );
+  }
+  if (tools.data.tools.length === 0) {
+    return (
+      <p className="py-2 text-muted-foreground text-xs">
+        <Trans>This connector has no tools.</Trans>
+      </p>
+    );
+  }
+  return (
+    <ul className="flex flex-col divide-y divide-border">
+      {tools.data.tools.map((tool) => (
+        <ToolRow connector={connector} key={tool.name} tool={tool} />
+      ))}
+    </ul>
+  );
+};
+
+const ToolsDisclosure = ({ connector }: { readonly connector: Connector }) => {
+  const { t } = useLingui();
+  const { title } = connector;
+  const off = connector.disabledTools.length;
+  return (
+    <Collapsible>
+      <CollapsibleTrigger
+        aria-label={t`Tools in ${title}`}
+        className="group/tools flex items-center gap-1 rounded-sm text-muted-foreground text-xs outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
+      >
+        <ChevronRightIcon
+          aria-hidden
+          className="size-3.5 transition-transform duration-(--motion-fast) ease-motion-out group-data-[panel-open]/tools:rotate-90 rtl:-scale-x-100"
+        />
+        {off > 0 ? <Trans>Tools · {off} off</Trans> : <Trans>Tools</Trans>}
+      </CollapsibleTrigger>
+      <CollapsibleContent className="ps-5">
+        <ToolList connector={connector} />
+      </CollapsibleContent>
+    </Collapsible>
+  );
+};
+
 const ConnectorRow = ({
   connector,
   onToggle,
@@ -204,6 +333,7 @@ const ConnectorRow = ({
           </p>
         ) : null}
         <LockNote connector={connector} />
+        {available ? <ToolsDisclosure connector={connector} /> : null}
       </div>
       <div className="flex shrink-0 items-center gap-2">
         {connector.auth === "oauth" && connector.enabled && available ? (
@@ -238,7 +368,7 @@ const ConnectorGroup = ({
 const ConnectorsBody = ({ list }: { readonly list: ConnectorList }) => {
   const { query } = useApi();
   const queryClient = useQueryClient();
-  const listKey = query.connectors.list.queryKey();
+  const listKey = query.connectors.list.queryKey({ input: {} });
   const setEnabled = useMutation(
     query.connectors.setEnabled.mutationOptions({
       onSuccess: (saved) =>
@@ -351,7 +481,7 @@ const ConnectorsBody = ({ list }: { readonly list: ConnectorList }) => {
 
 export const ConnectorsSettings = () => {
   const { query } = useApi();
-  const list = useQuery(query.connectors.list.queryOptions());
+  const list = useQuery(query.connectors.list.queryOptions({ input: {} }));
   return (
     <QueryState query={list} skeleton={3}>
       {(data) => <ConnectorsBody list={data} />}

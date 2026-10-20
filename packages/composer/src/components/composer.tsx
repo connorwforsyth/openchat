@@ -110,6 +110,7 @@ export function Composer({
   attachmentLimits = NO_LIMITS,
   className,
   commands = NONE,
+  connectors,
   disabled = false,
   draft,
   files: workspaceFiles = NONE,
@@ -172,11 +173,12 @@ export function Composer({
   const slash = useMemo(
     (): SlashSources => ({
       commands,
+      connectors: connectors?.connectors,
       files: workspaceFiles.map(fileCandidate),
       prompts,
       skills: skillsToPick,
     }),
-    [commands, prompts, skillsToPick, workspaceFiles]
+    [commands, connectors?.connectors, prompts, skillsToPick, workspaceFiles]
   );
 
   const busy = status === "submitted" || status === "streaming";
@@ -418,11 +420,16 @@ export function Composer({
           current.chain().focus().deleteRange(range).run();
           addSkill(item.skill);
           return;
+        case "connector":
+          // A switch for this chat (188), not words to send.
+          current.chain().focus().deleteRange(range).run();
+          connectors?.onToggle(item.connector.id, !item.connector.enabled);
+          return;
         default:
           return item satisfies never;
       }
     },
-    [addSkill, choosePrompt, onCommand, slash.files.length]
+    [addSkill, choosePrompt, connectors, onCommand, slash.files.length]
   );
 
   // From the + menu: the same file mention `@` makes, at the caret.
@@ -609,6 +616,7 @@ export function Composer({
   const openFilePicker = useCallback(() => fileInputRef.current?.click(), []);
   const menuTitles: Record<MenuList, string> = {
     commands: t`Commands`,
+    connectors: t`Connectors`,
     files: t`Files`,
     mentions: t`Mention`,
     prompts: t`Prompts`,
@@ -686,6 +694,7 @@ export function Composer({
           attachDisabled={disabled || files.atLimit}
           busy={busy}
           canSubmit={canSubmit}
+          connectors={connectors}
           disabled={disabled}
           files={slash.files}
           models={models}

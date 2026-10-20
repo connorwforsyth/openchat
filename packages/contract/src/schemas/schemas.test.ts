@@ -738,6 +738,28 @@ const cases: Record<string, Cases> = {
       },
     ],
   },
+  "library.connectorToolListSchema": {
+    invalid: [{ tools: [] }],
+    valid: [
+      { reachable: false, tools: [] },
+      {
+        reachable: true,
+        tools: [
+          { description: null, enabled: true, lock: null, name: "search" },
+          {
+            description: "Writes the audit log",
+            enabled: true,
+            lock: { reason: "Audit", type: "required" },
+            name: "log_event",
+          },
+        ],
+      },
+    ],
+  },
+  "library.connectorToolSchema": {
+    invalid: [{ description: null, enabled: true, lock: null, name: "" }],
+    valid: [{ description: null, enabled: false, lock: null, name: "search" }],
+  },
   "library.createLibraryItemInputSchema": {
     invalid: [
       { definition: { kind: "agent" }, name: "A" },
@@ -854,6 +876,14 @@ const cases: Record<string, Cases> = {
     invalid: [{ ...agentVersion, number: 0 }],
     valid: [agentVersion],
   },
+  "library.listConnectorsInputSchema": {
+    invalid: [{ conversationId: 3 }],
+    valid: [{}, { conversationId: convId }],
+  },
+  "library.listConnectorToolsInputSchema": {
+    invalid: [{ conversationId: "nope", id: itemId }],
+    valid: [{ id: itemId }, { conversationId: convId, id: itemId }],
+  },
   "library.listLibraryInputSchema": {
     invalid: [{}, { tab: "everything" }],
     valid: [
@@ -942,13 +972,32 @@ const cases: Record<string, Cases> = {
     invalid: [{ notes: "x" }],
     valid: [{ id: itemId, notes: "Tighter rules." }],
   },
+  "library.resetConversationConnectorsInputSchema": {
+    invalid: [{}],
+    valid: [{ conversationId: convId }],
+  },
   "library.restoreVersionInputSchema": {
     invalid: [{ id: itemId }],
     valid: [{ id: itemId, versionId: agentVersion.id }],
   },
   "library.setConnectorEnabledInputSchema": {
     invalid: [{ enabled: "yes", id: itemId }],
-    valid: [{ enabled: false, id: itemId }],
+    valid: [
+      { enabled: false, id: itemId },
+      { conversationId: convId, enabled: true, id: itemId },
+    ],
+  },
+  "library.setConnectorToolEnabledInputSchema": {
+    invalid: [{ enabled: true, id: itemId, tool: "has space" }],
+    valid: [
+      { enabled: false, id: itemId, tool: "search_docs" },
+      {
+        conversationId: convId,
+        enabled: true,
+        id: itemId,
+        tool: "search_docs",
+      },
+    ],
   },
   "library.setMaintainersInputSchema": {
     invalid: [{ id: itemId, userIds: [] }],

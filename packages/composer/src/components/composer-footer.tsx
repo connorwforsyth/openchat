@@ -7,6 +7,7 @@ import {
   ArrowUpIcon,
   FileTextIcon,
   GlobeIcon,
+  NetworkIcon,
   StopIcon,
   ZapIcon,
 } from "@workspace/icons";
@@ -17,7 +18,7 @@ import {
 import { useCallback, useRef } from "react";
 
 import { useModelVariants } from "../hooks/use-model-variants";
-import type { ComposerAppearance } from "../props";
+import type { ComposerAppearance, ComposerConnectors } from "../props";
 import type {
   AgentOption,
   FileCandidate,
@@ -37,6 +38,8 @@ export interface ComposerFooterProps {
   readonly attachDisabled: boolean;
   readonly busy: boolean;
   readonly canSubmit: boolean;
+  /** This chat's connectors (188), for the + menu and the "differs" chip. */
+  readonly connectors?: ComposerConnectors | undefined;
   readonly disabled: boolean;
   readonly files: readonly FileCandidate[];
   readonly models: readonly ModelOption[];
@@ -74,6 +77,7 @@ export function ComposerFooter({
   attachDisabled,
   busy,
   canSubmit,
+  connectors,
   disabled,
   files,
   models,
@@ -116,6 +120,10 @@ export function ComposerFooter({
     onPlanChange?.(false);
     plusRef.current?.focus();
   }, [onPlanChange]);
+  const resetConnectors = useCallback(() => {
+    connectors?.onReset();
+    plusRef.current?.focus();
+  }, [connectors]);
   const turnOffFast = useCallback(() => {
     setFast(false);
     plusRef.current?.focus();
@@ -136,6 +144,7 @@ export function ComposerFooter({
       <div className="flex min-w-0 shrink-0 items-center gap-1">
         <PlusMenu
           attachDisabled={attachDisabled}
+          connectors={connectors}
           disabled={disabled}
           fast={picking ? variants.fast : undefined}
           files={files}
@@ -184,6 +193,23 @@ export function ComposerFooter({
             <GlobeIcon aria-hidden />
             <span className="max-sm:sr-only">
               <Trans>Search</Trans>
+            </span>
+          </InputGroupButton>
+        ) : null}
+        {connectors?.customized ? (
+          <InputGroupButton
+            aria-label={t`Connectors differ from your defaults in this chat. Reset them`}
+            className="rounded-full text-foreground"
+            disabled={disabled}
+            onClick={resetConnectors}
+            size="sm"
+            title={t`Reset to my defaults`}
+            type="button"
+            variant="ghost"
+          >
+            <NetworkIcon aria-hidden />
+            <span className="max-sm:sr-only">
+              <Trans>Custom tools</Trans>
             </span>
           </InputGroupButton>
         ) : null}

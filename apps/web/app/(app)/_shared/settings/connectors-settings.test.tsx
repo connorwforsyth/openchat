@@ -20,11 +20,14 @@ afterEach(() => {
 const connector = (extra: Partial<Connector>): Connector => ({
   auth: "none",
   availability: { state: "available" },
+  customized: false,
   description: null,
+  disabledTools: [],
   enabled: true,
   id: fixtureId("libraryItem", 1),
   lock: null,
   name: "docs",
+  requiredTools: [],
   source: "instance",
   title: "Docs",
   transport: "http",
@@ -49,6 +52,7 @@ const files = connector({
 
 const listOf = (connectors: Connector[], allowed = true): ConnectorList => ({
   connectors,
+  customized: false,
   userServers: { allowed, hosts: [], transports: ["http", "sse"] },
 });
 
@@ -77,6 +81,75 @@ describe("ConnectorsSettings", () => {
           ?.body
       ).toEqual({ enabled: false })
     );
+  });
+
+  it("expands a connector to its tools, saves a tool switch, and locks required ones (188)", async () => {
+    const api = fakeApi({
+      "GET /connectors": () => listOf([docs]),
+      "GET /connectors/:id/tools": () => ({
+        reachable: true,
+        tools: [
+          {
+            description: "Find pages",
+            enabled: true,
+            lock: null,
+            name: "search",
+          },
+          {
+            description: null,
+            enabled: true,
+            lock: { reason: null, type: "required" },
+            name: "log_event",
+          },
+        ],
+      }),
+      "PUT /connectors/:id/tools/:tool/enabled": () => ({
+        description: null,
+        enabled: false,
+        lock: null,
+        name: "search",
+      }),
+    });
+    renderWithApi(<ConnectorsSettings />, api);
+
+    // Tools load only once someone opens the list.
+    const disclosure = await screen.findByRole("button", {
+      name: "Tools in Docs",
+    });
+    expect(api.calls.some((call) => call.route.includes("/tools"))).toBe(false);
+    fireEvent.click(disclosure);
+    const search = await screen.findByRole("switch", {
+      name: "Use the search tool",
+    });
+    expect(screen.getByText("Find pages")).toBeTruthy();
+    expect(
+      screen.getByRole("switch", { name: "Use the log_event tool" })
+    ).toHaveProperty("ariaDisabled", "true");
+
+    fireEvent.click(search);
+    await waitFor(() =>
+      expect(
+        api.calls.find((call) => call.route.startsWith("PUT /connectors/"))
+      ).toMatchObject({ body: { enabled: false } })
+    );
+  });
+
+  it("says why a connector's tools can't be listed", async () => {
+    renderWithApi(
+      <ConnectorsSettings />,
+      fakeApi({
+        "GET /connectors": () => listOf([docs]),
+        "GET /connectors/:id/tools": () => ({ reachable: false, tools: [] }),
+      })
+    );
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Tools in Docs" })
+    );
+    expect(
+      await screen.findByText(
+        "Couldn't reach this connector to list its tools."
+      )
+    ).toBeTruthy();
   });
 
   it("shows a connector that needs setup as off and disabled, even when the user turned it on", async () => {

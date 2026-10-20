@@ -50,6 +50,26 @@ describe("resolveTools", () => {
     sandboxTools: new Set(["bash"]),
   };
 
+  it("leaves out the tools the caller switched off, server by server (188)", () => {
+    const plan = resolveTools(
+      agent({
+        mcpServers: [{ id: docsServer }, { id: secretServer, tools: ["read"] }],
+      }),
+      capabilities,
+      {
+        mcpExcludedTools: new Map([
+          [docsServer, ["delete_page"]],
+          [secretServer, []],
+        ]),
+        mcpServers: new Set([docsServer, secretServer]),
+      }
+    );
+    expect(plan.mcpServers).toEqual([
+      { exclude: ["delete_page"], id: docsServer },
+      { id: secretServer, tools: ["read"] },
+    ]);
+  });
+
   it("offers what's available and granted, and says why the rest isn't", () => {
     const plan = resolveTools(
       agent({

@@ -2,6 +2,8 @@ import type { LibraryItemId } from "@workspace/contract/schemas/common";
 import type {
   Connector,
   ConnectorAvailability,
+  ConnectorTool,
+  McpTool,
   UserServerPolicy,
 } from "@workspace/contract/schemas/library";
 import { err, ok, type Result } from "@workspace/shared/result";
@@ -11,6 +13,7 @@ import {
   instanceServerId,
   missingSecrets,
 } from "./server-config";
+import { safeToolName } from "./tool-names";
 
 // Connectors (184): which MCP servers one user has on. Three layers, merged
 // here and nowhere else:
@@ -18,8 +21,12 @@ import {
 // 1. the operator's catalog in app.config.yaml (`default: on | off |
 //    required`, `allowUserOverride`);
 // 2. the servers in the user's MCP Library (owned or shared with them);
-// 3. the user's own on/off choices (`mcp_connector_pref`).
+// 3. the user's own on/off choices (`mcp_connector_pref`), per server and
+//    per tool (188);
+// 4. one chat's choices (`mcp_conversation_connector`, 188), over the third
+//    until the user resets them.
 //
+// Locks win over every layer: a required connector or tool stays on.
 // Pure: the shell (`connector-service.ts`) loads the three and hands them in.
 
 /** A library server as the merge needs it; no secrets, no URL. */
@@ -32,14 +39,66 @@ export interface LibraryConnector {
   readonly transport: string;
 }
 
+/**
+ * One layer's choice for a server (the user's defaults, or a chat's):
+ * `enabled` null, and a tool not in `tools`, follow the layer below.
+ */
+export interface ConnectorChoice {
+  readonly enabled: boolean | null;
+  /** By the server's tool name; `false` is off. */
+  readonly tools: Readonly<Record<string, boolean>>;
+}
+
+export type ConnectorChoices = ReadonlyMap<LibraryItemId, ConnectorChoice>;
+
 export interface ConnectorInputs {
   readonly catalog: readonly InstanceServerEntry[];
+  /** One chat's choices (188), over `prefs`; left out, the defaults alone. */
+  readonly chat?: ConnectorChoices;
   readonly library: readonly LibraryConnector[];
-  /** The user's stored choices by server id; absent means "the default". */
-  readonly prefs: ReadonlyMap<LibraryItemId, boolean>;
+  /** The user's stored defaults by server id; absent means "the default". */
+  readonly prefs: ConnectorChoices;
   /** The server can't spawn stdio servers; the desktop app can. */
   readonly surface?: "desktop" | "server";
 }
+
+const NO_CHOICES: ConnectorChoices = new Map();
+
+/** Whether a tool name is in a list written with either the raw or the safe name. */
+const listed = (names: readonly string[], tool: string): boolean =>
+  names.some((name) => name === tool || safeToolName(name) === tool);
+
+/** The layers' switch for the connector itself: the chat's, else the user's. */
+const chosenEnabled = (
+  id: LibraryItemId,
+  layers: readonly ConnectorChoices[]
+): boolean | undefined => {
+  for (const layer of layers) {
+    const enabled = layer.get(id)?.enabled;
+    if (enabled !== null && enabled !== undefined) {
+      return enabled;
+    }
+  }
+};
+
+/** The tools some layer switched off, chat over user, never a required one. */
+const offTools = (
+  id: LibraryItemId,
+  layers: readonly ConnectorChoices[],
+  required: readonly string[]
+): string[] => {
+  const names = new Set(
+    layers.flatMap((layer) => Object.keys(layer.get(id)?.tools ?? {}))
+  );
+  return [...names]
+    .filter((tool) => {
+      const choice = layers
+        .map((layer) => layer.get(id)?.tools[tool])
+        .find((value) => value !== undefined);
+      return choice === false && !listed(required, tool);
+    })
+    .sort();
+};
 
 const availabilityOf = (
   transport: string,
@@ -60,11 +119,12 @@ const availabilityOf = (
 
 const fromCatalog = (
   entry: InstanceServerEntry,
-  prefs: ConnectorInputs["prefs"],
+  layers: readonly ConnectorChoices[],
   surface: "desktop" | "server"
 ): Connector => {
   const id = instanceServerId(entry.name);
   const reason = entry.reason ?? null;
+  const requiredTools = [...entry.tools.required];
   const base = {
     auth:
       entry.transport !== "stdio" && entry.auth.type === "oauth"
@@ -75,9 +135,12 @@ const fromCatalog = (
       surface,
       missingSecrets(entry)
     ),
+    customized: false,
     description: entry.description ?? null,
+    disabledTools: offTools(id, layers, requiredTools),
     id,
     name: entry.name,
+    requiredTools,
     source: "instance" as const,
     title: entry.title ?? entry.name,
     transport: entry.transport,
@@ -89,12 +152,16 @@ const fromCatalog = (
   if (!entry.allowUserOverride) {
     return { ...base, enabled: byDefault, lock: { reason, type: "operator" } };
   }
-  return { ...base, enabled: prefs.get(id) ?? byDefault, lock: null };
+  return {
+    ...base,
+    enabled: chosenEnabled(id, layers) ?? byDefault,
+    lock: null,
+  };
 };
 
 const fromLibrary = (
   server: LibraryConnector,
-  prefs: ConnectorInputs["prefs"],
+  layers: readonly ConnectorChoices[],
   surface: "desktop" | "server"
 ): Connector => {
   const transport =
@@ -104,33 +171,61 @@ const fromLibrary = (
   return {
     auth: server.auth,
     availability: availabilityOf(transport, surface, []),
+    customized: false,
     description: server.description === "" ? null : server.description,
-    enabled: prefs.get(server.id) ?? true,
+    disabledTools: offTools(server.id, layers, []),
+    enabled: chosenEnabled(server.id, layers) ?? true,
     id: server.id,
     lock: null,
     name: server.name,
+    requiredTools: [],
     source: "library",
     title: server.name,
     transport,
   };
 };
 
-/** The user's connectors: the catalog in config order, then their library. */
-export const effectiveConnectors = ({
-  catalog,
-  library,
-  prefs,
-  surface = "server",
-}: ConnectorInputs): readonly Connector[] => {
-  const instance = catalog.map((entry) => fromCatalog(entry, prefs, surface));
+const merge = (
+  { catalog, library, surface = "server" }: ConnectorInputs,
+  layers: readonly ConnectorChoices[]
+): readonly Connector[] => {
+  const instance = catalog.map((entry) => fromCatalog(entry, layers, surface));
   const taken = new Set(instance.map((connector) => connector.id));
   return [
     ...instance,
     ...library
       .filter((server) => !taken.has(server.id))
-      .map((server) => fromLibrary(server, prefs, surface)),
+      .map((server) => fromLibrary(server, layers, surface)),
   ];
 };
+
+const sameChoice = (a: Connector, b: Connector | undefined): boolean =>
+  b !== undefined &&
+  a.enabled === b.enabled &&
+  a.disabledTools.join("\n") === b.disabledTools.join("\n");
+
+/**
+ * The user's connectors: the catalog in config order, then their library.
+ * With `chat`, each says whether that chat's choice differs from the
+ * user's defaults (`customized`), for the composer's "differs" mark.
+ */
+export const effectiveConnectors = (
+  inputs: ConnectorInputs
+): readonly Connector[] => {
+  const chat = inputs.chat ?? NO_CHOICES;
+  const defaults = merge(inputs, [inputs.prefs]);
+  if (chat.size === 0) {
+    return defaults;
+  }
+  return merge(inputs, [chat, inputs.prefs]).map((connector, index) => ({
+    ...connector,
+    customized: !sameChoice(connector, defaults[index]),
+  }));
+};
+
+/** Whether a chat differs from the user's defaults anywhere. */
+export const anyCustomized = (connectors: readonly Connector[]): boolean =>
+  connectors.some((connector) => connector.customized);
 
 const runnable = (connector: Connector): boolean =>
   connector.enabled && connector.availability.state === "available";
@@ -153,6 +248,41 @@ export const disabledServerIds = (
       .filter((connector) => !runnable(connector))
       .map((connector) => connector.id)
   );
+
+/**
+ * For every run (188): the tools left out of each server, by the server's
+ * tool name. Only servers with some switched off are listed.
+ */
+export const excludedTools = (
+  connectors: readonly Connector[]
+): ReadonlyMap<LibraryItemId, readonly string[]> =>
+  new Map(
+    connectors
+      .filter((connector) => connector.disabledTools.length > 0)
+      .map((connector) => [connector.id, connector.disabledTools])
+  );
+
+/** Whether one tool is on for this connector: required, else not switched off. */
+export const toolEnabled = (connector: Connector, tool: string): boolean =>
+  listed(connector.requiredTools, tool) ||
+  !listed(connector.disabledTools, tool);
+
+/**
+ * A connector's tools as the server listed them (already less what the
+ * operator denies), each with its switch and lock.
+ */
+export const connectorTools = (
+  connector: Connector,
+  tools: readonly McpTool[]
+): readonly ConnectorTool[] =>
+  tools.map((tool) => ({
+    description: tool.description,
+    enabled: toolEnabled(connector, tool.name),
+    lock: listed(connector.requiredTools, tool.name)
+      ? { reason: null, type: "required" as const }
+      : null,
+    name: tool.name,
+  }));
 
 export interface ConnectorLocked {
   readonly type: "locked";
@@ -197,4 +327,20 @@ export const checkUserServer = (
     });
   }
   return ok(undefined);
+};
+
+/** One tool after the user flips it, or why they can't: the operator requires it. */
+export const toggleConnectorTool = (
+  connector: Connector,
+  tool: string,
+  enabled: boolean
+): Result<Connector, ConnectorLocked> => {
+  if (listed(connector.requiredTools, tool)) {
+    return err({ type: "locked" });
+  }
+  const others = connector.disabledTools.filter((name) => name !== tool);
+  return ok({
+    ...connector,
+    disabledTools: enabled ? others : [...others, tool].sort(),
+  });
 };

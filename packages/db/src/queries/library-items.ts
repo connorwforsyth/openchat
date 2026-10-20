@@ -36,6 +36,7 @@ import {
   agent,
   agentVersion,
   mcpConnectorPref,
+  mcpConversationConnector,
   mcpOauthToken,
   mcpServer,
   preset,
@@ -429,6 +430,9 @@ export const deleteUnversionedItem = (
       await tx
         .delete(mcpConnectorPref)
         .where(eq(mcpConnectorPref.mcpServerId, id));
+      await tx
+        .delete(mcpConversationConnector)
+        .where(eq(mcpConversationConnector.mcpServerId, id));
     }
     const deleted = await tx
       .delete(table)

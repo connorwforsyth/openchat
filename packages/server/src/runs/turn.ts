@@ -43,6 +43,7 @@ import { builtinArtifactKinds } from "@workspace/artifacts-kit/builtin";
 import type { ArtifactKindRegistry } from "@workspace/artifacts-kit/registry";
 import type { AppConfig } from "@workspace/config/schema";
 import type {
+  ConversationId,
   LibraryItemId,
   LibraryVersionId,
   OrgId,
@@ -64,6 +65,7 @@ import { listReadableIndexedFileIds } from "@workspace/db/queries/files";
 import { resolvePublishedVersion } from "@workspace/db/queries/library";
 import { getMessage } from "@workspace/db/queries/messages";
 import { teamLineage } from "@workspace/db/queries/teams";
+import type { McpSelection } from "@workspace/mcp/connector-service";
 import {
   type AsyncResult,
   err,
@@ -213,24 +215,19 @@ export interface TurnResolverDeps {
   readonly knowledge?: KnowledgeDeps;
   /** MCP tools (ticket 018), the same for every caller. */
   readonly mcp?: McpToolSource;
-  /**
-   * The servers a user (or the operator) turned off (184), left out of
-   * agent runs too: listing a server in an agent doesn't override that.
-   */
-  readonly mcpDisabledFor?: (
-    userId: UserId
-  ) => Promise<ReadonlySet<LibraryItemId>>;
   /** MCP tools as one user sees them (per-user OAuth connections); wins over `mcp`. */
   readonly mcpFor?: (userId: UserId) => McpToolSource;
   /**
-   * The MCP servers a user has on (`enabledServersFor`: the operator's
-   * catalog, their library and their own choices, 184), for plain chats
-   * (078); an agent gets the servers its version lists. Without it plain
-   * chats get no MCP tools.
+   * What a run's user has on in its chat (`mcpSelectionFor`: the operator's
+   * catalog, their library, their defaults and the chat's choices; 184,
+   * 188). `enabled` is a plain chat's servers (078); an agent gets the
+   * servers its version lists, less `disabled`; `excludedTools` leaves
+   * switched-off tools out of both. Without it plain chats get no MCP tools.
    */
-  readonly mcpServersFor?: (
-    userId: UserId
-  ) => Promise<readonly LibraryItemId[]>;
+  readonly mcpSelectionFor?: (
+    userId: UserId,
+    conversationId: ConversationId
+  ) => Promise<McpSelection>;
   /**
    * The org's effective policy (`org_settings` clamped by the instance), for
    * the personal-key fallback. Without it the conservative default holds.
@@ -467,6 +464,12 @@ const ATTACHMENT_PROBE = 1;
  */
 const CHAT_MCP_TOOL_LIMIT = 100;
 
+const NO_MCP_SELECTION: McpSelection = {
+  disabled: new Set(),
+  enabled: [],
+  excludedTools: new Map(),
+};
+
 /**
  * Artifact tools save something into the chat, so they ask, like the
  * sandbox's file changes (`FILE_CHANGE_TOOLS`), unless an agent sets them
@@ -572,20 +575,20 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
    * is the permissions proposal's question, ticket 073). MCP is an extra:
    * if the servers can't be listed, the turn goes ahead without them.
    */
-  /** What the user or operator turned off (184). A failed read drops nothing. */
-  const disabledMcpFor = async (
-    userId: UserId
-  ): Promise<ReadonlySet<LibraryItemId>> =>
-    (await deps.mcpDisabledFor?.(userId).catch(() => undefined)) ?? new Set();
+  /** What the run's user has on in its chat (184, 188). A failed read drops nothing. */
+  const mcpSelection = async (run: RunStart): Promise<McpSelection> =>
+    (await deps
+      .mcpSelectionFor?.(run.createdBy, run.conversationId)
+      .catch(() => undefined)) ?? NO_MCP_SELECTION;
 
   const chatMcpTools = async (
     run: RunStart,
     signal: AbortSignal | undefined
   ): Promise<Pick<Turn, "toolApproval" | "tools">> => {
     const mcp = deps.mcpFor?.(run.createdBy) ?? deps.mcp;
-    const ids = mcp
-      ? await deps.mcpServersFor?.(run.createdBy).catch(() => undefined)
-      : undefined;
+    const selection =
+      mcp && deps.mcpSelectionFor ? await mcpSelection(run) : undefined;
+    const ids = selection?.enabled;
     if (!(mcp && ids && ids.length > 0)) {
       return {};
     }
@@ -597,7 +600,10 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
         tools: [],
       },
       { builtins: new Set(), modelSupportsTools: true },
-      { mcpServers: new Set(ids) }
+      {
+        mcpExcludedTools: selection.excludedTools,
+        mcpServers: new Set(ids),
+      }
     );
     const built = await buildToolSet(plan, { builtins: {}, mcp }, { signal });
     return {
@@ -941,7 +947,7 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
       sandbox === null
         ? searchable.agent
         : withSandboxTools(searchable.agent, sandbox);
-    const disabledMcp = await disabledMcpFor(run.createdBy);
+    const selection = await mcpSelection(run);
     const plan = resolveTools(
       {
         ...planned,
@@ -966,12 +972,14 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
         sandboxTools: new Set(SANDBOX_TOOLS),
       },
       // MCP grants come with 018; until then an agent's own servers are
-      // used, less any the user or the operator turned off (184).
+      // used, less any the user or the operator turned off (184), and
+      // without the tools they switched off (188).
       {
+        mcpExcludedTools: selection.excludedTools,
         mcpServers: new Set(
           definition.mcpServers
             .map((server) => server.id)
-            .filter((id) => !disabledMcp.has(id))
+            .filter((id) => !selection.disabled.has(id))
         ),
       }
     );
