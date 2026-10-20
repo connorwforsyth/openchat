@@ -5,6 +5,7 @@ import {
   BrainIcon,
   KeyboardIcon,
   KeyRoundIcon,
+  NetworkIcon,
   PaletteIcon,
   ShieldIcon,
   UserIcon,
@@ -33,6 +34,11 @@ export default async function SettingsLayout({
           href: routes.settings("keys"),
           icon: <KeyRoundIcon />,
           label: <Trans>Provider keys</Trans>,
+        },
+        {
+          href: routes.settings("connectors"),
+          icon: <NetworkIcon />,
+          label: <Trans>Connectors</Trans>,
         },
         {
           href: routes.settings("memory"),

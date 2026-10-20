@@ -213,10 +213,18 @@ export interface TurnResolverDeps {
   readonly knowledge?: KnowledgeDeps;
   /** MCP tools (ticket 018), the same for every caller. */
   readonly mcp?: McpToolSource;
+  /**
+   * The servers a user (or the operator) turned off (184), left out of
+   * agent runs too: listing a server in an agent doesn't override that.
+   */
+  readonly mcpDisabledFor?: (
+    userId: UserId
+  ) => Promise<ReadonlySet<LibraryItemId>>;
   /** MCP tools as one user sees them (per-user OAuth connections); wins over `mcp`. */
   readonly mcpFor?: (userId: UserId) => McpToolSource;
   /**
-   * The MCP servers a user may use (`listUsableServers`), for plain chats
+   * The MCP servers a user has on (`enabledServersFor`: the operator's
+   * catalog, their library and their own choices, 184), for plain chats
    * (078); an agent gets the servers its version lists. Without it plain
    * chats get no MCP tools.
    */
@@ -564,6 +572,12 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
    * is the permissions proposal's question, ticket 073). MCP is an extra:
    * if the servers can't be listed, the turn goes ahead without them.
    */
+  /** What the user or operator turned off (184). A failed read drops nothing. */
+  const disabledMcpFor = async (
+    userId: UserId
+  ): Promise<ReadonlySet<LibraryItemId>> =>
+    (await deps.mcpDisabledFor?.(userId).catch(() => undefined)) ?? new Set();
+
   const chatMcpTools = async (
     run: RunStart,
     signal: AbortSignal | undefined
@@ -927,6 +941,7 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
       sandbox === null
         ? searchable.agent
         : withSandboxTools(searchable.agent, sandbox);
+    const disabledMcp = await disabledMcpFor(run.createdBy);
     const plan = resolveTools(
       {
         ...planned,
@@ -950,8 +965,15 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
         modelSupportsTools: true,
         sandboxTools: new Set(SANDBOX_TOOLS),
       },
-      // MCP grants come with 018; until then an agent's own servers are used.
-      { mcpServers: new Set(definition.mcpServers.map((server) => server.id)) }
+      // MCP grants come with 018; until then an agent's own servers are
+      // used, less any the user or the operator turned off (184).
+      {
+        mcpServers: new Set(
+          definition.mcpServers
+            .map((server) => server.id)
+            .filter((id) => !disabledMcp.has(id))
+        ),
+      }
     );
     const toolSet = await buildToolSet(
       plan,
