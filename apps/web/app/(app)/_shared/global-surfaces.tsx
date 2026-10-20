@@ -231,10 +231,12 @@ export const GlobalSurfaces = () => {
   // Switching model is a palette job: it lists the models it can switch to.
   useShortcut("model.switch", () => setPaletteOpen(true), { enabled: onChat });
   // Your Dot (174): one thread, opened from anywhere.
-  useShortcut("dot.open", () => {
-    const [mine] = queryClient.getQueryData(
-      query.dots.list.queryKey({ input: {} })
-    ) ?? [undefined];
+  // Waits for the list: on a cold load it may still be in flight, and an
+  // empty cache isn't "no Dot".
+  useShortcut("dot.open", async () => {
+    const [mine] = await queryClient
+      .ensureQueryData(query.dots.list.queryOptions({ input: {} }))
+      .catch(() => []);
     router.push(mine ? routes.chat(mine.conversationId) : routes.dots);
   });
 
