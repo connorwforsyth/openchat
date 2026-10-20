@@ -116,8 +116,8 @@ step:
 
 - `palette` › one ⌘K on a chat screen fails every time. See
   `features/palette.md`.
-- `sidebar` › the immediate-reload step fails about 1 run in 4 until the
-  persisted-cache fix merges. See `features/sidebar.md`.
+- `sidebar` › the immediate-reload step failed in 2 of 5 full runs until
+  the persisted-cache fix merges. See `features/sidebar.md`.
 
 To check something no journey covers, write a new `journeys/<name>.journey.ts`
 from an existing one (and add a feature file, below). Import `test` from
