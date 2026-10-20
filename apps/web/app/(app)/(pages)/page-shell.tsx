@@ -20,13 +20,20 @@ import { useSidebarData } from "@workspace/chat-ui/sidebar/use-sidebar-data";
 import type { ConversationId } from "@workspace/contract/schemas/common";
 import { useShortcut } from "@workspace/shortcuts/react/use-shortcut";
 import { usePathname, useRouter } from "next/navigation";
-import { type ReactNode, useCallback, useMemo, useState } from "react";
+import {
+  type ReactNode,
+  Suspense,
+  useCallback,
+  useMemo,
+  useState,
+} from "react";
 
 import { useApi } from "@/app/(app)/_shared/api";
 import { canAdmin, useAppFrame } from "@/app/(app)/_shared/app-frame";
 import { Brand } from "@/app/(app)/_shared/brand";
 import { useShellPlatform } from "@/app/(app)/_shared/desktop";
 import { useSidebarDots } from "@/app/(app)/(pages)/dots/sidebar-dots";
+import { RailPanelFor } from "@/app/(app)/(pages)/rail-panels";
 import { routes } from "@/lib/routes";
 
 // Library, settings and admin inside the app shell (009): the same sidebar
@@ -36,15 +43,16 @@ import { routes } from "@/lib/routes";
 
 const noPanel = () => undefined;
 
+// Library, Artifacts and Scheduled have a large heading of their own, so
+// the header names only the pages that don't, as the chat header names only
+// its chat (181): a title shows once.
 const SectionTitle = ({ pathname }: { readonly pathname: string }) => {
-  if (pathname.startsWith(routes.library)) {
-    return <Trans>Library</Trans>;
-  }
-  if (pathname.startsWith(routes.artifacts)) {
-    return <Trans>Artifacts</Trans>;
-  }
-  if (pathname.startsWith(routes.dots)) {
-    return <Trans>Dots</Trans>;
+  if (
+    pathname.startsWith(routes.library) ||
+    pathname.startsWith(routes.artifacts) ||
+    pathname.startsWith(routes.dots)
+  ) {
+    return null;
   }
   if (pathname.startsWith(routes.admin)) {
     return <Trans>Admin</Trans>;
@@ -61,10 +69,16 @@ const railDestination = (pathname: string): RailDestination => {
     return "artifacts";
   }
   if (pathname.startsWith(routes.dots)) {
-    return "dot";
+    return "scheduled";
   }
   return "chats";
 };
+
+/** Destinations whose panel isn't the chat list (181). */
+const ownPanel = (destination: RailDestination): boolean =>
+  destination === "artifacts" ||
+  destination === "library" ||
+  destination === "scheduled";
 
 export function PageShell({ children }: { readonly children: ReactNode }) {
   const router = useRouter();
@@ -81,6 +95,15 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
   );
   const update = useConversationUpdate(query);
   const sidebarDots = useSidebarDots(null);
+  const destination = railDestination(pathname);
+  // With the rail on a wide screen, the panel follows it; classic, and the
+  // phone's sheet, keep the chat list everywhere.
+  const panel =
+    railed && !narrow && ownPanel(destination) ? (
+      <Suspense>
+        <RailPanelFor destination={destination} />
+      </Suspense>
+    ) : undefined;
   const sidebarData = useSidebarData(query);
 
   const { toggleSidebar } = layout;
@@ -186,7 +209,7 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
         railed ? (
           <SidebarRail
             {...sidebarProps}
-            current={railDestination(pathname)}
+            current={destination}
             onShowChats={showChats}
             toggle={sidebarToggle("rail")}
           />
@@ -198,6 +221,7 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
           brand={<Brand config={frame.config} />}
           onNewChat={newChat}
           onOpenPalette={openPalette}
+          panel={panel}
           railed={railed}
           toggle={sidebarToggle("sidebar")}
         />

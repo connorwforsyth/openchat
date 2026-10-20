@@ -459,11 +459,13 @@ msgstr "Agents, prompts, skills and MCP servers: yours, shared with you, and pub
 msgid "AI Elements"
 msgstr "AI Elements"
 
+#: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 #: ../library-ui/src/components/library-index.tsx
 msgid "All"
 msgstr "All"
 
+#: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgid "All kinds"
 msgstr "All kinds"
@@ -596,7 +598,7 @@ msgstr "Artifact views"
 msgid "artifacts"
 msgstr "artifacts"
 
-#: ../../apps/web/app/(app)/(pages)/page-shell.tsx
+#: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
 #: ../chat-ui/src/artifacts/artifact-full-view.tsx
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
@@ -1581,10 +1583,6 @@ msgstr "Documents, pages and diagrams from your chats, and ones shared with you.
 msgid "Done"
 msgstr "Done"
 
-#: ../../apps/web/app/(app)/(pages)/page-shell.tsx
-msgid "Dots"
-msgstr "Dots"
-
 #: ../chat-ui/src/artifacts/image-preview.tsx
 #: ../chat-ui/src/conversation/generated-images.tsx
 msgid "Download"
@@ -1861,6 +1859,7 @@ msgid "Extra high"
 msgstr "Extra high"
 
 #: ../../apps/web/app/(app)/(pages)/dots/dot-profile.tsx
+#: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
 msgid "Failed"
 msgstr "Failed"
 
@@ -1972,6 +1971,10 @@ msgstr "Formatting"
 #: ../chat-ui/src/workspace/preview.tsx
 msgid "Forward"
 msgstr "Forward"
+
+#: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
+msgid "From others"
+msgstr "From others"
 
 #: ../library-ui/src/components/skill-form.tsx
 msgid "Frontmatter with a name and description, then the instructions the agent follows."
@@ -2378,7 +2381,7 @@ msgstr "Level for {name}"
 msgid "Level for new shares"
 msgstr "Level for new shares"
 
-#: ../../apps/web/app/(app)/(pages)/page-shell.tsx
+#: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 #: ../chat-ui/src/sidebar/sidebar-rail.tsx
 #: ../library-ui/src/components/library-index.tsx
@@ -2839,6 +2842,10 @@ msgstr "New name for {name}"
 msgid "New organisation"
 msgstr "New organisation"
 
+#: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
+msgid "New task"
+msgstr "New task"
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
 msgid "New team"
 msgstr "New team"
@@ -3079,6 +3086,10 @@ msgstr "Nothing remembered yet."
 msgid "Nothing running yet"
 msgstr "Nothing running yet"
 
+#: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
+msgid "Nothing scheduled yet."
+msgstr "Nothing scheduled yet."
+
 #: ../../apps/web/app/dev/composer/demo.tsx
 msgid "Nothing sent yet."
 msgstr "Nothing sent yet."
@@ -3086,6 +3097,10 @@ msgstr "Nothing sent yet."
 #: ../library-ui/src/components/library-index.tsx
 msgid "Nothing shared with you"
 msgstr "Nothing shared with you"
+
+#: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
+msgid "Nothing yet."
+msgstr "Nothing yet."
 
 #. placeholder {0}: dot.name
 #: ../../apps/web/app/(app)/(pages)/dots/dot-profile.tsx
@@ -3335,6 +3350,7 @@ msgstr "Password"
 #: ../../apps/web/app/(app)/(pages)/dots/dot-profile.tsx
 #: ../../apps/web/app/(app)/(pages)/dots/dots-screen.tsx
 #: ../../apps/web/app/(app)/(pages)/dots/schedule-text.tsx
+#: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
 msgid "Paused"
 msgstr "Paused"
 
@@ -3746,6 +3762,10 @@ msgstr "Reading {code}"
 msgid "Reasoning"
 msgstr "Reasoning"
 
+#: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
+msgid "Recent"
+msgstr "Recent"
+
 #: ../chat-ui/src/artifacts/artifact-actions.tsx
 #: ../palette/src/command-palette.tsx
 msgid "Recent chats"
@@ -4086,6 +4106,7 @@ msgid "Schedule {position} on"
 msgstr "Schedule {position} on"
 
 #: ../../apps/web/app/(app)/(pages)/dots/dot-profile.tsx
+#: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 #: ../chat-ui/src/sidebar/sidebar-rail.tsx
 msgid "Scheduled"
@@ -4299,6 +4320,7 @@ msgstr "Shared"
 msgid "Shared by {owner}"
 msgstr "Shared by {owner}"
 
+#: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
 #: ../composer/src/components/target-picker.tsx
 #: ../library-ui/src/components/library-index.tsx
 msgid "Shared with me"
@@ -4682,6 +4704,10 @@ msgstr "Talking with {name}"
 msgid "Task"
 msgstr "Task"
 
+#: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
+msgid "Tasks"
+msgstr "Tasks"
+
 #: ../palette/src/context-actions.ts
 msgid "team"
 msgstr "team"
@@ -4692,6 +4718,7 @@ msgstr "team"
 msgid "Team"
 msgstr "Team"
 
+#: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
 #: ../library-ui/src/components/library-index.tsx
 msgid "Team & org"
 msgstr "Team & org"

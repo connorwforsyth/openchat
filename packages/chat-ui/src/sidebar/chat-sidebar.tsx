@@ -119,6 +119,12 @@ export interface ChatSidebarProps {
   readonly onSetLastRead?: (id: ConversationId, lastReadAt: string) => void;
   readonly onTogglePin: (id: ConversationId, pinned: boolean) => void;
   /**
+   * What the panel shows when the rail points somewhere other than Chats
+   * (181): Scheduled, Library or Artifacts' own navigation, under New chat
+   * and Search, in place of your Dot and the chat list.
+   */
+  readonly panel?: ReactNode;
+  /**
    * The icon rail is beside it on wide screens (181): Library, Artifacts,
    * Scheduled and the account menu live there, so the panel hides its own from `md` up
    * (they stay in the narrow-screen sheet, which has no rail).
@@ -892,6 +898,34 @@ function Section({
   );
 }
 
+/** The rail destination's panel in place of the chats, when there is one. */
+function PanelOr({
+  children,
+  panel,
+}: {
+  readonly children: ReactNode;
+  readonly panel: ReactNode | undefined;
+}): ReactNode {
+  if (panel === undefined) {
+    return children;
+  }
+  return panel;
+}
+
+/** What shows only with the chats: hidden while a panel replaces them. */
+function ChatsOnly({
+  children,
+  panel,
+}: {
+  readonly children: ReactNode;
+  readonly panel: ReactNode | undefined;
+}): ReactNode {
+  if (panel === undefined) {
+    return children;
+  }
+  return null;
+}
+
 /**
  * The Classic sidebar (009, 176–178, 181), laid out like ChatGPT's: the
  * actions and pages, your Dot, then Priority (chats running, waiting or
@@ -919,6 +953,7 @@ export function ChatSidebar({
   onSelect,
   onSetLastRead,
   onTogglePin,
+  panel,
   signals = noSignals,
   toggle,
   top,
@@ -1156,6 +1191,18 @@ export function ChatSidebar({
       </>
     );
 
+  const listView =
+    view === "archived" ? (
+      <ArchiveView
+        chats={archivedChats}
+        loading={archivedLoading}
+        onBack={closeArchive}
+        onRestore={onRestore}
+      />
+    ) : (
+      chatsView
+    );
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div
@@ -1172,19 +1219,20 @@ export function ChatSidebar({
       </div>
 
       <PrimaryNav {...nav} />
-      {top ? (
-        <div className="px-2 pt-px" data-slot="chat-sidebar-dot">
-          {top}
-        </div>
-      ) : null}
-
-      {selecting ? (
-        <SelectionBar
-          count={selection.ids.size}
-          onArchive={archiveSelected}
-          onClear={clearSelection}
-        />
-      ) : null}
+      <ChatsOnly panel={panel}>
+        {top ? (
+          <div className="px-2 pt-px" data-slot="chat-sidebar-dot">
+            {top}
+          </div>
+        ) : null}
+        {selecting ? (
+          <SelectionBar
+            count={selection.ids.size}
+            onArchive={archiveSelected}
+            onClear={clearSelection}
+          />
+        ) : null}
+      </ChatsOnly>
 
       <div
         className={cn(
@@ -1196,16 +1244,7 @@ export function ChatSidebar({
         ref={fades.ref}
       >
         <div ref={fades.content}>
-          {view === "archived" ? (
-            <ArchiveView
-              chats={archivedChats}
-              loading={archivedLoading}
-              onBack={closeArchive}
-              onRestore={onRestore}
-            />
-          ) : (
-            chatsView
-          )}
+          <PanelOr panel={panel}>{listView}</PanelOr>
         </div>
       </div>
 

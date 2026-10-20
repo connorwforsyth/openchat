@@ -6,9 +6,11 @@ import type { ConversationId } from "@workspace/contract/schemas/common";
 import type { Dot } from "@workspace/contract/schemas/dots";
 import { MonitorIcon, PlayIcon, XIcon } from "@workspace/icons";
 import { Button } from "@workspace/ui/components/button";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useApi } from "@/app/(app)/_shared/api";
+import { routeParams } from "@/lib/routes";
 
 import { unseenRuns } from "./activity";
 import { DotAvatar } from "./dot-avatar";
@@ -115,6 +117,15 @@ export function DotHome({
   const [profileOpen, setProfileOpen] = useState(false);
   const [tab, setTab] = useState<DotProfileTab>("activity");
   const { CallButton } = { ...dotExtensions, ...extensions };
+  // The Scheduled panel's tasks link here with `?dot=scheduled` (181).
+  const asked = useSearchParams().get(routeParams.dotTab);
+  const hasDot = dot !== undefined;
+  useEffect(() => {
+    if (hasDot && asked === "scheduled") {
+      setTab("scheduled");
+      setProfileOpen(true);
+    }
+  }, [asked, hasDot]);
   const refresh = useCallback(
     () => queryClient.invalidateQueries({ queryKey: query.dots.key() }),
     [query, queryClient]
