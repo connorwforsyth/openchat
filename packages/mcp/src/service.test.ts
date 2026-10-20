@@ -9,14 +9,13 @@ import {
   type TestDb,
 } from "@workspace/db/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-
+import { instanceServerId } from "./server-config";
 import {
-  type ConnectorDeps,
   connectorHandlers,
   disabledServersFor,
   enabledServersFor,
-} from "./connector-service";
-import { instanceServerId } from "./server-config";
+  type McpDeps,
+} from "./service";
 
 let testDb: TestDb;
 beforeAll(async () => {
@@ -37,7 +36,7 @@ const mcp = appConfigSchema.shape.mcp.parse({
   ],
 });
 
-const depsOf = (withDb: boolean): ConnectorDeps => ({
+const depsOf = (withDb: boolean): McpDeps => ({
   catalog: mcp.servers,
   db: withDb ? testDb.db : undefined,
   userServers: mcp.userServers,

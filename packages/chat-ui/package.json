@@ -49,6 +49,7 @@
     "@workspace/client": "workspace:*",
     "@workspace/code-ui": "workspace:*",
     "@workspace/composer": "workspace:*",
+    "@workspace/config": "workspace:*",
     "@workspace/contract": "workspace:*",
     "@workspace/i18n": "workspace:*",
     "@workspace/icons": "workspace:*",

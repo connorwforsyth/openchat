@@ -190,6 +190,10 @@ msgstr "{files} changed after the agent proposed this, so the change can't be ap
 msgid "{label} and {more} more"
 msgstr "{label} and {more} more"
 
+#: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
+msgid "{label} give chats extra tools. Turn on the ones you want; your administrator may require some or let you add your own."
+msgstr "{label} give chats extra tools. Turn on the ones you want; your administrator may require some or let you add your own."
+
 #: ../chat-ui/src/sidebar/sidebar-rail.tsx
 msgid "{label}, {badge}"
 msgstr "{label}, {badge}"
@@ -205,6 +209,10 @@ msgstr "{length} of {max} characters. Anything past the limit isn't included in 
 #: ../composer/src/components/attachment-list.tsx
 msgid "{maxFiles, plural, one {{fileName} wasn't added: you can attach # file.} other {{fileName} wasn't added: you can attach up to # files.}}"
 msgstr "{maxFiles, plural, one {{fileName} wasn't added: you can attach # file.} other {{fileName} wasn't added: you can attach up to # files.}}"
+
+#: ../composer/src/components/composer-footer.tsx
+msgid "{mcpLabel} differ from your defaults in this chat. Reset them"
+msgstr "{mcpLabel} differ from your defaults in this chat. Reset them"
 
 #: ../../apps/web/app/(app)/(pages)/dots/dot-profile.tsx
 msgid "{name} active"
@@ -227,9 +235,9 @@ msgstr "{name}, your Dot"
 msgid "{name}'s library"
 msgstr "{name}'s library"
 
-#: ../composer/src/components/connectors-menu.tsx
-msgid "{off} off"
-msgstr "{off} off"
+#: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
+msgid "{off, plural, one {# tool off} other {# tools off}}"
+msgstr "{off, plural, one {# tool off} other {# tools off}}"
 
 #: ../chat-ui/src/artifacts/artifact-actions.tsx
 msgid "{ownerName} (owner)"
@@ -422,6 +430,10 @@ msgstr "Activity"
 msgid "Add"
 msgstr "Add"
 
+#: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
+msgid "Add a {singular} by its URL to give chats more tools. Only you can use it until you share it."
+msgstr "Add a {singular} by its URL to give chats more tools. Only you can use it until you share it."
+
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "Add a key"
 msgstr "Add a key"
@@ -445,10 +457,6 @@ msgstr "Add a starter"
 #: ../composer/src/components/plus-menu.tsx
 msgid "Add a workspace file"
 msgstr "Add a workspace file"
-
-#: ../../apps/web/app/(app)/_shared/settings/connectors-settings.tsx
-msgid "Add an MCP server by its URL to give chats more tools. Only you can use it until you share it."
-msgstr "Add an MCP server by its URL to give chats more tools. Only you can use it until you share it."
 
 #: ../library-ui/src/components/agent-form.tsx
 msgid "Add an MCP server to your library to connect it here."
@@ -484,7 +492,7 @@ msgstr "Add someone from the space above"
 msgid "Add to message"
 msgstr "Add to message"
 
-#: ../../apps/web/app/(app)/_shared/settings/connectors-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
 msgid "Add your own"
 msgstr "Add your own"
 
@@ -1194,14 +1202,14 @@ msgid "Computer"
 msgstr "Computer"
 
 #: ../../apps/desktop/src/renderer/setup-screen.tsx
-#: ../../apps/web/app/(app)/_shared/settings/connectors-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "Connect"
 msgstr "Connect"
 
-#: ../../apps/web/app/(app)/_shared/settings/connectors-settings.tsx
-msgid "Connect to see this connector's tools."
-msgstr "Connect to see this connector's tools."
+#: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
+msgid "Connect to see this {singular}'s tools."
+msgstr "Connect to see this {singular}'s tools."
 
 #: ../../apps/desktop/src/renderer/setup-screen.tsx
 msgid "Connect to your server"
@@ -1224,15 +1232,8 @@ msgid "Connection"
 msgstr "Connection"
 
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
-#: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
-#: ../composer/src/components/composer.tsx
-#: ../composer/src/components/connectors-menu.tsx
-msgid "Connectors"
-msgstr "Connectors"
-
-#: ../composer/src/components/composer-footer.tsx
-msgid "Connectors differ from your defaults in this chat. Reset them"
-msgstr "Connectors differ from your defaults in this chat. Reset them"
+msgid "connectors"
+msgstr "connectors"
 
 #: ../chat-ui/src/artifacts/spreadsheet/spreadsheet-view.tsx
 msgid "Contents of cell {address}"
@@ -1385,10 +1386,9 @@ msgstr "Couldn't reach that server. Check the address and your connection."
 msgid "Couldn't reach the server. Check your connection and try again."
 msgstr "Couldn't reach the server. Check your connection and try again."
 
-#: ../../apps/web/app/(app)/_shared/settings/connectors-settings.tsx
-#: ../composer/src/components/connectors-menu.tsx
-msgid "Couldn't reach this connector to list its tools."
-msgstr "Couldn't reach this connector to list its tools."
+#: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
+msgid "Couldn't reach this {singular} to list its tools."
+msgstr "Couldn't reach this {singular} to list its tools."
 
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Couldn't read {code}"
@@ -1647,7 +1647,7 @@ msgstr "Description"
 msgid "Description for {name}"
 msgstr "Description for {name}"
 
-#: ../../apps/web/app/(app)/_shared/settings/connectors-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
 msgid "Desktop app only"
 msgstr "Desktop app only"
 
@@ -1741,7 +1741,7 @@ msgstr "Disabled"
 msgid "Discard"
 msgstr "Discard"
 
-#: ../../apps/web/app/(app)/_shared/settings/connectors-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "Disconnect"
 msgstr "Disconnect"
@@ -2237,9 +2237,13 @@ msgstr "From {0}"
 msgid "From others"
 msgstr "From others"
 
-#: ../../apps/web/app/(app)/_shared/settings/connectors-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
 msgid "From your administrator"
 msgstr "From your administrator"
+
+#: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
+msgid "From your library"
+msgstr "From your library"
 
 #: ../library-ui/src/components/skill-form.tsx
 msgid "Frontmatter with a name and description, then the instructions the agent follows."
@@ -2873,10 +2877,6 @@ msgstr "MCP server"
 msgid "MCP servers"
 msgstr "MCP servers"
 
-#: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
-msgid "MCP servers give chats extra tools. Turn on the ones you want; your administrator may require some or let you add your own."
-msgstr "MCP servers give chats extra tools. Turn on the ones you want; your administrator may require some or let you add your own."
-
 #: ../composer/src/components/thinking-control.tsx
 msgid "Medium"
 msgstr "Medium"
@@ -3117,7 +3117,7 @@ msgstr "Needs attention"
 msgid "Needs server support"
 msgstr "Needs server support"
 
-#: ../../apps/web/app/(app)/_shared/settings/connectors-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
 msgid "Needs setup by your administrator"
 msgstr "Needs setup by your administrator"
 
@@ -3268,6 +3268,10 @@ msgstr "Next run {next}"
 msgid "Next run: {when}"
 msgstr "Next run: {when}"
 
+#: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
+msgid "No {label} yet"
+msgstr "No {label} yet"
+
 #: ../../apps/web/app/(app)/(pages)/space/space-home.tsx
 msgid "No agents shared here yet."
 msgstr "No agents shared here yet."
@@ -3307,10 +3311,6 @@ msgstr "No chats shared here yet."
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "No chats yet. Start one and it shows up here."
 msgstr "No chats yet. Start one and it shows up here."
-
-#: ../../apps/web/app/(app)/_shared/settings/connectors-settings.tsx
-msgid "No connectors yet"
-msgstr "No connectors yet"
 
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "No files yet"
@@ -3410,10 +3410,6 @@ msgstr "No team or org items"
 #: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
 msgid "No teams yet"
 msgstr "No teams yet"
-
-#: ../composer/src/components/connectors-menu.tsx
-msgid "No tools."
-msgstr "No tools."
 
 #: ../chat-ui/src/conversation/schedule-text.tsx
 msgid "No update"
@@ -3573,7 +3569,6 @@ msgstr "Numbered list"
 msgid "OAuth"
 msgstr "OAuth"
 
-#: ../composer/src/components/connectors-menu.tsx
 #: ../composer/src/components/thinking-control.tsx
 #: ../shortcuts/src/react/help-dialog.tsx
 #: ../shortcuts/src/react/shortcuts-editor.tsx
@@ -3650,6 +3645,10 @@ msgstr "Open {name}'s profile"
 #: ../chat-ui/src/conversation/file-change-card.tsx
 msgid "Open {path}"
 msgstr "Open {path}"
+
+#: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
+msgid "Open {title}"
+msgstr "Open {title}"
 
 #. placeholder {0}: part.title
 #: ../chat-ui/src/conversation/artifact-card.tsx
@@ -4447,12 +4446,11 @@ msgstr "Rendering {file}…"
 msgid "Requests"
 msgstr "Requests"
 
-#: ../../apps/web/app/(app)/_shared/settings/connectors-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
 msgid "Required"
 msgstr "Required"
 
-#: ../../apps/web/app/(app)/_shared/settings/connectors-settings.tsx
-#: ../composer/src/components/connectors-menu.tsx
+#: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
 msgid "Required by your administrator"
 msgstr "Required by your administrator"
 
@@ -4478,7 +4476,7 @@ msgid "Reset the workspace?"
 msgstr "Reset the workspace?"
 
 #: ../composer/src/components/composer-footer.tsx
-#: ../composer/src/components/connectors-menu.tsx
+#: ../composer/src/components/mcp-menu.tsx
 msgid "Reset to my defaults"
 msgstr "Reset to my defaults"
 
@@ -4907,8 +4905,8 @@ msgstr "servers"
 msgid "Set budget"
 msgstr "Set budget"
 
-#: ../../apps/web/app/(app)/_shared/settings/connectors-settings.tsx
-#: ../composer/src/components/connectors-menu.tsx
+#: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
+#: ../composer/src/components/mcp-menu.tsx
 msgid "Set by your administrator"
 msgstr "Set by your administrator"
 
@@ -5525,7 +5523,7 @@ msgstr "Thanks! What was good? (optional)"
 msgid "That address answered, but it isn't a chat server."
 msgstr "That address answered, but it isn't a chat server."
 
-#: ../../apps/web/app/(app)/_shared/settings/connectors-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
 #: ../../apps/web/app/(app)/_shared/settings/profile-settings.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
@@ -5873,6 +5871,10 @@ msgstr "Thinking…"
 msgid "Thinks with"
 msgstr "Thinks with"
 
+#: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
+msgid "This {singular} has no tools."
+msgstr "This {singular} has no tools."
+
 #: ../../apps/web/app/(auth)/_components/auth-problem.tsx
 msgid "This address isn't allowed to sign in. Open <0>{appUrl}</0> instead."
 msgstr "This address isn't allowed to sign in. Open <0>{appUrl}</0> instead."
@@ -5902,14 +5904,10 @@ msgid "This change couldn't be displayed as a diff."
 msgstr "This change couldn't be displayed as a diff."
 
 #: ../../apps/web/app/(app)/(pages)/schedules/schedule-editor.tsx
-#: ../composer/src/components/connectors-menu.tsx
+#: ../composer/src/components/mcp-menu.tsx
 #: ../composer/src/components/suggestion-menu.tsx
 msgid "This chat"
 msgstr "This chat"
-
-#: ../../apps/web/app/(app)/_shared/settings/connectors-settings.tsx
-msgid "This connector has no tools."
-msgstr "This connector has no tools."
 
 #: ../../apps/web/app/(app)/_shared/query-state.tsx
 msgid "This couldn't be loaded."
@@ -6084,19 +6082,10 @@ msgstr "Tool use"
 msgid "tools"
 msgstr "tools"
 
-#: ../../apps/web/app/(app)/_shared/settings/connectors-settings.tsx
-#: ../composer/src/components/connectors-menu.tsx
+#: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
 #: ../library-ui/src/components/agent-form.tsx
 msgid "Tools"
 msgstr "Tools"
-
-#: ../../apps/web/app/(app)/_shared/settings/connectors-settings.tsx
-msgid "Tools · {off} off"
-msgstr "Tools · {off} off"
-
-#: ../../apps/web/app/(app)/_shared/settings/connectors-settings.tsx
-msgid "Tools in {title}"
-msgstr "Tools in {title}"
 
 #: ../../apps/web/app/(app)/(pages)/dots/dot-profile.tsx
 msgid "Tools it may use on its own"
@@ -6194,7 +6183,7 @@ msgstr "Unpin"
 msgid "Unpublish"
 msgstr "Unpublish"
 
-#: ../../apps/web/app/(app)/_shared/settings/connectors-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
 msgid "Unreachable"
 msgstr "Unreachable"
 
@@ -6254,7 +6243,7 @@ msgstr "Use {example} for a value people fill in when they use the prompt."
 msgid "Use {title} in a chat"
 msgstr "Use {title} in a chat"
 
-#: ../../apps/web/app/(app)/_shared/settings/connectors-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
 msgid "Use {title} in chats"
 msgstr "Use {title} in chats"
 
@@ -6280,15 +6269,11 @@ msgstr "Use an https:// address. Plain http:// only works for this computer."
 msgid "Use in chat"
 msgstr "Use in chat"
 
-#: ../composer/src/components/connectors-menu.tsx
-msgid "Use in this chat"
-msgstr "Use in this chat"
-
 #: ../library-ui/src/components/share-dialog.tsx
 msgid "Use lets people chat with it. View also shows its instructions and lets them copy it. Edit lets them change it."
 msgstr "Use lets people chat with it. View also shows its instructions and lets them copy it. Edit lets them change it."
 
-#: ../../apps/web/app/(app)/_shared/settings/connectors-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
 msgid "Use the {name} tool"
 msgstr "Use the {name} tool"
 
@@ -6744,13 +6729,13 @@ msgstr "You've been invited"
 msgid "You've used today's scheduled runs."
 msgstr "You've used today's scheduled runs."
 
-#: ../../apps/web/app/(app)/_shared/settings/connectors-settings.tsx
-msgid "Your administrator doesn't allow adding servers."
-msgstr "Your administrator doesn't allow adding servers."
+#: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
+msgid "Your administrator doesn't allow adding {label}."
+msgstr "Your administrator doesn't allow adding {label}."
 
-#: ../../apps/web/app/(app)/_shared/settings/connectors-settings.tsx
-msgid "Your administrator hasn't set up any connectors, and adding your own is turned off."
-msgstr "Your administrator hasn't set up any connectors, and adding your own is turned off."
+#: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
+msgid "Your administrator hasn't set up any {label}, and adding your own is turned off."
+msgstr "Your administrator hasn't set up any {label}, and adding your own is turned off."
 
 #: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
 msgid "Your allowance"
@@ -6820,7 +6805,7 @@ msgstr "Your primary Dot opens from the top of the sidebar."
 msgid "Yours"
 msgstr "Yours"
 
-#: ../../apps/web/app/(app)/_shared/settings/connectors-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
 msgid "Yours and shared with you"
 msgstr "Yours and shared with you"
 

@@ -25,15 +25,13 @@ import {
 } from "@workspace/ui/components/dropdown-menu";
 import { InputGroupButton } from "@workspace/ui/components/input-group";
 import { type Ref, useCallback } from "react";
-import type { ComposerConnectors } from "../props";
+import type { ComposerMcp } from "../props";
 import type { FileCandidate, PromptOption, SkillOption } from "../schemas";
 import type { FastMode } from "../variants";
-import { ConnectorsMenu } from "./connectors-menu";
+import { McpMenu } from "./mcp-menu";
 
 export interface PlusMenuProps {
   readonly attachDisabled: boolean;
-  /** This chat's connectors (188); left out, the submenu isn't offered. */
-  readonly connectors?: ComposerConnectors | undefined;
   readonly disabled: boolean;
   /**
    * Fast mode for the chosen model (105); left out when it has none, and
@@ -42,6 +40,8 @@ export interface PlusMenuProps {
   readonly fast?: FastMode & { readonly on: boolean };
   /** Workspace files to add to the message, as `/open` lists them. */
   readonly files: readonly FileCandidate[];
+  /** This chat's mcp (188); left out, the submenu isn't offered. */
+  readonly mcp?: ComposerMcp | undefined;
   readonly onAddFile: ((file: FileCandidate) => void) | undefined;
   /** Puts a skill on the message (127); left out, skills aren't offered. */
   readonly onAddSkill?: ((skill: SkillOption) => void) | undefined;
@@ -141,7 +141,7 @@ const SUBMENU_CLASS = "max-h-72 w-64 max-w-[calc(100vw-2rem)]";
  */
 export function PlusMenu({
   attachDisabled,
-  connectors,
+  mcp,
   disabled,
   fast,
   files,
@@ -254,7 +254,7 @@ export function PlusMenu({
             </DropdownMenuSubContent>
           </DropdownMenuSub>
         ) : null}
-        {connectors ? <ConnectorsMenu connectors={connectors} /> : null}
+        {mcp ? <McpMenu mcp={mcp} /> : null}
         {onPlanChange || onWebSearchChange || offerFast ? (
           <DropdownMenuSeparator />
         ) : null}

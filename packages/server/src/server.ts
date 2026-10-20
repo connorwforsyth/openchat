@@ -28,12 +28,9 @@ import type { AppConfig } from "@workspace/config/schema";
 import type { UserId } from "@workspace/contract/schemas/common";
 import type { Db } from "@workspace/db/client";
 import { logDecision } from "@workspace/db/queries/decisions";
-import {
-  type ConnectorDeps,
-  mcpSelectionFor,
-} from "@workspace/mcp/connector-service";
 import { createMcp } from "@workspace/mcp/create";
 import { loadKeyRing } from "@workspace/mcp/crypto";
+import { type McpDeps, mcpSelectionFor } from "@workspace/mcp/service";
 
 import { createArtifactsRouter } from "./api/artifacts";
 import { createConnectorsRouter } from "./api/connectors";
@@ -470,7 +467,7 @@ export const createServerFromEnv = async (
     warn: log,
   });
   // Connectors (184): the operator's catalog, each user's library and choices.
-  const connectorDeps: ConnectorDeps = {
+  const mcpDeps: McpDeps = {
     catalog: mcp.registry.catalog,
     db,
     // The settings' and composer's tool lists (188): the user's connection.
@@ -514,7 +511,7 @@ export const createServerFromEnv = async (
       // Plain chats get every server the caller has on in that chat (078,
       // 184, 188); every run leaves out what they or the operator turned off.
       mcpSelectionFor: (userId, conversationId) =>
-        mcpSelectionFor(connectorDeps, { conversationId, userId }),
+        mcpSelectionFor(mcpDeps, { conversationId, userId }),
       orgPolicy,
       sandbox: sandbox?.turnTools,
       webSearch: webSearchFor(config, env, report),
@@ -606,7 +603,7 @@ export const createServerFromEnv = async (
         search: createSearchHandlers({ db }),
       }),
       ...createMcpRouter({ db, manager: mcp.manager }),
-      ...createConnectorsRouter(connectorDeps),
+      ...createConnectorsRouter(mcpDeps),
       ...linkPreviewsFromEnv({ config, env, log }),
       ...createSandboxRouter({ api: sandboxApi, db }),
       ...(auth ? authRouter : {}),

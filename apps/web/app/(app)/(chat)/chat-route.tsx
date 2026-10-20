@@ -40,6 +40,7 @@ import { Brand } from "@/app/(app)/_shared/brand";
 import { useShellPlatform } from "@/app/(app)/_shared/desktop";
 import { createApiSandboxClient } from "@/app/(app)/_shared/sandbox-client";
 import { SpaceSwitcher } from "@/app/(app)/_shared/spaces/space-switcher";
+import { useTerms } from "@/app/(app)/_shared/terms";
 import { useAfterBoot } from "@/app/(app)/_shared/use-after-boot";
 import { DotComputer } from "@/app/(app)/(pages)/dots/dot-computer";
 import {
@@ -370,6 +371,7 @@ export function ChatRoute({
   const conversationId = useConversationId();
   const { client, query } = useApi();
   const frame = useAppFrame();
+  const terms = useTerms();
   const platform = useShellPlatform();
   const { chat, config, layout, me } = frame;
 
@@ -554,6 +556,7 @@ export function ChatRoute({
       sidebarDots={sidebarDots}
       skills={skills}
       target={target}
+      terms={terms}
       theme={frame.theme}
       voice={renderVoice}
     />
