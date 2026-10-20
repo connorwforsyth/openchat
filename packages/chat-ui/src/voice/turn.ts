@@ -212,17 +212,22 @@ type Handler<T extends CallEvent["type"]> = (
 ) => CallStep;
 
 const onSpeechStart: Handler<"speech-start"> = (state) => {
+  // Room noise or speaker echo while the reply is still being worked out
+  // would cancel it before a word is spoken, so only audible speech can be
+  // talked over.
   if (
     state.muted ||
     state.phase === "connecting" ||
-    state.phase === "hearing"
+    state.phase === "hearing" ||
+    state.phase === "transcribing" ||
+    state.phase === "thinking"
   ) {
     return stay(state);
   }
   // Barge-in: talking over the reply stops it.
   return {
     effects: [
-      ...(busy(state.phase) ? [{ type: "interrupt" } as const] : []),
+      ...(state.phase === "speaking" ? [{ type: "interrupt" } as const] : []),
       { type: "start-recording" },
     ],
     state: { ...state, error: null, phase: "hearing", replyDone: true },

@@ -74,6 +74,19 @@ describe("callStep", () => {
     expect(orbStateOf(state.phase)).toBe("listening");
   });
 
+  it("keeps thinking when noise starts before the reply speaks", () => {
+    const { effects, state } = run([
+      { type: "ready" },
+      { type: "speech-start" },
+      { type: "speech-end" },
+      { text: "What's next?", type: "transcribed" },
+      { type: "speech-start" },
+      { type: "speech-end" },
+    ]);
+    expect(effects).toEqual(["start-recording", "transcribe", "send"]);
+    expect(state.phase).toBe("thinking");
+  });
+
   it("ignores speech while muted and drops a half-heard utterance on mute", () => {
     const heard = run([{ type: "ready" }, { type: "speech-start" }]);
     const muted = run(
