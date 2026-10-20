@@ -326,3 +326,61 @@ describe("a run started twice at once", () => {
     expect(await chat.statusOf(run)).toBe("succeeded");
   });
 });
+
+describe("Stop on a run that is starting", () => {
+  it("stops the pass that claimed it, and settles the run once", async () => {
+    const chat = await setup();
+    const run = await chat.queue();
+    const answer = chat.open();
+    // Stop reads the run queued with nothing executing it, then the run is
+    // claimed before Stop's cancel commits.
+    const cancelling = holds.next("transaction");
+    const stopping = chat.executor.cancel(run.id, chat.ownerId);
+    await cancelling.reached;
+    await chat.start(run);
+    await answer.answering;
+    cancelling.release();
+    expect(await stopping).toEqual(ok(undefined));
+
+    expect(answer.signal()?.aborted).toBe(true);
+    answer.finish();
+    await chat.executor.idle();
+    expect(await chat.statusOf(run)).toBe("cancelled");
+    expect(chat.settled.filter((id) => id === run.id)).toHaveLength(1);
+  });
+});
+
+describe("Stop on the approval card as a decision lands", () => {
+  it("runs nothing after Stop: not the approved call, not the model", async () => {
+    const chat = await setup();
+    const run = await chat.queue();
+    const { after, execute, turns } = writeTurns();
+    chat.turns.push(...turns);
+    await chat.start(run);
+    await chat.executor.idle();
+    expect(await chat.statusOf(run)).toBe("awaiting_approval");
+
+    // Stop reads the run waiting on the card; the decision resumes it before
+    // Stop's cancel commits, and starts its pass after.
+    const cancelling = holds.next("transaction");
+    const stopping = chat.executor.cancel(run.id, chat.ownerId);
+    await cancelling.reached;
+    const announcing = holds.next("append");
+    const deciding = chat.executor.submitApprovals(
+      run.id,
+      approveA,
+      chat.ownerId
+    );
+    await announcing.reached;
+    cancelling.release();
+    expect(await stopping).toEqual(ok(undefined));
+    announcing.release();
+    await deciding;
+    await chat.executor.idle();
+
+    expect(execute).not.toHaveBeenCalled();
+    expect(after.doStreamCalls).toHaveLength(0);
+    expect(await chat.statusOf(run)).toBe("cancelled");
+    expect(chat.settled.filter((id) => id === run.id)).toHaveLength(1);
+  });
+});
