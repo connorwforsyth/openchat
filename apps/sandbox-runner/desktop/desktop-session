@@ -14,7 +14,14 @@ keep Xvfb "$DISPLAY" -screen 0 "${SIZE}x24" -nolisten tcp -ac &
 for _ in $(seq 1 50); do xdpyinfo >/dev/null 2>&1 && break; sleep 0.1; done
 xsetroot -solid black 2>/dev/null || true
 keep openbox &
-keep x11vnc -display "$DISPLAY" -localhost -rfbport 5900 -forever -shared \
-  -nopw -quiet -noxdamage &
+# Viewers can't drive the desktop unless the person has taken control (the
+# flag `controlCommand` sets); a restarted VNC server keeps to that.
+vnc() {
+  local input=-viewonly
+  [ -e /tmp/.user-control ] && input=
+  x11vnc -display "$DISPLAY" -localhost -rfbport 5900 -forever -shared \
+    -nopw -quiet -noxdamage $input
+}
+keep vnc &
 keep websockify --web /usr/share/novnc 0.0.0.0:6080 127.0.0.1:5900 &
 wait

@@ -140,6 +140,10 @@ Ticket [187](tickets/187-spaces.md). Resolved AFK from D17 so the demo could be 
 7. **Sub-space members must already be in the root space** (as teams are today). Inviting someone straight into a sub-space would invite them to the root too. *Default: keep.*
 8. **Contract** ([187a](tickets/187a-contract-spaces.md)): the additive `spaces` group awaits your approval (draft PR).
 
+## The Dot's computer (PR #161 fix round)
+
+1. **Who may open the computer's live view?** The noVNC view is served on the runner's preview origin at `{id}-6080.…`, with no token or session check. The `id` is an unsalted SHA-256 of `desktop:<conversationId>`, so anyone who holds that URL, or who knows the conversation id, can watch the screen and, while the owner has taken control, drive it. This predates PR #161, which only made sure input is off whenever the agent drives. A fix is a runner proxy change: a signed, short-lived preview token, or a salted id. *Default: leave it for a separate ticket on runner proxy auth; keep preview origins off the public internet until then.*
+
 ## Sign in with Microsoft (186, branch `pstack/entra-sso`), defaulted, change if you disagree
 
 1. **Name.** Each Microsoft sign-in records the name it copied (`user.syncedName`). It updates the name only while the name still equals that record, so a name the person edited here stays. An account that existed before its first Microsoft sign-in keeps its name. *Defaulted, change if you disagree.* The alternative is to always follow the directory, as Better Auth does by default.
