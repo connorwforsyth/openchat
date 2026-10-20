@@ -127,6 +127,10 @@ msgstr "{name}, page {0}"
 msgid "{name}'s library"
 msgstr "{name}'s library"
 
+#: ../composer/src/components/connectors-menu.tsx
+msgid "{off} off"
+msgstr "{off} off"
+
 #: ../chat-ui/src/artifacts/artifact-actions.tsx
 msgid "{ownerName} (owner)"
 msgstr "{ownerName} (owner)"
@@ -906,6 +910,10 @@ msgstr "Composer"
 msgid "Connect"
 msgstr "Connect"
 
+#: ../../apps/web/app/(app)/_shared/settings/connectors-settings.tsx
+msgid "Connect to see this connector's tools."
+msgstr "Connect to see this connector's tools."
+
 #: ../../apps/desktop/src/renderer/setup-screen.tsx
 msgid "Connect to your server"
 msgstr "Connect to your server"
@@ -924,8 +932,14 @@ msgstr "Connection"
 
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
 #: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
+#: ../composer/src/components/composer.tsx
+#: ../composer/src/components/connectors-menu.tsx
 msgid "Connectors"
 msgstr "Connectors"
+
+#: ../composer/src/components/composer-footer.tsx
+msgid "Connectors differ from your defaults in this chat. Reset them"
+msgstr "Connectors differ from your defaults in this chat. Reset them"
 
 #: ../chat-ui/src/artifacts/spreadsheet/spreadsheet-view.tsx
 msgid "Contents of cell {address}"
@@ -1069,6 +1083,11 @@ msgstr "Couldn't reach that server. Check the address and your connection."
 msgid "Couldn't reach the server. Check your connection and try again."
 msgstr "Couldn't reach the server. Check your connection and try again."
 
+#: ../../apps/web/app/(app)/_shared/settings/connectors-settings.tsx
+#: ../composer/src/components/connectors-menu.tsx
+msgid "Couldn't reach this connector to list its tools."
+msgstr "Couldn't reach this connector to list its tools."
+
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Couldn't read {code}"
 msgstr "Couldn't read {code}"
@@ -1192,6 +1211,10 @@ msgstr "CSV of this sheet (.csv)"
 #: ../../apps/web/app/(app)/_shared/settings/memory-settings.tsx
 msgid "Current"
 msgstr "Current"
+
+#: ../composer/src/components/composer-footer.tsx
+msgid "Custom tools"
+msgstr "Custom tools"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "Daily"
@@ -2623,6 +2646,10 @@ msgstr "No team or org items"
 msgid "No teams yet"
 msgstr "No teams yet"
 
+#: ../composer/src/components/connectors-menu.tsx
+msgid "No tools."
+msgstr "No tools."
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "No usage this month yet."
 msgstr "No usage this month yet."
@@ -2727,6 +2754,7 @@ msgstr "Numbered list"
 msgid "OAuth"
 msgstr "OAuth"
 
+#: ../composer/src/components/connectors-menu.tsx
 #: ../composer/src/components/thinking-control.tsx
 #: ../shortcuts/src/react/help-dialog.tsx
 #: ../shortcuts/src/react/shortcuts-editor.tsx
@@ -3472,6 +3500,7 @@ msgid "Required"
 msgstr "Required"
 
 #: ../../apps/web/app/(app)/_shared/settings/connectors-settings.tsx
+#: ../composer/src/components/connectors-menu.tsx
 msgid "Required by your administrator"
 msgstr "Required by your administrator"
 
@@ -3495,6 +3524,11 @@ msgstr "Reset all"
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Reset the workspace?"
 msgstr "Reset the workspace?"
+
+#: ../composer/src/components/composer-footer.tsx
+#: ../composer/src/components/connectors-menu.tsx
+msgid "Reset to my defaults"
+msgstr "Reset to my defaults"
 
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Reset workspace…"
@@ -3779,6 +3813,7 @@ msgid "Set budget"
 msgstr "Set budget"
 
 #: ../../apps/web/app/(app)/_shared/settings/connectors-settings.tsx
+#: ../composer/src/components/connectors-menu.tsx
 msgid "Set by your administrator"
 msgstr "Set by your administrator"
 
@@ -4575,6 +4610,15 @@ msgstr "This artifact has a syntax error."
 msgid "This change couldn't be displayed as a diff."
 msgstr "This change couldn't be displayed as a diff."
 
+#: ../composer/src/components/connectors-menu.tsx
+#: ../composer/src/components/suggestion-menu.tsx
+msgid "This chat"
+msgstr "This chat"
+
+#: ../../apps/web/app/(app)/_shared/settings/connectors-settings.tsx
+msgid "This connector has no tools."
+msgstr "This connector has no tools."
+
 #: ../../apps/web/app/(app)/_shared/query-state.tsx
 msgid "This couldn't be loaded."
 msgstr "This couldn't be loaded."
@@ -4712,9 +4756,19 @@ msgstr "Tool use"
 msgid "tools"
 msgstr "tools"
 
+#: ../../apps/web/app/(app)/_shared/settings/connectors-settings.tsx
+#: ../composer/src/components/connectors-menu.tsx
 #: ../library-ui/src/components/agent-form.tsx
 msgid "Tools"
 msgstr "Tools"
+
+#: ../../apps/web/app/(app)/_shared/settings/connectors-settings.tsx
+msgid "Tools · {off} off"
+msgstr "Tools · {off} off"
+
+#: ../../apps/web/app/(app)/_shared/settings/connectors-settings.tsx
+msgid "Tools in {title}"
+msgstr "Tools in {title}"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
 msgid "Top level"
@@ -4744,6 +4798,14 @@ msgstr "TSV"
 #: ../library-ui/src/components/share-dialog.tsx
 msgid "Turn off"
 msgstr "Turn off"
+
+#: ../composer/src/components/suggestion-menu.tsx
+msgid "Turn off {title}"
+msgstr "Turn off {title}"
+
+#: ../composer/src/components/suggestion-menu.tsx
+msgid "Turn on {title}"
+msgstr "Turn on {title}"
 
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "Turned off on this instance"
@@ -4850,9 +4912,17 @@ msgstr "Use an https:// address. Plain http:// only works for this computer."
 msgid "Use in chat"
 msgstr "Use in chat"
 
+#: ../composer/src/components/connectors-menu.tsx
+msgid "Use in this chat"
+msgstr "Use in this chat"
+
 #: ../library-ui/src/components/share-dialog.tsx
 msgid "Use lets people chat with it. View also shows its instructions and lets them copy it. Edit lets them change it."
 msgstr "Use lets people chat with it. View also shows its instructions and lets them copy it. Edit lets them change it."
+
+#: ../../apps/web/app/(app)/_shared/settings/connectors-settings.tsx
+msgid "Use the {name} tool"
+msgstr "Use the {name} tool"
 
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Used {code}"

@@ -30,8 +30,7 @@ import type { Db } from "@workspace/db/client";
 import { logDecision } from "@workspace/db/queries/decisions";
 import {
   type ConnectorDeps,
-  disabledServersFor,
-  enabledServersFor,
+  mcpSelectionFor,
 } from "@workspace/mcp/connector-service";
 import { createMcp } from "@workspace/mcp/create";
 import { loadKeyRing } from "@workspace/mcp/crypto";
@@ -474,6 +473,8 @@ export const createServerFromEnv = async (
   const connectorDeps: ConnectorDeps = {
     catalog: mcp.registry.catalog,
     db,
+    // The settings' and composer's tool lists (188): the user's connection.
+    listTools: (id, userId) => mcp.manager.listTools(id, userId),
     userServers: config.mcp.userServers,
   };
 
@@ -509,11 +510,11 @@ export const createServerFromEnv = async (
       // `generate_image`'s models (138), which only the built registry lists.
       images: imageModelsOf(registry),
       knowledge: embedder ? { embedder } : undefined,
-      // Agent runs leave out what the user or operator turned off (184).
-      mcpDisabledFor: (userId) => disabledServersFor(connectorDeps, userId),
       mcpFor: (userId) => mcp.manager.toolSource(userId),
-      // Plain chats: every server the caller has on (078, 184).
-      mcpServersFor: (userId) => enabledServersFor(connectorDeps, userId),
+      // Plain chats get every server the caller has on in that chat (078,
+      // 184, 188); every run leaves out what they or the operator turned off.
+      mcpSelectionFor: (userId, conversationId) =>
+        mcpSelectionFor(connectorDeps, { conversationId, userId }),
       orgPolicy,
       sandbox: sandbox?.turnTools,
       webSearch: webSearchFor(config, env, report),

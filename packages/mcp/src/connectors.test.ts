@@ -4,13 +4,19 @@ import type { UserServerPolicy } from "@workspace/contract/schemas/library";
 import { describe, expect, it } from "vitest";
 
 import {
+  anyCustomized,
+  type ConnectorChoice,
+  type ConnectorChoices,
   type ConnectorInputs,
   checkUserServer,
+  connectorTools,
   disabledServerIds,
   effectiveConnectors,
   enabledServerIds,
+  excludedTools,
   type LibraryConnector,
   toggleConnector,
+  toggleConnectorTool,
 } from "./connectors";
 import { instanceServerId } from "./server-config";
 
@@ -25,6 +31,15 @@ const mine: LibraryConnector = {
   name: "my-notes",
   transport: "http",
 };
+
+const choices = (
+  entries: readonly (readonly [
+    LibraryItemId,
+    boolean | null,
+    ConnectorChoice["tools"]?,
+  ])[]
+): ConnectorChoices =>
+  new Map(entries.map(([id, enabled, tools = {}]) => [id, { enabled, tools }]));
 
 const run = (overrides: Partial<ConnectorInputs>) =>
   effectiveConnectors({
@@ -59,7 +74,7 @@ describe("effectiveConnectors", () => {
     const id = instanceServerId("docs");
     const [connector] = run({
       catalog: catalogOf([docs]),
-      prefs: new Map([[id, false]]),
+      prefs: choices([[id, false]]),
     });
     expect(connector?.enabled).toBe(false);
   });
@@ -70,7 +85,7 @@ describe("effectiveConnectors", () => {
       catalog: catalogOf([
         { ...docs, default: "required", name: "audit", reason: "IT policy" },
       ]),
-      prefs: new Map([[id, false]]),
+      prefs: choices([[id, false]]),
     });
     expect(connector).toMatchObject({
       enabled: true,
@@ -84,7 +99,7 @@ describe("effectiveConnectors", () => {
       catalog: catalogOf([
         { ...docs, allowUserOverride: false, default: "off" },
       ]),
-      prefs: new Map([[id, true]]),
+      prefs: choices([[id, true]]),
     });
     expect(connector).toMatchObject({
       enabled: false,
@@ -124,7 +139,7 @@ describe("effectiveConnectors", () => {
       title: "my-notes",
     });
     expect(
-      run({ library: [mine], prefs: new Map([[libraryId, false]]) })[0]?.enabled
+      run({ library: [mine], prefs: choices([[libraryId, false]]) })[0]?.enabled
     ).toBe(false);
   });
 
@@ -156,6 +171,129 @@ describe("enabledServerIds and disabledServerIds", () => {
       instanceServerId("beta"),
       instanceServerId("files"),
     ]);
+  });
+});
+
+describe("tools (188)", () => {
+  const id = instanceServerId("docs");
+  const audited = {
+    ...docs,
+    tools: { required: ["log_event"] },
+  };
+
+  it("has every tool on with no choices", () => {
+    const [connector] = run({ catalog: catalogOf([docs]) });
+    expect(connector).toMatchObject({
+      customized: false,
+      disabledTools: [],
+      requiredTools: [],
+    });
+  });
+
+  it("takes the user's tool switches, never one the operator requires", () => {
+    const [connector] = run({
+      catalog: catalogOf([audited]),
+      prefs: choices([
+        [id, null, { delete_page: false, log_event: false, search: true }],
+      ]),
+    });
+    expect(connector).toMatchObject({
+      disabledTools: ["delete_page"],
+      enabled: true,
+      requiredTools: ["log_event"],
+    });
+  });
+
+  it("layers a chat's choices over the user's, per connector and per tool", () => {
+    const [connector] = run({
+      catalog: catalogOf([docs]),
+      chat: choices([[id, null, { a: true, c: false }]]),
+      prefs: choices([[id, false, { a: false, b: false }]]),
+    });
+    // The chat said nothing about the switch, so the user's `off` stands.
+    expect(connector).toMatchObject({
+      customized: true,
+      disabledTools: ["b", "c"],
+      enabled: false,
+    });
+    const [on] = run({
+      catalog: catalogOf([docs]),
+      chat: choices([[id, true]]),
+      prefs: choices([[id, false]]),
+    });
+    expect(on).toMatchObject({ customized: true, enabled: true });
+  });
+
+  it("isn't customized when the chat's choices match the defaults", () => {
+    const connectors = run({
+      catalog: catalogOf([docs]),
+      chat: choices([[id, true, { a: true }]]),
+    });
+    expect(connectors[0]?.customized).toBe(false);
+    expect(anyCustomized(connectors)).toBe(false);
+  });
+
+  it("can't turn on, off or unlock what the operator locked, from a chat either", () => {
+    const [required] = run({
+      catalog: catalogOf([{ ...audited, default: "required", name: "docs" }]),
+      chat: choices([[id, false, { log_event: false }]]),
+    });
+    expect(required).toMatchObject({
+      customized: false,
+      disabledTools: [],
+      enabled: true,
+    });
+  });
+
+  it("lists library tools for the run to leave out", () => {
+    const connectors = run({
+      catalog: catalogOf([docs]),
+      chat: choices([[libraryId, null, { write: false }]]),
+      library: [mine],
+    });
+    expect(excludedTools(connectors)).toEqual(
+      new Map([[libraryId, ["write"]]])
+    );
+  });
+
+  it("marks each listed tool on or off, and required ones locked", () => {
+    const [connector] = run({
+      catalog: catalogOf([audited]),
+      prefs: choices([[id, null, { search: false }]]),
+    });
+    const listed = [
+      { description: null, inputSchema: {}, name: "search" },
+      { description: "Audit", inputSchema: {}, name: "log_event" },
+      { description: null, inputSchema: {}, name: "fetch" },
+    ];
+    expect(connector && connectorTools(connector, listed)).toEqual([
+      { description: null, enabled: false, lock: null, name: "search" },
+      {
+        description: "Audit",
+        enabled: true,
+        lock: { reason: null, type: "required" },
+        name: "log_event",
+      },
+      { description: null, enabled: true, lock: null, name: "fetch" },
+    ]);
+  });
+
+  it("flips a tool, and refuses a required one", () => {
+    const [connector] = run({ catalog: catalogOf([audited]) });
+    if (!connector) {
+      throw new Error("no connector");
+    }
+    const off = toggleConnectorTool(connector, "search", false);
+    if (!off.ok) {
+      throw new Error("not toggled");
+    }
+    expect(off.value.disabledTools).toEqual(["search"]);
+    const back = toggleConnectorTool(off.value, "search", true);
+    expect(back.ok ? back.value.disabledTools : null).toEqual([]);
+    expect(toggleConnectorTool(connector, "log_event", false)).toEqual({
+      error: { type: "locked" },
+      ok: false,
+    });
   });
 });
 

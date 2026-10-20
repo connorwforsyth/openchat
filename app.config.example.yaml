@@ -121,7 +121,8 @@ features:
 #                                  required is always on and can't be turned off
 #   allowUserOverride: false       fixes the toggle at `default` (shown locked)
 #   reason: "..."                  shown next to a locked toggle
-#   tools: { allow: [...], deny: [...] }   by the server's own tool names
+#   tools: { allow: [...], deny: [...], required: [...] }   by the server's own tool names;
+#     denied tools never reach users; required ones stay on (users switch the rest, 188)
 # Secrets go in ${ENV} references, never in this file. A header or env value
 # whose variable is unset marks only that server "needs setup"; boot carries on.
 # stdio servers run in the desktop app only; the web app lists them as such.

@@ -7775,6 +7775,19 @@
         "summary": "List connectors",
         "description": "The caller's connectors: the operator's catalog and the MCP servers they own or were shared, each with whether it's on and whether they may change that.",
         "tags": ["Connectors"],
+        "parameters": [
+          {
+            "name": "conversationId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "conversation id (UUIDv7)"
+            },
+            "allowEmptyValue": true,
+            "allowReserved": true
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -7826,6 +7839,10 @@
                               }
                             ]
                           },
+                          "customized": {
+                            "type": "boolean",
+                            "default": false
+                          },
                           "description": {
                             "anyOf": [
                               {
@@ -7835,6 +7852,14 @@
                                 "type": "null"
                               }
                             ]
+                          },
+                          "disabledTools": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "default": []
                           },
                           "enabled": {
                             "type": "boolean"
@@ -7876,6 +7901,14 @@
                             "type": "string",
                             "minLength": 1
                           },
+                          "requiredTools": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "default": []
+                          },
                           "source": {
                             "enum": ["instance", "library"],
                             "type": "string"
@@ -7902,6 +7935,10 @@
                           "transport"
                         ]
                       }
+                    },
+                    "customized": {
+                      "type": "boolean",
+                      "default": false
                     },
                     "userServers": {
                       "type": "object",
@@ -8019,11 +8056,121 @@
         }
       }
     },
+    "/conversations/{conversationId}/connectors": {
+      "delete": {
+        "operationId": "connectors.resetConversation",
+        "summary": "Reset a chat's connectors to my defaults",
+        "description": "Forgets the caller's connector and tool choices for one chat, so it follows their defaults again.",
+        "tags": ["Connectors"],
+        "parameters": [
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "conversation id (UUIDv7)"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No content."
+          },
+          "401": {
+            "description": "401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/UNAUTHORIZEDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/FORBIDDENError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/NOT_FOUNDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "422",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/VALIDATIONError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "429",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/RATE_LIMITEDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/connectors/{id}/enabled": {
       "put": {
         "operationId": "connectors.setEnabled",
         "summary": "Turn a connector on or off",
-        "description": "Turns a connector on or off for the caller. FORBIDDEN when the operator locked it; NOT_FOUND when the caller can't use it.",
+        "description": "Turns a connector on or off for the caller, or with `conversationId` for that chat only. FORBIDDEN when the operator locked it; NOT_FOUND when the caller can't use it.",
         "tags": ["Connectors"],
         "parameters": [
           {
@@ -8044,6 +8191,11 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "conversationId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "conversation id (UUIDv7)"
+                  },
                   "enabled": {
                     "type": "boolean"
                   }
@@ -8099,6 +8251,10 @@
                         }
                       ]
                     },
+                    "customized": {
+                      "type": "boolean",
+                      "default": false
+                    },
                     "description": {
                       "anyOf": [
                         {
@@ -8108,6 +8264,14 @@
                           "type": "null"
                         }
                       ]
+                    },
+                    "disabledTools": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "default": []
                     },
                     "enabled": {
                       "type": "boolean"
@@ -8149,6 +8313,14 @@
                       "type": "string",
                       "minLength": 1
                     },
+                    "requiredTools": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "default": []
+                    },
                     "source": {
                       "enum": ["instance", "library"],
                       "type": "string"
@@ -8174,6 +8346,395 @@
                     "title",
                     "transport"
                   ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/UNAUTHORIZEDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/FORBIDDENError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/NOT_FOUNDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "422",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/VALIDATIONError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "429",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/RATE_LIMITEDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/connectors/{id}/tools/{tool}/enabled": {
+      "put": {
+        "operationId": "connectors.setToolEnabled",
+        "summary": "Turn a connector's tool on or off",
+        "description": "Turns one of a connector's tools on or off for the caller, or with `conversationId` for that chat only. FORBIDDEN when the operator requires the tool or locked the connector; NOT_FOUND when the caller can't use the connector.",
+        "tags": ["Connectors"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "libraryItem id (UUIDv7)"
+            }
+          },
+          {
+            "name": "tool",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[a-zA-Z0-9_.:-]+$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "conversationId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "conversation id (UUIDv7)"
+                  },
+                  "enabled": {
+                    "type": "boolean"
+                  }
+                },
+                "required": ["enabled"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "description": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "lock": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "reason": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "maxLength": 500
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "type": {
+                              "enum": ["required", "operator"],
+                              "type": "string"
+                            }
+                          },
+                          "required": ["reason", "type"]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128,
+                      "pattern": "^[a-zA-Z0-9_.:-]+$"
+                    }
+                  },
+                  "required": ["description", "enabled", "lock", "name"]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/UNAUTHORIZEDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/FORBIDDENError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/NOT_FOUNDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "422",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/VALIDATIONError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "429",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/RATE_LIMITEDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/connectors/{id}/tools": {
+      "get": {
+        "operationId": "connectors.tools",
+        "summary": "List a connector's tools",
+        "description": "A connector's tools from the server's `tools/list` (cached per connection), less those the operator denies, each with whether it's on for the caller (or that chat).",
+        "tags": ["Connectors"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "libraryItem id (UUIDv7)"
+            }
+          },
+          {
+            "name": "conversationId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "conversation id (UUIDv7)"
+            },
+            "allowEmptyValue": true,
+            "allowReserved": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "reachable": {
+                      "type": "boolean"
+                    },
+                    "tools": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "description": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "enabled": {
+                            "type": "boolean"
+                          },
+                          "lock": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "reason": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "maxLength": 500
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "type": {
+                                    "enum": ["required", "operator"],
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["reason", "type"]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "name": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 128,
+                            "pattern": "^[a-zA-Z0-9_.:-]+$"
+                          }
+                        },
+                        "required": ["description", "enabled", "lock", "name"]
+                      }
+                    }
+                  },
+                  "required": ["reachable", "tools"]
                 }
               }
             }

@@ -1,7 +1,14 @@
 import { newId } from "@workspace/shared/ids";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
-import { createTestDb, expectOk, seedUser, type TestDb } from "../testing";
+import {
+  createTestDb,
+  expectOk,
+  seedOrg,
+  seedUser,
+  type TestDb,
+} from "../testing";
+import { createConversation } from "./conversations";
 import { createMcpServer } from "./library";
 import { deleteUnversionedItem } from "./library-items";
 import {
@@ -9,8 +16,13 @@ import {
   getMcpOauthToken,
   getMcpServer,
   listConnectorPrefs,
+  listConversationConnectors,
   listMcpOauthTokensToReseal,
+  resetConversationConnectors,
   setConnectorPref,
+  setConnectorToolPref,
+  setConversationConnector,
+  setConversationConnectorTool,
   upsertMcpOauthToken,
 } from "./mcp";
 
@@ -101,8 +113,8 @@ describe("mcp queries", () => {
     });
     expect(await listConnectorPrefs(db, user.id)).toEqual(
       new Map([
-        [instance, true],
-        [server.id, false],
+        [instance, { enabled: true, tools: {} }],
+        [server.id, { enabled: false, tools: {} }],
       ])
     );
     expect((await listConnectorPrefs(db, other.id)).size).toBe(0);
@@ -128,7 +140,66 @@ describe("mcp queries", () => {
     expectOk(await deleteUnversionedItem(db, "mcp_server", server.id));
     expect(await getMcpOauthToken(db, server.id, user.id)).toBeUndefined();
     expect(await listConnectorPrefs(db, user.id)).toEqual(
-      new Map([[instance, true]])
+      new Map([[instance, { enabled: true, tools: {} }]])
     );
+  });
+
+  test("merges tool switches into a user's defaults without touching the server's", async () => {
+    const { db } = testDb;
+    const user = await seedUser(db);
+    const instance = newId("libraryItem");
+    const base = { mcpServerId: instance, userId: user.id };
+
+    await setConnectorToolPref(db, { ...base, enabled: false, tool: "a" });
+    expect(await listConnectorPrefs(db, user.id)).toEqual(
+      new Map([[instance, { enabled: null, tools: { a: false } }]])
+    );
+    await setConnectorPref(db, { ...base, enabled: true });
+    await setConnectorToolPref(db, { ...base, enabled: false, tool: "b" });
+    await setConnectorToolPref(db, { ...base, enabled: true, tool: "a" });
+    expect(await listConnectorPrefs(db, user.id)).toEqual(
+      new Map([[instance, { enabled: true, tools: { a: true, b: false } }]])
+    );
+  });
+
+  test("keeps a chat's choices per user until they're reset", async () => {
+    const { db } = testDb;
+    const user = await seedUser(db);
+    const other = await seedUser(db);
+    const personal = await seedOrg(db, user.id, { isPersonal: true });
+    const chat = await createConversation(db, {
+      context: { id: personal.id, type: "personal" },
+      ownerId: user.id,
+    });
+    const instance = newId("libraryItem");
+    const scope = { conversationId: chat.id, userId: user.id };
+
+    await setConversationConnectorTool(db, {
+      ...scope,
+      enabled: false,
+      mcpServerId: instance,
+      tool: "search",
+    });
+    await setConversationConnector(db, {
+      ...scope,
+      enabled: false,
+      mcpServerId: instance,
+    });
+    expect(await listConversationConnectors(db, scope)).toEqual(
+      new Map([[instance, { enabled: false, tools: { search: false } }]])
+    );
+    expect(
+      (
+        await listConversationConnectors(db, {
+          conversationId: chat.id,
+          userId: other.id,
+        })
+      ).size
+    ).toBe(0);
+    // A chat's choices never leak into the user's defaults.
+    expect((await listConnectorPrefs(db, user.id)).size).toBe(0);
+
+    await resetConversationConnectors(db, scope);
+    expect((await listConversationConnectors(db, scope)).size).toBe(0);
   });
 });

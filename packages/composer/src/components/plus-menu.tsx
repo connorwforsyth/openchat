@@ -25,12 +25,15 @@ import {
 } from "@workspace/ui/components/dropdown-menu";
 import { InputGroupButton } from "@workspace/ui/components/input-group";
 import { type Ref, useCallback } from "react";
-
+import type { ComposerConnectors } from "../props";
 import type { FileCandidate, PromptOption, SkillOption } from "../schemas";
 import type { FastMode } from "../variants";
+import { ConnectorsMenu } from "./connectors-menu";
 
 export interface PlusMenuProps {
   readonly attachDisabled: boolean;
+  /** This chat's connectors (188); left out, the submenu isn't offered. */
+  readonly connectors?: ComposerConnectors | undefined;
   readonly disabled: boolean;
   /**
    * Fast mode for the chosen model (105); left out when it has none, and
@@ -138,6 +141,7 @@ const SUBMENU_CLASS = "max-h-72 w-64 max-w-[calc(100vw-2rem)]";
  */
 export function PlusMenu({
   attachDisabled,
+  connectors,
   disabled,
   fast,
   files,
@@ -250,6 +254,7 @@ export function PlusMenu({
             </DropdownMenuSubContent>
           </DropdownMenuSub>
         ) : null}
+        {connectors ? <ConnectorsMenu connectors={connectors} /> : null}
         {onPlanChange || onWebSearchChange || offerFast ? (
           <DropdownMenuSeparator />
         ) : null}

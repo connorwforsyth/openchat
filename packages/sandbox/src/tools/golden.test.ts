@@ -224,8 +224,12 @@ const toolsOfTurn = async (
     keyStore: createMemoryKeyStore([]),
     knowledge: { embedder },
     mcpFor: (id) => mcp.manager.toolSource(id),
-    mcpServersFor: () =>
-      Promise.resolve(mcp.registry.instanceServers.map((server) => server.id)),
+    mcpSelectionFor: () =>
+      Promise.resolve({
+        disabled: new Set(),
+        enabled: mcp.registry.instanceServers.map((server) => server.id),
+        excludedTools: new Map(),
+      }),
     registry,
     sandbox: createTurnSandboxSource({
       db,

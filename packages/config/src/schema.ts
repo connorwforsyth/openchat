@@ -693,11 +693,16 @@ const connectorFields = {
   reason: z.string().max(500).optional(),
   /** Display name; defaults to `name`. */
   title: z.string().max(100).optional(),
-  /** By the server's own tool names. Omitted `allow` means all; `deny` wins. */
+  /**
+   * By the server's own tool names. Omitted `allow` means all; `deny` wins.
+   * `required` tools stay on while the connector is: users can't switch
+   * them off (188).
+   */
   tools: z
     .strictObject({
       allow: z.array(z.string()).optional(),
       deny: z.array(z.string()).default([]),
+      required: z.array(z.string()).default([]),
     })
     .prefault({}),
 };
