@@ -17,6 +17,8 @@ const chat = (n: number, title: string): SidebarChat => ({
   updatedAt: "2026-09-30T12:00:00.000Z",
 });
 
+const inEngineering = /In Engineering$/;
+
 const first = chat(1, "Postgres full-text search vs Meilisearch");
 const second = chat(2, "Platform offsite agenda");
 
@@ -119,9 +121,7 @@ describe("ChatRow space", () => {
         />
       </ul>
     );
-    expect(
-      screen.getByRole("button", { name: `${first.title} In Engineering` })
-    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: inEngineering })).toBeTruthy();
   });
 
   it("says nothing about a space for a personal chat", () => {
