@@ -4,11 +4,7 @@ import { Trans } from "@lingui/react/macro";
 import { QueryClient, useQuery } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { createWebAuthClient } from "@workspace/auth/client";
-import {
-  type SidebarLayout,
-  SidebarLayoutProvider,
-  useStoredSidebarLayout,
-} from "@workspace/chat-ui/shell/sidebar-layout";
+import { SidebarLayoutProvider } from "@workspace/chat-ui/shell/sidebar-layout";
 import {
   type ShellLayoutState,
   useShellLayout,
@@ -18,7 +14,12 @@ import {
   themeSchema,
 } from "@workspace/chat-ui/sidebar/account-menu";
 import { createApiClient, createQueryUtils } from "@workspace/client/api";
-import type { Me, PublicConfig } from "@workspace/contract/schemas/meta";
+import type {
+  Me,
+  PublicConfig,
+  SidebarLayoutSetting,
+  UserSettings,
+} from "@workspace/contract/schemas/meta";
 import type { RunTarget } from "@workspace/contract/schemas/runs";
 import type { ChatContext, Org } from "@workspace/contract/schemas/tenancy";
 import { CircleAlertIcon } from "@workspace/icons";
@@ -64,6 +65,7 @@ import {
   type SettingsSection,
 } from "./settings/settings-route";
 import { SHELL_LAYOUT_KEY, SIDEBAR_ATTRIBUTE } from "./shell-prepaint";
+import { useSidebarLayoutSetting } from "./sidebar-layout";
 import {
   readActiveSpace,
   spaceFromQuery,
@@ -102,10 +104,10 @@ export interface AppFrameValue {
   readonly openSettings: (section?: SettingsSection) => void;
   readonly paletteOpen: boolean;
   readonly setPaletteOpen: (open: boolean) => void;
-  readonly setSidebarLayout: (layout: SidebarLayout) => void;
+  readonly setSidebarLayout: (layout: SidebarLayoutSetting) => void;
   readonly setTheme: (theme: Theme) => void;
   /** Rail or classic (181), the user's choice in Settings → Appearance. */
-  readonly sidebarLayout: SidebarLayout;
+  readonly sidebarLayout: SidebarLayoutSetting;
   readonly signOut: () => void;
   readonly theme: Theme;
 }
@@ -309,9 +311,7 @@ const Frame = ({
 }) => {
   const layout = useSharedShellLayout();
   const { setTheme, theme } = useFrameTheme();
-  const [sidebarLayout, setSidebarLayout] = useStoredSidebarLayout(
-    `sidebar-layout:${me.user.id}`
-  );
+  const [sidebarLayout, setSidebarLayout] = useSidebarLayoutSetting(me.user.id);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [draftContext, setDraftContextState] = useState<ChatContext>({
     type: "personal",
@@ -408,12 +408,15 @@ export const AppFrame = ({
   children,
   config,
   initialMe,
+  initialSettings = null,
   surfaces = true,
 }: {
   readonly children: ReactNode;
   readonly config: PublicConfig;
   /** From the server when it could ask; the browser asks otherwise. */
   readonly initialMe: Me | null;
+  /** Likewise; the server renders the user's sidebar layout from it. */
+  readonly initialSettings?: UserSettings | null;
   /**
    * The palette, the `?` dialog and the shortcuts every page shares. Quick
    * AI's page (118) goes without: it's one page in a window of its own.
@@ -439,6 +442,9 @@ export const AppFrame = ({
     created.setQueryData(query.meta.config.queryKey(), config);
     if (initialMe) {
       created.setQueryData(query.me.get.queryKey(), initialMe);
+    }
+    if (initialSettings) {
+      created.setQueryData(query.me.settings.queryKey(), initialSettings);
     }
     return created;
   });

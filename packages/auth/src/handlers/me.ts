@@ -41,11 +41,13 @@ const loadSettings = async (db: Db, id: UserId): Promise<UserSettings> => {
     .from(user)
     .leftJoin(userSettings, eq(userSettings.userId, user.id))
     .where(eq(user.id, id));
+  const sidebarLayout = row?.settings?.sidebarLayout;
   return {
     defaultContext: row?.settings?.defaultContext ?? { type: "personal" },
     defaultTarget: row?.settings?.defaultTarget ?? null,
     locale: row?.locale ?? null,
     shortcuts: row?.settings?.shortcuts ?? {},
+    ...(sidebarLayout ? { sidebarLayout } : {}),
   };
 };
 
@@ -179,6 +181,9 @@ export const me = {
           ...(input.shortcuts === undefined
             ? {}
             : { shortcuts: input.shortcuts }),
+          ...(input.sidebarLayout === undefined
+            ? {}
+            : { sidebarLayout: input.sidebarLayout }),
         };
         if (Object.keys(patch).length > 0) {
           await tx

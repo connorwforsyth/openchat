@@ -1,4 +1,7 @@
-import type { ShortcutOverridesSetting } from "@workspace/contract/schemas/meta";
+import type {
+  ShortcutOverridesSetting,
+  SidebarLayoutSetting,
+} from "@workspace/contract/schemas/meta";
 import type { RunTarget } from "@workspace/contract/schemas/runs";
 import type { ChatContext } from "@workspace/contract/schemas/tenancy";
 import {
@@ -170,6 +173,8 @@ export const userSettings = pgTable("user_settings", {
     .$type<ShortcutOverridesSetting>()
     .notNull()
     .default({}),
+  /** Rail or classic (181); `null` until the user picks one. */
+  sidebarLayout: text("sidebar_layout").$type<SidebarLayoutSetting>(),
   updatedAt: updatedAt(),
   userId: idRef("user_id", "user")
     .primaryKey()
