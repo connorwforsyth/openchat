@@ -348,7 +348,7 @@ export const ChatRow = memo(function ChatRowInner({
 
   if (renaming) {
     return (
-      <li className="flex h-8 pointer-coarse:h-9 items-center px-0.5">
+      <li className="flex h-8 pointer-coarse:h-10 items-center px-0.5">
         <RenameInput initial={chat.title ?? ""} onDone={finishRename} />
       </li>
     );
@@ -357,8 +357,10 @@ export const ChatRow = memo(function ChatRowInner({
   return (
     <li
       // Off-screen rows skip layout and paint (177); the intrinsic size
-      // keeps the scrollbar honest until they're measured.
-      className="group/row relative [contain-intrinsic-block-size:auto_2rem] [content-visibility:auto] pointer-coarse:[contain-intrinsic-block-size:auto_2.25rem]"
+      // keeps the scrollbar honest until they're measured. That clips the
+      // row to its box, so on a phone the row pads itself to the 40px the
+      // button's hit area reaches.
+      className="group/row relative pointer-coarse:py-0.5 [contain-intrinsic-block-size:auto_2rem] [content-visibility:auto] pointer-coarse:[contain-intrinsic-block-size:auto_2.5rem]"
       data-menu-open={menuOpen ? "" : undefined}
       data-selected={selected ? "" : undefined}
     >

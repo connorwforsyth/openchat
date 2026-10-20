@@ -140,11 +140,13 @@ export interface ChatSidebarProps {
   readonly top?: ReactNode;
 }
 
-// ChatGPT's sidebar rhythm (181): 32px rows (44px on touch), 8px inline
+// ChatGPT's sidebar rhythm (181): 32px rows (36px on touch), 8px inline
 // padding, the 10px row radius (`rounded-lg`), 14px text, 16px icons, a 5%
 // foreground wash on hover and 8% for the open page.
+// On a phone a row draws 36px and takes 40px of touch: its margins keep the
+// neighbours clear of the hit area its ::after spans.
 export const navRowClass =
-  "flex h-7.5 w-full min-w-0 items-center gap-2 rounded-xl px-2 text-start text-sm outline-none transition-colors duration-(--motion-fast) hover:bg-sidebar-foreground/5 focus-visible:ring-2 focus-visible:ring-sidebar-ring pointer-coarse:h-9 [&_svg]:size-4 [&_svg]:shrink-0";
+  "relative flex h-7.5 w-full min-w-0 items-center gap-2 rounded-xl px-2 text-start text-sm outline-none transition-colors duration-(--motion-fast) hover:bg-sidebar-foreground/5 focus-visible:ring-2 focus-visible:ring-sidebar-ring pointer-coarse:my-0.5 pointer-coarse:h-9 pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-0.5 [&_svg]:size-4 [&_svg]:shrink-0";
 
 /** A section header: quiet, sentence case, and a button that folds it. */
 const headingClass =
@@ -308,10 +310,12 @@ function ArchivedRow({
   const title = chat.title ?? t`New chat`;
   const restore = useCallback(() => onRestore(chat.id), [chat.id, onRestore]);
   return (
-    <li className="flex h-9 items-center gap-2 rounded-lg ps-2 pe-1 text-sm hover:bg-sidebar-foreground/5">
+    <li className="pointer-coarse:my-0.5 flex h-9 items-center gap-2 rounded-lg ps-2 pe-1 text-sm hover:bg-sidebar-foreground/5">
       <span className="min-w-0 flex-1 truncate">{title}</span>
       <Button
         aria-label={t`Unarchive ${title}`}
+        // A 40px square to the finger around the small icon.
+        className="relative pointer-coarse:after:absolute pointer-coarse:after:-inset-2"
         onClick={restore}
         size="icon-xs"
         title={t`Unarchive`}
