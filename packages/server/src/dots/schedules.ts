@@ -60,7 +60,7 @@ import { storeContext } from "../runs/chat-context";
 import {
   type CreateRunDeps,
   type CreateRunError,
-  createRun,
+  createUnattendedRun,
 } from "../runs/create-run";
 import {
   AUTO_PAUSE_AFTER_FAILURES,
@@ -119,27 +119,40 @@ const iso = (date: Date | null): string | null =>
 
 const RUN_ERROR_MESSAGE = "The run failed.";
 
-export const toScheduleRun = (row: ScheduleRunView): ScheduleRun => ({
-  conversationId: row.conversationId,
-  createdAt: row.createdAt.toISOString(),
-  error:
-    row.status === "failed"
-      ? (row.error?.message ?? RUN_ERROR_MESSAGE).slice(0, 2000)
-      : null,
-  finishedAt: iso(row.finishedAt),
-  id: row.id,
-  missedSlots: row.missedSlots,
-  nominalAt: iso(row.nominalAt),
-  notified: row.notified,
-  outcome: row.outcome,
-  readAt: iso(row.readAt),
-  runId: row.runId,
-  scheduleId: row.scheduleId,
-  skipReason: row.skipReason,
-  status: row.status,
-  summary: (row.summary ?? snippetOf(row.replyParts))?.slice(0, 500) ?? null,
-  trigger: row.trigger === "schedule" ? "scheduled" : "run_now",
-});
+export const toScheduleRun = (row: ScheduleRunView): ScheduleRun => {
+  const fields = {
+    conversationId: row.conversationId,
+    createdAt: row.createdAt.toISOString(),
+    id: row.id,
+    missedSlots: row.missedSlots,
+    nominalAt: iso(row.nominalAt),
+    notified: row.notified,
+    readAt: iso(row.readAt),
+    scheduleId: row.scheduleId,
+    trigger:
+      row.trigger === "schedule"
+        ? ("scheduled" as const)
+        : ("run_now" as const),
+  };
+  if (row.outcome === "skipped" && row.skipReason) {
+    return { ...fields, outcome: "skipped", skipReason: row.skipReason };
+  }
+  if (row.outcome === "skipped" || !row.runId || !row.status) {
+    throw new Error(`dot_run ${row.id} is neither a run nor a skipped slot`);
+  }
+  return {
+    ...fields,
+    error:
+      row.status === "failed"
+        ? (row.error?.message ?? RUN_ERROR_MESSAGE).slice(0, 2000)
+        : null,
+    finishedAt: iso(row.finishedAt),
+    outcome: row.outcome,
+    runId: row.runId,
+    status: row.status,
+    summary: (row.summary ?? snippetOf(row.replyParts))?.slice(0, 500) ?? null,
+  };
+};
 
 /** Where a schedule's runs land, checked for the owner. */
 const resolveTarget = async (
@@ -455,7 +468,7 @@ const dateLabel = (at: Date, timeZone: string): string => {
 
 /**
  * Posts the schedule's prompt into its target as the owner, labelled with a
- * `scheduled-task` data part, and starts the run. `createRun` re-checks that
+ * `scheduled-task` data part, and starts the run. `createUnattendedRun` re-checks that
  * the owner may still write there and use the agent, so a revoked share or
  * agent fails the run cleanly.
  */
@@ -482,33 +495,36 @@ export const startScheduleRun = async (
     });
     conversationId = made.id;
   }
-  const created = await createRun(deps.runs, actor, {
-    conversationId,
-    idempotencyKey: dotRunKey(
-      trigger.type === "schedule"
-        ? {
-            occurrence: trigger.nominal,
-            scheduleId: schedule.id,
-            type: "schedule",
-          }
-        : // The schedule's id goes in the key, so the turn finds it before
-          // the run's history row is written.
-          { nonce: `${schedule.id}:${newId("job")}`, type: "manual" }
-    ),
-    input: {
-      parentId: await latestMessageId(db, conversationId),
-      parts: [
-        {
-          data: { scheduleId: schedule.id, title: schedule.title },
-          name: SCHEDULED_TASK_DATA,
-          type: "data",
-        },
-        { text: schedule.prompt, type: "text" },
-      ],
-      type: "message",
+  const created = await createUnattendedRun(
+    deps.runs,
+    actor,
+    {
+      conversationId,
+      idempotencyKey: dotRunKey(
+        trigger.type === "schedule"
+          ? {
+              occurrence: trigger.nominal,
+              scheduleId: schedule.id,
+              type: "schedule",
+            }
+          : { nonce: newId("job"), type: "manual" }
+      ),
+      input: {
+        parentId: await latestMessageId(db, conversationId),
+        parts: [
+          {
+            data: { scheduleId: schedule.id, title: schedule.title },
+            name: SCHEDULED_TASK_DATA,
+            type: "data",
+          },
+          { text: schedule.prompt, type: "text" },
+        ],
+        type: "message",
+      },
+      target,
     },
-    target,
-  });
+    { scheduleId: schedule.id, type: "schedule" }
+  );
   if (!created.ok) {
     return err({ error: created.error, type: "run" });
   }

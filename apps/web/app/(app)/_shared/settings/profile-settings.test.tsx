@@ -60,3 +60,27 @@ describe("contextOptions", () => {
     );
   });
 });
+
+describe("ConnectedAccountsList (186)", () => {
+  it("names a linked Microsoft account with its mark", async () => {
+    const { ConnectedAccountsList } = await import("./connected-accounts");
+    const { setupI18n } = await import("@lingui/core");
+    const { I18nProvider } = await import("@lingui/react");
+    const { render } = await import("@testing-library/react");
+    const i18n = setupI18n({ locale: "en", messages: { en: {} } });
+    const { container } = render(
+      <I18nProvider i18n={i18n}>
+        <ConnectedAccountsList
+          accounts={[
+            { createdAt: new Date("2026-10-01"), providerId: "microsoft" },
+            { createdAt: new Date("2026-10-02"), providerId: "credential" },
+          ]}
+          providers={[{ id: "microsoft", name: "Contoso" }]}
+        />
+      </I18nProvider>
+    );
+    expect(screen.getByText("Contoso")).toBeTruthy();
+    expect(screen.getByText("Email and password")).toBeTruthy();
+    expect(container.querySelector('svg[data-brand="microsoft"]')).toBeTruthy();
+  });
+});

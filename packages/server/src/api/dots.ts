@@ -1,6 +1,10 @@
 import { implement, ORPCError } from "@orpc/server";
 import { contract } from "@workspace/contract/contract";
-import { baseErrors } from "@workspace/contract/errors";
+import {
+  baseErrors,
+  type ConflictReason,
+  conflictError,
+} from "@workspace/contract/errors";
 import type { Result } from "@workspace/shared/result";
 
 import { actorFor, type RequestContext } from "../context";
@@ -18,17 +22,14 @@ import {
   updateSchedule,
 } from "../dots/schedules";
 import {
-  addDotSchedule,
   createDot,
   type DotDeps,
   type DotError,
   deleteDot,
-  editDotSchedule,
   getDotFor,
   listDotActivity,
   listDotsFor,
   markDotRead,
-  removeDotSchedule,
   runDotNow,
   updateDot,
 } from "../dots/service";
@@ -50,25 +51,19 @@ type RunErrors = Partial<{
       { type: "budget_exceeded" }
     >["data"];
   }) => Error;
-  readonly CONFLICT: (options: {
-    data: { reason: "context_locked" | "already_exists" | "run_active" };
-  }) => Error;
+  readonly CONFLICT: (options: { data: { reason: ConflictReason } }) => Error;
   readonly PROVIDER_UNAVAILABLE: (options: {
     data: { provider: null };
   }) => Error;
 }>;
 
-const conflict = (
-  reason: "already_exists" | "run_active",
-  errors?: RunErrors,
-  message?: string
-): Error =>
+const conflict = (reason: ConflictReason, errors?: RunErrors): Error =>
   errors?.CONFLICT
     ? errors.CONFLICT({ data: { reason } })
     : new ORPCError("CONFLICT", {
         data: { reason },
-        message: message ?? baseErrors.VALIDATION.message,
-        status: 409,
+        message: conflictError.CONFLICT.message,
+        status: conflictError.CONFLICT.status,
       });
 
 const failure = (error: DotError, errors?: RunErrors): Error => {
@@ -86,14 +81,9 @@ const failure = (error: DotError, errors?: RunErrors): Error => {
     case "dot_exists":
       return conflict("already_exists", errors);
     case "completed":
+      return conflict("schedule_completed", errors);
     case "target_archived":
-      return conflict(
-        "already_exists",
-        errors,
-        error.type === "completed"
-          ? "This task has finished; give it a new time to run again."
-          : "Its chat is archived; unarchive it first."
-      );
+      return conflict("target_archived", errors);
     case "busy":
       return conflict("run_active", errors);
     case "cap":
@@ -161,18 +151,9 @@ export const createDotsRouter = (deps: DotDeps) => {
     create: authed.dots.create.handler(async ({ context, errors, input }) =>
       unwrap(await createDot(deps, context.actor, input), errors)
     ),
-    createSchedule: authed.dots.createSchedule.handler(
-      async ({ context, input }) =>
-        unwrap(await addDotSchedule(deps, context.actor, input))
-    ),
     delete: authed.dots.delete.handler(async ({ context, input }) => {
       unwrap(await deleteDot(db, context.actor, input.id));
     }),
-    deleteSchedule: authed.dots.deleteSchedule.handler(
-      async ({ context, input }) => {
-        unwrap(await removeDotSchedule(db, context.actor, input.id));
-      }
-    ),
     get: authed.dots.get.handler(async ({ context, input }) =>
       unwrap(await getDotFor(db, context.actor.userId, input.id))
     ),
@@ -187,10 +168,6 @@ export const createDotsRouter = (deps: DotDeps) => {
     ),
     update: authed.dots.update.handler(async ({ context, input }) =>
       unwrap(await updateDot(deps, context.actor, input))
-    ),
-    updateSchedule: authed.dots.updateSchedule.handler(
-      async ({ context, input }) =>
-        unwrap(await editDotSchedule(deps, context.actor, input))
     ),
   };
 

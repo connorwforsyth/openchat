@@ -41,7 +41,12 @@ import {
   type NotFoundError,
   notFound,
 } from "../errors";
-import { ACTIVE_RUN_STATUSES, run, runChunk } from "../schema/chat";
+import {
+  ACTIVE_RUN_STATUSES,
+  type RunUnattended,
+  run,
+  runChunk,
+} from "../schema/chat";
 import type { StoredContext } from "./conversations";
 import {
   decodeCursor,
@@ -69,6 +74,7 @@ export interface NewRun {
   /** `queued` behind `afterRunId` when the branch is busy, else `running` once an executor takes it. */
   readonly status?: Extract<RunStatus, "queued" | "running">;
   readonly target: RunTarget;
+  readonly unattended?: RunUnattended | null;
   readonly userMessageId: MessageId;
 }
 
@@ -94,6 +100,7 @@ export const createRun = async (db: Db, input: NewRun): Promise<CreatedRun> => {
       startedAt: status === "running" ? new Date() : null,
       status,
       target: input.target,
+      unattended: input.unattended ?? null,
       userMessageId: input.userMessageId,
     })
     .onConflictDoNothing({
