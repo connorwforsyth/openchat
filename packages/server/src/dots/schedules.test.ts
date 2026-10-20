@@ -351,6 +351,42 @@ describe("schedules API", () => {
     expect(edited.status).toBe(409);
   });
 
+  it("refuses Run now into an archived chat", async () => {
+    const dot = await json<Dot>(
+      await request("/api/dots", {
+        json: { name: "Pip", target: { model: "test:model", type: "model" } },
+        method: "POST",
+      }),
+      201
+    );
+    const chat = await newChat();
+    const onChat = await create({
+      target: { conversationId: chat.id, kind: "conversation" },
+    });
+    const onDot = await create({ target: { kind: "dot" }, title: "Dot" });
+    for (const id of [chat.id, dot.conversationId]) {
+      // biome-ignore lint/performance/noAwaitInLoops: two archives, in order.
+      await request(`/api/conversations/${id}`, {
+        json: { archived: true },
+        method: "PATCH",
+      });
+    }
+
+    const sent = [
+      await request(`/api/schedules/${onChat.id}/run`, { method: "POST" }),
+      await request(`/api/schedules/${onDot.id}/run`, { method: "POST" }),
+      await request(`/api/dots/${dot.id}/run`, { json: {}, method: "POST" }),
+    ];
+    expect(sent.map((response) => response.status)).toEqual([409, 409, 409]);
+    for (const response of sent) {
+      // biome-ignore lint/performance/noAwaitInLoops: reading bodies already sent.
+      expect(await response.json()).toMatchObject({
+        data: { reason: "target_archived" },
+      });
+    }
+    expect((await limitsNow()).runsToday).toBe(0);
+  });
+
   it("reports the guardrails and today's usage", async () => {
     const limits = await json<ScheduleLimits>(
       await request("/api/schedule-limits")
