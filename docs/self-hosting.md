@@ -119,6 +119,67 @@ TRUSTED_ORIGINS=https://chat.example.org, http://192.168.1.20:3000
   is set.
 - `bun run setup doctor` shows the address to open.
 
+### Sign in with Microsoft (Entra ID)
+
+A "Continue with Microsoft" button for work, school or personal Microsoft
+accounts, through Better Auth's built-in Microsoft provider. Each sign-in
+updates the person's name and email from the directory and copies their
+profile photo from Microsoft Graph into the app's storage (`avatars/`).
+Microsoft's tokens are used for that one photo request and never saved.
+
+1. In the Azure portal, open **Microsoft Entra ID → App registrations → New
+   registration**.
+   - **Supported account types:** "this organizational directory only" for
+     one company, "any organizational directory" for any work or school
+     account, or add personal accounts too.
+   - **Redirect URI:** platform **Web**,
+     `<BETTER_AUTH_URL>/api/auth/callback/microsoft` (for example
+     `https://chat.example.com/api/auth/callback/microsoft`, or
+     `http://localhost:3000/api/auth/callback/microsoft` to try it locally).
+2. Copy the **Application (client) ID**, and the **Directory (tenant) ID**
+   if you're limiting sign-in to one tenant.
+3. **Certificates & secrets → New client secret.** Copy the secret's
+   **Value** (not its ID); note when it expires.
+4. **API permissions:** Microsoft Graph, delegated: `openid`, `profile`,
+   `email`, `offline_access` and `User.Read` (the default `User.Read` is
+   what reads the photo). Grant admin consent if your tenant requires it.
+5. Put the credentials in `.env` and turn the provider on in
+   `app.config.yaml`:
+
+```sh
+MICROSOFT_CLIENT_ID=00000000-0000-0000-0000-000000000000
+MICROSOFT_CLIENT_SECRET=…
+```
+
+```yaml
+auth:
+  microsoft:
+    clientId: ${MICROSOFT_CLIENT_ID}
+    clientSecret: ${MICROSOFT_CLIENT_SECRET}
+    tenantId: 4f1c9a7e-…        # or organizations, common, consumers
+    allowedDomains: [contoso.com]
+    autoProvision: true
+```
+
+- `tenantId` must match the account types you picked: a tenant GUID (or
+  `contoso.onmicrosoft.com`) for one directory, `organizations` for any work
+  or school account, `common` to include personal accounts.
+- `allowedTenants` (tenant GUIDs) and `allowedDomains` (email domains) are
+  checked by the server on every sign-in, not just the first; an account
+  outside them is turned away.
+- Without `autoProvision`, a Microsoft account that has no account here
+  follows `signup` (invite-only by default; the first user is always the
+  admin). With it, any allowed account gets one. Because that would admit
+  every Microsoft account on `common` or `organizations`, it needs a
+  specific `tenantId`, `allowedDomains` or `allowedTenants`.
+- `signup: sso` counts Microsoft as single sign-on.
+- `photo.maxBytes` (default 1 MiB) skips larger photos; `photo.enabled:
+  false` skips them altogether. No photo, or a failed photo request, never
+  stops a sign-in.
+- With either credential unset the block is ignored and the button stays
+  hidden, so the same file works with an empty `.env`.
+- Settings → Profile lists the sign-in methods linked to an account.
+
 ### Configuration file
 
 To use an `app.config.yaml`, mount it and point `CONFIG_PATH` at it, in a

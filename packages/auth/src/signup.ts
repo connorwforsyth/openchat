@@ -1,3 +1,7 @@
+import {
+  MICROSOFT_PROVIDER_ID,
+  microsoftSsoOf,
+} from "@workspace/config/microsoft";
 import type { AppConfig } from "@workspace/config/schema";
 import { err, ok, type Result } from "@workspace/shared/result";
 import { z } from "zod";
@@ -54,13 +58,21 @@ export const decideSignUp = (
   if (request.method === "admin") {
     return ok(undefined);
   }
+  // Its tenant and domain allow-lists are checked before this (186).
+  const microsoft =
+    request.method === "oauth" && request.providerId === MICROSOFT_PROVIDER_ID
+      ? microsoftSsoOf(auth)
+      : undefined;
   if (auth.signup === "sso") {
     // Even the first user: an SSO-only instance shouldn't be claimable with
     // a password by whoever finds it first.
     const fromOidc =
       request.method === "oauth" &&
       auth.oidc.some((provider) => provider.id === request.providerId);
-    return fromOidc ? ok(undefined) : err("sso_required");
+    return fromOidc || microsoft ? ok(undefined) : err("sso_required");
+  }
+  if (microsoft?.autoProvision) {
+    return ok(undefined);
   }
   if (facts.isFirstUser) {
     return ok(undefined);
