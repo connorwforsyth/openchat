@@ -10,6 +10,7 @@
     "./env": "./src/env.ts",
     "./handlers": "./src/handlers/index.ts",
     "./handlers/context": "./src/handlers/context.ts",
+    "./microsoft": "./src/microsoft.ts",
     "./resources": "./src/resources.ts",
     "./server": "./src/server.ts",
     "./signup": "./src/signup.ts",
@@ -35,6 +36,7 @@
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@workspace/typescript-config": "workspace:*",
+    "msw": "catalog:",
     "react": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

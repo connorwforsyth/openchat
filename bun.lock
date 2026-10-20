@@ -260,6 +260,7 @@
         "@types/node": "catalog:",
         "@types/react": "catalog:",
         "@workspace/typescript-config": "workspace:*",
+        "msw": "catalog:",
         "react": "catalog:",
         "typescript": "catalog:",
         "vitest": "catalog:",

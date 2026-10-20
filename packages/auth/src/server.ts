@@ -1,4 +1,5 @@
 import { drizzleAdapter } from "@better-auth/drizzle-adapter/relations-v2";
+import { microsoftSsoOf } from "@workspace/config/microsoft";
 import type { AppConfig } from "@workspace/config/schema";
 import type {
   InvitationId,
@@ -39,6 +40,7 @@ import {
   resolveSecret,
   type SecretProblem,
 } from "./env";
+import { type AvatarStore, microsoftSso } from "./microsoft";
 import { trustedOriginsFor } from "./origins";
 import { decideSignUp, type SignUpRefusal } from "./signup";
 import {
@@ -63,10 +65,14 @@ export interface AuthLog {
 }
 
 export interface CreateAuthOptions {
+  /** Where Microsoft profile photos go (186); without it they're skipped. */
+  readonly avatars?: AvatarStore;
   readonly config: AppConfig;
   readonly db: Db;
   /** Defaults to `process.env`; parsed, so unknown keys and blanks are fine. */
   readonly env?: Readonly<Record<string, string | undefined>>;
+  /** Outbound HTTP for Microsoft Graph; defaults to the global `fetch`. */
+  readonly fetch?: typeof fetch;
   readonly log?: AuthLog;
   /**
    * Overrides Better Auth's password hashing. Only tests pass this: the
@@ -223,10 +229,16 @@ const buildAuth = (
   env: AuthEnv,
   secret: string,
   {
+    avatars,
+    fetch: fetchFn,
+    log,
     origins,
     passwordHasher,
     proxies,
   }: {
+    readonly avatars?: AvatarStore;
+    readonly fetch: typeof fetch;
+    readonly log: AuthLog;
     readonly origins: readonly string[];
     readonly passwordHasher?: PasswordHasher;
     readonly proxies: TrustedProxies;
@@ -234,6 +246,10 @@ const buildAuth = (
 ) => {
   const github = socialCredentials(config, env, "github");
   const google = socialCredentials(config, env, "google");
+  const microsoftConfig = microsoftSsoOf(config.auth);
+  const microsoft = microsoftConfig
+    ? microsoftSso(microsoftConfig, { avatars, fetch: fetchFn, warn: log.warn })
+    : undefined;
   const orgs = orgPlugin(db);
   const auth = betterAuth({
     advanced: {
@@ -267,6 +283,21 @@ const buildAuth = (
       },
     }),
     databaseHooks: {
+      // Graph's tokens were only for the photo; don't keep them (186).
+      ...(microsoft
+        ? {
+            account: {
+              create: {
+                before: (data) =>
+                  Promise.resolve({ data: microsoft.accountData(data) }),
+              },
+              update: {
+                before: (data) =>
+                  Promise.resolve({ data: microsoft.accountData(data) }),
+              },
+            },
+          }
+        : {}),
       user: {
         create: {
           // Runs after Better Auth's transaction commits (queued), so the
@@ -294,6 +325,7 @@ const buildAuth = (
     socialProviders: {
       ...(github ? { github } : {}),
       ...(google ? { google } : {}),
+      ...(microsoft ? { microsoft: microsoft.provider } : {}),
     },
     telemetry: { enabled: false },
     // `BETTER_AUTH_URL`, its loopback aliases and `TRUSTED_ORIGINS` (054).
@@ -301,10 +333,19 @@ const buildAuth = (
     trustedOrigins: [...origins],
     user: {
       validateUserInfo: async ({ source, user: incoming }) => {
+        const email = typeof incoming.email === "string" ? incoming.email : "";
+        // Tenant and domain allow-lists hold on every sign-in, not just the first.
+        const refused = microsoft?.refusal({
+          email,
+          profile: source.oauth?.profile,
+          providerId: source.oauth?.providerId,
+        });
+        if (refused) {
+          return refused;
+        }
         if (source.action !== "create-user") {
           return;
         }
-        const email = typeof incoming.email === "string" ? incoming.email : "";
         const [first, invited] = await Promise.all([
           isFirstUser(db),
           hasPendingInvitation(db, email),
@@ -346,7 +387,9 @@ export type AuthSession = Auth["$Infer"]["Session"];
 export const createAuth = ({
   config,
   db,
+  avatars,
   env = process.env,
+  fetch: fetchFn = fetch,
   log = consoleLog,
   passwordHasher,
 }: CreateAuthOptions): Result<Auth, SecretProblem> => {
@@ -373,6 +416,9 @@ export const createAuth = ({
     );
   }
   const options = {
+    avatars,
+    fetch: fetchFn,
+    log,
     origins: origins.origins,
     passwordHasher,
     proxies: trusted.proxies,
