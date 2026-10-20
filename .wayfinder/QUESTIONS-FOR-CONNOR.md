@@ -139,3 +139,12 @@ Ticket [187](tickets/187-spaces.md). Resolved AFK from D17 so the demo could be 
 6. **Per-key usage** ([193](tickets/193-per-key-usage.md)): attributed when usage is recorded, to the newest key of the paying scope and provider. Earlier usage shows as "Unattributed". *Default: keep.*
 7. **Sub-space members must already be in the root space** (as teams are today). Inviting someone straight into a sub-space would invite them to the root too. *Default: keep.*
 8. **Contract** ([187a](tickets/187a-contract-spaces.md)): the additive `spaces` group awaits your approval (draft PR).
+
+## Usage and Langfuse
+
+Lane `pstack/usage` (Settings → Usage, span tags). Defaults applied overnight; each is yours to overturn.
+
+1. **Usage by chat is only for your own usage.** Space managers see usage by person, not by chat, because chat titles are private. The API refuses `groupBy: conversation` for a team or org. *Default: keep.*
+2. **The Langfuse link is for instance admins only**, and it lives on the "By person" table. Its URL comes from `observability.userTracesUrl` (a template with `{userId}`), because a Langfuse user page needs a project id that can't be derived from the OTLP endpoint. *Default: keep.*
+3. **Personal chats carry no space id on spans.** Only team and org chats get `langfuse.trace.metadata.space_id`. *Default: keep. Tagging the personal org id would take a lookup per run.*
+4. **Not tagged yet:** Decider calls and embeddings. Both go through ports (`Decider`, `Embedder`) that would need a `trace` argument, which is a port change in its own PR. Chat runs and title calls are tagged. *Default: follow-up if you want it.*
