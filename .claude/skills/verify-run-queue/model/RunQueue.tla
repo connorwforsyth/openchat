@@ -309,12 +309,15 @@ K_Read:
     goto Done;
   end either;
 K_After:
-  \* abortPass returned true: `after = getRun(db, runId)`; still awaiting
+  \* abortPass returned true, so stopAfterPass: `getRun(db, runId)`; awaiting
   \* approval with nothing in `active` -> cancelIdle(after.value, by).
+  \* Any other unfinished status (a decision resumed it) -> abortPass().
   await waitFor = NoCtl \/ waitFor \in ended;
   if status[tgt] = "awaiting_approval" /\ active[tgt] = NoCtl then
     rowSt := status[tgt];
     goto K_Idle;
+  elsif status[tgt] \notin Terminal then
+    goto K_Abort2;
   else
     goto Done;
   end if;
@@ -356,8 +359,8 @@ K_Promote:
     goto K_Promote;
   end if;
 K_Abort2:
-  \* cancelIdle returned false: `abortPass()` again ("a decision resumed it
-  \* between the two looks")
+  \* cancelIdle returned false, or the look after the pass found it resumed:
+  \* `abortPass()` again, which aborts a claim's or a decision's controller.
   if active[tgt] # NoCtl then
     aborted := aborted \cup {active[tgt]};
     stoppedEarly := stoppedEarly \cup ({active[tgt]} \ begun);
@@ -430,6 +433,14 @@ StopReachesPass == \A r \in Runs : \A c \in spawned[r] : active[r] = c
 \* call, and no call a decision approved runs.
 NoLoopAfterStop == begun \cap stoppedEarly = {}
 
+\* Once a Stop has returned, its run has ended, or the controller in
+\* `active` for it is one Stop aborted.
+StopTakesEffect ==
+  \A k \in StopIds :
+    (pc[k] = "Done" /\ tgt[k] # NoRun) =>
+      \/ status[tgt[k]] \in Terminal
+      \/ active[tgt[k]] \in aborted
+
 \* No turn runs while an answer above it on its branch is still being written.
 OneRunPerBranch ==
   \A x, y \in Runs : (x # y /\ InLoop(x) /\ InLoop(y)) => x \notin ansAbove[y]
@@ -483,6 +494,8 @@ ViewBranch ==
      [p \in SendIds |-> IF pc[p] = "Done" THEN <<>> ELSE parent[p]] >>
 \* SettledOnce reads the end-hook ghost.
 ViewSettled == << View, settled >>
+\* StopTakesEffect reads which run each finished Stop was for.
+ViewStopped == << View, [p \in StopIds |-> tgt[p]] >>
 \* Every property at once.
 ViewAll == << ViewBranch, settled >>
 

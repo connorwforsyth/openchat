@@ -981,6 +981,40 @@ export const createInProcessExecutor = (
   };
 
   /**
+   * Aborts the pass executing a run here, if any, and waits for it. The
+   * pass stores what it has, settles as cancelled and closes the stream
+   * after its last chunk.
+   */
+  const abortPass = async (runId: RunId, by: UserId | null) => {
+    const controller = active.get(runId);
+    if (!controller) {
+      return false;
+    }
+    cancelledBy.set(runId, by);
+    controller.abort();
+    await running.get(runId);
+    return true;
+  };
+
+  /**
+   * Stop's look once the pass it aborted has settled. A pass that had
+   * already asked for approval when the abort came still settles waiting on
+   * it (133), and a decision can resume it before this look. Stop cancels
+   * that wait, or aborts the resumed pass.
+   */
+  const stopAfterPass = async (runId: RunId, by: UserId | null) => {
+    const after = await getRun(db, runId);
+    if (!after.ok || isTerminal(after.value.status)) {
+      return;
+    }
+    const waiting =
+      after.value.status === "awaiting_approval" && !active.has(runId);
+    if (!(waiting && (await cancelIdle(after.value, by)))) {
+      await abortPass(runId, by);
+    }
+  };
+
+  /**
    * Records decisions on the answer's calls, atomically: the run row stays
    * locked from the read to the write, so two decisions at once can't each
    * overwrite the other's, and resuming happens in the same transaction.
@@ -1083,38 +1117,15 @@ export const createInProcessExecutor = (
       if (isTerminal(row.status)) {
         return err({ runId, status: row.status, type: "invalid_state" });
       }
-      const abortPass = async () => {
-        const controller = active.get(runId);
-        if (!controller) {
-          return false;
-        }
-        // The executing pass stores what it has, settles as cancelled and
-        // closes the stream after its last chunk.
-        cancelledBy.set(runId, by);
-        controller.abort();
-        await running.get(runId);
-        return true;
-      };
-      if (await abortPass()) {
-        // A pass that had already asked for approval when the abort came
-        // can still settle waiting on it (133). Stop stops that wait too,
-        // unless a decision has resumed it, which the next look stops.
-        const after = await getRun(db, runId);
-        if (
-          after.ok &&
-          after.value.status === "awaiting_approval" &&
-          !active.has(runId) &&
-          !(await cancelIdle(after.value, by))
-        ) {
-          await abortPass();
-        }
+      if (await abortPass(runId, by)) {
+        await stopAfterPass(runId, by);
         return ok(undefined);
       }
       if (await cancelIdle(row, by)) {
         return ok(undefined);
       }
       // A claim or a decision took it between the two looks: stop that pass.
-      if (await abortPass()) {
+      if (await abortPass(runId, by)) {
         return ok(undefined);
       }
       const current = await getRun(db, runId);
