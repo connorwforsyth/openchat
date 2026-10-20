@@ -35,11 +35,19 @@ import type { Turn } from "./turn";
 // Each test holds requests at the awaits its counterexample names, so every
 // run takes that interleaving. Nothing here reaches a provider.
 
-type Point = "append" | "requeueAfter" | "transaction";
+type Point = "append" | "getRun" | "requeueAfter" | "transaction";
 
 const holds = vi.hoisted(() => {
   const waiting = new Map<string, (() => Promise<void>)[]>();
+  const executorDbs = new WeakSet<object>();
   return {
+    /** Marks the executor's database, so only its reads stop at `getRun`. */
+    executorDb: <T extends object>(db: T): T => {
+      executorDbs.add(db);
+      return db;
+    },
+    isExecutorDb: (db: unknown) =>
+      typeof db === "object" && db !== null && executorDbs.has(db),
     /** Holds the next request to reach `point` until the test releases it. */
     next: (point: Point) => {
       let arrive: () => void = () => undefined;
@@ -75,6 +83,14 @@ vi.mock("@workspace/db/queries/runs", async (importOriginal) => {
     await importOriginal<typeof import("@workspace/db/queries/runs")>();
   return {
     ...actual,
+    getRun: async (
+      ...args: Parameters<typeof actual.getRun>
+    ): ReturnType<typeof actual.getRun> => {
+      if (holds.isExecutorDb(args[0])) {
+        await holds.pass("getRun");
+      }
+      return actual.getRun(...args);
+    },
     requeueAfter: async (
       ...args: Parameters<typeof actual.requeueAfter>
     ): ReturnType<typeof actual.requeueAfter> => {
@@ -86,18 +102,20 @@ vi.mock("@workspace/db/queries/runs", async (importOriginal) => {
 
 /** The executor's database: each transaction passes `transaction` before it begins. */
 const holdingTransactions = (db: Db): Db =>
-  new Proxy(db, {
-    get: (target, key) => {
-      if (key === "transaction") {
-        return async (...args: Parameters<Db["transaction"]>) => {
-          await holds.pass("transaction");
-          return target.transaction(...args);
-        };
-      }
-      const value = Reflect.get(target, key);
-      return typeof value === "function" ? value.bind(target) : value;
-    },
-  });
+  holds.executorDb(
+    new Proxy(db, {
+      get: (target, key) => {
+        if (key === "transaction") {
+          return async (...args: Parameters<Db["transaction"]>) => {
+            await holds.pass("transaction");
+            return target.transaction(...args);
+          };
+        }
+        const value = Reflect.get(target, key);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    })
+  );
 
 /** A model whose answer stays open until `finish()`, noting the signal its call got. */
 const openModel = () => {
@@ -211,8 +229,10 @@ const setup = async () => {
   const turns: Turn[] = [];
   const settled: RunId[] = [];
   const channel = createPostgresStreamChannel({ db });
+  const appended: unknown[] = [];
   const writer: RunStreamWriter = {
     append: async (runId, payload) => {
+      appended.push(payload);
       await holds.pass("append");
       return channel.append(runId, payload);
     },
@@ -255,6 +275,8 @@ const setup = async () => {
     return created.run;
   };
   return {
+    /** Every chunk handed to the stream, held or not. */
+    appended,
     executor,
     /** Scripts a pass that answers until the test finishes it. */
     open: () => {
@@ -426,5 +448,45 @@ describe("Stop on a queued turn", () => {
 
     expect(await chat.statusOf(stopped)).toBe("cancelled");
     expect(await chat.statusOf(last)).toBe("succeeded");
+  });
+});
+
+describe("Stop as the pass pauses for approval", () => {
+  it("stops the pass a decision resumes right after", async () => {
+    const chat = await setup();
+    const run = await chat.queue();
+    const { after, execute, turns } = writeTurns();
+    chat.turns.push(...turns);
+    // The pass has shown the card and is still settling when Stop aborts
+    // it; it pauses anyway, and a decision resumes it before Stop looks again.
+    const streaming = holds.next("append");
+    await chat.start(run);
+    await streaming.reached;
+    await vi.waitFor(() =>
+      expect(chat.appended).toContainEqual(
+        expect.objectContaining({ type: "finish" })
+      )
+    );
+    const stopping = chat.executor.cancel(run.id, chat.ownerId);
+    const lookingAgain = holds.next("getRun");
+    streaming.release();
+    await lookingAgain.reached;
+    expect(await chat.statusOf(run)).toBe("awaiting_approval");
+    const announcing = holds.next("append");
+    const deciding = chat.executor.submitApprovals(
+      run.id,
+      approveA,
+      chat.ownerId
+    );
+    await announcing.reached;
+    lookingAgain.release();
+    expect(await stopping).toEqual(ok(undefined));
+    announcing.release();
+    await deciding;
+    await chat.executor.idle();
+
+    expect(execute).not.toHaveBeenCalled();
+    expect(after.doStreamCalls).toHaveLength(0);
+    expect(await chat.statusOf(run)).toBe("cancelled");
   });
 });
