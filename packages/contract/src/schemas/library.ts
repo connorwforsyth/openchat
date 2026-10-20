@@ -400,3 +400,64 @@ export const mcpToolSchema = z.object({
   name: toolNameSchema,
 });
 export type McpTool = z.infer<typeof mcpToolSchema>;
+
+// Connectors (184): the MCP servers one user sees, merged from the
+// operator's catalog in app.config.yaml and the user's own library, with
+// the user's on/off choice applied. `lock` says why a toggle is fixed.
+
+/** Why a connector can't be toggled: the operator requires it, or fixed its state. */
+export const connectorLockSchema = z.object({
+  reason: z.string().max(500).nullable(),
+  type: z.enum(["required", "operator"]),
+});
+export type ConnectorLock = z.infer<typeof connectorLockSchema>;
+
+/** Whether this surface can run the connector at all. */
+export const connectorAvailabilitySchema = z.discriminatedUnion("state", [
+  z.object({ state: z.literal("available") }),
+  /** stdio servers run in the desktop app, not on the server. */
+  z.object({ state: z.literal("desktop_only") }),
+  /** The operator's entry is missing something (an env var); never names the value. */
+  z.object({ message: z.string(), state: z.literal("unconfigured") }),
+]);
+export type ConnectorAvailability = z.infer<typeof connectorAvailabilitySchema>;
+
+export const connectorSchema = z.object({
+  auth: z.enum(["none", "header", "oauth"]),
+  availability: connectorAvailabilitySchema,
+  description: z.string().nullable(),
+  /** The user's effective choice (or the operator's, when locked). */
+  enabled: z.boolean(),
+  id: libraryItemIdSchema,
+  lock: connectorLockSchema.nullable(),
+  /** The tool-name prefix the model sees. */
+  name: z.string().min(1),
+  /** `instance`: the operator's catalog; `library`: saved by the user or shared with them. */
+  source: z.enum(["instance", "library"]),
+  title: z.string().min(1),
+  transport: z.enum(["http", "sse", "stdio"]),
+});
+export type Connector = z.infer<typeof connectorSchema>;
+
+/** Whether, and where, users may add MCP servers of their own. */
+export const userServerPolicySchema = z.object({
+  allowed: z.boolean(),
+  /** Host patterns (`example.com`, `*.example.com`); empty means any public host. */
+  hosts: z.array(z.string()),
+  transports: z.array(mcpTransportSchema),
+});
+export type UserServerPolicy = z.infer<typeof userServerPolicySchema>;
+
+export const connectorListSchema = z.object({
+  connectors: z.array(connectorSchema),
+  userServers: userServerPolicySchema,
+});
+export type ConnectorList = z.infer<typeof connectorListSchema>;
+
+export const setConnectorEnabledInputSchema = z.object({
+  enabled: z.boolean(),
+  id: libraryItemIdSchema,
+});
+export type SetConnectorEnabledInput = z.infer<
+  typeof setConnectorEnabledInputSchema
+>;
