@@ -119,27 +119,40 @@ const iso = (date: Date | null): string | null =>
 
 const RUN_ERROR_MESSAGE = "The run failed.";
 
-export const toScheduleRun = (row: ScheduleRunView): ScheduleRun => ({
-  conversationId: row.conversationId,
-  createdAt: row.createdAt.toISOString(),
-  error:
-    row.status === "failed"
-      ? (row.error?.message ?? RUN_ERROR_MESSAGE).slice(0, 2000)
-      : null,
-  finishedAt: iso(row.finishedAt),
-  id: row.id,
-  missedSlots: row.missedSlots,
-  nominalAt: iso(row.nominalAt),
-  notified: row.notified,
-  outcome: row.outcome,
-  readAt: iso(row.readAt),
-  runId: row.runId,
-  scheduleId: row.scheduleId,
-  skipReason: row.skipReason,
-  status: row.status,
-  summary: (row.summary ?? snippetOf(row.replyParts))?.slice(0, 500) ?? null,
-  trigger: row.trigger === "schedule" ? "scheduled" : "run_now",
-});
+export const toScheduleRun = (row: ScheduleRunView): ScheduleRun => {
+  const fields = {
+    conversationId: row.conversationId,
+    createdAt: row.createdAt.toISOString(),
+    id: row.id,
+    missedSlots: row.missedSlots,
+    nominalAt: iso(row.nominalAt),
+    notified: row.notified,
+    readAt: iso(row.readAt),
+    scheduleId: row.scheduleId,
+    trigger:
+      row.trigger === "schedule"
+        ? ("scheduled" as const)
+        : ("run_now" as const),
+  };
+  if (row.outcome === "skipped" && row.skipReason) {
+    return { ...fields, outcome: "skipped", skipReason: row.skipReason };
+  }
+  if (row.outcome === "skipped" || !row.runId || !row.status) {
+    throw new Error(`dot_run ${row.id} is neither a run nor a skipped slot`);
+  }
+  return {
+    ...fields,
+    error:
+      row.status === "failed"
+        ? (row.error?.message ?? RUN_ERROR_MESSAGE).slice(0, 2000)
+        : null,
+    finishedAt: iso(row.finishedAt),
+    outcome: row.outcome,
+    runId: row.runId,
+    status: row.status,
+    summary: (row.summary ?? snippetOf(row.replyParts))?.slice(0, 500) ?? null,
+  };
+};
 
 /** Where a schedule's runs land, checked for the owner. */
 const resolveTarget = async (
