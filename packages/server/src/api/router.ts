@@ -476,6 +476,9 @@ export const createChatRouter = (services: ApiServices) => {
   const failRun = (
     error: CreateRunError,
     errors: {
+      ALLOWANCE_SPENT: (options: {
+        data: Extract<CreateRunError, { type: "allowance_spent" }>["data"];
+      }) => Error;
       BUDGET_EXCEEDED: (options: {
         data: Extract<CreateRunError, { type: "budget_exceeded" }>["data"];
       }) => Error;
@@ -496,6 +499,8 @@ export const createChatRouter = (services: ApiServices) => {
         });
       case "budget_exceeded":
         return errors.BUDGET_EXCEEDED({ data: error.data });
+      case "allowance_spent":
+        return errors.ALLOWANCE_SPENT({ data: error.data });
       case "no_model":
         return errors.PROVIDER_UNAVAILABLE({ data: { provider: null } });
       default:
