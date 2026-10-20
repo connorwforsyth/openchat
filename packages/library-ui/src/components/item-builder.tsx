@@ -35,11 +35,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
-import { Input } from "@workspace/ui/components/input";
+import { FieldGroup } from "@workspace/ui/components/field";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { Spinner } from "@workspace/ui/components/spinner";
 import {
-  type ChangeEvent,
   type ReactNode,
   useCallback,
   useEffect,
@@ -72,6 +71,8 @@ import { AgentForm, type Choice, type KnowledgeFile } from "./agent-form";
 import { AccessBadge, VersionBadge, VisibilityBadge } from "./badges";
 import { ConfirmDelete } from "./confirm-delete";
 import { DuplicateNotice } from "./duplicate-notice";
+import { EditorFrame } from "./editor-shell";
+import { issueAt, TextField } from "./fields";
 import { KindTile, useKindLabels } from "./kind";
 import { type LinkComponent, usableInChat } from "./library-index";
 import { McpForm, McpStatusPanel } from "./mcp-form";
@@ -139,24 +140,47 @@ function ExistingBuilder(
   props: ItemBuilderProps & { readonly id: LibraryItemId }
 ) {
   const item = useLibraryItem(props.id);
+  const Link = props.link ?? PlainLink;
   if (item.isPending) {
     return (
-      <div aria-busy className="flex flex-col gap-4">
-        <Skeleton className="h-10 w-72" />
-        <Skeleton className="h-96" />
+      <div aria-busy className="flex h-svh flex-col">
+        <div className="flex h-14 shrink-0 items-center gap-3 border-border border-b px-4">
+          <Skeleton className="size-7" />
+          <Skeleton className="h-4 w-48" />
+        </div>
+        <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-8 md:px-8">
+          <div className="flex gap-4">
+            <Skeleton className="size-14 rounded-xl" />
+            <div className="flex flex-1 flex-col gap-3">
+              <Skeleton className="h-9" />
+              <Skeleton className="h-9" />
+            </div>
+          </div>
+          <Skeleton className="h-64" />
+        </div>
       </div>
     );
   }
   if (item.isError) {
     return (
-      <Alert variant="destructive">
-        <AlertTitle>
-          <Trans>This item isn't available</Trans>
-        </AlertTitle>
-        <AlertDescription>
-          <Trans>It may have been deleted, or it isn't shared with you.</Trans>
-        </AlertDescription>
-      </Alert>
+      <div className="flex h-svh items-center justify-center p-6">
+        <Alert className="max-w-md" variant="destructive">
+          <AlertTitle>
+            <Trans>This item isn't available</Trans>
+          </AlertTitle>
+          <AlertDescription className="flex flex-col items-start gap-3">
+            <Trans>
+              It may have been deleted, or it isn't shared with you.
+            </Trans>
+            <Link
+              className={buttonVariants({ size: "sm", variant: "outline" })}
+              href={props.backHref}
+            >
+              <Trans>Back to the library</Trans>
+            </Link>
+          </AlertDescription>
+        </Alert>
+      </div>
     );
   }
   // Keyed by id so opening another item starts from its own draft.
@@ -333,41 +357,63 @@ function Builder({
     [setForm]
   );
   const setName = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      const name = event.currentTarget.value;
-      setForm((current) => (current ? { ...current, name } : current));
-    },
+    (name: string) =>
+      setForm((current) => (current ? { ...current, name } : current)),
     [setForm]
   );
   const setDescription = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      const description = event.currentTarget.value;
-      setForm((current) => (current ? { ...current, description } : current));
-    },
+    (description: string) =>
+      setForm((current) => (current ? { ...current, description } : current)),
     [setForm]
   );
 
-  return (
-    <div className="flex min-h-0 flex-col gap-6">
-      <BuilderHeader
-        backHref={backHref}
-        chatHref={
-          detail && usableInChat(detail) ? (chatHref?.(detail) ?? null) : null
-        }
-        detail={detail}
-        dirty={draft.dirty}
-        form={draft.canEdit ? form : null}
-        kind={kind}
-        link={Link}
-        nameInvalid={Boolean(draft.issues.name)}
-        onDescription={setDescription}
-        onDialog={setDialog}
-        onDuplicated={onDuplicated}
-        onName={setName}
-        onSave={save}
-        saving={draft.saving}
-      />
+  const labels = useKindLabels();
+  const { t } = useLingui();
+  const previewLabels: Record<LibraryKind, string> = {
+    agent: t`Preview`,
+    mcp_server: t`Connection`,
+    preset: t`Preview`,
+    prompt: t`Preview`,
+    skill: t`Files`,
+  };
+  const previewLabel = previewLabels[kind];
+  const editable = draft.canEdit ? form : null;
 
+  return (
+    <EditorFrame
+      bar={
+        <BuilderHeader
+          backHref={backHref}
+          chatHref={
+            detail && usableInChat(detail) ? (chatHref?.(detail) ?? null) : null
+          }
+          detail={detail}
+          dirty={draft.dirty}
+          kind={kind}
+          link={Link}
+          onDialog={setDialog}
+          onDuplicated={onDuplicated}
+          onSave={save}
+          saving={draft.saving}
+          title={form?.name || detail?.name || t`New ${labels[kind]}`}
+        />
+      }
+      preview={
+        form ? (
+          <KindPanel
+            beforeSend={draft.saveBeforeTest}
+            definition={form.definition}
+            description={form.description}
+            detail={detail}
+            dirty={draft.dirty}
+            name={form.name}
+            skill={skill}
+            testChat={testChat}
+          />
+        ) : null
+      }
+      previewLabel={previewLabel}
+    >
       {detail ? <DuplicateNotice id={detail.id} /> : null}
 
       {draft.problem ? (
@@ -376,31 +422,28 @@ function Builder({
         </Alert>
       ) : null}
 
+      <IdentitySection
+        description={detail?.description ?? ""}
+        form={editable}
+        issues={draft.issues}
+        kind={kind}
+        onDescription={setDescription}
+        onName={setName}
+        title={detail?.name ?? ""}
+      />
+
       {form ? (
-        <div className="grid min-h-0 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-          <div className="min-w-0">
-            <KindForm
-              definition={form.definition}
-              detail={detail}
-              issues={draft.issues}
-              knowledgeFiles={knowledgeFiles}
-              onAddKnowledge={onAddKnowledge}
-              onChange={setDefinition}
-              readOnly={!draft.canEdit}
-              skill={skill}
-            />
-          </div>
-          <aside className="min-w-0 lg:sticky lg:top-6 lg:h-[calc(100svh-10rem)]">
-            <KindPanel
-              beforeSend={draft.saveBeforeTest}
-              definition={form.definition}
-              detail={detail}
-              dirty={draft.dirty}
-              skill={skill}
-              testChat={testChat}
-            />
-          </aside>
-        </div>
+        <KindForm
+          definition={form.definition}
+          detail={detail}
+          issues={draft.issues}
+          itemName={form.name}
+          knowledgeFiles={knowledgeFiles}
+          onAddKnowledge={onAddKnowledge}
+          onChange={setDefinition}
+          readOnly={!draft.canEdit}
+          skill={skill}
+        />
       ) : (
         <Alert>
           <AlertTitle>
@@ -426,7 +469,7 @@ function Builder({
           pins={pins}
         />
       ) : null}
-    </div>
+    </EditorFrame>
   );
 }
 
@@ -435,74 +478,60 @@ function BuilderHeader({
   chatHref,
   detail,
   dirty,
-  form,
   kind,
   link: Link,
-  nameInvalid,
-  onDescription,
   onDialog,
   onDuplicated,
-  onName,
   onSave,
   saving,
+  title,
 }: {
   readonly backHref: string;
   readonly chatHref: string | null;
   readonly detail: LibraryItemDetail | null;
   readonly dirty: boolean;
-  /** `null` when the caller can't edit. */
-  readonly form: DraftForm | null;
   readonly kind: LibraryKind;
   readonly link: LinkComponent;
-  readonly nameInvalid: boolean;
-  readonly onDescription: (event: ChangeEvent<HTMLInputElement>) => void;
   readonly onDialog: (dialog: Dialogs) => void;
   readonly onDuplicated?: (item: LibraryItemDetail) => void;
-  readonly onName: (event: ChangeEvent<HTMLInputElement>) => void;
   readonly onSave: () => void;
   readonly saving: boolean;
+  readonly title: string;
 }) {
-  const labels = useKindLabels();
-  const kindLabel = labels[kind];
-  const title = form?.name || detail?.name || kindLabel;
-
   return (
-    <header className="flex flex-wrap items-start gap-3">
+    <header className="flex h-14 shrink-0 items-center gap-3 border-border border-b px-3 md:px-4">
       <Link
         className={buttonVariants({ size: "icon-sm", variant: "ghost" })}
         href={backHref}
       >
-        <ArrowLeftIcon />
+        <ArrowLeftIcon className="rtl:-scale-x-100" />
         <span className="sr-only">
           <Trans>Back to the library</Trans>
         </span>
       </Link>
-      <KindTile kind={kind} />
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <Titles
-          description={detail?.description ?? ""}
-          form={form}
-          kindLabel={kindLabel}
-          nameInvalid={nameInvalid}
-          onDescription={onDescription}
-          onName={onName}
-          title={title}
-        />
-        {detail ? (
-          <div className="flex flex-wrap items-center gap-1 pt-1">
-            <VersionBadge item={detail} />
-            <VisibilityBadge visibility={detail.visibility} />
-            <AccessBadge access={detail.myAccess} />
-          </div>
-        ) : null}
+      <KindTile className="size-7" kind={kind} />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <h1 className="truncate font-medium text-sm">{title}</h1>
+        <div className="flex min-w-0 items-center gap-1.5">
+          {detail ? (
+            <div className="hidden items-center gap-1 sm:flex">
+              <VersionBadge item={detail} />
+              <VisibilityBadge visibility={detail.visibility} />
+              <AccessBadge access={detail.myAccess} />
+            </div>
+          ) : null}
+          <SaveState dirty={dirty} isNew={detail === null} saving={saving} />
+        </div>
       </div>
       {chatHref ? (
         <Link
-          className={buttonVariants({ variant: "outline" })}
+          className={buttonVariants({ size: "sm", variant: "ghost" })}
           href={chatHref}
         >
           <MessageSquareIcon data-icon="inline-start" />
-          <Trans>Use in chat</Trans>
+          <span className="hidden md:inline">
+            <Trans>Use in chat</Trans>
+          </span>
         </Link>
       ) : null}
       <HeaderActions
@@ -543,12 +572,12 @@ function HeaderActions({
   const openShare = useCallback(() => onDialog("share"), [onDialog]);
   const openPublish = useCallback(() => onDialog("publish"), [onDialog]);
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <SaveState dirty={dirty} saving={saving} />
+    <div className="flex shrink-0 items-center gap-1.5">
       {canEdit ? (
         <Button
           disabled={(detail !== null && !dirty) || saving}
           onClick={onSave}
+          size="sm"
           variant={detail ? "outline" : "default"}
         >
           {saving ? <Spinner data-icon="inline-start" /> : null}
@@ -558,19 +587,23 @@ function HeaderActions({
       {detail ? (
         <>
           {access !== "use" && versioned ? (
-            <Button onClick={openHistory} variant="ghost">
+            <Button onClick={openHistory} size="sm" variant="ghost">
               <ClockIcon data-icon="inline-start" />
-              <Trans>History</Trans>
+              <span className="sr-only xl:not-sr-only">
+                <Trans>History</Trans>
+              </span>
             </Button>
           ) : null}
           {manage ? (
-            <Button onClick={openShare} variant="ghost">
+            <Button onClick={openShare} size="sm" variant="ghost">
               <ShareIcon data-icon="inline-start" />
-              <Trans>Share</Trans>
+              <span className="sr-only xl:not-sr-only">
+                <Trans>Share</Trans>
+              </span>
             </Button>
           ) : null}
           {canEdit ? (
-            <Button onClick={openPublish}>
+            <Button onClick={openPublish} size="sm">
               <Trans>Publish</Trans>
             </Button>
           ) : null}
@@ -585,50 +618,64 @@ function HeaderActions({
   );
 }
 
-function Titles({
+/** Who the item is: its tile, name and the one line people see in the library. */
+function IdentitySection({
   description,
   form,
-  kindLabel,
-  nameInvalid,
+  issues,
+  kind,
   onDescription,
   onName,
   title,
 }: {
   readonly description: string;
+  /** `null` when the caller can't edit. */
   readonly form: DraftForm | null;
-  readonly kindLabel: string;
-  readonly nameInvalid: boolean;
-  readonly onDescription: (event: ChangeEvent<HTMLInputElement>) => void;
-  readonly onName: (event: ChangeEvent<HTMLInputElement>) => void;
+  readonly issues: FormIssues;
+  readonly kind: LibraryKind;
+  readonly onDescription: (value: string) => void;
+  readonly onName: (value: string) => void;
   readonly title: string;
 }) {
   const { t } = useLingui();
+  const labels = useKindLabels();
+  const kindLabel = labels[kind];
   if (!form) {
     return (
-      <>
-        <h1 className="truncate font-medium text-lg">{title}</h1>
-        <p className="text-muted-foreground text-sm">{description}</p>
-      </>
+      <div className="flex items-center gap-4">
+        <KindTile className="size-14 rounded-xl [&_svg]:size-6" kind={kind} />
+        <div className="flex min-w-0 flex-col gap-1">
+          <p className="truncate font-medium text-lg">{title}</p>
+          <p className="text-muted-foreground text-sm">{description}</p>
+        </div>
+      </div>
     );
   }
   return (
-    <>
-      <Input
-        aria-invalid={nameInvalid || undefined}
-        aria-label={t`Name`}
-        className="h-8 max-w-md font-medium"
-        onChange={onName}
-        placeholder={t`Name your ${kindLabel}`}
-        value={form.name}
-      />
-      <Input
-        aria-label={t`Description`}
-        className="h-7 max-w-md text-muted-foreground text-sm"
-        onChange={onDescription}
-        placeholder={t`What it's for`}
-        value={form.description}
-      />
-    </>
+    <div className="flex items-start gap-4">
+      <KindTile className="size-14 rounded-xl [&_svg]:size-6" kind={kind} />
+      <FieldGroup className="min-w-0 flex-1 gap-4">
+        <TextField
+          autoComplete="off"
+          issue={issueAt(issues, "name")}
+          label={t`Name`}
+          name="name"
+          onValueChange={onName}
+          placeholder={t`Name your ${kindLabel}`}
+          value={form.name}
+        />
+        <TextField
+          autoComplete="off"
+          description={t`A short line people see in the library and the picker.`}
+          issue={issueAt(issues, "description")}
+          label={t`Description`}
+          name="description"
+          onValueChange={onDescription}
+          placeholder={t`What it's for`}
+          value={form.description}
+        />
+      </FieldGroup>
+    </div>
   );
 }
 
@@ -665,7 +712,7 @@ function MoreActions({
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button aria-label={t`More actions`} size="icon" variant="ghost" />
+          <Button aria-label={t`More actions`} size="icon-sm" variant="ghost" />
         }
       >
         <EllipsisIcon />
@@ -701,6 +748,7 @@ function KindForm({
   definition,
   detail,
   issues,
+  itemName,
   knowledgeFiles,
   onAddKnowledge,
   onChange,
@@ -710,6 +758,8 @@ function KindForm({
   readonly definition: LibraryDefinitionInput;
   readonly detail: LibraryItemDetail | null;
   readonly issues: FormIssues;
+  /** The item's display name, to suggest a skill name from. */
+  readonly itemName: string;
   readonly knowledgeFiles?: readonly KnowledgeFile[];
   readonly onAddKnowledge?: ItemBuilderProps["onAddKnowledge"];
   readonly onChange: (definition: LibraryDefinitionInput) => void;
@@ -749,6 +799,7 @@ function KindForm({
       return (
         <SkillForm
           issues={issues}
+          itemName={itemName}
           onAddFiles={skill?.onAddFiles}
           onChange={onChange}
           readOnly={readOnly}
@@ -778,15 +829,19 @@ function KindForm({
 function KindPanel({
   beforeSend,
   definition,
+  description,
   detail,
   dirty,
+  name,
   skill,
   testChat: TestChat,
 }: {
   readonly beforeSend: () => Promise<boolean>;
   readonly definition: LibraryDefinitionInput;
+  readonly description: string;
   readonly detail: LibraryItemDetail | null;
   readonly dirty: boolean;
+  readonly name: string;
   readonly skill?: ItemBuilderProps["skill"];
   readonly testChat?: TestChatComponent;
 }) {
@@ -809,6 +864,7 @@ function KindPanel({
               ? { itemId: detail.id, versionId: detail.draftVersionId }
               : null
           }
+          identity={{ description, name }}
         />
       );
     }
@@ -908,9 +964,11 @@ function BuilderDialogs({
 
 function SaveState({
   dirty,
+  isNew,
   saving,
 }: {
   readonly dirty: boolean;
+  readonly isNew: boolean;
   readonly saving: boolean;
 }) {
   let text: ReactNode = null;
@@ -918,9 +976,13 @@ function SaveState({
     text = <Trans>Saving…</Trans>;
   } else if (dirty) {
     text = <Trans>Unsaved changes</Trans>;
+  } else if (isNew) {
+    text = <Trans>Not created yet</Trans>;
+  } else {
+    text = <Trans>Draft saved</Trans>;
   }
   return (
-    <span aria-live="polite" className="text-muted-foreground text-xs">
+    <span aria-live="polite" className="truncate text-muted-foreground text-xs">
       {text}
     </span>
   );

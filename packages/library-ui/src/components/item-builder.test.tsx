@@ -49,7 +49,7 @@ describe("builder form validation", () => {
     const { onCreated } = renderBuilder({ kind: "prompt", type: "new" });
     await userEvent.click(screen.getByRole("button", { name: "Create" }));
     // The template is required by the contract; the name too.
-    expect(await screen.findByText("Required.")).toBeTruthy();
+    expect((await screen.findAllByText("Required.")).length).toBeGreaterThan(0);
     expect(
       screen.getByRole("textbox", { name: "Name" }).getAttribute("aria-invalid")
     ).toBe("true");
@@ -115,6 +115,82 @@ describe("agent builder", () => {
     expect(
       await within(chat).findByText("Answer like a pirate.", { exact: false })
     ).toBeTruthy();
+  });
+});
+
+describe("agent builder sections (192)", () => {
+  it("names the editor after the agent and turns capabilities on with switches", async () => {
+    renderBuilder({ kind: "agent", type: "new" });
+    expect(await screen.findByText("New Agent")).toBeTruthy();
+    expect(screen.getByText("Not created yet")).toBeTruthy();
+    await userEvent.fill(
+      screen.getByRole("textbox", { name: "Name" }),
+      "Pirate"
+    );
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Pirate" })
+    ).toBeTruthy();
+    const web = screen.getByRole("switch", { name: "Search the web" });
+    expect(web.getAttribute("aria-checked")).toBe("false");
+    await userEvent.click(screen.getByText("Search the web"));
+    await waitFor(() => expect(web.getAttribute("aria-checked")).toBe("true"));
+    for (const title of [
+      "Instructions",
+      "Conversation starters",
+      "Knowledge",
+      "Capabilities",
+      "Connections",
+      "Model and runtime",
+    ]) {
+      expect(
+        screen.getByRole("heading", { level: 2, name: title })
+      ).toBeTruthy();
+    }
+  });
+});
+
+describe("skill builder (192)", () => {
+  it("edits SKILL.md's frontmatter as fields and creates the composed file", async () => {
+    const { onCreated } = renderBuilder({ kind: "skill", type: "new" });
+    await userEvent.fill(
+      await screen.findByRole("textbox", { name: "Name" }),
+      "PDF Tools"
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Use pdf-tools" })
+    );
+    expect(
+      (screen.getByRole("textbox", { name: "Skill name" }) as HTMLInputElement)
+        .value
+    ).toBe("pdf-tools");
+    await userEvent.fill(
+      screen.getByRole("textbox", { name: "When to use it" }),
+      "Use when: a PDF is shared"
+    );
+    await userEvent.fill(
+      screen.getByRole("textbox", { name: "Instructions" }),
+      "Read it."
+    );
+    await userEvent.click(screen.getByRole("button", { name: "SKILL.md" }));
+    const raw = screen.getByRole("textbox", { name: "SKILL.md" });
+    expect((raw as HTMLTextAreaElement).value).toBe(
+      '---\nname: pdf-tools\ndescription: "Use when: a PDF is shared"\n---\n\nRead it.'
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Create" }));
+    await waitFor(() => expect(onCreated).toHaveBeenCalled());
+    expect(onCreated.mock.calls[0]?.[0]).toMatchObject({
+      definition: { kind: "skill" },
+      name: "PDF Tools",
+    });
+  });
+
+  it("flags a skill name that breaks the Agent Skills format", async () => {
+    renderBuilder({ kind: "skill", type: "new" });
+    await userEvent.fill(
+      await screen.findByRole("textbox", { name: "Skill name" }),
+      "PDF Tools"
+    );
+    expect(await screen.findByText("That doesn't look right.")).toBeTruthy();
   });
 });
 
