@@ -55,7 +55,7 @@ import {
   PERSIST_MAX_AGE_MS,
 } from "./query-persistence";
 import {
-  openSettings as openSettingsDialog,
+  openSettings as openSettingsView,
   type SettingsSection,
 } from "./settings/settings-route";
 import { SHELL_LAYOUT_KEY, SIDEBAR_ATTRIBUTE } from "./shell-prepaint";
@@ -87,7 +87,7 @@ export interface AppFrameValue {
   /** Opens "New organisation" (the account menu's). */
   readonly openNewOrg: () => void;
   readonly openPalette: () => void;
-  /** Opens settings as a dialog over the current page (185). */
+  /** Opens settings, full screen over the current page (185). */
   readonly openSettings: (section?: SettingsSection) => void;
   readonly paletteOpen: boolean;
   readonly setPaletteOpen: (open: boolean) => void;
@@ -303,7 +303,7 @@ const Frame = ({
   const openPalette = useCallback(() => setPaletteOpen(true), []);
   const openSettings = useCallback(
     (section?: SettingsSection) =>
-      openSettingsDialog(window.history, window.location.pathname, section),
+      openSettingsView(window.history, window.location.pathname, section),
     []
   );
   const booted = useAfterBoot();

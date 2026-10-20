@@ -44,7 +44,7 @@ export const routes = {
   libraryNew: (kind: LibraryKind) => `/library/new/${kind}`,
   /** Quick AI (118): the composer alone, for the desktop app's floating window. */
   quick: "/quick",
-  /** Settings, a dialog over the current page (185); see `settings-route.ts`. */
+  /** Settings, a full-screen view over the current page (185); see `settings-route.ts`. */
   settings: (section?: string) =>
     section ? `/settings/${section}` : "/settings",
   signIn: "/sign-in",

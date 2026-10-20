@@ -269,8 +269,8 @@ test.describe("shell", () => {
     await expect(chats).toBeVisible();
     await expect(page.getByRole("heading", { name: "Library" })).toBeVisible();
 
-    // Settings is a dialog over a page (185); its address loads it over the
-    // new chat.
+    // Settings is a full-screen view over a page (185); its address loads it
+    // over the new chat.
     await page.goto("/settings/profile");
     const settings = page.getByRole("dialog", { name: "Settings" });
     await expect(settings).toBeVisible();

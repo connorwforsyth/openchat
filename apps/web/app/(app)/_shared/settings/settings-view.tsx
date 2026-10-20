@@ -3,6 +3,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useNarrowScreen } from "@workspace/chat-ui/shell/use-narrow-screen";
 import {
+  ArrowLeftIcon,
   BrainIcon,
   ChevronLeftIcon,
   KeyboardIcon,
@@ -19,7 +20,7 @@ import {
   DialogTitle,
 } from "@workspace/ui/components/dialog";
 import { cn } from "@workspace/ui/lib/utils";
-import { type MouseEvent, type ReactNode, useCallback, useState } from "react";
+import { type MouseEvent, type ReactNode, useCallback } from "react";
 
 import { AppearanceSettings } from "./appearance-settings";
 import { MemorySettings } from "./memory-settings";
@@ -32,11 +33,16 @@ import {
   settingsSectionSchema,
 } from "./settings-route";
 
-// Settings as a dialog over the current page (185), like ChatGPT's: the
-// sections on the start side, the section on the other, scrolling on its
-// own. Below `md` it fills the screen and shows one at a time: the list,
-// then a section with a way back to the list. It appears at once and fades
-// out (the Dialog's motion), so ⌘, isn't slowed down.
+// Settings as a full-screen view (185): while it's open the app sidebar is
+// replaced by the settings sidebar ("Back to app", then the sections) and the
+// section gets the whole content area, at a reading width. Never two
+// sidebars side by side. Below `md` it shows one thing at a time: the list,
+// then a section with a way back to the list.
+//
+// It's built on the Dialog primitive for what a modal surface needs (focus
+// moves in and is kept there, Esc closes, focus returns to the trigger), but
+// it isn't drawn as one. ⌘, opens it and keyboard toggles don't animate, so
+// it neither appears nor leaves with motion.
 
 interface SectionInfo {
   readonly content: ReactNode;
@@ -107,14 +113,16 @@ const sectionInfo = (section: SettingsSection): SectionInfo => {
 };
 
 const itemClass =
-  "flex h-9 w-full items-center gap-2 rounded-md px-2 text-start text-muted-foreground text-sm outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 md:h-8 [&_svg]:size-4 [&_svg]:shrink-0";
+  "flex h-9 w-full items-center gap-2 rounded-md px-2 text-start text-muted-foreground text-sm outline-none transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-3 focus-visible:ring-ring/50 md:h-8 [&_svg]:size-4 [&_svg]:shrink-0";
 
 const SectionList = ({
   current,
+  onClose,
   onOpenAdmin,
   onSelect,
 }: {
   readonly current: SettingsSection | null;
+  readonly onClose: () => void;
   readonly onOpenAdmin?: () => void;
   readonly onSelect: (section: SettingsSection) => void;
 }) => {
@@ -131,7 +139,11 @@ const SectionList = ({
     [onSelect]
   );
   return (
-    <nav aria-label={t`Settings sections`}>
+    <nav aria-label={t`Settings sections`} className="flex flex-col gap-3">
+      <button className={itemClass} onClick={onClose} type="button">
+        <ArrowLeftIcon />
+        <Trans>Back to app</Trans>
+      </button>
       <ul className="flex flex-col gap-0.5">
         {settingsSectionSchema.options.map((section) => {
           const info = sectionInfo(section);
@@ -142,7 +154,7 @@ const SectionList = ({
                 aria-current={selected ? "page" : undefined}
                 className={cn(
                   itemClass,
-                  selected && "bg-muted text-foreground"
+                  selected && "bg-sidebar-accent text-sidebar-accent-foreground"
                 )}
                 data-section={section}
                 onClick={select}
@@ -167,7 +179,7 @@ const SectionList = ({
   );
 };
 
-export const SettingsDialog = ({
+export const SettingsView = ({
   onClose,
   onOpenAdmin,
   onSelect,
@@ -181,13 +193,8 @@ export const SettingsDialog = ({
   readonly route: SettingsRoute;
 }) => {
   const narrow = useNarrowScreen();
-  // What it last showed, so closing fades out the section rather than nothing.
-  const [shown, setShown] = useState<SettingsRoute>(route);
-  if (route !== null && route !== shown) {
-    setShown(route);
-  }
   const open = route !== null;
-  const showing = shown ?? "index";
+  const showing = route ?? "index";
   const fallback = narrow ? null : DEFAULT_SETTINGS_SECTION;
   const section = showing === "index" ? fallback : showing;
   const info = section ? sectionInfo(section) : null;
@@ -206,34 +213,36 @@ export const SettingsDialog = ({
     <Dialog onOpenChange={openChange} open={open}>
       <DialogContent
         className={cn(
-          "flex flex-col gap-0 overflow-hidden p-0 md:h-[min(80vh,44rem)] md:max-w-3xl md:flex-row",
-          // Narrow: a full-screen sheet.
-          "max-md:inset-0 max-md:h-dvh max-md:max-w-none max-md:translate-x-0 max-md:translate-y-0 max-md:rounded-none"
+          // A view, not a dialog: the whole window, no frame, no motion.
+          "inset-0 flex h-dvh w-full max-w-none translate-x-0 translate-y-0 gap-0 overflow-hidden rounded-none bg-background p-0 text-foreground ring-0 data-closed:animate-none sm:max-w-none",
+          "max-md:flex-col"
         )}
+        showCloseButton={false}
       >
         {narrow && info ? (
-          // One thing at a time: the section, with the dialog still named.
+          // One thing at a time: the section, with the view still named.
           <DialogTitle className="sr-only">
             <Trans>Settings</Trans>
           </DialogTitle>
         ) : (
-          <div className="flex shrink-0 flex-col gap-3 p-3 md:w-52 md:border-border md:border-e md:bg-muted/30">
-            <DialogTitle className="px-2 pe-10 pt-1.5 md:pe-2">
+          <aside className="flex shrink-0 flex-col gap-3 overflow-y-auto bg-sidebar p-3 text-sidebar-foreground max-md:flex-1 md:w-[var(--app-sidebar-width,260px)] md:border-sidebar-border md:border-e">
+            <DialogTitle className="sr-only">
               <Trans>Settings</Trans>
             </DialogTitle>
             <SectionList
               current={section}
+              onClose={onClose}
               onOpenAdmin={onOpenAdmin}
               onSelect={onSelect}
             />
-          </div>
+          </aside>
         )}
         {info ? (
           <section
             aria-labelledby="settings-section-title"
             className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto"
           >
-            <div className="flex flex-col gap-6 p-4 md:p-6 md:pe-12">
+            <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-6 md:px-8 md:py-12">
               {narrow ? (
                 <Button
                   className="-ms-2 self-start"
@@ -246,9 +255,12 @@ export const SettingsDialog = ({
                 </Button>
               ) : null}
               <header className="flex flex-col gap-1">
-                <h2 className="font-medium text-lg" id="settings-section-title">
+                <h1
+                  className="font-medium text-2xl"
+                  id="settings-section-title"
+                >
                   {info.title}
-                </h2>
+                </h1>
                 {info.description ? (
                   <p className="text-muted-foreground text-sm">
                     {info.description}

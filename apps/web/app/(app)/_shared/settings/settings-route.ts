@@ -1,11 +1,12 @@
 import { z } from "zod";
 
-// Settings is a dialog over whatever page you're on, not a page of its own
-// (185). Its address is still `/settings/<section>`, so a section can be
-// linked to: opening it pushes that address onto the history without a
-// navigation (the page underneath stays put), switching sections replaces
-// it, and closing goes back. A hard load of the address is a real route that
-// renders the new-chat screen, with the dialog over it.
+// Settings is a full-screen view over whatever page you're on (185), so
+// "Back to app" returns to exactly where you were. Its address is still
+// `/settings/<section>`, so a section can be linked to: opening it pushes
+// that address onto the history without a navigation (the page underneath
+// stays put), switching sections replaces it, and closing goes back. A hard
+// load of the address is a real route that renders the new-chat screen, with
+// settings over it.
 
 export const settingsSectionSchema = z.enum([
   "profile",
@@ -20,7 +21,7 @@ export type SettingsSection = z.infer<typeof settingsSectionSchema>;
 export const DEFAULT_SETTINGS_SECTION: SettingsSection = "profile";
 
 /**
- * What the address says about the dialog: closed (`null`), open on the
+ * What the address says about the view: closed (`null`), open on the
  * section list (`"index"`, `/settings`; wide screens show the default
  * section), or open on a section. An unknown section is closed: the route
  * renders its 404.
@@ -44,7 +45,7 @@ export const settingsRouteFromPath = (pathname: string): SettingsRoute => {
 export const settingsPath = (section?: SettingsSection): string =>
   section ? `/settings/${section}` : "/settings";
 
-/** The bit of `window.history` the dialog drives; a port, so tests can fake it. */
+/** The bit of `window.history` the view drives; a port, so tests can fake it. */
 export interface SettingsHistory {
   readonly back: () => void;
   readonly pushState: (data: unknown, unused: string, url: string) => void;
@@ -52,15 +53,15 @@ export interface SettingsHistory {
   readonly state: unknown;
 }
 
-/** Marks the history entry the dialog pushed, so closing knows it can go back. */
+/** Marks the history entry settings pushed, so closing knows it can go back. */
 const OVERLAY_KEY = "settingsOverlay";
 
-const pushedByDialog = (state: unknown): boolean =>
+const pushedBySettings = (state: unknown): boolean =>
   typeof state === "object" &&
   state !== null &&
   (state as Record<string, unknown>)[OVERLAY_KEY] === true;
 
-/** Opens the dialog over the current page. Already open: switches section. */
+/** Opens the view over the current page. Already open: switches section. */
 export const openSettings = (
   history: SettingsHistory,
   pathname: string,
@@ -73,7 +74,7 @@ export const openSettings = (
   history.pushState({ [OVERLAY_KEY]: true }, "", settingsPath(section));
 };
 
-/** Another section, same history entry: Back still closes the dialog. */
+/** Another section, same history entry: Back still closes the view. */
 export const selectSettingsSection = (
   history: SettingsHistory,
   section?: SettingsSection
@@ -81,7 +82,7 @@ export const selectSettingsSection = (
   // Only our mark: passing the router's own state back makes Next treat the
   // call as its own and skip syncing `usePathname`.
   history.replaceState(
-    pushedByDialog(history.state) ? { [OVERLAY_KEY]: true } : null,
+    pushedBySettings(history.state) ? { [OVERLAY_KEY]: true } : null,
     "",
     settingsPath(section)
   );
@@ -93,7 +94,7 @@ export const selectSettingsSection = (
  * address becomes `/` without a navigation.
  */
 export const closeSettings = (history: SettingsHistory, home: string): void => {
-  if (pushedByDialog(history.state)) {
+  if (pushedBySettings(history.state)) {
     history.back();
     return;
   }
