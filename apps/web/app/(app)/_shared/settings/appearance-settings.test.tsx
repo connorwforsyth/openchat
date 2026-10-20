@@ -1,12 +1,16 @@
-import { cleanup, screen, waitFor } from "@testing-library/react";
+import { useQueryClient } from "@tanstack/react-query";
+import { act, cleanup, screen, waitFor } from "@testing-library/react";
 import type { UserSettings } from "@workspace/contract/schemas/meta";
+import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 
+import { useApi } from "@/app/(app)/_shared/api";
 import { AppFrameProvider } from "@/app/(app)/_shared/app-frame";
 import { testFrame } from "@/app/(app)/_shared/frame-fixture";
 import { useSidebarLayoutSetting } from "@/app/(app)/_shared/sidebar-layout";
 import {
+  apiError,
   type FakeApi,
   fakeApi,
   renderWithApi,
@@ -33,6 +37,43 @@ const Harness = () => {
     </AppFrameProvider>
   );
 };
+
+/** The harness over settings this browser kept from an earlier visit. */
+const RestoredHarness = ({ restored }: { readonly restored: UserSettings }) => {
+  const queryClient = useQueryClient();
+  const { query } = useApi();
+  useState(() =>
+    queryClient.setQueryData(query.me.settings.queryKey(), restored, {
+      updatedAt: 0,
+    })
+  );
+  return <Harness />;
+};
+
+/** A response the test hands back when it chooses. */
+const deferred = <T,>() => {
+  let resolve: (value: T) => void = () => undefined;
+  const promise = new Promise<T>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+};
+
+/** Another tab of this browser choosing a layout. */
+const otherTabStores = (value: string) => {
+  const oldValue = window.localStorage.getItem(KEY);
+  window.localStorage.setItem(KEY, value);
+  window.dispatchEvent(
+    new StorageEvent("storage", {
+      key: KEY,
+      newValue: value,
+      oldValue,
+      storageArea: window.localStorage,
+    })
+  );
+};
+
+const settle = () => new Promise((done) => setTimeout(done, 200));
 
 /** One account's settings on the server, shared by every "device". */
 const account = (initial: Partial<UserSettings> = {}) => {
@@ -106,5 +147,70 @@ describe("Appearance: sidebar layout (181)", () => {
     renderWithApi(<Harness />, account({ sidebarLayout: "rail" }).api());
     await waitFor(() => expect(pressed("Rail (recommended)")).toBe("true"));
     expect(window.localStorage.getItem(KEY)).toBe("rail");
+  });
+
+  it("takes another tab's switch instead of writing the old choice back", async () => {
+    window.localStorage.setItem(KEY, "rail");
+    const api = account({ sidebarLayout: "rail" }).api();
+    renderWithApi(<Harness />, api);
+    await waitFor(() =>
+      expect(api.calls.map((call) => call.route)).toContain("GET /me/settings")
+    );
+    await settle();
+
+    act(() => otherTabStores("classic"));
+    await settle();
+    expect(window.localStorage.getItem(KEY)).toBe("classic");
+    expect(pressed("Classic")).toBe("true");
+    // The tab that switched saves it; this one only follows.
+    expect(api.calls.map((call) => call.route)).not.toContain(
+      "PATCH /me/settings"
+    );
+  });
+
+  it("keeps a switch when an older settings response lands after it", async () => {
+    const stale = deferred<UserSettings>();
+    const api = fakeApi({
+      "GET /me/settings": () => stale.promise,
+      "PATCH /me/settings": () => new Promise(() => undefined),
+    });
+    renderWithApi(<Harness />, api);
+
+    await userEvent.click(screen.getByRole("button", { name: "Classic" }));
+    stale.resolve({
+      defaultContext: { type: "personal" },
+      defaultTarget: null,
+      locale: null,
+      shortcuts: {},
+      sidebarLayout: "rail",
+    });
+    await settle();
+    expect(pressed("Classic")).toBe("true");
+    expect(window.localStorage.getItem(KEY)).toBe("classic");
+  });
+
+  it("doesn't count settings kept from an earlier visit as an account with none", async () => {
+    window.localStorage.setItem(KEY, "classic");
+    const api = fakeApi({
+      "GET /me/settings": () => apiError("INTERNAL_SERVER_ERROR", 500),
+    });
+    renderWithApi(
+      <RestoredHarness
+        restored={{
+          defaultContext: { type: "personal" },
+          defaultTarget: null,
+          locale: null,
+          shortcuts: {},
+        }}
+      />,
+      api
+    );
+    await waitFor(() =>
+      expect(api.calls.map((call) => call.route)).toContain("GET /me/settings")
+    );
+    await settle();
+    expect(api.calls.map((call) => call.route)).not.toContain(
+      "PATCH /me/settings"
+    );
   });
 });
