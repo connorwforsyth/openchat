@@ -378,12 +378,14 @@ describe("MCP in plain chats", () => {
         resource: { resourceId: notes.id, resourceType: "mcp_server" },
       })
     );
-    const usable = async (userId: UserId) => ({
-      disabled: new Set<never>(),
-      enabled: await listUsableServers(
+    const usable = (userId: UserId) =>
+      listUsableServers(
         { db, instanceServers: mcp.registry.instanceServers },
         userId
-      ),
+      );
+    const selection = async (userId: UserId) => ({
+      disabled: new Set<never>(),
+      enabled: await usable(userId),
       excludedTools: new Map(),
     });
     const chat = async (userId: UserId) => {
@@ -393,7 +395,7 @@ describe("MCP in plain chats", () => {
       const { answerOf, approve, say, services } = setup(model, {
         tools: {
           mcpFor: (id) => mcp.manager.toolSource(id),
-          mcpSelectionFor: usable,
+          mcpSelectionFor: selection,
         },
       });
       try {
