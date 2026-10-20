@@ -659,7 +659,7 @@ function ChatScreenBody({
     [composer, composerFill, onSubmit, workspaceComposer]
   );
   const sidebarExpanded = narrow ? sidebarSheetOpen : layout.sidebarOpen;
-  const sidebarToggle = (where: "header" | "sidebar") => (
+  const sidebarToggle = (where: "header" | "rail" | "sidebar") => (
     <SidebarToggle
       expanded={sidebarExpanded}
       hint={<ShortcutHint id="sidebar.toggle" />}
@@ -778,6 +778,7 @@ function ChatScreenBody({
           onShowChats={showChats}
           // Schedules live on the Dot's page for now.
           scheduledHref={sheetSidebar.dotsHref}
+          toggle={sidebarToggle("rail")}
         />
       }
       sidebar={

@@ -18,12 +18,14 @@ import { type ReactNode, useMemo } from "react";
 
 import { needsAttention } from "../model/attention";
 import { usePlatform } from "../shell/platform";
+import { railButtonClass } from "../shell/sidebar-toggle";
 import { AccountMenu } from "./account-menu";
 import type { ChatSidebarProps } from "./chat-sidebar";
 
 // The permanent icon rail (181), ChatGPT's "thin rail + panel": a 52px column
 // of 36px buttons on a 44px pitch, always there on wide screens. The panel
-// beside it (the chat list) collapses; the rail doesn't. It shows instantly
+// beside it (the chat list) collapses; the rail doesn't, and its first
+// button, the sidebar toggle, stays put either way. It shows instantly
 // (its toggle is a key, D28), and each button has a tooltip and a label.
 
 /** Where the rail can point; the caller says which one is current. */
@@ -44,15 +46,9 @@ export type SidebarRailProps = Pick<
   readonly onShowChats: () => void;
   /** Where schedules live (the Dot's page for now). */
   readonly scheduledHref?: string;
+  /** The sidebar toggle, the rail's first button; it never moves. */
+  readonly toggle?: ReactNode;
 };
-
-const railButton = cn(
-  "relative flex size-9 items-center justify-center rounded-xl text-muted-foreground outline-none",
-  "transition-colors duration-(--motion-fast) hover:bg-foreground/5 hover:text-sidebar-foreground",
-  "focus-visible:ring-2 focus-visible:ring-sidebar-ring",
-  "aria-[current=page]:bg-foreground/8 aria-[current=page]:text-sidebar-foreground",
-  "[&_svg]:size-4.5"
-);
 
 function RailItem({
   active,
@@ -87,7 +83,7 @@ function RailItem({
   const common = {
     "aria-current": active ? ("page" as const) : undefined,
     "aria-label": fullLabel,
-    className: railButton,
+    className: railButtonClass,
   };
   return (
     <Tooltip>
@@ -119,6 +115,7 @@ export function SidebarRail({
   onShowChats,
   scheduledHref,
   signals,
+  toggle,
 }: SidebarRailProps) {
   const { t } = useLingui();
   const { platform } = usePlatform();
@@ -134,12 +131,15 @@ export function SidebarRail({
     <nav
       aria-label={t`Sidebar rail`}
       className={cn(
-        "flex h-full w-13 flex-col items-center gap-2 bg-window py-2",
+        // 11px down puts the first button's centre on the card's 48px top
+        // row (4px inset + 1px border + 24px); gap-2 keeps a 44px pitch.
+        "flex h-full w-13 flex-col items-center gap-2 bg-window pt-[11px] pb-2",
         // The desktop app's traffic lights sit at the top on macOS (117).
         platform === "mac" && "pt-12"
       )}
       data-slot="sidebar-rail"
     >
+      {toggle}
       <RailItem
         active={current === "chats"}
         badge={

@@ -5827,10 +5827,6 @@ msgstr "Your decision didn't reach the server."
 msgid "your Dot"
 msgstr "your Dot"
 
-#: ../chat-ui/src/sidebar/sidebar-rail.tsx
-msgid "Your Dot"
-msgstr "Your Dot"
-
 #: ../../apps/web/app/(app)/(pages)/dots/dots-screen.tsx
 msgid "Your Dots"
 msgstr "Your Dots"
