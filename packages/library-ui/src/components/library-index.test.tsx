@@ -15,7 +15,7 @@ import { userEvent } from "vitest/browser";
 
 import { createFakeLibraryClient } from "../testing/fake-client";
 import { createTestProviders } from "../testing/providers";
-import { LibraryIndex } from "./library-index";
+import { LibraryIndex, type LibraryIndexProps } from "./library-index";
 
 // The fake server answers after 1.5 s so optimistic states are observable on
 // slow CI runners; async queries must outlast it.
@@ -30,12 +30,16 @@ const AGENT_CHAT = /^\/\?agent=/;
 const itemHref = (item: LibraryItem) => `/library/${item.id}`;
 const newHref = (kind: LibraryKind) => `/library/new/${kind}`;
 
-const renderIndex = (client = createFakeLibraryClient()) => {
+const renderIndex = (
+  client = createFakeLibraryClient(),
+  filter: Pick<LibraryIndexProps, "kind" | "tab"> = {}
+) => {
   const providers = createTestProviders(client);
-  render(
-    providers.wrap(<LibraryIndex itemHref={itemHref} newHref={newHref} />)
+  return render(
+    providers.wrap(
+      <LibraryIndex itemHref={itemHref} newHref={newHref} {...filter} />
+    )
   );
-  return providers;
 };
 
 const names = () =>
@@ -44,22 +48,42 @@ const names = () =>
     .map((card) => within(card).getByRole("link").textContent);
 
 describe("LibraryIndex", () => {
-  it("lists my library, what's shared with me, and team and org items", async () => {
-    renderIndex();
+  it("lists my library, what's shared with me, and my spaces' items", async () => {
+    const view = renderIndex();
     await waitFor(() =>
       expect(names()).toEqual(["Changelog", "Explain a concept", "Docs"])
     );
+    expect(screen.getByRole("heading", { name: "Library" })).toBeTruthy();
+    view.unmount();
 
-    await userEvent.click(screen.getByRole("tab", { name: "Shared with me" }));
+    const shared = renderIndex(undefined, { tab: "shared" });
     await waitFor(() => expect(names()).toEqual(["Meeting notes"]));
     expect(screen.getByText("Can use")).toBeTruthy();
+    expect(
+      screen.getByRole("heading", { name: "Shared with me" })
+    ).toBeTruthy();
+    shared.unmount();
 
-    await userEvent.click(screen.getByRole("tab", { name: "Team & org" }));
+    renderIndex(undefined, { tab: "libraries" });
     await waitFor(() => expect(names()).toEqual(["Reviewer"]));
     expect(screen.getByText("Maintainer")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Spaces" })).toBeTruthy();
   });
 
-  it("searches and filters by kind", async () => {
+  it("leaves choosing the tab and kind to the page's panel", async () => {
+    renderIndex();
+    await waitFor(() => expect(names()).toHaveLength(3));
+    expect(screen.queryByRole("tab")).toBeNull();
+    expect(screen.queryByRole("group", { name: "Kind" })).toBeNull();
+  });
+
+  it("shows one kind, named in the heading", async () => {
+    renderIndex(undefined, { kind: "prompt" });
+    await waitFor(() => expect(names()).toEqual(["Explain a concept"]));
+    expect(screen.getByRole("heading", { name: "Prompts" })).toBeTruthy();
+  });
+
+  it("searches", async () => {
     renderIndex();
     await waitFor(() => expect(names()).toHaveLength(3));
     await userEvent.fill(
@@ -67,12 +91,6 @@ describe("LibraryIndex", () => {
       "change"
     );
     await waitFor(() => expect(names()).toEqual(["Changelog"]));
-    await userEvent.fill(
-      screen.getByRole("searchbox", { name: "Search the library" }),
-      ""
-    );
-    await userEvent.click(screen.getByRole("button", { name: "Prompts" }));
-    await waitFor(() => expect(names()).toEqual(["Explain a concept"]));
   });
 
   it("says so when a tab is empty", async () => {
@@ -114,6 +132,22 @@ describe("LibraryIndex", () => {
   it("links a published agent to a chat with it (044)", async () => {
     const chatHref = (item: LibraryItem) => `/?agent=${item.id}`;
     const providers = createTestProviders(createFakeLibraryClient());
+    const spaces = render(
+      providers.wrap(
+        <LibraryIndex
+          chatHref={chatHref}
+          itemHref={itemHref}
+          newHref={newHref}
+          tab="libraries"
+        />
+      )
+    );
+    const link = await screen.findByRole("link", {
+      name: "Use in chat Reviewer",
+    });
+    expect(link.getAttribute("href")).toMatch(AGENT_CHAT);
+    spaces.unmount();
+    // Prompts never answer a chat.
     render(
       providers.wrap(
         <LibraryIndex
@@ -123,15 +157,6 @@ describe("LibraryIndex", () => {
         />
       )
     );
-    await userEvent.click(
-      await screen.findByRole("tab", { name: "Team & org" })
-    );
-    const link = await screen.findByRole("link", {
-      name: "Use in chat Reviewer",
-    });
-    expect(link.getAttribute("href")).toMatch(AGENT_CHAT);
-    // Prompts never answer a chat.
-    await userEvent.click(screen.getByRole("tab", { name: "My library" }));
     await screen.findByText("Explain a concept");
     expect(
       screen.queryByRole("link", { name: "Use in chat Explain a concept" })

@@ -41,11 +41,6 @@ import {
   InputGroupInput,
 } from "@workspace/ui/components/input-group";
 import { Skeleton } from "@workspace/ui/components/skeleton";
-import { Tabs, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
-import {
-  ToggleGroup,
-  ToggleGroupItem,
-} from "@workspace/ui/components/toggle-group";
 import {
   type ChangeEvent,
   type ComponentType,
@@ -77,9 +72,10 @@ import {
 import { ConfirmDelete } from "./confirm-delete";
 import { KindTile, useKindLabels, useKindPlurals } from "./kind";
 
-// The library (D13): three tabs (My library, Shared with me, Team & org),
-// search and a kind filter over one list of cards. Opening an item goes to
-// its builder; the page decides the URLs (`itemHref`, `newHref`) and the
+// The library (D13): one list of cards for a tab (My library, Shared with
+// me, Spaces) and a kind, with search. The page's panel picks the tab and
+// kind (181), so the index shows no filters of its own. Opening an item goes
+// to its builder; the page decides the URLs (`itemHref`, `newHref`) and the
 // link component, so this works under Next or anywhere else.
 
 export type LinkComponent = ComponentType<{
@@ -100,56 +96,42 @@ export interface LibraryIndexProps {
    * out, the card has no such link.
    */
   readonly chatHref?: (item: LibraryItem) => string | null;
-  /** The kind filter to start on, say from the panel's sections (181). */
-  readonly initialKind?: LibraryKind;
-  readonly initialTab?: LibraryTab;
   readonly itemHref: (item: LibraryItem) => string;
+  /** Only this kind; every kind when left out. */
+  readonly kind?: LibraryKind;
   readonly link?: LinkComponent;
   /** Where "New" goes for each kind. */
   readonly newHref: (kind: LibraryKind) => string;
   /** After an import, open the new item. */
   readonly onImported?: (item: LibraryItem) => void;
-  readonly onTabChange?: (tab: LibraryTab) => void;
+  readonly tab?: LibraryTab;
 }
-
-type KindFilter = LibraryKind | "all";
 
 export function LibraryIndex({
   chatHref,
-  initialKind,
-  initialTab = "mine",
   itemHref,
+  kind,
   link: Link = PlainLink,
   newHref,
   onImported,
-  onTabChange,
+  tab = "mine",
 }: LibraryIndexProps) {
   const { t } = useLingui();
-  const [tab, setTab] = useState<LibraryTab>(initialTab);
-  const [kind, setKind] = useState<KindFilter>(initialKind ?? "all");
   const [search, setSearch] = useState("");
   // Typing stays responsive; the list follows a beat behind.
   const query = useDeferredValue(search.trim());
   const labels = useKindLabels();
   const plurals = useKindPlurals();
 
-  const changeTab = useCallback(
-    (next: unknown) => {
-      const tabValue = next as LibraryTab;
-      setTab(tabValue);
-      onTabChange?.(tabValue);
-    },
-    [onTabChange]
-  );
+  const headings: Record<LibraryTab, ReactNode> = {
+    libraries: <Trans>Spaces</Trans>,
+    mine: kind ? plurals[kind] : <Trans>Library</Trans>,
+    shared: <Trans>Shared with me</Trans>,
+  };
+
   const changeSearch = useCallback(
     (event: ChangeEvent<HTMLInputElement>) =>
       setSearch(event.currentTarget.value),
-    []
-  );
-  // A toggle group can be emptied; empty means every kind.
-  const changeKind = useCallback(
-    (values: string[]) =>
-      setKind((values[0] as KindFilter | undefined) ?? "all"),
     []
   );
 
@@ -157,13 +139,11 @@ export function LibraryIndex({
     <div className="flex flex-col gap-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex flex-col gap-1">
-          <h1 className="font-medium text-xl">
-            <Trans>Library</Trans>
-          </h1>
+          <h1 className="font-medium text-xl">{headings[tab]}</h1>
           <p className="text-muted-foreground text-sm">
             <Trans>
               Agents, prompts, skills and MCP servers: yours, shared with you,
-              and published to your teams.
+              and published to your spaces.
             </Trans>
           </p>
         </div>
@@ -188,55 +168,23 @@ export function LibraryIndex({
         </div>
       </header>
 
-      <Tabs onValueChange={changeTab} value={tab}>
-        <TabsList>
-          <TabsTrigger value="mine">
-            <Trans>My library</Trans>
-          </TabsTrigger>
-          <TabsTrigger value="shared">
-            <Trans>Shared with me</Trans>
-          </TabsTrigger>
-          <TabsTrigger value="libraries">
-            <Trans>Team & org</Trans>
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
-
-      <div className="flex flex-wrap items-center gap-3">
-        <InputGroup className="max-w-xs">
-          <InputGroupInput
-            aria-label={t`Search the library`}
-            onChange={changeSearch}
-            placeholder={t`Search`}
-            type="search"
-            value={search}
-          />
-          <InputGroupAddon>
-            <SearchIcon />
-          </InputGroupAddon>
-        </InputGroup>
-        <ToggleGroup
-          aria-label={t`Kind`}
-          onValueChange={changeKind}
-          size="sm"
-          value={[kind]}
-          variant="outline"
-        >
-          <ToggleGroupItem value="all">
-            <Trans>All</Trans>
-          </ToggleGroupItem>
-          {BUILDABLE_KINDS.map((each) => (
-            <ToggleGroupItem key={each} value={each}>
-              {plurals[each]}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-      </div>
+      <InputGroup className="max-w-xs">
+        <InputGroupInput
+          aria-label={t`Search the library`}
+          onChange={changeSearch}
+          placeholder={t`Search`}
+          type="search"
+          value={search}
+        />
+        <InputGroupAddon>
+          <SearchIcon />
+        </InputGroupAddon>
+      </InputGroup>
 
       <ItemList
         chatHref={chatHref}
         itemHref={itemHref}
-        kind={kind === "all" ? undefined : kind}
+        kind={kind}
         link={Link}
         query={query}
         tab={tab}

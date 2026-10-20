@@ -20,8 +20,7 @@ const chatHref = (item: LibraryItem) => routes.chatWithAgent(item.id);
 
 export function LibraryScreen() {
   const router = useRouter();
-  // The rail panel's sections link here with `?kind=` or `?tab=` (181); a
-  // new link starts the index afresh on that filter.
+  // The rail panel's sections link here with `?kind=` or `?tab=` (181).
   const params = useSearchParams();
   const kind = libraryKindSchema
     .optional()
@@ -38,13 +37,12 @@ export function LibraryScreen() {
   return (
     <LibraryIndex
       chatHref={chatHref}
-      initialKind={kind}
-      initialTab={tab}
       itemHref={itemHref}
-      key={params.toString()}
+      kind={kind}
       link={NextLink}
       newHref={newHref}
       onImported={opened}
+      tab={tab}
     />
   );
 }
