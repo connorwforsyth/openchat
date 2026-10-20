@@ -143,6 +143,7 @@ function useStatusText(state: CallState): string {
       return t`Hearing you`;
     case "transcribing":
     case "thinking":
+    case "paused":
       return t`Thinking`;
     case "speaking":
       return t`Speaking`;

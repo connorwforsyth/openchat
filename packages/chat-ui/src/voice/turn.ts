@@ -110,9 +110,11 @@ export type CallPhase =
   /** The user is talking. */
   | "hearing"
   | "transcribing"
-  /** Waiting for the reply's first sentence (or the next one). */
+  /** Waiting for the reply's first sentence. */
   | "thinking"
   | "speaking"
+  /** The reply has spoken and waits for its next sentence or a tool call. */
+  | "paused"
   | "ended";
 
 /** What the orb shows. */
@@ -128,6 +130,7 @@ export const orbStateOf = (phase: CallPhase): OrbState => {
       return "listening";
     case "transcribing":
     case "thinking":
+    case "paused":
       return "thinking";
     case "speaking":
       return "speaking";
@@ -183,6 +186,8 @@ export type CallEvent =
 
 export type CallEffect =
   | { readonly type: "start-recording" }
+  /** The user went on: drop the pending transcription and keep recording onto it. */
+  | { readonly type: "resume-recording" }
   /** Stop recording and upload the utterance for transcription. */
   | { readonly type: "transcribe" }
   | { readonly type: "discard-recording" }
@@ -199,7 +204,10 @@ export interface CallStep {
 const stay = (state: CallState): CallStep => ({ effects: [], state });
 
 const busy = (phase: CallPhase) =>
-  phase === "transcribing" || phase === "thinking" || phase === "speaking";
+  phase === "transcribing" ||
+  phase === "thinking" ||
+  phase === "speaking" ||
+  phase === "paused";
 
 const send = (state: CallState, text: string): CallStep => {
   const trimmed = text.trim();
@@ -218,22 +226,26 @@ type Handler<T extends CallEvent["type"]> = (
 ) => CallStep;
 
 const onSpeechStart: Handler<"speech-start"> = (state) => {
-  // Room noise or speaker echo while the reply is still being worked out
-  // would cancel it before a word is spoken, so only audible speech can be
-  // talked over.
+  // Room noise or speaker echo before the reply has said a word would cancel
+  // it unheard, so "thinking" can't be talked over; once it has spoken, it can.
   if (
     state.muted ||
     state.phase === "connecting" ||
     state.phase === "hearing" ||
-    state.phase === "transcribing" ||
     state.phase === "thinking"
   ) {
     return stay(state);
   }
+  if (state.phase === "transcribing") {
+    return {
+      effects: [{ type: "resume-recording" }],
+      state: { ...state, phase: "hearing" },
+    };
+  }
   // Barge-in: talking over the reply stops it.
   return {
     effects: [
-      ...(state.phase === "speaking" ? [{ type: "interrupt" } as const] : []),
+      ...(busy(state.phase) ? [{ type: "interrupt" } as const] : []),
       { type: "start-recording" },
     ],
     state: { ...state, error: null, phase: "hearing", replyDone: true },
@@ -254,10 +266,17 @@ const onHeardText: Handler<"heard-text"> = (state, event) => {
   };
 };
 
-const onAudioIdle: Handler<"audio-idle"> = (state) =>
-  state.phase === "speaking" || state.phase === "thinking"
-    ? stay({ ...state, phase: state.replyDone ? "listening" : "thinking" })
+const onAudioIdle: Handler<"audio-idle"> = (state) => {
+  if (
+    state.replyDone &&
+    (state.phase === "speaking" || state.phase === "thinking")
+  ) {
+    return stay({ ...state, phase: "listening" });
+  }
+  return state.phase === "speaking"
+    ? stay({ ...state, phase: "paused" })
     : stay(state);
+};
 
 // `audio-idle` follows once the last sentence has played; a reply with
 // nothing (left) to say goes straight back to listening.
@@ -265,7 +284,9 @@ const onReplyFinished: Handler<"reply-finished"> = (state, event) =>
   stay({
     ...state,
     phase:
-      state.phase === "thinking" && !event.pending ? "listening" : state.phase,
+      (state.phase === "thinking" || state.phase === "paused") && !event.pending
+        ? "listening"
+        : state.phase,
     replyDone: true,
   });
 
@@ -295,7 +316,11 @@ const onFailed: Handler<"failed"> = (state, event) => {
 const handlers: { readonly [T in CallEvent["type"]]: Handler<T> } = {
   "audio-idle": onAudioIdle,
   "audio-started": (state) =>
-    stay(state.phase === "thinking" ? { ...state, phase: "speaking" } : state),
+    stay(
+      state.phase === "thinking" || state.phase === "paused"
+        ? { ...state, phase: "speaking" }
+        : state
+    ),
   end: (state) => ({
     effects: [{ type: "interrupt" }, { type: "hang-up" }],
     state: { ...state, phase: "ended" },

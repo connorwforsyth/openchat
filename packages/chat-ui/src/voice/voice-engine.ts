@@ -104,7 +104,10 @@ export const timingsOf = (turn: Turn): TurnTimings => ({
 });
 
 const isTalking = (phase: CallState["phase"]) =>
-  phase === "speaking" || phase === "thinking" || phase === "transcribing";
+  phase === "speaking" ||
+  phase === "paused" ||
+  phase === "thinking" ||
+  phase === "transcribing";
 
 interface Queued {
   readonly audio: Promise<AudioBuffer | null>;
@@ -154,6 +157,8 @@ export const openVoiceEngine = async (
   let playing: AudioBufferSourceNode | null = null;
   let looping = false;
   let transcribing: AbortController | null = null;
+  /** The utterance being transcribed, kept in case the user goes on. */
+  let heard: readonly Float32Array[] = [];
   let turn = newTurn();
   /** The reply being listened to; aborting it cancels its run. */
   let replying: AbortController | null = null;
@@ -248,6 +253,7 @@ export const openVoiceEngine = async (
     playing = null;
     transcribing?.abort();
     transcribing = null;
+    heard = [];
   };
 
   const upload = async (wav: Uint8Array<ArrayBuffer>, signal: AbortSignal) => {
@@ -273,6 +279,7 @@ export const openVoiceEngine = async (
     if (!frames) {
       return;
     }
+    heard = frames;
     turn = { ...newTurn(), speechEnd: performance.now() };
     const samples = downsample(concatFrames(frames), rate);
     const wav = encodeWav(samples, Math.min(TARGET_RATE, rate));
@@ -297,6 +304,7 @@ export const openVoiceEngine = async (
     } finally {
       if (transcribing === controller) {
         transcribing = null;
+        heard = [];
       }
     }
   };
@@ -365,6 +373,16 @@ export const openVoiceEngine = async (
       case "start-recording":
         utterance = [...preroll];
         utteranceLength = preroll.reduce((sum, frame) => sum + frame.length, 0);
+        return;
+      case "resume-recording":
+        transcribing?.abort();
+        transcribing = null;
+        utterance = [...heard, ...preroll];
+        utteranceLength = utterance.reduce(
+          (sum, frame) => sum + frame.length,
+          0
+        );
+        heard = [];
         return;
       case "discard-recording":
         utterance = null;

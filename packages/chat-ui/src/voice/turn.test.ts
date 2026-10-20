@@ -48,7 +48,7 @@ describe("callStep", () => {
       { type: "audio-started" },
       { type: "audio-idle" },
     ]);
-    expect(state.phase).toBe("thinking");
+    expect(orbStateOf(state.phase)).toBe("thinking");
   });
 
   it("goes back to listening when nothing was said", () => {
