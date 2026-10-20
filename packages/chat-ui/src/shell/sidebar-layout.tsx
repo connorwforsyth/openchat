@@ -1,12 +1,15 @@
 "use client";
 
 import {
+  type SidebarLayoutSetting,
+  sidebarLayoutSchema,
+} from "@workspace/contract/schemas/meta";
+import {
   createContext,
   useCallback,
   useContext,
   useSyncExternalStore,
 } from "react";
-import { z } from "zod";
 
 // Which sidebar the shell shows on a wide screen, the user's choice (181).
 // `rail` is the format going forward: the permanent icon rail beside a
@@ -14,23 +17,20 @@ import { z } from "zod";
 // nav and the toggle in its top row, hidden entirely when collapsed (113).
 // Narrow screens use the sheet either way. Switching doesn't animate (D28).
 
-export const sidebarLayoutSchema = z.enum(["rail", "classic"]);
-export type SidebarLayout = z.infer<typeof sidebarLayoutSchema>;
-
-export const DEFAULT_SIDEBAR_LAYOUT: SidebarLayout = "rail";
+export const DEFAULT_SIDEBAR_LAYOUT: SidebarLayoutSetting = "rail";
 
 /** Anything unknown or missing reads as the default. */
-export const parseSidebarLayout = (value: unknown): SidebarLayout =>
+export const parseSidebarLayout = (value: unknown): SidebarLayoutSetting =>
   sidebarLayoutSchema.catch(DEFAULT_SIDEBAR_LAYOUT).parse(value);
 
-const SidebarLayoutContext = createContext<SidebarLayout>(
+const SidebarLayoutContext = createContext<SidebarLayoutSetting>(
   DEFAULT_SIDEBAR_LAYOUT
 );
 
 /** The app says which layout the user chose; without it, the rail. */
 export const SidebarLayoutProvider = SidebarLayoutContext.Provider;
 
-export const useSidebarLayout = (): SidebarLayout =>
+export const useSidebarLayout = (): SidebarLayoutSetting =>
   useContext(SidebarLayoutContext);
 
 /** `storage` fires only in other tabs; this tells the tab that wrote. */
@@ -53,7 +53,7 @@ const readStored = (key: string): string | null => {
  */
 export const useStoredSidebarLayout = (
   storageKey: string
-): readonly [SidebarLayout, (next: SidebarLayout) => void] => {
+): readonly [SidebarLayoutSetting, (next: SidebarLayoutSetting) => void] => {
   const subscribe = useCallback(
     (onChange: () => void) => {
       const onStorage = (event: StorageEvent) => {
@@ -76,7 +76,7 @@ export const useStoredSidebarLayout = (
     () => DEFAULT_SIDEBAR_LAYOUT
   );
   const setLayout = useCallback(
-    (next: SidebarLayout) => {
+    (next: SidebarLayoutSetting) => {
       try {
         window.localStorage.setItem(storageKey, next);
       } catch {

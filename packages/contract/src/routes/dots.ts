@@ -6,17 +6,14 @@ import {
   featureError,
   providerError,
 } from "../errors";
-import { dotIdSchema, dotScheduleIdSchema } from "../schemas/common";
+import { dotIdSchema } from "../schemas/common";
 import {
   createDotInputSchema,
-  createDotScheduleInputSchema,
   dotActivityInputSchema,
   dotActivitySchema,
-  dotScheduleSchema,
   dotSchema,
   runDotNowInputSchema,
   updateDotInputSchema,
-  updateDotScheduleInputSchema,
 } from "../schemas/dots";
 import { createRunOutputSchema } from "../schemas/runs";
 import { authed } from "./base";
@@ -50,17 +47,6 @@ export const dots = {
     })
     .input(createDotInputSchema)
     .output(dotSchema),
-  createSchedule: authed
-    .errors(featureError)
-    .route({
-      method: "POST",
-      path: "/dots/{dotId}/schedules",
-      successStatus: 201,
-      summary:
-        "Add a schedule to a Dot (alias of `schedules.create` with a cron)",
-    })
-    .input(createDotScheduleInputSchema)
-    .output(dotScheduleSchema),
   delete: authed
     .route({
       description:
@@ -71,15 +57,6 @@ export const dots = {
       summary: "Delete a Dot",
     })
     .input(byId)
-    .output(z.void()),
-  deleteSchedule: authed
-    .route({
-      method: "DELETE",
-      path: "/dot-schedules/{id}",
-      successStatus: 204,
-      summary: "Delete a Dot schedule (alias of `schedules.delete`)",
-    })
-    .input(z.object({ id: dotScheduleIdSchema }))
     .output(z.void()),
   get: authed
     .route({ method: "GET", path: "/dots/{id}", summary: "Get a Dot" })
@@ -132,13 +109,4 @@ export const dots = {
     })
     .input(updateDotInputSchema)
     .output(dotSchema),
-  updateSchedule: authed
-    .errors(featureError)
-    .route({
-      method: "PATCH",
-      path: "/dot-schedules/{id}",
-      summary: "Update a Dot schedule (alias of `schedules.update`)",
-    })
-    .input(updateDotScheduleInputSchema)
-    .output(dotScheduleSchema),
 };
