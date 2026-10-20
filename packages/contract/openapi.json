@@ -21419,6 +21419,10 @@
                           "maxLength": 64
                         }
                       }
+                    },
+                    "sidebarLayout": {
+                      "enum": ["rail", "classic"],
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -21569,6 +21573,10 @@
                         "maxLength": 64
                       }
                     }
+                  },
+                  "sidebarLayout": {
+                    "enum": ["rail", "classic"],
+                    "type": "string"
                   }
                 }
               }
@@ -21623,6 +21631,10 @@
                           "maxLength": 64
                         }
                       }
+                    },
+                    "sidebarLayout": {
+                      "enum": ["rail", "classic"],
+                      "type": "string"
                     }
                   },
                   "required": [

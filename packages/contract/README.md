@@ -61,6 +61,7 @@ except where noted; the follow-on commit in the same PR wires each one.
 | `meta.health`: `GET /health` (liveness, and `status` for database and jobs readiness; `?ready=true` answers `NOT_READY` 503 when degraded) | Compose healthchecks and load balancers | New public procedure and error code. |
 | `OrgPolicy.persistClientCache` (default `true`), instance limit `policies.persistClientCache`, and `Me.persistClientCache` (the effective answer for this user) (D28) | The web app's persisted query cache, turned off for shared machines | New fields with defaults. A client that `PUT`s a policy without the field resets it to `true`. |
 | `UserSettings.shortcuts` (Q31) | Recorded shortcuts follow the user across devices | New output field (`{}` when none); optional on update, replaced whole. |
+| `UserSettings.sidebarLayout` (181) | The Rail or Classic sidebar choice follows the user across devices | New optional output field (missing means `rail`); optional on update. Nothing breaks. |
 
 Config (`@workspace/config`, not the contract): `observability.recordContent`
 (default `false`, Q28), the local storage default is now `./.data/files`
