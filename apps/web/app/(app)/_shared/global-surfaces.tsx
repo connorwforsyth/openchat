@@ -17,15 +17,21 @@ import type { SearchChats } from "@workspace/palette/use-palette-search";
 import { useShortcuts } from "@workspace/shortcuts/react/context";
 import { ShortcutsHelpDialog } from "@workspace/shortcuts/react/help-dialog";
 import { useShortcut } from "@workspace/shortcuts/react/use-shortcut";
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useMemo } from "react";
 
 import { routes } from "@/lib/routes";
 
 import { useApi } from "./api";
-import { useAppFrame } from "./app-frame";
+import { canAdmin, useAppFrame } from "./app-frame";
 import { chatsFromCache, libraryFromCache } from "./palette-cache";
+import {
+  closeSettings,
+  type SettingsSection,
+  selectSettingsSection,
+  settingsRouteFromPath,
+} from "./settings/settings-route";
+import { SettingsView } from "./settings/settings-view";
 
 // The global surfaces (D10, D14): the ⌘K palette and the `?` dialog, and the
 // shortcuts that work on every page. Loaded after boot (see `AppFrame`); the
@@ -34,8 +40,9 @@ import { chatsFromCache, libraryFromCache } from "./palette-cache";
 const useSettingsEntries = (): readonly PaletteAction[] => {
   const { t } = useLingui();
   const router = useRouter();
+  const { openSettings } = useAppFrame();
   return useMemo(() => {
-    const go = (href: string) => () => router.push(href);
+    const go = (section: SettingsSection) => () => openSettings(section);
     return [
       paletteAction(
         {
@@ -44,7 +51,7 @@ const useSettingsEntries = (): readonly PaletteAction[] => {
           section: "settings",
           title: t`Profile and language`,
         },
-        go(routes.settings("profile"))
+        go("profile")
       ),
       paletteAction(
         {
@@ -53,11 +60,11 @@ const useSettingsEntries = (): readonly PaletteAction[] => {
           section: "settings",
           title: t`Provider keys`,
         },
-        go(routes.settings("keys"))
+        go("keys")
       ),
       paletteAction(
         { id: "settings:memory", section: "settings", title: t`Memory` },
-        go(routes.settings("memory"))
+        go("memory")
       ),
       paletteAction(
         {
@@ -66,7 +73,7 @@ const useSettingsEntries = (): readonly PaletteAction[] => {
           section: "settings",
           title: t`Keyboard shortcuts`,
         },
-        go(routes.settings("shortcuts"))
+        go("shortcuts")
       ),
       paletteAction(
         {
@@ -75,7 +82,7 @@ const useSettingsEntries = (): readonly PaletteAction[] => {
           section: "settings",
           title: t`Appearance`,
         },
-        go(routes.settings("appearance"))
+        go("appearance")
       ),
       paletteAction(
         {
@@ -84,10 +91,10 @@ const useSettingsEntries = (): readonly PaletteAction[] => {
           section: "settings",
           title: t`Admin`,
         },
-        go(routes.admin)
+        () => router.push(routes.admin)
       ),
     ];
-  }, [router, t]);
+  }, [openSettings, router, t]);
 };
 
 const isChatPath = (pathname: string): boolean =>
@@ -97,7 +104,7 @@ const useActions = (): readonly PaletteAction[] => {
   const { t } = useLingui();
   const router = useRouter();
   const pathname = usePathname();
-  const { layout } = useAppFrame();
+  const { layout, openSettings } = useAppFrame();
   const { setHelpOpen } = useShortcuts();
   const onChat = isChatPath(pathname);
   const { toggleSidebar, togglePanel } = layout;
@@ -152,7 +159,7 @@ const useActions = (): readonly PaletteAction[] => {
           shortcutId: "settings.open",
           title: t`Open settings`,
         },
-        () => router.push(routes.settings())
+        () => openSettings()
       ),
       paletteAction(
         {
@@ -165,7 +172,7 @@ const useActions = (): readonly PaletteAction[] => {
         () => setHelpOpen(true)
       ),
     ],
-    [onChat, router, setHelpOpen, t, toggleSidebar, togglePanel]
+    [onChat, openSettings, router, setHelpOpen, t, toggleSidebar, togglePanel]
   );
 };
 
@@ -175,15 +182,32 @@ export const GlobalSurfaces = () => {
   const pathname = usePathname();
   const queryClient = useQueryClient();
   const { client, query } = useApi();
-  const { chat, paletteOpen, setPaletteOpen } = useAppFrame();
+  const { chat, me, openSettings, paletteOpen, setPaletteOpen } = useAppFrame();
+  const { setHelpOpen } = useShortcuts();
+  const settingsRoute = settingsRouteFromPath(pathname);
   const settings = useSettingsEntries();
   const actions = useActions();
   const onChat = isChatPath(pathname);
 
-  useShortcut("settings.open", () => router.push(routes.settings()));
+  useShortcut("settings.open", () => openSettings());
+  const closeSettingsView = useCallback(
+    () => closeSettings(window.history, routes.home),
+    []
+  );
   useShortcut("chat.new", () => router.push(routes.home));
   // Switching model is a palette job: it lists the models it can switch to.
   useShortcut("model.switch", () => setPaletteOpen(true), { enabled: onChat });
+
+  const changeShortcuts = useCallback(() => {
+    setHelpOpen(false);
+    openSettings("shortcuts");
+  }, [openSettings, setHelpOpen]);
+  const openAdmin = useCallback(() => router.push(routes.admin), [router]);
+  const selectSection = useCallback(
+    (section: SettingsSection | undefined) =>
+      selectSettingsSection(window.history, section),
+    []
+  );
 
   const cachedChats = useCallback(
     () =>
@@ -253,13 +277,20 @@ export const GlobalSurfaces = () => {
       />
       <ShortcutsHelpDialog
         footer={
-          <Link
+          <button
             className="text-muted-foreground text-sm underline-offset-4 hover:underline"
-            href={routes.settings("shortcuts")}
+            onClick={changeShortcuts}
+            type="button"
           >
             {t`Change shortcuts`}
-          </Link>
+          </button>
         }
+      />
+      <SettingsView
+        onClose={closeSettingsView}
+        onOpenAdmin={canAdmin(me) ? openAdmin : undefined}
+        onSelect={selectSection}
+        route={settingsRoute}
       />
     </>
   );

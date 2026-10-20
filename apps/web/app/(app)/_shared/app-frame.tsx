@@ -54,6 +54,10 @@ import {
   gatePersister,
   PERSIST_MAX_AGE_MS,
 } from "./query-persistence";
+import {
+  openSettings as openSettingsView,
+  type SettingsSection,
+} from "./settings/settings-route";
 import { SHELL_LAYOUT_KEY, SIDEBAR_ATTRIBUTE } from "./shell-prepaint";
 import { useAfterBoot } from "./use-after-boot";
 
@@ -83,6 +87,8 @@ export interface AppFrameValue {
   /** Opens "New organisation" (the account menu's). */
   readonly openNewOrg: () => void;
   readonly openPalette: () => void;
+  /** Opens settings, full screen over the current page (185). */
+  readonly openSettings: (section?: SettingsSection) => void;
   readonly paletteOpen: boolean;
   readonly setPaletteOpen: (open: boolean) => void;
   readonly setTheme: (theme: Theme) => void;
@@ -295,6 +301,11 @@ const Frame = ({
     PaletteContext | undefined
   >();
   const openPalette = useCallback(() => setPaletteOpen(true), []);
+  const openSettings = useCallback(
+    (section?: SettingsSection) =>
+      openSettingsView(window.history, window.location.pathname, section),
+    []
+  );
   const booted = useAfterBoot();
   const newOrg = useNewOrg();
   const { openNewOrg } = newOrg;
@@ -314,6 +325,7 @@ const Frame = ({
       me,
       openNewOrg,
       openPalette,
+      openSettings,
       paletteOpen,
       setPaletteOpen,
       setTheme,
@@ -328,6 +340,7 @@ const Frame = ({
       onSignOut,
       openNewOrg,
       openPalette,
+      openSettings,
       paletteContext,
       paletteOpen,
       setTheme,

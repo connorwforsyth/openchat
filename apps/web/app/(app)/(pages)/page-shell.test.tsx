@@ -88,6 +88,7 @@ const frame = (overrides: Partial<AppFrameValue> = {}): AppFrameValue => ({
   me,
   openNewOrg: vi.fn(),
   openPalette: vi.fn(),
+  openSettings: vi.fn(),
   paletteOpen: false,
   setPaletteOpen: vi.fn(),
   setTheme: vi.fn(),
