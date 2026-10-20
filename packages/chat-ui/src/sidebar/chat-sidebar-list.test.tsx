@@ -345,16 +345,60 @@ describe("the chat list", () => {
 });
 
 describe("SidebarRail", () => {
-  it("offers the actions and a count of chats needing attention", async () => {
-    const onSelect = vi.fn();
-    const props = base({
-      chats: [chat(1, "Fresh", { read: "unread" })],
-      onSelect,
-    });
-    render(<SidebarRail {...props} />);
-    await userEvent.click(
-      screen.getByRole("button", { name: "1 chat needs attention" })
+  const renderRail = (
+    overrides: Partial<Parameters<typeof SidebarRail>[0]> = {}
+  ) => {
+    const onShowChats = vi.fn();
+    render(
+      <SidebarRail
+        {...base({ chats: [chat(1, "Fresh", { read: "unread" })] })}
+        artifactsHref="/artifacts"
+        current="chats"
+        libraryHref="/library"
+        onShowChats={onShowChats}
+        schedulesHref="/schedules"
+        {...overrides}
+      />
     );
-    expect(onSelect).toHaveBeenCalledWith("c1");
+    return { onShowChats };
+  };
+
+  it("is a labelled landmark of labelled destinations", () => {
+    renderRail();
+    const rail = screen.getByRole("navigation", { name: "Sidebar rail" });
+    expect(rail).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Library" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Artifacts" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Scheduled" })).toBeTruthy();
+  });
+
+  it("marks the current destination, and only that one", () => {
+    renderRail({ current: "library" });
+    expect(
+      screen.getByRole("link", { name: "Library" }).getAttribute("aria-current")
+    ).toBe("page");
+    expect(
+      screen
+        .getByRole("link", { name: "Artifacts" })
+        .hasAttribute("aria-current")
+    ).toBe(false);
+  });
+
+  it("badges Chats when something needs attention and shows the chat panel", async () => {
+    const { onShowChats } = renderRail();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Chats, 1 needs attention" })
+    );
+    expect(onShowChats).toHaveBeenCalledOnce();
+  });
+
+  it("shows a tooltip naming the button on hover", async () => {
+    renderRail();
+    await userEvent.hover(screen.getByRole("link", { name: "Library" }));
+    expect(
+      await screen.findByText("Library", {
+        selector: "[data-slot=tooltip-content] *, [data-slot=tooltip-content]",
+      })
+    ).toBeTruthy();
   });
 });

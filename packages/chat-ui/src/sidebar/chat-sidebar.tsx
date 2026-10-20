@@ -118,6 +118,12 @@ export interface ChatSidebarProps {
   /** Moves the caller's read marker (176); without it there's no unread. */
   readonly onSetLastRead?: (id: ConversationId, lastReadAt: string) => void;
   readonly onTogglePin: (id: ConversationId, pinned: boolean) => void;
+  /**
+   * The icon rail is beside it on wide screens (181): Library, Artifacts and
+   * the account menu live there, so the panel hides its own from `md` up
+   * (they stay in the narrow-screen sheet, which has no rail).
+   */
+  readonly railed?: boolean;
   /** Where the scheduled tasks live (173a, 183); a plain link. */
   readonly schedulesHref?: string;
   /** Runs in flight or waiting, by chat, for "Needs attention" (176). */
@@ -132,7 +138,7 @@ export interface ChatSidebarProps {
 // padding, the 10px row radius (`rounded-lg`), 14px text, 16px icons, a 5%
 // foreground wash on hover and 8% for the open page.
 export const navRowClass =
-  "flex h-8 w-full min-w-0 items-center gap-2 rounded-lg px-2 text-start text-sm outline-none transition-colors duration-(--motion-fast) hover:bg-sidebar-foreground/5 focus-visible:ring-2 focus-visible:ring-sidebar-ring pointer-coarse:h-11 [&_svg]:size-4 [&_svg]:shrink-0";
+  "flex h-7.5 w-full min-w-0 items-center gap-2 rounded-xl px-2 text-start text-sm outline-none transition-colors duration-(--motion-fast) hover:bg-sidebar-foreground/5 focus-visible:ring-2 focus-visible:ring-sidebar-ring pointer-coarse:h-11 [&_svg]:size-4 [&_svg]:shrink-0";
 
 /** A section header: quiet, sentence case, and a button that folds it. */
 const headingClass =
@@ -757,11 +763,24 @@ function Paging({
   );
 }
 
+/** The account menu; on wide screens with a rail, it's on the rail instead. */
+function AccountFooter({
+  account,
+  railed,
+}: Pick<ChatSidebarProps, "account" | "railed">) {
+  return (
+    <div className={cn("shrink-0 p-2", railed && "md:hidden")}>
+      <AccountMenu {...account} />
+    </div>
+  );
+}
+
 function PrimaryNav({
   artifactsHref,
   libraryHref,
   onNewChat,
   onOpenPalette,
+  railed,
   schedulesHref,
 }: Pick<
   ChatSidebarProps,
@@ -769,9 +788,11 @@ function PrimaryNav({
   | "libraryHref"
   | "onNewChat"
   | "onOpenPalette"
+  | "railed"
   | "schedulesHref"
 >) {
   const { t } = useLingui();
+  const pageRow = cn(navRowClass, railed && "md:hidden");
   return (
     <nav aria-label={t`Primary`} className="flex flex-col gap-px px-2">
       <button className={navRowClass} onClick={onNewChat} type="button">
@@ -791,7 +812,7 @@ function PrimaryNav({
         </button>
       ) : null}
       {libraryHref ? (
-        <a className={navRowClass} href={libraryHref}>
+        <a className={pageRow} href={libraryHref}>
           <LibraryIcon aria-hidden />
           <span className="flex-1">
             <Trans>Library</Trans>
@@ -799,7 +820,7 @@ function PrimaryNav({
         </a>
       ) : null}
       {artifactsHref ? (
-        <a className={navRowClass} href={artifactsHref}>
+        <a className={pageRow} href={artifactsHref}>
           <ShapesIcon aria-hidden />
           <span className="flex-1">
             <Trans>Artifacts</Trans>
@@ -807,7 +828,7 @@ function PrimaryNav({
         </a>
       ) : null}
       {schedulesHref ? (
-        <a className={navRowClass} href={schedulesHref}>
+        <a className={pageRow} href={schedulesHref}>
           <ClockIcon aria-hidden />
           <span className="flex-1">
             <Trans>Scheduled</Trans>
@@ -1184,9 +1205,7 @@ export function ChatSidebar({
         </div>
       </div>
 
-      <div className="shrink-0 p-2">
-        <AccountMenu {...account} />
-      </div>
+      <AccountFooter account={account} railed={nav.railed} />
     </div>
   );
 }

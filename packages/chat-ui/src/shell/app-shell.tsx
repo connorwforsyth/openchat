@@ -78,8 +78,9 @@ export interface AppShellProps {
   readonly panelWidth: number;
   readonly platform?: Platform;
   /**
-   * Shown in the sidebar's place while it's collapsed on a wide screen (179):
-   * an icon rail, so collapsed isn't hidden. Without it, nothing shows.
+   * The permanent icon rail on a wide screen (181), at the window's start
+   * edge whether the sidebar is open or not. With it, the sidebar and the
+   * conversation sit in an inset card on the window background.
    */
   readonly rail?: ReactNode;
   readonly sidebar: ReactNode;
@@ -89,7 +90,7 @@ export interface AppShellProps {
   readonly sidebarSheetOpen: boolean;
 }
 
-/** The collapsed sidebar's icon rail (179); no transition, as its toggle is a key (D28). */
+/** The icon rail (181); no transition, as its toggle is a key (D28). */
 function RailSlot({ rail }: { readonly rail: ReactNode }) {
   return rail ? (
     <div className="flex shrink-0 max-md:hidden" data-slot="app-shell-rail">
@@ -98,8 +99,33 @@ function RailSlot({ rail }: { readonly rail: ReactNode }) {
   ) : null;
 }
 
+/** The rail's column plus the card's end inset, in pixels (w-13 + pe-1). */
+const RAIL_SPACE = 56;
+
+/** The width the columns share: the window, less the rail beside them. */
+const columnsViewport = (
+  viewport: number | null,
+  railed: boolean
+): number | null =>
+  viewport !== null && railed ? viewport - RAIL_SPACE : viewport;
+
+// With a rail, the window shows around an inset card, as in ChatGPT: the rail
+// stays on the window, everything else sits on the card.
+const shellClass = (railed: boolean) =>
+  railed ? "bg-window" : "bg-background";
+const cardClass = (railed: boolean) =>
+  railed
+    ? "md:my-1 md:me-1 md:overflow-hidden md:rounded-xl md:border md:border-border/60 md:bg-background md:shadow-xs"
+    : undefined;
+const dockedSidebarClass = (railed: boolean) =>
+  railed ? "border-border/60 border-e" : undefined;
+const peekPlaceClass = (railed: boolean) =>
+  railed
+    ? "inset-y-1 start-13 rounded-xl border"
+    : "inset-y-0 start-0 border-e";
+
 /** The peek edge sits beside the rail, if any, so its icons stay clickable. */
-const edgeStart = (rail: ReactNode): string => (rail ? "start-12" : "start-0");
+const edgeStart = (rail: ReactNode): string => (rail ? "start-13" : "start-0");
 
 export function AppShell({
   children,
@@ -134,7 +160,7 @@ export function AppShell({
     panelWidth: livePanel ?? panelWidth,
     sidebarOpen: sidebarOpen && !narrow,
     sidebarWidth: liveSidebar ?? savedSidebar.width ?? SIDEBAR_DEFAULT_WIDTH,
-    viewport,
+    viewport: columnsViewport(viewport, Boolean(rail) && !narrow),
   });
   const { save: saveSidebar } = savedSidebar;
   const endSidebarResize = useCallback(
@@ -193,79 +219,91 @@ export function AppShell({
               className={cn(
                 // dvh follows the browser's collapsing toolbars, so the
                 // composer stays docked at the bottom of what's visible.
-                "flex h-dvh min-h-0 w-full overflow-hidden bg-background text-foreground",
+                "flex h-dvh min-h-0 w-full overflow-hidden text-foreground",
+                shellClass(Boolean(rail)),
                 className
               )}
               data-slot="app-shell"
             >
-              <RailSlot rail={collapsed ? rail : undefined} />
-              {columns.sidebar === null ? null : (
-                <div
-                  className="relative flex shrink-0 max-md:hidden"
-                  data-slot="app-shell-sidebar"
-                >
-                  <aside
-                    aria-label={t`Chats`}
-                    className={cn(
-                      SIDEBAR_WIDTH_CLASS,
-                      // Before the first measure, CSS keeps the conversation's
-                      // minimum; after it, the width is exact.
-                      "flex min-w-50 max-w-[max(12.5rem,calc(100vw-30rem))] flex-col bg-sidebar text-sidebar-foreground"
-                    )}
-                    id={sidebarId}
-                    style={
-                      savedSidebar.width === null
-                        ? undefined
-                        : { width: columns.sidebar }
-                    }
+              <RailSlot rail={rail} />
+              <div
+                className={cn(
+                  "flex min-h-0 min-w-0 flex-1",
+                  cardClass(Boolean(rail))
+                )}
+                data-slot="app-shell-card"
+              >
+                {columns.sidebar === null ? null : (
+                  <div
+                    className="relative flex shrink-0 max-md:hidden"
+                    data-slot="app-shell-sidebar"
                   >
-                    {sidebar}
-                  </aside>
-                  <ResizeHandle
-                    aria-controls={sidebarId}
-                    aria-label={t`Resize sidebar`}
-                    defaultValue={SIDEBAR_DEFAULT_WIDTH}
-                    max={columns.sidebarMax}
-                    min={SIDEBAR_MIN_WIDTH}
-                    onResize={setLiveSidebar}
-                    onResizeEnd={endSidebarResize}
-                    resizes="before"
-                    step={RESIZE_KEY_STEP}
-                    value={columns.sidebar}
-                  />
+                    <aside
+                      aria-label={t`Chats`}
+                      className={cn(
+                        SIDEBAR_WIDTH_CLASS,
+                        // Before the first measure, CSS keeps the conversation's
+                        // minimum; after it, the width is exact.
+                        "flex min-w-50 max-w-[max(12.5rem,calc(100vw-30rem))] flex-col bg-sidebar text-sidebar-foreground",
+                        dockedSidebarClass(Boolean(rail))
+                      )}
+                      id={sidebarId}
+                      style={
+                        savedSidebar.width === null
+                          ? undefined
+                          : { width: columns.sidebar }
+                      }
+                    >
+                      {sidebar}
+                    </aside>
+                    <ResizeHandle
+                      aria-controls={sidebarId}
+                      aria-label={t`Resize sidebar`}
+                      defaultValue={SIDEBAR_DEFAULT_WIDTH}
+                      max={columns.sidebarMax}
+                      min={SIDEBAR_MIN_WIDTH}
+                      onResize={setLiveSidebar}
+                      onResizeEnd={endSidebarResize}
+                      resizes="before"
+                      step={RESIZE_KEY_STEP}
+                      value={columns.sidebar}
+                    />
+                  </div>
+                )}
+                <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
+                  {header}
+                  <main className="flex min-h-0 flex-1 flex-col">
+                    {children}
+                  </main>
                 </div>
-              )}
-              <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
-                {header}
-                <main className="flex min-h-0 flex-1 flex-col">{children}</main>
+                {panelOpen && !narrow ? (
+                  <div
+                    className="relative flex shrink-0"
+                    data-slot="app-shell-panel"
+                  >
+                    <ResizeHandle
+                      aria-controls={panelId}
+                      aria-label={t`Resize side panel`}
+                      defaultValue={PANEL_DEFAULT_WIDTH}
+                      max={columns.panelMax}
+                      min={PANEL_MIN_WIDTH}
+                      onResize={setLivePanel}
+                      onResizeEnd={endPanelResize}
+                      resizes="after"
+                      step={RESIZE_KEY_STEP}
+                      value={columns.panel}
+                    />
+                    <aside
+                      aria-label={t`Side panel`}
+                      className="flex h-full min-h-0 flex-col bg-background"
+                      id={panelId}
+                      style={{ width: columns.panel }}
+                    >
+                      {panel}
+                    </aside>
+                  </div>
+                ) : null}
               </div>
-              {panelOpen && !narrow ? (
-                <div
-                  className="relative flex shrink-0"
-                  data-slot="app-shell-panel"
-                >
-                  <ResizeHandle
-                    aria-controls={panelId}
-                    aria-label={t`Resize side panel`}
-                    defaultValue={PANEL_DEFAULT_WIDTH}
-                    max={columns.panelMax}
-                    min={PANEL_MIN_WIDTH}
-                    onResize={setLivePanel}
-                    onResizeEnd={endPanelResize}
-                    resizes="after"
-                    step={RESIZE_KEY_STEP}
-                    value={columns.panel}
-                  />
-                  <aside
-                    aria-label={t`Side panel`}
-                    className="flex h-full min-h-0 flex-col bg-background"
-                    id={panelId}
-                    style={{ width: columns.panel }}
-                  >
-                    {panel}
-                  </aside>
-                </div>
-              ) : null}
             </div>
             {!narrow && columns.sidebar === null ? (
               <>
@@ -291,7 +329,8 @@ export function AppShell({
                     // Over the page, not beside it: nothing moves. It slides
                     // in over --motion-base and leaves over --motion-exit;
                     // reduced motion (--motion-travel: 0) only fades.
-                    "fixed inset-y-0 start-0 z-40 flex max-w-[calc(100vw-3rem)] flex-col border-sidebar-border border-e bg-sidebar text-sidebar-foreground shadow-lg max-md:hidden",
+                    peekPlaceClass(Boolean(rail)),
+                    "fixed z-40 flex max-w-[calc(100vw-3rem)] flex-col border-sidebar-border bg-sidebar text-sidebar-foreground shadow-lg max-md:hidden",
                     "invisible translate-x-[calc(var(--peek-shift)*var(--motion-travel))] opacity-0 transition-[translate,opacity,visibility] duration-(--motion-exit) ease-motion-out [--peek-shift:-100%] rtl:[--peek-shift:100%]",
                     "data-open:visible data-open:translate-x-0 data-open:opacity-100 data-open:duration-(--motion-base)"
                   )}
