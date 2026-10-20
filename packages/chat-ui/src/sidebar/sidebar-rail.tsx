@@ -56,9 +56,9 @@ export type SidebarRailProps = Pick<
 
 const railButton = cn(
   "relative flex size-9 items-center justify-center rounded-xl text-muted-foreground outline-none",
-  "transition-colors duration-(--motion-fast) hover:bg-sidebar-accent hover:text-sidebar-foreground",
+  "transition-colors duration-(--motion-fast) hover:bg-foreground/5 hover:text-sidebar-foreground",
   "focus-visible:ring-2 focus-visible:ring-sidebar-ring",
-  "aria-[current=page]:bg-sidebar-accent aria-[current=page]:text-sidebar-foreground",
+  "aria-[current=page]:bg-foreground/8 aria-[current=page]:text-sidebar-foreground",
   "[&_svg]:size-4.5"
 );
 
