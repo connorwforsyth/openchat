@@ -132,7 +132,7 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
             onOpenAdmin: canAdmin(me)
               ? () => router.push(routes.admin)
               : undefined,
-            onOpenSettings: () => router.push(routes.settings()),
+            onOpenSettings: () => frame.openSettings(),
             onSignOut: frame.signOut,
             onThemeChange: frame.setTheme,
             theme: frame.theme,
