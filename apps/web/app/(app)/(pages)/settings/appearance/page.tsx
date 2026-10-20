@@ -9,7 +9,7 @@ export default async function Page() {
   return (
     <>
       <PageHeader
-        description={<Trans>How the app looks on this device.</Trans>}
+        description={<Trans>How the app looks.</Trans>}
         title={<Trans>Appearance</Trans>}
       />
       <AppearanceSettings />

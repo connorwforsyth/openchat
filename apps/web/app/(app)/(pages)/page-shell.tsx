@@ -8,6 +8,7 @@ import {
 } from "@workspace/chat-ui/chat/use-chat-data";
 import { AppHeader } from "@workspace/chat-ui/header/app-header";
 import { AppShell } from "@workspace/chat-ui/shell/app-shell";
+import { useSidebarLayout } from "@workspace/chat-ui/shell/sidebar-layout";
 import { SidebarToggle } from "@workspace/chat-ui/shell/sidebar-toggle";
 import { useNarrowScreen } from "@workspace/chat-ui/shell/use-narrow-screen";
 import { ChatSidebar } from "@workspace/chat-ui/sidebar/chat-sidebar";
@@ -75,6 +76,7 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const narrow = useNarrowScreen();
+  const railed = useSidebarLayout() === "rail";
   const { query } = useApi();
   const frame = useAppFrame();
   const { layout, me } = frame;
@@ -147,8 +149,8 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
           <SectionTitle pathname={pathname} />
         </span>
       }
-      // The sidebar toggle is here only on a narrow screen; on a wide one
-      // it is the rail's first button (181).
+      // With the rail (181) the sidebar toggle is here only on a narrow
+      // screen; classic puts it here whenever the sidebar is collapsed.
       start={sidebarToggle("header")}
     />
   );
@@ -185,12 +187,14 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
       panelWidth={layout.layout.panelWidth}
       platform={platform}
       rail={
-        <SidebarRail
-          {...sidebarProps}
-          current={railDestination(pathname)}
-          onShowChats={showChats}
-          toggle={sidebarToggle("rail")}
-        />
+        railed ? (
+          <SidebarRail
+            {...sidebarProps}
+            current={railDestination(pathname)}
+            onShowChats={showChats}
+            toggle={sidebarToggle("rail")}
+          />
+        ) : undefined
       }
       sidebar={
         <ChatSidebar
@@ -198,7 +202,7 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
           brand={<Brand config={frame.config} />}
           onNewChat={newChat}
           onOpenPalette={openPalette}
-          railed
+          railed={railed}
           toggle={sidebarToggle("sidebar")}
         />
       }

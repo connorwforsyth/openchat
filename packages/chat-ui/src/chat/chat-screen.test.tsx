@@ -29,6 +29,7 @@ import {
   treeMessages,
 } from "../fixtures";
 import { localBranchPath } from "../model/branch";
+import { SidebarLayoutProvider } from "../shell/sidebar-layout";
 import { SHELL_LAYOUT_STORAGE_KEY } from "../shell/use-shell-layout";
 import { modKey, renderWithI18n } from "../testing/render";
 import type {
@@ -249,6 +250,35 @@ describe("header (D14)", () => {
       screen.getAllByRole("button", { name: "Toggle sidebar" })
     ).toHaveLength(1);
     await userEvent.click(collapsed);
+    expect(screen.getByRole("complementary", { name: "Chats" })).toBeTruthy();
+  });
+
+  it("classic: no rail, the toggle in the sidebar's top row, then the header when collapsed (181)", async () => {
+    renderWithI18n(
+      <SidebarLayoutProvider value="classic">
+        <ChatScreen {...props()} />
+      </SidebarLayoutProvider>
+    );
+    expect(
+      screen.queryByRole("navigation", { name: "Sidebar rail" })
+    ).toBeNull();
+    const sidebar = within(
+      screen.getByRole("complementary", { name: "Chats" })
+    );
+    const toggle = sidebar.getByRole("button", { name: "Toggle sidebar" });
+    expect(
+      header().queryByRole("button", { name: "Toggle sidebar" })
+    ).toBeNull();
+
+    await userEvent.click(toggle);
+    // Collapsed classic is the pre-rail shell: no sidebar, toggle in the header.
+    expect(screen.queryByRole("complementary", { name: "Chats" })).toBeNull();
+    const inHeader = header().getByRole("button", { name: "Toggle sidebar" });
+    expect(inHeader.getAttribute("aria-expanded")).toBe("false");
+    expect(
+      screen.getAllByRole("button", { name: "Toggle sidebar" })
+    ).toHaveLength(1);
+    await userEvent.click(inHeader);
     expect(screen.getByRole("complementary", { name: "Chats" })).toBeTruthy();
   });
 
