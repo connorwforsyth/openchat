@@ -146,7 +146,10 @@ const useNewOrg = () => {
     setOpen(true);
   }, []);
   const created = useCallback(
-    (org: Org) => router.push(routes.adminOrg(org.id, "teams")),
+    (org: Org) =>
+      router.push(
+        routes.spaceSettings({ id: org.id, type: "org" }, "space-subspaces")
+      ),
     [router]
   );
   const dialog = used ? (

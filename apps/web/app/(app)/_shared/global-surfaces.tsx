@@ -18,7 +18,7 @@ import { useShortcuts } from "@workspace/shortcuts/react/context";
 import { ShortcutsHelpDialog } from "@workspace/shortcuts/react/help-dialog";
 import { useShortcut } from "@workspace/shortcuts/react/use-shortcut";
 import { usePathname, useRouter } from "next/navigation";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 
 import { routes } from "@/lib/routes";
 
@@ -32,6 +32,8 @@ import {
   settingsRouteFromPath,
 } from "./settings/settings-route";
 import { SettingsView } from "./settings/settings-view";
+import { spaceFromQuery } from "./spaces/active-space";
+import { useActiveSpace } from "./spaces/space-switcher";
 
 // The global surfaces (D10, D14): the ⌘K palette and the `?` dialog, and the
 // shortcuts that work on every page. Loaded after boot (see `AppFrame`); the
@@ -185,6 +187,16 @@ export const GlobalSurfaces = () => {
   const { chat, me, openSettings, paletteOpen, setPaletteOpen } = useAppFrame();
   const { setHelpOpen } = useShortcuts();
   const settingsRoute = settingsRouteFromPath(pathname);
+  const { active: activeSpace } = useActiveSpace();
+  // A link to one space's settings (`?space=org:<id>`) makes it active, on a
+  // client navigation as well as a load (the frame reads it on mount).
+  const { setDraftContext } = chat;
+  useEffect(() => {
+    const linked = spaceFromQuery(window.location.search);
+    if (settingsRoute !== null && linked) {
+      setDraftContext(linked);
+    }
+  }, [settingsRoute, setDraftContext]);
   const settings = useSettingsEntries();
   const actions = useActions();
   const onChat = isChatPath(pathname);
@@ -291,6 +303,7 @@ export const GlobalSurfaces = () => {
         onOpenAdmin={canAdmin(me) ? openAdmin : undefined}
         onSelect={selectSection}
         route={settingsRoute}
+        space={activeSpace}
       />
     </>
   );

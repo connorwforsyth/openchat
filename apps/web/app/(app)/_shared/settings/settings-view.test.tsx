@@ -1,9 +1,9 @@
 import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import { me as meFixture } from "@workspace/contract/fixtures";
+import type { Space } from "@workspace/contract/schemas/spaces";
 import { useCallback, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
-
 import { fakeApi, renderWithApi } from "@/app/(app)/_shared/test-harness";
 import type { SettingsRoute, SettingsSection } from "./settings-route";
 import { SettingsView } from "./settings-view";
@@ -39,7 +39,13 @@ const api = () =>
   });
 
 /** The page underneath: a button that opens settings, as the account menu does. */
-const Harness = ({ initial = null }: { readonly initial?: SettingsRoute }) => {
+const Harness = ({
+  initial = null,
+  space,
+}: {
+  readonly initial?: SettingsRoute;
+  readonly space?: Space;
+}) => {
   const [route, setRoute] = useState<SettingsRoute>(initial);
   const open = useCallback(() => setRoute("index"), []);
   const close = useCallback(() => setRoute(null), []);
@@ -53,7 +59,12 @@ const Harness = ({ initial = null }: { readonly initial?: SettingsRoute }) => {
         Open settings
       </button>
       <output data-testid="route">{String(route)}</output>
-      <SettingsView onClose={close} onSelect={select} route={route} />
+      <SettingsView
+        onClose={close}
+        onSelect={select}
+        route={route}
+        space={space}
+      />
     </>
   );
 };
@@ -80,6 +91,42 @@ describe("SettingsView", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(screen.getByTestId("route").textContent).toBe("null");
     await waitFor(() => expect(document.activeElement).toBe(trigger));
+  });
+
+  it("lists the active space's sections after yours, and only those it applies to", async () => {
+    const design: Space = {
+      access: "member",
+      canManage: true,
+      id: "0190a000-0000-7000-8000-000000000011",
+      isPersonal: false,
+      memberCount: 2,
+      myRole: "owner",
+      name: "Design",
+      orgId: "0190a000-0000-7000-8000-000000000001",
+      parent: { id: "0190a000-0000-7000-8000-000000000001", type: "org" },
+      type: "team",
+    } as Space;
+    renderWithApi(<Harness initial="profile" space={design} />, api());
+    await view();
+    expect(screen.getByRole("heading", { name: "Space: Design" })).toBeTruthy();
+    for (const name of [
+      "Members",
+      "Sub-spaces",
+      "Token allowance",
+      "Keys and usage",
+    ]) {
+      expect(screen.getByRole("button", { name })).toBeTruthy();
+    }
+    // Policies and audit belong to a root space.
+    expect(screen.queryByRole("button", { name: "Policies" })).toBeNull();
+  });
+
+  it("has no space sections for the personal space", async () => {
+    renderWithApi(<Harness initial="profile" />, api());
+    await view();
+    expect(
+      screen.queryByRole("button", { name: "Token allowance" })
+    ).toBeNull();
   });
 
   it("opens on the section the address names", async () => {

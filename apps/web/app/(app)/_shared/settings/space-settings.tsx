@@ -33,6 +33,7 @@ import {
 
 import { MembersAdmin } from "@/app/(app)/(pages)/admin/_components/members-admin";
 import { formatMicros } from "@/app/(app)/(pages)/admin/_components/money";
+import { TeamsAdmin } from "@/app/(app)/(pages)/admin/_components/teams-admin";
 import { useApi } from "../api";
 import { KeysManager } from "../keys-manager";
 import { type Option, OptionSelect } from "../option-select";
@@ -328,6 +329,17 @@ const spacesBelow = (spaces: readonly Space[], active: Space) => {
 };
 
 export const SubSpaces = () => {
+  const { active } = useManagedSpace();
+  // A root space's whole tree is managed in one place: create anywhere in
+  // it, rename, move and remove (the team tree, 012).
+  return active?.type === "org" && active.canManage ? (
+    <TeamsAdmin orgId={active.id as OrgId} />
+  ) : (
+    <SubSpaceTree />
+  );
+};
+
+const SubSpaceTree = () => {
   const { t } = useLingui();
   const { query } = useApi();
   const refresh = useRefreshSpaces();

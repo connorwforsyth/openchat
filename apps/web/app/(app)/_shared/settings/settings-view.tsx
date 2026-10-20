@@ -31,7 +31,6 @@ import { type MouseEvent, type ReactNode, useCallback } from "react";
 import { AuditPolicy } from "@/app/(app)/(pages)/admin/_components/audit-policy";
 import { OrgPolicyForm } from "@/app/(app)/(pages)/admin/_components/org-policy-form";
 import { UsageAdmin } from "@/app/(app)/(pages)/admin/_components/usage-admin";
-import { useActiveSpace } from "../spaces/space-switcher";
 import { AppearanceSettings } from "./appearance-settings";
 import { MemorySettings } from "./memory-settings";
 import { PersonalKeys } from "./personal-keys";
@@ -349,6 +348,7 @@ export const SettingsView = ({
   onOpenAdmin,
   onSelect,
   route,
+  space,
 }: {
   readonly onClose: () => void;
   /** Admin is its own pages; offered only to those who can reach them. */
@@ -356,9 +356,10 @@ export const SettingsView = ({
   /** `undefined` is the section list (narrow screens). */
   readonly onSelect: (section: SettingsSection | undefined) => void;
   readonly route: SettingsRoute;
+  /** The active space (the sidebar switcher's); its sections follow yours. */
+  readonly space?: Space;
 }) => {
   const narrow = useNarrowScreen();
-  const { active: space } = useActiveSpace();
   const open = route !== null;
   const showing = route ?? "index";
   const fallback = narrow ? null : DEFAULT_SETTINGS_SECTION;
