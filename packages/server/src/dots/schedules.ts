@@ -34,7 +34,6 @@ import {
   conversationBusy,
   type DotRow,
   deleteSchedule as deleteScheduleRow,
-  failStaleClaims,
   getDotById,
   getOwnersDot,
   getSchedule,
@@ -48,6 +47,7 @@ import {
   type NewScheduleRun,
   recentScheduleStatuses,
   releaseClaim,
+  releaseStaleClaims,
   runsInLastDay,
   type ScheduleRow,
   type ScheduleRunRow,
@@ -495,16 +495,12 @@ export const settleClaim = (
   claimId: DotRunId,
   started: Result<CreateRunOutput, unknown>
 ): Promise<void> =>
-  updateScheduleRun(
-    db,
-    claimId,
-    started.ok
-      ? {
-          conversationId: started.value.conversationId,
-          runId: started.value.runId,
-        }
-      : { outcome: "failed" }
-  );
+  started.ok
+    ? updateScheduleRun(db, claimId, {
+        conversationId: started.value.conversationId,
+        runId: started.value.runId,
+      })
+    : releaseClaim(db, claimId);
 
 /**
  * Posts the schedule's prompt into its target as the owner, labelled with a
@@ -652,9 +648,6 @@ export const fireSchedule = async (
   if (claim?.runId) {
     return { runId: claim.runId, type: "started" };
   }
-  if (claim?.outcome) {
-    return { reason: "run_failed", type: "skipped" };
-  }
   const schedule = claim?.scheduleId
     ? await getScheduleById(deps.db, claim.scheduleId)
     : null;
@@ -685,7 +678,7 @@ export const claimDue = async (
   deps: Pick<ScheduleDeps, "db" | "limits">,
   now: Date
 ): Promise<readonly DotRunId[]> => {
-  await failStaleClaims(deps.db, new Date(now.getTime() - CLAIM_STALE_MS));
+  await releaseStaleClaims(deps.db, new Date(now.getTime() - CLAIM_STALE_MS));
   const claims = await claimDueSchedules(deps.db, now, (row, context) =>
     planDue(row, now, context, deps.limits)
   );

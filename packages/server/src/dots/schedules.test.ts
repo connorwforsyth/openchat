@@ -613,7 +613,7 @@ describe("scheduled runs", () => {
     expect((await limitsNow()).runsToday).toBe(1);
   });
 
-  it("records a run that can't start, leaving no empty chat behind", async () => {
+  it("leaves no empty chat behind when a run can't start", async () => {
     await withDots({
       defaultModel: null,
       runs: { ...services.dots.runs, defaultModel: null },
@@ -632,10 +632,8 @@ describe("scheduled runs", () => {
     clock = new Date("2026-10-20T09:31:00.000Z");
     await tick();
 
-    expect(
-      (await runsOf(once.id)).map((run) => [run.outcome, run.runId])
-    ).toEqual([["failed", null]]);
     expect(await chats()).toEqual(before);
+    expect(await runsOf(once.id)).toEqual([]);
     expect((await limitsNow()).runsToday).toBe(0);
     expect(
       await json<Schedule>(await request(`/api/schedules/${once.id}`))
@@ -698,7 +696,7 @@ describe("claims", () => {
     expect((await limitsNow()).runsToday).toBe(0);
   });
 
-  it("fails a claim no run ever started, so it stops spending the cap", async () => {
+  it("gives back a claim no run ever started, and says the slot failed", async () => {
     const schedule = await create({ target: { kind: "new_chat_each_run" } });
     clock = new Date("2026-10-20T09:06:00.000Z");
     await claimDue();
@@ -707,10 +705,11 @@ describe("claims", () => {
     clock = new Date("2026-10-20T09:22:00.000Z");
     await claimDue();
     await h.jobs.drain();
-    expect(
-      (await runsOf(schedule.id)).map((run) => [run.outcome, run.runId])
-    ).toEqual([["failed", null]]);
+    expect(await runsOf(schedule.id)).toEqual([]);
     expect((await limitsNow()).runsToday).toBe(0);
+    expect(
+      await json<Schedule>(await request(`/api/schedules/${schedule.id}`))
+    ).toMatchObject({ lastOutcome: "failed" });
   });
 
   it("starts a retried claim's run once, in one chat", async () => {
@@ -719,7 +718,7 @@ describe("claims", () => {
     clock = new Date("2026-10-20T09:06:00.000Z");
     await tick();
     const [first] = await runsOf(schedule.id);
-    if (!first) {
+    if (!first || first.outcome === "skipped") {
       throw new Error("the slot didn't run");
     }
     const before = await chats();
@@ -739,7 +738,10 @@ describe("claims", () => {
     await h.services.executor.idle();
 
     expect(
-      (await runsOf(schedule.id)).map((run) => [run.id, run.runId])
+      (await runsOf(schedule.id)).map((run) => [
+        run.id,
+        run.outcome === "skipped" ? null : run.runId,
+      ])
     ).toEqual([[first.id, first.runId]]);
     expect(await chats()).toEqual(before);
   });

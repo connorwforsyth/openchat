@@ -141,10 +141,7 @@ const ACTIVE_RUN: readonly RunStatus[] = [
   "awaiting_approval",
 ];
 
-const spendsCap = and(
-  isNull(dotRun.skipReason),
-  or(isNotNull(dotRun.runId), isNull(dotRun.outcome))
-);
+const spendsCap = isNull(dotRun.skipReason);
 
 const CAP_LOCK_SPACE = 175;
 
@@ -631,19 +628,37 @@ export const releaseClaim = async (db: Db, id: DotRunId): Promise<void> => {
   await db.delete(dotRun).where(and(eq(dotRun.id, id), isNull(dotRun.runId)));
 };
 
-/** Fails claims no run ever started (a crash, a lost job), so they stop spending the cap. */
-export const failStaleClaims = async (db: Db, before: Date): Promise<void> => {
-  await db
-    .update(dotRun)
-    .set({ outcome: "failed" })
+/**
+ * Gives back claims no run started (a crash, a lost job) and marks their
+ * schedules failed, so a lost slot frees the cap and still shows.
+ */
+export const releaseStaleClaims = async (
+  db: Db,
+  before: Date
+): Promise<void> => {
+  const released = await db
+    .delete(dotRun)
     .where(
       and(
         isNull(dotRun.runId),
-        isNull(dotRun.outcome),
         isNull(dotRun.skipReason),
         lt(dotRun.createdAt, before)
       )
-    );
+    )
+    .returning({ scheduleId: dotRun.scheduleId });
+  const schedules = released.flatMap((row) =>
+    row.scheduleId ? [row.scheduleId] : []
+  );
+  if (schedules.length > 0) {
+    await db
+      .update(dotSchedule)
+      .set({
+        lastOutcome: "failed",
+        lastStatus: "failed",
+        updatedAt: new Date(),
+      })
+      .where(inArray(dotSchedule.id, schedules));
+  }
 };
 
 /** The schedule-run row (and its schedule) that started `runId`, if any. */
@@ -721,6 +736,8 @@ export const listScheduleRuns = async (
     .where(
       and(
         eq(dotRun.scheduleId, scheduleId),
+        // A claim shows once its run starts.
+        or(isNotNull(dotRun.runId), isNotNull(dotRun.skipReason)),
         before ? lt(dotRun.createdAt, before) : undefined
       )
     )

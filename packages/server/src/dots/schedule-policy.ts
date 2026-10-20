@@ -219,7 +219,7 @@ export const BUSY_RETRY_MS = 60_000;
 
 export const ONCE_BUSY_WAIT_MS = 60 * 60_000;
 
-/** Past this, a claim no run started is failed: its job retried and expired long ago. */
+/** Past this, a claim no run started is given back: its job retried and expired long ago. */
 export const CLAIM_STALE_MS = 15 * 60_000;
 
 /** With `missedRunPolicy: "skip"`, a slot later than this after downtime is skipped. */
