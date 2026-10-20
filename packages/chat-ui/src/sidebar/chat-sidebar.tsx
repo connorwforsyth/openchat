@@ -788,12 +788,16 @@ function AccountFooter({
 
 function PrimaryNav({
   artifactsHref,
+  chatActions,
   libraryHref,
   onNewChat,
   onOpenPalette,
   railed,
   scheduledHref,
-}: Pick<
+}: {
+  /** New chat and Search chats belong to the Chats focus only (181). */
+  readonly chatActions: boolean;
+} & Pick<
   ChatSidebarProps,
   | "artifactsHref"
   | "libraryHref"
@@ -806,14 +810,16 @@ function PrimaryNav({
   const pageRow = cn(navRowClass, railed && "md:hidden");
   return (
     <nav aria-label={t`Primary`} className="flex flex-col gap-px px-2">
-      <button className={navRowClass} onClick={onNewChat} type="button">
-        <NewChatIcon aria-hidden />
-        <span className="flex-1">
-          <Trans>New chat</Trans>
-        </span>
-        <ShortcutHint id="chat.new" />
-      </button>
-      {onOpenPalette ? (
+      {chatActions ? (
+        <button className={navRowClass} onClick={onNewChat} type="button">
+          <NewChatIcon aria-hidden />
+          <span className="flex-1">
+            <Trans>New chat</Trans>
+          </span>
+          <ShortcutHint id="chat.new" />
+        </button>
+      ) : null}
+      {chatActions && onOpenPalette ? (
         <button className={navRowClass} onClick={onOpenPalette} type="button">
           <SearchIcon aria-hidden />
           <span className="flex-1">
@@ -1218,7 +1224,7 @@ export function ChatSidebar({
         {toggle}
       </div>
 
-      <PrimaryNav {...nav} />
+      <PrimaryNav {...nav} chatActions={panel === undefined} />
       <ChatsOnly panel={panel}>
         {top ? (
           <div className="px-2 pt-px" data-slot="chat-sidebar-dot">

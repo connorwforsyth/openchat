@@ -7,8 +7,9 @@ import { navRowClass } from "./chat-sidebar";
 
 // The panel beside the rail follows the rail (181), as ChatGPT's does: Chats
 // shows the chat list, and Scheduled, Library and Artifacts show their own
-// navigation here, in the same rows and rhythm. New chat and Search stay at
-// the top of every panel (ChatSidebar draws them); this is what goes under.
+// navigation here, in the same rows and rhythm. Each panel keeps to its own
+// focus: New chat and Search chats belong to Chats alone, and a panel brings
+// its own primary action ("New task") instead.
 
 export interface RailPanelLink {
   /** The page it's showing: filled, and `aria-current`. */

@@ -2783,6 +2783,7 @@ msgid "Never used"
 msgstr "Never used"
 
 #: ../../apps/web/app/(app)/(pages)/dots/dots-screen.tsx
+#: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
 #: ../library-ui/src/components/library-index.tsx
 msgid "New"
 msgstr "New"
