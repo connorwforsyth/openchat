@@ -165,8 +165,10 @@ describe("PageShell", () => {
       </AppFrameProvider>,
       api()
     );
+    // On a wide screen the account menu is at the foot of the rail (181).
+    const rail = screen.getByRole("navigation", { name: "Sidebar rail" });
     await userEvent.click(
-      screen.getByRole("button", { name: `Account: ${me.user.name}` })
+      within(rail).getByRole("button", { name: `Account: ${me.user.name}` })
     );
     await userEvent.click(
       await screen.findByRole("menuitem", { name: "New organisation" })
@@ -174,7 +176,7 @@ describe("PageShell", () => {
     expect(value.openNewOrg).toHaveBeenCalled();
   });
 
-  it("leaves a rail in the sidebar's place while it's collapsed", () => {
+  it("keeps the rail while the sidebar is collapsed (181)", () => {
     renderWithApi(
       <AppFrameProvider
         value={frame({
@@ -191,9 +193,10 @@ describe("PageShell", () => {
       api()
     );
     expect(screen.queryByRole("complementary", { name: "Chats" })).toBeNull();
-    // The header takes the sidebar toggle (113); New chat is on the rail (179).
+    // The header takes the sidebar toggle (113); the rail stays (181), with
+    // the page's destination current.
     expect(screen.getByRole("button", { name: "Toggle sidebar" })).toBeTruthy();
     const rail = screen.getByRole("navigation", { name: "Sidebar rail" });
-    expect(within(rail).getByRole("button", { name: "New chat" })).toBeTruthy();
+    expect(within(rail).getByRole("button", { name: "Chats" })).toBeTruthy();
   });
 });
