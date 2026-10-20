@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { REPORT_TOOL } from "@workspace/ai/schedules/tool";
 import {
   textStream,
@@ -13,15 +15,18 @@ import type {
   ScheduleLimits,
   ScheduleRun,
 } from "@workspace/contract/schemas/schedules";
+import { MIGRATIONS_FOLDER } from "@workspace/db/migrator";
 import { seedUser } from "@workspace/db/testing";
 import { tool } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
+import { sql } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { createDotsRouter } from "../api/dots";
 import { createApp } from "../app";
 import { createHarness, type Harness, USER_HEADER } from "../testing/harness";
 import { dotJobHandlers } from "./jobs";
+import { titleFromPrompt } from "./schedule-policy";
 
 // Schedules end to end, in process (173, 175): the `schedules` procedures
 // through Hono's `app.request`, the tick and run jobs on the in-memory
@@ -256,6 +261,48 @@ describe("schedules API", () => {
       await request(`/api/schedules/${schedule.id}/resume`, { method: "POST" })
     );
     expect(again).toMatchObject({ pausedReason: null, status: "active" });
+  });
+
+  it("retitles schedules the schedules migration cut mid-word", async () => {
+    const chat = await newChat();
+    const target = { conversationId: chat.id, kind: "conversation" };
+    const prompts = [
+      "Give me a short brief for today: what's on, what changed overnight, and anything I should look at first.",
+      "Every morning look through the team inbox and summarise anything from customers about billing",
+      "Check the build",
+    ];
+    for (const prompt of prompts) {
+      // biome-ignore lint/performance/noAwaitInLoops: kept in order.
+      await create({ prompt, target });
+    }
+    const kept = await create({
+      prompt:
+        "Watch the deploy queue and tell me when it drains overnight please",
+      target,
+      title: "Deploy queue",
+    });
+    await h.db.execute(
+      sql`update dot_schedule set title = left(regexp_replace(prompt, '\\s+', ' ', 'g'), 60) where id <> ${kept.id}`
+    );
+
+    await h.db.execute(
+      sql.raw(
+        await readFile(
+          join(
+            MIGRATIONS_FOLDER,
+            "20261020125719_schedule_titles/migration.sql"
+          ),
+          "utf8"
+        )
+      )
+    );
+
+    const listed = await json<Schedule[]>(await request("/api/schedules"));
+    const titles = new Map(listed.map((each) => [each.prompt, each.title]));
+    for (const prompt of prompts) {
+      expect(titles.get(prompt)).toBe(titleFromPrompt(prompt));
+    }
+    expect(titles.get(kept.prompt)).toBe("Deploy queue");
   });
 
   it("reports the guardrails and today's usage", async () => {
