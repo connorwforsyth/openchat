@@ -3,25 +3,16 @@ import {
   REPORT_TOOL,
   SCHEDULE_TASK_TOOL,
 } from "@workspace/ai/schedules/tool";
-import type { DotScheduleId, RunId } from "@workspace/contract/schemas/common";
+import type { RunId } from "@workspace/contract/schemas/common";
 import type { Db } from "@workspace/db/client";
-import {
-  getDotByConversation,
-  getScheduleById,
-} from "@workspace/db/queries/dots";
+import { getDotByConversation, getSchedule } from "@workspace/db/queries/dots";
 import { getRun } from "@workspace/db/queries/runs";
 import { err, ok } from "@workspace/shared/result";
 import type { Tool, ToolApprovalStatus, ToolSet } from "ai";
 import type { ConversationAccess } from "../context";
 import { planTurn } from "../runs/plan-mode";
 import type { Turn, TurnResolver } from "../runs/turn";
-import {
-  type DotIdentity,
-  dotPersona,
-  isDotRunKey,
-  scheduleIdOfKey,
-  unattendedApproval,
-} from "./policy";
+import { type DotIdentity, dotPersona, unattendedApproval } from "./policy";
 import { REPORT_INSTRUCTIONS, reportTool } from "./report-tool";
 import type { ScheduleLimitsConfig } from "./schedule-policy";
 import { type DotSchedulesPort, dotScheduleTools } from "./schedule-tool";
@@ -207,27 +198,26 @@ export const dbDotPolicy =
     if (!row.ok) {
       return null;
     }
-    const key = row.value.idempotencyKey;
-    const unattended = isDotRunKey(key);
-    const scheduleId = scheduleIdOfKey(key);
-    const schedule = scheduleId
-      ? await getScheduleById(db, scheduleId as DotScheduleId)
-      : null;
-    const guards: UnattendedRun = {
-      budget: {
-        steps: deps.limits.runStepBudget,
-        tokens: deps.limits.runTokenBudget,
-      },
-      readOnly: schedule?.readOnly ?? false,
+    const { conversationId, createdBy, unattended: started } = row.value;
+    const unattended = started !== null;
+    const schedule =
+      started?.type === "schedule"
+        ? await getSchedule(db, started.scheduleId, createdBy)
+        : null;
+    const budget = {
+      steps: deps.limits.runStepBudget,
+      tokens: deps.limits.runTokenBudget,
     };
-    const dot = await getDotByConversation(db, row.value.conversationId);
-    if (!dot) {
-      return unattended && schedule
+    const dot = await getDotByConversation(db, conversationId);
+    if (!dot || dot.ownerId !== createdBy) {
+      // A run the server started stays guarded even when its schedule is
+      // gone: read-only, with nothing auto-approved.
+      return unattended
         ? {
             policy: {
-              autoApproveTools: schedule.autoApproveTools,
-              run: guards,
-              title: schedule.title,
+              autoApproveTools: schedule?.autoApproveTools ?? [],
+              run: { budget, readOnly: schedule?.readOnly ?? true },
+              title: schedule?.title ?? "Scheduled task",
             },
             type: "chat",
           }
@@ -268,7 +258,9 @@ export const dbDotPolicy =
         instructions: dot.instructions,
         name: dot.name,
         rules: dot.rules,
-        run: unattended ? guards : undefined,
+        run: unattended
+          ? { budget, readOnly: schedule?.readOnly ?? false }
+          : undefined,
         tools: dotScheduleTools(port),
         unattended,
       },
