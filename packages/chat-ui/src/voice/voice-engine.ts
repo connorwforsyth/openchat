@@ -121,6 +121,44 @@ export const callErrorOf = async (
   return stage === "transcribe" ? "transcription" : "speech";
 };
 
+/**
+ * A sentence's audio that hasn't arrived by now never will: the speech
+ * service has stalled. Kokoro on a CPU takes a second or two a sentence.
+ */
+export const SPEAK_TIMEOUT_MS = 15_000;
+
+/** One sentence's audio from `/api/voice/speak`; a stall counts as the service being down. */
+export const requestSpeech = async ({
+  fetch,
+  signal,
+  text,
+  timeoutMs = SPEAK_TIMEOUT_MS,
+  url,
+}: {
+  readonly fetch: typeof globalThis.fetch;
+  readonly signal: AbortSignal;
+  readonly text: string;
+  readonly timeoutMs?: number;
+  readonly url: string;
+}): Promise<Result<ArrayBuffer, CallError>> => {
+  const timeout = AbortSignal.timeout(timeoutMs);
+  try {
+    const response = await fetch(url, {
+      body: JSON.stringify({ text }),
+      credentials: "same-origin",
+      headers: { "content-type": "application/json" },
+      method: "POST",
+      signal: AbortSignal.any([signal, timeout]),
+    });
+    if (!response.ok) {
+      return err(await callErrorOf("speak", response));
+    }
+    return ok(await response.arrayBuffer());
+  } catch {
+    return err(timeout.aborted ? "unavailable" : "speech");
+  }
+};
+
 const lengthOf = (frames: readonly Float32Array[]) =>
   frames.reduce((sum, frame) => sum + frame.length, 0);
 
@@ -238,17 +276,13 @@ export const openVoiceEngine = async (
     sentence: string,
     signal: AbortSignal
   ): Promise<Result<AudioBuffer, CallError>> => {
-    const response = await options.fetch(api("speak"), {
-      body: JSON.stringify({ text: sentence }),
-      credentials: "same-origin",
-      headers: { "content-type": "application/json" },
-      method: "POST",
+    const spoken = await requestSpeech({
+      fetch: options.fetch,
       signal,
+      text: sentence,
+      url: api("speak"),
     });
-    if (!response.ok) {
-      return err(await callErrorOf("speak", response));
-    }
-    return ok(await context.decodeAudioData(await response.arrayBuffer()));
+    return spoken.ok ? ok(await context.decodeAudioData(spoken.value)) : spoken;
   };
 
   const speak = (sentence: string) => {

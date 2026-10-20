@@ -298,6 +298,9 @@ const onMute: Handler<"mute"> = (state, event) =>
       }
     : stay({ ...state, muted: event.muted });
 
+const replying = (phase: CallPhase) =>
+  phase === "thinking" || phase === "speaking" || phase === "paused";
+
 const onFailed: Handler<"failed"> = (state, event) => {
   if (event.error === "microphone") {
     return {
@@ -306,12 +309,20 @@ const onFailed: Handler<"failed"> = (state, event) => {
     };
   }
   // A sentence that couldn't be spoken doesn't stop the rest.
-  const phase =
-    (event.error === "speech" || event.error === "unavailable") &&
-    state.phase === "speaking"
-      ? "speaking"
-      : "listening";
-  return stay({ ...state, error: event.error, phase, replyDone: true });
+  if (event.error === "speech" && replying(state.phase)) {
+    return stay({ ...state, error: event.error });
+  }
+  // Anything else ends the reply. Its run and audio stop with it, so nothing
+  // plays over the user's turn or spends tokens after it.
+  return {
+    effects: replying(state.phase) ? [{ type: "interrupt" }] : [],
+    state: {
+      ...state,
+      error: event.error,
+      phase: "listening",
+      replyDone: true,
+    },
+  };
 };
 
 const handlers: { readonly [T in CallEvent["type"]]: Handler<T> } = {
