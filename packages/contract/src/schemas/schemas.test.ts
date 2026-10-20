@@ -1374,6 +1374,13 @@ const cases: Record<string, Cases> = {
         defaultTarget: null,
         locale: null,
       },
+      {
+        defaultContext: { type: "personal" },
+        defaultTarget: null,
+        locale: null,
+        shortcuts: {},
+        sidebarLayout: "sideways",
+      },
     ],
     valid: [
       {
@@ -1387,6 +1394,13 @@ const cases: Record<string, Cases> = {
         defaultTarget: null,
         locale: "en",
         shortcuts: { "palette.open": ["Mod+P"] },
+      },
+      {
+        defaultContext: { type: "personal" },
+        defaultTarget: null,
+        locale: null,
+        shortcuts: {},
+        sidebarLayout: "classic",
       },
     ],
   },

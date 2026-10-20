@@ -49,12 +49,21 @@ export const shortcutOverridesSchema = z
   });
 export type ShortcutOverridesSetting = z.infer<typeof shortcutOverridesSchema>;
 
+/**
+ * How the sidebar is laid out on a wide screen (181): the icon rail beside a
+ * collapsible chat panel, or the classic single sidebar.
+ */
+export const sidebarLayoutSchema = z.enum(["rail", "classic"]);
+export type SidebarLayoutSetting = z.infer<typeof sidebarLayoutSchema>;
+
 export const userSettingsSchema = z.object({
   defaultContext: chatContextSchema,
   defaultTarget: runTargetSchema.nullable(),
   locale: z.string().max(35).nullable(),
   /** `{}` when nothing is recorded. Replaced whole on update. */
   shortcuts: shortcutOverridesSchema,
+  /** Missing means never chosen: show the rail. */
+  sidebarLayout: sidebarLayoutSchema.optional(),
 });
 export type UserSettings = z.infer<typeof userSettingsSchema>;
 
