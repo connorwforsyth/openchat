@@ -34,6 +34,7 @@ import {
 import { SettingsView } from "./settings/settings-view";
 import { spaceFromQuery } from "./spaces/active-space";
 import { useActiveSpace } from "./spaces/space-switcher";
+import { useTerms } from "./terms";
 
 // The global surfaces (D10, D14): the ⌘K palette and the `?` dialog, and the
 // shortcuts that work on every page. Loaded after boot (see `AppFrame`); the
@@ -43,6 +44,7 @@ const useSettingsEntries = (): readonly PaletteAction[] => {
   const { t } = useLingui();
   const router = useRouter();
   const { openSettings } = useAppFrame();
+  const { label } = useTerms().mcp;
   return useMemo(() => {
     const go = (section: SettingsSection) => () => openSettings(section);
     return [
@@ -66,12 +68,12 @@ const useSettingsEntries = (): readonly PaletteAction[] => {
       ),
       paletteAction(
         {
-          id: "settings:connectors",
-          keywords: [t`MCP`, t`servers`, t`tools`],
+          id: "settings:mcp",
+          keywords: [t`MCP`, t`servers`, t`tools`, t`connectors`],
           section: "settings",
-          title: t`Connectors`,
+          title: label,
         },
-        go("connectors")
+        go("mcp")
       ),
       paletteAction(
         { id: "settings:memory", section: "settings", title: t`Memory` },
@@ -105,7 +107,7 @@ const useSettingsEntries = (): readonly PaletteAction[] => {
         () => router.push(routes.admin)
       ),
     ];
-  }, [openSettings, router, t]);
+  }, [label, openSettings, router, t]);
 };
 
 const isChatPath = (pathname: string): boolean =>
@@ -204,7 +206,8 @@ export const GlobalSurfaces = () => {
   const { client, query } = useApi();
   const { chat, me, openSettings, paletteOpen, setPaletteOpen } = useAppFrame();
   const { setHelpOpen } = useShortcuts();
-  const settingsRoute = settingsRouteFromPath(pathname);
+  const terms = useTerms();
+  const settingsRoute = settingsRouteFromPath(pathname, terms);
   const { active: activeSpace } = useActiveSpace();
   // A link to one space's settings (`?space=org:<id>`) makes it active, on a
   // client navigation as well as a load (the frame reads it on mount).
@@ -242,8 +245,8 @@ export const GlobalSurfaces = () => {
   const openAdmin = useCallback(() => router.push(routes.admin), [router]);
   const selectSection = useCallback(
     (section: SettingsSection | undefined) =>
-      selectSettingsSection(window.history, section),
-    []
+      selectSettingsSection(window.history, terms, section),
+    [terms]
   );
 
   const cachedChats = useCallback(

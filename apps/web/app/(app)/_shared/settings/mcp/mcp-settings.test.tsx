@@ -1,23 +1,25 @@
 import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
+import { resolveTerms } from "@workspace/config/terms";
 import { fixtureId } from "@workspace/contract/fixtures";
 import type {
   Connector,
   ConnectorList,
 } from "@workspace/contract/schemas/library";
 import { afterEach, describe, expect, it } from "vitest";
-
+import { TermsProvider } from "@/app/(app)/_shared/terms";
 import {
   apiError,
   fakeApi,
   renderWithApi,
 } from "@/app/(app)/_shared/test-harness";
-import { ConnectorsSettings } from "./connectors-settings";
+
+import { McpSettings } from "./mcp-settings";
 
 afterEach(() => {
   cleanup();
 });
 
-const connector = (extra: Partial<Connector>): Connector => ({
+const server = (extra: Partial<Connector>): Connector => ({
   auth: "none",
   availability: { state: "available" },
   customized: false,
@@ -34,14 +36,14 @@ const connector = (extra: Partial<Connector>): Connector => ({
   ...extra,
 });
 
-const docs = connector({ description: "Search the handbook" });
-const audit = connector({
+const docs = server({ description: "Search the handbook" });
+const audit = server({
   id: fixtureId("libraryItem", 2),
   lock: { reason: "Audit trail", type: "required" },
   name: "audit",
   title: "Audit log",
 });
-const files = connector({
+const files = server({
   availability: { state: "desktop_only" },
   enabled: false,
   id: fixtureId("libraryItem", 3),
@@ -56,13 +58,13 @@ const listOf = (connectors: Connector[], allowed = true): ConnectorList => ({
   userServers: { allowed, hosts: [], transports: ["http", "sse"] },
 });
 
-describe("ConnectorsSettings", () => {
-  it("shows operator connectors, locks required ones with the reason, and saves a toggle", async () => {
+describe("McpSettings", () => {
+  it("shows operator servers, locks required ones with the reason, and saves a toggle", async () => {
     const api = fakeApi({
       "GET /connectors": () => listOf([docs, audit, files]),
       "PUT /connectors/:id/enabled": () => ({ ...docs, enabled: false }),
     });
-    renderWithApi(<ConnectorsSettings />, api);
+    renderWithApi(<McpSettings />, api);
 
     const docsSwitch = await screen.findByRole("switch", {
       name: "Use Docs in chats",
@@ -70,7 +72,6 @@ describe("ConnectorsSettings", () => {
     expect(
       screen.getByRole("switch", { name: "Use Audit log in chats" })
     ).toHaveProperty("ariaDisabled", "true");
-    expect(screen.getByText("Audit trail")).toBeTruthy();
     expect(screen.getByText("Desktop app only")).toBeTruthy();
     expect(screen.getByText("Search the handbook")).toBeTruthy();
 
@@ -83,7 +84,7 @@ describe("ConnectorsSettings", () => {
     );
   });
 
-  it("expands a connector to its tools, saves a tool switch, and locks required ones (188)", async () => {
+  it("opens a server's page with its tools, saves a tool switch, and locks required ones (188)", async () => {
     const api = fakeApi({
       "GET /connectors": () => listOf([docs]),
       "GET /connectors/:id/tools": () => ({
@@ -110,11 +111,11 @@ describe("ConnectorsSettings", () => {
         name: "search",
       }),
     });
-    renderWithApi(<ConnectorsSettings />, api);
+    renderWithApi(<McpSettings />, api);
 
-    // Tools load only once someone opens the list.
+    // Tools load only once someone opens the server.
     const disclosure = await screen.findByRole("button", {
-      name: "Tools in Docs",
+      name: "Open Docs",
     });
     expect(api.calls.some((call) => call.route.includes("/tools"))).toBe(false);
     fireEvent.click(disclosure);
@@ -132,28 +133,46 @@ describe("ConnectorsSettings", () => {
         api.calls.find((call) => call.route.startsWith("PUT /connectors/"))
       ).toMatchObject({ body: { enabled: false } })
     );
+
+    // Back to the list, named with the configured term.
+    fireEvent.click(screen.getByRole("button", { name: "MCP servers" }));
+    expect(
+      await screen.findByRole("button", { name: "Open Docs" })
+    ).toBeTruthy();
   });
 
-  it("says why a connector's tools can't be listed", async () => {
+  it("gives the lock's reason on the server's page", async () => {
     renderWithApi(
-      <ConnectorsSettings />,
+      <McpSettings />,
+      fakeApi({
+        "GET /connectors": () => listOf([audit]),
+        "GET /connectors/:id/tools": () => ({ reachable: true, tools: [] }),
+      })
+    );
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Open Audit log" })
+    );
+    expect(await screen.findByText("Audit trail")).toBeTruthy();
+  });
+
+  it("says why a server's tools can't be listed", async () => {
+    renderWithApi(
+      <McpSettings />,
       fakeApi({
         "GET /connectors": () => listOf([docs]),
         "GET /connectors/:id/tools": () => ({ reachable: false, tools: [] }),
       })
     );
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Tools in Docs" })
-    );
+    fireEvent.click(await screen.findByRole("button", { name: "Open Docs" }));
     expect(
       await screen.findByText(
-        "Couldn't reach this connector to list its tools."
+        "Couldn't reach this MCP server to list its tools."
       )
     ).toBeTruthy();
   });
 
-  it("shows a connector that needs setup as off and disabled, even when the user turned it on", async () => {
-    const jira = connector({
+  it("shows a server that needs setup as off and disabled, even when the user turned it on", async () => {
+    const jira = server({
       availability: { message: "JIRA_TOKEN isn't set", state: "unconfigured" },
       enabled: true,
       id: fixtureId("libraryItem", 4),
@@ -161,7 +180,7 @@ describe("ConnectorsSettings", () => {
       title: "Jira",
     });
     renderWithApi(
-      <ConnectorsSettings />,
+      <McpSettings />,
       fakeApi({ "GET /connectors": () => listOf([jira]) })
     );
     const jiraSwitch = await screen.findByRole("switch", {
@@ -174,7 +193,7 @@ describe("ConnectorsSettings", () => {
 
   it("offers Add your own when the instance allows it", async () => {
     renderWithApi(
-      <ConnectorsSettings />,
+      <McpSettings />,
       fakeApi({ "GET /connectors": () => listOf([docs]) })
     );
     expect(
@@ -184,17 +203,36 @@ describe("ConnectorsSettings", () => {
 
   it("explains when there is nothing and adding is off", async () => {
     renderWithApi(
-      <ConnectorsSettings />,
+      <McpSettings />,
       fakeApi({ "GET /connectors": () => listOf([], false) })
     );
-    expect(await screen.findByText("No connectors yet")).toBeTruthy();
+    expect(await screen.findByText("No MCP servers yet")).toBeTruthy();
     expect(screen.queryByRole("link", { name: "Add your own" })).toBeNull();
   });
 
-  it("shows Connect for an OAuth connector that isn't signed in", async () => {
-    const wiki = connector({ auth: "oauth", title: "Wiki" });
+  it("says what this instance calls them (191)", async () => {
+    const plugins = resolveTerms({
+      mcp: {
+        label: "plugins",
+        locales: {},
+        singular: "plugin",
+        slug: "plugins",
+      },
+    });
     renderWithApi(
-      <ConnectorsSettings />,
+      <TermsProvider terms={plugins}>
+        <McpSettings />
+      </TermsProvider>,
+      fakeApi({ "GET /connectors": () => listOf([], false) })
+    );
+    expect(await screen.findByText("No plugins yet")).toBeTruthy();
+    expect(screen.queryByText("No MCP servers yet")).toBeNull();
+  });
+
+  it("shows Connect for an OAuth server that isn't signed in", async () => {
+    const wiki = server({ auth: "oauth", title: "Wiki" });
+    renderWithApi(
+      <McpSettings />,
       fakeApi({
         "GET /connectors": () => listOf([wiki]),
         "GET /mcp/:id/status": () => ({ state: "needs_auth" }),
@@ -205,7 +243,7 @@ describe("ConnectorsSettings", () => {
 
   it("shows a retry when the list fails", async () => {
     renderWithApi(
-      <ConnectorsSettings />,
+      <McpSettings />,
       fakeApi({ "GET /connectors": () => apiError("INTERNAL", 500) })
     );
     expect(

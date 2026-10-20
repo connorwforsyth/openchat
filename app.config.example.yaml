@@ -159,6 +159,17 @@ mcp:
     transports: [http, sse]
     hosts: []                 # e.g. ["*.example.com"]; empty means any public host
 
+# What the UI calls a feature, and where it lives (docs/self-hosting.md,
+# "Renaming features for your fork"). Code, the database and the API keep
+# the id (`mcp`); only the words and the settings address change.
+# terms:
+#   mcp:
+#     label: MCP servers      # default; plural, for headings and menus
+#     singular: MCP server    # one of them, used mid-sentence
+#     slug: mcp               # → /settings/mcp (old addresses redirect here)
+#     locales:                # for languages that inflect
+#       de: { label: MCP-Server, singular: MCP-Server }
+
 artifacts:
   origin: null              # a separate origin for artifacts and previews, e.g. https://artifacts.example.com
   kinds:
