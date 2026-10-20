@@ -61,7 +61,8 @@ the first Dot is primary, deleting it promotes the newest remaining one).
                           │ fireDotSchedule: re-checks Dot + schedule enabled,
                           │ skips if the last run is still going
                           ▼
-   createRun(as owner, idempotencyKey "dot:s:<schedule>:<occurrence>")
+   createUnattendedRun(as owner, unattended { type: "schedule", scheduleId },
+                       idempotencyKey "dot:s:<schedule>:<occurrence>")
                           │ in-process executor
                           ▼
    turn resolver ─► withChatMemory ─► withDotPolicy (unattended rules)
@@ -82,12 +83,19 @@ the first Dot is primary, deleting it promotes the newest remaining one).
   `apps/worker`) never fire one occurrence twice. Minute granularity.
 - **Idempotency:** a scheduled run's key is `dot:s:<scheduleId>:<occurrence>`,
   so a retried `dot.run` job returns the same run instead of posting again.
+  The `dot:` prefix is the server's: `runs.create` refuses a client key that
+  starts with it.
 - **Unattended policy** (`packages/server/src/dots/policy.ts`,
   `unattendedApproval`): on a Dot's run, a tool that would ask for approval
   is withheld and a call to it is answered with a clear tool error, unless the
   Dot lists the tool in `autoApproveTools`. A Dot's run never pauses for an
-  approval. Manual chat in the Dot's conversation keeps normal approvals; the
-  policy keys off the run's `dot:` idempotency key.
+  approval. Manual chat in the Dot's conversation keeps normal approvals. The
+  policy keys off the run's `unattended` column, which only
+  `createUnattendedRun` sets (the schedules engine and a Dot's check-in),
+  never off its idempotency key. A run's schedule loads only when the run's
+  creator owns it, and a Dot's persona and approvals apply only to its
+  owner's runs. A server-started run whose schedule is gone runs read-only
+  with nothing auto-approved.
 - **Standing instructions** join the turn's system instructions (not the
   posted message), with a note that nobody is watching.
 - **Access:** the run is created as the Dot's owner, through `createRun`,

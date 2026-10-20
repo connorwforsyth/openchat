@@ -1,3 +1,4 @@
+import type { ComputerHolder } from "@workspace/server/dots/computer-view";
 import { err, ok, type Result } from "@workspace/shared/result";
 import { z } from "zod";
 
@@ -198,9 +199,21 @@ export const computerCommand = (action: ComputerAction): string => {
     .join(" && ");
 };
 
-/** Hands control to the person (`user`) or back to the agent. Pure. */
-export const controlCommand = (holder: "user" | "agent"): string =>
-  holder === "user" ? `touch ${CONTROL_FLAG}` : `rm -f ${CONTROL_FLAG}`;
+const VNC_RUNNING = "if pgrep -x x11vnc >/dev/null; then";
+
+/**
+ * Hands control to the person (`user`) or back to the agent, and switches
+ * the VNC server's input on or off to match. The agent stands down on the
+ * flag, so the flag is set before input turns on and cleared only once it's
+ * off. A VNC server that isn't running reads the flag when it restarts
+ * (`desktop-session`); one that is running and won't switch fails the
+ * command, and a take that fails clears the flag so the agent can still
+ * drive. Pure.
+ */
+export const controlCommand = (holder: ComputerHolder): string =>
+  holder === "user"
+    ? `touch ${CONTROL_FLAG} && { ${VNC_RUNNING} x11vnc -sync -R noviewonly; fi || { rm -f ${CONTROL_FLAG}; exit 1; }; }`
+    : `${VNC_RUNNING} x11vnc -sync -R viewonly; fi && rm -f ${CONTROL_FLAG}`;
 
 /** Prints who has control: `user` or `agent`. */
 export const CONTROL_STATUS_COMMAND = `if [ -e ${CONTROL_FLAG} ]; then echo user; else echo agent; fi`;
