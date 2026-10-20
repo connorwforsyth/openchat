@@ -139,3 +139,9 @@ Ticket [187](tickets/187-spaces.md). Resolved AFK from D17 so the demo could be 
 6. **Per-key usage** ([193](tickets/193-per-key-usage.md)): attributed when usage is recorded, to the newest key of the paying scope and provider. Earlier usage shows as "Unattributed". *Default: keep.*
 7. **Sub-space members must already be in the root space** (as teams are today). Inviting someone straight into a sub-space would invite them to the root too. *Default: keep.*
 8. **Contract** ([187a](tickets/187a-contract-spaces.md)): the additive `spaces` group awaits your approval (draft PR).
+
+## Sign in with Microsoft (186, branch `pstack/entra-sso`), defaulted, change if you disagree
+
+1. **Name.** Each Microsoft sign-in records the name it copied (`user.syncedName`). It updates the name only while the name still equals that record, so a name the person edited here stays. An account that existed before its first Microsoft sign-in keeps its name. *Defaulted, change if you disagree.* The alternative is to always follow the directory, as Better Auth does by default.
+2. **Photo.** The same rule applies to the photo (`user.syncedImage`). When Microsoft returns no photo, the app removes the avatar it synced from Microsoft and keeps one the person set themselves. A failed Graph request changes nothing. *Defaulted, change if you disagree.* The alternative is to keep the last synced photo when Microsoft has none.
+3. **`AvatarStore` port.** It lives in `packages/auth/src/ports/avatar-store.ts` with an in-memory fake beside it. A second port, `ProfileStore` (`ports/profile-store.ts`), reads the profile a sign-in would update. Both are in their own PR (`pstack/entra-sso-contract`). *Defaulted, change if you disagree.* The alternative is the server package, beside `Storage`.
