@@ -365,10 +365,8 @@ function EmptyTab({
       </Trans>
     );
   } else {
-    title = <Trans>No team or org items</Trans>;
-    description = (
-      <Trans>Items published to your teams and orgs show up here.</Trans>
-    );
+    title = <Trans>Nothing in your spaces yet</Trans>;
+    description = <Trans>Items published to your spaces show up here.</Trans>;
   }
   return (
     <Empty className="border border-border border-dashed">
