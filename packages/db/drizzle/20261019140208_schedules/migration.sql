@@ -32,10 +32,28 @@ UPDATE "dot_schedule" s SET "owner_id" = d."owner_id", "conversation_id" = d."co
 UPDATE "dot_schedule" SET "next_run_nominal_at" = "next_run_at";--> statement-breakpoint
 UPDATE "dot_run" r SET "owner_id" = d."owner_id", "conversation_id" = d."conversation_id" FROM "dot" d WHERE d."id" = r."dot_id";--> statement-breakpoint
 -- One Dot per user (174): an owner's extra Dots stop being Dots. Each one's
--- chat stays as an ordinary chat, and its schedules keep running, now as
--- schedules on that chat. The primary (or else the oldest) Dot stays.
-CREATE TEMP TABLE "extra_dot" AS SELECT "id", "conversation_id" FROM "dot" WHERE "id" NOT IN (SELECT DISTINCT ON ("owner_id") "id" FROM "dot" ORDER BY "owner_id", "is_primary" DESC, "created_at", "id");--> statement-breakpoint
-UPDATE "dot_schedule" SET "target_kind" = 'conversation', "dot_id" = NULL, "read_only" = false WHERE "dot_id" IN (SELECT "id" FROM "extra_dot");--> statement-breakpoint
+-- chat stays as an ordinary chat, and its schedules keep running there, as
+-- every chat schedule does: read-only, on the instance's schedule model (the
+-- Dot's model or agent and sandbox don't carry over). They keep the Dot's
+-- auto-approved tools, end their prompt with its instructions and rules,
+-- and stay paused if the Dot was off. The primary (or else the oldest) Dot
+-- stays.
+CREATE TEMP TABLE "extra_dot" AS SELECT "id", "enabled", "auto_approve_tools", nullif(btrim("instructions", E' \t\r\n'), '') AS "instructions", nullif(btrim("rules", E' \t\r\n'), '') AS "rules" FROM "dot" WHERE "id" NOT IN (SELECT DISTINCT ON ("owner_id") "id" FROM "dot" ORDER BY "owner_id", "is_primary" DESC, "created_at", "id");--> statement-breakpoint
+UPDATE "dot_schedule" s SET
+  "target_kind" = 'conversation',
+  "dot_id" = NULL,
+  "read_only" = true,
+  "auto_approve_tools" = d."auto_approve_tools",
+  "enabled" = s."enabled" AND d."enabled",
+  "paused_reason" = CASE WHEN d."enabled" THEN s."paused_reason" ELSE 'user' END,
+  "next_run_at" = CASE WHEN d."enabled" THEN s."next_run_at" END,
+  "next_run_nominal_at" = CASE WHEN d."enabled" THEN s."next_run_nominal_at" END,
+  "prompt" = s."prompt" || left(
+    concat_ws(E'\n\n', '',
+      'Standing instructions from the owner:' || E'\n' || d."instructions",
+      'The owner''s rules on when to act and when to ask:' || E'\n' || d."rules"),
+    greatest(0, 4000 - char_length(s."prompt")))
+FROM "extra_dot" d WHERE s."dot_id" = d."id";--> statement-breakpoint
 UPDATE "dot_run" SET "dot_id" = NULL WHERE "dot_id" IN (SELECT "id" FROM "extra_dot");--> statement-breakpoint
 DELETE FROM "dot" WHERE "id" IN (SELECT "id" FROM "extra_dot");--> statement-breakpoint
 DROP TABLE "extra_dot";--> statement-breakpoint
