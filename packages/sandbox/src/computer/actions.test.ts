@@ -119,12 +119,14 @@ describe("computerCommand", () => {
 });
 
 describe("control", () => {
-  it("sets the flag and turns VNC input on for the person, and back", () => {
+  it("never leaves viewer input on while the agent thinks it drives", () => {
+    // The agent stands down on the flag, so the flag is set before input
+    // turns on, and cleared only after input is off.
     expect(controlCommand("user")).toBe(
-      `touch ${CONTROL_FLAG} && x11vnc -sync -R noviewonly`
+      `touch ${CONTROL_FLAG} && if pgrep -x x11vnc >/dev/null; then x11vnc -sync -R noviewonly; fi`
     );
     expect(controlCommand("agent")).toBe(
-      `rm -f ${CONTROL_FLAG} && x11vnc -sync -R viewonly`
+      `if pgrep -x x11vnc >/dev/null; then x11vnc -sync -R viewonly; fi && rm -f ${CONTROL_FLAG}`
     );
   });
 
