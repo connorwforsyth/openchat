@@ -207,12 +207,13 @@ const UsageReport = ({
   const byDay = useSummary(base, "day", keyId);
   const byModel = useSummary(base, "model", keyId);
   const byWho = useSummary(base, byPerson ? "user" : "conversation", keyId);
+  const byKey = useSummary(base, "key", keyId);
   // Every key, whichever is picked, so the picker keeps its options.
-  const byKey = useSummary(base, "key", ALL_KEYS);
+  const keys = useSummary(base, "key", ALL_KEYS);
 
   const keyOptions: Option<string>[] = [
     { label: t`All keys`, value: ALL_KEYS },
-    ...(byKey.data?.rows ?? [])
+    ...(keys.data?.rows ?? [])
       .filter((row) => row.key !== "")
       .map((row) => ({ label: row.label ?? row.key, value: row.key })),
   ];
