@@ -330,8 +330,8 @@ const spacesBelow = (spaces: readonly Space[], active: Space) => {
 
 export const SubSpaces = () => {
   const { active } = useManagedSpace();
-  // A root space's whole tree is managed in one place: create anywhere in
-  // it, rename, move and remove (the team tree, 012).
+  // A root space's whole sub-space tree is managed in one place: create
+  // anywhere in it, rename and remove (012).
   return active?.type === "org" && active.canManage ? (
     <TeamsAdmin orgId={active.id as OrgId} />
   ) : (
