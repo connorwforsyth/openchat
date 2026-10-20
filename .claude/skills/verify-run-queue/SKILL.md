@@ -26,7 +26,7 @@ bun .claude/skills/verify-run-queue/model/check.ts              # the default ch
 bun .claude/skills/verify-run-queue/model/check.ts queue        # checks by name
 ```
 
-It needs no model provider, database or network once the tools are cached. The first run downloads tla2tools.jar 1.7.4, plus a Temurin 21 JRE if no `java` is on PATH, into `~/.cache/tla-tools`, and checks both against pinned SHA-256 sums (`$JAVA` overrides). The default checks explore about 950,000 states. That took 45 s of TLC on an M1 Pro under moderate load, and about 4 minutes when other jobs held the CPU; `stop-stranded` and `queue` take most of it.
+It needs no model provider, database or network once the tools are cached. The first run downloads tla2tools.jar 1.7.4, plus a Temurin 21 JRE if no `java` is on PATH, into `~/.cache/tla-tools`, and checks both against pinned SHA-256 sums (`$JAVA` overrides). The default checks explore about 4.9 million states, and took about 7 minutes of TLC on an M1 Pro while other jobs held the CPU. `stop-start`, `stop-settled` and `stop-stranded` each explore the whole Stop configuration and take most of it.
 
 It prints one line per check (`ok` or `FAIL`, expected against got), then each counterexample as numbered steps in the code's words, with every run's status after each step. It exits 0 only when every check matches the table below.
 
@@ -38,10 +38,10 @@ Last confirmed against the last commit that changed `model/`: a model change lan
 | --- | --- | --- | --- | --- |
 | `queue` | SendOnly | all but `StopReachesPass` | holds | about 211,000 distinct states |
 | `double-start` | SendOnly | `StopReachesPass` | holds | finding 1, fixed; about 57,000 distinct states |
-| `stop-start` | Stop | `EndedRunsAreIdle`, `NoLoopAfterStop` | holds | finding 2, fixed; about 1,480,000 distinct states |
+| `stop-start` | Stop | `EndedRunsAreIdle`, `NoLoopAfterStop` | holds | finding 2, fixed; about 1,554,000 distinct states |
 | `stop-branch` | Stop | `OneRunPerBranch` | violated | finding 5, 12 steps |
-| `stop-settled` | Stop | `SettledOnce` | holds | finding 2, fixed; about 1,480,000 distinct states |
-| `stop-stranded` | Stop | `NoStuckRun` | violated | finding 4, 22 steps |
+| `stop-settled` | Stop | `SettledOnce` | holds | finding 2, fixed; about 1,554,000 distinct states |
+| `stop-stranded` | Stop | `NoStuckRun` | holds | finding 4, fixed; about 1,554,000 distinct states |
 | `stop-approval` | StopApproval | `EndedRunsAreIdle`, `NoLoopAfterStop` | holds | finding 3, fixed; 113 distinct states |
 | `approval-lost` (slowest; run by name) | Approvals | `NoStuckRun` | holds | finding 1, fixed; about 332,000 distinct states |
 
@@ -62,6 +62,7 @@ Last confirmed against the last commit that changed `model/`: a model change lan
 3. **Stop on the approval card races the decision.** `cancel` reads `awaiting_approval` with no controller. The decision then sets its controller, resumes and commits. `cancelIdle` cancels the now-`running` run, and `submitApprovals` starts the resumed pass anyway, so the approved tool calls execute after Stop (`stop-approval`).
    - **Fixed.** The cancel can't move the resumed run, so `cancel` aborts the decision's controller instead. The resumed pass then starts already aborted. The AI SDK still executes approved calls under an aborted signal, so `execute` checks the signal before `runAgent` and settles as cancelled without calling it (`P_Begin`, `NoLoopAfterStop`).
 4. **Stopping a queued turn can strand the turn behind it.** `cancelIdle` reads that the run ahead is still active. That run then finishes, and its `promoteAfter` finds nothing behind it. `requeueAfter` then moves the waiting turn behind the finished run, where nothing will ever start it (`stop-stranded`).
+   - **Fixed.** `cancelIdle` no longer reads the run ahead. It moves the waiting turns behind it with `requeueAfter`, finishes the cancelled run, then calls `startRun` on each. A turn whose run ahead ended meanwhile starts there. If that run ends later, its `promoteAfter` reads after the move and finds the turn. When both try, the claim lets one win (finding 1).
 5. **A reply under a stopped queued question skips the queue.** A turn is queued behind a run still answering, and Stop cancels it. The next turn replies under that cancelled question, the end of the branch. `busyTail` matches only an active run whose own message is the anchor, and the cancelled run isn't active, so the reply starts at once while the answer above it is still being written (`stop-branch`). It is in `placeRun`, not Stop, and is not fixed yet.
 
 ## When you change covered code
@@ -88,7 +89,7 @@ Last confirmed against the last commit that changed `model/`: a model change lan
 | `packages/server/src/runs/executor.ts` | `startRun`, `claim` | `startRun`: `S_Read`, `S_Ahead`, `S_Claim` |
 | | `execute` (and its `finally`), `settle`, `track`, `release` | `Pass`: `P_Begin`, `P_Loop`, `P_Settle`, `passFinally` |
 | | `finishTerminal`, `promoteAfter` | `finishTerminal`: `F_List`, `F_Loop` |
-| | `cancel`, `abortPass`, `cancelIdle` | `Stop`: `K_Read` to `K_Wait2` |
+| | `cancel`, `abortPass`, `cancelIdle`, `startEach` | `Stop`: `K_Read` to `K_Wait2` |
 | | `submitApprovals`, `recordDecisions`, `storeDecisions` | `Decide`: `D_Lock` to `D_Spawn` |
 | `packages/server/src/runs/create-run.ts` | `createRun`, `placeRun`, `busyTail` | `Send`: `W_Read`, `W_Insert`; `BusyTailOf` |
 | `packages/db/src/queries/runs.ts` | `FROM`, `TARGET`, `transitionRun`, `listActiveRuns`, `listQueuedAfter`, `requeueAfter`, `lockRun` | `From`, `Target`, `Oldest`, `ByCreated`, `K_Requeue`, `D_Lock` |

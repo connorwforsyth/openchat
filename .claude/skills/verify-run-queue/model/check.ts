@@ -108,7 +108,7 @@ const CHECKS: readonly Check[] = [
   },
   {
     config: "RunQueueStop.cfg",
-    expect: "violated",
+    expect: "holds",
     invariants: ["NoStuckRun"],
     name: "stop-stranded",
     view: "View",
@@ -410,9 +410,12 @@ const STEPS: Readonly<Record<string, (step: Step, run: number) => string>> = {
       ? `cancel(r${run}): abortPass() again aborts a controller`
       : `cancel(r${run}): abortPass() again finds no controller`,
   K_After: (_, run) => `cancel(r${run}): the pass settled; getRun again`,
-  K_Ahead: (_, run) => `cancelIdle(r${run}): getRun(row.afterRunId)`,
   K_Idle: (step, run) =>
     `cancelIdle(r${run}): transitionRun(cancel) ${transition(step, run, "lost, returns false")}`,
+  K_Promote: (step, run) =>
+    seqOf(local(step, "behind", "before")).length === 0
+      ? `cancelIdle(r${run}): returns`
+      : `cancelIdle(r${run}): startRun(r${String(local(step, "nextRun", "after"))}), a run it moved`,
   K_Read: (step, run) => {
     if (run === 0) {
       return "no Stop comes";
@@ -421,8 +424,8 @@ const STEPS: Readonly<Record<string, (step: Step, run: number) => string>> = {
       ? `cancel(r${run}): getRun; abortPass aborts the controller in active`
       : `cancel(r${run}): getRun (${String(statusOf(step.after, run))}); abortPass finds no controller, so cancelIdle`;
   },
-  K_Requeue: (_, run) =>
-    `cancelIdle(r${run}): requeueAfter moves the runs behind r${run}`,
+  K_Requeue: (step, run) =>
+    `cancelIdle(r${run}): requeueAfter moves the runs behind r${run} to wait on r${String(seqOf(step.after.vars.get("after"))[run - 1])}; finishTerminal(r${run})`,
   K_Wait2: (_, run) => `cancel(r${run}): await running.get`,
   P_Begin: (step, run) =>
     changed(step, "begun")

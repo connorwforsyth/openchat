@@ -284,7 +284,8 @@ end process;
 \* Stop: executor.cancel(runId, by) in executor.ts (POST /api/runs/:id/cancel,
 \* and createRun's moveOnFromWaiting).
 process Stop \in StopIds
-variables tgt = NoRun, rowSt = "none", rowAfter = NoRun, waitFor = NoCtl;
+variables tgt = NoRun, rowSt = "none", waitFor = NoCtl, behind = <<>>,
+          nextRun = NoRun;
 begin
 K_Read:
   \* `getRun(db, runId)`. Then abortPass(): `active.get(runId)` ->
@@ -295,7 +296,6 @@ K_Read:
     with r \in {x \in Runs : status[x] \in ActiveSt \cap StopTargets} do
       tgt := r;
       rowSt := status[r];
-      rowAfter := after[r];
     end with;
     if active[tgt] # NoCtl then
       aborted := aborted \cup {active[tgt]};
@@ -314,7 +314,6 @@ K_After:
   await waitFor = NoCtl \/ waitFor \in ended;
   if status[tgt] = "awaiting_approval" /\ active[tgt] = NoCtl then
     rowSt := status[tgt];
-    rowAfter := after[tgt];
     goto K_Idle;
   else
     goto Done;
@@ -325,8 +324,8 @@ K_Idle:
   await ~locked[tgt];
   if status[tgt] \in From.cancel then
     status[tgt] := Target.cancel;
-    if rowSt = "queued" /\ rowAfter # NoRun then
-      goto K_Ahead;
+    if rowSt = "queued" /\ after[tgt] # NoRun then
+      goto K_Requeue;
     else
       call finishTerminal(tgt, NoCtl);
       goto Done;
@@ -334,22 +333,28 @@ K_Idle:
   else
     goto K_Abort2;
   end if;
-K_Ahead:
-  \* cancelIdle: `getRun(db, row.afterRunId)`; not terminal -> requeueAfter
-  if status[rowAfter] \notin Terminal then
-    goto K_Requeue;
-  else
-    call finishTerminal(tgt, NoCtl);
-    goto Done;
-  end if;
 K_Requeue:
-  \* cancelIdle: `requeueAfter(db, row.id, ahead.value.id)`, then
-  \* finishTerminal(cancelled)
+  \* cancelIdle: `requeueAfter(db, cancelled.id, cancelled.afterRunId)`:
+  \* the runs queued behind it now wait on the run ahead.
+  \* Then finishTerminal(cancelled).
+  behind := ByCreated({x \in Runs : after[x] = tgt /\ status[x] = "queued"},
+                     createdAt);
   after := [x \in Runs |->
-              IF after[x] = tgt /\ status[x] = "queued" THEN rowAfter
+              IF after[x] = tgt /\ status[x] = "queued" THEN after[tgt]
               ELSE after[x]];
   call finishTerminal(tgt, NoCtl);
-  goto Done;
+  goto K_Promote;
+K_Promote:
+  \* cancelIdle: startEach(moved): `startRun` for each in order, which
+  \* claims one whose run ahead has ended.
+  if behind = <<>> then
+    goto Done;
+  else
+    nextRun := Head(behind);
+    behind := Tail(behind);
+    call startRun(nextRun);
+    goto K_Promote;
+  end if;
 K_Abort2:
   \* cancelIdle returned false: `abortPass()` again ("a decision resumed it
   \* between the two looks")
@@ -464,7 +469,7 @@ Locals ==
         IF pc[p] = "P_Begin" THEN <<>> ELSE <<ctl[p], outcome[p]>>],
      [p \in StopIds |->
         IF pc[p] = "Done" THEN <<>>
-        ELSE <<tgt[p], rowSt[p], rowAfter[p], waitFor[p]>>],
+        ELSE <<tgt[p], rowSt[p], waitFor[p], behind[p], nextRun[p]>>],
      [p \in DecideIds |->
         IF pc[p] = "Done" THEN <<>> ELSE <<dtgt[p], dctl[p], resumed[p]>>] >>
 View ==
