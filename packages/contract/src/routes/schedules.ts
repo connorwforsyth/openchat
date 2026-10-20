@@ -102,7 +102,7 @@ export const schedules = {
     .errors(conflictError)
     .route({
       description:
-        "Resumes from the next slot after now (missed slots aren't replayed). A completed one-off, or one whose target chat is archived, is a `CONFLICT`.",
+        "Resumes from the next slot after now (missed slots aren't replayed). A schedule with no slot left (a fired one-off, or a rule past its `endsAt`) is a `CONFLICT` (`schedule_completed`); one whose target chat is archived is a `CONFLICT` (`target_archived`).",
       method: "POST",
       path: "/schedules/{id}/resume",
       summary: "Resume a schedule",

@@ -22,7 +22,7 @@ import { scheduleRunOutcomeSchema, scheduleSchema } from "./schedules";
 /**
  * A standard five-field cron expression (`minute hour day month weekday`),
  * evaluated in the schedule's time zone. The server rejects one it can't
- * parse with `BAD_REQUEST`.
+ * parse with a `VALIDATION` error.
  */
 export const cronExpressionSchema = z.string().trim().min(9).max(120);
 
@@ -31,16 +31,6 @@ export const timeZoneSchema = z.string().trim().min(1).max(64);
 
 /** The prompt a scheduled run posts as the user message. */
 export const dotPromptSchema = z.string().trim().min(1).max(10_000);
-
-/**
- * A Dot's schedule is a `Schedule` (173a) targeting its thread. Kept under
- * this name for one release, with the `dots.*Schedule` routes as aliases of
- * `schedules.*`.
- *
- * @deprecated Use `scheduleSchema` from `./schedules`.
- */
-export const dotScheduleSchema = scheduleSchema;
-export type DotSchedule = z.infer<typeof dotScheduleSchema>;
 
 export const dotRunTriggerSchema = z.enum(["schedule", "manual"]);
 export type DotRunTrigger = z.infer<typeof dotRunTriggerSchema>;
@@ -154,7 +144,7 @@ export const dotSchema = z.object({
   rules: dotRulesSchema,
   /** The workspace provider; `null` means the instance default. */
   sandboxProvider: sandboxProviderSchema.nullable(),
-  schedules: z.array(dotScheduleSchema),
+  schedules: z.array(scheduleSchema),
   status: dotStatusSchema,
   /** The agent, or the model, that answers each run. */
   target: runTargetSchema,
@@ -209,24 +199,6 @@ export const updateDotInputSchema = z.object({
   target: runTargetSchema.optional(),
 });
 export type UpdateDotInput = z.infer<typeof updateDotInputSchema>;
-
-export const createDotScheduleInputSchema = dotScheduleInputSchema.extend({
-  dotId: dotIdSchema,
-});
-export type CreateDotScheduleInput = z.infer<
-  typeof createDotScheduleInputSchema
->;
-
-export const updateDotScheduleInputSchema = z.object({
-  cron: cronExpressionSchema.optional(),
-  enabled: z.boolean().optional(),
-  id: dotScheduleIdSchema,
-  prompt: dotPromptSchema.optional(),
-  timezone: timeZoneSchema.optional(),
-});
-export type UpdateDotScheduleInput = z.infer<
-  typeof updateDotScheduleInputSchema
->;
 
 export const runDotNowInputSchema = z.object({
   id: dotIdSchema,
