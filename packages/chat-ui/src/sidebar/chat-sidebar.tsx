@@ -308,7 +308,7 @@ function ArchivedRow({
   const title = chat.title ?? t`New chat`;
   const restore = useCallback(() => onRestore(chat.id), [chat.id, onRestore]);
   return (
-    <li className="flex h-9 pointer-coarse:h-9 items-center gap-2 rounded-lg ps-2 pe-1 text-sm hover:bg-sidebar-foreground/5">
+    <li className="flex h-9 items-center gap-2 rounded-lg ps-2 pe-1 text-sm hover:bg-sidebar-foreground/5">
       <span className="min-w-0 flex-1 truncate">{title}</span>
       <Button
         aria-label={t`Unarchive ${title}`}
