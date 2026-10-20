@@ -2,19 +2,16 @@ import { SCHEDULED_TASK_DATA } from "@workspace/ai/schedules/tool";
 import type {
   ConversationId,
   DotId,
-  DotScheduleId,
   UserId,
 } from "@workspace/contract/schemas/common";
 import type {
   CreateDotInput,
-  CreateDotScheduleInput,
   Dot,
   DotActivity,
   DotActivityInput,
   DotLastRun,
   DotScheduleInput,
   UpdateDotInput,
-  UpdateDotScheduleInput,
 } from "@workspace/contract/schemas/dots";
 import type { CreateRunOutput } from "@workspace/contract/schemas/runs";
 import type { SandboxProvider } from "@workspace/contract/schemas/sandbox";
@@ -30,7 +27,6 @@ import {
   dotHandleTaken,
   getDot,
   getOwnersDot,
-  getSchedule,
   insertDot,
   insertScheduleRun,
   latestDotRuns,
@@ -62,14 +58,9 @@ import {
   capCheck,
   createSchedule,
   ownerActor,
-  pauseSchedule,
-  removeSchedule,
-  resumeSchedule,
   type ScheduleDeps,
-  type ScheduleEditDeps,
   type ScheduleError,
   toScheduleRun,
-  updateSchedule,
 } from "./schedules";
 
 // The Dots shell (172, 174): one Dot per user, and the Dot is a thread.
@@ -103,16 +94,19 @@ const iso = (date: Date | null): string | null =>
 
 export const toDotLastRun = (row: ScheduleRunView): DotLastRun => {
   const run = toScheduleRun(row);
+  // Dot activity joins the run row, so a skipped slot never shows here.
+  if (run.outcome === "skipped") {
+    throw new Error(`dot_run ${row.id} is a skipped slot, not a Dot run`);
+  }
   return {
     error: run.error,
     finishedAt: run.finishedAt,
     outcome: run.outcome,
-    // Dot activity joins the run row, so a skipped slot never shows here.
-    runId: row.runId as NonNullable<ScheduleRunView["runId"]>,
+    runId: run.runId,
     scheduleId: run.scheduleId,
     snippet: run.summary,
     startedAt: (row.startedAt ?? row.createdAt).toISOString(),
-    status: run.status ?? "failed",
+    status: run.status,
     trigger: row.trigger,
   };
 };
@@ -336,64 +330,6 @@ export const markDotRead = async (
   const row = await markDotViewed(deps.db, id, actor.userId, deps.now());
   return row ? ok(await one(deps.db, row)) : err({ type: "not_found" });
 };
-
-/** Alias (one release): `dots.createSchedule`, a cron schedule on the Dot. */
-export const addDotSchedule = async (
-  deps: ScheduleEditDeps,
-  actor: Actor,
-  input: CreateDotScheduleInput
-): Promise<Result<Schedule, DotError>> => {
-  const dot = await getDot(deps.db, input.dotId, actor.userId);
-  if (!dot) {
-    return err({ type: "not_found" });
-  }
-  return createSchedule(deps, actor, {
-    autoApproveTools: [],
-    missedRunPolicy: "run_once",
-    notify: "all",
-    paused: !input.enabled,
-    prompt: input.prompt,
-    recurrence: cronRecurrence(input),
-    target: { kind: "dot" },
-    title: titleFrom(input.prompt),
-  });
-};
-
-/** Alias (one release): `dots.updateSchedule`. */
-export const editDotSchedule = async (
-  deps: ScheduleEditDeps,
-  actor: Actor,
-  input: UpdateDotScheduleInput
-): Promise<Result<Schedule, DotError>> => {
-  const found = await getSchedule(deps.db, input.id, actor.userId);
-  if (!found) {
-    return err({ type: "not_found" });
-  }
-  const cron = input.cron ?? found.cron;
-  // Only a new cron or zone changes when it fires.
-  const recurrence =
-    (input.cron || input.timezone) && cron
-      ? cronRecurrence({ cron, timezone: input.timezone ?? found.timezone })
-      : undefined;
-  const updated = await updateSchedule(deps, actor, {
-    id: input.id,
-    ...(input.prompt === undefined ? {} : { prompt: input.prompt }),
-    ...(recurrence ? { recurrence } : {}),
-  });
-  if (!updated.ok || input.enabled === undefined) {
-    return updated;
-  }
-  return input.enabled
-    ? resumeSchedule(deps, actor, input.id)
-    : pauseSchedule(deps, actor, input.id);
-};
-
-/** Alias (one release): `dots.deleteSchedule`. */
-export const removeDotSchedule = (
-  db: Db,
-  actor: Actor,
-  id: DotScheduleId
-): Promise<Result<void, DotError>> => removeSchedule(db, actor, id);
 
 /**
  * "Check in now": posts `prompt` into the Dot's thread as its owner and
