@@ -7,16 +7,42 @@ msgstr ""
 "X-Generator: @lingui/cli\n"
 "Language: en\n"
 
-#: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/memory-settings.tsx
 msgid "- I prefer pnpm over npm\n"
 "- Answer in British English"
 msgstr "- I prefer pnpm over npm\n"
 "- Answer in British English"
 
+#. placeholder {0}: grant.user.name
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "{0} asks for {tokens} tokens a month"
+msgstr "{0} asks for {tokens} tokens a month"
+
+#. placeholder {0}: active.name
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "{0} has no sub-spaces yet."
+msgstr "{0} has no sub-spaces yet."
+
 #. placeholder {0}: error.path
 #: ../../apps/web/app/dev/sandbox/demo.tsx
 msgid "{0} is outside the workspace"
 msgstr "{0} is outside the workspace"
+
+#. placeholder {0}: space.memberCount
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "{0} members"
+msgstr "{0} members"
+
+#. placeholder {0}: active.memberCount
+#: ../../apps/web/app/(app)/(pages)/space/space-home.tsx
+msgid "{0} members. New chats you start here use {name}'s keys and allowance, and what's shared in the spaces above it shows here too."
+msgstr "{0} members. New chats you start here use {name}'s keys and allowance, and what's shared in the spaces above it shows here too."
+
+#. placeholder {0}: n(used)
+#. placeholder {1}: n(total)
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "{0} of {1} tokens used"
+msgstr "{0} of {1} tokens used"
 
 #. placeholder {0}: meter.value
 #: ../composer/src/components/target-picker.tsx
@@ -106,11 +132,11 @@ msgstr "{files, plural, one {# file} other {# files}}"
 msgid "{files} changed after the agent proposed this, so the change can't be applied as shown."
 msgstr "{files} changed after the agent proposed this, so the change can't be applied as shown."
 
-#: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/memory-settings.tsx
 msgid "{length} of {max} characters"
 msgstr "{length} of {max} characters"
 
-#: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/memory-settings.tsx
 msgid "{length} of {max} characters. Anything past the limit isn't included in chats."
 msgstr "{length} of {max} characters. Anything past the limit isn't included in chats."
 
@@ -160,6 +186,10 @@ msgstr "{slides, plural, one {# slide} other {# slides}}"
 msgid "{suggestionCount, plural, one {# suggestion} other {# suggestions}}"
 msgstr "{suggestionCount, plural, one {# suggestion} other {# suggestions}}"
 
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "{tokens} tokens a month"
+msgstr "{tokens} tokens a month"
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "{used} of {limit}"
 msgstr "{used} of {limit}"
@@ -185,6 +215,10 @@ msgstr "A generated image has no source to show."
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "A member"
 msgstr "A member"
+
+#: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
+msgid "A monthly token pool for {name}. Members draw on it once an owner approves their request."
+msgstr "A monthly token pool for {name}. Members draw on it once an owner approves their request."
 
 #: ../chat-ui/src/artifacts/artifact-preview.tsx
 msgid "A React artifact needs a default export: a component or an element."
@@ -227,10 +261,6 @@ msgstr "Accept invitation"
 msgid "Accept the rest"
 msgstr "Accept the rest"
 
-#: ../../apps/web/app/(app)/(pages)/admin/[orgId]/teams/page.tsx
-msgid "Access given to a team flows to its sub-teams; usage rolls up."
-msgstr "Access given to a team flows to its sub-teams; usage rolls up."
-
 #. placeholder {0}: user.name
 #: ../chat-ui/src/sidebar/account-menu.tsx
 msgid "Account: {0}"
@@ -245,6 +275,7 @@ msgid "Acme"
 msgstr "Acme"
 
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 #: ../palette/src/command-palette.tsx
@@ -259,6 +290,10 @@ msgstr "Actions for {name}"
 #: ../chat-ui/src/sidebar/chat-row.tsx
 msgid "Actions for {title}"
 msgstr "Actions for {title}"
+
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "Add"
+msgstr "Add"
 
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "Add a key"
@@ -306,9 +341,17 @@ msgstr "Add node"
 msgid "Add people, teams or orgs"
 msgstr "Add people, teams or orgs"
 
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "Add someone from the space above"
+msgstr "Add someone from the space above"
+
 #: ../composer/src/components/plus-menu.tsx
 msgid "Add to message"
 msgstr "Add to message"
+
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "Added by"
+msgstr "Added by"
 
 #: ../chat-ui/src/workspace/preview.tsx
 msgid "Address"
@@ -319,18 +362,15 @@ msgid "Adds or replaces files"
 msgstr "Adds or replaces files"
 
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
+#: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/admin-index.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/page.tsx
 #: ../../apps/web/app/(app)/(pages)/page-shell.tsx
-#: ../../apps/web/app/(app)/(pages)/settings/layout.tsx
 #: ../chat-ui/src/sidebar/account-menu.tsx
 msgid "Admin"
 msgstr "Admin"
-
-#: ../../apps/web/app/(app)/(pages)/admin/[orgId]/layout.tsx
-msgid "Admin pages"
-msgstr "Admin pages"
 
 #: ../palette/src/command-palette.tsx
 msgid "agent"
@@ -348,12 +388,13 @@ msgstr "Agent test"
 msgid "agents"
 msgstr "agents"
 
+#: ../../apps/web/app/(app)/(pages)/space/space-home.tsx
 #: ../composer/src/components/target-picker.tsx
 #: ../library-ui/src/components/kind.tsx
 msgid "Agents"
 msgstr "Agents"
 
-#: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/memory-settings.tsx
 msgid "Agents propose memory edits as a diff for you to approve, instead of saving them right away."
 msgstr "Agents propose memory edits as a diff for you to approve, instead of saving them right away."
 
@@ -373,10 +414,6 @@ msgstr "All"
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgid "All kinds"
 msgstr "All kinds"
-
-#: ../../apps/web/app/(app)/(pages)/admin/[orgId]/layout.tsx
-msgid "All orgs"
-msgstr "All orgs"
 
 #: ../../apps/web/app/(auth)/sign-up/page.tsx
 msgid "Already have an account? <0>Sign in</0>"
@@ -423,8 +460,7 @@ msgid "API keys"
 msgstr "API keys"
 
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
-#: ../../apps/web/app/(app)/(pages)/settings/appearance/page.tsx
-#: ../../apps/web/app/(app)/(pages)/settings/layout.tsx
+#: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
 msgid "Appearance"
 msgstr "Appearance"
 
@@ -436,6 +472,7 @@ msgstr "Apply"
 msgid "Approval needed for {toolName}"
 msgstr "Approval needed for {toolName}"
 
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
 #: ../chat-ui/src/artifacts/document/document-view.tsx
 #: ../chat-ui/src/artifacts/plan-editor.tsx
 #: ../chat-ui/src/conversation/approval.tsx
@@ -451,6 +488,10 @@ msgstr "Approve all"
 #: ../chat-ui/src/artifacts/plan-editor.tsx
 msgid "Approve the plan"
 msgstr "Approve the plan"
+
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "Approved"
+msgstr "Approved"
 
 #: ../chat-ui/src/conversation/plan-card.tsx
 msgid "Approved the plan"
@@ -492,6 +533,14 @@ msgstr "Artifacts couldn't be loaded."
 msgid "Artifacts in this chat"
 msgstr "Artifacts in this chat"
 
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "Ask"
+msgstr "Ask"
+
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "Ask again"
+msgstr "Ask again"
+
 #: ../palette/src/command-palette.tsx
 msgid "Ask AI"
 msgstr "Ask AI"
@@ -510,7 +559,7 @@ msgstr "Ask anything"
 msgid "Ask anything…"
 msgstr "Ask anything…"
 
-#: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/memory-settings.tsx
 msgid "Ask before changing memory"
 msgstr "Ask before changing memory"
 
@@ -540,8 +589,7 @@ msgstr "Attachment"
 msgid "Attachments"
 msgstr "Attachments"
 
-#: ../../apps/web/app/(app)/(pages)/admin/[orgId]/audit/page.tsx
-#: ../../apps/web/app/(app)/(pages)/admin/[orgId]/layout.tsx
+#: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
 msgid "Audit policy"
 msgstr "Audit policy"
 
@@ -556,6 +604,10 @@ msgstr "Auto"
 #: ../chat-ui/src/workspace/preview.tsx
 msgid "Back"
 msgstr "Back"
+
+#: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
+msgid "Back to app"
+msgstr "Back to app"
 
 #: ../library-ui/src/components/item-builder.tsx
 msgid "Back to the library"
@@ -609,8 +661,7 @@ msgstr "budgets"
 msgid "Budgets"
 msgstr "Budgets"
 
-#: ../../apps/web/app/(app)/(pages)/admin/[orgId]/layout.tsx
-#: ../../apps/web/app/(app)/(pages)/admin/[orgId]/usage/page.tsx
+#: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
 msgid "Budgets and usage"
 msgstr "Budgets and usage"
 
@@ -625,6 +676,10 @@ msgstr "Build an agent, prompt, skill or MCP server, or import one."
 #: ../chat-ui/src/artifacts/document/document-toolbar.tsx
 msgid "Bulleted list"
 msgstr "Bulleted list"
+
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "Calls"
+msgstr "Calls"
 
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 #: ../library-ui/src/components/badges.tsx
@@ -761,6 +816,7 @@ msgstr "Chat title"
 msgid "chats"
 msgstr "chats"
 
+#: ../../apps/web/app/(app)/(pages)/space/space-home.tsx
 #: ../chat-ui/src/shell/app-shell.tsx
 #: ../palette/src/command-palette.tsx
 msgid "Chats"
@@ -820,9 +876,9 @@ msgstr "Checking this change still waits…"
 msgid "Checklist"
 msgstr "Checklist"
 
-#: ../../apps/web/app/(app)/(pages)/admin/[orgId]/policies/page.tsx
-msgid "Choices for this org, within the limits this server's configuration sets."
-msgstr "Choices for this org, within the limits this server's configuration sets."
+#: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
+msgid "Choices for {name}, within the limits this server's configuration sets."
+msgstr "Choices for {name}, within the limits this server's configuration sets."
 
 #: ../library-ui/src/components/publish-dialog.tsx
 msgid "Choose a library"
@@ -835,6 +891,10 @@ msgstr "Choose a longer password (at least 8 characters)."
 #: ../composer/src/components/target-picker.tsx
 msgid "Choose a model or agent"
 msgstr "Choose a model or agent"
+
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "Choose a person"
+msgstr "Choose a person"
 
 #: ../chat-ui/src/header/chat-title.tsx
 msgid "Click to rename"
@@ -991,6 +1051,7 @@ msgstr "Copy table as TSV"
 msgid "Copy the last reply"
 msgstr "Copy the last reply"
 
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 #: ../composer/src/components/target-picker.tsx
 msgid "Cost"
@@ -1097,6 +1158,7 @@ msgstr "Couldn't use {code} from {server}"
 msgid "Covers chats held in this org's contexts (the org and its teams). Personal chats are never covered."
 msgstr "Covers chats held in this org's contexts (the org and its teams). Personal chats are never covered."
 
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
 #: ../chat-ui/src/workspace/new-file-dialog.tsx
 #: ../library-ui/src/components/item-builder.tsx
 msgid "Create"
@@ -1172,7 +1234,7 @@ msgstr "CSV"
 msgid "CSV of this sheet (.csv)"
 msgstr "CSV of this sheet (.csv)"
 
-#: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/memory-settings.tsx
 msgid "Current"
 msgstr "Current"
 
@@ -1184,7 +1246,7 @@ msgstr "Daily"
 msgid "dark"
 msgstr "dark"
 
-#: ../../apps/web/app/(app)/(pages)/settings/_components/appearance-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/appearance-settings.tsx
 #: ../chat-ui/src/sidebar/account-menu.tsx
 msgid "Dark"
 msgstr "Dark"
@@ -1201,7 +1263,7 @@ msgstr "Decision sent. Waiting for the agent…"
 msgid "Default"
 msgstr "Default"
 
-#: ../../apps/web/app/(app)/(pages)/settings/_components/profile-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/profile-settings.tsx
 msgid "Default chat context"
 msgstr "Default chat context"
 
@@ -1253,6 +1315,14 @@ msgstr "Delete the budget for {name}"
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "Delete this budget?"
 msgstr "Delete this budget?"
+
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "Denied"
+msgstr "Denied"
+
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "Deny"
+msgstr "Deny"
 
 #: ../composer/src/components/plus-menu.tsx
 msgid "Describe a picture to make"
@@ -1463,6 +1533,10 @@ msgstr "Duplicate"
 msgid "Duplicate to my library"
 msgstr "Duplicate to my library"
 
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "e.g. 1000000"
+msgstr "e.g. 1000000"
+
 #: ../chat-ui/src/artifacts/artifact-actions.tsx
 #: ../chat-ui/src/conversation/message-row.tsx
 #: ../chat-ui/src/conversation/plan-card.tsx
@@ -1515,6 +1589,7 @@ msgstr "Editing {title}"
 msgid "Editor"
 msgstr "Editor"
 
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 #: ../../apps/web/app/(auth)/_components/sign-in-form.tsx
 #: ../../apps/web/app/(auth)/_components/sign-up-form.tsx
@@ -1549,7 +1624,7 @@ msgstr "Error"
 msgid "Eval results are shown; publishing is never blocked."
 msgstr "Eval results are shown; publishing is never blocked."
 
-#: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/memory-settings.tsx
 msgid "Every change is kept. Restoring makes a new version, so nothing is lost."
 msgstr "Every change is kept. Restoring makes a new version, so nothing is lost."
 
@@ -1560,6 +1635,10 @@ msgstr "Every file in it is deleted and it starts again empty, for you and the a
 #: ../library-ui/src/components/version-history.tsx
 msgid "Everyone gets the latest published version unless they pin one."
 msgstr "Everyone gets the latest published version unless they pin one."
+
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "Everyone is already here"
+msgstr "Everyone is already here"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "Everything in the org, including its teams."
@@ -1714,6 +1793,11 @@ msgstr "Formatting"
 msgid "Forward"
 msgstr "Forward"
 
+#. placeholder {0}: item.sharedInName
+#: ../../apps/web/app/(app)/(pages)/space/space-home.tsx
+msgid "From {0}"
+msgstr "From {0}"
+
 #: ../library-ui/src/components/skill-form.tsx
 msgid "Frontmatter with a name and description, then the instructions the agent follows."
 msgstr "Frontmatter with a name and description, then the instructions the agent follows."
@@ -1800,7 +1884,7 @@ msgstr "Hide the workspace"
 msgid "High"
 msgstr "High"
 
-#: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/memory-settings.tsx
 #: ../library-ui/src/components/item-builder.tsx
 msgid "History"
 msgstr "History"
@@ -1813,7 +1897,7 @@ msgstr "History of {name}"
 msgid "hotkeys"
 msgstr "hotkeys"
 
-#: ../../apps/web/app/(app)/(pages)/settings/appearance/page.tsx
+#: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
 msgid "How the app looks on this device."
 msgstr "How the app looks on this device."
 
@@ -1990,6 +2074,7 @@ msgid "Keeping a copy on this device is off: this server forbids it."
 msgstr "Keeping a copy on this device is off: this server forbids it."
 
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
 msgid "Key"
 msgstr "Key"
 
@@ -1998,20 +2083,24 @@ msgid "keyboard"
 msgstr "keyboard"
 
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
-#: ../../apps/web/app/(app)/(pages)/settings/shortcuts/page.tsx
+#: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
 #: ../chat-ui/src/shortcuts/shortcut-help.tsx
 #: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
 #: ../shortcuts/src/react/help-dialog.tsx
 msgid "Keyboard shortcuts"
 msgstr "Keyboard shortcuts"
 
-#: ../../apps/web/app/(app)/(pages)/admin/[orgId]/layout.tsx
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
 msgid "Keys"
 msgstr "Keys"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "Keys and scoring"
 msgstr "Keys and scoring"
+
+#: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
+msgid "Keys and usage"
+msgstr "Keys and usage"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-keys-admin.tsx
 msgid "Keys for"
@@ -2037,7 +2126,7 @@ msgstr "Label"
 msgid "language"
 msgstr "language"
 
-#: ../../apps/web/app/(app)/(pages)/settings/_components/profile-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/profile-settings.tsx
 msgid "Language"
 msgstr "Language"
 
@@ -2083,7 +2172,7 @@ msgstr "Library"
 msgid "light"
 msgstr "light"
 
-#: ../../apps/web/app/(app)/(pages)/settings/_components/appearance-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/appearance-settings.tsx
 #: ../chat-ui/src/sidebar/account-menu.tsx
 msgid "Light"
 msgstr "Light"
@@ -2109,7 +2198,7 @@ msgstr "Link copied"
 msgid "List"
 msgstr "List"
 
-#: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/memory-settings.tsx
 msgid "Load latest"
 msgstr "Load latest"
 
@@ -2194,11 +2283,11 @@ msgstr "Markdown"
 msgid "Markdown (.md)"
 msgstr "Markdown (.md)"
 
-#: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/memory-settings.tsx
 msgid "Markdown that's included in every chat you start. Agents add to it when you ask them to remember something."
 msgstr "Markdown that's included in every chat you start. Agents add to it when you ask them to remember something."
 
-#: ../../apps/web/app/(app)/(pages)/settings/_components/profile-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/profile-settings.tsx
 msgid "Match my browser"
 msgstr "Match my browser"
 
@@ -2232,6 +2321,7 @@ msgstr "MCP servers"
 msgid "Medium"
 msgstr "Medium"
 
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 msgid "Member"
 msgstr "Member"
@@ -2240,14 +2330,10 @@ msgstr "Member"
 msgid "members"
 msgstr "members"
 
+#: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
-#: ../../apps/web/app/(app)/(pages)/admin/[orgId]/layout.tsx
 msgid "Members"
 msgstr "Members"
-
-#: ../../apps/web/app/(app)/(pages)/admin/[orgId]/members/page.tsx
-msgid "Members and invitations"
-msgstr "Members and invitations"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/audit-policy.tsx
 msgid "Members are told"
@@ -2256,6 +2342,10 @@ msgstr "Members are told"
 #: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
 msgid "Members keep their accounts. Grants and budgets given to this team go away with it."
 msgstr "Members keep their accounts. Grants and budgets given to this team go away with it."
+
+#: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
+msgid "Members of {name}"
+msgstr "Members of {name}"
 
 #: ../library-ui/src/components/publish-dialog.tsx
 msgid "Members, and members of teams below it, can use it. The library's publish policy is checked first."
@@ -2266,9 +2356,8 @@ msgid "Members' browsers keep recent chats and the library on disk so the app op
 msgstr "Members' browsers keep recent chats and the library on disk so the app opens instantly. Turn off for shared computers; it applies to anyone in this org, in every context."
 
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
-#: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
-#: ../../apps/web/app/(app)/(pages)/settings/layout.tsx
-#: ../../apps/web/app/(app)/(pages)/settings/memory/page.tsx
+#: ../../apps/web/app/(app)/_shared/settings/memory-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
 msgid "Memory"
 msgstr "Memory"
 
@@ -2276,11 +2365,11 @@ msgstr "Memory"
 msgid "Memory change undone"
 msgstr "Memory change undone"
 
-#: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/memory-settings.tsx
 msgid "Memory changed since you opened it, probably in a chat. Load the latest version, then make your edit again."
 msgstr "Memory changed since you opened it, probably in a chat. Load the latest version, then make your edit again."
 
-#: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/memory-settings.tsx
 msgid "Memory couldn't be saved. Try again."
 msgstr "Memory couldn't be saved. Try again."
 
@@ -2356,6 +2445,15 @@ msgstr "Models and agents"
 msgid "Monthly"
 msgstr "Monthly"
 
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "Monthly grant"
+msgstr "Monthly grant"
+
+#. placeholder {0}: space.name
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "Monthly token pool for {0}"
+msgstr "Monthly token pool for {0}"
+
 #: ../chat-ui/src/header/overflow-menu.tsx
 #: ../library-ui/src/components/item-builder.tsx
 msgid "More actions"
@@ -2381,6 +2479,7 @@ msgstr "My library"
 msgid "name"
 msgstr "name"
 
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 #: ../../apps/web/app/(auth)/_components/sign-up-form.tsx
 #: ../chat-ui/src/workspace/new-file-dialog.tsx
@@ -2438,7 +2537,7 @@ msgstr "New chat"
 msgid "New chat with {name}"
 msgstr "New chat with {name}"
 
-#: ../../apps/web/app/(app)/(pages)/settings/_components/profile-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/profile-settings.tsx
 msgid "New chats start here: it decides whose keys pay and where usage counts. You can change it in a chat until the first message."
 msgstr "New chats start here: it decides whose keys pay and where usage counts. You can change it in a chat until the first message."
 
@@ -2474,6 +2573,11 @@ msgstr "New organisation"
 msgid "New step"
 msgstr "New step"
 
+#. placeholder {0}: active.name
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "New sub-space in {0}"
+msgstr "New sub-space in {0}"
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
 msgid "New team"
 msgstr "New team"
@@ -2500,6 +2604,14 @@ msgstr "Next branch"
 msgid "Next chat"
 msgstr "Next chat"
 
+#: ../../apps/web/app/(app)/(pages)/space/space-home.tsx
+msgid "No agents shared here yet."
+msgstr "No agents shared here yet."
+
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "No allowance set"
+msgstr "No allowance set"
+
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgid "No artifacts yet. Ask for a document, a page or a diagram in a chat and it shows up here."
 msgstr "No artifacts yet. Ask for a document, a page or a diagram in a chat and it shows up here."
@@ -2519,6 +2631,10 @@ msgstr "No changes from the previous version."
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "No changes to {path}"
 msgstr "No changes to {path}"
+
+#: ../../apps/web/app/(app)/(pages)/space/space-home.tsx
+msgid "No chats shared here yet."
+msgstr "No chats shared here yet."
 
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "No chats yet. Start one and it shows up here."
@@ -2541,6 +2657,11 @@ msgstr "No files yet. Files you and the agent create will appear here."
 #: ../composer/src/components/thinking-control.tsx
 msgid "No key in this context"
 msgstr "No key in this context"
+
+#. placeholder {0}: active.name
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "No keys in {0} yet. Add one below."
+msgstr "No keys in {0} yet. Add one below."
 
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "No keys yet"
@@ -2570,6 +2691,14 @@ msgstr "No sandbox"
 msgid "No Shortcut"
 msgstr "No Shortcut"
 
+#: ../../apps/web/app/(app)/(pages)/space/space-home.tsx
+msgid "No skills shared here yet."
+msgstr "No skills shared here yet."
+
+#: ../../apps/web/app/(app)/(pages)/space/space-home.tsx
+msgid "No spaces yet."
+msgstr "No spaces yet."
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 msgid "No team"
 msgstr "No team"
@@ -2590,9 +2719,13 @@ msgstr "No usage this month yet."
 msgid "No versions yet."
 msgstr "No versions yet."
 
-#: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/memory-settings.tsx
 msgid "No versions yet. Saving creates the first one."
 msgstr "No versions yet. Saving creates the first one."
+
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "Nobody is waiting."
+msgstr "Nobody is waiting."
 
 #: ../chat-ui/src/artifacts/diagram/diagram-canvas.tsx
 msgid "Node label"
@@ -2605,6 +2738,10 @@ msgstr "None"
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "None yet"
 msgstr "None yet"
+
+#: ../../apps/web/app/(app)/_shared/spaces/space-switcher.tsx
+msgid "Not a member"
+msgstr "Not a member"
 
 #: ../chat-ui/src/workspace/file-view.tsx
 msgid "Not saved"
@@ -2692,10 +2829,6 @@ msgstr "OAuth"
 msgid "Off"
 msgstr "Off"
 
-#: ../../apps/web/app/(app)/(pages)/admin/[orgId]/audit/page.tsx
-msgid "Off unless an owner turns it on. Admins see usage and metadata either way, never chat content."
-msgstr "Off unless an owner turns it on. Admins see usage and metadata either way, never chat content."
-
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "Older"
 msgstr "Older"
@@ -2710,6 +2843,11 @@ msgstr "Older version"
 #: ../composer/src/components/thinking-control.tsx
 msgid "On"
 msgstr "On"
+
+#. placeholder {0}: active.name
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "Only owners of {0} manage its keys."
+msgstr "Only owners of {0} manage its keys."
 
 #: ../chat-ui/src/workspace/preview.tsx
 msgid "Only pages in this preview can open here."
@@ -2726,6 +2864,10 @@ msgstr "Only the owner, so far."
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgid "Only you"
 msgstr "Only you"
+
+#: ../../apps/web/app/(app)/(pages)/space/space-home.tsx
+msgid "Only you. Pick a space in the sidebar to see what's shared there."
+msgstr "Only you. Pick a space in the sidebar to see what's shared there."
 
 #: ../chat-ui/src/conversation/file-change-card.tsx
 #: ../chat-ui/src/conversation/link-preview.tsx
@@ -2841,10 +2983,6 @@ msgstr "Org"
 msgid "Org admin"
 msgstr "Org admin"
 
-#: ../../apps/web/app/(app)/(pages)/admin/[orgId]/keys/page.tsx
-msgid "Org and team keys"
-msgstr "Org and team keys"
-
 #: ../../apps/web/app/(app)/_shared/new-org-dialog.tsx
 msgid "Organisation name"
 msgstr "Organisation name"
@@ -2874,6 +3012,8 @@ msgstr "Output"
 msgid "Overwrite"
 msgstr "Overwrite"
 
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+#: ../../apps/web/app/(app)/_shared/spaces/space-switcher.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/admin-index.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 #: ../chat-ui/src/header/share-menu.tsx
@@ -2931,9 +3071,11 @@ msgstr "Period"
 msgid "permissions"
 msgstr "permissions"
 
+#: ../../apps/web/app/(app)/_shared/settings/profile-settings.tsx
+#: ../../apps/web/app/(app)/_shared/spaces/space-switcher.tsx
 #: ../../apps/web/app/(app)/(chat)/chat-route.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
-#: ../../apps/web/app/(app)/(pages)/settings/_components/profile-settings.tsx
+#: ../../apps/web/app/(app)/(pages)/space/space-home.tsx
 #: ../chat-ui/src/header/context-control.tsx
 msgid "Personal"
 msgstr "Personal"
@@ -2941,6 +3083,10 @@ msgstr "Personal"
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "Personal key fallback is off: this server forbids it."
 msgstr "Personal key fallback is off: this server forbids it."
+
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "Pick a space in the sidebar's space switcher. Your personal space has no members or allowance."
+msgstr "Pick a space in the sidebar's space switcher. Your personal space has no members or allowance."
 
 #: ../composer/src/components/target-picker.tsx
 msgid "Picks a fast or strong model for each message"
@@ -3000,8 +3146,7 @@ msgstr "PNG image (.png)"
 msgid "policies"
 msgstr "policies"
 
-#: ../../apps/web/app/(app)/(pages)/admin/[orgId]/layout.tsx
-#: ../../apps/web/app/(app)/(pages)/admin/[orgId]/policies/page.tsx
+#: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
 msgid "Policies"
 msgstr "Policies"
 
@@ -3009,7 +3154,7 @@ msgstr "Policies"
 msgid "PowerPoint (.pptx)"
 msgstr "PowerPoint (.pptx)"
 
-#: ../../apps/web/app/(app)/(pages)/settings/_components/profile-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/profile-settings.tsx
 msgid "Preferences"
 msgstr "Preferences"
 
@@ -3104,13 +3249,12 @@ msgstr "Primary"
 msgid "Private"
 msgstr "Private"
 
-#: ../../apps/web/app/(app)/(pages)/settings/_components/profile-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/profile-settings.tsx
 msgid "Profile"
 msgstr "Profile"
 
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
-#: ../../apps/web/app/(app)/(pages)/settings/layout.tsx
-#: ../../apps/web/app/(app)/(pages)/settings/profile/page.tsx
+#: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
 msgid "Profile and language"
 msgstr "Profile and language"
 
@@ -3144,14 +3288,13 @@ msgid "Provider"
 msgstr "Provider"
 
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
-#: ../../apps/web/app/(app)/(pages)/settings/keys/page.tsx
-#: ../../apps/web/app/(app)/(pages)/settings/layout.tsx
+#: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
 msgid "Provider keys"
 msgstr "Provider keys"
 
-#: ../../apps/web/app/(app)/(pages)/admin/[orgId]/keys/page.tsx
-msgid "Provider keys that pay for this org's chats. Secrets are never shown again after you add them."
-msgstr "Provider keys that pay for this org's chats. Secrets are never shown again after you add them."
+#: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
+msgid "Provider keys {name}'s chats use, and the tokens each one has paid for this month."
+msgstr "Provider keys {name}'s chats use, and the tokens each one has paid for this month."
 
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
 msgid "providers"
@@ -3315,7 +3458,7 @@ msgstr "Record"
 msgid "Record a shortcut for {description}"
 msgstr "Record a shortcut for {description}"
 
-#: ../../apps/web/app/(app)/(pages)/settings/shortcuts/page.tsx
+#: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
 msgid "Record your own keys for any shortcut. Your changes are saved in this browser."
 msgstr "Record your own keys for any shortcut. Your changes are saved in this browser."
 
@@ -3360,6 +3503,11 @@ msgstr "Reload"
 #: ../chat-ui/src/artifacts/document/document-toolbar.tsx
 msgid "Remove"
 msgstr "Remove"
+
+#. placeholder {0}: member.user.name
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "Remove {0}"
+msgstr "Remove {0}"
 
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
@@ -3428,6 +3576,10 @@ msgstr "Rename chat: {shown}"
 msgid "Rendering {file}…"
 msgstr "Rendering {file}…"
 
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "Requests"
+msgstr "Requests"
+
 #: ../library-ui/src/components/fields.tsx
 msgid "Required."
 msgstr "Required."
@@ -3477,7 +3629,7 @@ msgstr "Resize the browser"
 msgid "Restart to Update"
 msgstr "Restart to Update"
 
-#: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/memory-settings.tsx
 #: ../chat-ui/src/artifacts/document/document-view.tsx
 #: ../chat-ui/src/workspace/view-header.tsx
 msgid "Restore"
@@ -3487,11 +3639,11 @@ msgstr "Restore"
 msgid "Restore to draft"
 msgstr "Restore to draft"
 
-#: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/memory-settings.tsx
 msgid "Restore version {number}"
 msgstr "Restore version {number}"
 
-#: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/memory-settings.tsx
 msgid "Restored an earlier version"
 msgstr "Restored an earlier version"
 
@@ -3508,9 +3660,15 @@ msgstr "Retry"
 msgid "Reviewed {0}"
 msgstr "Reviewed {0}"
 
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 msgid "Role"
 msgstr "Role"
+
+#. placeholder {0}: member.user.name
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "Role for {0}"
+msgstr "Role for {0}"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 msgid "Role for {name}"
@@ -3544,7 +3702,8 @@ msgstr "Sandbox"
 msgid "Sandboxes are turned off on this server."
 msgstr "Sandboxes are turned off on this server."
 
-#: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/memory-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
 #: ../chat-ui/src/artifacts/artifact-actions.tsx
 msgid "Save"
 msgstr "Save"
@@ -3579,7 +3738,7 @@ msgstr "Saved"
 msgid "Saved \"{saved}\". It's with this chat's artifacts, and on your Artifacts page."
 msgstr "Saved \"{saved}\". It's with this chat's artifacts, and on your Artifacts page."
 
-#: ../../apps/web/app/(app)/(pages)/settings/_components/appearance-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/appearance-settings.tsx
 msgid "Saved in this browser."
 msgstr "Saved in this browser."
 
@@ -3731,21 +3890,22 @@ msgstr "Set budget"
 msgid "Set permission mode to {label}"
 msgstr "Set permission mode to {label}"
 
+#: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
 #: ../../apps/web/app/(app)/(pages)/page-shell.tsx
-#: ../../apps/web/app/(app)/(pages)/settings/layout.tsx
 #: ../chat-ui/src/sidebar/account-menu.tsx
 #: ../palette/src/command-palette.tsx
 msgid "Settings"
 msgstr "Settings"
 
-#: ../../apps/web/app/(app)/(pages)/settings/layout.tsx
-msgid "Settings pages"
-msgstr "Settings pages"
+#: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
+msgid "Settings sections"
+msgstr "Settings sections"
 
 #: ../../apps/web/app/dev/ai-elements/page.tsx
 msgid "shadcn's AI Elements patterns as the app composes them, with static sample data. Nothing here calls a model."
 msgstr "shadcn's AI Elements patterns as the app composes them, with static sample data. Nothing here calls a model."
 
+#: ../../apps/web/app/(app)/(pages)/space/space-home.tsx
 #: ../chat-ui/src/artifacts/artifact-actions.tsx
 #: ../chat-ui/src/header/share-menu.tsx
 #: ../library-ui/src/components/item-builder.tsx
@@ -3760,18 +3920,36 @@ msgstr "Share {name}"
 msgid "Share {title}"
 msgstr "Share {title}"
 
+#: ../../apps/web/app/(app)/(pages)/space/space-home.tsx
+msgid "Share one of your agents or skills"
+msgstr "Share one of your agents or skills"
+
 #: ../chat-ui/src/conversation/feedback.tsx
 msgid "Share this conversation with the agent's maintainers. Without this they only see totals."
 msgstr "Share this conversation with the agent's maintainers. Without this they only see totals."
+
+#. placeholder {0}: space.name
+#: ../../apps/web/app/(app)/(pages)/space/space-home.tsx
+msgid "Share to {0}"
+msgstr "Share to {0}"
 
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 #: ../library-ui/src/components/badges.tsx
 msgid "Shared"
 msgstr "Shared"
 
+#. placeholder {0}: item.sharedBy.name
+#: ../../apps/web/app/(app)/(pages)/space/space-home.tsx
+msgid "Shared by {0}"
+msgstr "Shared by {0}"
+
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgid "Shared by {owner}"
 msgstr "Shared by {owner}"
+
+#: ../../apps/web/app/(app)/_shared/spaces/space-switcher.tsx
+msgid "Shared in {label}"
+msgstr "Shared in {label}"
 
 #: ../composer/src/components/target-picker.tsx
 #: ../library-ui/src/components/library-index.tsx
@@ -3790,7 +3968,7 @@ msgstr "Sheets"
 msgid "Short name"
 msgstr "Short name"
 
-#: ../../apps/web/app/(app)/(pages)/settings/layout.tsx
+#: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
 msgid "Shortcuts"
 msgstr "Shortcuts"
 
@@ -3806,7 +3984,7 @@ msgstr "Show"
 msgid "Show as"
 msgstr "Show as"
 
-#: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/memory-settings.tsx
 msgid "Show contents"
 msgstr "Show contents"
 
@@ -3893,6 +4071,7 @@ msgstr "SKILL.md is unchanged."
 msgid "skills"
 msgstr "skills"
 
+#: ../../apps/web/app/(app)/(pages)/space/space-home.tsx
 #: ../composer/src/components/composer.tsx
 #: ../composer/src/components/plus-menu.tsx
 #: ../composer/src/components/skill-list.tsx
@@ -3943,9 +4122,31 @@ msgstr "Something went wrong. Try again."
 msgid "Sources"
 msgstr "Sources"
 
+#: ../../apps/web/app/(app)/(pages)/page-shell.tsx
+msgid "Space"
+msgstr "Space"
+
+#: ../../apps/web/app/(app)/_shared/spaces/space-switcher.tsx
+#: ../../apps/web/app/(app)/(pages)/space/space-home.tsx
+msgid "Space settings"
+msgstr "Space settings"
+
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "Space-separated. Leave empty for the server's defaults."
 msgstr "Space-separated. Leave empty for the server's defaults."
+
+#. placeholder {0}: space.name
+#: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
+msgid "Space: {0}"
+msgstr "Space: {0}"
+
+#: ../../apps/web/app/(app)/_shared/spaces/space-switcher.tsx
+msgid "Space: {label}"
+msgstr "Space: {label}"
+
+#: ../../apps/web/app/(app)/_shared/spaces/space-switcher.tsx
+msgid "Spaces"
+msgstr "Spaces"
 
 #: ../chat-ui/src/artifacts/presentation-preview.tsx
 msgid "Speaker notes"
@@ -3966,6 +4167,10 @@ msgstr "Spending here won't be limited any more."
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "Spending isn't limited anywhere in this org."
 msgstr "Spending isn't limited anywhere in this org."
+
+#: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
+msgid "Spending limits in money for {name}, its sub-spaces and members."
+msgstr "Spending limits in money for {name}, its sub-spaces and members."
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "Spent"
@@ -4012,6 +4217,10 @@ msgstr "Static render"
 msgid "Static render of {file}"
 msgstr "Static render of {file}"
 
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "Status"
+msgstr "Status"
+
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "Status unavailable"
 msgstr "Status unavailable"
@@ -4053,6 +4262,14 @@ msgstr "Streamable HTTP"
 msgid "Strikethrough"
 msgstr "Strikethrough"
 
+#: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
+msgid "Sub-spaces"
+msgstr "Sub-spaces"
+
+#: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
+msgid "Sub-spaces of {name}"
+msgstr "Sub-spaces of {name}"
+
 #: ../code-ui/src/diff-view.tsx
 msgid "Submit review"
 msgstr "Submit review"
@@ -4085,6 +4302,10 @@ msgstr "Switch model"
 msgid "Switch model to {label}"
 msgstr "Switch model to {label}"
 
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "Switch to"
+msgstr "Switch to"
+
 #: ../chat-ui/src/conversation/switch-marker.tsx
 msgid "Switched to {agentName}"
 msgstr "Switched to {agentName}"
@@ -4097,7 +4318,7 @@ msgstr "Switched to {agentName} with {modelLabel}"
 msgid "Switched to {modelLabel}"
 msgstr "Switched to {modelLabel}"
 
-#: ../../apps/web/app/(app)/(pages)/settings/_components/appearance-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/appearance-settings.tsx
 #: ../chat-ui/src/sidebar/account-menu.tsx
 msgid "System"
 msgstr "System"
@@ -4123,11 +4344,6 @@ msgstr "Team & org agents"
 #: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
 msgid "Team name"
 msgstr "Team name"
-
-#: ../../apps/web/app/(app)/(pages)/admin/[orgId]/layout.tsx
-#: ../../apps/web/app/(app)/(pages)/admin/[orgId]/teams/page.tsx
-msgid "Teams"
-msgstr "Teams"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
 msgid "Teams group members for sharing, keys and budgets. Sub-teams inherit what their parent is given."
@@ -4170,9 +4386,9 @@ msgstr "Thanks! What was good? (optional)"
 msgid "That address answered, but it isn't a chat server."
 msgstr "That address answered, but it isn't a chat server."
 
+#: ../../apps/web/app/(app)/_shared/settings/profile-settings.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
-#: ../../apps/web/app/(app)/(pages)/settings/_components/profile-settings.tsx
 msgid "That change couldn't be saved. Try again."
 msgstr "That change couldn't be saved. Try again."
 
@@ -4449,7 +4665,7 @@ msgstr "The workspace was reset."
 msgid "theme"
 msgstr "theme"
 
-#: ../../apps/web/app/(app)/(pages)/settings/_components/appearance-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/appearance-settings.tsx
 #: ../chat-ui/src/sidebar/account-menu.tsx
 msgid "Theme"
 msgstr "Theme"
@@ -4556,6 +4772,10 @@ msgstr "This is a binary file ({0} bytes), so it can't be shown or edited here."
 msgid "This item isn't available"
 msgstr "This item isn't available"
 
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "This month"
+msgstr "This month"
+
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "This server can't store keys yet: an admin needs to set its encryption key (ENCRYPTION_KEY)."
 msgstr "This server can't store keys yet: an admin needs to set its encryption key (ENCRYPTION_KEY)."
@@ -4640,9 +4860,18 @@ msgstr "Toggle the artifacts panel"
 msgid "Toggle the sidebar"
 msgstr "Toggle the sidebar"
 
+#: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
+msgid "Token allowance"
+msgstr "Token allowance"
+
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "Tokens"
 msgstr "Tokens"
+
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "Tokens a month"
+msgstr "Tokens a month"
 
 #: ../../apps/web/app/(auth)/_components/auth-problem.tsx
 msgid "Too many attempts. Wait a few seconds and try again."
@@ -4689,6 +4918,10 @@ msgstr "Turn off"
 msgid "Turned off on this instance"
 msgstr "Turned off on this instance"
 
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "Unattributed (before per-key tracking)"
+msgstr "Unattributed (before per-key tracking)"
+
 #: ../chat-ui/src/artifacts/document/document-toolbar.tsx
 #: ../chat-ui/src/conversation/memory-note.tsx
 #: ../chat-ui/src/shell/use-undo-toast.ts
@@ -4732,7 +4965,7 @@ msgstr "Untitled chat"
 msgid "Updated {when}"
 msgstr "Updated {when}"
 
-#: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/memory-settings.tsx
 msgid "Updated in a chat"
 msgstr "Updated in a chat"
 
@@ -4747,6 +4980,10 @@ msgstr "Uploaded file"
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "URL"
 msgstr "URL"
+
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "Usage by key this month"
+msgstr "Usage by key this month"
 
 #: ../library-ui/src/components/share-dialog.tsx
 msgid "Use"
@@ -4786,6 +5023,10 @@ msgstr "Use in chat"
 msgid "Use lets people chat with it. View also shows its instructions and lets them copy it. Edit lets them change it."
 msgstr "Use lets people chat with it. View also shows its instructions and lets them copy it. Edit lets them change it."
 
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "Used"
+msgstr "Used"
+
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Used {code}"
 msgstr "Used {code}"
@@ -4802,7 +5043,7 @@ msgstr "Used by org chats, and by team chats when no team up the tree has a key.
 msgid "Used by this team's chats and its sub-teams' when they have none of their own."
 msgstr "Used by this team's chats and its sub-teams' when they have none of their own."
 
-#: ../../apps/web/app/(app)/(pages)/settings/_components/profile-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/profile-settings.tsx
 msgid "Used for the interface and passed to agents so they answer in your language."
 msgstr "Used for the interface and passed to agents so they answer in your language."
 
@@ -4829,7 +5070,7 @@ msgstr "v{number} of {total}"
 msgid "Variables"
 msgstr "Variables"
 
-#: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/memory-settings.tsx
 msgid "Version {number}"
 msgstr "Version {number}"
 
@@ -4868,6 +5109,10 @@ msgstr "Viewed {when}"
 #: ../chat-ui/src/header/share-menu.tsx
 msgid "Viewer"
 msgstr "Viewer"
+
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "Waiting for an owner"
+msgstr "Waiting for an owner"
 
 #: ../chat-ui/src/conversation/message-row.tsx
 msgid "Waiting for the answer before it…"
@@ -4958,7 +5203,7 @@ msgstr "Web search is on. Turn it off"
 msgid "Weekly"
 msgstr "Weekly"
 
-#: ../../apps/web/app/(app)/(pages)/settings/memory/page.tsx
+#: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
 msgid "What agents remember about you across chats."
 msgstr "What agents remember about you across chats."
 
@@ -4969,6 +5214,10 @@ msgstr "What can I help with?"
 #: ../library-ui/src/components/publish-dialog.tsx
 msgid "What changed"
 msgstr "What changed"
+
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "What for"
+msgstr "What for"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "What happens when an agent is published to this org's library."
@@ -4982,10 +5231,6 @@ msgstr "What it's for"
 msgid "What the agent is for and how it should behave. People who can only use the agent never see this."
 msgstr "What the agent is for and how it should behave. People who can only use the agent never see this."
 
-#: ../../apps/web/app/(app)/(pages)/admin/[orgId]/usage/page.tsx
-msgid "What this org spends, and the limits on it."
-msgstr "What this org spends, and the limits on it."
-
 #: ../chat-ui/src/conversation/feedback.tsx
 msgid "What went wrong? (optional)"
 msgstr "What went wrong? (optional)"
@@ -4997,6 +5242,10 @@ msgstr "What would you like to know?"
 #: ../chat-ui/src/conversation/skill-card.tsx
 msgid "What's published doesn't change until it's published."
 msgstr "What's published doesn't change until it's published."
+
+#: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
+msgid "What's shared in {name} is visible in every space below it, never above or beside it."
+msgstr "What's shared in {name} is visible in every space below it, never above or beside it."
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "When a team or org chat has no key of its own, use the member's personal key."
@@ -5026,9 +5275,9 @@ msgstr "While recording, Escape cancels and Backspace turns a shortcut off."
 msgid "While this is on, every member sees “Admins of this org can read this chat” on the chats it covers, and when picking a team or org context. Admins always see usage and metadata; only this policy lets them see content."
 msgstr "While this is on, every member sees “Admins of this org can read this chat” on the chats it covers, and when picking a team or org context. Admins always see usage and metadata; only this policy lets them see content."
 
-#: ../../apps/web/app/(app)/(pages)/admin/[orgId]/members/page.tsx
-msgid "Who's in this org and what they can manage."
-msgstr "Who's in this org and what they can manage."
+#: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
+msgid "Who is in {name}. Owners add people from the space above and promote them."
+msgstr "Who is in {name}. Owners add people from the space above and promote them."
 
 #: ../chat-ui/src/header/context-control.tsx
 msgid "Whose keys and budget this chat uses. It can't change after the first message."
@@ -5103,6 +5352,10 @@ msgstr "You"
 msgid "You can change it later from the app menu."
 msgstr "You can change it later from the app menu."
 
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "You can use {remaining} more tokens here this month. Resets {resets}."
+msgstr "You can use {remaining} more tokens here this month. Resets {resets}."
+
 #: ../library-ui/src/components/item-builder.tsx
 msgid "You can use this, but not see how it's set up"
 msgstr "You can use this, but not see how it's set up"
@@ -5115,13 +5368,18 @@ msgstr "You could only search them through the original. Add your own files to g
 msgid "You don't have access to this."
 msgstr "You don't have access to this."
 
-#: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/memory-settings.tsx
 msgid "You edited it"
 msgstr "You edited it"
 
 #: ../library-ui/src/components/publish-dialog.tsx
 msgid "You have unsaved changes. Save the draft first to publish them."
 msgstr "You have unsaved changes. Save the draft first to publish them."
+
+#. placeholder {0}: space.name
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "You haven't asked yet. An owner of {0} decides."
+msgstr "You haven't asked yet. An owner of {0} decides."
 
 #: ../../apps/web/app/(app)/_shared/new-org-dialog.tsx
 msgid "You'll be its owner. Next, add teams and invite people."
@@ -5147,6 +5405,10 @@ msgstr "You're up to date"
 #: ../../apps/web/app/(auth)/invite/[token]/page.tsx
 msgid "You've been invited"
 msgstr "You've been invited"
+
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "Your allowance"
+msgstr "Your allowance"
 
 #: ../shortcuts/src/react/shortcuts-editor.tsx
 msgid "Your browser keeps that combination; pick another one."
@@ -5180,15 +5442,15 @@ msgstr "Your edits are saved as you go. Approve to build this plan."
 msgid "your library"
 msgstr "your library"
 
-#: ../../apps/web/app/(app)/(pages)/settings/_components/memory-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/memory-settings.tsx
 msgid "Your memory"
 msgstr "Your memory"
 
-#: ../../apps/web/app/(app)/(pages)/settings/_components/profile-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/profile-settings.tsx
 msgid "Your name and email come from how you signed in."
 msgstr "Your name and email come from how you signed in."
 
-#: ../../apps/web/app/(app)/(pages)/settings/keys/page.tsx
+#: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
 msgid "Your own keys pay for your Personal chats, and for team or org chats when the org allows it."
 msgstr "Your own keys pay for your Personal chats, and for team or org chats when the org allows it."
 

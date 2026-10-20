@@ -30,6 +30,7 @@ export const config = {
     "/c/:path*",
     "/artifacts/:path*",
     "/library/:path*",
+    "/space",
     "/settings/:path*",
     "/admin/:path*",
     "/quick",

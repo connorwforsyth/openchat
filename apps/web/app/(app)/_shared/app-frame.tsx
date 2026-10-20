@@ -54,7 +54,16 @@ import {
   gatePersister,
   PERSIST_MAX_AGE_MS,
 } from "./query-persistence";
+import {
+  openSettings as openSettingsView,
+  type SettingsSection,
+} from "./settings/settings-route";
 import { SHELL_LAYOUT_KEY, SIDEBAR_ATTRIBUTE } from "./shell-prepaint";
+import {
+  readActiveSpace,
+  spaceFromQuery,
+  writeActiveSpace,
+} from "./spaces/active-space";
 import { useAfterBoot } from "./use-after-boot";
 
 // The signed-in app's client frame (039): the query cache (persisted to
@@ -83,6 +92,8 @@ export interface AppFrameValue {
   /** Opens "New organisation" (the account menu's). */
   readonly openNewOrg: () => void;
   readonly openPalette: () => void;
+  /** Opens settings, full screen over the current page (185). */
+  readonly openSettings: (section?: SettingsSection) => void;
   readonly paletteOpen: boolean;
   readonly setPaletteOpen: (open: boolean) => void;
   readonly setTheme: (theme: Theme) => void;
@@ -135,7 +146,10 @@ const useNewOrg = () => {
     setOpen(true);
   }, []);
   const created = useCallback(
-    (org: Org) => router.push(routes.adminOrg(org.id, "teams")),
+    (org: Org) =>
+      router.push(
+        routes.spaceSettings({ id: org.id, type: "org" }, "space-subspaces")
+      ),
     [router]
   );
   const dialog = used ? (
@@ -287,14 +301,33 @@ const Frame = ({
   const layout = useSharedShellLayout();
   const { setTheme, theme } = useFrameTheme();
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const [draftContext, setDraftContext] = useState<ChatContext>({
+  const [draftContext, setDraftContextState] = useState<ChatContext>({
     type: "personal",
   });
+  // The active space (191) is remembered per browser; read after mount so
+  // the server render and the first client render agree.
+  // A link to one space's settings (`?space=team:<id>`) makes it active.
+  useEffect(() => {
+    const linked = spaceFromQuery(window.location.search);
+    if (linked) {
+      writeActiveSpace(window.localStorage, linked);
+    }
+    setDraftContextState(linked ?? readActiveSpace(window.localStorage));
+  }, []);
+  const setDraftContext = useCallback((context: ChatContext) => {
+    setDraftContextState(context);
+    writeActiveSpace(window.localStorage, context);
+  }, []);
   const [target, setTarget] = useState<RunTarget | null>(null);
   const [paletteContext, setPaletteContext] = useState<
     PaletteContext | undefined
   >();
   const openPalette = useCallback(() => setPaletteOpen(true), []);
+  const openSettings = useCallback(
+    (section?: SettingsSection) =>
+      openSettingsView(window.history, window.location.pathname, section),
+    []
+  );
   const booted = useAfterBoot();
   const newOrg = useNewOrg();
   const { openNewOrg } = newOrg;
@@ -314,6 +347,7 @@ const Frame = ({
       me,
       openNewOrg,
       openPalette,
+      openSettings,
       paletteOpen,
       setPaletteOpen,
       setTheme,
@@ -323,11 +357,13 @@ const Frame = ({
     [
       config,
       draftContext,
+      setDraftContext,
       layout,
       me,
       onSignOut,
       openNewOrg,
       openPalette,
+      openSettings,
       paletteContext,
       paletteOpen,
       setTheme,

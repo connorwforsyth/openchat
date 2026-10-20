@@ -13,10 +13,12 @@
     "./resources": "./src/resources.ts",
     "./server": "./src/server.ts",
     "./signup": "./src/signup.ts",
-    "./testing": "./src/testing.ts"
+    "./testing": "./src/testing.ts",
+    "./spaces": "./src/spaces.ts"
   },
   "scripts": {
     "lint": "ultracite check",
+    "seed:spaces": "bun scripts/seed-spaces.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
