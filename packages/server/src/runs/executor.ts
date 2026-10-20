@@ -441,8 +441,6 @@ export const createInProcessExecutor = (
     const failed = await transition(run.runId, { error, type: "fail" });
     if (failed) {
       await finishTerminal(failed, null, null);
-    } else {
-      await settleLostRace(run.runId, null, null);
     }
   };
 
@@ -524,7 +522,7 @@ export const createInProcessExecutor = (
           status: "partial",
           transition: {
             cancelledBy: cancelledBy.get(runId) ?? null,
-            type: "cancel",
+            type: "abort",
           },
         };
       default:
@@ -642,28 +640,13 @@ export const createInProcessExecutor = (
     });
     const row = await transition(run.runId, change);
     if (!row) {
-      await settleLostRace(run.runId, usage, settledTurn);
+      // Only this pass moves its run out of `running`, so this is a bug.
+      report("a pass lost its own run's transition", { runId: run.runId });
     } else if (outcome.status !== "awaiting_approval") {
       await finishTerminal(row, usage, settledTurn);
     }
     // Awaiting approval, the stream stays open: the answer continues in the
     // same stream once someone decides.
-  };
-
-  /**
-   * The run changed under us (a cancel won the compare-and-set). Whoever
-   * won moved it to a terminal state; this process still owns the stream,
-   * because it was the one writing to it.
-   */
-  const settleLostRace = async (
-    runId: RunId,
-    usage: TokenUsage | null,
-    turn: RunSettled["turn"]
-  ) => {
-    const current = await getRun(db, runId);
-    if (current.ok) {
-      await finishTerminal(current.value, usage, turn);
-    }
   };
 
   /**
@@ -795,7 +778,27 @@ export const createInProcessExecutor = (
         run.createdBy,
         deps.attachments?.(turn.value.resolvedModel) ?? NO_ATTACHMENTS
       );
+      const uiMessages = toUIMessages(messages, { fileUrl });
+      const continuing =
+        uiMessages.at(-1)?.role === "assistant" ? uiMessages.at(-1) : undefined;
       const executions: Executions = new Map();
+      if (controller.signal.aborted) {
+        // Stop reached this pass before its agent began (a claim or a
+        // decision landed as Stop came): nothing runs, not the model and not
+        // a call someone just approved.
+        await settle(
+          run,
+          assistantMessageId,
+          {
+            message: continuing ?? { id: "", parts: [], role: "assistant" },
+            status: "cancelled",
+            usage: { inputTokens: 0, outputTokens: 0 },
+          },
+          turn.value,
+          { executions, read: [] }
+        );
+        return;
+      }
       const agentRun = await runAgent({
         budget: turn.value.budget,
         generateMessageId: () => assistantMessageId,
@@ -815,7 +818,6 @@ export const createInProcessExecutor = (
         await failEarly(run, assistantMessageId, agentRun.error);
         return;
       }
-      const uiMessages = toUIMessages(messages, { fileUrl });
       const read = await pipeToStream(
         run.runId,
         agentRun.value.stream,
@@ -825,7 +827,7 @@ export const createInProcessExecutor = (
         agentRun.value.outcome,
         read,
         controller.signal,
-        uiMessages.at(-1)?.role === "assistant" ? uiMessages.at(-1) : undefined
+        continuing
       );
       await settle(run, assistantMessageId, outcome, turn.value, {
         executions,
@@ -923,9 +925,9 @@ export const createInProcessExecutor = (
    * Cancels a run no pass is executing (queued, or waiting on approvals).
    * A waiting run's pending calls resolve as not run: announced first,
    * because a terminal run's stream takes nothing more, then stored in the
-   * same transaction as the cancel, so a decision racing it either lands
-   * first (the run resumes, and `cancel` stops that pass) or finds it
-   * cancelled.
+   * same transaction as the cancel. A claim or a decision racing it either
+   * lands first (the run is `running`, which a cancel can't move, and
+   * `cancel` stops that pass) or finds it cancelled.
    */
   const cancelIdle = async (row: RunRow, by: UserId | null) => {
     const interrupt = (parts: readonly MessagePart[]) =>
@@ -1107,7 +1109,7 @@ export const createInProcessExecutor = (
       if (await cancelIdle(row, by)) {
         return ok(undefined);
       }
-      // A decision resumed it between the two looks: stop that pass.
+      // A claim or a decision took it between the two looks: stop that pass.
       if (await abortPass()) {
         return ok(undefined);
       }

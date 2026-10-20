@@ -87,8 +87,8 @@ const CHECKS: readonly Check[] = [
   },
   {
     config: "RunQueueStop.cfg",
-    expect: "violated",
-    invariants: ["EndedRunsAreIdle"],
+    expect: "holds",
+    invariants: ["EndedRunsAreIdle", "NoLoopAfterStop"],
     name: "stop-start",
     view: "View",
   },
@@ -101,7 +101,7 @@ const CHECKS: readonly Check[] = [
   },
   {
     config: "RunQueueStop.cfg",
-    expect: "violated",
+    expect: "holds",
     invariants: ["SettledOnce"],
     name: "stop-settled",
     view: "ViewSettled",
@@ -115,8 +115,8 @@ const CHECKS: readonly Check[] = [
   },
   {
     config: "RunQueueStopApproval.cfg",
-    expect: "violated",
-    invariants: ["EndedRunsAreIdle"],
+    expect: "holds",
+    invariants: ["EndedRunsAreIdle", "NoLoopAfterStop"],
     name: "stop-approval",
     view: "View",
   },
@@ -424,11 +424,14 @@ const STEPS: Readonly<Record<string, (step: Step, run: number) => string>> = {
   K_Requeue: (_, run) =>
     `cancelIdle(r${run}): requeueAfter moves the runs behind r${run}`,
   K_Wait2: (_, run) => `cancel(r${run}): await running.get`,
+  P_Begin: (step, run) =>
+    changed(step, "begun")
+      ? `execute(r${run}): runAgent begins (model calls, approved calls)`
+      : `execute(r${run}): Stop came first; settles as cancelled without calling runAgent`,
   P_Loop: (step, run) =>
     `execute(r${run}): the agent loop ends -> ${String(local(step, "outcome", "after"))}`,
-  P_Lost: (_, run) => `settleLostRace(r${run}): getRun`,
   P_Settle: (step, run) =>
-    `settle(r${run}): transitionRun(${String(local(step, "outcome", "before"))}) ${transition(step, run, "lost")}`,
+    `settle(r${run}): transitionRun(${String(local(step, "outcome", "before"))}) ${transition(step, run, "lost; report")}`,
   S_Ahead: (step, run) => {
     const ahead = Number(local(step, "srAfter", "before"));
     const status = String(statusOf(step.after, ahead));

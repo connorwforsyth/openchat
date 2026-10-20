@@ -38,13 +38,15 @@ From == [start |-> {"queued"},
          resume |-> {"awaiting_approval"},
          succeed |-> {"running"},
          fail |-> {"queued", "running", "awaiting_approval"},
-         cancel |-> {"queued", "running", "awaiting_approval"}]
+         cancel |-> {"queued", "awaiting_approval"},
+         abort |-> {"running"}]
 Target == [start |-> "running",
            await_approval |-> "awaiting_approval",
            resume |-> "running",
            succeed |-> "succeeded",
            fail |-> "failed",
-           cancel |-> "cancelled"]
+           cancel |-> "cancelled",
+           abort |-> "cancelled"]
 
 SendIds == {<<"send", r>> : r \in Runs}
 PassIds == {<<"pass", r>> : r \in Runs}
@@ -117,7 +119,9 @@ variables
   pauses = 0,                              \* approval pauses so far (bounded)
   \* Ghosts, for the properties only.
   ansAbove = [r \in Runs |-> {}],          \* answers above this turn's message
-  settled = [r \in Runs |-> 0];            \* onSettled calls per run
+  settled = [r \in Runs |-> 0],            \* onSettled calls per run
+  begun = {},                              \* controllers whose agent loop began
+  stoppedEarly = {};                       \* aborted before their loop began
 
 \* execute()'s `finally` (release: active.delete if it is still this pass's
 \* controller) and track()'s (running.delete if it is still this pass), and
@@ -219,55 +223,61 @@ W_Insert:
 end process;
 
 \* One pass of a run: execute() then settle() in executor.ts. A pass starts
-\* when track() is called (`spawned`) and is in its agent loop until P_Loop.
+\* when track() is called (`spawned`), begins its agent loop at P_Begin, and
+\* leaves it at P_Loop.
 process Pass \in PassIds
 variables ctl = NoCtl, outcome = "none";
 begin
-P_Loop:
-  \* execute(): loadBranch, resolveTurn, runAgent (model and tool calls),
-  \* pipeToStream, outcomeOf. An aborted signal may end it cancelled.
-  \* (A failed pass lands like a succeeded one here, so it is left out.)
+P_Begin:
+  \* execute(): loadBranch, resolveTurn, setRunResolvedModel,
+  \* attachmentsForModel; then `controller.signal.aborted` -> settle as
+  \* cancelled without calling runAgent. Else runAgent: the agent loop
+  \* begins (model calls, and the calls a decision approved). One step:
+  \* until the SDK executes approved calls it awaits only local work, so
+  \* no other request runs between the check and them (SKILL.md, Bounds).
   await spawned[R(self)] # {};
   with c \in spawned[R(self)] do
     ctl := c;
-    spawned[R(self)] := spawned[R(self)] \ {c};
-    either
-      outcome := "succeed";
-    or
-      await pauses < MaxPauses;
-      pauses := pauses + 1;
-      outcome := "await_approval";
-    or
-      await c \in aborted;
-      outcome := "cancel";
-    end either;
   end with;
+  if ctl \in aborted then
+    spawned[R(self)] := spawned[R(self)] \ {ctl};
+    outcome := "abort";
+    goto P_Settle;
+  else
+    begun := begun \cup {ctl};
+  end if;
+P_Loop:
+  \* runAgent's loop, pipeToStream, outcomeOf. An aborted signal may end it
+  \* cancelled. (A failed pass lands like a succeeded one here, so it is
+  \* left out.)
+  spawned[R(self)] := spawned[R(self)] \ {ctl};
+  either
+    outcome := "succeed";
+  or
+    await pauses < MaxPauses;
+    pauses := pauses + 1;
+    outcome := "await_approval";
+  or
+    await ctl \in aborted;
+    outcome := "abort";
+  end either;
 P_Settle:
   \* settle(): `transition(run.runId, landing(...))`. Awaiting approval:
   \* return, and execute's finally runs in the same tick. Terminal:
-  \* finishTerminal. Lost the compare-and-set: settleLostRace.
+  \* finishTerminal. Lost the compare-and-set: `report`, then the finally.
   await ~locked[R(self)];
   if status[R(self)] \in From[outcome] then
     status[R(self)] := Target[outcome];
     if outcome = "await_approval" then
       passFinally(R(self), ctl);
-      goto P_Loop;
+      goto P_Begin;
     else
       call finishTerminal(R(self), ctl);
-      goto P_Loop;
+      goto P_Begin;
     end if;
   else
-    goto P_Lost;
-  end if;
-P_Lost:
-  \* settleLostRace: `getRun(db, runId)`, then finishTerminal(current),
-  \* which returns at once unless the run is terminal.
-  if status[R(self)] \in Terminal then
-    call finishTerminal(R(self), ctl);
-    goto P_Loop;
-  else
     passFinally(R(self), ctl);
-    goto P_Loop;
+    goto P_Begin;
   end if;
 end process;
 
@@ -289,6 +299,7 @@ K_Read:
     end with;
     if active[tgt] # NoCtl then
       aborted := aborted \cup {active[tgt]};
+      stoppedEarly := stoppedEarly \cup ({active[tgt]} \ begun);
       waitFor := running[tgt];
       goto K_After;
     else
@@ -344,6 +355,7 @@ K_Abort2:
   \* between the two looks")
   if active[tgt] # NoCtl then
     aborted := aborted \cup {active[tgt]};
+    stoppedEarly := stoppedEarly \cup ({active[tgt]} \ begun);
     waitFor := running[tgt];
   else
     goto Done;
@@ -397,8 +409,8 @@ end algorithm; *)
 -----------------------------------------------------------------------------
 (* Properties. Each is one sentence in SKILL.md, with the harm it guards.  *)
 
-\* A pass is in its agent loop (calling the model, running tools) from
-\* track() until its loop finishes.
+\* A pass is executing (calling the model, running tools) from track()
+\* until its agent loop finishes.
 InLoop(r) == spawned[r] # {}
 
 \* Once a run has ended (or paused), nothing is still running the model or
@@ -408,6 +420,10 @@ EndedRunsAreIdle == \A r \in Runs : InLoop(r) => status[r] = "running"
 \* While a pass is in its agent loop, `active` holds that pass's controller,
 \* so Stop (abortPass) can abort it.
 StopReachesPass == \A r \in Runs : \A c \in spawned[r] : active[r] = c
+
+\* A pass Stop aborted before its agent loop began never begins it: no model
+\* call, and no call a decision approved runs.
+NoLoopAfterStop == begun \cap stoppedEarly = {}
 
 \* No turn runs while an answer above it on its branch is still being written.
 OneRunPerBranch ==
@@ -420,7 +436,7 @@ OneRunPerBranch ==
 Requests == SendIds \cup StopIds \cup DecideIds
 Quiet ==
   /\ \A p \in Requests : pc[p] = "Done"
-  /\ \A r \in Runs : spawned[r] = {} /\ pc[<<"pass", r>>] = "P_Loop"
+  /\ \A r \in Runs : spawned[r] = {} /\ pc[<<"pass", r>>] = "P_Begin"
 NoStuckRun ==
   Quiet =>
     \A r \in Runs :
@@ -445,7 +461,7 @@ LiveCtls == UNION {spawned[r] : r \in Runs}
 Locals ==
   << [p \in SendIds |-> IF pc[p] = "Done" THEN <<>> ELSE tail[p]],
      [p \in PassIds |->
-        IF pc[p] = "P_Loop" THEN <<>> ELSE <<ctl[p], outcome[p]>>],
+        IF pc[p] = "P_Begin" THEN <<>> ELSE <<ctl[p], outcome[p]>>],
      [p \in StopIds |->
         IF pc[p] = "Done" THEN <<>>
         ELSE <<tgt[p], rowSt[p], rowAfter[p], waitFor[p]>>],
@@ -455,7 +471,7 @@ View ==
   << status, after, createdAt, hasAnswer, locked, active, running,
      aborted \cap LiveCtls, ended \cap {waitFor[p] : p \in StopIds},
      spawned, pauses, pc, stack, sr, srAfter, fr, fctl, queue, cur,
-     Locals >>
+     begun \cap LiveCtls, stoppedEarly \cap LiveCtls, Locals >>
 \* OneRunPerBranch reads the message-tree ghost.
 ViewBranch ==
   << View, ansAbove,
@@ -468,10 +484,12 @@ ViewAll == << ViewBranch, settled >>
 \* Each run's end hook (usage, title and prune jobs) fires at most once.
 SettledOnce == \A r \in Runs : settled[r] <= 1
 
-\* At most one pass of a run executes at a time.
+\* At most one pass of a run executes at a time. (A pass in P_Loop still
+\* has its controller in `spawned`.)
 OnePassPerRun ==
   \A r \in Runs :
-    Cardinality(spawned[r]) + (IF pc[<<"pass", r>>] = "P_Loop" THEN 0 ELSE 1)
+    Cardinality(spawned[r])
+      + (IF pc[<<"pass", r>>] \in {"P_Begin", "P_Loop"} THEN 0 ELSE 1)
       <= 1
 
 =============================================================================

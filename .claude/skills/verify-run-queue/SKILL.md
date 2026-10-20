@@ -13,6 +13,7 @@ description: Model-checks the branch run queue and Stop with TLA+ (one run per b
 | --- | --- | --- |
 | `EndedRunsAreIdle` | Once a run has ended or paused, nothing is still calling the model or running tools for it. | Stop is ignored: the answer keeps generating and spending, approved tools run after Stop, and its message is overwritten after the cancel. |
 | `StopReachesPass` | While a pass is in its agent loop, `active` holds that pass's controller. | Stop can't abort that answer. |
+| `NoLoopAfterStop` | A pass that Stop aborted before its agent loop began never begins it. | The model is called, and a call someone just approved runs, after Stop. |
 | `OneRunPerBranch` | No turn runs while an answer above it on its branch is still being written. | A turn answers from a half-written answer, and two answers stream on one branch. |
 | `NoStuckRun` | Once every request has returned and no pass executes, each run has ended, is paused for approval, or is queued behind a run that hasn't ended. | A turn never gets answered, and every later turn on the branch queues behind it until the server restarts (`recover`). |
 | `SettledOnce` | `onSettled` (usage, prune and title jobs) fires at most once per run. | Duplicate jobs, and usage recorded against a run the user stopped. |
@@ -35,14 +36,14 @@ Last confirmed against the last commit that changed `model/`: a model change lan
 
 | Check | Config | Property | Expected | Trace |
 | --- | --- | --- | --- | --- |
-| `queue` | SendOnly | all but `StopReachesPass` | holds | about 165,000 distinct states |
-| `double-start` | SendOnly | `StopReachesPass` | holds | finding 1, fixed; about 44,000 distinct states |
-| `stop-start` | Stop | `EndedRunsAreIdle` | violated | finding 2, 7 steps |
-| `stop-branch` | Stop | `OneRunPerBranch` | violated | finding 2, 10 steps |
-| `stop-settled` | Stop | `SettledOnce` | violated | finding 2, 11 steps |
-| `stop-stranded` | Stop | `NoStuckRun` | violated | finding 4, 21 steps |
-| `stop-approval` | StopApproval | `EndedRunsAreIdle` | violated | finding 3, 11 steps |
-| `approval-lost` (slowest; run by name) | Approvals | `NoStuckRun` | holds | finding 1, fixed; about 262,000 distinct states |
+| `queue` | SendOnly | all but `StopReachesPass` | holds | about 211,000 distinct states |
+| `double-start` | SendOnly | `StopReachesPass` | holds | finding 1, fixed; about 57,000 distinct states |
+| `stop-start` | Stop | `EndedRunsAreIdle`, `NoLoopAfterStop` | holds | finding 2, fixed; about 1,480,000 distinct states |
+| `stop-branch` | Stop | `OneRunPerBranch` | violated | finding 5, 12 steps |
+| `stop-settled` | Stop | `SettledOnce` | holds | finding 2, fixed; about 1,480,000 distinct states |
+| `stop-stranded` | Stop | `NoStuckRun` | violated | finding 4, 22 steps |
+| `stop-approval` | StopApproval | `EndedRunsAreIdle`, `NoLoopAfterStop` | holds | finding 3, fixed; 113 distinct states |
+| `approval-lost` (slowest; run by name) | Approvals | `NoStuckRun` | holds | finding 1, fixed; about 332,000 distinct states |
 
 ## Findings
 
@@ -57,8 +58,11 @@ Last confirmed against the last commit that changed `model/`: a model change lan
    - The pass runs to the end on a cancelled run (`stop-start`).
    - The run looks finished, so a turn sent after it starts at once while the zombie pass is still writing the answer above it (`stop-branch`).
    - When the zombie settles, its compare-and-set loses, and `settleLostRace` runs `finishTerminal` a second time, firing `onSettled` again (`stop-settled`).
+   - **Fixed.** A `running` run has a pass, and only that pass ends it. `FROM.cancel` is now `queued` or `awaiting_approval`, and a pass Stop aborted settles with its own transition, `abort` (`running` to `cancelled`). A `cancelIdle` that loses to a claim falls back to `abortPass`, which finds the claim's controller because the claim took `active` before its commit. With nothing else able to move a `running` run, `settleLostRace` (the second `finishTerminal`) is gone: a pass that loses its own transition reports it. `stop-start` and `stop-settled` guard this; `stop-branch` now fails on finding 5 instead.
 3. **Stop on the approval card races the decision.** `cancel` reads `awaiting_approval` with no controller. The decision then sets its controller, resumes and commits. `cancelIdle` cancels the now-`running` run, and `submitApprovals` starts the resumed pass anyway, so the approved tool calls execute after Stop (`stop-approval`).
+   - **Fixed.** The cancel can't move the resumed run, so `cancel` aborts the decision's controller instead. The resumed pass then starts already aborted. The AI SDK still executes approved calls under an aborted signal, so `execute` checks the signal before `runAgent` and settles as cancelled without calling it (`P_Begin`, `NoLoopAfterStop`).
 4. **Stopping a queued turn can strand the turn behind it.** `cancelIdle` reads that the run ahead is still active. That run then finishes, and its `promoteAfter` finds nothing behind it. `requeueAfter` then moves the waiting turn behind the finished run, where nothing will ever start it (`stop-stranded`).
+5. **A reply under a stopped queued question skips the queue.** A turn is queued behind a run still answering, and Stop cancels it. The next turn replies under that cancelled question, the end of the branch. `busyTail` matches only an active run whose own message is the anchor, and the cancelled run isn't active, so the reply starts at once while the answer above it is still being written (`stop-branch`). It is in `placeRun`, not Stop, and is not fixed yet.
 
 ## When you change covered code
 
@@ -82,7 +86,7 @@ Last confirmed against the last commit that changed `model/`: a model change lan
 | Code | Functions | Model |
 | --- | --- | --- |
 | `packages/server/src/runs/executor.ts` | `startRun`, `claim` | `startRun`: `S_Read`, `S_Ahead`, `S_Claim` |
-| | `execute` (and its `finally`), `settle`, `settleLostRace`, `track` | `Pass`: `P_Loop`, `P_Settle`, `P_Lost`, `passFinally` |
+| | `execute` (and its `finally`), `settle`, `track`, `release` | `Pass`: `P_Begin`, `P_Loop`, `P_Settle`, `passFinally` |
 | | `finishTerminal`, `promoteAfter` | `finishTerminal`: `F_List`, `F_Loop` |
 | | `cancel`, `abortPass`, `cancelIdle` | `Stop`: `K_Read` to `K_Wait2` |
 | | `submitApprovals`, `recordDecisions`, `storeDecisions` | `Decide`: `D_Lock` to `D_Spawn` |
@@ -90,14 +94,14 @@ Last confirmed against the last commit that changed `model/`: a model change lan
 | `packages/db/src/queries/runs.ts` | `FROM`, `TARGET`, `transitionRun`, `listActiveRuns`, `listQueuedAfter`, `requeueAfter`, `lockRun` | `From`, `Target`, `Oldest`, `ByCreated`, `K_Requeue`, `D_Lock` |
 | `packages/db/src/schema/chat.ts` | `ACTIVE_RUN_STATUSES` | `ActiveSt` |
 
-`P_Loop` also stands for the awaits `execute` makes before the agent loop: `loadBranch`, `resolveTurn` (`packages/server/src/runs/turn.ts` and its wrappers), `setRunResolvedModel` and `attachmentsForModel`. They read the branch and build the turn but never start, cancel, settle or claim a run, so `turn.ts` is not diffed in step 1. A change there needs the model only if it starts touching run status, `active` or `running`.
+`P_Begin` also stands for the awaits `execute` makes before the agent loop: `loadBranch`, `resolveTurn` (`packages/server/src/runs/turn.ts` and its wrappers), `setRunResolvedModel` and `attachmentsForModel`. They read the branch and build the turn but never start, cancel, settle or claim a run, so `turn.ts` is not diffed in step 1. A change there needs the model only if it starts touching run status, `active` or `running`.
 
 ## Model conventions
 
 - **One label per await.** A label is one database statement or transaction taking effect, plus the synchronous JavaScript that handles its result up to the next await. Synchronous code never interleaves (one JavaScript thread), so code between two awaits stays in one label. A new await splits a label.
 - **Postgres.** READ COMMITTED. A transaction's writes land together at commit, and reads inside it see other commits. `lockRun`'s `FOR UPDATE` is `locked`: writers to that row wait, readers don't.
-- **Executor memory.** The executor's maps are `active` and `running`. Controllers are numbered per run, and `aborted` holds those `abort()` was called on. A controller enters `active` only in the step whose claim or resume wins. `spawned` holds passes in their agent loop; `P_Loop` ends the loop and picks the outcome. A failed outcome lands like a succeeded one here, so it is left out.
-- **Ghosts.** `ansAbove`, `parent` and `settled` feed only the properties. Each check's `VIEW` (in `RunQueue.tla`) drops data no later step reads, and must keep every ghost its property reads.
+- **Executor memory.** The executor's maps are `active` and `running`. Controllers are numbered per run, and `aborted` holds those `abort()` was called on. A controller enters `active` only in the step whose claim or resume wins. `spawned` holds a pass's controller from `track()` until its agent loop ends: `P_Begin` checks the abort and starts `runAgent`, and `P_Loop` ends the loop and picks the outcome. A failed outcome lands like a succeeded one here, so it is left out.
+- **Ghosts.** `ansAbove`, `parent`, `settled`, `begun` and `stoppedEarly` feed only the properties. Each check's `VIEW` (in `RunQueue.tla`) drops data no later step reads, and must keep every ghost its property reads.
 - **Translation.** `RunQueue.tla` keeps its PlusCal untranslated, and `check.ts` translates a scratch copy on every run. Edit the algorithm and the definitions, and leave the `BEGIN`/`END TRANSLATION` markers empty.
 - **Configs.** The `.cfg` files set the bounds; `check.ts` adds `VIEW` and `INVARIANTS`. A request that can never return shows up as a TLC deadlock, which `check.ts` counts against `NoStuckRun`.
 
@@ -120,3 +124,5 @@ A check that holds vouches for these bounds only. The model does not cover:
 - the stream channel's chunks (`append`, `close`, `subscribe`) and message parts.
 
 It also never puts another request between a statement taking effect and the code that handles its result: that window is a single network hop.
+
+`P_Begin` takes `execute`'s abort check and the start of the agent loop as one step. Between them `runAgent` and the AI SDK's `streamText` (ai 7.0.116) await only local work before they execute approved calls: `convertToModelMessages`, `standardizePrompt`, `notify` and `validateApprovedToolApprovals`, with no I/O. So no other request runs in between. An SDK version, an `onStart` hook or a tool input check that does I/O there would let a Stop land after the check and before the approved calls, which execute even under an aborted signal.
