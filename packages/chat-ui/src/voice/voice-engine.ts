@@ -297,6 +297,10 @@ export const openVoiceEngine = async (
   };
 
   const onReply = (event: ReplyEvent, controller: AbortController) => {
+    // A barge-in or hang-up cancelled it: the reducer has moved on.
+    if (controller.signal.aborted) {
+      return;
+    }
     switch (event.type) {
       case "text":
         turn.firstText ??= performance.now();
@@ -310,10 +314,6 @@ export const openVoiceEngine = async (
           replying = null;
         }
         const pending = queue.length > 0 || playing !== null;
-        // A barge-in or hang-up cancelled it: the reducer has moved on.
-        if (controller.signal.aborted) {
-          return;
-        }
         hooks.dispatch(
           event.end === "failed" && turn.firstText === null
             ? { error: "reply", type: "failed" }

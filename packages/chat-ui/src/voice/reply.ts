@@ -185,8 +185,8 @@ async function* answerFrom(
     ? ({ kind: "aborted" } as const)
     : yield* followRun(ports, id, signal, speaker);
   if (outcome.kind === "aborted") {
+    // No flush: the half-said sentence was cut off on purpose.
     await ports.cancel(id);
-    yield* speaker.speak(speaker.said(), true);
     yield end("cancelled");
     return;
   }
