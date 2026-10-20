@@ -35,7 +35,7 @@ import type { Turn } from "./turn";
 // Each test holds requests at the awaits its counterexample names, so every
 // run takes that interleaving. Nothing here reaches a provider.
 
-type Point = "append" | "transaction";
+type Point = "append" | "requeueAfter" | "transaction";
 
 const holds = vi.hoisted(() => {
   const waiting = new Map<string, (() => Promise<void>)[]>();
@@ -67,6 +67,20 @@ const holds = vi.hoisted(() => {
     },
     /** Drops holds a failed test never reached, so they can't catch the next test. */
     reset: () => waiting.clear(),
+  };
+});
+
+vi.mock("@workspace/db/queries/runs", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@workspace/db/queries/runs")>();
+  return {
+    ...actual,
+    requeueAfter: async (
+      ...args: Parameters<typeof actual.requeueAfter>
+    ): ReturnType<typeof actual.requeueAfter> => {
+      await holds.pass("requeueAfter");
+      return actual.requeueAfter(...args);
+    },
   };
 });
 
@@ -382,5 +396,35 @@ describe("Stop on the approval card as a decision lands", () => {
     expect(after.doStreamCalls).toHaveLength(0);
     expect(await chat.statusOf(run)).toBe("cancelled");
     expect(chat.settled.filter((id) => id === run.id)).toHaveLength(1);
+  });
+});
+
+describe("Stop on a queued turn", () => {
+  it("never strands the turn queued behind it", async () => {
+    const chat = await setup();
+    const first = await chat.queue();
+    const answer = chat.open();
+    await chat.start(first);
+    await answer.answering;
+    const stopped = await chat.queue(first);
+    const last = await chat.queue(stopped);
+    chat.turns.push(
+      turnWith(new MockLanguageModelV4({ doStream: textStream("Hi.") }))
+    );
+
+    // The answer ahead finishes, finding nothing behind it, before Stop moves
+    // the last turn to wait on it.
+    const requeueing = holds.next("requeueAfter");
+    const stopping = chat.executor.cancel(stopped.id, chat.ownerId);
+    await requeueing.reached;
+    answer.finish();
+    await chat.executor.idle();
+    expect(await chat.statusOf(first)).toBe("succeeded");
+    requeueing.release();
+    expect(await stopping).toEqual(ok(undefined));
+    await chat.executor.idle();
+
+    expect(await chat.statusOf(stopped)).toBe("cancelled");
+    expect(await chat.statusOf(last)).toBe("succeeded");
   });
 });
