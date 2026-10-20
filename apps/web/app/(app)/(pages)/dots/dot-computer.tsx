@@ -32,13 +32,6 @@ const readView = async (response: Response): Promise<ComputerView> => {
   return computerViewSchema.parse(await response.json());
 };
 
-/** The view's URL with input on or off. */
-const screenUrl = (view: ComputerView) => {
-  const url = new URL(view.url);
-  url.searchParams.set("view_only", view.holder === "user" ? "0" : "1");
-  return url.toString();
-};
-
 const viewKey = (conversationId: ConversationId) =>
   ["dot-computer", conversationId] as const;
 
@@ -164,10 +157,11 @@ export function DotComputerView({ dot }: { readonly dot: Dot }) {
           <iframe
             allow="clipboard-read; clipboard-write"
             className="absolute inset-0 size-full border-0"
-            // A new src when control changes: noVNC reconnects with input on or off.
-            key={current.holder}
+            // The desktop ignores input until the person takes over; until
+            // then the frame shouldn't take focus or keystrokes either.
+            inert={!userHas}
             sandbox="allow-scripts"
-            src={screenUrl(current)}
+            src={current.url}
             title={t`${dot.name}'s screen`}
           />
         ) : null}

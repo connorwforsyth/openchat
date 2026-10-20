@@ -25,7 +25,7 @@ const fakeHost = (exitCode = 0) => {
   const sandbox = {
     exec: (command: string) => {
       commands.push(command);
-      if (command === `touch ${CONTROL_FLAG}`) {
+      if (command.startsWith(`touch ${CONTROL_FLAG}`)) {
         userHas = true;
       }
       return Promise.resolve(

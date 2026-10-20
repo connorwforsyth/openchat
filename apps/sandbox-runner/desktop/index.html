@@ -1,7 +1,8 @@
 <!doctype html>
 <!-- The live view of a Dot's computer (172), served by websockify on 6080
-     through the runner's preview proxy. `?view_only=1` watches; `0` lets the
-     person drive. It talks to the VNC socket on its own origin. -->
+     through the runner's preview proxy. It talks to the VNC socket on its
+     own origin. Whether input reaches the desktop is the VNC server's call
+     (`controlCommand`), not this page's. -->
 <html lang="en">
   <head>
     <meta charset="utf-8">
@@ -23,14 +24,12 @@
     <script type="module">
     import RFB from "./core/rfb.js";
 
-    const params = new URLSearchParams(location.search);
     const scheme = location.protocol === "https:" ? "wss" : "ws";
     const connect = () => {
       const rfb = new RFB(
         document.getElementById("screen"),
         `${scheme}://${location.host}/websockify`
       );
-      rfb.viewOnly = params.get("view_only") !== "0";
       rfb.scaleViewport = true;
       rfb.background = "black";
       rfb.addEventListener("disconnect", () => setTimeout(connect, 1000));

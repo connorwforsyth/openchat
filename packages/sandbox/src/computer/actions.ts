@@ -199,9 +199,16 @@ export const computerCommand = (action: ComputerAction): string => {
     .join(" && ");
 };
 
-/** Hands control to the person (`user`) or back to the agent. Pure. */
+/**
+ * Hands control to the person (`user`) or back to the agent, and switches
+ * the VNC server's input on or off to match, so no viewer can drive the
+ * desktop while the agent has it. The flag goes first: a VNC server that
+ * restarts reads it (`desktop-session`). Pure.
+ */
 export const controlCommand = (holder: ComputerHolder): string =>
-  holder === "user" ? `touch ${CONTROL_FLAG}` : `rm -f ${CONTROL_FLAG}`;
+  holder === "user"
+    ? `touch ${CONTROL_FLAG} && x11vnc -sync -R noviewonly`
+    : `rm -f ${CONTROL_FLAG} && x11vnc -sync -R viewonly`;
 
 /** Prints who has control: `user` or `agent`. */
 export const CONTROL_STATUS_COMMAND = `if [ -e ${CONTROL_FLAG} ]; then echo user; else echo agent; fi`;

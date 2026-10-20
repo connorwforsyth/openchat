@@ -119,9 +119,13 @@ describe("computerCommand", () => {
 });
 
 describe("control", () => {
-  it("sets and clears the flag", () => {
-    expect(controlCommand("user")).toBe(`touch ${CONTROL_FLAG}`);
-    expect(controlCommand("agent")).toBe(`rm -f ${CONTROL_FLAG}`);
+  it("sets the flag and turns VNC input on for the person, and back", () => {
+    expect(controlCommand("user")).toBe(
+      `touch ${CONTROL_FLAG} && x11vnc -sync -R noviewonly`
+    );
+    expect(controlCommand("agent")).toBe(
+      `rm -f ${CONTROL_FLAG} && x11vnc -sync -R viewonly`
+    );
   });
 
   it("shellQuote survives single quotes", () => {

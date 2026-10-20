@@ -10,7 +10,7 @@ export type ComputerHolder = z.infer<typeof computerHolderSchema>;
 export const computerViewSchema = z.object({
   /** Who drives it now: the Dot (`agent`) or the person watching (`user`). */
   holder: computerHolderSchema,
-  /** noVNC on the sandbox preview origin (D24), view-only unless `view_only=0`. */
+  /** noVNC on the sandbox preview origin (D24). Input works only for `user`. */
   url: z.url(),
 });
 export type ComputerView = z.infer<typeof computerViewSchema>;
