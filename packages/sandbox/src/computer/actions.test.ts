@@ -1,3 +1,14 @@
+import { spawnSync } from "node:child_process";
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -119,15 +130,61 @@ describe("computerCommand", () => {
 });
 
 describe("control", () => {
-  it("never leaves viewer input on while the agent thinks it drives", () => {
-    // The agent stands down on the flag, so the flag is set before input
-    // turns on, and cleared only after input is off.
-    expect(controlCommand("user")).toBe(
-      `touch ${CONTROL_FLAG} && if pgrep -x x11vnc >/dev/null; then x11vnc -sync -R noviewonly; fi`
+  // Runs the real command in sh against a stand-in x11vnc that records
+  // whether the agent's stand-down flag was set when input was switched.
+  const switchControl = (
+    holder: "agent" | "user",
+    { flagged, vnc }: { flagged: boolean; vnc: "fails" | "works" }
+  ) => {
+    const dir = mkdtempSync(join(tmpdir(), "computer-control-"));
+    const flag = join(dir, "user-control");
+    const seen = join(dir, "seen");
+    writeFileSync(join(dir, "pgrep"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+    writeFileSync(
+      join(dir, "x11vnc"),
+      `#!/bin/sh\nif [ -e ${flag} ]; then echo "$3 flagged" >> ${seen}; else echo "$3 clear" >> ${seen}; fi\nexit ${vnc === "works" ? 0 : 1}\n`,
+      { mode: 0o755 }
     );
-    expect(controlCommand("agent")).toBe(
-      `if pgrep -x x11vnc >/dev/null; then x11vnc -sync -R viewonly; fi && rm -f ${CONTROL_FLAG}`
+    if (flagged) {
+      writeFileSync(flag, "");
+    }
+    const ran = spawnSync(
+      "sh",
+      ["-c", controlCommand(holder).replaceAll(CONTROL_FLAG, flag)],
+      { env: { PATH: `${dir}:${process.env.PATH ?? ""}` } }
     );
+    const result = {
+      flagged: existsSync(flag),
+      seen: existsSync(seen) ? readFileSync(seen, "utf8").trim() : "",
+      status: ran.status,
+    };
+    rmSync(dir, { force: true, recursive: true });
+    return result;
+  };
+
+  it("sets the flag before viewer input turns on, and clears it only once input is off", () => {
+    expect(switchControl("user", { flagged: false, vnc: "works" })).toEqual({
+      flagged: true,
+      seen: "noviewonly flagged",
+      status: 0,
+    });
+    expect(switchControl("agent", { flagged: true, vnc: "works" })).toEqual({
+      flagged: false,
+      seen: "viewonly flagged",
+      status: 0,
+    });
+  });
+
+  it("leaves the agent driving when viewer input won't turn on", () => {
+    expect(
+      switchControl("user", { flagged: false, vnc: "fails" })
+    ).toMatchObject({ flagged: false, status: 1 });
+  });
+
+  it("keeps the agent stood down when viewer input won't turn off", () => {
+    expect(
+      switchControl("agent", { flagged: true, vnc: "fails" })
+    ).toMatchObject({ flagged: true, status: 1 });
   });
 
   it("shellQuote survives single quotes", () => {
