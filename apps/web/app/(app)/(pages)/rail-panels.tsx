@@ -12,6 +12,7 @@ import type { RailDestination } from "@workspace/chat-ui/sidebar/sidebar-rail";
 import { libraryTabSchema } from "@workspace/contract/schemas/library";
 import { artifactKindSchema } from "@workspace/contract/schemas/message-parts";
 import {
+  Building2Icon,
   ClockIcon,
   LayoutGridIcon,
   PlusIcon,
@@ -23,7 +24,7 @@ import {
   useKindPlurals,
 } from "@workspace/library-ui/components/kind";
 import { BUILDABLE_KINDS } from "@workspace/library-ui/kinds";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useMemo } from "react";
 
 import { useApi } from "@/app/(app)/_shared/api";
@@ -102,7 +103,8 @@ export function LibraryPanel() {
   const plurals = useKindPlurals();
   const kind = params.get(routeParams.kind);
   const tab = libraryTabSchema.catch("mine").parse(params.get(routeParams.tab));
-  const browsing = tab === "mine";
+  const inSpace = usePathname().startsWith(routes.space);
+  const browsing = tab === "mine" && !inSpace;
   return (
     <RailPanel
       label={t`Library`}
@@ -134,18 +136,25 @@ export function LibraryPanel() {
           id: "sources",
           links: [
             {
-              active: tab === "shared",
+              active: !inSpace && tab === "shared",
               href: routes.libraryTab("shared"),
               icon: <ShareIcon aria-hidden className={iconClass} />,
               id: "shared",
               label: t`Shared with me`,
             },
             {
-              active: tab === "libraries",
+              active: !inSpace && tab === "libraries",
               href: routes.libraryTab("libraries"),
               icon: <UsersIcon aria-hidden className={iconClass} />,
               id: "libraries",
               label: t`Team & org`,
+            },
+            {
+              active: inSpace,
+              href: routes.space,
+              icon: <Building2Icon aria-hidden className={iconClass} />,
+              id: "space",
+              label: t`Space`,
             },
           ],
         },

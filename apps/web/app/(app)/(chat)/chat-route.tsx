@@ -39,6 +39,7 @@ import { canAdmin, useAppFrame } from "@/app/(app)/_shared/app-frame";
 import { Brand } from "@/app/(app)/_shared/brand";
 import { useShellPlatform } from "@/app/(app)/_shared/desktop";
 import { createApiSandboxClient } from "@/app/(app)/_shared/sandbox-client";
+import { SpaceSwitcher } from "@/app/(app)/_shared/spaces/space-switcher";
 import { useAfterBoot } from "@/app/(app)/_shared/use-after-boot";
 import { DotComputer } from "@/app/(app)/(pages)/dots/dot-computer";
 import {
@@ -460,9 +461,10 @@ export function ChatRoute({
     [router]
   );
   const openAdmin = useCallback(() => router.push(routes.admin), [router]);
+  const { openSettings: openSettingsView } = frame;
   const openSettings = useCallback(
-    () => router.push(routes.settings()),
-    [router]
+    () => openSettingsView(),
+    [openSettingsView]
   );
 
   const sandboxClient = useMemo(
@@ -513,7 +515,7 @@ export function ChatRoute({
           }
         />
       }
-      brand={<Brand config={config} />}
+      brand={<SpaceSwitcher fallback={<Brand config={config} />} />}
       client={client}
       composerPlaceholder={dotName ? t`Message ${dotName}` : undefined}
       computer={<DotComputer conversationId={conversationId} />}

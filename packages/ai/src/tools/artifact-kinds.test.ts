@@ -86,11 +86,17 @@ describe("the kinds' checks", () => {
     let compared = 0;
     // Sites (125) came after the directive and have checks of their own
     // (`@workspace/artifacts-kit`'s `kinds/site`); a document (126) stores
-    // JSON made from the model's Markdown, which the reader can't judge;
-    // an image (138) is only ever `generate_image`'s; and presentations,
-    // spreadsheets and diagrams (164–166) aren't built yet.
+    // JSON made from the model's Markdown, which the reader can't judge,
+    // as a spreadsheet (166) stores JSON made from its tables; a diagram
+    // (165) and a presentation (164) are JSON their kinds check; and an
+    // image (138) is only ever `generate_image`'s.
     const textKinds = artifactDirectiveSchema.shape.type.options.filter(
-      (kind) => kind !== "site" && kind !== "document"
+      (kind) =>
+        kind !== "site" &&
+        kind !== "document" &&
+        kind !== "diagram" &&
+        kind !== "presentation" &&
+        kind !== "spreadsheet"
     );
     for (const type of textKinds) {
       for (const content of CONTENTS) {
@@ -106,7 +112,7 @@ describe("the kinds' checks", () => {
     expect(compared).toBeGreaterThan(1000);
   });
 
-  it("add documents' and sites' instructions, as their own layer", () => {
+  it("add diagrams', documents', presentations', sites' and spreadsheets' instructions, as their own layer", () => {
     const fragment = composeInstructions({ dynamic: [FRAGMENTS.artifacts] });
     const withKinds = composeInstructions({
       dynamic: [FRAGMENTS.artifacts],
@@ -116,13 +122,28 @@ describe("the kinds' checks", () => {
       ...fragment.sections,
       {
         layer: "kinds",
+        source: "kinds/diagram",
+        text: builtinArtifactKinds.get("diagram")?.instructions,
+      },
+      {
+        layer: "kinds",
         source: "kinds/document",
         text: builtinArtifactKinds.get("document")?.instructions,
       },
       {
         layer: "kinds",
+        source: "kinds/presentation",
+        text: builtinArtifactKinds.get("presentation")?.instructions,
+      },
+      {
+        layer: "kinds",
         source: "kinds/site",
         text: builtinArtifactKinds.get("site")?.instructions,
+      },
+      {
+        layer: "kinds",
+        source: "kinds/spreadsheet",
+        text: builtinArtifactKinds.get("spreadsheet")?.instructions,
       },
     ]);
   });

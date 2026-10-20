@@ -60,6 +60,7 @@ export const testFrame = (
   me: testMe,
   openNewOrg: vi.fn(),
   openPalette: vi.fn(),
+  openSettings: vi.fn(),
   paletteOpen: false,
   setPaletteOpen: vi.fn(),
   setSidebarLayout: vi.fn(),

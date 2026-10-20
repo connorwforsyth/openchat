@@ -1,10 +1,15 @@
 import { builtinArtifactKinds } from "@workspace/artifacts-kit/builtin";
-import type {
-  RenderRequest,
-  RuntimeError,
+import {
+  type ExportRequest,
+  type FrameMessage,
+  type PresentRequest,
+  type RenderRequest,
+  RUNTIME_CHANNEL,
+  type RuntimeError,
 } from "@workspace/chat-ui/artifacts/runtime-protocol";
 
 import { parseSvg, renderHtml, type Teardown } from "./documents";
+import { runtimeError } from "./errors";
 
 // One renderer per `render.runtime` a kind definition names
 // (`@workspace/artifacts-kit`, 123). The page (`main.ts`) looks the
@@ -12,12 +17,19 @@ import { parseSvg, renderHtml, type Teardown } from "./documents";
 // kind that draws like an existing one is a definition, not a new branch
 // here. React and Mermaid load on first use.
 
+/** What the host may ask of a render once it's drawn: a deck's (164). */
+export type RenderControl = ExportRequest | PresentRequest;
+
 /** What a renderer reports through, for the render it was given. */
 export interface RenderContext {
   readonly done: () => void;
   readonly fail: (error: RuntimeError) => void;
   /** Whether this render is still the one on screen. */
   readonly isCurrent: () => boolean;
+  /** Takes the host's requests for this render, until the next one. */
+  readonly listen: (handler: (control: RenderControl) => void) => void;
+  /** Tells the host something more than drawn or failed (a deck's position). */
+  readonly post: (message: FrameMessage) => void;
 }
 
 /** Draws `request` into `container`; returns what undoes it, if anything. */
@@ -77,6 +89,70 @@ const react: Renderer = async (container, request, context) => {
 };
 
 /**
+ * Presentations (164): every slide compiled like React, scaled to fit, and
+ * presented and exported when the host asks.
+ */
+const presentation: Renderer = async (container, request, context) => {
+  const [{ loadPresentation }, { mountDeck }, { slideDeckCss }, assets] =
+    await Promise.all([
+      import("./presentation"),
+      import("./presentation-deck"),
+      import("./slide-theme"),
+      import("./slide-assets"),
+    ]);
+  if (!context.isCurrent()) {
+    return null;
+  }
+  const deck = loadPresentation(request.code);
+  if (!deck.ok) {
+    context.fail(deck.error);
+    return null;
+  }
+  const controller = mountDeck(container, deck.value, {
+    css: slideDeckCss(assets.SLIDE_ASSETS.themeCss, request.theme),
+    onError: context.fail,
+    onPosition: (position) =>
+      context.post({
+        ...position,
+        channel: RUNTIME_CHANNEL,
+        id: request.id,
+        type: "position",
+      }),
+  });
+  context.listen((control) => {
+    if (control.type === "present") {
+      controller.control(control.action);
+      return;
+    }
+    const { format, id, request: asked } = control;
+    controller
+      .exportAs(format)
+      .then((data) =>
+        context.post({
+          channel: RUNTIME_CHANNEL,
+          // A copy on a plain ArrayBuffer, as the protocol takes it.
+          data: new Uint8Array(data),
+          format,
+          id,
+          request: asked,
+          type: "exported",
+        })
+      )
+      .catch((error: unknown) =>
+        context.post({
+          channel: RUNTIME_CHANNEL,
+          id,
+          message: runtimeError("render", error).message,
+          request: asked,
+          type: "export-failed",
+        })
+      );
+  });
+  context.done();
+  return controller.teardown;
+};
+
+/**
  * Sites (125) render on their own page, `site.html`, whose CSP lets in the
  * instance's public origins; this page's CSP lets in nothing, so it only
  * says where to go.
@@ -93,6 +169,7 @@ const site: Renderer = (_container, _request, { fail }) => {
 export const runtimeRenderers: Readonly<Record<string, Renderer>> = {
   html,
   mermaid,
+  presentation,
   react,
   site,
   svg,

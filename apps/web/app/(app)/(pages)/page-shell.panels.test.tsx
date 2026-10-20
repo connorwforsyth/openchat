@@ -122,6 +122,7 @@ describe("the panel follows the rail (181)", () => {
       "MCP servers",
       "Shared with me",
       "Team & org",
+      "Space",
     ]) {
       expect(nav.getByRole("link", { name })).toBeTruthy();
     }

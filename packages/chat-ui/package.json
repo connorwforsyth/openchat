@@ -30,6 +30,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@glideapps/glide-data-grid": "catalog:",
     "@lingui/core": "catalog:",
     "@lingui/react": "catalog:",
     "@pierre/diffs": "catalog:",
@@ -55,8 +56,10 @@
     "@workspace/shared": "workspace:*",
     "@workspace/shortcuts": "workspace:*",
     "@workspace/ui": "workspace:*",
+    "@xyflow/react": "catalog:",
     "ai": "catalog:",
     "diff": "catalog:",
+    "html-to-image": "catalog:",
     "katex": "^0.16.27",
     "react": "catalog:",
     "react-dom": "catalog:",

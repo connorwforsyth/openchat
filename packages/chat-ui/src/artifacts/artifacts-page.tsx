@@ -58,6 +58,7 @@ import {
   artifactKindLabels,
   artifactKinds,
   starterKinds,
+  starterLabels,
 } from "../model/artifact-kinds";
 import { type ArtifactLinks, ArtifactMenu } from "./artifact-actions";
 import { ArtifactThumbnail } from "./artifact-thumbnail";
@@ -270,7 +271,7 @@ function StarterCard({
   readonly onStart: (prompt: string) => void;
 }) {
   const { i18n, t } = useLingui();
-  const label = i18n._(artifactKindLabels[kind]);
+  const label = i18n._(starterLabels[kind] ?? artifactKindLabels[kind]);
   const Glyph = kindIcon(kind);
   const badge = artifactKindDefinition(kind).starter?.badge;
   const start = useCallback(

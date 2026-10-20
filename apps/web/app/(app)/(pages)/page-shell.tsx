@@ -32,6 +32,7 @@ import { useApi } from "@/app/(app)/_shared/api";
 import { canAdmin, useAppFrame } from "@/app/(app)/_shared/app-frame";
 import { Brand } from "@/app/(app)/_shared/brand";
 import { useShellPlatform } from "@/app/(app)/_shared/desktop";
+import { SpaceSwitcher } from "@/app/(app)/_shared/spaces/space-switcher";
 import { useSidebarDots } from "@/app/(app)/(pages)/dots/sidebar-dots";
 import { RailPanelFor } from "@/app/(app)/(pages)/rail-panels";
 import { routes } from "@/lib/routes";
@@ -51,7 +52,8 @@ const SectionTitle = ({ pathname }: { readonly pathname: string }) => {
     pathname.startsWith(routes.library) ||
     pathname.startsWith(routes.artifacts) ||
     pathname.startsWith(routes.dots) ||
-    pathname.startsWith(routes.schedules)
+    pathname.startsWith(routes.schedules) ||
+    pathname.startsWith(routes.space)
   ) {
     return null;
   }
@@ -63,7 +65,11 @@ const SectionTitle = ({ pathname }: { readonly pathname: string }) => {
 
 /** Which rail button is current on a page. */
 const railDestination = (pathname: string): RailDestination => {
-  if (pathname.startsWith(routes.library)) {
+  // A space's shared agents and skills are a Library section (181, 187).
+  if (
+    pathname.startsWith(routes.library) ||
+    pathname.startsWith(routes.space)
+  ) {
     return "library";
   }
   if (pathname.startsWith(routes.artifacts)) {
@@ -184,7 +190,7 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
       onNewOrg: frame.openNewOrg,
       // Org owners and admins reach admin too, not only the instance admin.
       onOpenAdmin: canAdmin(me) ? () => router.push(routes.admin) : undefined,
-      onOpenSettings: () => router.push(routes.settings()),
+      onOpenSettings: () => frame.openSettings(),
       onSignOut: frame.signOut,
       onThemeChange: frame.setTheme,
       theme: frame.theme,
@@ -220,7 +226,7 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
       sidebar={
         <ChatSidebar
           {...sidebarProps}
-          brand={<Brand config={frame.config} />}
+          brand={<SpaceSwitcher fallback={<Brand config={frame.config} />} />}
           onNewChat={newChat}
           onOpenPalette={openPalette}
           panel={panel}

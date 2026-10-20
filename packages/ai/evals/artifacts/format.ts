@@ -23,13 +23,8 @@ export const artifactDirectiveSchema = z.object({
     .max(64),
   title: z.string().trim().min(1).max(200),
   // An image (138) is only ever `generate_image`'s, never written as text,
-  // and the kinds not built yet (164–166) aren't offered.
-  type: artifactKindSchema.exclude([
-    "image",
-    "presentation",
-    "spreadsheet",
-    "diagram",
-  ]),
+  // and so isn't offered.
+  type: artifactKindSchema.exclude(["image"]),
 });
 
 /** The kinds a model may write itself. */
@@ -57,15 +52,21 @@ const ATTRIBUTE = /(\w+)="([^"]*)"/g;
 /** What an artifact of each kind must look like to render at all. */
 const BODY_CHECKS: Readonly<Record<WrittenKind, RegExp>> = {
   code: /\S/,
+  // A graph as JSON (165); the Diagram kind checks the rest.
+  diagram: /"nodes"\s*:/,
   // Rich text the model writes as Markdown (126).
   document: /\S/,
   html: /<[a-z!][\s\S]*>/i,
   markdown: /\S/,
   mermaid:
     /^\s*(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|mindmap|timeline)\b/,
+  // Presentations (164) are JSON with their slides; the kind checks the rest.
+  presentation: /"slides"\s*:/,
   react: /export\s+default\b/,
   // Sites (125) are JSON with their files; the Site kind checks the rest.
   site: /"files"\s*:/,
+  // Sheets as Markdown tables or JSON (166); the kind checks the rest.
+  spreadsheet: /\S/,
   svg: /^\s*<svg[\s>][\s\S]*<\/svg>\s*$/,
 };
 

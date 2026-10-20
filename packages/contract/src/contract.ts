@@ -11,6 +11,7 @@ import { decisions, sandbox, search, usage } from "./routes/ops";
 import { runs } from "./routes/runs";
 import { schedules } from "./routes/schedules";
 import { grants, shareLinks } from "./routes/sharing";
+import { spaces } from "./routes/spaces";
 import { orgs, teams } from "./routes/tenancy";
 
 // The M1 API surface (D26): one oRPC contract that the Hono handlers
@@ -40,6 +41,7 @@ export const contract = {
   schedules: oc.tag("Schedules").router(schedules),
   search: oc.tag("Search").router(search),
   shareLinks: oc.tag("Sharing").router(shareLinks),
+  spaces: oc.tag("Spaces").router(spaces),
   teams: oc.tag("Teams").router(teams),
   usage: oc.tag("Usage").router(usage),
 };

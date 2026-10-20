@@ -85,7 +85,8 @@ export function ArtifactFullView({
     ),
     [kind]
   );
-  const isDocument = kind === "document";
+  // Documents and spreadsheets (166) carry them in their own title bar.
+  const isDocument = kind === "document" || kind === "spreadsheet";
   // A Document's own title bar carries Chat, Share and the menu (126).
   const documentActions = artifact ? (
     <>
