@@ -12,6 +12,7 @@ import {
   getBudget,
   listBudgets,
   listTransactionsFor,
+  type SpaceScope,
   setBudget,
   summarizeUsage,
   toBudget,
@@ -20,7 +21,7 @@ import {
 } from "@workspace/db/queries/usage";
 
 import type { RequestContext } from "../context";
-import { administersTeam, isOrgAdmin, teamOrg } from "./roles";
+import { administersTeam, isInstanceAdmin, isOrgAdmin, teamOrg } from "./roles";
 
 // The `usage` procedure group (D17, D24). Who sees what:
 // - a user sees their own usage, in every context;
@@ -31,11 +32,14 @@ import { administersTeam, isOrgAdmin, teamOrg } from "./roles";
 // Budgets are managed by org owners and admins only, team budgets included
 // (team admins don't set their own caps). A user's own budget lives in their
 // personal org, which they own, so they can cap their personal spend.
+// Usage by chat names chats, so it's only for your own usage.
 
 export interface UsageDeps {
   readonly db: Db;
   /** The clock budgets' periods are read against. */
   readonly now?: () => Date;
+  /** A person's page in the trace viewer, when the instance names one (`observability.userTracesUrl`). */
+  readonly userTracesUrl?: (userId: UserId) => string;
 }
 
 const forbidden = () => new ORPCError("FORBIDDEN", baseErrors.FORBIDDEN);
@@ -50,6 +54,7 @@ const validation = (message: string, path: (string | number)[]) =>
 export const createUsageRouter = ({
   db,
   now = () => new Date(),
+  userTracesUrl,
 }: UsageDeps) => {
   const os = implement(contract).$context<RequestContext>();
   const authed = os.use(({ context, next }) => {
@@ -89,6 +94,26 @@ export const createUsageRouter = ({
         return { orgId: principal.id, type: "org" };
       default:
         return principal satisfies never;
+    }
+  };
+
+  /** The space a summary is narrowed to; a team's includes its sub-teams. */
+  const spaceScope = async (input: {
+    readonly spaceId?: string;
+    readonly spaceType?: "org" | "team";
+  }): Promise<SpaceScope | undefined> => {
+    switch (input.spaceType) {
+      case undefined:
+        return;
+      case "org":
+        return { orgId: input.spaceId as OrgId, type: "org" };
+      case "team":
+        return {
+          teamIds: await teamSubtree(db, input.spaceId as TeamId),
+          type: "team",
+        };
+      default:
+        return input.spaceType satisfies never;
     }
   };
 
@@ -194,16 +219,32 @@ export const createUsageRouter = ({
         throw validation("`from` must be before `to`.", ["from"]);
       }
       const principal = principalOf(input);
+      if (input.groupBy === "conversation" && principal.type !== "user") {
+        throw validation("Usage by chat is only for your own usage.", [
+          "groupBy",
+        ]);
+      }
       const filter = await readableUsage(context.userId, principal);
       const rows = await summarizeUsage(db, filter, {
         from,
         groupBy: input.groupBy,
+        keyId: input.keyId,
+        space: await spaceScope(input),
         to,
       });
+      const traced =
+        userTracesUrl &&
+        input.groupBy === "user" &&
+        (await isInstanceAdmin(db, context.userId));
       return {
         from: from.toISOString(),
         principal,
-        rows,
+        rows: traced
+          ? rows.map((row) => ({
+              ...row,
+              traceUrl: userTracesUrl(row.key as UserId),
+            }))
+          : rows,
         to: to.toISOString(),
         totalCostMicros: rows.reduce((sum, row) => sum + row.costMicros, 0),
       };

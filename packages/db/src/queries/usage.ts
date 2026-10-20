@@ -34,6 +34,8 @@ import {
 import type { z } from "zod";
 import type { Db } from "../client";
 import { type NotFoundError, notFound } from "../errors";
+import { user } from "../schema/auth";
+import { conversation, run } from "../schema/chat";
 import type { PrincipalId } from "../schema/columns";
 import { budget } from "../schema/tenancy";
 import { balance, providerKey, transaction } from "../schema/usage";
@@ -399,25 +401,52 @@ const filterWhere = (filter: UsageFilter): SQL | undefined => {
 
 export type UsageGroupBy = z.infer<typeof usageSummaryInputSchema>["groupBy"];
 
+/** Usage in a space and the spaces below it: an org's everything, a team's subtree. */
+export type SpaceScope = Exclude<UsageFilter, { readonly type: "user" }>;
+
+export interface UsageQuery {
+  readonly from: Date;
+  readonly groupBy: UsageGroupBy;
+  /** Only usage paid with this stored key. */
+  readonly keyId?: ProviderKeyId;
+  readonly space?: SpaceScope;
+  readonly to: Date;
+}
+
 export interface UsageSummaryRow {
   readonly costMicros: number;
   readonly key: string;
+  readonly label?: string;
   readonly usage: TokenUsage;
 }
 
-const groupKey = (groupBy: UsageGroupBy): SQL<string> => {
-  switch (groupBy) {
-    case "model":
-      return sql<string>`${transaction.model}`;
-    case "user":
-      return sql<string>`${transaction.userId}::text`;
-    case "day":
-      return sql<string>`to_char(${transaction.createdAt} at time zone 'UTC', 'YYYY-MM-DD')`;
-    case "kind":
-      return sql<string>`${transaction.kind}`;
-    default:
-      return groupBy satisfies never;
-  }
+/**
+ * How each grouping reads its key and, where the key is an id, a name for
+ * it. `""` is the group of rows with no chat, or paid by instance keys.
+ */
+const GROUPS: Record<
+  UsageGroupBy,
+  { readonly key: SQL<string>; readonly label?: SQL<string | null> }
+> = {
+  conversation: {
+    key: sql<string>`coalesce(${run.conversationId}::text, '')`,
+    label: sql<string | null>`max(${conversation.title})`,
+  },
+  day: {
+    key: sql<string>`to_char(${transaction.createdAt} at time zone 'UTC', 'YYYY-MM-DD')`,
+  },
+  key: {
+    key: sql<string>`coalesce(${transaction.providerKeyId}::text, '')`,
+    label: sql<
+      string | null
+    >`max(coalesce(nullif(${providerKey.label}, ''), '••••' || ${providerKey.hint}))`,
+  },
+  kind: { key: sql<string>`${transaction.kind}` },
+  model: { key: sql<string>`${transaction.model}` },
+  user: {
+    key: sql<string>`${transaction.userId}::text`,
+    label: sql<string | null>`max(${user.name})`,
+  },
 };
 
 /** Postgres sums bigints as numeric, which arrives as text. */
@@ -432,35 +461,39 @@ const optionalTotal = (column: typeof transaction.cachedInputTokens) =>
 export const summarizeUsage = async (
   db: Db,
   filter: UsageFilter,
-  range: {
-    readonly from: Date;
-    readonly groupBy: UsageGroupBy;
-    readonly to: Date;
-  }
+  query: UsageQuery
 ): Promise<UsageSummaryRow[]> => {
-  const key = groupKey(range.groupBy);
+  const group = GROUPS[query.groupBy];
   const rows = await db
     .select({
       cachedInputTokens: optionalTotal(transaction.cachedInputTokens),
       costMicros: total(transaction.costMicros),
       inputTokens: total(sql`${transaction.inputTokens}`),
-      key,
+      key: group.key,
+      label: group.label ?? sql<string | null>`null`,
       outputTokens: total(sql`${transaction.outputTokens}`),
       reasoningTokens: optionalTotal(transaction.reasoningTokens),
     })
     .from(transaction)
+    .leftJoin(run, eq(run.id, transaction.runId))
+    .leftJoin(conversation, eq(conversation.id, run.conversationId))
+    .leftJoin(providerKey, eq(providerKey.id, transaction.providerKeyId))
+    .leftJoin(user, eq(user.id, transaction.userId))
     .where(
       and(
         filterWhere(filter),
-        gte(transaction.createdAt, range.from),
-        lt(transaction.createdAt, range.to)
+        query.space ? filterWhere(query.space) : undefined,
+        query.keyId ? eq(transaction.providerKeyId, query.keyId) : undefined,
+        gte(transaction.createdAt, query.from),
+        lt(transaction.createdAt, query.to)
       )
     )
-    .groupBy(key)
-    .orderBy(desc(total(transaction.costMicros)), key);
+    .groupBy(group.key)
+    .orderBy(desc(total(transaction.costMicros)), group.key);
   return rows.map((row) => ({
     costMicros: row.costMicros,
     key: row.key,
+    ...(row.label === null ? {} : { label: row.label }),
     usage: {
       inputTokens: row.inputTokens,
       outputTokens: row.outputTokens,

@@ -394,4 +394,62 @@ describe("usage procedures", () => {
       )
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
+
+  it("narrows your own usage to a space and the spaces below it", async () => {
+    const w = await seedWorld();
+    const mine = await call(
+      router().summary,
+      {
+        ...RANGE,
+        groupBy: "model",
+        principalId: w.plain.id,
+        principalType: "user",
+        spaceId: w.parent.id,
+        spaceType: "team",
+      },
+      as(w.plain.id)
+    );
+    expect(mine.totalCostMicros).toBe(120);
+  });
+
+  it("groups by chat only for your own usage", async () => {
+    const w = await seedWorld();
+    await expect(
+      call(
+        router().summary,
+        {
+          ...RANGE,
+          groupBy: "conversation",
+          principalId: w.org.id,
+          principalType: "org",
+        },
+        as(w.owner.id)
+      )
+    ).rejects.toMatchObject({ code: "VALIDATION" });
+  });
+
+  it("links people to their traces for instance admins only", async () => {
+    const w = await seedWorld();
+    const admin = await seedUser(db, { role: "admin" });
+    await db
+      .insert(member)
+      .values({ organizationId: w.org.id, role: "admin", userId: admin.id });
+    const traced = createUsageRouter({
+      db,
+      userTracesUrl: (userId) => `https://traces.test/users/${userId}`,
+    }).usage;
+    const input = {
+      ...RANGE,
+      groupBy: "user",
+      principalId: w.org.id,
+      principalType: "org",
+    } as const;
+
+    const forAdmin = await call(traced.summary, input, as(admin.id));
+    expect(forAdmin.rows.map((row) => row.traceUrl)).toContain(
+      `https://traces.test/users/${w.plain.id}`
+    );
+    const forOwner = await call(traced.summary, input, as(w.owner.id));
+    expect(forOwner.rows.every((row) => row.traceUrl === undefined)).toBe(true);
+  });
 });

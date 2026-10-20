@@ -4,6 +4,7 @@ import { type AsyncResult, err, ok } from "@workspace/shared/result";
 import { generateText, type LanguageModel } from "ai";
 
 import { toRunError } from "../errors/run-error";
+import { type TraceContext, tracedCall } from "../telemetry/trace-context";
 
 // Conversation titles (D4 jobs): the title job (ticket 014) passes the first
 // exchange and a cheap model. Only text is sent: titles don't need files, and
@@ -85,7 +86,10 @@ export const fallbackTitle = (
 export const generateTitle = async (
   messages: readonly Pick<Message, "parts" | "role">[],
   model: LanguageModel,
-  { signal }: { readonly signal?: AbortSignal } = {}
+  {
+    signal,
+    trace,
+  }: { readonly signal?: AbortSignal; readonly trace?: TraceContext } = {}
 ): AsyncResult<string, RunError> => {
   const input = titleInput(messages);
   if (!input) {
@@ -104,6 +108,7 @@ export const generateTitle = async (
       prompt: input,
       reasoning: "none",
       temperature: 0.3,
+      ...tracedCall(trace),
     });
     const title = cleanTitle(text);
     return title
