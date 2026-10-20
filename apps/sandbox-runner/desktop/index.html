@@ -24,7 +24,13 @@
     <script type="module">
     import RFB from "./core/rfb.js";
 
+    // Retries back off (1, 2, 4, 8, 16 s), then stop and tell the app,
+    // which shows the failure and a way to try again.
+    const MAX_RETRIES = 5;
     const scheme = location.protocol === "https:" ? "wss" : "ws";
+    const report = (state) =>
+      window.parent.postMessage({ source: "dot-computer", state }, "*");
+    let retries = 0;
     const connect = () => {
       const rfb = new RFB(
         document.getElementById("screen"),
@@ -32,7 +38,18 @@
       );
       rfb.scaleViewport = true;
       rfb.background = "black";
-      rfb.addEventListener("disconnect", () => setTimeout(connect, 1000));
+      rfb.addEventListener("connect", () => {
+        retries = 0;
+        report("connected");
+      });
+      rfb.addEventListener("disconnect", () => {
+        if (retries >= MAX_RETRIES) {
+          report("failed");
+          return;
+        }
+        setTimeout(connect, 1000 * 2 ** retries);
+        retries += 1;
+      });
     };
     connect();
     </script>

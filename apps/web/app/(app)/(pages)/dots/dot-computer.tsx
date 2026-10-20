@@ -10,7 +10,14 @@ import {
   computerViewSchema,
 } from "@workspace/server/dots/computer-view";
 import { Button } from "@workspace/ui/components/button";
-import { useCallback } from "react";
+import {
+  type RefObject,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import { z } from "zod";
 import type { DotSurfaceProps } from "./dot-extensions";
 import { DOTS_REFRESH_MS, useDotForConversation } from "./dot-home";
 
@@ -30,6 +37,39 @@ const readView = async (response: Response): Promise<ComputerView> => {
     throw new Error(String(response.status));
   }
   return computerViewSchema.parse(await response.json());
+};
+
+/** What the screen's page (`apps/sandbox-runner/desktop`) posts up. */
+const screenMessageSchema = z.object({
+  source: z.literal("dot-computer"),
+  state: z.enum(["connected", "failed"]),
+});
+
+/**
+ * Whether the screen gave up reconnecting to the desktop, and a way to start
+ * it over: a new frame, so its page retries from the beginning.
+ */
+const useScreenLink = (frame: RefObject<HTMLIFrameElement | null>) => {
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      if (event.source !== frame.current?.contentWindow) {
+        return;
+      }
+      const message = screenMessageSchema.safeParse(event.data);
+      if (message.success) {
+        setFailed(message.data.state === "failed");
+      }
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [frame]);
+  const reconnect = useCallback(() => {
+    setFailed(false);
+    setAttempt((n) => n + 1);
+  }, []);
+  return { attempt, failed, reconnect };
 };
 
 const viewKey = (conversationId: ConversationId) =>
@@ -102,9 +142,15 @@ export function DotComputerView({ dot }: { readonly dot: Dot }) {
     [holder, mutate]
   );
 
+  const frame = useRef<HTMLIFrameElement>(null);
+  const screen = useScreenLink(frame);
+
   const current = view.data;
   const userHas = holder === "user";
   const status = (): string => {
+    if (current && screen.failed) {
+      return t`Couldn't connect to the screen`;
+    }
     if (current) {
       return userHas ? t`You have control` : t`${dot.name} has control`;
     }
@@ -130,8 +176,12 @@ export function DotComputerView({ dot }: { readonly dot: Dot }) {
         >
           {status()}
         </span>
-        {view.isError ? (
-          <Button onClick={retry} size="sm" variant="ghost">
+        {view.isError || screen.failed ? (
+          <Button
+            onClick={screen.failed ? screen.reconnect : retry}
+            size="sm"
+            variant="ghost"
+          >
             <RotateCcwIcon aria-hidden />
             <Trans>Retry</Trans>
           </Button>
@@ -160,6 +210,8 @@ export function DotComputerView({ dot }: { readonly dot: Dot }) {
             // The desktop ignores input until the person takes over; until
             // then the frame shouldn't take focus or keystrokes either.
             inert={!userHas}
+            key={screen.attempt}
+            ref={frame}
             sandbox="allow-scripts"
             src={current.url}
             title={t`${dot.name}'s screen`}
