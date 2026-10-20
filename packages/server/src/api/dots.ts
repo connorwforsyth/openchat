@@ -5,6 +5,19 @@ import type { Result } from "@workspace/shared/result";
 
 import { actorFor, type RequestContext } from "../context";
 import {
+  createSchedule,
+  getScheduleFor,
+  listRunsFor,
+  listSchedulesFor,
+  markRunsRead,
+  pauseSchedule,
+  removeSchedule,
+  resumeSchedule,
+  runScheduleNow,
+  scheduleLimitsFor,
+  updateSchedule,
+} from "../dots/schedules";
+import {
   addDotSchedule,
   createDot,
   type DotDeps,
@@ -20,7 +33,7 @@ import {
   updateDot,
 } from "../dots/service";
 
-// The `dots` procedure group (172). Owner-only: someone else's Dot is
+// The `dots` (172, 174) and `schedules` (173) procedure groups. Owner-only: someone else's Dot is
 // `NOT_FOUND`. The handlers only translate; the work is in `dots/service`.
 
 const validation = (message: string, path: readonly (string | number)[]) =>
@@ -30,18 +43,33 @@ const validation = (message: string, path: readonly (string | number)[]) =>
     status: baseErrors.VALIDATION.status,
   });
 
-interface RunErrors {
+type RunErrors = Partial<{
   readonly BUDGET_EXCEEDED: (options: {
     data: Extract<
       Extract<DotError, { type: "run" }>["error"],
       { type: "budget_exceeded" }
     >["data"];
   }) => Error;
-  readonly CONFLICT: (options: { data: { reason: "context_locked" } }) => Error;
+  readonly CONFLICT: (options: {
+    data: { reason: "context_locked" | "already_exists" | "run_active" };
+  }) => Error;
   readonly PROVIDER_UNAVAILABLE: (options: {
     data: { provider: null };
   }) => Error;
-}
+}>;
+
+const conflict = (
+  reason: "already_exists" | "run_active",
+  errors?: RunErrors,
+  message?: string
+): Error =>
+  errors?.CONFLICT
+    ? errors.CONFLICT({ data: { reason } })
+    : new ORPCError("CONFLICT", {
+        data: { reason },
+        message: message ?? baseErrors.VALIDATION.message,
+        status: 409,
+      });
 
 const failure = (error: DotError, errors?: RunErrors): Error => {
   switch (error.type) {
@@ -51,8 +79,33 @@ const failure = (error: DotError, errors?: RunErrors): Error => {
       return validation("Another of your Dots has that handle.", ["handle"]);
     case "no_personal_space":
       return validation("You have no personal space yet.", []);
-    case "invalid_cron":
+    case "no_dot":
+      return validation("Make your Dot first.", ["target"]);
+    case "forbidden":
+      return new ORPCError("FORBIDDEN");
+    case "dot_exists":
+      return conflict("already_exists", errors);
+    case "completed":
+    case "target_archived":
+      return conflict(
+        "already_exists",
+        errors,
+        error.type === "completed"
+          ? "This task has finished; give it a new time to run again."
+          : "Its chat is archived; unarchive it first."
+      );
+    case "busy":
+      return conflict("run_active", errors);
+    case "cap":
+      return new ORPCError("RATE_LIMITED", {
+        data: { retryAfterSeconds: error.retryAfterSeconds },
+        message: "You've used today's scheduled runs.",
+        status: baseErrors.RATE_LIMITED.status,
+      });
+    case "invalid_rule":
     case "invalid_timezone":
+    case "too_frequent":
+    case "once_out_of_range":
       return validation(error.message, error.path);
     case "run": {
       const run = error.error;
@@ -64,15 +117,15 @@ const failure = (error: DotError, errors?: RunErrors): Error => {
         case "invalid":
           return validation(run.message, run.path);
         case "context_locked":
-          return errors
+          return errors?.CONFLICT
             ? errors.CONFLICT({ data: { reason: "context_locked" } })
             : new ORPCError("CONFLICT");
         case "budget_exceeded":
-          return errors
+          return errors?.BUDGET_EXCEEDED
             ? errors.BUDGET_EXCEEDED({ data: run.data })
             : new ORPCError("BUDGET_EXCEEDED");
         case "no_model":
-          return errors
+          return errors?.PROVIDER_UNAVAILABLE
             ? errors.PROVIDER_UNAVAILABLE({ data: { provider: null } })
             : new ORPCError("PROVIDER_UNAVAILABLE");
         default:
@@ -105,8 +158,8 @@ export const createDotsRouter = (deps: DotDeps) => {
     activity: authed.dots.activity.handler(async ({ context, input }) =>
       unwrap(await listDotActivity(db, context.actor.userId, input))
     ),
-    create: authed.dots.create.handler(async ({ context, input }) =>
-      unwrap(await createDot(deps, context.actor, input))
+    create: authed.dots.create.handler(async ({ context, errors, input }) =>
+      unwrap(await createDot(deps, context.actor, input), errors)
     ),
     createSchedule: authed.dots.createSchedule.handler(
       async ({ context, input }) =>
@@ -141,5 +194,45 @@ export const createDotsRouter = (deps: DotDeps) => {
     ),
   };
 
-  return { dots };
+  const schedules = {
+    create: authed.schedules.create.handler(async ({ context, input }) =>
+      unwrap(await createSchedule(deps, context.actor, input))
+    ),
+    delete: authed.schedules.delete.handler(async ({ context, input }) => {
+      unwrap(await removeSchedule(db, context.actor, input.id));
+    }),
+    get: authed.schedules.get.handler(async ({ context, input }) =>
+      unwrap(await getScheduleFor(db, context.actor.userId, input.id))
+    ),
+    limits: authed.schedules.limits.handler(({ context }) =>
+      scheduleLimitsFor(deps, context.actor.userId)
+    ),
+    list: authed.schedules.list.handler(({ context, input }) =>
+      listSchedulesFor(db, context.actor.userId, input)
+    ),
+    markRunsRead: authed.schedules.markRunsRead.handler(
+      async ({ context, input }) => {
+        unwrap(await markRunsRead(deps, context.actor, input.id));
+      }
+    ),
+    pause: authed.schedules.pause.handler(async ({ context, input }) =>
+      unwrap(await pauseSchedule(deps, context.actor, input.id))
+    ),
+    resume: authed.schedules.resume.handler(
+      async ({ context, errors, input }) =>
+        unwrap(await resumeSchedule(deps, context.actor, input.id), errors)
+    ),
+    runNow: authed.schedules.runNow.handler(
+      async ({ context, errors, input }) =>
+        unwrap(await runScheduleNow(deps, context.actor, input.id), errors)
+    ),
+    runs: authed.schedules.runs.handler(async ({ context, input }) =>
+      unwrap(await listRunsFor(db, context.actor.userId, input))
+    ),
+    update: authed.schedules.update.handler(async ({ context, input }) =>
+      unwrap(await updateSchedule(deps, context.actor, input))
+    ),
+  };
+
+  return { dots, schedules };
 };

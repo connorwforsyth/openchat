@@ -618,6 +618,30 @@ const limitsSchema = z
   })
   .prefault({});
 
+/**
+ * Guardrails on scheduled tasks (175): unattended runs spend model tokens
+ * with nobody watching, so every limit is conservative by default and
+ * enforced on the server.
+ */
+const schedulesSchema = z
+  .strictObject({
+    /**
+     * The model a schedule on an ordinary chat answers with (a Dot's own
+     * schedules use the Dot's). `null`: the `fast` alias when there is one,
+     * else the instance default.
+     */
+    defaultModel: z.string().min(1).nullable().default(null),
+    /** Runs (scheduled and "Run now") one user may start in any 24 hours. */
+    maxRunsPerUserPerDay: z.int().min(1).max(10_000).default(24),
+    /** The shortest gap a recurring schedule may have. */
+    minIntervalMinutes: z.int().min(1).max(10_080).default(60),
+    /** Agent steps one unattended run may take (below `limits.agentMaxSteps`). */
+    runStepBudget: z.int().min(1).max(200).default(8),
+    /** Input plus output tokens one unattended run may spend before it's stopped. */
+    runTokenBudget: z.int().min(1000).max(10_000_000).default(20_000),
+  })
+  .prefault({});
+
 type FeatureFlag = z.infer<typeof featureFlagSchema>;
 
 const featureDefaults: Record<FeatureFlag, boolean> = {
@@ -763,6 +787,7 @@ export const appConfigSchema = z
     policies: instancePolicySchema.prefault({}),
     providers: providersSchema,
     sandbox: sandboxSchema,
+    schedules: schedulesSchema,
     search: searchSchema,
     storage: storageSchema,
     version: z.literal(1).default(1),
@@ -837,6 +862,7 @@ export const appConfigSchema = z
       ]);
     }
     checkSelector(config.models.image.default, ["models", "image", "default"]);
+    checkSelector(config.schedules.defaultModel, ["schedules", "defaultModel"]);
     for (const [index, ref] of config.models.image.models.entries()) {
       checkSelector(ref, ["models", "image", "models", index]);
     }

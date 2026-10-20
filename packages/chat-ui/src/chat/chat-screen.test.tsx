@@ -29,6 +29,7 @@ import {
   treeMessages,
 } from "../fixtures";
 import { localBranchPath } from "../model/branch";
+import { SidebarLayoutProvider } from "../shell/sidebar-layout";
 import { SHELL_LAYOUT_STORAGE_KEY } from "../shell/use-shell-layout";
 import { modKey, renderWithI18n } from "../testing/render";
 import type {
@@ -202,7 +203,8 @@ describe("header (D14)", () => {
             button.getAttribute("aria-label")?.startsWith("Rename chat")
           )
       );
-    const expected = ["Toggle sidebar", "Share", "Files", "Browser"];
+    // The sidebar toggle is in the rail on a wide screen (181).
+    const expected = ["Share", "Files", "Browser"];
     expect(controls).toEqual(
       expected.map((name) => header().getByRole("button", { name }))
     );
@@ -213,26 +215,71 @@ describe("header (D14)", () => {
     ).toBeNull();
   });
 
-  it("keeps the sidebar toggle in the sidebar while it's open (113)", async () => {
+  it("keeps the sidebar toggle first in the rail, open or collapsed (181)", async () => {
     renderWithI18n(<ChatScreen {...props()} />);
+    const rail = () => screen.getByRole("navigation", { name: "Sidebar rail" });
+    const sidebar = within(
+      screen.getByRole("complementary", { name: "Chats" })
+    );
+    const toggle = within(rail()).getByRole("button", {
+      name: "Toggle sidebar",
+    });
+    expect(rail().querySelector("a, button")).toBe(toggle);
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    expect(
+      sidebar.queryByRole("button", { name: "Toggle sidebar" })
+    ).toBeNull();
+    expect(
+      header().queryByRole("button", { name: "Toggle sidebar" })
+    ).toBeNull();
+    expect(header().queryByRole("button", { name: "New chat" })).toBeNull();
+    const before = toggle.getBoundingClientRect();
+
+    await userEvent.click(toggle);
+    expect(screen.queryByRole("complementary", { name: "Chats" })).toBeNull();
+    const collapsed = within(rail()).getByRole("button", {
+      name: "Toggle sidebar",
+    });
+    expect(collapsed.getAttribute("aria-expanded")).toBe("false");
+    const after = collapsed.getBoundingClientRect();
+    expect([after.x, after.y]).toEqual([before.x, before.y]);
+    expect(
+      header().queryByRole("button", { name: "Toggle sidebar" })
+    ).toBeNull();
+    expect(
+      screen.getAllByRole("button", { name: "Toggle sidebar" })
+    ).toHaveLength(1);
+    await userEvent.click(collapsed);
+    expect(screen.getByRole("complementary", { name: "Chats" })).toBeTruthy();
+  });
+
+  it("classic: no rail, the toggle in the sidebar's top row, then the header when collapsed (181)", async () => {
+    renderWithI18n(
+      <SidebarLayoutProvider value="classic">
+        <ChatScreen {...props()} />
+      </SidebarLayoutProvider>
+    );
+    expect(
+      screen.queryByRole("navigation", { name: "Sidebar rail" })
+    ).toBeNull();
     const sidebar = within(
       screen.getByRole("complementary", { name: "Chats" })
     );
     const toggle = sidebar.getByRole("button", { name: "Toggle sidebar" });
-    expect(toggle.getAttribute("aria-expanded")).toBe("true");
     expect(
       header().queryByRole("button", { name: "Toggle sidebar" })
     ).toBeNull();
-    expect(header().queryByRole("button", { name: "New chat" })).toBeNull();
 
     await userEvent.click(toggle);
-    const reopen = header().getByRole("button", { name: "Toggle sidebar" });
-    expect(reopen.getAttribute("aria-expanded")).toBe("false");
-    expect(header().queryByRole("button", { name: "New chat" })).toBeNull();
-    await userEvent.click(reopen);
+    // Collapsed classic is the pre-rail shell: no sidebar, toggle in the header.
+    expect(screen.queryByRole("complementary", { name: "Chats" })).toBeNull();
+    const inHeader = header().getByRole("button", { name: "Toggle sidebar" });
+    expect(inHeader.getAttribute("aria-expanded")).toBe("false");
     expect(
-      header().queryByRole("button", { name: "Toggle sidebar" })
-    ).toBeNull();
+      screen.getAllByRole("button", { name: "Toggle sidebar" })
+    ).toHaveLength(1);
+    await userEvent.click(inHeader);
+    expect(screen.getByRole("complementary", { name: "Chats" })).toBeTruthy();
   });
 
   // 137: Files and Browser in place of one Workspace toggle.
@@ -934,7 +981,7 @@ describe("the Preview opens by itself (066)", () => {
 });
 
 describe("sidebar", () => {
-  it("groups chats by date and archives with an undo", async () => {
+  it("lists chats flat under Pinned and Chats, and archives with an undo", async () => {
     const onArchive = vi.fn();
     const onRestore = vi.fn();
     const base = props();
@@ -946,15 +993,10 @@ describe("sidebar", () => {
     const sidebar = within(
       screen.getByRole("complementary", { name: "Chats" })
     );
-    for (const heading of [
-      "Pinned",
-      "Today",
-      "Yesterday",
-      "Previous 7 days",
-      "Older",
-    ]) {
+    for (const heading of ["Pinned", "Chats"]) {
       expect(sidebar.getByRole("heading", { name: heading })).toBeTruthy();
     }
+    expect(sidebar.queryByRole("heading", { name: "Today" })).toBeNull();
 
     const title = chats[2]?.title ?? "";
     await userEvent.click(
@@ -975,7 +1017,7 @@ describe("narrow screens", () => {
     await page.viewport(375, 812);
   });
   afterEach(async () => {
-    await page.viewport(1280, 800);
+    await page.viewport(1336, 800);
   });
 
   const sheet = (name: string) => screen.findByRole("dialog", { name });
@@ -1069,7 +1111,7 @@ describe("narrow screens", () => {
     await userEvent.keyboard("a");
     expect(await sheet("Side panel")).toBeTruthy();
 
-    await page.viewport(1280, 800);
+    await page.viewport(1336, 800);
     await waitFor(() =>
       expect(screen.queryByRole("dialog", { name: "Side panel" })).toBeNull()
     );

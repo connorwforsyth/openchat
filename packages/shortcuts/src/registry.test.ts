@@ -14,7 +14,7 @@ describe("shortcutRegistry", () => {
   it("carries the ids and keys the app shell binds (009)", () => {
     const keys = (id: Parameters<typeof getShortcut>[0]) =>
       getShortcut(id).keys;
-    expect(keys("chat.new")).toEqual(["N"]);
+    expect(keys("chat.new")).toEqual(["N", "Mod+Shift+O"]);
     expect(keys("composer.focus")).toEqual(["/"]);
     expect(keys("chat.next")).toEqual(["J"]);
     expect(keys("chat.prev")).toEqual(["K"]);
@@ -22,9 +22,10 @@ describe("shortcutRegistry", () => {
     expect(keys("branch.next")).toEqual(["]"]);
     expect(keys("panel.sandbox")).toEqual(["S"]);
     expect(keys("panel.artifacts")).toEqual(["A"]);
-    expect(keys("help")).toEqual(["?"]);
-    expect(keys("sidebar.toggle")).toEqual(["Mod+B"]);
+    expect(keys("help")).toEqual(["?", "Mod+/"]);
+    expect(keys("sidebar.toggle")).toEqual(["Mod+B", "Mod+Shift+S"]);
     expect(keys("palette.open")).toEqual(["Mod+K"]);
+    expect(keys("dot.open")).toEqual(["Mod+.", "Mod+Shift+D"]);
   });
 
   it("has no clashing defaults", () => {

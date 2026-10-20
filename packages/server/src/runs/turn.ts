@@ -109,6 +109,8 @@ export interface Turn {
     readonly id: LibraryItemId;
     readonly versionId: LibraryVersionId;
   } | null;
+  /** An unattended run's step and token budget (175); see `RunAgentInput.budget`. */
+  readonly budget?: { readonly steps: number; readonly tokens: number };
   readonly instructions?: string;
   readonly model: LanguageModelV4;
   /** Whose key pays; `null` for a keyless local provider. */
@@ -119,6 +121,8 @@ export interface Turn {
     call: PausedCall
   ) => Promise<readonly ProposedEdit[] | undefined>;
   readonly resolvedModel: ModelRef;
+  /** The loop ends after a step calling one of these (a scheduled run's `report`). */
+  readonly stopAfterTools?: readonly string[];
   readonly toolApproval?: Readonly<Record<string, ToolApprovalStatus>>;
   readonly tools?: ToolSet;
   /**

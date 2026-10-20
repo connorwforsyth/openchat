@@ -21,7 +21,7 @@ import { renderWithI18n } from "../testing/render";
 import { AppShell, type AppShellProps } from "./app-shell";
 
 // The shell's resize handles and the collapsed sidebar's peek (071). The
-// test frame is 1280px wide (vitest.config.ts), so nothing has to yield.
+// test frame is 1336px wide (vitest.config.ts), so nothing has to yield.
 
 const renderShell = (overrides: Partial<AppShellProps> = {}) => {
   const props: AppShellProps = {
@@ -227,5 +227,24 @@ describe("the collapsed sidebar's peek", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe("the icon rail (181)", () => {
+  const rail = <nav aria-label="Rail">Rail</nav>;
+
+  it("sits beside the open sidebar", () => {
+    renderShell({ rail });
+    expect(screen.getByRole("navigation", { name: "Rail" })).toBeTruthy();
+    expect(screen.getByRole("complementary", { name: "Chats" })).toBeTruthy();
+  });
+
+  it("stays when the sidebar collapses", () => {
+    renderShell({ rail, sidebarOpen: false });
+    expect(screen.getByRole("navigation", { name: "Rail" })).toBeTruthy();
+    // Only the (closed) peek remains of the sidebar.
+    expect(
+      screen.queryByRole("separator", { name: "Resize sidebar" })
+    ).toBeNull();
   });
 });

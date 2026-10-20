@@ -17,6 +17,7 @@
     "./shell/use-shell-layout": "./src/shell/use-shell-layout.ts",
     "./shortcuts/registry": "./src/shortcuts/registry.ts",
     "./sidebar/*": "./src/sidebar/*.tsx",
+    "./sidebar/use-sidebar-data": "./src/sidebar/use-sidebar-data.ts",
     "./workspace/*": "./src/workspace/*.tsx",
     "./workspace/model/*": "./src/workspace/model/*.ts",
     "./voice/*": "./src/voice/*.tsx",

@@ -3,6 +3,12 @@ import {
   type SkillUse,
   skillsDataSchema,
 } from "@workspace/ai/messages/skills";
+import {
+  REPORT_TOOL,
+  reportInputSchema,
+  SCHEDULED_TASK_DATA,
+  scheduledTaskDataSchema,
+} from "@workspace/ai/schedules/tool";
 import { memoryVersionIdSchema } from "@workspace/contract/schemas/common";
 import type {
   annotationRefPartSchema,
@@ -24,6 +30,7 @@ import {
   planApprovalOf,
   planRefSchema,
 } from "./plan";
+import type { RunReport, ScheduledTask } from "./scheduled";
 
 // How a message's stored parts (partsVersion 1) become what the conversation
 // renders. Tool calls and their results are separate parts joined by
@@ -122,6 +129,16 @@ const memoryFromResult = (
 
 /** One thing the message renders, in part order. */
 export type RenderBlock =
+  | {
+      readonly key: string;
+      readonly kind: "scheduled";
+      readonly task: ScheduledTask;
+    }
+  | {
+      readonly key: string;
+      readonly kind: "report";
+      readonly report: RunReport;
+    }
   | { readonly key: string; readonly kind: "text"; readonly text: string }
   | { readonly key: string; readonly kind: "reasoning"; readonly text: string }
   | {
@@ -182,6 +199,12 @@ const dataBlock = (
       ? { key, kind: "skills", skills: parsed.data.skills }
       : null;
   }
+  if (part.name === SCHEDULED_TASK_DATA) {
+    const parsed = scheduledTaskDataSchema.safeParse(part.data);
+    return parsed.success
+      ? { key, kind: "scheduled", task: parsed.data }
+      : null;
+  }
   if (part.name === "memory-update") {
     const parsed = memoryUpdateSchema.safeParse(part.data);
     return parsed.success ? { key, kind: "memory", update: parsed.data } : null;
@@ -209,6 +232,12 @@ const blockFor = (
         ? { key, kind: "reasoning", text: part.text }
         : null;
     case "tool-call": {
+      if (part.toolName === REPORT_TOOL) {
+        const report = reportInputSchema.safeParse(part.input);
+        return report.success
+          ? { key, kind: "report", report: report.data }
+          : null;
+      }
       const result = results.get(part.toolCallId);
       const memory =
         part.toolName === MEMORY_TOOL_NAME ? memoryFromResult(result) : null;

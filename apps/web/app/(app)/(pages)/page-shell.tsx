@@ -8,9 +8,15 @@ import {
 } from "@workspace/chat-ui/chat/use-chat-data";
 import { AppHeader } from "@workspace/chat-ui/header/app-header";
 import { AppShell } from "@workspace/chat-ui/shell/app-shell";
+import { useSidebarLayout } from "@workspace/chat-ui/shell/sidebar-layout";
 import { SidebarToggle } from "@workspace/chat-ui/shell/sidebar-toggle";
 import { useNarrowScreen } from "@workspace/chat-ui/shell/use-narrow-screen";
 import { ChatSidebar } from "@workspace/chat-ui/sidebar/chat-sidebar";
+import {
+  type RailDestination,
+  SidebarRail,
+} from "@workspace/chat-ui/sidebar/sidebar-rail";
+import { useSidebarData } from "@workspace/chat-ui/sidebar/use-sidebar-data";
 import type { ConversationId } from "@workspace/contract/schemas/common";
 import { useShortcut } from "@workspace/shortcuts/react/use-shortcut";
 import { usePathname, useRouter } from "next/navigation";
@@ -40,16 +46,37 @@ const SectionTitle = ({ pathname }: { readonly pathname: string }) => {
   if (pathname.startsWith(routes.dots)) {
     return <Trans>Dots</Trans>;
   }
+  if (pathname.startsWith(routes.schedules)) {
+    return <Trans>Schedules</Trans>;
+  }
   if (pathname.startsWith(routes.admin)) {
     return <Trans>Admin</Trans>;
   }
   return <Trans>Settings</Trans>;
 };
 
+/** Which rail button is current on a page. */
+const railDestination = (pathname: string): RailDestination => {
+  if (pathname.startsWith(routes.library)) {
+    return "library";
+  }
+  if (pathname.startsWith(routes.artifacts)) {
+    return "artifacts";
+  }
+  if (pathname.startsWith(routes.dots)) {
+    return "dot";
+  }
+  if (pathname.startsWith(routes.schedules)) {
+    return "scheduled";
+  }
+  return "chats";
+};
+
 export function PageShell({ children }: { readonly children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const narrow = useNarrowScreen();
+  const railed = useSidebarLayout() === "rail";
   const { query } = useApi();
   const frame = useAppFrame();
   const { layout, me } = frame;
@@ -60,6 +87,7 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
   );
   const update = useConversationUpdate(query);
   const sidebarDots = useSidebarDots(null);
+  const sidebarData = useSidebarData(query);
 
   const { toggleSidebar } = layout;
   const toggleChats = useCallback(() => {
@@ -70,6 +98,14 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
     }
   }, [narrow, toggleSidebar]);
   useShortcut("sidebar.toggle", toggleChats);
+
+  // The rail's Chats button: back to chatting, with the chat panel open.
+  const showChats = useCallback(() => {
+    if (!layout.layout.sidebarOpen) {
+      toggleSidebar();
+    }
+    router.push(routes.home);
+  }, [layout.layout.sidebarOpen, router, toggleSidebar]);
 
   const newChat = useCallback(() => {
     setSheetOpen(false);
@@ -99,7 +135,7 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
     [update]
   );
 
-  const sidebarToggle = (where: "header" | "sidebar") => (
+  const sidebarToggle = (where: "header" | "rail" | "sidebar") => (
     <SidebarToggle
       expanded={narrow ? sheetOpen : layout.layout.sidebarOpen}
       onToggle={toggleChats}
@@ -113,11 +149,33 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
           <SectionTitle pathname={pathname} />
         </span>
       }
-      // The sidebar toggle is here only while the sidebar isn't docked;
-      // otherwise it's in the sidebar's top row (113).
+      // With the rail (181) the sidebar toggle is here only on a narrow
+      // screen; classic puts it here whenever the sidebar is collapsed.
       start={sidebarToggle("header")}
     />
   );
+
+  const sidebarProps = {
+    ...sidebarActions,
+    ...sidebarDots,
+    ...sidebarData,
+    account: {
+      onNewOrg: frame.openNewOrg,
+      // Org owners and admins reach admin too, not only the instance admin.
+      onOpenAdmin: canAdmin(me) ? () => router.push(routes.admin) : undefined,
+      onOpenSettings: () => router.push(routes.settings()),
+      onSignOut: frame.signOut,
+      onThemeChange: frame.setTheme,
+      theme: frame.theme,
+      user: me.user,
+    },
+    activeId: null,
+    artifactsHref: routes.artifacts,
+    chats: chats.data?.items ?? [],
+    dotsHref: routes.dots,
+    libraryHref: routes.library,
+    onSelect: selectChat,
+  };
 
   return (
     <AppShell
@@ -128,33 +186,24 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
       panelOpen={false}
       panelWidth={layout.layout.panelWidth}
       platform={platform}
+      rail={
+        railed ? (
+          <SidebarRail
+            {...sidebarProps}
+            current={railDestination(pathname)}
+            onShowChats={showChats}
+            toggle={sidebarToggle("rail")}
+          />
+        ) : undefined
+      }
       sidebar={
         <ChatSidebar
-          {...sidebarActions}
-          account={{
-            onNewOrg: frame.openNewOrg,
-            // Org owners and admins reach admin too, not only the instance admin.
-            onOpenAdmin: canAdmin(me)
-              ? () => router.push(routes.admin)
-              : undefined,
-            onOpenSettings: () => router.push(routes.settings()),
-            onSignOut: frame.signOut,
-            onThemeChange: frame.setTheme,
-            theme: frame.theme,
-            user: me.user,
-          }}
-          activeId={null}
-          artifactsHref={routes.artifacts}
+          {...sidebarProps}
           brand={<Brand config={frame.config} />}
-          chats={chats.data?.items ?? []}
-          dots={sidebarDots.dots}
-          dotsHref={routes.dots}
-          libraryHref={routes.library}
           onNewChat={newChat}
           onOpenPalette={openPalette}
-          onSelect={selectChat}
+          railed={railed}
           toggle={sidebarToggle("sidebar")}
-          top={sidebarDots.top}
         />
       }
       sidebarOpen={layout.layout.sidebarOpen}

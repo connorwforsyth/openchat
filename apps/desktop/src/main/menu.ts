@@ -194,6 +194,17 @@ export const OFF_MENU: ReadonlyMap<ShortcutId, string> = new Map([
   // The web app doesn't bind these yet; an item would do nothing.
   ["reply.copy", "not bound in the web app yet"],
   ["run.stop", "not bound in the web app yet"],
+  // The sidebar's own keys (176, 177): they act on the sidebar's rows, and
+  // its row menus already offer them.
+  ["dot.open", "sidebar key"],
+  ["chat.archive", "sidebar key"],
+  ["chat.pin", "sidebar key"],
+  ["chat.markUnread", "sidebar key"],
+  ["sidebar.next", "sidebar key"],
+  ["sidebar.prev", "sidebar key"],
+  ["attention.next", "sidebar key"],
+  ["attention.filter", "sidebar key"],
+  ["unread.clear", "sidebar key"],
 ]);
 
 export const menuTemplate = ({

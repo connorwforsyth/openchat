@@ -1,9 +1,10 @@
 "use client";
 
+import { SCHEDULE_TASK_TOOL } from "@workspace/ai/schedules/tool";
 import { isSkillAuthoringTool } from "@workspace/ai/tools/registry/skill-authoring";
 import type { ApprovalDecision } from "@workspace/contract/schemas/message-parts";
 import type { PendingApproval } from "@workspace/contract/schemas/runs";
-import { memo, useCallback, useMemo } from "react";
+import { memo, type ReactNode, useCallback, useMemo } from "react";
 
 import { editsFor } from "../model/approval";
 import type { ToolCallPart, ToolResultPart } from "../model/parts";
@@ -13,8 +14,20 @@ import { ApprovalCard } from "./approval";
 import { useRunActivity } from "./approval-state";
 import { FileChangeCard } from "./file-change-card";
 import { GeneratedImages } from "./generated-images";
+import { type ProposalState, ScheduleProposal } from "./schedule-card";
 import { SkillApprovalSubject, SkillCard } from "./skill-card";
 import { ToolStatus } from "./tool-status";
+
+/** What the approval card shows for calls with a richer subject than JSON. */
+const approvalSubject = (proposal: boolean, call: ToolCallPart): ReactNode => {
+  if (proposal) {
+    return <ScheduleProposal input={call.input} state="proposed" />;
+  }
+  if (isSkillAuthoringTool(call.toolName)) {
+    return <SkillApprovalSubject input={call.input} tool={call.toolName} />;
+  }
+  return undefined;
+};
 
 /**
  * A tool call and (once it lands, maybe in a later message) its result: a
@@ -55,8 +68,28 @@ export const ToolPart = memo(function ToolPartInner({
     [call.toolCallId, onRetry]
   );
 
+  const proposal = call.toolName === SCHEDULE_TASK_TOOL;
+  const proposalState: ProposalState = (() => {
+    if (summary.status === "awaiting") {
+      return "proposed";
+    }
+    if (result?.output.status === "success") {
+      const { value } = result.output;
+      return typeof value === "object" &&
+        value !== null &&
+        "ok" in value &&
+        value.ok === true
+        ? "scheduled"
+        : "failed";
+    }
+    return result?.output.status === "denied" ? "dismissed" : "proposed";
+  })();
+
   return (
     <div className="flex flex-col gap-2">
+      {proposal && summary.status !== "awaiting" ? (
+        <ScheduleProposal input={call.input} state={proposalState} />
+      ) : null}
       {summary.detail.kind === "file-change" ? (
         <FileChangeCard change={summary.detail.change} />
       ) : null}
@@ -66,7 +99,8 @@ export const ToolPart = memo(function ToolPartInner({
       {summary.detail.kind === "image" ? (
         <GeneratedImages detail={summary.detail} />
       ) : null}
-      {summary.detail.kind === "file-change" ||
+      {proposal ||
+      summary.detail.kind === "file-change" ||
       summary.detail.kind === "image" ||
       summary.detail.kind === "skill" ? null : (
         <ToolStatus
@@ -83,11 +117,7 @@ export const ToolPart = memo(function ToolPartInner({
           onRetry={onRetry ? retry : undefined}
           stale={stale?.has(call.toolCallId) ?? false}
           state={decisions.get(call.toolCallId)}
-          subject={
-            isSkillAuthoringTool(call.toolName) ? (
-              <SkillApprovalSubject input={call.input} tool={call.toolName} />
-            ) : undefined
-          }
+          subject={approvalSubject(proposal, call)}
           toolName={call.toolName}
         />
       ) : null}

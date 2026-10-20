@@ -345,7 +345,7 @@ export function VoiceOrb({
   return (
     <div
       aria-hidden
-      className="relative grid size-44 place-items-center"
+      className="relative grid size-24 place-items-center"
       data-state={state}
       data-testid="voice-orb"
     >
@@ -359,7 +359,7 @@ export function VoiceOrb({
       />
       <div
         className={cn(
-          "grid size-32 place-items-center rounded-full transition-opacity duration-(--motion-base) ease-motion-out",
+          "grid size-16 place-items-center rounded-full transition-opacity duration-(--motion-base) ease-motion-out",
           !look && "bg-primary",
           state === "idle" && "opacity-40",
           state === "listening" && "opacity-80",

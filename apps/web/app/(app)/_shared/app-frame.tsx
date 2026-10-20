@@ -5,6 +5,11 @@ import { QueryClient, useQuery } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { createWebAuthClient } from "@workspace/auth/client";
 import {
+  type SidebarLayout,
+  SidebarLayoutProvider,
+  useStoredSidebarLayout,
+} from "@workspace/chat-ui/shell/sidebar-layout";
+import {
   type ShellLayoutState,
   useShellLayout,
 } from "@workspace/chat-ui/shell/use-shell-layout";
@@ -85,7 +90,10 @@ export interface AppFrameValue {
   readonly openPalette: () => void;
   readonly paletteOpen: boolean;
   readonly setPaletteOpen: (open: boolean) => void;
+  readonly setSidebarLayout: (layout: SidebarLayout) => void;
   readonly setTheme: (theme: Theme) => void;
+  /** Rail or classic (181), the user's choice in Settings → Appearance. */
+  readonly sidebarLayout: SidebarLayout;
   readonly signOut: () => void;
   readonly theme: Theme;
 }
@@ -286,6 +294,9 @@ const Frame = ({
 }) => {
   const layout = useSharedShellLayout();
   const { setTheme, theme } = useFrameTheme();
+  const [sidebarLayout, setSidebarLayout] = useStoredSidebarLayout(
+    `sidebar-layout:${me.user.id}`
+  );
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [draftContext, setDraftContext] = useState<ChatContext>({
     type: "personal",
@@ -316,7 +327,9 @@ const Frame = ({
       openPalette,
       paletteOpen,
       setPaletteOpen,
+      setSidebarLayout,
       setTheme,
+      sidebarLayout,
       signOut: onSignOut,
       theme,
     }),
@@ -330,16 +343,20 @@ const Frame = ({
       openPalette,
       paletteContext,
       paletteOpen,
+      setSidebarLayout,
       setTheme,
+      sidebarLayout,
       target,
       theme,
     ]
   );
   return (
     <AppFrameContext.Provider value={value}>
-      {children}
-      {booted && surfaces ? <GlobalSurfaces /> : null}
-      {newOrg.dialog}
+      <SidebarLayoutProvider value={sidebarLayout}>
+        {children}
+        {booted && surfaces ? <GlobalSurfaces /> : null}
+        {newOrg.dialog}
+      </SidebarLayoutProvider>
     </AppFrameContext.Provider>
   );
 };

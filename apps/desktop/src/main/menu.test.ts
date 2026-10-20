@@ -198,7 +198,7 @@ describe("menuTemplate", () => {
       "CommandOrControl+,"
     );
     expect(findItem(menu, "model.switch")?.accelerator).toBe(
-      "CommandOrControl+."
+      "CommandOrControl+Shift+."
     );
     expect(findItem(menu, "help")?.label).toBe(
       i18n._(getShortcut("help").description)

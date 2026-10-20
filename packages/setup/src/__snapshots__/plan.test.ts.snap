@@ -226,6 +226,15 @@ limits:
   memoryMaxChars: 8000
   # budgets: { user: { period: month, limitMicros: 20000000 } }   # 20 USD
 
+  # Scheduled tasks run unattended and spend tokens with nobody watching, so
+  # these guardrails are on by default (all optional; these are the defaults).
+  # schedules:
+  #   minIntervalMinutes: 60      # the shortest gap a recurring task may have
+  #   maxRunsPerUserPerDay: 24    # rolling 24 hours, "Run now" included
+  #   runStepBudget: 8            # agent steps per run
+  #   runTokenBudget: 20000       # input + output tokens per run
+  #   defaultModel: fast          # for tasks on ordinary chats (null: \`fast\` if aliased)
+
 features:
   importers: true
   publicLinks: false
@@ -497,6 +506,15 @@ limits:
   memoryMaxChars: 8000
   # budgets: { user: { period: month, limitMicros: 20000000 } }   # 20 USD
 
+  # Scheduled tasks run unattended and spend tokens with nobody watching, so
+  # these guardrails are on by default (all optional; these are the defaults).
+  # schedules:
+  #   minIntervalMinutes: 60      # the shortest gap a recurring task may have
+  #   maxRunsPerUserPerDay: 24    # rolling 24 hours, "Run now" included
+  #   runStepBudget: 8            # agent steps per run
+  #   runTokenBudget: 20000       # input + output tokens per run
+  #   defaultModel: fast          # for tasks on ordinary chats (null: \`fast\` if aliased)
+
 features:
   importers: true
   publicLinks: false
@@ -759,6 +777,15 @@ limits:
   uploadMaxMb: 25
   memoryMaxChars: 8000
   # budgets: { user: { period: month, limitMicros: 20000000 } }   # 20 USD
+
+  # Scheduled tasks run unattended and spend tokens with nobody watching, so
+  # these guardrails are on by default (all optional; these are the defaults).
+  # schedules:
+  #   minIntervalMinutes: 60      # the shortest gap a recurring task may have
+  #   maxRunsPerUserPerDay: 24    # rolling 24 hours, "Run now" included
+  #   runStepBudget: 8            # agent steps per run
+  #   runTokenBudget: 20000       # input + output tokens per run
+  #   defaultModel: fast          # for tasks on ordinary chats (null: \`fast\` if aliased)
 
 features:
   importers: true

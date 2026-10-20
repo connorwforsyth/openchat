@@ -2,12 +2,10 @@
 
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type {
-  Dot,
-  DotActivity,
-  DotSchedule,
-} from "@workspace/contract/schemas/dots";
+import { useRecurrenceText } from "@workspace/chat-ui/conversation/schedule-text";
+import type { Dot, DotActivity } from "@workspace/contract/schemas/dots";
 import type { RunStatus } from "@workspace/contract/schemas/runs";
+import type { Schedule } from "@workspace/contract/schemas/schedules";
 import {
   ClockIcon,
   HistoryIcon,
@@ -16,7 +14,6 @@ import {
   PlusIcon,
   ShieldIcon,
   SparklesIcon,
-  StarIcon,
   Trash2Icon,
 } from "@workspace/icons";
 import { Badge } from "@workspace/ui/components/badge";
@@ -31,7 +28,6 @@ import {
 import {
   Field,
   FieldDescription,
-  FieldError,
   FieldLabel,
 } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
@@ -52,17 +48,14 @@ import {
   useId,
   useState,
 } from "react";
-
 import { useApi } from "@/app/(app)/_shared/api";
 import { useAppFrame } from "@/app/(app)/_shared/app-frame";
 import { routes } from "@/lib/routes";
-
+import { ScheduleEditor } from "../schedules/schedule-editor";
+import { ScheduleRow } from "../schedules/schedule-list";
 import { DotAvatar } from "./dot-avatar";
 import { DotSettingsDialog } from "./dot-dialog";
 import { type DotExtensions, dotExtensions } from "./dot-extensions";
-import { PRESET_CRON } from "./schedule";
-import { newSchedule, type ScheduleDraft, ScheduleRow } from "./schedule-row";
-import { useNextRunText, useScheduleText } from "./schedule-text";
 
 // A Dot's profile (172): who it is at the top, then what it's done
 // (Activity), what it will do (Scheduled), what it may do alone (Rules), its
@@ -136,10 +129,10 @@ function ActivityItem({
   schedules,
 }: {
   readonly item: DotActivity;
-  readonly schedules: readonly DotSchedule[];
+  readonly schedules: readonly Schedule[];
 }) {
   const when = useWhen();
-  const say = useScheduleText();
+  const say = useRecurrenceText();
   const schedule = schedules.find((each) => each.id === item.scheduleId);
   const started = when(item.startedAt);
   return (
@@ -149,7 +142,7 @@ function ActivityItem({
         <span className="text-muted-foreground">
           {item.trigger === "manual" ? <Trans>Run now</Trans> : null}
           {item.trigger === "schedule" && schedule ? (
-            <Trans>Scheduled · {say(schedule.cron)}</Trans>
+            <Trans>Scheduled · {say(schedule.recurrence)}</Trans>
           ) : null}
           {item.trigger === "schedule" && !schedule ? (
             <Trans>Scheduled</Trans>
@@ -199,178 +192,15 @@ function ActivityTab({ dot }: { readonly dot: Dot }) {
   );
 }
 
-const draftOfSchedule = (schedule: DotSchedule): ScheduleDraft => ({
-  cron: schedule.cron,
-  enabled: schedule.enabled,
-  id: schedule.id,
-  key: schedule.id,
-  prompt: schedule.prompt,
-  timezone: schedule.timezone,
-});
-
-function ScheduleEditor({
-  dot,
-  initial,
-  onDone,
-}: {
-  readonly dot: Dot;
-  readonly initial: ScheduleDraft;
-  readonly onDone: () => void;
-}) {
-  const { client } = useApi();
-  const refresh = useRefreshDots();
-  const [draft, setDraft] = useState(initial);
-  const save = useMutation({
-    mutationFn: () => {
-      const fields = {
-        cron: draft.cron.trim(),
-        enabled: draft.enabled,
-        prompt: draft.prompt.trim(),
-        timezone: draft.timezone.trim() || "UTC",
-      };
-      return draft.id
-        ? client.dots.updateSchedule({ id: draft.id, ...fields })
-        : client.dots.createSchedule({ dotId: dot.id, ...fields });
-    },
-    onSuccess: async () => {
-      await refresh();
-      onDone();
-    },
-  });
-  const change = useCallback(
-    (_index: number, next: ScheduleDraft) => setDraft(next),
-    []
-  );
-  const { mutate } = save;
-  const submit = useCallback(
-    (event: FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      mutate();
-    },
-    [mutate]
-  );
-  return (
-    <form className="flex flex-col gap-2" onSubmit={submit}>
-      <ScheduleRow
-        index={0}
-        onChange={change}
-        onRemove={onDone}
-        schedule={draft}
-      />
-      {save.isError ? (
-        <FieldError>
-          <Trans>Check the cron and time zone, then try again.</Trans>
-        </FieldError>
-      ) : null}
-      <div className="flex justify-end gap-2">
-        <Button onClick={onDone} size="sm" type="button" variant="ghost">
-          <Trans>Cancel</Trans>
-        </Button>
-        <Button disabled={save.isPending} size="sm" type="submit">
-          {save.isPending ? <Spinner data-icon="inline-start" /> : null}
-          <Trans>Save</Trans>
-        </Button>
-      </div>
-    </form>
-  );
-}
-
-function ScheduleItem({
-  dot,
-  onEdit,
-  schedule,
-}: {
-  readonly dot: Dot;
-  readonly onEdit: (schedule: DotSchedule) => void;
-  readonly schedule: DotSchedule;
-}) {
-  const { t } = useLingui();
-  const { client } = useApi();
-  const refresh = useRefreshDots();
-  const say = useScheduleText();
-  const nextText = useNextRunText();
-  const toggle = useMutation({
-    mutationFn: (enabled: boolean) =>
-      client.dots.updateSchedule({ enabled, id: schedule.id }),
-    onSettled: refresh,
-  });
-  const remove = useMutation({
-    mutationFn: () => client.dots.deleteSchedule({ id: schedule.id }),
-    onSettled: refresh,
-  });
-  const { mutate: toggleMutate } = toggle;
-  const setEnabled = useCallback(
-    (enabled: boolean) => toggleMutate(enabled),
-    [toggleMutate]
-  );
-  const edit = useCallback(() => onEdit(schedule), [onEdit, schedule]);
-  const { mutate: removeMutate } = remove;
-  const del = useCallback(() => removeMutate(), [removeMutate]);
-  const when = say(schedule.cron);
-  const next =
-    dot.enabled && schedule.enabled ? nextText(schedule.nextRunAt) : null;
-  return (
-    <li className="flex flex-col gap-2 rounded-lg border border-border p-3">
-      <div className="flex items-center gap-2">
-        <span className="min-w-0 flex-1 truncate font-medium text-sm">
-          {when}
-        </span>
-        <Switch
-          aria-label={t`${when} on`}
-          checked={schedule.enabled}
-          onCheckedChange={setEnabled}
-        />
-        <Button
-          aria-label={t`Edit ${when}`}
-          onClick={edit}
-          size="icon-sm"
-          variant="ghost"
-        >
-          <PencilIcon />
-        </Button>
-        <Button
-          aria-label={t`Delete ${when}`}
-          disabled={remove.isPending}
-          onClick={del}
-          size="icon-sm"
-          variant="ghost"
-        >
-          <Trash2Icon />
-        </Button>
-      </div>
-      <p className="line-clamp-2 text-muted-foreground text-sm">
-        {schedule.prompt}
-      </p>
-      <p className="text-muted-foreground text-xs">
-        {schedule.timezone}
-        {next ? (
-          <>
-            {" · "}
-            <Trans>next {next}</Trans>
-          </>
-        ) : null}
-        {schedule.enabled ? null : (
-          <>
-            {" · "}
-            <Trans>Paused</Trans>
-          </>
-        )}
-      </p>
-    </li>
-  );
-}
-
 function ScheduledTab({ dot }: { readonly dot: Dot }) {
-  const [editing, setEditing] = useState<ScheduleDraft | null>(null);
-  const add = useCallback(
-    () => setEditing(newSchedule(PRESET_CRON.morning, "")),
-    []
-  );
-  const edit = useCallback(
-    (schedule: DotSchedule) => setEditing(draftOfSchedule(schedule)),
-    []
-  );
-  const done = useCallback(() => setEditing(null), []);
+  const [editing, setEditing] = useState<Schedule | "new" | null>(null);
+  const add = useCallback(() => setEditing("new"), []);
+  const edit = useCallback((schedule: Schedule) => setEditing(schedule), []);
+  const close = useCallback((open: boolean) => {
+    if (!open) {
+      setEditing(null);
+    }
+  }, []);
   return (
     <div className="flex flex-col gap-3">
       <p className="text-muted-foreground text-sm">
@@ -378,40 +208,42 @@ function ScheduledTab({ dot }: { readonly dot: Dot }) {
           Or just ask {dot.name} in the chat: “every weekday at 8, brief me”.
         </Trans>
       </p>
-      {dot.schedules.length === 0 && !editing ? (
+      {dot.schedules.length === 0 ? (
         <p className="text-sm">
           <Trans>No scheduled tasks yet.</Trans>
         </p>
-      ) : null}
-      <ul className="flex flex-col gap-2">
-        {dot.schedules.map((schedule) =>
-          editing?.id === schedule.id ? (
-            <li key={schedule.id}>
-              <ScheduleEditor dot={dot} initial={editing} onDone={done} />
-            </li>
-          ) : (
-            <ScheduleItem
-              dot={dot}
-              key={schedule.id}
-              onEdit={edit}
-              schedule={schedule}
-            />
-          )
-        )}
-      </ul>
-      {editing && editing.id === null ? (
-        <ScheduleEditor dot={dot} initial={editing} onDone={done} />
       ) : (
-        <Button
-          className="self-start"
-          onClick={add}
-          size="sm"
-          variant="outline"
-        >
+        <ul className="flex flex-col gap-2">
+          {dot.schedules.map((schedule) => (
+            <ScheduleRow key={schedule.id} onEdit={edit} schedule={schedule} />
+          ))}
+        </ul>
+      )}
+      <div className="flex flex-wrap items-center gap-2">
+        <Button onClick={add} size="sm" variant="outline">
           <PlusIcon data-icon="inline-start" />
           <Trans>Add a scheduled task</Trans>
         </Button>
-      )}
+        <a
+          className="text-muted-foreground text-sm underline-offset-2 hover:text-foreground hover:underline"
+          href={routes.schedules}
+        >
+          <Trans>All scheduled tasks</Trans>
+        </a>
+      </div>
+      {editing ? (
+        <ScheduleEditor
+          hasDot
+          onOpenChange={close}
+          open
+          schedule={editing === "new" ? null : editing}
+          seed={
+            editing === "new"
+              ? { prompt: "", target: { kind: "dot" }, title: "", when: "" }
+              : null
+          }
+        />
+      ) : null}
     </div>
   );
 }
@@ -568,10 +400,6 @@ export function DotProfile({
   const refresh = useRefreshDots();
   const [editing, setEditing] = useState(false);
   const { ComputerTab, ComputerTabLabel } = { ...dotExtensions, ...extensions };
-  const makePrimary = useMutation({
-    mutationFn: () => client.dots.update({ id: dot.id, primary: true }),
-    onSettled: refresh,
-  });
   const toggle = useMutation({
     mutationFn: (enabled: boolean) =>
       client.dots.update({ enabled, id: dot.id }),
@@ -586,8 +414,6 @@ export function DotProfile({
   });
   const memoryOn = config.features.memory;
   const edit = useCallback(() => setEditing(true), []);
-  const { mutate: primaryMutate } = makePrimary;
-  const promote = useCallback(() => primaryMutate(), [primaryMutate]);
   const { mutate: toggleMutate } = toggle;
   const setEnabled = useCallback(
     (enabled: boolean) => toggleMutate(enabled),
@@ -611,15 +437,7 @@ export function DotProfile({
               <DrawerTitle className="font-semibold text-lg">
                 {dot.name}
               </DrawerTitle>
-              <DrawerDescription>
-                @{dot.handle}
-                {dot.primary ? (
-                  <>
-                    {" · "}
-                    <Trans>Your primary Dot</Trans>
-                  </>
-                ) : null}
-              </DrawerDescription>
+              <DrawerDescription>@{dot.handle}</DrawerDescription>
             </div>
             {dot.instructions.trim() === "" ? null : (
               <p className="line-clamp-3 text-muted-foreground text-sm">
@@ -631,17 +449,6 @@ export function DotProfile({
                 <PencilIcon data-icon="inline-start" />
                 <Trans>Edit</Trans>
               </Button>
-              {dot.primary ? null : (
-                <Button
-                  disabled={makePrimary.isPending}
-                  onClick={promote}
-                  size="sm"
-                  variant="outline"
-                >
-                  <StarIcon data-icon="inline-start" />
-                  <Trans>Make primary</Trans>
-                </Button>
-              )}
               <span className="flex items-center gap-2 text-sm">
                 <Switch
                   aria-label={t`${name} active`}

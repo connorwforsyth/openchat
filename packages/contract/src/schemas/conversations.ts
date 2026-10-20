@@ -8,6 +8,7 @@ import {
   userIdSchema,
 } from "./common";
 import { runTargetSchema } from "./runs";
+import { conversationScheduleSchema } from "./schedules";
 import {
   chatContextSchema,
   chatContextTypeSchema,
@@ -60,6 +61,11 @@ export const conversationSchema = z.object({
   myState: participantStateSchema,
   ownerId: userIdSchema,
   pinned: z.boolean(),
+  /**
+   * The soonest active schedule posting into this chat (173a), for "Next
+   * run …" on the sidebar row and in the header. Absent from servers before it.
+   */
+  schedule: conversationScheduleSchema.nullable().optional(),
   /** `null` until the title job names it. */
   title: z.string().max(200).nullable(),
   updatedAt: timestampSchema,

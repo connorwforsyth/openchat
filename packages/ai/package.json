@@ -38,6 +38,7 @@
     "./providers/registry": "./src/providers/registry.ts",
     "./providers/run-settings": "./src/providers/run-settings.ts",
     "./rag/*": "./src/rag/*.ts",
+    "./schedules/*": "./src/schedules/*.ts",
     "./search/*": "./src/search/*.ts",
     "./telemetry/*": "./src/telemetry/*.ts",
     "./testing/mock-image-model": "./src/testing/mock-image-model.ts",
@@ -75,6 +76,7 @@
     "@workspace/contract": "workspace:*",
     "@workspace/shared": "workspace:*",
     "ai": "catalog:",
+    "cron-parser": "catalog:",
     "mammoth": "catalog:",
     "unpdf": "catalog:",
     "zod": "catalog:"

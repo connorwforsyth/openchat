@@ -21,12 +21,14 @@ import { cn } from "@workspace/ui/lib/utils";
 import { type ReactNode, useMemo } from "react";
 
 import { indexToolResults, type ToolResultPart } from "../model/parts";
+import { quietRuns, scheduledTaskOf } from "../model/scheduled";
 import {
   type ConversationActions,
   ConversationActionsProvider,
 } from "./actions";
 import type { MessageFeedback } from "./feedback";
 import { MessageRow } from "./message-row";
+import { QuietRunNote } from "./scheduled-note";
 import { SwitchMarker } from "./switch-marker";
 import { answerSwitches } from "./switches";
 
@@ -111,6 +113,10 @@ export function ConversationView({
     });
   }, [pendingApprovals, visible]);
 
+  // A quiet scheduled run (no update) folds into one line (175).
+  const quiet = useMemo(() => quietRuns(visible), [visible]);
+  const foldedAnswers = useMemo(() => new Set(quiet.values()), [quiet]);
+
   // A new chat shows its empty state even with an error slot: the app passes
   // one that renders nothing until something fails, so an element there
   // doesn't mean there's an error to show. A real one shows under it.
@@ -132,6 +138,22 @@ export function ConversationView({
           <MessageScrollerViewport aria-label={t`Conversation`}>
             <MessageScrollerContent className="mx-auto w-full max-w-2xl gap-6 px-6 pt-6 pb-10">
               {rows.map((row, index) => {
+                if (foldedAnswers.has(row.message.id)) {
+                  return null;
+                }
+                const quietTask = quiet.has(row.message.id)
+                  ? scheduledTaskOf(row.message.parts)
+                  : null;
+                if (quietTask) {
+                  return (
+                    <MessageScrollerItem
+                      key={row.message.id}
+                      messageId={row.message.id}
+                    >
+                      <QuietRunNote task={quietTask} />
+                    </MessageScrollerItem>
+                  );
+                }
                 const streaming = row.message.id === streamingMessageId;
                 const last = index === rows.length - 1;
                 const change = switches.get(row.message.id);

@@ -77,13 +77,7 @@ function Shape({
   const fill = FILL[color];
   switch (style) {
     case "orb":
-      return (
-        <>
-          <span className={cn("absolute inset-0 rounded-full", fill)} />
-          {/* The highlight: the theme's background, softly. */}
-          <span className="absolute start-[22%] top-[18%] size-[28%] rounded-full bg-background/45" />
-        </>
-      );
+      return <span className={cn("absolute inset-0 rounded-full", fill)} />;
     case "blob":
       return (
         <span

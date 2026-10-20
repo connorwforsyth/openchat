@@ -56,6 +56,7 @@ import {
 import { AppShell } from "../shell/app-shell";
 import { type Platform, PlatformProvider } from "../shell/platform";
 import { RightPanel } from "../shell/right-panel";
+import { useSidebarLayout } from "../shell/sidebar-layout";
 import { SidebarToggle } from "../shell/sidebar-toggle";
 import { useNarrowScreen } from "../shell/use-narrow-screen";
 import {
@@ -66,6 +67,7 @@ import { ShortcutHelp } from "../shortcuts/shortcut-help";
 import { ShortcutHint } from "../shortcuts/shortcut-hint";
 import { useShortcuts } from "../shortcuts/use-shortcuts";
 import { ChatSidebar, type ChatSidebarProps } from "../sidebar/chat-sidebar";
+import { type RailDestination, SidebarRail } from "../sidebar/sidebar-rail";
 import { LazyWorkspacePanel } from "../workspace/lazy-workspace-panel";
 import { type OpeningWatch, watchOpenings } from "../workspace/model/auto-open";
 import {
@@ -218,6 +220,13 @@ const textValue = (text: string): ComposerValue => ({
   text,
 });
 
+/** The rail lights the Dot while its chat is open, else Chats. */
+const railCurrent = (
+  activeId: ConversationId | null,
+  dotId: ConversationId | undefined
+): RailDestination =>
+  dotId !== undefined && activeId === dotId ? "dot" : "chats";
+
 function ChatScreenBody({
   actions,
   banner,
@@ -247,6 +256,7 @@ function ChatScreenBody({
   const { layout, setPanel, setPanelWidth, togglePanel, toggleSidebar } =
     sharedLayout ?? ownLayout;
   const narrow = useNarrowScreen();
+  const railed = useSidebarLayout() === "rail";
   const [sidebarSheetOpen, setSidebarSheetOpen] = useState(false);
   // The panel's last section: a narrow screen's sheet keeps showing it
   // while it fades out.
@@ -292,6 +302,13 @@ function ChatScreenBody({
     }
   }, [narrow, toggleSidebar]);
   const closeSidebarSheet = useCallback(() => setSidebarSheetOpen(false), []);
+  const dotId = sidebar.dot?.conversationId;
+  // The rail's Chats button shows the chat panel; it never hides it.
+  const showChats = useCallback(() => {
+    if (!layout.sidebarOpen) {
+      toggleSidebar();
+    }
+  }, [layout.sidebarOpen, toggleSidebar]);
   // Picking a chat, starting one or searching is done with the sheet.
   const sheetSidebar = useMemo(
     () => ({
@@ -651,7 +668,7 @@ function ChatScreenBody({
     [composer, composerFill, onSubmit, workspaceComposer]
   );
   const sidebarExpanded = narrow ? sidebarSheetOpen : layout.sidebarOpen;
-  const sidebarToggle = (where: "header" | "sidebar") => (
+  const sidebarToggle = (where: "header" | "rail" | "sidebar") => (
     <SidebarToggle
       expanded={sidebarExpanded}
       hint={<ShortcutHint id="sidebar.toggle" />}
@@ -761,12 +778,23 @@ function ChatScreenBody({
       panelOpen={layout.panel !== null}
       panelWidth={layout.panelWidth}
       platform={platform}
+      rail={
+        railed ? (
+          <SidebarRail
+            {...sheetSidebar}
+            current={railCurrent(sidebar.activeId, dotId)}
+            onShowChats={showChats}
+            toggle={sidebarToggle("rail")}
+          />
+        ) : undefined
+      }
       sidebar={
         <ChatSidebar
           {...sheetSidebar}
           brand={brand}
           onNewChat={newChat}
           onOpenPalette={openPalette}
+          railed={railed}
           toggle={sidebarToggle("sidebar")}
         />
       }
