@@ -162,7 +162,7 @@ export const toScheduleRun = (row: ScheduleRunView): ScheduleRun => {
   };
 };
 
-const isArchived = async (
+export const isArchived = async (
   db: Db,
   actor: Actor,
   conversationId: ConversationId
@@ -616,7 +616,8 @@ export const claimRunNow = async (
 
 /**
  * "Run now": the saved prompt once, unattended. Counts toward the daily
- * cap, and a target already answering something is `busy`.
+ * cap; a target already answering something is `busy`, and an archived
+ * one is refused as resume refuses it.
  */
 export const runScheduleNow = async (
   deps: ScheduleDeps,
@@ -630,12 +631,13 @@ export const runScheduleNow = async (
   const target = found.dotId
     ? (await getDotById(deps.db, found.dotId))?.conversationId
     : found.conversationId;
-  if (
-    found.targetKind !== "new_chat_each_run" &&
-    target &&
-    (await conversationBusy(deps.db, target))
-  ) {
-    return err({ type: "busy" });
+  if (found.targetKind !== "new_chat_each_run" && target) {
+    if (await isArchived(deps.db, actor, target)) {
+      return err({ type: "target_archived" });
+    }
+    if (await conversationBusy(deps.db, target)) {
+      return err({ type: "busy" });
+    }
   }
   const claim = await claimRunNow(deps, {
     conversationId: found.conversationId,
