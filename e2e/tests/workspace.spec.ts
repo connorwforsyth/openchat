@@ -38,7 +38,13 @@ const SAME_ORIGIN = /allow-same-origin/;
 // Docker: see the sandbox job in ci.yml.
 
 test.describe.configure({ mode: "serial" });
-test.use({ storageState: storageStateFor("ada") });
+test.use({
+  storageState: storageStateFor("ada"),
+  // Wide enough for the panel's default 560px beside the rail (181), the
+  // sidebar and the conversation; at 1280 it gets about 480, under the 512
+  // where the list and the open file take turns (070).
+  viewport: { height: 720, width: 1440 },
+});
 
 /** The chat the bash and review tests share. */
 let shellChat: ConversationId;

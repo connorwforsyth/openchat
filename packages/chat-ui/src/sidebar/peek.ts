@@ -90,7 +90,9 @@ export const createPeekController = ({
 };
 
 const TEXT_ENTRY = 'input, textarea, [contenteditable="true"]';
-const OPEN_MENU = '[aria-expanded="true"], [data-popup-open]';
+// A popup trigger, not any disclosure: the section headers' folds are
+// aria-expanded too, and open by default.
+const OPEN_MENU = '[aria-haspopup][aria-expanded="true"], [data-popup-open]';
 
 /** A menu opened from inside `element`, or a text field in it has focus. */
 export const isPeekBusy = (element: HTMLElement | null): boolean => {

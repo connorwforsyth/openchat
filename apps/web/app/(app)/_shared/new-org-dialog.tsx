@@ -64,9 +64,11 @@ export function NewOrgDialog({
   const create = useMutation(
     query.orgs.create.mutationOptions({
       onSuccess: async () => {
-        // The account menu, admin, and the chat context chip all read `me`.
+        // The account menu, admin, and the chat context chip all read `me`;
+        // the space switcher and the new org's settings read `spaces`.
         await queryClient.invalidateQueries({ queryKey: query.me.key() });
         await queryClient.invalidateQueries({ queryKey: query.orgs.key() });
+        await queryClient.invalidateQueries({ queryKey: query.spaces.key() });
       },
     })
   );

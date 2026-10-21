@@ -17,7 +17,9 @@ test.use({
   viewport: { height: 844, width: 390 },
 });
 
-const TITLE = "Phone sidebar spec";
+// Each test archives its chat, so each needs its own title to find its row
+// (and its Unarchive) among the earlier ones.
+let TITLE = "";
 
 const sheet = (page: Page): Locator =>
   page.locator('[data-slot="app-shell-sidebar-sheet"]');
@@ -26,14 +28,15 @@ const row = (page: Page): Locator =>
 
 /**
  * How tall `target` is drawn (its padding box) and how many pixel rows,
- * down a line through its middle, the browser hit-tests to it.
+ * down a line through its middle, the browser hit-tests to it. It looks
+ * 12px past each edge, so a 24px button's 40px of touch fits the window.
  */
 const reach = (target: Locator) =>
   target.evaluate((node) => {
     const box = node.getBoundingClientRect();
     const x = box.left + box.width / 2;
     let hit = 0;
-    for (let y = Math.floor(box.top) - 4; y < box.bottom + 4; y += 1) {
+    for (let y = Math.floor(box.top) - 12; y < box.bottom + 12; y += 1) {
       if (node.contains(document.elementFromPoint(x, y + 0.5))) {
         hit += 1;
       }
@@ -43,7 +46,8 @@ const reach = (target: Locator) =>
 
 let created: ConversationId | null = null;
 
-test.beforeEach(async ({ baseURL, page }) => {
+test.beforeEach(async ({ baseURL, page }, testInfo) => {
+  TITLE = `Phone sidebar spec ${testInfo.testId} ${testInfo.retry}`;
   const api = await apiFor(page, baseURL ?? "");
   const chat = await api.conversations.create({ title: TITLE });
   created = chat.id;
@@ -53,6 +57,12 @@ test.beforeEach(async ({ baseURL, page }) => {
     page.getByRole("button", { name: "Toggle sidebar" }).first()
   );
   await expect(row(page)).toBeVisible();
+  // The sheet slides in; hit-testing mid-slide finds nothing under it.
+  await sheet(page).evaluate((node) =>
+    Promise.all(
+      node.getAnimations({ subtree: true }).map((motion) => motion.finished)
+    )
+  );
 });
 
 test.afterEach(async ({ baseURL, page }) => {
@@ -66,9 +76,13 @@ test("rows draw 36px, take 40px of touch, and no ⋯ over the status", async ({
   page,
 }) => {
   const reaches = await Promise.all(
-    [row(page), sheet(page).getByRole("button", { name: "New chat" })].map(
-      reach
-    )
+    [
+      row(page),
+      // Earlier specs leave chats titled "New chat"; this is the nav's.
+      sheet(page)
+        .getByRole("navigation", { name: "Primary" })
+        .getByRole("button", { name: "New chat" }),
+    ].map(reach)
   );
   for (const { drawn, hit } of reaches) {
     expect(drawn).toBe(36);
