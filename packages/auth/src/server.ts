@@ -52,7 +52,6 @@ import {
   joinInvitedTeams,
   leaveOrgTeams,
   profileStoreFor,
-  userIdByEmail,
 } from "./store";
 
 // The Better Auth server (D22): email and password, GitHub and Google when
@@ -255,13 +254,14 @@ const buildAuth = (
         avatars,
         fetch: fetchFn,
         profiles: profileStoreFor(db),
-        userIdByEmail: (email) => userIdByEmail(db, email),
         warn: log.warn,
       })
     : undefined;
   // What a Microsoft sign-in synced, for the `user` hooks (186).
   const withSynced = async <T extends object>(data: T) =>
     microsoft ? { data: await microsoft.userData(data) } : undefined;
+  const withSyncedUpdate = async <T extends object>(data: T) =>
+    microsoft ? { data: await microsoft.userUpdate(data) } : undefined;
   const orgs = orgPlugin(db);
   const auth = betterAuth({
     advanced: {
@@ -322,7 +322,7 @@ const buildAuth = (
           },
           before: withSynced,
         },
-        update: { before: withSynced },
+        update: { before: withSyncedUpdate },
       },
     },
     disabledPaths: httpDisabledPaths(orgs),
