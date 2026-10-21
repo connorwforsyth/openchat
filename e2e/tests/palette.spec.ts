@@ -8,6 +8,7 @@ import {
   expectReply,
   send,
 } from "../support/chat";
+import { PALETTE_KEY } from "../support/keys";
 import { storageStateFor } from "../support/users";
 
 // ⌘K search as it's typed (ticket 100): the server matches the last word as
@@ -67,7 +68,7 @@ test("⌘K finds a chat from the first letters of a word in it; Enter opens it",
   const search = page.getByPlaceholder("Search or type a command…");
   // The palette loads after boot (composer:ready on chat pages).
   await expect(async () => {
-    await page.keyboard.press("ControlOrMeta+K");
+    await page.keyboard.press(PALETTE_KEY);
     await expect(search).toBeVisible({ timeout: 1000 });
   }).toPass();
 
@@ -89,9 +90,12 @@ test("⌘K finds a chat from the first letters of a word in it; Enter opens it",
     () => (window as unknown as { __frames: Frame[] }).__frames
   );
   expect(frames.filter((frame) => frame.emptyGroups > 0)).toEqual([]);
-  const first = frames.findIndex((frame) => frame.chat);
+  // Before typing, the palette lists recent chats, this one among them;
+  // "q" alone is too short for the server, so the match starts later.
+  const typed = frames.filter((frame) => frame.query.length > 0);
+  const first = typed.findIndex((frame) => frame.chat);
   expect(first).toBeGreaterThanOrEqual(0);
-  expect(frames.slice(first).filter((frame) => !frame.chat)).toEqual([]);
+  expect(typed.slice(first).filter((frame) => !frame.chat)).toEqual([]);
 
   // The chat landed above "Ask AI" and is selected, so Enter opens it.
   await expect(hit).toHaveAttribute("aria-selected", "true");
