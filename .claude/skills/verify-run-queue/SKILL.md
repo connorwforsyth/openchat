@@ -45,6 +45,7 @@ Last confirmed against the last commit that changed `model/`: a model change lan
 | `stop-stranded` | Stop | `NoStuckRun` | holds | finding 4, fixed; about 1,554,000 distinct states |
 | `stop-approval` | StopApproval | `EndedRunsAreIdle`, `NoLoopAfterStop` | holds | finding 3, fixed; 113 distinct states |
 | `stop-pause` | StopPause | `StopTakesEffect`, `NoLoopAfterStop`, `EndedRunsAreIdle` | holds | finding 7, fixed; 210 distinct states |
+| `stop-pause-again` | StopPauseAgain | `StopTakesEffect`, `NoLoopAfterStop`, `EndedRunsAreIdle` | violated | finding 8, 10 steps |
 | `approval-lost` (slowest; run by name) | Approvals | `NoStuckRun` | holds | finding 1, fixed; about 332,000 distinct states |
 
 ## Findings
@@ -69,6 +70,7 @@ Last confirmed against the last commit that changed `model/`: a model change lan
 6. **A turn queued behind a stopped queued turn can start early.** Turn L waits behind S, which waits behind F, still answering. L's own `startRun` reads S as the run ahead, then Stop cancels S before that `startRun` reads S's status. L sees S ended and claims, while F is still writing the answer above it. `cancelIdle`'s `requeueAfter` then moves only queued turns, so L stays running. TLC stops at finding 5 first, so `stop-branch` doesn't show this one; a scratch model whose sends never reply under a never-run question finds it as a 13-step `OneRunPerBranch` trace. It shares finding 5's root (a run cancelled before it ran still holds a place in the branch) and is not fixed yet.
 7. **Stop misses a pass that a decision resumes right after its pause.** Stop aborts a pass that has already asked for approval. The pass still settles as `awaiting_approval`, and a decision resumes it before Stop's second `getRun`. Stop sees `running`, returns, and the resumed pass runs the approved call and calls the model (`stop-pause`).
    - **Fixed.** Stop's second look aborts the controller in `active` whenever the run hasn't ended and isn't a pause it can cancel itself. The resumed pass then starts already aborted and settles as cancelled without calling `runAgent` (finding 3).
+8. **Stop loses to a pass that pauses after its cancel lost.** Stop reads the run waiting on the card (or queued) and calls `cancelIdle`. A decision (or a claim) commits first, and the pass it starts asks for approval again. `cancelIdle` loses, and the pass settles `awaiting_approval` either before Stop's fallback `abortPass`, which finds no controller and answers `CONFLICT run_finished`, or after it, as finding 7's pause does. Either way the run waits on a new card after Stop (`stop-pause-again`: 10 steps from a queued run; 16 steps with Stop only on the card). The fallback path has no look after the pass, which the first path got in finding 7.
 
 ## When you change covered code
 
@@ -121,6 +123,7 @@ Bounds per config:
 | Stop | 3 | 1, on any unfinished run | 0 | 0 | the end of the branch |
 | StopApproval | 1 | 1, on the approval card | 1 | 1 | the end of the branch |
 | StopPause | 1 | 1, on the running pass | 1 | 1 | the end of the branch |
+| StopPauseAgain | 1 | 1, on any unfinished run | 1 | 2 | the end of the branch |
 | Approvals | 3 | 0 | 1 | 1 | the end of the branch |
 
 A check that holds vouches for these bounds only. The model does not cover:

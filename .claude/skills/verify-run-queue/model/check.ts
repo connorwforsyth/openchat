@@ -128,6 +128,13 @@ const CHECKS: readonly Check[] = [
     view: "ViewStopped",
   },
   {
+    config: "RunQueueStopPauseAgain.cfg",
+    expect: "violated",
+    invariants: ["StopTakesEffect", "NoLoopAfterStop", "EndedRunsAreIdle"],
+    name: "stop-pause-again",
+    view: "ViewStopped",
+  },
+  {
     // The slowest check, so it runs only by name. See SKILL.md, finding 1.
     config: "RunQueueApprovals.cfg",
     expect: "holds",

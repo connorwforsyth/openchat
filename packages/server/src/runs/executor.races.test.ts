@@ -490,3 +490,67 @@ describe("Stop as the pass pauses for approval", () => {
     expect(await chat.statusOf(run)).toBe("cancelled");
   });
 });
+
+describe("Stop on the approval card as a decision lands, then the pass pauses again", () => {
+  it("still stops the run", async () => {
+    const chat = await setup();
+    const run = await chat.queue();
+    const execute = vi.fn(() => "written");
+    const extra = {
+      toolApproval: { write_file: "user-approval" },
+      tools: {
+        write_file: tool({
+          execute,
+          inputSchema: z.object({ path: z.string() }),
+        }),
+      },
+    } as const;
+    const again = new MockLanguageModelV4({
+      doStream: toolCallStream("write_file", { path: "b.txt" }, "call-b"),
+    });
+    chat.turns.push(
+      turnWith(
+        new MockLanguageModelV4({
+          doStream: toolCallStream("write_file", { path: "a.txt" }, "call-a"),
+        }),
+        extra
+      ),
+      turnWith(again, extra)
+    );
+    await chat.start(run);
+    await chat.executor.idle();
+
+    // Stop reads the run waiting on the card. The decision commits before
+    // Stop's cancel, and the pass it resumes asks about another call; Stop
+    // aborts that pass as it settles, and it pauses anyway.
+    const cancelling = holds.next("transaction");
+    const stopping = chat.executor.cancel(run.id, chat.ownerId);
+    await cancelling.reached;
+    expect(
+      await chat.executor.submitApprovals(run.id, approveA, chat.ownerId)
+    ).toEqual(ok(undefined));
+    const streaming = holds.next("append");
+    await streaming.reached;
+    await vi.waitFor(() =>
+      expect(
+        chat.appended.filter(
+          (chunk) =>
+            typeof chunk === "object" &&
+            chunk !== null &&
+            "type" in chunk &&
+            chunk.type === "finish"
+        )
+      ).toHaveLength(2)
+    );
+    cancelling.release();
+    await vi.waitFor(() =>
+      expect(again.doStreamCalls[0]?.abortSignal?.aborted).toBe(true)
+    );
+    streaming.release();
+    expect(await stopping).toEqual(ok(undefined));
+    await chat.executor.idle();
+
+    expect(execute).toHaveBeenCalledOnce();
+    expect(await chat.statusOf(run)).toBe("cancelled");
+  });
+});
