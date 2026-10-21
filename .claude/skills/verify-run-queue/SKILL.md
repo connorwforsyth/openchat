@@ -24,11 +24,11 @@ description: Model-checks the branch run queue and Stop with TLA+ (one run per b
 ## Run it
 
 ```sh
-bun .claude/skills/verify-run-queue/model/check.ts              # the default checks
+bun .claude/skills/verify-run-queue/model/check.ts              # every check
 bun .claude/skills/verify-run-queue/model/check.ts queue        # checks by name
 ```
 
-It needs no model provider, database or network once the tools are cached. The first run downloads tla2tools.jar 1.7.4, plus a Temurin 21 JRE if no `java` is on PATH, into `~/.cache/tla-tools`, and checks both against pinned SHA-256 sums (`$JAVA` overrides). The default checks explore about 4.1 million states, in about 2 minutes of TLC on an M1 Pro. `stop-start`, `stop-settled` and `stop-stranded` each explore the whole Stop configuration and take most of it.
+It needs no model provider, database or network once the tools are cached. The first run downloads tla2tools.jar 1.7.4, plus a Temurin 21 JRE if no `java` is on PATH, into `~/.cache/tla-tools`, and checks both against pinned SHA-256 sums (`$JAVA` overrides). The checks explore about 4.4 million states, in about 2 minutes of TLC on an M1 Pro. `stop-start`, `stop-settled` and `stop-stranded` each explore the whole Stop configuration and take most of it.
 
 It prints one line per check (`ok` or `FAIL`, expected against got), then each counterexample as numbered steps in the code's words, with every run's status after each step. It exits 0 only when every check matches the table below.
 
@@ -49,7 +49,7 @@ Last confirmed against the last commit that changed `model/`: a model change lan
 | `stop-pause-again` | StopPauseAgain | `StopTakesEffect`, `NoLoopAfterStop`, `EndedRunsAreIdle` | holds | finding 8, fixed; 316 distinct states |
 | `stop-orphan` | StopCrash | `StopTakesEffect`, `EndedRunsAreIdle`, `NoLoopAfterStop` | holds | finding 2's crashed pass, fixed; 8,356 distinct states |
 | `stop-returns` | StopCrash | `StopReturns` | holds | finding 2's crashed pass, fixed; 7,898 distinct states |
-| `approval-lost` (slowest; run by name) | Approvals | `NoStuckRun` | holds | finding 1, fixed; 331,780 distinct states |
+| `approval-lost` | Approvals | `NoStuckRun` | holds | finding 1, fixed; 331,780 distinct states |
 
 ## Findings
 
@@ -85,7 +85,7 @@ Last confirmed against the last commit that changed `model/`: a model change lan
 1. **Scope.** Diff the covered files against the sync commit:
 
    ```sh
-   git diff "$(git log -1 --format=%H -- .claude/skills/verify-run-queue/model)" -- packages/server/src/runs/executor.ts packages/server/src/runs/create-run.ts packages/db/src/queries/runs.ts packages/db/src/schema/chat.ts
+   git diff "$(git log -1 --format=%H -- .claude/skills/verify-run-queue/model)" -- packages/server/src/runs/executor.ts packages/server/src/runs/create-run.ts packages/db/src/queries/runs.ts packages/db/src/schema/chat.ts packages/server/src/runs/state.ts packages/contract/src/schemas/runs.ts
    ```
 
    A hunk in a function listed under Coverage means the model needs a look. Hunks elsewhere in those files (turn resolution, attachments, stream parts) don't.
@@ -109,6 +109,8 @@ Last confirmed against the last commit that changed `model/`: a model change lan
 | `packages/server/src/runs/create-run.ts` | `createRun`, `placeRun`, `busyTail` | `Send`: `W_Read`, `W_Insert`; `BusyTailOf` |
 | `packages/db/src/queries/runs.ts` | `FROM`, `TARGET`, `transitionRun`, `listActiveRuns`, `listQueuedAfter`, `requeueAfter`, `lockRun` | `From`, `Target`, `Oldest`, `ByCreated`, `K_Requeue`, `D_Lock` |
 | `packages/db/src/schema/chat.ts` | `ACTIVE_RUN_STATUSES` | `ActiveSt` |
+| `packages/server/src/runs/state.ts` | `isTerminal`, `runStartFromRow` | `Terminal`; the run `startRun` reads |
+| `packages/contract/src/schemas/runs.ts` | `terminalRunStatuses`, `isTerminalRunStatus` | `Terminal` |
 
 `P_Begin` also stands for the awaits `execute` makes before the agent loop: `loadBranch`, `resolveTurn` (`packages/server/src/runs/turn.ts` and its wrappers), `setRunResolvedModel` and `attachmentsForModel`. They read the branch and build the turn but never start, cancel, settle or claim a run, so `turn.ts` is not diffed in step 1. A change there needs the model only if it starts touching run status, `active` or `running`.
 
