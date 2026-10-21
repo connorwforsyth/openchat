@@ -161,19 +161,6 @@ export const leaveOrgTeams = async (
     );
 };
 
-/** The user with this email, if any; emails are stored lowercased. */
-export const userIdByEmail = async (
-  db: Db,
-  email: string
-): Promise<UserId | undefined> => {
-  const [row] = await db
-    .select({ id: user.id })
-    .from(user)
-    .where(eq(user.email, email.toLowerCase()))
-    .limit(1);
-  return row?.id;
-};
-
 const profileColumns = {
   image: user.image,
   name: user.name,

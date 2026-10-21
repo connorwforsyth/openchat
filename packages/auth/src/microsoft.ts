@@ -31,24 +31,18 @@ export interface MicrosoftSsoPorts {
   readonly avatars?: AvatarStore;
   readonly fetch: typeof fetch;
   readonly profiles: ProfileStore;
-  /** Who has this email here, if anyone. */
-  readonly userIdByEmail: (email: string) => Promise<string | undefined>;
   readonly warn: (message: string) => void;
 }
 
 export const microsoftRefusalSchema = z.enum([
   "microsoft_tenant_not_allowed",
   "microsoft_domain_not_allowed",
-  /** The directory's email, which sign-in copies, is another account's here. */
-  "microsoft_email_in_use",
 ]);
 export type MicrosoftRefusal = z.infer<typeof microsoftRefusalSchema>;
 
 const REFUSAL_MESSAGES: Record<MicrosoftRefusal, string> = {
   microsoft_domain_not_allowed:
     "This Microsoft account's email domain can't sign in here.",
-  microsoft_email_in_use:
-    "This Microsoft account's email belongs to another account here. Ask an admin to sort it out.",
   microsoft_tenant_not_allowed:
     "This Microsoft account's organization can't sign in here.",
 };
@@ -61,6 +55,8 @@ const refusalOf = (error: MicrosoftRefusal) => ({
 const claimsSchema = z.looseObject({
   oid: z.string().optional(),
   tid: z.string().optional(),
+  /** Optional claim: the tenant has verified the email's domain. */
+  xms_edov: z.boolean().optional(),
 });
 
 /** The allow-lists, against the ID token's `tid` and the account's email. */
@@ -298,8 +294,7 @@ export interface MicrosoftSso {
   readonly provider: MicrosoftOptions;
   /**
    * For `user.validateUserInfo`: refuses Microsoft accounts outside the
-   * allow-lists on sign-up, sign-in and linking, and a sign-in whose
-   * directory email another account has; ignores other providers.
+   * allow-lists on sign-up, sign-in and linking; ignores other providers.
    */
   readonly refusal: (data: {
     readonly action: string;
@@ -311,17 +306,24 @@ export interface MicrosoftSso {
     { error: MicrosoftRefusal; errorDescription: string } | undefined
   >;
   /**
-   * For Better Auth's `user` create and update `before` hooks: adds what
-   * this request's Microsoft sign-in synced. People can't set these fields
-   * themselves (`input: false`), so this is their only writer.
+   * For Better Auth's `user` create `before` hook: adds what this request's
+   * Microsoft sign-in synced. People can't set these fields themselves
+   * (`input: false`), so this and `userUpdate` are their only writers.
    */
   readonly userData: <T extends object>(user: T) => Promise<T>;
+  /**
+   * For the `user` update `before` hook: as `userData`, and a Microsoft
+   * sign-in leaves the account's email alone. Copied over, a directory email
+   * could take an address nobody here has yet, before its owner signs up.
+   */
+  readonly userUpdate: <T extends object>(user: T) => Promise<T>;
 }
 
 /**
- * Better Auth's Microsoft provider for `auth.microsoft`. Email follows the
- * directory on each sign-in; name and photo follow it until the person edits
- * them (`decideProfileSync`). Photos need `photo.enabled` and `avatars`.
+ * Better Auth's Microsoft provider for `auth.microsoft`. The email is the
+ * directory's at sign-up and stays; name and photo follow the directory
+ * until the person edits them (`decideProfileSync`). Photos need
+ * `photo.enabled` and `avatars`.
  */
 export const microsoftSso = (
   config: MicrosoftSsoConfig,
@@ -338,6 +340,8 @@ export const microsoftSso = (
   };
   const decode = microsoft(base).getUserInfo;
   const syncedThisRequest = defineRequestState<Synced | null>(() => null);
+  const syncedNow = async () =>
+    (await hasRequestState()) ? await syncedThisRequest.get() : null;
   const { avatars } = ports;
   const photos = config.photo.enabled && avatars ? { ...ports, avatars } : null;
   const directoryPhoto = async (
@@ -367,7 +371,8 @@ export const microsoftSso = (
         if (!info) {
           return info;
         }
-        const oid = claimsSchema.parse(info.data).oid ?? "";
+        const claims = claimsSchema.parse(info.data);
+        const oid = claims.oid ?? "";
         const photo = await directoryPhoto(token.accessToken, oid);
         const stored = await ports.profiles.find({
           accountId: oid,
@@ -385,6 +390,9 @@ export const microsoftSso = (
           ...info,
           user: {
             ...info.user,
+            emailVerified:
+              info.user.emailVerified ||
+              (Boolean(info.user.email) && claims.xms_edov === true),
             // Typed `string | undefined`, but `null` reaches the row, and
             // `undefined` would keep a photo we mean to remove.
             image: image as string | undefined,
@@ -394,31 +402,32 @@ export const microsoftSso = (
       },
       overrideUserInfoOnSignIn: true,
     },
-    refusal: async ({ action, email, profile, providerId, userId }) => {
+    refusal: ({ email, profile, providerId }) => {
       if (providerId !== MICROSOFT_PROVIDER_ID) {
-        return;
+        return Promise.resolve(undefined);
       }
       const decision = decideMicrosoftAccess(config, {
         email,
         tenantId: claimsSchema.safeParse(profile ?? {}).data?.tid,
       });
-      if (!decision.ok) {
-        return refusalOf(decision.error);
-      }
-      // Sign-in copies the directory's email over this user's, which can't
-      // take an address another account already has.
-      if (action === "sign-in") {
-        const owner = await ports.userIdByEmail(email);
-        if (owner !== undefined && owner !== userId) {
-          return refusalOf("microsoft_email_in_use");
-        }
-      }
+      return Promise.resolve(
+        decision.ok ? undefined : refusalOf(decision.error)
+      );
     },
     userData: async (user) => {
-      const synced = (await hasRequestState())
-        ? await syncedThisRequest.get()
-        : null;
+      const synced = await syncedNow();
       return synced ? { ...user, ...synced } : user;
+    },
+    userUpdate: async (user) => {
+      const synced = await syncedNow();
+      if (!synced) {
+        return user;
+      }
+      // Better Auth merges this over its own update, so a key left out
+      // would still be written; an `undefined` one is skipped.
+      const keepEmail =
+        "email" in user ? { email: undefined, emailVerified: undefined } : {};
+      return { ...user, ...synced, ...keepEmail };
     },
   };
 };
