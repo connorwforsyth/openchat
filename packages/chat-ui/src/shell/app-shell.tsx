@@ -99,8 +99,11 @@ function RailSlot({ rail }: { readonly rail: ReactNode }) {
   ) : null;
 }
 
-/** The rail's column plus the card's end inset, in pixels (w-13 + pe-1). */
-const RAIL_SPACE = 56;
+/**
+ * The rail's column, the card's end inset and the card's border, in pixels
+ * (w-13 + me-1 + 2 × 1px): what the conversation can't have of the window.
+ */
+const RAIL_SPACE = 58;
 
 /** The width the columns share: the window, less the rail beside them. */
 const columnsViewport = (
