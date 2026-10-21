@@ -1229,6 +1229,10 @@ msgstr "Composer"
 msgid "Computer"
 msgstr "Computer"
 
+#: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
+msgid "Computers aren't set up on this server"
+msgstr "Computers aren't set up on this server"
+
 #: ../../apps/desktop/src/renderer/setup-screen.tsx
 #: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
 #: ../library-ui/src/components/mcp-form.tsx
@@ -1246,6 +1250,10 @@ msgstr "Connect to your server"
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "Connected · {count} tools"
 msgstr "Connected · {count} tools"
+
+#: ../../apps/web/app/(app)/_shared/settings/profile-settings.tsx
+msgid "Connected accounts"
+msgstr "Connected accounts"
 
 #: ../chat-ui/src/workspace/preview.tsx
 msgid "Connecting to port {port}…"
@@ -1973,6 +1981,10 @@ msgstr "Editor"
 #: ../../apps/web/app/(auth)/_components/sign-up-form.tsx
 msgid "Email"
 msgstr "Email"
+
+#: ../../apps/web/app/(app)/_shared/settings/connected-accounts.tsx
+msgid "Email and password"
+msgstr "Email and password"
 
 #: ../../apps/web/app/(app)/(pages)/dots/avatar-picker.tsx
 msgid "Ember"
@@ -2765,6 +2777,10 @@ msgstr "Link address"
 msgid "Link copied"
 msgstr "Link copied"
 
+#: ../../apps/web/app/(app)/_shared/settings/connected-accounts.tsx
+msgid "Linked {since}"
+msgstr "Linked {since}"
+
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgid "List"
 msgstr "List"
@@ -3441,6 +3457,10 @@ msgstr "No scheduled tasks yet."
 #: ../../apps/desktop/src/main/menu.ts
 msgid "No Shortcut"
 msgstr "No Shortcut"
+
+#: ../../apps/web/app/(app)/_shared/settings/connected-accounts.tsx
+msgid "No sign-in methods are linked."
+msgstr "No sign-in methods are linked."
 
 #: ../../apps/web/app/(app)/(pages)/space/space-home.tsx
 msgid "No skills shared here yet."
@@ -4807,6 +4827,10 @@ msgstr "Scopes"
 msgid "Score a sample of this org's chats to catch quality drops."
 msgstr "Score a sample of this org's chats to catch quality drops."
 
+#: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
+msgid "Screen disconnected"
+msgstr "Screen disconnected"
+
 #: ../library-ui/src/components/skill-form.tsx
 msgid "Scripts and resources the skill refers to, by path."
 msgstr "Scripts and resources the skill refers to, by path."
@@ -5854,6 +5878,10 @@ msgstr "The test chat needs a server to run against."
 msgid "The theme is saved in this browser."
 msgstr "The theme is saved in this browser."
 
+#: ../../apps/web/app/(app)/_shared/settings/profile-settings.tsx
+msgid "The ways you can sign in to this account."
+msgstr "The ways you can sign in to this account."
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-keys-admin.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "The whole org"
@@ -6449,6 +6477,10 @@ msgstr "Viewer"
 #: ../chat-ui/src/voice/voice-call.tsx
 msgid "Voice chat"
 msgstr "Voice chat"
+
+#: ../chat-ui/src/voice/voice-call.tsx
+msgid "Voice isn't answering right now. Try again in a moment."
+msgstr "Voice isn't answering right now. Try again in a moment."
 
 #: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
 msgid "Waiting for an owner"

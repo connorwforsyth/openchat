@@ -57,6 +57,7 @@ import type { DotComputers } from "./dots/computer";
 import { scheduleDotTick } from "./dots/jobs";
 import type { EnsureDotWorkspace } from "./dots/service";
 import { mountArtifactImageRoutes } from "./http/artifact-images";
+import { avatarStoreFor, mountAvatarRoutes } from "./http/avatars";
 import { mountComputerRoutes } from "./http/computer";
 import { mountFileRoutes } from "./http/files";
 import { mountLlmRoute } from "./http/llm";
@@ -401,8 +402,18 @@ export const createServerFromEnv = async (
   const { database } = opened;
   const { db } = database;
   const origin = appOriginOf(env);
+  const storage = createStorage(config, {
+    baseUrl: `${origin}/api/storage`,
+    env,
+    signingSecret: storageSigningSecret(env),
+  });
+  if (storage.problem) {
+    report(`uploads are unavailable: ${storage.problem}`, null);
+  }
 
   const created = createAuth({
+    // Microsoft profile photos (186) live beside uploads.
+    avatars: avatarStoreFor(storage.storage, origin),
     config,
     db,
     env,
@@ -450,15 +461,6 @@ export const createServerFromEnv = async (
       registry,
     });
   const embedder = embedderFor(config, registry, report);
-
-  const storage = createStorage(config, {
-    baseUrl: `${origin}/api/storage`,
-    env,
-    signingSecret: storageSigningSecret(env),
-  });
-  if (storage.problem) {
-    report(`uploads are unavailable: ${storage.problem}`, null);
-  }
 
   const mcp = createMcp({
     config,
@@ -622,6 +624,7 @@ export const createServerFromEnv = async (
         db,
         resolveSession,
       });
+      mountAvatarRoutes(hono, { resolveSession, storage: storage.storage });
       mountFileRoutes(hono, {
         db,
         resolveSession,

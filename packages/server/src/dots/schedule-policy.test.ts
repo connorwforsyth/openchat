@@ -140,6 +140,26 @@ describe("planDue", () => {
     });
   });
 
+  it("waits on a busy chat for a one-off, then gives it up as busy", () => {
+    const once = row({
+      rrule: "FREQ=DAILY;COUNT=1",
+      startAt: new Date("2026-10-20T09:00:00Z"),
+    });
+    const busy = { ...idle, busy: true };
+    expect(planDue(once, NOW, busy, limits)).toMatchObject({
+      fire: null,
+      skip: null,
+    });
+
+    const hourLater = new Date("2026-10-20T10:00:30Z");
+    const late = planDue(once, hourLater, busy, limits);
+    expect(late.skip).toMatchObject({ skipReason: "busy" });
+    expect(late.patch).toMatchObject({
+      completedAt: hourLater,
+      nextRunAt: null,
+    });
+  });
+
   it("pauses a heartbeat whose chat is gone", () => {
     const decision = planDue(row({ conversationId: null }), NOW, idle, limits);
     expect(decision.fire).toBeNull();

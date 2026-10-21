@@ -370,6 +370,14 @@ export const createInProcessExecutor = (
   /** Who cancelled a run this process is executing, for its final state. */
   const cancelledBy = new Map<RunId, UserId | null>();
 
+  /** Forgets a pass's controller, unless a later pass of the run holds the slot. */
+  const release = (runId: RunId, controller: AbortController) => {
+    if (active.get(runId) === controller) {
+      active.delete(runId);
+      cancelledBy.delete(runId);
+    }
+  };
+
   const track = (runId: RunId, work: Promise<void>) => {
     const tracked = work
       .catch((cause: unknown) => report("run execution crashed", cause))
@@ -831,14 +839,19 @@ export const createInProcessExecutor = (
         (again: unknown) => report("couldn't fail a crashed run", again)
       );
     } finally {
-      active.delete(run.runId);
-      cancelledBy.delete(run.runId);
+      release(run.runId, controller);
     }
   };
 
-  /** Claims a queued run: inserts its empty answer and marks it running, atomically. */
+  /**
+   * Claims a queued run: inserts its empty answer and marks it running,
+   * atomically. The compare-and-set is the only gate, so of two claims at
+   * once only the winner takes `active`, before its commit shows the run
+   * running to anyone who could Stop it.
+   */
   const claim = async (
-    run: RunStart
+    run: RunStart,
+    controller: AbortController
   ): Promise<Result<MessageId, RunExecutorError>> => {
     const assistantMessageId = newId("message");
     try {
@@ -866,9 +879,11 @@ export const createInProcessExecutor = (
           // Another executor (or a cancel) got there first.
           tx.rollback();
         }
+        active.set(run.runId, controller);
       });
       return ok(assistantMessageId);
     } catch (cause) {
+      release(run.runId, controller);
       if (cause instanceof TransactionRollbackError) {
         return err({ runId: run.runId, type: "already_started" });
       }
@@ -884,7 +899,7 @@ export const createInProcessExecutor = (
       return err({ runId: run.runId, type: "not_found" });
     }
     const row = found.value;
-    if (row.status !== "queued" || active.has(run.runId)) {
+    if (row.status !== "queued") {
       return err({ runId: run.runId, type: "already_started" });
     }
     // Still waiting its turn: the run ahead starts it when it ends.
@@ -895,13 +910,8 @@ export const createInProcessExecutor = (
       }
     }
     const controller = new AbortController();
-    active.set(run.runId, controller);
-    const claimed = await claim(run).catch((cause: unknown) => {
-      active.delete(run.runId);
-      throw cause;
-    });
+    const claimed = await claim(run, controller);
     if (!claimed.ok) {
-      active.delete(run.runId);
       return claimed;
     }
     track(
@@ -976,7 +986,8 @@ export const createInProcessExecutor = (
   const recordDecisions = async (
     runId: RunId,
     decisions: readonly ToolApproval[],
-    by: UserId
+    by: UserId,
+    controller: AbortController
   ): Promise<Result<RecordedDecisions, RunExecutorError>> =>
     db.transaction(async (tx) => {
       const locked = await lockRun(tx, runId);
@@ -1012,7 +1023,7 @@ export const createInProcessExecutor = (
         });
       }
       return row.status === "awaiting_approval"
-        ? storeDecisions(tx, row, answer.value.parts, fresh, by)
+        ? storeDecisions(tx, row, answer.value.parts, fresh, by, controller)
         : refuse();
     });
 
@@ -1022,7 +1033,8 @@ export const createInProcessExecutor = (
     row: RunRow,
     answer: readonly MessagePart[],
     fresh: readonly ToolApproval[],
-    by: UserId
+    by: UserId,
+    controller: AbortController
   ): Promise<Result<RecordedDecisions, RunExecutorError>> => {
     const pending = new Set((row.approvals ?? []).map((a) => a.toolCallId));
     const unknown = fresh.find((d) => !pending.has(d.toolCallId));
@@ -1042,13 +1054,12 @@ export const createInProcessExecutor = (
     if (![...pending].every((id) => decided.has(id))) {
       return ok({ decided, fresh, resumed: null, row });
     }
-    // Claimed before the resume can commit: a cancel arriving between the
-    // commit and the pass starting finds this and aborts the pass, rather
-    // than cancelling the row under a pass that then runs the tools anyway.
-    active.set(row.id, new AbortController());
     const resumed = await transitionRun(tx, row.id, { type: "resume" }, now());
-    if (!resumed.ok) {
-      active.delete(row.id);
+    if (resumed.ok) {
+      // Taken before the resume commits: a cancel arriving between the
+      // commit and the pass starting finds this and aborts the pass, rather
+      // than cancelling the row under a pass that then runs the tools anyway.
+      active.set(row.id, controller);
     }
     return ok({
       decided,
@@ -1160,13 +1171,17 @@ export const createInProcessExecutor = (
     start: startRun,
 
     submitApprovals: async (runId, decisions, by) => {
-      const recorded = await recordDecisions(runId, decisions, by).catch(
-        (cause: unknown) => {
-          // The resume never committed: nothing is executing this run.
-          active.delete(runId);
-          throw cause;
-        }
-      );
+      const controller = new AbortController();
+      const recorded = await recordDecisions(
+        runId,
+        decisions,
+        by,
+        controller
+      ).catch((cause: unknown) => {
+        // The resume never committed: nothing is executing this run.
+        release(runId, controller);
+        throw cause;
+      });
       if (!recorded.ok) {
         return recorded;
       }
@@ -1179,8 +1194,7 @@ export const createInProcessExecutor = (
           decisionChunks(fresh, await approvalIdsOf(db, runId))
         );
       }
-      const controller = active.get(runId);
-      if (!(resumed && row.assistantMessageId && controller)) {
+      if (!(resumed && row.assistantMessageId)) {
         return ok(undefined);
       }
       const start = runStartFromRow(resumed);

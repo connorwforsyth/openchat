@@ -11,6 +11,11 @@ import { sandboxProviderSchema } from "@workspace/contract/schemas/sandbox";
 import { instancePolicySchema } from "@workspace/contract/schemas/tenancy";
 import { z } from "zod";
 
+import {
+  microsoftSsoOf,
+  microsoftSsoSchema,
+  microsoftTenantPinned,
+} from "./microsoft";
 import { DEFAULT_SITE_ORIGINS, isSiteOrigin } from "./sites";
 import { termsSchema } from "./terms";
 
@@ -201,6 +206,8 @@ const authSchema = z
       .default([]),
     /** For `signup: domain`: invites still work for other addresses. */
     invites: z.boolean().default(true),
+    /** Sign in with Microsoft (Entra ID, 186); off without credentials. */
+    microsoft: microsoftSsoSchema,
     oidc: z.array(oidcProviderSchema).default([]),
     /** First user is admin, then invite-only (D22). */
     signup: z.enum(["open", "invite", "domain", "sso"]).default("invite"),
@@ -220,10 +227,16 @@ const authSchema = z
         path: ["domains"],
       });
     }
-    if (auth.signup === "sso" && auth.oidc.length === 0) {
+    const microsoft = microsoftSsoOf(auth);
+    if (
+      auth.signup === "sso" &&
+      auth.oidc.length === 0 &&
+      !(microsoft && microsoftTenantPinned(microsoft))
+    ) {
       context.addIssue({
         code: "custom",
-        message: "`signup: sso` needs at least one `oidc` provider",
+        message:
+          "`signup: sso` needs at least one `oidc` provider, or `microsoft` with a specific `tenantId` or `allowedTenants`",
         path: ["oidc"],
       });
     }

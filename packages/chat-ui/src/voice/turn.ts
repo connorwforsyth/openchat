@@ -110,9 +110,11 @@ export type CallPhase =
   /** The user is talking. */
   | "hearing"
   | "transcribing"
-  /** Waiting for the reply's first sentence (or the next one). */
+  /** Waiting for the reply's first sentence. */
   | "thinking"
   | "speaking"
+  /** The reply has spoken and waits for its next sentence or a tool call. */
+  | "paused"
   | "ended";
 
 /** What the orb shows. */
@@ -128,6 +130,7 @@ export const orbStateOf = (phase: CallPhase): OrbState => {
       return "listening";
     case "transcribing":
     case "thinking":
+    case "paused":
       return "thinking";
     case "speaking":
       return "speaking";
@@ -147,7 +150,13 @@ export interface CallState {
   readonly replyDone: boolean;
 }
 
-export type CallError = "microphone" | "transcription" | "speech" | "reply";
+export type CallError =
+  | "microphone"
+  | "transcription"
+  /** The server says its speech service is down, not that the audio was bad. */
+  | "unavailable"
+  | "speech"
+  | "reply";
 
 export const INITIAL_CALL: CallState = {
   error: null,
@@ -177,6 +186,8 @@ export type CallEvent =
 
 export type CallEffect =
   | { readonly type: "start-recording" }
+  /** The user went on: drop the pending transcription and keep recording onto it. */
+  | { readonly type: "resume-recording" }
   /** Stop recording and upload the utterance for transcription. */
   | { readonly type: "transcribe" }
   | { readonly type: "discard-recording" }
@@ -193,7 +204,10 @@ export interface CallStep {
 const stay = (state: CallState): CallStep => ({ effects: [], state });
 
 const busy = (phase: CallPhase) =>
-  phase === "transcribing" || phase === "thinking" || phase === "speaking";
+  phase === "transcribing" ||
+  phase === "thinking" ||
+  phase === "speaking" ||
+  phase === "paused";
 
 const send = (state: CallState, text: string): CallStep => {
   const trimmed = text.trim();
@@ -212,12 +226,21 @@ type Handler<T extends CallEvent["type"]> = (
 ) => CallStep;
 
 const onSpeechStart: Handler<"speech-start"> = (state) => {
+  // Room noise or speaker echo before the reply has said a word would cancel
+  // it unheard, so "thinking" can't be talked over; once it has spoken, it can.
   if (
     state.muted ||
     state.phase === "connecting" ||
-    state.phase === "hearing"
+    state.phase === "hearing" ||
+    state.phase === "thinking"
   ) {
     return stay(state);
+  }
+  if (state.phase === "transcribing") {
+    return {
+      effects: [{ type: "resume-recording" }],
+      state: { ...state, phase: "hearing" },
+    };
   }
   // Barge-in: talking over the reply stops it.
   return {
@@ -243,10 +266,17 @@ const onHeardText: Handler<"heard-text"> = (state, event) => {
   };
 };
 
-const onAudioIdle: Handler<"audio-idle"> = (state) =>
-  state.phase === "speaking" || state.phase === "thinking"
-    ? stay({ ...state, phase: state.replyDone ? "listening" : "thinking" })
+const onAudioIdle: Handler<"audio-idle"> = (state) => {
+  if (
+    state.replyDone &&
+    (state.phase === "speaking" || state.phase === "thinking")
+  ) {
+    return stay({ ...state, phase: "listening" });
+  }
+  return state.phase === "speaking"
+    ? stay({ ...state, phase: "paused" })
     : stay(state);
+};
 
 // `audio-idle` follows once the last sentence has played; a reply with
 // nothing (left) to say goes straight back to listening.
@@ -254,7 +284,9 @@ const onReplyFinished: Handler<"reply-finished"> = (state, event) =>
   stay({
     ...state,
     phase:
-      state.phase === "thinking" && !event.pending ? "listening" : state.phase,
+      (state.phase === "thinking" || state.phase === "paused") && !event.pending
+        ? "listening"
+        : state.phase,
     replyDone: true,
   });
 
@@ -266,6 +298,9 @@ const onMute: Handler<"mute"> = (state, event) =>
       }
     : stay({ ...state, muted: event.muted });
 
+const replying = (phase: CallPhase) =>
+  phase === "thinking" || phase === "speaking" || phase === "paused";
+
 const onFailed: Handler<"failed"> = (state, event) => {
   if (event.error === "microphone") {
     return {
@@ -274,17 +309,30 @@ const onFailed: Handler<"failed"> = (state, event) => {
     };
   }
   // A sentence that couldn't be spoken doesn't stop the rest.
-  const phase =
-    event.error === "speech" && state.phase === "speaking"
-      ? "speaking"
-      : "listening";
-  return stay({ ...state, error: event.error, phase, replyDone: true });
+  if (event.error === "speech" && replying(state.phase)) {
+    return stay({ ...state, error: event.error });
+  }
+  // Anything else ends the reply. Its run and audio stop with it, so nothing
+  // plays over the user's turn or spends tokens after it.
+  return {
+    effects: replying(state.phase) ? [{ type: "interrupt" }] : [],
+    state: {
+      ...state,
+      error: event.error,
+      phase: "listening",
+      replyDone: true,
+    },
+  };
 };
 
 const handlers: { readonly [T in CallEvent["type"]]: Handler<T> } = {
   "audio-idle": onAudioIdle,
   "audio-started": (state) =>
-    stay(state.phase === "thinking" ? { ...state, phase: "speaking" } : state),
+    stay(
+      state.phase === "thinking" || state.phase === "paused"
+        ? { ...state, phase: "speaking" }
+        : state
+    ),
   end: (state) => ({
     effects: [{ type: "interrupt" }, { type: "hang-up" }],
     state: { ...state, phase: "ended" },
