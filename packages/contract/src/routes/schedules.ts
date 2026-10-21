@@ -102,7 +102,7 @@ export const schedules = {
     .errors(conflictError)
     .route({
       description:
-        "Resumes from the next slot after now (missed slots aren't replayed). A schedule with no slot left (a fired one-off, or a rule past its `endsAt`) is a `CONFLICT` (`schedule_completed`); one whose target chat is archived is a `CONFLICT` (`target_archived`).",
+        "Resumes from the next slot after now (missed slots aren't replayed). A schedule with no slot left (a fired one-off, or a rule past its `endsAt`) is a `CONFLICT` (`schedule_completed`); one whose target chat is archived, or gone for its owner, is a `CONFLICT` (`target_archived`).",
       method: "POST",
       path: "/schedules/{id}/resume",
       summary: "Resume a schedule",
@@ -118,7 +118,7 @@ export const schedules = {
     })
     .route({
       description:
-        "Runs the saved prompt once, now, unattended, as a slot would. Counts toward the daily cap (`RATE_LIMITED` when it's used up). A target with a run in flight is a `CONFLICT` (`run_active`).",
+        "Runs the saved prompt once, now, unattended, as a slot would. Counts toward the daily cap (`RATE_LIMITED` when it's used up). A target with a run in flight is a `CONFLICT` (`run_active`), and one that is archived, or gone for its owner, is a `CONFLICT` (`target_archived`).",
       method: "POST",
       path: "/schedules/{id}/run",
       successStatus: 202,
