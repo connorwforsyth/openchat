@@ -19,8 +19,10 @@ EXTENDS Naturals, FiniteSets, Sequences, TLC
 \* them (a new branch); FALSE makes every turn a reply at the end of the
 \* branch, after the newest run's last message. StopTargets: the statuses a
 \* run may be in when Stop reads it (every unfinished status, or fewer to
-\* look at one race on its own).
-CONSTANTS NRuns, NStops, NDecides, MaxPauses, AnyAnchor, StopTargets
+\* look at one race on its own). MaxCrashes: how many passes may throw and
+\* fail to fail their run (failEarly throwing too), leaving it running.
+CONSTANTS NRuns, NStops, NDecides, MaxPauses, MaxCrashes, AnyAnchor,
+          StopTargets
 
 Runs == 1..NRuns
 NoRun == 0
@@ -117,6 +119,7 @@ variables
   spawned = [r \in Runs |-> {}],           \* passes started, loop not finished
   ended = {},                              \* passes whose tracked promise settled
   pauses = 0,                              \* approval pauses so far (bounded)
+  crashes = 0,                             \* passes that crashed (bounded)
   \* Ghosts, for the properties only.
   ansAbove = [r \in Runs |-> {}],          \* answers above this turn's message
   settled = [r \in Runs |-> 0],            \* onSettled calls per run
@@ -260,6 +263,13 @@ P_Loop:
   or
     await ctl \in aborted;
     outcome := "abort";
+  or
+    \* The pass throws, and execute's catch can't fail the run either
+    \* (failEarly throws): the finally runs with the run still running.
+    await crashes < MaxCrashes;
+    crashes := crashes + 1;
+    passFinally(R(self), ctl);
+    goto P_Begin;
   end either;
 P_Settle:
   \* settle(): `transition(run.runId, landing(...))`. Awaiting approval:
@@ -287,10 +297,9 @@ process Stop \in StopIds
 variables tgt = NoRun, rowSt = "none", rowAfter = NoRun, waitFor = NoCtl;
 begin
 K_Read:
-  \* `getRun(db, runId)`. Then abortPass(): `active.get(runId)` ->
-  \* `controller.abort()`, `await running.get(runId)`. No controller ->
-  \* cancelIdle(row, by). (A Stop on a run that has ended or doesn't exist
-  \* changes nothing, so the model lets it not come at all.)
+  \* `getRun(db, runId)`, then the first look. (A Stop on a run that has
+  \* ended or doesn't exist changes nothing, so the model lets it not come
+  \* at all.)
   either
     with r \in {x \in Runs : status[x] \in ActiveSt \cap StopTargets} do
       tgt := r;
@@ -298,32 +307,38 @@ K_Read:
       rowAfter := after[r];
     end with;
     if active[tgt] # NoCtl then
+      \* abortPass(): `active.get(runId)` -> `controller.abort()`, then
+      \* `await running.get(runId)`.
       aborted := aborted \cup {active[tgt]};
       stoppedEarly := stoppedEarly \cup ({active[tgt]} \ begun);
       waitFor := running[tgt];
-      goto K_After;
+      goto K_Wait;
     else
       goto K_Idle;
     end if;
   or
     goto Done;
   end either;
-K_After:
-  \* abortPass returned true: `after = getRun(db, runId)`; still awaiting
-  \* approval with nothing in `active` -> cancelIdle(after.value, by).
+K_Wait:
+  \* abortPass returned true; then `active.get(runId)?.signal.aborted`: a
+  \* pass Stop aborted before it started holds the run -> return.
   await waitFor = NoCtl \/ waitFor \in ended;
-  if status[tgt] = "awaiting_approval" /\ active[tgt] = NoCtl then
-    rowSt := status[tgt];
-    rowAfter := after[tgt];
-    goto K_Idle;
-  else
+  if active[tgt] \in aborted then
     goto Done;
+  else
+    goto K_Again;
   end if;
 K_Idle:
-  \* cancelIdle(row, by): one transaction runs transitionRun(cancel) and
-  \* stores the interrupted parts. `!moved.ok` -> returns false.
+  \* cancelIdle(row, by): one transaction locks the run (lockRun), runs
+  \* transitionRun(abort) if it is running with nothing in `active` (its
+  \* pass crashed), else transitionRun(cancel), and stores the interrupted
+  \* parts. `!moved.ok` -> returns false; then the `signal.aborted` check.
   await ~locked[tgt];
-  if status[tgt] \in From.cancel then
+  if status[tgt] = "running" /\ active[tgt] = NoCtl then
+    status[tgt] := Target.abort;
+    call finishTerminal(tgt, NoCtl);
+    goto Done;
+  elsif status[tgt] \in From.cancel then
     status[tgt] := Target.cancel;
     if rowSt = "queued" /\ rowAfter # NoRun then
       goto K_Ahead;
@@ -331,8 +346,10 @@ K_Idle:
       call finishTerminal(tgt, NoCtl);
       goto Done;
     end if;
+  elsif active[tgt] \in aborted then
+    goto Done;
   else
-    goto K_Abort2;
+    goto K_Again;
   end if;
 K_Ahead:
   \* cancelIdle: `getRun(db, row.afterRunId)`; not terminal -> requeueAfter
@@ -350,18 +367,23 @@ K_Requeue:
               ELSE after[x]];
   call finishTerminal(tgt, NoCtl);
   goto Done;
-K_Abort2:
-  \* cancelIdle returned false: `abortPass()` again ("a decision resumed it
-  \* between the two looks")
-  if active[tgt] # NoCtl then
-    aborted := aborted \cup {active[tgt]};
-    stoppedEarly := stoppedEarly \cup ({active[tgt]} \ begun);
-    waitFor := running[tgt];
-  else
+K_Again:
+  \* The look lost: `getRun(db, runId)` again; ended -> return. Else the
+  \* next look, as in K_Read.
+  if status[tgt] \in Terminal then
     goto Done;
+  else
+    rowSt := status[tgt];
+    rowAfter := after[tgt];
+    if active[tgt] # NoCtl then
+      aborted := aborted \cup {active[tgt]};
+      stoppedEarly := stoppedEarly \cup ({active[tgt]} \ begun);
+      waitFor := running[tgt];
+      goto K_Wait;
+    else
+      goto K_Idle;
+    end if;
   end if;
-K_Wait2:
-  await waitFor = NoCtl \/ waitFor \in ended;
 end process;
 
 \* An approval decision: submitApprovals(runId, decisions, by) in executor.ts.
@@ -425,6 +447,14 @@ StopReachesPass == \A r \in Runs : \A c \in spawned[r] : active[r] = c
 \* call, and no call a decision approved runs.
 NoLoopAfterStop == begun \cap stoppedEarly = {}
 
+\* Once a Stop has returned, its run has ended, or the controller in
+\* `active` for it is one Stop aborted.
+StopTakesEffect ==
+  \A k \in StopIds :
+    (pc[k] = "Done" /\ tgt[k] # NoRun) =>
+      \/ status[tgt[k]] \in Terminal
+      \/ active[tgt[k]] \in aborted
+
 \* No turn runs while an answer above it on its branch is still being written.
 OneRunPerBranch ==
   \A x, y \in Runs : (x # y /\ InLoop(x) /\ InLoop(y)) => x \notin ansAbove[y]
@@ -470,7 +500,7 @@ Locals ==
 View ==
   << status, after, createdAt, hasAnswer, locked, active, running,
      aborted \cap LiveCtls, ended \cap {waitFor[p] : p \in StopIds},
-     spawned, pauses, pc, stack, sr, srAfter, fr, fctl, queue, cur,
+     spawned, pauses, crashes, pc, stack, sr, srAfter, fr, fctl, queue, cur,
      begun \cap LiveCtls, stoppedEarly \cap LiveCtls, Locals >>
 \* OneRunPerBranch reads the message-tree ghost.
 ViewBranch ==
@@ -478,6 +508,8 @@ ViewBranch ==
      [p \in SendIds |-> IF pc[p] = "Done" THEN <<>> ELSE parent[p]] >>
 \* SettledOnce reads the end-hook ghost.
 ViewSettled == << View, settled >>
+\* StopTakesEffect reads which run each finished Stop was for.
+ViewStopped == << View, [p \in StopIds |-> tgt[p]] >>
 \* Every property at once.
 ViewAll == << ViewBranch, settled >>
 

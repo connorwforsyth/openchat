@@ -121,6 +121,13 @@ const CHECKS: readonly Check[] = [
     view: "View",
   },
   {
+    config: "RunQueueStopCrash.cfg",
+    expect: "holds",
+    invariants: ["StopTakesEffect", "EndedRunsAreIdle", "NoLoopAfterStop"],
+    name: "stop-orphan",
+    view: "ViewStopped",
+  },
+  {
     // The slowest check, so it runs only by name. See SKILL.md, finding 1.
     config: "RunQueueApprovals.cfg",
     expect: "holds",
@@ -405,14 +412,19 @@ const STEPS: Readonly<Record<string, (step: Step, run: number) => string>> = {
       ? `promoteAfter(r${run}) returns${changed(step, "active") ? "; execute's finally: active.delete" : ""}`
       : `promoteAfter(r${run}): startRun(r${cur})`;
   },
-  K_Abort2: (step, run) =>
-    changed(step, "aborted")
-      ? `cancel(r${run}): abortPass() again aborts a controller`
-      : `cancel(r${run}): abortPass() again finds no controller`,
-  K_After: (_, run) => `cancel(r${run}): the pass settled; getRun again`,
+  K_Again: (step, run) => {
+    if (TERMINAL.has(String(statusOf(step.after, run)))) {
+      return `cancel(r${run}): getRun again: it has ended; returns`;
+    }
+    return changed(step, "aborted")
+      ? `cancel(r${run}): getRun again; abortPass aborts the controller in active`
+      : `cancel(r${run}): getRun again; abortPass finds no controller, so cancelIdle`;
+  },
   K_Ahead: (_, run) => `cancelIdle(r${run}): getRun(row.afterRunId)`,
   K_Idle: (step, run) =>
-    `cancelIdle(r${run}): transitionRun(cancel) ${transition(step, run, "lost, returns false")}`,
+    statusOf(step.before, run) === "running"
+      ? `cancelIdle(r${run}): lockRun; transitionRun(${changed(step, "status") ? "abort" : "cancel"}) ${transition(step, run, "lost, returns false")}`
+      : `cancelIdle(r${run}): lockRun; transitionRun(cancel) ${transition(step, run, "lost, returns false")}`,
   K_Read: (step, run) => {
     if (run === 0) {
       return "no Stop comes";
@@ -423,13 +435,18 @@ const STEPS: Readonly<Record<string, (step: Step, run: number) => string>> = {
   },
   K_Requeue: (_, run) =>
     `cancelIdle(r${run}): requeueAfter moves the runs behind r${run}`,
-  K_Wait2: (_, run) => `cancel(r${run}): await running.get`,
+  K_Wait: (step, run) =>
+    local(step, "pc", "after") === "Done"
+      ? `cancel(r${run}): the pass settled, or never started; a controller Stop aborted holds the run, so it returns`
+      : `cancel(r${run}): the pass settled; look again`,
   P_Begin: (step, run) =>
     changed(step, "begun")
       ? `execute(r${run}): runAgent begins (model calls, approved calls)`
       : `execute(r${run}): Stop came first; settles as cancelled without calling runAgent`,
   P_Loop: (step, run) =>
-    `execute(r${run}): the agent loop ends -> ${String(local(step, "outcome", "after"))}`,
+    changed(step, "crashes")
+      ? `execute(r${run}): the pass throws, and failEarly throws too; execute's finally: active.delete`
+      : `execute(r${run}): the agent loop ends -> ${String(local(step, "outcome", "after"))}`,
   P_Settle: (step, run) =>
     `settle(r${run}): transitionRun(${String(local(step, "outcome", "before"))}) ${transition(step, run, "lost; report")}`,
   S_Ahead: (step, run) => {
