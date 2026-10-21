@@ -42,8 +42,6 @@ import { dot, dotRun, dotSchedule } from "../schema/dots";
 
 export type DotRow = typeof dot.$inferSelect;
 export type ScheduleRow = typeof dotSchedule.$inferSelect;
-/** @deprecated The 172 name; a Dot's schedule is a `ScheduleRow`. */
-export type DotScheduleRow = ScheduleRow;
 export type ScheduleRunRow = typeof dotRun.$inferSelect;
 export type NewDot = Omit<
   typeof dot.$inferInsert,
@@ -110,8 +108,6 @@ export interface ScheduleRunView {
   readonly summary: string | null;
   readonly trigger: DotRunTrigger;
 }
-/** @deprecated The 172 name. */
-export type DotLastRunRow = ScheduleRunView;
 
 const runView = {
   conversationId: dotRun.conversationId,
