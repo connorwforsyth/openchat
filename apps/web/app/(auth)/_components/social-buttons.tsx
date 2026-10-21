@@ -2,6 +2,7 @@
 
 import { Trans } from "@lingui/react/macro";
 import type { PublicConfig } from "@workspace/contract/schemas/meta";
+import { BrandMark } from "@workspace/icons/brands";
 import { Button } from "@workspace/ui/components/button";
 import { FieldSeparator } from "@workspace/ui/components/field";
 import { useCallback, useState } from "react";
@@ -32,13 +33,15 @@ const ProviderButton = ({
       type="button"
       variant="outline"
     >
+      {/* Microsoft's and Google's marks; nothing for providers without one. */}
+      <BrandMark brand={provider.id} data-icon="inline-start" />
       <Trans>Continue with {name}</Trans>
     </Button>
   );
 };
 
 /**
- * GitHub, Google and OIDC providers from public config. OIDC providers are
+ * GitHub, Google, Microsoft (186) and OIDC providers from public config. OIDC providers are
  * registered as social ones on the server, so one call covers all of them.
  */
 export function SocialButtons({

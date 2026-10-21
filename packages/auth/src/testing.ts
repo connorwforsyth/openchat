@@ -19,7 +19,7 @@ const sha256 = async (value: string): Promise<string> => {
   return Buffer.from(digest).toString("hex");
 };
 
-const fastTestHasher = {
+export const fastTestHasher = {
   hash: (password: string) => sha256(password),
   verify: async ({ hash, password }: { hash: string; password: string }) =>
     (await sha256(password)) === hash,
