@@ -48,7 +48,7 @@ describe("callStep", () => {
       { type: "audio-started" },
       { type: "audio-idle" },
     ]);
-    expect(state.phase).toBe("thinking");
+    expect(orbStateOf(state.phase)).toBe("thinking");
   });
 
   it("goes back to listening when nothing was said", () => {
@@ -72,6 +72,102 @@ describe("callStep", () => {
     expect(effects).toEqual(["send", "interrupt", "start-recording"]);
     expect(state.phase).toBe("hearing");
     expect(orbStateOf(state.phase)).toBe("listening");
+  });
+
+  it("keeps thinking when noise starts before the reply speaks", () => {
+    const { effects, state } = run([
+      { type: "ready" },
+      { type: "speech-start" },
+      { type: "speech-end" },
+      { text: "What's next?", type: "transcribed" },
+      { type: "speech-start" },
+      { type: "speech-end" },
+    ]);
+    expect(effects).toEqual(["start-recording", "transcribe", "send"]);
+    expect(state.phase).toBe("thinking");
+  });
+
+  it("lets the user talk over a pause between the reply's sentences", () => {
+    const { effects, state } = run([
+      { type: "ready" },
+      { text: "Tell me a long story", type: "heard-text" },
+      { type: "audio-started" },
+      { type: "audio-idle" },
+      { type: "speech-start" },
+    ]);
+    expect(effects).toEqual(["send", "interrupt", "start-recording"]);
+    expect(state.phase).toBe("hearing");
+  });
+
+  it("shows a pause between sentences as thinking, then speaks on", () => {
+    const paused = run([
+      { type: "ready" },
+      { text: "Tell me a long story", type: "heard-text" },
+      { type: "audio-started" },
+      { type: "audio-idle" },
+    ]);
+    expect(orbStateOf(paused.state.phase)).toBe("thinking");
+    const resumed = run([{ type: "audio-started" }], paused.state);
+    expect(resumed.state.phase).toBe("speaking");
+    const done = run(
+      [{ pending: false, type: "reply-finished" }],
+      paused.state
+    );
+    expect(done.state.phase).toBe("listening");
+  });
+
+  it("keeps listening when the user goes on while the first clause transcribes", () => {
+    const { effects, state } = run([
+      { type: "ready" },
+      { type: "speech-start" },
+      { type: "speech-end" },
+      { type: "speech-start" },
+      { text: "What's next", type: "transcribed" },
+      { type: "speech-end" },
+      { text: "What's next on my list?", type: "transcribed" },
+    ]);
+    expect(effects).toEqual([
+      "start-recording",
+      "transcribe",
+      "resume-recording",
+      "transcribe",
+      "send",
+    ]);
+    expect(state.phase).toBe("thinking");
+  });
+
+  it("ends the reply, its audio and its run when the speech service goes down", () => {
+    for (const playing of [[], [{ type: "audio-idle" }]] as const) {
+      const { effects, state } = run([
+        { type: "ready" },
+        { text: "Tell me a long story", type: "heard-text" },
+        { type: "audio-started" },
+        ...playing,
+        { error: "unavailable", type: "failed" },
+      ]);
+      expect(effects).toEqual(["send", "interrupt"]);
+      expect(state).toMatchObject({
+        error: "unavailable",
+        phase: "listening",
+        replyDone: true,
+      });
+    }
+  });
+
+  it("goes on with the reply when one sentence can't be spoken", () => {
+    const failed = run([
+      { type: "ready" },
+      { text: "Tell me a long story", type: "heard-text" },
+      { type: "audio-started" },
+      { error: "speech", type: "failed" },
+    ]);
+    expect(failed.effects).toEqual(["send"]);
+    expect(failed.state).toMatchObject({ error: "speech", phase: "speaking" });
+    // The run is still going: the queue running dry isn't the user's turn yet.
+    const idle = run([{ type: "audio-idle" }], failed.state);
+    expect(idle.state.phase).toBe("paused");
+    const done = run([{ pending: false, type: "reply-finished" }], idle.state);
+    expect(done.state.phase).toBe("listening");
   });
 
   it("ignores speech while muted and drops a half-heard utterance on mute", () => {
