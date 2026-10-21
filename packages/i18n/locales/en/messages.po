@@ -5309,6 +5309,7 @@ msgstr "Someone"
 msgid "Something went wrong and there's no answer."
 msgstr "Something went wrong and there's no answer."
 
+#: ../../apps/web/app/(app)/(pages)/dots/dot-home.tsx
 #: ../../apps/web/app/(app)/(pages)/schedules/schedule-list.tsx
 #: ../../apps/web/app/(auth)/_components/auth-problem.tsx
 msgid "Something went wrong. Try again."
@@ -6893,6 +6894,7 @@ msgstr "You're up to date"
 msgid "You've been invited"
 msgstr "You've been invited"
 
+#: ../../apps/web/app/(app)/(pages)/dots/dot-home.tsx
 #: ../../apps/web/app/(app)/(pages)/schedules/schedule-list.tsx
 msgid "You've used today's scheduled runs."
 msgstr "You've used today's scheduled runs."
@@ -6940,6 +6942,10 @@ msgstr "your Dot"
 #: ../../apps/web/app/(app)/(pages)/schedules/schedule-list.tsx
 msgid "Your Dot"
 msgstr "Your Dot"
+
+#: ../../apps/web/app/(app)/(pages)/dots/dot-home.tsx
+msgid "Your Dot can't run right now. Try again when it's finished."
+msgstr "Your Dot can't run right now. Try again when it's finished."
 
 #: ../../apps/web/app/(app)/(pages)/schedules/schedule-editor.tsx
 msgid "Your Dot's chat"

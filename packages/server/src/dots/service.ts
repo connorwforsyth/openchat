@@ -2,6 +2,7 @@ import { SCHEDULED_TASK_DATA } from "@workspace/ai/schedules/tool";
 import type {
   ConversationId,
   DotId,
+  DotRunId,
   UserId,
 } from "@workspace/contract/schemas/common";
 import type {
@@ -22,6 +23,7 @@ import type {
 import type { Db } from "@workspace/db/client";
 import { createConversation } from "@workspace/db/queries/conversations";
 import {
+  conversationBusy,
   type DotRow,
   deleteDot as deleteDotRow,
   dotHandleTaken,
@@ -34,6 +36,7 @@ import {
   listDotSchedules,
   listDots,
   markDotViewed,
+  releaseClaim,
   type ScheduleRow,
   type ScheduleRunView,
   unreadDotRuns,
@@ -328,9 +331,50 @@ export const markDotRead = async (
   return row ? ok(await one(deps.db, row)) : err({ type: "not_found" });
 };
 
+/** Posts the check-in and starts its run under `claimId`. */
+const startCheckIn = async (
+  deps: DotDeps,
+  dot: DotRow,
+  claimId: DotRunId,
+  prompt: string | undefined
+) => {
+  const { db } = deps;
+  const [first] = await listDotSchedules(db, [dot.id]);
+  const owner = await ownerActor(db, dot.ownerId);
+  if (dot.sandboxProvider && deps.ensureWorkspace) {
+    await deps.ensureWorkspace(owner, dot.conversationId, dot.sandboxProvider);
+  }
+  return await createUnattendedRun(
+    deps.runs,
+    owner,
+    {
+      conversationId: dot.conversationId,
+      idempotencyKey: dotRunKey(claimId),
+      input: {
+        parentId: await latestMessageId(db, dot.conversationId),
+        parts: [
+          {
+            data: { scheduleId: null, title: "Check in" },
+            name: SCHEDULED_TASK_DATA,
+            type: "data",
+          },
+          {
+            text: prompt ?? first?.prompt ?? DEFAULT_DOT_PROMPT,
+            type: "text",
+          },
+        ],
+        type: "message",
+      },
+      target: dot.target,
+    },
+    { type: "check_in" }
+  );
+};
+
 /**
  * "Check in now": posts `prompt` into the Dot's thread as its owner and
- * starts an unattended run, outside any schedule. Counts toward the cap.
+ * starts an unattended run, outside any schedule. Counts toward the cap; a
+ * thread already answering something is `busy`, as a schedule's run now is.
  */
 export const runDotNow = async (
   deps: DotDeps,
@@ -345,6 +389,9 @@ export const runDotNow = async (
   if (await isArchivedOrGone(db, actor, dot.conversationId)) {
     return err({ type: "target_archived" });
   }
+  if (await conversationBusy(db, dot.conversationId)) {
+    return err({ type: "busy" });
+  }
   const claim = await claimRunNow(deps, {
     conversationId: dot.conversationId,
     dotId: dot.id,
@@ -354,36 +401,17 @@ export const runDotNow = async (
   if (!claim.ok) {
     return claim;
   }
-  const [first] = await listDotSchedules(db, [dot.id]);
-  const owner = await ownerActor(db, dot.ownerId);
-  if (dot.sandboxProvider && deps.ensureWorkspace) {
-    await deps.ensureWorkspace(owner, dot.conversationId, dot.sandboxProvider);
-  }
-  const created = await createUnattendedRun(
-    deps.runs,
-    owner,
-    {
-      conversationId: dot.conversationId,
-      idempotencyKey: dotRunKey(claim.value.id),
-      input: {
-        parentId: await latestMessageId(db, dot.conversationId),
-        parts: [
-          {
-            data: { scheduleId: null, title: "Check in" },
-            name: SCHEDULED_TASK_DATA,
-            type: "data",
-          },
-          {
-            text: input.prompt ?? first?.prompt ?? DEFAULT_DOT_PROMPT,
-            type: "text",
-          },
-        ],
-        type: "message",
-      },
-      target: dot.target,
-    },
-    { type: "check_in" }
-  );
+  // A throw before the run exists would otherwise hold a cap slot until
+  // the stale-claim sweep.
+  const created = await startCheckIn(
+    deps,
+    dot,
+    claim.value.id,
+    input.prompt
+  ).catch(async (error: unknown) => {
+    await releaseClaim(db, claim.value.id);
+    throw error;
+  });
   return settleClaim(
     deps,
     claim.value.id,
