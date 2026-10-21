@@ -4,6 +4,7 @@ import {
 } from "@workspace/contract/schemas/meta";
 import type { SandboxProvider } from "@workspace/contract/schemas/sandbox";
 
+import { brandAssetPath } from "./brand";
 import { MICROSOFT_PROVIDER_ID, microsoftSsoOf } from "./microsoft";
 import type { Env } from "./parse";
 import type { AppConfig } from "./schema";
@@ -58,9 +59,10 @@ export const toPublicConfig = (
       ],
       signup: config.auth.signup,
     },
+    // The web app serves the files; the config holds paths on the server's disk.
     brand: {
-      faviconUrl: config.brand.favicon,
-      logoUrl: config.brand.logo,
+      faviconUrl: brandAssetPath("icon.svg"),
+      logoUrl: config.brand.logo ? brandAssetPath("logo") : null,
       name: config.brand.name,
     },
     // The public flags only: `linkPreviews` is server-side (101), and the

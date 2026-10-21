@@ -5,6 +5,7 @@
   "sideEffects": false,
   "type": "module",
   "exports": {
+    "./brand": "./src/brand.ts",
     "./load": "./src/load.ts",
     "./microsoft": "./src/microsoft.ts",
     "./parse": "./src/parse.ts",

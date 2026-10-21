@@ -15,7 +15,12 @@ brand:
   name: openchat
   appId: dev.openchat.app
   urlScheme: openchat
+  # SVG, PNG or JPEG, relative to this file. One SVG is enough: drawn in
+  # currentColor it follows the theme; with its own colours it's shown as is.
   logo: ./brand/logo.svg
+  # logoDark: ./brand/logo-dark.svg   # a multi-colour logo's dark-theme version
+  # favicon: ./brand/icon.svg         # the square mark for tab and home-screen icons
+  # iconBackground: black             # behind the mark on home-screen icons
 
 auth:
   signup: invite            # open | invite | domain | sso; the first user is always admin

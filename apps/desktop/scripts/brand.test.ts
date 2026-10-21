@@ -42,7 +42,9 @@ describe("readBrand", () => {
         brand: {
           appId: null,
           favicon: null,
+          iconBackground: "black",
           logo: null,
+          logoDark: null,
           name: "Chat",
           urlScheme: null,
         },
@@ -139,7 +141,9 @@ describe("identityOf", () => {
   const brand = {
     appId: null,
     favicon: null,
+    iconBackground: "black",
     logo: null,
+    logoDark: null,
     name: "Acme Chat",
     urlScheme: null,
   };
@@ -171,7 +175,15 @@ describe("iconCandidates", () => {
     logo: string | null,
     favicon: string | null
   ): BrandSource => ({
-    brand: { appId: null, favicon, logo, name: "X", urlScheme: null },
+    brand: {
+      appId: null,
+      favicon,
+      iconBackground: "black",
+      logo,
+      logoDark: null,
+      name: "X",
+      urlScheme: null,
+    },
     configDir: "/srv/config",
     source: "app.config.yaml",
   });

@@ -545,6 +545,41 @@ a server's tools are offered. `transport: stdio` entries (`command`,
 Servers you configure may reach your private network; servers users add may
 not. Changes apply on restart. `app.config.example.yaml` has more examples.
 
+### Logo and icons
+
+The logo, the tab icon and the home-screen icons come from `brand:` in
+`app.config.yaml`. Files are SVG, PNG or JPEG, relative to the config file,
+and the app serves them itself, so a new logo needs a restart, not a rebuild.
+
+```yaml
+brand:
+  name: Acme Chat
+  logo: ./brand/logo.svg         # beside the name on sign-in
+  logoDark: ./brand/logo-dark.svg  # optional: a multi-colour logo on dark themes
+  favicon: ./brand/icon.svg      # optional: the square mark, else the logo
+  iconBackground: black          # optional: behind the mark on home-screen icons
+```
+
+- One SVG is enough. The app draws each logo file one of two ways:
+  - **One colour.** Every painted part is `currentColor`, or the SVG names
+    no colours at all. The logo takes the theme's text colour, so it follows
+    light and dark by itself.
+  - **As it is.** Anything with a colour of its own (a fill, stroke, stop or
+    `color`, an embedded image, or a PNG or JPEG) is shown exactly as drawn.
+    Set `logoDark` to a version that reads on dark; without it, the same
+    file shows on both.
+- The tab icon is the favicon (else the logo). A one-colour mark is black
+  on light tab strips and white on dark ones.
+- Home-screen and installed-app icons can't be transparent: they draw the
+  mark on `iconBackground`, a one-colour mark in white. With a light
+  background, give the mark its own colours. A mark that can't be drawn
+  (an SVG with no `viewBox`, say) gets the placeholder instead,
+  with a warning in the log.
+- With no logo, or one that can't be read, the app shows the name alone,
+  and the icons use a neutral placeholder (`brand/logo.svg` in the repo).
+- The desktop app's icon is made from the same files at package time
+  (docs/desktop.md).
+
 ### Renaming features for your fork
 
 The words the UI uses for a feature, and its address, come from `terms:`
