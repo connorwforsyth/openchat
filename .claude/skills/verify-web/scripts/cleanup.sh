@@ -13,22 +13,29 @@ if [[ -z "$RUN_DIR" || ! -d "$RUN_DIR" ]]; then
   exit 0
 fi
 PORT="$(cat "$RUN_DIR/port" 2>/dev/null || echo "")"
-PID="$(cat "$RUN_DIR/server.pid" 2>/dev/null || echo "")"
+PIDS="$RUN_DIR/pids"
 
-if [[ -n "$PID" ]] && kill -0 "$PID" 2>/dev/null; then
-  kill -TERM "$PID"
-  for _ in $(seq 1 20); do kill -0 "$PID" 2>/dev/null || break; sleep 1; done
+# A recorded pid is still ours only while its start time matches the one
+# launch.sh wrote next to it. Otherwise the pid now names another process.
+started() { ps -o lstart= -p "$1" 2>/dev/null | awk '{$1=$1};1'; }
+ours() { grep -qxF "$1 $(started "$1")" "$PIDS" 2>/dev/null; }
+signal() {
+  [[ -f "$PIDS" ]] || return 0
+  while read -r p _; do
+    ours "$p" && kill "-$1" "$p" 2>/dev/null
+  done < "$PIDS"
+}
+
+# serve.ts stops its children on TERM; KILL takes whatever outlived it.
+SERVER="$(cat "$RUN_DIR/server.pid" 2>/dev/null || echo "")"
+if [[ -n "$SERVER" ]] && ours "$SERVER"; then
+  kill -TERM "$SERVER"
+  for _ in $(seq 1 20); do ours "$SERVER" || break; sleep 1; done
 fi
-# Anything this run recorded that outlived serve.ts.
-if [[ -f "$RUN_DIR/pids" ]]; then
-  while read -r p; do
-    kill -0 "$p" 2>/dev/null && kill -TERM "$p" 2>/dev/null
-  done < "$RUN_DIR/pids"
-  sleep 2
-  while read -r p; do
-    kill -0 "$p" 2>/dev/null && kill -KILL "$p" 2>/dev/null
-  done < "$RUN_DIR/pids"
-fi
+signal TERM
+sleep 2
+signal KILL
+rm -f "$PIDS" "$RUN_DIR/server.pid"
 
 # Playwright's saved sign-in state is scratch, not evidence.
 rm -rf "$RUN_DIR/auth"

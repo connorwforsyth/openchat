@@ -77,8 +77,8 @@ regenerates the sources that turbo's `dev` depends on
 Ready means `GET /api/config` answers (the database is open and migrated) and
 `/sign-in` renders `E2E Chat`. Launch prints `launch: READY
 http://localhost:3100` and `RUN_DIR=<repo>/.context/tmp/verify-web/<run id>`.
-The run dir holds `server.log`, `server.pid`, `pids`, `port`, `mode` and
-`evidence/`. `.context/tmp/verify-web/active` points at the current run.
+The run dir holds `server.log`, `server.pid`, `pids` (each process the run
+owns, with its start time), `port`, `mode` and `evidence/`. `.context/tmp/verify-web/active` points at the current run.
 
 ## Doctor
 
@@ -111,13 +111,15 @@ one and makes the admin (`ada@e2e.test`). It saves the session to
 invocations on the same instance skip it. Journeys put a fresh tag in their
 text, so they can be rerun on the same instance.
 
-Known product failures as of 2026-10-21. Report them; never weaken the
-step:
+No known product failures as of 2026-10-21. A journey that fails is a
+finding: report it, and never weaken the step. Two failures the skill found
+are fixed, and their steps now guard them:
 
-- `palette` › one ⌘K on a chat screen fails every time. See
-  `features/palette.md`.
-- `sidebar` › the immediate-reload step failed in 2 of 5 full runs until
-  the persisted-cache fix merges. See `features/sidebar.md`.
+- `palette` › one ⌘K on a chat screen opened the palette and closed it again
+  (every run), until #171. See `features/palette.md`.
+- `sidebar` › the reload step failed in 2 of 5 full runs (about 1 reload
+  in 4), until #168. See `features/sidebar.md`.
+- Both passed in 5 of 5 runs on `pstack/overnight` after the fixes.
 
 To check something no journey covers, write a new `journeys/<name>.journey.ts`
 from an existing one (and add a feature file, below). Import `test` from
@@ -193,9 +195,11 @@ The proof standards:
 
 It sends SIGTERM to the `serve.ts` it started, which stops `next`, the
 mocks and the artifact runtime and deletes its temp dir (database, uploads,
-config). Then it kills any pid recorded in `$RUN_DIR/pids` that is still
-alive. It never kills by process name. It removes `$RUN_DIR/auth` (session
-cookies) and keeps `$RUN_DIR/evidence/`. Run it after every run, failed ones
+config). Then it kills any process recorded in `$RUN_DIR/pids` that is still
+alive. Each line there is a pid and the time it started, and a pid whose
+start time no longer matches belongs to another process now, so it's left
+alone. It never kills by process name. It deletes `pids`, `server.pid` and
+`$RUN_DIR/auth` (session cookies) and keeps `$RUN_DIR/evidence/`. Run it after every run, failed ones
 included, and check that it prints `evidence kept in …`. Evidence dirs are
 gitignored (`.context/tmp/`). Delete old ones by hand when they're no longer
 needed.
