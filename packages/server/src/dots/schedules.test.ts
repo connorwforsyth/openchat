@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { REPORT_TOOL } from "@workspace/ai/schedules/tool";
 import {
   textStream,
@@ -13,15 +15,20 @@ import type {
   ScheduleLimits,
   ScheduleRun,
 } from "@workspace/contract/schemas/schedules";
+import { MIGRATIONS_FOLDER } from "@workspace/db/migrator";
+import { dotRun } from "@workspace/db/schema/dots";
 import { seedUser } from "@workspace/db/testing";
 import { tool } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
+import { eq, sql } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { createDotsRouter } from "../api/dots";
 import { createApp } from "../app";
+import { registerJobs } from "../jobs/registry";
 import { createHarness, type Harness, USER_HEADER } from "../testing/harness";
 import { dotJobHandlers } from "./jobs";
+import { titleFromPrompt } from "./schedule-policy";
 
 // Schedules end to end, in process (173, 175): the `schedules` procedures
 // through Hono's `app.request`, the tick and run jobs on the in-memory
@@ -32,13 +39,12 @@ let request: Harness["request"];
 let clock: Date;
 let services: Harness["services"];
 
-beforeEach(async () => {
-  h = await createHarness();
-  clock = new Date("2026-10-20T08:58:00.000Z");
-  services = {
-    ...h.services,
-    dots: { ...h.services.dots, now: () => clock },
-  };
+const withDots = async (patch: Partial<Harness["services"]["dots"]>) => {
+  services = { ...services, dots: { ...services.dots, ...patch } };
+  await registerJobs(
+    h.jobs,
+    dotJobHandlers({ ...services.dots, queue: h.jobs })
+  );
   const app = createApp({
     resolveSession: (req) => {
       const userId = req.headers.get(USER_HEADER);
@@ -56,6 +62,13 @@ beforeEach(async () => {
         [USER_HEADER]: as ?? h.ownerId,
       },
     });
+};
+
+beforeEach(async () => {
+  h = await createHarness();
+  clock = new Date("2026-10-20T08:58:00.000Z");
+  ({ services } = h);
+  await withDots({ now: () => clock });
 });
 
 afterEach(() => h.close());
@@ -108,26 +121,41 @@ const pathOf = async (conversationId: string) =>
 const getRun = async (id: string) =>
   json<Run>(await request(`/api/runs/${id}`));
 
-/** Runs the tick, then the `dot.run` jobs it enqueued, then the runs. */
-const tick = async () => {
+const jobOf = <T>(name: string, data: T) => ({
+  completedAt: null,
+  createdAt: clock.toISOString(),
+  data,
+  id: "0199f000-0000-7000-8000-000000000001" as never,
+  name,
+  output: null,
+  retryCount: 0,
+  singletonKey: null,
+  startAfter: clock.toISOString(),
+  state: "active" as const,
+});
+
+const claimDue = async () => {
   await dotJobHandlers({ ...services.dots, queue: h.jobs })["dot.tick"]?.(
-    {
-      completedAt: null,
-      createdAt: clock.toISOString(),
-      data: {},
-      id: "0199f000-0000-7000-8000-000000000001" as never,
-      name: "dot.tick",
-      output: null,
-      retryCount: 0,
-      singletonKey: null,
-      startAfter: clock.toISOString(),
-      state: "active",
-    },
+    jobOf("dot.tick", {}),
     new AbortController().signal
   );
+};
+
+/** Runs the tick, then the `dot.run` jobs it enqueued, then the runs. */
+const tick = async () => {
+  await claimDue();
   await h.jobs.drain();
   await h.services.executor.idle();
 };
+
+const limitsNow = async () =>
+  json<ScheduleLimits>(await request("/api/schedule-limits"));
+
+const ONCE_0930 = {
+  ...HOURLY,
+  rrule: "FREQ=DAILY;COUNT=1",
+  startAt: "2026-10-20T09:30:00.000Z",
+} as const;
 
 /** A model that reports `outcome` in one step, counting its calls. */
 const reporting = (
@@ -250,6 +278,16 @@ describe("schedules API", () => {
     expect(await resumed.json()).toMatchObject({
       data: { reason: "target_archived" },
     });
+    const added = await request("/api/schedules", {
+      json: {
+        prompt: "x",
+        recurrence: HOURLY,
+        target: { conversationId: chat.id, kind: "conversation" },
+        title: "x",
+      },
+      method: "POST",
+    });
+    expect(added.status).toBe(409);
 
     await request(`/api/conversations/${chat.id}`, {
       json: { archived: false },
@@ -259,6 +297,145 @@ describe("schedules API", () => {
       await request(`/api/schedules/${schedule.id}/resume`, { method: "POST" })
     );
     expect(again).toMatchObject({ pausedReason: null, status: "active" });
+  });
+
+  it("retitles schedules the schedules migration cut mid-word", async () => {
+    const chat = await newChat();
+    const target = { conversationId: chat.id, kind: "conversation" };
+    const cut = [
+      "Give me a short brief for today: what's on, what changed overnight, and anything I should look at first.",
+      "Every morning look through the team inbox and summarise anything from customers about billing",
+      "Summarise the news, e.g. tech, markets and anything about our launch this week",
+      "🚀".repeat(70),
+    ];
+    // Titled as the old migration titled them, and as someone could have:
+    // a whole short prompt, or a name shorter than the prompt.
+    const short = "Standup notes. Post them in the team channel";
+    const named = {
+      prompt:
+        "Watch the deploy queue and tell me when it drains overnight please",
+      title: "Watch the deploy queue",
+    };
+    for (const prompt of [...cut, short]) {
+      // biome-ignore lint/performance/noAwaitInLoops: kept in order.
+      await create({ prompt, target });
+    }
+    await create({ ...named, target });
+    await h.db.execute(
+      sql`update dot_schedule set title = left(regexp_replace(prompt, '\\s+', ' ', 'g'), 60) where prompt <> ${named.prompt}`
+    );
+
+    await h.db.execute(
+      sql.raw(
+        await readFile(
+          join(
+            MIGRATIONS_FOLDER,
+            "20261020125719_schedule_titles/migration.sql"
+          ),
+          "utf8"
+        )
+      )
+    );
+
+    const listed = await json<Schedule[]>(await request("/api/schedules"));
+    const titles = new Map(listed.map((each) => [each.prompt, each.title]));
+    expect(titles.get(short)).toBe(short);
+    expect(titles.get(named.prompt)).toBe(named.title);
+    for (const prompt of cut) {
+      expect(titles.get(prompt)).toBe(titleFromPrompt(prompt));
+    }
+  });
+
+  it("won't put a schedule on the Dot's chat while it's archived", async () => {
+    const dot = await json<Dot>(
+      await request("/api/dots", {
+        json: { name: "Pip", target: { model: "test:model", type: "model" } },
+        method: "POST",
+      }),
+      201
+    );
+    const schedule = await create({ target: { kind: "dot" } });
+    await request(`/api/conversations/${dot.conversationId}`, {
+      json: { archived: true },
+      method: "PATCH",
+    });
+    expect(
+      await json<Schedule>(await request(`/api/schedules/${schedule.id}`))
+    ).toMatchObject({ pausedReason: "target_archived", status: "paused" });
+
+    const resumed = await request(`/api/schedules/${schedule.id}/resume`, {
+      method: "POST",
+    });
+    expect(resumed.status).toBe(409);
+    const added = await request("/api/schedules", {
+      json: {
+        prompt: "x",
+        recurrence: HOURLY,
+        target: { kind: "dot" },
+        title: "x",
+      },
+      method: "POST",
+    });
+    expect(added.status).toBe(409);
+  });
+
+  it("won't revive a finished one-off onto an archived chat", async () => {
+    const chat = await newChat();
+    const once = await create({
+      recurrence: ONCE_0930,
+      target: { conversationId: chat.id, kind: "conversation" },
+    });
+    h.nextTurn({ model: reporting("update").model });
+    clock = new Date("2026-10-20T09:31:00.000Z");
+    await tick();
+    await request(`/api/conversations/${chat.id}`, {
+      json: { archived: true },
+      method: "PATCH",
+    });
+
+    const edited = await request(`/api/schedules/${once.id}`, {
+      json: {
+        recurrence: { ...ONCE_0930, startAt: "2026-10-20T12:00:00.000Z" },
+      },
+      method: "PATCH",
+    });
+    expect(edited.status).toBe(409);
+  });
+
+  it("refuses Run now into an archived chat", async () => {
+    const dot = await json<Dot>(
+      await request("/api/dots", {
+        json: { name: "Pip", target: { model: "test:model", type: "model" } },
+        method: "POST",
+      }),
+      201
+    );
+    const chat = await newChat();
+    const onChat = await create({
+      target: { conversationId: chat.id, kind: "conversation" },
+    });
+    const onDot = await create({ target: { kind: "dot" }, title: "Dot" });
+    for (const id of [chat.id, dot.conversationId]) {
+      // biome-ignore lint/performance/noAwaitInLoops: two archives, in order.
+      await request(`/api/conversations/${id}`, {
+        json: { archived: true },
+        method: "PATCH",
+      });
+    }
+
+    const sent = [
+      await request(`/api/schedules/${onChat.id}/run`, { method: "POST" }),
+      await request(`/api/schedules/${onDot.id}/run`, { method: "POST" }),
+      await request(`/api/dots/${dot.id}/run`, { json: {}, method: "POST" }),
+    ];
+    expect(sent.map((response) => response.status)).toEqual([409, 409, 409]);
+    for (const response of sent) {
+      // biome-ignore lint/performance/noAwaitInLoops: reading bodies already sent.
+      expect(await response.json()).toMatchObject({
+        data: { reason: "target_archived" },
+      });
+    }
+    expect((await limitsNow()).runsToday).toBe(0);
   });
 
   it("reports the guardrails and today's usage", async () => {
@@ -445,31 +622,17 @@ describe("scheduled runs", () => {
   });
 
   it("skips slots once the daily cap is used, and refuses Run now", async () => {
-    services = {
-      ...services,
-      dots: {
-        ...services.dots,
-        limits: { ...services.dots.limits, maxRunsPerUserPerDay: 1 },
-      },
-    };
-    const app = createApp({
-      resolveSession: (req) => {
-        const userId = req.headers.get(USER_HEADER);
-        return Promise.resolve(userId ? { userId: userId as never } : null);
-      },
-      routers: createDotsRouter(services.dots),
-      services,
+    await withDots({
+      limits: { ...services.dots.limits, maxRunsPerUserPerDay: 1 },
     });
     const schedule = await create({ target: { kind: "new_chat_each_run" } });
     h.nextTurn({ model: reporting("update").model });
-    const now = await app.request(`/api/schedules/${schedule.id}/run`, {
-      headers: { [USER_HEADER]: h.ownerId },
+    const now = await request(`/api/schedules/${schedule.id}/run`, {
       method: "POST",
     });
     expect(now.status).toBe(202);
     await h.services.executor.idle();
-    const capped = await app.request(`/api/schedules/${schedule.id}/run`, {
-      headers: { [USER_HEADER]: h.ownerId },
+    const capped = await request(`/api/schedules/${schedule.id}/run`, {
       method: "POST",
     });
     expect(capped.status).toBe(429);
@@ -487,6 +650,81 @@ describe("scheduled runs", () => {
       ["scheduled", "skipped", "cap"],
       ["run_now", "update", null],
     ]);
+  });
+
+  it("counts a claimed slot toward the cap before its run starts", async () => {
+    await withDots({
+      limits: { ...services.dots.limits, maxRunsPerUserPerDay: 1 },
+    });
+    const due = await create({ target: { kind: "new_chat_each_run" } });
+    const later = await create({
+      recurrence: { ...HOURLY, startAt: "2026-10-21T08:00:00.000Z" },
+      target: { kind: "new_chat_each_run" },
+      title: "Later",
+    });
+    h.nextTurn({ model: reporting("update").model });
+    h.nextTurn({ model: reporting("update").model });
+    clock = new Date("2026-10-20T09:06:00.000Z");
+    await claimDue();
+
+    const now = await request(`/api/schedules/${later.id}/run`, {
+      method: "POST",
+    });
+    expect(now.status).toBe(429);
+    await h.jobs.drain();
+    await h.services.executor.idle();
+    expect((await runsOf(due.id)).map((run) => run.outcome)).toEqual([
+      "update",
+    ]);
+    expect((await limitsNow()).runsToday).toBe(1);
+  });
+
+  it("lets one of two Run nows through when one run is left", async () => {
+    await withDots({
+      limits: { ...services.dots.limits, maxRunsPerUserPerDay: 1 },
+    });
+    const first = await create({ target: { kind: "new_chat_each_run" } });
+    const second = await create({
+      target: { kind: "new_chat_each_run" },
+      title: "Second",
+    });
+    h.nextTurn({ model: reporting("update").model });
+    h.nextTurn({ model: reporting("update").model });
+    const sent = await Promise.all(
+      [first, second].map((schedule) =>
+        request(`/api/schedules/${schedule.id}/run`, { method: "POST" })
+      )
+    );
+    await h.services.executor.idle();
+    expect(sent.map((response) => response.status).sort()).toEqual([202, 429]);
+    expect((await limitsNow()).runsToday).toBe(1);
+  });
+
+  it("leaves no empty chat behind when a run can't start", async () => {
+    await withDots({
+      defaultModel: null,
+      runs: { ...services.dots.runs, defaultModel: null },
+    });
+    const once = await create({
+      recurrence: ONCE_0930,
+      target: { kind: "new_chat_each_run" },
+    });
+    const chats = async () =>
+      (
+        await json<{ items: Conversation[] }>(
+          await request("/api/conversations")
+        )
+      ).items;
+    const before = await chats();
+    clock = new Date("2026-10-20T09:31:00.000Z");
+    await tick();
+
+    expect(await chats()).toEqual(before);
+    expect(await runsOf(once.id)).toEqual([]);
+    expect((await limitsNow()).runsToday).toBe(0);
+    expect(
+      await json<Schedule>(await request(`/api/schedules/${once.id}`))
+    ).toMatchObject({ lastOutcome: "failed", status: "completed" });
   });
 
   it("starts a new chat each run, titled with the task and date", async () => {
@@ -526,6 +764,105 @@ describe("scheduled runs", () => {
     expect(await resumed.json()).toMatchObject({
       data: { reason: "schedule_completed" },
     });
+  });
+});
+
+describe("claims", () => {
+  const chats = async () =>
+    (await json<{ items: Conversation[] }>(await request("/api/conversations")))
+      .items;
+
+  it("gives a claim back when its schedule is paused before it starts", async () => {
+    const schedule = await create({ target: { kind: "new_chat_each_run" } });
+    clock = new Date("2026-10-20T09:06:00.000Z");
+    await claimDue();
+    await request(`/api/schedules/${schedule.id}/pause`, { method: "POST" });
+    await h.jobs.drain();
+
+    expect(await runsOf(schedule.id)).toEqual([]);
+    expect((await limitsNow()).runsToday).toBe(0);
+  });
+
+  it("gives back a claim no run ever started, and says the slot failed", async () => {
+    const schedule = await create({ target: { kind: "new_chat_each_run" } });
+    clock = new Date("2026-10-20T09:06:00.000Z");
+    await claimDue();
+    expect((await limitsNow()).runsToday).toBe(1);
+
+    clock = new Date("2026-10-20T09:22:00.000Z");
+    await claimDue();
+    await h.jobs.drain();
+    expect(await runsOf(schedule.id)).toEqual([]);
+    expect((await limitsNow()).runsToday).toBe(0);
+    expect(
+      await json<Schedule>(await request(`/api/schedules/${schedule.id}`))
+    ).toMatchObject({ lastOutcome: "failed" });
+  });
+
+  it("cancels a run whose claim the tick gave back while it started", async () => {
+    const { executor } = services.dots.runs;
+    let started: string | null = null;
+    await withDots({
+      runs: {
+        ...services.dots.runs,
+        executor: {
+          ...executor,
+          start: async (run) => {
+            started = run.runId;
+            clock = new Date("2026-10-20T09:22:00.000Z");
+            await claimDue();
+            return executor.start(run);
+          },
+        },
+      },
+    });
+    const schedule = await create({ target: { kind: "new_chat_each_run" } });
+    h.nextTurn({ model: reporting("update").model });
+    const before = await chats();
+    clock = new Date("2026-10-20T09:06:00.000Z");
+    await tick();
+
+    expect(started).not.toBeNull();
+    expect(await runsOf(schedule.id)).toEqual([]);
+    expect((await limitsNow()).runsToday).toBe(0);
+    expect(await chats()).toEqual(before);
+    expect(
+      await json<Schedule>(await request(`/api/schedules/${schedule.id}`))
+    ).toMatchObject({ lastOutcome: "failed" });
+  });
+
+  it("starts a retried claim's run once, in one chat", async () => {
+    const schedule = await create({ target: { kind: "new_chat_each_run" } });
+    h.nextTurn({ model: reporting("update").model });
+    clock = new Date("2026-10-20T09:06:00.000Z");
+    await tick();
+    const [first] = await runsOf(schedule.id);
+    if (!first || first.outcome === "skipped") {
+      throw new Error("the slot didn't run");
+    }
+    const before = await chats();
+    const retry = () =>
+      dotJobHandlers({ ...services.dots, queue: h.jobs })["dot.run"]?.(
+        jobOf("dot.run", { claimId: first.id }),
+        new AbortController().signal
+      );
+
+    await retry();
+    // As if the first attempt had crashed before it recorded its run.
+    await h.db
+      .update(dotRun)
+      .set({ outcome: null, runId: null })
+      .where(eq(dotRun.id, first.id));
+    await retry();
+    await h.services.executor.idle();
+
+    expect(
+      (await runsOf(schedule.id)).map((run) => [
+        run.id,
+        run.outcome === "skipped" ? null : run.runId,
+      ])
+    ).toEqual([[first.id, first.runId]]);
+    expect(await chats()).toEqual(before);
   });
 });
 

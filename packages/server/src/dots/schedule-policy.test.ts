@@ -12,6 +12,7 @@ import {
   concludeRun,
   planDue,
   shouldNotify,
+  titleFromPrompt,
   toSchedule,
 } from "./schedule-policy";
 
@@ -52,6 +53,54 @@ const row = (overrides: Partial<ScheduleRow> = {}): ScheduleRow => ({
 
 const idle = { busy: false, runsToday: 0 };
 const limits = { maxRunsPerUserPerDay: 24 };
+
+describe("titleFromPrompt", () => {
+  it("keeps a short prompt whole", () => {
+    expect(titleFromPrompt("  Check the\n build  ")).toBe("Check the build");
+  });
+
+  it("names a task by its first clause", () => {
+    expect(
+      titleFromPrompt(
+        "Give me a short brief for today: what's on, what changed overnight, and anything I should look at first."
+      )
+    ).toBe("Give me a short brief for today");
+    expect(
+      titleFromPrompt(
+        "Check whether anything I'm waiting on has moved. Only tell me if something needs a reply."
+      )
+    ).toBe("Check whether anything I'm waiting on has moved");
+    expect(titleFromPrompt("Ship v1.2 notes")).toBe("Ship v1.2 notes");
+  });
+
+  it("ends a long clause at a whole word, with an ellipsis", () => {
+    expect(
+      titleFromPrompt(
+        "Every morning look through the team inbox and summarise anything from customers about billing"
+      )
+    ).toBe("Every morning look through the team inbox and summarise…");
+    expect(titleFromPrompt("x".repeat(90))).toBe(`${"x".repeat(59)}…`);
+  });
+
+  it("cuts by characters, never inside an emoji", () => {
+    expect(titleFromPrompt("🚀".repeat(70))).toBe(`${"🚀".repeat(59)}…`);
+    expect(titleFromPrompt(`${"🚀".repeat(52)} launch`)).toBe(
+      `${"🚀".repeat(52)} launch`
+    );
+  });
+
+  it("reads past e.g., i.e., etc. and vs.", () => {
+    expect(titleFromPrompt("Summarise the news, e.g. tech and markets")).toBe(
+      "Summarise the news, e.g. tech and markets"
+    );
+    expect(titleFromPrompt("Pick one, i.e. the cheapest. Then book it")).toBe(
+      "Pick one, i.e. the cheapest"
+    );
+    expect(titleFromPrompt("Compare us vs. them. Keep it short")).toBe(
+      "Compare us vs. them"
+    );
+  });
+});
 
 describe("planDue", () => {
   it("fires a due slot and moves on to the next one", () => {
@@ -137,6 +186,26 @@ describe("planDue", () => {
       completedAt: NOW,
       nextRunAt: null,
       nextRunNominalAt: null,
+    });
+  });
+
+  it("waits on a busy chat for a one-off, then gives it up as busy", () => {
+    const once = row({
+      rrule: "FREQ=DAILY;COUNT=1",
+      startAt: new Date("2026-10-20T09:00:00Z"),
+    });
+    const busy = { ...idle, busy: true };
+    expect(planDue(once, NOW, busy, limits)).toMatchObject({
+      fire: null,
+      skip: null,
+    });
+
+    const hourLater = new Date("2026-10-20T10:00:30Z");
+    const late = planDue(once, hourLater, busy, limits);
+    expect(late.skip).toMatchObject({ skipReason: "busy" });
+    expect(late.patch).toMatchObject({
+      completedAt: hourLater,
+      nextRunAt: null,
     });
   });
 

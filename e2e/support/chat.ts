@@ -170,7 +170,7 @@ export const targetPicker = (page: Page, label?: string): Locator =>
 
 /**
  * Picks what answers from the composer's picker panel: `name` in the
- * section labelled `group` ("My agents", "Shared with me", "Team & org
+ * section labelled `group` ("My agents", "Shared with me", "Space
  * agents", or a provider).
  */
 export const pickTarget = async (

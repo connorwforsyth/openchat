@@ -550,8 +550,8 @@ msgid "Agents propose memory edits as a diff for you to approve, instead of savi
 msgstr "Agents propose memory edits as a diff for you to approve, instead of saving them right away."
 
 #: ../library-ui/src/components/library-index.tsx
-msgid "Agents, prompts, skills and MCP servers: yours, shared with you, and published to your teams."
-msgstr "Agents, prompts, skills and MCP servers: yours, shared with you, and published to your teams."
+msgid "Agents, prompts, skills and MCP servers: yours, shared with you, and published to your spaces."
+msgstr "Agents, prompts, skills and MCP servers: yours, shared with you, and published to your spaces."
 
 #: ../../apps/web/app/dev/ai-elements/page.tsx
 msgid "AI Elements"
@@ -1201,6 +1201,10 @@ msgstr "Composer"
 msgid "Computer"
 msgstr "Computer"
 
+#: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
+msgid "Computers aren't set up on this server"
+msgstr "Computers aren't set up on this server"
+
 #: ../../apps/desktop/src/renderer/setup-screen.tsx
 #: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
 #: ../library-ui/src/components/mcp-form.tsx
@@ -1218,6 +1222,10 @@ msgstr "Connect to your server"
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "Connected · {count} tools"
 msgstr "Connected · {count} tools"
+
+#: ../../apps/web/app/(app)/_shared/settings/profile-settings.tsx
+msgid "Connected accounts"
+msgstr "Connected accounts"
 
 #: ../chat-ui/src/workspace/preview.tsx
 msgid "Connecting to port {port}…"
@@ -1941,6 +1949,10 @@ msgstr "Editor"
 msgid "Email"
 msgstr "Email"
 
+#: ../../apps/web/app/(app)/_shared/settings/connected-accounts.tsx
+msgid "Email and password"
+msgstr "Email and password"
+
 #: ../../apps/web/app/(app)/(pages)/dots/avatar-picker.tsx
 msgid "Ember"
 msgstr "Ember"
@@ -2536,8 +2548,8 @@ msgid "Italic"
 msgstr "Italic"
 
 #: ../library-ui/src/components/library-index.tsx
-msgid "Items published to your teams and orgs show up here."
-msgstr "Items published to your teams and orgs show up here."
+msgid "Items published to your spaces show up here."
+msgstr "Items published to your spaces show up here."
 
 #: ../chat-ui/src/conversation/skill-card.tsx
 msgid "Its draft becomes the next version, which anyone it's shared with gets."
@@ -2713,6 +2725,10 @@ msgstr "Link address"
 #: ../chat-ui/src/header/share-menu.tsx
 msgid "Link copied"
 msgstr "Link copied"
+
+#: ../../apps/web/app/(app)/_shared/settings/connected-accounts.tsx
+msgid "Linked {since}"
+msgstr "Linked {since}"
 
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgid "List"
@@ -3390,6 +3406,10 @@ msgstr "No scheduled tasks yet."
 msgid "No Shortcut"
 msgstr "No Shortcut"
 
+#: ../../apps/web/app/(app)/_shared/settings/connected-accounts.tsx
+msgid "No sign-in methods are linked."
+msgstr "No sign-in methods are linked."
+
 #: ../../apps/web/app/(app)/(pages)/space/space-home.tsx
 msgid "No skills shared here yet."
 msgstr "No skills shared here yet."
@@ -3401,10 +3421,6 @@ msgstr "No spaces yet."
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 msgid "No team"
 msgstr "No team"
-
-#: ../library-ui/src/components/library-index.tsx
-msgid "No team or org items"
-msgstr "No team or org items"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
 msgid "No teams yet"
@@ -3497,6 +3513,10 @@ msgstr "Nothing has changed since the last version."
 #: ../library-ui/src/components/library-index.tsx
 msgid "Nothing here yet"
 msgstr "Nothing here yet"
+
+#: ../library-ui/src/components/library-index.tsx
+msgid "Nothing in your spaces yet"
+msgstr "Nothing in your spaces yet"
 
 #: ../chat-ui/src/workspace/preview.tsx
 msgid "Nothing is running on port {port} yet. Ask the agent to start the app."
@@ -4746,6 +4766,10 @@ msgstr "Scopes"
 msgid "Score a sample of this org's chats to catch quality drops."
 msgstr "Score a sample of this org's chats to catch quality drops."
 
+#: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
+msgid "Screen disconnected"
+msgstr "Screen disconnected"
+
 #: ../library-ui/src/components/skill-form.tsx
 msgid "Scripts and resources the skill refers to, by path."
 msgstr "Scripts and resources the skill refers to, by path."
@@ -5200,6 +5224,10 @@ msgstr "Sources"
 msgid "Space"
 msgstr "Space"
 
+#: ../composer/src/components/target-picker.tsx
+msgid "Space agents"
+msgstr "Space agents"
+
 #: ../../apps/web/app/(app)/_shared/spaces/space-switcher.tsx
 #: ../../apps/web/app/(app)/(pages)/space/space-home.tsx
 msgid "Space settings"
@@ -5219,6 +5247,8 @@ msgid "Space: {label}"
 msgstr "Space: {label}"
 
 #: ../../apps/web/app/(app)/_shared/spaces/space-switcher.tsx
+#: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
+#: ../library-ui/src/components/library-index.tsx
 msgid "Spaces"
 msgstr "Spaces"
 
@@ -5459,15 +5489,6 @@ msgstr "team"
 #: ../chat-ui/src/header/context-control.tsx
 msgid "Team"
 msgstr "Team"
-
-#: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
-#: ../library-ui/src/components/library-index.tsx
-msgid "Team & org"
-msgstr "Team & org"
-
-#: ../composer/src/components/target-picker.tsx
-msgid "Team & org agents"
-msgstr "Team & org agents"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
 msgid "Team name"
@@ -5788,6 +5809,10 @@ msgstr "The test chat needs a server to run against."
 #: ../../apps/web/app/(app)/_shared/settings/appearance-settings.tsx
 msgid "The theme is saved in this browser."
 msgstr "The theme is saved in this browser."
+
+#: ../../apps/web/app/(app)/_shared/settings/profile-settings.tsx
+msgid "The ways you can sign in to this account."
+msgstr "The ways you can sign in to this account."
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-keys-admin.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
@@ -6367,6 +6392,10 @@ msgstr "Viewer"
 msgid "Voice chat"
 msgstr "Voice chat"
 
+#: ../chat-ui/src/voice/voice-call.tsx
+msgid "Voice isn't answering right now. Try again in a moment."
+msgstr "Voice isn't answering right now. Try again in a moment."
+
 #: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
 msgid "Waiting for an owner"
 msgstr "Waiting for an owner"
@@ -6665,6 +6694,11 @@ msgstr "You"
 #: ../../apps/desktop/src/renderer/setup-screen.tsx
 msgid "You can change it later from the app menu."
 msgstr "You can change it later from the app menu."
+
+#. placeholder {0}: space.name
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "You can see who's in {0}. Only its owners and admins can add people or change roles."
+msgstr "You can see who's in {0}. Only its owners and admins can add people or change roles."
 
 #: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
 msgid "You can use {remaining} more tokens here this month. Resets {resets}."

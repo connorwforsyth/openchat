@@ -28,7 +28,6 @@ import {
   getDot,
   getOwnersDot,
   insertDot,
-  insertScheduleRun,
   latestDotRuns,
   latestMessageId,
   listDotRuns,
@@ -40,12 +39,11 @@ import {
   unreadDotRuns,
   updateDot as updateDotRow,
 } from "@workspace/db/queries/dots";
-import { newId } from "@workspace/shared/ids";
 import { err, ok, type Result } from "@workspace/shared/result";
 
 import type { Actor } from "../context";
 import { storeContext } from "../runs/chat-context";
-import { createRun } from "../runs/create-run";
+import { createUnattendedRun } from "../runs/create-run";
 import {
   DEFAULT_DOT_PROMPT,
   dotRunKey,
@@ -53,13 +51,15 @@ import {
   handleFrom,
   isUnread,
 } from "./policy";
-import { toSchedule } from "./schedule-policy";
+import { titleFromPrompt, toSchedule } from "./schedule-policy";
 import {
-  capCheck,
+  claimRunNow,
   createSchedule,
+  isArchived,
   ownerActor,
   type ScheduleDeps,
   type ScheduleError,
+  settleClaim,
   toScheduleRun,
 } from "./schedules";
 
@@ -195,9 +195,6 @@ const cronRecurrence = (
   timezone: schedule.timezone,
 });
 
-const titleFrom = (prompt: string): string =>
-  prompt.replace(/\s+/g, " ").trim().slice(0, 60) || "Scheduled task";
-
 export const listDotsFor = async (db: Db, ownerId: UserId): Promise<Dot[]> =>
   hydrate(db, await listDots(db, ownerId));
 
@@ -262,7 +259,7 @@ export const createDot = async (
       prompt: schedule.prompt,
       recurrence: cronRecurrence(schedule),
       target: { kind: "dot" },
-      title: titleFrom(schedule.prompt),
+      title: titleFromPrompt(schedule.prompt),
     });
     if (!made.ok) {
       await deleteDotRow(db, inserted.id, actor.userId);
@@ -345,48 +342,53 @@ export const runDotNow = async (
   if (!dot) {
     return err({ type: "not_found" });
   }
-  const cap = await capCheck(deps, actor.userId);
-  if (!cap.ok) {
-    return cap;
+  if (await isArchived(db, actor, dot.conversationId)) {
+    return err({ type: "target_archived" });
+  }
+  const claim = await claimRunNow(deps, {
+    conversationId: dot.conversationId,
+    dotId: dot.id,
+    ownerId: dot.ownerId,
+    scheduleId: null,
+  });
+  if (!claim.ok) {
+    return claim;
   }
   const [first] = await listDotSchedules(db, [dot.id]);
   const owner = await ownerActor(db, dot.ownerId);
   if (dot.sandboxProvider && deps.ensureWorkspace) {
     await deps.ensureWorkspace(owner, dot.conversationId, dot.sandboxProvider);
   }
-  const created = await createRun(deps.runs, owner, {
-    conversationId: dot.conversationId,
-    idempotencyKey: dotRunKey({ nonce: newId("job"), type: "manual" }),
-    input: {
-      parentId: await latestMessageId(db, dot.conversationId),
-      parts: [
-        {
-          data: { scheduleId: null, title: "Check in" },
-          name: SCHEDULED_TASK_DATA,
-          type: "data",
-        },
-        {
-          text: input.prompt ?? first?.prompt ?? DEFAULT_DOT_PROMPT,
-          type: "text",
-        },
-      ],
-      type: "message",
+  const created = await createUnattendedRun(
+    deps.runs,
+    owner,
+    {
+      conversationId: dot.conversationId,
+      idempotencyKey: dotRunKey(claim.value.id),
+      input: {
+        parentId: await latestMessageId(db, dot.conversationId),
+        parts: [
+          {
+            data: { scheduleId: null, title: "Check in" },
+            name: SCHEDULED_TASK_DATA,
+            type: "data",
+          },
+          {
+            text: input.prompt ?? first?.prompt ?? DEFAULT_DOT_PROMPT,
+            type: "text",
+          },
+        ],
+        type: "message",
+      },
+      target: dot.target,
     },
-    target: dot.target,
-  });
-  if (!created.ok) {
-    return err({ error: created.error, type: "run" });
-  }
-  await insertScheduleRun(db, {
-    conversationId: dot.conversationId,
-    dotId: dot.id,
-    notified: false,
-    ownerId: dot.ownerId,
-    runId: created.value.runId,
-    scheduleId: null,
-    trigger: "manual",
-  });
-  return created;
+    { type: "check_in" }
+  );
+  return settleClaim(
+    deps,
+    claim.value.id,
+    created.ok ? created : err({ error: created.error, type: "run" })
+  );
 };
 
 /** The owner's Dot conversation, for "is this run in the Dot's thread". */

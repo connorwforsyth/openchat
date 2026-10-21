@@ -103,6 +103,34 @@ export const statusOf = (row: ScheduleRow): Schedule["status"] => {
   return row.enabled ? "active" : "paused";
 };
 
+const TITLE_MAX = 60;
+// A sentence ends at . ! ? : or ; and a space, but not after e.g., i.e.,
+// etc. or vs.
+const FIRST_CLAUSE = /^(.*?)(?<!\b(?:e\.g|i\.e|etc|vs))[.!?:;](\s|$)/i;
+const PARTIAL_WORD = /\s+\S*$/;
+const WHITESPACE = /\s/;
+const TRAILING_JOINERS = /[\s,;:-]+$/;
+
+/**
+ * A name for a task that has none, from its prompt: the first clause, ended
+ * at a whole word with an ellipsis past 60 characters. Characters are code
+ * points, as Postgres counts them, so an emoji is never cut in half. The
+ * `schedule_titles` migration does the same in SQL for rows titled before
+ * this existed.
+ */
+export const titleFromPrompt = (prompt: string): string => {
+  const text = prompt.replaceAll(/\s+/g, " ").trim();
+  const clause = Array.from(FIRST_CLAUSE.exec(text)?.[1] || text);
+  if (clause.length <= TITLE_MAX) {
+    return clause.join("");
+  }
+  const head = clause.slice(0, TITLE_MAX + 1).join("");
+  const words = WHITESPACE.test(head)
+    ? head.replace(PARTIAL_WORD, "")
+    : clause.slice(0, TITLE_MAX - 1).join("");
+  return `${words.replace(TRAILING_JOINERS, "")}…`;
+};
+
 /** The contract's `Schedule` from its row. Pure. */
 export const toSchedule = (row: ScheduleRow): Schedule => {
   const status = statusOf(row);
@@ -126,7 +154,7 @@ export const toSchedule = (row: ScheduleRow): Schedule => {
     recurrence: recurrenceOf(row),
     status,
     target: targetOf(row),
-    title: row.title.trim() === "" ? row.prompt.slice(0, 60) : row.title,
+    title: row.title.trim() === "" ? titleFromPrompt(row.prompt) : row.title,
     updatedAt: row.updatedAt.toISOString(),
   };
 };
@@ -217,15 +245,20 @@ export const nextColumns = (
 /** How long a busy target waits before the tick tries it again. */
 export const BUSY_RETRY_MS = 60_000;
 
+export const ONCE_BUSY_WAIT_MS = 60 * 60_000;
+
+/** Past this, a claim no run started is given back: its job retried and expired long ago. */
+export const CLAIM_STALE_MS = 15 * 60_000;
+
 /** With `missedRunPolicy: "skip"`, a slot later than this after downtime is skipped. */
 export const LATE_GRACE_MS = 15 * 60_000;
 
 /**
  * What the tick does with one due schedule. Overdue slots always collapse
  * into one; the next slot is the first after now. A busy target defers by a
- * minute until the next slot would arrive, then that slot is skipped
- * (`busy`). The daily cap skips (`cap`), and a one-off or ended rule
- * completes after firing.
+ * minute until the next slot would arrive (a one-off waits an hour), then
+ * that slot is skipped (`busy`). The daily cap skips (`cap`), and a one-off
+ * or ended rule completes after firing or skipping.
  */
 export const planDue = (
   row: ScheduleRow,
@@ -283,7 +316,9 @@ export const planDue = (
   }
   if (context.busy) {
     const retryAt = new Date(now.getTime() + BUSY_RETRY_MS);
-    if (following === null || retryAt.getTime() < following.getTime()) {
+    const giveUpAt =
+      following ?? new Date(nominal.getTime() + ONCE_BUSY_WAIT_MS);
+    if (retryAt.getTime() < giveUpAt.getTime()) {
       // Stay due on the same slot; try again next minute.
       return { fire: null, patch: { nextRunAt: retryAt }, skip: null };
     }
