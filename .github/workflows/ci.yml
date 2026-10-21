@@ -16,7 +16,8 @@ jobs:
   ci:
     name: ci
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Passing runs take 13-19 minutes; at 20 the limit cut off healthy runs.
+    timeout-minutes: 30
     env:
       NEXT_TELEMETRY_DISABLED: 1
       TURBO_TELEMETRY_DISABLED: 1
