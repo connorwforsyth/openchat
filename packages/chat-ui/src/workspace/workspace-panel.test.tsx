@@ -429,7 +429,12 @@ describe("the editor", () => {
     const held = new Promise<void>((resolve) => {
       land = resolve;
     });
+    let sending: () => void = () => undefined;
+    const sent = new Promise<void>((resolve) => {
+      sending = resolve;
+    });
     fake.client.writeFile.mockImplementationOnce(async ({ content, path }) => {
+      sending();
       await held;
       return ok({ etag: V2, path, size: content.length });
     });
@@ -445,17 +450,24 @@ describe("the editor", () => {
     };
     const editor = await editable();
     await userEvent.click(editor);
-    await userEvent.keyboard("A");
-    // Pending, but the flush on leaving will send it.
-    expect(leave()).toBe(false);
-    await userEvent.keyboard("{Control>}s{/Control}");
-    await waitFor(() => expect(fake.client.writeFile).toHaveBeenCalled());
-    // Quick so far: still just "Unsaved".
-    expect(panel().getByText("Unsaved")).toBeTruthy();
-    expect(leave()).toBe(false);
-    expect(
-      await panel().findByText("Saving…", {}, { timeout: SLOW_SAVE_MS + 2000 })
-    ).toBeTruthy();
+    // The idle and slow-save clocks are the subject here, so the test owns
+    // them; on real timers a busy runner decides what "quick" means.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      await userEvent.keyboard("A");
+      // Pending, but the flush on leaving will send it.
+      expect(leave()).toBe(false);
+      await userEvent.keyboard("{Control>}s{/Control}");
+      await sent;
+      await act(() => vi.advanceTimersByTimeAsync(SLOW_SAVE_MS - 1));
+      // Quick so far: still just "Unsaved".
+      expect(panel().getByText("Unsaved")).toBeTruthy();
+      expect(leave()).toBe(false);
+      await act(() => vi.advanceTimersByTimeAsync(1));
+      expect(panel().getByText("Saving…")).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
 
     // Typed during the save: it can't go before the save says which
     // version it made, so leaving now would lose it.

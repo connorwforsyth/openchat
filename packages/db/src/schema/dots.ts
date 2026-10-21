@@ -228,7 +228,7 @@ export const dotRun = pgTable(
     nominalAt: instant("nominal_at"),
     /** Whether the notify policy told the owner; only these count as unread. */
     notified: boolean("notified").notNull().default(true),
-    /** `null` while the run is going. */
+    /** `null` while the run is claimed or going. */
     outcome: text("outcome").$type<ScheduleRunOutcome>(),
     ownerId: idRef("owner_id", "user")
       .notNull()
