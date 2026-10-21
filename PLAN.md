@@ -644,6 +644,7 @@ apps/
   mobile/     [Mobile wave] Expo 57 + Expo Router + RN Reusables/Uniwind; 'use dom' reuse of web markdown/artifact renderers
   worker/     [Collaboration wave] takes over pg-boss from web: runs, schedules, ingestion, rollups, evals
   sandbox-runner/  Only Docker-privileged service; implements Sandbox over an internal API
+  artifacts/  The artifact runtime: its own origin, loaded by the artifacts panel in a sandboxed iframe (D24)
   docs/       [OSS wave] Blume 2.x — MDX guides + OpenAPI reference; theme maps to ui tokens
 packages/
   contract/   oRPC contract + zod schemas — single source of truth; emits OpenAPI
@@ -651,8 +652,9 @@ packages/
   config/     app.config.yaml zod schema, loader, env interpolation, policy bounds
   db/         Drizzle schema, migrations, queries (pgvector, tsvector)
   auth/       Better Auth config, personal-org bootstrap, team tree, per-platform clients
-  server/     Hono app: oRPC handlers, runs + stream routes, events SSE, /api/llm proxy, uploads
-  ai/         Provider registry, key resolution, RunExecutor, agent runner, tool registry, RAG,
+  server/     Hono app: oRPC handlers, the in-process RunExecutor (runs/executor.ts), runs + stream
+              routes, events SSE, /api/llm proxy, uploads, Dots and schedules
+  ai/         Provider registry, key resolution, the RunExecutor port, agent runner, tool registry, RAG,
               artifacts prompt, decide/ (Decider port + adapters), evals/ (datasets, runner, scorers)
   mcp/        MCP connection manager (adapted from LibreChat packages/api/src/mcp)
   sandbox/    Sandbox interface + providers (just-bash, docker-client, e2b, vercel, microsandbox, local) + AI SDK tools
@@ -664,6 +666,14 @@ packages/
   shortcuts/  Shortcut registry + hooks + Electron accelerator mapping
   i18n/       Lingui config, catalogs, Intl formatters, locale negotiation
   client/     Typed oRPC client + TanStack Query hooks (web, desktop, mobile)
+  artifacts-kit/  Artifact kinds, each defined in one place: what a version stores, the model's guide, checks, rendering
+  site-ui/    What a Site artifact's TSX imports (exactly the Site kind's exports)
+  slide-ui/   What a Presentation artifact's slides import (exactly the Presentation kind's exports)
+  library-ui/ Library builders and index (agents, prompts, skills, MCP servers)
+  palette/    Command palette: items, ranking, chat search
+  importers/  Chat imports from ChatGPT, Claude and LibreChat exports
+  evals/      Eval harness and CLI (`bun run evals`)
+  setup/      `bun run setup`: writes this machine's app.config.yaml, doctor checks
   typescript-config/, biome config (Ultracite)
 ```
 
@@ -707,7 +717,8 @@ packages/
   - `eval_dataset`, `eval_case`, `eval_run` (agentVersionId), `eval_result`;
   - `quality_score` (sampled).
 - **Decider:** `decision_log` (question, answer, probability, adapter, context).
-- **Collaboration wave:** `schedule`, `notification`, `push_subscription`.
+- **Dots** (one private Dot per user): `dot`; `dot_schedule`, a scheduled task (the code calls it a schedule) aimed at the Dot, a chat or a new chat each run; `dot_run`, one firing of a schedule or a Dot's "Run now", or the slot it skipped.
+- **Collaboration wave:** `notification`, `push_subscription`.
 
 ---
 

@@ -12,24 +12,22 @@ import { forbiddenError, notFoundError, validationError } from "./errors";
 // tool discovery and the per-user OAuth start and disconnect. The OAuth
 // callback is plain HTTP (`app.ts`), since a browser lands on it.
 
-const toOrpcError = (error: McpHandlerError): ORPCError<string, unknown> => {
-  switch (error.code) {
+// One mapping from an MCP handler's error to the contract's, shared with
+// `connectors.ts`.
+export const unwrapMcp = <T>(result: Result<T, McpHandlerError>): T => {
+  if (result.ok) {
+    return result.value;
+  }
+  switch (result.error.code) {
     case "NOT_FOUND":
-      return notFoundError();
+      throw notFoundError();
     case "FORBIDDEN":
-      return forbiddenError();
+      throw forbiddenError();
     case "VALIDATION":
-      return validationError(error.data.issues);
+      throw validationError(result.error.data.issues);
     default:
-      return error satisfies never;
+      return result.error satisfies never;
   }
-};
-
-const unwrap = <T>(result: Result<T, McpHandlerError>): T => {
-  if (!result.ok) {
-    throw toOrpcError(result.error);
-  }
-  return result.value;
 };
 
 export interface McpRouterDeps {
@@ -51,16 +49,16 @@ export const createMcpRouter = ({ db, manager }: McpRouterDeps) => {
   return os.router({
     mcp: {
       disconnect: authed.mcp.disconnect.handler(async ({ context, input }) => {
-        unwrap(await mcpHandlers.disconnect(context.handler, input));
+        unwrapMcp(await mcpHandlers.disconnect(context.handler, input));
       }),
       startOAuth: authed.mcp.startOAuth.handler(async ({ context, input }) =>
-        unwrap(await mcpHandlers.startOAuth(context.handler, input))
+        unwrapMcp(await mcpHandlers.startOAuth(context.handler, input))
       ),
       status: authed.mcp.status.handler(async ({ context, input }) =>
-        unwrap(await mcpHandlers.status(context.handler, input))
+        unwrapMcp(await mcpHandlers.status(context.handler, input))
       ),
       tools: authed.mcp.tools.handler(async ({ context, input }) => [
-        ...unwrap(await mcpHandlers.tools(context.handler, input)),
+        ...unwrapMcp(await mcpHandlers.tools(context.handler, input)),
       ]),
     },
   });

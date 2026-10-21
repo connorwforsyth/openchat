@@ -154,7 +154,7 @@ msgstr "{count, plural, one {Wants to make an image} other {Wants to make # imag
 msgid "{count, plural, one {While you were away, I ran # task.} other {While you were away, I ran # tasks.}}"
 msgstr "{count, plural, one {While you were away, I ran # task.} other {While you were away, I ran # tasks.}}"
 
-#: ../../apps/web/app/(app)/(pages)/dots/sidebar-dots.tsx
+#: ../../apps/web/app/(app)/_shared/sidebar-dots.tsx
 msgid "{count} new"
 msgstr "{count} new"
 
@@ -2900,7 +2900,7 @@ msgstr "Make an image of "
 msgid "Make something new"
 msgstr "Make something new"
 
-#: ../../apps/web/app/(app)/(pages)/dots/sidebar-dots.tsx
+#: ../../apps/web/app/(app)/_shared/sidebar-dots.tsx
 msgid "Make your Dot"
 msgstr "Make your Dot"
 
@@ -3367,7 +3367,7 @@ msgstr "Next check-in {next}"
 msgid "Next run {next}"
 msgstr "Next run {next}"
 
-#: ../../apps/web/app/(app)/(pages)/dots/sidebar-dots.tsx
+#: ../../apps/web/app/(app)/_shared/sidebar-dots.tsx
 #: ../chat-ui/src/sidebar/chat-row.tsx
 msgid "Next run: {when}"
 msgstr "Next run: {when}"

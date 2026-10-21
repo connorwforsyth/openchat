@@ -32,11 +32,11 @@ import { useApi } from "@/app/(app)/_shared/api";
 import { canAdmin, useAppFrame } from "@/app/(app)/_shared/app-frame";
 import { Brand } from "@/app/(app)/_shared/brand";
 import { useShellPlatform } from "@/app/(app)/_shared/desktop";
+import { useSidebarDots } from "@/app/(app)/_shared/sidebar-dots";
 import {
   SpaceSwitcher,
   useSidebarSpaces,
 } from "@/app/(app)/_shared/spaces/space-switcher";
-import { useSidebarDots } from "@/app/(app)/(pages)/dots/sidebar-dots";
 import { RailPanelFor } from "@/app/(app)/(pages)/rail-panels";
 import { routes } from "@/lib/routes";
 

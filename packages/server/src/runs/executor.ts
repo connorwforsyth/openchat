@@ -162,8 +162,6 @@ const INTERRUPTED: RunError = {
   retryable: true,
 };
 
-const toJson = chunkJson;
-
 const deciderState = (messages: readonly Message[]): DeciderState => {
   const turns = messages
     .filter((message) => message.role !== "system")
@@ -566,7 +564,7 @@ export const createInProcessExecutor = (
   ): Promise<void> => {
     for (const chunk of chunks) {
       // biome-ignore lint/performance/noAwaitInLoops: the stream keeps call order anyway; this keeps errors per chunk.
-      const appended = await writer.append(runId, toJson(chunk));
+      const appended = await writer.append(runId, chunkJson(chunk));
       if (!appended.ok) {
         report("run stream write failed", appended.error);
       }
@@ -677,7 +675,7 @@ export const createInProcessExecutor = (
           break;
         }
         chunks.push(next.value);
-        appends.push(writer.append(runId, toJson(next.value)));
+        appends.push(writer.append(runId, chunkJson(next.value)));
       }
     } finally {
       signal.removeEventListener("abort", onAbort);
@@ -938,7 +936,7 @@ export const createInProcessExecutor = (
     // chunks commit with the cancel. Subscribers read them in the drain they
     // make after seeing the run end. A channel that doesn't keep its chunks
     // in this database (Redis, say) would never see them.
-    await appendRunChunks(tx, run.id, stopped.chunks.map(toJson));
+    await appendRunChunks(tx, run.id, stopped.chunks.map(chunkJson));
     await updateMessage(tx, run.assistantMessageId, {
       parts: stopped.parts,
       status: "partial",

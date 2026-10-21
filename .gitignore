@@ -9,6 +9,8 @@ coverage/
 !.env.example
 .DS_Store
 .context/tmp/
+# Screenshots agents take while working. Kept on disk, never committed.
+.context/screens/
 playwright-report/
 test-results/
 # `bun run evals` writes its reports here (packages/evals).

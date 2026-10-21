@@ -28,6 +28,7 @@ packages/
   chat-ui/ composer/  the chat screen; the composer
   palette/ shortcuts/ ⌘K palette; the shortcut registry
   code-ui/ library-ui/ artifacts-kit/   code views; library screens; artifact kinds
+  site-ui/ slide-ui/  what Site and Presentation artifacts import
   ui/                 shadcn (Base UI) components + the theme (src/styles/globals.css)
   icons/ i18n/        the icon registry; Lingui config and catalogs
   evals/ importers/ setup/              eval harness; chat importers; setup CLI
