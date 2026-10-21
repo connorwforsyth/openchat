@@ -94,7 +94,7 @@ const CHECKS: readonly Check[] = [
   },
   {
     config: "RunQueueStop.cfg",
-    expect: "violated",
+    expect: "holds",
     invariants: ["OneRunPerBranch"],
     name: "stop-branch",
     view: "ViewBranch",
@@ -475,14 +475,21 @@ const STEPS: Readonly<Record<string, (step: Step, run: number) => string>> = {
   S_Ahead: (step, run) => {
     const ahead = Number(local(step, "srAfter", "before"));
     const status = String(statusOf(step.after, ahead));
-    return TERMINAL.has(status)
+    if (!TERMINAL.has(status)) {
+      return `startRun(r${run}): getRun(r${ahead}) is ${status}; still waiting`;
+    }
+    return seqOf(step.after.vars.get("hasAnswer"))[ahead - 1]
       ? `startRun(r${run}): getRun(r${ahead}) is ${status}; claim`
-      : `startRun(r${run}): getRun(r${ahead}) is ${status}; still waiting`;
+      : `startRun(r${run}): getRun(r${ahead}) is ${status} before it ran; pass its place on`;
   },
   S_Claim: (step, run) =>
     changed(step, "spawned")
       ? `startRun(r${run}): claim ${transition(step, run, "")}; active.set(r${run}, controller), COMMIT; track(execute) starts its pass`
       : `startRun(r${run}): claim lost (${String(statusOf(step.after, run))}), rolled back`,
+  S_Each: (step, run) =>
+    seqOf(local(step, "srMoved", "before")).length === 0
+      ? `startRun(r${run}): returns`
+      : `startRun(r${run}): startEach takes r${String(local(step, "srNext", "after"))}, a run it moved`,
   S_Read: (step, run) => {
     const status = String(statusOf(step.before, run));
     const ahead = seqOf(step.before.vars.get("after"))[run - 1];
@@ -490,6 +497,14 @@ const STEPS: Readonly<Record<string, (step: Step, run: number) => string>> = {
     return status === "queued"
       ? `startRun(r${run}): ${read}`
       : `startRun(r${run}): ${read}: already started`;
+  },
+  S_Requeue: (step, run) => {
+    const ahead = Number(local(step, "srAfter", "before"));
+    return `startRun(r${run}): requeueAfter moves the runs behind r${ahead} to wait on r${String(seqOf(step.after.vars.get("after"))[ahead - 1])}`;
+  },
+  W_Held: (step, run) => {
+    const tail = Number(local(step, "tail", "after"));
+    return `createRun(r${run}): stoppedRunAt: ${tail ? `r${tail} ended before it ran; wait on it` : "no stopped question there"}`;
   },
   W_Insert: (step, run) => {
     const behind = seqOf(step.after.vars.get("after"))[run - 1];

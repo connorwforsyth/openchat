@@ -228,6 +228,72 @@ describe("POST /api/runs", () => {
     expect(path.messages[2]?.parentId).toBe(firstRun.assistantMessageId);
   });
 
+  // Finding 5 of the run-queue model (stop-branch).
+  it("queues a reply under a stopped queued question behind the answer still being written", async () => {
+    const scripted = scriptedModel();
+    h.nextTurn({ model: scripted.model });
+    h.nextTurn({
+      model: new MockLanguageModelV4({ doStream: textStream("Reply answer") }),
+    });
+    const chat = await newConversation();
+    const first = await send(chat.id, "first");
+    const stopped = await send(chat.id, "second", first.userMessageId);
+    expect(stopped.status).toBe("queued");
+    const cancelled = await h.request(`/api/runs/${stopped.runId}/cancel`, {
+      method: "POST",
+    });
+    expect(cancelled.status).toBe(200);
+
+    const reply = await send(chat.id, "third", stopped.userMessageId);
+    expect(reply.status).toBe("queued");
+
+    scripted.push(...textParts.start(), textParts.delta("First answer"));
+    scripted.push(textParts.textEnd(), textParts.finish());
+    scripted.end();
+    await h.services.executor.idle();
+    expect((await getRun(reply.runId)).state.status).toBe("succeeded");
+    const path = await pathOf(chat.id);
+    expect(path.messages.map((m) => m.role)).toEqual([
+      "user",
+      "assistant",
+      "user",
+      "user",
+      "assistant",
+    ]);
+    expect(path.messages[3]?.parentId).toBe(stopped.userMessageId);
+  });
+
+  it("queues a regenerate of a stopped queued question behind the answer still being written", async () => {
+    const scripted = scriptedModel();
+    h.nextTurn({ model: scripted.model });
+    h.nextTurn({
+      model: new MockLanguageModelV4({ doStream: textStream("Second answer") }),
+    });
+    const chat = await newConversation();
+    const first = await send(chat.id, "first");
+    const stopped = await send(chat.id, "second", first.userMessageId);
+    await h.request(`/api/runs/${stopped.runId}/cancel`, { method: "POST" });
+
+    const again = await json<CreateRunOutput>(
+      await h.request("/api/runs", {
+        json: {
+          conversationId: chat.id,
+          input: { type: "regenerate", userMessageId: stopped.userMessageId },
+          target: { model: "test:model", type: "model" },
+        },
+        method: "POST",
+      }),
+      202
+    );
+    expect(again.status).toBe("queued");
+
+    scripted.push(...textParts.start(), textParts.delta("First answer"));
+    scripted.push(textParts.textEnd(), textParts.finish());
+    scripted.end();
+    await h.services.executor.idle();
+    expect((await getRun(again.runId)).state.status).toBe("succeeded");
+  });
+
   it("pauses for approval and resumes the same answer once approved", async () => {
     const execute = vi.fn(({ path }: { path: string }) => `wrote ${path}`);
     const tools = {

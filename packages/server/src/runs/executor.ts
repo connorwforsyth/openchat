@@ -908,6 +908,15 @@ export const createInProcessExecutor = (
       if (ahead.ok && !isTerminal(ahead.value.status)) {
         return ok(undefined);
       }
+      // A run ahead that ended before it ran still holds its place: whoever
+      // waited on it now waits on the run it waited on (cancelIdle does the
+      // same, but may not have yet, and a turn can land behind it later).
+      if (ahead.ok && !ahead.value.assistantMessageId) {
+        await startEach(
+          await requeueAfter(db, ahead.value.id, ahead.value.afterRunId)
+        );
+        return ok(undefined);
+      }
     }
     const controller = new AbortController();
     const claimed = await claim(run, controller);

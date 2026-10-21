@@ -373,6 +373,46 @@ describe("stopping", () => {
     expect((await getRun(second.runId)).state.status).toBe("succeeded");
     expect(execute).not.toHaveBeenCalled();
   });
+
+  it("moves on from a waiting answer when the message replies under a question stopped behind it", async () => {
+    const execute = vi.fn(({ path }: { path: string }) => `wrote ${path}`);
+    const asking = gate();
+    h.nextTurn({
+      model: new MockLanguageModelV4({
+        doStream: async () => {
+          await asking.opened;
+          return toolCallStream("write_file", { path: "a.txt" });
+        },
+      }),
+      toolApproval: { write_file: "user-approval" },
+      tools: {
+        write_file: tool({
+          execute,
+          inputSchema: z.object({ path: z.string() }),
+        }),
+      },
+    });
+    const chat = await newConversation();
+    const first = await send(chat.id, "write a file");
+    const stopped = await send(chat.id, "and another", first.userMessageId);
+    expect(stopped.status).toBe("queued");
+    await json<Run>(
+      await h.request(`/api/runs/${stopped.runId}/cancel`, { method: "POST" })
+    );
+    asking.open();
+    await h.services.executor.idle();
+    expect((await getRun(first.runId)).state.status).toBe("awaiting_approval");
+
+    h.nextTurn({
+      model: new MockLanguageModelV4({ doStream: textStream("Sure.") }),
+    });
+    const reply = await send(chat.id, "never mind", stopped.userMessageId);
+    await h.services.executor.idle();
+
+    expect((await getRun(first.runId)).state.status).toBe("cancelled");
+    expect((await getRun(reply.runId)).state.status).toBe("succeeded");
+    expect(execute).not.toHaveBeenCalled();
+  });
 });
 
 /** A promise and the function that settles it, for holding a pass open. */

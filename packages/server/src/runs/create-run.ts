@@ -19,9 +19,11 @@ import {
 import { getMessage, insertMessage } from "@workspace/db/queries/messages";
 import {
   approvalIdsOf,
+  getRun,
   createRun as insertRun,
   listActiveRuns,
   type RunRow,
+  stoppedRunAt,
 } from "@workspace/db/queries/runs";
 import type { RunUnattended } from "@workspace/db/schema/chat";
 import { err, ok, type Result } from "@workspace/shared/result";
@@ -71,22 +73,12 @@ export const streamUrlFor = (runId: RunId): string =>
 const sameContext = (a: StoredContext, b: StoredContext): boolean =>
   a.type === b.type && a.id === b.id;
 
-/**
- * The run already answering where this turn lands, and the last run queued
- * behind it: a new turn waits for that one. `anchor` is the message the turn
- * follows (the new message's parent, or the user message being answered
- * again).
- */
-export const busyTail = (
+/** `first`, then forward along `afterRunId` to the last active run queued behind it. */
+const lastInLine = (
   active: readonly RunRow[],
-  anchor: MessageId | null
+  first: RunRow | undefined
 ): RunRow | undefined => {
-  if (anchor === null) {
-    return;
-  }
-  let tail = active.find(
-    (run) => run.userMessageId === anchor || run.assistantMessageId === anchor
-  );
+  let tail = first;
   const seen = new Set<RunId>();
   while (tail && !seen.has(tail.id)) {
     seen.add(tail.id);
@@ -99,6 +91,26 @@ export const busyTail = (
   }
   return tail;
 };
+
+/**
+ * The run already answering where this turn lands, and the last run queued
+ * behind it: a new turn waits for that one. `anchor` is the message the turn
+ * follows (the new message's parent, or the user message being answered
+ * again).
+ */
+export const busyTail = (
+  active: readonly RunRow[],
+  anchor: MessageId | null
+): RunRow | undefined =>
+  anchor === null
+    ? undefined
+    : lastInLine(
+        active,
+        active.find(
+          (run) =>
+            run.userMessageId === anchor || run.assistantMessageId === anchor
+        )
+      );
 
 const targetFor = (
   input: CreateRunInput,
@@ -287,7 +299,12 @@ const placeRun = async (
   let placed: Placed | undefined;
   try {
     placed = await db.transaction(async (tx) => {
-      const tail = busyTail(await listActiveRuns(tx, conversationId), anchor);
+      // A question stopped while it was queued never got an answer, so a
+      // reply under it waits on its place in the queue, under that question.
+      let tail = busyTail(await listActiveRuns(tx, conversationId), anchor);
+      if (!tail && anchor !== null) {
+        tail = await stoppedRunAt(tx, conversationId, anchor);
+      }
       let userMessageId: MessageId = anchor as MessageId;
       if (turn.type === "message") {
         // A turn sent while the branch is busy follows the answer being
@@ -367,6 +384,33 @@ const waitsOnSomeone = async (db: Db, run: RunRow): Promise<boolean> => {
 };
 
 /**
+ * The last active run in line ahead of a run that ended before it ran,
+ * through any others that also ended before they ran.
+ */
+const waitedOn = async (
+  db: Db,
+  active: readonly RunRow[],
+  stopped: RunRow
+): Promise<RunRow | undefined> => {
+  let ahead = stopped.afterRunId;
+  const seen = new Set<RunId>();
+  while (ahead && !seen.has(ahead)) {
+    seen.add(ahead);
+    const id = ahead;
+    const live = active.find((run) => run.id === id);
+    if (live) {
+      return lastInLine(active, live);
+    }
+    // biome-ignore lint/performance/noAwaitInLoops: each hop names the next; normally there's one.
+    const ended = await getRun(db, id);
+    if (!ended.ok || ended.value.assistantMessageId) {
+      return;
+    }
+    ahead = ended.value.afterRunId;
+  }
+};
+
+/**
  * A turn sent while the answer it follows waits on approvals moves on
  * without them (072): that answer stops as Stop would stop it, and its
  * pending changes are never applied. Queued behind it instead, the turn
@@ -381,7 +425,14 @@ const moveOnFromWaiting = async (
   { conversationId, input: turn }: CreateRunInput
 ): Promise<void> => {
   const anchor = turn.type === "message" ? turn.parentId : turn.userMessageId;
-  const tail = busyTail(await listActiveRuns(deps.db, conversationId), anchor);
+  const active = await listActiveRuns(deps.db, conversationId);
+  let tail = busyTail(active, anchor);
+  if (!tail && anchor !== null) {
+    // Under a question stopped while it was queued, the turn follows what
+    // that question waited on, as a reply under that answer would.
+    const stopped = await stoppedRunAt(deps.db, conversationId, anchor);
+    tail = stopped && (await waitedOn(deps.db, active, stopped));
+  }
   if (tail && (await waitsOnSomeone(deps.db, tail))) {
     // A decision that resumed it a moment ago doesn't save it: the cancel
     // stops that pass too.
