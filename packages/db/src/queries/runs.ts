@@ -208,15 +208,25 @@ export const runTransitionSchema = z.discriminatedUnion("type", [
     type: z.literal("fail"),
     usage: tokenUsageSchema.optional(),
   }),
+  /** Stop on a run no pass is executing: queued, or waiting on approvals. */
   z.object({
     /** `null` when the system cancelled it. */
     cancelledBy: userIdSchema.nullable(),
     type: z.literal("cancel"),
   }),
+  /**
+   * Stop ending a running run: the pass it aborted settling its own run, or
+   * Stop itself once no pass holds the run (it crashed).
+   */
+  z.object({
+    cancelledBy: userIdSchema.nullable(),
+    type: z.literal("abort"),
+  }),
 ]);
 export type RunTransition = z.infer<typeof runTransitionSchema>;
 
 const TARGET: Record<RunTransition["type"], RunStatus> = {
+  abort: "cancelled",
   await_approval: "awaiting_approval",
   cancel: "cancelled",
   fail: "failed",
@@ -225,10 +235,16 @@ const TARGET: Record<RunTransition["type"], RunStatus> = {
   succeed: "succeeded",
 };
 
-/** Which statuses each transition may leave. Terminal statuses leave to nothing. */
+/**
+ * Which statuses each transition may leave. Terminal statuses leave to
+ * nothing. A `running` run has a pass, and only that pass ends it (or
+ * recovery fails it, or Stop aborts it once the pass is gone), so a cancel
+ * that loses to a claim or a resume must abort the pass instead.
+ */
 const FROM: Record<RunTransition["type"], readonly RunStatus[]> = {
+  abort: ["running"],
   await_approval: ["running"],
-  cancel: ["queued", "running", "awaiting_approval"],
+  cancel: ["queued", "awaiting_approval"],
   fail: ["queued", "running", "awaiting_approval"],
   resume: ["awaiting_approval"],
   start: ["queued"],
@@ -271,6 +287,7 @@ const changesFor = (transition: RunTransition, now: Date) => {
         finishedAt: now,
         ...(transition.usage ? { usage: transition.usage } : {}),
       };
+    case "abort":
     case "cancel":
       return {
         approvals: null,

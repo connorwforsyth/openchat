@@ -165,7 +165,8 @@ describe("the one-Dot migration", () => {
         prompt: `${long}${"\n\nStanding instructions from the owner:\nKeep it short. Lead with what changed.".slice(0, 4000 - long.length - CUT.length)}${CUT}`,
         read_only: true,
         target_kind: "conversation",
-        title: long.slice(0, 60),
+        // The later schedule_titles migration retitles the 60-character cut.
+        title: "Summarise the week",
       },
     ]);
 
