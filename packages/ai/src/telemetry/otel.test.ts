@@ -2,11 +2,13 @@ import {
   InMemorySpanExporter,
   type ReadableSpan,
 } from "@opentelemetry/sdk-trace-base";
+import { fixtureId } from "@workspace/contract/fixtures";
 import { generateText, type Telemetry } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { generated } from "../testing/mock-models";
+import { runAgent } from "../agent/run-agent";
+import { generated, readAll, textStream } from "../testing/mock-models";
 import { startTelemetry } from "./otel";
 
 const PROMPT = "my cat is called Biscuit";
@@ -89,5 +91,47 @@ describe("startTelemetry", () => {
     expect(globalThis.AI_SDK_TELEMETRY_INTEGRATIONS).toHaveLength(1);
     await handle.shutdown();
     expect(globalThis.AI_SDK_TELEMETRY_INTEGRATIONS).toEqual([]);
+  });
+
+  it("tags every span of a run with who it was for", async () => {
+    const exporter = new InMemorySpanExporter();
+    const handle = startTelemetry(configured, { exporter });
+    const trace = {
+      conversationId: fixtureId("conversation", 1),
+      spaceId: fixtureId("team", 1),
+      userId: fixtureId("user", 1),
+    };
+    const run = await runAgent({
+      messages: [
+        { id: "m1", parts: [{ text: PROMPT, type: "text" }], role: "user" },
+      ],
+      model: new MockLanguageModelV4({ doStream: textStream(ANSWER) }),
+      trace,
+    });
+    if (!run.ok) {
+      throw new Error(run.error.message);
+    }
+    await readAll(run.value.stream);
+    await handle.flush();
+    const spans = exporter.getFinishedSpans();
+    await handle.shutdown();
+
+    expect(spans.length).toBeGreaterThan(1);
+    for (const span of spans) {
+      expect(span.attributes).toMatchObject({
+        "langfuse.trace.metadata.space_id": trace.spaceId,
+        "langfuse.user.id": trace.userId,
+        "session.id": trace.conversationId,
+      });
+    }
+    expect(attributeText(spans)).not.toContain("Biscuit");
+  });
+
+  it("leaves spans untagged when a call names no one", async () => {
+    const spans = await traced();
+    expect(spans.length).toBeGreaterThan(0);
+    for (const span of spans) {
+      expect(span.attributes["langfuse.user.id"]).toBeUndefined();
+    }
   });
 });

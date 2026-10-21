@@ -2,6 +2,7 @@ import { strongestOrgRole } from "@workspace/auth/access";
 import { orgRoleOf, teamAdminOf } from "@workspace/auth/resources";
 import type { OrgId, TeamId, UserId } from "@workspace/contract/schemas/common";
 import type { Db } from "@workspace/db/client";
+import type { KeyScopeRef } from "@workspace/db/queries/provider-keys";
 import { teamAncestors, teamSubtree } from "@workspace/db/queries/teams";
 import { member, user } from "@workspace/db/schema/auth";
 import { team, teamMember } from "@workspace/db/schema/tenancy";
@@ -112,4 +113,25 @@ export const administeredTeams = async (
     adminRows.map((row) => teamSubtree(db, row.id))
   );
   return [...new Set([...inOrgs.map((row) => row.id), ...subtrees.flat()])];
+};
+
+/**
+ * Whether the user may add, see, check or delete keys held by `scope`, the
+ * rule `keys.list` shows keys by.
+ */
+export const managesKeys = (
+  db: Db,
+  userId: UserId,
+  scope: KeyScopeRef
+): Promise<boolean> => {
+  switch (scope.type) {
+    case "user":
+      return Promise.resolve(scope.id === userId);
+    case "team":
+      return administersTeam(db, scope.id as TeamId, userId);
+    case "org":
+      return isOrgAdmin(db, scope.id as OrgId, userId);
+    default:
+      return scope.type satisfies never;
+  }
 };

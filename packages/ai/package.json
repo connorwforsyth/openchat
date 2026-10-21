@@ -43,6 +43,7 @@
     "./telemetry/*": "./src/telemetry/*.ts",
     "./testing/mock-image-model": "./src/testing/mock-image-model.ts",
     "./testing/mock-models": "./src/testing/mock-models.ts",
+    "./testing/spans": "./src/testing/spans.ts",
     "./title/generate-title": "./src/title/generate-title.ts",
     "./tools/artifact-content": "./src/tools/artifact-content.ts",
     "./tools/artifacts": "./src/tools/artifacts.ts",

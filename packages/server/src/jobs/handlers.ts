@@ -1,3 +1,4 @@
+import { chatTrace } from "@workspace/ai/telemetry/trace-context";
 import {
   fallbackTitle,
   generateTitle,
@@ -87,21 +88,20 @@ export const coreJobHandlers = ({
       // Someone named it by hand first; theirs wins.
       return ok({ skipped: "titled" });
     }
-    const model = await titleModel({
-      context: toChatContext({
-        id: conversation.contextId,
-        type: conversation.contextType,
-      } as Parameters<typeof toChatContext>[0]),
-      conversationId,
-      signal,
-      userId,
-    });
+    const context = toChatContext({
+      id: conversation.contextId,
+      type: conversation.contextType,
+    } as Parameters<typeof toChatContext>[0]);
+    const model = await titleModel({ context, conversationId, signal, userId });
     const messages = branch.messages.flatMap((row) => {
       const message = toMessage(row);
       return message.ok ? [message.value] : [];
     });
     const generated = model
-      ? await generateTitle(messages, model, { signal })
+      ? await generateTitle(messages, model, {
+          signal,
+          trace: chatTrace({ context, conversationId, userId }),
+        })
       : null;
     if (
       generated &&

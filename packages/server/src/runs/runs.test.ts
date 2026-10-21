@@ -3,6 +3,7 @@ import {
   textStream,
   toolCallStream,
 } from "@workspace/ai/testing/mock-models";
+import { captureSpans } from "@workspace/ai/testing/spans";
 import type { Conversation } from "@workspace/contract/schemas/conversations";
 import type { BranchPath } from "@workspace/contract/schemas/messages";
 import type { CreateRunOutput, Run } from "@workspace/contract/schemas/runs";
@@ -358,6 +359,29 @@ describe("POST /api/runs", () => {
       await h.request(`/api/conversations/${chat.id}`)
     );
     expect(titled.title).toBe("Greeting the world");
+  });
+
+  it("tags the run's and the title's spans with who they were for", async () => {
+    const capture = captureSpans();
+    h.nextTurn({
+      model: new MockLanguageModelV4({ doStream: textStream("Hello, world!") }),
+    });
+    const chat = await newConversation();
+    await send(chat.id, "hello world");
+    await h.services.executor.idle();
+    await h.jobs.drain();
+    const spans = await capture.stop();
+
+    // One operation for the turn and one for the title.
+    expect(
+      spans.filter((span) => span.name.startsWith("invoke_agent"))
+    ).toHaveLength(2);
+    for (const span of spans) {
+      expect(span.attributes).toMatchObject({
+        "langfuse.user.id": h.ownerId,
+        "session.id": chat.id,
+      });
+    }
   });
 
   it("refuses a caller without access, and a signed-out one", async () => {
