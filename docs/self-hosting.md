@@ -545,6 +545,33 @@ a server's tools are offered. `transport: stdio` entries (`command`,
 Servers you configure may reach your private network; servers users add may
 not. Changes apply on restart. `app.config.example.yaml` has more examples.
 
+### Logo and icons
+
+The logo, the tab icon and the home-screen icons come from `brand:` in
+`app.config.yaml`. Files are SVG, PNG or JPEG, relative to the config file,
+and the app serves them itself, so a new logo needs a restart, not a rebuild.
+
+```yaml
+brand:
+  name: Acme Chat
+  logo: ./brand/logo.svg         # beside the name in the sidebar and on sign-in
+  logoDark: ./brand/logo-dark.svg  # optional: the logo on dark themes
+  favicon: ./brand/icon.svg      # optional: the square mark, else the logo
+  iconBackground: black          # optional: behind the mark on home-screen icons
+```
+
+- One SVG is enough. Draw it in `currentColor` and the logo takes the
+  theme's text colour in the app, and the tab icon turns white on dark tab
+  strips. Parts in their own colours keep them.
+- Set `logoDark` only for a logo whose colours don't read on dark.
+- Home-screen and installed-app icons can't be transparent: they draw the
+  mark on `iconBackground`, its `currentColor` parts in white. With a light
+  background, give the mark its own colours.
+- With no logo, the app shows the name alone and a neutral placeholder icon
+  (`brand/logo.svg` in the repo is the same mark).
+- The desktop app's icon is made from the same files at package time
+  (docs/desktop.md).
+
 ### Renaming features for your fork
 
 The words the UI uses for a feature, and its address, come from `terms:`

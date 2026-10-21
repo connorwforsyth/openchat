@@ -187,3 +187,8 @@ Lane `pstack/usage` (Settings → Usage, span tags). Defaults applied overnight;
 ## run-queue-2 lane (pstack/fix-branch-queue)
 
 1. **Where does a reply under a stopped queued question go?** You stop a question that was waiting behind an answer still being written, then reply under it. The reply now waits for that answer, and it stays under the stopped question, so the next answer sees both questions. *Defaulted: keep it under the stopped question.* The alternative is to move the reply under the answer being written, which drops the stopped question from the branch. That is one line in `placeRun`.
+
+## brand-assets lane (pstack/brand-assets)
+
+1. **Where should the logo show once you're signed in?** The logo replaces nothing that's visible today: the sidebar's top row shows the space switcher (`Personal`) for every signed-in user, and the name was only its fallback while spaces load. *Defaulted: the logo goes where the name goes (sign-in, sign-up, invitations, and that fallback), plus the tab and home-screen icons.* Alternatives: the logo at the top of the rail, ChatGPT-style, turning into the sidebar toggle on hover (this moves the rail's toggle, which 181 keeps fixed); or the mark above "What can I help with?" on a new chat (this shifts the composer-first layout, D27).
+2. **Tile colours for home-screen icons.** A `currentColor` mark is drawn white on `brand.iconBackground`, which defaults to black. *Defaulted: keep.* A fork with a light tile gives its mark its own colours; an `iconColor` field would cover the rest.
