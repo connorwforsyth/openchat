@@ -380,8 +380,10 @@ export const ChatRow = memo(function ChatRowInner({
   return (
     <li
       // Off-screen rows skip layout and paint (177); the intrinsic size
-      // keeps the scrollbar honest until they're measured.
-      className="group/row relative [contain-intrinsic-block-size:auto_2rem] [content-visibility:auto] pointer-coarse:[contain-intrinsic-block-size:auto_2.5rem]"
+      // keeps the scrollbar honest until they're measured. That clips the
+      // row to its box, so on a phone the row pads itself to the 40px the
+      // button's hit area reaches.
+      className="group/row relative pointer-coarse:py-0.5 [contain-intrinsic-block-size:auto_2rem] [content-visibility:auto] pointer-coarse:[contain-intrinsic-block-size:auto_2.5rem]"
       data-menu-open={menuOpen ? "" : undefined}
       data-selected={selected ? "" : undefined}
     >
@@ -389,8 +391,8 @@ export const ChatRow = memo(function ChatRowInner({
         aria-current={active ? "page" : undefined}
         aria-pressed={selecting ? selected : undefined}
         className={cn(
-          "relative flex h-8 pointer-coarse:h-10 w-full min-w-0 select-none items-center gap-2 rounded-lg px-2 text-start text-sm outline-none transition-colors duration-(--motion-fast) [-webkit-touch-callout:none] hover:bg-sidebar-foreground/5 focus-visible:ring-2 focus-visible:ring-sidebar-ring",
-          // 40px drawn, 44px to the finger (Apple's minimum hit target).
+          "relative flex h-8 pointer-coarse:h-9 w-full min-w-0 select-none items-center gap-2 rounded-lg px-2 text-start text-sm outline-none transition-colors duration-(--motion-fast) [-webkit-touch-callout:none] hover:bg-sidebar-foreground/5 focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+          // 36px drawn, as dense as ChatGPT's phone list; 40px to the finger.
           "pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-0.5",
           active && "bg-sidebar-foreground/8 hover:bg-sidebar-foreground/8",
           selected && "bg-sidebar-primary/10 hover:bg-sidebar-primary/15"

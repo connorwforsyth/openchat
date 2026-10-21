@@ -1,4 +1,4 @@
-import { type Browser, expect, test } from "@playwright/test";
+import { type Browser, expect, type Page, test } from "@playwright/test";
 import type {
   ConversationId,
   LibraryItemId,
@@ -35,6 +35,10 @@ const signedIn = async (browser: Browser, baseURL: string, who: UserName) => {
   return { api: await apiFor(context, baseURL), context, page };
 };
 
+/** The rail's Library panel, where the tabs live on a wide screen (181). */
+const libraryPanel = (page: Page) =>
+  page.getByRole("navigation", { name: "Library" });
+
 const HOME_URL_WITH_AGENT = /\/\?agent=[0-9a-f-]{36}$/;
 
 const agentDefinition = {
@@ -69,7 +73,7 @@ test("an agent published to Eng is usable, not readable, in Platform", async ({
   const ben = await signedIn(browser, baseURL ?? "", "ben");
   // Under the team libraries, in the UI.
   await ben.page.goto("/library");
-  await ben.page.getByRole("tab", { name: "Team & org" }).click();
+  await libraryPanel(ben.page).getByRole("link", { name: "Spaces" }).click();
   await expect(
     ben.page.getByRole("link", { exact: true, name: "Release helper" })
   ).toBeVisible();
@@ -160,7 +164,9 @@ test("a personal agent shared with Ben: use it, and edit only once granted", asy
   });
 
   await ben.page.goto("/library");
-  await ben.page.getByRole("tab", { name: "Shared with me" }).click();
+  await libraryPanel(ben.page)
+    .getByRole("link", { name: "Shared with me" })
+    .click();
   await expect(
     ben.page.getByRole("link", { exact: true, name: "Ada's drafter" })
   ).toBeVisible();
