@@ -147,7 +147,7 @@ export function LibraryPanel() {
               href: routes.libraryTab("libraries"),
               icon: <UsersIcon aria-hidden className={iconClass} />,
               id: "libraries",
-              label: t`Team & org`,
+              label: t`Spaces`,
             },
             {
               active: inSpace,
