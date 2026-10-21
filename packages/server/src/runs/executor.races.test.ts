@@ -469,6 +469,41 @@ describe("Stop on a queued turn", () => {
   });
 });
 
+describe("Stop on a queued turn with another queued behind it", () => {
+  it("keeps the turn behind waiting for the answer still being written", async () => {
+    const chat = await setup();
+    const first = await chat.queue();
+    const answer = chat.open();
+    await chat.start(first);
+    await answer.answering;
+    const stopped = await chat.queue(first);
+    const last = await chat.queue(stopped);
+    chat.turns.push(
+      turnWith(new MockLanguageModelV4({ doStream: textStream("Hi.") }))
+    );
+
+    // The last turn's start reads its own row, then Stop cancels the turn
+    // ahead of it before it reads that one's status (finding 6).
+    const readingSelf = holds.next("getRun");
+    const readingAhead = holds.next("getRun");
+    const starting = chat.start(last);
+    await readingSelf.reached;
+    readingSelf.release();
+    await readingAhead.reached;
+    expect(await chat.executor.cancel(stopped.id, chat.ownerId)).toEqual(
+      ok(undefined)
+    );
+    readingAhead.release();
+    await starting;
+
+    expect(await chat.statusOf(first)).toBe("running");
+    expect(await chat.statusOf(last)).toBe("queued");
+    answer.finish();
+    await chat.executor.idle();
+    expect(await chat.statusOf(last)).toBe("succeeded");
+  });
+});
+
 describe("Stop as the pass pauses for approval", () => {
   it("stops the pass a decision resumes right after", async () => {
     const chat = await setup();
