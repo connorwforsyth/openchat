@@ -394,9 +394,8 @@ export const createInProcessExecutor = (
     return moved.ok ? moved.value : null;
   };
 
-  /** Starts whatever waited on a run that just ended. */
-  const promoteAfter = async (runId: RunId): Promise<void> => {
-    const queued = await listQueuedAfter(db, runId);
+  /** Starts each queued run whose run ahead has ended; the rest keep waiting. */
+  const startEach = async (queued: readonly RunRow[]): Promise<void> => {
     for (const next of queued) {
       // biome-ignore lint/performance/noAwaitInLoops: one run per branch; normally there's only one.
       const started = await startRun(runStartFromRow(next));
@@ -405,6 +404,10 @@ export const createInProcessExecutor = (
       }
     }
   };
+
+  /** Starts whatever waited on a run that just ended. */
+  const promoteAfter = async (runId: RunId): Promise<void> =>
+    startEach(await listQueuedAfter(db, runId));
 
   const settledHook = async (event: RunSettled) => {
     try {
@@ -972,14 +975,15 @@ export const createInProcessExecutor = (
     if (!cancelled) {
       return false;
     }
-    if (row.status === "queued" && row.afterRunId) {
-      // Keep the line: whoever waited on this run now waits on the one ahead.
-      const ahead = await getRun(db, row.afterRunId);
-      if (ahead.ok && !isTerminal(ahead.value.status)) {
-        await requeueAfter(db, row.id, ahead.value.id);
-      }
-    }
+    // Keep the line: whoever waited on this run now waits on the one ahead.
+    // That one may have ended, and looked for its queue, before they moved,
+    // so each starts once this run is finished, if it has.
+    const moved =
+      row.status === "queued" && cancelled.afterRunId
+        ? await requeueAfter(db, cancelled.id, cancelled.afterRunId)
+        : [];
     await finishTerminal(cancelled, null, null);
+    await startEach(moved);
     return true;
   };
 
