@@ -53,6 +53,7 @@ import {
   type ScheduleRunRow,
   type ScheduleRunView,
   scheduleRunFor,
+  takeClaim,
   updateSchedule as updateScheduleRow,
   updateScheduleRun,
 } from "@workspace/db/queries/dots";
@@ -492,9 +493,10 @@ const dateLabel = (at: Date, timeZone: string): string => {
 
 /**
  * Records the started run on its claim, or gives back the claim of a run
- * that didn't start. The tick gives back a claim no run took within
- * `CLAIM_STALE_MS`; a run that starts after that has no place under the
- * cap, so it's cancelled.
+ * that didn't start. A start takes its claim first (`takeClaim`), and the
+ * tick gives back only a claim no start took within `CLAIM_STALE_MS`. A
+ * start slower than that has lost its place under the cap, so its run is
+ * cancelled.
  */
 export const settleClaim = async (
   deps: Pick<ScheduleDeps, "db" | "runs">,
@@ -529,6 +531,9 @@ const postScheduleRun = async (
   claim: ScheduleRunRow
 ): Promise<Result<CreateRunOutput, ScheduleError>> => {
   const { db } = deps;
+  if (!(await takeClaim(db, claim.id, deps.now()))) {
+    return err({ retryAfterSeconds: 3600, type: "cap" });
+  }
   const actor = await ownerActor(db, schedule.ownerId);
   const dot = schedule.dotId ? await getDotById(db, schedule.dotId) : null;
   let conversationId = dot?.conversationId ?? schedule.conversationId;

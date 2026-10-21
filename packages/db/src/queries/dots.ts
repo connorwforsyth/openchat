@@ -629,8 +629,27 @@ export const releaseClaim = async (db: Db, id: DotRunId): Promise<void> => {
 };
 
 /**
+ * Marks a claim as starting its run, so the sweep leaves it for another
+ * `before` window. `false` when the sweep gave it back first: start nothing.
+ * The update and the sweep's delete lock the same row, so one of them wins.
+ */
+export const takeClaim = async (
+  db: Db,
+  id: DotRunId,
+  now: Date
+): Promise<boolean> => {
+  const taken = await db
+    .update(dotRun)
+    .set({ startingAt: now })
+    .where(and(eq(dotRun.id, id), isNull(dotRun.runId)))
+    .returning({ id: dotRun.id });
+  return taken.length > 0;
+};
+
+/**
  * Gives back claims no run started (a crash, a lost job) and marks their
- * schedules failed, so a lost slot frees the cap and still shows.
+ * schedules failed, so a lost slot frees the cap and still shows. A claim's
+ * age counts from its last start (`takeClaim`), else from the claim.
  */
 export const releaseStaleClaims = async (
   db: Db,
@@ -642,7 +661,7 @@ export const releaseStaleClaims = async (
       and(
         isNull(dotRun.runId),
         isNull(dotRun.skipReason),
-        lt(dotRun.createdAt, before)
+        lt(sql`coalesce(${dotRun.startingAt}, ${dotRun.createdAt})`, before)
       )
     )
     .returning({ scheduleId: dotRun.scheduleId });
