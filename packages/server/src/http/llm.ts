@@ -148,10 +148,11 @@ export const handleLlmRoute = async (
   }
   const spent = await deps.budget(actor, stored.value);
   if (!spent.ok) {
-    return llmProxyErrorResponse({
-      code: "BUDGET_EXCEEDED",
-      data: spent.error,
-    });
+    return llmProxyErrorResponse(
+      spent.error.type === "budget_exceeded"
+        ? { code: "BUDGET_EXCEEDED", data: spent.error.data }
+        : { code: "ALLOWANCE_SPENT", data: spent.error.data }
+    );
   }
   const keys =
     (await chatKeysFor(

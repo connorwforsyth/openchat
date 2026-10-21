@@ -31,7 +31,7 @@ import type { Actor } from "../context";
 import { canUseLibraryItem } from "../library/router";
 import {
   type BudgetCheck,
-  type BudgetExceededData,
+  type SpendRefusal,
   storeContext,
 } from "./chat-context";
 import { canEditAgent, draftFor } from "./drafts";
@@ -54,7 +54,7 @@ export type CreateRunError =
       readonly path: string[];
       readonly type: "invalid";
     }
-  | { readonly data: BudgetExceededData; readonly type: "budget_exceeded" }
+  | SpendRefusal
   | { readonly type: "no_model" };
 
 export interface CreateRunDeps {
@@ -448,7 +448,7 @@ const startRun = async (
   }
   const budget = await deps.budget(actor, context.value);
   if (!budget.ok) {
-    return err({ data: budget.error, type: "budget_exceeded" });
+    return err(budget.error);
   }
 
   const skills = await checkTurn(db, actor, conversation.id, input);

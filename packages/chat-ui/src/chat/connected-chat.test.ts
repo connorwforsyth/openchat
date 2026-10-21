@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   outgoingMessage,
   restoredUnchecked,
+  runFailure,
   turnOptions,
 } from "./connected-chat";
 
@@ -135,5 +136,27 @@ describe("restoredUnchecked (136)", () => {
     expect(restoredUnchecked({ ...query, errorUpdatedAt: 1200 }, shownAt)).toBe(
       false
     );
+  });
+});
+
+// What the oRPC client throws: an Error carrying the contract's code.
+const orpcError = (code: string) =>
+  Object.assign(new Error(code), { code, status: 402 });
+
+describe("runFailure", () => {
+  it("names a spent allowance or budget", () => {
+    expect(runFailure(orpcError("ALLOWANCE_SPENT"))).toEqual({
+      type: "allowance_spent",
+    });
+    expect(runFailure(orpcError("BUDGET_EXCEEDED"))).toEqual({
+      type: "budget_exceeded",
+    });
+  });
+
+  it("treats anything else as a failed answer", () => {
+    expect(runFailure(orpcError("INTERNAL_SERVER_ERROR"))).toEqual({
+      type: "failed",
+    });
+    expect(runFailure(new Error("network"))).toEqual({ type: "failed" });
   });
 });

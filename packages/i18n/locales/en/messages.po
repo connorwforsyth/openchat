@@ -5779,6 +5779,10 @@ msgstr "The audit policy is off: this server forbids it."
 msgid "The budget couldn't be saved. Try again."
 msgstr "The budget couldn't be saved. Try again."
 
+#: ../chat-ui/src/chat/connected-chat.tsx
+msgid "The budget for this period is spent. Try again once it resets."
+msgstr "The budget for this period is spent. Try again once it resets."
+
 #: ../../apps/web/app/(app)/(pages)/schedules/schedule-list.tsx
 msgid "The chat was busy"
 msgstr "The chat was busy"
@@ -6830,6 +6834,10 @@ msgstr "You edited it"
 #: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
 msgid "You have control"
 msgstr "You have control"
+
+#: ../chat-ui/src/chat/connected-chat.tsx
+msgid "You have no tokens left this month in the space that limits this chat. Ask an owner there for an allowance in its Token allowance settings."
+msgstr "You have no tokens left this month in the space that limits this chat. Ask an owner there for an allowance in its Token allowance settings."
 
 #: ../library-ui/src/components/publish-dialog.tsx
 msgid "You have unsaved changes. Save the draft first to publish them."
