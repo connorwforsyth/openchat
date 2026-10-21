@@ -15,7 +15,14 @@ import { Sources } from "./sources";
 // Source chips with favicons and preview cards (101), over a fake loader:
 // the HTTP loader is tested on its own with a fake fetch.
 
-afterEach(cleanup);
+// Tests share one pointer. Left where the last test hovered, it sits over the
+// next chip as that mounts: the card then opens on its own or, if it wasn't
+// listening yet, a later hover is only a move, which the card ignores.
+// Parking it off the chips makes every hover a real enter.
+afterEach(async () => {
+  await userEvent.unhover(document.body);
+  cleanup();
+});
 
 // A 1×1 PNG, so <img> really loads in the browser.
 const PIXEL =
@@ -51,15 +58,6 @@ const CHIP_NAME = /Example News|news/;
 const FAR = /far\.example\.test/;
 
 const chip = () => screen.getByRole("link", { name: CHIP_NAME });
-
-// Tests share one pointer. A chip that mounts under where the last test left
-// it gets its mouseenter before the hover card listens, and hovering it again
-// is only a move, which the card ignores. Moving off first makes the hover a
-// real enter.
-const hoverChip = async () => {
-  await userEvent.unhover(chip());
-  await userEvent.hover(chip());
-};
 
 describe("UrlSourceChip", () => {
   it("shows a letter while loading, then the favicon and site name", async () => {
@@ -103,7 +101,7 @@ describe("UrlSourceChip", () => {
     );
     expect(container.querySelector("[data-slot=favicon]")).toBeNull();
     expect(chip().textContent).toContain("news.example.test");
-    await hoverChip();
+    await userEvent.hover(chip());
     await new Promise((done) => setTimeout(done, 500));
     expect(document.querySelector("[data-slot=link-preview-card]")).toBeNull();
   });
@@ -111,7 +109,7 @@ describe("UrlSourceChip", () => {
   it("opens the card on hover, with image, site, title, description, host and Open", async () => {
     renderChip(ready());
     await screen.findByText("Example News");
-    await hoverChip();
+    await userEvent.hover(chip());
     const card = await waitFor(() => {
       const found = document.querySelector("[data-slot=link-preview-card]");
       expect(found).not.toBeNull();
@@ -144,7 +142,7 @@ describe("UrlSourceChip", () => {
   it("shows a blurred fallback when the page has no image", async () => {
     renderChip(ready(preview({ image: undefined })));
     await screen.findByText("Example News");
-    await hoverChip();
+    await userEvent.hover(chip());
     await waitFor(() =>
       expect(document.querySelector("[data-fallback]")).not.toBeNull()
     );
