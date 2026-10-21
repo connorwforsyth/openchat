@@ -61,7 +61,7 @@ behaviour, then exactly four H2s in this order: `Sub-features`,
   Journey `settings`.
 - [Command palette](./palette.md): `Search chats` finds a chat by its text,
   opens it, runs `Open settings`; one ⌘K keeps it open. Journey `palette`.
-- [Brand assets](./brand.md): the logo follows the app theme on sign-in;
+- [Brand assets](./brand.md): one-colour and multi-colour logos on sign-in;
   tab icon, Apple icon and manifest icons. Journey `brand`.
 - [Memory](./memory.md): "remember …" saves to memory, shows in Settings ›
   Memory, Undo reverts. Journey `memory`.

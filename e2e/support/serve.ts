@@ -63,7 +63,13 @@ interface Mocks {
 }
 
 const config = ({ files, llm: baseURL, mcp, search }: Mocks) => `version: 1
-brand: { name: ${BRAND_NAME}, logo: "${join(root, "brand/logo.svg")}" }
+# The placeholder (one colour), a multi-colour dark logo, and an icon
+# next/og can't draw (no viewBox), so tiles fall back to the placeholder.
+brand:
+  name: ${BRAND_NAME}
+  logo: "${join(root, "brand/logo.svg")}"
+  logoDark: "${join(root, "e2e/support/brand/badge.svg")}"
+  favicon: "${join(root, "e2e/support/brand/no-viewbox.svg")}"
 auth: { signup: invite }
 providers:
   # Keyless, like a local Ollama: every context can use it. Its catalog
