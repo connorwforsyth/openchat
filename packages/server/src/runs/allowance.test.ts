@@ -42,7 +42,10 @@ let team: SpaceRef;
 let memberId: UserId;
 
 beforeEach(async () => {
-  h = await createHarness({ models: { "test:model": reply() }, realTurns: true });
+  h = await createHarness({
+    models: { "test:model": reply() },
+    realTurns: true,
+  });
   orgId = (await seedOrg(h.db, h.ownerId)).id;
   team = { id: (await seedTeam(h.db, orgId)).id, type: "team" };
   memberId = (await seedUser(h.db)).id;
@@ -90,7 +93,11 @@ const pool = (space: SpaceRef, monthlyTokens: number | null) =>
     userId: h.ownerId,
   });
 
-const grant = async (space: SpaceRef, userId: UserId, monthlyTokens: number) => {
+const grant = async (
+  space: SpaceRef,
+  userId: UserId,
+  monthlyTokens: number
+) => {
   const row = await requestAllowanceGrant(
     h.db,
     { monthlyTokens, note: "", orgId, space, userId },
@@ -120,13 +127,15 @@ const use = (userId: UserId, context: SpaceRef, tokens: number) =>
     userId,
   });
 
-const expectSpent = async (response: Response, space: SpaceRef) => {
-  expect(response.status).toBe(402);
-  expect(await response.json()).toMatchObject({
-    code: "ALLOWANCE_SPENT",
-    data: { space },
-  });
-};
+const outcome = async (response: Response) => ({
+  body: await response.json(),
+  status: response.status,
+});
+
+const spentIn = (space: SpaceRef) => ({
+  body: { code: "ALLOWANCE_SPENT", data: { space } },
+  status: 402,
+});
 
 describe("token allowance before a run", () => {
   it("doesn't limit a space with no pool", async () => {
@@ -135,7 +144,9 @@ describe("token allowance before a run", () => {
 
   it("refuses a member with no approved grant once the space has a pool", async () => {
     await pool(team, 1000);
-    await expectSpent(await send(memberId, team), team);
+    expect(await outcome(await send(memberId, team))).toMatchObject(
+      spentIn(team)
+    );
   });
 
   it("lets a granted member run until their grant is used", async () => {
@@ -143,7 +154,9 @@ describe("token allowance before a run", () => {
     await grant(team, memberId, 100);
     expect((await send(memberId, team)).status).toBe(202);
     await use(memberId, team, 100);
-    await expectSpent(await send(memberId, team), team);
+    expect(await outcome(await send(memberId, team))).toMatchObject(
+      spentIn(team)
+    );
   });
 
   it("stops everyone, owners too, once the pool itself is used", async () => {
@@ -152,14 +165,20 @@ describe("token allowance before a run", () => {
     await grant(org, memberId, 1000);
     expect((await send(h.ownerId, org)).status).toBe(202);
     await use(memberId, team, 100);
-    await expectSpent(await send(memberId, team), org);
-    await expectSpent(await send(h.ownerId, org), org);
+    expect(await outcome(await send(memberId, team))).toMatchObject(
+      spentIn(org)
+    );
+    expect(await outcome(await send(h.ownerId, org))).toMatchObject(
+      spentIn(org)
+    );
   });
 
   it("applies a root space's pool to chats in the spaces below it", async () => {
     const org: SpaceRef = { id: orgId, type: "org" };
     await pool(org, 1000);
-    await expectSpent(await send(memberId, team), org);
+    expect(await outcome(await send(memberId, team))).toMatchObject(
+      spentIn(org)
+    );
     await grant(org, memberId, 100);
     expect((await send(memberId, team)).status).toBe(202);
   });

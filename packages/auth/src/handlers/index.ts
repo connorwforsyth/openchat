@@ -5,8 +5,6 @@ import { orgs } from "./orgs";
 import { spaces } from "./spaces";
 import { teams } from "./teams";
 
-export { spentAllowance } from "./spaces";
-
 // The orgs, teams, sharing and `me` procedure groups, implemented against
 // the frozen contract. The shell (014/025) spreads `authRouter` into the
 // full router and builds a `HandlerContext` (`@workspace/auth/handlers/context`)

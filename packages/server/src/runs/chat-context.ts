@@ -1,6 +1,5 @@
+import { spentAllowance } from "@workspace/auth/handlers/spaces";
 import { type ModelPrices, usageCost } from "@workspace/config/prices";
-import { spentAllowance } from "@workspace/auth/handlers";
-import { monthOf } from "@workspace/db/queries/spaces";
 import type {
   allowanceSpentDataSchema,
   budgetExceededDataSchema,
@@ -13,6 +12,7 @@ import type {
 } from "@workspace/contract/schemas/tenancy";
 import type { Db } from "@workspace/db/client";
 import type { StoredContext } from "@workspace/db/queries/conversations";
+import { monthOf } from "@workspace/db/queries/spaces";
 import { personalOrgOf, teamLineage } from "@workspace/db/queries/teams";
 import {
   budgetStatuses,

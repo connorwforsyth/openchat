@@ -253,20 +253,20 @@ const allowanceView = async (
 };
 
 /**
- * The first of `spaces` whose token allowance `userId` has used up this
+ * The first of `refs` whose token allowance `userId` has used up this
  * month (192), checked before a run like a money budget (D24). A space with
  * no pool limits nobody.
  */
 export const spentAllowance = async (
   db: Db,
   userId: UserId,
-  spaces: readonly SpaceRef[],
+  refs: readonly SpaceRef[],
   now: Date
 ): Promise<SpaceRef | undefined> => {
   const pools = await Promise.all(
-    spaces.map((space) => getSpaceAllowance(db, space))
+    refs.map((space) => getSpaceAllowance(db, space))
   );
-  const pooled = spaces.filter((_, index) => pools[index]);
+  const pooled = refs.filter((_, index) => pools[index]);
   if (pooled.length === 0) {
     return;
   }
