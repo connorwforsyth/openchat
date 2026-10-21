@@ -140,6 +140,7 @@ Ticket [187](tickets/187-spaces.md). Resolved AFK from D17 so the demo could be 
 6. **Per-key usage** ([193](tickets/193-per-key-usage.md)): attributed when usage is recorded, to the newest key of the paying scope and provider. Earlier usage shows as "Unattributed". *Default: keep.*
 7. **Sub-space members must already be in the root space** (as teams are today). Inviting someone straight into a sub-space would invite them to the root too. *Default: keep.*
 8. **Contract** ([187a](tickets/187a-contract-spaces.md)): the additive `spaces` group awaits your approval (draft PR).
+9. **Space MCP policy** ([319](tickets/319-space-mcp-policy.md), not built yet): can a sub-space owner loosen a require or ban set above them? *Proposed default: no, rules only tighten down the tree.* Does a ban also hide a member's own library server in that space's chats? *Proposed default: yes; their personal chats are untouched.*
 
 ## Demo polish (2026-10-21), defaults applied
 
