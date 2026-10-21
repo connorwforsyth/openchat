@@ -37,6 +37,7 @@ import {
   updateMessage,
 } from "@workspace/db/queries/messages";
 import {
+  appendRunChunks,
   approvalIdsOf,
   getRun,
   listActiveRuns,
@@ -924,45 +925,51 @@ export const createInProcessExecutor = (
     return ok(undefined);
   };
 
+  /** A cancelled run's calls left without a result resolve as not run, on its stream and in its answer. */
+  const stopLeftovers = async (tx: Db, run: RunRow, by: UserId | null) => {
+    if (!run.assistantMessageId) {
+      return;
+    }
+    const answer = await getMessage(tx, run.assistantMessageId);
+    const parts = answer.ok ? answer.value.parts : [];
+    const stopped = interruptLeftovers(parts, {
+      by: by === null ? "system" : "user",
+      streamed: callIdsIn(parts),
+    });
+    await appendRunChunks(tx, run.id, stopped.chunks.map(toJson));
+    await updateMessage(tx, run.assistantMessageId, {
+      parts: stopped.parts,
+      status: "partial",
+    });
+  };
+
   /**
-   * Cancels a run no pass is executing (queued, or waiting on approvals).
-   * A waiting run's pending calls resolve as not run: announced first,
-   * because a terminal run's stream takes nothing more, then stored in the
-   * same transaction as the cancel. A claim or a decision racing it either
-   * lands first (the run is `running`, which a cancel can't move, and
-   * `cancel` stops that pass) or finds it cancelled.
+   * Cancels a run no pass is executing: queued, waiting on approvals, or
+   * left `running` by a pass that crashed and couldn't fail it. The row stays
+   * locked from the read to the commit, so a claim or a decision racing it
+   * either lands first (the run is `running` with its pass's controller in
+   * `active`, and `cancel` stops that pass) or finds it cancelled. A waiting
+   * run's pending calls resolve as not run; their chunks are written in the
+   * same transaction, because a terminal run's stream takes nothing more and
+   * a cancel that loses must not have announced anything.
    */
   const cancelIdle = async (row: RunRow, by: UserId | null) => {
-    const interrupt = (parts: readonly MessagePart[]) =>
-      interruptLeftovers(parts, {
-        by: by === null ? "system" : "user",
-        streamed: callIdsIn(parts),
-      });
-    if (row.assistantMessageId) {
-      const answer = await getMessage(db, row.assistantMessageId);
-      await announce(
-        row.id,
-        interrupt(answer.ok ? answer.value.parts : []).chunks
-      );
-    }
     const cancelled = await db.transaction(async (tx) => {
+      const locked = await lockRun(tx, row.id);
+      if (!locked.ok) {
+        return null;
+      }
+      const orphaned = locked.value.status === "running" && !active.has(row.id);
       const moved = await transitionRun(
         tx,
         row.id,
-        { cancelledBy: by, type: "cancel" },
+        { cancelledBy: by, type: orphaned ? "abort" : "cancel" },
         now()
       );
       if (!moved.ok) {
         return null;
       }
-      const answerId = moved.value.assistantMessageId;
-      if (answerId) {
-        const answer = await getMessage(tx, answerId);
-        await updateMessage(tx, answerId, {
-          parts: interrupt(answer.ok ? answer.value.parts : []).parts,
-          status: "partial",
-        });
-      }
+      await stopLeftovers(tx, moved.value, by);
       return moved.value;
     });
     if (!cancelled) {
@@ -978,40 +985,6 @@ export const createInProcessExecutor = (
     await finishTerminal(cancelled, null, null);
     await startEach(moved);
     return true;
-  };
-
-  /**
-   * Aborts the pass executing a run here, if any, and waits for it. The
-   * pass stores what it has, settles as cancelled and closes the stream
-   * after its last chunk.
-   */
-  const abortPass = async (runId: RunId, by: UserId | null) => {
-    const controller = active.get(runId);
-    if (!controller) {
-      return false;
-    }
-    cancelledBy.set(runId, by);
-    controller.abort();
-    await running.get(runId);
-    return true;
-  };
-
-  /**
-   * Stop's look once the pass it aborted has settled. A pass that had
-   * already asked for approval when the abort came still settles waiting on
-   * it (133), and a decision can resume it before this look. Stop cancels
-   * that wait, or aborts the resumed pass.
-   */
-  const stopAfterPass = async (runId: RunId, by: UserId | null) => {
-    const after = await getRun(db, runId);
-    if (!after.ok || isTerminal(after.value.status)) {
-      return;
-    }
-    const waiting =
-      after.value.status === "awaiting_approval" && !active.has(runId);
-    if (!(waiting && (await cancelIdle(after.value, by)))) {
-      await abortPass(runId, by);
-    }
   };
 
   /**
@@ -1113,27 +1086,42 @@ export const createInProcessExecutor = (
       if (!found.ok) {
         return err({ runId, type: "not_found" });
       }
-      const row = found.value;
+      let row = found.value;
       if (isTerminal(row.status)) {
         return err({ runId, status: row.status, type: "invalid_state" });
       }
-      if (await abortPass(runId, by)) {
-        await stopAfterPass(runId, by);
-        return ok(undefined);
+      const abortPass = async () => {
+        const controller = active.get(runId);
+        if (!controller) {
+          return false;
+        }
+        // The executing pass stores what it has, settles as cancelled and
+        // closes the stream after its last chunk.
+        cancelledBy.set(runId, by);
+        controller.abort();
+        await running.get(runId);
+        return true;
+      };
+      // Each look aborts the pass executing the run here, or cancels the run
+      // when no pass holds it. A look can lose: to a claim or a decision that
+      // starts a pass, to a pass that pauses for approval as it's aborted
+      // (133), or to one that crashes. So Stop looks again until the run has
+      // ended, or until the pass that holds it is one Stop aborted before it
+      // started: that pass never calls its agent and settles as cancelled.
+      for (;;) {
+        // biome-ignore lint/performance/noAwaitInLoops: each look reads what the last one left.
+        if (!(await abortPass()) && (await cancelIdle(row, by))) {
+          return ok(undefined);
+        }
+        if (active.get(runId)?.signal.aborted) {
+          return ok(undefined);
+        }
+        const current = await getRun(db, runId);
+        if (!current.ok || isTerminal(current.value.status)) {
+          return ok(undefined);
+        }
+        row = current.value;
       }
-      if (await cancelIdle(row, by)) {
-        return ok(undefined);
-      }
-      // A claim or a decision took it between the two looks: stop that pass.
-      if (await abortPass(runId, by)) {
-        return ok(undefined);
-      }
-      const current = await getRun(db, runId);
-      return err({
-        runId,
-        status: current.ok ? current.value.status : row.status,
-        type: "invalid_state",
-      });
     },
 
     getState: async (runId) => {

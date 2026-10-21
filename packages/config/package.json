@@ -6,6 +6,7 @@
   "type": "module",
   "exports": {
     "./load": "./src/load.ts",
+    "./microsoft": "./src/microsoft.ts",
     "./parse": "./src/parse.ts",
     "./policy": "./src/policy.ts",
     "./prices": "./src/prices.ts",

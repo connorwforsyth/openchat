@@ -108,12 +108,6 @@ export const shouldAutoPause = (recent: readonly RunStatus[]): boolean =>
 export const DEFAULT_DOT_PROMPT =
   "Check in: do your standing task now and report what you found.";
 
-/**
- * A Dot's run carries an idempotency key that says so. The turn reads it to
- * apply the unattended policy (the key is on the run row before the run
- * starts, unlike anything written after `createRun` returns), and a retried
- * job reuses its occurrence's key, so one firing never posts twice.
- */
 export const DOT_RUN_KEY_PREFIX = "dot:";
 
 export const dotRunKey = (
@@ -131,27 +125,6 @@ export const dotRunKey = (
 
 export const isDotRunKey = (key: string | null | undefined): boolean =>
   key?.startsWith(DOT_RUN_KEY_PREFIX) ?? false;
-
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-/**
- * The schedule a run's key names: `dot:s:<schedule>:<slot>` for a slot,
- * `dot:m:<schedule>:<nonce>` for "Run now". A Dot's check-in
- * (`dot:m:<nonce>`) has none. Read at turn time, before the run's history
- * row exists.
- */
-export const scheduleIdOfKey = (
-  key: string | null | undefined
-): string | null => {
-  if (!isDotRunKey(key)) {
-    return null;
-  }
-  const [, kind, id, rest] = (key ?? "").split(":");
-  if (kind === "s" || (kind === "m" && rest !== undefined)) {
-    return id && UUID.test(id) ? id : null;
-  }
-  return null;
-};
 
 const NOT_HANDLE = /[^a-z0-9_-]+/g;
 const EDGE_DASHES = /^[-_]+|[-_]+$/g;

@@ -14,7 +14,7 @@ description: Model-checks the branch run queue and Stop with TLA+ (one run per b
 | `EndedRunsAreIdle` | Once a run has ended or paused, nothing is still calling the model or running tools for it. | Stop is ignored: the answer keeps generating and spending, approved tools run after Stop, and its message is overwritten after the cancel. |
 | `StopReachesPass` | While a pass is in its agent loop, `active` holds that pass's controller. | Stop can't abort that answer. |
 | `NoLoopAfterStop` | A pass that Stop aborted before its agent loop began never begins it. | The model is called, and a call someone just approved runs, after Stop. |
-| `StopTakesEffect` | Once Stop has returned, its run has ended, or the controller `active` holds for it is one Stop aborted. | Stop reports success while a pass keeps going, or will start, unaborted. |
+| `StopTakesEffect` | Once Stop has returned, its run has ended, or the controller `active` holds for it is one Stop aborted. | Stop reports success, or `CONFLICT run_finished`, while the run keeps going or stays stuck. |
 | `OneRunPerBranch` | No turn runs while an answer above it on its branch is still being written. | A turn answers from a half-written answer, and two answers stream on one branch. |
 | `NoStuckRun` | Once every request has returned and no pass executes, each run has ended, is paused for approval, or is queued behind a run that hasn't ended. | A turn never gets answered, and every later turn on the branch queues behind it until the server restarts (`recover`). |
 | `SettledOnce` | `onSettled` (usage, prune and title jobs) fires at most once per run. | Duplicate jobs, and usage recorded against a run the user stopped. |
@@ -27,7 +27,7 @@ bun .claude/skills/verify-run-queue/model/check.ts              # the default ch
 bun .claude/skills/verify-run-queue/model/check.ts queue        # checks by name
 ```
 
-It needs no model provider, database or network once the tools are cached. The first run downloads tla2tools.jar 1.7.4, plus a Temurin 21 JRE if no `java` is on PATH, into `~/.cache/tla-tools`, and checks both against pinned SHA-256 sums (`$JAVA` overrides). The default checks explore about 4.9 million states, and took about 7 minutes of TLC on an M1 Pro while other jobs held the CPU. `stop-start`, `stop-settled` and `stop-stranded` each explore the whole Stop configuration and take most of it.
+It needs no model provider, database or network once the tools are cached. The first run downloads tla2tools.jar 1.7.4, plus a Temurin 21 JRE if no `java` is on PATH, into `~/.cache/tla-tools`, and checks both against pinned SHA-256 sums (`$JAVA` overrides). The default checks explore about 4.1 million states, in about 2 minutes of TLC on an M1 Pro. `stop-start`, `stop-settled` and `stop-stranded` each explore the whole Stop configuration and take most of it.
 
 It prints one line per check (`ok` or `FAIL`, expected against got), then each counterexample as numbered steps in the code's words, with every run's status after each step. It exits 0 only when every check matches the table below.
 
@@ -37,16 +37,17 @@ Last confirmed against the last commit that changed `model/`: a model change lan
 
 | Check | Config | Property | Expected | Trace |
 | --- | --- | --- | --- | --- |
-| `queue` | SendOnly | all but `StopReachesPass` | holds | about 211,000 distinct states |
-| `double-start` | SendOnly | `StopReachesPass` | holds | finding 1, fixed; about 57,000 distinct states |
-| `stop-start` | Stop | `EndedRunsAreIdle`, `NoLoopAfterStop` | holds | finding 2, fixed; about 1,554,000 distinct states |
+| `queue` | SendOnly | all but `StopReachesPass` | holds | 210,665 distinct states |
+| `double-start` | SendOnly | `StopReachesPass` | holds | finding 1, fixed; 57,404 distinct states |
+| `stop-start` | Stop | `EndedRunsAreIdle`, `NoLoopAfterStop` | holds | finding 2, fixed; 1,264,432 distinct states |
 | `stop-branch` | Stop | `OneRunPerBranch` | violated | finding 5, 12 steps |
-| `stop-settled` | Stop | `SettledOnce` | holds | finding 2, fixed; about 1,554,000 distinct states |
-| `stop-stranded` | Stop | `NoStuckRun` | holds | finding 4, fixed; about 1,554,000 distinct states |
-| `stop-approval` | StopApproval | `EndedRunsAreIdle`, `NoLoopAfterStop` | holds | finding 3, fixed; 113 distinct states |
-| `stop-pause` | StopPause | `StopTakesEffect`, `NoLoopAfterStop`, `EndedRunsAreIdle` | holds | finding 7, fixed; 210 distinct states |
-| `stop-pause-again` | StopPauseAgain | `StopTakesEffect`, `NoLoopAfterStop`, `EndedRunsAreIdle` | violated | finding 8, 10 steps |
-| `approval-lost` (slowest; run by name) | Approvals | `NoStuckRun` | holds | finding 1, fixed; about 332,000 distinct states |
+| `stop-settled` | Stop | `SettledOnce` | holds | finding 2, fixed; 1,264,432 distinct states |
+| `stop-stranded` | Stop | `NoStuckRun` | holds | finding 4, fixed; 1,264,432 distinct states |
+| `stop-approval` | StopApproval | `EndedRunsAreIdle`, `NoLoopAfterStop` | holds | finding 3, fixed; 116 distinct states |
+| `stop-pause` | StopPause | `StopTakesEffect`, `NoLoopAfterStop`, `EndedRunsAreIdle` | holds | finding 7, fixed; 176 distinct states |
+| `stop-pause-again` | StopPauseAgain | `StopTakesEffect`, `NoLoopAfterStop`, `EndedRunsAreIdle` | holds | finding 8, fixed; 316 distinct states |
+| `stop-orphan` | StopCrash | `StopTakesEffect`, `EndedRunsAreIdle`, `NoLoopAfterStop` | holds | finding 2's crashed pass, fixed; 8,356 distinct states |
+| `approval-lost` (slowest; run by name) | Approvals | `NoStuckRun` | holds | finding 1, fixed; 331,780 distinct states |
 
 ## Findings
 
@@ -61,16 +62,20 @@ Last confirmed against the last commit that changed `model/`: a model change lan
    - The pass runs to the end on a cancelled run (`stop-start`).
    - The run looks finished, so a turn sent after it starts at once while the zombie pass is still writing the answer above it (`stop-branch`).
    - When the zombie settles, its compare-and-set loses, and `settleLostRace` runs `finishTerminal` a second time, firing `onSettled` again (`stop-settled`).
-   - **Fixed.** A `running` run has a pass, and only that pass ends it. `FROM.cancel` is now `queued` or `awaiting_approval`, and a pass Stop aborted settles with its own transition, `abort` (`running` to `cancelled`). A `cancelIdle` that loses to a claim falls back to `abortPass`, which finds the claim's controller because the claim took `active` before its commit. With nothing else able to move a `running` run, `settleLostRace` (the second `finishTerminal`) is gone: a pass that loses its own transition reports it. `stop-start` and `stop-settled` guard this; `stop-branch` now fails on finding 5 instead.
+   - **Fixed.** A `running` run has a pass, and only that pass ends it. `FROM.cancel` is now `queued` or `awaiting_approval`, and a pass Stop aborted settles with its own transition, `abort` (`running` to `cancelled`). A `cancelIdle` that loses to a claim looks again, and `abortPass` finds the claim's controller because the claim took `active` before its commit. With nothing else able to move a `running` run, `settleLostRace` (the second `finishTerminal`) is gone: a pass that loses its own transition reports it. `stop-start` and `stop-settled` guard this; `stop-branch` now fails on finding 5 instead.
+   - **The crashed pass.** That fix left one `running` run with no pass: one whose pass threw and whose `failEarly` threw too. Stop found no controller, `cancelIdle` couldn't move it, and Stop answered `CONFLICT run_finished` while the branch stayed blocked until a restart (`stop-orphan`, 8 steps). The same happened when the pass crashed while Stop waited on it, or between `cancelIdle` losing and the next `abortPass` (9 steps).
+   - **Fixed.** `cancelIdle` locks the run (`lockRun`) and, when it is `running` with nothing in `active`, ends it with `abort`. A claim or a decision sets `active` before its commit and a decision takes the same lock, so under the lock a `running` run with nothing in `active` has no pass in this process. Stop is now one loop: abort the pass here, or `cancelIdle`, and look again after a look that loses, until the run has ended or a controller Stop aborted holds it. Stop returns `invalid_state` only for a run that had ended when it came.
 3. **Stop on the approval card races the decision.** `cancel` reads `awaiting_approval` with no controller. The decision then sets its controller, resumes and commits. `cancelIdle` cancels the now-`running` run, and `submitApprovals` starts the resumed pass anyway, so the approved tool calls execute after Stop (`stop-approval`).
    - **Fixed.** The cancel can't move the resumed run, so `cancel` aborts the decision's controller instead. The resumed pass then starts already aborted. The AI SDK still executes approved calls under an aborted signal, so `execute` checks the signal before `runAgent` and settles as cancelled without calling it (`P_Begin`, `NoLoopAfterStop`).
+   - `cancelIdle` used to announce the stopped calls before its transaction, so a cancel that lost to the decision still showed every client the card as stopped. It now writes those chunks (`appendRunChunks`) in the cancel's own transaction: they land only if the cancel does, and a subscriber reads them in its last drain before the end. The model leaves chunks out, so `executor.races.test.ts` covers this.
 4. **Stopping a queued turn can strand the turn behind it.** `cancelIdle` reads that the run ahead is still active. That run then finishes, and its `promoteAfter` finds nothing behind it. `requeueAfter` then moves the waiting turn behind the finished run, where nothing will ever start it (`stop-stranded`).
    - **Fixed.** `cancelIdle` no longer reads the run ahead. It moves the waiting turns behind it with `requeueAfter`, finishes the cancelled run, then calls `startRun` on each. A turn whose run ahead ended meanwhile starts there. If that run ends later, its `promoteAfter` reads after the move and finds the turn. When both try, the claim lets one win (finding 1).
 5. **A reply under a stopped queued question skips the queue.** A turn is queued behind a run still answering, and Stop cancels it. The next turn replies under that cancelled question, the end of the branch. `busyTail` matches only an active run whose own message is the anchor, and the cancelled run isn't active, so the reply starts at once while the answer above it is still being written (`stop-branch`). It is in `placeRun`, not Stop, and is not fixed yet.
 6. **A turn queued behind a stopped queued turn can start early.** Turn L waits behind S, which waits behind F, still answering. L's own `startRun` reads S as the run ahead, then Stop cancels S before that `startRun` reads S's status. L sees S ended and claims, while F is still writing the answer above it. `cancelIdle`'s `requeueAfter` then moves only queued turns, so L stays running. TLC stops at finding 5 first, so `stop-branch` doesn't show this one; a scratch model whose sends never reply under a never-run question finds it as a 13-step `OneRunPerBranch` trace. It shares finding 5's root (a run cancelled before it ran still holds a place in the branch) and is not fixed yet.
 7. **Stop misses a pass that a decision resumes right after its pause.** Stop aborts a pass that has already asked for approval. The pass still settles as `awaiting_approval`, and a decision resumes it before Stop's second `getRun`. Stop sees `running`, returns, and the resumed pass runs the approved call and calls the model (`stop-pause`).
-   - **Fixed.** Stop's second look aborts the controller in `active` whenever the run hasn't ended and isn't a pause it can cancel itself. The resumed pass then starts already aborted and settles as cancelled without calling `runAgent` (finding 3).
+   - **Fixed.** Stop looks again after every look that loses (finding 2's loop): the next look aborts the controller in `active`, so the resumed pass starts already aborted and settles as cancelled without calling `runAgent` (finding 3).
 8. **Stop loses to a pass that pauses after its cancel lost.** Stop reads the run waiting on the card (or queued) and calls `cancelIdle`. A decision (or a claim) commits first, and the pass it starts asks for approval again. `cancelIdle` loses, and the pass settles `awaiting_approval` either before Stop's fallback `abortPass`, which finds no controller and answers `CONFLICT run_finished`, or after it, as finding 7's pause does. Either way the run waits on a new card after Stop (`stop-pause-again`: 10 steps from a queued run; 16 steps with Stop only on the card). The fallback path has no look after the pass, which the first path got in finding 7.
+   - **Fixed.** Stop has no fallback path any more. It looks again after any look that loses, so the next look cancels the new pause (finding 2's loop).
 
 ## When you change covered code
 
@@ -96,7 +101,7 @@ Last confirmed against the last commit that changed `model/`: a model change lan
 | `packages/server/src/runs/executor.ts` | `startRun`, `claim` | `startRun`: `S_Read`, `S_Ahead`, `S_Claim` |
 | | `execute` (and its `finally`), `settle`, `track`, `release` | `Pass`: `P_Begin`, `P_Loop`, `P_Settle`, `passFinally` |
 | | `finishTerminal`, `promoteAfter` | `finishTerminal`: `F_List`, `F_Loop` |
-| | `cancel`, `abortPass`, `stopAfterPass`, `cancelIdle`, `startEach` | `Stop`: `K_Read` to `K_Wait2` |
+| | `cancel`, `abortPass`, `cancelIdle`, `startEach` | `Stop`: `K_Read` to `K_Again` |
 | | `submitApprovals`, `recordDecisions`, `storeDecisions` | `Decide`: `D_Lock` to `D_Spawn` |
 | `packages/server/src/runs/create-run.ts` | `createRun`, `placeRun`, `busyTail` | `Send`: `W_Read`, `W_Insert`; `BusyTailOf` |
 | `packages/db/src/queries/runs.ts` | `FROM`, `TARGET`, `transitionRun`, `listActiveRuns`, `listQueuedAfter`, `requeueAfter`, `lockRun` | `From`, `Target`, `Oldest`, `ByCreated`, `K_Requeue`, `D_Lock` |
@@ -108,7 +113,7 @@ Last confirmed against the last commit that changed `model/`: a model change lan
 
 - **One label per await.** A label is one database statement or transaction taking effect, plus the synchronous JavaScript that handles its result up to the next await. Synchronous code never interleaves (one JavaScript thread), so code between two awaits stays in one label. A new await splits a label.
 - **Postgres.** READ COMMITTED. A transaction's writes land together at commit, and reads inside it see other commits. `lockRun`'s `FOR UPDATE` is `locked`: writers to that row wait, readers don't.
-- **Executor memory.** The executor's maps are `active` and `running`. Controllers are numbered per run, and `aborted` holds those `abort()` was called on. A controller enters `active` only in the step whose claim or resume wins. `spawned` holds a pass's controller from `track()` until its agent loop ends: `P_Begin` checks the abort and starts `runAgent`, and `P_Loop` ends the loop and picks the outcome. A failed outcome lands like a succeeded one here, so it is left out.
+- **Executor memory.** The executor's maps are `active` and `running`. Controllers are numbered per run, and `aborted` holds those `abort()` was called on. A controller enters `active` only in the step whose claim or resume wins. `spawned` holds a pass's controller from `track()` until its agent loop ends: `P_Begin` checks the abort and starts `runAgent`, and `P_Loop` ends the loop and picks the outcome. A failed outcome lands like a succeeded one here, so it is left out. In StopCrash a pass may instead crash: it leaves its loop and runs its `finally` with the run still `running`, as when `failEarly` throws.
 - **Ghosts.** `ansAbove`, `parent`, `settled`, `begun` and `stoppedEarly` feed only the properties. Each check's `VIEW` (in `RunQueue.tla`) drops data no later step reads, and must keep every ghost its property reads.
 - **Translation.** `RunQueue.tla` keeps its PlusCal untranslated, and `check.ts` translates a scratch copy on every run. Edit the algorithm and the definitions, and leave the `BEGIN`/`END TRANSLATION` markers empty.
 - **Configs.** The `.cfg` files set the bounds; `check.ts` adds `VIEW` and `INVARIANTS`. A request that can never return shows up as a TLC deadlock, which `check.ts` counts against `NoStuckRun`.
@@ -124,10 +129,11 @@ Bounds per config:
 | StopApproval | 1 | 1, on the approval card | 1 | 1 | the end of the branch |
 | StopPause | 1 | 1, on the running pass | 1 | 1 | the end of the branch |
 | StopPauseAgain | 1 | 1, on any unfinished run | 1 | 2 | the end of the branch |
+| StopCrash | 2 | 1, on any unfinished run | 0 | 0 | the end of the branch; one pass may crash |
 | Approvals | 3 | 0 | 1 | 1 | the end of the branch |
 
 A check that holds vouches for these bounds only. The model does not cover:
-- `recover` and `shutdown`, crashes, timeouts and thrown errors;
+- `recover` and `shutdown`, timeouts, and crashes other than a pass that throws and can't fail its run (StopCrash);
 - several executors (the Collaboration wave's `apps/worker`);
 - regenerate turns and idempotency-key retries;
 - `moveOnFromWaiting`'s own cancel (a Stop stands for it; in the Approvals config sends never cancel);

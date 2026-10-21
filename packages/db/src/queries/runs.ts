@@ -41,7 +41,12 @@ import {
   type NotFoundError,
   notFound,
 } from "../errors";
-import { ACTIVE_RUN_STATUSES, run, runChunk } from "../schema/chat";
+import {
+  ACTIVE_RUN_STATUSES,
+  type RunUnattended,
+  run,
+  runChunk,
+} from "../schema/chat";
 import type { StoredContext } from "./conversations";
 import {
   decodeCursor,
@@ -69,6 +74,7 @@ export interface NewRun {
   /** `queued` behind `afterRunId` when the branch is busy, else `running` once an executor takes it. */
   readonly status?: Extract<RunStatus, "queued" | "running">;
   readonly target: RunTarget;
+  readonly unattended?: RunUnattended | null;
   readonly userMessageId: MessageId;
 }
 
@@ -94,6 +100,7 @@ export const createRun = async (db: Db, input: NewRun): Promise<CreatedRun> => {
       startedAt: status === "running" ? new Date() : null,
       status,
       target: input.target,
+      unattended: input.unattended ?? null,
       userMessageId: input.userMessageId,
     })
     .onConflictDoNothing({
@@ -207,7 +214,10 @@ export const runTransitionSchema = z.discriminatedUnion("type", [
     cancelledBy: userIdSchema.nullable(),
     type: z.literal("cancel"),
   }),
-  /** A pass that Stop aborted, settling its own run. */
+  /**
+   * Stop ending a running run: the pass it aborted settling its own run, or
+   * Stop itself once no pass holds the run (it crashed).
+   */
   z.object({
     cancelledBy: userIdSchema.nullable(),
     type: z.literal("abort"),
@@ -228,8 +238,8 @@ const TARGET: Record<RunTransition["type"], RunStatus> = {
 /**
  * Which statuses each transition may leave. Terminal statuses leave to
  * nothing. A `running` run has a pass, and only that pass ends it (or
- * recovery fails it), so a cancel that loses to a claim or a resume must
- * abort the pass instead.
+ * recovery fails it, or Stop aborts it once the pass is gone), so a cancel
+ * that loses to a claim or a resume must abort the pass instead.
  */
 const FROM: Record<RunTransition["type"], readonly RunStatus[]> = {
   abort: ["running"],

@@ -5,7 +5,11 @@ import type {
   SandboxId,
 } from "@workspace/contract/schemas/common";
 import type { SandboxLimits } from "@workspace/contract/schemas/sandbox";
-import { type AsyncResult, ok } from "@workspace/shared/result";
+import type {
+  ComputerHolder,
+  ComputerView,
+} from "@workspace/server/dots/computer-view";
+import { type AsyncResult, err, ok } from "@workspace/shared/result";
 import { type Tool, tool } from "ai";
 
 import type { DockerSandboxFactory } from "../docker/client";
@@ -58,8 +62,6 @@ export const desktopIdFor = (conversationId: ConversationId): SandboxId => {
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}` as SandboxId;
 };
 
-export type ControlHolder = "user" | "agent";
-
 /**
  * What the `computer` tool returns, and so what the chat stores: small on
  * purpose. The screenshot goes to the model (`toModelOutput`) but never into
@@ -79,19 +81,13 @@ export type ComputerOutput =
       readonly ok: false;
     };
 
-export interface ComputerView {
-  readonly holder: ControlHolder;
-  /** noVNC on the preview origin; add `?view_only=0` to drive it. */
-  readonly url: string;
-}
-
 /** The runner calls a computer needs. A port, so tests fake it. */
 export type DesktopHost = Pick<DockerSandboxFactory, "createDesktop">;
 
 export interface Computers {
   readonly setControl: (
     conversationId: ConversationId,
-    holder: ControlHolder
+    holder: ComputerHolder
   ) => AsyncResult<ComputerView, SandboxError>;
   /** The `computer` tool for a conversation's desktop. */
   readonly tools: (
@@ -123,7 +119,7 @@ export const createComputers = ({
 
   const holderOf = async (
     sandbox: Sandbox
-  ): AsyncResult<ControlHolder, SandboxError> => {
+  ): AsyncResult<ComputerHolder, SandboxError> => {
     const ran = await sandbox.exec(CONTROL_STATUS_COMMAND, { timeoutMs: 5000 });
     return ran.ok
       ? ok(ran.value.stdout.trim() === "user" ? "user" : "agent")
@@ -199,7 +195,16 @@ export const createComputers = ({
       const ran = await sandbox.value.exec(controlCommand(holder), {
         timeoutMs: 5000,
       });
-      return ran.ok ? view(conversationId) : ran;
+      if (!ran.ok) {
+        return ran;
+      }
+      if (ran.value.exitCode !== 0) {
+        return err({
+          message: `the screen's input couldn't be switched (exit ${ran.value.exitCode})`,
+          type: "unavailable",
+        });
+      }
+      return view(conversationId);
     },
     tools: (conversationId) => ({
       computer: computerTool((input, signal) =>
