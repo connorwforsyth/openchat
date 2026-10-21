@@ -435,14 +435,14 @@ export const createInProcessExecutor = (
   };
 
   const failEarly = async (
-    run: RunStart,
+    runId: RunId,
     assistantMessageId: MessageId,
     error: RunError
   ) => {
     // The client sees why before the stream ends.
-    await writer.append(run.runId, { errorText: error.message, type: "error" });
+    await writer.append(runId, { errorText: error.message, type: "error" });
     await updateMessage(db, assistantMessageId, { status: "error" });
-    const failed = await transition(run.runId, { error, type: "fail" });
+    const failed = await transition(runId, { error, type: "fail" });
     if (failed) {
       await finishTerminal(failed, null, null);
     }
@@ -451,11 +451,7 @@ export const createInProcessExecutor = (
   /** A run no process is executing any more (the last one crashed). */
   const failOrphan = async (row: RunRow) => {
     if (row.assistantMessageId) {
-      await failEarly(
-        runStartFromRow(row),
-        row.assistantMessageId,
-        INTERRUPTED
-      );
+      await failEarly(row.id, row.assistantMessageId, INTERRUPTED);
       return;
     }
     const moved = await transition(row.id, {
@@ -759,7 +755,7 @@ export const createInProcessExecutor = (
     try {
       const messages = await loadBranch(run, leafId);
       if (!messages) {
-        await failEarly(run, assistantMessageId, INTERNAL);
+        await failEarly(run.runId, assistantMessageId, INTERNAL);
         return;
       }
       const resolved = await deps.resolveTurn(run, {
@@ -768,7 +764,7 @@ export const createInProcessExecutor = (
         state: deciderState(messages),
       });
       if (!resolved.ok) {
-        await failEarly(run, assistantMessageId, resolved.error);
+        await failEarly(run.runId, assistantMessageId, resolved.error);
         return;
       }
       // A planning run reads and never writes (106): held here, on every
@@ -819,7 +815,7 @@ export const createInProcessExecutor = (
         unavailableTools: turn.value.unavailableTools,
       });
       if (!agentRun.ok) {
-        await failEarly(run, assistantMessageId, agentRun.error);
+        await failEarly(run.runId, assistantMessageId, agentRun.error);
         return;
       }
       const read = await pipeToStream(
@@ -839,7 +835,7 @@ export const createInProcessExecutor = (
       });
     } catch (cause) {
       report("run failed unexpectedly", cause);
-      await failEarly(run, assistantMessageId, INTERNAL).catch(
+      await failEarly(run.runId, assistantMessageId, INTERNAL).catch(
         (again: unknown) => report("couldn't fail a crashed run", again)
       );
     } finally {
@@ -936,6 +932,10 @@ export const createInProcessExecutor = (
       by: by === null ? "system" : "user",
       streamed: callIdsIn(parts),
     });
+    // Straight to `run_chunk`, past the stream port (`writer`), so the
+    // chunks commit with the cancel. Subscribers read them in the drain they
+    // make after seeing the run end. A channel that doesn't keep its chunks
+    // in this database (Redis, say) would never see them.
     await appendRunChunks(tx, run.id, stopped.chunks.map(toJson));
     await updateMessage(tx, run.assistantMessageId, {
       parts: stopped.parts,
@@ -952,6 +952,10 @@ export const createInProcessExecutor = (
    * run's pending calls resolve as not run; their chunks are written in the
    * same transaction, because a terminal run's stream takes nothing more and
    * a cancel that loses must not have announced anything.
+   *
+   * This assumes one executor process per database. `active` holds only
+   * this process's passes, so with a second executor a run it is answering
+   * would look crashed here, and Stop would end it under its live pass.
    */
   const cancelIdle = async (row: RunRow, by: UserId | null) => {
     const cancelled = await db.transaction(async (tx) => {
@@ -1189,32 +1193,44 @@ export const createInProcessExecutor = (
         return recorded;
       }
       const { decided, fresh, resumed, row } = recorded.value;
-      // Every client following the stream drops the decided cards now, not
-      // when the tool's output lands (the SDK streams no response).
-      if (fresh.length > 0) {
-        await announce(
+      try {
+        // Every client following the stream drops the decided cards now, not
+        // when the tool's output lands (the SDK streams no response).
+        if (fresh.length > 0) {
+          await announce(
+            runId,
+            decisionChunks(fresh, await approvalIdsOf(db, runId))
+          );
+        }
+        if (!(resumed && row.assistantMessageId)) {
+          return ok(undefined);
+        }
+        const start = runStartFromRow(resumed);
+        // Held in memory for this pass only: a crash mid-pass fails the run
+        // (`recover`), so no later pass could need them.
+        const reviews = reviewsFor(row.approvals ?? [], decided);
+        track(
           runId,
-          decisionChunks(fresh, await approvalIdsOf(db, runId))
+          execute(
+            start,
+            row.assistantMessageId,
+            row.assistantMessageId,
+            controller,
+            reviews
+          )
         );
-      }
-      if (!(resumed && row.assistantMessageId)) {
         return ok(undefined);
+      } catch (cause) {
+        // The resume committed, but no pass will run it. Failing it frees
+        // Stop and the turns queued behind it.
+        if (resumed && row.assistantMessageId) {
+          release(runId, controller);
+          await failEarly(runId, row.assistantMessageId, INTERNAL).catch(
+            (again: unknown) => report("couldn't fail a resumed run", again)
+          );
+        }
+        throw cause;
       }
-      const start = runStartFromRow(resumed);
-      // Held in memory for this pass only: a crash mid-pass fails the run
-      // (`recover`), so no later pass could need them.
-      const reviews = reviewsFor(row.approvals ?? [], decided);
-      track(
-        runId,
-        execute(
-          start,
-          row.assistantMessageId,
-          row.assistantMessageId,
-          controller,
-          reviews
-        )
-      );
-      return ok(undefined);
     },
   };
 };
