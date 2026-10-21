@@ -6,13 +6,17 @@ import { textStream, toolCallStream } from "@workspace/ai/testing/mock-models";
 import type { Dot } from "@workspace/contract/schemas/dots";
 import type { BranchPath } from "@workspace/contract/schemas/messages";
 import type { CreateRunOutput, Run } from "@workspace/contract/schemas/runs";
+import { dotRun } from "@workspace/db/schema/dots";
 import { seedUser } from "@workspace/db/testing";
 import { MockLanguageModelV4 } from "ai/test";
+import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createDotsRouter } from "../api/dots";
 import { createApp } from "../app";
 import { createHarness, type Harness, USER_HEADER } from "../testing/harness";
 import { UNATTENDED_REFUSAL } from "./policy";
+import { ownerActor } from "./schedules";
+import { runDotNow } from "./service";
 
 // A Dot's identity, activity and self-scheduling (172), end to end in
 // process: Hono's `app.request`, the real executor on a mock model, PGlite.
@@ -222,5 +226,59 @@ describe("Dot self-scheduling", () => {
         title: "Weekly review",
       },
     ]);
+  });
+});
+
+describe("Run now", () => {
+  const claimsOf = (dotId: string) =>
+    h.db
+      .select()
+      .from(dotRun)
+      .where(eq(dotRun.dotId, dotId as never));
+
+  it("gives back its claim when the workspace can't be made", async () => {
+    const dot = await createDot({ ...BUDDY, sandboxProvider: "just-bash" });
+    const run = runDotNow(
+      {
+        ...h.services.dots,
+        ensureWorkspace: () => Promise.reject(new Error("sandbox down")),
+        now: () => clock,
+      },
+      await ownerActor(h.db, h.ownerId),
+      { id: dot.id }
+    );
+    await expect(run).rejects.toThrow("sandbox down");
+    expect(await claimsOf(dot.id)).toEqual([]);
+  });
+
+  it("is refused while the Dot's thread has a run in flight", async () => {
+    const dot = await createDot(BUDDY);
+    let release: () => void = () => undefined;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    h.nextTurn({
+      model: new MockLanguageModelV4({
+        doStream: async () => {
+          await held;
+          return textStream("Done.");
+        },
+      }),
+    });
+    await json<CreateRunOutput>(
+      await request(`/api/dots/${dot.id}/run`, { json: {}, method: "POST" }),
+      202
+    );
+    const second = await request(`/api/dots/${dot.id}/run`, {
+      json: {},
+      method: "POST",
+    });
+    release();
+    await h.services.executor.idle();
+    expect(second.status).toBe(409);
+    expect(await second.json()).toMatchObject({
+      data: { reason: "run_active" },
+    });
+    expect(await claimsOf(dot.id)).toHaveLength(1);
   });
 });
