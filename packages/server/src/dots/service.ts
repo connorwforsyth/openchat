@@ -45,7 +45,7 @@ import { err, ok, type Result } from "@workspace/shared/result";
 
 import type { Actor } from "../context";
 import { storeContext } from "../runs/chat-context";
-import { createRun } from "../runs/create-run";
+import { createUnattendedRun } from "../runs/create-run";
 import {
   DEFAULT_DOT_PROMPT,
   dotRunKey,
@@ -354,26 +354,31 @@ export const runDotNow = async (
   if (dot.sandboxProvider && deps.ensureWorkspace) {
     await deps.ensureWorkspace(owner, dot.conversationId, dot.sandboxProvider);
   }
-  const created = await createRun(deps.runs, owner, {
-    conversationId: dot.conversationId,
-    idempotencyKey: dotRunKey({ nonce: newId("job"), type: "manual" }),
-    input: {
-      parentId: await latestMessageId(db, dot.conversationId),
-      parts: [
-        {
-          data: { scheduleId: null, title: "Check in" },
-          name: SCHEDULED_TASK_DATA,
-          type: "data",
-        },
-        {
-          text: input.prompt ?? first?.prompt ?? DEFAULT_DOT_PROMPT,
-          type: "text",
-        },
-      ],
-      type: "message",
+  const created = await createUnattendedRun(
+    deps.runs,
+    owner,
+    {
+      conversationId: dot.conversationId,
+      idempotencyKey: dotRunKey({ nonce: newId("job"), type: "manual" }),
+      input: {
+        parentId: await latestMessageId(db, dot.conversationId),
+        parts: [
+          {
+            data: { scheduleId: null, title: "Check in" },
+            name: SCHEDULED_TASK_DATA,
+            type: "data",
+          },
+          {
+            text: input.prompt ?? first?.prompt ?? DEFAULT_DOT_PROMPT,
+            type: "text",
+          },
+        ],
+        type: "message",
+      },
+      target: dot.target,
     },
-    target: dot.target,
-  });
+    { type: "check_in" }
+  );
   if (!created.ok) {
     return err({ error: created.error, type: "run" });
   }

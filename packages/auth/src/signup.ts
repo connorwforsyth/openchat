@@ -1,3 +1,8 @@
+import {
+  MICROSOFT_PROVIDER_ID,
+  microsoftSsoOf,
+  microsoftTenantPinned,
+} from "@workspace/config/microsoft";
 import type { AppConfig } from "@workspace/config/schema";
 import { err, ok, type Result } from "@workspace/shared/result";
 import { z } from "zod";
@@ -19,6 +24,8 @@ export type SignUpRefusal = z.infer<typeof signUpRefusalSchema>;
 
 export const signUpRequestSchema = z.object({
   email: z.string(),
+  /** The provider vouched for the address (Better Auth's `emailVerified`). */
+  emailVerified: z.boolean().optional(),
   /** Better Auth's provisioning method: `email-password`, `oauth`, `admin`, … */
   method: z.string(),
   /** The OAuth/OIDC provider id when `method` is `oauth`. */
@@ -45,6 +52,29 @@ export const emailDomain = (email: string): string => {
         .toLowerCase();
 };
 
+/**
+ * What a Microsoft sign-up's tenant vouches for (186); `undefined` for any
+ * other sign-up. Its tenant and domain allow-lists are checked before this.
+ */
+const microsoftSignUp = (auth: AppConfig["auth"], request: SignUpRequest) => {
+  const microsoft =
+    request.method === "oauth" && request.providerId === MICROSOFT_PROVIDER_ID
+      ? microsoftSsoOf(auth)
+      : undefined;
+  if (!microsoft) {
+    return;
+  }
+  const pinned = microsoftTenantPinned(microsoft);
+  return {
+    // The config only allows it on a pinned tenant.
+    autoProvision: microsoft.autoProvision,
+    // Any tenant's admin can give their users any email (nOAuth), so the
+    // address is theirs only from a pinned tenant or a verified claim.
+    ownsAddress: pinned || request.emailVerified === true,
+    pinned,
+  };
+};
+
 export const decideSignUp = (
   auth: AppConfig["auth"],
   request: SignUpRequest,
@@ -54,29 +84,33 @@ export const decideSignUp = (
   if (request.method === "admin") {
     return ok(undefined);
   }
+  const microsoft = microsoftSignUp(auth, request);
   if (auth.signup === "sso") {
     // Even the first user: an SSO-only instance shouldn't be claimable with
     // a password by whoever finds it first.
     const fromOidc =
       request.method === "oauth" &&
       auth.oidc.some((provider) => provider.id === request.providerId);
-    return fromOidc ? ok(undefined) : err("sso_required");
+    return fromOidc || microsoft?.pinned ? ok(undefined) : err("sso_required");
+  }
+  if (microsoft?.autoProvision) {
+    return ok(undefined);
   }
   if (facts.isFirstUser) {
     return ok(undefined);
   }
+  const ownsAddress = microsoft?.ownsAddress ?? true;
+  const invited = ownsAddress && facts.hasPendingInvitation;
   switch (auth.signup) {
     case "open":
       return ok(undefined);
     case "invite":
-      return facts.hasPendingInvitation
-        ? ok(undefined)
-        : err("invite_required");
+      return invited ? ok(undefined) : err("invite_required");
     case "domain": {
-      if (auth.domains.includes(emailDomain(request.email))) {
+      if (ownsAddress && auth.domains.includes(emailDomain(request.email))) {
         return ok(undefined);
       }
-      return auth.invites && facts.hasPendingInvitation
+      return auth.invites && invited
         ? ok(undefined)
         : err("domain_not_allowed");
     }

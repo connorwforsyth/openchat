@@ -1,7 +1,11 @@
+import { err, ok, type Result } from "@workspace/shared/result";
+import { z } from "zod";
+
 import type { ReplyEvent, VoiceReplies } from "./reply";
 import {
   BARGE_IN_VAD,
   type CallEffect,
+  type CallError,
   type CallEvent,
   type CallState,
   DEFAULT_VAD,
@@ -103,8 +107,66 @@ export const timingsOf = (turn: Turn): TurnTimings => ({
   transcribeMs: span(turn.speechEnd, turn.transcribed),
 });
 
+const problemSchema = z.object({ code: z.string() });
+
+/** What a failed `/api/voice/*` answer means for the call, by the server's code. */
+export const callErrorOf = async (
+  stage: "transcribe" | "speak",
+  response: Response
+): Promise<CallError> => {
+  const body = problemSchema.safeParse(await response.json().catch(() => null));
+  if (body.success && body.data.code === "SERVICE_UNAVAILABLE") {
+    return "unavailable";
+  }
+  return stage === "transcribe" ? "transcription" : "speech";
+};
+
+/**
+ * A sentence's audio that hasn't arrived by now never will: the speech
+ * service has stalled. Kokoro on a CPU takes a second or two a sentence.
+ */
+export const SPEAK_TIMEOUT_MS = 15_000;
+
+/** One sentence's audio from `/api/voice/speak`; a stall counts as the service being down. */
+export const requestSpeech = async ({
+  fetch,
+  signal,
+  text,
+  timeoutMs = SPEAK_TIMEOUT_MS,
+  url,
+}: {
+  readonly fetch: typeof globalThis.fetch;
+  readonly signal: AbortSignal;
+  readonly text: string;
+  readonly timeoutMs?: number;
+  readonly url: string;
+}): Promise<Result<ArrayBuffer, CallError>> => {
+  const timeout = AbortSignal.timeout(timeoutMs);
+  try {
+    const response = await fetch(url, {
+      body: JSON.stringify({ text }),
+      credentials: "same-origin",
+      headers: { "content-type": "application/json" },
+      method: "POST",
+      signal: AbortSignal.any([signal, timeout]),
+    });
+    if (!response.ok) {
+      return err(await callErrorOf("speak", response));
+    }
+    return ok(await response.arrayBuffer());
+  } catch {
+    return err(timeout.aborted ? "unavailable" : "speech");
+  }
+};
+
+const lengthOf = (frames: readonly Float32Array[]) =>
+  frames.reduce((sum, frame) => sum + frame.length, 0);
+
 const isTalking = (phase: CallState["phase"]) =>
-  phase === "speaking" || phase === "thinking" || phase === "transcribing";
+  phase === "speaking" ||
+  phase === "paused" ||
+  phase === "thinking" ||
+  phase === "transcribing";
 
 interface Queued {
   readonly audio: Promise<AudioBuffer | null>;
@@ -154,6 +216,8 @@ export const openVoiceEngine = async (
   let playing: AudioBufferSourceNode | null = null;
   let looping = false;
   let transcribing: AbortController | null = null;
+  /** The utterance being transcribed, kept in case the user goes on. */
+  let heard: readonly Float32Array[] = [];
   let turn = newTurn();
   /** The reply being listened to; aborting it cancels its run. */
   let replying: AbortController | null = null;
@@ -208,28 +272,30 @@ export const openVoiceEngine = async (
   // the cores and the first sentence (the one that matters) comes later.
   let synthesis: Promise<unknown> = Promise.resolve();
 
+  const synthesize = async (
+    sentence: string,
+    signal: AbortSignal
+  ): Promise<Result<AudioBuffer, CallError>> => {
+    const spoken = await requestSpeech({
+      fetch: options.fetch,
+      signal,
+      text: sentence,
+      url: api("speak"),
+    });
+    return spoken.ok ? ok(await context.decodeAudioData(spoken.value)) : spoken;
+  };
+
   const speak = (sentence: string) => {
     const controller = new AbortController();
     const audio = synthesis
-      .then(() =>
-        options.fetch(api("speak"), {
-          body: JSON.stringify({ text: sentence }),
-          credentials: "same-origin",
-          headers: { "content-type": "application/json" },
-          method: "POST",
-          signal: controller.signal,
-        })
-      )
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`speak ${response.status}`);
+      .then(() => synthesize(sentence, controller.signal))
+      .catch(() => err<CallError>("speech"))
+      .then((spoken) => {
+        if (spoken.ok) {
+          return spoken.value;
         }
-        return response.arrayBuffer();
-      })
-      .then((bytes) => context.decodeAudioData(bytes))
-      .catch(() => {
         if (!controller.signal.aborted) {
-          hooks.dispatch({ error: "speech", type: "failed" });
+          hooks.dispatch({ error: spoken.error, type: "failed" });
         }
         return null;
       });
@@ -248,6 +314,7 @@ export const openVoiceEngine = async (
     playing = null;
     transcribing?.abort();
     transcribing = null;
+    heard = [];
   };
 
   const upload = async (wav: Uint8Array<ArrayBuffer>, signal: AbortSignal) => {
@@ -259,10 +326,10 @@ export const openVoiceEngine = async (
       signal,
     });
     if (!response.ok) {
-      throw new Error(`transcribe ${response.status}`);
+      return err(await callErrorOf("transcribe", response));
     }
     const body = (await response.json()) as { text?: unknown };
-    return typeof body.text === "string" ? body.text : "";
+    return ok(typeof body.text === "string" ? body.text : "");
   };
 
   const transcribe = async () => {
@@ -271,22 +338,29 @@ export const openVoiceEngine = async (
     if (!frames) {
       return;
     }
+    heard = frames;
     turn = { ...newTurn(), speechEnd: performance.now() };
     const samples = downsample(concatFrames(frames), rate);
     const wav = encodeWav(samples, Math.min(TARGET_RATE, rate));
     const controller = new AbortController();
     transcribing = controller;
     try {
-      const text = await upload(wav, controller.signal);
-      turn.transcribed = performance.now();
-      hooks.dispatch({ text, type: "transcribed" });
-    } catch {
-      if (!controller.signal.aborted) {
-        hooks.dispatch({ error: "transcription", type: "failed" });
+      const transcript = await upload(wav, controller.signal).catch(() =>
+        err<CallError>("transcription")
+      );
+      if (controller.signal.aborted) {
+        return;
+      }
+      if (transcript.ok) {
+        turn.transcribed = performance.now();
+        hooks.dispatch({ text: transcript.value, type: "transcribed" });
+      } else {
+        hooks.dispatch({ error: transcript.error, type: "failed" });
       }
     } finally {
       if (transcribing === controller) {
         transcribing = null;
+        heard = [];
       }
     }
   };
@@ -297,6 +371,10 @@ export const openVoiceEngine = async (
   };
 
   const onReply = (event: ReplyEvent, controller: AbortController) => {
+    // A barge-in or hang-up cancelled it: the reducer has moved on.
+    if (controller.signal.aborted) {
+      return;
+    }
     switch (event.type) {
       case "text":
         turn.firstText ??= performance.now();
@@ -310,10 +388,6 @@ export const openVoiceEngine = async (
           replying = null;
         }
         const pending = queue.length > 0 || playing !== null;
-        // A barge-in or hang-up cancelled it: the reducer has moved on.
-        if (controller.signal.aborted) {
-          return;
-        }
         hooks.dispatch(
           event.end === "failed" && turn.firstText === null
             ? { error: "reply", type: "failed" }
@@ -354,7 +428,14 @@ export const openVoiceEngine = async (
     switch (effect.type) {
       case "start-recording":
         utterance = [...preroll];
-        utteranceLength = preroll.reduce((sum, frame) => sum + frame.length, 0);
+        utteranceLength = lengthOf(preroll);
+        return;
+      case "resume-recording":
+        transcribing?.abort();
+        transcribing = null;
+        utterance = [...heard, ...preroll];
+        utteranceLength = lengthOf(utterance);
+        heard = [];
         return;
       case "discard-recording":
         utterance = null;
