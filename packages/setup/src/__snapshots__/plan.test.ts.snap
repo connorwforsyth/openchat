@@ -143,7 +143,12 @@ brand:
   name: Everything
   appId: dev.example.app
   urlScheme: example
+  # SVG, PNG or JPEG, relative to this file. One SVG is enough: \`currentColor\`
+  # in it takes the app theme's text colour, and it's the icon too.
   logo: ./brand/logo.svg
+  # logoDark: ./brand/logo-dark.svg   # the logo on dark themes, if its colours need it
+  # favicon: ./brand/icon.svg         # the square mark for tab and home-screen icons
+  # iconBackground: black             # behind the mark on home-screen icons
 
 auth:
   signup: open # open | invite | domain | sso; the first user is always admin
@@ -495,7 +500,12 @@ brand:
   name: Acme Chat
   appId: dev.example.app
   urlScheme: example
+  # SVG, PNG or JPEG, relative to this file. One SVG is enough: \`currentColor\`
+  # in it takes the app theme's text colour, and it's the icon too.
   logo: ./brand/logo.svg
+  # logoDark: ./brand/logo-dark.svg   # the logo on dark themes, if its colours need it
+  # favicon: ./brand/icon.svg         # the square mark for tab and home-screen icons
+  # iconBackground: black             # behind the mark on home-screen icons
 
 auth:
   signup: domain # open | invite | domain | sso; the first user is always admin
@@ -833,7 +843,12 @@ brand:
   name: example
   appId: dev.example.app
   urlScheme: example
+  # SVG, PNG or JPEG, relative to this file. One SVG is enough: \`currentColor\`
+  # in it takes the app theme's text colour, and it's the icon too.
   logo: ./brand/logo.svg
+  # logoDark: ./brand/logo-dark.svg   # the logo on dark themes, if its colours need it
+  # favicon: ./brand/icon.svg         # the square mark for tab and home-screen icons
+  # iconBackground: black             # behind the mark on home-screen icons
 
 auth:
   signup: invite # open | invite | domain | sso; the first user is always admin
