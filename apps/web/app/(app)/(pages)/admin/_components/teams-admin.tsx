@@ -33,9 +33,10 @@ import { type Option, OptionSelect } from "@/app/(app)/_shared/option-select";
 import { codeOf, QueryState } from "@/app/(app)/_shared/query-state";
 import { buildTeamTree, flattenTree, type TeamNode } from "./team-tree";
 
-// The team tree (D17): teams nest inside teams; access granted to a team
-// flows to its sub-teams and usage rolls up. Create, rename and delete here;
-// a team with sub-teams can't be deleted until they're moved or removed.
+// A root space's sub-spaces (D17; teams underneath): sub-spaces nest inside
+// sub-spaces, access granted to one flows to those below it, and usage rolls
+// up. One with sub-spaces of its own can't be deleted until they're moved or
+// removed.
 
 const TOP_LEVEL = "top";
 
@@ -107,11 +108,11 @@ const TeamRow = ({
           <PencilIcon />
         </Button>
         <ConfirmButton
-          confirmLabel={<Trans>Delete team</Trans>}
+          confirmLabel={<Trans>Delete sub-space</Trans>}
           description={
             <Trans>
-              Members keep their accounts. Grants and budgets given to this team
-              go away with it.
+              Members keep their accounts. Grants and budgets given to this
+              sub-space go away with it.
             </Trans>
           }
           label={t`Delete ${name}`}
@@ -141,7 +142,7 @@ const CreateTeamForm = ({
   const create = useMutation(query.teams.create.mutationOptions());
   const { mutate } = create;
   const parents: readonly Option<string>[] = [
-    { label: t`Top level`, value: TOP_LEVEL },
+    { label: t`Directly in this space`, value: TOP_LEVEL },
     ...flattenTree(buildTeamTree(teams)).map((node) => ({
       label: `${"— ".repeat(node.depth)}${node.team.name}`,
       value: node.team.id,
@@ -176,7 +177,7 @@ const CreateTeamForm = ({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <Field className="flex-1">
             <FieldLabel htmlFor="team-name">
-              <Trans>Team name</Trans>
+              <Trans>Name</Trans>
             </FieldLabel>
             <Input id="team-name" maxLength={200} name="name" required />
           </Field>
@@ -192,12 +193,12 @@ const CreateTeamForm = ({
             />
           </Field>
           <Button disabled={create.isPending} type="submit">
-            <Trans>Create team</Trans>
+            <Trans>Create sub-space</Trans>
           </Button>
         </div>
         {failed ? (
           <FieldError>
-            <Trans>The team couldn't be created. Try again.</Trans>
+            <Trans>The sub-space couldn't be created. Try again.</Trans>
           </FieldError>
         ) : null}
       </FieldGroup>
@@ -251,12 +252,12 @@ export const TeamsAdmin = ({ orgId }: { readonly orgId: OrgId }) => {
                   <NetworkIcon />
                 </EmptyMedia>
                 <EmptyTitle>
-                  <Trans>No teams yet</Trans>
+                  <Trans>No sub-spaces yet</Trans>
                 </EmptyTitle>
                 <EmptyDescription>
                   <Trans>
-                    Teams group members for sharing, keys and budgets. Sub-teams
-                    inherit what their parent is given.
+                    Sub-spaces group members for sharing, keys and budgets. Each
+                    one inherits what the space above it is given.
                   </Trans>
                 </EmptyDescription>
               </EmptyHeader>
@@ -278,7 +279,10 @@ export const TeamsAdmin = ({ orgId }: { readonly orgId: OrgId }) => {
       {problem ? (
         <p className="text-destructive text-sm" role="alert">
           {problem === "not_empty" ? (
-            <Trans>That team has sub-teams. Delete or move them first.</Trans>
+            <Trans>
+              That sub-space has sub-spaces of its own. Delete or move them
+              first.
+            </Trans>
           ) : (
             <Trans>That change couldn't be saved. Try again.</Trans>
           )}
@@ -286,7 +290,7 @@ export const TeamsAdmin = ({ orgId }: { readonly orgId: OrgId }) => {
       ) : null}
       <section className="flex flex-col gap-3">
         <h2 className="font-medium">
-          <Trans>New team</Trans>
+          <Trans>New sub-space</Trans>
         </h2>
         <CreateTeamForm
           onCreated={refresh}

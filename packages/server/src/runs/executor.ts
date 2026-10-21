@@ -12,6 +12,7 @@ import type {
   TerminalRunStatus,
 } from "@workspace/ai/ports/run-executor";
 import { toolSources } from "@workspace/ai/rag/sources";
+import { chatTrace } from "@workspace/ai/telemetry/trace-context";
 import type {
   FileId,
   MessageId,
@@ -816,6 +817,7 @@ export const createInProcessExecutor = (
         timeoutMs: deps.timeoutMs,
         toolApproval: turn.value.toolApproval,
         tools: watchExecutions(turn.value.tools, executions),
+        trace: chatTrace({ ...run, userId: run.createdBy }),
         unavailableTools: turn.value.unavailableTools,
       });
       if (!agentRun.ok) {

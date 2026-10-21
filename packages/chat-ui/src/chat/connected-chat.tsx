@@ -213,6 +213,8 @@ export interface ConnectedChatProps {
     | "signals"
     | "top"
   >;
+  /** Each chat's space by name (187): `spaces` of `ChatSidebarProps`. */
+  readonly sidebarSpaces?: ChatSidebarProps["spaces"];
   /** Skills the caller can use (127), for the composer's + menu and `/`. */
   readonly skills?: readonly SkillOption[];
   /** What answers: a model or an agent. Omitted, the server's default does. */
@@ -1583,6 +1585,7 @@ export function ConnectedChat({
   sandboxClient,
   sendTarget,
   sidebarDots,
+  sidebarSpaces,
   skills,
   target = null,
   terms = defaultTerms,
@@ -2091,6 +2094,7 @@ export function ConnectedChat({
               libraryHref,
               onSelect: onNavigate,
               signals,
+              spaces: sidebarSpaces,
             }}
             streamingMessageId={streamingMessageId}
             workspace={{

@@ -5,6 +5,7 @@ import {
   microUsdSchema,
   orgIdSchema,
   pageInputSchema,
+  providerKeyIdSchema,
   runIdSchema,
   teamIdSchema,
   timestampSchema,
@@ -48,12 +49,35 @@ const principalQuery = {
   principalType: z.enum(["user", "team", "org"]),
 };
 
-export const usageSummaryInputSchema = z.object({
-  ...principalQuery,
-  from: timestampSchema,
-  groupBy: z.enum(["model", "user", "day", "kind"]).default("model"),
-  to: timestampSchema,
-});
+export const usageGroupBySchema = z.enum([
+  "model",
+  "user",
+  "day",
+  "kind",
+  "conversation",
+  "key",
+]);
+
+export const usageSummaryInputSchema = z
+  .object({
+    ...principalQuery,
+    from: timestampSchema,
+    groupBy: usageGroupBySchema.default("model"),
+    /** Only usage paid with this stored key. */
+    keyId: providerKeyIdSchema.optional(),
+    /** Only usage in this space and the spaces below it; give both or neither. */
+    spaceId: z.union([orgIdSchema, teamIdSchema]).optional(),
+    spaceType: z.enum(["org", "team"]).optional(),
+    to: timestampSchema,
+  })
+  .refine(
+    (input) =>
+      (input.spaceId === undefined) === (input.spaceType === undefined),
+    {
+      message: "`spaceId` and `spaceType` go together.",
+      path: ["spaceId"],
+    }
+  );
 
 export const usageSummarySchema = z.object({
   from: timestampSchema,
@@ -61,8 +85,19 @@ export const usageSummarySchema = z.object({
   rows: z.array(
     z.object({
       costMicros: microUsdSchema,
-      /** The group's key: a model ref, user id, ISO date or usage kind. */
+      /**
+       * The group's key: a model ref, user id, ISO date, usage kind,
+       * conversation id or provider key id. `""` groups usage outside any
+       * chat, or paid by the instance's keys.
+       */
       key: z.string(),
+      /** A readable name for the key, when it has one: a chat's title, a person's or a key's name. */
+      label: z.string().optional(),
+      /**
+       * The person's page in the trace viewer (Langfuse), for instance
+       * admins, when the instance names one. `user` groups only.
+       */
+      traceUrl: z.url().optional(),
       usage: tokenUsageSchema,
     })
   ),

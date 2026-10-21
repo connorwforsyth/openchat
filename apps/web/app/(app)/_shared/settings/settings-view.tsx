@@ -18,6 +18,7 @@ import {
   UserIcon,
   UsersIcon,
   WalletIcon,
+  ZapIcon,
 } from "@workspace/icons";
 import { ShortcutsEditor } from "@workspace/shortcuts/react/shortcuts-editor";
 import { Button } from "@workspace/ui/components/button";
@@ -52,6 +53,7 @@ import {
   SpaceMembers,
   SubSpaces,
 } from "./space-settings";
+import { UsageSettings } from "./usage-settings";
 
 // Settings as a full-screen view (185): while it's open the app sidebar is
 // replaced by the settings sidebar ("Back to app", then the sections) and the
@@ -120,6 +122,19 @@ const sectionInfo = (
         label: <Trans>Provider keys</Trans>,
         title: <Trans>Provider keys</Trans>,
       };
+    case "usage":
+      return {
+        content: <UsageSettings />,
+        description: (
+          <Trans>
+            Tokens and cost from this server's own records, by day, model, chat
+            and key.
+          </Trans>
+        ),
+        icon: <ZapIcon />,
+        label: <Trans>Usage</Trans>,
+        title: <Trans>Usage</Trans>,
+      };
     case "mcp": {
       // The configured name (191), a heading as given.
       const { label } = terms.mcp;
@@ -172,8 +187,8 @@ const sectionInfo = (
         content: <SpaceMembers />,
         description: (
           <Trans>
-            Who is in {name}. Owners add people from the space above and promote
-            them.
+            Who is in {name}. Owners and admins bring people in and set their
+            roles.
           </Trans>
         ),
         icon: <UsersIcon />,

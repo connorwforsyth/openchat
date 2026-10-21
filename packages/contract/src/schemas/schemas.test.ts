@@ -2175,13 +2175,32 @@ const cases: Record<string, Cases> = {
     ],
   },
   "usage.usageSummaryInputSchema": {
-    invalid: [{ from: t, principalId: uid, principalType: "user" }],
+    invalid: [
+      { from: t, principalId: uid, principalType: "user" },
+      {
+        from: t,
+        principalId: uid,
+        principalType: "user",
+        spaceId: teamEngineering.id,
+        to: t,
+      },
+    ],
     valid: [
       {
         from: t,
         groupBy: "day",
         principalId: org.id,
         principalType: "org",
+        to: t,
+      },
+      {
+        from: t,
+        groupBy: "conversation",
+        keyId: fixtureId("providerKey", 1),
+        principalId: uid,
+        principalType: "user",
+        spaceId: teamEngineering.id,
+        spaceType: "team",
         to: t,
       },
     ],
@@ -2198,6 +2217,13 @@ const cases: Record<string, Cases> = {
           {
             costMicros: 10,
             key: "anthropic:claude-opus-5-5",
+            usage: { inputTokens: 1, outputTokens: 1 },
+          },
+          {
+            costMicros: 4,
+            key: uid,
+            label: "Ada",
+            traceUrl: "https://langfuse.example/project/p1/users/u1",
             usage: { inputTokens: 1, outputTokens: 1 },
           },
         ],

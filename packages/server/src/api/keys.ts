@@ -9,12 +9,7 @@ import type {
 import type { AppConfig } from "@workspace/config/schema";
 import { contract } from "@workspace/contract/contract";
 import { baseErrors, encryptionError } from "@workspace/contract/errors";
-import type {
-  OrgId,
-  ProviderKeyId,
-  TeamId,
-  UserId,
-} from "@workspace/contract/schemas/common";
+import type { ProviderKeyId, UserId } from "@workspace/contract/schemas/common";
 import type { ProviderKey } from "@workspace/contract/schemas/keys";
 import type { Db } from "@workspace/db/client";
 import {
@@ -36,9 +31,8 @@ import { createRegistryVerifier, type VerifyKey } from "../keys/verify";
 import {
   administeredOrgs,
   administeredTeams,
-  administersTeam,
   isInstanceAdmin,
-  isOrgAdmin,
+  managesKeys,
 } from "./roles";
 
 // The `keys` procedure group (D17, D24): provider keys for users, teams and
@@ -115,20 +109,6 @@ export const createKeysRouter = (deps: KeysDeps) => {
     return next({ context: { userId: context.session.userId } });
   });
 
-  /** Whether the user may add, see, check or delete keys held by `scope`. */
-  const canManage = (userId: UserId, scope: KeyScopeRef): Promise<boolean> => {
-    switch (scope.type) {
-      case "user":
-        return Promise.resolve(scope.id === userId);
-      case "team":
-        return administersTeam(db, scope.id as TeamId, userId);
-      case "org":
-        return isOrgAdmin(db, scope.id as OrgId, userId);
-      default:
-        return scope.type satisfies never;
-    }
-  };
-
   /** Every stored scope the user manages, for `list` with no scope. */
   const managedScopes = async (userId: UserId): Promise<KeyScopeRef[]> => {
     const [teams, orgs] = await Promise.all([
@@ -154,7 +134,7 @@ export const createKeysRouter = (deps: KeysDeps) => {
     const found = await getProviderKey(db, id);
     if (found.ok) {
       const scope = { id: found.value.scopeId, type: found.value.scopeType };
-      if (await canManage(userId, scope)) {
+      if (await managesKeys(db, userId, scope)) {
         return { row: found.value, type: "database" };
       }
       throw notFound();
@@ -169,7 +149,7 @@ export const createKeysRouter = (deps: KeysDeps) => {
   const keys = {
     create: authed.keys.create.handler(async ({ context, input }) => {
       const scope: KeyScopeRef = input.scope;
-      if (!(await canManage(context.userId, scope))) {
+      if (!(await managesKeys(db, context.userId, scope))) {
         throw forbidden();
       }
       if (!config.providers[input.provider]) {
@@ -230,7 +210,7 @@ export const createKeysRouter = (deps: KeysDeps) => {
       const stored = async (scopes: readonly KeyScopeRef[]) =>
         (await listProviderKeysForScopes(db, scopes)).map(toProviderKey);
       const scoped = async (scope: KeyScopeRef) => {
-        if (!(await canManage(userId, scope))) {
+        if (!(await managesKeys(db, userId, scope))) {
           throw forbidden();
         }
         return stored([scope]);
