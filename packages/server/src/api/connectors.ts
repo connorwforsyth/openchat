@@ -1,11 +1,9 @@
 import { implement, ORPCError } from "@orpc/server";
 import { contract } from "@workspace/contract/contract";
-import type { McpHandlerError } from "@workspace/mcp/handlers";
 import { connectorHandlers, type McpDeps } from "@workspace/mcp/service";
-import type { Result } from "@workspace/shared/result";
 
 import type { RequestContext } from "../context";
-import { forbiddenError, notFoundError, validationError } from "./errors";
+import { unwrapMcp } from "./mcp";
 
 // The `connectors` group (184): the caller's merged view of the operator's
 // MCP catalog and their library, and the switch for each; and (188) each
@@ -22,22 +20,6 @@ export const createConnectorsRouter = (deps: McpDeps) => {
     return next({ context: { userId: context.session.userId } });
   });
 
-  const settle = <T>(result: Result<T, McpHandlerError>): T => {
-    if (result.ok) {
-      return result.value;
-    }
-    switch (result.error.code) {
-      case "NOT_FOUND":
-        throw notFoundError();
-      case "FORBIDDEN":
-        throw forbiddenError();
-      case "VALIDATION":
-        throw validationError(result.error.data.issues);
-      default:
-        return result.error satisfies never;
-    }
-  };
-
   return os.router({
     connectors: {
       list: authed.connectors.list.handler(({ context, input }) =>
@@ -45,20 +27,22 @@ export const createConnectorsRouter = (deps: McpDeps) => {
       ),
       resetConversation: authed.connectors.resetConversation.handler(
         async ({ context, input }) =>
-          settle(
+          unwrapMcp(
             await connectorHandlers.resetConversation(deps, context, input)
           )
       ),
       setEnabled: authed.connectors.setEnabled.handler(
         async ({ context, input }) =>
-          settle(await connectorHandlers.setEnabled(deps, context, input))
+          unwrapMcp(await connectorHandlers.setEnabled(deps, context, input))
       ),
       setToolEnabled: authed.connectors.setToolEnabled.handler(
         async ({ context, input }) =>
-          settle(await connectorHandlers.setToolEnabled(deps, context, input))
+          unwrapMcp(
+            await connectorHandlers.setToolEnabled(deps, context, input)
+          )
       ),
       tools: authed.connectors.tools.handler(async ({ context, input }) =>
-        settle(await connectorHandlers.tools(deps, context, input))
+        unwrapMcp(await connectorHandlers.tools(deps, context, input))
       ),
     },
   });
