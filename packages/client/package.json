@@ -21,10 +21,8 @@
     "@tanstack/react-query": "catalog:",
     "@workspace/ai": "workspace:*",
     "@workspace/contract": "workspace:*",
-    "@workspace/shared": "workspace:*",
     "ai": "catalog:",
-    "react": "catalog:",
-    "zod": "catalog:"
+    "react": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",
