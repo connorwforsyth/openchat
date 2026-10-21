@@ -92,11 +92,11 @@ export interface DotDeps extends ScheduleDeps {
 const iso = (date: Date | null): string | null =>
   date ? date.toISOString() : null;
 
-export const toDotLastRun = (row: ScheduleRunView): DotLastRun => {
+/** `null` for a row that isn't a run (see `toScheduleRun`). */
+export const toDotLastRun = (row: ScheduleRunView): DotLastRun | null => {
   const run = toScheduleRun(row);
-  // Dot activity joins the run row, so a skipped slot never shows here.
-  if (run.outcome === "skipped") {
-    throw new Error(`dot_run ${row.id} is a skipped slot, not a Dot run`);
+  if (!run || run.outcome === "skipped") {
+    return null;
   }
   return {
     error: run.error,
@@ -310,7 +310,7 @@ export const listDotActivity = async (
     return err({ type: "not_found" });
   }
   const rows = await listDotRuns(db, dot.id, input.limit);
-  return ok(rows.map(toDotLastRun));
+  return ok(rows.flatMap((row) => toDotLastRun(row) ?? []));
 };
 
 /** The Dot's schedules, for its own `manage_scheduled_tasks` tool. */

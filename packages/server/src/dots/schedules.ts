@@ -128,7 +128,12 @@ const iso = (date: Date | null): string | null =>
 
 const RUN_ERROR_MESSAGE = "The run failed.";
 
-export const toScheduleRun = (row: ScheduleRunView): ScheduleRun => {
+/**
+ * A history row as the contract shows it, or `null` for one that is
+ * neither a run nor a skipped slot. The `dot_run_shape` check stops new
+ * ones; one written before it is left out of the list rather than failing it.
+ */
+export const toScheduleRun = (row: ScheduleRunView): ScheduleRun | null => {
   const fields = {
     conversationId: row.conversationId,
     createdAt: row.createdAt.toISOString(),
@@ -147,7 +152,7 @@ export const toScheduleRun = (row: ScheduleRunView): ScheduleRun => {
     return { ...fields, outcome: "skipped", skipReason: row.skipReason };
   }
   if (row.outcome === "skipped" || !row.runId || !row.status) {
-    throw new Error(`dot_run ${row.id} is neither a run nor a skipped slot`);
+    return null;
   }
   return {
     ...fields,
@@ -463,7 +468,7 @@ export const listRunsFor = async (
     input.limit,
     input.before ? new Date(input.before) : undefined
   );
-  return ok(rows.map(toScheduleRun));
+  return ok(rows.flatMap((row) => toScheduleRun(row) ?? []));
 };
 
 export const markRunsRead = async (
