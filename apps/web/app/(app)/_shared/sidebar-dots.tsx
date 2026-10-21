@@ -13,10 +13,9 @@ import { cn } from "@workspace/ui/lib/utils";
 import { useMemo } from "react";
 
 import { useApi } from "@/app/(app)/_shared/api";
+import { DotAvatar } from "@/app/(app)/(pages)/dots/dot-avatar";
+import { DOTS_REFRESH_MS } from "@/app/(app)/(pages)/dots/dot-home";
 import { routes } from "@/lib/routes";
-
-import { DotAvatar } from "./dot-avatar";
-import { DOTS_REFRESH_MS } from "./dot-home";
 
 // Your Dot in the sidebar (172, 181): one row under the actions, like
 // ChatGPT's "Your dot": its face, its name, its next scheduled run, an
