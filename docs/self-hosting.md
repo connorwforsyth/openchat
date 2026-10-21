@@ -122,9 +122,10 @@ TRUSTED_ORIGINS=https://chat.example.org, http://192.168.1.20:3000
 ### Sign in with Microsoft (Entra ID)
 
 A "Continue with Microsoft" button for work, school or personal Microsoft
-accounts, through Better Auth's built-in Microsoft provider. Each sign-in
-updates the person's email from the directory and copies their profile
-photo from Microsoft Graph into the app's storage (`avatars/`). The name
+accounts, through Better Auth's built-in Microsoft provider. The account
+takes its email from the directory when it's made. Each sign-in copies the
+person's profile photo from Microsoft Graph into the app's storage
+(`avatars/`). The name
 and photo follow the directory until the person changes them here; after
 that, their own choice stays. Microsoft's tokens are used for that one
 photo request and never saved.
@@ -178,14 +179,17 @@ auth:
   admin). With it, any allowed account gets one, so it needs a pinned
   tenant.
 - An invitation, or `signup: domain`, matches a Microsoft account's email
-  only from a pinned tenant, or when the token marks the email verified
-  (add the `verified_primary_email` optional claim in the app
-  registration's **Token configuration**).
+  only from a pinned tenant, or when the token marks the email verified.
+  Three ID token claims count: `email_verified`, `verified_primary_email`
+  or `verified_secondary_email` listing the email, and `xms_edov` (the
+  tenant has verified the email's domain). Add `verified_primary_email` or
+  `xms_edov` as an optional claim in the app registration's **Token
+  configuration**. Nothing else in the token counts.
 - `signup: sso` counts Microsoft as single sign-on once the tenant is
   pinned.
-- Each sign-in copies the email from the directory. If another account here
-  already has that email, the sign-in is refused with
-  `microsoft_email_in_use` until an admin changes one of them.
+- A later change to the directory's email doesn't move the account's. A
+  changed directory email could otherwise take an address someone else
+  here hasn't signed up with yet.
 - `photo.maxBytes` (default 1 MiB) skips larger photos; `photo.enabled:
   false` skips them altogether. No photo, or a failed photo request, never
   stops a sign-in. When Microsoft no longer has a photo, the copy the app
