@@ -12,7 +12,12 @@ import type { RunId } from "@workspace/contract/schemas/common";
 import type { Db } from "@workspace/db/client";
 import { createConversation } from "@workspace/db/queries/conversations";
 import { insertMessage } from "@workspace/db/queries/messages";
-import { createRun, getRun, type RunRow } from "@workspace/db/queries/runs";
+import {
+  createRun,
+  getRun,
+  type RunRow,
+  readRunChunks,
+} from "@workspace/db/queries/runs";
 import {
   createTestDb,
   expectOk,
@@ -197,9 +202,13 @@ const setup = async () => {
   const turns: Turn[] = [];
   const settled: RunId[] = [];
   const channel = createPostgresStreamChannel({ db });
+  const stream: { down: boolean } = { down: false };
   const writer: RunStreamWriter = {
     append: async (runId, payload) => {
       await holds.pass("append");
+      if (stream.down) {
+        throw new Error("the stream is down");
+      }
       return channel.append(runId, payload);
     },
     close: (runId, status: TerminalRunStatus) => channel.close(runId, status),
@@ -241,6 +250,9 @@ const setup = async () => {
     return created.run;
   };
   return {
+    /** The run's stream as a client replays it. */
+    chunksOf: async (run: RunRow) =>
+      (await readRunChunks(db, run.id)).map((chunk) => chunk.payload),
     executor,
     /** Scripts a pass that answers until the test finishes it. */
     open: () => {
@@ -254,6 +266,8 @@ const setup = async () => {
     settled,
     start: (run: RunRow) => executor.start(runStartFromRow(run)),
     statusOf: async (run: RunRow) => expectOk(await getRun(db, run.id)).status,
+    /** Writes to the stream throw while it's down. */
+    stream,
     turns,
   };
 };
@@ -324,5 +338,133 @@ describe("a run started twice at once", () => {
 
     expect(execute).toHaveBeenCalledOnce();
     expect(await chat.statusOf(run)).toBe("succeeded");
+  });
+});
+
+describe("Stop on a run that is starting", () => {
+  it("stops the pass that claimed it, and settles the run once", async () => {
+    const chat = await setup();
+    const run = await chat.queue();
+    const answer = chat.open();
+    // Stop reads the run queued with nothing executing it, then the run is
+    // claimed before Stop's cancel commits.
+    const cancelling = holds.next("transaction");
+    const stopping = chat.executor.cancel(run.id, chat.ownerId);
+    await cancelling.reached;
+    await chat.start(run);
+    await answer.answering;
+    cancelling.release();
+    expect(await stopping).toEqual(ok(undefined));
+
+    expect(answer.signal()?.aborted).toBe(true);
+    answer.finish();
+    await chat.executor.idle();
+    expect(await chat.statusOf(run)).toBe("cancelled");
+    expect(chat.settled.filter((id) => id === run.id)).toHaveLength(1);
+  });
+});
+
+describe("Stop on the approval card as a decision lands", () => {
+  it("runs nothing after Stop: not the approved call, not the model", async () => {
+    const chat = await setup();
+    const run = await chat.queue();
+    const { after, execute, turns } = writeTurns();
+    chat.turns.push(...turns);
+    await chat.start(run);
+    await chat.executor.idle();
+    expect(await chat.statusOf(run)).toBe("awaiting_approval");
+
+    // Stop reads the run waiting on the card; the decision resumes it before
+    // Stop's cancel commits, and starts its pass after.
+    const cancelling = holds.next("transaction");
+    const stopping = chat.executor.cancel(run.id, chat.ownerId);
+    await cancelling.reached;
+    const announcing = holds.next("append");
+    const deciding = chat.executor.submitApprovals(
+      run.id,
+      approveA,
+      chat.ownerId
+    );
+    await announcing.reached;
+    cancelling.release();
+    expect(await stopping).toEqual(ok(undefined));
+    announcing.release();
+    await deciding;
+    await chat.executor.idle();
+
+    expect(execute).not.toHaveBeenCalled();
+    expect(after.doStreamCalls).toHaveLength(0);
+    expect(await chat.statusOf(run)).toBe("cancelled");
+    expect(chat.settled.filter((id) => id === run.id)).toHaveLength(1);
+  });
+});
+
+describe("Stop on the approval card as a decision lands, on the stream", () => {
+  it("never shows the card stopped ahead of the decision that beat Stop", async () => {
+    const chat = await setup();
+    const run = await chat.queue();
+    const { turns } = writeTurns();
+    chat.turns.push(...turns);
+    await chat.start(run);
+    await chat.executor.idle();
+
+    const cancelling = holds.next("transaction");
+    const stopping = chat.executor.cancel(run.id, chat.ownerId);
+    await cancelling.reached;
+    const announcing = holds.next("append");
+    const deciding = chat.executor.submitApprovals(
+      run.id,
+      approveA,
+      chat.ownerId
+    );
+    await announcing.reached;
+    cancelling.release();
+    await stopping;
+    announcing.release();
+    await deciding;
+    await chat.executor.idle();
+
+    const chunks = await chat.chunksOf(run);
+    const decided = chunks.findIndex(
+      (chunk) =>
+        typeof chunk === "object" &&
+        chunk !== null &&
+        "type" in chunk &&
+        chunk.type === "tool-approval-response"
+    );
+    expect(decided).toBeGreaterThan(-1);
+    expect(chunks.slice(0, decided)).not.toContainEqual(
+      expect.objectContaining({
+        toolCallId: "call-a",
+        type: "tool-output-error",
+      })
+    );
+  });
+});
+
+describe("Stop on a run whose pass crashed", () => {
+  it("ends the run and starts the turn queued behind it", async () => {
+    const chat = await setup();
+    const run = await chat.queue();
+    const next = await chat.queue(run);
+    // No turn is scripted, so the pass throws; with the stream down,
+    // failing the run throws too, and the run is left running.
+    chat.stream.down = true;
+    await chat.start(run);
+    await chat.executor.idle();
+    chat.stream.down = false;
+    expect(await chat.statusOf(run)).toBe("running");
+    await chat.start(next);
+    chat.turns.push(
+      turnWith(new MockLanguageModelV4({ doStream: textStream("Hi.") }))
+    );
+
+    expect(await chat.executor.cancel(run.id, chat.ownerId)).toEqual(
+      ok(undefined)
+    );
+    await chat.executor.idle();
+    expect(await chat.statusOf(run)).toBe("cancelled");
+    expect(chat.settled.filter((id) => id === run.id)).toHaveLength(1);
+    expect(await chat.statusOf(next)).toBe("succeeded");
   });
 });
