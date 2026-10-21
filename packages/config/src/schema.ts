@@ -143,8 +143,18 @@ const brandSchema = z
       )
       .nullable()
       .default(null),
+    // Files are SVG, PNG or JPEG, relative to this file (brand.ts serves them).
+    /** The square mark for the tab, home-screen and app icons; else the logo. */
     favicon: z.string().min(1).nullable().default(null),
+    /**
+     * The colour behind the mark on home-screen icons, which can't be
+     * transparent. A `currentColor` mark is white on it.
+     */
+    iconBackground: z.string().min(1).default("black"),
+    /** The mark beside the name in the app; `currentColor` follows the theme. */
     logo: z.string().min(1).nullable().default(null),
+    /** The logo on dark themes, when its own colours don't read there. */
+    logoDark: z.string().min(1).nullable().default(null),
     name: z.string().trim().min(1).max(60).default("Chat"),
     /** Deep-link scheme for desktop and mobile (`<scheme>://`). */
     urlScheme: z
