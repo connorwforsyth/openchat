@@ -17,23 +17,20 @@ import { parseModelRef } from "@workspace/contract/schemas/models";
 import type { Db } from "@workspace/db/client";
 import type { StoredContext } from "@workspace/db/queries/conversations";
 import { personalOrgOf } from "@workspace/db/queries/teams";
-import {
-  budgetStatuses,
-  exceededBudgets,
-  recordTransaction,
-} from "@workspace/db/queries/usage";
+import { recordTransaction } from "@workspace/db/queries/usage";
 import { err } from "@workspace/shared/result";
 import type { Tool, ToolApprovalStatus } from "ai";
 
 import { dbArtifactStore } from "../api/artifacts-context";
-import { chargedBy } from "./chat-context";
+import { budgetCheck, chargedBy } from "./chat-context";
 import type { TurnSandbox } from "./sandbox";
 
 // `generate_image` in a turn (138): the tool is offered only when the
 // instance has an image model this chat's keys can pay for (D17). Its
 // pictures go into the chat's workspace and its artifacts, what it costs is
-// recorded like any model call (so budgets see it), and a spent hard
-// budget stops it before anything is drawn. It asks first unless
+// recorded like any model call (so budgets see it), and the same spend
+// check a run gets (a spent hard budget, a used-up space allowance) stops
+// it before anything is drawn. It asks first unless
 // `models.image.approval` is `auto`.
 
 /** What the shell gives a turn for images: the built registry's image half. */
@@ -144,17 +141,12 @@ export const chatImageTools = async (
       );
     },
     withinBudget: async () => {
-      const who = await charged();
-      if (!who) {
+      const context = await storedContextOf(db, run);
+      if (!context) {
         return true;
       }
-      const statuses = await budgetStatuses(
-        db,
-        who.by.orgId,
-        who.by.principals,
-        now()
-      );
-      return !exceededBudgets(statuses).some((status) => status.hard);
+      const check = budgetCheck(db, now);
+      return (await check({ userId: run.createdBy }, context)).ok;
     },
     ...(sandbox ? { workspace: workspaceOf(sandbox) } : {}),
   };
