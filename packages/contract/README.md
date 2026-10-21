@@ -13,7 +13,7 @@ before `pstack/schedules-contract-impl` (the server and web side) can merge.
 | Change | Who needs it | Compatibility |
 |---|---|---|
 | `dots.createSchedule`, `dots.updateSchedule` and `dots.deleteSchedule`, with `dotScheduleSchema`, `DotSchedule`, `createDotScheduleInputSchema` and `updateDotScheduleInputSchema`, are deleted. `Dot.schedules` is `Schedule[]`. | Nobody: no client called them, and `schedules.*` replaces them | Breaking for the server, which drops their handlers. |
-| `ScheduleRun` is a union on `outcome`: a run (`runId` and `status` set, `outcome` `null` while it's going) or a `skipped` slot (`skipReason` set, no run fields). | The schedules page's run history | Breaking for TypeScript readers, who narrow on `outcome`. The wire shape of well-formed runs is the same. |
+| `ScheduleRun` is a union on `outcome`: a run (`runId` and `status` set, `outcome` `null` while it's going) or a `skipped` slot (`skipReason` set, no run fields). | The schedules page's run history | Breaking for TypeScript readers, who narrow on `outcome`, and on the wire: a run no longer sends `skipReason`, and a skipped slot no longer sends `error`, `finishedAt`, `runId`, `status` or `summary`. Each of those was always `null` there. |
 | `CONFLICT` reasons `schedule_completed` and `target_archived`, which `schedules.resume` returns (it returned `already_exists`). | The schedules page's Resume button | Additive. |
 | An unparseable cron or unsupported RRULE is documented as `VALIDATION` (422), which the server already returns, not `BAD_REQUEST`. | Clients mapping errors to fields | Docs only. |
 
