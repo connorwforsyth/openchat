@@ -19,8 +19,10 @@ EXTENDS Naturals, FiniteSets, Sequences, TLC
 \* them (a new branch); FALSE makes every turn a reply at the end of the
 \* branch, after the newest run's last message. StopTargets: the statuses a
 \* run may be in when Stop reads it (every unfinished status, or fewer to
-\* look at one race on its own).
-CONSTANTS NRuns, NStops, NDecides, MaxPauses, AnyAnchor, StopTargets
+\* look at one race on its own). MaxCrashes: how many passes may throw and
+\* fail to fail their run (failEarly throwing too), leaving it running.
+CONSTANTS NRuns, NStops, NDecides, MaxPauses, MaxCrashes, AnyAnchor,
+          StopTargets
 
 Runs == 1..NRuns
 NoRun == 0
@@ -38,13 +40,15 @@ From == [start |-> {"queued"},
          resume |-> {"awaiting_approval"},
          succeed |-> {"running"},
          fail |-> {"queued", "running", "awaiting_approval"},
-         cancel |-> {"queued", "running", "awaiting_approval"}]
+         cancel |-> {"queued", "awaiting_approval"},
+         abort |-> {"running"}]
 Target == [start |-> "running",
            await_approval |-> "awaiting_approval",
            resume |-> "running",
            succeed |-> "succeeded",
            fail |-> "failed",
-           cancel |-> "cancelled"]
+           cancel |-> "cancelled",
+           abort |-> "cancelled"]
 
 SendIds == {<<"send", r>> : r \in Runs}
 PassIds == {<<"pass", r>> : r \in Runs}
@@ -115,9 +119,12 @@ variables
   spawned = [r \in Runs |-> {}],           \* passes started, loop not finished
   ended = {},                              \* passes whose tracked promise settled
   pauses = 0,                              \* approval pauses so far (bounded)
+  crashes = 0,                             \* passes that crashed (bounded)
   \* Ghosts, for the properties only.
   ansAbove = [r \in Runs |-> {}],          \* answers above this turn's message
-  settled = [r \in Runs |-> 0];            \* onSettled calls per run
+  settled = [r \in Runs |-> 0],            \* onSettled calls per run
+  begun = {},                              \* controllers whose agent loop began
+  stoppedEarly = {};                       \* aborted before their loop began
 
 \* execute()'s `finally` (release: active.delete if it is still this pass's
 \* controller) and track()'s (running.delete if it is still this pass), and
@@ -219,137 +226,169 @@ W_Insert:
 end process;
 
 \* One pass of a run: execute() then settle() in executor.ts. A pass starts
-\* when track() is called (`spawned`) and is in its agent loop until P_Loop.
+\* when track() is called (`spawned`), begins its agent loop at P_Begin, and
+\* leaves it at P_Loop.
 process Pass \in PassIds
 variables ctl = NoCtl, outcome = "none";
 begin
-P_Loop:
-  \* execute(): loadBranch, resolveTurn, runAgent (model and tool calls),
-  \* pipeToStream, outcomeOf. An aborted signal may end it cancelled.
-  \* (A failed pass lands like a succeeded one here, so it is left out.)
+P_Begin:
+  \* execute(): loadBranch, resolveTurn, setRunResolvedModel,
+  \* attachmentsForModel; then `controller.signal.aborted` -> settle as
+  \* cancelled without calling runAgent. Else runAgent: the agent loop
+  \* begins (model calls, and the calls a decision approved). One step:
+  \* until the SDK executes approved calls it awaits only local work, so
+  \* no other request runs between the check and them (SKILL.md, Bounds).
   await spawned[R(self)] # {};
   with c \in spawned[R(self)] do
     ctl := c;
-    spawned[R(self)] := spawned[R(self)] \ {c};
-    either
-      outcome := "succeed";
-    or
-      await pauses < MaxPauses;
-      pauses := pauses + 1;
-      outcome := "await_approval";
-    or
-      await c \in aborted;
-      outcome := "cancel";
-    end either;
   end with;
+  if ctl \in aborted then
+    spawned[R(self)] := spawned[R(self)] \ {ctl};
+    outcome := "abort";
+    goto P_Settle;
+  else
+    begun := begun \cup {ctl};
+  end if;
+P_Loop:
+  \* runAgent's loop, pipeToStream, outcomeOf. An aborted signal may end it
+  \* cancelled. (A failed pass lands like a succeeded one here, so it is
+  \* left out.)
+  spawned[R(self)] := spawned[R(self)] \ {ctl};
+  either
+    outcome := "succeed";
+  or
+    await pauses < MaxPauses;
+    pauses := pauses + 1;
+    outcome := "await_approval";
+  or
+    await ctl \in aborted;
+    outcome := "abort";
+  or
+    \* The pass throws, and execute's catch can't fail the run either
+    \* (failEarly throws): the finally runs with the run still running.
+    await crashes < MaxCrashes;
+    crashes := crashes + 1;
+    passFinally(R(self), ctl);
+    goto P_Begin;
+  end either;
 P_Settle:
   \* settle(): `transition(run.runId, landing(...))`. Awaiting approval:
   \* return, and execute's finally runs in the same tick. Terminal:
-  \* finishTerminal. Lost the compare-and-set: settleLostRace.
+  \* finishTerminal. Lost the compare-and-set: `report`, then the finally.
   await ~locked[R(self)];
   if status[R(self)] \in From[outcome] then
     status[R(self)] := Target[outcome];
     if outcome = "await_approval" then
       passFinally(R(self), ctl);
-      goto P_Loop;
+      goto P_Begin;
     else
       call finishTerminal(R(self), ctl);
-      goto P_Loop;
+      goto P_Begin;
     end if;
   else
-    goto P_Lost;
-  end if;
-P_Lost:
-  \* settleLostRace: `getRun(db, runId)`, then finishTerminal(current),
-  \* which returns at once unless the run is terminal.
-  if status[R(self)] \in Terminal then
-    call finishTerminal(R(self), ctl);
-    goto P_Loop;
-  else
     passFinally(R(self), ctl);
-    goto P_Loop;
+    goto P_Begin;
   end if;
 end process;
 
 \* Stop: executor.cancel(runId, by) in executor.ts (POST /api/runs/:id/cancel,
 \* and createRun's moveOnFromWaiting).
 process Stop \in StopIds
-variables tgt = NoRun, rowSt = "none", rowAfter = NoRun, waitFor = NoCtl;
+variables tgt = NoRun, rowSt = "none", waitFor = NoCtl, behind = <<>>,
+          nextRun = NoRun;
 begin
 K_Read:
-  \* `getRun(db, runId)`. Then abortPass(): `active.get(runId)` ->
-  \* `controller.abort()`, `await running.get(runId)`. No controller ->
-  \* cancelIdle(row, by). (A Stop on a run that has ended or doesn't exist
-  \* changes nothing, so the model lets it not come at all.)
+  \* `getRun(db, runId)`, then the first look. (A Stop on a run that has
+  \* ended or doesn't exist changes nothing, so the model lets it not come
+  \* at all.)
   either
     with r \in {x \in Runs : status[x] \in ActiveSt \cap StopTargets} do
       tgt := r;
       rowSt := status[r];
-      rowAfter := after[r];
     end with;
     if active[tgt] # NoCtl then
+      \* abortPass(): `active.get(runId)` -> `controller.abort()`, then
+      \* `await running.get(runId)`.
       aborted := aborted \cup {active[tgt]};
+      stoppedEarly := stoppedEarly \cup ({active[tgt]} \ begun);
       waitFor := running[tgt];
-      goto K_After;
+      goto K_Wait;
     else
       goto K_Idle;
     end if;
   or
     goto Done;
   end either;
-K_After:
-  \* abortPass returned true: `after = getRun(db, runId)`; still awaiting
-  \* approval with nothing in `active` -> cancelIdle(after.value, by).
+K_Wait:
+  \* abortPass returned true; then `active.get(runId)?.signal.aborted`: a
+  \* pass Stop aborted before it started holds the run -> return.
   await waitFor = NoCtl \/ waitFor \in ended;
-  if status[tgt] = "awaiting_approval" /\ active[tgt] = NoCtl then
-    rowSt := status[tgt];
-    rowAfter := after[tgt];
-    goto K_Idle;
-  else
+  if active[tgt] \in aborted then
     goto Done;
+  else
+    goto K_Again;
   end if;
 K_Idle:
-  \* cancelIdle(row, by): one transaction runs transitionRun(cancel) and
-  \* stores the interrupted parts. `!moved.ok` -> returns false.
+  \* cancelIdle(row, by): one transaction locks the run (lockRun), runs
+  \* transitionRun(abort) if it is running with nothing in `active` (its
+  \* pass crashed), else transitionRun(cancel), and stores the interrupted
+  \* parts. `!moved.ok` -> returns false; then the `signal.aborted` check.
   await ~locked[tgt];
-  if status[tgt] \in From.cancel then
+  if status[tgt] = "running" /\ active[tgt] = NoCtl then
+    status[tgt] := Target.abort;
+    call finishTerminal(tgt, NoCtl);
+    goto Done;
+  elsif status[tgt] \in From.cancel then
     status[tgt] := Target.cancel;
-    if rowSt = "queued" /\ rowAfter # NoRun then
-      goto K_Ahead;
+    if rowSt = "queued" /\ after[tgt] # NoRun then
+      goto K_Requeue;
     else
       call finishTerminal(tgt, NoCtl);
       goto Done;
     end if;
-  else
-    goto K_Abort2;
-  end if;
-K_Ahead:
-  \* cancelIdle: `getRun(db, row.afterRunId)`; not terminal -> requeueAfter
-  if status[rowAfter] \notin Terminal then
-    goto K_Requeue;
-  else
-    call finishTerminal(tgt, NoCtl);
+  elsif active[tgt] \in aborted then
     goto Done;
+  else
+    goto K_Again;
   end if;
 K_Requeue:
-  \* cancelIdle: `requeueAfter(db, row.id, ahead.value.id)`, then
-  \* finishTerminal(cancelled)
+  \* cancelIdle: `requeueAfter(db, cancelled.id, cancelled.afterRunId)`:
+  \* the runs queued behind it now wait on the run ahead.
+  \* Then finishTerminal(cancelled).
+  behind := ByCreated({x \in Runs : after[x] = tgt /\ status[x] = "queued"},
+                     createdAt);
   after := [x \in Runs |->
-              IF after[x] = tgt /\ status[x] = "queued" THEN rowAfter
+              IF after[x] = tgt /\ status[x] = "queued" THEN after[tgt]
               ELSE after[x]];
   call finishTerminal(tgt, NoCtl);
-  goto Done;
-K_Abort2:
-  \* cancelIdle returned false: `abortPass()` again ("a decision resumed it
-  \* between the two looks")
-  if active[tgt] # NoCtl then
-    aborted := aborted \cup {active[tgt]};
-    waitFor := running[tgt];
-  else
+  goto K_Promote;
+K_Promote:
+  \* cancelIdle: startEach(moved): `startRun` for each in order, which
+  \* claims one whose run ahead has ended.
+  if behind = <<>> then
     goto Done;
+  else
+    nextRun := Head(behind);
+    behind := Tail(behind);
+    call startRun(nextRun);
+    goto K_Promote;
   end if;
-K_Wait2:
-  await waitFor = NoCtl \/ waitFor \in ended;
+K_Again:
+  \* The look lost: `getRun(db, runId)` again; ended -> return. Else the
+  \* next look, as in K_Read.
+  if status[tgt] \in Terminal then
+    goto Done;
+  else
+    rowSt := status[tgt];
+    if active[tgt] # NoCtl then
+      aborted := aborted \cup {active[tgt]};
+      stoppedEarly := stoppedEarly \cup ({active[tgt]} \ begun);
+      waitFor := running[tgt];
+      goto K_Wait;
+    else
+      goto K_Idle;
+    end if;
+  end if;
 end process;
 
 \* An approval decision: submitApprovals(runId, decisions, by) in executor.ts.
@@ -397,8 +436,8 @@ end algorithm; *)
 -----------------------------------------------------------------------------
 (* Properties. Each is one sentence in SKILL.md, with the harm it guards.  *)
 
-\* A pass is in its agent loop (calling the model, running tools) from
-\* track() until its loop finishes.
+\* A pass is executing (calling the model, running tools) from track()
+\* until its agent loop finishes.
 InLoop(r) == spawned[r] # {}
 
 \* Once a run has ended (or paused), nothing is still running the model or
@@ -408,6 +447,18 @@ EndedRunsAreIdle == \A r \in Runs : InLoop(r) => status[r] = "running"
 \* While a pass is in its agent loop, `active` holds that pass's controller,
 \* so Stop (abortPass) can abort it.
 StopReachesPass == \A r \in Runs : \A c \in spawned[r] : active[r] = c
+
+\* A pass Stop aborted before its agent loop began never begins it: no model
+\* call, and no call a decision approved runs.
+NoLoopAfterStop == begun \cap stoppedEarly = {}
+
+\* Once a Stop has returned, its run has ended, or the controller in
+\* `active` for it is one Stop aborted.
+StopTakesEffect ==
+  \A k \in StopIds :
+    (pc[k] = "Done" /\ tgt[k] # NoRun) =>
+      \/ status[tgt[k]] \in Terminal
+      \/ active[tgt[k]] \in aborted
 
 \* No turn runs while an answer above it on its branch is still being written.
 OneRunPerBranch ==
@@ -420,7 +471,7 @@ OneRunPerBranch ==
 Requests == SendIds \cup StopIds \cup DecideIds
 Quiet ==
   /\ \A p \in Requests : pc[p] = "Done"
-  /\ \A r \in Runs : spawned[r] = {} /\ pc[<<"pass", r>>] = "P_Loop"
+  /\ \A r \in Runs : spawned[r] = {} /\ pc[<<"pass", r>>] = "P_Begin"
 NoStuckRun ==
   Quiet =>
     \A r \in Runs :
@@ -445,33 +496,37 @@ LiveCtls == UNION {spawned[r] : r \in Runs}
 Locals ==
   << [p \in SendIds |-> IF pc[p] = "Done" THEN <<>> ELSE tail[p]],
      [p \in PassIds |->
-        IF pc[p] = "P_Loop" THEN <<>> ELSE <<ctl[p], outcome[p]>>],
+        IF pc[p] = "P_Begin" THEN <<>> ELSE <<ctl[p], outcome[p]>>],
      [p \in StopIds |->
         IF pc[p] = "Done" THEN <<>>
-        ELSE <<tgt[p], rowSt[p], rowAfter[p], waitFor[p]>>],
+        ELSE <<tgt[p], rowSt[p], waitFor[p], behind[p], nextRun[p]>>],
      [p \in DecideIds |->
         IF pc[p] = "Done" THEN <<>> ELSE <<dtgt[p], dctl[p], resumed[p]>>] >>
 View ==
   << status, after, createdAt, hasAnswer, locked, active, running,
      aborted \cap LiveCtls, ended \cap {waitFor[p] : p \in StopIds},
-     spawned, pauses, pc, stack, sr, srAfter, fr, fctl, queue, cur,
-     Locals >>
+     spawned, pauses, crashes, pc, stack, sr, srAfter, fr, fctl, queue, cur,
+     begun \cap LiveCtls, stoppedEarly \cap LiveCtls, Locals >>
 \* OneRunPerBranch reads the message-tree ghost.
 ViewBranch ==
   << View, ansAbove,
      [p \in SendIds |-> IF pc[p] = "Done" THEN <<>> ELSE parent[p]] >>
 \* SettledOnce reads the end-hook ghost.
 ViewSettled == << View, settled >>
+\* StopTakesEffect reads which run each finished Stop was for.
+ViewStopped == << View, [p \in StopIds |-> tgt[p]] >>
 \* Every property at once.
 ViewAll == << ViewBranch, settled >>
 
 \* Each run's end hook (usage, title and prune jobs) fires at most once.
 SettledOnce == \A r \in Runs : settled[r] <= 1
 
-\* At most one pass of a run executes at a time.
+\* At most one pass of a run executes at a time. (A pass in P_Loop still
+\* has its controller in `spawned`.)
 OnePassPerRun ==
   \A r \in Runs :
-    Cardinality(spawned[r]) + (IF pc[<<"pass", r>>] = "P_Loop" THEN 0 ELSE 1)
+    Cardinality(spawned[r])
+      + (IF pc[<<"pass", r>>] \in {"P_Begin", "P_Loop"} THEN 0 ELSE 1)
       <= 1
 
 =============================================================================
