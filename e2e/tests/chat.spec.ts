@@ -11,6 +11,7 @@ import {
   sendButton,
   userMessages,
 } from "../support/chat";
+import { PALETTE_KEY } from "../support/keys";
 import { recordBootTimings } from "../support/timings";
 import { CHAT_URL } from "../support/urls";
 import { storageStateFor } from "../support/users";
@@ -250,9 +251,12 @@ test("editing a message starts a branch; the original stays reachable", async ({
 test("⌘K finds a chat by what was said in it", async ({ page }) => {
   await page.goto("/");
   await expect(composer(page)).toBeEditable();
-  await page.keyboard.press("ControlOrMeta+K");
   const search = page.getByPlaceholder("Search or type a command…");
-  await expect(search).toBeVisible();
+  // The palette owns ⌘K and loads after boot (composer:ready on chat pages).
+  await expect(async () => {
+    await page.keyboard.press(PALETTE_KEY);
+    await expect(search).toBeVisible({ timeout: 1000 });
+  }).toPass();
   // A word from the first chat's message (not its title): server full text.
   await search.fill("zebracorn");
   const hit = page.getByRole("option", { name: "Topic Hello zebracorn alpha" });
