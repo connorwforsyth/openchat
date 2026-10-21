@@ -53,6 +53,10 @@ What happens on the first start:
 - The `web` image builds from the repo (a few minutes the first time).
 - `web` waits for Postgres to be healthy, then applies the database
   migrations itself (under a lock, so several replicas migrate once).
+- Run one `web` per database. Chat runs execute in the process that
+  started them, and Stop and restart recovery read that process's memory.
+  A second replica on the same database can end an answer the other one is
+  still writing.
 - `BETTER_AUTH_SECRET` and `ENCRYPTION_KEY` are required in production. If
   `.env` leaves them empty, `web` generates them once and keeps them in its
   data volume (`web-data`, file `.secrets.env`). To manage them yourself, set
