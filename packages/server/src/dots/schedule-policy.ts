@@ -245,15 +245,20 @@ export const nextColumns = (
 /** How long a busy target waits before the tick tries it again. */
 export const BUSY_RETRY_MS = 60_000;
 
+export const ONCE_BUSY_WAIT_MS = 60 * 60_000;
+
+/** Past this, a claim no run started is given back: its job retried and expired long ago. */
+export const CLAIM_STALE_MS = 15 * 60_000;
+
 /** With `missedRunPolicy: "skip"`, a slot later than this after downtime is skipped. */
 export const LATE_GRACE_MS = 15 * 60_000;
 
 /**
  * What the tick does with one due schedule. Overdue slots always collapse
  * into one; the next slot is the first after now. A busy target defers by a
- * minute until the next slot would arrive, then that slot is skipped
- * (`busy`). The daily cap skips (`cap`), and a one-off or ended rule
- * completes after firing.
+ * minute until the next slot would arrive (a one-off waits an hour), then
+ * that slot is skipped (`busy`). The daily cap skips (`cap`), and a one-off
+ * or ended rule completes after firing or skipping.
  */
 export const planDue = (
   row: ScheduleRow,
@@ -311,7 +316,9 @@ export const planDue = (
   }
   if (context.busy) {
     const retryAt = new Date(now.getTime() + BUSY_RETRY_MS);
-    if (following === null || retryAt.getTime() < following.getTime()) {
+    const giveUpAt =
+      following ?? new Date(nominal.getTime() + ONCE_BUSY_WAIT_MS);
+    if (retryAt.getTime() < giveUpAt.getTime()) {
       // Stay due on the same slot; try again next minute.
       return { fire: null, patch: { nextRunAt: retryAt }, skip: null };
     }

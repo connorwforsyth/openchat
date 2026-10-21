@@ -410,7 +410,6 @@ function ChatScreenBody({
     "chat.prev": () => stepChat(-1),
     "composer.focus": focusComposer,
     help: () => setHelpOpen(true),
-    "palette.open": onOpenPalette,
     "panel.artifacts": () => togglePanelBy("artifacts"),
     "panel.sandbox": toggleFiles,
     "sidebar.toggle": toggleChats,
