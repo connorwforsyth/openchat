@@ -78,25 +78,17 @@ bun dev                           # http://localhost:3000
 
 ## Behind a corporate network
 
-Installs and Docker builds download from `registry.npmjs.org` and Docker
-Hub. Two things usually get in the way:
+Installs download from `registry.npmjs.org`, and Docker builds also pull
+base images from Docker Hub. If `bun install` fails behind a proxy:
 
-- **An outbound proxy.** Set it in Docker Desktop (Settings › Resources ›
-  Proxies) or under `proxies` in `~/.docker/config.json`; Docker passes it
-  to builds and containers. On the host, export `HTTP_PROXY` and
-  `HTTPS_PROXY` before `bun install`.
-- **TLS interception**, which shows up as `SELF_SIGNED_CERT_IN_CHAIN`,
-  `UNABLE_TO_GET_ISSUER_CERT_LOCALLY` or `UNABLE_TO_VERIFY_LEAF_SIGNATURE`
-  from `bun install`. Export the company's root CA as PEM (on macOS,
-  `security find-certificate -a -p -c "<CA name>" > corporate-ca.pem`),
-  then:
-  - on the host: `export NODE_EXTRA_CA_CERTS=/path/to/corporate-ca.pem`
-    before `bun install` and `bun dev` (bun and Node both read it);
-  - for the Docker images: put the file in `certs/` and run
-    `docker compose up -d --build`. The images add it to the roots bun and
-    Node trust, at build time and at runtime.
-
-More, including Docker Hub mirrors: [`docs/self-hosting.md`](docs/self-hosting.md#on-a-corporate-network).
+- **An outbound proxy.** Export `HTTP_PROXY` and `HTTPS_PROXY` before
+  `bun install`. For Docker, set it in Docker Desktop (Settings › Resources ›
+  Proxies); Docker passes it to builds and containers.
+- **TLS interception**, which shows up as `SELF_SIGNED_CERT_IN_CHAIN` or
+  `UNABLE_TO_GET_ISSUER_CERT_LOCALLY`. Export the company's root CA as PEM
+  (on macOS, `security find-certificate -a -p -c "<CA name>" > corporate-ca.pem`)
+  and `export NODE_EXTRA_CA_CERTS=/path/to/corporate-ca.pem` before
+  `bun install` and `bun dev`.
 
 ## Common commands
 
