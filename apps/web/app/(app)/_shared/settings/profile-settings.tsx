@@ -34,6 +34,8 @@ import { useApi } from "@/app/(app)/_shared/api";
 import { type Option, OptionSelect } from "@/app/(app)/_shared/option-select";
 import { QueryState } from "@/app/(app)/_shared/query-state";
 
+import { ConnectedAccounts } from "./connected-accounts";
+
 // Profile & language (D12): the saved `user.locale` (null means "follow the
 // browser") and the default chat context for new chats (D17). Changes apply
 // to the cache first and roll back if the server refuses (D28).
@@ -235,6 +237,19 @@ export const ProfileSettings = () => {
           <QueryState query={me} skeleton={1}>
             {(data) => <Profile me={data} />}
           </QueryState>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            <Trans>Connected accounts</Trans>
+          </CardTitle>
+          <CardDescription>
+            <Trans>The ways you can sign in to this account.</Trans>
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ConnectedAccounts providers={config.data?.auth.providers ?? []} />
         </CardContent>
       </Card>
       <Card>

@@ -5,6 +5,7 @@ import type {
 } from "@workspace/contract/schemas/common";
 import type { Db } from "@workspace/db/client";
 import {
+  account,
   invitation,
   member,
   organization,
@@ -12,6 +13,8 @@ import {
 } from "@workspace/db/schema/auth";
 import { invitationTeam, team, teamMember } from "@workspace/db/schema/tenancy";
 import { and, asc, eq, gt, inArray, sql } from "drizzle-orm";
+
+import type { ProfileStore } from "./ports/profile-store";
 
 // The database side of sign-up and membership: the facts the sign-up policy
 // needs, and what happens around Better Auth's own writes (a personal org
@@ -157,3 +160,49 @@ export const leaveOrgTeams = async (
       and(eq(teamMember.userId, userId), inArray(teamMember.teamId, teamIds))
     );
 };
+
+/** The user with this email, if any; emails are stored lowercased. */
+export const userIdByEmail = async (
+  db: Db,
+  email: string
+): Promise<UserId | undefined> => {
+  const [row] = await db
+    .select({ id: user.id })
+    .from(user)
+    .where(eq(user.email, email.toLowerCase()))
+    .limit(1);
+  return row?.id;
+};
+
+const profileColumns = {
+  image: user.image,
+  name: user.name,
+  syncedImage: user.syncedImage,
+  syncedName: user.syncedName,
+};
+
+/** `ProfileStore` over our tables, matching users as Better Auth does. */
+export const profileStoreFor = (db: Db): ProfileStore => ({
+  find: async ({ accountId, email, providerId }) => {
+    const [linked] = await db
+      .select(profileColumns)
+      .from(account)
+      .innerJoin(user, eq(account.userId, user.id))
+      .where(
+        and(
+          eq(account.providerId, providerId),
+          eq(account.accountId, accountId)
+        )
+      )
+      .limit(1);
+    if (linked) {
+      return linked;
+    }
+    const [byEmail] = await db
+      .select(profileColumns)
+      .from(user)
+      .where(eq(user.email, email.toLowerCase()))
+      .limit(1);
+    return byEmail;
+  },
+});
