@@ -63,7 +63,7 @@ interface Mocks {
 }
 
 const config = ({ files, llm: baseURL, mcp, search }: Mocks) => `version: 1
-brand: { name: ${BRAND_NAME} }
+brand: { name: ${BRAND_NAME}, logo: "${join(root, "brand/logo.svg")}" }
 auth: { signup: invite }
 providers:
   # Keyless, like a local Ollama: every context can use it. Its catalog
