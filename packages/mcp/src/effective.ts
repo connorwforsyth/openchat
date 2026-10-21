@@ -15,7 +15,7 @@ import {
 } from "./server-config";
 import { safeToolName } from "./tool-names";
 
-// Connectors (184): which MCP servers one user has on. Three layers, merged
+// Connectors (184): which MCP servers one user has on. Four layers, merged
 // here and nowhere else:
 //
 // 1. the operator's catalog in app.config.yaml (`default: on | off |
@@ -27,7 +27,7 @@ import { safeToolName } from "./tool-names";
 //    until the user resets them.
 //
 // Locks win over every layer: a required connector or tool stays on.
-// Pure: the shell (`connector-service.ts`) loads the three and hands them in.
+// Pure: the shell (`service.ts`) loads the layers and hands them in.
 
 /** A library server as the merge needs it; no secrets, no URL. */
 export interface LibraryMcpServer {
