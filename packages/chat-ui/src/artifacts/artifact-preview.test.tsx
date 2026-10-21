@@ -1,4 +1,4 @@
-import { cleanup, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { renderWithI18n } from "../testing/render";
@@ -25,16 +25,15 @@ const props: ArtifactPreviewProps = {
 const frame = () => screen.getByTitle<HTMLIFrameElement>(PREVIEW);
 
 const fromFrame = (data: unknown, source = frame().contentWindow) =>
-  window.dispatchEvent(
-    new MessageEvent("message", {
-      data: { channel: RUNTIME_CHANNEL, ...(data as object) },
-      origin: "null",
-      source,
-    })
-  );
-
-/** Lets the panel post its render after `ready` (an effect, next commit). */
-const settle = () => new Promise((resolve) => window.setTimeout(resolve, 20));
+  act(() => {
+    window.dispatchEvent(
+      new MessageEvent("message", {
+        data: { channel: RUNTIME_CHANNEL, ...(data as object) },
+        origin: "null",
+        source,
+      })
+    );
+  });
 
 afterEach(cleanup);
 
@@ -75,7 +74,6 @@ describe("ArtifactPreview with a runtime", () => {
       <ArtifactPreview {...props} kind="react" runtimeOrigin={RUNTIME} />
     );
     fromFrame({ type: "ready" });
-    await settle();
     // The render posted on `ready` is id 1; anything else is stale.
     fromFrame({
       error: { kind: "render", message: "stale" },
@@ -98,7 +96,6 @@ describe("ArtifactPreview with a runtime", () => {
       <ArtifactPreview {...props} kind="react" runtimeOrigin={RUNTIME} />
     );
     fromFrame({ type: "ready" });
-    await settle();
     fromFrame({
       error: { kind: "import", message: "canvas-confetti" },
       id: "1",
@@ -107,18 +104,16 @@ describe("ArtifactPreview with a runtime", () => {
     expect((await screen.findByRole("alert")).textContent).toMatch(IMPORT);
   });
 
-  it("ignores messages that don't come from its frame", async () => {
+  it("ignores messages that don't come from its frame", () => {
     renderWithI18n(
       <ArtifactPreview {...props} kind="react" runtimeOrigin={RUNTIME} />
     );
     fromFrame({ type: "ready" });
-    await settle();
     fromFrame(
       { error: { kind: "render", message: "x" }, id: "1", type: "error" },
       window
     );
     fromFrame({ height: 480, type: "resize" }, window);
-    await settle();
     expect(screen.queryByRole("alert")).toBeNull();
     expect(frame().style.height).toBe("");
   });

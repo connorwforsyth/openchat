@@ -15,7 +15,14 @@ import { Sources } from "./sources";
 // Source chips with favicons and preview cards (101), over a fake loader:
 // the HTTP loader is tested on its own with a fake fetch.
 
-afterEach(cleanup);
+// Tests share one pointer. Left where the last test hovered, it sits over the
+// next chip as that mounts: the card then opens on its own or, if it wasn't
+// listening yet, a later hover is only a move, which the card ignores.
+// Parking it off the chips makes every hover a real enter.
+afterEach(async () => {
+  await userEvent.unhover(document.body);
+  cleanup();
+});
 
 // A 1×1 PNG, so <img> really loads in the browser.
 const PIXEL =
