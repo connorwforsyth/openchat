@@ -200,6 +200,11 @@ export const computerCommand = (action: ComputerAction): string => {
 };
 
 const VNC_RUNNING = "if pgrep -x x11vnc >/dev/null; then";
+/**
+ * Inside `setControl`'s 5 s exec limit, so a server that won't answer fails
+ * the switch and the command's own fallback still runs.
+ */
+const VNC_SWITCH = "timeout 3 x11vnc -sync -R";
 
 /**
  * Hands control to the person (`user`) or back to the agent, and switches
@@ -212,8 +217,8 @@ const VNC_RUNNING = "if pgrep -x x11vnc >/dev/null; then";
  */
 export const controlCommand = (holder: ComputerHolder): string =>
   holder === "user"
-    ? `touch ${CONTROL_FLAG} && { ${VNC_RUNNING} x11vnc -sync -R noviewonly; fi || { rm -f ${CONTROL_FLAG}; exit 1; }; }`
-    : `${VNC_RUNNING} x11vnc -sync -R viewonly; fi && rm -f ${CONTROL_FLAG}`;
+    ? `touch ${CONTROL_FLAG} && { ${VNC_RUNNING} ${VNC_SWITCH} noviewonly; fi || { rm -f ${CONTROL_FLAG}; exit 1; }; }`
+    : `${VNC_RUNNING} ${VNC_SWITCH} viewonly; fi && rm -f ${CONTROL_FLAG}`;
 
 /** Prints who has control: `user` or `agent`. */
 export const CONTROL_STATUS_COMMAND = `if [ -e ${CONTROL_FLAG} ]; then echo user; else echo agent; fi`;
