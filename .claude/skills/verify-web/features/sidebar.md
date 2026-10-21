@@ -47,10 +47,10 @@ Preconditions:
 - The actions button appears on hover. Hover the row before you click it.
 - Match rows with `chatRow()` from `journeys/handles.ts`. A row in
   `Priority` is named `<title> Unread`, so an exact-name match misses it.
-- Known failure until the fix for the persisted query cache merges
-  (2026-10-21, about 1 reload in 4): the `Reload` step fails. The IndexedDB
-  snapshot trails the cache by up to a second, and restored sidebar queries
-  counted as fresh for 30 s, so the row is missing its title and nothing
-  refetches it. Report the failure. Don't add a wait before the reload.
+- The `Reload` step guards a fixed bug (#168). Before it, the step failed in
+  about 1 reload in 4 (2 of 5 full runs): the IndexedDB snapshot trails the
+  cache by up to a second, and restored sidebar queries counted as fresh
+  for 30 s, so the row was missing its title and nothing refetched it. If
+  it fails again, report it. Don't add a wait before the reload.
 - At widths under 768px the panel is a closed drawer and the rail is
   hidden. The journey runs at desktop size.

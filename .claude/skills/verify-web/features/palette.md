@@ -49,13 +49,14 @@ Preconditions:
 
 - The palette loads after boot (after `composer:ready` on chat pages). An
   early ⌘K does nothing. Wait for network idle before pressing it.
-- Known failure (2026-10-21): the `Shortcut` test fails. On a chat screen
-  one ⌘K opens the palette and closes it about 130 ms later. Two handlers
-  answer `palette.open` there: chat-ui's `useShortcuts` in `chat-screen.tsx`
-  (opens) and the palette's own `useShortcut` (toggles). On `/library`,
-  which has no chat screen, one press opens it and it stays open. Playwright's
-  `Desktop Chrome` preset hides this: its Windows user agent makes the
-  shortcuts package expect Ctrl, so only chat-ui answered ⌘ on a Mac. Report
-  the failure. Don't switch the journey back to a device preset.
+- The `Shortcut` test guards a fixed bug (#171). Before it, one ⌘K on a
+  chat screen opened the palette and closed it about 130 ms later, every
+  run: two handlers answered `palette.open` there, chat-ui's `useShortcuts`
+  in `chat-screen.tsx` (opens) and the palette's own `useShortcut`
+  (toggles). On `/library`, which has no chat screen, it stayed open. If
+  the test fails again, report it. Playwright's `Desktop Chrome` preset
+  hides this bug: its Windows user agent makes the shortcuts package expect
+  Ctrl, so only chat-ui answered ⌘ on a Mac. Don't switch the journey back
+  to a device preset.
 - Search matches word prefixes from the message body. Reruns need a fresh
   word, or two chats match and strict-mode locators fail.
