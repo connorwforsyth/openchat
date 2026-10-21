@@ -162,14 +162,25 @@ export const toScheduleRun = (row: ScheduleRunView): ScheduleRun => {
   };
 };
 
-export const isArchived = async (
+/** Whether the chat is archived, or gone for `actor`: deleted, or no longer shared with them. */
+export const isArchivedOrGone = async (
   db: Db,
   actor: Actor,
   conversationId: ConversationId
 ): Promise<boolean> => {
   const found = await getConversation(db, conversationId, actor);
-  return found.ok && found.value.archivedAt !== null;
+  return !found.ok || found.value.archivedAt !== null;
 };
+
+/** Whether a schedule's chat target can't take a run: archived, gone, or never set. */
+const targetClosed = async (
+  db: Db,
+  actor: Actor,
+  schedule: ScheduleRow
+): Promise<boolean> =>
+  schedule.conversationId
+    ? await isArchivedOrGone(db, actor, schedule.conversationId)
+    : schedule.targetKind === "conversation";
 
 /** Where a schedule's runs land, checked for the owner. */
 const resolveTarget = async (
@@ -191,7 +202,7 @@ const resolveTarget = async (
       if (!dot) {
         return err({ type: "no_dot" });
       }
-      return (await isArchived(deps.db, actor, dot.conversationId))
+      return (await isArchivedOrGone(deps.db, actor, dot.conversationId))
         ? err({ type: "target_archived" })
         : ok({ conversationId: dot.conversationId, dotId: dot.id });
     }
@@ -203,7 +214,7 @@ const resolveTarget = async (
             : { type: "not_found" }
         );
       }
-      return (await isArchived(deps.db, actor, target.conversationId))
+      return (await isArchivedOrGone(deps.db, actor, target.conversationId))
         ? err({ type: "target_archived" })
         : ok({ conversationId: target.conversationId, dotId: null });
     }
@@ -349,7 +360,7 @@ export const updateSchedule = async (
     found.completedAt &&
     !target &&
     found.conversationId &&
-    (await isArchived(deps.db, actor, found.conversationId))
+    (await isArchivedOrGone(deps.db, actor, found.conversationId))
   ) {
     return err({ type: "target_archived" });
   }
@@ -414,10 +425,7 @@ export const resumeSchedule = async (
   if (found.completedAt) {
     return err({ type: "completed" });
   }
-  if (
-    found.conversationId &&
-    (await isArchived(deps.db, actor, found.conversationId))
-  ) {
+  if (await targetClosed(deps.db, actor, found)) {
     return err({ type: "target_archived" });
   }
   const recurrence = recurrenceOf(found);
@@ -631,8 +639,11 @@ export const runScheduleNow = async (
   const target = found.dotId
     ? (await getDotById(deps.db, found.dotId))?.conversationId
     : found.conversationId;
+  if (found.targetKind === "conversation" && !target) {
+    return err({ type: "target_archived" });
+  }
   if (found.targetKind !== "new_chat_each_run" && target) {
-    if (await isArchived(deps.db, actor, target)) {
+    if (await isArchivedOrGone(deps.db, actor, target)) {
       return err({ type: "target_archived" });
     }
     if (await conversationBusy(deps.db, target)) {
