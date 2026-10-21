@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { REPORT_TOOL } from "@workspace/ai/schedules/tool";
 import {
   textStream,
@@ -13,11 +15,12 @@ import type {
   ScheduleLimits,
   ScheduleRun,
 } from "@workspace/contract/schemas/schedules";
+import { MIGRATIONS_FOLDER } from "@workspace/db/migrator";
 import { dotRun } from "@workspace/db/schema/dots";
 import { seedUser } from "@workspace/db/testing";
 import { tool } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { createDotsRouter } from "../api/dots";
@@ -25,6 +28,7 @@ import { createApp } from "../app";
 import { registerJobs } from "../jobs/registry";
 import { createHarness, type Harness, USER_HEADER } from "../testing/harness";
 import { dotJobHandlers } from "./jobs";
+import { titleFromPrompt } from "./schedule-policy";
 
 // Schedules end to end, in process (173, 175): the `schedules` procedures
 // through Hono's `app.request`, the tick and run jobs on the in-memory
@@ -293,6 +297,53 @@ describe("schedules API", () => {
       await request(`/api/schedules/${schedule.id}/resume`, { method: "POST" })
     );
     expect(again).toMatchObject({ pausedReason: null, status: "active" });
+  });
+
+  it("retitles schedules the schedules migration cut mid-word", async () => {
+    const chat = await newChat();
+    const target = { conversationId: chat.id, kind: "conversation" };
+    const cut = [
+      "Give me a short brief for today: what's on, what changed overnight, and anything I should look at first.",
+      "Every morning look through the team inbox and summarise anything from customers about billing",
+      "Summarise the news, e.g. tech, markets and anything about our launch this week",
+      "🚀".repeat(70),
+    ];
+    // Titled as the old migration titled them, and as someone could have:
+    // a whole short prompt, or a name shorter than the prompt.
+    const short = "Standup notes. Post them in the team channel";
+    const named = {
+      prompt:
+        "Watch the deploy queue and tell me when it drains overnight please",
+      title: "Watch the deploy queue",
+    };
+    for (const prompt of [...cut, short]) {
+      // biome-ignore lint/performance/noAwaitInLoops: kept in order.
+      await create({ prompt, target });
+    }
+    await create({ ...named, target });
+    await h.db.execute(
+      sql`update dot_schedule set title = left(regexp_replace(prompt, '\\s+', ' ', 'g'), 60) where prompt <> ${named.prompt}`
+    );
+
+    await h.db.execute(
+      sql.raw(
+        await readFile(
+          join(
+            MIGRATIONS_FOLDER,
+            "20261020125719_schedule_titles/migration.sql"
+          ),
+          "utf8"
+        )
+      )
+    );
+
+    const listed = await json<Schedule[]>(await request("/api/schedules"));
+    const titles = new Map(listed.map((each) => [each.prompt, each.title]));
+    expect(titles.get(short)).toBe(short);
+    expect(titles.get(named.prompt)).toBe(named.title);
+    for (const prompt of cut) {
+      expect(titles.get(prompt)).toBe(titleFromPrompt(prompt));
+    }
   });
 
   it("won't put a schedule on the Dot's chat while it's archived", async () => {

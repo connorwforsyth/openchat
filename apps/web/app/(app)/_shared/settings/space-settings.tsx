@@ -235,6 +235,14 @@ const SubSpaceMembers = ({ space }: { readonly space: Space }) => {
   };
   return (
     <div className="flex flex-col gap-6">
+      {space.canManage ? null : (
+        <p className="text-muted-foreground text-sm">
+          <Trans>
+            You can see who's in {space.name}. Only its owners and admins can
+            add people or change roles.
+          </Trans>
+        </p>
+      )}
       <Table>
         <TableHeader>
           <TableRow>

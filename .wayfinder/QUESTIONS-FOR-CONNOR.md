@@ -141,6 +141,12 @@ Ticket [187](tickets/187-spaces.md). Resolved AFK from D17 so the demo could be 
 7. **Sub-space members are always in the root space too** (as teams are today). A sub-space's members settings now invite someone straight in: the invitation adds them to the root space as a member and to the sub-space on accept. Only someone who manages the root space can send it; a sub-space owner who doesn't is told who can. *Default: keep.*
 8. **Contract** ([187a](tickets/187a-contract-spaces.md)): the additive `spaces` group awaits your approval (draft PR).
 
+## Demo polish (2026-10-21), defaults applied
+
+1. **"Team & org" became "Spaces", not "Space".** The Library panel already has a "Space" link to the active space's page, and two "Space" entries side by side read as one. The tab lists items from every space you're in, so it says "Spaces"; the composer's agent group says "Space agents". *Default: keep. Tell us if you'd rather merge the two entries.*
+2. **Not routed through `terms:`.** `terms:` only names features with their own settings address (today, MCP), and "Space" is already a plain string in about a dozen places. Making "Space" configurable is one change across all of them. *Default: a follow-up if you want forks to rename spaces.*
+3. **Phone rows are 36px with a 40px tap area**, ChatGPT's density and under Apple's 44px. *Default: keep.*
+
 ## Dots guards (review fixes for #141), defaults applied
 
 1. **How long does a one-off wait for a busy chat?** A one-off has no next slot to give way to, so it now waits on a busy chat (a run in flight or awaiting approval) for an hour from its time, then is skipped as `busy` and completes. A recurring slot still waits until the next one. *Default: an hour.*

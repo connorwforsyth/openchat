@@ -51,7 +51,7 @@ import {
   handleFrom,
   isUnread,
 } from "./policy";
-import { toSchedule } from "./schedule-policy";
+import { titleFromPrompt, toSchedule } from "./schedule-policy";
 import {
   claimRunNow,
   createSchedule,
@@ -195,9 +195,6 @@ const cronRecurrence = (
   timezone: schedule.timezone,
 });
 
-const titleFrom = (prompt: string): string =>
-  prompt.replace(/\s+/g, " ").trim().slice(0, 60) || "Scheduled task";
-
 export const listDotsFor = async (db: Db, ownerId: UserId): Promise<Dot[]> =>
   hydrate(db, await listDots(db, ownerId));
 
@@ -262,7 +259,7 @@ export const createDot = async (
       prompt: schedule.prompt,
       recurrence: cronRecurrence(schedule),
       target: { kind: "dot" },
-      title: titleFrom(schedule.prompt),
+      title: titleFromPrompt(schedule.prompt),
     });
     if (!made.ok) {
       await deleteDotRow(db, inserted.id, actor.userId);
