@@ -71,6 +71,38 @@ describe("useShortcut", () => {
     expect(onPalette).toHaveBeenCalledTimes(1);
   });
 
+  it("tells ⇧⌘. from ⌘. whichever character the layout reports", () => {
+    const onModel = vi.fn();
+    const onDot = vi.fn();
+    const Period = () => {
+      useShortcut("model.switch", onModel);
+      useShortcut("dot.open", onDot);
+      return null;
+    };
+    wrap(<Period />);
+    const press = (key: string, shiftKey: boolean) =>
+      document.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          bubbles: true,
+          code: "Period",
+          key,
+          metaKey: true,
+          shiftKey,
+        })
+      );
+
+    // A US layout reports Shift+. as ">".
+    press(">", true);
+    expect(onModel).toHaveBeenCalledTimes(1);
+    press(".", true);
+    expect(onModel).toHaveBeenCalledTimes(2);
+    expect(onDot).not.toHaveBeenCalled();
+
+    press(".", false);
+    expect(onDot).toHaveBeenCalledTimes(1);
+    expect(onModel).toHaveBeenCalledTimes(2);
+  });
+
   it("follows recorded overrides from the store", async () => {
     const onNew = vi.fn();
     const store = createMemoryOverridesStore({ "chat.new": ["Alt+N"] });

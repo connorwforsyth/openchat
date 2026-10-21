@@ -467,7 +467,7 @@ const mapItem = (
 
 /**
  * Publish to a team or org library. Optimistic: a placeholder copy joins
- * the Team & org tab at once and becomes the real one when the server answers.
+ * the Spaces tab at once and becomes the real one when the server answers.
  */
 export const usePublishToLibrary = (
   source: LibraryItem,
