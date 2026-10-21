@@ -3,9 +3,8 @@ import type { Db } from "@workspace/db/client";
 import { getDotByConversation } from "@workspace/db/queries/dots";
 import type { AsyncResult } from "@workspace/shared/result";
 import type { Tool } from "ai";
-import { z } from "zod";
-
 import type { Turn, TurnResolver } from "../runs/turn";
+import type { ComputerHolder, ComputerView } from "./computer-view";
 
 // A Dot's own computer (172). `@workspace/sandbox` builds the desktop and the
 // `computer` tool (it depends on this package, so the shell binds it in);
@@ -20,17 +19,6 @@ export const COMPUTER_TOOL = "computer";
 
 export const COMPUTER_INSTRUCTIONS =
   "You have your own computer: a Linux desktop with Chromium that the owner can watch live. Use the `computer` tool to see and drive it: `open_browser` (with a url) starts the browser, `screenshot` looks, then click, type, key and scroll at the pixel coordinates you see. Every action returns a fresh screenshot; check it before the next step, and report what you actually saw. If the owner has taken control, stop acting on the computer until they give it back.";
-
-export const computerHolderSchema = z.enum(["user", "agent"]);
-export type ComputerHolder = z.infer<typeof computerHolderSchema>;
-
-export const computerViewSchema = z.object({
-  /** Who drives it now: the Dot (`agent`) or the person watching (`user`). */
-  holder: computerHolderSchema,
-  /** noVNC on the sandbox preview origin (D24), view-only unless `view_only=0`. */
-  url: z.url(),
-});
-export type ComputerView = z.infer<typeof computerViewSchema>;
 
 /** The desktop side, bound by the shell from `@workspace/sandbox`. A port. */
 export interface DotComputers {
