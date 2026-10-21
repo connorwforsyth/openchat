@@ -76,6 +76,35 @@ bun dev                           # http://localhost:3000
 
 `.env`, `app.config.yaml` and `docker-compose.override.yml` are gitignored.
 
+## Sign-in
+
+Sign-in uses [Better Auth](https://www.better-auth.com). Email and password
+works with no setup. The first account becomes the administrator; after that,
+`auth.signup` in `app.config.yaml` decides who can join: `invite` (default),
+`open`, `domain` (with `auth.domains`) or `sso`.
+
+What it needs:
+
+- **`BETTER_AUTH_SECRET`**, a random value (`openssl rand -base64 32`). In
+  development a fixed dev-only secret is used, with a warning; in production
+  sign-in stays off until it's set (the Docker image generates one on first
+  start).
+- **`BETTER_AUTH_URL`**, the address people use, e.g.
+  `https://chat.example.com`. Sign-in is refused from any other origin, so
+  open the app at exactly this address (`http://localhost:3000` locally).
+  Add extra hostnames or LAN addresses to `TRUSTED_ORIGINS`.
+- **Behind a reverse proxy**, list it in `TRUSTED_PROXIES` so rate limits see
+  real client addresses.
+
+Optional providers, each off until its credentials are set:
+
+| Provider | Where | Callback URL to register |
+|---|---|---|
+| GitHub | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` in `.env` | `<BETTER_AUTH_URL>/api/auth/callback/github` |
+| Google | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` in `.env` | `<BETTER_AUTH_URL>/api/auth/callback/google` |
+| Microsoft (Entra ID) | `auth.microsoft` in `app.config.yaml`, secrets from `.env` | see [`docs/self-hosting.md`](docs/self-hosting.md#sign-in-with-microsoft-entra-id) |
+| Any OIDC provider (SSO) | `auth.oidc` in `app.config.yaml` | see [`docs/self-hosting.md`](docs/self-hosting.md) |
+
 ## Behind a corporate network
 
 Installs download from `registry.npmjs.org`, and Docker builds also pull
