@@ -140,6 +140,11 @@ Ticket [187](tickets/187-spaces.md). Resolved AFK from D17 so the demo could be 
 7. **Sub-space members must already be in the root space** (as teams are today). Inviting someone straight into a sub-space would invite them to the root too. *Default: keep.*
 8. **Contract** ([187a](tickets/187a-contract-spaces.md)): the additive `spaces` group awaits your approval (draft PR).
 
+## Dots guards (review fixes for #141), defaults applied
+
+1. **How long does a one-off wait for a busy chat?** A one-off has no next slot to give way to, so it now waits on a busy chat (a run in flight or awaiting approval) for an hour from its time, then is skipped as `busy` and completes. A recurring slot still waits until the next one. *Default: an hour.*
+2. **Should a run that can't start show in the history?** A failed start (no model, a revoked agent or share) shows only as the schedule's last outcome, `failed`. The history has no row for it, because a `ScheduleRun` is either a started run or a skipped slot, and it doesn't count toward the three-failures auto-pause. *Default: leave it; a contract change could add a "couldn't start" entry with its reason.*
+
 ## The Dot's computer (PR #161 fix round)
 
 1. **Who may open the computer's live view?** The noVNC view is served on the runner's preview origin at `{id}-6080.…`, with no token or session check. The `id` is an unsalted SHA-256 of `desktop:<conversationId>`, so anyone who holds that URL, or who knows the conversation id, can watch the screen and, while the owner has taken control, drive it. This predates PR #161, which only made sure input is off whenever the agent drives. A fix is a runner proxy change: a signed, short-lived preview token, or a salted id. *Default: leave it for a separate ticket on runner proxy auth; keep preview origins off the public internet until then.*

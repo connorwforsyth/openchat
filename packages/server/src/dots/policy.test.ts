@@ -98,15 +98,10 @@ describe("list state", () => {
 });
 
 describe("dotRunKey", () => {
-  it("is stable per occurrence and recognisable", () => {
-    const key = dotRunKey({
-      occurrence: at("2026-10-16T08:00:00Z"),
-      scheduleId: "s1",
-      type: "schedule",
-    });
-    expect(key).toBe(`${DOT_RUN_KEY_PREFIX}s:s1:2026-10-16T08:00:00.000Z`);
+  it("is stable per claim and recognisable", () => {
+    const key = dotRunKey("c1");
+    expect(key).toBe(`${DOT_RUN_KEY_PREFIX}c1`);
     expect(isDotRunKey(key)).toBe(true);
-    expect(isDotRunKey(dotRunKey({ nonce: "n", type: "manual" }))).toBe(true);
     expect(isDotRunKey("composer-123")).toBe(false);
     expect(isDotRunKey(null)).toBe(false);
   });

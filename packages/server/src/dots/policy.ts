@@ -110,18 +110,8 @@ export const DEFAULT_DOT_PROMPT =
 
 export const DOT_RUN_KEY_PREFIX = "dot:";
 
-export const dotRunKey = (
-  trigger:
-    | {
-        readonly scheduleId: string;
-        readonly occurrence: Date;
-        readonly type: "schedule";
-      }
-    | { readonly nonce: string; readonly type: "manual" }
-): string =>
-  trigger.type === "schedule"
-    ? `${DOT_RUN_KEY_PREFIX}s:${trigger.scheduleId}:${trigger.occurrence.toISOString()}`
-    : `${DOT_RUN_KEY_PREFIX}m:${trigger.nonce}`;
+export const dotRunKey = (claimId: string): string =>
+  `${DOT_RUN_KEY_PREFIX}${claimId}`;
 
 export const isDotRunKey = (key: string | null | undefined): boolean =>
   key?.startsWith(DOT_RUN_KEY_PREFIX) ?? false;
