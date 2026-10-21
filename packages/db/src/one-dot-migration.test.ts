@@ -162,7 +162,9 @@ describe("the one-Dot migration", () => {
         next_run_at: null,
         owner_id: ann,
         paused_reason: "user",
-        prompt: `${long}${"\n\nStanding instructions from the owner:\nKeep it short. Lead with what changed.".slice(0, 4000 - long.length - CUT.length)}${CUT}`,
+        // Room for 13 characters of the tail: not even its header fits, so
+        // only the marker does.
+        prompt: `${long}${CUT}`,
         read_only: true,
         target_kind: "conversation",
         // The later schedule_titles migration retitles the 60-character cut.
@@ -181,5 +183,60 @@ describe("the one-Dot migration", () => {
         schedule_id: extraSchedule,
       },
     ]);
+  });
+
+  it("fits an extra Dot's prompt to 4,000 UTF-16 units, as the contract counts", async () => {
+    const db = await migratedBefore(ONE_DOT);
+    const [ann, org, primaryChat, extraChat] = [
+      randomUUID(),
+      randomUUID(),
+      randomUUID(),
+      randomUUID(),
+    ];
+    const [primary, extra, schedule] = [
+      randomUUID(),
+      randomUUID(),
+      randomUUID(),
+    ];
+    // 1,950 code points, 3,900 units: 100 units of room for the tail.
+    const prompt = "\u{1F642}".repeat(1950);
+    const instructions = "Keep it short. \u{1F642} ".repeat(10).trim();
+    await db.query(
+      `insert into "user" (id, name, email) values ($1, 'Ann', 'ann@example.com')`,
+      [ann]
+    );
+    await db.query(
+      `insert into organization (id, name, slug) values ($1, 'Ann', 'ann')`,
+      [org]
+    );
+    await db.query(
+      `insert into conversation (id, owner_id, context_id, context_type) values ($1, $3, $4, 'personal'), ($2, $3, $4, 'personal')`,
+      [primaryChat, extraChat, ann, org]
+    );
+    await db.query(
+      `insert into dot (id, owner_id, conversation_id, name, handle, target, is_primary, created_at, instructions, rules) values
+        ($1, $3, $4, 'Morning brief', 'morning', $6, true, '2026-10-02', '', ''),
+        ($2, $3, $5, 'Build watch', 'build', $6, false, '2026-10-01', $7, '')`,
+      [primary, extra, ann, primaryChat, extraChat, MODEL, instructions]
+    );
+    await db.query(
+      `insert into dot_schedule (id, dot_id, cron, prompt) values ($1, $2, '0 * * * *', $3)`,
+      [schedule, extra, prompt]
+    );
+
+    await migrate(drizzle({ client: db }), {
+      migrationsFolder: MIGRATIONS_FOLDER,
+    });
+
+    const [row] = (
+      await db.query<{ prompt: string }>(
+        "select prompt from dot_schedule where id = $1",
+        [schedule]
+      )
+    ).rows;
+    expect(row?.prompt).toBe(
+      `${prompt}\n\nStanding instructions from the owner:\nKeep it short${CUT}`
+    );
+    expect(row?.prompt.length).toBe(4000);
   });
 });

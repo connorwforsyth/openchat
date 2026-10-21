@@ -20,6 +20,7 @@ import {
   scheduleMissedRunPolicySchema,
   scheduleNotifySchema,
   scheduleRunOutcomeSchema,
+  scheduleSkipReasonSchema,
 } from "@workspace/contract/schemas/schedules";
 import { sql } from "drizzle-orm";
 import {
@@ -243,6 +244,11 @@ export const dotRun = pgTable(
       { onDelete: "set null" }
     ),
     skipReason: text("skip_reason").$type<ScheduleSkipReason>(),
+    /**
+     * When a start last took this claim. The tick's sweep counts a claim's
+     * age from here, so it can't give back a claim whose run is starting.
+     */
+    startingAt: instant("starting_at"),
     summary: text("summary"),
     trigger: text("trigger")
       .$type<(typeof dotRunTriggerSchema.options)[number]>()
@@ -257,6 +263,15 @@ export const dotRun = pgTable(
     check(
       "dot_run_outcome",
       sql`${t.outcome} is null or ${oneOf(t.outcome, scheduleRunOutcomeSchema.options)}`
+    ),
+    check(
+      "dot_run_skip_reason",
+      sql`${t.skipReason} is null or ${oneOf(t.skipReason, scheduleSkipReasonSchema.options)}`
+    ),
+    // A row is a claim, a run, or a skipped slot, never a mix.
+    check(
+      "dot_run_shape",
+      sql`(${t.skipReason} is null and ${t.outcome} is distinct from 'skipped') or (${t.skipReason} is not null and ${t.outcome} is not distinct from 'skipped' and ${t.runId} is null)`
     ),
   ]
 );

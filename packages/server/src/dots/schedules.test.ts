@@ -543,6 +543,36 @@ describe("scheduled runs", () => {
     });
   });
 
+  it("refuses a dot_run row that is neither a run nor a skipped slot", async () => {
+    const schedule = await create({ target: { kind: "new_chat_each_run" } });
+    await expect(
+      h.db.insert(dotRun).values({
+        ownerId: h.ownerId,
+        scheduleId: schedule.id,
+        skipReason: "busy",
+        trigger: "schedule",
+      })
+    ).rejects.toThrow();
+  });
+
+  it("lists a schedule's history past a row from before the shape check", async () => {
+    const schedule = await create({ target: { kind: "new_chat_each_run" } });
+    h.nextTurn({ model: reporting("update").model });
+    clock = new Date("2026-10-20T09:06:00.000Z");
+    await tick();
+    await h.db.execute(sql`alter table dot_run drop constraint dot_run_shape`);
+    await h.db.insert(dotRun).values({
+      ownerId: h.ownerId,
+      scheduleId: schedule.id,
+      skipReason: "busy",
+      trigger: "schedule",
+    });
+
+    expect((await runsOf(schedule.id)).map((run) => run.outcome)).toEqual([
+      "update",
+    ]);
+  });
+
   it("ends a quiet run after one step and leaves the Dot unread-free", async () => {
     const dot = await json<Dot>(
       await request("/api/dots", {
@@ -869,6 +899,36 @@ describe("claims", () => {
     expect(
       await json<Schedule>(await request(`/api/schedules/${schedule.id}`))
     ).toMatchObject({ lastOutcome: "failed" });
+  });
+
+  it("keeps a late job's claim when the tick sweeps while its run starts", async () => {
+    const { executor } = services.dots.runs;
+    await withDots({
+      runs: {
+        ...services.dots.runs,
+        executor: {
+          ...executor,
+          start: async (run) => {
+            clock = new Date("2026-10-20T09:22:00.000Z");
+            await claimDue();
+            return executor.start(run);
+          },
+        },
+      },
+    });
+    const schedule = await create({ target: { kind: "new_chat_each_run" } });
+    h.nextTurn({ model: reporting("update").model });
+    clock = new Date("2026-10-20T09:06:00.000Z");
+    await claimDue();
+    // Its job runs 14 minutes after the claim, just inside the sweep's limit.
+    clock = new Date("2026-10-20T09:20:00.000Z");
+    await h.jobs.drain();
+    await h.services.executor.idle();
+
+    expect((await runsOf(schedule.id)).map((run) => run.outcome)).toEqual([
+      "update",
+    ]);
+    expect((await limitsNow()).runsToday).toBe(1);
   });
 
   it("starts a retried claim's run once, in one chat", async () => {

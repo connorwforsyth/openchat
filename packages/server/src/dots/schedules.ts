@@ -53,6 +53,7 @@ import {
   type ScheduleRunRow,
   type ScheduleRunView,
   scheduleRunFor,
+  takeClaim,
   updateSchedule as updateScheduleRow,
   updateScheduleRun,
 } from "@workspace/db/queries/dots";
@@ -127,7 +128,12 @@ const iso = (date: Date | null): string | null =>
 
 const RUN_ERROR_MESSAGE = "The run failed.";
 
-export const toScheduleRun = (row: ScheduleRunView): ScheduleRun => {
+/**
+ * A history row as the contract shows it, or `null` for one that is
+ * neither a run nor a skipped slot. The `dot_run_shape` check stops new
+ * ones; one written before it is left out of the list rather than failing it.
+ */
+export const toScheduleRun = (row: ScheduleRunView): ScheduleRun | null => {
   const fields = {
     conversationId: row.conversationId,
     createdAt: row.createdAt.toISOString(),
@@ -146,7 +152,7 @@ export const toScheduleRun = (row: ScheduleRunView): ScheduleRun => {
     return { ...fields, outcome: "skipped", skipReason: row.skipReason };
   }
   if (row.outcome === "skipped" || !row.runId || !row.status) {
-    throw new Error(`dot_run ${row.id} is neither a run nor a skipped slot`);
+    return null;
   }
   return {
     ...fields,
@@ -470,7 +476,7 @@ export const listRunsFor = async (
     input.limit,
     input.before ? new Date(input.before) : undefined
   );
-  return ok(rows.map(toScheduleRun));
+  return ok(rows.flatMap((row) => toScheduleRun(row) ?? []));
 };
 
 export const markRunsRead = async (
@@ -500,9 +506,10 @@ const dateLabel = (at: Date, timeZone: string): string => {
 
 /**
  * Records the started run on its claim, or gives back the claim of a run
- * that didn't start. The tick gives back a claim no run took within
- * `CLAIM_STALE_MS`; a run that starts after that has no place under the
- * cap, so it's cancelled.
+ * that didn't start. A start takes its claim first (`takeClaim`), and the
+ * tick gives back only a claim no start took within `CLAIM_STALE_MS`. A
+ * start slower than that has lost its place under the cap, so its run is
+ * cancelled.
  */
 export const settleClaim = async (
   deps: Pick<ScheduleDeps, "db" | "runs">,
@@ -537,6 +544,9 @@ const postScheduleRun = async (
   claim: ScheduleRunRow
 ): Promise<Result<CreateRunOutput, ScheduleError>> => {
   const { db } = deps;
+  if (!(await takeClaim(db, claim.id, deps.now()))) {
+    return err({ retryAfterSeconds: 3600, type: "cap" });
+  }
   const actor = await ownerActor(db, schedule.ownerId);
   const dot = schedule.dotId ? await getDotById(db, schedule.dotId) : null;
   let conversationId = dot?.conversationId ?? schedule.conversationId;

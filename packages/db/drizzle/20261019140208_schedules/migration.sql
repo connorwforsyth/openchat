@@ -38,9 +38,53 @@ UPDATE "dot_run" r SET "owner_id" = d."owner_id", "conversation_id" = d."convers
 -- auto-approved tools, end their prompt with its instructions and rules,
 -- and stay paused if the Dot was off. The primary (or else the oldest) Dot
 -- stays.
-CREATE TEMP TABLE "extra_dot" AS SELECT "id", "enabled", "auto_approve_tools", concat_ws(E'\n\n', '',
-    'Standing instructions from the owner:' || E'\n' || nullif(btrim("instructions", E' \t\r\n'), ''),
-    'The owner''s rules on when to act and when to ask:' || E'\n' || nullif(btrim("rules", E' \t\r\n'), '')) AS "tail", E'\n[Cut to fit the 4,000-character prompt limit.]' AS "cut" FROM "dot" WHERE "id" NOT IN (SELECT DISTINCT ON ("owner_id") "id" FROM "dot" ORDER BY "owner_id", "is_primary" DESC, "created_at", "id");--> statement-breakpoint
+-- A string's length as the contract's limits count it: UTF-16 code units,
+-- as JavaScript does, where char_length counts code points.
+CREATE FUNCTION pg_temp.utf16_length(t text) RETURNS integer LANGUAGE sql IMMUTABLE AS $$
+  SELECT char_length(t) + char_length(regexp_replace(t, '[^\U00010000-\U0010FFFF]', '', 'g'))
+$$;--> statement-breakpoint
+-- The start of `t` that fits in `n` units (a character short at most).
+CREATE FUNCTION pg_temp.utf16_left(t text, n integer) RETURNS text LANGUAGE sql IMMUTABLE AS $$
+  SELECT left(t, n - greatest(0, pg_temp.utf16_length(left(t, n)) - n))
+$$;--> statement-breakpoint
+-- What an extra Dot adds to a schedule's prompt: its instructions, then its
+-- rules, each under a header. The owner's prompt is never cut. A tail that
+-- doesn't fit the 4000-unit limit is cut and says so, unless not even the
+-- marker fits. A cut keeps at least one character after a header, or drops
+-- that section.
+CREATE FUNCTION pg_temp.dot_prompt_tail(prompt text, instructions text, rules text) RETURNS text LANGUAGE plpgsql AS $$
+DECLARE
+  sections text[] := array_remove(ARRAY[
+    E'\n\nStanding instructions from the owner:\n' || nullif(btrim(instructions, E' \t\r\n'), ''),
+    E'\n\nThe owner''s rules on when to act and when to ask:\n' || nullif(btrim(rules, E' \t\r\n'), '')
+  ], NULL);
+  marker constant text := E'\n[Cut to fit the 4,000-character prompt limit.]';
+  room integer := 4000 - pg_temp.utf16_length(prompt);
+  kept text := '';
+  section text;
+BEGIN
+  IF pg_temp.utf16_length(array_to_string(sections, '')) <= room THEN
+    RETURN array_to_string(sections, '');
+  END IF;
+  IF room < char_length(marker) THEN
+    RETURN '';
+  END IF;
+  room := room - char_length(marker);
+  FOREACH section IN ARRAY sections LOOP
+    IF pg_temp.utf16_length(section) > room THEN
+      -- The header ends at the first line break after the leading two.
+      IF room > strpos(substr(section, 3), E'\n') + 2 THEN
+        kept := kept || pg_temp.utf16_left(section, room);
+      END IF;
+      EXIT;
+    END IF;
+    kept := kept || section;
+    room := room - pg_temp.utf16_length(section);
+  END LOOP;
+  RETURN kept || marker;
+END
+$$;--> statement-breakpoint
+CREATE TEMP TABLE "extra_dot" AS SELECT "id", "enabled", "auto_approve_tools", "instructions", "rules" FROM "dot" WHERE "id" NOT IN (SELECT DISTINCT ON ("owner_id") "id" FROM "dot" ORDER BY "owner_id", "is_primary" DESC, "created_at", "id");--> statement-breakpoint
 UPDATE "dot_schedule" s SET
   "target_kind" = 'conversation',
   "dot_id" = NULL,
@@ -50,14 +94,7 @@ UPDATE "dot_schedule" s SET
   "paused_reason" = CASE WHEN d."enabled" THEN s."paused_reason" ELSE 'user' END,
   "next_run_at" = CASE WHEN d."enabled" THEN s."next_run_at" END,
   "next_run_nominal_at" = CASE WHEN d."enabled" THEN s."next_run_nominal_at" END,
-  -- The owner's prompt is never cut. A tail that doesn't fit the 4000
-  -- character limit is cut and says so, unless not even the marker fits.
-  "prompt" = s."prompt" || CASE
-    WHEN char_length(d."tail") <= 4000 - char_length(s."prompt") THEN d."tail"
-    WHEN 4000 - char_length(s."prompt") >= char_length(d."cut")
-      THEN left(d."tail", 4000 - char_length(s."prompt") - char_length(d."cut")) || d."cut"
-    ELSE ''
-  END
+  "prompt" = s."prompt" || pg_temp.dot_prompt_tail(s."prompt", d."instructions", d."rules")
 FROM "extra_dot" d WHERE s."dot_id" = d."id";--> statement-breakpoint
 UPDATE "dot_run" SET "dot_id" = NULL WHERE "dot_id" IN (SELECT "id" FROM "extra_dot");--> statement-breakpoint
 DELETE FROM "dot" WHERE "id" IN (SELECT "id" FROM "extra_dot");--> statement-breakpoint
