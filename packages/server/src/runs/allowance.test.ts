@@ -1,5 +1,5 @@
 import { textStream } from "@workspace/ai/testing/mock-models";
-import type { OrgId, UserId } from "@workspace/contract/schemas/common";
+import type { OrgId, TeamId, UserId } from "@workspace/contract/schemas/common";
 import type { Conversation } from "@workspace/contract/schemas/conversations";
 import type { SpaceRef } from "@workspace/contract/schemas/spaces";
 import {
@@ -18,7 +18,8 @@ import { createHarness, type Harness } from "../testing/harness";
 
 // A space's token allowance (192) is checked before a run exists, like a
 // money budget (D24): a member needs an approved grant with tokens left,
-// owners draw on the pool, and a pool covers the spaces below it.
+// owners draw on the pool, and the nearest pool among the chat's space and
+// the spaces above it that the caller is a member of is the one that counts.
 
 const reply = () =>
   new MockLanguageModelV4({
@@ -180,6 +181,48 @@ describe("token allowance before a run", () => {
       spentIn(org)
     );
     await grant(org, memberId, 100);
+    expect((await send(memberId, team)).status).toBe(202);
+  });
+
+  describe("in a sub-space whose parent the caller isn't in", () => {
+    let child: SpaceRef;
+    let adaId: UserId;
+
+    beforeEach(async () => {
+      child = {
+        id: (await seedTeam(h.db, orgId, team.id as TeamId)).id,
+        type: "team",
+      };
+      adaId = (await seedUser(h.db)).id;
+      await seedOrg(h.db, adaId, { isPersonal: true });
+      await h.db
+        .insert(member)
+        .values({ organizationId: orgId, role: "member", userId: adaId });
+      await h.db
+        .insert(teamMember)
+        .values({ role: "member", teamId: child.id, userId: adaId });
+      await pool(team, 1000);
+    });
+
+    it("ignores the parent's pool when the sub-space has none", async () => {
+      expect((await send(adaId, child)).status).toBe(202);
+    });
+
+    it("limits by the sub-space's own pool and grant", async () => {
+      await pool(child, 1000);
+      expect(await outcome(await send(adaId, child))).toMatchObject(
+        spentIn(child)
+      );
+      await grant(child, adaId, 100);
+      expect((await send(adaId, child)).status).toBe(202);
+    });
+  });
+
+  it("counts only the nearest pool the caller is a member of", async () => {
+    const org: SpaceRef = { id: orgId, type: "org" };
+    await pool(org, 1000);
+    await pool(team, 1000);
+    await grant(team, memberId, 100);
     expect((await send(memberId, team)).status).toBe(202);
   });
 });
