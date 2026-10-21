@@ -19,6 +19,7 @@ import { routes } from "@/lib/routes";
 export const settingsSectionSchema = z.enum([
   "profile",
   "keys",
+  "usage",
   "mcp",
   "memory",
   "shortcuts",

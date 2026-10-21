@@ -234,6 +234,7 @@ icons: { set: phosphor } # e.g. { set: material, style: rounded, weight: 400, fi
 fonts: { sans: geist, mono: geist-mono }
 
 observability: { otlp: null, recordContent: false } # otlp: { endpoint: "\${OTEL_EXPORTER_OTLP_ENDPOINT}" }; recordContent puts prompts on spans
+# userTracesUrl: "https://cloud.langfuse.com/project/<project-id>/users/{userId}"   # admins get a link from Settings → Usage
 
 limits:
   requestsPerMinute: 60
@@ -581,6 +582,7 @@ icons: { set: lucide } # e.g. { set: material, style: rounded, weight: 400, fill
 fonts: { sans: geist, mono: geist-mono }
 
 observability: { otlp: null, recordContent: false } # otlp: { endpoint: "\${OTEL_EXPORTER_OTLP_ENDPOINT}" }; recordContent puts prompts on spans
+# userTracesUrl: "https://cloud.langfuse.com/project/<project-id>/users/{userId}"   # admins get a link from Settings → Usage
 
 limits:
   requestsPerMinute: 60
@@ -920,6 +922,7 @@ icons: { set: material, style: rounded } # e.g. { set: material, style: rounded,
 fonts: { sans: geist, mono: geist-mono }
 
 observability: { otlp: null, recordContent: false } # otlp: { endpoint: "\${OTEL_EXPORTER_OTLP_ENDPOINT}" }; recordContent puts prompts on spans
+# userTracesUrl: "https://cloud.langfuse.com/project/<project-id>/users/{userId}"   # admins get a link from Settings → Usage
 
 limits:
   requestsPerMinute: 60

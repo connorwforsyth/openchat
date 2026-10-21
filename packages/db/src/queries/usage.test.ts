@@ -8,6 +8,10 @@ import {
   seedUser,
   type TestDb,
 } from "../testing";
+import { createConversation } from "./conversations";
+import { insertMessage } from "./messages";
+import { createProviderKey } from "./provider-keys";
+import { createRun } from "./runs";
 import {
   budgetStatuses,
   exceededBudgets,
@@ -17,6 +21,7 @@ import {
   periodStart,
   recordTransaction,
   setBudget,
+  summarizeUsage,
 } from "./usage";
 
 let testDb: TestDb;
@@ -159,5 +164,187 @@ describe("recordTransaction and budgets", () => {
       userId: user.id,
     });
     expect(row).toMatchObject({ paidById: null, paidByType: "instance" });
+  });
+});
+
+describe("summarizeUsage", () => {
+  const day1 = new Date("2026-10-01T09:00:00Z");
+  const day2 = new Date("2026-10-02T09:00:00Z");
+  const before = new Date("2026-09-20T09:00:00Z");
+  const range = {
+    from: new Date("2026-10-01T00:00:00Z"),
+    to: new Date("2026-10-03T00:00:00Z"),
+  };
+
+  /**
+   * One user's spend: a titled chat in a sub-team paid by a team key, a
+   * title call in the org on the instance's keys, and a call before the
+   * range. A second user spends in the same sub-team.
+   */
+  const setup = async () => {
+    const { db } = testDb;
+    const ada = await seedUser(db, { name: "Ada" });
+    const grace = await seedUser(db, { name: "Grace" });
+    const org = await seedOrg(db, ada.id);
+    const engineering = await seedTeam(db, org.id);
+    const platform = await seedTeam(db, org.id, engineering.id);
+    const elsewhere = await seedTeam(db, org.id);
+    const context = { id: platform.id, type: "team" } as const;
+    const chat = await createConversation(db, {
+      context,
+      ownerId: ada.id,
+      title: "Quarterly plan",
+    });
+    const question = expectOk(
+      await insertMessage(db, {
+        authorId: ada.id,
+        conversationId: chat.id,
+        parentId: null,
+        parts: [{ text: "hi", type: "text" }],
+        role: "user",
+      })
+    );
+    const { run } = await createRun(db, {
+      context,
+      conversationId: chat.id,
+      createdBy: ada.id,
+      target: { model: "fast", type: "model" },
+      userMessageId: question.id,
+    });
+    const key = await createProviderKey(db, {
+      createdBy: ada.id,
+      encryptedKey: "sealed",
+      hint: "abcd",
+      keyId: "k1",
+      label: "Team Anthropic",
+      provider: "anthropic",
+      scope: { id: platform.id, type: "team" },
+    });
+    const record = (
+      input: Partial<Parameters<typeof recordTransaction>[1]>,
+      at: Date
+    ) =>
+      recordTransaction(
+        db,
+        {
+          context,
+          costMicros: 100,
+          kind: "chat",
+          model: "anthropic:claude-test",
+          orgId: org.id,
+          paidBy: { id: platform.id, type: "team" },
+          usage: { inputTokens: 10, outputTokens: 5 },
+          userId: ada.id,
+          ...input,
+        },
+        at
+      );
+    await record({ costMicros: 300, runId: run.id }, day1);
+    await record({ costMicros: 200, runId: run.id }, day2);
+    await record(
+      {
+        context: { id: org.id, type: "org" },
+        costMicros: 50,
+        kind: "title",
+        model: "ollama:qwen",
+        paidBy: { type: "instance" },
+      },
+      day2
+    );
+    await record({ costMicros: 9000, runId: run.id }, before);
+    await record({ costMicros: 70, userId: grace.id }, day1);
+    await record(
+      {
+        context: { id: elsewhere.id, type: "team" },
+        costMicros: 5,
+        paidBy: { type: "instance" },
+      },
+      day1
+    );
+    return { ada, chat, db, engineering, key, org, platform };
+  };
+
+  test("groups by day, model, chat and key, within the range", async () => {
+    const { ada, chat, db, key } = await setup();
+    const mine = { type: "user", userId: ada.id } as const;
+    const summarize = (
+      groupBy: Parameters<typeof summarizeUsage>[2]["groupBy"]
+    ) =>
+      summarizeUsage(db, mine, {
+        ...range,
+        groupBy,
+        viewer: { principals: [], userId: ada.id },
+      });
+
+    expect(
+      (await summarize("day")).map((row) => [row.key, row.costMicros])
+    ).toEqual([
+      ["2026-10-01", 305],
+      ["2026-10-02", 250],
+    ]);
+    expect(
+      (await summarize("model")).map((row) => [row.key, row.costMicros])
+    ).toEqual([
+      ["anthropic:claude-test", 505],
+      ["ollama:qwen", 50],
+    ]);
+    const byChat = await summarize("conversation");
+    expect(byChat).toEqual([
+      {
+        costMicros: 500,
+        key: chat.id,
+        label: "Quarterly plan",
+        usage: { inputTokens: 20, outputTokens: 10 },
+      },
+      {
+        costMicros: 55,
+        key: "",
+        usage: { inputTokens: 20, outputTokens: 10 },
+      },
+    ]);
+    const byKey = await summarize("key");
+    expect(byKey.map((row) => [row.key, row.label, row.costMicros])).toEqual([
+      [key.id, "Team Anthropic", 500],
+      ["", undefined, 55],
+    ]);
+  });
+
+  test("a space narrows to it and the spaces below it", async () => {
+    const { ada, db, engineering, org, platform } = await setup();
+    const everyone = { orgId: org.id, type: "org" } as const;
+    const inTeam = (teamIds: readonly (typeof platform.id)[]) =>
+      ({ teamIds, type: "team" }) as const;
+    const total = async (
+      filter: Parameters<typeof summarizeUsage>[1],
+      space?: Parameters<typeof summarizeUsage>[2]["space"]
+    ) =>
+      (
+        await summarizeUsage(db, filter, { ...range, groupBy: "user", space })
+      ).map((row) => [row.label, row.costMicros]);
+
+    expect(
+      await total(everyone, inTeam([engineering.id, platform.id]))
+    ).toEqual([
+      ["Ada", 500],
+      ["Grace", 70],
+    ]);
+    expect(
+      await total({ type: "user", userId: ada.id }, inTeam([platform.id]))
+    ).toEqual([["Ada", 500]]);
+    expect(await total({ type: "user", userId: ada.id }, everyone)).toEqual([
+      ["Ada", 555],
+    ]);
+  });
+
+  test("a key narrows to the usage it paid for", async () => {
+    const { ada, db, key } = await setup();
+    const rows = await summarizeUsage(
+      db,
+      { type: "user", userId: ada.id },
+      { ...range, groupBy: "model", keyId: key.id }
+    );
+    expect(rows.map((row) => [row.key, row.costMicros])).toEqual([
+      ["anthropic:claude-test", 500],
+    ]);
   });
 });

@@ -16,6 +16,7 @@ import { REINDEX_EMBEDDINGS_JOB } from "@workspace/ai/rag/ingest";
 import { chooseWebSearch } from "@workspace/ai/search/choose";
 import { createSearchBackend } from "@workspace/ai/search/from-config";
 import { startTelemetry } from "@workspace/ai/telemetry/otel";
+import { userTracesUrlOf } from "@workspace/ai/telemetry/trace-context";
 import { authRouter } from "@workspace/auth/handlers";
 import type { HandlerContext } from "@workspace/auth/handlers/context";
 import {
@@ -573,7 +574,10 @@ export const createServerFromEnv = async (
         registry,
       }),
       ...createKeysRouter({ config, db, keys: keyRing, registry }),
-      ...createUsageRouter({ db }),
+      ...createUsageRouter({
+        db,
+        userTracesUrl: userTracesUrlOf(config.observability.userTracesUrl),
+      }),
       ...createDotsRouter(services.dots),
       ...createDecisionsRouter({ db }),
       ...createArtifactsRouter({

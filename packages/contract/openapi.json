@@ -36762,9 +36762,53 @@
             "in": "query",
             "required": false,
             "schema": {
-              "enum": ["model", "user", "day", "kind"],
+              "enum": ["model", "user", "day", "kind", "conversation", "key"],
               "type": "string",
               "default": "model"
+            },
+            "allowEmptyValue": true,
+            "allowReserved": true
+          },
+          {
+            "name": "keyId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "providerKey id (UUIDv7)"
+            },
+            "allowEmptyValue": true,
+            "allowReserved": true
+          },
+          {
+            "name": "spaceId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid",
+                  "description": "org id (UUIDv7)"
+                },
+                {
+                  "type": "string",
+                  "format": "uuid",
+                  "description": "team id (UUIDv7)"
+                }
+              ]
+            },
+            "allowEmptyValue": true,
+            "allowReserved": true
+          },
+          {
+            "name": "spaceType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": ["org", "team"],
+              "type": "string"
             },
             "allowEmptyValue": true,
             "allowReserved": true
@@ -36808,6 +36852,13 @@
                           },
                           "key": {
                             "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "traceUrl": {
+                            "type": "string",
+                            "format": "uri"
                           },
                           "usage": {
                             "type": "object",
