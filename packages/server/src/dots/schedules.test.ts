@@ -503,6 +503,36 @@ describe("scheduled runs", () => {
     });
   });
 
+  it("refuses a dot_run row that is neither a run nor a skipped slot", async () => {
+    const schedule = await create({ target: { kind: "new_chat_each_run" } });
+    await expect(
+      h.db.insert(dotRun).values({
+        ownerId: h.ownerId,
+        scheduleId: schedule.id,
+        skipReason: "busy",
+        trigger: "schedule",
+      })
+    ).rejects.toThrow();
+  });
+
+  it("lists a schedule's history past a row from before the shape check", async () => {
+    const schedule = await create({ target: { kind: "new_chat_each_run" } });
+    h.nextTurn({ model: reporting("update").model });
+    clock = new Date("2026-10-20T09:06:00.000Z");
+    await tick();
+    await h.db.execute(sql`alter table dot_run drop constraint dot_run_shape`);
+    await h.db.insert(dotRun).values({
+      ownerId: h.ownerId,
+      scheduleId: schedule.id,
+      skipReason: "busy",
+      trigger: "schedule",
+    });
+
+    expect((await runsOf(schedule.id)).map((run) => run.outcome)).toEqual([
+      "update",
+    ]);
+  });
+
   it("ends a quiet run after one step and leaves the Dot unread-free", async () => {
     const dot = await json<Dot>(
       await request("/api/dots", {
