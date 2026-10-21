@@ -8,6 +8,8 @@ import { defineProject } from "vitest/config";
 
 const require = createRequire(import.meta.url);
 
+const TEST_FILES = ["app/**/*.test.{ts,tsx}", "lib/**/*.test.ts"];
+
 // The one Lingui config lives in @workspace/i18n (one catalog for every app).
 const linguiConfig = getConfig({
   configPath: require.resolve("@workspace/i18n/lingui.config"),
@@ -17,60 +19,12 @@ const linguiConfig = getConfig({
 // real, headless Chromium with the API client over a fake `fetch`. Route and
 // server code stays out: Playwright covers it against a production build.
 export default defineProject({
-  // Pre-bundle up front: discovering these mid-run reloads the page and fails
-  // whichever test file was importing. `a > b` resolves b from package a.
-  optimizeDeps: {
-    include: [
-      "@lingui/core",
-      "@lingui/react",
-      "@tanstack/react-query",
-      "@tanstack/react-query-persist-client",
-      "@testing-library/react",
-      "idb-keyval",
-      "next-themes",
-      "next/dynamic",
-      "next/link",
-      "next/navigation",
-      "react",
-      "react-dom",
-      "react-dom/client",
-      "react/jsx-dev-runtime",
-      "react/jsx-runtime",
-      "zod",
-      "@workspace/auth > better-auth/client/plugins",
-      "@workspace/auth > better-auth/react",
-      "@workspace/client > @orpc/client",
-      "@workspace/client > @orpc/client/plugins",
-      "@workspace/client > @orpc/openapi-client/fetch",
-      "@workspace/client > @orpc/tanstack-query",
-      "@workspace/contract > @orpc/contract",
-      "@workspace/shared > uuidv7",
-      "@workspace/icons > lucide-react",
-      "@workspace/shortcuts > @tanstack/react-hotkeys",
-      "@workspace/ui > @base-ui/react/alert-dialog",
-      "@workspace/ui > @base-ui/react/avatar",
-      "@workspace/ui > @base-ui/react/button",
-      "@workspace/ui > @base-ui/react/dialog",
-      "@workspace/ui > @base-ui/react/drawer",
-      "@workspace/ui > @base-ui/react/input",
-      "@workspace/ui > @base-ui/react/menu",
-      "@workspace/ui > @base-ui/react/merge-props",
-      "@workspace/ui > @base-ui/react/radio",
-      "@workspace/ui > @base-ui/react/radio-group",
-      "@workspace/ui > @base-ui/react/select",
-      "@workspace/ui > @base-ui/react/separator",
-      "@workspace/ui > @base-ui/react/switch",
-      "@workspace/ui > @base-ui/react/toggle",
-      "@workspace/ui > @base-ui/react/toast",
-      "@workspace/ui > @base-ui/react/toggle-group",
-      "@workspace/ui > @base-ui/react/tooltip",
-      "@workspace/ui > @base-ui/react/use-render",
-      "@workspace/ui > class-variance-authority",
-      "@workspace/ui > cmdk",
-      "@workspace/ui > react-resizable-panels",
-      "@workspace/ui > cn",
-    ],
-  },
+  // Vitest gives Vite each test file's path as a dependency-scan entry, and
+  // Vite reads entries as globs. A route group's parentheses, as in `(app)`,
+  // then match nothing, so the scan misses those tests' imports and Vite finds
+  // them mid-run. That reloads the page and fails whichever test file was
+  // loading. These globs do match route groups.
+  optimizeDeps: { entries: TEST_FILES },
   // Next's tsconfig says `jsx: preserve` (Next compiles JSX itself); Vite
   // has to compile it here.
   oxc: { jsx: { runtime: "automatic" } },
@@ -111,7 +65,7 @@ export default defineProject({
       screenshotFailures: false,
     },
     hookTimeout: 60_000,
-    include: ["app/**/*.test.{ts,tsx}", "lib/**/*.test.ts"],
+    include: TEST_FILES,
     // One Chromium per package, two tabs in it (Vitest's default is a tab per
     // core): six packages each opening nine tabs starved the machine and
     // tabs failed to connect (ticket 043). The same on a laptop and on CI.
