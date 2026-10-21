@@ -3,7 +3,7 @@
 // came out as expected; prints each counterexample in the code's words.
 // Needs no model provider, no database and no network once tools are cached.
 //
-//   bun .claude/skills/verify-run-queue/model/check.ts            the default checks
+//   bun .claude/skills/verify-run-queue/model/check.ts            every check
 //   bun .claude/skills/verify-run-queue/model/check.ts queue      checks by name
 //   bun .claude/skills/verify-run-queue/model/check.ts --narrate tlc.log
 //
@@ -56,8 +56,6 @@ interface Check {
   readonly expect: Expect;
   readonly invariants: readonly string[];
   readonly name: string;
-  /** Left out of the default run; run it by name. */
-  readonly optIn?: boolean;
   /** Temporal properties, checked under the spec's weak fairness. */
   readonly properties?: readonly string[];
   /** The VIEW in RunQueue.tla: it must keep every ghost the invariants read. */
@@ -152,12 +150,10 @@ const CHECKS: readonly Check[] = [
     view: "View",
   },
   {
-    // The slowest check, so it runs only by name. See SKILL.md, finding 1.
     config: "RunQueueApprovals.cfg",
     expect: "holds",
     invariants: ["NoStuckRun"],
     name: "approval-lost",
-    optIn: true,
     view: "View",
   },
 ];
@@ -711,7 +707,7 @@ const main = async (args: readonly string[]): Promise<number> => {
   const selected =
     args.length > 0
       ? CHECKS.filter((check) => args.includes(check.name))
-      : CHECKS.filter((check) => !check.optIn);
+      : CHECKS;
   if (selected.length === 0) {
     process.stdout.write(
       `checks: ${CHECKS.map((check) => check.name).join(", ")}\n`
