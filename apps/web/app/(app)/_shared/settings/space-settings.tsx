@@ -2,7 +2,7 @@
 
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { OrgId, UserId } from "@workspace/contract/schemas/common";
+import type { OrgId, TeamId, UserId } from "@workspace/contract/schemas/common";
 import type {
   AllowanceGrant,
   Space,
@@ -31,7 +31,10 @@ import {
   useState,
 } from "react";
 
-import { MembersAdmin } from "@/app/(app)/(pages)/admin/_components/members-admin";
+import {
+  InviteForm,
+  MembersAdmin,
+} from "@/app/(app)/(pages)/admin/_components/members-admin";
 import { formatMicros } from "@/app/(app)/(pages)/admin/_components/money";
 import { TeamsAdmin } from "@/app/(app)/(pages)/admin/_components/teams-admin";
 import { useApi } from "../api";
@@ -151,10 +154,46 @@ const MemberRow = ({
   );
 };
 
+/** Inviting is the root's owners' and admins' call (orgs.invite). */
+const SubSpaceInvite = ({
+  managesRoot,
+  rootName,
+  space,
+}: {
+  readonly managesRoot: boolean;
+  readonly rootName: string;
+  readonly space: Space;
+}) => {
+  if (!managesRoot) {
+    return (
+      <p className="text-muted-foreground text-sm">
+        <Trans>
+          Only owners and admins of {rootName} can invite new people. You can
+          add someone already in {rootName}.
+        </Trans>
+      </p>
+    );
+  }
+  const { name } = space;
+  return (
+    <section className="flex flex-col gap-3">
+      <h2 className="font-medium">
+        <Trans>Invite someone to {name}</Trans>
+      </h2>
+      <InviteForm orgId={space.orgId} teamId={space.id as TeamId} />
+    </section>
+  );
+};
+
 const SubSpaceMembers = ({ space }: { readonly space: Space }) => {
   const { t } = useLingui();
   const { query } = useApi();
   const refresh = useRefreshSpaces();
+  const { spaces } = useManagedSpace();
+  const root = spaces.find(
+    (each) => each.type === "org" && each.id === space.orgId
+  );
+  const rootName = root?.name ?? "";
   const ref = refOf(space);
   const members = useQuery(query.spaces.members.queryOptions({ input: ref }));
   const rootMembers = useQuery(
@@ -242,7 +281,7 @@ const SubSpaceMembers = ({ space }: { readonly space: Space }) => {
         <form className="flex flex-wrap items-end gap-2" onSubmit={add}>
           <div className="flex flex-col gap-2">
             <Label htmlFor="space-add-member">
-              <Trans>Add someone from the space above</Trans>
+              <Trans>Add someone from {rootName}</Trans>
             </Label>
             <OptionSelect
               className="w-56"
@@ -268,6 +307,13 @@ const SubSpaceMembers = ({ space }: { readonly space: Space }) => {
             <Trans>Add</Trans>
           </Button>
         </form>
+      ) : null}
+      {space.type === "team" && space.canManage ? (
+        <SubSpaceInvite
+          managesRoot={root?.canManage ?? false}
+          rootName={rootName}
+          space={space}
+        />
       ) : null}
     </div>
   );
@@ -338,8 +384,8 @@ const spacesBelow = (spaces: readonly Space[], active: Space) => {
 
 export const SubSpaces = () => {
   const { active } = useManagedSpace();
-  // A root space's whole tree is managed in one place: create anywhere in
-  // it, rename, move and remove (the team tree, 012).
+  // A root space's whole sub-space tree is managed in one place: create
+  // anywhere in it, rename and remove (012).
   return active?.type === "org" && active.canManage ? (
     <TeamsAdmin orgId={active.id as OrgId} />
   ) : (

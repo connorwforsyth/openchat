@@ -33,22 +33,22 @@ export const createOrg = async (
   return orgIdSchema.parse(SPACE_SETTINGS_URL.exec(page.url())?.[1]);
 };
 
-/** Adds a team on the teams page, top level or inside `parent`. */
+/** Adds a sub-space in Space settings, directly in the space or inside `parent`. */
 export const createTeam = async (
   page: Page,
   { name, parent }: { readonly name: string; readonly parent?: string }
 ) => {
-  await page.getByLabel("Team name").fill(name);
+  await page.getByLabel("Name", { exact: true }).fill(name);
   if (parent) {
     await page.getByRole("combobox", { name: "Inside" }).click();
     await page.getByRole("option", { exact: true, name: parent }).click();
   }
-  await clickHydrated(page.getByRole("button", { name: "Create team" }));
+  await clickHydrated(page.getByRole("button", { name: "Create sub-space" }));
   await expect(page.getByText(name, { exact: true })).toBeVisible();
 };
 
 /**
- * Invites `email` from the members page (into `team`, if given) and
+ * Invites `email` from the members page (into sub-space `team`, if given) and
  * returns the one-time invite link the page shows.
  */
 export const invite = async (
@@ -57,7 +57,9 @@ export const invite = async (
 ): Promise<string> => {
   await page.getByLabel("Email").fill(email);
   if (team) {
-    await page.getByRole("combobox", { exact: true, name: "Team" }).click();
+    await page
+      .getByRole("combobox", { exact: true, name: "Sub-space" })
+      .click();
     await page.getByRole("option", { name: team }).click();
   }
   await clickHydrated(page.getByRole("button", { name: "Invite" }));

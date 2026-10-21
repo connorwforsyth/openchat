@@ -187,8 +187,8 @@ const sectionInfo = (
         content: <SpaceMembers />,
         description: (
           <Trans>
-            Who is in {name}. Owners add people from the space above and promote
-            them.
+            Who is in {name}. Owners and admins bring people in and set their
+            roles.
           </Trans>
         ),
         icon: <UsersIcon />,

@@ -366,6 +366,10 @@ msgstr "A short name, like a nickname."
 msgid "A slide in this deck failed to draw."
 msgstr "A slide in this deck failed to draw."
 
+#: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
+msgid "A space needs at least one owner. Make someone else an owner first."
+msgstr "A space needs at least one owner. Make someone else an owner first."
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 #: ../library-ui/src/components/badges.tsx
 msgid "A team"
@@ -493,8 +497,8 @@ msgid "Add people, teams or orgs"
 msgstr "Add people, teams or orgs"
 
 #: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
-msgid "Add someone from the space above"
-msgstr "Add someone from the space above"
+msgid "Add someone from {rootName}"
+msgstr "Add someone from {rootName}"
 
 #: ../composer/src/components/plus-menu.tsx
 msgid "Add to message"
@@ -617,10 +621,6 @@ msgstr "An alias follows whatever the instance maps it to."
 #: ../library-ui/src/components/badges.tsx
 msgid "An org"
 msgstr "An org"
-
-#: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
-msgid "An org needs at least one owner. Make someone else an owner first."
-msgstr "An org needs at least one owner. Make someone else an owner first."
 
 #: ../chat-ui/src/conversation/message-row.tsx
 msgid "Annotation attached"
@@ -1512,8 +1512,8 @@ msgid "Create organisation"
 msgstr "Create organisation"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
-msgid "Create team"
-msgstr "Create team"
+msgid "Create sub-space"
+msgstr "Create sub-space"
 
 #: ../library-ui/src/components/run-test-chat.tsx
 msgid "Create the agent to try it in a test chat."
@@ -1664,8 +1664,8 @@ msgid "Delete budget"
 msgstr "Delete budget"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
-msgid "Delete team"
-msgstr "Delete team"
+msgid "Delete sub-space"
+msgstr "Delete sub-space"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "Delete the budget for {name}"
@@ -1781,6 +1781,10 @@ msgstr "Didn't use {code} from {server}"
 #: ../code-ui/src/diff-view.tsx
 msgid "Diff layout"
 msgstr "Diff layout"
+
+#: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
+msgid "Directly in this space"
+msgstr "Directly in this space"
 
 #: ../../apps/web/app/dev/composer/demo.tsx
 msgid "Disabled"
@@ -2553,6 +2557,10 @@ msgstr "Invite people…"
 msgid "Invite someone"
 msgstr "Invite someone"
 
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "Invite someone to {name}"
+msgstr "Invite someone to {name}"
+
 #: ../chat-ui/src/workspace/save-site-dialog.tsx
 msgid "It can't be saved as a site yet:"
 msgstr "It can't be saved as a site yet:"
@@ -2983,8 +2991,8 @@ msgid "Members are told"
 msgstr "Members are told"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
-msgid "Members keep their accounts. Grants and budgets given to this team go away with it."
-msgstr "Members keep their accounts. Grants and budgets given to this team go away with it."
+msgid "Members keep their accounts. Grants and budgets given to this sub-space go away with it."
+msgstr "Members keep their accounts. Grants and budgets given to this sub-space go away with it."
 
 #: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
 msgid "Members of {name}"
@@ -3164,6 +3172,7 @@ msgstr "name"
 #: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
 #: ../../apps/web/app/(app)/_shared/settings/usage-settings.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
+#: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
 #: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
 #: ../../apps/web/app/(app)/(pages)/dots/onboarding.tsx
 #: ../../apps/web/app/(app)/(pages)/schedules/schedule-editor.tsx
@@ -3285,6 +3294,10 @@ msgstr "New scheduled task"
 msgid "New step"
 msgstr "New step"
 
+#: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
+msgid "New sub-space"
+msgstr "New sub-space"
+
 #. placeholder {0}: active.name
 #: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
 msgid "New sub-space in {0}"
@@ -3294,10 +3307,6 @@ msgstr "New sub-space in {0}"
 #: ../../apps/web/app/(app)/(pages)/schedules/schedules-screen.tsx
 msgid "New task"
 msgstr "New task"
-
-#: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
-msgid "New team"
-msgstr "New team"
 
 #: ../chat-ui/src/artifacts/artifact-view.tsx
 #: ../chat-ui/src/artifacts/diagram/diagram-view.tsx
@@ -3482,13 +3491,9 @@ msgstr "No skills shared here yet."
 msgid "No spaces yet."
 msgstr "No spaces yet."
 
-#: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
-msgid "No team"
-msgstr "No team"
-
 #: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
-msgid "No teams yet"
-msgstr "No teams yet"
+msgid "No sub-spaces yet"
+msgstr "No sub-spaces yet"
 
 #: ../chat-ui/src/conversation/schedule-text.tsx
 msgid "No update"
@@ -3521,6 +3526,10 @@ msgstr "Node label"
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "None"
 msgstr "None"
+
+#: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
+msgid "None (the whole space)"
+msgstr "None (the whole space)"
 
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "None yet"
@@ -3681,6 +3690,10 @@ msgstr "Once, {at}"
 #: ../chat-ui/src/conversation/schedule-card.tsx
 msgid "Only if a run fails"
 msgstr "Only if a run fails"
+
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "Only owners and admins of {rootName} can invite new people. You can add someone already in {rootName}."
+msgstr "Only owners and admins of {rootName} can invite new people. You can add someone already in {rootName}."
 
 #. placeholder {0}: active.name
 #: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
@@ -4478,8 +4491,8 @@ msgid "Remove {name}"
 msgstr "Remove {name}"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
-msgid "Remove {name} from this org?"
-msgstr "Remove {name} from this org?"
+msgid "Remove {name} from this space?"
+msgstr "Remove {name} from this space?"
 
 #: ../library-ui/src/components/skill-form.tsx
 msgid "Remove {path}"
@@ -5468,9 +5481,17 @@ msgstr "Streamable HTTP"
 msgid "Strikethrough"
 msgstr "Strikethrough"
 
+#: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
+msgid "Sub-space"
+msgstr "Sub-space"
+
 #: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
 msgid "Sub-spaces"
 msgstr "Sub-spaces"
+
+#: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
+msgid "Sub-spaces group members for sharing, keys and budgets. Each one inherits what the space above it is given."
+msgstr "Sub-spaces group members for sharing, keys and budgets. Each one inherits what the space above it is given."
 
 #: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
 msgid "Sub-spaces of {name}"
@@ -5561,19 +5582,10 @@ msgstr "Tasks that run on their own and post into your Dot or a chat."
 msgid "team"
 msgstr "team"
 
-#: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 #: ../chat-ui/src/header/context-control.tsx
 msgid "Team"
 msgstr "Team"
-
-#: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
-msgid "Team name"
-msgstr "Team name"
-
-#: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
-msgid "Teams group members for sharing, keys and budgets. Sub-teams inherit what their parent is given."
-msgstr "Teams group members for sharing, keys and budgets. Sub-teams inherit what their parent is given."
 
 #: ../../apps/web/app/(app)/(pages)/schedules/schedule-editor.tsx
 msgid "Tell me"
@@ -5684,8 +5696,8 @@ msgid "That short name is taken. Try another."
 msgstr "That short name is taken. Try another."
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
-msgid "That team has sub-teams. Delete or move them first."
-msgstr "That team has sub-teams. Delete or move them first."
+msgid "That sub-space has sub-spaces of its own. Delete or move them first."
+msgstr "That sub-space has sub-spaces of its own. Delete or move them first."
 
 #: ../../apps/web/app/(app)/(pages)/schedules/schedule-editor.tsx
 msgid "That time has passed. Pick a later one."
@@ -5876,8 +5888,8 @@ msgid "The site couldn't be published. Try again."
 msgstr "The site couldn't be published. Try again."
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
-msgid "The team couldn't be created. Try again."
-msgstr "The team couldn't be created. Try again."
+msgid "The sub-space couldn't be created. Try again."
+msgstr "The sub-space couldn't be created. Try again."
 
 #: ../library-ui/src/components/item-builder.tsx
 msgid "The test chat needs a server to run against."
@@ -5946,8 +5958,8 @@ msgid "There's nothing to show at {path}."
 msgstr "There's nothing to show at {path}."
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
-msgid "They lose access to this org's chats, library and keys. Their personal chats are untouched."
-msgstr "They lose access to this org's chats, library and keys. Their personal chats are untouched."
+msgid "They lose access to this space's chats, library and keys. Their personal chats are untouched."
+msgstr "They lose access to this space's chats, library and keys. Their personal chats are untouched."
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 msgid "They're already a member or already invited."
@@ -6196,10 +6208,6 @@ msgstr "Tools"
 #: ../../apps/web/app/(app)/(pages)/dots/dot-profile.tsx
 msgid "Tools it may use on its own"
 msgstr "Tools it may use on its own"
-
-#: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
-msgid "Top level"
-msgstr "Top level"
 
 #: ../../apps/web/app/(app)/_shared/settings/usage-settings.tsx
 msgid "Total"
@@ -6701,8 +6709,8 @@ msgid "While this is on, every member sees “Admins of this org can read this c
 msgstr "While this is on, every member sees “Admins of this org can read this chat” on the chats it covers, and when picking a team or org context. Admins always see usage and metadata; only this policy lets them see content."
 
 #: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
-msgid "Who is in {name}. Owners add people from the space above and promote them."
-msgstr "Who is in {name}. Owners add people from the space above and promote them."
+msgid "Who is in {name}. Owners and admins bring people in and set their roles."
+msgstr "Who is in {name}. Owners and admins bring people in and set their roles."
 
 #: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
 msgid "Who it is, what it helps with, and what thinks for it."
