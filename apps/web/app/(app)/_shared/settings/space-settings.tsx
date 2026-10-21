@@ -475,7 +475,7 @@ const StandingLine = ({
 }) => {
   const { i18n } = useLingui();
   const standing = allowanceStanding(space, allowance, grant);
-  const name = space.name;
+  const { name } = space;
   switch (standing.type) {
     case "not_member":
       return (
