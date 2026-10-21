@@ -314,8 +314,8 @@ function ArchivedRow({
       <span className="min-w-0 flex-1 truncate">{title}</span>
       <Button
         aria-label={t`Unarchive ${title}`}
-        // A 40px square to the finger around the small icon.
-        className="relative pointer-coarse:after:absolute pointer-coarse:after:-inset-2"
+        // A 40px square to the finger: 22px padding box + 9px a side (the 1px border sits outside `::after`'s origin).
+        className="relative pointer-coarse:after:absolute pointer-coarse:after:-inset-[9px]"
         onClick={restore}
         size="icon-xs"
         title={t`Unarchive`}
