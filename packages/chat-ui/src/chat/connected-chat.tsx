@@ -674,7 +674,7 @@ function RunError({
   const failureText = (failure: RunFailure): string => {
     switch (failure.type) {
       case "allowance_spent":
-        return t`Your token allowance in this space is used up for the month. Ask an owner for more in the space's Token allowance settings.`;
+        return t`You have no tokens left in this space this month. Ask an owner for an allowance in the space's Token allowance settings.`;
       case "budget_exceeded":
         return t`The budget for this period is spent. Try again once it resets.`;
       case "failed":

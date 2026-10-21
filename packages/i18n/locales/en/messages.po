@@ -6728,6 +6728,10 @@ msgstr "You edited it"
 msgid "You have control"
 msgstr "You have control"
 
+#: ../chat-ui/src/chat/connected-chat.tsx
+msgid "You have no tokens left in this space this month. Ask an owner for an allowance in the space's Token allowance settings."
+msgstr "You have no tokens left in this space this month. Ask an owner for an allowance in the space's Token allowance settings."
+
 #: ../library-ui/src/components/publish-dialog.tsx
 msgid "You have unsaved changes. Save the draft first to publish them."
 msgstr "You have unsaved changes. Save the draft first to publish them."
@@ -6837,10 +6841,6 @@ msgstr "Your own keys pay for your Personal chats, and for team or org chats whe
 #: ../../apps/web/app/(app)/(pages)/dots/onboarding.tsx
 msgid "Your primary Dot opens from the top of the sidebar."
 msgstr "Your primary Dot opens from the top of the sidebar."
-
-#: ../chat-ui/src/chat/connected-chat.tsx
-msgid "Your token allowance in this space is used up for the month. Ask an owner for more in the space's Token allowance settings."
-msgstr "Your token allowance in this space is used up for the month. Ask an owner for more in the space's Token allowance settings."
 
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgid "Yours"
