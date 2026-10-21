@@ -6,9 +6,11 @@ import type { ConversationId } from "@workspace/contract/schemas/common";
 import type { Dot } from "@workspace/contract/schemas/dots";
 import { MonitorIcon, PlayIcon, XIcon } from "@workspace/icons";
 import { Button } from "@workspace/ui/components/button";
+import { useToastManager } from "@workspace/ui/components/toast";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useApi } from "@/app/(app)/_shared/api";
+import { codeOf } from "@/app/(app)/_shared/query-state";
 
 import { unseenRuns } from "./activity";
 import { DotAvatar } from "./dot-avatar";
@@ -119,9 +121,20 @@ export function DotHome({
     () => queryClient.invalidateQueries({ queryKey: query.dots.key() }),
     [query, queryClient]
   );
+  const { add } = useToastManager();
   const runNow = useMutation({
     mutationFn: () =>
       dot ? client.dots.runNow({ id: dot.id }) : Promise.reject(),
+    onError: (error) => {
+      const code = codeOf(error);
+      let title = t`Something went wrong. Try again.`;
+      if (code === "RATE_LIMITED") {
+        title = t`You've used today's scheduled runs.`;
+      } else if (code === "CONFLICT") {
+        title = t`Your Dot can't run right now. Try again when it's finished.`;
+      }
+      add({ title, type: "error" });
+    },
     onSettled: refresh,
   });
 
