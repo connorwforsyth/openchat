@@ -47,6 +47,7 @@ import {
   type ConversationAccess,
   type RequestContext,
 } from "../context";
+import { DOT_RUN_KEY_PREFIX, isDotRunKey } from "../dots/policy";
 import { toConversationSchedule } from "../dots/schedule-policy";
 import type { StreamChannel } from "../ports/stream-channel";
 import { type BudgetCheck, storeContext } from "../runs/chat-context";
@@ -521,6 +522,18 @@ export const createChatRouter = (services: ApiServices) => {
     }),
 
     create: authed.runs.create.handler(async ({ context, errors, input }) => {
+      if (isDotRunKey(input.idempotencyKey)) {
+        throw validationError({
+          data: {
+            issues: [
+              {
+                message: `Keys starting with "${DOT_RUN_KEY_PREFIX}" are reserved.`,
+                path: ["idempotencyKey"],
+              },
+            ],
+          },
+        });
+      }
       const created = await createRun(
         {
           budget: services.budget,

@@ -23,6 +23,7 @@ import {
   listActiveRuns,
   type RunRow,
 } from "@workspace/db/queries/runs";
+import type { RunUnattended } from "@workspace/db/schema/chat";
 import { err, ok, type Result } from "@workspace/shared/result";
 import { TransactionRollbackError } from "drizzle-orm";
 
@@ -278,6 +279,7 @@ const placeRun = async (
     /** The message's picked skills, checked (127). */
     readonly skills: readonly SkillUse[];
     readonly target: RunTarget;
+    readonly unattended: RunUnattended | null;
   }
 ): Promise<Placed | undefined> => {
   const { conversationId, input: turn } = input;
@@ -315,6 +317,7 @@ const placeRun = async (
         options: runOptionsSchema.parse(input.options ?? {}),
         status: "queued",
         target: resolved.target,
+        unattended: resolved.unattended,
         userMessageId,
       });
       if (!created.created) {
@@ -405,10 +408,11 @@ export const mayRun = async (
     : await canUseLibraryItem(db, actor.userId, "agent", target.id);
 };
 
-export const createRun = async (
+const startRun = async (
   deps: CreateRunDeps,
   actor: Actor,
-  input: CreateRunInput
+  input: CreateRunInput,
+  unattended: RunUnattended | null
 ): Promise<Result<CreateRunOutput, CreateRunError>> => {
   const { db } = deps;
   const found = await getConversation(db, input.conversationId, actor);
@@ -457,6 +461,7 @@ export const createRun = async (
     context: context.value,
     skills: skills.value,
     target,
+    unattended,
   });
   if (!placed) {
     return err({
@@ -492,3 +497,19 @@ export const createRun = async (
     userMessageId: run.userMessageId,
   });
 };
+
+export const createRun = (
+  deps: CreateRunDeps,
+  actor: Actor,
+  input: CreateRunInput
+): Promise<Result<CreateRunOutput, CreateRunError>> =>
+  startRun(deps, actor, input, null);
+
+/** A run nobody watches: only the schedules engine and a Dot's check-in start one. */
+export const createUnattendedRun = (
+  deps: CreateRunDeps,
+  actor: Actor,
+  input: CreateRunInput,
+  unattended: RunUnattended
+): Promise<Result<CreateRunOutput, CreateRunError>> =>
+  startRun(deps, actor, input, unattended);

@@ -175,6 +175,76 @@ describe("askReply", () => {
     expect(events.at(-1)).toEqual({ end: "cancelled", type: "end" });
   });
 
+  it("never speaks the unfinished sentence after the caller aborts", async () => {
+    const { cancelled, ports } = portsOf({
+      runs: { [RUN_1]: runOf(RUN_1, "running") },
+      streams: {
+        [RUN_1]: [
+          { id: "t", type: "text-start" },
+          {
+            delta: "The first sentence is complete. And the second",
+            id: "t",
+            type: "text-delta",
+          },
+          { delta: " never ends", id: "t", type: "text-delta" },
+        ],
+      },
+    });
+    const controller = new AbortController();
+    const events: ReplyEvent[] = [];
+    for await (const event of askReply(ports, "hi", controller.signal)) {
+      events.push(event);
+      if (event.type === "sentence") {
+        controller.abort();
+      }
+    }
+    expect(spoken(events)).toEqual(["The first sentence is complete."]);
+    expect(cancelled).toEqual([RUN_1]);
+    expect(events.at(-1)).toEqual({ end: "cancelled", type: "end" });
+  });
+
+  it.each(["succeeded", "failed"] as const)(
+    "ends cancelled and unflushed when the caller of a %s run aborts during its lookup",
+    async (status) => {
+      const controller = new AbortController();
+      const world = portsOf({
+        runs: { [RUN_1]: runOf(RUN_1, status) },
+        streams: {
+          [RUN_1]: text("The first sentence is complete. And the second"),
+        },
+      });
+      const ports: RunReplyPorts = {
+        ...world.ports,
+        run: (id) => {
+          controller.abort();
+          return world.ports.run(id);
+        },
+      };
+      const events = await collect(askReply(ports, "hi", controller.signal));
+      expect(spoken(events)).toEqual(["The first sentence is complete."]);
+      expect(events.at(-1)).toEqual({ end: "cancelled", type: "end" });
+    }
+  );
+
+  it("speaks nothing of the stored answer when the caller aborts while it loads", async () => {
+    const controller = new AbortController();
+    const world = portsOf({
+      answers: { [ANSWER]: "Four. That is the answer" },
+      runs: { [RUN_1]: runOf(RUN_1, "succeeded", ANSWER) },
+      streams: {},
+    });
+    const ports: RunReplyPorts = {
+      ...world.ports,
+      answer: (id) => {
+        controller.abort();
+        return world.ports.answer(id);
+      },
+    };
+    const events = await collect(askReply(ports, "2+2?", controller.signal));
+    expect(spoken(events)).toEqual([]);
+    expect(events.at(-1)).toEqual({ end: "cancelled", type: "end" });
+  });
+
   it("reports the reply's text as it grows", async () => {
     const { ports } = portsOf({
       runs: { [RUN_1]: runOf(RUN_1, "succeeded") },
