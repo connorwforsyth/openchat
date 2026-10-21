@@ -84,12 +84,14 @@ const tags = Object.entries({
   Usage: "Usage, transactions and budgets.",
 }).map(([name, description]) => ({ description, name }));
 
-const errorResponse = (description: string, code: string) => ({
+const errorResponse = (description: string, ...codes: readonly string[]) => ({
   content: {
     "application/json": {
       schema: {
         oneOf: [
-          { $ref: `#/components/schemas/${code}Error` },
+          ...codes.map((code) => ({
+            $ref: `#/components/schemas/${code}Error`,
+          })),
           { $ref: "#/components/schemas/UndefinedError" },
         ],
       },
@@ -97,6 +99,26 @@ const errorResponse = (description: string, code: string) => ({
   },
   description,
 });
+
+/** One response per status: codes that share a status are alternatives in it. */
+const errorResponsesByStatus = (
+  errors: Readonly<Record<string, { message: string; status: number }>>
+) => {
+  const entries = Object.entries(errors);
+  const statuses = [...new Set(entries.map(([, { status }]) => status))];
+  return Object.fromEntries(
+    statuses.map((status) => {
+      const same = entries.filter(([, error]) => error.status === status);
+      return [
+        String(status),
+        errorResponse(
+          same.map(([, { message }]) => message).join(" "),
+          ...same.map(([code]) => code)
+        ),
+      ];
+    })
+  );
+};
 
 /** `GET /runs/{id}/stream`: not an oRPC procedure, documented here for OpenAPI clients. */
 const runStreamPath: OpenAPI.PathItemObject = {
@@ -217,12 +239,7 @@ const llmProxyPath: OpenAPI.PathItemObject = {
         description:
           "The body doesn't match `LlmProxyRequest` (`BAD_REQUEST`).",
       },
-      ...Object.fromEntries(
-        Object.entries(llmProxyErrors).map(([code, { message, status }]) => [
-          String(status),
-          errorResponse(message, code),
-        ])
-      ),
+      ...errorResponsesByStatus(llmProxyErrors),
     },
     summary: "Call a model (JSON or SSE)",
     tags: ["Models"],

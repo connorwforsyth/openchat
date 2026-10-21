@@ -50,9 +50,10 @@ import { routes } from "@/lib/routes";
 
 import { buildTeamTree, flattenTree } from "./team-tree";
 
-// Members and invitations (D17, D22). Better Auth's organization plugin is
-// underneath; the API refuses what a role can't do (an admin making an owner,
-// removing the last owner), and the page says why instead of guessing.
+// A root space's members and invitations (D17, D22). Better Auth's
+// organization plugin is underneath; the API refuses what a role can't do
+// (an admin making an owner, removing the last owner), and the page says why
+// instead of guessing.
 
 const useRoleOptions = (): readonly Option<OrgRole>[] => {
   const { t } = useLingui();
@@ -103,13 +104,13 @@ const MemberRow = ({
           confirmLabel={<Trans>Remove member</Trans>}
           description={
             <Trans>
-              They lose access to this org's chats, library and keys. Their
+              They lose access to this space's chats, library and keys. Their
               personal chats are untouched.
             </Trans>
           }
           label={t`Remove ${name}`}
           onConfirm={remove}
-          title={<Trans>Remove {name} from this org?</Trans>}
+          title={<Trans>Remove {name} from this space?</Trans>}
         >
           <Trash2Icon />
         </ConfirmButton>
@@ -124,14 +125,20 @@ const inviteSchema = z.object({ email: z.email() });
 const COPIED_MS = 2000;
 const NO_TEAM = "none";
 
-/** "No team", then the org's teams as a tree, for the invitation's team. */
-const useTeamOptions = (orgId: OrgId): readonly Option<string>[] => {
+/** "None", then the space's sub-spaces as a tree, for the invitation's sub-space. */
+const useTeamOptions = (
+  orgId: OrgId,
+  enabled: boolean
+): readonly Option<string>[] => {
   const { t } = useLingui();
   const { query } = useApi();
-  const teams = useQuery(query.teams.list.queryOptions({ input: { orgId } }));
+  const teams = useQuery({
+    ...query.teams.list.queryOptions({ input: { orgId } }),
+    enabled,
+  });
   return useMemo(
     () => [
-      { label: t`No team`, value: NO_TEAM },
+      { label: t`None (the whole space)`, value: NO_TEAM },
       ...flattenTree(buildTeamTree(teams.data ?? [])).map((node) => ({
         label: `${"— ".repeat(node.depth)}${node.team.name}`,
         value: node.team.id,
@@ -199,17 +206,20 @@ const InviteLink = ({ link }: { readonly link: string }) => {
   );
 };
 
-const InviteForm = ({
+/** Invites into the root space; with `teamId`, straight into that sub-space. */
+export const InviteForm = ({
   onInvited,
   orgId,
+  teamId,
 }: {
-  readonly onInvited: () => void;
+  readonly onInvited?: () => void;
   readonly orgId: OrgId;
+  readonly teamId?: TeamId;
 }) => {
   const { t } = useLingui();
   const { query } = useApi();
   const roles = useRoleOptions();
-  const teamOptions = useTeamOptions(orgId);
+  const teamOptions = useTeamOptions(orgId, teamId === undefined);
   const [role, setRole] = useState<OrgRole>("member");
   const [team, setTeam] = useState<string>(NO_TEAM);
   const [problem, setProblem] = useState<
@@ -231,11 +241,12 @@ const InviteForm = ({
       }
       setProblem(null);
       setLink(null);
-      const teamIds = teamOptions.some(
+      const chosen = teamOptions.some(
         (option) => option.value === team && team !== NO_TEAM
       )
         ? [team as TeamId]
         : [];
+      const teamIds = teamId ? [teamId] : chosen;
       mutate(
         { email: parsed.data.email, orgId, role, teamIds },
         {
@@ -251,12 +262,12 @@ const InviteForm = ({
                   ).toString()
                 : null
             );
-            onInvited();
+            onInvited?.();
           },
         }
       );
     },
-    [mutate, onInvited, orgId, role, team, teamOptions]
+    [mutate, onInvited, orgId, role, team, teamId, teamOptions]
   );
   return (
     <form onSubmit={submit}>
@@ -286,17 +297,19 @@ const InviteForm = ({
               value={role}
             />
           </Field>
-          <Field className="sm:w-48">
-            <FieldLabel htmlFor="invite-team">
-              <Trans>Team</Trans>
-            </FieldLabel>
-            <OptionSelect
-              id="invite-team"
-              onChange={setTeam}
-              options={teamOptions}
-              value={team}
-            />
-          </Field>
+          {teamId ? null : (
+            <Field className="sm:w-48">
+              <FieldLabel htmlFor="invite-team">
+                <Trans>Sub-space</Trans>
+              </FieldLabel>
+              <OptionSelect
+                id="invite-team"
+                onChange={setTeam}
+                options={teamOptions}
+                value={team}
+              />
+            </Field>
+          )}
           <Button disabled={invite.isPending} type="submit">
             <MailIcon data-icon="inline-start" />
             <Trans>Invite</Trans>
@@ -442,7 +455,7 @@ export const MembersAdmin = ({ orgId }: { readonly orgId: OrgId }) => {
           <p className="text-destructive text-sm" role="alert">
             {problem === "last_owner" ? (
               <Trans>
-                An org needs at least one owner. Make someone else an owner
+                A space needs at least one owner. Make someone else an owner
                 first.
               </Trans>
             ) : (

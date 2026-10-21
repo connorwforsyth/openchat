@@ -1436,6 +1436,32 @@ describe("the browser over the files (097)", () => {
     expect(shown(nav())).toBe(false);
   });
 
+  it("keeps the list after Files when the chat's default Preview arrives late", async () => {
+    const { client } = fakeClient(files);
+    const base = props({ files: chatFiles(client) });
+    const narrow = (selection: WorkspaceSelection | null) => (
+      <div style={{ height: 700, width: 360 }}>
+        <RightPanel onClose={vi.fn()}>
+          <WorkspacePanel
+            {...base}
+            halfRequest={{ half: "files", id: 1 }}
+            section="files"
+            selection={selection}
+          />
+        </RightPanel>
+      </div>
+    );
+    const view = renderWithI18n(narrow(null));
+    await treeItem("index.html");
+    await waitFor(() => expect(shown(nav())).toBe(true));
+    // The chat's file listing lands after the press, so its default (the
+    // Preview) shows up as a new selection.
+    view.rerender(narrow({ kind: "preview" }));
+    await panel().findByTitle("Static render of index.html");
+    expect(shown(nav())).toBe(true);
+    expect(shown(browser())).toBe(false);
+  });
+
   it("switches an HTML file between its page and its code when taking turns", async () => {
     const { client } = fakeClient(files);
     renderWithI18n(

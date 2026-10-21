@@ -28,6 +28,7 @@ import {
 
 import { toRunError } from "../errors/run-error";
 import { ARTIFACT_REF_DATA } from "../messages/to-ui";
+import { type TraceContext, tracedCall } from "../telemetry/trace-context";
 import {
   type ArtifactRef,
   artifactRefOf,
@@ -86,6 +87,8 @@ export interface RunAgentInput {
   readonly timeoutMs?: number;
   readonly toolApproval?: Readonly<Record<string, ToolApprovalStatus>>;
   readonly tools?: ToolSet;
+  /** Who the turn is for, on every span it makes. */
+  readonly trace?: TraceContext;
   /**
    * Why a tool the model may still try isn't in this run, by name (plan mode
    * withholds `write`). The model reads it as that call's error, in place of
@@ -359,6 +362,7 @@ export const runAgent = async (
     }),
     toolApproval: input.toolApproval,
     tools: input.tools,
+    ...tracedCall(input.trace),
   });
 
   let result: Awaited<ReturnType<typeof agent.stream>>;

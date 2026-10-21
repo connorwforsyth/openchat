@@ -52,12 +52,13 @@ test.afterEach(async ({ baseURL, page }) => {
   );
 });
 
-test("rows are 36px with a clear active fill, a fade and quiet actions", async ({
+test("rows are 32px with a clear active fill, a fade and quiet actions", async ({
   page,
 }) => {
   const active = row(page, LONG_TITLE);
   const idle = row(page, SHORT_TITLE);
-  expect(Math.round((await active.boundingBox())?.height ?? 0)).toBe(36);
+  // 181: 32px rows, as ChatGPT's.
+  expect(Math.round((await active.boundingBox())?.height ?? 0)).toBe(32);
   const fill = (locator: Locator) =>
     locator.evaluate((node) => getComputedStyle(node).backgroundColor);
   expect(await fill(active)).not.toBe(await fill(idle));
@@ -168,8 +169,18 @@ test("collapse and expand; collapsed, the edge peeks over the page", async ({
 
   const content = page.getByRole("main");
   const before = await content.boundingBox();
+  // 181: the rail stays, and the edge starts beside it so its icons stay
+  // clickable; the rail itself doesn't peek.
+  const rail = page.getByRole("navigation", { name: "Sidebar rail" });
+  await expect(rail).toBeVisible();
+  const railEnd = await rail.evaluate(
+    (node) => node.getBoundingClientRect().right
+  );
   await page.mouse.move(400, 400);
-  await page.mouse.move(6, 400, { steps: 4 });
+  await page.mouse.move(railEnd - 4, 400, { steps: 4 });
+  await page.waitForTimeout(300);
+  await expect(peek(page)).not.toHaveAttribute("data-open");
+  await page.mouse.move(railEnd + 10, 400, { steps: 4 });
   await expect(peek(page)).toHaveAttribute("data-open", "");
   await expect(sidebar(page)).toBeVisible();
   // An overlay: nothing moved.
@@ -241,7 +252,9 @@ test("the conversation keeps 480px: at 900px with the panel open the sidebar pee
   const panelHandle = page.getByRole("separator", {
     name: "Resize side panel",
   });
-  await expect(panelHandle).toHaveAttribute("aria-valuemax", "420");
+  // The rail and the card's inset and border (58px, 181) and the
+  // conversation's 480 leave 900 - 58 - 480.
+  await expect(panelHandle).toHaveAttribute("aria-valuemax", "362");
   expect(await widthOf(page.getByRole("main"))).toBeGreaterThanOrEqual(480);
 
   await page.setViewportSize({ height: 800, width: 1024 });
@@ -263,7 +276,7 @@ test.describe("on a phone", () => {
     viewport: { height: 844, width: 390 },
   });
 
-  test("the sidebar is a drawer of 44px rows that closes on navigation", async ({
+  test("the sidebar is a drawer of 36px rows that closes on navigation", async ({
     page,
   }) => {
     await clickHydrated(page.getByRole("button", { name: "Toggle sidebar" }));
@@ -273,7 +286,8 @@ test.describe("on a phone", () => {
       exact: true,
       name: SHORT_TITLE,
     });
-    expect(Math.round((await short.boundingBox())?.height ?? 0)).toBe(44);
+    // cf29c46: 36px drawn; phone-sidebar.spec checks the 40px of touch.
+    expect(Math.round((await short.boundingBox())?.height ?? 0)).toBe(36);
     await short.click();
     await expect(page).toHaveURL(new RegExp(`/c/${created[1]}`));
     await expect(drawer).toBeHidden();
