@@ -157,7 +157,7 @@ export interface ImagePorts {
     readonly model: ModelRef;
     readonly usage: TokenUsage;
   }) => Promise<void>;
-  /** `false` when a hard budget is spent; left out, nothing is checked. */
+  /** `false` when the spend check refuses (a hard budget, an allowance); left out, nothing is checked. */
   readonly withinBudget?: () => Promise<boolean>;
   /** The chat's workspace; left out when it's off for this turn. */
   readonly workspace?: ImageWorkspace;

@@ -101,7 +101,7 @@ export type SpendRefusal =
  * spent, else the space allowance (192) the caller has used up.
  */
 export type BudgetCheck = (
-  actor: Actor,
+  actor: Pick<Actor, "userId">,
   context: StoredContext
 ) => Promise<Result<void, SpendRefusal>>;
 
