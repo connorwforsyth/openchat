@@ -42,6 +42,7 @@ import { KeysManager } from "../keys-manager";
 import { type Option, OptionSelect } from "../option-select";
 import { withDepth } from "../spaces/active-space";
 import { useActiveSpace } from "../spaces/space-switcher";
+import { allowanceStanding } from "./allowance-standing";
 
 // Space settings (187), inside the settings view (185): members and roles,
 // sub-spaces, the token allowance and its requests, and keys with their
@@ -507,12 +508,79 @@ const Meter = ({
 
 type SpaceRefInput = ReturnType<typeof refOf>;
 
+const StandingLine = ({
+  allowance,
+  grant,
+  resets,
+  space,
+}: {
+  readonly allowance: SpaceAllowanceView;
+  readonly grant: AllowanceGrant | undefined;
+  readonly resets: string;
+  readonly space: Space;
+}) => {
+  const { i18n } = useLingui();
+  const standing = allowanceStanding(space, allowance, grant);
+  const { name } = space;
+  switch (standing.type) {
+    case "not_member":
+      return (
+        <Trans>
+          You're not a member of {name}, so its token pool doesn't limit you. To
+          chat here, ask an owner of {name} to add you.
+        </Trans>
+      );
+    case "no_pool":
+      return standing.subSpace ? (
+        <Trans>
+          {name} has no monthly token pool of its own. Chats here follow the
+          nearest pool above it in a space you're a member of, if there is one.
+        </Trans>
+      ) : (
+        <Trans>
+          {name} has no monthly token pool, so it sets no token limit.
+        </Trans>
+      );
+    case "remaining": {
+      const remaining = i18n.number(standing.tokens);
+      return standing.tokens > 0 ? (
+        <Trans>
+          You can use {remaining} more tokens here this month. Resets {resets}.
+        </Trans>
+      ) : (
+        <Trans>
+          You've used your tokens here for this month. They reset {resets}.
+        </Trans>
+      );
+    }
+    case "pending":
+      return (
+        <Trans>
+          Your request is waiting for an owner. You can chat here once it's
+          approved.
+        </Trans>
+      );
+    case "denied":
+      return (
+        <Trans>
+          An owner turned down your request. You can ask again below.
+        </Trans>
+      );
+    case "not_asked":
+      return <Trans>Ask for a monthly allowance below to chat here.</Trans>;
+    default:
+      return standing satisfies never;
+  }
+};
+
 const PoolCard = ({
   allowance,
+  grant,
   space,
   spaceRef,
 }: {
   readonly allowance: SpaceAllowanceView | undefined;
+  readonly grant: AllowanceGrant | undefined;
   readonly space: Space;
   readonly spaceRef: SpaceRefInput;
 }) => {
@@ -533,7 +601,6 @@ const PoolCard = ({
   const resets = allowance
     ? i18n.date(new Date(allowance.resetsAt), { dateStyle: "medium" })
     : "";
-  const remaining = n(allowance?.myRemainingTokens ?? 0);
   const save = (event: FormEvent) => {
     event.preventDefault();
     setPool.mutate({ ...spaceRef, monthlyTokens: tokensIn(pool) });
@@ -558,11 +625,16 @@ const PoolCard = ({
         )}
       </div>
       {total === null ? null : <Meter total={total} used={used} />}
-      <p className="text-muted-foreground text-sm">
-        <Trans>
-          You can use {remaining} more tokens here this month. Resets {resets}.
-        </Trans>
-      </p>
+      {allowance ? (
+        <p className="text-muted-foreground text-sm">
+          <StandingLine
+            allowance={allowance}
+            grant={grant}
+            resets={resets}
+            space={space}
+          />
+        </p>
+      ) : null}
       {space.canManage ? (
         <form className="flex items-end gap-2" onSubmit={save}>
           <div className="flex flex-col gap-2">
@@ -757,36 +829,34 @@ const MyAllowance = ({
           </Trans>
         </p>
       )}
-      {space.access === "root_member" ? null : (
-        <form className="flex flex-wrap items-end gap-2" onSubmit={send}>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="allowance-request">
-              <Trans>Tokens a month</Trans>
-            </Label>
-            <Input
-              className="w-40"
-              id="allowance-request"
-              inputMode="numeric"
-              onChange={typeRequest}
-              value={request}
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="allowance-note">
-              <Trans>What for</Trans>
-            </Label>
-            <Input
-              className="w-64"
-              id="allowance-note"
-              onChange={typeNote}
-              value={note}
-            />
-          </div>
-          <Button disabled={!request} type="submit">
-            {grant ? <Trans>Ask again</Trans> : <Trans>Ask</Trans>}
-          </Button>
-        </form>
-      )}
+      <form className="flex flex-wrap items-end gap-2" onSubmit={send}>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="allowance-request">
+            <Trans>Tokens a month</Trans>
+          </Label>
+          <Input
+            className="w-40"
+            id="allowance-request"
+            inputMode="numeric"
+            onChange={typeRequest}
+            value={request}
+          />
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="allowance-note">
+            <Trans>What for</Trans>
+          </Label>
+          <Input
+            className="w-64"
+            id="allowance-note"
+            onChange={typeNote}
+            value={note}
+          />
+        </div>
+        <Button disabled={!request} type="submit">
+          {grant ? <Trans>Ask again</Trans> : <Trans>Ask</Trans>}
+        </Button>
+      </form>
     </section>
   );
 };
@@ -805,18 +875,21 @@ export const SpaceAllowance = () => {
     return <NoSpace />;
   }
   const { data } = allowance;
+  // Members get only their own grant back.
+  const myGrant = data?.grants[0];
   return (
     <div className="flex flex-col gap-8">
-      <PoolCard allowance={data} space={active} spaceRef={spaceRef} />
+      <PoolCard
+        allowance={data}
+        grant={active.canManage ? undefined : myGrant}
+        space={active}
+        spaceRef={spaceRef}
+      />
       {active.canManage ? (
         <Requests grants={data?.grants ?? []} spaceRef={spaceRef} />
-      ) : (
-        // Members get only their own grant back.
-        <MyAllowance
-          grant={data?.grants[0]}
-          space={active}
-          spaceRef={spaceRef}
-        />
+      ) : null}
+      {active.canManage || active.access === "root_member" ? null : (
+        <MyAllowance grant={myGrant} space={active} spaceRef={spaceRef} />
       )}
     </div>
   );

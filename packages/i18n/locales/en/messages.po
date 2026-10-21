@@ -222,6 +222,14 @@ msgstr "{name} active"
 msgid "{name} couldn't be made. Try again."
 msgstr "{name} couldn't be made. Try again."
 
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "{name} has no monthly token pool of its own. Chats here follow the nearest pool above it in a space you're a member of, if there is one."
+msgstr "{name} has no monthly token pool of its own. Chats here follow the nearest pool above it in a space you're a member of, if there is one."
+
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "{name} has no monthly token pool, so it sets no token limit."
+msgstr "{name} has no monthly token pool, so it sets no token limit."
+
 #. placeholder {0}: source.page
 #: ../chat-ui/src/conversation/sources.tsx
 msgid "{name}, page {0}"
@@ -622,6 +630,10 @@ msgstr "An alias follows whatever the instance maps it to."
 msgid "An org"
 msgstr "An org"
 
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "An owner turned down your request. You can ask again below."
+msgstr "An owner turned down your request. You can ask again below."
+
 #: ../chat-ui/src/conversation/message-row.tsx
 msgid "Annotation attached"
 msgstr "Annotation attached"
@@ -763,6 +775,10 @@ msgstr "Ask before changing memory"
 #: ../../apps/web/app/(app)/(pages)/dots/dot-profile.tsx
 msgid "Ask before you email anyone outside my team. Never delete files."
 msgstr "Ask before you email anyone outside my team. Never delete files."
+
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "Ask for a monthly allowance below to chat here."
+msgstr "Ask for a monthly allowance below to chat here."
 
 #: ../chat-ui/src/conversation/approval.tsx
 msgid "Ask for an updated change"
@@ -6856,6 +6872,10 @@ msgstr "You'll be its owner. Next, add teams and invite people."
 msgid "You're about to visit an external website."
 msgstr "You're about to visit an external website."
 
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "You're not a member of {name}, so its token pool doesn't limit you. To chat here, ask an owner of {name} to add you."
+msgstr "You're not a member of {name}, so its token pool doesn't limit you. To chat here, ask an owner of {name} to add you."
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/admin-index.tsx
 msgid "You're not an owner or admin of any org. Admin pages appear here when you are."
 msgstr "You're not an owner or admin of any org. Admin pages appear here when you are."
@@ -6876,6 +6896,10 @@ msgstr "You've been invited"
 #: ../../apps/web/app/(app)/(pages)/schedules/schedule-list.tsx
 msgid "You've used today's scheduled runs."
 msgstr "You've used today's scheduled runs."
+
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "You've used your tokens here for this month. They reset {resets}."
+msgstr "You've used your tokens here for this month. They reset {resets}."
 
 #: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
 msgid "Your administrator doesn't allow adding {label}."
@@ -6948,6 +6972,10 @@ msgstr "Your own keys pay for your Personal chats, and for team or org chats whe
 #: ../../apps/web/app/(app)/(pages)/dots/onboarding.tsx
 msgid "Your primary Dot opens from the top of the sidebar."
 msgstr "Your primary Dot opens from the top of the sidebar."
+
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "Your request is waiting for an owner. You can chat here once it's approved."
+msgstr "Your request is waiting for an owner. You can chat here once it's approved."
 
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgid "Yours"
