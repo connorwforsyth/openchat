@@ -5690,6 +5690,10 @@ msgstr "The audit policy is off: this server forbids it."
 msgid "The budget couldn't be saved. Try again."
 msgstr "The budget couldn't be saved. Try again."
 
+#: ../chat-ui/src/chat/connected-chat.tsx
+msgid "The budget for this period is spent. Try again once it resets."
+msgstr "The budget for this period is spent. Try again once it resets."
+
 #: ../../apps/web/app/(app)/(pages)/schedules/schedule-list.tsx
 msgid "The chat was busy"
 msgstr "The chat was busy"
@@ -6833,6 +6837,10 @@ msgstr "Your own keys pay for your Personal chats, and for team or org chats whe
 #: ../../apps/web/app/(app)/(pages)/dots/onboarding.tsx
 msgid "Your primary Dot opens from the top of the sidebar."
 msgstr "Your primary Dot opens from the top of the sidebar."
+
+#: ../chat-ui/src/chat/connected-chat.tsx
+msgid "Your token allowance in this space is used up for the month. Ask an owner for more in the space's Token allowance settings."
+msgstr "Your token allowance in this space is used up for the month. Ask an owner for more in the space's Token allowance settings."
 
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgid "Yours"
