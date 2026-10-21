@@ -10,6 +10,7 @@ import {
 import type { Message } from "@workspace/contract/schemas/messages";
 import type { ChatContext } from "@workspace/contract/schemas/tenancy";
 import { err, ok } from "@workspace/shared/result";
+import { useShortcut } from "@workspace/shortcuts/react/use-shortcut";
 import { createRef, useCallback, useMemo, useState } from "react";
 import {
   afterEach,
@@ -593,6 +594,32 @@ describe("shortcuts", () => {
     expect(onSelect).toHaveBeenLastCalledWith(chats[2]?.id);
     await userEvent.keyboard("k");
     expect(onSelect).toHaveBeenLastCalledWith(chats[1]?.id);
+  });
+
+  it("one ⌘K (Ctrl+K) opens the app's palette and leaves it open", async () => {
+    // The app mounts the palette beside the screen, and the palette binds
+    // ⌘K to toggle itself, as `CommandPalette` does.
+    const Host = () => {
+      const [open, setOpen] = useState(false);
+      useShortcut("palette.open", () => setOpen(!open));
+      return (
+        <>
+          <ChatScreen {...props({ onOpenPalette: () => setOpen(true) })} />
+          {open ? <output>Palette open</output> : null}
+        </>
+      );
+    };
+    renderWithI18n(<Host />);
+    const mod = modKey();
+    const paletteOpen = () => screen.queryByText("Palette open");
+
+    await userEvent.keyboard(`{${mod}>}k{/${mod}}`);
+    await new Promise(requestAnimationFrame);
+    expect(paletteOpen()).toBeTruthy();
+
+    await userEvent.keyboard(`{${mod}>}k{/${mod}}`);
+    await new Promise(requestAnimationFrame);
+    expect(paletteOpen()).toBeNull();
   });
 
   it("? opens the shortcut list", async () => {

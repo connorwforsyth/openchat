@@ -90,11 +90,22 @@ const ownPanel = (destination: RailDestination): boolean =>
   destination === "library" ||
   destination === "scheduled";
 
+/**
+ * Whether a page's own panel shows in the sidebar: with the rail on a wide
+ * screen. Classic, and the phone's sheet, keep the chat list everywhere, so
+ * a page then offers the panel's filters itself (the Library's tabs).
+ */
+export const useRailPanels = (): boolean => {
+  const narrow = useNarrowScreen();
+  return useSidebarLayout() === "rail" && !narrow;
+};
+
 export function PageShell({ children }: { readonly children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const narrow = useNarrowScreen();
   const railed = useSidebarLayout() === "rail";
+  const railPanels = useRailPanels();
   const { query } = useApi();
   const frame = useAppFrame();
   const { layout, me } = frame;
@@ -106,10 +117,8 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
   const update = useConversationUpdate(query);
   const sidebarDots = useSidebarDots(null);
   const destination = railDestination(pathname);
-  // With the rail on a wide screen, the panel follows it; classic, and the
-  // phone's sheet, keep the chat list everywhere.
   const panel =
-    railed && !narrow && ownPanel(destination) ? (
+    railPanels && ownPanel(destination) ? (
       <Suspense>
         <RailPanelFor destination={destination} />
       </Suspense>

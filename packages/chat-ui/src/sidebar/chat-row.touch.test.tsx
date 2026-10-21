@@ -16,7 +16,7 @@ import { ChatRow, type SidebarChat } from "./chat-row";
 
 // A chat row on a phone (181): the actions open on a long press rather than
 // from an always-on ⋯. Component tests run without the theme's CSS, so the
-// layout (40px rows, the status never under the ⋯) is checked end to end in
+// layout (36px rows, the status never under the ⋯) is checked end to end in
 // e2e/tests/phone-sidebar.spec.ts.
 
 const chat: SidebarChat = {
