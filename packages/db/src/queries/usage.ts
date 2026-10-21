@@ -39,13 +39,14 @@ import { conversation, run } from "../schema/chat";
 import type { PrincipalId } from "../schema/columns";
 import { budget } from "../schema/tenancy";
 import { balance, providerKey, transaction } from "../schema/usage";
-import type { StoredContext } from "./conversations";
+import { canRead, type StoredContext, type Viewer } from "./conversations";
 import {
   decodeCursor,
   type InvalidCursorError,
   type Page,
   toPage,
 } from "./page";
+import type { KeyScopeRef } from "./provider-keys";
 import { teamAncestors } from "./teams";
 
 // Usage and budgets (D17, D24). Each model call is a transaction recorded
@@ -411,26 +412,44 @@ export interface UsageQuery {
   readonly keyId?: ProviderKeyId;
   readonly space?: SpaceScope;
   readonly to: Date;
+  /** Who is asking: a chat is titled only if they can still read it. */
+  readonly viewer?: Viewer;
 }
 
 export interface UsageSummaryRow {
   readonly costMicros: number;
   readonly key: string;
+  /** For `key` groups: who holds the key, so a caller can hide names it may not list. */
+  readonly keyScope?: KeyScopeRef;
+  /**
+   * A chat's title (`""` while it has none) when the viewer can read it, a
+   * person's name, or a key's name or hint.
+   */
   readonly label?: string;
   readonly usage: TokenUsage;
+}
+
+interface Group {
+  readonly key: SQL<string>;
+  readonly label?: SQL<string | null>;
+  readonly scope?: {
+    readonly id: SQL<PrincipalId | null>;
+    readonly type: SQL<KeyScopeRef["type"] | null>;
+  };
 }
 
 /**
  * How each grouping reads its key and, where the key is an id, a name for
  * it. `""` is the group of rows with no chat, or paid by instance keys.
  */
-const GROUPS: Record<
-  UsageGroupBy,
-  { readonly key: SQL<string>; readonly label?: SQL<string | null> }
-> = {
+const groups = (viewer: Viewer | undefined): Record<UsageGroupBy, Group> => ({
   conversation: {
     key: sql<string>`coalesce(${run.conversationId}::text, '')`,
-    label: sql<string | null>`max(${conversation.title})`,
+    label: viewer
+      ? sql<
+          string | null
+        >`max(case when ${canRead(viewer)} then coalesce(${conversation.title}, '') end)`
+      : undefined,
   },
   day: {
     key: sql<string>`to_char(${transaction.createdAt} at time zone 'UTC', 'YYYY-MM-DD')`,
@@ -440,6 +459,10 @@ const GROUPS: Record<
     label: sql<
       string | null
     >`max(coalesce(nullif(${providerKey.label}, ''), '••••' || ${providerKey.hint}))`,
+    scope: {
+      id: sql<PrincipalId | null>`max(${providerKey.scopeId}::text)`,
+      type: sql<KeyScopeRef["type"] | null>`max(${providerKey.scopeType})`,
+    },
   },
   kind: { key: sql<string>`${transaction.kind}` },
   model: { key: sql<string>`${transaction.model}` },
@@ -447,7 +470,7 @@ const GROUPS: Record<
     key: sql<string>`${transaction.userId}::text`,
     label: sql<string | null>`max(${user.name})`,
   },
-};
+});
 
 /** Postgres sums bigints as numeric, which arrives as text. */
 const total = (column: SQL | typeof transaction.costMicros) =>
@@ -463,7 +486,7 @@ export const summarizeUsage = async (
   filter: UsageFilter,
   query: UsageQuery
 ): Promise<UsageSummaryRow[]> => {
-  const group = GROUPS[query.groupBy];
+  const group = groups(query.viewer)[query.groupBy];
   const rows = await db
     .select({
       cachedInputTokens: optionalTotal(transaction.cachedInputTokens),
@@ -473,6 +496,8 @@ export const summarizeUsage = async (
       label: group.label ?? sql<string | null>`null`,
       outputTokens: total(sql`${transaction.outputTokens}`),
       reasoningTokens: optionalTotal(transaction.reasoningTokens),
+      scopeId: group.scope?.id ?? sql<PrincipalId | null>`null`,
+      scopeType: group.scope?.type ?? sql<KeyScopeRef["type"] | null>`null`,
     })
     .from(transaction)
     .leftJoin(run, eq(run.id, transaction.runId))
@@ -494,6 +519,9 @@ export const summarizeUsage = async (
     costMicros: row.costMicros,
     key: row.key,
     ...(row.label === null ? {} : { label: row.label }),
+    ...(row.scopeId === null || row.scopeType === null
+      ? {}
+      : { keyScope: { id: row.scopeId, type: row.scopeType } }),
     usage: {
       inputTokens: row.inputTokens,
       outputTokens: row.outputTokens,

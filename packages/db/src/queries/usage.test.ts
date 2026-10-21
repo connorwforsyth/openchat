@@ -269,7 +269,12 @@ describe("summarizeUsage", () => {
     const mine = { type: "user", userId: ada.id } as const;
     const summarize = (
       groupBy: Parameters<typeof summarizeUsage>[2]["groupBy"]
-    ) => summarizeUsage(db, mine, { ...range, groupBy });
+    ) =>
+      summarizeUsage(db, mine, {
+        ...range,
+        groupBy,
+        viewer: { principals: [], userId: ada.id },
+      });
 
     expect(
       (await summarize("day")).map((row) => [row.key, row.costMicros])

@@ -309,6 +309,10 @@ msgstr "~{0} words"
 msgid "A chat"
 msgstr "A chat"
 
+#: ../../apps/web/app/(app)/_shared/settings/usage-settings.tsx
+msgid "A chat you no longer have access to"
+msgstr "A chat you no longer have access to"
+
 #: ../../apps/web/app/(app)/(pages)/dots/onboarding.tsx
 msgid "A Dot is an agent that's always on: talk to it like a person, and it keeps working when you're away."
 msgstr "A Dot is an agent that's always on: talk to it like a person, and it keeps working when you're away."
@@ -325,6 +329,10 @@ msgstr "A folder of plain HTML, CSS and JavaScript, with an index.html, becomes 
 #: ../chat-ui/src/artifacts/artifact-view.tsx
 msgid "A generated image has no source to show."
 msgstr "A generated image has no source to show."
+
+#: ../../apps/web/app/(app)/_shared/settings/usage-settings.tsx
+msgid "A key you don't manage"
+msgstr "A key you don't manage"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "A member"

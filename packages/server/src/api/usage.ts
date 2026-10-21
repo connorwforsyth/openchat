@@ -5,7 +5,11 @@ import { baseErrors } from "@workspace/contract/errors";
 import type { OrgId, TeamId, UserId } from "@workspace/contract/schemas/common";
 import type { Principal } from "@workspace/contract/schemas/tenancy";
 import type { Db } from "@workspace/db/client";
-import { personalOrgOf, teamSubtree } from "@workspace/db/queries/teams";
+import {
+  loadPrincipals,
+  personalOrgOf,
+  teamSubtree,
+} from "@workspace/db/queries/teams";
 import {
   budgetStatuses,
   deleteBudget,
@@ -21,7 +25,13 @@ import {
 } from "@workspace/db/queries/usage";
 
 import type { RequestContext } from "../context";
-import { administersTeam, isInstanceAdmin, isOrgAdmin, teamOrg } from "./roles";
+import {
+  administersTeam,
+  isInstanceAdmin,
+  isOrgAdmin,
+  managesKeys,
+  teamOrg,
+} from "./roles";
 
 // The `usage` procedure group (D17, D24). Who sees what:
 // - a user sees their own usage, in every context;
@@ -32,7 +42,9 @@ import { administersTeam, isInstanceAdmin, isOrgAdmin, teamOrg } from "./roles";
 // Budgets are managed by org owners and admins only, team budgets included
 // (team admins don't set their own caps). A user's own budget lives in their
 // personal org, which they own, so they can cap their personal spend.
-// Usage by chat names chats, so it's only for your own usage.
+// Usage by chat names chats, so it's only for your own usage, and a chat is
+// titled only while you can read it. A key is named only to whoever
+// `keys.list` would show it to.
 
 export interface UsageDeps {
   readonly db: Db;
@@ -225,13 +237,29 @@ export const createUsageRouter = ({
         ]);
       }
       const filter = await readableUsage(context.userId, principal);
-      const rows = await summarizeUsage(db, filter, {
+      const summarized = await summarizeUsage(db, filter, {
         from,
         groupBy: input.groupBy,
         keyId: input.keyId,
         space: await spaceScope(input),
         to,
+        viewer:
+          input.groupBy === "conversation"
+            ? {
+                principals: await loadPrincipals(db, context.userId),
+                userId: context.userId,
+              }
+            : undefined,
       });
+      const rows = await Promise.all(
+        summarized.map(async ({ keyScope, label, ...row }) =>
+          label !== undefined &&
+          (keyScope === undefined ||
+            (await managesKeys(db, context.userId, keyScope)))
+            ? { ...row, label }
+            : row
+        )
+      );
       const traced =
         userTracesUrl &&
         input.groupBy === "user" &&

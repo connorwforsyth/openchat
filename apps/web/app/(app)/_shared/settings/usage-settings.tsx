@@ -215,7 +215,10 @@ const UsageReport = ({
     { label: t`All keys`, value: ALL_KEYS },
     ...(keys.data?.rows ?? [])
       .filter((row) => row.key !== "")
-      .map((row) => ({ label: row.label ?? row.key, value: row.key })),
+      .map((row) => ({
+        label: row.label ?? t`A key you don't manage`,
+        value: row.key,
+      })),
   ];
 
   return (
@@ -415,7 +418,15 @@ const ChatName = ({ row }: { readonly row: Row }) => {
       </span>
     );
   }
-  return row.label ?? <Trans>Untitled chat</Trans>;
+  // No label: the chat is one you can no longer read. `""`: it has no title yet.
+  if (row.label === undefined) {
+    return (
+      <span className="text-muted-foreground">
+        <Trans>A chat you no longer have access to</Trans>
+      </span>
+    );
+  }
+  return row.label || <Trans>Untitled chat</Trans>;
 };
 
 const KeyName = ({ row }: { readonly row: Row }) =>
@@ -424,7 +435,11 @@ const KeyName = ({ row }: { readonly row: Row }) =>
       <Trans>Server keys</Trans>
     </span>
   ) : (
-    (row.label ?? row.key)
+    (row.label ?? (
+      <span className="text-muted-foreground">
+        <Trans>A key you don't manage</Trans>
+      </span>
+    ))
   );
 
 type Grouping = Exclude<GroupBy, "day">;
