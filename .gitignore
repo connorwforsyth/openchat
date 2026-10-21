@@ -21,3 +21,7 @@ next-env.d.ts
 /app.config.yaml
 /apps/web/app.config.yaml
 /docker-compose.override.yml
+# A corporate root CA for the Docker builds (docs/self-hosting.md): local to
+# the machine that needs it.
+/certs/*
+!/certs/.gitkeep

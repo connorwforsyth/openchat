@@ -9,7 +9,12 @@ FROM oven/bun:1.4.2 AS build
 WORKDIR /repo
 COPY . .
 # Scripts are skipped: the runner needs no Lingui catalogs or git hooks.
-RUN bun install --frozen-lockfile --ignore-scripts --filter sandbox-runner
+# A corporate root CA in certs/ is trusted, as in apps/web/Dockerfile.
+RUN cat certs/*.pem certs/*.crt > /usr/local/share/extra-ca.pem 2>/dev/null; \
+    if [ -s /usr/local/share/extra-ca.pem ]; then \
+      export NODE_EXTRA_CA_CERTS=/usr/local/share/extra-ca.pem; \
+    fi && \
+    bun install --frozen-lockfile --ignore-scripts --filter sandbox-runner
 RUN cd apps/sandbox-runner && bun run build
 
 FROM node:24-bookworm-slim

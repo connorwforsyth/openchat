@@ -67,6 +67,39 @@ rather than failing the start. Models come from `app.config.yaml` (copy
 proxy (Caddy, nginx, Traefik) in front and set `BETTER_AUTH_URL` to the
 public origin.
 
+### On a corporate network
+
+Building the images downloads base images from Docker Hub (`docker/dockerfile`,
+`oven/bun`, `node`, and `pgvector/pgvector` to run) and about 1,800 packages
+from `registry.npmjs.org`. Corporate networks get in the way of both:
+
+- **An outbound proxy.** Set it in Docker Desktop (Settings › Resources ›
+  Proxies) or in `~/.docker/config.json` under `proxies`; Docker then hands
+  `HTTP_PROXY`, `HTTPS_PROXY` and `NO_PROXY` to every build and container.
+  Put the compose services in `NO_PROXY`
+  (`localhost,127.0.0.1,postgres,sandbox-runner,searxng,artifacts`) so they
+  still reach each other.
+- **TLS interception.** A proxy that inspects HTTPS re-signs each
+  connection with the company's own root CA. The host trusts it; the build
+  containers don't, so `bun install` fails with `SELF_SIGNED_CERT_IN_CHAIN`,
+  `UNABLE_TO_GET_ISSUER_CERT_LOCALLY` or `UNABLE_TO_VERIFY_LEAF_SIGNATURE`.
+  Save that CA as PEM in `certs/` (any `*.pem` or `*.crt`; the folder's
+  contents are gitignored) and rebuild:
+
+  ```sh
+  # macOS: find the CA's name in Keychain Access, then export it
+  security find-certificate -a -p -c "<CA name>" > certs/corporate-ca.pem
+  docker compose up -d --build
+  ```
+
+  The images add it to the roots bun and Node trust (`NODE_EXTRA_CA_CERTS`),
+  at build time and in the running `web` server, which needs it to reach
+  model providers. Without a file in `certs/`, nothing changes.
+- **Docker Hub blocked or rate limited.** Pulls fail before the build
+  starts (`failed to resolve source metadata`, `toomanyrequests`). Point
+  Docker at your company's registry mirror (`registry-mirrors` in Docker
+  Desktop's Docker Engine settings), or sign in with `docker login`.
+
 ### Behind a proxy
 
 Sign-in and sign-up are rate limited per client address, and each session

@@ -18,9 +18,18 @@ ENV NEXT_TELEMETRY_DISABLED=1 \
     TURBO_TELEMETRY_DISABLED=1
 WORKDIR /repo
 COPY . .
+# A network that intercepts TLS (most corporate proxies) re-signs every
+# connection with its own root CA, which bun and Node don't trust, so the
+# install fails with SELF_SIGNED_CERT_IN_CHAIN or similar. PEM files in
+# certs/ are added to the trusted roots (docs/self-hosting.md). With none the
+# bundle is empty and bun isn't pointed at it (it warns about an empty one).
 # Scripts are skipped: git hooks have no place in an image, and the Lingui
 # catalogs and the icon set are turbo tasks the build runs itself.
-RUN bun install --frozen-lockfile --ignore-scripts
+RUN cat certs/*.pem certs/*.crt > /usr/local/share/extra-ca.pem 2>/dev/null; \
+    if [ -s /usr/local/share/extra-ca.pem ]; then \
+      export NODE_EXTRA_CA_CERTS=/usr/local/share/extra-ca.pem; \
+    fi && \
+    bun install --frozen-lockfile --ignore-scripts
 # The icon set (D19) and the fonts (129) are compiled in from the `icons`
 # and `fonts` blocks of an app.config.yaml in the build context:
 # apps/web/app.config.yaml, else the repo root's (the one `bun run setup`
@@ -52,6 +61,10 @@ ENV NODE_ENV=production \
 # relative paths (the file store's ./.data/files, app.config.yaml) resolve
 # there.
 WORKDIR /app/apps/web
+# The same roots for the server's own outbound calls (model providers);
+# Node ignores an empty bundle quietly.
+COPY --from=build /usr/local/share/extra-ca.pem /usr/local/share/extra-ca.pem
+ENV NODE_EXTRA_CA_CERTS=/usr/local/share/extra-ca.pem
 COPY --from=build --chown=node:node /repo/apps/web/.next/standalone/ /app/
 # Static assets aren't traced.
 COPY --from=build --chown=node:node /repo/apps/web/.next/static/ ./.next/static/
