@@ -98,7 +98,7 @@ export type SpendRefusal =
 
 /**
  * The pre-run spend check (D24): `err` with the first hard budget that's
- * spent, else the first space allowance (192) the caller has used up.
+ * spent, else the space allowance (192) the caller has used up.
  */
 export type BudgetCheck = (
   actor: Actor,

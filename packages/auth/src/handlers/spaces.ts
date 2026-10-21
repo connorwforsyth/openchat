@@ -253,9 +253,14 @@ const allowanceView = async (
 };
 
 /**
- * The first of `refs` whose token allowance `userId` has used up this
- * month (192), checked before a run like a money budget (D24). A space with
- * no pool limits nobody.
+ * The space whose token allowance `userId` has used up this month (192),
+ * checked before a run like a money budget (D24). `refs` runs from the
+ * chat's space up to the root; the nearest one with a pool that the caller
+ * is a full member of decides. Pools in spaces they aren't in don't apply,
+ * and with no such pool there is no token limit.
+ *
+ * This reads usage without reserving it, so concurrent sends can overshoot
+ * the allowance. It's a soft limit, like money budgets.
  */
 export const spentAllowance = async (
   db: Db,
@@ -263,23 +268,20 @@ export const spentAllowance = async (
   refs: readonly SpaceRef[],
   now: Date
 ): Promise<SpaceRef | undefined> => {
+  const facts = await loadFacts(db, userId);
+  const joined = refs.flatMap((ref) => {
+    const located = locateIn(facts, ref);
+    return located && located.space.access !== "root_member" ? [located] : [];
+  });
   const pools = await Promise.all(
-    refs.map((space) => getSpaceAllowance(db, space))
+    joined.map((located) => getSpaceAllowance(db, located.ref))
   );
-  const pooled = refs.filter((_, index) => pools[index]);
-  if (pooled.length === 0) {
+  const nearest = joined.find((_, index) => pools[index]);
+  if (!nearest) {
     return;
   }
-  const facts = await loadFacts(db, userId);
-  const remaining = await Promise.all(
-    pooled.map(async (space) => {
-      const located = locateIn(facts, space);
-      return located
-        ? (await allowanceState(db, located, userId, now)).remaining
-        : 0;
-    })
-  );
-  return pooled.find((_, index) => (remaining[index] ?? 0) <= 0);
+  const { remaining } = await allowanceState(db, nearest, userId, now);
+  return remaining <= 0 ? nearest.ref : undefined;
 };
 
 const membersOf = async (db: Db, ref: SpaceRef) => {

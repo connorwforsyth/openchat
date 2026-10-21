@@ -6836,8 +6836,8 @@ msgid "You have control"
 msgstr "You have control"
 
 #: ../chat-ui/src/chat/connected-chat.tsx
-msgid "You have no tokens left in this space this month. Ask an owner for an allowance in the space's Token allowance settings."
-msgstr "You have no tokens left in this space this month. Ask an owner for an allowance in the space's Token allowance settings."
+msgid "You have no tokens left this month in the space that limits this chat. Ask an owner there for an allowance in its Token allowance settings."
+msgstr "You have no tokens left this month in the space that limits this chat. Ask an owner there for an allowance in its Token allowance settings."
 
 #: ../library-ui/src/components/publish-dialog.tsx
 msgid "You have unsaved changes. Save the draft first to publish them."
