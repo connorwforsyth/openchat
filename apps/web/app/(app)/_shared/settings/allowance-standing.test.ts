@@ -1,3 +1,4 @@
+import type { SpaceRef } from "@workspace/contract/schemas/spaces";
 import { describe, expect, it } from "vitest";
 
 import { allowanceStanding } from "./allowance-standing";
@@ -9,8 +10,8 @@ const member = {
 } as const;
 const subSpaceMember = {
   ...member,
-  parent: { id: "parent", type: "team" },
-} as const;
+  parent: { id: "parent", type: "team" } as SpaceRef,
+};
 const pool = { monthlyTokens: 1000, myRemainingTokens: 0 };
 
 describe("allowanceStanding", () => {
