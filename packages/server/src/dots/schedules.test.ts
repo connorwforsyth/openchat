@@ -831,6 +831,36 @@ describe("claims", () => {
     ).toMatchObject({ lastOutcome: "failed" });
   });
 
+  it("keeps a late job's claim when the tick sweeps while its run starts", async () => {
+    const { executor } = services.dots.runs;
+    await withDots({
+      runs: {
+        ...services.dots.runs,
+        executor: {
+          ...executor,
+          start: async (run) => {
+            clock = new Date("2026-10-20T09:22:00.000Z");
+            await claimDue();
+            return executor.start(run);
+          },
+        },
+      },
+    });
+    const schedule = await create({ target: { kind: "new_chat_each_run" } });
+    h.nextTurn({ model: reporting("update").model });
+    clock = new Date("2026-10-20T09:06:00.000Z");
+    await claimDue();
+    // Its job runs 14 minutes after the claim, just inside the sweep's limit.
+    clock = new Date("2026-10-20T09:20:00.000Z");
+    await h.jobs.drain();
+    await h.services.executor.idle();
+
+    expect((await runsOf(schedule.id)).map((run) => run.outcome)).toEqual([
+      "update",
+    ]);
+    expect((await limitsNow()).runsToday).toBe(1);
+  });
+
   it("starts a retried claim's run once, in one chat", async () => {
     const schedule = await create({ target: { kind: "new_chat_each_run" } });
     h.nextTurn({ model: reporting("update").model });
