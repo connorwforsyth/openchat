@@ -560,6 +560,7 @@ msgstr "AI Elements"
 #: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
 #: ../../apps/web/app/(app)/(pages)/schedules/schedules-screen.tsx
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
+#: ../library-ui/src/components/library-index.tsx
 msgid "All"
 msgstr "All"
 
@@ -2620,6 +2621,10 @@ msgstr "Keys and usage"
 msgid "Keys for"
 msgstr "Keys for"
 
+#: ../library-ui/src/components/library-index.tsx
+msgid "Kind"
+msgstr "Kind"
+
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgid "Kind: {current}"
 msgstr "Kind: {current}"
@@ -3080,6 +3085,10 @@ msgstr "Muted"
 #: ../composer/src/components/target-picker.tsx
 msgid "My agents"
 msgstr "My agents"
+
+#: ../library-ui/src/components/library-index.tsx
+msgid "My library"
+msgstr "My library"
 
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
 msgid "name"
