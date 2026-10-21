@@ -204,6 +204,18 @@ describe("dots API", () => {
     expect(await listDots()).toEqual([]);
   });
 
+  it("names a Dot's schedules at a whole word, not mid-word", async () => {
+    const prompt =
+      "Every morning look through the team inbox and summarise anything from customers about billing";
+    await createDot({
+      ...MORNING,
+      schedules: [{ cron: "* * * * *", prompt }],
+    });
+    const title = "Every morning look through the team inbox and summarise…";
+    const listed = await json<Schedule[]>(await request("/api/schedules"));
+    expect(listed.map((each) => each.title)).toEqual([title]);
+  });
+
   it("keeps one Dot per user: a second is a CONFLICT", async () => {
     await createDot();
     const second = await request("/api/dots", {
@@ -283,7 +295,7 @@ describe("scheduled runs", () => {
       {
         data: {
           scheduleId: after?.schedules[0]?.id,
-          title: "List /work and report.",
+          title: "List /work and report",
         },
         name: "scheduled-task",
         type: "data",
