@@ -1,45 +1,56 @@
-import { type BrandTheme, logoLayers } from "@workspace/config/brand";
+import type { LogoView, LogoViews } from "@workspace/config/brand";
 import { cn } from "@workspace/ui/lib/utils";
 
-// The instance's logo, beside its name (so it's decorative: `alt=""`). It
-// follows the app's theme, not the OS: each theme's paint layer is the logo's
-// own colours, over an ink layer that shows the text colour through the
-// logo's `currentColor` shape (packages/config/src/brand.ts).
+// The instance's logo, beside its name (so it's decorative: `alt=""`). A
+// one-colour logo is a mask filled with the text colour, so it follows the
+// app's theme; the hidden <img> inside only gives the box the logo's aspect
+// ratio. Any other logo is drawn as it is, swapped for the dark logo on dark
+// themes when there is one (packages/config/src/brand.ts).
 
-const Layers = ({
+const Mark = ({
   className,
-  theme,
+  view,
 }: {
-  readonly className: string;
-  readonly theme: BrandTheme;
-}) => {
-  const { ink, paint } = logoLayers[theme];
-  return (
-    <span className={cn("relative shrink-0", className)}>
-      <span
-        aria-hidden
-        className="absolute inset-0 bg-current"
-        style={{ mask: `url(${ink}) center / contain no-repeat` }}
-      />
+  readonly className?: string;
+  readonly view: LogoView;
+}) =>
+  view.mode === "mask" ? (
+    <span
+      className={cn("inline-flex shrink-0 bg-current", className)}
+      style={{ mask: `url(${view.src}) center / contain no-repeat` }}
+    >
       {/* biome-ignore lint/performance/noImgElement: next/image needs fixed dimensions and doesn't optimise SVG */}
       {/* biome-ignore lint/correctness/useImageSize: the height is the caller's, the width the logo's own aspect ratio */}
-      <img alt="" className="relative h-full w-auto" src={paint} />
+      <img alt="" className="invisible h-full w-auto" src={view.src} />
     </span>
+  ) : (
+    // biome-ignore lint/performance/noImgElement: next/image needs fixed dimensions and doesn't optimise SVG
+    // biome-ignore lint/correctness/useImageSize: the height is the caller's, the width the logo's own aspect ratio
+    <img alt="" className={cn("w-auto shrink-0", className)} src={view.src} />
   );
-};
 
 export const BrandLogo = ({
   className,
-  logoUrl,
+  logo,
 }: {
   /** Sets the height; the width follows the logo. */
   readonly className?: string;
-  /** `brand.logoUrl` from the public config: no logo, nothing drawn. */
-  readonly logoUrl: string | null;
-}) =>
-  logoUrl ? (
+  readonly logo: LogoViews | null;
+}) => {
+  if (!logo) {
+    return null;
+  }
+  if (!logo.dark) {
+    return <Mark className={className} view={logo.light} />;
+  }
+  return (
     <>
-      <Layers className={cn("flex dark:hidden", className)} theme="light" />
-      <Layers className={cn("hidden dark:flex", className)} theme="dark" />
+      <span className="contents dark:hidden">
+        <Mark className={className} view={logo.light} />
+      </span>
+      <span className="hidden dark:contents">
+        <Mark className={className} view={logo.dark} />
+      </span>
     </>
-  ) : null;
+  );
+};

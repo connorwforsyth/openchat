@@ -148,12 +148,12 @@ const brandSchema = z
     favicon: z.string().min(1).nullable().default(null),
     /**
      * The colour behind the mark on home-screen icons, which can't be
-     * transparent. A `currentColor` mark is white on it.
+     * transparent. A one-colour mark is white on it.
      */
     iconBackground: z.string().min(1).default("black"),
-    /** The mark beside the name in the app; `currentColor` follows the theme. */
+    /** Beside the name on sign-in; one colour follows the theme (brand.ts). */
     logo: z.string().min(1).nullable().default(null),
-    /** The logo on dark themes, when its own colours don't read there. */
+    /** A multi-colour logo's version for dark themes. */
     logoDark: z.string().min(1).nullable().default(null),
     name: z.string().trim().min(1).max(60).default("Chat"),
     /** Deep-link scheme for desktop and mobile (`<scheme>://`). */

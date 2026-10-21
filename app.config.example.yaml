@@ -15,10 +15,10 @@ brand:
   name: openchat
   appId: dev.openchat.app
   urlScheme: openchat
-  # SVG, PNG or JPEG, relative to this file. One SVG is enough: `currentColor`
-  # in it takes the app theme's text colour, and it's the icon too.
+  # SVG, PNG or JPEG, relative to this file. One SVG is enough: drawn in
+  # currentColor it follows the theme; with its own colours it's shown as is.
   logo: ./brand/logo.svg
-  # logoDark: ./brand/logo-dark.svg   # the logo on dark themes, if its colours need it
+  # logoDark: ./brand/logo-dark.svg   # a multi-colour logo's dark-theme version
   # favicon: ./brand/icon.svg         # the square mark for tab and home-screen icons
   # iconBackground: black             # behind the mark on home-screen icons
 

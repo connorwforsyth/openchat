@@ -1,18 +1,24 @@
 import {
+  BRAND_ASSETS,
   type BrandAsset,
+  type BrandAssetName,
   type BrandFile,
-  brandAssetOf,
-  logoLayer,
+  type BrandImages,
+  brandFile,
+  isBrandAssetName,
+  madeOnce,
+  PLACEHOLDER_IMAGES,
   tabIcon,
   tileMark,
 } from "@workspace/config/brand";
 import { ImageResponse } from "next/og";
 
-import { type BrandFiles, getBrandFiles } from "@/lib/brand-files";
+import { getBrandFiles } from "@/lib/brand-files";
 
-// The brand's logo layers and icons (packages/config/src/brand.ts), made from
+// The brand's logos and icons (packages/config/src/brand.ts), made from
 // `brand:` in app.config.yaml at request time, so one build serves any brand.
 // Each is made once per process; config changes apply on restart (D18).
+// Logos are served as they are; the page decides how to draw them.
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,10 +33,12 @@ const HEADERS = {
 };
 
 const tile = async (
-  { icon, iconBackground }: BrandFiles,
+  { icon }: BrandImages,
+  iconBackground: string,
   { markScale, size }: Extract<BrandAsset, { kind: "tile" }>
 ): Promise<BrandFile> => {
   const mark = Math.round(size * markScale);
+  const { invert, src } = tileMark(icon);
   const image = new ImageResponse(
     <div
       style={{
@@ -46,8 +54,11 @@ const tile = async (
       <img
         alt=""
         height={mark}
-        src={tileMark(icon)}
-        style={{ objectFit: "contain" }}
+        src={src}
+        style={{
+          filter: invert ? "invert(1)" : undefined,
+          objectFit: "contain",
+        }}
         width={mark}
       />
     </div>,
@@ -59,39 +70,47 @@ const tile = async (
   };
 };
 
-const make = async (asset: BrandAsset): Promise<BrandFile | null> => {
-  const files = await getBrandFiles();
+const make = async (
+  asset: BrandAsset,
+  images: BrandImages,
+  iconBackground: string
+): Promise<BrandFile | null> => {
   switch (asset.kind) {
     case "icon":
-      return { body: tabIcon(files.icon), type: "image/svg+xml" };
+      return { body: tabIcon(images.icon), type: "image/svg+xml" };
     case "logo":
-      return files.logo
-        ? logoLayer(files.logo[asset.theme], asset.layer)
-        : null;
+      return images.logo ? brandFile(images.logo[asset.theme]) : null;
     case "tile":
-      return await tile(files, asset);
+      return await tile(images, iconBackground, asset);
     default:
       return asset satisfies never;
   }
 };
 
-const made = new Map<string, Promise<BrandFile | null>>();
+// A mark next/og can't draw (an SVG with no viewBox or size, say) would fail
+// every tile; those get the placeholder until the brand is fixed.
+const madeFile = madeOnce(
+  async (name: BrandAssetName) => {
+    const files = await getBrandFiles();
+    return make(BRAND_ASSETS[name], files, files.iconBackground);
+  },
+  async (name, error) => {
+    // The error quotes the whole mark as a data URI; its last part says why.
+    const why = String(error).split(": ").at(-1);
+    console.warn(
+      `[brand] ${name} can't be made (${why}); using the placeholder`
+    );
+    const { iconBackground } = await getBrandFiles();
+    return make(BRAND_ASSETS[name], PLACEHOLDER_IMAGES, iconBackground);
+  }
+);
 
 export async function GET(
   _request: Request,
   { params }: RouteContext<"/brand/[asset]">
 ): Promise<Response> {
-  const { asset: name } = await params;
-  const asset = brandAssetOf(name);
-  if (!asset) {
-    return new Response(null, { status: 404 });
-  }
-  let file = made.get(name);
-  if (!file) {
-    file = make(asset);
-    made.set(name, file);
-  }
-  const found = await file;
+  const { asset } = await params;
+  const found = isBrandAssetName(asset) ? await madeFile(asset) : null;
   return found
     ? new Response(found.body, {
         headers: { ...HEADERS, "Content-Type": found.type },

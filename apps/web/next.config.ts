@@ -29,6 +29,11 @@ const nextConfig: NextConfig = {
         outputFileTracingRoot: fileURLToPath(new URL("../..", import.meta.url)),
       }
     : {}),
+  // Browsers ask for /favicon.ico whatever the page links: the brand's 32px
+  // icon (apps/web/app/brand). A PNG there is fine for every current browser.
+  rewrites: async () => [
+    { destination: "/brand/icon-32.png", source: "/favicon.ico" },
+  ],
   // PGlite loads its WASM and extension bundles from files beside its own
   // code; bundled, it can't (`instantiateWasm is not a function`), so the
   // server requires it from node_modules instead.

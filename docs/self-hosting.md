@@ -554,21 +554,29 @@ and the app serves them itself, so a new logo needs a restart, not a rebuild.
 ```yaml
 brand:
   name: Acme Chat
-  logo: ./brand/logo.svg         # beside the name in the sidebar and on sign-in
-  logoDark: ./brand/logo-dark.svg  # optional: the logo on dark themes
+  logo: ./brand/logo.svg         # beside the name on sign-in
+  logoDark: ./brand/logo-dark.svg  # optional: a multi-colour logo on dark themes
   favicon: ./brand/icon.svg      # optional: the square mark, else the logo
   iconBackground: black          # optional: behind the mark on home-screen icons
 ```
 
-- One SVG is enough. Draw it in `currentColor` and the logo takes the
-  theme's text colour in the app, and the tab icon turns white on dark tab
-  strips. Parts in their own colours keep them.
-- Set `logoDark` only for a logo whose colours don't read on dark.
+- One SVG is enough. The app draws each logo file one of two ways:
+  - **One colour.** Every painted part is `currentColor`, or the SVG names
+    no colours at all. The logo takes the theme's text colour, so it follows
+    light and dark by itself.
+  - **As it is.** Anything with a colour of its own (a fill, stroke, stop or
+    `color`, an embedded image, or a PNG or JPEG) is shown exactly as drawn.
+    Set `logoDark` to a version that reads on dark; without it, the same
+    file shows on both.
+- The tab icon is the favicon (else the logo). A one-colour mark is black
+  on light tab strips and white on dark ones.
 - Home-screen and installed-app icons can't be transparent: they draw the
-  mark on `iconBackground`, its `currentColor` parts in white. With a light
-  background, give the mark its own colours.
-- With no logo, the app shows the name alone and a neutral placeholder icon
-  (`brand/logo.svg` in the repo is the same mark).
+  mark on `iconBackground`, a one-colour mark in white. With a light
+  background, give the mark its own colours. A mark that can't be drawn
+  (an SVG with no `viewBox`, say) gets the placeholder instead,
+  with a warning in the log.
+- With no logo, or one that can't be read, the app shows the name alone,
+  and the icons use a neutral placeholder (`brand/logo.svg` in the repo).
 - The desktop app's icon is made from the same files at package time
   (docs/desktop.md).
 

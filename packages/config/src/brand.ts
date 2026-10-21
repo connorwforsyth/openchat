@@ -1,15 +1,13 @@
 // The brand's files as the web app serves them (`apps/web/app/brand`), from
 // whatever `brand:` names in app.config.yaml (D18). One SVG is enough: the
-// logo stands in for the dark logo and the square icon, and a built-in mark
-// stands in when there's no logo at all.
+// logo stands in for the square icon, and a built-in mark stands in when
+// there's no logo at all.
 //
-// The in-app logo follows the app's theme, not the OS: the client draws a
-// paint layer (an <img>, the logo's own colours) over an ink layer (a CSS
-// mask in the text colour). The server splits the logo between them, so the
-// `currentColor` parts take the theme's colour and the rest keep their own.
-// The tab icon can only follow the OS, so its `currentColor` switches with
-// `prefers-color-scheme` inside the SVG. Home-screen icons can't be
-// transparent, so they put the mark on a solid tile.
+// A logo is drawn one of two ways, decided per file. A one-colour SVG (its
+// paint is all `currentColor`, or it names no colours) is a mask filled with
+// the text colour, so it follows the app's theme. Anything else is drawn as
+// it is, with `logoDark` in its place on dark themes. The files are served
+// untouched: icons wrap them rather than edit their markup.
 
 /** A logo or icon as read from disk. */
 export type BrandImage =
@@ -24,12 +22,8 @@ export type BrandTheme = "dark" | "light";
 
 /** Each file the web app serves under `/brand/`, and how it's made. */
 export type BrandAsset =
-  /** One of the in-app logo's layers for one theme. */
-  | {
-      readonly kind: "logo";
-      readonly layer: "ink" | "paint";
-      readonly theme: BrandTheme;
-    }
+  /** The logo file for one theme, as it is. */
+  | { readonly kind: "logo"; readonly theme: BrandTheme }
   /** The tab icon, an SVG whatever the source. */
   | { readonly kind: "icon" }
   /** A PNG of the mark on the icon background, `markScale` of its width. */
@@ -48,10 +42,8 @@ export const BRAND_ASSETS = {
   "icon-512.png": { kind: "tile", markScale: 0.625, size: 512 },
   "icon-maskable-512.png": { kind: "tile", markScale: 0.5, size: 512 },
   "icon.svg": { kind: "icon" },
-  logo: { kind: "logo", layer: "paint", theme: "light" },
-  "logo-dark": { kind: "logo", layer: "paint", theme: "dark" },
-  "logo-dark-ink": { kind: "logo", layer: "ink", theme: "dark" },
-  "logo-ink": { kind: "logo", layer: "ink", theme: "light" },
+  logo: { kind: "logo", theme: "light" },
+  "logo-dark": { kind: "logo", theme: "dark" },
 } as const satisfies Record<string, BrandAsset>;
 
 export type BrandAssetName = keyof typeof BRAND_ASSETS;
@@ -59,19 +51,8 @@ export type BrandAssetName = keyof typeof BRAND_ASSETS;
 export const brandAssetPath = (name: BrandAssetName): string =>
   `/brand/${name}`;
 
-export const brandAssetOf = (name: string): BrandAsset | undefined =>
-  Object.hasOwn(BRAND_ASSETS, name)
-    ? BRAND_ASSETS[name as BrandAssetName]
-    : undefined;
-
-/** The logo's two layers for each theme, for the client to draw. */
-export const logoLayers = {
-  dark: {
-    ink: brandAssetPath("logo-dark-ink"),
-    paint: brandAssetPath("logo-dark"),
-  },
-  light: { ink: brandAssetPath("logo-ink"), paint: brandAssetPath("logo") },
-} as const satisfies Record<BrandTheme, Record<"ink" | "paint", string>>;
+export const isBrandAssetName = (name: string): name is BrandAssetName =>
+  Object.hasOwn(BRAND_ASSETS, name);
 
 /**
  * The mark used when `brand:` names no logo or favicon: a speech bubble in
@@ -85,20 +66,33 @@ export const PLACEHOLDER_MARK = `<svg aria-hidden="true" viewBox="0 0 24 24" xml
 </svg>
 `;
 
-/** A fully transparent SVG: the ink layer of a logo with no `currentColor`. */
-export const EMPTY_SVG = '<svg xmlns="http://www.w3.org/2000/svg"/>';
+/** `mask`: one colour, drawn in the theme's text colour. `image`: as it is. */
+export type LogoMode = "image" | "mask";
 
-const CURRENT_COLOR = /currentcolor/i;
-const SVG_OPEN_TAG = /<svg\b[^>]*>/i;
+// A colour named in an attribute (`fill="red"`) or a style (`fill: red`).
+const COLOUR_PROPERTY =
+  /\b(?:color|fill|flood-color|lighting-color|stop-color|stroke)\s*[=:]\s*["']?\s*([^"';\s>]+)/gi;
+const NOT_A_COLOUR = new Set([
+  "currentcolor",
+  "inherit",
+  "none",
+  "transparent",
+]);
+const EMBEDDED_IMAGE = /<image\b/i;
 
-type SvgImage = Extract<BrandImage, { kind: "svg" }>;
-
-const usesCurrentColor = (image: BrandImage): image is SvgImage =>
-  image.kind === "svg" && CURRENT_COLOR.test(image.text);
-
-/** The SVG with a stylesheet as its first child. */
-const withStyle = (svg: string, css: string): string =>
-  svg.replace(SVG_OPEN_TAG, (open) => `${open}<style>${css}</style>`);
+export const logoModeOf = (image: BrandImage): LogoMode => {
+  if (image.kind === "raster" || EMBEDDED_IMAGE.test(image.text)) {
+    return "image";
+  }
+  for (const [, value = ""] of image.text.matchAll(COLOUR_PROPERTY)) {
+    const named = value.toLowerCase();
+    // A gradient or pattern's colours are on its stops, matched themselves.
+    if (!(NOT_A_COLOUR.has(named) || named.startsWith("url("))) {
+      return "image";
+    }
+  }
+  return "mask";
+};
 
 /** What a file is served as: SVG text or raster bytes. */
 export type BrandFile =
@@ -108,56 +102,35 @@ export type BrandFile =
       readonly type: "image/jpeg" | "image/png";
     };
 
-const asFile = (image: BrandImage): BrandFile =>
+export const brandFile = (image: BrandImage): BrandFile =>
   image.kind === "svg"
     ? { body: image.text, type: "image/svg+xml" }
     : { body: image.data, type: image.mime };
 
-const svgFile = (body: string): BrandFile => ({ body, type: "image/svg+xml" });
-
-/**
- * One layer of the in-app logo. Paint is the logo with its `currentColor`
- * made transparent; ink is the logo when it uses `currentColor` (its shape
- * becomes the mask the theme colour shows through) and nothing otherwise.
- */
-export const logoLayer = (
-  logo: BrandImage,
-  layer: "ink" | "paint"
-): BrandFile => {
-  if (!usesCurrentColor(logo)) {
-    return layer === "ink" ? svgFile(EMPTY_SVG) : asFile(logo);
-  }
-  return layer === "ink"
-    ? asFile(logo)
-    : svgFile(withStyle(logo.text, "svg{color:transparent}"));
-};
-
 const dataUri = (image: BrandImage): string => {
-  const { body, type } = asFile(image);
+  const { body, type } = brandFile(image);
   return `data:${type};base64,${Buffer.from(body).toString("base64")}`;
 };
 
 /**
- * The tab icon. A `currentColor` mark is black on light tab strips and white
- * on dark ones; a raster is wrapped so the link is always an SVG.
+ * The tab icon: the mark inside an SVG of our own. A one-colour mark draws
+ * black (an image's `currentColor`), inverted to white on dark tab strips.
  */
 export const tabIcon = (icon: BrandImage): string => {
-  if (icon.kind === "raster") {
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><image href="${dataUri(icon)}" width="64" height="64"/></svg>`;
-  }
-  return CURRENT_COLOR.test(icon.text)
-    ? withStyle(
-        icon.text,
-        "svg{color:black}@media (prefers-color-scheme:dark){svg{color:white}}"
-      )
-    : icon.text;
+  const scheme =
+    logoModeOf(icon) === "mask"
+      ? "<style>@media (prefers-color-scheme:dark){image{filter:invert(1)}}</style>"
+      : "";
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">${scheme}<image href="${dataUri(icon)}" width="64" height="64"/></svg>`;
 };
 
-/** The mark as a data URI for a tile, its `currentColor` white on the tile. */
-export const tileMark = (icon: BrandImage): string =>
-  usesCurrentColor(icon)
-    ? dataUri({ kind: "svg", text: withStyle(icon.text, "svg{color:white}") })
-    : dataUri(icon);
+/** The mark for a tile; a one-colour mark is inverted to white on it. */
+export const tileMark = (
+  icon: BrandImage
+): { readonly invert: boolean; readonly src: string } => ({
+  invert: logoModeOf(icon) === "mask",
+  src: dataUri(icon),
+});
 
 /** The images `brand:` resolves to, each falling back as documented. */
 export interface BrandImages {
@@ -166,6 +139,11 @@ export interface BrandImages {
   /** The in-app logo for each theme; `null` when there's no logo. */
   readonly logo: Readonly<Record<BrandTheme, BrandImage>> | null;
 }
+
+export const PLACEHOLDER_IMAGES: BrandImages = {
+  icon: { kind: "svg", text: PLACEHOLDER_MARK },
+  logo: null,
+};
 
 export const brandImages = ({
   favicon,
@@ -176,6 +154,58 @@ export const brandImages = ({
   readonly logo: BrandImage | null;
   readonly logoDark: BrandImage | null;
 }): BrandImages => ({
-  icon: favicon ?? logo ?? { kind: "svg", text: PLACEHOLDER_MARK },
+  icon: favicon ?? logo ?? PLACEHOLDER_IMAGES.icon,
   logo: logo ? { dark: logoDark ?? logo, light: logo } : null,
 });
+
+/** How the app draws one theme's logo. */
+export interface LogoView {
+  readonly mode: LogoMode;
+  readonly src: string;
+}
+
+/**
+ * The logo to draw: `dark` is `null` when one drawing serves both themes (a
+ * single file, so a mask follows the theme and an image is the same anyway).
+ */
+export interface LogoViews {
+  readonly dark: LogoView | null;
+  readonly light: LogoView;
+}
+
+export const logoViews = (logo: BrandImages["logo"]): LogoViews | null => {
+  if (!logo) {
+    return null;
+  }
+  const light = { mode: logoModeOf(logo.light), src: brandAssetPath("logo") };
+  return {
+    dark:
+      logo.dark === logo.light
+        ? null
+        : { mode: logoModeOf(logo.dark), src: brandAssetPath("logo-dark") },
+    light,
+  };
+};
+
+/**
+ * Makes each named asset once per process. A make that fails isn't kept:
+ * this request gets the fallback, and the next one tries again.
+ */
+export const madeOnce = <K, T>(
+  make: (name: K) => Promise<T>,
+  fallback: (name: K, error: unknown) => Promise<T>
+): ((name: K) => Promise<T>) => {
+  const made = new Map<K, Promise<T>>();
+  return (name) => {
+    const cached = made.get(name);
+    if (cached) {
+      return cached;
+    }
+    const making = make(name).catch((error: unknown) => {
+      made.delete(name);
+      return fallback(name, error);
+    });
+    made.set(name, making);
+    return making;
+  };
+};
