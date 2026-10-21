@@ -526,15 +526,19 @@ const StandingLine = ({
     case "not_member":
       return (
         <Trans>
-          You're not a member of {name}, so you can't use its tokens. Ask an
-          owner of {name} to add you.
+          You're not a member of {name}, so its token pool doesn't limit you. To
+          chat here, ask an owner of {name} to add you.
         </Trans>
       );
     case "no_pool":
-      return (
+      return standing.subSpace ? (
         <Trans>
-          {name} has no monthly token pool of its own, so it sets no token
-          limit.
+          {name} has no monthly token pool of its own. Chats here follow the
+          nearest pool above it in a space you're a member of, if there is one.
+        </Trans>
+      ) : (
+        <Trans>
+          {name} has no monthly token pool, so it sets no token limit.
         </Trans>
       );
     case "remaining": {

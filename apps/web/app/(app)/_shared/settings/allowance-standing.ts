@@ -4,17 +4,22 @@ import type {
   SpaceAllowance,
 } from "@workspace/contract/schemas/spaces";
 
-/** Where the caller stands with a space's token allowance (192). */
+/**
+ * Where the caller stands with a space's token allowance (192). A run is
+ * limited by the nearest pool among the chat's space and the spaces above it
+ * that the caller is a member of, so a sub-space with no pool may still be
+ * limited from above.
+ */
 export type AllowanceStanding =
   | { readonly type: "not_member" }
-  | { readonly type: "no_pool" }
+  | { readonly subSpace: boolean; readonly type: "no_pool" }
   | { readonly tokens: number; readonly type: "remaining" }
   | { readonly type: "pending" }
   | { readonly type: "denied" }
   | { readonly type: "not_asked" };
 
 export const allowanceStanding = (
-  space: Pick<Space, "access" | "canManage">,
+  space: Pick<Space, "access" | "canManage" | "parent">,
   allowance: Pick<SpaceAllowance, "monthlyTokens" | "myRemainingTokens">,
   grant: Pick<AllowanceGrant, "status"> | undefined
 ): AllowanceStanding => {
@@ -22,7 +27,7 @@ export const allowanceStanding = (
     return { type: "not_member" };
   }
   if (allowance.monthlyTokens === null) {
-    return { type: "no_pool" };
+    return { subSpace: space.parent !== null, type: "no_pool" };
   }
   if (space.canManage || grant?.status === "approved") {
     return { tokens: allowance.myRemainingTokens, type: "remaining" };

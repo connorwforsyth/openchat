@@ -223,8 +223,12 @@ msgid "{name} couldn't be made. Try again."
 msgstr "{name} couldn't be made. Try again."
 
 #: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
-msgid "{name} has no monthly token pool of its own, so it sets no token limit."
-msgstr "{name} has no monthly token pool of its own, so it sets no token limit."
+msgid "{name} has no monthly token pool of its own. Chats here follow the nearest pool above it in a space you're a member of, if there is one."
+msgstr "{name} has no monthly token pool of its own. Chats here follow the nearest pool above it in a space you're a member of, if there is one."
+
+#: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+msgid "{name} has no monthly token pool, so it sets no token limit."
+msgstr "{name} has no monthly token pool, so it sets no token limit."
 
 #. placeholder {0}: source.page
 #: ../chat-ui/src/conversation/sources.tsx
@@ -6861,8 +6865,8 @@ msgid "You're about to visit an external website."
 msgstr "You're about to visit an external website."
 
 #: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
-msgid "You're not a member of {name}, so you can't use its tokens. Ask an owner of {name} to add you."
-msgstr "You're not a member of {name}, so you can't use its tokens. Ask an owner of {name} to add you."
+msgid "You're not a member of {name}, so its token pool doesn't limit you. To chat here, ask an owner of {name} to add you."
+msgstr "You're not a member of {name}, so its token pool doesn't limit you. To chat here, ask an owner of {name} to add you."
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/admin-index.tsx
 msgid "You're not an owner or admin of any org. Admin pages appear here when you are."
