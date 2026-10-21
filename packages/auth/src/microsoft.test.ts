@@ -578,7 +578,7 @@ describe("what a Microsoft email proves", () => {
     expect((await signInWithMicrosoft(auth)).location).toBe("/");
   });
 
-  it("refuses a sign-in whose new directory email is another account's", async () => {
+  it("doesn't let a changed directory email take an address here", async () => {
     const auth = await microsoftAuth({}, createMemoryAvatarStore(), {
       signup: "open",
     });
@@ -586,19 +586,37 @@ describe("what a Microsoft email proves", () => {
     photoHandlers();
     await signInWithMicrosoft(auth);
     await signUp(auth, "bob@contoso.com");
+    const emails = async () =>
+      await (testDb as TestDb).db
+        .select({ email: user.email })
+        .from(user)
+        .orderBy(user.email);
 
-    tokenEndpoint({ email: "bob@contoso.com" });
-    expect(errorOf((await signInWithMicrosoft(auth)).location)).toBe(
-      "microsoft_email_in_use"
-    );
-    const emails = await (testDb as TestDb).db
-      .select({ email: user.email })
-      .from(user)
-      .orderBy(user.email);
-    expect(emails).toEqual([
-      { email: "ada@contoso.com" },
-      { email: "bob@contoso.com" },
-    ]);
+    // Another account's address, then one nobody here has yet.
+    for (const email of ["bob@contoso.com", "ceo@contoso.com"]) {
+      tokenEndpoint({ email });
+      // biome-ignore lint/performance/noAwaitInLoops: each sign-in follows the last.
+      expect((await signInWithMicrosoft(auth)).location).toBe("/");
+      expect(await emails()).toEqual([
+        { email: "ada@contoso.com" },
+        { email: "bob@contoso.com" },
+      ]);
+    }
+    await signUp(auth, "ceo@contoso.com");
+    expect(await emails()).toHaveLength(3);
+  });
+
+  it("counts an email whose domain the tenant verified (xms_edov)", async () => {
+    const auth = await microsoftAuth({}, createMemoryAvatarStore());
+    await invite(auth, "invitee@contoso.com");
+    tokenEndpoint({
+      email: "invitee@contoso.com",
+      tid: OTHER_TENANT,
+      xms_edov: true,
+    });
+    photoHandlers();
+
+    expect((await signInWithMicrosoft(auth)).location).toBe("/");
   });
 });
 

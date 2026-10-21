@@ -45,6 +45,12 @@ const validation = (message: string, path: readonly (string | number)[]) =>
   });
 
 type RunErrors = Partial<{
+  readonly ALLOWANCE_SPENT: (options: {
+    data: Extract<
+      Extract<DotError, { type: "run" }>["error"],
+      { type: "allowance_spent" }
+    >["data"];
+  }) => Error;
   readonly BUDGET_EXCEEDED: (options: {
     data: Extract<
       Extract<DotError, { type: "run" }>["error"],
@@ -114,6 +120,10 @@ const failure = (error: DotError, errors?: RunErrors): Error => {
           return errors?.BUDGET_EXCEEDED
             ? errors.BUDGET_EXCEEDED({ data: run.data })
             : new ORPCError("BUDGET_EXCEEDED");
+        case "allowance_spent":
+          return errors?.ALLOWANCE_SPENT
+            ? errors.ALLOWANCE_SPENT({ data: run.data })
+            : new ORPCError("ALLOWANCE_SPENT");
         case "no_model":
           return errors?.PROVIDER_UNAVAILABLE
             ? errors.PROVIDER_UNAVAILABLE({ data: { provider: null } })

@@ -2,7 +2,7 @@
   "version": "8",
   "dialect": "postgres",
   "id": "1e1b643c-6f38-4bc7-9d15-365cc62a9dda",
-  "prevIds": ["ff20b41f-de29-482f-bcc8-0a260291da34"],
+  "prevIds": ["3ead60b8-e9fe-4225-9db4-444d2f0c8805"],
   "ddl": [
     {
       "isRlsEnabled": false,
@@ -12579,6 +12579,32 @@
       "entityType": "checks",
       "schema": "public",
       "table": "transaction"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "synced_image",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "user"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "synced_name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "user"
     }
   ],
   "renames": []

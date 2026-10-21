@@ -58,6 +58,8 @@ interface Check {
   readonly name: string;
   /** Left out of the default run; run it by name. */
   readonly optIn?: boolean;
+  /** Temporal properties, checked under the spec's weak fairness. */
+  readonly properties?: readonly string[];
   /** The VIEW in RunQueue.tla: it must keep every ghost the invariants read. */
   readonly view: string;
 }
@@ -140,6 +142,14 @@ const CHECKS: readonly Check[] = [
     invariants: ["StopTakesEffect", "EndedRunsAreIdle", "NoLoopAfterStop"],
     name: "stop-orphan",
     view: "ViewStopped",
+  },
+  {
+    config: "RunQueueStopCrash.cfg",
+    expect: "holds",
+    invariants: [],
+    name: "stop-returns",
+    properties: ["StopReturns"],
+    view: "View",
   },
   {
     // The slowest check, so it runs only by name. See SKILL.md, finding 1.
@@ -574,6 +584,20 @@ const narrate = (states: readonly TraceState[]): string => {
 
 const DISTINCT_STATES = /([\d,]+) distinct states found/g;
 const INVARIANT_VIOLATED = /Error: Invariant (\w+) is violated/;
+const PROPERTY_VIOLATED = "Error: Temporal properties were violated";
+const BACK_TO = /^Back to state (\d+)/m;
+const STUTTERING = /^State \d+: Stuttering/m;
+
+/** How a temporal counterexample goes on forever after its last step. */
+const loopOf = (output: string): string => {
+  const back = BACK_TO.exec(output)?.[1];
+  if (back) {
+    return `\n        ...then from step ${Number(back) - 1} again, forever`;
+  }
+  return STUTTERING.test(output)
+    ? "\n        ...then nothing moves, forever"
+    : "";
+};
 
 interface Result {
   readonly detail: string;
@@ -602,6 +626,11 @@ const prepare = (java: string, jar: string): string => {
   return work;
 };
 
+const section = (keyword: string, names: readonly string[]): string =>
+  names.length === 0
+    ? ""
+    : `${keyword}\n${names.map((name) => `  ${name}\n`).join("")}`;
+
 const runCheck = (
   java: string,
   jar: string,
@@ -612,7 +641,7 @@ const runCheck = (
   copyFileSync(join(MODEL_DIR, check.config), config);
   appendFileSync(
     config,
-    `VIEW ${check.view}\nINVARIANTS\n${check.invariants.map((name) => `  ${name}\n`).join("")}`
+    `VIEW ${check.view}\n${section("INVARIANTS", check.invariants)}${section("PROPERTIES", check.properties ?? [])}`
   );
   // A request that can never return is a TLC deadlock (CheckedSpec lets
   // only settled states stutter), so it counts against NoStuckRun.
@@ -649,7 +678,11 @@ const runCheck = (
       trace: "",
     };
   }
-  const violated = INVARIANT_VIOLATED.exec(output)?.[1];
+  const violated =
+    INVARIANT_VIOLATED.exec(output)?.[1] ??
+    (output.includes(PROPERTY_VIOLATED)
+      ? check.properties?.join(", ")
+      : undefined);
   const deadlocked = output.includes("Error: Deadlock reached");
   if (violated || deadlocked) {
     const trace = parseTrace(output);
@@ -657,7 +690,7 @@ const runCheck = (
       detail: `${violated ?? "NoStuckRun (deadlock: a request never returns)"} in ${trace.length - 1} steps`,
       outcome: "violated",
       seconds,
-      trace: narrate(trace),
+      trace: `${narrate(trace)}${loopOf(output)}`,
     };
   }
   return {

@@ -17,6 +17,8 @@ const chat = (n: number, title: string): SidebarChat => ({
   updatedAt: "2026-09-30T12:00:00.000Z",
 });
 
+const inEngineering = /In Engineering$/;
+
 const first = chat(1, "Postgres full-text search vs Meilisearch");
 const second = chat(2, "Platform offsite agenda");
 
@@ -97,5 +99,39 @@ describe("ChatRow rename", () => {
       expect(screen.queryByRole("textbox", { name: "Chat title" })).toBeNull()
     );
     expect(onRename).not.toHaveBeenCalled();
+  });
+});
+
+describe("ChatRow space", () => {
+  const handlers = {
+    onArchive: vi.fn(),
+    onRename: vi.fn(),
+    onSelect: vi.fn(),
+    onTogglePin: vi.fn(),
+  };
+
+  it("tells assistive tech which space the chat lives in", () => {
+    renderWithI18n(
+      <ul>
+        <ChatRow
+          active={false}
+          chat={first}
+          space="Engineering"
+          {...handlers}
+        />
+      </ul>
+    );
+    expect(screen.getByRole("button", { name: inEngineering })).toBeTruthy();
+  });
+
+  it("says nothing about a space for a personal chat", () => {
+    renderWithI18n(
+      <ul>
+        <ChatRow active={false} chat={first} {...handlers} />
+      </ul>
+    );
+    expect(
+      screen.getByRole("button", { name: first.title ?? "" })
+    ).toBeTruthy();
   });
 });

@@ -131,8 +131,12 @@ const locate = async (
   db: Db,
   userId: UserId,
   input: { readonly id: string; readonly type: "org" | "team" }
-): Promise<Located | undefined> => {
-  const facts = await loadFacts(db, userId);
+): Promise<Located | undefined> => locateIn(await loadFacts(db, userId), input);
+
+const locateIn = (
+  facts: readonly SpaceOrgFact[],
+  input: { readonly id: string; readonly type: "org" | "team" }
+): Located | undefined => {
   const all = effectiveSpaceAccess({ orgs: facts });
   const space = all.find(
     (each) => each.id === input.id && each.type === input.type
@@ -194,7 +198,7 @@ const toGrant = (
   user: toUserSummary(who),
 });
 
-const allowanceView = async (
+const allowanceState = async (
   db: Db,
   located: Located,
   userId: UserId,
@@ -207,6 +211,33 @@ const allowanceView = async (
   ]);
   const poolUsed = [...used.values()].reduce((sum, n) => sum + n, 0);
   const mine = grants.find((row) => row.grant.userId === userId)?.grant ?? null;
+  return {
+    grants,
+    pool,
+    poolUsed,
+    remaining: allowanceFor({
+      grant: mine,
+      owner: located.space.canManage,
+      poolTokens: pool?.monthlyTokens ?? null,
+      poolUsed,
+      userUsed: used.get(userId) ?? 0,
+    }),
+    used,
+  };
+};
+
+const allowanceView = async (
+  db: Db,
+  located: Located,
+  userId: UserId,
+  now: Date
+) => {
+  const { grants, pool, poolUsed, remaining, used } = await allowanceState(
+    db,
+    located,
+    userId,
+    now
+  );
   const visible = located.space.canManage
     ? grants
     : grants.filter((row) => row.grant.userId === userId);
@@ -215,16 +246,42 @@ const allowanceView = async (
       toGrant(row.grant, row.user, used.get(row.grant.userId) ?? 0)
     ),
     monthlyTokens: pool?.monthlyTokens ?? null,
-    myRemainingTokens: allowanceFor({
-      grant: mine,
-      owner: located.space.canManage,
-      poolTokens: pool?.monthlyTokens ?? null,
-      poolUsed,
-      userUsed: used.get(userId) ?? 0,
-    }),
+    myRemainingTokens: remaining,
     resetsAt: monthOf(now).to.toISOString(),
     usedTokens: poolUsed,
   };
+};
+
+/**
+ * The space whose token allowance `userId` has used up this month (192),
+ * checked before a run like a money budget (D24). `refs` runs from the
+ * chat's space up to the root; the nearest one with a pool that the caller
+ * is a full member of decides. Pools in spaces they aren't in don't apply,
+ * and with no such pool there is no token limit.
+ *
+ * This reads usage without reserving it, so concurrent sends can overshoot
+ * the allowance. It's a soft limit, like money budgets.
+ */
+export const spentAllowance = async (
+  db: Db,
+  userId: UserId,
+  refs: readonly SpaceRef[],
+  now: Date
+): Promise<SpaceRef | undefined> => {
+  const facts = await loadFacts(db, userId);
+  const joined = refs.flatMap((ref) => {
+    const located = locateIn(facts, ref);
+    return located && located.space.access !== "root_member" ? [located] : [];
+  });
+  const pools = await Promise.all(
+    joined.map((located) => getSpaceAllowance(db, located.ref))
+  );
+  const nearest = joined.find((_, index) => pools[index]);
+  if (!nearest) {
+    return;
+  }
+  const { remaining } = await allowanceState(db, nearest, userId, now);
+  return remaining <= 0 ? nearest.ref : undefined;
 };
 
 const membersOf = async (db: Db, ref: SpaceRef) => {

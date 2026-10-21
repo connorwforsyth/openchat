@@ -235,12 +235,16 @@ const setup = async () => {
   const settled: RunId[] = [];
   const channel = createPostgresStreamChannel({ db });
   const appended: unknown[] = [];
-  const stream: { down: boolean } = { down: false };
+  const stream: { down: boolean; failures: number } = {
+    down: false,
+    failures: 0,
+  };
   const writer: RunStreamWriter = {
     append: async (runId, payload) => {
       appended.push(payload);
       await holds.pass("append");
-      if (stream.down) {
+      if (stream.down || stream.failures > 0) {
+        stream.failures = Math.max(0, stream.failures - 1);
         throw new Error("the stream is down");
       }
       return channel.append(runId, payload);
@@ -302,7 +306,7 @@ const setup = async () => {
     settled,
     start: (run: RunRow) => executor.start(runStartFromRow(run)),
     statusOf: async (run: RunRow) => expectOk(await getRun(db, run.id)).status,
-    /** Writes to the stream throw while it's down. */
+    /** Writes to the stream throw while it's down, and for the next `failures` writes. */
     stream,
     turns,
   };
@@ -635,6 +639,31 @@ describe("Stop on a run whose pass crashed", () => {
     await chat.executor.idle();
     expect(await chat.statusOf(run)).toBe("cancelled");
     expect(chat.settled.filter((id) => id === run.id)).toHaveLength(1);
+    expect(await chat.statusOf(next)).toBe("succeeded");
+  });
+});
+
+describe("A decision whose announcement throws", () => {
+  it("fails the run and starts the turn queued behind it", async () => {
+    const chat = await setup();
+    const run = await chat.queue();
+    const next = await chat.queue(run);
+    const { execute, turns } = writeTurns();
+    chat.turns.push(...turns);
+    await chat.start(run);
+    await chat.executor.idle();
+    expect(await chat.statusOf(run)).toBe("awaiting_approval");
+
+    // The decision commits and resumes the run; announcing it then throws,
+    // before its pass starts.
+    chat.stream.failures = 1;
+    await expect(
+      chat.executor.submitApprovals(run.id, approveA, chat.ownerId)
+    ).rejects.toThrow();
+    await chat.executor.idle();
+
+    expect(execute).not.toHaveBeenCalled();
+    expect(await chat.statusOf(run)).toBe("failed");
     expect(await chat.statusOf(next)).toBe("succeeded");
   });
 });

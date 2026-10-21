@@ -194,11 +194,14 @@ describe("POST /api/llm", () => {
         budget: () =>
           Promise.resolve(
             err({
-              limitMicros: 1,
-              period: "day" as const,
-              principal: { id: userId, type: "user" as const },
-              resetsAt: new Date().toISOString(),
-              usedMicros: 2,
+              data: {
+                limitMicros: 1,
+                period: "day" as const,
+                principal: { id: userId, type: "user" as const },
+                resetsAt: new Date().toISOString(),
+                usedMicros: 2,
+              },
+              type: "budget_exceeded" as const,
             })
           ),
         config: testConfig(),

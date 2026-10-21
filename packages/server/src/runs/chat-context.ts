@@ -1,12 +1,18 @@
+import { spentAllowance } from "@workspace/auth/handlers/spaces";
 import { type ModelPrices, usageCost } from "@workspace/config/prices";
-import type { budgetExceededDataSchema } from "@workspace/contract/errors";
+import type {
+  allowanceSpentDataSchema,
+  budgetExceededDataSchema,
+} from "@workspace/contract/errors";
 import type { OrgId, TeamId } from "@workspace/contract/schemas/common";
+import type { SpaceRef } from "@workspace/contract/schemas/spaces";
 import type {
   ChatContext,
   Principal,
 } from "@workspace/contract/schemas/tenancy";
 import type { Db } from "@workspace/db/client";
 import type { StoredContext } from "@workspace/db/queries/conversations";
+import { monthOf } from "@workspace/db/queries/spaces";
 import { personalOrgOf, teamLineage } from "@workspace/db/queries/teams";
 import {
   budgetStatuses,
@@ -83,12 +89,21 @@ export const chargedBy = async (
 };
 
 export type BudgetExceededData = z.infer<typeof budgetExceededDataSchema>;
+export type AllowanceSpentData = z.infer<typeof allowanceSpentDataSchema>;
 
-/** The pre-run budget check (D24): `err` with the first hard budget that's spent. */
+/** Why a run can't start for what it would spend. */
+export type SpendRefusal =
+  | { readonly data: BudgetExceededData; readonly type: "budget_exceeded" }
+  | { readonly data: AllowanceSpentData; readonly type: "allowance_spent" };
+
+/**
+ * The pre-run spend check (D24): `err` with the first hard budget that's
+ * spent, else the space allowance (192) the caller has used up.
+ */
 export type BudgetCheck = (
   actor: Actor,
   context: StoredContext
-) => Promise<Result<void, BudgetExceededData>>;
+) => Promise<Result<void, SpendRefusal>>;
 
 export const budgetCheck =
   (db: Db, now: () => Date = () => new Date()): BudgetCheck =>
@@ -101,8 +116,9 @@ export const budgetCheck =
     const spent = exceededBudgets(
       await budgetStatuses(db, charged.orgId, charged.principals, at)
     ).find((status) => status.hard);
-    return spent
-      ? err({
+    if (spent) {
+      return err({
+        data: {
           limitMicros: spent.limitMicros,
           period: spent.period,
           principal: {
@@ -111,6 +127,24 @@ export const budgetCheck =
           } as Principal,
           resetsAt: spent.resetsAt.toISOString(),
           usedMicros: spent.usedMicros,
+        },
+        type: "budget_exceeded",
+      });
+    }
+    const space = await spentAllowance(
+      db,
+      actor.userId,
+      charged.principals.flatMap((principal) =>
+        principal.type === "team" || principal.type === "org"
+          ? [principal as SpaceRef]
+          : []
+      ),
+      at
+    );
+    return space
+      ? err({
+          data: { resetsAt: monthOf(at).to.toISOString(), space },
+          type: "allowance_spent",
         })
       : ok(undefined);
   };

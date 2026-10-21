@@ -9,6 +9,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { ConnectedChat } from "@workspace/chat-ui/chat/connected-chat";
+import { SIDEBAR_LIST_INPUT } from "@workspace/chat-ui/chat/use-chat-data";
 import { VoiceCallButton } from "@workspace/chat-ui/voice/voice-call";
 import type { VoiceBridge } from "@workspace/chat-ui/voice/voice-engine";
 import {
@@ -39,7 +40,10 @@ import { canAdmin, useAppFrame } from "@/app/(app)/_shared/app-frame";
 import { Brand } from "@/app/(app)/_shared/brand";
 import { useShellPlatform } from "@/app/(app)/_shared/desktop";
 import { createApiSandboxClient } from "@/app/(app)/_shared/sandbox-client";
-import { SpaceSwitcher } from "@/app/(app)/_shared/spaces/space-switcher";
+import {
+  SpaceSwitcher,
+  useSidebarSpaces,
+} from "@/app/(app)/_shared/spaces/space-switcher";
 import { useTerms } from "@/app/(app)/_shared/terms";
 import { useAfterBoot } from "@/app/(app)/_shared/use-after-boot";
 import { DotComputer } from "@/app/(app)/(pages)/dots/dot-computer";
@@ -483,6 +487,10 @@ export function ChatRoute({
   const dot = useDotForConversation(conversationId ?? null);
   const dotName = dot?.name;
   const sidebarDots = useSidebarDots(conversationId ?? null);
+  const chats = useQuery(
+    query.conversations.list.queryOptions({ input: SIDEBAR_LIST_INPUT })
+  );
+  const sidebarSpaces = useSidebarSpaces(chats.data?.items);
   // A Dot's chat has its Call in the Dot's bar (with its face); the header's
   // stays for every other chat.
   const isDot = Boolean(dot);
@@ -554,6 +562,7 @@ export function ChatRoute({
       sandboxClient={sandboxClient}
       sendTarget={sendTarget}
       sidebarDots={sidebarDots}
+      sidebarSpaces={sidebarSpaces}
       skills={skills}
       target={target}
       terms={terms}

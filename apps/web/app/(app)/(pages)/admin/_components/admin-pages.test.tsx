@@ -55,7 +55,7 @@ const SAMPLED = /Sampled scoring/;
 const KEEP_ON_DEVICE = /Keep a copy on each device/;
 const AUDIT = /Let admins read chats/;
 const LAST_OWNER = /at least one owner/;
-const HAS_SUBTEAMS = /has sub-teams/;
+const HAS_SUB_SPACES = /has sub-spaces of its own/;
 
 describe("OrgPolicyForm", () => {
   it("locks what the instance forbids and saves the rest", async () => {
@@ -230,8 +230,8 @@ describe("MembersAdmin", () => {
   });
 });
 
-describe("MembersAdmin invitations into a team (044)", () => {
-  it("invites into the chosen team and copies the one-time link", async () => {
+describe("MembersAdmin invitations into a sub-space (044)", () => {
+  it("invites into the chosen sub-space and copies the one-time link", async () => {
     const writeText = vi.fn(() => Promise.resolve());
     vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
     const api = fakeApi({
@@ -254,7 +254,9 @@ describe("MembersAdmin invitations into a team (044)", () => {
     try {
       renderWithApi(<MembersAdmin orgId={orgId} />, api);
       await userEvent.fill(screen.getByLabelText("Email"), "bo@example.test");
-      await userEvent.click(screen.getByRole("combobox", { name: "Team" }));
+      await userEvent.click(
+        screen.getByRole("combobox", { name: "Sub-space" })
+      );
       await userEvent.click(
         await screen.findByRole("option", { name: "— Platform" })
       );
@@ -297,8 +299,10 @@ describe("TeamsAdmin", () => {
       expect.stringContaining("Platform"),
     ]);
     fireEvent.click(screen.getByRole("button", { name: "Delete Engineering" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Delete team" }));
-    expect(await screen.findByText(HAS_SUBTEAMS)).toBeTruthy();
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Delete sub-space" })
+    );
+    expect(await screen.findByText(HAS_SUB_SPACES)).toBeTruthy();
   });
 
   it("renames inline", async () => {

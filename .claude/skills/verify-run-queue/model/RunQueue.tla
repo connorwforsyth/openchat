@@ -480,7 +480,20 @@ NoStuckRun ==
          /\ after[r] # NoRun
          /\ status[after[r]] \notin Terminal
 
-CheckedSpec == Init /\ [][Next \/ (Quiet /\ UNCHANGED vars)]_vars
+\* Weak fairness per process: a request or pass that can take its next step
+\* eventually takes it. Only StopReturns reads it; TLC ignores fairness when
+\* it checks invariants.
+Fairness ==
+  \A self \in ProcSet :
+    WF_vars(startRun(self) \/ finishTerminal(self) \/ Send(self)
+              \/ Pass(self) \/ Stop(self) \/ Decide(self))
+
+CheckedSpec ==
+  Init /\ [][Next \/ (Quiet /\ UNCHANGED vars)]_vars /\ Fairness
+
+\* Every Stop returns. The invariants can't see a Stop that looks again
+\* forever, because it never reaches Done for StopTakesEffect to judge.
+StopReturns == \A k \in StopIds : <>(pc[k] = "Done")
 
 -----------------------------------------------------------------------------
 (* Views. TLC treats two states with the same view as one. These views     *)

@@ -131,18 +131,35 @@ describe("computerCommand", () => {
 
 describe("control", () => {
   // Runs the real command in sh against a stand-in x11vnc that records
-  // whether the agent's stand-down flag was set when input was switched.
+  // whether the agent's stand-down flag was set when input was switched,
+  // with exec's 5 s limit. `timeout` is a stand-in too: macOS has none.
   const switchControl = (
     holder: "agent" | "user",
-    { flagged, vnc }: { flagged: boolean; vnc: "fails" | "works" }
+    { flagged, vnc }: { flagged: boolean; vnc: "fails" | "hangs" | "works" }
   ) => {
     const dir = mkdtempSync(join(tmpdir(), "computer-control-"));
     const flag = join(dir, "user-control");
     const seen = join(dir, "seen");
     writeFileSync(join(dir, "pgrep"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+    const end = { fails: "exit 1", hangs: "exec sleep 30", works: "exit 0" };
     writeFileSync(
       join(dir, "x11vnc"),
-      `#!/bin/sh\nif [ -e ${flag} ]; then echo "$3 flagged" >> ${seen}; else echo "$3 clear" >> ${seen}; fi\nexit ${vnc === "works" ? 0 : 1}\n`,
+      `#!/bin/sh\nif [ -e ${flag} ]; then echo "$3 flagged" >> ${seen}; else echo "$3 clear" >> ${seen}; fi\n${end[vnc]}\n`,
+      { mode: 0o755 }
+    );
+    writeFileSync(
+      join(dir, "timeout"),
+      [
+        "#!/bin/sh",
+        "limit=$1; shift",
+        '"$@" & pid=$!',
+        '( sleep "$limit"; kill "$pid" ) </dev/null >/dev/null 2>&1 & watcher=$!',
+        'wait "$pid"; status=$?',
+        'kill "$watcher" 2>/dev/null',
+        '[ "$status" -gt 128 ] && exit 124',
+        'exit "$status"',
+        "",
+      ].join("\n"),
       { mode: 0o755 }
     );
     if (flagged) {
@@ -151,7 +168,7 @@ describe("control", () => {
     const ran = spawnSync(
       "sh",
       ["-c", controlCommand(holder).replaceAll(CONTROL_FLAG, flag)],
-      { env: { PATH: `${dir}:${process.env.PATH ?? ""}` } }
+      { env: { PATH: `${dir}:${process.env.PATH ?? ""}` }, timeout: 5000 }
     );
     const result = {
       flagged: existsSync(flag),
@@ -178,6 +195,12 @@ describe("control", () => {
   it("leaves the agent driving when viewer input won't turn on", () => {
     expect(
       switchControl("user", { flagged: false, vnc: "fails" })
+    ).toMatchObject({ flagged: false, status: 1 });
+  });
+
+  it("leaves the agent driving when switching viewer input hangs past exec's limit", () => {
+    expect(
+      switchControl("user", { flagged: false, vnc: "hangs" })
     ).toMatchObject({ flagged: false, status: 1 });
   });
 

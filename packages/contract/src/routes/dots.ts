@@ -90,7 +90,7 @@ export const dots = {
     })
     .route({
       description:
-        "Posts the prompt into the Dot's conversation and starts a run, as a schedule would. Unattended rules apply: `ask` tools the Dot hasn't auto-approved are refused, never waited on.",
+        "Posts the prompt into the Dot's conversation and starts a run, as a schedule would. Unattended rules apply: `ask` tools the Dot hasn't auto-approved are refused, never waited on. A Dot whose chat is archived is a `CONFLICT` (`target_archived`).",
       method: "POST",
       path: "/dots/{id}/run",
       successStatus: 202,

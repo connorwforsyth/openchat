@@ -213,6 +213,8 @@ export interface ConnectedChatProps {
     | "signals"
     | "top"
   >;
+  /** Each chat's space by name (187): `spaces` of `ChatSidebarProps`. */
+  readonly sidebarSpaces?: ChatSidebarProps["spaces"];
   /** Skills the caller can use (127), for the composer's + menu and `/`. */
   readonly skills?: readonly SkillOption[];
   /** What answers: a model or an agent. Omitted, the server's default does. */
@@ -630,13 +632,39 @@ const useAskOnce = (
   }, [conversationId, prompt, submit]);
 };
 
+/** Why a send failed, as far as the person can act on it. Pure. */
+export type RunFailure =
+  | { readonly type: "allowance_spent" }
+  | { readonly type: "budget_exceeded" }
+  | { readonly type: "failed" };
+
+/**
+ * Reads the oRPC error `runs.create` threw. A spent allowance (192) or
+ * budget (D24) is the person's to resolve, not a retry, so it says so.
+ */
+export const runFailure = (error: unknown): RunFailure => {
+  const code =
+    typeof error === "object" && error !== null
+      ? (error as { readonly code?: unknown }).code
+      : undefined;
+  switch (code) {
+    case "ALLOWANCE_SPENT":
+      return { type: "allowance_spent" };
+    case "BUDGET_EXCEEDED":
+      return { type: "budget_exceeded" };
+    default:
+      return { type: "failed" };
+  }
+};
+
 function RunError({
-  failed,
+  error,
   onStop,
   uploadFailed,
   waiting,
 }: {
-  readonly failed: boolean;
+  /** The send's error, if it failed. */
+  readonly error: Error | undefined;
   /** Stops the waiting answer (the composer offers Send while it waits). */
   readonly onStop: () => void;
   readonly uploadFailed: boolean;
@@ -644,6 +672,19 @@ function RunError({
   readonly waiting: boolean;
 }) {
   const { t } = useLingui();
+  const failed = error !== undefined;
+  const failureText = (failure: RunFailure): string => {
+    switch (failure.type) {
+      case "allowance_spent":
+        return t`You have no tokens left this month in the space that limits this chat. Ask an owner there for an allowance in its Token allowance settings.`;
+      case "budget_exceeded":
+        return t`The budget for this period is spent. Try again once it resets.`;
+      case "failed":
+        return t`The answer failed. Try again, or regenerate it.`;
+      default:
+        return failure satisfies never;
+    }
+  };
   if (waiting && !(uploadFailed || failed)) {
     return (
       <div
@@ -670,7 +711,7 @@ function RunError({
     <p className="text-destructive text-sm" role="alert">
       {uploadFailed
         ? t`The message couldn't be sent: an attachment didn't upload. Try again.`
-        : t`The answer failed. Try again, or regenerate it.`}
+        : failureText(runFailure(error))}
     </p>
   );
 }
@@ -1544,6 +1585,7 @@ export function ConnectedChat({
   sandboxClient,
   sendTarget,
   sidebarDots,
+  sidebarSpaces,
   skills,
   target = null,
   terms = defaultTerms,
@@ -2025,7 +2067,7 @@ export function ConnectedChat({
             platform={platform}
             runError={
               <RunError
-                failed={Boolean(chat.error)}
+                error={chat.error}
                 onStop={stop}
                 uploadFailed={uploadFailed}
                 waiting={waiting}
@@ -2052,6 +2094,7 @@ export function ConnectedChat({
               libraryHref,
               onSelect: onNavigate,
               signals,
+              spaces: sidebarSpaces,
             }}
             streamingMessageId={streamingMessageId}
             workspace={{

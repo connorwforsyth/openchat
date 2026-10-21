@@ -16,8 +16,8 @@ import type {
   ScheduleRun,
 } from "@workspace/contract/schemas/schedules";
 import { MIGRATIONS_FOLDER } from "@workspace/db/migrator";
-import { dotRun } from "@workspace/db/schema/dots";
-import { seedUser } from "@workspace/db/testing";
+import { dotRun, dotSchedule } from "@workspace/db/schema/dots";
+import { seedOrg, seedUser } from "@workspace/db/testing";
 import { tool } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
 import { eq, sql } from "drizzle-orm";
@@ -227,6 +227,46 @@ describe("schedules API", () => {
       method: "POST",
     });
     expect(intoMine.status).toBe(404);
+  });
+
+  it("won't resume or run into a chat its owner can no longer reach", async () => {
+    const chat = await newChat();
+    const schedule = await create({
+      target: { conversationId: chat.id, kind: "conversation" },
+    });
+    await request(`/api/schedules/${schedule.id}/pause`, { method: "POST" });
+    const stranger = await seedUser(h.db);
+    await seedOrg(h.db, stranger.id, { isPersonal: true });
+    const theirs = await json<Conversation>(
+      await request("/api/conversations", {
+        as: stranger.id,
+        json: { title: "Theirs" },
+        method: "POST",
+      }),
+      201
+    );
+    const refusals = async () =>
+      await Promise.all(
+        ["resume", "run"].map(async (action) => {
+          const response = await request(
+            `/api/schedules/${schedule.id}/${action}`,
+            { method: "POST" }
+          );
+          return [response.status, (await response.json()).data?.reason];
+        })
+      );
+
+    for (const conversationId of [theirs.id, null]) {
+      // biome-ignore lint/performance/noAwaitInLoops: each case reads the row the last one left.
+      await h.db
+        .update(dotSchedule)
+        .set({ conversationId })
+        .where(eq(dotSchedule.id, schedule.id));
+      expect(await refusals()).toEqual([
+        [409, "target_archived"],
+        [409, "target_archived"],
+      ]);
+    }
   });
 
   it("refuses intervals below the minimum and one-offs in the past", async () => {

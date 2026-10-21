@@ -63,6 +63,8 @@ echo "$RUN_DIR" > "$BASE/active"
 cd "$ROOT"
 E2E_PORT="$PORT" nohup bun e2e/support/serve.ts > "$RUN_DIR/server.log" 2>&1 &
 echo $! > "$RUN_DIR/server.pid"
+started() { ps -o lstart= -p "$1" | awk '{$1=$1};1'; }
+echo "$(cat "$RUN_DIR/server.pid") $(started "$(cat "$RUN_DIR/server.pid")")" > "$RUN_DIR/pids"
 echo "launch: serve.ts pid $(cat "$RUN_DIR/server.pid"), log $RUN_DIR/server.log"
 
 # Ready means usable: the API answers (which opens and migrates the embedded
@@ -101,9 +103,12 @@ if [[ "$MODE" == "dev" ]]; then
   done
 fi
 
-# Record every process this run owns, so cleanup kills only those.
+# Record every process this run owns, with its start time, so cleanup kills
+# only those: a pid alone may belong to another process by then.
 collect() { echo "$1"; for c in $(pgrep -P "$1" 2>/dev/null); do collect "$c"; done; }
-collect "$(cat "$RUN_DIR/server.pid")" | sort -u > "$RUN_DIR/pids"
+for p in $(collect "$(cat "$RUN_DIR/server.pid")" | sort -u); do
+  echo "$p $(started "$p")"
+done > "$RUN_DIR/pids"
 
 echo "launch: READY $URL (mode $MODE)"
 echo "RUN_DIR=$RUN_DIR"

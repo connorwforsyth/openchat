@@ -55,7 +55,7 @@ import { titleFromPrompt, toSchedule } from "./schedule-policy";
 import {
   claimRunNow,
   createSchedule,
-  isArchived,
+  isArchivedOrGone,
   ownerActor,
   type ScheduleDeps,
   type ScheduleError,
@@ -342,7 +342,7 @@ export const runDotNow = async (
   if (!dot) {
     return err({ type: "not_found" });
   }
-  if (await isArchived(db, actor, dot.conversationId)) {
+  if (await isArchivedOrGone(db, actor, dot.conversationId)) {
     return err({ type: "target_archived" });
   }
   const claim = await claimRunNow(deps, {
