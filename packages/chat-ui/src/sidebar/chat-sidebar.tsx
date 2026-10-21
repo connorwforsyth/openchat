@@ -134,6 +134,8 @@ export interface ChatSidebarProps {
   readonly schedulesHref?: string;
   /** Runs in flight or waiting, by chat, for "Needs attention" (176). */
   readonly signals?: ReadonlyMap<ConversationId, RunSignal>;
+  /** The space each chat lives in, by name; personal chats are absent (187). */
+  readonly spaces?: ReadonlyMap<ConversationId, string>;
   /** The sidebar toggle, at the end of the brand row (113). */
   readonly toggle?: ReactNode;
   /** Under the actions: the owner's Dot row (172, 181). */
@@ -154,6 +156,7 @@ const headingClass =
 
 const noSignals: ReadonlyMap<ConversationId, RunSignal> = new Map();
 const noRuns: ReadonlyMap<ConversationId, string> = new Map();
+const noSpaces: ReadonlyMap<ConversationId, string> = new Map();
 
 /** After this many archives from one group, offer to archive the rest. */
 const SUGGEST_AFTER = 3;
@@ -954,6 +957,7 @@ export function ChatSidebar({
   onTogglePin,
   panel,
   signals = noSignals,
+  spaces = noSpaces,
   toggle,
   top,
   ...nav
@@ -1112,6 +1116,7 @@ export function ChatSidebar({
       onToggleUnread={onSetLastRead ? toggleUnread : undefined}
       selected={pickable && selection.ids.has(chat.id)}
       selecting={selecting && pickable}
+      space={spaces.get(chat.id) ?? null}
     />
   );
 

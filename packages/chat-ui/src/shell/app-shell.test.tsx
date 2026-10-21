@@ -210,7 +210,7 @@ describe("the collapsed sidebar's peek", () => {
   it("stays while a menu opened from it is open", () => {
     renderShell({
       sidebar: (
-        <button aria-expanded="true" type="button">
+        <button aria-expanded="true" aria-haspopup="menu" type="button">
           Menu
         </button>
       ),

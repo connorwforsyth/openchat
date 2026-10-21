@@ -127,7 +127,8 @@ Every procedure has a REST route under `/api`, a summary and one OpenAPI tag.
 - **Errors** are typed. Every authenticated procedure can return
   `UNAUTHORIZED`, `FORBIDDEN`, `NOT_FOUND`, `VALIDATION` (a domain rule the
   schema can't express) and `RATE_LIMITED`; some add `CONFLICT` (with a
-  `reason`), `BUDGET_EXCEEDED`, `PROVIDER_UNAVAILABLE`,
+  `reason`), `BUDGET_EXCEEDED`, `ALLOWANCE_SPENT` (the caller's token
+  allowance in the chat's space or one above it), `PROVIDER_UNAVAILABLE`,
   `FEATURE_DISABLED`, `ENCRYPTION_UNAVAILABLE` (`keys.create` without an
   `ENCRYPTION_KEY`) or `NOT_READY` (`meta.health?ready=true`). Input that fails a schema is oRPC's `BAD_REQUEST`.
 - **GET inputs are flat** so they fit a query string. Numbers and booleans in
@@ -183,8 +184,8 @@ stream it's plain HTTP, added to `openapi.json` by hand as `llm.proxy`.
 - Before anything is sent the proxy answers with the usual error bodies
   (`llmProxyErrors`): `UNAUTHORIZED`, `FORBIDDEN` (a context the caller isn't
   in or the instance disallows), `VALIDATION` (a model that doesn't resolve or
-  can't take the request), `RATE_LIMITED`, `BUDGET_EXCEEDED` (checked first)
-  and `PROVIDER_UNAVAILABLE` (no key for this context). A failure after a
+  can't take the request), `RATE_LIMITED`, `BUDGET_EXCEEDED` and
+  `ALLOWANCE_SPENT` (checked first) and `PROVIDER_UNAVAILABLE` (no key for this context). A failure after a
   stream starts is a final `error` part whose `error` is a `RunError`, safe to
   show.
 - The resolved model ref is in the `x-resolved-model` header. Usage is

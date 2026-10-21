@@ -53,10 +53,11 @@ test("a second org from the account menu, a nested team tree, and switching betw
   ).toBeVisible();
   await page.keyboard.press("Escape");
 
-  // The new org is a chat context too (D17).
+  // The new org is a chat context too (D17). A new chat starts in the
+  // active space, Acme since the link above (191).
   await page.goto("/");
   await composerReady(page);
-  await contextControl(page, "Personal").click();
+  await contextControl(page, "Acme").click();
   await expect(
     page.getByRole("menuitemradio", { name: "Beta Labs" })
   ).toBeVisible();

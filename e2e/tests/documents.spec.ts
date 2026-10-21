@@ -144,7 +144,11 @@ test("Ada edits it on its own page, and a pause in typing saves a version", asyn
 }) => {
   const { api, context, page } = await signedIn(browser, baseURL ?? "");
   await page.goto("/artifacts");
-  await page.getByRole("link", { exact: true, name: TITLE }).click();
+  // The page's list, not the rail's Recent panel, which links it too (181).
+  await page
+    .getByRole("main")
+    .getByRole("link", { exact: true, name: TITLE })
+    .click();
   await expect(page).toHaveURL(ARTIFACT_URL);
 
   // Claude's document view: a title bar with Chat and Share, the toolbar,

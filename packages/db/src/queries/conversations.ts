@@ -108,7 +108,8 @@ const grantedAtLeast = (viewer: Viewer, levels: readonly string[]): SQL =>
     sql`, `
   )}) and ${heldBy(viewer.principals)})`;
 
-const canRead = (viewer: Viewer): SQL =>
+/** Whether `viewer` may read the `conversation` row in scope: they own it or hold a grant. */
+export const canRead = (viewer: Viewer): SQL =>
   sql`(${conversation.ownerId} = ${viewer.userId} or ${grantedAtLeast(viewer, ["viewer", "editor"])})`;
 
 const viewColumns = (viewer: Viewer) => ({

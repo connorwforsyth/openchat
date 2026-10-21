@@ -309,6 +309,10 @@ msgstr "~{0} words"
 msgid "A chat"
 msgstr "A chat"
 
+#: ../../apps/web/app/(app)/_shared/settings/usage-settings.tsx
+msgid "A chat you no longer have access to"
+msgstr "A chat you no longer have access to"
+
 #: ../../apps/web/app/(app)/(pages)/dots/onboarding.tsx
 msgid "A Dot is an agent that's always on: talk to it like a person, and it keeps working when you're away."
 msgstr "A Dot is an agent that's always on: talk to it like a person, and it keeps working when you're away."
@@ -325,6 +329,10 @@ msgstr "A folder of plain HTML, CSS and JavaScript, with an index.html, becomes 
 #: ../chat-ui/src/artifacts/artifact-view.tsx
 msgid "A generated image has no source to show."
 msgstr "A generated image has no source to show."
+
+#: ../../apps/web/app/(app)/_shared/settings/usage-settings.tsx
+msgid "A key you don't manage"
+msgstr "A key you don't manage"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "A member"
@@ -568,6 +576,10 @@ msgstr "AI Elements"
 msgid "All"
 msgstr "All"
 
+#: ../../apps/web/app/(app)/_shared/settings/usage-settings.tsx
+msgid "All keys"
+msgstr "All keys"
+
 #: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgid "All kinds"
@@ -576,6 +588,10 @@ msgstr "All kinds"
 #: ../../apps/web/app/(app)/(pages)/dots/dot-profile.tsx
 msgid "All scheduled tasks"
 msgstr "All scheduled tasks"
+
+#: ../../apps/web/app/(app)/_shared/settings/usage-settings.tsx
+msgid "All your usage"
+msgstr "All your usage"
 
 #: ../../apps/web/app/(auth)/sign-up/page.tsx
 msgid "Already have an account? <0>Sign in</0>"
@@ -882,6 +898,26 @@ msgstr "Build an agent, prompt, skill or MCP server, or import one."
 #: ../chat-ui/src/artifacts/document/document-toolbar.tsx
 msgid "Bulleted list"
 msgstr "Bulleted list"
+
+#: ../../apps/web/app/(app)/_shared/settings/usage-settings.tsx
+msgid "By chat"
+msgstr "By chat"
+
+#: ../../apps/web/app/(app)/_shared/settings/usage-settings.tsx
+msgid "By day"
+msgstr "By day"
+
+#: ../../apps/web/app/(app)/_shared/settings/usage-settings.tsx
+msgid "By key"
+msgstr "By key"
+
+#: ../../apps/web/app/(app)/_shared/settings/usage-settings.tsx
+msgid "By model"
+msgstr "By model"
+
+#: ../../apps/web/app/(app)/_shared/settings/usage-settings.tsx
+msgid "By person"
+msgstr "By person"
 
 #: ../chat-ui/src/voice/voice-call.tsx
 msgid "Call ended"
@@ -1325,6 +1361,7 @@ msgid "Copy the last reply"
 msgstr "Copy the last reply"
 
 #: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/usage-settings.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 #: ../composer/src/components/target-picker.tsx
 msgid "Cost"
@@ -1561,6 +1598,10 @@ msgstr "dark"
 #: ../chat-ui/src/sidebar/account-menu.tsx
 msgid "Dark"
 msgstr "Dark"
+
+#: ../../apps/web/app/(app)/_shared/settings/usage-settings.tsx
+msgid "Day"
+msgstr "Day"
 
 #: ../../apps/web/app/dev/code/demo.tsx
 msgid "Decision sent to the agent"
@@ -2069,6 +2110,11 @@ msgstr "Every year on {date} at {time}"
 msgid "Everyone gets the latest published version unless they pin one."
 msgstr "Everyone gets the latest published version unless they pin one."
 
+#. placeholder {0}: each.space.name
+#: ../../apps/web/app/(app)/_shared/settings/usage-settings.tsx
+msgid "Everyone in {0}"
+msgstr "Everyone in {0}"
+
 #: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
 msgid "Everyone is already here"
 msgstr "Everyone is already here"
@@ -2429,6 +2475,10 @@ msgstr "Import"
 msgid "Import file"
 msgstr "Import file"
 
+#: ../chat-ui/src/sidebar/chat-row.tsx
+msgid "In {space}"
+msgstr "In {space}"
+
 #: ../chat-ui/src/conversation/skill-card.tsx
 msgid "In <0/>"
 msgstr "In <0/>"
@@ -2602,6 +2652,7 @@ msgstr "Keeping a copy on this device is off: this server forbids it."
 
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 #: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/usage-settings.tsx
 msgid "Key"
 msgstr "Key"
 
@@ -2656,6 +2707,18 @@ msgstr "language"
 #: ../../apps/web/app/(app)/_shared/settings/profile-settings.tsx
 msgid "Language"
 msgstr "Language"
+
+#: ../../apps/web/app/(app)/_shared/settings/usage-settings.tsx
+msgid "Last 30 days"
+msgstr "Last 30 days"
+
+#: ../../apps/web/app/(app)/_shared/settings/usage-settings.tsx
+msgid "Last 7 days"
+msgstr "Last 7 days"
+
+#: ../../apps/web/app/(app)/_shared/settings/usage-settings.tsx
+msgid "Last 90 days"
+msgstr "Last 90 days"
 
 #: ../chat-ui/src/conversation/schedule-text.tsx
 msgid "Last ran {last} · {tail}"
@@ -3107,6 +3170,7 @@ msgid "name"
 msgstr "name"
 
 #: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/usage-settings.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
 #: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
@@ -3434,6 +3498,10 @@ msgstr "No sub-spaces yet"
 #: ../chat-ui/src/conversation/schedule-text.tsx
 msgid "No update"
 msgstr "No update"
+
+#: ../../apps/web/app/(app)/_shared/settings/usage-settings.tsx
+msgid "No usage in this period."
+msgstr "No usage in this period."
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "No usage this month yet."
@@ -3832,6 +3900,10 @@ msgstr "Orgs you own or administer."
 msgid "Output"
 msgstr "Output"
 
+#: ../../apps/web/app/(app)/_shared/settings/usage-settings.tsx
+msgid "Outside chats"
+msgstr "Outside chats"
+
 #: ../chat-ui/src/workspace/file-view.tsx
 msgid "Overwrite"
 msgstr "Overwrite"
@@ -3917,6 +3989,7 @@ msgstr "People using it get version {nextVersion} as soon as it's published. You
 msgid "People with access"
 msgstr "People with access"
 
+#: ../../apps/web/app/(app)/_shared/settings/usage-settings.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "Period"
 msgstr "Period"
@@ -4932,6 +5005,10 @@ msgstr "Server config"
 #: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
 msgid "Server default"
 msgstr "Server default"
+
+#: ../../apps/web/app/(app)/_shared/settings/usage-settings.tsx
+msgid "Server keys"
+msgstr "Server keys"
 
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
 msgid "servers"
@@ -6090,6 +6167,7 @@ msgid "Token allowance"
 msgstr "Token allowance"
 
 #: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+#: ../../apps/web/app/(app)/_shared/settings/usage-settings.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "Tokens"
 msgstr "Tokens"
@@ -6097,6 +6175,10 @@ msgstr "Tokens"
 #: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
 msgid "Tokens a month"
 msgstr "Tokens a month"
+
+#: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
+msgid "Tokens and cost from this server's own records, by day, model, chat and key."
+msgstr "Tokens and cost from this server's own records, by day, model, chat and key."
 
 #: ../../apps/web/app/(app)/(pages)/schedules/schedule-editor.tsx
 msgid "Tomorrow at 9"
@@ -6126,6 +6208,14 @@ msgstr "Tools"
 #: ../../apps/web/app/(app)/(pages)/dots/dot-profile.tsx
 msgid "Tools it may use on its own"
 msgstr "Tools it may use on its own"
+
+#: ../../apps/web/app/(app)/_shared/settings/usage-settings.tsx
+msgid "Total"
+msgstr "Total"
+
+#: ../../apps/web/app/(app)/_shared/settings/usage-settings.tsx
+msgid "Traces for {name}"
+msgstr "Traces for {name}"
 
 #: ../chat-ui/src/voice/voice-call.tsx
 msgid "Transcript"
@@ -6231,6 +6321,7 @@ msgstr "Unsaved"
 msgid "Unsaved changes"
 msgstr "Unsaved changes"
 
+#: ../../apps/web/app/(app)/_shared/settings/usage-settings.tsx
 #: ../palette/src/command-palette.tsx
 msgid "Untitled chat"
 msgstr "Untitled chat"
@@ -6258,6 +6349,10 @@ msgstr "Uploaded file"
 #: ../library-ui/src/components/mcp-form.tsx
 msgid "URL"
 msgstr "URL"
+
+#: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
+msgid "Usage"
+msgstr "Usage"
 
 #: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
 msgid "Usage by key this month"
@@ -6625,6 +6720,10 @@ msgstr "Who it is, what it helps with, and what thinks for it."
 msgid "Whose keys and budget this chat uses. It can't change after the first message."
 msgstr "Whose keys and budget this chat uses. It can't change after the first message."
 
+#: ../../apps/web/app/(app)/_shared/settings/usage-settings.tsx
+msgid "Whose usage"
+msgstr "Whose usage"
+
 #: ../chat-ui/src/conversation/approval.tsx
 msgid "Why? (optional, sent to the agent)"
 msgstr "Why? (optional, sent to the agent)"
@@ -6849,6 +6948,11 @@ msgstr "Yours"
 #: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
 msgid "Yours and shared with you"
 msgstr "Yours and shared with you"
+
+#. placeholder {0}: each.space.name
+#: ../../apps/web/app/(app)/_shared/settings/usage-settings.tsx
+msgid "Yours in {0}"
+msgstr "Yours in {0}"
 
 #: ../chat-ui/src/artifacts/diagram/diagram-canvas.tsx
 msgid "Zoom"

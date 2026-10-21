@@ -598,6 +598,16 @@ const observabilitySchema = z
      */
     recordContent: z.boolean().default(false),
     serviceName: z.string().min(1).default("web"),
+    /**
+     * A person's page in the trace viewer, with `{userId}` where their id
+     * goes (Langfuse: `https://<host>/project/<id>/users/{userId}`). Spans
+     * carry the id as `langfuse.user.id`. Instance admins get the link.
+     */
+    userTracesUrl: z
+      .url()
+      .refine((url) => url.includes("{userId}"), "needs `{userId}`")
+      .nullable()
+      .default(null),
   })
   .prefault({});
 
