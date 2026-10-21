@@ -24,15 +24,15 @@ description: Model-checks the branch run queue and Stop with TLA+ (one run per b
 ## Run it
 
 ```sh
-bun .claude/skills/verify-run-queue/model/check.ts              # the default checks
+bun .claude/skills/verify-run-queue/model/check.ts              # every check
 bun .claude/skills/verify-run-queue/model/check.ts queue        # checks by name
 ```
 
-It needs no model provider, database or network once the tools are cached. The first run downloads tla2tools.jar 1.7.4, plus a Temurin 21 JRE if no `java` is on PATH, into `~/.cache/tla-tools`, and checks both against pinned SHA-256 sums (`$JAVA` overrides). The default checks explore about 13.7 million states, in about 8 minutes of TLC on a loaded M1 laptop and about 7 in CI. `stop-branch` takes the longest; `stop-start`, `stop-settled` and `stop-stranded` each explore the whole Stop configuration too.
+It needs no model provider, database or network once the tools are cached. The first run downloads tla2tools.jar 1.7.4, plus a Temurin 21 JRE if no `java` is on PATH, into `~/.cache/tla-tools`, and checks both against pinned SHA-256 sums (`$JAVA` overrides). The checks explore about 14 million states, in about 8 minutes of TLC on a loaded M1 laptop and about 10 in CI. `stop-branch` takes the longest; `stop-start`, `stop-settled` and `stop-stranded` each explore the whole Stop configuration too.
 
 It prints one line per check (`ok` or `FAIL`, expected against got), then each counterexample as numbered steps in the code's words, with every run's status after each step. It exits 0 only when every check matches the table below.
 
-CI runs the default checks in the `model (run queue)` job of `.github/workflows/ci.yml` whenever a pull request touches the covered files, this skill or `ci.yml`. A finding recorded `violated` passes there until its fix lands. The fix then fails the job until it flips `expect` to `holds`, and from then on the job enforces it.
+CI runs every check in the `model (run queue)` job of `.github/workflows/ci.yml` whenever a pull request touches the covered files, this skill or `ci.yml`. A finding recorded `violated` passes there until its fix lands. The fix then fails the job until it flips `expect` to `holds`, and from then on the job enforces it.
 
 ## Recorded results
 
@@ -51,7 +51,7 @@ Last confirmed against the last commit that changed `model/`: a model change lan
 | `stop-pause-again` | StopPauseAgain | `StopTakesEffect`, `NoLoopAfterStop`, `EndedRunsAreIdle` | holds | finding 8, fixed; 316 distinct states |
 | `stop-orphan` | StopCrash | `StopTakesEffect`, `EndedRunsAreIdle`, `NoLoopAfterStop` | holds | finding 2's crashed pass, fixed; 10,130 distinct states |
 | `stop-returns` | StopCrash | `StopReturns` | holds | finding 2's crashed pass, fixed; 9,666 distinct states |
-| `approval-lost` (slowest; run by name) | Approvals | `NoStuckRun` | holds | finding 1, fixed; 337,111 distinct states |
+| `approval-lost` | Approvals | `NoStuckRun` | holds | finding 1, fixed; 337,111 distinct states |
 
 ## Findings
 
@@ -88,7 +88,7 @@ Last confirmed against the last commit that changed `model/`: a model change lan
 1. **Scope.** Diff the covered files against the sync commit:
 
    ```sh
-   git diff "$(git log -1 --format=%H -- .claude/skills/verify-run-queue/model)" -- packages/server/src/runs/executor.ts packages/server/src/runs/create-run.ts packages/db/src/queries/runs.ts packages/db/src/schema/chat.ts
+   git diff "$(git log -1 --format=%H -- .claude/skills/verify-run-queue/model)" -- packages/server/src/runs/executor.ts packages/server/src/runs/create-run.ts packages/db/src/queries/runs.ts packages/db/src/schema/chat.ts packages/server/src/runs/state.ts packages/contract/src/schemas/runs.ts
    ```
 
    A hunk in a function listed under Coverage means the model needs a look. Hunks elsewhere in those files (turn resolution, attachments, stream parts) don't.
@@ -112,6 +112,8 @@ Last confirmed against the last commit that changed `model/`: a model change lan
 | `packages/server/src/runs/create-run.ts` | `createRun`, `placeRun`, `busyTail` | `Send`: `W_Read`, `W_Held`, `W_Insert`; `BusyTailOf` |
 | `packages/db/src/queries/runs.ts` | `FROM`, `TARGET`, `transitionRun`, `listActiveRuns`, `stoppedRunAt`, `listQueuedAfter`, `requeueAfter`, `lockRun` | `From`, `Target`, `Oldest`, `ByCreated`, `W_Held`, `K_Requeue`, `S_Requeue`, `D_Lock` |
 | `packages/db/src/schema/chat.ts` | `ACTIVE_RUN_STATUSES` | `ActiveSt` |
+| `packages/server/src/runs/state.ts` | `isTerminal`, `runStartFromRow` | `Terminal`; the run `startRun` reads |
+| `packages/contract/src/schemas/runs.ts` | `terminalRunStatuses`, `isTerminalRunStatus` | `Terminal`; `W_Held` (`stoppedRunAt` reads it) |
 
 `P_Begin` also stands for the awaits `execute` makes before the agent loop: `loadBranch`, `resolveTurn` (`packages/server/src/runs/turn.ts` and its wrappers), `setRunResolvedModel` and `attachmentsForModel`. They read the branch and build the turn but never start, cancel, settle or claim a run, so `turn.ts` is not diffed in step 1. A change there needs the model only if it starts touching run status, `active` or `running`.
 
