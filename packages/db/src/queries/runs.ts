@@ -13,6 +13,7 @@ import {
   tokenUsageSchema,
 } from "@workspace/contract/schemas/models";
 import {
+  isTerminalRunStatus,
   pendingApprovalSchema,
   type RunOptions,
   type RunStatus,
@@ -162,6 +163,37 @@ export const listActiveRuns = (
       )
     )
     .orderBy(asc(run.createdAt), asc(run.id));
+
+/**
+ * The newest run answering `userMessageId`, when it ended before it ran (a
+ * queued question someone stopped). It still holds its place in the branch
+ * queue: a turn sent under that question waits on it.
+ */
+export const stoppedRunAt = async (
+  db: Db,
+  conversationId: ConversationId,
+  userMessageId: MessageId
+): Promise<RunRow | undefined> => {
+  const [newest] = await db
+    .select()
+    .from(run)
+    .where(
+      and(
+        eq(run.conversationId, conversationId),
+        eq(run.userMessageId, userMessageId)
+      )
+    )
+    .orderBy(desc(run.createdAt), desc(run.id))
+    .limit(1);
+  if (
+    !newest ||
+    newest.assistantMessageId ||
+    !isTerminalRunStatus(newest.status)
+  ) {
+    return;
+  }
+  return newest;
+};
 
 /**
  * Every run in one of `statuses`, oldest first, across all conversations.

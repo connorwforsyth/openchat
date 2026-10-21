@@ -22,6 +22,7 @@ import {
   createRun as insertRun,
   listActiveRuns,
   type RunRow,
+  stoppedRunAt,
 } from "@workspace/db/queries/runs";
 import type { RunUnattended } from "@workspace/db/schema/chat";
 import { err, ok, type Result } from "@workspace/shared/result";
@@ -287,7 +288,12 @@ const placeRun = async (
   let placed: Placed | undefined;
   try {
     placed = await db.transaction(async (tx) => {
-      const tail = busyTail(await listActiveRuns(tx, conversationId), anchor);
+      // A question stopped while it was queued never got an answer, so a
+      // reply under it waits on its place in the queue, under that question.
+      let tail = busyTail(await listActiveRuns(tx, conversationId), anchor);
+      if (!tail && anchor !== null) {
+        tail = await stoppedRunAt(tx, conversationId, anchor);
+      }
       let userMessageId: MessageId = anchor as MessageId;
       if (turn.type === "message") {
         // A turn sent while the branch is busy follows the answer being

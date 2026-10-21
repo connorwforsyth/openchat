@@ -137,7 +137,7 @@ end macro;
 
 \* startRun(run) in executor.ts.
 procedure startRun(sr)
-variables srAfter = NoRun;
+variables srAfter = NoRun, srMoved = <<>>, srNext = NoRun;
 begin
 S_Read:
   \* `getRun(db, run.runId)`, then `row.status !== "queued"` -> already_started
@@ -151,10 +151,36 @@ S_Read:
   end if;
 S_Ahead:
   \* `getRun(db, row.afterRunId)`: still waiting its turn -> ok, the run
-  \* ahead starts it when it ends. Else claim(run, new controller).
+  \* ahead starts it when it ends. Ended before it ran (no answer) -> its
+  \* place passes on. Else claim(run, new controller).
   if status[srAfter] \notin Terminal then
     return;
+  elsif ~hasAnswer[srAfter] then
+    goto S_Requeue;
+  else
+    goto S_Claim;
   end if;
+S_Requeue:
+  \* `requeueAfter(db, ahead.id, ahead.afterRunId)`: the runs queued
+  \* behind it now wait on the run it waited on.
+  srMoved := ByCreated({x \in Runs : after[x] = srAfter /\ status[x] = "queued"},
+                       createdAt);
+  after := [x \in Runs |->
+              IF after[x] = srAfter /\ status[x] = "queued" THEN after[srAfter]
+              ELSE after[x]];
+S_Each:
+  \* startEach(moved): `startRun` for each in order, then return. Taking
+  \* the next run touches only this call's locals; it is its own step
+  \* because the call below re-initialises them.
+  if srMoved = <<>> then
+    return;
+  else
+    srNext := Head(srMoved);
+    srMoved := Tail(srMoved);
+  end if;
+S_Next:
+  call startRun(srNext);
+  goto S_Each;
 S_Claim:
   \* claim(run, controller): one transaction inserts the empty answer and
   \* runs transitionRun(start); won -> `active.set(run.runId, controller)`
@@ -213,6 +239,19 @@ W_Read:
     \* `tail ? (tail.assistantMessageId ?? tail.userMessageId) : turn.parentId`
     parent := IF t = NoRun THEN a ELSE IF hasAnswer[t] THEN A(t) ELSE U(t);
   end with;
+  if tail = NoRun /\ parent # Root then
+    goto W_Held;
+  else
+    goto W_Insert;
+  end if;
+W_Held:
+  \* placeRun: nothing active there, so `stoppedRunAt(tx, conversationId,
+  \* anchor)`: the run whose question the anchor is, if it ended before it
+  \* ran. The turn waits on it, under that question.
+  if parent[1] = "u" /\ status[parent[2]] \in Terminal
+     /\ ~hasAnswer[parent[2]] then
+    tail := parent[2];
+  end if;
 W_Insert:
   \* placeRun: insertMessage + insertRun(queued, afterRunId: tail?.id),
   \* committed together; then `deps.executor.start(runStartFromRow(run))`.
@@ -507,7 +546,10 @@ LiveCtls == UNION {spawned[r] : r \in Runs}
               \cup {active[r] : r \in Runs}
               \cup {dctl[p] : p \in {q \in DecideIds : pc[q] # "Done"}}
 Locals ==
-  << [p \in SendIds |-> IF pc[p] = "Done" THEN <<>> ELSE tail[p]],
+  << [p \in SendIds |->
+        CASE pc[p] = "Done" -> <<>>
+          [] pc[p] = "W_Held" -> <<tail[p], parent[p]>>
+          [] OTHER -> tail[p]],
      [p \in PassIds |->
         IF pc[p] = "P_Begin" THEN <<>> ELSE <<ctl[p], outcome[p]>>],
      [p \in StopIds |->
@@ -518,7 +560,8 @@ Locals ==
 View ==
   << status, after, createdAt, hasAnswer, locked, active, running,
      aborted \cap LiveCtls, ended \cap {waitFor[p] : p \in StopIds},
-     spawned, pauses, crashes, pc, stack, sr, srAfter, fr, fctl, queue, cur,
+     spawned, pauses, crashes, pc, stack, sr, srAfter, srMoved, srNext, fr, fctl,
+     queue, cur,
      begun \cap LiveCtls, stoppedEarly \cap LiveCtls, Locals >>
 \* OneRunPerBranch reads the message-tree ghost.
 ViewBranch ==
