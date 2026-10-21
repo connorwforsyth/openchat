@@ -9,6 +9,7 @@ import {
   CircleIcon,
   ClockIcon,
   EllipsisIcon,
+  LayersIcon,
   PencilIcon,
   PinIcon,
   PinOffIcon,
@@ -72,6 +73,8 @@ export interface ChatRowProps {
   readonly selected?: boolean;
   /** Some row is picked: a plain click picks too, rather than opening. */
   readonly selecting?: boolean;
+  /** The space the chat lives in; absent for the personal space (187). */
+  readonly space?: string | null;
 }
 
 function PickBox({ selected }: { readonly selected: boolean }) {
@@ -195,6 +198,25 @@ function NextRunMark({ at }: { readonly at: string | null }) {
   );
 }
 
+function SpaceMark({ space }: { readonly space: string | null }) {
+  const { t } = useLingui();
+  if (space === null) {
+    return null;
+  }
+  return (
+    <span
+      className={cn(
+        "flex shrink-0 items-center text-muted-foreground [&_svg]:size-3",
+        indicatorClass
+      )}
+      title={t`In ${space}`}
+    >
+      <LayersIcon aria-hidden />
+      <span className="sr-only">{t`In ${space}`}</span>
+    </span>
+  );
+}
+
 function StatusMark({
   attention,
 }: {
@@ -273,6 +295,7 @@ export const ChatRow = memo(function ChatRowInner({
   onToggleUnread,
   selected = false,
   selecting = false,
+  space,
 }: ChatRowProps) {
   const { t } = useLingui();
   const [renaming, setRenaming] = useState(false);
@@ -393,6 +416,7 @@ export const ChatRow = memo(function ChatRowInner({
         >
           {title}
         </span>
+        <SpaceMark space={space ?? null} />
         <NextRunMark at={nextRunAt ?? null} />
         <StatusMark attention={attention} />
       </button>

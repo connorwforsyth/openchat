@@ -2,6 +2,8 @@
 
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useQuery } from "@tanstack/react-query";
+import type { ConversationId } from "@workspace/contract/schemas/common";
+import type { Conversation } from "@workspace/contract/schemas/conversations";
 import type { Space } from "@workspace/contract/schemas/spaces";
 import {
   ChevronsUpDownIcon,
@@ -26,7 +28,12 @@ import { type ReactNode, useCallback, useMemo } from "react";
 import { routes } from "@/lib/routes";
 import { useApi } from "../api";
 import { useAppFrame } from "../app-frame";
-import { contextForSpace, spaceForContext, withDepth } from "./active-space";
+import {
+  contextForSpace,
+  spaceForContext,
+  spaceNamesByChat,
+  withDepth,
+} from "./active-space";
 
 // The space switcher (191) at the top of the sidebar: which space new chats
 // start in, whose shared content the Space page shows, and which space
@@ -47,6 +54,14 @@ export const useActiveSpace = () => {
     [chat]
   );
   return { active, setActive, spaces: list, status: spaces.status };
+};
+
+/** Each chat's space by name, for the sidebar's rows. */
+export const useSidebarSpaces = (
+  chats: readonly Pick<Conversation, "context" | "id">[] | undefined
+): ReadonlyMap<ConversationId, string> => {
+  const { spaces } = useActiveSpace();
+  return useMemo(() => spaceNamesByChat(chats ?? [], spaces), [chats, spaces]);
 };
 
 export const SpaceSwitcher = ({

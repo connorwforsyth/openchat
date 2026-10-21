@@ -2471,6 +2471,10 @@ msgstr "Import"
 msgid "Import file"
 msgstr "Import file"
 
+#: ../chat-ui/src/sidebar/chat-row.tsx
+msgid "In {space}"
+msgstr "In {space}"
+
 #: ../chat-ui/src/conversation/skill-card.tsx
 msgid "In <0/>"
 msgstr "In <0/>"
