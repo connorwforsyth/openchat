@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { orgIdSchema, teamIdSchema, userIdSchema } from "./common";
+import { artifactKindSchema } from "./message-parts";
 import { runTargetSchema } from "./runs";
 import { sandboxProviderSchema } from "./sandbox";
 import {
@@ -86,6 +87,13 @@ export type FeatureFlag = z.infer<typeof featureFlagSchema>;
 /** Instance config safe for anyone to read, signed in or not. No secrets, no URLs of internal services. */
 export const publicConfigSchema = z.object({
   artifacts: z.object({
+    /**
+     * The kinds people and the model may make on this instance
+     * (`artifacts.kinds.enabled`): what "Make something new" and the kind
+     * filters offer. Artifacts of any other kind still open, read only.
+     * Absent from an older server, which offers every kind.
+     */
+    kinds: z.array(artifactKindSchema).optional(),
     /**
      * The public origins a Site artifact may load fonts, styles, scripts and
      * images from (125); its CSP blocks everything else. The artifact

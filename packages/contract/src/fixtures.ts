@@ -396,6 +396,16 @@ export const me: Me = {
 
 export const publicConfig: PublicConfig = {
   artifacts: {
+    kinds: [
+      "svg",
+      "mermaid",
+      "site",
+      "document",
+      "image",
+      "presentation",
+      "diagram",
+      "spreadsheet",
+    ],
     siteOrigins: ["https://fonts.googleapis.com", "https://fonts.gstatic.com"],
   },
   auth: { providers: [{ id: "github", name: "GitHub" }], signup: "invite" },

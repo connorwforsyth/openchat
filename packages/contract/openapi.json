@@ -22277,6 +22277,26 @@
                     "artifacts": {
                       "type": "object",
                       "properties": {
+                        "kinds": {
+                          "type": "array",
+                          "items": {
+                            "enum": [
+                              "code",
+                              "html",
+                              "react",
+                              "markdown",
+                              "svg",
+                              "mermaid",
+                              "site",
+                              "document",
+                              "image",
+                              "presentation",
+                              "spreadsheet",
+                              "diagram"
+                            ],
+                            "type": "string"
+                          }
+                        },
                         "siteOrigins": {
                           "type": "array",
                           "items": {
