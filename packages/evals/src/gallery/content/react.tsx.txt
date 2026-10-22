@@ -1,0 +1,231 @@
+import { useMemo, useState } from "react";
+
+type Product = {
+  id: string;
+  name: string;
+  doughKg: number;
+  wholesale: number;
+  colour: string;
+};
+
+const PRODUCTS: Product[] = [
+  { id: "country", name: "Country loaf", doughKg: 0.95, wholesale: 7.2, colour: "#B8643A" },
+  { id: "rye", name: "Seeded rye", doughKg: 1.0, wholesale: 7.8, colour: "#7A3E22" },
+  { id: "baguette", name: "Baguette", doughKg: 0.35, wholesale: 3.4, colour: "#D9A066" },
+  { id: "fruit", name: "Fruit sourdough", doughKg: 0.85, wholesale: 8.5, colour: "#8E5B78" },
+];
+
+const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
+type Day = (typeof DAYS)[number];
+
+type Customer = { id: string; name: string; suburb: string; orders: Record<string, number> };
+
+const START: Customer[] = [
+  { id: "wren", name: "Wren & Co.", suburb: "Northcote", orders: { country: 18, rye: 6, baguette: 24, fruit: 4 } },
+  { id: "pillar", name: "Pillar Coffee", suburb: "Thornbury", orders: { country: 10, rye: 4, baguette: 12, fruit: 6 } },
+  { id: "ferment", name: "Ferment Wine Bar", suburb: "Fitzroy North", orders: { country: 6, rye: 0, baguette: 30, fruit: 0 } },
+  { id: "allotment", name: "The Allotment", suburb: "Brunswick East", orders: { country: 14, rye: 8, baguette: 0, fruit: 3 } },
+  { id: "hearth", name: "Hearth Grocer", suburb: "Northcote", orders: { country: 22, rye: 10, baguette: 16, fruit: 8 } },
+];
+
+const WEEKEND_BOOST: Record<Day, number> = { Mon: 0.8, Tue: 0.85, Wed: 0.9, Thu: 1, Fri: 1.15, Sat: 1.4, Sun: 1.2 };
+
+const money = (value: number) =>
+  value.toLocaleString("en-AU", { style: "currency", currency: "AUD", maximumFractionDigits: 0 });
+
+const ink = "#3B2418";
+const muted = "#6B5446";
+const line = "#E4D3B8";
+const card = "#FFFBF4";
+const paper = "#F6EEDF";
+const copper = "#B8643A";
+
+export default function OrderPlanner() {
+  const [customers, setCustomers] = useState(START);
+  const [day, setDay] = useState<Day>("Fri");
+  const boost = WEEKEND_BOOST[day];
+
+  const totals = useMemo(() => {
+    return PRODUCTS.map((product) => {
+      const units = customers.reduce(
+        (sum, customer) => sum + Math.round((customer.orders[product.id] ?? 0) * boost),
+        0
+      );
+      return { ...product, units, dough: units * product.doughKg, revenue: units * product.wholesale };
+    });
+  }, [customers, boost]);
+
+  const loaves = totals.reduce((sum, each) => sum + each.units, 0);
+  const dough = totals.reduce((sum, each) => sum + each.dough, 0);
+  const revenue = totals.reduce((sum, each) => sum + each.revenue, 0);
+  const flour = dough / 1.98;
+  const mixes = Math.ceil(dough / 24);
+  const busiest = Math.max(...totals.map((each) => each.units), 1);
+
+  const change = (customerId: string, productId: string, delta: number) =>
+    setCustomers((current) =>
+      current.map((customer) =>
+        customer.id === customerId
+          ? {
+              ...customer,
+              orders: {
+                ...customer.orders,
+                [productId]: Math.max(0, (customer.orders[productId] ?? 0) + delta),
+              },
+            }
+          : customer
+      )
+    );
+
+  return (
+    <div style={{ minHeight: "100vh", background: paper, color: ink, fontFamily: "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif", padding: 32 }}>
+      <div style={{ maxWidth: 1120, margin: "0 auto", display: "grid", gap: 24 }}>
+        <header style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16, flexWrap: "wrap" }}>
+          <div>
+            <p style={{ margin: 0, color: copper, fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>
+              Copperloaf wholesale
+            </p>
+            <h1 style={{ margin: "4px 0 0", fontFamily: "Georgia, serif", fontSize: 36 }}>Bake planner</h1>
+            <p style={{ margin: "4px 0 0", color: muted }}>
+              Standing café orders, scaled for the day. Adjust a quantity and the bake sheet updates.
+            </p>
+          </div>
+          <div role="tablist" aria-label="Delivery day" style={{ display: "flex", gap: 4, background: card, padding: 4, borderRadius: 999, border: `1px solid ${line}` }}>
+            {DAYS.map((each) => (
+              <button
+                key={each}
+                role="tab"
+                aria-selected={each === day}
+                onClick={() => setDay(each)}
+                style={{
+                  border: 0,
+                  borderRadius: 999,
+                  padding: "8px 14px",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  background: each === day ? ink : "transparent",
+                  color: each === day ? card : muted,
+                }}
+              >
+                {each}
+              </button>
+            ))}
+          </div>
+        </header>
+
+        <section style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 16 }}>
+          {[
+            { label: "Loaves to bake", value: loaves.toString(), note: `${day}, ×${boost.toFixed(2)} on standing orders` },
+            { label: "Dough", value: `${dough.toFixed(0)} kg`, note: `${mixes} mixes in the 60 L spiral` },
+            { label: "Flour to weigh", value: `${flour.toFixed(0)} kg`, note: "At 78% hydration, 20% levain" },
+            { label: "Wholesale value", value: money(revenue), note: "Before delivery fees" },
+          ].map((stat) => (
+            <div key={stat.label} style={{ background: card, border: `1px solid ${line}`, borderRadius: 16, padding: 20 }}>
+              <div style={{ color: muted, fontSize: 13, fontWeight: 600 }}>{stat.label}</div>
+              <div style={{ fontSize: 32, fontWeight: 700, fontVariantNumeric: "tabular-nums", marginTop: 4 }}>{stat.value}</div>
+              <div style={{ color: muted, fontSize: 13, marginTop: 4 }}>{stat.note}</div>
+            </div>
+          ))}
+        </section>
+
+        <section style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.7fr) minmax(0, 1fr)", gap: 16, alignItems: "start" }}>
+          <div style={{ background: card, border: `1px solid ${line}`, borderRadius: 16, overflow: "hidden" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+              <thead>
+                <tr style={{ background: paper, textAlign: "start" }}>
+                  <th style={{ textAlign: "start", padding: "12px 16px", color: muted, fontWeight: 600 }}>Café</th>
+                  {PRODUCTS.map((product) => (
+                    <th key={product.id} style={{ padding: "12px 8px", color: muted, fontWeight: 600, textAlign: "center" }}>
+                      {product.name}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {customers.map((customer) => (
+                  <tr key={customer.id} style={{ borderTop: `1px solid ${line}` }}>
+                    <td style={{ padding: "12px 16px" }}>
+                      <div style={{ fontWeight: 600 }}>{customer.name}</div>
+                      <div style={{ color: muted, fontSize: 12 }}>{customer.suburb}</div>
+                    </td>
+                    {PRODUCTS.map((product) => (
+                      <td key={product.id} style={{ padding: "8px", textAlign: "center" }}>
+                        <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                          <button
+                            aria-label={`One less ${product.name} for ${customer.name}`}
+                            onClick={() => change(customer.id, product.id, -1)}
+                            style={stepper}
+                          >
+                            −
+                          </button>
+                          <span style={{ minWidth: 24, fontVariantNumeric: "tabular-nums", fontWeight: 600 }}>
+                            {customer.orders[product.id] ?? 0}
+                          </span>
+                          <button
+                            aria-label={`One more ${product.name} for ${customer.name}`}
+                            onClick={() => change(customer.id, product.id, 1)}
+                            style={stepper}
+                          >
+                            +
+                          </button>
+                        </div>
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p style={{ margin: 0, padding: "12px 16px", color: muted, fontSize: 12, borderTop: `1px solid ${line}` }}>
+              Quantities are the weekday standing order; the day multiplier is applied to each line and rounded.
+            </p>
+          </div>
+
+          <div style={{ background: card, border: `1px solid ${line}`, borderRadius: 16, padding: 20 }}>
+            <h2 style={{ margin: 0, fontSize: 16 }}>Bake sheet for {day}</h2>
+            <div style={{ display: "grid", gap: 14, marginTop: 16 }}>
+              {totals.map((each) => (
+                <div key={each.id}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14 }}>
+                    <span style={{ fontWeight: 600 }}>{each.name}</span>
+                    <span style={{ fontVariantNumeric: "tabular-nums" }}>
+                      {each.units} · {each.dough.toFixed(1)} kg
+                    </span>
+                  </div>
+                  <div style={{ height: 10, borderRadius: 999, background: paper, marginTop: 6, overflow: "hidden" }}>
+                    <div
+                      style={{
+                        height: "100%",
+                        width: "100%",
+                        borderRadius: 999,
+                        background: each.colour,
+                        transform: `scaleX(${each.units / busiest})`,
+                        transformOrigin: "left",
+                        transition: "transform 200ms ease-out",
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop: 20, padding: 14, borderRadius: 12, background: paper, fontSize: 13, color: muted }}>
+              Levain to build the night before: <strong style={{ color: ink }}>{(flour * 0.2).toFixed(1)} kg</strong>. Start the first mix at
+              7:45 and stagger the rest 25 minutes apart.
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+const stepper = {
+  width: 26,
+  height: 26,
+  borderRadius: 999,
+  border: `1px solid ${line}`,
+  background: "white",
+  color: ink,
+  fontSize: 16,
+  lineHeight: 1,
+  cursor: "pointer",
+} as const;

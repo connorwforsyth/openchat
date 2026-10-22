@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "evals": "bun src/cli.ts",
+    "gallery:seed": "bun src/gallery/seed.ts",
     "lint": "ultracite check",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
@@ -12,9 +13,11 @@
   "devDependencies": {
     "@types/node": "catalog:",
     "@workspace/ai": "workspace:*",
+    "@workspace/artifacts-kit": "workspace:*",
     "@workspace/client": "workspace:*",
     "@workspace/config": "workspace:*",
     "@workspace/contract": "workspace:*",
+    "@workspace/db": "workspace:*",
     "@workspace/shared": "workspace:*",
     "@workspace/typescript-config": "workspace:*",
     "ai": "catalog:",

@@ -484,9 +484,11 @@
       "devDependencies": {
         "@types/node": "catalog:",
         "@workspace/ai": "workspace:*",
+        "@workspace/artifacts-kit": "workspace:*",
         "@workspace/client": "workspace:*",
         "@workspace/config": "workspace:*",
         "@workspace/contract": "workspace:*",
+        "@workspace/db": "workspace:*",
         "@workspace/shared": "workspace:*",
         "@workspace/typescript-config": "workspace:*",
         "ai": "catalog:",
