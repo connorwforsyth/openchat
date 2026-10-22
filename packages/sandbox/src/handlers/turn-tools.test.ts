@@ -203,7 +203,10 @@ const send = async (
 
 const newChat = async () =>
   json<Conversation>(
-    await h.request("/api/conversations", { json: {}, method: "POST" }),
+    await h.request("/api/conversations", {
+      json: { mode: "code" },
+      method: "POST",
+    }),
     201
   );
 
@@ -247,7 +250,10 @@ describe("sandbox tools in agent turns", () => {
   it("runs commands, then applies only the accepted hunk of a reviewed edit", async () => {
     const agent = await publishedAgent();
     const chat = await json<Conversation>(
-      await h.request("/api/conversations", { json: {}, method: "POST" }),
+      await h.request("/api/conversations", {
+        json: { mode: "code" },
+        method: "POST",
+      }),
       201
     );
 
@@ -340,7 +346,10 @@ describe("sandbox tools in agent turns", () => {
       providers,
     });
     const chat = await json<Conversation>(
-      await h.request("/api/conversations", { json: {}, method: "POST" }),
+      await h.request("/api/conversations", {
+        json: { mode: "code" },
+        method: "POST",
+      }),
       201
     );
     const run = {
@@ -394,7 +403,10 @@ describe("sandbox tools in agent turns", () => {
       providers: new Map([["just-bash", previewing]]),
     });
     const chat = await json<Conversation>(
-      await h.request("/api/conversations", { json: {}, method: "POST" }),
+      await h.request("/api/conversations", {
+        json: { mode: "code" },
+        method: "POST",
+      }),
       201
     );
     const turn = await source({

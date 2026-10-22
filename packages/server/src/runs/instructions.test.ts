@@ -191,9 +191,11 @@ const systemPromptOf = async (turn: TurnCase): Promise<string | null> => {
       method: "POST",
     });
   try {
-    const chat = (await (
-      await post("/api/conversations", {})
-    ).json()) as Conversation;
+    const chat =
+      (await // Code mode: these turns are the workspace's full prompt.
+      (
+        await post("/api/conversations", { mode: "code" })
+      ).json()) as Conversation;
     const response = await post("/api/runs", {
       conversationId: chat.id,
       input: {

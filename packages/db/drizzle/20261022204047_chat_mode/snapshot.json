@@ -2,9 +2,7 @@
   "version": "8",
   "dialect": "postgres",
   "id": "31570941-5630-4889-9b5b-b4c09c7169dc",
-  "prevIds": [
-    "9f52748d-78a2-4b27-b6c6-e284c2e82444"
-  ],
+  "prevIds": ["9f52748d-78a2-4b27-b6c6-e284c2e82444"],
   "ddl": [
     {
       "isRlsEnabled": false,
@@ -10024,14 +10022,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "granted_by"
-      ],
+      "columns": ["granted_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "resource_grant_granted_by_user_id_fkey",
@@ -10041,14 +10035,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "created_by"
-      ],
+      "columns": ["created_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "share_link_created_by_user_id_fkey",
@@ -10058,14 +10048,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
+      "columns": ["user_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "account_user_id_user_id_fkey",
@@ -10075,14 +10061,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "inviter_id"
-      ],
+      "columns": ["inviter_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "invitation_inviter_id_user_id_fkey",
@@ -10092,14 +10074,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "organization_id"
-      ],
+      "columns": ["organization_id"],
       "schemaTo": "public",
       "tableTo": "organization",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "invitation_organization_id_organization_id_fkey",
@@ -10109,14 +10087,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "organization_id"
-      ],
+      "columns": ["organization_id"],
       "schemaTo": "public",
       "tableTo": "organization",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "member_organization_id_organization_id_fkey",
@@ -10126,14 +10100,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
+      "columns": ["user_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "member_user_id_user_id_fkey",
@@ -10143,14 +10113,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
+      "columns": ["user_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "session_user_id_user_id_fkey",
@@ -10160,14 +10126,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
+      "columns": ["user_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "user_settings_user_id_user_id_fkey",
@@ -10177,14 +10139,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "owner_id"
-      ],
+      "columns": ["owner_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "conversation_owner_id_user_id_fkey",
@@ -10194,14 +10152,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "active_leaf_id"
-      ],
+      "columns": ["active_leaf_id"],
       "schemaTo": "public",
       "tableTo": "message",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "conversation_participant_active_leaf_id_message_id_fkey",
@@ -10211,14 +10165,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "conversation_id"
-      ],
+      "columns": ["conversation_id"],
       "schemaTo": "public",
       "tableTo": "conversation",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "conversation_participant_conversation_id_conversation_id_fkey",
@@ -10228,14 +10178,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "following_user_id"
-      ],
+      "columns": ["following_user_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "conversation_participant_following_user_id_user_id_fkey",
@@ -10245,14 +10191,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
+      "columns": ["user_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "conversation_participant_user_id_user_id_fkey",
@@ -10262,14 +10204,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "agent_id"
-      ],
+      "columns": ["agent_id"],
       "schemaTo": "public",
       "tableTo": "agent",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "message_agent_id_agent_id_fkey",
@@ -10279,14 +10217,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "agent_version_id"
-      ],
+      "columns": ["agent_version_id"],
       "schemaTo": "public",
       "tableTo": "agent_version",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "message_agent_version_id_agent_version_id_fkey",
@@ -10296,14 +10230,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "author_id"
-      ],
+      "columns": ["author_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "message_author_id_user_id_fkey",
@@ -10313,14 +10243,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "conversation_id"
-      ],
+      "columns": ["conversation_id"],
       "schemaTo": "public",
       "tableTo": "conversation",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "message_conversation_id_conversation_id_fkey",
@@ -10330,14 +10256,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "run_id"
-      ],
+      "columns": ["run_id"],
       "schemaTo": "public",
       "tableTo": "run",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "message_run_id_run_id_fkey",
@@ -10347,16 +10269,10 @@
     },
     {
       "nameExplicit": true,
-      "columns": [
-        "conversation_id",
-        "parent_id"
-      ],
+      "columns": ["conversation_id", "parent_id"],
       "schemaTo": "public",
       "tableTo": "message",
-      "columnsTo": [
-        "conversation_id",
-        "id"
-      ],
+      "columnsTo": ["conversation_id", "id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "message_parent_fk",
@@ -10366,14 +10282,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "after_run_id"
-      ],
+      "columns": ["after_run_id"],
       "schemaTo": "public",
       "tableTo": "run",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "run_after_run_id_run_id_fkey",
@@ -10383,14 +10295,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "assistant_message_id"
-      ],
+      "columns": ["assistant_message_id"],
       "schemaTo": "public",
       "tableTo": "message",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "run_assistant_message_id_message_id_fkey",
@@ -10400,14 +10308,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "cancelled_by"
-      ],
+      "columns": ["cancelled_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "run_cancelled_by_user_id_fkey",
@@ -10417,14 +10321,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "conversation_id"
-      ],
+      "columns": ["conversation_id"],
       "schemaTo": "public",
       "tableTo": "conversation",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "run_conversation_id_conversation_id_fkey",
@@ -10434,14 +10334,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "created_by"
-      ],
+      "columns": ["created_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "run_created_by_user_id_fkey",
@@ -10451,14 +10347,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "user_message_id"
-      ],
+      "columns": ["user_message_id"],
       "schemaTo": "public",
       "tableTo": "message",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "run_user_message_id_message_id_fkey",
@@ -10468,14 +10360,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "run_id"
-      ],
+      "columns": ["run_id"],
       "schemaTo": "public",
       "tableTo": "run",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "run_chunk_run_id_run_id_fkey",
@@ -10485,14 +10373,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "conversation_id"
-      ],
+      "columns": ["conversation_id"],
       "schemaTo": "public",
       "tableTo": "conversation",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "dot_conversation_id_conversation_id_fkey",
@@ -10502,14 +10386,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "owner_id"
-      ],
+      "columns": ["owner_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "dot_owner_id_user_id_fkey",
@@ -10519,14 +10399,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "conversation_id"
-      ],
+      "columns": ["conversation_id"],
       "schemaTo": "public",
       "tableTo": "conversation",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "dot_run_conversation_id_conversation_id_fkey",
@@ -10536,14 +10412,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "dot_id"
-      ],
+      "columns": ["dot_id"],
       "schemaTo": "public",
       "tableTo": "dot",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "dot_run_dot_id_dot_id_fkey",
@@ -10553,14 +10425,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "owner_id"
-      ],
+      "columns": ["owner_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "dot_run_owner_id_user_id_fkey",
@@ -10570,14 +10438,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "run_id"
-      ],
+      "columns": ["run_id"],
       "schemaTo": "public",
       "tableTo": "run",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "dot_run_run_id_run_id_fkey",
@@ -10587,14 +10451,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "schedule_id"
-      ],
+      "columns": ["schedule_id"],
       "schemaTo": "public",
       "tableTo": "dot_schedule",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "dot_run_schedule_id_dot_schedule_id_fkey",
@@ -10604,14 +10464,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "conversation_id"
-      ],
+      "columns": ["conversation_id"],
       "schemaTo": "public",
       "tableTo": "conversation",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "dot_schedule_conversation_id_conversation_id_fkey",
@@ -10621,14 +10477,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "dot_id"
-      ],
+      "columns": ["dot_id"],
       "schemaTo": "public",
       "tableTo": "dot",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "dot_schedule_dot_id_dot_id_fkey",
@@ -10638,14 +10490,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "owner_id"
-      ],
+      "columns": ["owner_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "dot_schedule_owner_id_user_id_fkey",
@@ -10655,14 +10503,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "conversation_id"
-      ],
+      "columns": ["conversation_id"],
       "schemaTo": "public",
       "tableTo": "conversation",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "artifact_conversation_id_conversation_id_fkey",
@@ -10672,14 +10516,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "latest_version_id"
-      ],
+      "columns": ["latest_version_id"],
       "schemaTo": "public",
       "tableTo": "artifact_version",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "artifact_latest_version_id_artifact_version_id_fkey",
@@ -10689,14 +10529,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "message_id"
-      ],
+      "columns": ["message_id"],
       "schemaTo": "public",
       "tableTo": "message",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "artifact_message_id_message_id_fkey",
@@ -10706,14 +10542,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "owner_id"
-      ],
+      "columns": ["owner_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "artifact_owner_id_user_id_fkey",
@@ -10723,14 +10555,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "artifact_id"
-      ],
+      "columns": ["artifact_id"],
       "schemaTo": "public",
       "tableTo": "artifact",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "artifact_grant_artifact_id_artifact_id_fkey",
@@ -10740,14 +10568,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "granted_by"
-      ],
+      "columns": ["granted_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "artifact_grant_granted_by_user_id_fkey",
@@ -10757,14 +10581,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "artifact_id"
-      ],
+      "columns": ["artifact_id"],
       "schemaTo": "public",
       "tableTo": "artifact",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "artifact_publication_artifact_id_artifact_id_fkey",
@@ -10774,14 +10594,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "published_by"
-      ],
+      "columns": ["published_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "artifact_publication_published_by_user_id_fkey",
@@ -10791,14 +10607,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "version_id"
-      ],
+      "columns": ["version_id"],
       "schemaTo": "public",
       "tableTo": "artifact_version",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "artifact_publication_version_id_artifact_version_id_fkey",
@@ -10808,14 +10620,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "added_by"
-      ],
+      "columns": ["added_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "artifact_use_added_by_user_id_fkey",
@@ -10825,14 +10633,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "artifact_id"
-      ],
+      "columns": ["artifact_id"],
       "schemaTo": "public",
       "tableTo": "artifact",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "artifact_use_artifact_id_artifact_id_fkey",
@@ -10842,14 +10646,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "conversation_id"
-      ],
+      "columns": ["conversation_id"],
       "schemaTo": "public",
       "tableTo": "conversation",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "artifact_use_conversation_id_conversation_id_fkey",
@@ -10859,14 +10659,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "artifact_id"
-      ],
+      "columns": ["artifact_id"],
       "schemaTo": "public",
       "tableTo": "artifact",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "artifact_version_artifact_id_artifact_id_fkey",
@@ -10876,14 +10672,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "conversation_id"
-      ],
+      "columns": ["conversation_id"],
       "schemaTo": "public",
       "tableTo": "conversation",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "artifact_version_conversation_id_conversation_id_fkey",
@@ -10893,14 +10685,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "edited_by"
-      ],
+      "columns": ["edited_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "artifact_version_edited_by_user_id_fkey",
@@ -10910,14 +10698,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "message_id"
-      ],
+      "columns": ["message_id"],
       "schemaTo": "public",
       "tableTo": "message",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "artifact_version_message_id_message_id_fkey",
@@ -10927,14 +10711,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "artifact_id"
-      ],
+      "columns": ["artifact_id"],
       "schemaTo": "public",
       "tableTo": "artifact",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "artifact_view_artifact_id_artifact_id_fkey",
@@ -10944,14 +10724,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
+      "columns": ["user_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "artifact_view_user_id_user_id_fkey",
@@ -10961,14 +10737,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "conversation_id"
-      ],
+      "columns": ["conversation_id"],
       "schemaTo": "public",
       "tableTo": "conversation",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "file_conversation_id_conversation_id_fkey",
@@ -10978,14 +10750,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "owner_id"
-      ],
+      "columns": ["owner_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "file_owner_id_user_id_fkey",
@@ -10995,14 +10763,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "file_id"
-      ],
+      "columns": ["file_id"],
       "schemaTo": "public",
       "tableTo": "file",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "file_chunk_file_id_file_id_fkey",
@@ -11012,14 +10776,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "file_id"
-      ],
+      "columns": ["file_id"],
       "schemaTo": "public",
       "tableTo": "file",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "skill_file_file_id_file_id_fkey",
@@ -11029,14 +10789,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "skill_version_id"
-      ],
+      "columns": ["skill_version_id"],
       "schemaTo": "public",
       "tableTo": "skill_version",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "skill_file_skill_version_id_skill_version_id_fkey",
@@ -11046,14 +10802,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "created_by"
-      ],
+      "columns": ["created_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "agent_created_by_user_id_fkey",
@@ -11063,14 +10815,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "draft_version_id"
-      ],
+      "columns": ["draft_version_id"],
       "schemaTo": "public",
       "tableTo": "agent_version",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "agent_draft_version_id_agent_version_id_fkey",
@@ -11080,14 +10828,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "latest_version_id"
-      ],
+      "columns": ["latest_version_id"],
       "schemaTo": "public",
       "tableTo": "agent_version",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "agent_latest_version_id_agent_version_id_fkey",
@@ -11097,14 +10841,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "created_by"
-      ],
+      "columns": ["created_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "agent_version_created_by_user_id_fkey",
@@ -11114,14 +10854,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "item_id"
-      ],
+      "columns": ["item_id"],
       "schemaTo": "public",
       "tableTo": "agent",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "agent_version_item_id_agent_id_fkey",
@@ -11131,14 +10867,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
+      "columns": ["user_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "mcp_connector_pref_user_id_user_id_fkey",
@@ -11148,14 +10880,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "conversation_id"
-      ],
+      "columns": ["conversation_id"],
       "schemaTo": "public",
       "tableTo": "conversation",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "mcp_conversation_connector_conversation_id_conversation_id_fkey",
@@ -11165,14 +10893,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
+      "columns": ["user_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "mcp_conversation_connector_user_id_user_id_fkey",
@@ -11182,14 +10906,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
+      "columns": ["user_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "mcp_oauth_token_user_id_user_id_fkey",
@@ -11199,14 +10919,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "created_by"
-      ],
+      "columns": ["created_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "mcp_server_created_by_user_id_fkey",
@@ -11216,14 +10932,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "created_by"
-      ],
+      "columns": ["created_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "preset_created_by_user_id_fkey",
@@ -11233,14 +10945,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "created_by"
-      ],
+      "columns": ["created_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "prompt_created_by_user_id_fkey",
@@ -11250,14 +10958,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "draft_version_id"
-      ],
+      "columns": ["draft_version_id"],
       "schemaTo": "public",
       "tableTo": "prompt_version",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "prompt_draft_version_id_prompt_version_id_fkey",
@@ -11267,14 +10971,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "latest_version_id"
-      ],
+      "columns": ["latest_version_id"],
       "schemaTo": "public",
       "tableTo": "prompt_version",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "prompt_latest_version_id_prompt_version_id_fkey",
@@ -11284,14 +10984,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "created_by"
-      ],
+      "columns": ["created_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "prompt_version_created_by_user_id_fkey",
@@ -11301,14 +10997,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "item_id"
-      ],
+      "columns": ["item_id"],
       "schemaTo": "public",
       "tableTo": "prompt",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "prompt_version_item_id_prompt_id_fkey",
@@ -11318,14 +11010,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "created_by"
-      ],
+      "columns": ["created_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "skill_created_by_user_id_fkey",
@@ -11335,14 +11023,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "draft_version_id"
-      ],
+      "columns": ["draft_version_id"],
       "schemaTo": "public",
       "tableTo": "skill_version",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "skill_draft_version_id_skill_version_id_fkey",
@@ -11352,14 +11036,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "latest_version_id"
-      ],
+      "columns": ["latest_version_id"],
       "schemaTo": "public",
       "tableTo": "skill_version",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "skill_latest_version_id_skill_version_id_fkey",
@@ -11369,14 +11049,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "created_by"
-      ],
+      "columns": ["created_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "skill_version_created_by_user_id_fkey",
@@ -11386,14 +11062,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "item_id"
-      ],
+      "columns": ["item_id"],
       "schemaTo": "public",
       "tableTo": "skill",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "skill_version_item_id_skill_id_fkey",
@@ -11403,14 +11075,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "current_version_id"
-      ],
+      "columns": ["current_version_id"],
       "schemaTo": "public",
       "tableTo": "memory_version",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "memory_current_version_id_memory_version_id_fkey",
@@ -11420,14 +11088,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
+      "columns": ["user_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "memory_user_id_user_id_fkey",
@@ -11437,14 +11101,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
+      "columns": ["user_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "memory_version_user_id_user_id_fkey",
@@ -11454,14 +11114,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "conversation_id"
-      ],
+      "columns": ["conversation_id"],
       "schemaTo": "public",
       "tableTo": "conversation",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "decision_log_conversation_id_conversation_id_fkey",
@@ -11471,14 +11127,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "run_id"
-      ],
+      "columns": ["run_id"],
       "schemaTo": "public",
       "tableTo": "run",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "decision_log_run_id_run_id_fkey",
@@ -11488,14 +11140,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
+      "columns": ["user_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "decision_log_user_id_user_id_fkey",
@@ -11505,14 +11153,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "dataset_id"
-      ],
+      "columns": ["dataset_id"],
       "schemaTo": "public",
       "tableTo": "eval_dataset",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "eval_case_dataset_id_eval_dataset_id_fkey",
@@ -11522,14 +11166,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "source_message_id"
-      ],
+      "columns": ["source_message_id"],
       "schemaTo": "public",
       "tableTo": "message",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "eval_case_source_message_id_message_id_fkey",
@@ -11539,14 +11179,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "agent_id"
-      ],
+      "columns": ["agent_id"],
       "schemaTo": "public",
       "tableTo": "agent",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "eval_dataset_agent_id_agent_id_fkey",
@@ -11556,14 +11192,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "created_by"
-      ],
+      "columns": ["created_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "eval_dataset_created_by_user_id_fkey",
@@ -11573,14 +11205,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "case_id"
-      ],
+      "columns": ["case_id"],
       "schemaTo": "public",
       "tableTo": "eval_case",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "eval_result_case_id_eval_case_id_fkey",
@@ -11590,14 +11218,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "run_id"
-      ],
+      "columns": ["run_id"],
       "schemaTo": "public",
       "tableTo": "eval_run",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "eval_result_run_id_eval_run_id_fkey",
@@ -11607,14 +11231,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "agent_version_id"
-      ],
+      "columns": ["agent_version_id"],
       "schemaTo": "public",
       "tableTo": "agent_version",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "eval_run_agent_version_id_agent_version_id_fkey",
@@ -11624,14 +11244,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "created_by"
-      ],
+      "columns": ["created_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "eval_run_created_by_user_id_fkey",
@@ -11641,14 +11257,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "dataset_id"
-      ],
+      "columns": ["dataset_id"],
       "schemaTo": "public",
       "tableTo": "eval_dataset",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "eval_run_dataset_id_eval_dataset_id_fkey",
@@ -11658,14 +11270,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "message_id"
-      ],
+      "columns": ["message_id"],
       "schemaTo": "public",
       "tableTo": "message",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "feedback_message_id_message_id_fkey",
@@ -11675,14 +11283,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
+      "columns": ["user_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "feedback_user_id_user_id_fkey",
@@ -11692,14 +11296,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "agent_version_id"
-      ],
+      "columns": ["agent_version_id"],
       "schemaTo": "public",
       "tableTo": "agent_version",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "quality_score_agent_version_id_agent_version_id_fkey",
@@ -11709,14 +11309,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "message_id"
-      ],
+      "columns": ["message_id"],
       "schemaTo": "public",
       "tableTo": "message",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "quality_score_message_id_message_id_fkey",
@@ -11726,14 +11322,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "conversation_id"
-      ],
+      "columns": ["conversation_id"],
       "schemaTo": "public",
       "tableTo": "conversation",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "sandbox_conversation_id_conversation_id_fkey",
@@ -11743,14 +11335,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "org_id"
-      ],
+      "columns": ["org_id"],
       "schemaTo": "public",
       "tableTo": "organization",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "space_allowance_org_id_organization_id_fkey",
@@ -11760,14 +11348,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "updated_by"
-      ],
+      "columns": ["updated_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "space_allowance_updated_by_user_id_fkey",
@@ -11777,14 +11361,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "decided_by"
-      ],
+      "columns": ["decided_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "space_allowance_grant_decided_by_user_id_fkey",
@@ -11794,14 +11374,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "org_id"
-      ],
+      "columns": ["org_id"],
       "schemaTo": "public",
       "tableTo": "organization",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "space_allowance_grant_org_id_organization_id_fkey",
@@ -11811,14 +11387,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
+      "columns": ["user_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "space_allowance_grant_user_id_user_id_fkey",
@@ -11828,14 +11400,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "org_id"
-      ],
+      "columns": ["org_id"],
       "schemaTo": "public",
       "tableTo": "organization",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "budget_org_id_organization_id_fkey",
@@ -11845,14 +11413,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "invitation_id"
-      ],
+      "columns": ["invitation_id"],
       "schemaTo": "public",
       "tableTo": "invitation",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "invitation_team_invitation_id_invitation_id_fkey",
@@ -11862,14 +11426,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "team_id"
-      ],
+      "columns": ["team_id"],
       "schemaTo": "public",
       "tableTo": "team",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "invitation_team_team_id_team_id_fkey",
@@ -11879,14 +11439,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "invitation_id"
-      ],
+      "columns": ["invitation_id"],
       "schemaTo": "public",
       "tableTo": "invitation",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "invitation_token_invitation_id_invitation_id_fkey",
@@ -11896,14 +11452,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "org_id"
-      ],
+      "columns": ["org_id"],
       "schemaTo": "public",
       "tableTo": "organization",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "org_settings_org_id_organization_id_fkey",
@@ -11913,14 +11465,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "updated_by"
-      ],
+      "columns": ["updated_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "org_settings_updated_by_user_id_fkey",
@@ -11930,14 +11478,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "org_id"
-      ],
+      "columns": ["org_id"],
       "schemaTo": "public",
       "tableTo": "organization",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "team_org_id_organization_id_fkey",
@@ -11947,14 +11491,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "parent_id"
-      ],
+      "columns": ["parent_id"],
       "schemaTo": "public",
       "tableTo": "team",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "name": "team_parent_id_team_id_fkey",
@@ -11964,14 +11504,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "team_id"
-      ],
+      "columns": ["team_id"],
       "schemaTo": "public",
       "tableTo": "team",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "team_member_team_id_team_id_fkey",
@@ -11981,14 +11517,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
+      "columns": ["user_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "team_member_user_id_user_id_fkey",
@@ -11998,14 +11530,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "org_id"
-      ],
+      "columns": ["org_id"],
       "schemaTo": "public",
       "tableTo": "organization",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "balance_org_id_organization_id_fkey",
@@ -12015,14 +11543,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "created_by"
-      ],
+      "columns": ["created_by"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "provider_key_created_by_user_id_fkey",
@@ -12032,14 +11556,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "org_id"
-      ],
+      "columns": ["org_id"],
       "schemaTo": "public",
       "tableTo": "organization",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "transaction_org_id_organization_id_fkey",
@@ -12049,14 +11569,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "provider_key_id"
-      ],
+      "columns": ["provider_key_id"],
       "schemaTo": "public",
       "tableTo": "provider_key",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "transaction_provider_key_id_provider_key_id_fkey",
@@ -12066,14 +11582,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "run_id"
-      ],
+      "columns": ["run_id"],
       "schemaTo": "public",
       "tableTo": "run",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "name": "transaction_run_id_run_id_fkey",
@@ -12083,14 +11595,10 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
+      "columns": ["user_id"],
       "schemaTo": "public",
       "tableTo": "user",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "transaction_user_id_user_id_fkey",
@@ -12099,10 +11607,7 @@
       "table": "transaction"
     },
     {
-      "columns": [
-        "conversation_id",
-        "user_id"
-      ],
+      "columns": ["conversation_id", "user_id"],
       "nameExplicit": false,
       "name": "conversation_participant_pkey",
       "entityType": "pks",
@@ -12110,10 +11615,7 @@
       "table": "conversation_participant"
     },
     {
-      "columns": [
-        "run_id",
-        "seq"
-      ],
+      "columns": ["run_id", "seq"],
       "nameExplicit": false,
       "name": "run_chunk_pkey",
       "entityType": "pks",
@@ -12121,10 +11623,7 @@
       "table": "run_chunk"
     },
     {
-      "columns": [
-        "artifact_id",
-        "conversation_id"
-      ],
+      "columns": ["artifact_id", "conversation_id"],
       "nameExplicit": false,
       "name": "artifact_use_pkey",
       "entityType": "pks",
@@ -12132,10 +11631,7 @@
       "table": "artifact_use"
     },
     {
-      "columns": [
-        "artifact_id",
-        "user_id"
-      ],
+      "columns": ["artifact_id", "user_id"],
       "nameExplicit": false,
       "name": "artifact_view_pkey",
       "entityType": "pks",
@@ -12143,10 +11639,7 @@
       "table": "artifact_view"
     },
     {
-      "columns": [
-        "skill_version_id",
-        "path"
-      ],
+      "columns": ["skill_version_id", "path"],
       "nameExplicit": false,
       "name": "skill_file_pkey",
       "entityType": "pks",
@@ -12154,10 +11647,7 @@
       "table": "skill_file"
     },
     {
-      "columns": [
-        "user_id",
-        "mcp_server_id"
-      ],
+      "columns": ["user_id", "mcp_server_id"],
       "nameExplicit": false,
       "name": "mcp_connector_pref_pkey",
       "entityType": "pks",
@@ -12165,11 +11655,7 @@
       "table": "mcp_connector_pref"
     },
     {
-      "columns": [
-        "conversation_id",
-        "user_id",
-        "mcp_server_id"
-      ],
+      "columns": ["conversation_id", "user_id", "mcp_server_id"],
       "nameExplicit": false,
       "name": "mcp_conversation_connector_pkey",
       "entityType": "pks",
@@ -12177,10 +11663,7 @@
       "table": "mcp_conversation_connector"
     },
     {
-      "columns": [
-        "mcp_server_id",
-        "user_id"
-      ],
+      "columns": ["mcp_server_id", "user_id"],
       "nameExplicit": false,
       "name": "mcp_oauth_token_pkey",
       "entityType": "pks",
@@ -12188,10 +11671,7 @@
       "table": "mcp_oauth_token"
     },
     {
-      "columns": [
-        "space_type",
-        "space_id"
-      ],
+      "columns": ["space_type", "space_id"],
       "nameExplicit": false,
       "name": "space_allowance_pkey",
       "entityType": "pks",
@@ -12199,10 +11679,7 @@
       "table": "space_allowance"
     },
     {
-      "columns": [
-        "invitation_id",
-        "team_id"
-      ],
+      "columns": ["invitation_id", "team_id"],
       "nameExplicit": false,
       "name": "invitation_team_pkey",
       "entityType": "pks",
@@ -12210,10 +11687,7 @@
       "table": "invitation_team"
     },
     {
-      "columns": [
-        "team_id",
-        "user_id"
-      ],
+      "columns": ["team_id", "user_id"],
       "nameExplicit": false,
       "name": "team_member_pkey",
       "entityType": "pks",
@@ -12235,9 +11709,7 @@
       "table": "balance"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "resource_grant_pkey",
       "schema": "public",
@@ -12245,9 +11717,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "share_link_pkey",
       "schema": "public",
@@ -12255,9 +11725,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "account_pkey",
       "schema": "public",
@@ -12265,9 +11733,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "invitation_pkey",
       "schema": "public",
@@ -12275,9 +11741,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "member_pkey",
       "schema": "public",
@@ -12285,9 +11749,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "organization_pkey",
       "schema": "public",
@@ -12295,9 +11757,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "session_pkey",
       "schema": "public",
@@ -12305,9 +11765,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "user_pkey",
       "schema": "public",
@@ -12315,9 +11773,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "user_id"
-      ],
+      "columns": ["user_id"],
       "nameExplicit": false,
       "name": "user_settings_pkey",
       "schema": "public",
@@ -12325,9 +11781,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "verification_pkey",
       "schema": "public",
@@ -12335,9 +11789,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "conversation_pkey",
       "schema": "public",
@@ -12345,9 +11797,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "message_pkey",
       "schema": "public",
@@ -12355,9 +11805,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "run_pkey",
       "schema": "public",
@@ -12365,9 +11813,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "dot_pkey",
       "schema": "public",
@@ -12375,9 +11821,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "dot_run_pkey",
       "schema": "public",
@@ -12385,9 +11829,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "dot_schedule_pkey",
       "schema": "public",
@@ -12395,9 +11837,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "artifact_pkey",
       "schema": "public",
@@ -12405,9 +11845,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "artifact_grant_pkey",
       "schema": "public",
@@ -12415,9 +11853,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "artifact_id"
-      ],
+      "columns": ["artifact_id"],
       "nameExplicit": false,
       "name": "artifact_publication_pkey",
       "schema": "public",
@@ -12425,9 +11861,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "artifact_version_pkey",
       "schema": "public",
@@ -12435,9 +11869,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "file_pkey",
       "schema": "public",
@@ -12445,9 +11877,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "file_chunk_pkey",
       "schema": "public",
@@ -12455,9 +11885,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "agent_pkey",
       "schema": "public",
@@ -12465,9 +11893,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "agent_version_pkey",
       "schema": "public",
@@ -12475,9 +11901,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "mcp_server_pkey",
       "schema": "public",
@@ -12485,9 +11909,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "preset_pkey",
       "schema": "public",
@@ -12495,9 +11917,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "prompt_pkey",
       "schema": "public",
@@ -12505,9 +11925,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "prompt_version_pkey",
       "schema": "public",
@@ -12515,9 +11933,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "skill_pkey",
       "schema": "public",
@@ -12525,9 +11941,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "skill_version_pkey",
       "schema": "public",
@@ -12535,9 +11949,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "user_id"
-      ],
+      "columns": ["user_id"],
       "nameExplicit": false,
       "name": "memory_pkey",
       "schema": "public",
@@ -12545,9 +11957,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "memory_version_pkey",
       "schema": "public",
@@ -12555,9 +11965,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "decision_log_pkey",
       "schema": "public",
@@ -12565,9 +11973,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "eval_case_pkey",
       "schema": "public",
@@ -12575,9 +11981,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "eval_dataset_pkey",
       "schema": "public",
@@ -12585,9 +11989,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "eval_result_pkey",
       "schema": "public",
@@ -12595,9 +11997,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "eval_run_pkey",
       "schema": "public",
@@ -12605,9 +12005,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "feedback_pkey",
       "schema": "public",
@@ -12615,9 +12013,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "quality_score_pkey",
       "schema": "public",
@@ -12625,9 +12021,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "sandbox_pkey",
       "schema": "public",
@@ -12635,9 +12029,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "space_allowance_grant_pkey",
       "schema": "public",
@@ -12645,9 +12037,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "budget_pkey",
       "schema": "public",
@@ -12655,9 +12045,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "invitation_id"
-      ],
+      "columns": ["invitation_id"],
       "nameExplicit": false,
       "name": "invitation_token_pkey",
       "schema": "public",
@@ -12665,9 +12053,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "org_id"
-      ],
+      "columns": ["org_id"],
       "nameExplicit": false,
       "name": "org_settings_pkey",
       "schema": "public",
@@ -12675,9 +12061,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "team_pkey",
       "schema": "public",
@@ -12685,9 +12069,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "provider_key_pkey",
       "schema": "public",
@@ -12695,9 +12077,7 @@
       "entityType": "pks"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "transaction_pkey",
       "schema": "public",
@@ -12706,10 +12086,7 @@
     },
     {
       "nameExplicit": true,
-      "columns": [
-        "conversation_id",
-        "id"
-      ],
+      "columns": ["conversation_id", "id"],
       "nullsNotDistinct": false,
       "name": "message_conversation_id_id_unique",
       "entityType": "uniques",
@@ -12718,9 +12095,7 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "token"
-      ],
+      "columns": ["token"],
       "nullsNotDistinct": false,
       "name": "session_token_key",
       "schema": "public",
@@ -12729,9 +12104,7 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "email"
-      ],
+      "columns": ["email"],
       "nullsNotDistinct": false,
       "name": "user_email_key",
       "schema": "public",
@@ -12740,9 +12113,7 @@
     },
     {
       "nameExplicit": false,
-      "columns": [
-        "token_hash"
-      ],
+      "columns": ["token_hash"],
       "nullsNotDistinct": false,
       "name": "invitation_token_token_hash_key",
       "schema": "public",
