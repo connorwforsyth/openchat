@@ -8,6 +8,7 @@ import {
   DownloadIcon,
   FileTextIcon,
   PlayIcon,
+  RefreshCwIcon,
   XIcon,
 } from "@workspace/icons";
 import { Button } from "@workspace/ui/components/button";
@@ -49,6 +50,52 @@ import {
 // back as bytes this side downloads: the frame's sandbox can't.
 
 type Position = Extract<FrameMessage, { type: "position" }>;
+
+/**
+ * Whether the runtime is there to draw the deck: no origin configured, the
+ * frame loading, the frame said `ready`, or it never did.
+ */
+export type RuntimeConnection =
+  | "connecting"
+  | "ready"
+  | "unconfigured"
+  | "unreachable";
+
+/** How long the frame has to say `ready` before the panel says it isn't coming. */
+export const RUNTIME_READY_TIMEOUT_MS = 10_000;
+
+/** Where the panel stands with the runtime. Pure. */
+export const connectionOf = (
+  runtimeOrigin: string | null,
+  ready: boolean,
+  timedOut: boolean
+): RuntimeConnection => {
+  if (runtimeOrigin === null) {
+    return "unconfigured";
+  }
+  if (ready) {
+    return "ready";
+  }
+  return timedOut ? "unreachable" : "connecting";
+};
+
+const SLIDE_ERROR = /^slide "([^"]+)": ([\s\S]*)$/;
+
+/** A failed slide's id and why, or the deck's own error. Pure. */
+export const deckProblem = (
+  error: RuntimeError
+):
+  | { readonly kind: "deck"; readonly message: string }
+  | {
+      readonly id: string;
+      readonly kind: "slide";
+      readonly message: string;
+    } => {
+  const match = SLIDE_ERROR.exec(error.message);
+  return match
+    ? { id: match[1] ?? "", kind: "slide", message: match[2] ?? "" }
+    : { kind: "deck", message: error.message || error.kind };
+};
 
 /** The presenter's keys, as the action each one is. */
 export const presentKeyAction = (
@@ -103,10 +150,35 @@ export interface PresentationPreviewProps {
   readonly content: string;
   /** Overrides how messages reach the frame, for tests. */
   readonly post?: PostToFrame;
-  /** The runtime's origin; a deck has no preview without it. */
-  readonly runtimeOrigin: string;
+  /** The runtime's origin; without one the panel says the deck can't be drawn here. */
+  readonly runtimeOrigin: string | null;
   readonly title: string;
 }
+
+/**
+ * Whether the frame has had `RUNTIME_READY_TIMEOUT_MS` to say `ready` and
+ * hasn't; each retry (`attempt`) starts the wait again.
+ */
+const useReadyTimeout = (
+  ready: boolean,
+  runtimeOrigin: string | null,
+  attempt: number
+): boolean => {
+  const [timedOut, setTimedOut] = useState(false);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` is the trigger.
+  useEffect(() => {
+    setTimedOut(false);
+    if (ready || runtimeOrigin === null) {
+      return;
+    }
+    const timer = window.setTimeout(
+      () => setTimedOut(true),
+      RUNTIME_READY_TIMEOUT_MS
+    );
+    return () => window.clearTimeout(timer);
+  }, [attempt, ready, runtimeOrigin]);
+  return timedOut;
+};
 
 export function PresentationPreview({
   content,
@@ -120,7 +192,8 @@ export function PresentationPreview({
   const lastId = useRef(0);
   const lastExport = useRef(0);
   const [ready, setReady] = useState(false);
-  const [error, setError] = useState<RuntimeError | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  const [errors, setErrors] = useState<readonly RuntimeError[]>([]);
   const [height, setHeight] = useState<number | null>(null);
   const [position, setPosition] = useState<Position | null>(null);
   const [presenting, setPresenting] = useState(false);
@@ -145,7 +218,7 @@ export function PresentationPreview({
       return;
     }
     lastId.current += 1;
-    setError(null);
+    setErrors([]);
     send({
       channel: RUNTIME_CHANNEL,
       code: content,
@@ -232,7 +305,7 @@ export function PresentationPreview({
         return;
       case "error":
         if (value.id === current) {
-          setError(value.error);
+          setErrors((known) => [...known, value.error]);
         }
         return;
       case "resize":
@@ -304,10 +377,28 @@ export function PresentationPreview({
     };
   }, [present, presenting]);
 
+  const timedOut = useReadyTimeout(ready, runtimeOrigin, attempt);
+
+  const retry = useCallback(() => {
+    setReady(false);
+    setAttempt((count) => count + 1);
+  }, []);
+
   const next = useCallback(() => present("next"), [present]);
   const previous = useCallback(() => present("previous"), [present]);
   const toggleNotes = useCallback(() => setNotesOpen((open) => !open), []);
 
+  const connection = connectionOf(runtimeOrigin, ready, timedOut);
+
+  if (runtimeOrigin === null) {
+    return (
+      <RuntimeUnavailable
+        connection="unconfigured"
+        onRetry={retry}
+        origin={null}
+      />
+    );
+  }
   if (!parentOrigin) {
     return null;
   }
@@ -325,15 +416,13 @@ export function PresentationPreview({
         ready={ready}
         slides={slides}
       />
-      {error ? <DeckError error={error} /> : null}
-      {exportError ? (
-        <p
-          className="bg-destructive/5 px-4 py-2 text-destructive text-sm"
-          role="alert"
-        >
-          <Trans>The deck couldn't be exported: {exportError}</Trans>
-        </p>
-      ) : null}
+      <DeckNotices
+        connection={connection}
+        errors={errors}
+        exportError={exportError}
+        onRetry={retry}
+        origin={runtimeOrigin}
+      />
       {ready ? null : (
         <span className="sr-only" role="status">
           <Trans>Loading preview</Trans>
@@ -347,7 +436,9 @@ export function PresentationPreview({
         aria-modal={presenting ? true : undefined}
         className={cn(
           "flex flex-1 flex-col",
-          presenting && "fixed inset-0 z-50 bg-background"
+          presenting && "fixed inset-0 z-50 bg-background",
+          // Kept loading out of sight, so a slow runtime still shows up.
+          connection === "unreachable" && "hidden"
         )}
         ref={stageRef}
         role={presenting ? "dialog" : undefined}
@@ -359,6 +450,7 @@ export function PresentationPreview({
             // Presenting, the keys and clicks are this side's.
             presenting && "pointer-events-none"
           )}
+          key={attempt}
           ref={frameRef}
           referrerPolicy="no-referrer"
           sandbox="allow-scripts"
@@ -519,7 +611,98 @@ function PresenterBar({
   );
 }
 
-function DeckError({ error }: { readonly error: RuntimeError }) {
+/** What's wrong above the deck: the runtime, its slides, or an export. */
+function DeckNotices({
+  connection,
+  errors,
+  exportError,
+  onRetry,
+  origin,
+}: {
+  readonly connection: RuntimeConnection;
+  readonly errors: readonly RuntimeError[];
+  readonly exportError: string | null;
+  readonly onRetry: () => void;
+  readonly origin: string;
+}) {
+  return (
+    <>
+      {connection === "unreachable" ? (
+        <RuntimeUnavailable
+          connection="unreachable"
+          onRetry={onRetry}
+          origin={origin}
+        />
+      ) : null}
+      {errors.length > 0 ? <DeckErrors errors={errors} /> : null}
+      {exportError ? (
+        <p
+          className="bg-destructive/5 px-4 py-2 text-destructive text-sm"
+          role="alert"
+        >
+          <Trans>The deck couldn't be exported: {exportError}</Trans>
+        </p>
+      ) : null}
+    </>
+  );
+}
+
+/**
+ * Why there's no deck: no artifact runtime is configured, or the one
+ * configured isn't answering. Never the code in its place (D24).
+ */
+function RuntimeUnavailable({
+  connection,
+  onRetry,
+  origin,
+}: {
+  readonly connection: "unconfigured" | "unreachable";
+  readonly onRetry: () => void;
+  readonly origin: string | null;
+}) {
+  return (
+    <div
+      className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-12 text-center"
+      role="alert"
+    >
+      <CircleAlertIcon aria-hidden className="size-5 text-muted-foreground" />
+      <p className="font-medium text-sm">
+        {connection === "unconfigured" ? (
+          <Trans>
+            Preview unavailable: the artifacts service isn't set up here
+          </Trans>
+        ) : (
+          <Trans>
+            Preview unavailable: the artifacts service isn't running
+          </Trans>
+        )}
+      </p>
+      <p className="max-w-sm text-muted-foreground text-sm">
+        {connection === "unconfigured" ? (
+          <Trans>
+            Slides are drawn by the artifacts service. Set ARTIFACTS_ORIGIN and
+            start it with bun dev. The deck's JSON is in the Code tab.
+          </Trans>
+        ) : (
+          <Trans>
+            Nothing answered at {origin}. Start it with bun dev, then retry.
+          </Trans>
+        )}
+      </p>
+      {connection === "unreachable" ? (
+        <Button onClick={onRetry} size="sm" variant="outline">
+          <RefreshCwIcon aria-hidden />
+          <Trans>Retry</Trans>
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
+/** Each slide that couldn't be drawn, and why; the rest of the deck still shows. */
+function DeckErrors({ errors }: { readonly errors: readonly RuntimeError[] }) {
+  const problems = errors.map(deckProblem);
+  const slides = problems.filter((each) => each.kind === "slide").length;
   return (
     <div className="flex gap-2 bg-destructive/5 px-4 py-3 text-sm" role="alert">
       <CircleAlertIcon
@@ -528,13 +711,29 @@ function DeckError({ error }: { readonly error: RuntimeError }) {
       />
       <div className="min-w-0 flex-1">
         <p className="text-destructive">
-          <Trans>A slide in this deck failed to draw.</Trans>
+          {slides > 0 ? (
+            <Plural
+              one="# slide couldn't be drawn. The others are below."
+              other="# slides couldn't be drawn. The others are below."
+              value={slides}
+            />
+          ) : (
+            <Trans>This deck couldn't be read.</Trans>
+          )}
         </p>
-        {error.message ? (
-          <pre className="mt-1 overflow-x-auto whitespace-pre-wrap font-mono text-muted-foreground text-xs">
-            {error.message}
-          </pre>
-        ) : null}
+        <ul className="mt-1 flex flex-col gap-1">
+          {problems.map((problem, index) => (
+            <li
+              className="overflow-x-auto whitespace-pre-wrap font-mono text-muted-foreground text-xs"
+              // biome-ignore lint/suspicious/noArrayIndexKey: errors arrive in order and are only ever appended.
+              key={index}
+            >
+              {problem.kind === "slide"
+                ? `${problem.id}: ${problem.message}`
+                : problem.message}
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );

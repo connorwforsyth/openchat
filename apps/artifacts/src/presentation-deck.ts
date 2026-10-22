@@ -53,16 +53,35 @@ const slideError = (slide: LoadedSlide, error: RuntimeError): RuntimeError => ({
 /** A React root for one slide; its errors go to `onError`. */
 const slideRoot = (
   host: HTMLElement,
-  slide: LoadedSlide,
   onError: (error: RuntimeError) => void
 ): Root => {
-  const report = (error: unknown) =>
-    onError(slideError(slide, runtimeError("render", error)));
+  const report = (error: unknown) => onError(runtimeError("render", error));
   return createRoot(host, {
     onCaughtError: report,
     onRecoverableError: report,
     onUncaughtError: report,
   });
+};
+
+/**
+ * What a slide that can't be drawn shows in its place: which slide, and
+ * why, at the slide's size, so the rest of the deck still reads in order.
+ */
+export const slideErrorCard = (
+  number: number,
+  id: string,
+  error: RuntimeError
+): HTMLElement => {
+  const card = document.createElement("div");
+  card.className = "deck-error";
+  card.dataset.slideError = id;
+  card.setAttribute("role", "alert");
+  const heading = document.createElement("strong");
+  heading.textContent = `${number} · ${id}`;
+  const detail = document.createElement("pre");
+  detail.textContent = error.message || error.kind;
+  card.append(heading, detail);
+  return card;
 };
 
 /** Waits for a slide's pictures, so a capture sees them drawn. */
@@ -112,7 +131,7 @@ export const mountDeck = (
   container.append(style, root);
 
   const roots: Root[] = [];
-  const frames = deck.slides.map((slide) => {
+  const frames = deck.slides.map((slide, index) => {
     const frame = document.createElement("div");
     frame.className = "deck-slide";
     frame.dataset.slide = slide.id;
@@ -120,17 +139,25 @@ export const mountDeck = (
     canvas.className = "deck-canvas";
     frame.append(canvas);
     root.append(frame);
+    // A slide that throws while drawing shows why in its place, as one that
+    // didn't compile does; React has already given up on its tree.
+    const failed = (error: RuntimeError) => {
+      const drawn = frame.querySelector(".deck-canvas");
+      if (!drawn) {
+        return;
+      }
+      drawn.replaceWith(slideErrorCard(index + 1, slide.id, error));
+      onError(slideError(slide, error));
+    };
     if (slide.element.ok) {
-      const slideReact = slideRoot(canvas, slide, onError);
+      const slideReact = slideRoot(canvas, (error) =>
+        queueMicrotask(() => failed(error))
+      );
       roots.push(slideReact);
       const { value } = slide.element;
       flushSync(() => slideReact.render(value));
     } else {
-      const message = document.createElement("p");
-      message.className = "deck-error";
-      message.textContent = `${slide.id}: ${slide.element.error.message || slide.element.error.kind}`;
-      canvas.replaceWith(message);
-      onError(slideError(slide, slide.element.error));
+      failed(slide.element.error);
     }
     return frame;
   });
@@ -224,7 +251,7 @@ export const mountDeck = (
         host.style.overflow = "hidden";
         capture.append(host);
         if (slide.element.ok) {
-          const slideReact = slideRoot(host, slide, () => undefined);
+          const slideReact = slideRoot(host, () => undefined);
           captureRoots.push(slideReact);
           const { value } = slide.element;
           flushSync(() => slideReact.render(value));

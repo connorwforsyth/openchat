@@ -281,6 +281,10 @@ msgid "{seconds, plural, one {Thought for # second} other {Thought for # seconds
 msgstr "{seconds, plural, one {Thought for # second} other {Thought for # seconds}}"
 
 #: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "{slides, plural, one {# slide couldn't be drawn. The others are below.} other {# slides couldn't be drawn. The others are below.}}"
+msgstr "{slides, plural, one {# slide couldn't be drawn. The others are below.} other {# slides couldn't be drawn. The others are below.}}"
+
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
 msgid "{slides, plural, one {# slide} other {# slides}}"
 msgstr "{slides, plural, one {# slide} other {# slides}}"
 
@@ -369,10 +373,6 @@ msgstr "A secret is saved. It's never shown; type a new one to replace it."
 #: ../../apps/web/app/(app)/(pages)/dots/onboarding.tsx
 msgid "A short name, like a nickname."
 msgstr "A short name, like a nickname."
-
-#: ../chat-ui/src/artifacts/presentation-preview.tsx
-msgid "A slide in this deck failed to draw."
-msgstr "A slide in this deck failed to draw."
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 msgid "A space needs at least one owner. Make someone else an owner first."
@@ -3577,6 +3577,10 @@ msgstr "Notes: {notes}"
 msgid "notes.md"
 msgstr "notes.md"
 
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "Nothing answered at {origin}. Start it with bun dev, then retry."
+msgstr "Nothing answered at {origin}. Start it with bun dev, then retry."
+
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Nothing found"
 msgstr "Nothing found"
@@ -4166,6 +4170,14 @@ msgstr "Preview of {title}"
 msgid "Preview of port {port}"
 msgstr "Preview of port {port}"
 
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "Preview unavailable: the artifacts service isn't running"
+msgstr "Preview unavailable: the artifacts service isn't running"
+
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "Preview unavailable: the artifacts service isn't set up here"
+msgstr "Preview unavailable: the artifacts service isn't set up here"
+
 #: ../chat-ui/src/artifacts/artifact-preview.tsx
 msgid "Previews can't import \"{module}\". React artifacts can import {allowed}."
 msgstr "Previews can't import \"{module}\". React artifacts can import {allowed}."
@@ -4644,6 +4656,7 @@ msgstr "Resume {title}"
 #: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
 #: ../../apps/web/app/dev/ai-elements/demo.tsx
 #: ../chat-ui/src/artifacts/document/document-view.tsx
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
 #: ../chat-ui/src/conversation/approval.tsx
 #: ../chat-ui/src/workspace/preview.tsx
 #: ../chat-ui/src/workspace/workspace-panel.tsx
@@ -5271,6 +5284,10 @@ msgstr "Slide {slide} of {slides}"
 #: ../chat-ui/src/model/artifact-kinds.ts
 msgid "Slides"
 msgstr "Slides"
+
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "Slides are drawn by the artifacts service. Set ARTIFACTS_ORIGIN and start it with bun dev. The deck's JSON is in the Code tab."
+msgstr "Slides are drawn by the artifacts service. Set ARTIFACTS_ORIGIN and start it with bun dev. The deck's JSON is in the Code tab."
 
 #: ../chat-ui/src/artifacts/presentation-preview.tsx
 msgid "Slides of {title}"
@@ -6032,6 +6049,10 @@ msgstr "This chat"
 #: ../../apps/web/app/(app)/_shared/query-state.tsx
 msgid "This couldn't be loaded."
 msgstr "This couldn't be loaded."
+
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "This deck couldn't be read."
+msgstr "This deck couldn't be read."
 
 #: ../../apps/web/app/(app)/_shared/query-state.tsx
 msgid "This feature is switched off on this server."
