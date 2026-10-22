@@ -21,13 +21,16 @@ import {
 // Without a rail (113): in the sidebar's own top row while the sidebar is
 // docked beside the page, and at the start of the header while it isn't
 // (collapsed, squeezed out by the panel, or a narrow screen's sheet). The
-// shell knows which, and says so through these contexts.
+// shell knows which, and whether the sidebar is showing at all, and says so
+// through these contexts.
 
 const SidebarDockedContext = createContext(false);
 const SidebarRailedContext = createContext(false);
+const SidebarShownContext = createContext(false);
 
 export const SidebarDockedProvider = SidebarDockedContext.Provider;
 export const SidebarRailedProvider = SidebarRailedContext.Provider;
+export const SidebarShownProvider = SidebarShownContext.Provider;
 
 /** Whether the sidebar is docked beside the page right now. */
 export const useSidebarDocked = (): boolean => useContext(SidebarDockedContext);
@@ -55,8 +58,6 @@ const useHydrated = (): boolean =>
   );
 
 export interface SidebarToggleProps {
-  /** The sidebar is showing (docked, or a narrow screen's sheet open). */
-  readonly expanded: boolean;
   /** The shortcut, shown in the tooltip. */
   readonly hint?: ReactNode;
   readonly onToggle: () => void;
@@ -69,7 +70,6 @@ export interface SidebarToggleProps {
 }
 
 export function SidebarToggle({
-  expanded,
   hint,
   onToggle,
   placement,
@@ -77,6 +77,7 @@ export function SidebarToggle({
   const { t } = useLingui();
   const docked = useSidebarDocked();
   const railed = useSidebarRailed();
+  const expanded = useContext(SidebarShownContext);
   const hydrated = useHydrated();
   if (placement === "rail") {
     return (

@@ -1,14 +1,9 @@
 import type { UserSummary } from "@workspace/contract/schemas/tenancy";
 
-import type {
-  AgentOption,
-  FileCandidate,
-  MentionCandidate,
-  WorkspacePath,
-} from "./schemas";
+import type { FileCandidate, MentionCandidate, WorkspacePath } from "./schemas";
 
-// A mention is an atomic node in the editor (id, kind, label); `doc.ts`
-// turns those nodes into tokens with offsets when the draft is submitted.
+// A chip is an atomic node in the editor (id, kind, label); `doc.ts` turns
+// those nodes into tokens with offsets when the draft is submitted.
 
 /**
  * A workspace file as a candidate: its name to read, its folder as the hint.
@@ -25,20 +20,11 @@ export const fileCandidate = (path: WorkspacePath): FileCandidate => {
     : { kind: "file", label: name, path };
 };
 
-/** Agents, then people, then workspace files, as `@` candidates. */
+/** People, then workspace files, as candidates to mention. */
 export const mentionCandidates = (
-  agents: readonly AgentOption[],
   people: readonly UserSummary[],
   files: readonly WorkspacePath[] = []
 ): readonly MentionCandidate[] => [
-  ...agents.map(
-    (agent): MentionCandidate => ({
-      description: agent.description || undefined,
-      id: agent.id,
-      kind: "agent",
-      label: agent.name,
-    })
-  ),
   ...people.map(
     (person): MentionCandidate => ({
       description: person.email ?? undefined,

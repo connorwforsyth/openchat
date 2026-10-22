@@ -199,3 +199,10 @@ Lane `pstack/usage` (Settings → Usage, span tags). Defaults applied overnight;
 2. **Where do Restart and Reset sit on the Dot?** They are in a ⋯ menu beside "Computer" in the Dot's header, and in the computer panel's header. Reset asks first. *Defaulted: the menu.* The alternative is a visible Restart button beside "Computer", which costs header space.
 3. **Schedules on ordinary chats.** The header's schedule button is gone from ordinary chats, so a chat's heartbeat schedule no longer shows "Next run …" there. It still shows on the Schedules page and in the sidebar row. *Defaulted: removed from the header everywhere but the Dot.*
 4. **Can the model choose a schedule's emoji?** Schedules the agent proposes get ⏰, and only people pick another one. *Defaulted: no model choice*, which avoids validation retries on small models.
+
+## menu lane (n2/menu)
+
+1. **An `@agent` chip answers that one message, or switches the chat?** *Defaulted: that message only.* The server makes the chip's agent the run's target for the message (and its regenerate); the composer's picker keeps what the chat answers with. The alternative is to also set the chat's default target, so the next plain message goes to the agent too.
+2. **Can a draft agent answer in an ordinary chat?** *Defaulted: yes, through its chip, for its owner only.* A draft is never offered in the target picker, since a chat whose default target is a draft becomes the builder's hidden test chat (033). The alternative is to keep drafts out of chats until published.
+3. **Which artifact types the menu offers.** *Defaulted: the "Make something new" kinds (161): Slides, Site, Spreadsheet, Document, Diagram, SVG, Web page, React.* The alternative is every kind, Code and Mermaid included.
+4. **What counts as Code-only in the menu.** *Defaulted: `/preview` only* (it runs a dev server). Chat mode keeps file commands, since Chat can read and edit files. The `modes` lane passes `mode` to the composer; that's the one hook.

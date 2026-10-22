@@ -14,7 +14,7 @@ const item = (n: number, patch: Partial<LibraryItem> = {}): LibraryItem => ({
 });
 
 describe("usableSkills", () => {
-  it("lists published skills once, from the first tab that has them", () => {
+  it("lists published skills once, from the first tab that has them, and the person's own drafts", () => {
     expect(
       usableSkills([
         {
@@ -23,11 +23,12 @@ describe("usableSkills", () => {
         },
         { items: [item(3), item(1)], source: "shared" },
         { items: [item(4), item(5, { kind: "agent" })], source: "libraries" },
-      ]).map((skill) => [skill.name, skill.source])
+      ]).map((skill) => [skill.name, skill.source, skill.draftVersion])
     ).toEqual([
-      ["Skill 1", "mine"],
-      ["Skill 3", "shared"],
-      ["Skill 4", "libraries"],
+      ["Skill 1", "mine", undefined],
+      ["Skill 2", "mine", agentItem.draftVersionId],
+      ["Skill 3", "shared", undefined],
+      ["Skill 4", "libraries", undefined],
     ]);
   });
 });

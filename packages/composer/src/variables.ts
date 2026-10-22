@@ -1,5 +1,8 @@
+import type { JSONContent } from "@tiptap/core";
 import type { PromptDefinition } from "@workspace/contract/schemas/library";
 import { err, ok, type Result } from "@workspace/shared/result";
+
+import { VARIABLE_NODE } from "./doc";
 
 // Prompt templates carry `{{variable}}` placeholders (D13). The definition
 // declares variables with descriptions and defaults, but the template text is
@@ -85,4 +88,45 @@ export const fillTemplate = (
       (_placeholder, name: string) => valueFor(name, values, variables) ?? ""
     )
   );
+};
+
+/**
+ * A template as editor content: its text, with each `{{variable}}` a
+ * placeholder node that Tab moves between and typing replaces. One left
+ * unfilled becomes its declared default when the message is sent, or is
+ * dropped (see `serializeDoc`). Newlines become hard breaks. Pure.
+ */
+export const templateToInline = (
+  definition: Pick<PromptDefinition, "template" | "variables">
+): JSONContent[] => {
+  const content: JSONContent[] = [];
+  const text = (value: string) => {
+    value.split("\n").forEach((line, index) => {
+      if (index > 0) {
+        content.push({ type: "hardBreak" });
+      }
+      if (line !== "") {
+        content.push({ text: line, type: "text" });
+      }
+    });
+  };
+  let at = 0;
+  for (const match of definition.template.matchAll(PLACEHOLDER)) {
+    const [whole, name = ""] = match;
+    text(definition.template.slice(at, match.index));
+    const declared = definition.variables.find(
+      (variable) => variable.name === name
+    );
+    content.push({
+      attrs: {
+        description: declared?.description ?? null,
+        fallback: declared?.default || null,
+        name,
+      },
+      type: VARIABLE_NODE,
+    });
+    at = match.index + whole.length;
+  }
+  text(definition.template.slice(at));
+  return content;
 };

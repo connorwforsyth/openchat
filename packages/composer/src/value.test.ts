@@ -8,7 +8,7 @@ import { buildComposerValue, hasContent } from "./value";
 const templateId = fixtureId("libraryItem", 20);
 
 describe("buildComposerValue", () => {
-  it("combines the serialised document, files and template", () => {
+  it("combines the serialised document, files, skill chips and template", () => {
     const attachment = { file: new File(["x"], "a.txt"), id: "f1" };
     const value = buildComposerValue({
       attachments: [attachment],
@@ -21,23 +21,34 @@ describe("buildComposerValue", () => {
                 attrs: { id: userAda.id, kind: "user", label: "Ada" },
                 type: "mention",
               },
+              { text: " ", type: "text" },
+              {
+                attrs: { id: templateId, kind: "skill", label: "Haiku" },
+                type: "mention",
+              },
+              {
+                attrs: { id: templateId, kind: "skill", label: "Haiku" },
+                type: "mention",
+              },
             ],
             type: "paragraph",
           },
         ],
         type: "doc",
       },
-      skills: [{ id: templateId, name: "Haiku" }],
       templateId,
     });
     expect(value).toEqual({
       attachments: [attachment],
       mentions: [
         { end: 8, id: userAda.id, kind: "user", label: "Ada", start: 4 },
+        { end: 15, id: templateId, kind: "skill", label: "Haiku", start: 9 },
+        { end: 21, id: templateId, kind: "skill", label: "Haiku", start: 15 },
       ],
+      // Each skill chip once, as the run's `input.skills`.
       skills: [{ id: templateId, name: "Haiku" }],
       templateId,
-      text: "hey @Ada",
+      text: "hey @Ada @Haiku@Haiku",
     });
     expect(composerValueSchema.parse(value)).toEqual(value);
   });

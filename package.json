@@ -129,6 +129,7 @@
     "desktop:package": "turbo run package --filter=desktop --",
     "dev": "bun --env-file=.env --env-file=.env.local run turbo run dev --env-mode=loose",
     "eval": "turbo run eval",
+    "eval:artifacts:live": "bun packages/evals/src/artifacts/live.ts",
     "evals": "turbo run evals --",
     "fix": "ultracite fix",
     "i18n:compile": "turbo run i18n:compile",

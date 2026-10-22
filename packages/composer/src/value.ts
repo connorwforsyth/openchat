@@ -5,6 +5,7 @@ import { serializeDoc } from "./doc";
 import type {
   ComposerAttachment,
   ComposerValue,
+  MentionToken,
   PickedSkillOption,
 } from "./schemas";
 
@@ -12,10 +13,28 @@ export interface ComposerDraft {
   readonly attachments: readonly ComposerAttachment[];
   /** The editor's document (`editor.getJSON()`). */
   readonly doc: JSONContent;
-  /** Skills picked for the message (127); left out, none. */
-  readonly skills?: readonly PickedSkillOption[];
   readonly templateId: LibraryItemId | null;
 }
+
+/** The skill chips (127), once each, in text order. Pure. */
+export const skillsOf = (
+  mentions: readonly MentionToken[]
+): PickedSkillOption[] => {
+  const skills: PickedSkillOption[] = [];
+  for (const mention of mentions) {
+    if (
+      mention.kind === "skill" &&
+      !skills.some((skill) => skill.id === mention.id)
+    ) {
+      skills.push({
+        id: mention.id,
+        name: mention.label,
+        ...(mention.versionId ? { versionId: mention.versionId } : {}),
+      });
+    }
+  }
+  return skills;
+};
 
 /** The value to submit, derived from the document. */
 export const buildComposerValue = (draft: ComposerDraft): ComposerValue => {
@@ -23,7 +42,7 @@ export const buildComposerValue = (draft: ComposerDraft): ComposerValue => {
   return {
     attachments: [...draft.attachments],
     mentions: [...mentions],
-    skills: (draft.skills ?? []).map(({ id, name }) => ({ id, name })),
+    skills: skillsOf(mentions),
     // A template the user has since erased entirely no longer describes the text.
     templateId: text === "" ? null : draft.templateId,
     text,
