@@ -101,6 +101,13 @@ export const catalogKindOf = (
   }
 };
 
+/**
+ * Whether `id`'s catalog is kept by the model server itself (Ollama's tags),
+ * so what it says a model can do is the server's own word.
+ */
+export const catalogFromServer = (id: string, config: ProviderConfig) =>
+  catalogKindOf(id, config) === "ollama";
+
 const DEFAULT_BASE_URL: Readonly<Record<string, string>> = {
   anthropic: "https://api.anthropic.com/v1",
   google: "https://generativelanguage.googleapis.com/v1beta",
@@ -285,7 +292,13 @@ const googleList = z.object({
 });
 
 const ollamaList = z.object({
-  models: z.array(z.looseObject({ name: z.string().min(1) })),
+  models: z.array(
+    z.looseObject({
+      /** What the model takes, by Ollama 0.6 and later: `vision`, `tools`. */
+      capabilities: strings,
+      name: z.string().min(1),
+    })
+  ),
 });
 
 const GOOGLE_PREFIX = /^models\//;
@@ -363,7 +376,13 @@ export const parseCatalog = (
     case "ollama": {
       const parsed = ollamaList.safeParse(body);
       return parsed.success
-        ? parsed.data.models.map((model) => entry(model.name, {}))
+        ? parsed.data.models.map((model) =>
+            entry(model.name, {
+              traits: model.capabilities && {
+                vision: model.capabilities.includes("vision"),
+              },
+            })
+          )
         : null;
     }
     default:

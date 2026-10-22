@@ -26,6 +26,7 @@ import { type ModelCapability, providerCapabilities } from "./capabilities";
 import {
   type CatalogError,
   type CatalogModel,
+  catalogFromServer,
   describeCatalogError,
   fetchCatalog,
   isImageModel,
@@ -75,7 +76,7 @@ export interface ImageModelChoice {
 export interface DiscoveringRegistry extends ProviderRegistry {
   /**
    * `provider`'s catalog with these credentials (cached), or `null` when it
-   * doesn't discover or its catalog couldn't be read.
+   * doesn't discover (Ollama's is always read) or its catalog couldn't be read.
    */
   catalog: (
     provider: string,
@@ -198,6 +199,14 @@ export const buildRegistry = (
     return providerConfig ? [...providerCapabilities(providerConfig)] : [];
   };
 
+  const fromServer = (ref: ModelRef): boolean => {
+    const provider = parseModelRef(ref)?.provider;
+    const providerConfig = provider ? config.providers[provider] : undefined;
+    return Boolean(
+      provider && providerConfig && catalogFromServer(provider, providerConfig)
+    );
+  };
+
   // `auto` ends may be aliases; the picker shows the ref each resolves to.
   const refOf = (selector: string | null): ModelRef | null => {
     if (!selector) {
@@ -250,7 +259,12 @@ export const buildRegistry = (
     credentials: ProviderCredentials | undefined
   ): AsyncResult<readonly CatalogModel[], CatalogError> => {
     const providerConfig = config.providers[provider];
-    if (!providerConfig?.discover) {
+    // Ollama's tags are read for what its models can do (vision) even when
+    // they aren't discovered: the server's own word, from a local call.
+    const reads =
+      providerConfig &&
+      (providerConfig.discover || catalogFromServer(provider, providerConfig));
+    if (!reads) {
       return err({ type: "unsupported" });
     }
     const key = cacheKey(provider, credentials);
@@ -437,7 +451,9 @@ export const buildRegistry = (
     );
     return {
       ...option,
-      capabilities: capabilitiesWith(option.capabilities, listed?.traits),
+      capabilities: capabilitiesWith(option.capabilities, listed?.traits, {
+        fromServer: fromServer(target),
+      }),
       ...(cost === undefined ? {} : { cost }),
       ...(description === undefined ? {} : { description }),
       ...(modelId === undefined

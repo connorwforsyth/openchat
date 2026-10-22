@@ -203,12 +203,18 @@ export const costOf = (
  * model: a "no" removes one, and reasoning (which no provider type implies)
  * is added on a "yes". Vision and files are only ever removed: whether an
  * image reaches the model as a file part is the provider config's call
- * (`options.capabilities`), and the card shouldn't promise otherwise.
+ * (`options.capabilities`), and the card shouldn't promise otherwise. The
+ * exception is a catalog the model server keeps itself (`fromServer`: Ollama's
+ * tags), whose "yes" to vision is the server's own word.
  */
 export const capabilitiesWith = (
   provider: readonly ModelCapability[],
-  traits: CatalogTraits | undefined
+  traits: CatalogTraits | undefined,
+  { fromServer = false }: { readonly fromServer?: boolean } = {}
 ): ModelCapability[] => {
+  if (fromServer && traits?.vision === true && !provider.includes("vision")) {
+    return capabilitiesWith([...provider, "vision"], traits);
+  }
   const kept = provider.filter(
     (capability) =>
       !(
