@@ -23,3 +23,6 @@ The file is {{size}} bytes, too large to include here. Use the read tool to read
 
 <!-- part: notText -->
 The file isn't UTF-8 text, so it isn't shown. Inspect it with bash if you need to.
+
+<!-- part: artifact -->
+The user picked "{{label}}" in this message: they want a `{{kind}}` artifact. Make it with `create_artifact` (type "{{kind}}") rather than answering in text, then say briefly what you made.

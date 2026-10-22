@@ -72,7 +72,7 @@ afterEach(() => {
 });
 
 describe("drafts (147)", () => {
-  it("restores a chat's draft, mentions and skills included", async () => {
+  it("restores a chat's draft, chips included, and skills an older draft kept beside it", async () => {
     const store = createMemoryDraftStore({
       c1: {
         ...draftOf("", [haiku]),
@@ -96,14 +96,21 @@ describe("drafts (147)", () => {
     const { editor, onSubmit } = renderComposer({
       draft: { key: "c1", store },
     });
-    await waitFor(() => expect(editor.textContent).toBe("ask @Reviewer"));
-    expect(screen.getByText("Haiku")).toBeTruthy();
+    await waitFor(() => expect(editor.textContent).toBe("Haiku ask Reviewer"));
 
     await userEvent.click(editor);
     await userEvent.keyboard("{Enter}");
     const value = onSubmit.mock.lastCall?.[0];
+    expect(value?.text).toBe("@Haiku ask @Reviewer");
     expect(value?.mentions).toEqual([
-      { end: 13, id: agentItem.id, kind: "agent", label: "Reviewer", start: 4 },
+      { end: 6, id: haiku.id, kind: "skill", label: "Haiku", start: 0 },
+      {
+        end: 20,
+        id: agentItem.id,
+        kind: "agent",
+        label: "Reviewer",
+        start: 11,
+      },
     ]);
     expect(value?.skills).toEqual([{ id: haiku.id, name: "Haiku" }]);
   });
@@ -197,7 +204,7 @@ describe("drafts (147)", () => {
     });
   });
 
-  it("keeps a picked skill as the draft", async () => {
+  it("keeps a picked skill's chip in the draft", async () => {
     const store = createMemoryDraftStore();
     renderComposer({ draft: { key: "c1", store }, skills: [haiku] });
     await userEvent.click(
@@ -211,9 +218,9 @@ describe("drafts (147)", () => {
     );
     await pause();
     const saved = store.load("c1");
-    expect(saved.ok && saved.value?.skills).toEqual([
-      { id: haiku.id, name: "Haiku" },
-    ]);
+    expect(saved.ok && JSON.stringify(saved.value?.doc)).toContain(
+      `"kind":"skill"`
+    );
   });
 });
 

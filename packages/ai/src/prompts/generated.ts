@@ -46,6 +46,8 @@ export const FRAGMENTS = {
   },
   mentions: {
     parts: {
+      artifact:
+        'The user picked "{{label}}" in this message: they want a `{{kind}}` artifact. Make it with `create_artifact` (type "{{kind}}") rather than answering in text, then say briefly what you made.',
       inline:
         '<workspace-file path="{{path}}">\n{{content}}\n</workspace-file>',
       intro:

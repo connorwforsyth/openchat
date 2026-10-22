@@ -1,11 +1,14 @@
+import { placedChipSchema } from "@workspace/ai/messages/chips";
 import {
   libraryItemIdSchema,
+  libraryVersionIdSchema,
   userIdSchema,
 } from "@workspace/contract/schemas/common";
 import {
   libraryItemSchema,
   promptDefinitionSchema,
 } from "@workspace/contract/schemas/library";
+import { artifactKindSchema } from "@workspace/contract/schemas/message-parts";
 import { chatContextSchema } from "@workspace/contract/schemas/tenancy";
 import { z } from "zod";
 
@@ -29,6 +32,15 @@ export type ComposerStatus = z.infer<typeof composerStatusSchema>;
 export const agentSourceSchema = z.enum(["mine", "shared", "libraries"]);
 export type AgentSource = z.infer<typeof agentSourceSchema>;
 
+/**
+ * The caller's own unpublished draft of a library item, by its draft
+ * version: only its owner is offered it, labelled Draft, and a pick runs
+ * that version. Left out for published items, which the team shares.
+ */
+const draftFields = {
+  draftVersion: libraryVersionIdSchema.optional(),
+};
+
 /** An agent the composer can target or mention: the listing fields of a library item. */
 export const agentOptionSchema = libraryItemSchema
   .pick({
@@ -38,6 +50,7 @@ export const agentOptionSchema = libraryItemSchema
     name: true,
   })
   .extend({
+    ...draftFields,
     /** Groups the picker; left out, the agent is listed under "Agents". */
     source: agentSourceSchema.optional(),
   });
@@ -46,7 +59,7 @@ export type AgentOption = z.infer<typeof agentOptionSchema>;
 /** A prompt template offered from `/`: a library item with its prompt definition. */
 export const promptOptionSchema = libraryItemSchema
   .pick({ description: true, id: true, name: true })
-  .extend({ definition: promptDefinitionSchema });
+  .extend({ definition: promptDefinitionSchema, ...draftFields });
 export type PromptOption = z.infer<typeof promptOptionSchema>;
 
 /**
@@ -57,15 +70,20 @@ export type PromptOption = z.infer<typeof promptOptionSchema>;
 export const skillOptionSchema = libraryItemSchema
   .pick({ description: true, id: true, name: true })
   .extend({
+    ...draftFields,
     /** Where it comes from, as for agents; left out, it isn't grouped. */
     source: agentSourceSchema.optional(),
   });
 export type SkillOption = z.infer<typeof skillOptionSchema>;
 
-/** A skill on the message being written: what a chip shows and the host sends. */
-export const pickedSkillOptionSchema = skillOptionSchema.pick({
-  id: true,
-  name: true,
+/**
+ * A skill on the message being written: what the host sends as the run's
+ * `input.skills`, pinned to the owner's draft when it is one.
+ */
+export const pickedSkillOptionSchema = z.object({
+  id: libraryItemIdSchema,
+  name: z.string().min(1),
+  versionId: libraryVersionIdSchema.optional(),
 });
 export type PickedSkillOption = z.infer<typeof pickedSkillOptionSchema>;
 
@@ -78,6 +96,23 @@ export const contextOptionSchema = z.object({
   name: z.string().optional(),
 });
 export type ContextOption = z.infer<typeof contextOptionSchema>;
+
+/**
+ * An artifact type the menu offers (`@Slides`): picked, the message asks
+ * for that kind. The host names it, translated.
+ */
+export const artifactOptionSchema = z.object({
+  kind: artifactKindSchema,
+  label: z.string().min(1),
+});
+export type ArtifactOption = z.infer<typeof artifactOptionSchema>;
+
+/**
+ * Chat or Code, the conversation's mode: in Chat, the menu leaves out what
+ * only Code can do. Left out, everything is offered.
+ */
+export const composerModeSchema = z.enum(["chat", "code"]);
+export type ComposerMode = z.infer<typeof composerModeSchema>;
 
 /**
  * A file in the chat's workspace, relative to its root (`src/app.ts`). The
@@ -93,14 +128,8 @@ export type WorkspacePath = z.infer<typeof workspacePathSchema>;
 export const composerCommandSchema = z.enum(["new-file", "open", "preview"]);
 export type ComposerCommand = z.infer<typeof composerCommandSchema>;
 
-/** Something `@` can mention. */
+/** A person `@` can mention, or a workspace file. */
 export const mentionCandidateSchema = z.discriminatedUnion("kind", [
-  z.object({
-    description: z.string().optional(),
-    id: libraryItemIdSchema,
-    kind: z.literal("agent"),
-    label: z.string().min(1),
-  }),
   z.object({
     description: z.string().optional(),
     id: userIdSchema,
@@ -120,20 +149,10 @@ export type MentionCandidate = z.infer<typeof mentionCandidateSchema>;
 export type FileCandidate = Extract<MentionCandidate, { kind: "file" }>;
 
 /**
- * A mention as it sits in the submitted text: `text.slice(start, end)` is
- * `@label`.
+ * A chip as it sits in the submitted text: `text.slice(start, end)` is
+ * `@label`. The same shape the message carries (`data-chips`).
  */
-export const mentionTokenSchema = z.discriminatedUnion("kind", [
-  mentionCandidateSchema.options[0]
-    .omit({ description: true })
-    .extend({ end: z.int().min(1), start: z.int().min(0) }),
-  mentionCandidateSchema.options[1]
-    .omit({ description: true })
-    .extend({ end: z.int().min(1), start: z.int().min(0) }),
-  mentionCandidateSchema.options[2]
-    .omit({ description: true })
-    .extend({ end: z.int().min(1), start: z.int().min(0) }),
-]);
+export const mentionTokenSchema = placedChipSchema;
 export type MentionToken = z.infer<typeof mentionTokenSchema>;
 
 // `File` exists in browsers and in Node 20+, but a guard keeps this module
@@ -179,9 +198,9 @@ export type AttachmentRejection = z.infer<typeof attachmentRejectionSchema>;
 /** What the composer submits. */
 export const composerValueSchema = z.object({
   attachments: z.array(composerAttachmentSchema),
-  /** In text order, non-overlapping. */
+  /** The chips in the text, in text order, non-overlapping. */
   mentions: z.array(mentionTokenSchema),
-  /** Skills picked for this message (127), in the order picked. */
+  /** The skill chips (127), once each, in text order. */
   skills: z.array(pickedSkillOptionSchema),
   /** The prompt template the text started from, if any. */
   templateId: libraryItemIdSchema.nullable(),

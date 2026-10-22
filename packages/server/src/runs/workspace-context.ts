@@ -1,3 +1,7 @@
+import {
+  type PlacedChip,
+  requestedArtifacts,
+} from "@workspace/ai/messages/chips";
 import type { WorkspaceFileRef } from "@workspace/ai/messages/workspace-file";
 import { FRAGMENTS } from "@workspace/ai/prompts/generated";
 import { fillPrompt } from "@workspace/ai/prompts/template";
@@ -100,4 +104,23 @@ export const workspaceContext = async (
   }
   const blocks = await resolveWorkspaceFiles(refs, read);
   return [parts.intro, ...blocks].join("\n\n");
+};
+
+/**
+ * What an artifact chip (`@Slides`) asks of the turn: one line per kind the
+ * message picked, naming the type `create_artifact` should make. `undefined`
+ * when it picked none. Pure.
+ */
+export const artifactRequests = (
+  chips: readonly PlacedChip[]
+): string | undefined => {
+  const lines = requestedArtifacts(chips).map((kind) =>
+    fillPrompt(parts.artifact, {
+      kind,
+      label:
+        chips.find((chip) => chip.kind === "artifact" && chip.artifact === kind)
+          ?.label ?? kind,
+    })
+  );
+  return lines.length > 0 ? lines.join("\n") : undefined;
 };

@@ -1,17 +1,11 @@
-import { agentItem, userAda } from "@workspace/contract/fixtures";
+import { userAda } from "@workspace/contract/fixtures";
 import { describe, expect, it } from "vitest";
 
 import { candidateKey, fileCandidate, mentionCandidates } from "./mentions";
 
 describe("mentionCandidates", () => {
-  it("lists agents then people, with a hint each", () => {
-    expect(mentionCandidates([agentItem], [userAda])).toEqual([
-      {
-        description: "Reviews diffs hunk by hunk.",
-        id: agentItem.id,
-        kind: "agent",
-        label: "Reviewer",
-      },
+  it("lists people with their email as the hint", () => {
+    expect(mentionCandidates([userAda])).toEqual([
       {
         description: "ada@example.test",
         id: userAda.id,
@@ -19,14 +13,6 @@ describe("mentionCandidates", () => {
         label: "Ada",
       },
     ]);
-  });
-
-  it("leaves out an empty hint", () => {
-    const [candidate] = mentionCandidates(
-      [{ ...agentItem, description: "" }],
-      []
-    );
-    expect(candidate?.description).toBeUndefined();
   });
 });
 
@@ -46,10 +32,9 @@ describe("fileCandidate", () => {
     expect(fileCandidate("src/").label).toBe("src/");
   });
 
-  it("lists files after agents and people, keyed by path", () => {
-    const candidates = mentionCandidates([agentItem], [userAda], ["a.ts"]);
+  it("lists files after people, keyed by path", () => {
+    const candidates = mentionCandidates([userAda], ["a.ts"]);
     expect(candidates.map(candidateKey)).toEqual([
-      `agent:${agentItem.id}`,
       `user:${userAda.id}`,
       "file:a.ts",
     ]);
