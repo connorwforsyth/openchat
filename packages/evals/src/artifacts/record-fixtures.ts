@@ -1,8 +1,8 @@
 #!/usr/bin/env bun
 /**
- * Turns a live run's failed trials into offline fixtures: each failure's
- * artifact tool calls, as the model made them, with what went wrong. The
- * replay test (`packages/ai/evals/artifacts/recorded-live.test.ts`) runs
+ * Turns a live run's failed trials, and those the tool refused a call in,
+ * into offline fixtures: each one's artifact tool calls as the model made
+ * them, with what went wrong. The replay test (`packages/ai/evals/artifacts/recorded-live.test.ts`) runs
  * them through `create_artifact` with no model, so a change to a kind's
  * checks shows against real model output.
  *
@@ -42,15 +42,28 @@ const trials: Trial[] = (
   )
 ).flat();
 
+const artifactCalls = (trial: Trial) =>
+  trial.observation.calls.filter((call) =>
+    (ARTIFACT_TOOLS as readonly string[]).includes(call.name)
+  );
+
+/** A call the tool refused: input that didn't parse, or content the checks didn't pass. */
+const refused = (trial: Trial) =>
+  artifactCalls(trial).some(
+    (call) =>
+      call.result === "error" ||
+      (call.output as { status?: unknown } | null)?.status === "invalid"
+  );
+
 const fixtures = trials
-  .filter((trial) => trial.verdict.category !== null)
+  .filter((trial) => trial.verdict.category !== null || refused(trial))
   .map((trial) => ({
-    calls: trial.observation.calls
-      .filter((call) =>
-        (ARTIFACT_TOOLS as readonly string[]).includes(call.name)
-      )
-      .map((call) => ({ input: call.input, name: call.name })),
-    category: trial.verdict.category,
+    calls: artifactCalls(trial).map((call) => ({
+      input: call.input,
+      name: call.name,
+    })),
+    // Rendered in the end, after the tool refused a call first.
+    category: trial.verdict.category ?? "retried",
     detail: trial.verdict.detail,
     id: trial.promptId,
     kind: trial.kind,
@@ -61,4 +74,4 @@ const fixtures = trials
   .toSorted((a, b) => a.id.localeCompare(b.id));
 
 await writeFile(values.to, `${JSON.stringify(fixtures, null, 2)}\n`);
-process.stdout.write(`${fixtures.length} failures recorded to ${values.to}\n`);
+process.stdout.write(`${fixtures.length} fixtures recorded to ${values.to}\n`);

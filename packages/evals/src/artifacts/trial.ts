@@ -14,6 +14,8 @@ export const failureCategorySchema = z.enum([
   "run_failed",
   /** The model answered in text and never called an artifact tool. */
   "no_tool_call",
+  /** It wrote the work to a workspace file (`write`/`edit`) instead of an artifact. */
+  "workspace_file",
   /** It called the tool with input that didn't parse (the call errored). */
   "tool_input_invalid",
   /** It saved an artifact, but not of the kind asked for. */
@@ -30,6 +32,7 @@ export const failureCategorySchema = z.enum([
 export type FailureCategory = z.infer<typeof failureCategorySchema>;
 
 export const ARTIFACT_TOOLS = ["create_artifact", "generate_image"] as const;
+const WORKSPACE_WRITES: readonly string[] = ["write", "edit"];
 
 export const observedCallSchema = z.object({
   input: z.unknown(),
@@ -161,6 +164,16 @@ export const classifyTrial = (
     return verdict(
       "run_failed",
       observation.runError ?? `run ${observation.runStatus}`
+    );
+  }
+  const wrote = observation.calls.find((call) =>
+    WORKSPACE_WRITES.includes(call.name)
+  );
+  if (wrote) {
+    const path = (wrote.input as { path?: unknown } | null)?.path;
+    return verdict(
+      "workspace_file",
+      `${wrote.name} ${typeof path === "string" ? path : ""}: ${observation.text.slice(0, 200)}`
     );
   }
   return verdict("no_tool_call", observation.text.slice(0, 300));

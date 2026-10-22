@@ -127,6 +127,21 @@ describe("classifyTrial", () => {
     });
   });
 
+  it("tells work saved as a workspace file from a plain answer", () => {
+    const write: ObservedCall = {
+      input: { content: "<html>", path: "/work/page.html" },
+      name: "write",
+      output: "ok",
+      result: "success",
+    };
+    expect(
+      classifyTrial("html", observation({ calls: [write], text: "Done." }))
+    ).toMatchObject({
+      category: "workspace_file",
+      detail: "write /work/page.html: Done.",
+    });
+  });
+
   it("ignores other tools and reports a failed run", () => {
     const guide: ObservedCall = {
       input: { type: "site" },
