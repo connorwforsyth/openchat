@@ -22,6 +22,17 @@ const boxSchema = z.object({
   y: z.number(),
 });
 
+/**
+ * What a slide-ui `Chart` carries on its figure as `data-slide-chart`: the
+ * data as drawn, which the PowerPoint export makes a native chart from.
+ */
+export const slideChartSchema = z.object({
+  labels: z.array(z.string()),
+  series: z.array(z.object({ name: z.string(), values: z.array(z.number()) })),
+  type: z.enum(["bar", "line", "pie"]),
+});
+export type SlideChart = z.infer<typeof slideChartSchema>;
+
 export const layoutItemSchema = z.discriminatedUnion("type", [
   boxSchema.extend({
     fill: layoutColorSchema.nullable(),
@@ -49,6 +60,15 @@ export const layoutItemSchema = z.discriminatedUnion("type", [
     src: z.string().startsWith("data:image/"),
     type: z.literal("image"),
   }),
+  boxSchema.extend({
+    chart: slideChartSchema,
+    /** The theme's chart colours (`--chart-1` on), one per series or slice. */
+    colors: z.array(layoutColorSchema).min(1),
+    /** The axis and legend text. */
+    fontSize: z.number().positive(),
+    labelColor: layoutColorSchema,
+    type: z.literal("chart"),
+  }),
 ]);
 export type LayoutItem = z.infer<typeof layoutItemSchema>;
 
@@ -57,6 +77,12 @@ export const slideLayoutSchema = z.object({
   /** Back to front, as the slide paints them. */
   items: z.array(layoutItemSchema),
   notes: z.string(),
+  /**
+   * The slide as the browser drew it, for the PDF, which shows this and
+   * keeps `items`' text as an invisible, selectable layer. `null` when the
+   * slide wasn't drawn (it failed) or the export doesn't need it.
+   */
+  picture: z.string().startsWith("data:image/").nullable(),
 });
 export type SlideLayout = z.infer<typeof slideLayoutSchema>;
 

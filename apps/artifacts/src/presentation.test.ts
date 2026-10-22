@@ -152,11 +152,21 @@ describe("withBackground", () => {
 
   it("makes a full-canvas box the slide's background", () => {
     expect(
-      withBackground({ background: null, items: [full], notes: "" })
-    ).toEqual({ background: fill, items: [], notes: "" });
+      withBackground({
+        background: null,
+        items: [full],
+        notes: "",
+        picture: null,
+      })
+    ).toEqual({ background: fill, items: [], notes: "", picture: null });
     const smaller = { ...full, w: 800 };
     expect(
-      withBackground({ background: null, items: [smaller], notes: "" }).items
+      withBackground({
+        background: null,
+        items: [smaller],
+        notes: "",
+        picture: null,
+      }).items
     ).toEqual([smaller]);
   });
 });

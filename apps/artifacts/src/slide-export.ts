@@ -32,7 +32,40 @@ const inches = (px: number): number =>
 const transparency = (color: LayoutColor): number =>
   Math.round((1 - color.a) * 100);
 
+export interface PptxChartSeries {
+  readonly labels: readonly string[];
+  readonly name: string;
+  readonly values: readonly number[];
+}
+
 export type PptxOp =
+  | {
+      readonly chartType: "bar" | "line" | "pie";
+      readonly data: readonly PptxChartSeries[];
+      readonly kind: "chart";
+      readonly options: {
+        readonly barDir?: "col";
+        readonly barGrouping?: "clustered";
+        readonly catAxisLabelColor: string;
+        readonly catAxisLabelFontSize: number;
+        readonly chartColors: readonly string[];
+        readonly dataLabelColor: string;
+        readonly dataLabelFontSize: number;
+        readonly h: number;
+        readonly legendColor: string;
+        readonly legendFontSize: number;
+        readonly legendPos: "b" | "r";
+        readonly lineDataSymbol?: "none";
+        readonly lineSize?: number;
+        readonly showLegend: boolean;
+        readonly showValue: boolean;
+        readonly valAxisHidden: boolean;
+        readonly valGridLine: { readonly style: "none" };
+        readonly w: number;
+        readonly x: number;
+        readonly y: number;
+      };
+    }
   | {
       readonly kind: "image";
       readonly options: {
@@ -87,8 +120,58 @@ const place = (item: LayoutItem) => ({
   y: inches(item.y),
 });
 
+const points = (px: number): number =>
+  Math.round(px * PPTX_PT_PER_PX * 10) / 10;
+
+/**
+ * A native chart: bars and lines one series per colour, a pie its first
+ * series one slice per colour, as slide-ui's `Chart` draws them.
+ */
+const pptxChart = (
+  item: Extract<LayoutItem, { type: "chart" }>
+): PptxOp | null => {
+  const { labels, series, type } = item.chart;
+  const data = (type === "pie" ? series.slice(0, 1) : series).map((each) => ({
+    labels,
+    name: each.name,
+    values: labels.map((_, at) => each.values[at] ?? 0),
+  }));
+  if (data.length === 0 || labels.length === 0) {
+    return null;
+  }
+  const colorCount = type === "pie" ? labels.length : data.length;
+  const label = hexOf(item.labelColor);
+  const fontSize = points(item.fontSize);
+  return {
+    chartType: type,
+    data,
+    kind: "chart",
+    options: {
+      ...place(item),
+      ...(type === "bar" ? { barDir: "col", barGrouping: "clustered" } : {}),
+      ...(type === "line" ? { lineDataSymbol: "none", lineSize: 4 } : {}),
+      catAxisLabelColor: label,
+      catAxisLabelFontSize: fontSize,
+      chartColors: Array.from({ length: colorCount }, (_, at) =>
+        hexOf(item.colors[at % item.colors.length] ?? item.labelColor)
+      ),
+      dataLabelColor: label,
+      dataLabelFontSize: fontSize,
+      legendColor: label,
+      legendFontSize: fontSize,
+      legendPos: type === "pie" ? "r" : "b",
+      showLegend: type === "pie" || data.length > 1,
+      showValue: type === "bar",
+      valAxisHidden: true,
+      valGridLine: { style: "none" },
+    },
+  };
+};
+
 const pptxOp = (item: LayoutItem): PptxOp | null => {
   switch (item.type) {
+    case "chart":
+      return pptxChart(item);
     case "image":
       // pptxgenjs takes base64 data without the `data:` scheme.
       return {
@@ -140,7 +223,7 @@ const pptxOp = (item: LayoutItem): PptxOp | null => {
                   ? { type: "number" }
                   : item.bullet === "bullet",
               color: hexOf(item.color),
-              fontSize: Math.round(item.fontSize * PPTX_PT_PER_PX * 10) / 10,
+              fontSize: points(item.fontSize),
               italic: item.italic,
               lineSpacingMultiple: item.lineHeight,
               margin: 0,
@@ -161,7 +244,6 @@ export const pptxOps = (slide: SlideLayout): readonly PptxOp[] =>
     return op ? [op] : [];
   });
 
-/** The deck as a `.pptx` file: native shapes, text boxes and pictures, with notes. */
 type Pptx = InstanceType<typeof import("pptxgenjs").default>;
 
 /** Replays one op onto a pptxgenjs slide. */
@@ -171,6 +253,17 @@ const drawPptx = (
   op: PptxOp
 ): void => {
   switch (op.kind) {
+    case "chart":
+      slide.addChart(
+        pptx.ChartType[op.chartType],
+        op.data.map((each) => ({
+          ...each,
+          labels: [...each.labels],
+          values: [...each.values],
+        })),
+        { ...op.options, chartColors: [...op.options.chartColors] }
+      );
+      return;
     case "image":
       slide.addImage({ ...op.options });
       return;
@@ -196,6 +289,7 @@ const drawPptx = (
   }
 };
 
+/** The deck as a `.pptx` file: native shapes, text boxes, charts and pictures, with notes. */
 export const writePptx = async (deck: DeckLayout): Promise<Uint8Array> => {
   const { default: PptxGenJS } = await import("pptxgenjs");
   const pptx = new PptxGenJS();
@@ -250,6 +344,8 @@ export type PdfOp =
       readonly fontSize: number;
       readonly kind: "text";
       readonly lineHeight: number;
+      /** `invisible` over a picture of the slide: there to select and search. */
+      readonly mode: "fill" | "invisible";
       readonly text: string;
       readonly w: number;
       readonly x: number;
@@ -262,8 +358,12 @@ const IMAGE_FORMAT = /^data:image\/([a-z]+)[;,]/;
 
 const MARKERS = { bullet: "• ", none: "", number: "" } as const;
 
-const pdfOp = (item: LayoutItem): PdfOp | null => {
+const pdfOp = (item: LayoutItem, mode: "fill" | "invisible"): PdfOp | null => {
   switch (item.type) {
+    case "chart":
+      // Charts reach the PDF in the slide's picture; a slide drawn as
+      // vectors is a failed one, which has none.
+      return null;
     case "image":
       return {
         format: (IMAGE_FORMAT.exec(item.src)?.[1] ?? "png").toUpperCase(),
@@ -302,6 +402,7 @@ const pdfOp = (item: LayoutItem): PdfOp | null => {
         fontSize: pt(item.fontSize),
         kind: "text",
         lineHeight: item.lineHeight,
+        mode,
         text: `${MARKERS[item.bullet]}${item.text}`,
         w: pt(item.w),
         x: pt(item.x),
@@ -313,12 +414,49 @@ const pdfOp = (item: LayoutItem): PdfOp | null => {
   }
 };
 
-/** What a PDF page draws for one slide, in points, back to front. Pure. */
-export const pdfOps = (slide: SlideLayout): readonly PdfOp[] =>
-  slide.items.flatMap((item) => {
-    const op = pdfOp(item);
-    return op ? [op] : [];
-  });
+const PAGE = { h: pt(SLIDE_SIZE.height), w: pt(SLIDE_SIZE.width) } as const;
+
+/**
+ * What a PDF page draws for one slide, in points, back to front. Pure. A
+ * slide with a picture is that picture, full bleed, under its text drawn
+ * invisibly, so the page looks exactly as the slide did and its words
+ * still select and search; one without is drawn from its items.
+ */
+export const pdfOps = (slide: SlideLayout): readonly PdfOp[] => {
+  const page = { ...PAGE, x: 0, y: 0 };
+  if (slide.picture) {
+    return [
+      {
+        ...page,
+        format: (IMAGE_FORMAT.exec(slide.picture)?.[1] ?? "png").toUpperCase(),
+        kind: "image",
+        src: slide.picture,
+      },
+      ...slide.items.flatMap((item) => {
+        const op = item.type === "text" ? pdfOp(item, "invisible") : null;
+        return op ? [op] : [];
+      }),
+    ];
+  }
+  const background: readonly PdfOp[] = slide.background
+    ? [
+        {
+          ...page,
+          fill: slide.background,
+          kind: "shape",
+          line: null,
+          radius: 0,
+        },
+      ]
+    : [];
+  return [
+    ...background,
+    ...slide.items.flatMap((item) => {
+      const op = pdfOp(item, "fill");
+      return op ? [op] : [];
+    }),
+  ];
+};
 
 type Pdf = InstanceType<typeof import("jspdf").jsPDF>;
 
@@ -352,6 +490,7 @@ const drawPdfText = (pdf: Pdf, op: Extract<PdfOp, { kind: "text" }>): void => {
     align: op.align,
     baseline: "top",
     lineHeightFactor: op.lineHeight,
+    renderingMode: op.mode,
   });
 };
 
@@ -359,7 +498,16 @@ const drawPdfText = (pdf: Pdf, op: Extract<PdfOp, { kind: "text" }>): void => {
 const drawPdf = (pdf: Pdf, op: PdfOp): void => {
   switch (op.kind) {
     case "image":
-      pdf.addImage(op.src, op.format, op.x, op.y, op.w, op.h);
+      pdf.addImage(
+        op.src,
+        op.format,
+        op.x,
+        op.y,
+        op.w,
+        op.h,
+        undefined,
+        "FAST"
+      );
       return;
     case "shape":
       drawPdfShape(pdf, op);
@@ -375,17 +523,12 @@ const drawPdf = (pdf: Pdf, op: PdfOp): void => {
 /** The deck as a PDF: one 1920×1080 page (in points, 1440×810) a slide. */
 export const writePdf = async (deck: DeckLayout): Promise<Uint8Array> => {
   const { jsPDF: JsPdf } = await import("jspdf");
-  const size: [number, number] = [pt(SLIDE_SIZE.width), pt(SLIDE_SIZE.height)];
+  const size: [number, number] = [PAGE.w, PAGE.h];
   const pdf = new JsPdf({ format: size, orientation: "landscape", unit: "pt" });
   pdf.setProperties({ title: deck.title });
   deck.slides.forEach((layout, index) => {
     if (index > 0) {
       pdf.addPage(size, "landscape");
-    }
-    if (layout.background) {
-      const { b, g, r } = layout.background;
-      pdf.setFillColor(r, g, b);
-      pdf.rect(0, 0, size[0], size[1], "F");
     }
     for (const op of pdfOps(layout)) {
       drawPdf(pdf, op);
