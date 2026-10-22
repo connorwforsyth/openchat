@@ -7,6 +7,7 @@ import {
   CircleAlertIcon,
   DownloadIcon,
   FileTextIcon,
+  MonitorIcon,
   PlayIcon,
   RefreshCwIcon,
   XIcon,
@@ -23,6 +24,7 @@ import {
   useCallback,
   useEffect,
   useEffectEvent,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -30,6 +32,12 @@ import {
 import { artifactFileName } from "../model/artifacts";
 import { useDocumentTheme, useParentOrigin } from "./artifact-preview";
 import { downloadFile } from "./document/export";
+import {
+  type PresenterMessage,
+  presenterChannelName,
+  presenterMessageSchema,
+  presenterPath,
+} from "./presenter";
 import {
   type ExportFormat,
   type FrameMessage,
@@ -100,7 +108,7 @@ export const deckProblem = (
 /** The presenter's keys, as the action each one is. */
 export const presentKeyAction = (
   key: string
-): PresentAction | "close" | "notes" | null => {
+): PresentAction | "close" | "notes" | "presenter" | null => {
   switch (key) {
     case "ArrowRight":
     case "ArrowDown":
@@ -122,6 +130,9 @@ export const presentKeyAction = (
     case "n":
     case "N":
       return "notes";
+    case "p":
+    case "P":
+      return "presenter";
     default:
       return null;
   }
@@ -180,6 +191,92 @@ const useReadyTimeout = (
   return timedOut;
 };
 
+/**
+ * The panel's side of the presenter window: a session channel that sends
+ * the deck and each position, and takes the window's commands.
+ */
+const usePresenterSession = ({
+  content,
+  onCommand,
+  position,
+  presenting,
+  startedAt,
+  title,
+}: {
+  readonly content: string;
+  readonly onCommand: (action: PresentAction) => void;
+  readonly position: Position | null;
+  readonly presenting: boolean;
+  readonly startedAt: number;
+  readonly title: string;
+}) => {
+  const [session] = useState(() => crypto.randomUUID());
+  const channelRef = useRef<BroadcastChannel | null>(null);
+  const tell = useCallback((message: PresenterMessage) => {
+    channelRef.current?.postMessage(message);
+  }, []);
+  const deck = useEffectEvent(() =>
+    tell({ content, startedAt, title, type: "deck" })
+  );
+  const where = useEffectEvent(() => {
+    if (position) {
+      tell({
+        notes: position.notes,
+        slide: position.slide,
+        slides: position.slides,
+        step: position.step,
+        type: "position",
+      });
+    }
+  });
+  const command = useEffectEvent(onCommand);
+
+  useEffect(() => {
+    const channel = new BroadcastChannel(presenterChannelName(session));
+    channelRef.current = channel;
+    channel.onmessage = (event: MessageEvent) => {
+      const parsed = presenterMessageSchema.safeParse(event.data);
+      if (!parsed.success) {
+        return;
+      }
+      if (parsed.data.type === "hello") {
+        deck();
+        where();
+      } else if (parsed.data.type === "command") {
+        command(parsed.data.action);
+      }
+    };
+    return () => {
+      channel.close();
+      channelRef.current = null;
+    };
+  }, [session]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: these are the triggers; `deck` reads them.
+  useEffect(() => deck(), [content, startedAt, title]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: as above, for `where`.
+  useEffect(() => where(), [position]);
+  useEffect(() => {
+    if (!presenting) {
+      tell({ type: "ended" });
+    }
+  }, [presenting, tell]);
+
+  const opened = useRef<Window | null>(null);
+  const open = useCallback(() => {
+    opened.current = window.open(
+      presenterPath(session),
+      `presenter-${session}`,
+      "popup,width=1280,height=800"
+    );
+  }, [session]);
+  const isOpen = useCallback(
+    () => opened.current !== null && !opened.current.closed,
+    []
+  );
+  return useMemo(() => ({ isOpen, open }), [isOpen, open]);
+};
+
 export function PresentationPreview({
   content,
   post = postToFrame,
@@ -198,6 +295,7 @@ export function PresentationPreview({
   const [position, setPosition] = useState<Position | null>(null);
   const [presenting, setPresenting] = useState(false);
   const [notesOpen, setNotesOpen] = useState(true);
+  const [startedAt, setStartedAt] = useState(() => Date.now());
   const [exporting, setExporting] = useState<ExportFormat | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
   const theme = useDocumentTheme();
@@ -250,6 +348,7 @@ export function PresentationPreview({
 
   const start = useCallback(() => {
     setPresenting(true);
+    setStartedAt(Date.now());
     present("enter");
     present("first");
     // Full screen where the browser allows it; the overlay covers the
@@ -264,6 +363,21 @@ export function PresentationPreview({
       document.exitFullscreen().catch(() => undefined);
     }
   }, [present]);
+
+  const presenterWindow = usePresenterSession({
+    content,
+    onCommand: (action) => {
+      if (action === "exit") {
+        stop();
+      } else {
+        present(action);
+      }
+    },
+    position,
+    presenting,
+    startedAt,
+    title,
+  });
 
   const exportAs = useCallback(
     (format: ExportFormat) => {
@@ -352,6 +466,8 @@ export function PresentationPreview({
       stop();
     } else if (action === "notes") {
       setNotesOpen((open) => !open);
+    } else if (action === "presenter") {
+      presenterWindow.open();
     } else {
       present(action);
     }
@@ -362,9 +478,11 @@ export function PresentationPreview({
       return;
     }
     const listener = (event: KeyboardEvent) => onKey(event);
-    // Leaving full screen with the browser's own Escape ends presenting too.
+    // Leaving full screen with the browser's own Escape ends presenting
+    // too, unless a presenter window is open: the browser leaves full
+    // screen when one opens, and the talk goes on.
     const onFullscreen = () => {
-      if (!document.fullscreenElement) {
+      if (!(document.fullscreenElement || presenterWindow.isOpen())) {
         setPresenting(false);
         present("exit");
       }
@@ -375,7 +493,7 @@ export function PresentationPreview({
       window.removeEventListener("keydown", listener);
       document.removeEventListener("fullscreenchange", onFullscreen);
     };
-  }, [present, presenting]);
+  }, [present, presenterWindow, presenting]);
 
   const timedOut = useReadyTimeout(ready, runtimeOrigin, attempt);
 
@@ -465,6 +583,7 @@ export function PresentationPreview({
             notesOpen={notesOpen}
             onExit={stop}
             onNext={next}
+            onPresenter={presenterWindow.open}
             onPrevious={previous}
             onToggleNotes={toggleNotes}
             slide={slide}
@@ -542,6 +661,7 @@ function PresenterBar({
   notesOpen,
   onExit,
   onNext,
+  onPresenter,
   onPrevious,
   onToggleNotes,
   slide,
@@ -551,6 +671,7 @@ function PresenterBar({
   readonly notesOpen: boolean;
   readonly onExit: () => void;
   readonly onNext: () => void;
+  readonly onPresenter: () => void;
   readonly onPrevious: () => void;
   readonly onToggleNotes: () => void;
   readonly slide: number;
@@ -601,6 +722,10 @@ function PresenterBar({
         >
           <FileTextIcon aria-hidden />
           <Trans>Notes</Trans>
+        </Button>
+        <Button onClick={onPresenter} size="sm" variant="ghost">
+          <MonitorIcon aria-hidden />
+          <Trans>Presenter view</Trans>
         </Button>
         <Button onClick={onExit} size="sm" variant="ghost">
           <XIcon aria-hidden />
