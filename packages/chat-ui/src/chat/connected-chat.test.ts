@@ -3,6 +3,7 @@ import type { UIMessage } from "ai";
 import { describe, expect, it } from "vitest";
 
 import {
+  editedOutgoing,
   outgoingMessage,
   restoredUnchecked,
   runFailure,
@@ -73,6 +74,46 @@ describe("outgoingMessage with skills (127)", () => {
     const message = { id: "m", parts: sent.parts, role: "user" } as UIMessage;
     expect(userParts(message)).toEqual([{ text: "a poem", type: "text" }]);
     expect(pickedSkills(message)).toEqual([{ id }]);
+  });
+});
+
+describe("chips", () => {
+  const skill = "11111111-1111-4111-8111-111111111111" as never;
+  const versionId = "22222222-2222-4222-8222-222222222222" as never;
+  const chips = [
+    { end: 6, id: skill, kind: "skill", label: "Haiku", start: 0, versionId },
+    { end: 19, kind: "file", label: "a.md", path: "docs/a.md", start: 14 },
+  ] as const;
+
+  it("go as a stored data-chips part, with a draft skill's version", () => {
+    const sent = outgoingMessage("@Haiku about @a.md", {
+      chips: [...chips],
+      files: [],
+      skills: [{ id: skill, name: "Haiku", versionId }],
+      workspaceFiles: [],
+    });
+    if (!("parts" in sent)) {
+      throw new Error("expected parts");
+    }
+    const message = { id: "m", parts: sent.parts, role: "user" } as UIMessage;
+    expect(userParts(message)).toContainEqual({
+      data: { chips },
+      name: "chips",
+      type: "data",
+    });
+    expect(pickedSkills(message)).toEqual([{ id: skill, versionId }]);
+  });
+
+  it("are kept through an edit when their @label is still there", () => {
+    const parts = [
+      { data: { chips: [...chips] }, name: "chips", type: "data" as const },
+    ];
+    expect(editedOutgoing("now @Haiku only", parts)).toEqual({
+      chips: [{ ...chips[0], end: 10, start: 4 }],
+      files: [],
+      skills: [{ id: skill, name: "Haiku", versionId }],
+      workspaceFiles: [],
+    });
   });
 });
 
