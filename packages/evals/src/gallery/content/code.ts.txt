@@ -1,0 +1,116 @@
+// bake-schedule.ts
+// Turns tomorrow's orders into a mixing schedule for the bake floor:
+// how much dough each product needs, how many mixes that is, and when each
+// mix has to start so every loaf is out of the oven before its delivery run.
+
+export interface Product {
+  readonly id: string;
+  readonly name: string;
+  /** Dough per piece before baking, in kilograms. */
+  readonly doughKg: number;
+  /** Minutes from the end of mixing to the oven: bulk, shaping and proof. */
+  readonly leadMinutes: number;
+  readonly bakeMinutes: number;
+}
+
+export interface Order {
+  readonly productId: string;
+  readonly quantity: number;
+  /** When the van leaves, as minutes after midnight (6:15 am is 375). */
+  readonly departsAt: number;
+}
+
+export interface Mix {
+  readonly product: string;
+  readonly doughKg: number;
+  readonly startAt: string;
+  readonly ovenAt: string;
+  readonly readyAt: string;
+}
+
+/** The spiral mixer's working capacity. Over this it doesn't develop the gluten. */
+const MIXER_CAPACITY_KG = 24;
+const MIX_MINUTES = 12;
+/** Loaves need to cool before they're bagged and loaded. */
+const COOLING_MINUTES = 30;
+
+const clock = (minutes: number): string => {
+  const wrapped = ((minutes % 1440) + 1440) % 1440;
+  const hours = Math.floor(wrapped / 60);
+  const mins = Math.round(wrapped % 60);
+  return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
+};
+
+/**
+ * Plans the mixes for `orders`. Each product is mixed in as few batches as
+ * the mixer allows, and every batch is timed back from the earliest van that
+ * needs it. Batches never overlap on the mixer: a later one waits its turn.
+ */
+export const planMixes = (
+  products: readonly Product[],
+  orders: readonly Order[]
+): readonly Mix[] => {
+  const byId = new Map(products.map((product) => [product.id, product]));
+  const needs = new Map<string, { quantity: number; departsAt: number }>();
+
+  for (const order of orders) {
+    const current = needs.get(order.productId);
+    needs.set(order.productId, {
+      quantity: (current?.quantity ?? 0) + order.quantity,
+      departsAt: Math.min(current?.departsAt ?? Infinity, order.departsAt),
+    });
+  }
+
+  const batches = [...needs.entries()].flatMap(([productId, need]) => {
+    const product = byId.get(productId);
+    if (!product) {
+      throw new Error(`No product called "${productId}"`);
+    }
+    const totalKg = need.quantity * product.doughKg;
+    const count = Math.ceil(totalKg / MIXER_CAPACITY_KG);
+    const latestEnd =
+      need.departsAt - COOLING_MINUTES - product.bakeMinutes - product.leadMinutes;
+    return Array.from({ length: count }, (_, index) => ({
+      product,
+      doughKg: Math.min(MIXER_CAPACITY_KG, totalKg - index * MIXER_CAPACITY_KG),
+      latestStart: latestEnd - MIX_MINUTES,
+    }));
+  });
+
+  // Schedule backwards from the latest batch so the mixer is never double-booked.
+  batches.sort((a, b) => b.latestStart - a.latestStart);
+  let mixerFreeFrom = Infinity;
+  const planned = batches.map((batch) => {
+    const start = Math.min(batch.latestStart, mixerFreeFrom - MIX_MINUTES);
+    mixerFreeFrom = start;
+    const oven = start + MIX_MINUTES + batch.product.leadMinutes;
+    return {
+      product: batch.product.name,
+      doughKg: Math.round(batch.doughKg * 10) / 10,
+      startAt: clock(start),
+      ovenAt: clock(oven),
+      readyAt: clock(oven + batch.product.bakeMinutes + COOLING_MINUTES),
+      sortKey: start,
+    };
+  });
+
+  return planned
+    .sort((a, b) => a.sortKey - b.sortKey)
+    .map(({ sortKey: _sortKey, ...mix }) => mix);
+};
+
+// Tomorrow at Northcote: two van runs and the shop's own shelves.
+const products: Product[] = [
+  { id: "country", name: "Country loaf", doughKg: 0.95, leadMinutes: 150, bakeMinutes: 38 },
+  { id: "baguette", name: "Baguette", doughKg: 0.35, leadMinutes: 120, bakeMinutes: 22 },
+  { id: "rye", name: "Seeded rye", doughKg: 1.0, leadMinutes: 180, bakeMinutes: 55 },
+];
+
+const orders: Order[] = [
+  { productId: "country", quantity: 60, departsAt: 375 },
+  { productId: "country", quantity: 40, departsAt: 420 },
+  { productId: "baguette", quantity: 90, departsAt: 375 },
+  { productId: "rye", quantity: 24, departsAt: 420 },
+];
+
+console.table(planMixes(products, orders));

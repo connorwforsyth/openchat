@@ -4,10 +4,11 @@ import {
   conversationIdSchema,
   messageIdSchema,
   pageInputSchema,
+  runIdSchema,
   timestampSchema,
   userIdSchema,
 } from "./common";
-import { runTargetSchema } from "./runs";
+import { runStatusSchema, runTargetSchema } from "./runs";
 import { conversationScheduleSchema } from "./schedules";
 import {
   chatContextSchema,
@@ -122,3 +123,42 @@ export const participantSchema = z.object({
   user: userSummarySchema,
 });
 export type Participant = z.infer<typeof participantSchema>;
+
+/**
+ * One event on a conversation's live channel (D25,
+ * `GET /conversations/{id}/events`): what another participant did, so an
+ * open chat catches up without a reload. Events are hints, not a log: a
+ * client refetches the branch or follows the run they name, and on
+ * reconnect it refetches rather than replaying.
+ *
+ * - `message`: a message was stored (a person's turn, or a finished answer).
+ * - `run`: a run was created or changed status; `running` is the cue to
+ *   follow its stream (`GET /runs/{id}/stream`).
+ * - `presence`: everyone with the chat open now, the caller included.
+ * - `typing`: a participant is writing a message; it lapses after a few
+ *   seconds without another.
+ */
+export const conversationEventSchema = z.discriminatedUnion("type", [
+  z.object({
+    authorId: userIdSchema.nullable(),
+    messageId: messageIdSchema,
+    type: z.literal("message"),
+  }),
+  z.object({
+    runId: runIdSchema,
+    status: runStatusSchema,
+    type: z.literal("run"),
+  }),
+  z.object({
+    type: z.literal("presence"),
+    users: z.array(userSummarySchema),
+  }),
+  z.object({
+    type: z.literal("typing"),
+    user: userSummarySchema,
+  }),
+]);
+export type ConversationEvent = z.infer<typeof conversationEventSchema>;
+
+/** How long a `typing` event holds before it lapses, in milliseconds. */
+export const TYPING_TTL_MS = 5000;

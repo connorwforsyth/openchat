@@ -1,6 +1,7 @@
 "use client";
 
 import { Trans, useLingui } from "@lingui/react/macro";
+import { chipsOf } from "@workspace/ai/messages/chips";
 import type {
   Message,
   SiblingInfo,
@@ -49,6 +50,7 @@ import type { AnswerPhase } from "../model/run-activity";
 import { useConversationActions } from "./actions";
 import { useRunActivity } from "./approval-state";
 import { ArtifactCard } from "./artifact-card";
+import { ChipText } from "./chip-text";
 import { FeedbackButtons, type MessageFeedback } from "./feedback";
 import { FileParts } from "./file-parts";
 import { LazyReasoning } from "./lazy";
@@ -301,6 +303,7 @@ function UserMessage({
   const { onEdit, onSelectBranch } = useConversationActions();
   const [editing, setEditing] = useState(false);
   const text = messageText(message);
+  const chips = useMemo(() => chipsOf(message.parts), [message.parts]);
   const view = useMemo(
     () => messageView(message.parts, new Map()),
     [message.parts]
@@ -345,7 +348,11 @@ function UserMessage({
             {text ? (
               <Bubble align="end" variant="muted">
                 <BubbleContent className="whitespace-pre-wrap px-4 py-2.5 text-[15px]">
-                  {text}
+                  {chips.length > 0 ? (
+                    <ChipText chips={chips} text={text} />
+                  ) : (
+                    text
+                  )}
                 </BubbleContent>
               </Bubble>
             ) : null}

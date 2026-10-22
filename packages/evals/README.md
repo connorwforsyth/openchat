@@ -246,3 +246,35 @@ specs:
   instructions, or the conversation, the server sent it. This is how a case
   checks what reached the model (memory, mentions, the branch) without
   reading server internals.
+
+## Live artifact eval
+
+`src/artifacts/` measures each artifact kind against a running app, the way
+a person meets it: ten realistic prompts per kind (`prompts.ts`), sent to
+the app's real artifact path (system prompt, kind guides, `create_artifact`
+and its checks), the artifact approved as a person would, then drawn in the
+chat's side panel in headless Chromium and screenshotted (`render.ts`). It
+runs one trial at a time and needs a booted app and a signed-up account
+(`session.ts` signs in as `demo@dots.local`).
+
+```sh
+bun run eval:artifacts:live --kind presentation --kind site       # prints the plan, calls nothing
+bun run eval:artifacts:live --kind presentation --yes --model anthropic:claude-haiku-5-5 \
+  --base-url http://localhost:3101 --out .evals/artifacts-live
+bun packages/evals/src/artifacts/render-check.ts --chat <id>      # the renderer's verdicts on a known-good chat
+bun packages/evals/src/artifacts/record-fixtures.ts --from .evals/artifacts-live
+bun packages/evals/src/artifacts/report.ts --dir .evals/artifacts-live  # rebuild reports, no model calls
+bun packages/evals/src/gallery/seed.ts --database-url <url>       # one polished example of every kind
+```
+
+Per trial it records whether the model called the tool, whether the input
+parsed, whether the kind's checks passed (after any retries), whether the
+renderer drew it, the time from sending to the saved artifact and to the
+drawing, and the first stage it fell out at (`trial.ts`: `run_failed`,
+`no_tool_call`, `tool_input_invalid`, `wrong_kind`, `schema_invalid`,
+`unavailable`, `render_error`, `render_timeout`). It writes `<kind>.json`,
+`<kind>.md`, `summary.md` and `screenshots/`, and with `--spend-log <tsv>`
+appends its model calls per kind. `--yes` needs `--model` (the chats' model; the instance default may be a
+paid one) and refuses more than `--max-trials` trials, 20 unless raised. Failures become offline fixtures with
+`record-fixtures.ts`; `packages/ai/evals/artifacts/recorded-live.test.ts`
+replays them through `create_artifact` with no model.

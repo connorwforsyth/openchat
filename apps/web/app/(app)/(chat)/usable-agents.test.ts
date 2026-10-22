@@ -29,9 +29,12 @@ describe("usableAgents", () => {
     ]);
     expect(agents.map((agent) => [agent.name, agent.source])).toEqual([
       ["Agent 1", "mine"],
+      // Never published: the person's own draft.
+      ["Agent 2", "mine"],
       ["Agent 3", "shared"],
       ["Agent 4", "libraries"],
     ]);
+    expect(agents[1]?.draftVersion).toBe(agentItem.draftVersionId);
     expect(owners.get(fixtureId("libraryItem", 4))).toEqual(team);
   });
 });
