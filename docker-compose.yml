@@ -9,10 +9,13 @@ services:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
+      secrets: [ca, npmrc]
       # Icons and fonts are compiled in from app.config.yaml's `icons` and
       # `fonts` blocks: edit it, then `docker compose up -d --build`
       # (docs/self-hosting.md). Nothing about them goes in .env.
     image: openchat-web
+    # A local image: never look for it on Docker Hub.
+    pull_policy: build
     restart: unless-stopped
     depends_on:
       postgres:
@@ -101,6 +104,7 @@ services:
     build:
       context: .
       dockerfile: apps/sandbox-runner/Dockerfile
+      secrets: [ca, npmrc]
     profiles: [sandbox]
     restart: unless-stopped
     depends_on: [docker-socket-proxy]
@@ -130,6 +134,7 @@ services:
     build:
       context: apps/sandbox-runner/desktop
     image: sandbox-desktop:latest
+    pull_policy: build
     profiles: [sandbox-desktop-build]
 
   # Artifact previews (PLAN.md D24): `docker compose --profile artifacts up -d`,
@@ -139,6 +144,7 @@ services:
     build:
       context: .
       dockerfile: apps/artifacts/Dockerfile
+      secrets: [ca, npmrc]
     profiles: [artifacts]
     restart: unless-stopped
     environment:
@@ -192,6 +198,16 @@ configs:
       use_default_settings: true
       search:
         formats: [html, json]
+
+# Build secrets for a corporate network (docs/self-hosting.md): the text of
+# a root CA that intercepts TLS, and of an .npmrc for a package mirror.
+# Unset, the builds behave as without them. They come from variables, not
+# files, because a build may read only files inside this directory.
+secrets:
+  ca:
+    environment: BUILD_CA_PEM
+  npmrc:
+    environment: BUILD_NPMRC
 
 volumes:
   postgres-data:

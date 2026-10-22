@@ -20,7 +20,14 @@ WORKDIR /repo
 COPY . .
 # Scripts are skipped: git hooks have no place in an image, and the Lingui
 # catalogs and the icon set are turbo tasks the build runs itself.
-RUN bun install --frozen-lockfile --ignore-scripts
+# On a corporate network, a root CA and a mirror's .npmrc can come in as
+# build secrets (docs/self-hosting.md), which never land in a layer. bun
+# warns when NODE_EXTRA_CA_CERTS names an empty or missing file, so it's set
+# only when the CA has content.
+RUN --mount=type=secret,id=ca,required=false \
+    --mount=type=secret,id=npmrc,target=/root/.npmrc,required=false \
+    if [ -s /run/secrets/ca ]; then export NODE_EXTRA_CA_CERTS=/run/secrets/ca; fi && \
+    bun install --frozen-lockfile --ignore-scripts
 # The icon set (D19) and the fonts (129) are compiled in from the `icons`
 # and `fonts` blocks of an app.config.yaml in the build context:
 # apps/web/app.config.yaml, else the repo root's (the one `bun run setup`

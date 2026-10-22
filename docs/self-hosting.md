@@ -71,6 +71,79 @@ rather than failing the start. Models come from `app.config.yaml` (copy
 proxy (Caddy, nginx, Traefik) in front and set `BETTER_AUTH_URL` to the
 public origin.
 
+### On a corporate network
+
+Building the images pulls base images from Docker Hub (`docker/dockerfile`,
+`oven/bun`, `node`, and `pgvector/pgvector` to run) and about 1,600 packages
+from `registry.npmjs.org`. A company network can block either. Each check
+below names a symptom and its fix.
+
+1. **`pull access denied` for the `web` image.** Not the problem on its own.
+   Older checkouts asked Docker Hub for the locally built image first. The
+   real error is the build failure after it.
+2. **`lockfile had changes, but lockfile is frozen`.** Your checkout's
+   `bun.lock` differs from the repo's. `git status bun.lock` shows it, and
+   `git checkout bun.lock` restores it. A `bun install` on the host with a
+   different registry or bun version can rewrite it.
+3. **`UNABLE_TO_VERIFY_LEAF_SIGNATURE`, `SELF_SIGNED_CERT_IN_CHAIN` or
+   `UNABLE_TO_GET_ISSUER_CERT_LOCALLY` in `bun install`.** A proxy is
+   re-signing HTTPS with the company's root CA. Your laptop trusts it and the
+   build doesn't. To confirm, look at who issued the registry's certificate:
+
+   ```sh
+   openssl s_client -connect registry.npmjs.org:443 -servername registry.npmjs.org </dev/null 2>/dev/null \
+     | openssl x509 -noout -issuer
+   ```
+
+   A company name instead of a public CA means interception. Export that
+   root CA as PEM (on macOS, find its name in Keychain Access) and pass its
+   text in `BUILD_CA_PEM`:
+
+   ```sh
+   security find-certificate -p -c "<CA name>" > ~/corporate-ca.pem
+   BUILD_CA_PEM="$(cat ~/corporate-ca.pem)" docker compose up -d --build
+   ```
+
+   It's a build secret: `bun install` trusts it, and it isn't stored in the
+   image. To keep it set, export it from your shell profile.
+4. **A company npm mirror.** `npm config get registry` prints something other
+   than `https://registry.npmjs.org/`. Pass your `.npmrc` as a build secret
+   too. If it reads a token from a variable (`${NPM_TOKEN}`), put the value
+   in, since the build can't see your shell's variables, and drop any
+   `cafile=` line in favour of `BUILD_CA_PEM`:
+
+   ```sh
+   BUILD_NPMRC="$(cat ~/.npmrc)" BUILD_CA_PEM="$(cat ~/corporate-ca.pem)" \
+     docker compose up -d --build
+   ```
+
+   Set both in the shell, not in `.env`. `.env` is also the `web`
+   container's environment, and a token doesn't belong there.
+5. **`failed to resolve source metadata` or `toomanyrequests` before the
+   build starts.** Docker Hub is blocked or rate limited. Test with
+   `docker pull node:24-bookworm-slim`. Point Docker at your company's
+   registry mirror (`registry-mirrors` in Docker Desktop's Docker Engine
+   settings), or sign in with `docker login`.
+
+An outbound proxy goes in Docker Desktop (Settings › Resources › Proxies) or
+`~/.docker/config.json` under `proxies`, and Docker hands it to every build
+and container. Put the compose services in `NO_PROXY`
+(`localhost,127.0.0.1,postgres,sandbox-runner,searxng,artifacts`) so they
+still reach each other.
+
+The running `web` server needs the CA as well to reach model providers
+through the same proxy. Mount it and point Node at it in
+`docker-compose.override.yml`:
+
+```yaml
+services:
+  web:
+    environment:
+      NODE_EXTRA_CA_CERTS: /etc/ssl/certs/corporate-ca.pem
+    volumes:
+      - ~/corporate-ca.pem:/etc/ssl/certs/corporate-ca.pem:ro
+```
+
 ### Behind a proxy
 
 Sign-in and sign-up are rate limited per client address, and each session
