@@ -38,6 +38,7 @@ import { z } from "zod";
 import { actorFor } from "../context";
 import { enqueueJob, type JobHandlers, type Jobs } from "../jobs/registry";
 import type { JobQueue } from "../ports/job-queue";
+import { fillAgentInstructions } from "../runs/agent-instructions";
 import { chargedBy, storeContext } from "../runs/chat-context";
 import type { ModelLoader } from "../runs/turn";
 
@@ -329,6 +330,16 @@ export const createEvalJobHandlers = (deps: EvalJobDeps): JobHandlers => {
     signal: AbortSignal
   ) => {
     const cases = await listEvalCases(db, run.datasetId);
+    // Filled once per run, as a chat fills them once per turn.
+    const agent = {
+      ...definition,
+      instructions: await fillAgentInstructions(
+        db,
+        userId,
+        definition.instructions,
+        now
+      ),
+    };
     let passed = 0;
     for (const item of cases) {
       if (signal.aborted) {
@@ -357,12 +368,7 @@ export const createEvalJobHandlers = (deps: EvalJobDeps): JobHandlers => {
       if (!loaded.ok) {
         return fail(run, loaded.error.message);
       }
-      const reply = await answer(
-        definition,
-        loaded.value.model,
-        input.data,
-        signal
-      );
+      const reply = await answer(agent, loaded.value.model, input.data, signal);
       if (reply.ok) {
         await recordUsage(
           userId,
