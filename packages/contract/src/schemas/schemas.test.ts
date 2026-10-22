@@ -134,6 +134,20 @@ const cases: Record<string, Cases> = {
     invalid: ["2026-09-26", "yesterday", 0],
     valid: [t, "2026-09-26T09:00:00+10:00"],
   },
+  "conversations.conversationEventSchema": {
+    invalid: [
+      { status: "done", type: "run" },
+      { type: "typing", user: { id: uid } },
+      { type: "joined" },
+    ],
+    valid: [
+      { authorId: uid, messageId: msgId, type: "message" },
+      { authorId: null, messageId: msgId, type: "message" },
+      { runId: runAwaitingApproval.id, status: "running", type: "run" },
+      { type: "presence", users: [userAda] },
+      { type: "typing", user: userAda },
+    ],
+  },
 
   // conversations
   "conversations.conversationSchema": {

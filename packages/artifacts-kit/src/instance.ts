@@ -1,4 +1,6 @@
 import { builtinKindDefinitions } from "./builtin";
+import type { Compile } from "./checks";
+import { presentationKindWith } from "./kinds/presentation/kind";
 import { siteKind } from "./kinds/site/kind";
 import {
   type ArtifactKindRegistry,
@@ -19,12 +21,22 @@ export interface ArtifactKindSettings {
   };
 }
 
+export interface ArtifactKindPorts {
+  /** Compiles TSX as the artifact runtime does: slides are checked with it on save. */
+  readonly compileTsx?: Compile;
+}
+
 export const instanceArtifactKinds = (
-  settings: ArtifactKindSettings
+  settings: ArtifactKindSettings,
+  { compileTsx }: ArtifactKindPorts = {}
 ): ArtifactKindRegistry => {
   const { site: _defaults, ...others } = builtinKindDefinitions;
   return createArtifactKindRegistry([
-    ...Object.values(others),
+    // In place, so the kinds keep their order.
+    ...Object.values({
+      ...others,
+      presentation: presentationKindWith({ compile: compileTsx }),
+    }),
     ...(settings.site.enabled
       ? [siteKind({ allowedOrigins: settings.site.allowedOrigins })]
       : []),

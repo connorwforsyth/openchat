@@ -1,37 +1,27 @@
 "use client";
 
 import { Trans, useLingui } from "@lingui/react/macro";
-import { useQuery } from "@tanstack/react-query";
 import { useRelativeText } from "@workspace/chat-ui/conversation/schedule-text";
-import type { ConversationId } from "@workspace/contract/schemas/common";
 import type { ConversationSchedule } from "@workspace/contract/schemas/schedules";
 import { ClockIcon } from "@workspace/icons";
 import { Button } from "@workspace/ui/components/button";
 import { useCallback, useState } from "react";
 
-import { useApi } from "@/app/(app)/_shared/api";
 import { routes } from "@/lib/routes";
 
 import { ScheduleEditor } from "./schedule-editor";
 
-// The chat header's schedule (183): "Next run in 3 hours" when a task posts
-// into this chat (it opens the schedules page), otherwise a clock that
-// schedules one here.
+// The Dot's header schedule (183): "Next run in 3 hours" when a task posts
+// into the Dot's chat (it opens the schedules page), otherwise a clock that
+// schedules one for the Dot. Other chats' headers have none.
 
 export function ChatSchedule({
-  conversationId,
-  isDot,
   schedule,
 }: {
-  readonly conversationId: ConversationId;
-  /** This chat is the owner's Dot: new tasks target the Dot. */
-  readonly isDot: boolean;
   readonly schedule: ConversationSchedule | null | undefined;
 }) {
   const { t } = useLingui();
-  const { query } = useApi();
   const relative = useRelativeText();
-  const dots = useQuery(query.dots.list.queryOptions({ input: {} }));
   const [open, setOpen] = useState(false);
   const show = useCallback(() => setOpen(true), []);
   if (schedule) {
@@ -66,18 +56,10 @@ export function ChatSchedule({
       </Button>
       {open ? (
         <ScheduleEditor
-          chatId={isDot ? null : conversationId}
-          hasDot={(dots.data?.length ?? 0) > 0}
+          hasDot
           onOpenChange={setOpen}
           open
-          seed={{
-            prompt: "",
-            target: isDot
-              ? { kind: "dot" }
-              : { conversationId, kind: "conversation" },
-            title: "",
-            when: "",
-          }}
+          seed={{ prompt: "", target: { kind: "dot" }, title: "", when: "" }}
         />
       ) : null}
     </>

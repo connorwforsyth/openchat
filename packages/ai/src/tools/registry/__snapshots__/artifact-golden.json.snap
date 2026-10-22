@@ -717,7 +717,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'i', \"import { u\"... is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -760,7 +760,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token '<', \"<!doctype \"... is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -808,7 +808,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'r', \"from http.s\"... is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -851,7 +851,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 's', \"sequenceDi\"... is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -889,7 +889,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token '<', \"<svg xmlns\"... is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -932,7 +932,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token '`', \"```ts\nexpo\"... is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -980,7 +980,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token ':', \":::\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -1028,7 +1028,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token ':', \":::artifac\"... is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -1076,7 +1076,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token '<', \"<>\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -1139,7 +1139,7 @@
         },
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected end of JSON input). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -1187,7 +1187,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'g', \"graph TD\r\n  A-->B\r\n\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -1235,7 +1235,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'c', \"classDiagramX\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -1283,7 +1283,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'e', \"exportdefault 1\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -1326,7 +1326,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'e', \"export   d\"... is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -1369,7 +1369,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'e', \"export\ndefault App\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -1412,7 +1412,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token '<', \"<!doctype html>\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -1475,7 +1475,7 @@
         },
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected end of JSON input). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -1523,7 +1523,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token '<', \"<!-- hi -->\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -1561,7 +1561,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token '<', \"  \n <svg viewB\"... is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -1609,7 +1609,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token '#', \"# Setup\n``\"... is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -1652,7 +1652,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'g', \"graph\n  A\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -1695,7 +1695,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'l', \"flowchart\n  A\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -1738,7 +1738,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 's', \"sequenceDiagram\n  A\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -1781,7 +1781,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'c', \"classDiagram\n  A\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -1824,7 +1824,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 's', \"stateDiagram\n  A\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -1867,7 +1867,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'e', \"erDiagram\n  A\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -1910,7 +1910,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'g', \"gantt\n  A\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -1953,7 +1953,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'p', \"pie\n  A\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -1996,7 +1996,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'm', \"mindmap\n  A\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -2039,7 +2039,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'i', \"timeline\n  A\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -2087,7 +2087,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'j', \"journey\n  A\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -2135,7 +2135,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'g', \"gitGraph\n  A\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -2178,7 +2178,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 's', \"stateDiagram-v2\n  A\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -2226,7 +2226,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token '`', \"```mermaid\"... is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -2269,7 +2269,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'g', \"   \n\tgraph LR\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -2317,7 +2317,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'e', \"export fun\"... is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -2365,7 +2365,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'h', \"hello\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -2403,7 +2403,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'e', \"export def\"... is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -2466,7 +2466,7 @@
         },
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected end of JSON input). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -2514,7 +2514,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'e', \"text <svg></svg>\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -2557,7 +2557,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token '`', \"```svg\n<sv\"... is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -2600,7 +2600,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token '<', \"<svg/>\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -2643,7 +2643,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token '<', \"<svg></svg> trailing\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -2686,7 +2686,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token '<', \"<SVG></SVG>\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -2724,7 +2724,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token '<', \"<svg xmlns\"... is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -2787,7 +2787,7 @@
         },
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected end of JSON input). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -2835,7 +2835,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token '<', \"<P>hi</P>\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -2883,7 +2883,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token '<', \"<1>\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -2926,7 +2926,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'H', \"Hello <b>world</b>\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -2969,7 +2969,7 @@
         "document": "saved",
         "presentation": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'e', \"export default 1\n```\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
@@ -4003,301 +4003,301 @@
       "presentation": {
         "recorded counter-button": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'i', \"import { u\"... is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "recorded landing-page": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token '<', \"<!doctype \"... is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "recorded serve-page": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'r', \"from http.s\"... is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "recorded oauth-login": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 's', \"sequenceDi\"... is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "recorded sun-icon": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token '<', \"<svg xmlns\"... is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "a fence first": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token '`', \"```ts\nexpo\"... is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "a lone close": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token ':', \":::\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "an open directive": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token ':', \":::artifac\"... is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "angle brackets": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token '<', \"<>\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "blank lines": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected end of JSON input). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "carriage returns": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'g', \"graph TD\r\n  A-->B\r\n\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "classDiagram glued": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'c', \"classDiagramX\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "default export no space": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'e', \"exportdefault 1\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "default export spaced": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'e', \"export   d\"... is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "default export, newline": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'e', \"export\ndefault App\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "doctype only": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token '<', \"<!doctype html>\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "empty string": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected end of JSON input). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "html comment": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token '<', \"<!-- hi -->\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "indented svg": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token '<', \"  \n <svg viewB\"... is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "markdown with fences and directives": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token '#', \"# Setup\n``\"... is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "mermaid graph": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'g', \"graph\n  A\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "mermaid flowchart": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'l', \"flowchart\n  A\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "mermaid sequenceDiagram": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 's', \"sequenceDiagram\n  A\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "mermaid classDiagram": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'c', \"classDiagram\n  A\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "mermaid stateDiagram": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 's', \"stateDiagram\n  A\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "mermaid erDiagram": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'e', \"erDiagram\n  A\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "mermaid gantt": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'g', \"gantt\n  A\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "mermaid pie": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'p', \"pie\n  A\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "mermaid mindmap": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'm', \"mindmap\n  A\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "mermaid timeline": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'i', \"timeline\n  A\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "mermaid journey": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'j', \"journey\n  A\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "mermaid gitGraph": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'g', \"gitGraph\n  A\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "mermaid stateDiagram-v2": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 's', \"stateDiagram-v2\n  A\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "mermaid after a fence": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token '`', \"```mermaid\"... is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "mermaid indented": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'g', \"   \n\tgraph LR\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "named export only": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'e', \"export fun\"... is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "one word": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'h', \"hello\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "react element default": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'e', \"export def\"... is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "spaces only": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected end of JSON input). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "svg after text": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'e', \"text <svg></svg>\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "svg in a fence": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token '`', \"```svg\n<sv\"... is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "svg self closing": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token '<', \"<svg/>\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "svg trailing text": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token '<', \"<svg></svg> trailing\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "svg uppercase": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token '<', \"<SVG></SVG>\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "svg with attributes": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token '<', \"<svg xmlns\"... is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "tab only": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected end of JSON input). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "tag uppercase": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token '<', \"<P>hi</P>\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "tag with digit": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token '<', \"<1>\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "text then a tag": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'H', \"Hello <b>world</b>\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         },
         "trailing fence line": {
           "problems": [
-            "content isn't JSON. A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}"
+            "content isn't JSON (Unexpected token 'e', \"export default 1\n```\" is not valid JSON). A presentation is {\"title\": \"…\", \"slides\": [{\"id\": \"intro\", \"source\": \"…\"}]}; escape quotes and newlines inside each source"
           ],
           "status": "invalid"
         }

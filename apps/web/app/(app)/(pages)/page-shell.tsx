@@ -176,11 +176,7 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
   );
 
   const sidebarToggle = (where: "header" | "rail" | "sidebar") => (
-    <SidebarToggle
-      expanded={narrow ? sheetOpen : layout.layout.sidebarOpen}
-      onToggle={toggleChats}
-      placement={where}
-    />
+    <SidebarToggle onToggle={toggleChats} placement={where} />
   );
   const header = (
     <AppHeader
@@ -220,6 +216,7 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
 
   return (
     <AppShell
+      claimSidebarToggle={layout.claimSidebarToggle}
       header={header}
       onPanelClose={noPanel}
       onSidebarSheetOpenChange={setSheetOpen}

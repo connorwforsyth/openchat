@@ -1,4 +1,4 @@
-import { importSpecifiers } from "../../checks";
+import { type Compile, importSpecifiers } from "../../checks";
 import type { ArtifactCheck } from "../../define";
 import { tsxImports } from "../site/tsx";
 import { PRESENTATION_LIMITS, type Presentation } from "./content";
@@ -25,6 +25,7 @@ export const SLIDE_MODULES = [
 export const SLIDE_UI_EXPORTS = [
   "Agenda",
   "Bullets",
+  "Chart",
   "Closing",
   "ImageSlide",
   "Logo",
@@ -117,3 +118,21 @@ export const slideSources: PresentationCheck = {
   run: (deck) =>
     deck.slides.flatMap((slide) => slideSourceProblems(slide.id, slide.source)),
 };
+
+/**
+ * Each slide compiles, as the runtime will compile it: a slide that
+ * doesn't is named with its place in the deck and the compiler's line and
+ * column, so the model can fix that slide alone with `update_slide`.
+ */
+export const slidesCompile = (compile: Compile): PresentationCheck => ({
+  name: "compiles",
+  run: (deck) =>
+    deck.slides.flatMap((slide, index) => {
+      const problem = compile(slide.source);
+      return problem === null
+        ? []
+        : [
+            `slide "${slide.id}" (slide ${index + 1}) doesn't compile: ${problem}. Fix its TSX and save it again; the other slides are fine`,
+          ];
+    }),
+});
