@@ -277,6 +277,41 @@ describe("MessagePart <-> UIMessage", () => {
     });
   });
 
+  it("stores provider metadata as the JSON it is, leaving out undefined fields", () => {
+    // Anthropic's tool calls carry `caller` objects with undefined fields.
+    const caller = { tool_id: undefined, type: "direct" };
+    const mapped = fromUI({
+      id: "m",
+      parts: [
+        {
+          callProviderMetadata: { anthropic: { caller } },
+          input: { type: "presentation" },
+          output: { status: "loaded" },
+          resultProviderMetadata: { anthropic: { caller } },
+          state: "output-available",
+          toolCallId: "t1",
+          type: "tool-load_artifact_guide",
+        },
+        {
+          providerMetadata: { anthropic: { signature: undefined } },
+          state: "done",
+          text: "thinking",
+          type: "reasoning",
+        },
+      ],
+      role: "assistant",
+    } as UIMessage);
+    expect(mapped.ok).toBe(true);
+    expect(mapped.ok && mapped.value[0]).toMatchObject({
+      providerMetadata: { anthropic: { caller: { type: "direct" } } },
+      type: "tool-call",
+    });
+    expect(mapped.ok && mapped.value[2]).toMatchObject({
+      providerMetadata: { anthropic: {} },
+      type: "reasoning",
+    });
+  });
+
   it("refuses a human approval the run has no record of", () => {
     const [ui] = toUI([assistant([call(decided(approve))])]);
     expect(ui && fromUI(ui)).toEqual({
