@@ -16,6 +16,10 @@ import { useCallback } from "react";
 // files; Code adds the sandbox). It applies from the next message. Keyboard
 // UI, so no motion.
 
+// The composer sits on a muted surface, so the chosen half is drawn solid.
+const ITEM_CLASS =
+  "rounded-full text-muted-foreground aria-pressed:border-foreground aria-pressed:bg-foreground aria-pressed:text-background";
+
 export interface ChatModeSwitchProps {
   readonly disabled?: boolean;
   readonly mode: ChatMode;
@@ -49,7 +53,7 @@ export function ChatModeSwitch({
       variant="outline"
     >
       <ToggleGroupItem
-        className="rounded-full"
+        className={ITEM_CLASS}
         title={t`Chat: artifacts and files, nothing runs`}
         value="chat"
       >
@@ -59,7 +63,7 @@ export function ChatModeSwitch({
         </span>
       </ToggleGroupItem>
       <ToggleGroupItem
-        className="rounded-full"
+        className={ITEM_CLASS}
         title={t`Code: runs commands, installs and dev servers in the sandbox`}
         value="code"
       >
