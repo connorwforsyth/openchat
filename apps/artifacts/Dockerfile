@@ -10,7 +10,11 @@ FROM oven/bun:1.4.2 AS build
 WORKDIR /repo
 COPY . .
 # Scripts are skipped: the runtime needs no Lingui catalogs or git hooks.
-RUN bun install --frozen-lockfile --ignore-scripts --filter artifacts
+# Optional CA and .npmrc build secrets, as in apps/web/Dockerfile.
+RUN --mount=type=secret,id=ca,required=false \
+    --mount=type=secret,id=npmrc,target=/root/.npmrc,required=false \
+    if [ -s /run/secrets/ca ]; then export NODE_EXTRA_CA_CERTS=/run/secrets/ca; fi && \
+    bun install --frozen-lockfile --ignore-scripts --filter artifacts
 # Except the icon set's selection (D19), which writes the module that
 # @workspace/icons exports and site-ui's blocks draw with (163).
 RUN cd packages/icons && bun scripts/select.ts
