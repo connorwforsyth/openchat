@@ -1581,6 +1581,10 @@ msgstr "CSV of this sheet (.csv)"
 msgid "Current"
 msgstr "Current"
 
+#: ../chat-ui/src/artifacts/presenter.tsx
+msgid "Current slide"
+msgstr "Current slide"
+
 #: ../../apps/web/app/(app)/(pages)/dots/schedule-text.tsx
 msgid "Custom ({expression})"
 msgstr "Custom ({expression})"
@@ -2017,6 +2021,10 @@ msgstr "Email and password"
 #: ../../apps/web/app/(app)/(pages)/dots/avatar-picker.tsx
 msgid "Ember"
 msgstr "Ember"
+
+#: ../chat-ui/src/artifacts/presenter.tsx
+msgid "End of the deck"
+msgstr "End of the deck"
 
 #: ../../apps/web/app/(app)/(pages)/schedules/schedule-editor.tsx
 msgid "End repeat"
@@ -3333,6 +3341,7 @@ msgstr "Newer version"
 
 #: ../../apps/web/app/(app)/(pages)/dots/onboarding.tsx
 #: ../chat-ui/src/artifacts/presentation-preview.tsx
+#: ../chat-ui/src/artifacts/presenter.tsx
 msgid "Next"
 msgstr "Next"
 
@@ -3371,6 +3380,10 @@ msgstr "Next run {next}"
 #: ../chat-ui/src/sidebar/chat-row.tsx
 msgid "Next run: {when}"
 msgstr "Next run: {when}"
+
+#: ../chat-ui/src/artifacts/presenter.tsx
+msgid "Next slide"
+msgstr "Next slide"
 
 #: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
 msgid "No {label} yet"
@@ -3454,6 +3467,10 @@ msgstr "No matches."
 #: ../../apps/web/app/(app)/(pages)/dots/onboarding.tsx
 msgid "No model is available yet. Ask your admin to add one."
 msgstr "No model is available yet. Ask your admin to add one."
+
+#: ../chat-ui/src/artifacts/presenter.tsx
+msgid "No notes for this slide."
+msgstr "No notes for this slide."
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/admin-index.tsx
 msgid "No orgs to manage"
@@ -4131,8 +4148,21 @@ msgid "Presentation"
 msgstr "Presentation"
 
 #: ../chat-ui/src/artifacts/presentation-preview.tsx
+#: ../chat-ui/src/artifacts/presenter.tsx
+msgid "Presenter view"
+msgstr "Presenter view"
+
+#: ../chat-ui/src/artifacts/presenter.tsx
+msgid "Presenter view: {title}"
+msgstr "Presenter view: {title}"
+
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
 msgid "Presenting {title}"
 msgstr "Presenting {title}"
+
+#: ../chat-ui/src/artifacts/presenter.tsx
+msgid "Presenting has ended."
+msgstr "Presenting has ended."
 
 #: ../library-ui/src/components/kind.tsx
 msgid "Preset"
@@ -4184,6 +4214,10 @@ msgstr "Preview unavailable: the artifacts service isn't running"
 msgid "Preview unavailable: the artifacts service isn't set up here"
 msgstr "Preview unavailable: the artifacts service isn't set up here"
 
+#: ../chat-ui/src/artifacts/presenter.tsx
+msgid "Preview unavailable: the artifacts service isn't set up here."
+msgstr "Preview unavailable: the artifacts service isn't set up here."
+
 #: ../chat-ui/src/artifacts/artifact-preview.tsx
 msgid "Previews can't import \"{module}\". React artifacts can import {allowed}."
 msgstr "Previews can't import \"{module}\". React artifacts can import {allowed}."
@@ -4193,6 +4227,7 @@ msgid "Previews of this kind need the artifact runtime. Its source is in the Cod
 msgstr "Previews of this kind need the artifact runtime. Its source is in the Code tab."
 
 #: ../chat-ui/src/artifacts/presentation-preview.tsx
+#: ../chat-ui/src/artifacts/presenter.tsx
 msgid "Previous"
 msgstr "Previous"
 
@@ -4636,6 +4671,10 @@ msgstr "Resize sidebar"
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Resize the browser"
 msgstr "Resize the browser"
+
+#: ../chat-ui/src/artifacts/presenter.tsx
+msgid "Restart the timer"
+msgstr "Restart the timer"
 
 #: ../../apps/desktop/src/main/menu.ts
 msgid "Restart to Update"
@@ -5292,6 +5331,12 @@ msgstr "Skipped"
 msgid "Slash command"
 msgstr "Slash command"
 
+#. placeholder {0}: position.slide + 1
+#. placeholder {1}: position.slides
+#: ../chat-ui/src/artifacts/presenter.tsx
+msgid "Slide {0} of {1}"
+msgstr "Slide {0} of {1}"
+
 #: ../chat-ui/src/artifacts/presentation-preview.tsx
 msgid "Slide {slide} of {slides}"
 msgstr "Slide {slide} of {slides}"
@@ -5381,6 +5426,7 @@ msgid "Spark"
 msgstr "Spark"
 
 #: ../chat-ui/src/artifacts/presentation-preview.tsx
+#: ../chat-ui/src/artifacts/presenter.tsx
 msgid "Speaker notes"
 msgstr "Speaker notes"
 
@@ -6173,6 +6219,10 @@ msgstr "Thought for 4 seconds"
 msgid "Thought for a few seconds"
 msgstr "Thought for a few seconds"
 
+#: ../chat-ui/src/artifacts/presenter.tsx
+msgid "Time presenting"
+msgstr "Time presenting"
+
 #: ../../apps/web/app/(app)/(pages)/schedules/schedule-editor.tsx
 msgid "Time zone"
 msgstr "Time zone"
@@ -6548,6 +6598,10 @@ msgstr "Waiting for an owner"
 #: ../chat-ui/src/conversation/message-row.tsx
 msgid "Waiting for the answer before it…"
 msgstr "Waiting for the answer before it…"
+
+#: ../chat-ui/src/artifacts/presenter.tsx
+msgid "Waiting for the presentation. Start presenting in the chat."
+msgstr "Waiting for the presentation. Start presenting in the chat."
 
 #: ../chat-ui/src/sidebar/chat-row.tsx
 msgid "Waiting for your approval"
