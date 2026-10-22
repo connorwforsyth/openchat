@@ -103,8 +103,14 @@ const chipFor = (item: MenuItem): MentionAttrs | undefined => {
         kind: item.candidate.kind,
         label: item.candidate.label,
       };
-    default:
+    case "prompt":
+    case "upload":
+    case "command":
+    case "open-file":
+    case "mcp-server":
       return;
+    default:
+      return item satisfies never;
   }
 };
 
@@ -423,12 +429,21 @@ export function Composer({
 
   const choose = useCallback(
     (current: Editor, range: Range, item: MenuItem) => {
-      const chip = chipFor(item);
-      if (chip) {
-        current.chain().focus().insertContentAt(range, chipContent(chip)).run();
-        return;
-      }
       switch (item.kind) {
+        case "agent":
+        case "skill":
+        case "artifact":
+        case "mention": {
+          const chip = chipFor(item);
+          if (chip) {
+            current
+              .chain()
+              .focus()
+              .insertContentAt(range, chipContent(chip))
+              .run();
+          }
+          return;
+        }
         case "prompt":
           insertPrompt(current, range, item.prompt);
           return;
@@ -464,7 +479,7 @@ export function Composer({
           mcp?.onToggle(item.server.id, !item.server.enabled);
           return;
         default:
-          return;
+          return item satisfies never;
       }
     },
     [fileOptions.length, insertPrompt, mcp, onCommand, openFilePicker]

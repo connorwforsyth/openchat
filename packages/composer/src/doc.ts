@@ -67,7 +67,7 @@ const mentionToken = (
 // An unfilled variable with no default is dropped with the space before it
 // when what follows is a space, punctuation or the end of the line, so
 // "Write about {{topic}}." reads "Write about." and not "Write about ."
-const CLOSES = /^[\s,.;:!?)\]]|^$/;
+const CLOSES = /^[\s,.;:!?)\]]/;
 
 const inlineText = (node: JSONContent): string => {
   const text = node.text ?? "";
@@ -86,8 +86,15 @@ const withVariable = (
   if (fill !== undefined) {
     return text + fill;
   }
-  const after = next?.type === TEXT_NODE ? (next.text ?? "") : "";
-  return text.endsWith(" ") && CLOSES.test(after) ? text.slice(0, -1) : text;
+  if (!text.endsWith(" ")) {
+    return text;
+  }
+  // A chip or another variable after it still needs the space.
+  const closes =
+    next === undefined ||
+    next.type === HARD_BREAK_NODE ||
+    (next.type === TEXT_NODE && CLOSES.test(inlineText(next)));
+  return closes ? text.slice(0, -1) : text;
 };
 
 /** `text` with one inline node's text after it. */

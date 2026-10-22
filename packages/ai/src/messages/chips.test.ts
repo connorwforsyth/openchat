@@ -6,6 +6,7 @@ import {
   CHIPS_DATA,
   chipsOf,
   type PlacedChip,
+  replaceChips,
   requestedArtifacts,
   segmentText,
 } from "./chips";
@@ -76,6 +77,15 @@ describe("segmentText", () => {
   it("leaves a chip that no longer matches its place as text", () => {
     expect(segmentText("ask @Someone", [chips[0] as PlacedChip])).toEqual([
       { kind: "text", text: "ask @Someone" },
+    ]);
+  });
+});
+
+describe("replaceChips", () => {
+  it("moves the chips still in edited text and drops the ones taken out", () => {
+    expect(replaceChips("please @Writer, make @Slides", chips)).toEqual([
+      { ...chips[1], end: 14, start: 7 },
+      { ...chips[2], end: 28, start: 21 },
     ]);
   });
 });

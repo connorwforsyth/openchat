@@ -145,3 +145,26 @@ export const segmentText = (
   }
   return segments;
 };
+
+/**
+ * The chips still in `text` after it was edited as plain text: each one
+ * whose `@label` is still there, in order, at its new place. One whose
+ * `@label` was removed is dropped. Pure.
+ */
+export const replaceChips = (
+  text: string,
+  chips: readonly PlacedChip[]
+): readonly PlacedChip[] => {
+  const kept: PlacedChip[] = [];
+  let from = 0;
+  for (const chip of [...chips].sort((a, b) => a.start - b.start)) {
+    const start = text.indexOf(`@${chip.label}`, from);
+    if (start === -1) {
+      continue;
+    }
+    const end = start + chip.label.length + 1;
+    kept.push({ ...chip, end, start });
+    from = end;
+  }
+  return kept;
+};

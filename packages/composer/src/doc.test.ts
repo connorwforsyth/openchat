@@ -218,5 +218,8 @@ describe("prompt variables", () => {
     expect(sent(text("Summarise "), variable("doc"))).toBe("Summarise");
     expect(sent(variable("greeting"), text(" there"))).toBe("there");
     expect(sent(text("a "), variable("x"), text("b"))).toBe("a b");
+    expect(
+      sent(text("ask "), variable("who"), mention(userAda.id, "Ada", "user"))
+    ).toBe("ask @Ada");
   });
 });

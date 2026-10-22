@@ -8,7 +8,11 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { CHIPS_DATA } from "@workspace/ai/messages/chips";
+import {
+  CHIPS_DATA,
+  chipsOf,
+  replaceChips,
+} from "@workspace/ai/messages/chips";
 import { SKILLS_DATA } from "@workspace/ai/messages/skills";
 import { toUIMessages } from "@workspace/ai/messages/to-ui";
 import { WORKSPACE_FILE_DATA } from "@workspace/ai/messages/workspace-file";
@@ -51,7 +55,10 @@ import type {
   SandboxId,
 } from "@workspace/contract/schemas/common";
 import type { Conversation } from "@workspace/contract/schemas/conversations";
-import type { ApprovalDecision } from "@workspace/contract/schemas/message-parts";
+import type {
+  ApprovalDecision,
+  MessagePart,
+} from "@workspace/contract/schemas/message-parts";
 import type { Message } from "@workspace/contract/schemas/messages";
 import type { Me, PublicConfig } from "@workspace/contract/schemas/meta";
 import type { ModelOption } from "@workspace/contract/schemas/models";
@@ -420,6 +427,36 @@ export const outgoingMessage = (
             : []),
         ],
       };
+
+/**
+ * What an edited message sends besides its text: the chips it was written
+ * with that are still in it, so an `@agent` still answers and a skill
+ * still loads. The edit form is plain text. Pure.
+ */
+export const editedOutgoing = (
+  text: string,
+  parts: readonly MessagePart[]
+): Outgoing => {
+  const chips = replaceChips(text, chipsOf(parts));
+  return {
+    chips,
+    files: [],
+    skills: chips.flatMap((chip) =>
+      chip.kind === "skill"
+        ? [
+            {
+              id: chip.id,
+              name: chip.label,
+              ...(chip.versionId ? { versionId: chip.versionId } : {}),
+            },
+          ]
+        : []
+    ),
+    workspaceFiles: chips.flatMap((chip) =>
+      chip.kind === "file" ? [chip.path] : []
+    ),
+  };
+};
 
 /** Mentioned workspace files, in text order. Pure. */
 const mentionedFiles = (value: ComposerValue): string[] =>
@@ -1891,7 +1928,7 @@ export function ConnectedChat({
         // An edit answers the same parent: send it from that point.
         const at = stored.findIndex((item) => item.id === message.id);
         setMessages(toUIMessages(stored.slice(0, at), { fileUrl }));
-        send(text);
+        send(text, editedOutgoing(text, message.parts));
       },
       onEditPlan: (editing) => {
         setEditingPlan(editing);
