@@ -43,9 +43,22 @@ export const slideDeckCss = (
   transform-origin: 0 0;
 }
 .deck-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   padding: 16px;
-  font: 14px/1.4 ui-monospace, monospace;
+  overflow: auto;
+  background: var(--muted);
   color: var(--destructive);
+  font: 13px/1.4 ui-sans-serif, system-ui, sans-serif;
+}
+.deck-error pre {
+  margin: 0;
+  white-space: pre-wrap;
+  color: var(--muted-foreground);
+  font: 12px/1.4 ui-monospace, monospace;
 }
 .deck[data-presenting] {
   position: fixed;
