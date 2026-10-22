@@ -641,12 +641,23 @@ const useLiveTurn = ({
   useEffect(() => {
     fieldsRef.current = { context, target, variant, webSearch };
   });
+  // Whether the run streaming now is one this page created. A stream it
+  // picked up (after a reload, or a run someone else started) wasn't asked
+  // for here, so its artifacts don't open by themselves.
+  const [askedHere, setAskedHere] = useState(false);
+  const created = useCallback(
+    (run: RunCreated) => {
+      setAskedHere(true);
+      onRunCreated(run);
+    },
+    [onRunCreated]
+  );
   const chat = useRunChat({
     client,
     conversationId: conversationId ?? "new",
     initialMessages,
     onFinish,
-    onRunCreated,
+    onRunCreated: created,
     runFields: () => {
       const fields = fieldsRef.current;
       const options = turnOptions(
@@ -665,6 +676,9 @@ const useLiveTurn = ({
   });
   const { messages: live, setMessages, status } = chat;
   const busy = status === "submitted" || status === "streaming";
+  if (askedHere && !busy) {
+    setAskedHere(false);
+  }
   const settling = useSettling({ busy, conversationId, storedAt });
 
   // Back on the stored branch whenever nothing streams and the branch has
@@ -678,6 +692,7 @@ const useLiveTurn = ({
   const last = live.at(-1);
   const lastAnswer = last?.role === "assistant" ? (last.id as MessageId) : null;
   const streamingMessageId = busy ? lastAnswer : null;
+  const watchedMessageId = askedHere ? streamingMessageId : null;
   // Until then the finished answer stays as streamed.
   const liveMessageId = busy || settling ? lastAnswer : null;
   const cache = useRef(new WeakMap<UIMessage, LiveMapping>());
@@ -699,7 +714,7 @@ const useLiveTurn = ({
     [conversationId, live, liveMessageId, me.user.id, stored]
   );
 
-  return { chat, messages, streamingMessageId };
+  return { chat, messages, streamingMessageId, watchedMessageId };
 };
 
 /** A new chat's context: the caller's when it passes one, else the screen's own. */
@@ -1971,7 +1986,7 @@ export function ConnectedChat({
     createdRunId.current = run.runId;
     runWaiters.current.shift()?.(run.runId);
   }, []);
-  const { chat, messages, streamingMessageId } = useLiveTurn({
+  const { chat, messages, streamingMessageId, watchedMessageId } = useLiveTurn({
     client,
     context,
     conversationId,
@@ -2385,6 +2400,7 @@ export function ConnectedChat({
               spaces: sidebarSpaces,
             }}
             streamingMessageId={streamingMessageId}
+            watchedMessageId={watchedMessageId}
             workspace={{
               artifacts: {
                 api,
