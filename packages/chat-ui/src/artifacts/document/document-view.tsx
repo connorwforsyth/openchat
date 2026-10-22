@@ -462,7 +462,7 @@ const DOCUMENT_TEXT = cn(
   "[&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-muted [&_pre]:p-4 [&_pre]:font-mono [&_pre]:text-sm",
   "[&_:not(pre)>code]:rounded [&_:not(pre)>code]:bg-muted [&_:not(pre)>code]:px-1 [&_:not(pre)>code]:font-mono [&_:not(pre)>code]:text-[0.9em]",
   "[&_hr]:my-6 [&_hr]:border-border",
-  "[&_img.ProseMirror-selectednode]:ring-2 [&_img.ProseMirror-selectednode]:ring-ring [&_img]:max-w-full [&_img]:rounded-lg",
+  "[&_img.ProseMirror-selectednode]:ring-2 [&_img.ProseMirror-selectednode]:ring-ring [&_img]:h-auto [&_img]:max-h-96 [&_img]:w-auto [&_img]:max-w-full [&_img]:rounded-lg",
   "[&_table]:w-full [&_table]:border-collapse [&_table]:text-sm",
   "[&_td]:border [&_td]:border-border [&_td]:p-2 [&_td]:align-top [&_th]:border [&_th]:border-border [&_th]:bg-muted [&_th]:p-2 [&_th]:text-start [&_th]:align-top [&_th]:font-medium",
   "[&_.selectedCell]:bg-accent [&_td>*+*]:mt-2 [&_th>*+*]:mt-2",
