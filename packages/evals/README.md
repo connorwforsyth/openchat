@@ -263,6 +263,7 @@ bun run eval:artifacts:live --kind presentation --yes --model anthropic:claude-h
   --base-url http://localhost:3101 --out .evals/artifacts-live
 bun packages/evals/src/artifacts/render-check.ts --chat <id>      # the renderer's verdicts on a known-good chat
 bun packages/evals/src/artifacts/record-fixtures.ts --from .evals/artifacts-live
+bun packages/evals/src/artifacts/report.ts --dir .evals/artifacts-live  # rebuild reports, no model calls
 bun packages/evals/src/gallery/seed.ts --database-url <url>       # one polished example of every kind
 ```
 
@@ -272,8 +273,8 @@ renderer drew it, the time from sending to the saved artifact and to the
 drawing, and the first stage it fell out at (`trial.ts`: `run_failed`,
 `no_tool_call`, `tool_input_invalid`, `wrong_kind`, `schema_invalid`,
 `unavailable`, `render_error`, `render_timeout`). It writes `<kind>.json`,
-`<kind>.md`, `summary.md` and `screenshots/`, and appends its model calls to
-the spend log. `--model` sets the chats' model; without it they use the
+`<kind>.md`, `summary.md` and `screenshots/`, and with `--spend-log <tsv>`
+appends its model calls per kind. `--model` sets the chats' model; without it they use the
 instance default. Failures become offline fixtures with
 `record-fixtures.ts`; `packages/ai/evals/artifacts/recorded-live.test.ts`
 replays them through `create_artifact` with no model.

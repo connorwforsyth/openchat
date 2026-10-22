@@ -8,14 +8,13 @@
  *
  *   bun packages/evals/src/artifacts/live.ts --kind presentation --yes
  *     [--kind site …] [--limit 10] [--prompt <id> …] [--model <alias or provider:model>]
- *     [--base-url http://localhost:3101] [--out .evals/artifacts-live]
+ *     [--base-url http://localhost:3101] [--out .evals/artifacts-live] [--spend-log <tsv>]
  *
  * Without `--model`, chats use the instance's default model. Without
  * `--yes` it prints the plan and calls nothing. Writes `<kind>.json`,
  * `<kind>.md`, `summary.json`, `summary.md` and `screenshots/` to `--out`.
  */
 import { appendFile, mkdir, readFile, writeFile } from "node:fs/promises";
-import { homedir } from "node:os";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
 
@@ -56,10 +55,8 @@ const { values } = parseArgs({
     out: { default: ".evals/artifacts-live", type: "string" },
     prompt: { multiple: true, type: "string" },
     "spend-lane": { default: "n2-evals", type: "string" },
-    "spend-log": {
-      default: join(homedir(), "GitHub/openchat-worktrees/.audit/n2-spend.tsv"),
-      type: "string",
-    },
+    /** A TSV that gets `<lane>\t<model calls>\t<purpose>` per kind. */
+    "spend-log": { type: "string" },
     "timeout-s": { default: "240", type: "string" },
     yes: { default: false, type: "boolean" },
   },
@@ -288,10 +285,12 @@ try {
       (sum, trial) => sum + trial.observation.calls.length + 1,
       0
     );
-    await appendFile(
-      values["spend-log"],
-      `${values["spend-lane"]}\t${modelCalls}\tartifact eval: ${kind}, ${trials.length} prompts on ${model}\n`
-    ).catch(() => undefined);
+    if (values["spend-log"]) {
+      await appendFile(
+        values["spend-log"],
+        `${values["spend-lane"]}\t${modelCalls}\tartifact eval: ${kind}, ${trials.length} prompts on ${model}\n`
+      );
+    }
   }
 } finally {
   await browser.close();
