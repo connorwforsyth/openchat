@@ -4,7 +4,9 @@ import { jsx, jsxs } from "react/jsx-runtime";
 // Sucrase's development JSX, which passes each element's source line; this
 // stamps it on DOM elements as `data-src="<file>:<line>"`, so the Annotate
 // wave (D16) can map a clicked element back to the artifact's source.
-// Components and fragments aren't stamped: they don't forward the prop.
+// Components and fragments aren't stamped: they don't forward the prop. An
+// element that already has `data-src` keeps it: presentation slides are
+// stamped in source with the column too (see ./presentation).
 
 export interface JsxSource {
   readonly fileName?: string;
@@ -23,7 +25,10 @@ export const jsxDEV = (
   isStaticChildren: boolean,
   source?: JsxSource
 ) => {
-  const stamp = typeof type === "string" ? sourceStamp(source) : null;
+  const stamp =
+    typeof type === "string" && props["data-src"] === undefined
+      ? sourceStamp(source)
+      : null;
   const stamped = stamp ? { ...props, "data-src": stamp } : props;
   // `react/jsx-dev-runtime` is a no-op in React's production build, so the
   // element is made by the production runtime either way.
