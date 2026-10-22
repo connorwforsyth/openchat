@@ -12,7 +12,12 @@ import {
 import { toolNameSchema } from "./message-parts";
 import { runStatusSchema, runTargetSchema } from "./runs";
 import { sandboxProviderSchema } from "./sandbox";
-import { scheduleRunOutcomeSchema, scheduleSchema } from "./schedules";
+import {
+  DEFAULT_SCHEDULE_EMOJI,
+  scheduleEmojiSchema,
+  scheduleRunOutcomeSchema,
+  scheduleSchema,
+} from "./schedules";
 
 // Dots (172): persistent, always-on agents. A Dot is an agent (or a model
 // plus instructions) with its own conversation, workspace and schedules. Each
@@ -161,6 +166,7 @@ export type Dot = z.infer<typeof dotSchema>;
 
 export const dotScheduleInputSchema = z.object({
   cron: cronExpressionSchema,
+  emoji: scheduleEmojiSchema.default(DEFAULT_SCHEDULE_EMOJI),
   enabled: z.boolean().default(true),
   prompt: dotPromptSchema,
   timezone: timeZoneSchema.default("UTC"),

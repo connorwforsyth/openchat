@@ -525,6 +525,10 @@
               {
                 "type": "object",
                 "properties": {
+                  "emoji": {
+                    "type": "string",
+                    "maxLength": 32
+                  },
                   "id": {
                     "type": "string",
                     "format": "uuid",
@@ -551,7 +555,13 @@
                     "maxLength": 80
                   }
                 },
-                "required": ["id", "nextRunNominalAt", "status", "title"]
+                "required": [
+                  "emoji",
+                  "id",
+                  "nextRunNominalAt",
+                  "status",
+                  "title"
+                ]
               },
               {
                 "type": "null"
@@ -10969,6 +10979,11 @@
                           "minLength": 9,
                           "maxLength": 120
                         },
+                        "emoji": {
+                          "type": "string",
+                          "maxLength": 32,
+                          "default": "⏰"
+                        },
                         "enabled": {
                           "type": "boolean",
                           "default": true
@@ -11274,6 +11289,10 @@
                               }
                             ]
                           },
+                          "emoji": {
+                            "type": "string",
+                            "maxLength": 32
+                          },
                           "id": {
                             "type": "string",
                             "format": "uuid",
@@ -11491,6 +11510,7 @@
                           "conversationId",
                           "createdAt",
                           "dotId",
+                          "emoji",
                           "id",
                           "lastOutcome",
                           "lastRunAt",
@@ -11950,6 +11970,10 @@
                                 }
                               ]
                             },
+                            "emoji": {
+                              "type": "string",
+                              "maxLength": 32
+                            },
                             "id": {
                               "type": "string",
                               "format": "uuid",
@@ -12171,6 +12195,7 @@
                             "conversationId",
                             "createdAt",
                             "dotId",
+                            "emoji",
                             "id",
                             "lastOutcome",
                             "lastRunAt",
@@ -12729,6 +12754,10 @@
                               }
                             ]
                           },
+                          "emoji": {
+                            "type": "string",
+                            "maxLength": 32
+                          },
                           "id": {
                             "type": "string",
                             "format": "uuid",
@@ -12946,6 +12975,7 @@
                           "conversationId",
                           "createdAt",
                           "dotId",
+                          "emoji",
                           "id",
                           "lastOutcome",
                           "lastRunAt",
@@ -13481,6 +13511,10 @@
                               }
                             ]
                           },
+                          "emoji": {
+                            "type": "string",
+                            "maxLength": 32
+                          },
                           "id": {
                             "type": "string",
                             "format": "uuid",
@@ -13698,6 +13732,7 @@
                           "conversationId",
                           "createdAt",
                           "dotId",
+                          "emoji",
                           "id",
                           "lastOutcome",
                           "lastRunAt",
@@ -14151,6 +14186,10 @@
                               }
                             ]
                           },
+                          "emoji": {
+                            "type": "string",
+                            "maxLength": 32
+                          },
                           "id": {
                             "type": "string",
                             "format": "uuid",
@@ -14368,6 +14407,7 @@
                           "conversationId",
                           "createdAt",
                           "dotId",
+                          "emoji",
                           "id",
                           "lastOutcome",
                           "lastRunAt",
@@ -27939,6 +27979,11 @@
                     },
                     "default": []
                   },
+                  "emoji": {
+                    "type": "string",
+                    "maxLength": 32,
+                    "default": "⏰"
+                  },
                   "missedRunPolicy": {
                     "enum": ["run_once", "skip"],
                     "type": "string",
@@ -28123,6 +28168,10 @@
                           "type": "null"
                         }
                       ]
+                    },
+                    "emoji": {
+                      "type": "string",
+                      "maxLength": 32
                     },
                     "id": {
                       "type": "string",
@@ -28336,6 +28385,7 @@
                     "conversationId",
                     "createdAt",
                     "dotId",
+                    "emoji",
                     "id",
                     "lastOutcome",
                     "lastRunAt",
@@ -28522,6 +28572,10 @@
                             "type": "null"
                           }
                         ]
+                      },
+                      "emoji": {
+                        "type": "string",
+                        "maxLength": 32
                       },
                       "id": {
                         "type": "string",
@@ -28735,6 +28789,7 @@
                       "conversationId",
                       "createdAt",
                       "dotId",
+                      "emoji",
                       "id",
                       "lastOutcome",
                       "lastRunAt",
@@ -29016,6 +29071,10 @@
                         }
                       ]
                     },
+                    "emoji": {
+                      "type": "string",
+                      "maxLength": 32
+                    },
                     "id": {
                       "type": "string",
                       "format": "uuid",
@@ -29228,6 +29287,7 @@
                     "conversationId",
                     "createdAt",
                     "dotId",
+                    "emoji",
                     "id",
                     "lastOutcome",
                     "lastRunAt",
@@ -29369,6 +29429,10 @@
                       "maxLength": 128,
                       "pattern": "^[a-zA-Z0-9_.:-]+$"
                     }
+                  },
+                  "emoji": {
+                    "type": "string",
+                    "maxLength": 32
                   },
                   "missedRunPolicy": {
                     "enum": ["run_once", "skip"],
@@ -29548,6 +29612,10 @@
                         }
                       ]
                     },
+                    "emoji": {
+                      "type": "string",
+                      "maxLength": 32
+                    },
                     "id": {
                       "type": "string",
                       "format": "uuid",
@@ -29760,6 +29828,7 @@
                     "conversationId",
                     "createdAt",
                     "dotId",
+                    "emoji",
                     "id",
                     "lastOutcome",
                     "lastRunAt",
@@ -30203,6 +30272,10 @@
                         }
                       ]
                     },
+                    "emoji": {
+                      "type": "string",
+                      "maxLength": 32
+                    },
                     "id": {
                       "type": "string",
                       "format": "uuid",
@@ -30415,6 +30488,7 @@
                     "conversationId",
                     "createdAt",
                     "dotId",
+                    "emoji",
                     "id",
                     "lastOutcome",
                     "lastRunAt",
@@ -30588,6 +30662,10 @@
                         }
                       ]
                     },
+                    "emoji": {
+                      "type": "string",
+                      "maxLength": 32
+                    },
                     "id": {
                       "type": "string",
                       "format": "uuid",
@@ -30800,6 +30878,7 @@
                     "conversationId",
                     "createdAt",
                     "dotId",
+                    "emoji",
                     "id",
                     "lastOutcome",
                     "lastRunAt",

@@ -136,6 +136,24 @@ export type ScheduleMissedRunPolicy = z.infer<
 /** A task's name: shown in lists, on the posted message and in new chat titles. */
 export const scheduleTitleSchema = z.string().trim().min(1).max(80);
 
+const graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+const startsPictographic = /^\p{Extended_Pictographic}/u;
+
+/** A task's label: one emoji, shown beside its title wherever it's listed. */
+export const scheduleEmojiSchema = z
+  .string()
+  .trim()
+  .max(32)
+  .refine(
+    (value) =>
+      startsPictographic.test(value) &&
+      [...graphemes.segment(value)].length === 1,
+    "Must be a single emoji"
+  );
+
+/** The label a schedule gets when none is picked. */
+export const DEFAULT_SCHEDULE_EMOJI = "⏰";
+
 /** The prompt each run posts. Capped: it's resent every run. */
 export const schedulePromptSchema = z.string().trim().min(1).max(4000);
 
@@ -147,6 +165,7 @@ export const scheduleSchema = z.object({
   createdAt: timestampSchema,
   /** The Dot whose thread it targets, for `target.kind === "dot"`. */
   dotId: dotIdSchema.nullable(),
+  emoji: scheduleEmojiSchema,
   id: dotScheduleIdSchema,
   lastOutcome: scheduleRunOutcomeSchema.nullable(),
   lastRunAt: timestampSchema.nullable(),
@@ -228,6 +247,7 @@ export type ScheduleLimits = z.infer<typeof scheduleLimitsSchema>;
 
 export const createScheduleInputSchema = z.object({
   autoApproveTools: z.array(toolNameSchema).max(100).default([]),
+  emoji: scheduleEmojiSchema.default(DEFAULT_SCHEDULE_EMOJI),
   missedRunPolicy: scheduleMissedRunPolicySchema.default("run_once"),
   notify: scheduleNotifySchema.default("important"),
   /** Start paused. */
@@ -243,6 +263,7 @@ export type CreateScheduleInput = z.infer<typeof createScheduleInputSchema>;
 
 export const updateScheduleInputSchema = z.object({
   autoApproveTools: z.array(toolNameSchema).max(100).optional(),
+  emoji: scheduleEmojiSchema.optional(),
   id: dotScheduleIdSchema,
   missedRunPolicy: scheduleMissedRunPolicySchema.optional(),
   notify: scheduleNotifySchema.optional(),
@@ -273,6 +294,7 @@ export const runScheduleNowInputSchema = z.object({ id: dotScheduleIdSchema });
 
 /** On a conversation: the schedule posting into it, for the sidebar row and header. */
 export const conversationScheduleSchema = z.object({
+  emoji: scheduleEmojiSchema,
   id: dotScheduleIdSchema,
   nextRunNominalAt: timestampSchema.nullable(),
   status: scheduleStatusSchema,
