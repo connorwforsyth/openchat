@@ -82,6 +82,8 @@ const renderView = (props: Partial<DocumentViewProps> = {}) => {
   return { onSave, onSelect };
 };
 
+const HEADING_1 = /^Heading 1/;
+
 const editor = () => screen.findByRole("textbox", { name: "Document" });
 
 describe("DocumentView", () => {
@@ -163,6 +165,103 @@ describe("DocumentView", () => {
     ).toBeTruthy();
     expect(screen.getByRole("button", { name: "Keep mine" })).toBeTruthy();
     expect(within(text).getByText("Walk the harbour.!")).toBeTruthy();
+  });
+});
+
+describe("the / block menu", () => {
+  const packing = {
+    id: fixtureId("artifact", 2),
+    kind: "document" as const,
+    title: "Packing list",
+  };
+  const linkTargets = [
+    { id: brief.id, kind: brief.kind, title: brief.title },
+    packing,
+  ];
+
+  /** A new empty line under the last paragraph, with the caret on it. */
+  const newLine = async () => {
+    const text = await editor();
+    await userEvent.click(within(text).getByText("Walk the harbour."));
+    await userEvent.keyboard("{End}{Enter}");
+    return text;
+  };
+
+  it("opens a listbox of blocks when `/` starts a line", async () => {
+    renderView();
+    await newLine();
+    await userEvent.keyboard("/");
+    const menu = await screen.findByRole("listbox", { name: "Insert block" });
+    expect(within(menu).getByRole("option", { name: HEADING_1 })).toBeTruthy();
+    expect(
+      within(menu).queryByRole("option", { name: "Link to artifact" })
+    ).toBeNull();
+  });
+
+  it("turns the line into a heading with `/head` and Enter", async () => {
+    renderView();
+    const text = await newLine();
+    await userEvent.keyboard("/head");
+    await screen.findByRole("listbox", { name: "Insert block" });
+    await userEvent.keyboard("{Enter}Gear");
+    expect(
+      await within(text).findByRole("heading", { level: 1, name: "Gear" })
+    ).toBeTruthy();
+    expect(screen.queryByRole("listbox")).toBeNull();
+    expect(text.textContent).not.toContain("/head");
+  });
+
+  it("links to another artifact through `/link`", async () => {
+    renderView({ linkTargets });
+    const text = await newLine();
+    await userEvent.keyboard("/link");
+    await screen.findByRole("listbox", { name: "Insert block" });
+    await userEvent.keyboard("{Enter}");
+    const menu = await screen.findByRole("listbox", {
+      name: "Link to artifact",
+    });
+    expect(
+      within(menu).getByRole("option", { name: "Packing list" })
+    ).toBeTruthy();
+    expect(
+      within(menu).queryByRole("option", { name: "Trip brief" })
+    ).toBeNull();
+    await userEvent.keyboard("{Enter}");
+    const link = await within(text).findByRole("link", {
+      name: "Packing list",
+    });
+    expect(link.getAttribute("href")).toBe(`/artifacts/${packing.id}`);
+    expect(text.textContent).not.toContain("/link");
+  });
+
+  it("stays shut inside a code block", async () => {
+    renderView({ versions: [version(1, "Intro\n\n```\nlet x = 1\n```")] });
+    const text = await editor();
+    await userEvent.click(within(text).getByText("let x = 1"));
+    await userEvent.keyboard("{End} /");
+    await waitFor(() => expect(text.textContent).toContain("let x = 1 /"));
+    expect(screen.queryByRole("listbox")).toBeNull();
+  });
+
+  it("inserts an image by its address, refusing an unsafe one", async () => {
+    renderView();
+    const text = await newLine();
+    await userEvent.keyboard("/image");
+    await screen.findByRole("listbox", { name: "Insert block" });
+    await userEvent.keyboard("{Enter}");
+    const dialog = await screen.findByRole("dialog", { name: "Insert image" });
+    const address = within(dialog).getByLabelText("Image address");
+    // Submitted from the keyboard: tests load no CSS, so Base UI's
+    // full-page inert layer sits over the unstyled dialog's buttons.
+    await userEvent.type(address, "javascript:alert(1){Enter}");
+    expect(await within(dialog).findByRole("alert")).toBeTruthy();
+    expect(text.querySelector("img")).toBeNull();
+    await userEvent.fill(address, "https://example.com/harbour.png");
+    await userEvent.keyboard("{Tab}The harbour{Enter}");
+    const image = await within(text).findByRole("img", { name: "The harbour" });
+    expect(image.getAttribute("src")).toBe("https://example.com/harbour.png");
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(text.textContent).not.toContain("/image");
   });
 });
 

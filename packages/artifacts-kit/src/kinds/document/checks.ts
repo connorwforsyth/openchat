@@ -10,6 +10,10 @@ export const DOCUMENT_MAX_CHARS = 1_000_000;
 const SAFE_LINK = /^(?:https?:|mailto:|\/(?!\/)|#|\.{0,2}\/)/i;
 const SAFE_IMAGE = /^(?:https:|\/(?!\/))/i;
 
+/** Whether an image may load from `url`: over HTTPS or from this app. */
+export const isSafeImageUrl = (url: string): boolean =>
+  SAFE_IMAGE.test(url.trim());
+
 interface Url {
   readonly kind: "image" | "link";
   readonly url: string;
@@ -67,7 +71,7 @@ export const safeUrls: ArtifactCheck<Document> = {
           `the link to "${url}" isn't allowed: links go to http(s), mailto or a path in this app`,
         ];
       }
-      if (kind === "image" && !SAFE_IMAGE.test(trimmed)) {
+      if (kind === "image" && !isSafeImageUrl(trimmed)) {
         return [
           `the image "${url}" isn't allowed: images load over https or from this app`,
         ];

@@ -47,6 +47,8 @@ import {
 
 import type { ArtifactSelection } from "../artifact-view";
 import type { PlanEditing } from "../plan-editor";
+import { BlockMenu, useBlockMenu } from "./block-menu";
+import type { LinkTarget } from "./blocks";
 import { DocumentToolbar } from "./document-toolbar";
 import { exportDocx, exportMarkdown, printDocument } from "./export";
 import { documentExtensions } from "./extensions";
@@ -75,6 +77,8 @@ export interface DocumentViewProps {
   readonly editing?: PlanEditing | null;
   /** Frames the title bar in the host's row (the panel adds Close). */
   readonly header: (content: ReactNode) => ReactNode;
+  /** What the `/` menu's "Link to artifact" lists; without any, it isn't offered. */
+  readonly linkTargets?: readonly LinkTarget[];
   readonly onSave: SaveDocumentVersion;
   readonly onSelect: (selection: ArtifactSelection) => void;
   /** The version shown; omitted, the latest. */
@@ -82,6 +86,8 @@ export interface DocumentViewProps {
   /** Every version, oldest first. */
   readonly versions: readonly ArtifactVersion[];
 }
+
+const NO_TARGETS: readonly LinkTarget[] = [];
 
 const readDocument = (content: string): Document | null => {
   const parsed = documentContentSchema.safeParse(content);
@@ -115,6 +121,7 @@ export function DocumentView({
   authorName,
   editing = null,
   header,
+  linkTargets,
   onSave,
   onSelect,
   versionId,
@@ -160,6 +167,7 @@ export function DocumentView({
       // mounted while it's edited, so saving never resets the cursor.
       key={isLatest ? "latest" : shown.id}
       latest={latest}
+      linkTargets={linkTargets}
       mayEdit={canEdit}
       onSave={onSave}
       onSelect={onSelect}
@@ -178,6 +186,7 @@ function LatestDocument({
   header,
   index,
   latest,
+  linkTargets = NO_TARGETS,
   mayEdit,
   onSave,
   onSelect,
@@ -208,11 +217,15 @@ function LatestDocument({
   // Made once, so the editor isn't handed new options (and re-set) on
   // every render.
   const label = t`Document`;
-  const placeholder = t`Start writing…`;
+  const placeholder = t`Type / for blocks…`;
+  const blockMenu = useBlockMenu(artifact.id, linkTargets);
+  const { suggestion } = blockMenu;
   const extensions = useMemo(
-    () => documentExtensions(placeholder),
-    [placeholder]
+    () => documentExtensions(placeholder, suggestion),
+    [placeholder, suggestion]
   );
+  // The popup's ARIA goes on the editable element, which exists once mounted.
+  const [editable, setEditable] = useState<HTMLElement | null>(null);
   const editorProps = useMemo(
     () => ({
       attributes: {
@@ -232,6 +245,7 @@ function LatestDocument({
       editorProps,
       extensions,
       immediatelyRender: false,
+      onMount: ({ editor: mounted }) => setEditable(mounted.view.dom),
       onUpdate: ({ editor: updated, transaction }) => {
         if (transaction.docChanged) {
           change(storedOf(updated));
@@ -362,7 +376,12 @@ function LatestDocument({
           versions={versions}
         />
       )}
-      {editor && canEdit ? <DocumentToolbar editor={editor} /> : null}
+      {editor && canEdit ? (
+        <>
+          <DocumentToolbar editor={editor} />
+          <BlockMenu editor={editor} state={blockMenu} target={editable} />
+        </>
+      ) : null}
       <div className="min-h-0 flex-1 overflow-y-auto">
         <article className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-6 py-10 sm:px-10">
           <header className="flex flex-col gap-3">
@@ -439,7 +458,9 @@ const DOCUMENT_TEXT = cn(
   "[&_table]:w-full [&_table]:border-collapse [&_table]:text-sm",
   "[&_td]:border [&_td]:border-border [&_td]:p-2 [&_td]:align-top [&_th]:border [&_th]:border-border [&_th]:bg-muted [&_th]:p-2 [&_th]:text-start [&_th]:align-top [&_th]:font-medium",
   "[&_.selectedCell]:bg-accent [&_td>*+*]:mt-2 [&_th>*+*]:mt-2",
-  "[&_.is-editor-empty:first-child::before]:pointer-events-none [&_.is-editor-empty:first-child::before]:float-start [&_.is-editor-empty:first-child::before]:h-0 [&_.is-editor-empty:first-child::before]:text-muted-foreground [&_.is-editor-empty:first-child::before]:content-[attr(data-placeholder)]"
+  "[&_.is-editor-empty:first-child::before]:pointer-events-none [&_.is-editor-empty:first-child::before]:float-start [&_.is-editor-empty:first-child::before]:h-0 [&_.is-editor-empty:first-child::before]:text-muted-foreground [&_.is-editor-empty:first-child::before]:content-[attr(data-placeholder)]",
+  // The hint also shows on the empty line being typed on, as in Notion.
+  "[&_.ProseMirror-focused>p.is-empty::before]:pointer-events-none [&_.ProseMirror-focused>p.is-empty::before]:float-start [&_.ProseMirror-focused>p.is-empty::before]:h-0 [&_.ProseMirror-focused>p.is-empty::before]:text-muted-foreground [&_.ProseMirror-focused>p.is-empty::before]:content-[attr(data-placeholder)]"
 );
 
 function Chip({
