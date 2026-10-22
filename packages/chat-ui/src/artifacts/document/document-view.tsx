@@ -221,8 +221,16 @@ function LatestDocument({
   const blockMenu = useBlockMenu(artifact.id, linkTargets);
   const { suggestion } = blockMenu;
   const extensions = useMemo(
-    () => documentExtensions(placeholder, suggestion),
-    [placeholder, suggestion]
+    () =>
+      documentExtensions({
+        blockMenu: suggestion,
+        placeholder,
+        taskLabel: (text, checked) => {
+          const task = text || t`Empty to-do`;
+          return checked ? t`Done: ${task}` : t`To do: ${task}`;
+        },
+      }),
+    [placeholder, suggestion, t]
   );
   // The popup's ARIA goes on the editable element, which exists once mounted.
   const [editable, setEditable] = useState<HTMLElement | null>(null);
@@ -447,8 +455,8 @@ const DOCUMENT_TEXT = cn(
   "[&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2",
   "[&_li]:my-1 [&_ol]:list-decimal [&_ol]:ps-6 [&_ul]:list-disc [&_ul]:ps-6",
   "[&_ul[data-type=taskList]]:list-none [&_ul[data-type=taskList]]:ps-1",
-  "[&_li[data-type=taskItem]]:flex [&_li[data-type=taskItem]]:items-start [&_li[data-type=taskItem]]:gap-2",
-  "[&_li[data-type=taskItem]>div]:flex-1 [&_li[data-type=taskItem]>label]:mt-1",
+  "[&_ul[data-type=taskList]>li]:flex [&_ul[data-type=taskList]>li]:items-start [&_ul[data-type=taskList]>li]:gap-2",
+  "[&_ul[data-type=taskList]>li>div]:flex-1 [&_ul[data-type=taskList]>li>label]:mt-1",
   "[&_li[data-checked=true]>div]:text-muted-foreground [&_li[data-checked=true]>div]:line-through",
   "[&_blockquote]:border-border [&_blockquote]:border-s-2 [&_blockquote]:ps-4 [&_blockquote]:text-muted-foreground [&_blockquote]:italic",
   "[&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-muted [&_pre]:p-4 [&_pre]:font-mono [&_pre]:text-sm",

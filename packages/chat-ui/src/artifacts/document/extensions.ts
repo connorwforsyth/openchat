@@ -46,10 +46,18 @@ const BlockMenu = Extension.create<{ suggestion: BlockMenuSuggestion }>({
   name: "documentBlockMenu",
 });
 
-export const documentExtensions = (
-  placeholder: string,
-  blockMenu?: BlockMenuSuggestion
-): Extensions => [
+export interface DocumentExtensionOptions {
+  readonly blockMenu?: BlockMenuSuggestion;
+  readonly placeholder: string;
+  /** A to-do checkbox's accessible name, from its text. */
+  readonly taskLabel: (text: string, checked: boolean) => string;
+}
+
+export const documentExtensions = ({
+  blockMenu,
+  placeholder,
+  taskLabel,
+}: DocumentExtensionOptions): Extensions => [
   StarterKit.configure({
     heading: { levels: [1, 2, 3, 4, 5, 6] },
     link: {
@@ -61,7 +69,12 @@ export const documentExtensions = (
     },
   }),
   TaskList,
-  TaskItem.configure({ nested: true }),
+  TaskItem.configure({
+    a11y: {
+      checkboxLabel: (node, checked) => taskLabel(node.textContent, checked),
+    },
+    nested: true,
+  }),
   TableKit.configure({ table: { resizable: false } }),
   Image.configure({ inline: false }),
   Placeholder.configure({ placeholder }),
