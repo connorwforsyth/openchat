@@ -1,8 +1,9 @@
 "use client";
 
-import { useLingui } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
   AgentIcon,
+  AttachIcon,
   EyeIcon,
   FileIcon,
   FileTextIcon,
@@ -15,29 +16,69 @@ import { cn } from "@workspace/ui/lib/utils";
 import { type MouseEvent, useCallback, useEffect, useRef } from "react";
 
 import { candidateKey } from "../mentions";
-import type { SlashItem } from "../options";
-import type { ComposerCommand, MentionCandidate } from "../schemas";
+import type { MenuItem } from "../options";
+import type { ComposerCommand } from "../schemas";
+import { ARTIFACT_ICONS } from "./chip";
 
-export type Suggestion =
-  | SlashItem
-  | { readonly kind: "mention"; readonly candidate: MentionCandidate };
-
-export const suggestionKey = (suggestion: Suggestion): string => {
-  switch (suggestion.kind) {
+export const suggestionKey = (item: MenuItem): string => {
+  switch (item.kind) {
+    case "agent":
+      return `agent:${item.agent.id}`;
+    case "artifact":
+      return `artifact:${item.artifact.kind}`;
     case "command":
-      return `command:${suggestion.command}`;
+      return `command:${item.command}`;
     case "mcp-server":
-      return `mcp:${suggestion.server.id}`;
-    case "file":
-      return `file:${suggestion.file.path}`;
+      return `mcp:${item.server.id}`;
+    case "open-file":
+      return `open:${item.file.path}`;
     case "mention":
-      return candidateKey(suggestion.candidate);
+      return candidateKey(item.candidate);
     case "prompt":
-      return `prompt:${suggestion.prompt.id}`;
+      return `prompt:${item.prompt.id}`;
     case "skill":
-      return `skill:${suggestion.skill.id}`;
+      return `skill:${item.skill.id}`;
+    case "upload":
+      return "upload";
     default:
-      return suggestion satisfies never;
+      return item satisfies never;
+  }
+};
+
+/** The menu's sections, in the order `menuItems` lists them. */
+export type MenuGroup =
+  | "agents"
+  | "skills"
+  | "prompts"
+  | "make"
+  | "people"
+  | "files"
+  | "upload"
+  | "commands"
+  | "mcp";
+
+export const menuGroup = (item: MenuItem): MenuGroup => {
+  switch (item.kind) {
+    case "agent":
+      return "agents";
+    case "skill":
+      return "skills";
+    case "prompt":
+      return "prompts";
+    case "artifact":
+      return "make";
+    case "upload":
+      return "upload";
+    case "mention":
+      return item.candidate.kind === "user" ? "people" : "files";
+    case "open-file":
+      return "files";
+    case "command":
+      return "commands";
+    case "mcp-server":
+      return "mcp";
+    default:
+      return item satisfies never;
   }
 };
 
@@ -47,10 +88,11 @@ export const optionId = (listboxId: string, index: number) =>
 export interface SuggestionMenuProps {
   readonly activeIndex: number;
   readonly id: string;
-  readonly items: readonly Suggestion[];
+  readonly items: readonly MenuItem[];
+  /** What this instance calls MCP servers (191), for their section. */
+  readonly mcpLabel: string;
   readonly onChoose: (index: number) => void;
   readonly onHover: (index: number) => void;
-  readonly title: string;
 }
 
 // Focus never leaves the textarea: it owns the keyboard (arrows, Enter,
@@ -65,22 +107,25 @@ const COMMAND_ICONS = {
   preview: EyeIcon,
 } as const satisfies Record<ComposerCommand, unknown>;
 
-function SuggestionIcon({ suggestion }: { readonly suggestion: Suggestion }) {
-  switch (suggestion.kind) {
+function SuggestionIcon({ item }: { readonly item: MenuItem }) {
+  switch (item.kind) {
+    case "agent":
+      return <AgentIcon aria-hidden />;
+    case "artifact": {
+      const Icon = ARTIFACT_ICONS[item.artifact.kind];
+      return <Icon aria-hidden />;
+    }
     case "command": {
-      const Icon = COMMAND_ICONS[suggestion.command];
+      const Icon = COMMAND_ICONS[item.command];
       return <Icon aria-hidden />;
     }
     case "mcp-server":
       return <NetworkIcon aria-hidden />;
-    case "file":
+    case "open-file":
       return <FileIcon aria-hidden />;
     case "mention":
-      if (suggestion.candidate.kind === "file") {
-        return <FileIcon aria-hidden />;
-      }
-      return suggestion.candidate.kind === "agent" ? (
-        <AgentIcon aria-hidden />
+      return item.candidate.kind === "file" ? (
+        <FileIcon aria-hidden />
       ) : (
         <UserIcon aria-hidden />
       );
@@ -88,17 +133,22 @@ function SuggestionIcon({ suggestion }: { readonly suggestion: Suggestion }) {
       return <FileTextIcon aria-hidden />;
     case "skill":
       return <SparklesIcon aria-hidden />;
+    case "upload":
+      return <AttachIcon aria-hidden />;
     default:
-      return suggestion satisfies never;
+      return item satisfies never;
   }
 }
 
 /** A name, with a quieter hint at the far end (a command, an email, a folder). */
 function Labelled({
+  draft = false,
   hint,
   label,
   mono = false,
 }: {
+  /** The owner's unpublished draft: only they see it. */
+  readonly draft?: boolean;
   readonly hint?: string;
   readonly label: string;
   readonly mono?: boolean;
@@ -106,6 +156,11 @@ function Labelled({
   return (
     <>
       <span className="truncate">{label}</span>
+      {draft ? (
+        <span className="shrink-0 rounded-sm bg-muted px-1 text-muted-foreground text-xs">
+          <Trans>Draft</Trans>
+        </span>
+      ) : null}
       {hint ? (
         <span
           className={cn(
@@ -134,7 +189,7 @@ function CommandText({ command }: { readonly command: ComposerCommand }) {
 function ServerText({
   server,
 }: {
-  readonly server: Extract<Suggestion, { kind: "mcp-server" }>["server"];
+  readonly server: Extract<MenuItem, { kind: "mcp-server" }>["server"];
 }) {
   const { t } = useLingui();
   const { title } = server;
@@ -146,32 +201,43 @@ function ServerText({
   );
 }
 
-function SuggestionText({ suggestion }: { readonly suggestion: Suggestion }) {
-  switch (suggestion.kind) {
-    case "command":
-      return <CommandText command={suggestion.command} />;
-    case "mcp-server":
-      return <ServerText server={suggestion.server} />;
-    case "file":
+function UploadText() {
+  const { t } = useLingui();
+  return <Labelled label={t`Upload a file`} />;
+}
+
+function SuggestionText({ item }: { readonly item: MenuItem }) {
+  switch (item.kind) {
+    case "agent":
       return (
         <Labelled
-          hint={suggestion.file.description}
-          label={suggestion.file.label}
+          draft={item.agent.draftVersion !== undefined}
+          hint={item.agent.description || undefined}
+          label={item.agent.name}
         />
       );
+    case "artifact":
+      return <Labelled label={item.artifact.label} />;
+    case "command":
+      return <CommandText command={item.command} />;
+    case "mcp-server":
+      return <ServerText server={item.server} />;
+    case "open-file":
+      return <Labelled hint={item.file.description} label={item.file.label} />;
     case "mention":
       return (
         <Labelled
-          hint={suggestion.candidate.description}
-          label={suggestion.candidate.label}
+          hint={item.candidate.description}
+          label={item.candidate.label}
         />
       );
     case "prompt": {
-      const { command } = suggestion.prompt.definition;
+      const { command } = item.prompt.definition;
       return (
         <Labelled
+          draft={item.prompt.draftVersion !== undefined}
           hint={command ? `/${command}` : undefined}
-          label={suggestion.prompt.name}
+          label={item.prompt.name}
           mono
         />
       );
@@ -179,12 +245,15 @@ function SuggestionText({ suggestion }: { readonly suggestion: Suggestion }) {
     case "skill":
       return (
         <Labelled
-          hint={suggestion.skill.description || undefined}
-          label={suggestion.skill.name}
+          draft={item.skill.draftVersion !== undefined}
+          hint={item.skill.description || undefined}
+          label={item.skill.name}
         />
       );
+    case "upload":
+      return <UploadText />;
     default:
-      return suggestion satisfies never;
+      return item satisfies never;
   }
 }
 
@@ -194,7 +263,7 @@ interface SuggestionOptionProps {
   readonly index: number;
   readonly onChoose: (index: number) => void;
   readonly onHover: (index: number) => void;
-  readonly suggestion: Suggestion;
+  readonly suggestion: MenuItem;
 }
 
 function SuggestionOption({
@@ -223,8 +292,61 @@ function SuggestionOption({
       // Focusable in principle, as the role requires, but never tabbed to.
       tabIndex={-1}
     >
-      <SuggestionIcon suggestion={suggestion} />
-      <SuggestionText suggestion={suggestion} />
+      <SuggestionIcon item={suggestion} />
+      <SuggestionText item={suggestion} />
+    </div>
+  );
+}
+
+interface Section {
+  readonly entries: readonly MenuItem[];
+  readonly group: MenuGroup;
+  /** The first entry's index in the whole list. */
+  readonly start: number;
+}
+
+/** Runs of items in the same group, in list order. Pure. */
+export const sections = (items: readonly MenuItem[]): readonly Section[] => {
+  const runs: { entries: MenuItem[]; group: MenuGroup; start: number }[] = [];
+  items.forEach((item, index) => {
+    const group = menuGroup(item);
+    const last = runs.at(-1);
+    if (last?.group === group) {
+      last.entries.push(item);
+    } else {
+      runs.push({ entries: [item], group, start: index });
+    }
+  });
+  return runs;
+};
+
+function GroupHeading({
+  group,
+  id,
+  mcpLabel,
+}: {
+  readonly group: MenuGroup;
+  readonly id: string;
+  readonly mcpLabel: string;
+}) {
+  const { t } = useLingui();
+  const titles: Record<MenuGroup, string> = {
+    agents: t`Agents`,
+    commands: t`Commands`,
+    files: t`Files`,
+    make: t`Make`,
+    mcp: mcpLabel,
+    people: t`People`,
+    prompts: t`Prompts`,
+    skills: t`Skills`,
+    upload: t`Add`,
+  };
+  return (
+    <div
+      className="px-1.5 pt-1.5 pb-0.5 font-medium text-muted-foreground text-xs"
+      id={id}
+    >
+      {titles[group]}
     </div>
   );
 }
@@ -233,11 +355,12 @@ export function SuggestionMenu({
   activeIndex,
   id,
   items,
+  mcpLabel,
   onChoose,
   onHover,
-  title,
 }: SuggestionMenuProps) {
   const listRef = useRef<HTMLDivElement>(null);
+  const { t } = useLingui();
 
   // Arrowing past the visible options scrolls the next one into view.
   useEffect(() => {
@@ -246,37 +369,38 @@ export function SuggestionMenu({
       ?.scrollIntoView({ block: "nearest" });
   }, [activeIndex, id]);
 
-  const titleId = `${id}-title`;
-
   return (
     <div
-      className="absolute inset-x-0 bottom-full z-50 mb-2 flex max-h-72 flex-col overflow-hidden rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10"
+      className="absolute inset-x-0 bottom-full z-50 mb-2 flex max-h-80 flex-col overflow-hidden rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10"
       data-slot="composer-suggestions"
     >
-      <p
-        className="px-1.5 py-1 font-medium text-muted-foreground text-xs"
-        id={titleId}
-      >
-        {title}
-      </p>
       <div
-        aria-labelledby={titleId}
+        aria-label={t`Suggestions`}
         className="overflow-y-auto"
         id={id}
         ref={listRef}
         role="listbox"
       >
-        {items.map((suggestion, index) => (
-          <SuggestionOption
-            active={index === activeIndex}
-            id={optionId(id, index)}
-            index={index}
-            key={suggestionKey(suggestion)}
-            onChoose={onChoose}
-            onHover={onHover}
-            suggestion={suggestion}
-          />
-        ))}
+        {sections(items).map(({ group, start, entries }) => {
+          const headingId = `${id}-group-${group}`;
+          return (
+            // biome-ignore lint/a11y/useSemanticElements: ARIA's grouped listbox; a fieldset is for form controls, not options.
+            <div aria-labelledby={headingId} key={group} role="group">
+              <GroupHeading group={group} id={headingId} mcpLabel={mcpLabel} />
+              {entries.map((suggestion, offset) => (
+                <SuggestionOption
+                  active={start + offset === activeIndex}
+                  id={optionId(id, start + offset)}
+                  index={start + offset}
+                  key={suggestionKey(suggestion)}
+                  onChoose={onChoose}
+                  onHover={onHover}
+                  suggestion={suggestion}
+                />
+              ))}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

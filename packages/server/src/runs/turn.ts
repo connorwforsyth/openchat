@@ -11,6 +11,7 @@ import {
   type KeyPolicy,
   resolveChatKeys,
 } from "@workspace/ai/keys/resolve";
+import { chipsOf } from "@workspace/ai/messages/chips";
 import { workspaceFileRefs } from "@workspace/ai/messages/workspace-file";
 import type { Decider } from "@workspace/ai/ports/decider";
 import type {
@@ -98,7 +99,7 @@ import {
   withSandboxTools,
 } from "./sandbox";
 import { type SkillFileReader, skillTurnParts, turnSkills } from "./skills";
-import { workspaceContext } from "./workspace-context";
+import { artifactRequests, workspaceContext } from "./workspace-context";
 
 // What a run answers with (PLAN.md §8 steps 3.2–3.4): the target resolved to
 // a model and the key that pays for it, plus the agent's instructions and
@@ -733,7 +734,12 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
         : await workspaceContext(refs, (await sandbox())?.readFile);
     // Artifacts used in this chat from elsewhere ride along like mentions (124).
     const attached = await deps.attachedArtifacts?.(run);
-    return [files, attached].filter(Boolean).join("\n\n") || undefined;
+    const requested = message.ok
+      ? artifactRequests(chipsOf(message.value.parts))
+      : undefined;
+    return (
+      [files, attached, requested].filter(Boolean).join("\n\n") || undefined
+    );
   };
 
   /**
