@@ -765,7 +765,7 @@ describe("composer file commands (062)", () => {
     await userEvent.keyboard("/open");
     await screen.findByRole("option", { name: OPEN_FILE });
     await userEvent.keyboard("{Enter}");
-    const files = await screen.findByRole("listbox", { name: "Files" });
+    const files = await screen.findByRole("group", { name: "Files" });
     expect(within(files).getAllByRole("option")).toHaveLength(1);
     await userEvent.keyboard("{Enter}");
     expect(onSelect).toHaveBeenCalledWith({ kind: "file", path: "src/app.ts" });
