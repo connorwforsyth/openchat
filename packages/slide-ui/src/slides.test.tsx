@@ -139,7 +139,11 @@ describe("Chart", () => {
     const { container } = render(
       <>
         <Chart labels={["A", "B"]} series={[1, 2] as never} title="Bare" />
-        <Chart labels={undefined as never} series={undefined as never} title="None" />
+        <Chart
+          labels={undefined as never}
+          series={undefined as never}
+          title="None"
+        />
       </>
     );
     expect(within(container).getByText("A")).toBeTruthy();

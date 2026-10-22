@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { applyArtifactOperation, checkArtifact } from "../../define";
 import { PRESENTATION_LIMITS, type Presentation } from "./content";
-import { presentationKind } from "./kind";
+import { presentationKind, presentationKindWith } from "./kind";
 
 const slide = (id: string, title = id) => ({
   id,
@@ -56,9 +56,10 @@ describe("the Presentation kind", () => {
   });
 
   it("says what's wrong with a deck that isn't one", () => {
-    expect(checkArtifact(presentationKind, "slides")).toEqual([
-      'content isn\'t JSON. A presentation is {"title": "…", "slides": [{"id": "intro", "source": "…"}]}',
-    ]);
+    const [notJson] = checkArtifact(presentationKind, '{"title": "x", slides');
+    expect(notJson).toContain("content isn't JSON (");
+    expect(notJson).toContain("position");
+    expect(notJson).toContain("escape quotes and newlines");
     expect(checkArtifact(presentationKind, text(deck()))).toEqual([
       "has no slides: a presentation needs at least one",
     ]);
@@ -80,6 +81,40 @@ describe("the Presentation kind", () => {
         text({ slides: [{ id: "Intro!", source: "x" }], title: "" })
       )[0]
     ).toContain("isn't a slide id");
+  });
+
+  it("names the field a model left out, with what to write there", () => {
+    const [missing] = checkArtifact(
+      presentationKind,
+      JSON.stringify({ slides: [{ id: "intro", title: "Hi" }], title: "Deck" })
+    );
+    expect(missing).toContain('slides.0.source needs a "source"');
+    expect(
+      checkArtifact(presentationKind, JSON.stringify({ title: "Deck" }))
+    ).toEqual([
+      'slides needs "slides": a list of {"id", "source", "notes"} objects',
+    ]);
+  });
+
+  it("compiles each slide on save when given the runtime's compiler, naming the slide that fails", () => {
+    const compile = (source: string) =>
+      source.includes("<Title") ? null : "Unexpected token (2:30)";
+    const kind = presentationKindWith({ compile });
+    const broken = {
+      ...deck("intro", "end"),
+      slides: [
+        slide("intro"),
+        {
+          id: "end",
+          source:
+            'import { Closing } from "@workspace/slide-ui";\nexport default function E() { return <Closing title="x" }',
+        },
+      ],
+    };
+    expect(checkArtifact(kind, text(broken))).toEqual([
+      'slide "end" (slide 2) doesn\'t compile: Unexpected token (2:30). Fix its TSX and save it again; the other slides are fine',
+    ]);
+    expect(checkArtifact(presentationKind, text(broken))).toEqual([]);
   });
 
   it("lets a slide import only React and slide-ui's components, and needs its default export", () => {
