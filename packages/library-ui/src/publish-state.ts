@@ -1,6 +1,7 @@
-import type {
-  LibraryItem,
-  LibraryKind,
+import {
+  isVersionedLibraryKind,
+  type LibraryItem,
+  type LibraryKind,
 } from "@workspace/contract/schemas/library";
 
 // Where a versioned item stands for the person editing it (D13): drafts are
@@ -16,21 +17,12 @@ export type PublishState =
     }
   | { readonly type: "published"; readonly version: number };
 
-const VERSIONED: ReadonlySet<LibraryKind> = new Set([
-  "agent",
-  "prompt",
-  "skill",
-]);
-
-/** Whether items of `kind` have drafts and published versions. */
-export const isVersioned = (kind: LibraryKind): boolean => VERSIONED.has(kind);
-
 /** `null` for kinds without versions (MCP servers, presets). */
 export const publishStateOf = (
   kind: LibraryKind,
   item: Pick<LibraryItem, "latestVersionNumber" | "visibility"> | null
 ): PublishState | null => {
-  if (!isVersioned(kind)) {
+  if (!isVersionedLibraryKind(kind)) {
     return null;
   }
   if (item === null) {

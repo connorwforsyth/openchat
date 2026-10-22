@@ -5,11 +5,12 @@ import type {
   LibraryItemId,
   LibraryVersionId,
 } from "@workspace/contract/schemas/common";
-import type {
-  LibraryDefinitionInput,
-  LibraryItemDetail,
-  LibraryKind,
-  SkillDefinition,
+import {
+  isVersionedLibraryKind,
+  type LibraryDefinitionInput,
+  type LibraryItemDetail,
+  type LibraryKind,
+  type SkillDefinition,
 } from "@workspace/contract/schemas/library";
 import {
   ArrowLeftIcon,
@@ -71,11 +72,7 @@ import {
   usePublicConfig,
   useUpdateItem,
 } from "../hooks";
-import {
-  isVersioned,
-  type PublishState,
-  publishStateOf,
-} from "../publish-state";
+import { type PublishState, publishStateOf } from "../publish-state";
 import { downloadJson, exportFileName } from "../transfer";
 import { AgentForm, type Choice, type KnowledgeFile } from "./agent-form";
 import { AccessBadge, VersionBadge, VisibilityBadge } from "./badges";
@@ -606,7 +603,7 @@ function HeaderActions({
   const access = detail?.myAccess ?? "owner";
   const canEdit = canEditWith(access);
   const manage = access === "owner" || access === "maintainer";
-  const versioned = isVersioned(kind);
+  const versioned = isVersionedLibraryKind(kind);
   const openHistory = useCallback(() => onDialog("history"), [onDialog]);
   const openShare = useCallback(() => onDialog("share"), [onDialog]);
   const openPublish = useCallback(() => onDialog("publish"), [onDialog]);
