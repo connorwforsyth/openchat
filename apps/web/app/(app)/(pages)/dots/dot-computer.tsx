@@ -1,16 +1,47 @@
 "use client";
 
 import { Trans, useLingui } from "@lingui/react/macro";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useIsMutating,
+  useMutation,
+  useMutationState,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import type { ConversationId } from "@workspace/contract/schemas/common";
 import type { Dot } from "@workspace/contract/schemas/dots";
-import { KeyboardIcon, MonitorIcon, RotateCcwIcon } from "@workspace/icons";
 import {
+  EllipsisIcon,
+  KeyboardIcon,
+  MonitorIcon,
+  RefreshCwIcon,
+  RotateCcwIcon,
+} from "@workspace/icons";
+import {
+  type ComputerPowerAction,
   type ComputerView,
   computerViewSchema,
 } from "@workspace/server/dots/computer-view";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@workspace/ui/components/alert-dialog";
 import { Button } from "@workspace/ui/components/button";
-import { useCallback } from "react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@workspace/ui/components/dropdown-menu";
+import { useToastManager } from "@workspace/ui/components/toast";
+import { useCallback, useState } from "react";
 import { z } from "zod";
 import { codeOf } from "@/app/(app)/_shared/query-state";
 import type { DotSurfaceProps } from "./dot-extensions";
@@ -22,8 +53,9 @@ import { useScreenLink } from "./screen-link";
 // profile's Computer tab. The screen is noVNC on the sandbox preview origin
 // (D24), in an iframe without same-origin rights. Watching is view-only;
 // "Take over" hands the person the mouse and keyboard and makes the Dot's
-// `computer` tool refuse input until "Give back control". Nothing renders
-// for an ordinary chat.
+// `computer` tool refuse input until "Give back control". Restart and
+// "Reset computer" stop the Dot's runs and bring the screen back, with or
+// without its files. Nothing renders for an ordinary chat.
 
 const computerPath = (conversationId: string) =>
   `/api/computer/${conversationId}`;
@@ -45,6 +77,131 @@ const readView = async (response: Response): Promise<ComputerView> => {
 
 const viewKey = (conversationId: ConversationId) =>
   ["dot-computer", conversationId] as const;
+
+/**
+ * Restart and reset share one mutation key, so the view and every menu see
+ * a power action in flight, and the screen reloads after one lands.
+ */
+const powerKey = (conversationId: ConversationId) =>
+  ["dot-computer-power", conversationId] as const;
+
+/** The power action in flight, if any, and when the last one finished. */
+const usePowerState = (conversationId: ConversationId) => {
+  const mutationKey = powerKey(conversationId);
+  const pending = useMutationState({
+    filters: { mutationKey, status: "pending" },
+    select: (mutation) => mutation.state.variables as ComputerPowerAction,
+  });
+  const landed = useMutationState({
+    filters: { mutationKey, status: "success" },
+    select: (mutation) => mutation.state.submittedAt,
+  });
+  return { landed: Math.max(0, ...landed), pending: pending.at(-1) };
+};
+
+/**
+ * Restart (keep files) and "Reset computer" (wipe, after a confirm) for a
+ * Dot's computer. `onShow` brings the live view on screen as it starts.
+ */
+export function DotComputerActions({
+  dot,
+  onShow,
+}: DotSurfaceProps & { readonly onShow?: () => void }) {
+  const { t } = useLingui();
+  const queryClient = useQueryClient();
+  const { add } = useToastManager();
+  const [confirming, setConfirming] = useState(false);
+  const { conversationId, name } = dot;
+  const busy = useIsMutating({ mutationKey: powerKey(conversationId) }) > 0;
+  const power = useMutation({
+    // Kept, so the view's screen remembers which power action it reloaded for.
+    gcTime: Number.POSITIVE_INFINITY,
+    mutationFn: (action: ComputerPowerAction) =>
+      fetch(`${computerPath(conversationId)}/${action}`, {
+        method: "POST",
+      }).then(readView),
+    mutationKey: powerKey(conversationId),
+    onError: (error, action) =>
+      add({
+        description:
+          codeOf(error) === "FEATURE_DISABLED"
+            ? t`Computers aren't set up on this server.`
+            : t`The computer isn't available right now. Check that the sandbox runner is running.`,
+        title:
+          action === "restart"
+            ? t`Couldn't restart ${name}'s computer`
+            : t`Couldn't reset ${name}'s computer`,
+        type: "error",
+      }),
+    onMutate: () => onShow?.(),
+    onSuccess: (view) =>
+      queryClient.setQueryData(viewKey(conversationId), view),
+  });
+  const { mutate } = power;
+  const restart = useCallback(() => mutate("restart"), [mutate]);
+  const askReset = useCallback(() => setConfirming(true), []);
+  const reset = useCallback(() => {
+    setConfirming(false);
+    mutate("reset");
+  }, [mutate]);
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              aria-label={t`${name}'s computer options`}
+              size="icon-sm"
+              title={t`Computer options`}
+              variant="ghost"
+            />
+          }
+        >
+          <EllipsisIcon />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-52">
+          <DropdownMenuItem disabled={busy} onClick={restart}>
+            <RefreshCwIcon aria-hidden />
+            <Trans>Restart computer</Trans>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            disabled={busy}
+            onClick={askReset}
+            variant="destructive"
+          >
+            <RotateCcwIcon aria-hidden />
+            <Trans>Reset computer…</Trans>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <AlertDialog onOpenChange={setConfirming} open={confirming}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              <Trans>Reset {name}'s computer?</Trans>
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              <Trans>
+                This stops what {name} is doing and erases everything on its
+                computer: files, downloads and browser data. It starts again
+                empty. This can't be undone.
+              </Trans>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>
+              <Trans>Cancel</Trans>
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={reset} variant="destructive">
+              <Trans>Reset computer</Trans>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
 
 /** In the Dot's chat: the panel's live view; nothing for other chats. */
 export function DotComputer({
@@ -87,7 +244,10 @@ export function DotComputerView({ dot }: { readonly dot: Dot }) {
   const queryClient = useQueryClient();
   const { conversationId } = dot;
   const key = viewKey(conversationId);
+  const power = usePowerState(conversationId);
   const view = useQuery({
+    // The computer is going away and coming back; the action's answer is the view.
+    enabled: power.pending === undefined,
     queryFn: () =>
       fetch(computerPath(conversationId), { cache: "no-store" }).then(readView),
     queryKey: key,
@@ -120,10 +280,16 @@ export function DotComputerView({ dot }: { readonly dot: Dot }) {
 
   const screen = useScreenLink();
 
-  const current = view.data;
+  const current = power.pending ? undefined : view.data;
   const disabled = codeOf(view.error) === "FEATURE_DISABLED";
   const userHas = holder === "user";
   const status = (): string => {
+    if (power.pending === "restart") {
+      return t`Restarting…`;
+    }
+    if (power.pending === "reset") {
+      return t`Resetting…`;
+    }
     if (current && screen.failed) {
       return t`Screen disconnected`;
     }
@@ -155,7 +321,7 @@ export function DotComputerView({ dot }: { readonly dot: Dot }) {
         >
           {status()}
         </span>
-        {(view.isError && !disabled) || screen.failed ? (
+        {!power.pending && ((view.isError && !disabled) || screen.failed) ? (
           <Button
             onClick={screen.failed ? screen.reconnect : retry}
             size="sm"
@@ -180,6 +346,7 @@ export function DotComputerView({ dot }: { readonly dot: Dot }) {
             )}
           </Button>
         ) : null}
+        {disabled ? null : <DotComputerActions dot={dot} />}
       </div>
       <div className="relative aspect-[16/10] w-full bg-muted">
         {current ? (
@@ -189,7 +356,7 @@ export function DotComputerView({ dot }: { readonly dot: Dot }) {
             // The desktop ignores input until the person takes over; until
             // then the frame shouldn't take focus or keystrokes either.
             inert={!userHas}
-            key={screen.attempt}
+            key={`${power.landed}-${screen.attempt}`}
             ref={screen.ref}
             sandbox="allow-scripts"
             src={current.url}

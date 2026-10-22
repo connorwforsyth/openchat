@@ -82,9 +82,20 @@ export type ComputerOutput =
     };
 
 /** The runner calls a computer needs. A port, so tests fake it. */
-export type DesktopHost = Pick<DockerSandboxFactory, "createDesktop">;
+export type DesktopHost = Pick<
+  DockerSandboxFactory,
+  "createDesktop" | "remove" | "restart"
+>;
 
 export interface Computers {
+  /** Wipes the desktop and its files, then starts a fresh one. */
+  readonly reset: (
+    conversationId: ConversationId
+  ) => AsyncResult<ComputerView, SandboxError>;
+  /** Restarts the desktop, keeping its files; starts it if there's none. */
+  readonly restart: (
+    conversationId: ConversationId
+  ) => AsyncResult<ComputerView, SandboxError>;
   readonly setControl: (
     conversationId: ConversationId,
     holder: ComputerHolder
@@ -187,6 +198,16 @@ export const createComputers = ({
   };
 
   return {
+    reset: async (conversationId) => {
+      const removed = await host.remove(desktopIdFor(conversationId));
+      return removed.ok ? view(conversationId) : removed;
+    },
+    restart: async (conversationId) => {
+      const restarted = await host.restart(desktopIdFor(conversationId));
+      return restarted.ok || restarted.error.type === "not_found"
+        ? view(conversationId)
+        : restarted;
+    },
     setControl: async (conversationId, holder) => {
       const sandbox = await desktop(conversationId);
       if (!sandbox.ok) {

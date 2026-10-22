@@ -47,6 +47,8 @@ const fakeHost = (exitCode = 0) => {
       created.push(spec.id);
       return Promise.resolve(ok(sandbox));
     },
+    remove: () => Promise.resolve(ok(undefined)),
+    restart: () => Promise.resolve(ok(undefined)),
   };
   return { commands, created, host };
 };

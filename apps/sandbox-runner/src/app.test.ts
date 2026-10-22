@@ -1,4 +1,8 @@
 import { fixtureId } from "@workspace/contract/fixtures";
+import {
+  createComputers,
+  desktopIdFor,
+} from "@workspace/sandbox/computer/computer";
 import { createDockerSandboxFactory } from "@workspace/sandbox/docker/client";
 import type { Sandbox } from "@workspace/sandbox/ports/sandbox";
 import { signRequest } from "@workspace/sandbox/runner/auth";
@@ -456,6 +460,28 @@ describe("runner through the docker client", () => {
     });
   });
 
+  it("restarts a sandbox keeping its files, and starts a stopped one", async () => {
+    const { advance, factory, fake, runner } = setup();
+    const sandbox = await must(factory.create({ conversationId, id, limits }));
+    await must(sandbox.writeFile("notes.txt", "kept"));
+    await must(factory.restart(id));
+    expect(fake.stops).toEqual([`sbx-${id}`]);
+    expect(await must(sandbox.status())).toEqual({ state: "ready" });
+    expect(decode(await must(sandbox.readFile("notes.txt")))).toBe("kept");
+
+    advance(120_000);
+    await runner.reapIdle();
+    await must(factory.restart(id));
+    expect(await must(sandbox.status())).toEqual({ state: "ready" });
+  });
+
+  it("can't restart a sandbox that doesn't exist", async () => {
+    const { factory } = setup();
+    expect(await factory.restart(id)).toMatchObject({
+      error: { type: "not_found" },
+    });
+  });
+
   it("turns a Docker outage into `unavailable`", async () => {
     const { factory, fake, logs } = setup();
     fake.failNext("createVolume");
@@ -610,5 +636,38 @@ describe("the runner after a restart", () => {
     });
     expect(response.status).toBe(502);
     expect(await response.text()).toBe("The preview isn't answering");
+  });
+});
+
+describe("a Dot's computer on the runner", () => {
+  const desktopLimits = { ...limits, network: true };
+  const desktop = desktopIdFor(conversationId);
+
+  it("restarts keeping the desktop's files, and starts one if there's none", async () => {
+    const { factory, fake } = setup();
+    const computers = createComputers({ host: factory, limits: desktopLimits });
+    const started = await must(computers.restart(conversationId));
+    expect(started.holder).toBe("agent");
+    const sandbox = await must(factory.attach(desktop));
+    await must(sandbox.writeFile("notes.txt", "kept"));
+
+    const view = await must(computers.restart(conversationId));
+    expect(view.url).toBe(started.url);
+    expect(fake.stops).toContain(`sbx-${desktop}`);
+    expect(decode(await must(sandbox.readFile("notes.txt")))).toBe("kept");
+  });
+
+  it("resets to a fresh desktop without its files, with or without one", async () => {
+    const { factory } = setup();
+    const computers = createComputers({ host: factory, limits: desktopLimits });
+    await must(computers.reset(conversationId));
+    const sandbox = await must(factory.attach(desktop));
+    await must(sandbox.writeFile("notes.txt", "gone"));
+
+    await must(computers.reset(conversationId));
+    expect(await must(sandbox.status())).toEqual({ state: "ready" });
+    expect(await sandbox.readFile("notes.txt")).toMatchObject({
+      error: { type: "not_found" },
+    });
   });
 });
