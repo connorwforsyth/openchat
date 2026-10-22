@@ -250,6 +250,9 @@ const applySandbox = (doc: Document, answers: Answers): void => {
       token: RUNNER_TOKEN,
     });
   }
+  if (answers.sandbox === "docker") {
+    set(doc, ["sandbox", "egress", "mode"], answers.egress);
+  }
 };
 
 const applyStorage = (doc: Document, answers: Answers): void => {

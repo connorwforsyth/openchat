@@ -50,8 +50,8 @@ export const signupSchema = z.enum(["open", "invite", "domain", "sso"]);
 export const sandboxChoiceSchema = z.enum(["just-bash", "docker", "none"]);
 export type SandboxChoice = z.infer<typeof sandboxChoiceSchema>;
 
-/** `allowlist` needs an egress proxy nobody has set up yet, so it isn't offered. */
-export const egressSchema = z.enum(["none", "open"]);
+/** `sandbox.egress.mode` in app.config.yaml. */
+export const egressSchema = z.enum(["none", "allowlist", "open"]);
 
 export const iconSetSchema = z.enum(["lucide", "phosphor", "material"]);
 export const iconStyleSchema = z.enum(["outlined", "rounded", "sharp"]);

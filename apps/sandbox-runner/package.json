@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "bun build src/main.ts --target=node --external '*.node' --outdir=dist",
-    "dev": "bun --watch src/main.ts",
+    "dev": "bun scripts/dev.ts",
     "lint": "ultracite check",
     "smoke": "bun test/e2e/smoke.ts",
     "start": "node dist/main.js",

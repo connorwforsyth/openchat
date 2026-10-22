@@ -13,11 +13,22 @@ import type { Command, Runner } from "./system";
 // only the services `bun dev` leans on (Postgres, the sandbox runner,
 // SearXNG), then runs `bun dev` with `.env` and the config handed to it.
 
+export type UpStep = Command & {
+  readonly label: string;
+  /**
+   * A Docker step `bun dev` works without: with no Docker it's skipped, and
+   * this line says so and what to run later.
+   */
+  readonly withoutDocker?: string;
+};
+
 export interface UpPlan {
-  readonly steps: readonly (Command & { readonly label: string })[];
+  readonly steps: readonly UpStep[];
   /** Where the app will answer. */
   readonly url: string;
 }
+
+const RUNNER_START = "docker compose --profile sandbox up -d sandbox-runner";
 
 const profilesFor = (
   settings: Pick<Defaults, "artifacts" | "sandbox" | "search">,
@@ -64,19 +75,17 @@ export const planUp = (files: CurrentFiles, root: string): UpPlan => {
 
   const services = [
     settings.database === "postgres" && "postgres",
-    settings.sandbox === "docker" && "sandbox-runner",
     settings.search && "searxng",
   ].filter((service): service is string => Boolean(service));
-  const compose: (Command & { label: string })[] =
+  const compose: UpStep[] =
     services.length > 0
       ? [
           {
             args: [
               "compose",
-              ...profilesFor(settings, false),
+              ...profilesFor({ ...settings, sandbox: "none" }, false),
               "up",
               "-d",
-              ...(settings.sandbox === "docker" ? ["--build"] : []),
               "--wait",
               ...services,
             ],
@@ -86,9 +95,32 @@ export const planUp = (files: CurrentFiles, root: string): UpPlan => {
           },
         ]
       : [];
+  // Previews need the runner in Docker, so without Docker it waits.
+  const runner: UpStep[] =
+    settings.sandbox === "docker"
+      ? [
+          {
+            args: [
+              "compose",
+              "--profile",
+              "sandbox",
+              "up",
+              "-d",
+              "--build",
+              "--wait",
+              "sandbox-runner",
+            ],
+            command: "docker",
+            inherit: true,
+            label: "Starting the sandbox runner in Docker",
+            withoutDocker: `Sandbox runner not started: Docker isn't running. Start Docker, then run: ${RUNNER_START}`,
+          },
+        ]
+      : [];
   return {
     steps: [
       ...compose,
+      ...runner,
       {
         // turbo passes only the variables a task declares unless told
         // otherwise, and `next dev` reads apps/web/.env, not this one.
@@ -123,6 +155,11 @@ const INTERRUPTED = 130;
 const needsDocker = (plan: UpPlan): boolean =>
   plan.steps.some((step) => step.command === "docker");
 
+const requiresDocker = (plan: UpPlan): boolean =>
+  plan.steps.some(
+    (step) => step.command === "docker" && step.withoutDocker === undefined
+  );
+
 export interface UpDeps {
   readonly print: (message: string) => void;
   readonly runner: Runner;
@@ -132,16 +169,23 @@ export const runUp = async (
   plan: UpPlan,
   { print, runner }: UpDeps
 ): Promise<Result<string, UpError>> => {
-  if (needsDocker(plan)) {
-    const docker = await runner.run({
-      args: ["compose", "version"],
-      command: "docker",
-    });
-    if (docker.code !== 0) {
-      return err({ type: "no-docker" });
-    }
+  // The daemon, not just the CLI: compose can't start anything without it.
+  const docker =
+    needsDocker(plan) &&
+    (
+      await runner.run({
+        args: ["info", "--format", "{{.ServerVersion}}"],
+        command: "docker",
+      })
+    ).code === 0;
+  if (!docker && requiresDocker(plan)) {
+    return err({ type: "no-docker" });
   }
   for (const step of plan.steps) {
+    if (step.command === "docker" && !docker && step.withoutDocker) {
+      print(step.withoutDocker);
+      continue;
+    }
     print(step.label);
     // `bun dev` runs until Ctrl-C, so say where to look before it starts.
     if (step.command === "bun") {

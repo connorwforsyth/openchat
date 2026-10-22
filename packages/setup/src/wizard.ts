@@ -380,8 +380,13 @@ const askSandbox = async (prompter: Prompter, defaults: Defaults) => {
                 value: "none",
               },
               {
-                hint: "anywhere, your local network included; needed for npm install",
-                label: "Yes",
+                hint: "npm, PyPI and GitHub through the runner's proxy; the list is sandbox.egress.allow",
+                label: "Package registries only",
+                value: "allowlist",
+              },
+              {
+                hint: "anywhere, your local network included",
+                label: "Yes, anywhere",
                 value: "open",
               },
             ],

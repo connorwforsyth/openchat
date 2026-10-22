@@ -71,15 +71,19 @@ describe.each([
   });
 });
 
+const EGRESS_OPEN = /egress:\s*\{?\s*mode: open/;
+
 describe("the demo's answers", () => {
   const files = apply(firstRun, plan(firstRun, demoAnswers));
   const env = parseEnv(files.env ?? "");
 
   it("reproduce what was done by hand", () => {
     expect(env).toMatchObject({
-      SANDBOX_EGRESS: "open",
+      SANDBOX_EGRESS: "",
       SANDBOX_RUNNER_TOKEN: "fake-random-1",
     });
+    // The YAML decides egress, so a later edit there isn't overridden.
+    expect(files.config).toMatch(EGRESS_OPEN);
     // The icon set goes in the yaml, never .env (130).
     expect(Object.keys(env).filter((name) => name.startsWith("ICON_"))).toEqual(
       []
@@ -116,9 +120,9 @@ describe("re-running", () => {
     );
     expect(parseEnv(again.env ?? "")).toMatchObject({
       ANTHROPIC_API_KEY: FAKE_KEYS.anthropic,
-      SANDBOX_EGRESS: "none",
       SANDBOX_RUNNER_TOKEN: "fake-random-1",
     });
+    expect(readDefaults(again).egress).toBe("none");
   });
 
   it("keeps hand edits in every file", () => {
