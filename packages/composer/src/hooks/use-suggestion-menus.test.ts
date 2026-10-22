@@ -2,21 +2,21 @@ import { act, renderHook } from "@testing-library/react";
 import type { SuggestionProps } from "@tiptap/suggestion";
 import { describe, expect, it, vi } from "vitest";
 
-import type { SlashItem } from "../options";
+import type { MenuItem } from "../options";
 import { keepWhileLoading, useSuggestionMenus } from "./use-suggestion-menus";
 
-const NEW_FILE: SlashItem = { command: "new-file", kind: "command" };
-const OPEN: SlashItem = { command: "open", kind: "command" };
+const NEW_FILE: MenuItem = { command: "new-file", kind: "command" };
+const OPEN: MenuItem = { command: "open", kind: "command" };
 
 /** The props TipTap hands a renderer, reduced to what the menus read. */
 const props = (
   query: string,
-  items: SlashItem[],
+  items: MenuItem[],
   {
     command = () => undefined,
     loading = false,
   }: {
-    readonly command?: (item: SlashItem) => void;
+    readonly command?: (item: MenuItem) => void;
     readonly loading?: boolean;
   } = {}
 ) =>
@@ -25,7 +25,7 @@ const props = (
     items,
     loading,
     query,
-  }) as unknown as SuggestionProps<SlashItem, SlashItem>;
+  }) as unknown as SuggestionProps<MenuItem, MenuItem>;
 
 const enter = () =>
   ({
@@ -34,8 +34,8 @@ const enter = () =>
 
 describe("keepWhileLoading", () => {
   it("passes loaded lists through and keeps the last one while loading", () => {
-    const seen: SuggestionProps<SlashItem, SlashItem>[] = [];
-    const render = keepWhileLoading<SlashItem, SlashItem>((each) =>
+    const seen: SuggestionProps<MenuItem, MenuItem>[] = [];
+    const render = keepWhileLoading<MenuItem, MenuItem>((each) =>
       seen.push(each)
     );
     render(props("", [], { loading: true }));
@@ -55,7 +55,7 @@ describe("keepWhileLoading", () => {
 describe("useSuggestionMenus", () => {
   it("chooses on Enter while the next query's items are loading", () => {
     const { result } = renderHook(() => useSuggestionMenus());
-    const renderer = result.current.slashRenderer();
+    const renderer = result.current.renderer();
     const chosen = vi.fn();
 
     act(() => {
@@ -83,7 +83,7 @@ describe("useSuggestionMenus", () => {
 
   it("closes when the loaded list is empty, and starts over after exit", () => {
     const { result } = renderHook(() => useSuggestionMenus());
-    const renderer = result.current.slashRenderer();
+    const renderer = result.current.renderer();
     act(() => {
       renderer.onStart(props("", [NEW_FILE, OPEN]));
       renderer.onUpdate(props("zz", []));
@@ -99,14 +99,11 @@ describe("useSuggestionMenus", () => {
 
   it("refilters the active query when the lists change, until exit", () => {
     const { result } = renderHook(() => useSuggestionMenus());
-    const renderer = result.current.slashRenderer();
-    const sources = (items: readonly SlashItem[]) => ({
-      mentions: () => [],
-      slash: (query: string) =>
-        items.filter(
-          (item) => item.kind === "command" && item.command.startsWith(query)
-        ),
-    });
+    const renderer = result.current.renderer();
+    const sources = (items: readonly MenuItem[]) => (query: string) =>
+      items.filter(
+        (item) => item.kind === "command" && item.command.startsWith(query)
+      );
 
     // `/op` matched nothing when it was typed, so nothing shows.
     act(() => {

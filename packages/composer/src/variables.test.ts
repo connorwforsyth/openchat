@@ -5,6 +5,7 @@ import {
   initialVariableValues,
   parseTemplateVariables,
   resolvePromptVariables,
+  templateToInline,
 } from "./variables";
 
 describe("parseTemplateVariables", () => {
@@ -87,5 +88,40 @@ describe("fillTemplate", () => {
       ok: true,
       value: "{{b}} $&",
     });
+  });
+});
+
+describe("templateToInline", () => {
+  it("makes each placeholder a variable node with its default, and newlines breaks", () => {
+    expect(
+      templateToInline({
+        template: "Summarise {{doc}} for {{ audience }}.\nKeep it short.",
+        variables: [
+          {
+            default: "the team",
+            description: "Who reads it",
+            name: "audience",
+          },
+        ],
+      })
+    ).toEqual([
+      { text: "Summarise ", type: "text" },
+      {
+        attrs: { description: null, fallback: null, name: "doc" },
+        type: "promptVariable",
+      },
+      { text: " for ", type: "text" },
+      {
+        attrs: {
+          description: "Who reads it",
+          fallback: "the team",
+          name: "audience",
+        },
+        type: "promptVariable",
+      },
+      { text: ".", type: "text" },
+      { type: "hardBreak" },
+      { text: "Keep it short.", type: "text" },
+    ]);
   });
 });

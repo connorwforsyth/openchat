@@ -17,7 +17,11 @@ import {
   contextKey,
   contextOptionsFromMe,
 } from "@workspace/composer/options";
-import type { ContextOption, SkillOption } from "@workspace/composer/schemas";
+import type {
+  ContextOption,
+  PromptOption,
+  SkillOption,
+} from "@workspace/composer/schemas";
 import {
   type ConversationId,
   conversationIdSchema,
@@ -25,7 +29,10 @@ import {
   libraryItemIdSchema,
 } from "@workspace/contract/schemas/common";
 import type { Conversation } from "@workspace/contract/schemas/conversations";
-import type { LibraryItem } from "@workspace/contract/schemas/library";
+import type {
+  LibraryItem,
+  LibraryItemDetail,
+} from "@workspace/contract/schemas/library";
 import {
   AUTO_MODEL,
   type ModelOption,
@@ -62,6 +69,7 @@ import {
   type UsableAgents,
   usableAgents,
 } from "./usable-agents";
+import { type TabItems, type UsableItem, usableItems } from "./usable-items";
 import { usableSkills } from "./usable-skills";
 
 // The chat screen over the API (015's `ConnectedChat`), wired to the app:
@@ -200,20 +208,24 @@ const useAgentsForPicker = (enabled: boolean): UsableAgents => {
   });
 };
 
+/** One list per tab, in `AGENT_TABS` order, as `usableItems` reads them. */
+const tabLists = (
+  lists: readonly {
+    readonly data?: { readonly items: readonly LibraryItem[] };
+  }[]
+): readonly TabItems[] =>
+  AGENT_TABS.map((source, index) => ({
+    items: lists[index]?.data?.items ?? [],
+    source,
+  }));
+
 /** One list per tab, in `AGENT_TABS` order, into the picker's agents. */
 const combineAgentLists = (
   lists: readonly {
     readonly data?: { readonly items: readonly LibraryItem[] };
   }[]
 ): UsableAgents =>
-  lists.some((list) => list.data)
-    ? usableAgents(
-        AGENT_TABS.map((source, index) => ({
-          items: lists[index]?.data?.items ?? [],
-          source,
-        }))
-      )
-    : NO_AGENTS;
+  lists.some((list) => list.data) ? usableAgents(tabLists(lists)) : NO_AGENTS;
 
 const NO_SKILLS: readonly SkillOption[] = [];
 
@@ -240,14 +252,70 @@ const combineSkillLists = (
     readonly data?: { readonly items: readonly LibraryItem[] };
   }[]
 ): readonly SkillOption[] =>
-  lists.some((list) => list.data)
-    ? usableSkills(
-        AGENT_TABS.map((source, index) => ({
-          items: lists[index]?.data?.items ?? [],
-          source,
-        }))
-      )
-    : NO_SKILLS;
+  lists.some((list) => list.data) ? usableSkills(tabLists(lists)) : NO_SKILLS;
+
+const NO_PROMPTS: readonly PromptOption[] = [];
+
+const combinePromptLists = (
+  lists: Parameters<typeof tabLists>[0]
+): readonly UsableItem[] => usableItems(tabLists(lists), "prompt");
+
+/**
+ * Prompt templates for the composer's menu: published prompts from the
+ * three library tabs and the person's own drafts. The list holds no
+ * templates, so each is read once; one the person may only use, not view,
+ * has no template to give and isn't offered.
+ */
+const usePromptsForPicker = (enabled: boolean): readonly PromptOption[] => {
+  const { query } = useApi();
+  const usable = useQueries({
+    combine: combinePromptLists,
+    queries: AGENT_TABS.map((tab) =>
+      query.library.list.queryOptions({
+        enabled,
+        input: { kind: "prompt", limit: AGENT_LIST_LIMIT, tab },
+      })
+    ),
+  });
+  // Stable for a list, so the composer's menu isn't rebuilt every render.
+  const combine = useCallback(
+    (
+      details: readonly {
+        readonly data?: {
+          readonly definition: LibraryItemDetail["definition"];
+        };
+      }[]
+    ): readonly PromptOption[] => {
+      const prompts = details.flatMap((detail, index): PromptOption[] => {
+        const each = usable[index];
+        const definition = detail.data?.definition;
+        return each && definition?.kind === "prompt"
+          ? [
+              {
+                definition,
+                description: each.item.description,
+                id: each.item.id,
+                name: each.item.name,
+                ...(each.draftVersion
+                  ? { draftVersion: each.draftVersion }
+                  : {}),
+              },
+            ]
+          : [];
+      });
+      return prompts.length > 0 ? prompts : NO_PROMPTS;
+    },
+    [usable]
+  );
+  return useQueries({
+    combine,
+    queries: usable.map(({ draftVersion, item }) =>
+      query.library.get.queryOptions({
+        input: { id: item.id, revision: draftVersion ? "draft" : "latest" },
+      })
+    ),
+  });
+};
 
 /** `/?agent=<id>` ("Use in chat" in the library) starts the new chat with that agent. */
 const useAgentParam = (
@@ -408,6 +476,7 @@ export function ChatRoute({
         "agent"
   );
   const skills = useSkillsForPicker(booted);
+  const prompts = usePromptsForPicker(booted);
   const changeContext = useContextChange(conversationId ?? null);
   const { changeTarget, pickedHere } = useTargetChange({
     contextOptions,
@@ -536,13 +605,7 @@ export function ChatRoute({
       dotsHref={routes.dots}
       draftContext={chat.draftContext}
       headerExtra={
-        conversationId ? (
-          <ChatSchedule
-            conversationId={conversationId}
-            isDot={isDot}
-            schedule={conversation.data?.schedule}
-          />
-        ) : null
+        isDot ? <ChatSchedule schedule={conversation.data?.schedule} /> : null
       }
       initialPrompt={
         conversationId ? null : searchParams.get(routeParams.askAi)
@@ -561,6 +624,7 @@ export function ChatRoute({
       onTargetChange={changeTarget}
       onThemeChange={frame.setTheme}
       platform={platform}
+      prompts={prompts}
       sandboxClient={sandboxClient}
       sendTarget={sendTarget}
       sidebarDots={sidebarDots}

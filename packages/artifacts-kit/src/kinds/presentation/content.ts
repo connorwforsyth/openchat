@@ -30,16 +30,27 @@ export const slideIdSchema = z
     'isn\'t a slide id: use lower-case letters, digits and dashes, like "intro" or "q3-results"'
   );
 
+const SOURCE_HINT =
+  'needs a "source": TSX text that imports from "@workspace/slide-ui" and default-exports the slide, like "import { Title } from \\"@workspace/slide-ui\\";\\nexport default function Intro() { return <Title title=\\"…\\" />; }"';
+
 export const slideSchema = z.object({
   id: slideIdSchema,
-  notes: z.string().max(PRESENTATION_LIMITS.notes).optional(),
-  source: z.string().min(1).max(PRESENTATION_LIMITS.source),
+  notes: z
+    .string({ error: "notes are text: the speaker notes as one string" })
+    .max(PRESENTATION_LIMITS.notes)
+    .optional(),
+  source: z
+    .string({ error: SOURCE_HINT })
+    .min(1, { error: SOURCE_HINT })
+    .max(PRESENTATION_LIMITS.source),
 });
 export type Slide = z.infer<typeof slideSchema>;
 
 export const presentationSchema = z.object({
-  slides: z.array(slideSchema),
-  title: z.string().max(200),
+  slides: z.array(slideSchema, {
+    error: 'needs "slides": a list of {"id", "source", "notes"} objects',
+  }),
+  title: z.string({ error: 'needs a "title": the deck\'s name' }).max(200),
 });
 export type Presentation = z.infer<typeof presentationSchema>;
 
@@ -52,11 +63,12 @@ export const presentationContentSchema = z
   .transform((text, context): unknown => {
     try {
       return JSON.parse(text);
-    } catch {
+    } catch (error) {
+      // The parser's own words say where it stopped ("at position 812").
+      const where = error instanceof Error ? ` (${error.message})` : "";
       context.addIssue({
         code: "custom",
-        message:
-          'isn\'t JSON. A presentation is {"title": "…", "slides": [{"id": "intro", "source": "…"}]}',
+        message: `isn't JSON${where}. A presentation is {"title": "…", "slides": [{"id": "intro", "source": "…"}]}; escape quotes and newlines inside each source`,
       });
       return z.NEVER;
     }

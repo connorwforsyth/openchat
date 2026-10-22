@@ -123,6 +123,7 @@ describe("fitShellColumns: the conversation keeps 480px (071)", () => {
       panel: 560,
       panelMax: PANEL_MAX_WIDTH,
       sidebar: 400,
+      sidebarFits: true,
       sidebarMax: SIDEBAR_MAX_WIDTH,
     });
   });
@@ -145,6 +146,11 @@ describe("fitShellColumns: the conversation keeps 480px (071)", () => {
     // 900: 480 + 280 leaves 140, less than the sidebar's 200.
     const columns = columnsAt(900, { panelOpen: true });
     expect(columns.sidebar).toBeNull();
+    expect(columns.sidebarFits).toBe(false);
+    // Collapsed or not, it has no room.
+    expect(columnsAt(900, { panelOpen: true, sidebarOpen: false })).toEqual(
+      columns
+    );
     expect(columns.panelMax).toBe(900 - CENTRE_MIN_WIDTH);
     expect(columns.panel).toBe(900 - CENTRE_MIN_WIDTH);
   });
@@ -156,7 +162,9 @@ describe("fitShellColumns: the conversation keeps 480px (071)", () => {
     expect(columns.panel).toBeGreaterThanOrEqual(PANEL_MIN_WIDTH);
   });
 
-  it("never docks a sidebar the user collapsed", () => {
-    expect(columnsAt(1440, { sidebarOpen: false }).sidebar).toBeNull();
+  it("never docks a sidebar the user collapsed, though it would fit", () => {
+    const columns = columnsAt(1440, { sidebarOpen: false });
+    expect(columns.sidebar).toBeNull();
+    expect(columns.sidebarFits).toBe(true);
   });
 });

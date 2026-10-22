@@ -1,6 +1,8 @@
+import { answeringAgent, chipsOf } from "@workspace/ai/messages/chips";
 import type { SkillUse } from "@workspace/ai/messages/skills";
 import type { RunExecutor } from "@workspace/ai/ports/run-executor";
 import type { MessageId, RunId } from "@workspace/contract/schemas/common";
+import type { MessagePart } from "@workspace/contract/schemas/message-parts";
 import type { ModelSelector } from "@workspace/contract/schemas/models";
 import {
   type CreateRunInput,
@@ -112,11 +114,41 @@ export const busyTail = (
         )
       );
 
+/**
+ * The agent a message's `@agent` chip asks to answer it, which wins over
+ * the composer's target for that message; a regenerate reads the chips of
+ * the message it answers again. Access is checked like any target's.
+ */
+const chippedAgent = async (
+  db: Db,
+  { input: turn }: CreateRunInput
+): Promise<RunTarget | undefined> => {
+  const partsOf = async (): Promise<readonly Pick<MessagePart, "type">[]> => {
+    if (turn.type === "message") {
+      return turn.parts;
+    }
+    const answered = await getMessage(db, turn.userMessageId);
+    return answered.ok ? answered.value.parts : [];
+  };
+  const agent = answeringAgent(chipsOf(await partsOf()));
+  return agent
+    ? {
+        id: agent.id,
+        type: "agent",
+        ...(agent.versionId ? { versionId: agent.versionId } : {}),
+      }
+    : undefined;
+};
+
 const targetFor = (
   input: CreateRunInput,
   conversation: ConversationView,
-  defaultModel: ModelSelector | null
+  defaultModel: ModelSelector | null,
+  chipped: RunTarget | undefined
 ): RunTarget | null => {
+  if (chipped) {
+    return chipped;
+  }
   if (input.target) {
     return input.target;
   }
@@ -477,7 +509,12 @@ const startRun = async (
   ) {
     return err({ type: "forbidden" });
   }
-  const target = targetFor(input, conversation, deps.defaultModel);
+  const target = targetFor(
+    input,
+    conversation,
+    deps.defaultModel,
+    await chippedAgent(db, input)
+  );
   if (!target) {
     return err({ type: "no_model" });
   }
