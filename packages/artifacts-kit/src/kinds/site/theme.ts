@@ -1,3 +1,8 @@
+import {
+  EMPTY_THEME,
+  type KindTheme,
+  themeDeclarations,
+} from "../../kind-theme";
 // The instance's theme, for sites (125). The theme lives in one place,
 // `packages/ui/src/styles/globals.css` (AGENTS.md), so a site's Tailwind
 // isn't given a copy: it's given that file's text and takes the token
@@ -86,16 +91,26 @@ const FONT_TOKEN = /^\s*--font-[\w-]+\s*:[^;]*;\s*$/gm;
  * doesn't have), so sites use Tailwind's system stack unless they load a
  * font.
  */
-export const siteTailwindInput = (globalsCss: string): string => {
+export const siteTailwindInput = (
+  globalsCss: string,
+  brand: KindTheme = EMPTY_THEME
+): string => {
   const theme = ruleBody(globalsCss, "@theme inline")?.replace(FONT_TOKEN, "");
   const light = ruleBody(globalsCss, ":root");
   const dark = ruleBody(globalsCss, ".dark");
+  const brandLight = themeDeclarations(brand, "light");
+  const brandDark = themeDeclarations(brand, "dark");
   return [
     '@import "tailwindcss";',
     ...(theme ? [`@theme inline {${theme}}`] : []),
     ...(light ? [`:root {${light}}`] : []),
     ...(dark
       ? [`@media (prefers-color-scheme: dark) {\n  :root {${dark}}\n}`]
+      : []),
+    // The instance's own values (`brand/…/theme.css`), over the app's.
+    ...(brandLight ? [`:root {${brandLight}}`] : []),
+    ...(brandDark
+      ? [`@media (prefers-color-scheme: dark) {\n  :root {${brandDark}}\n}`]
       : []),
     // What the app's base layer does, so a page starts on the theme.
     `@layer base {

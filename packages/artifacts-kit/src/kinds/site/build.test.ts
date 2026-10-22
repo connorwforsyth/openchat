@@ -40,6 +40,20 @@ describe("the instance theme, for sites", () => {
     expect(input).not.toContain("--font-sans: var(--font-sans)");
   });
 
+  it("puts the instance's site theme over the app's, light and dark", () => {
+    const input = siteTailwindInput(themeCss, {
+      dark: { "--primary": "navy" },
+      light: { "--primary": "blue" },
+    });
+    expect(input).toContain(":root {--primary: blue;}");
+    expect(input).toContain(
+      "@media (prefers-color-scheme: dark) {\n  :root {--primary: navy;}\n}"
+    );
+    expect(input.indexOf("--primary: blue;")).toBeGreaterThan(
+      input.indexOf(`:root {${ruleBody(themeCss, ":root")}}`)
+    );
+  });
+
   it("finds top-level rules only", () => {
     const css =
       "@media (x) { :root { --a: 1; } }\n:root { --b: 2; }\n.dark{--c:3}";

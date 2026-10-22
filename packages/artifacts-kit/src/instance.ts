@@ -1,5 +1,6 @@
 import { builtinKindDefinitions } from "./builtin";
 import type { Compile } from "./checks";
+import type { ThemedKind } from "./kind-theme";
 import { presentationKindWith } from "./kinds/presentation/kind";
 import { siteKind } from "./kinds/site/kind";
 import {
@@ -21,24 +22,39 @@ export interface ArtifactKindSettings {
   };
 }
 
+/**
+ * The instance's house style per kind, from its brand folder's DESIGN.md
+ * files: prose only, added to the kind's guide for the model.
+ */
+export type ArtifactDesignNotes = Partial<Record<ThemedKind, string>>;
+
 export interface ArtifactKindPorts {
   /** Compiles TSX as the artifact runtime does: slides are checked with it on save. */
   readonly compileTsx?: Compile;
+  readonly design?: ArtifactDesignNotes;
 }
 
 export const instanceArtifactKinds = (
   settings: ArtifactKindSettings,
-  { compileTsx }: ArtifactKindPorts = {}
+  { compileTsx, design = {} }: ArtifactKindPorts = {}
 ): ArtifactKindRegistry => {
   const { site: _defaults, ...others } = builtinKindDefinitions;
   return createArtifactKindRegistry([
     // In place, so the kinds keep their order.
     ...Object.values({
       ...others,
-      presentation: presentationKindWith({ compile: compileTsx }),
+      presentation: presentationKindWith({
+        compile: compileTsx,
+        design: design.presentation,
+      }),
     }),
     ...(settings.site.enabled
-      ? [siteKind({ allowedOrigins: settings.site.allowedOrigins })]
+      ? [
+          siteKind({
+            allowedOrigins: settings.site.allowedOrigins,
+            design: design.site,
+          }),
+        ]
       : []),
   ]);
 };

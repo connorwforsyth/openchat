@@ -118,7 +118,10 @@ export type SandboxBinding = (deps: {
 }) => BoundSandbox;
 
 export interface ServerFromEnvOptions
-  extends Pick<ServicesOptions, "access" | "keyStore" | "tools"> {
+  extends Pick<
+    ServicesOptions,
+    "access" | "artifactDesign" | "keyStore" | "tools"
+  > {
   readonly config: AppConfig;
   /** Where the embedded database and other local state live; `./.data` by default. */
   readonly dataDir?: string;
@@ -492,6 +495,7 @@ export const createServerFromEnv = async (
   });
   const services = createServices({
     access: options.access,
+    artifactDesign: options.artifactDesign,
     computers: sandbox?.computers,
     config,
     db,

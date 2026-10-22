@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { z } from "zod";
 
 import { appOriginsFrom, responseHeaders } from "./headers";
+import { readKindThemes, themeOf, withKindThemes } from "./kind-themes";
 import { SITE_ASSETS } from "./site-assets";
 import {
   createSiteServer,
@@ -32,6 +33,12 @@ const envSchema = z.object({
     .optional()
     .catch(undefined),
   ARTIFACTS_APP_ORIGINS: z.string().optional(),
+  /**
+   * The instance's brand folder: its `theme.css` and
+   * `kinds/<kind>/theme.css` restyle decks and sites. Unset, they use the
+   * app theme.
+   */
+  ARTIFACTS_BRAND_DIR: z.string().min(1).optional().catch(undefined),
   // Loopback unless told otherwise; the image listens on 0.0.0.0.
   ARTIFACTS_HOST: z.string().min(1).catch("127.0.0.1"),
   ARTIFACTS_PORT: z.coerce.number().int().min(1).max(65_535).catch(3910),
@@ -41,6 +48,14 @@ const env = envSchema.parse(process.env);
 const appOrigins = appOriginsFrom(env.ARTIFACTS_APP_ORIGINS);
 const publicDir = fileURLToPath(new URL("../dist/public/", import.meta.url));
 const watching = process.argv.includes("--watch");
+
+const readText = (path: string) => readFile(path, "utf8").catch(() => null);
+// Read per request: a brand file edited shows on the next load.
+const kindThemes = () =>
+  readKindThemes(env.ARTIFACTS_BRAND_DIR ?? null, readText);
+
+/** The runtime's pages, which carry the themes. */
+const PAGES = new Set(["/", "/index.html", "/site.html"]);
 
 /**
  * The site runtime's bundle (163), `/site-runtime-<hash>.js`, or `null`
@@ -79,6 +94,7 @@ const sites = createSiteServer({
   compile: tailwindCompiler(SITE_ASSETS.tailwindCss),
   fetch: globalThis.fetch,
   runtimeUrl: () => siteRuntime,
+  theme: async () => themeOf(await kindThemes(), "site"),
   themeCss: SITE_ASSETS.themeCss,
 });
 
@@ -132,12 +148,21 @@ const server = createServer(async (request, response) => {
     response.end(
       request.method === "HEAD"
         ? undefined
-        : withSiteRuntime(body.toString("utf8"), await siteRuntimeUrl())
+        : withKindThemes(
+            withSiteRuntime(body.toString("utf8"), await siteRuntimeUrl()),
+            await kindThemes()
+          )
     );
     return;
   }
   response.writeHead(200, headers);
-  response.end(request.method === "HEAD" ? undefined : body);
+  if (request.method === "HEAD") {
+    response.end();
+  } else if (PAGES.has(pathname)) {
+    response.end(withKindThemes(body.toString("utf8"), await kindThemes()));
+  } else {
+    response.end(body);
+  }
 });
 
 if (watching) {

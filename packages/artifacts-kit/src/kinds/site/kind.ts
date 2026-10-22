@@ -1,6 +1,7 @@
 import { DEFAULT_SITE_ORIGINS } from "@workspace/config/sites";
 import { z } from "zod";
 import { defineArtifactKind, defineOperation } from "../../define";
+import { withHouseStyle } from "../../kind-theme";
 import {
   localReferences,
   noNetworkOrStorage,
@@ -28,12 +29,14 @@ import { DESIGN_GUIDES } from "./design/generated";
 export interface SiteKindOptions {
   /** The public origins sites may load from (`artifacts.kinds.site.allowedOrigins`). */
   readonly allowedOrigins?: readonly string[];
+  /** The instance's DESIGN.md prose for sites. */
+  readonly design?: string;
 }
 
 /** What the model is told about sites, for this instance's settings. */
 export const siteInstructions = ({
   allowedOrigins,
-}: Required<SiteKindOptions>): string =>
+}: Required<Pick<SiteKindOptions, "allowedOrigins">>): string =>
   [
     "## Sites",
     "",
@@ -69,6 +72,7 @@ const replaceSite = defineOperation({
  */
 export const siteKind = ({
   allowedOrigins = DEFAULT_SITE_ORIGINS,
+  design,
 }: SiteKindOptions = {}) =>
   defineArtifactKind<SiteContent>({
     capabilities: {
@@ -91,7 +95,7 @@ export const siteKind = ({
     export: [{ extension: "json", format: "file" }],
     // A page on a screen; `GlobeIcon` is the single-page HTML kind.
     icon: "MonitorIcon",
-    instructions: siteInstructions({ allowedOrigins }),
+    instructions: withHouseStyle(siteInstructions({ allowedOrigins }), design),
     kind: "site",
     label: "Site",
     operations: { replace: replaceSite },

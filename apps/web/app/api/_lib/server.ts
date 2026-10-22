@@ -1,5 +1,8 @@
+import { readFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
 import { loadConfig } from "@workspace/config/load";
 import { formatConfigErrors } from "@workspace/config/parse";
+import { readArtifactDesign } from "@workspace/server/artifacts/design-notes";
 import { createServerFromEnv, type Server } from "@workspace/server/server";
 
 import { bindSandbox } from "./sandbox";
@@ -31,7 +34,15 @@ const boot = async (): Promise<Boot> => {
     console.error(`[config] app.config.yaml is invalid:\n${message}`);
     return { message, ok: false };
   }
+  // The brand folder sits beside app.config.yaml, as its logo does.
+  const brandDir = resolve(
+    loaded.value.source ? dirname(loaded.value.source) : process.cwd(),
+    "brand"
+  );
   const server = await createServerFromEnv({
+    artifactDesign: await readArtifactDesign(brandDir, (path) =>
+      readFile(path, "utf8").catch(() => null)
+    ),
     config: loaded.value.config,
     log: (message) => console.info(message),
     // Messages are written never to hold secrets; causes are cut to their

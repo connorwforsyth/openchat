@@ -15,11 +15,14 @@ import type { RuntimeTheme } from "@workspace/chat-ui/artifacts/runtime-protocol
  */
 export const slideDeckCss = (
   globalsCss: string,
-  theme: RuntimeTheme
+  theme: RuntimeTheme,
+  /** The instance's own values for decks (`brand/…/theme.css`), over the app's. */
+  brand = ""
 ): string => {
   const tokens = ruleBody(globalsCss, theme === "dark" ? ".dark" : ":root");
   return [
     `:root {${tokens ?? ""}}`,
+    ...(brand ? [`:root {${brand}}`] : []),
     `.deck {
   display: flex;
   flex-direction: column;

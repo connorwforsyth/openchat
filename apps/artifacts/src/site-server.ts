@@ -1,3 +1,4 @@
+import type { KindTheme } from "@workspace/artifacts-kit/kind-theme";
 import {
   type BuiltSite,
   buildSite,
@@ -36,6 +37,8 @@ export interface SiteServerOptions {
    * shells (163), or `null` if the build has none, when TSX pages fail.
    */
   readonly runtimeUrl: () => string | null;
+  /** The instance's own site theme, read when a site is built. */
+  readonly theme?: () => Promise<KindTheme>;
   readonly themeCss: string;
 }
 
@@ -213,6 +216,7 @@ export const createSiteServer = (options: SiteServerOptions) => {
         published.content,
         {
           compile: options.compile,
+          theme: await options.theme?.(),
           themeCss: options.themeCss,
           tsx: runtimeUrl ? siteTsxPorts(runtimeUrl) : undefined,
         },
