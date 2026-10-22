@@ -159,6 +159,23 @@ so it's added to `openapi.json` by hand (`openapi.ts`) as a
   an AI SDK version. When a run finishes, its output is stored as our own
   `MessagePart`s, versioned by `partsVersion`.
 
+## The conversation events (not a procedure)
+
+`GET /api/conversations/{id}/events` is Server-Sent Events (D25) that keep an
+open chat current while other people use it. It's added to `openapi.json` by
+hand as `conversations.events`; each event's `data` is one JSON
+`ConversationEvent`.
+
+- `message`: a message was stored. `run`: a run was created or changed
+  status; on `running` a client that isn't already reading it follows
+  `GET /runs/{id}/stream`. `presence`: everyone with the chat open, sent
+  first and on every change. `typing`: someone is writing, from
+  `conversations.typing`; it lapses after `TYPING_TTL_MS`.
+- Events are hints, not a log. There are no ids and no resume: a client that
+  reconnects refetches the branch and the active runs.
+- Anyone who can read the chat (`resource_grant`, D25) may subscribe; only
+  editors may send `typing`.
+
 ## The model proxy (not a procedure)
 
 `POST /api/llm` makes one language-model call with the server's keys, for a
