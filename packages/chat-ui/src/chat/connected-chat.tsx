@@ -129,9 +129,11 @@ import type {
 } from "../workspace/model/client";
 import { toTreePaths } from "../workspace/model/tree";
 import { ChatScreen } from "./chat-screen";
+import { PresentPeople, TypingNote } from "./live-presence";
 import { useBranchFeedback } from "./use-branch-feedback";
 import { useChatQueries, useConversationUpdate } from "./use-chat-data";
 import { useChatMcp } from "./use-chat-mcp";
+import { useLiveConversation } from "./use-live-conversation";
 
 // The chat screen over the API (D11): TanStack Query for everything stored,
 // `useRunChat` for the turn that's streaming. Ticket 025 mounts this in the
@@ -842,37 +844,44 @@ const useSettling = ({
 };
 
 /**
- * A chat opened while a reply is still being written (the tab was closed or
- * reloaded mid-reply, PLAN.md §11 M1 step 3) follows that run's stream.
- * Checked once per opened chat, when its active runs first load: a run this
- * page started itself is already being followed (the chat isn't idle).
+ * Follows a reply this page didn't start: one still being written when the
+ * chat opened (the tab was closed or reloaded mid-reply, PLAN.md §11 M1
+ * step 3), or one another participant started while it's open (D25). Each
+ * run is checked once, when the branch on screen has its question: a run
+ * this page started itself is already being followed (the chat isn't idle),
+ * and following before the question shows would put the answer under the
+ * wrong message.
  */
 const useFollowRunningReply = ({
   conversationId,
+  messages,
   resumeStream,
-  runningRunId,
+  running,
   status,
 }: {
   readonly conversationId: ConversationId | null;
+  readonly messages: readonly Message[];
   readonly resumeStream: () => Promise<void>;
-  readonly runningRunId: string | null | undefined;
+  readonly running: Run | null | undefined;
   readonly status: "submitted" | "streaming" | "ready" | "error";
 }) => {
   const idle = status === "ready" || status === "error";
-  const checked = useRef<ConversationId | null>(null);
+  const checked = useRef<string | null>(null);
+  const asked =
+    running && messages.some((message) => message.id === running.userMessageId);
   useEffect(() => {
-    if (
-      !conversationId ||
-      runningRunId === undefined ||
-      checked.current === conversationId
-    ) {
+    if (!(conversationId && running)) {
       return;
     }
-    checked.current = conversationId;
-    if (runningRunId && idle) {
+    const key = `${conversationId}:${running.id}`;
+    if (checked.current === key || (idle && !asked)) {
+      return;
+    }
+    checked.current = key;
+    if (idle) {
       resumeStream().catch(ignore);
     }
-  }, [conversationId, idle, resumeStream, runningRunId]);
+  }, [asked, conversationId, idle, resumeStream, running]);
 };
 
 /** A message waiting for its new chat's address (134). */
@@ -1390,10 +1399,15 @@ const useRunControls = ({
         : skipToken,
     })
   ).data?.items;
+  const runningRunId = runToFollow(activeRuns);
   useFollowRunningReply({
     conversationId,
+    messages,
     resumeStream,
-    runningRunId: runToFollow(activeRuns),
+    running:
+      typeof runningRunId === "string"
+        ? activeRuns?.find((run) => run.id === runningRunId)
+        : runningRunId,
     status: chat.status,
   });
   const following = chat.status === "submitted" || chat.status === "streaming";
@@ -1742,6 +1756,20 @@ export function ConnectedChat({
       refresh,
       sandboxId: data.sandbox.data?.id ?? null,
     });
+  const live = useLiveConversation({
+    client,
+    conversationId,
+    meId: me.user.id,
+    onCatchUp: refresh,
+    onRun: useCallback(
+      (event: { readonly runId: RunId }) => {
+        if (event.runId !== createdRunId.current) {
+          refresh();
+        }
+      },
+      [refresh]
+    ),
+  });
   const { stop: stopReading } = chat;
   const sendInTurn = useCallback(
     (text: string, outgoing: Outgoing = NOTHING_ELSE) =>
@@ -2042,6 +2070,9 @@ export function ConnectedChat({
               target: target ?? undefined,
               variant,
             }}
+            composerNote={
+              <TypingNote people={live.typing} shared={live.others} />
+            }
             computer={computer}
             conversation={{
               context,
@@ -2056,11 +2087,15 @@ export function ConnectedChat({
             }}
             feedback={feedback.byMessage}
             headerEnd={headerEndOf(
-              headerExtra,
+              <>
+                <PresentPeople people={live.others} />
+                {headerExtra}
+              </>,
               voiceSlot(voice, conversationId, voiceBridge)
             )}
             layout={layout}
             messages={messages}
+            onComposerInput={live.onTyping}
             onNewChat={newChat}
             onOpenPalette={onOpenPalette}
             pendingApprovals={approvals}

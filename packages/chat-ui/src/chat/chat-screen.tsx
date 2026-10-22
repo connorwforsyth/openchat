@@ -144,6 +144,8 @@ export interface ChatScreenProps {
   readonly banner?: ReactNode;
   readonly brand?: ReactNode;
   readonly composer: ComposerLoaderProps;
+  /** A line over the composer (who else is typing, D25). */
+  readonly composerNote?: ReactNode;
   /**
    * A live view pinned above the Workspace panel's files and browser (a
    * Dot's computer, 172). It renders nothing for a chat that has none.
@@ -160,6 +162,8 @@ export interface ChatScreenProps {
    */
   readonly layout?: ShellLayoutState;
   readonly messages: readonly Message[];
+  /** Every keystroke in the composer, to tell others this person is typing. */
+  readonly onComposerInput?: () => void;
   readonly onNewChat: () => void;
   /** Opens the ⌘K palette (ticket 024). */
   readonly onOpenPalette?: () => void;
@@ -232,6 +236,8 @@ function ChatScreenBody({
   banner,
   brand,
   composer,
+  composerNote,
+  onComposerInput,
   computer,
   conversation,
   feedback,
@@ -824,12 +830,16 @@ function ChatScreenBody({
             streamingMessageId={streamingMessageId}
           />
         </FilePreviewContext.Provider>
-        <ComposerDock
-          composer={composerProps}
-          onSuggestion={composerDisabled ? undefined : sendSuggestion}
-          placement={placement}
-          ref={composerRef}
-        />
+        {composerNote}
+        {/* `contents`: only listens, so the dock keeps its place in the column. */}
+        <div className="contents" onInput={onComposerInput}>
+          <ComposerDock
+            composer={composerProps}
+            onSuggestion={composerDisabled ? undefined : sendSuggestion}
+            placement={placement}
+            ref={composerRef}
+          />
+        </div>
       </div>
       <ShortcutHelp onOpenChange={setHelpOpen} open={helpOpen} />
       {newFile.asked && files.kind === "chat" ? (

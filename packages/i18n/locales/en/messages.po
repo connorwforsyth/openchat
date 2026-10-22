@@ -17,6 +17,17 @@ msgstr "- I prefer pnpm over npm\n"
 msgid "(couldn't read this time)"
 msgstr "(couldn't read this time)"
 
+#. placeholder {0}: people.length
+#: ../chat-ui/src/chat/live-presence.tsx
+msgid "{0, plural, other {# people are typing…}}"
+msgstr "{0, plural, other {# people are typing…}}"
+
+#. placeholder {0}: first.name
+#. placeholder {1}: second.name
+#: ../chat-ui/src/chat/live-presence.tsx
+msgid "{0} and {1} are typing…"
+msgstr "{0} and {1} are typing…"
+
 #. placeholder {0}: grant.user.name
 #: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
 msgid "{0} asks for {tokens} tokens a month"
@@ -36,6 +47,11 @@ msgstr "{0} has no sub-spaces yet."
 #: ../../apps/web/app/dev/sandbox/demo.tsx
 msgid "{0} is outside the workspace"
 msgstr "{0} is outside the workspace"
+
+#. placeholder {0}: first.name
+#: ../chat-ui/src/chat/live-presence.tsx
+msgid "{0} is typing…"
+msgstr "{0} is typing…"
 
 #. placeholder {0}: dot.name
 #: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
@@ -2416,6 +2432,10 @@ msgstr "Help me look back on my week and plan the next one."
 #: ../chat-ui/src/conversation/empty-state.tsx
 msgid "Help me plan a team offsite. Ask me a few questions first, then suggest an agenda."
 msgstr "Help me plan a team offsite. Ask me a few questions first, then suggest an agenda."
+
+#: ../chat-ui/src/chat/live-presence.tsx
+msgid "Here now: {names}"
+msgstr "Here now: {names}"
 
 #: ../../apps/web/app/(app)/(pages)/dots/dot-home.tsx
 msgid "Here to help"

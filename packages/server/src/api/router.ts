@@ -55,6 +55,10 @@ import { type CreateRunError, createRun, mayRun } from "../runs/create-run";
 import { pinnedDraft } from "../runs/drafts";
 import type { MemorySettings } from "../runs/memory";
 import { queuePosition, toRun } from "../runs/state";
+import {
+  type ConversationEvents,
+  userSummaryOf,
+} from "../stream/conversation-events";
 import { createFeedbackRouter } from "./feedback";
 import {
   toConversation,
@@ -75,6 +79,8 @@ export interface ApiServices {
   readonly db: Db;
   /** `models.default`: the target when neither the run nor the chat names one. */
   readonly defaultModel: ModelSelector | null;
+  /** Each conversation's live channel (D25). */
+  readonly events: ConversationEvents;
   readonly executor: RunExecutor;
   /** The memory feature's switch and size cap (022). */
   readonly memory: MemorySettings;
@@ -106,7 +112,7 @@ const invalidCursor = () =>
   });
 
 export const createChatRouter = (services: ApiServices) => {
-  const { access, db, executor } = services;
+  const { access, db, events, executor } = services;
   const os = implement(contract).$context<RequestContext>();
 
   const authed = os.use(async ({ context, next }) => {
@@ -345,6 +351,14 @@ export const createChatRouter = (services: ApiServices) => {
         return viewOf(context.actor, input.id);
       }
     ),
+
+    typing: authed.conversations.typing.handler(async ({ context, input }) => {
+      await requireAccess(context.actor, input.id, "write");
+      const user = await userSummaryOf(db, context.actor.userId);
+      if (user) {
+        await events.publish(input.id, { type: "typing", user });
+      }
+    }),
 
     update: authed.conversations.update.handler(async ({ context, input }) => {
       const { actor } = context;
