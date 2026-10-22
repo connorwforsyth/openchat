@@ -63,6 +63,16 @@ type ToolPart = ToolUIPart | DynamicToolUIPart;
 const toIso = (value: Date | string): string =>
   typeof value === "string" ? value : value.toISOString();
 
+/**
+ * Provider metadata as the JSON it's stored as: providers leave fields
+ * `undefined` (Anthropic's tool-call `caller`), which JSON drops and the
+ * contract's JSON schema refuses.
+ */
+const jsonMetadata = (
+  metadata: Record<string, unknown> | undefined
+): Record<string, unknown> | undefined =>
+  metadata === undefined ? undefined : JSON.parse(JSON.stringify(metadata));
+
 const withoutKey = (
   metadata: Record<string, unknown> | undefined,
   key: string
@@ -125,7 +135,7 @@ const toolParts = (
     approval: approval.value,
     input: inputOf(part),
     providerExecuted: part.providerExecuted,
-    providerMetadata: part.callProviderMetadata,
+    providerMetadata: jsonMetadata(part.callProviderMetadata),
     toolCallId: part.toolCallId,
     toolName,
     type: "tool-call",
@@ -136,7 +146,7 @@ const toolParts = (
       output,
       providerMetadata:
         "resultProviderMetadata" in part
-          ? part.resultProviderMetadata
+          ? jsonMetadata(part.resultProviderMetadata)
           : undefined,
       toolCallId: part.toolCallId,
       toolName,
@@ -213,14 +223,14 @@ export const fromUIMessage = (
     switch (part.type) {
       case "text":
         mapped.push({
-          providerMetadata: part.providerMetadata,
+          providerMetadata: jsonMetadata(part.providerMetadata),
           text: part.text,
           type: "text",
         });
         break;
       case "reasoning":
         mapped.push({
-          providerMetadata: part.providerMetadata,
+          providerMetadata: jsonMetadata(part.providerMetadata),
           text: part.text,
           type: "reasoning",
         });
@@ -229,7 +239,7 @@ export const fromUIMessage = (
         mapped.push({
           filename: part.filename,
           mediaType: part.mediaType,
-          providerMetadata: part.providerMetadata,
+          providerMetadata: jsonMetadata(part.providerMetadata),
           source: (options.fileSource ?? defaultFileSource)(part),
           type: "file",
         });
@@ -237,7 +247,7 @@ export const fromUIMessage = (
       case "source-url":
         mapped.push({
           id: part.sourceId,
-          providerMetadata: part.providerMetadata,
+          providerMetadata: jsonMetadata(part.providerMetadata),
           source: { kind: "url", title: part.title, url: part.url },
           type: "source",
         });
@@ -253,7 +263,7 @@ export const fromUIMessage = (
             ? {
                 id: part.sourceId,
                 providerMetadata: withoutKey(
-                  part.providerMetadata,
+                  jsonMetadata(part.providerMetadata),
                   CITATION_METADATA_KEY
                 ),
                 source: citation.data,
