@@ -11,7 +11,6 @@ import { createToastManager, Toaster } from "@workspace/ui/components/toast";
 import { TooltipProvider } from "@workspace/ui/components/tooltip";
 import { cn } from "@workspace/ui/lib/utils";
 import {
-  type KeyboardEvent,
   type ReactNode,
   useCallback,
   useEffect,
@@ -29,9 +28,12 @@ import {
   SIDEBAR_DEFAULT_WIDTH,
   SIDEBAR_MIN_WIDTH,
 } from "../model/layout";
-import { usePeek } from "../sidebar/peek";
 import { type Platform, PlatformProvider } from "./platform";
-import { SidebarDockedProvider, SidebarRailedProvider } from "./sidebar-toggle";
+import {
+  SidebarDockedProvider,
+  SidebarRailedProvider,
+  SidebarShownProvider,
+} from "./sidebar-toggle";
 import { useNarrowScreen } from "./use-narrow-screen";
 import { useSidebarWidth } from "./use-shell-layout";
 
@@ -39,11 +41,11 @@ import { useSidebarWidth } from "./use-shell-layout";
 // collapsible sidebar, then the conversation column (header on top, content,
 // composer docked at the bottom), then an optional right panel. Both sides
 // resize from a handle on their edge (071), and the conversation keeps at
-// least `CENTRE_MIN_WIDTH`: the sidebar yields first, then the panel. A
-// collapsed sidebar peeks over the page from the start edge. Below `md` the
-// sidebar is a sheet from the start edge and the right panel a bottom sheet
-// (both modal: focus stays inside, Esc or a swipe closes them). Layout only;
-// what goes in each slot comes from the caller.
+// least `CENTRE_MIN_WIDTH`: the sidebar yields first, then the panel. When
+// there's no room to dock the sidebar, the toggle shows it over the page
+// instead. Below `md` the sidebar is a sheet from the start edge and the
+// right panel a bottom sheet (both modal: focus stays inside, Esc or a swipe
+// closes them). Layout only; what goes in each slot comes from the caller.
 
 // The saved width is on `<html>` before React runs (the app's pre-paint
 // script), and a shell mounted later inherits the latest; 260px otherwise.
@@ -63,6 +65,11 @@ const useViewportWidth = (): number | null =>
 export interface AppShellProps {
   /** The conversation column under the header: messages and composer. */
   readonly children: ReactNode;
+  /**
+   * The layout's `claimSidebarToggle`: while the sidebar has no room to
+   * dock, the shell takes the toggle to show it over the page.
+   */
+  readonly claimSidebarToggle: (toggle: (() => void) | null) => void;
   readonly className?: string;
   readonly header: ReactNode;
   /** A narrow screen's panel sheet was dismissed (Esc, swipe, backdrop). */
@@ -86,7 +93,10 @@ export interface AppShellProps {
   readonly sidebar: ReactNode;
   /** The sidebar beside the conversation (wide screens). */
   readonly sidebarOpen: boolean;
-  /** The sidebar as a sheet (narrow screens). */
+  /**
+   * The sidebar over the page: a narrow screen's sheet, or the overlay a wide
+   * one shows when there's no room to dock it.
+   */
   readonly sidebarSheetOpen: boolean;
 }
 
@@ -122,16 +132,24 @@ const cardClass = (railed: boolean) =>
     : undefined;
 const dockedSidebarClass = (railed: boolean) =>
   railed ? "border-border/60 border-e" : undefined;
-const peekPlaceClass = (railed: boolean) =>
+const overlayPlaceClass = (railed: boolean) =>
   railed
     ? "inset-y-1 start-13 rounded-xl border"
     : "inset-y-0 start-0 border-e";
 
-/** The peek edge sits beside the rail, if any, so its icons stay clickable. */
-const edgeStart = (rail: ReactNode): string => (rail ? "start-13" : "start-0");
+/** Where the sidebar goes when it shows. */
+type SidebarPlace = "dock" | "overlay" | "sheet";
+
+const sidebarPlace = (narrow: boolean, fits: boolean): SidebarPlace => {
+  if (narrow) {
+    return "sheet";
+  }
+  return fits ? "dock" : "overlay";
+};
 
 export function AppShell({
   children,
+  claimSidebarToggle,
   className,
   header,
   onPanelClose,
@@ -181,18 +199,53 @@ export function AppShell({
     [onPanelWidthChange]
   );
 
-  // Collapsed, or with no room to dock beside the open panel: it peeks.
-  const peekRef = useRef<HTMLElement>(null);
-  const collapsed = !narrow && columns.sidebar === null;
-  const peek = usePeek(peekRef, collapsed);
-  const closePeekOnEscape = useCallback(
-    (event: KeyboardEvent<HTMLElement>) => {
+  const place = sidebarPlace(narrow, columns.sidebarFits);
+  const overlayOpen = place === "overlay" && sidebarSheetOpen;
+
+  useEffect(() => {
+    if (place !== "overlay") {
+      return;
+    }
+    claimSidebarToggle(() => onSidebarSheetOpenChange(!sidebarSheetOpen));
+    return () => claimSidebarToggle(null);
+  }, [claimSidebarToggle, onSidebarSheetOpenChange, place, sidebarSheetOpen]);
+
+  // A sheet or overlay doesn't survive a change of place: the panel
+  // squeezing the sidebar out mustn't bring it up on its own.
+  const lastPlace = useRef(place);
+  useEffect(() => {
+    if (lastPlace.current !== place) {
+      lastPlace.current = place;
+      onSidebarSheetOpenChange(false);
+    }
+  }, [onSidebarSheetOpenChange, place]);
+
+  // Focus goes into the overlay, so Esc and the arrows reach it, and back
+  // when it closes (unless something else took it).
+  const overlayRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const overlay = overlayRef.current;
+    if (!(overlayOpen && overlay)) {
+      return;
+    }
+    const previous = document.activeElement;
+    const closeOnEscape = (event: globalThis.KeyboardEvent) => {
       if (event.key === "Escape" && !event.defaultPrevented) {
-        peek.close();
+        onSidebarSheetOpenChange(false);
       }
-    },
-    [peek]
-  );
+    };
+    overlay.addEventListener("keydown", closeOnEscape);
+    overlay.focus();
+    return () => {
+      overlay.removeEventListener("keydown", closeOnEscape);
+      const lost =
+        document.activeElement === null ||
+        document.activeElement === document.body;
+      if (lost && previous instanceof HTMLElement) {
+        previous.focus();
+      }
+    };
+  }, [onSidebarSheetOpenChange, overlayOpen]);
 
   // Going back or forward closes the sheet, as picking a chat in it does.
   useEffect(() => {
@@ -217,179 +270,161 @@ export function AppShell({
     <PlatformProvider platform={platform}>
       <SidebarDockedProvider value={!narrow && columns.sidebar !== null}>
         <SidebarRailedProvider value={!narrow && Boolean(rail)}>
-          <TooltipProvider>
-            <Toaster toastManager={toastManager}>
-              <div
-                className={cn(
-                  // dvh follows the browser's collapsing toolbars, so the
-                  // composer stays docked at the bottom of what's visible.
-                  "flex h-dvh min-h-0 w-full overflow-hidden text-foreground",
-                  shellClass(Boolean(rail)),
-                  className
-                )}
-                data-slot="app-shell"
-              >
-                <RailSlot rail={rail} />
+          <SidebarShownProvider
+            value={
+              place === "dock" ? columns.sidebar !== null : sidebarSheetOpen
+            }
+          >
+            <TooltipProvider>
+              <Toaster toastManager={toastManager}>
                 <div
                   className={cn(
-                    "flex min-h-0 min-w-0 flex-1",
-                    cardClass(Boolean(rail))
+                    // dvh follows the browser's collapsing toolbars, so the
+                    // composer stays docked at the bottom of what's visible.
+                    "flex h-dvh min-h-0 w-full overflow-hidden text-foreground",
+                    shellClass(Boolean(rail)),
+                    className
                   )}
-                  data-slot="app-shell-card"
+                  data-slot="app-shell"
                 >
-                  {columns.sidebar === null ? null : (
-                    <div
-                      className="relative flex shrink-0 max-md:hidden"
-                      data-slot="app-shell-sidebar"
-                    >
-                      <aside
-                        aria-label={t`Chats`}
-                        className={cn(
-                          SIDEBAR_WIDTH_CLASS,
-                          // Before the first measure, CSS keeps the conversation's
-                          // minimum; after it, the width is exact.
-                          "flex min-w-50 max-w-[max(12.5rem,calc(100vw-30rem))] flex-col bg-sidebar text-sidebar-foreground",
-                          dockedSidebarClass(Boolean(rail))
-                        )}
-                        id={sidebarId}
-                        style={
-                          savedSidebar.width === null
-                            ? undefined
-                            : { width: columns.sidebar }
-                        }
-                      >
-                        {sidebar}
-                      </aside>
-                      <ResizeHandle
-                        aria-controls={sidebarId}
-                        aria-label={t`Resize sidebar`}
-                        defaultValue={SIDEBAR_DEFAULT_WIDTH}
-                        max={columns.sidebarMax}
-                        min={SIDEBAR_MIN_WIDTH}
-                        onResize={setLiveSidebar}
-                        onResizeEnd={endSidebarResize}
-                        resizes="before"
-                        step={RESIZE_KEY_STEP}
-                        value={columns.sidebar}
-                      />
-                    </div>
-                  )}
-                  <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
-                    {header}
-                    <main className="flex min-h-0 flex-1 flex-col">
-                      {children}
-                    </main>
-                  </div>
-                  {panelOpen && !narrow ? (
-                    <div
-                      className="relative flex shrink-0"
-                      data-slot="app-shell-panel"
-                    >
-                      <ResizeHandle
-                        aria-controls={panelId}
-                        aria-label={t`Resize side panel`}
-                        defaultValue={PANEL_DEFAULT_WIDTH}
-                        max={columns.panelMax}
-                        min={PANEL_MIN_WIDTH}
-                        onResize={setLivePanel}
-                        onResizeEnd={endPanelResize}
-                        resizes="after"
-                        step={RESIZE_KEY_STEP}
-                        value={columns.panel}
-                      />
-                      <aside
-                        aria-label={t`Side panel`}
-                        className="flex h-full min-h-0 flex-col bg-background"
-                        id={panelId}
-                        style={{ width: columns.panel }}
-                      >
-                        {panel}
-                      </aside>
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-              {!narrow && columns.sidebar === null ? (
-                <>
-                  {/* The edge that shows the sidebar; below the header, so the
-                  header's own sidebar toggle stays clickable. */}
+                  <RailSlot rail={rail} />
                   <div
-                    aria-hidden
                     className={cn(
-                      "fixed top-12 bottom-0 z-30 pointer-coarse:hidden w-5 max-md:hidden",
-                      edgeStart(rail)
+                      "flex min-h-0 min-w-0 flex-1",
+                      cardClass(Boolean(rail))
                     )}
-                    data-slot="app-shell-sidebar-edge"
-                    onPointerEnter={peek.enter}
-                    onPointerLeave={peek.leave}
-                  />
+                    data-slot="app-shell-card"
+                  >
+                    {columns.sidebar === null ? null : (
+                      <div
+                        className="relative flex shrink-0 max-md:hidden"
+                        data-slot="app-shell-sidebar"
+                      >
+                        <aside
+                          aria-label={t`Chats`}
+                          className={cn(
+                            SIDEBAR_WIDTH_CLASS,
+                            // Before the first measure, CSS keeps the conversation's
+                            // minimum; after it, the width is exact.
+                            "flex min-w-50 max-w-[max(12.5rem,calc(100vw-30rem))] flex-col bg-sidebar text-sidebar-foreground",
+                            dockedSidebarClass(Boolean(rail))
+                          )}
+                          id={sidebarId}
+                          style={
+                            savedSidebar.width === null
+                              ? undefined
+                              : { width: columns.sidebar }
+                          }
+                        >
+                          {sidebar}
+                        </aside>
+                        <ResizeHandle
+                          aria-controls={sidebarId}
+                          aria-label={t`Resize sidebar`}
+                          defaultValue={SIDEBAR_DEFAULT_WIDTH}
+                          max={columns.sidebarMax}
+                          min={SIDEBAR_MIN_WIDTH}
+                          onResize={setLiveSidebar}
+                          onResizeEnd={endSidebarResize}
+                          resizes="before"
+                          step={RESIZE_KEY_STEP}
+                          value={columns.sidebar}
+                        />
+                      </div>
+                    )}
+                    <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
+                      {header}
+                      <main className="flex min-h-0 flex-1 flex-col">
+                        {children}
+                      </main>
+                    </div>
+                    {panelOpen && !narrow ? (
+                      <div
+                        className="relative flex shrink-0"
+                        data-slot="app-shell-panel"
+                      >
+                        <ResizeHandle
+                          aria-controls={panelId}
+                          aria-label={t`Resize side panel`}
+                          defaultValue={PANEL_DEFAULT_WIDTH}
+                          max={columns.panelMax}
+                          min={PANEL_MIN_WIDTH}
+                          onResize={setLivePanel}
+                          onResizeEnd={endPanelResize}
+                          resizes="after"
+                          step={RESIZE_KEY_STEP}
+                          value={columns.panel}
+                        />
+                        <aside
+                          aria-label={t`Side panel`}
+                          className="flex h-full min-h-0 flex-col bg-background"
+                          id={panelId}
+                          style={{ width: columns.panel }}
+                        >
+                          {panel}
+                        </aside>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+                {overlayOpen ? (
                   <aside
-                    // Closed, it's out of reach entirely: no tab stops, not in
-                    // the accessibility tree (inert alone isn't, everywhere).
-                    aria-hidden={peek.open ? undefined : true}
                     aria-label={t`Chats`}
                     className={cn(
                       SIDEBAR_WIDTH_CLASS,
-                      // Over the page, not beside it: nothing moves. It slides
-                      // in over --motion-base and leaves over --motion-exit;
-                      // reduced motion (--motion-travel: 0) only fades.
-                      peekPlaceClass(Boolean(rail)),
-                      "fixed z-40 flex max-w-[calc(100vw-3rem)] flex-col border-sidebar-border bg-sidebar text-sidebar-foreground shadow-lg max-md:hidden",
-                      "invisible translate-x-[calc(var(--peek-shift)*var(--motion-travel))] opacity-0 transition-[translate,opacity,visibility] duration-(--motion-exit) ease-motion-out [--peek-shift:-100%] rtl:[--peek-shift:100%]",
-                      "data-open:visible data-open:translate-x-0 data-open:opacity-100 data-open:duration-(--motion-base)"
+                      // Over the page, not beside it: nothing moves. Opened
+                      // by the toggle or a key, so it doesn't animate (D28).
+                      overlayPlaceClass(Boolean(rail)),
+                      "fixed z-40 flex max-w-[calc(100vw-3rem)] flex-col border-sidebar-border bg-sidebar text-sidebar-foreground shadow-lg outline-none max-md:hidden"
                     )}
-                    data-open={peek.open ? "" : undefined}
-                    data-slot="app-shell-sidebar-peek"
-                    inert={!peek.open}
-                    onKeyDown={closePeekOnEscape}
-                    onPointerEnter={peek.enter}
-                    onPointerLeave={peek.leave}
-                    ref={peekRef}
+                    data-slot="app-shell-sidebar-overlay"
+                    ref={overlayRef}
+                    tabIndex={-1}
                   >
                     {sidebar}
                   </aside>
-                </>
-              ) : null}
-              {narrow ? (
-                <>
-                  <Drawer
-                    onOpenChange={onSidebarSheetOpenChange}
-                    open={sidebarSheetOpen}
-                    swipeDirection="left"
-                  >
-                    <DrawerContent
-                      className="w-[min(18rem,85vw)] bg-sidebar text-sidebar-foreground"
-                      data-slot="app-shell-sidebar-sheet"
+                ) : null}
+                {narrow ? (
+                  <>
+                    <Drawer
+                      onOpenChange={onSidebarSheetOpenChange}
+                      open={sidebarSheetOpen}
+                      swipeDirection="left"
                     >
-                      <DrawerTitle className="sr-only">
-                        <Trans>Chats</Trans>
-                      </DrawerTitle>
-                      <div className="flex min-h-0 flex-1 flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
-                        {sidebar}
-                      </div>
-                    </DrawerContent>
-                  </Drawer>
-                  <Drawer
-                    onOpenChange={onPanelSheetOpenChange}
-                    open={panelOpen}
-                    showSwipeHandle
-                  >
-                    <DrawerContent
-                      className="h-[85dvh] bg-background"
-                      data-slot="app-shell-panel-sheet"
+                      <DrawerContent
+                        className="w-[min(18rem,85vw)] bg-sidebar text-sidebar-foreground"
+                        data-slot="app-shell-sidebar-sheet"
+                      >
+                        <DrawerTitle className="sr-only">
+                          <Trans>Chats</Trans>
+                        </DrawerTitle>
+                        <div className="flex min-h-0 flex-1 flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+                          {sidebar}
+                        </div>
+                      </DrawerContent>
+                    </Drawer>
+                    <Drawer
+                      onOpenChange={onPanelSheetOpenChange}
+                      open={panelOpen}
+                      showSwipeHandle
                     >
-                      <DrawerTitle className="sr-only">
-                        <Trans>Side panel</Trans>
-                      </DrawerTitle>
-                      <div className="flex min-h-0 flex-1 flex-col pb-[env(safe-area-inset-bottom)]">
-                        {panel}
-                      </div>
-                    </DrawerContent>
-                  </Drawer>
-                </>
-              ) : null}
-            </Toaster>
-          </TooltipProvider>
+                      <DrawerContent
+                        className="h-[85dvh] bg-background"
+                        data-slot="app-shell-panel-sheet"
+                      >
+                        <DrawerTitle className="sr-only">
+                          <Trans>Side panel</Trans>
+                        </DrawerTitle>
+                        <div className="flex min-h-0 flex-1 flex-col pb-[env(safe-area-inset-bottom)]">
+                          {panel}
+                        </div>
+                      </DrawerContent>
+                    </Drawer>
+                  </>
+                ) : null}
+              </Toaster>
+            </TooltipProvider>
+          </SidebarShownProvider>
         </SidebarRailedProvider>
       </SidebarDockedProvider>
     </PlatformProvider>
