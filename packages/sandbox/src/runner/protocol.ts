@@ -12,6 +12,7 @@ import {
 import { z } from "zod";
 
 import { sandboxErrorSchema } from "../ports/sandbox";
+import { egressPolicySchema } from "./egress";
 
 // The internal HTTP API between `web` (the docker provider in this package)
 // and `apps/sandbox-runner` (D7). Both sides parse with these schemas, so a
@@ -25,8 +26,6 @@ export const runnerRuntimeSchema = z.enum(["runsc", "runc"]);
 export type RunnerRuntime = z.infer<typeof runnerRuntimeSchema>;
 
 export const runnerStatusSchema = z.object({
-  /** Where outbound traffic from sandboxes may go. */
-  egress: z.enum(["none", "allowlist", "open"]),
   isolation: sandboxIsolationSchema,
   runtime: runnerRuntimeSchema,
   /** Live (not destroyed) sandboxes this runner manages. */
@@ -44,6 +43,8 @@ export const sandboxVariantSchema = z.enum(["workspace", "desktop"]);
 export type SandboxVariant = z.infer<typeof sandboxVariantSchema>;
 
 export const createRequestSchema = z.object({
+  /** From `sandbox.egress`; `limits.network: false` still means `none`. */
+  egress: egressPolicySchema.default({ mode: "none" }),
   id: sandboxIdSchema,
   limits: sandboxLimitsSchema,
   snapshotRef: z.string().min(1).max(256).optional(),

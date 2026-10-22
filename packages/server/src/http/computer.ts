@@ -13,7 +13,9 @@ import { problem } from "./problem";
 // it. Plain routes rather than procedures, so the frozen contract (§3) is
 // untouched; the shapes are `computerViewSchema`. Only the Dot's owner may
 // watch or take over. Starting the view starts the desktop if it's stopped,
-// as opening the Files panel starts a workspace.
+// as opening the Files panel starts a workspace. A failure carries the
+// sandbox runner's `reason` when there is one (`@workspace/sandbox`'s
+// `runner/unavailable.ts`), so the view can say why and how to fix it.
 
 export interface ComputerRouteDeps {
   readonly computers: DotComputers | undefined;
@@ -25,6 +27,9 @@ export const computerPath = (conversationId: string) =>
   `/api/computer/${conversationId}`;
 
 const controlBodySchema = z.object({ holder: computerHolderSchema });
+
+/** The runner's reason a failure carries, if any; the client parses it. */
+const reasonSchema = z.object({ reason: z.string() });
 
 export const mountComputerRoutes = (
   app: Hono,
@@ -45,7 +50,8 @@ export const mountComputerRoutes = (
       return problem(
         403,
         "FEATURE_DISABLED",
-        "Computers need the sandbox runner (sandbox.docker in app.config.yaml)."
+        "Computers need the sandbox runner (sandbox.docker in app.config.yaml).",
+        { reason: "not_configured" }
       );
     }
     return { computers, conversationId: id.data };
@@ -58,7 +64,12 @@ export const mountComputerRoutes = (
       ? Response.json(result.value, {
           headers: { "cache-control": "no-store" },
         })
-      : problem(503, "UNAVAILABLE", "The computer isn't available right now.");
+      : problem(
+          503,
+          "UNAVAILABLE",
+          "The computer isn't available right now.",
+          reasonSchema.safeParse(result.error).data ?? {}
+        );
 
   app.get("/api/computer/:conversationId", async (c) => {
     const found = await authorize(c.req.raw, c.req.param("conversationId"));

@@ -36,6 +36,10 @@ import type {
   SandboxProviders,
 } from "../providers";
 import { toBase64 } from "../runner/protocol";
+import {
+  runnerUnavailableOf,
+  runnerUnavailableText,
+} from "../runner/unavailable";
 import type { PreviewLog } from "../tools/static-preview";
 
 // The contract's `sandbox` group as plain functions over `{ db, session,
@@ -180,11 +184,19 @@ const isolationOf = async (
   return provider === "just-bash" ? "simulated" : "container";
 };
 
-/** Safe to show: fixed text, never the provider's own message. */
-const startFailure = (error: SandboxError): string =>
-  error.type === "unavailable"
-    ? "The sandbox host is unavailable. Try again in a moment."
-    : "The sandbox couldn't start.";
+/**
+ * Safe to show: fixed text, never the provider's own message, except the
+ * runner's known reasons, which are fixed text too and say how to fix it.
+ */
+const startFailure = (error: SandboxError): string => {
+  if (error.type !== "unavailable") {
+    return "The sandbox couldn't start.";
+  }
+  const why = runnerUnavailableOf(error.message);
+  return why
+    ? runnerUnavailableText(why.reason)
+    : "The sandbox host is unavailable. Try again in a moment.";
+};
 
 /** Starts the provider's sandbox for a row and records how that went. */
 const start = async (

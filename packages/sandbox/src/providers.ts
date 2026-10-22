@@ -17,6 +17,7 @@ import {
 import type { SandboxError, SandboxFactory } from "./ports/sandbox";
 import { createPreviewRestorer, type PreviewRestorer } from "./preview-restore";
 import { createUnavailableFactory } from "./remote/stubs";
+import { egressPolicyFor } from "./runner/egress";
 import { consoleLog, type PreviewLog } from "./tools/static-preview";
 
 // The instance's sandbox providers, built once at boot from app config. Only
@@ -83,9 +84,10 @@ export const sandboxProvidersFromConfig = (
     limits: JUST_BASH_LIMITS,
   });
 
-  const { docker, e2b, microsandbox, vercel } = config.sandbox;
+  const { docker, e2b, egress, microsandbox, vercel } = config.sandbox;
   if (docker) {
     const factory = createDockerSandboxFactory({
+      egress: egressPolicyFor(egress),
       fetch,
       runnerUrl: docker.runnerUrl,
       token: docker.token,
@@ -100,7 +102,7 @@ export const sandboxProvidersFromConfig = (
         cpu: docker.limits.cpu,
         diskMb: docker.limits.diskMb,
         memoryMb: docker.limits.memoryMb,
-        network: docker.network,
+        network: egress.mode !== "none",
       },
       restorePreviews: createPreviewRestorer({ log }),
     });

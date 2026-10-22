@@ -1,5 +1,5 @@
 import type { Dot } from "@workspace/contract/schemas/dots";
-import { ok } from "@workspace/shared/result";
+import { err, ok } from "@workspace/shared/result";
 import { Hono } from "hono";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -67,7 +67,42 @@ describe("computer routes", () => {
   it("answers FEATURE_DISABLED when the server has no computers", async () => {
     const response = await routes(undefined)(computerPath(dot.conversationId));
     expect(response.status).toBe(403);
-    expect(await response.json()).toMatchObject({ code: "FEATURE_DISABLED" });
+    expect(await response.json()).toMatchObject({
+      code: "FEATURE_DISABLED",
+      reason: "not_configured",
+    });
+  });
+
+  it("passes on the runner's reason when the computer can't start", async () => {
+    const down: DotComputers = {
+      ...fakeComputers,
+      view: () =>
+        Promise.resolve(
+          err({
+            message: "The sandbox runner isn't running.",
+            reason: "runner_unreachable",
+            type: "unavailable",
+          })
+        ),
+    };
+    const response = await routes(down)(computerPath(dot.conversationId));
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({
+      code: "UNAVAILABLE",
+      reason: "runner_unreachable",
+    });
+  });
+
+  it("has no reason to give when the failure isn't the runner's", async () => {
+    const odd: DotComputers = {
+      ...fakeComputers,
+      view: () => Promise.resolve(err({ type: "destroyed" })),
+    };
+    const body = (await (
+      await routes(odd)(computerPath(dot.conversationId))
+    ).json()) as Record<string, unknown>;
+    expect(body.code).toBe("UNAVAILABLE");
+    expect(body).not.toHaveProperty("reason");
   });
 
   it("shows the owner the view and hands them control", async () => {

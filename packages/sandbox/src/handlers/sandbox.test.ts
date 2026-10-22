@@ -20,6 +20,10 @@ import { createJustBashFactory } from "../just-bash/provider";
 import { createMemorySnapshotStore } from "../just-bash/snapshot-store";
 import { createMemorySandboxFactory } from "../ports/sandbox.memory";
 import type { ProviderEntry, SandboxProviders } from "../providers";
+import {
+  runnerUnavailableError,
+  runnerUnavailableText,
+} from "../runner/unavailable";
 import { createDockerLikeEntry, previewUrlFor } from "../testing/docker-like";
 import { STATIC_PREVIEW_PORT } from "../tools/static-preview";
 import { createSandboxExecJobHandler, SANDBOX_EXEC_JOB } from "./exec-job";
@@ -236,6 +240,30 @@ describe("sandbox handlers", () => {
     expect(
       await execInSandbox(deps, { command: "ls", id: created.id })
     ).toEqual(err({ message: "down", type: "unavailable" }));
+  });
+
+  it("records the runner's reason and fix when that's why the start failed", async () => {
+    const down = runnerUnavailableError("runner_unreachable");
+    const unreachable: ProviderEntry = {
+      factory: {
+        attach: () => Promise.resolve(err(down)),
+        create: () => Promise.resolve(err(down)),
+        provider: "docker",
+      },
+      isolation: () => Promise.resolve(err(down)),
+      limits,
+    };
+    const { chat, deps } = await setup(new Map([["docker", unreachable]]));
+    const created = await must(
+      createConversationSandbox(
+        { ...deps, defaultProvider: "docker" },
+        { conversationId: chat.id }
+      )
+    );
+    expect(created.status).toEqual({
+      message: runnerUnavailableText("runner_unreachable"),
+      state: "failed",
+    });
   });
 
   it("refuses unknown providers and instances without sandboxes", async () => {

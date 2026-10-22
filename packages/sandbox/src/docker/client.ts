@@ -17,6 +17,7 @@ import type {
   SandboxFactory,
 } from "../ports/sandbox";
 import { signRequest } from "../runner/auth";
+import type { EgressPolicy } from "../runner/egress";
 import {
   type ExecEvent,
   errorResponseSchema,
@@ -32,13 +33,17 @@ import {
   snapshotResponseSchema,
   toBase64,
 } from "../runner/protocol";
+import { runnerUnavailableError } from "../runner/unavailable";
 
 // The `docker` provider as `web` sees it: a client for `sandbox-runner`'s
 // signed internal API (D7). `web` never talks to Docker itself and never
 // gets the socket (D24); everything goes through the runner. A runner that's
-// down or unconfigured is `unavailable`, never a crash.
+// down or unconfigured is `unavailable`, never a crash, and says which of
+// `runner/unavailable.ts`'s reasons it is.
 
 export interface DockerClientOptions {
+  /** Where new sandboxes may connect (`sandbox.egress`); `none` when unset. */
+  readonly egress?: EgressPolicy;
   /** Injected for tests; defaults to the global `fetch`. */
   readonly fetch?: typeof fetch;
   readonly now?: () => Date;
@@ -66,6 +71,7 @@ const unavailable = (message: string): SandboxError => ({
 });
 
 const TRAILING_SLASHES = /\/+$/;
+const UNAUTHORIZED = 401;
 
 const parseLine = (line: string): ExecEvent | null => {
   const json = tryCatch(
@@ -133,6 +139,7 @@ const readExecStream = async (
 };
 
 export const createDockerSandboxFactory = ({
+  egress = { mode: "none" },
   fetch: fetchImpl = globalThis.fetch,
   now = () => new Date(),
   runnerUrl,
@@ -147,7 +154,7 @@ export const createDockerSandboxFactory = ({
     signal?: AbortSignal
   ): AsyncResult<Response, SandboxError> => {
     if (!token) {
-      return err(unavailable("the sandbox runner token is not configured"));
+      return err(runnerUnavailableError("not_configured"));
     }
     const payload = body === undefined ? "" : JSON.stringify(body);
     const headers = {
@@ -164,17 +171,24 @@ export const createDockerSandboxFactory = ({
       if (response.ok) {
         return ok(response);
       }
+      if (response.status === UNAUTHORIZED) {
+        return err(runnerUnavailableError("token_rejected"));
+      }
       const parsed = errorResponseSchema.safeParse(
         await response.json().catch(() => null)
       );
       return err(
         parsed.success
           ? parsed.data.error
-          : unavailable(`the sandbox runner answered ${response.status}`)
+          : runnerUnavailableError("runner_error")
       );
     } catch {
       // Never echo the URL or the cause: they can carry internal hostnames.
-      return err(unavailable("the sandbox runner is unreachable"));
+      return err(
+        signal?.aborted
+          ? unavailable("the request was cancelled")
+          : runnerUnavailableError("runner_unreachable")
+      );
     }
   };
 
@@ -193,7 +207,7 @@ export const createDockerSandboxFactory = ({
     );
     return parsed.success
       ? ok(parsed.data)
-      : err(unavailable("the sandbox runner sent an unexpected response"));
+      : err(runnerUnavailableError("runner_error"));
   };
 
   const callVoid = async (
@@ -303,6 +317,7 @@ export const createDockerSandboxFactory = ({
         "POST",
         runnerPaths.sandboxes,
         {
+          egress,
           id: spec.id,
           limits: spec.limits,
           snapshotRef: spec.snapshotRef,
@@ -315,7 +330,7 @@ export const createDockerSandboxFactory = ({
         sandboxStateResponseSchema,
         "POST",
         runnerPaths.sandboxes,
-        { id: spec.id, limits: spec.limits, variant: "desktop" }
+        { egress, id: spec.id, limits: spec.limits, variant: "desktop" }
       );
       return created.ok ? ok(handle(spec.id)) : created;
     },

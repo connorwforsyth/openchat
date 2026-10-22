@@ -15,6 +15,10 @@ import { type Tool, tool } from "ai";
 import type { DockerSandboxFactory } from "../docker/client";
 import type { Sandbox, SandboxError } from "../ports/sandbox";
 import {
+  type RunnerUnavailableReason,
+  runnerUnavailableOf,
+} from "../runner/unavailable";
+import {
   CONTROL_STATUS_COMMAND,
   type ComputerInput,
   computerCommand,
@@ -84,11 +88,29 @@ export type ComputerOutput =
 /** The runner calls a computer needs. A port, so tests fake it. */
 export type DesktopHost = Pick<DockerSandboxFactory, "createDesktop">;
 
+/** A failure, with the runner's reason when it's one the live view can explain. */
+export type ComputerError = SandboxError & {
+  readonly reason?: RunnerUnavailableReason;
+};
+
+const explained = (error: SandboxError): ComputerError => {
+  const why =
+    error.type === "unavailable" ? runnerUnavailableOf(error.message) : null;
+  return why ? { ...error, reason: why.reason } : error;
+};
+
+const explain = async <T>(
+  result: AsyncResult<T, SandboxError>
+): AsyncResult<T, ComputerError> => {
+  const settled = await result;
+  return settled.ok ? settled : err(explained(settled.error));
+};
+
 export interface Computers {
   readonly setControl: (
     conversationId: ConversationId,
     holder: ComputerHolder
-  ) => AsyncResult<ComputerView, SandboxError>;
+  ) => AsyncResult<ComputerView, ComputerError>;
   /** The `computer` tool for a conversation's desktop. */
   readonly tools: (
     conversationId: ConversationId
@@ -96,7 +118,7 @@ export interface Computers {
   /** Starts the desktop if it must, and returns where to watch it. */
   readonly view: (
     conversationId: ConversationId
-  ) => AsyncResult<ComputerView, SandboxError>;
+  ) => AsyncResult<ComputerView, ComputerError>;
 }
 
 const describeError = (error: SandboxError): string =>
@@ -186,32 +208,38 @@ export const createComputers = ({
       : fail(`couldn't take a screenshot: ${describeError(shot.error)}`);
   };
 
-  return {
-    setControl: async (conversationId, holder) => {
-      const sandbox = await desktop(conversationId);
-      if (!sandbox.ok) {
-        return sandbox;
-      }
-      const ran = await sandbox.value.exec(controlCommand(holder), {
-        timeoutMs: 5000,
+  const setControl = async (
+    conversationId: ConversationId,
+    holder: ComputerHolder
+  ): AsyncResult<ComputerView, SandboxError> => {
+    const sandbox = await desktop(conversationId);
+    if (!sandbox.ok) {
+      return sandbox;
+    }
+    const ran = await sandbox.value.exec(controlCommand(holder), {
+      timeoutMs: 5000,
+    });
+    if (!ran.ok) {
+      return ran;
+    }
+    if (ran.value.exitCode !== 0) {
+      return err({
+        message: `the screen's input couldn't be switched (exit ${ran.value.exitCode})`,
+        type: "unavailable",
       });
-      if (!ran.ok) {
-        return ran;
-      }
-      if (ran.value.exitCode !== 0) {
-        return err({
-          message: `the screen's input couldn't be switched (exit ${ran.value.exitCode})`,
-          type: "unavailable",
-        });
-      }
-      return view(conversationId);
-    },
+    }
+    return view(conversationId);
+  };
+
+  return {
+    setControl: (conversationId, holder) =>
+      explain(setControl(conversationId, holder)),
     tools: (conversationId) => ({
       computer: computerTool((input, signal) =>
         run(conversationId, input, signal)
       ),
     }),
-    view,
+    view: (conversationId) => explain(view(conversationId)),
   };
 };
 
