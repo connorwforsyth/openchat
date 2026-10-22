@@ -84,6 +84,23 @@ describe("builder form validation", () => {
   });
 });
 
+describe("creating", () => {
+  it("makes one item however often Create is pressed before the page moves", async () => {
+    const { onCreated } = renderBuilder({ kind: "prompt", type: "new" });
+    await userEvent.fill(screen.getByRole("textbox", { name: "Name" }), "Hi");
+    await userEvent.fill(
+      screen.getByRole("textbox", { name: "Template" }),
+      "Say hi."
+    );
+    const create = screen.getByRole("button", { name: "Create" });
+    await userEvent.dblClick(create);
+    await waitFor(() => expect(onCreated).toHaveBeenCalledOnce());
+    await userEvent.click(create, { force: true });
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(onCreated).toHaveBeenCalledOnce();
+  });
+});
+
 describe("agent builder", () => {
   it("tests the draft on screen, before it's saved", async () => {
     const providers = createTestProviders();

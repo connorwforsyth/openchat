@@ -8,7 +8,12 @@ import { Placeholder } from "@tiptap/extension-placeholder";
 import { Text } from "@tiptap/extension-text";
 import { UndoRedo } from "@tiptap/extensions";
 import { Fragment, type Node, Slice } from "@tiptap/pm/model";
-import { type EditorState, Plugin, PluginKey } from "@tiptap/pm/state";
+import {
+  type EditorState,
+  Plugin,
+  PluginKey,
+  type Transaction,
+} from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { Suggestion, type SuggestionOptions } from "@tiptap/suggestion";
@@ -26,6 +31,7 @@ import {
   useCallback,
   useEffect,
   useId,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -273,7 +279,9 @@ export function SnippetEditor({
   const { render } = popup;
   // The extensions are made once; the plugin reads the latest props here.
   const latest = useRef({ menu, onValueChange });
-  latest.current = { menu, onValueChange };
+  useLayoutEffect(() => {
+    latest.current = { menu, onValueChange };
+  });
   const hasMenu = useRef(menu !== undefined).current;
 
   const extensions = useMemo(() => {
@@ -288,14 +296,20 @@ export function SnippetEditor({
         // Fetched (a prompt's template): the query goes at once, so the
         // menu closes, and the text lands where it was when it arrives.
         insertSnippet(target, range, "", false);
+        // Typing goes on while it loads, so the spot moves with each edit.
+        let at = range.from;
+        const follow = ({ transaction }: { transaction: Transaction }) => {
+          at = transaction.mapping.map(at, -1);
+        };
+        target.on("transaction", follow);
         picked
           .then((text) => {
             if (text !== null && !target.isDestroyed) {
-              const at = Math.min(range.from, target.state.doc.content.size);
               insertSnippet(target, { from: at, to: at }, text, selectName);
             }
           })
-          .catch(() => undefined);
+          .catch(() => undefined)
+          .finally(() => target.off("transaction", follow));
       },
       items: ({ query }) => [...(latest.current.menu?.items(query) ?? [])],
       render,

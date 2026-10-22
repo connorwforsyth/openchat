@@ -137,6 +137,29 @@ describe("snippet editor", () => {
     );
   });
 
+  it("puts a fetched snippet where the / was, even after typing above it", async () => {
+    let arrive: (text: string) => void = () => undefined;
+    renderEditor(
+      "Start\n",
+      menu((item) =>
+        item.kind === "prompt"
+          ? new Promise<string>((resolve) => {
+              arrive = resolve;
+            })
+          : null
+      )
+    );
+    const box = await focusEnd();
+    await userEvent.keyboard("/expl");
+    await userEvent.click(await screen.findByRole("option", { name: EXPLAIN }));
+    box.focus();
+    // From the empty second line, up is the start of the first.
+    await userEvent.keyboard("{ArrowUp}Intro ");
+    await waitFor(() => expect(shown()).toBe("Intro Start\n"));
+    arrive("Explain it.");
+    await waitFor(() => expect(shown()).toBe("Intro Start\nExplain it."));
+  });
+
   it("keeps blank lines exactly as they were while typing", async () => {
     const { onValue } = renderEditor("\nfirst\n\n\nsecond\n", menu());
     await focusEnd();

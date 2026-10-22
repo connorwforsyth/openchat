@@ -26,7 +26,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@workspace/ui/components/select";
-import { type ChangeEvent, useCallback, useId, useRef } from "react";
+import {
+  type ChangeEvent,
+  useCallback,
+  useId,
+  useLayoutEffect,
+  useRef,
+} from "react";
 
 import type { FormIssues } from "../form";
 import { type SnippetItem, snippetMenuItems } from "../snippet";
@@ -104,7 +110,9 @@ export function AgentForm({
   // same tick; each change builds on the one before, not on this render's
   // `value`.
   const current = useRef(value);
-  current.current = value;
+  useLayoutEffect(() => {
+    current.current = value;
+  }, [value]);
   const update = useCallback(
     (patch: Partial<AgentDefinition>) => {
       current.current = { ...current.current, ...patch };
