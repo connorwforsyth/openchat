@@ -1,6 +1,7 @@
 "use client";
 
 import { useLingui } from "@lingui/react/macro";
+import { displayKind } from "@workspace/artifacts-kit/display";
 import type { ArtifactKind } from "@workspace/contract/schemas/message-parts";
 import {
   CodeIcon,
@@ -11,7 +12,9 @@ import {
   ImageIcon,
   LayersIcon,
   LayoutGridIcon,
+  MonitorIcon,
   NetworkIcon,
+  PlayIcon,
 } from "@workspace/icons";
 import type { IconName } from "@workspace/icons/names";
 
@@ -31,11 +34,14 @@ const kindIcons: Partial<Record<IconName, Icon>> = {
   ImageIcon,
   LayersIcon,
   LayoutGridIcon,
+  MonitorIcon,
   NetworkIcon,
+  PlayIcon,
 };
 
+/** The icon of the kind `kind` is shown as (Mermaid is a Diagram). */
 export const kindIcon = (kind: ArtifactKind): Icon =>
-  kindIcons[artifactKindDefinition(kind).icon] ?? FileIcon;
+  kindIcons[artifactKindDefinition(displayKind(kind)).icon] ?? FileIcon;
 
 /** The kind's icon, labelled with the kind's name for screen readers. */
 export function KindIcon({

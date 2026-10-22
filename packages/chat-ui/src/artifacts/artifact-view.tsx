@@ -42,7 +42,12 @@ import { cn } from "@workspace/ui/lib/utils";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
 
 import { Markdown } from "../conversation/markdown";
-import { artifactFileName, previewPlan, versionEdit } from "../model/artifacts";
+import {
+  type ArtifactPreviewPlan,
+  artifactFileName,
+  previewPlan,
+  versionEdit,
+} from "../model/artifacts";
 import { useElementWidth } from "../workspace/use-element-width";
 import {
   ArtifactPreview,
@@ -55,6 +60,7 @@ import { DocumentArtifact } from "./document/document-artifact";
 import { DocumentView } from "./document/document-view";
 import { fitArtifactHeader } from "./header-fit";
 import { ImageArtifactPreview } from "./image-preview";
+import { MermaidText } from "./mermaid-text";
 import { type PlanEditing, PlanEditor } from "./plan-editor";
 import { PresentationPreview } from "./presentation-preview";
 import { isRuntimeKind } from "./runtime-protocol";
@@ -253,6 +259,7 @@ export function ArtifactView({
   if (versions && versions.length > 0) {
     return (
       <ArtifactDetail
+        api={api}
         artifact={artifact}
         error={error}
         header={header}
@@ -372,7 +379,64 @@ function ArtifactSource({
   );
 }
 
+/** The Preview tab's body, one branch per plan. */
+function PlannedPreview({
+  artifact,
+  content,
+  onShowSource,
+  path,
+  plan,
+}: {
+  readonly artifact: Artifact;
+  readonly content: string;
+  readonly onShowSource: () => void;
+  readonly path: string;
+  readonly plan: ArtifactPreviewPlan;
+}) {
+  switch (plan.type) {
+    case "runtime":
+      if (artifact.kind === "presentation") {
+        // A deck presents and exports (164), so it has a view of its own.
+        return (
+          <PresentationPreview
+            content={content}
+            runtimeOrigin={plan.origin}
+            title={artifact.title}
+          />
+        );
+      }
+      return isRuntimeKind(artifact.kind) ? (
+        <ArtifactPreview
+          content={content}
+          fileName={path}
+          kind={artifact.kind}
+          onShowSource={onShowSource}
+          runtimeOrigin={plan.origin}
+          title={artifact.title}
+        />
+      ) : null;
+    case "panel":
+      return (
+        <PanelPreview
+          artifact={artifact}
+          content={content}
+          path={path}
+          preview={plan.panel}
+        />
+      );
+    case "unavailable":
+      return (
+        <PreviewUnavailable onShowSource={onShowSource} reason={plan.reason} />
+      );
+    case "source":
+      return null;
+    default:
+      return plan satisfies never;
+  }
+}
+
 function ArtifactDetail({
+  api,
   artifact,
   error,
   header,
@@ -381,6 +445,7 @@ function ArtifactDetail({
   versionId,
   versions,
 }: {
+  readonly api: QueryUtils | undefined;
   readonly artifact: Artifact;
   readonly error: string | null | undefined;
   readonly header: (content: ReactNode) => ReactNode;
@@ -428,6 +493,16 @@ function ArtifactDetail({
     }
   }, []);
 
+  // A Mermaid diagram is edited as its text (night 2), where the API is.
+  const textEditable = artifact.kind === "mermaid" && api !== undefined;
+  const saved = useCallback(
+    (next: ArtifactVersion) => {
+      onSelect({ artifactId: artifact.id, versionId: next.id });
+      setView("preview");
+    },
+    [artifact.id, onSelect]
+  );
+
   if (!version) {
     return null;
   }
@@ -440,6 +515,7 @@ function ArtifactDetail({
     >
       {header(
         <ArtifactHeader
+          editAsText={textEditable}
           hasChanges={previous !== undefined}
           hasPreview={plan.type !== "source"}
           index={index}
@@ -452,48 +528,31 @@ function ArtifactDetail({
       <div className="flex min-h-0 flex-1 flex-col overflow-auto">
         {plan.type === "source" ? null : (
           <TabsContent className="flex min-h-0 flex-col" value="preview">
-            {plan.type === "runtime" && artifact.kind === "presentation" ? (
-              // A deck presents and exports (164), so it has a view of its own.
-              <PresentationPreview
-                content={version.content}
-                runtimeOrigin={plan.origin}
-                title={artifact.title}
-              />
-            ) : null}
-            {plan.type === "runtime" &&
-            artifact.kind !== "presentation" &&
-            isRuntimeKind(artifact.kind) ? (
-              <ArtifactPreview
-                content={version.content}
-                fileName={path}
-                kind={artifact.kind}
-                onShowSource={showSource}
-                runtimeOrigin={plan.origin}
-                title={artifact.title}
-              />
-            ) : null}
-            {plan.type === "panel" ? (
-              <PanelPreview
-                artifact={artifact}
-                content={version.content}
-                path={path}
-                preview={plan.panel}
-              />
-            ) : null}
-            {plan.type === "unavailable" ? (
-              <PreviewUnavailable
-                onShowSource={showSource}
-                reason={plan.reason}
-              />
-            ) : null}
+            <PlannedPreview
+              artifact={artifact}
+              content={version.content}
+              onShowSource={showSource}
+              path={path}
+              plan={plan}
+            />
           </TabsContent>
         )}
         <TabsContent value="code">
-          <ArtifactSource
-            content={version.content}
-            kind={artifact.kind}
-            path={path}
-          />
+          {textEditable && api ? (
+            <MermaidText
+              api={api}
+              artifactId={artifact.id}
+              key={version.id}
+              onSaved={saved}
+              version={version}
+            />
+          ) : (
+            <ArtifactSource
+              content={version.content}
+              kind={artifact.kind}
+              path={path}
+            />
+          )}
         </TabsContent>
         <TabsContent value="changes">
           {edit ? (
@@ -515,6 +574,7 @@ function ArtifactDetail({
  * a "…" menu for the versions when the row is narrow (`fitArtifactHeader`).
  */
 function ArtifactHeader({
+  editAsText,
   hasChanges,
   hasPreview,
   index,
@@ -522,6 +582,8 @@ function ArtifactHeader({
   title,
   versions,
 }: {
+  /** The Code tab edits the source: "Edit as text". */
+  readonly editAsText: boolean;
   readonly hasChanges: boolean;
   readonly hasPreview: boolean;
   readonly index: number;
@@ -598,7 +660,7 @@ function ArtifactHeader({
         ) : null}
         <ViewTab
           icon={<CodeIcon aria-hidden />}
-          label={t`Code`}
+          label={editAsText ? t`Edit as text` : t`Code`}
           value="code"
           words={words}
         />

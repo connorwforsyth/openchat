@@ -1276,7 +1276,6 @@ msgid "Close toast"
 msgstr "Close toast"
 
 #: ../chat-ui/src/artifacts/artifact-view.tsx
-#: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../chat-ui/src/model/artifact-kinds.ts
 #: ../chat-ui/src/workspace/mode-toggle.tsx
 #: ../composer/src/components/chat-mode-switch.tsx
@@ -1835,10 +1834,13 @@ msgstr "Developer gallery"
 msgid "Devices"
 msgstr "Devices"
 
-#: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../chat-ui/src/model/artifact-kinds.ts
 msgid "Diagram"
 msgstr "Diagram"
+
+#: ../chat-ui/src/artifacts/mermaid-text.tsx
+msgid "Diagram source"
+msgstr "Diagram source"
 
 #. placeholder {0}: artifact.title
 #: ../chat-ui/src/artifacts/diagram/diagram-view.tsx
@@ -1944,7 +1946,6 @@ msgid "Docker sandboxes aren't configured: set SANDBOX_RUNNER_TOKEN in .env and 
 msgstr "Docker sandboxes aren't configured: set SANDBOX_RUNNER_TOKEN in .env and sandbox.docker in app.config.yaml."
 
 #: ../chat-ui/src/artifacts/document/document-view.tsx
-#: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../chat-ui/src/model/artifact-kinds.ts
 msgid "Document"
 msgstr "Document"
@@ -2087,6 +2088,10 @@ msgstr "Edit {0}"
 #: ../../apps/web/app/(app)/(pages)/schedules/schedule-list.tsx
 msgid "Edit {title}"
 msgstr "Edit {title}"
+
+#: ../chat-ui/src/artifacts/artifact-view.tsx
+msgid "Edit as text"
+msgstr "Edit as text"
 
 #: ../chat-ui/src/conversation/message-row.tsx
 msgid "Edit message"
@@ -2412,10 +2417,6 @@ msgstr "First run"
 msgid "first run {next}"
 msgstr "first run {next}"
 
-#: ../chat-ui/src/conversation/artifact-card.tsx
-msgid "Flowchart"
-msgstr "Flowchart"
-
 #: ../shortcuts/src/registry.ts
 msgid "Focus the composer"
 msgstr "Focus the composer"
@@ -2474,7 +2475,6 @@ msgstr "Frontmatter with a name and description, then the instructions the agent
 msgid "General"
 msgstr "General"
 
-#: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../chat-ui/src/model/artifact-kinds.ts
 msgid "Generated image"
 msgstr "Generated image"
@@ -2617,7 +2617,6 @@ msgid "https://chat.example.com"
 msgstr "https://chat.example.com"
 
 #: ../chat-ui/src/artifacts/document/block-menu.tsx
-#: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../composer/src/components/plus-menu.tsx
 msgid "Image"
 msgstr "Image"
@@ -3116,7 +3115,6 @@ msgstr "Mark every chat as read"
 msgid "Mark the chat as unread"
 msgstr "Mark the chat as unread"
 
-#: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../chat-ui/src/model/artifact-kinds.ts
 #: ../ui/src/components/markdown.tsx
 msgid "Markdown"
@@ -3233,10 +3231,6 @@ msgstr "Memory updated: {0}"
 #: ../chat-ui/src/artifacts/diagram/diagram-view.tsx
 msgid "Mermaid (.mmd)"
 msgstr "Mermaid (.mmd)"
-
-#: ../chat-ui/src/model/artifact-kinds.ts
-msgid "Mermaid diagram"
-msgstr "Mermaid diagram"
 
 #: ../composer/src/components/composer-shell.tsx
 #: ../composer/src/components/composer.tsx
@@ -4343,7 +4337,6 @@ msgstr "Preferences"
 msgid "Present"
 msgstr "Present"
 
-#: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../chat-ui/src/model/artifact-kinds.ts
 msgid "Presentation"
 msgstr "Presentation"
@@ -4644,7 +4637,6 @@ msgstr "Ran {code}"
 msgid "Ran {tool}"
 msgstr "Ran {tool}"
 
-#: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../chat-ui/src/model/artifact-kinds.ts
 msgid "React component"
 msgstr "React component"
@@ -5043,6 +5035,7 @@ msgstr "Sandboxes are turned off on this server."
 #: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
 #: ../../apps/web/app/(app)/(pages)/schedules/schedule-editor.tsx
 #: ../chat-ui/src/artifacts/artifact-actions.tsx
+#: ../chat-ui/src/artifacts/mermaid-text.tsx
 msgid "Save"
 msgstr "Save"
 
@@ -5530,7 +5523,6 @@ msgstr "Simulated (just-bash)"
 msgid "Single keys work when you're not typing in a text field."
 msgstr "Single keys work when you're not typing in a text field."
 
-#: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../chat-ui/src/model/artifact-kinds.ts
 msgid "Site"
 msgstr "Site"
@@ -5715,7 +5707,6 @@ msgstr "Spent"
 msgid "Split"
 msgstr "Split"
 
-#: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../chat-ui/src/model/artifact-kinds.ts
 msgid "Spreadsheet"
 msgstr "Spreadsheet"
@@ -6520,6 +6511,11 @@ msgstr "This version couldn't be read as a document."
 msgid "This version couldn't be read as a spreadsheet."
 msgstr "This version couldn't be read as a spreadsheet."
 
+#. placeholder {0}: state.message
+#: ../chat-ui/src/artifacts/mermaid-text.tsx
+msgid "This version wasn't saved: {0}"
+msgstr "This version wasn't saved: {0}"
+
 #: ../chat-ui/src/conversation/approval.tsx
 msgid "This was already decided, in another tab or by someone else, or the answer stopped."
 msgstr "This was already decided, in another tab or by someone else, or the answer stopped."
@@ -7034,7 +7030,6 @@ msgstr "Wants to use {code} from {server}"
 msgid "Warns"
 msgstr "Warns"
 
-#: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../chat-ui/src/model/artifact-kinds.ts
 msgid "Web page"
 msgstr "Web page"
