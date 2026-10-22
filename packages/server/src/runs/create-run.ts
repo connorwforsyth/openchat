@@ -3,8 +3,10 @@ import type { RunExecutor } from "@workspace/ai/ports/run-executor";
 import type { MessageId, RunId } from "@workspace/contract/schemas/common";
 import type { ModelSelector } from "@workspace/contract/schemas/models";
 import {
+  type ChatMode,
   type CreateRunInput,
   type CreateRunOutput,
+  type RunOptions,
   type RunTarget,
   runOptionsSchema,
 } from "@workspace/contract/schemas/runs";
@@ -16,6 +18,7 @@ import {
   type StoredContext,
   setConversationContext,
 } from "@workspace/db/queries/conversations";
+import { getDotByConversation } from "@workspace/db/queries/dots";
 import { getMessage, insertMessage } from "@workspace/db/queries/messages";
 import {
   approvalIdsOf,
@@ -111,6 +114,18 @@ export const busyTail = (
             run.userMessageId === anchor || run.assistantMessageId === anchor
         )
       );
+
+/**
+ * The run's options with the mode it runs in: the conversation's, never the
+ * client's, and none outside the switch (a Dot's chat). Pure.
+ */
+export const withChatMode = (
+  options: CreateRunInput["options"],
+  chatMode: ChatMode | null
+): RunOptions => {
+  const { chatMode: _ignored, ...rest } = runOptionsSchema.parse(options ?? {});
+  return chatMode ? { ...rest, chatMode } : rest;
+};
 
 const targetFor = (
   input: CreateRunInput,
@@ -287,6 +302,8 @@ const placeRun = async (
   input: CreateRunInput,
   resolved: {
     readonly agentDraft: boolean;
+    /** The conversation's mode; `null` outside the switch (a Dot's chat). */
+    readonly chatMode: ChatMode | null;
     readonly context: StoredContext;
     /** The message's picked skills, checked (127). */
     readonly skills: readonly SkillUse[];
@@ -313,6 +330,7 @@ const placeRun = async (
         const inserted = await insertMessage(tx, {
           authorId: actor.userId,
           conversationId,
+          mode: resolved.chatMode,
           parentId: tail
             ? (tail.assistantMessageId ?? tail.userMessageId)
             : turn.parentId,
@@ -331,7 +349,7 @@ const placeRun = async (
         conversationId,
         createdBy: actor.userId,
         idempotencyKey: input.idempotencyKey ?? null,
-        options: runOptionsSchema.parse(input.options ?? {}),
+        options: withChatMode(input.options, resolved.chatMode),
         status: "queued",
         target: resolved.target,
         unattended: resolved.unattended,
@@ -507,8 +525,10 @@ const startRun = async (
     return skills;
   }
   await moveOnFromWaiting(deps, actor, input);
+  const dot = await getDotByConversation(db, conversation.id);
   const placed = await placeRun(db, actor, input, {
     agentDraft: draft.value !== null,
+    chatMode: dot ? null : conversation.mode,
     context: context.value,
     skills: skills.value,
     target,

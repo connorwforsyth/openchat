@@ -31,6 +31,7 @@ export const toConversation = (
   defaultTarget: view.defaultTarget,
   id: view.id,
   lastMessageAt: iso(view.lastMessageAt),
+  mode: view.mode,
   // Only views the caller can read reach here, so there is a permission.
   myPermission: view.myPermission ?? "viewer",
   myState: {

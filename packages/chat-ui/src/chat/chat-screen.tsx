@@ -653,12 +653,16 @@ function ChatScreenBody({
     () =>
       chatWorkspace
         ? {
-            commands: canPreview ? ALL_COMMANDS : FILE_COMMANDS,
+            // Starting a dev server is Code mode's.
+            commands:
+              canPreview && composer.chatMode?.mode !== "chat"
+                ? ALL_COMMANDS
+                : FILE_COMMANDS,
             files: composerPaths(paths),
             onCommand: runCommand,
           }
         : null,
-    [canPreview, chatWorkspace, paths, runCommand]
+    [canPreview, chatWorkspace, composer.chatMode?.mode, paths, runCommand]
   );
 
   const composerProps = useMemo<ComposerLoaderProps>(

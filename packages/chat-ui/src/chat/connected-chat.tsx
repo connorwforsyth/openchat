@@ -52,6 +52,7 @@ import type { Message } from "@workspace/contract/schemas/messages";
 import type { Me, PublicConfig } from "@workspace/contract/schemas/meta";
 import type { ModelOption } from "@workspace/contract/schemas/models";
 import type {
+  ChatMode,
   PendingApproval,
   Run,
   RunOptions,
@@ -132,6 +133,7 @@ import { ChatScreen } from "./chat-screen";
 import { useBranchFeedback } from "./use-branch-feedback";
 import { useChatQueries, useConversationUpdate } from "./use-chat-data";
 import { useChatMcp } from "./use-chat-mcp";
+import { useChatMode } from "./use-chat-mode";
 
 // The chat screen over the API (D11): TanStack Query for everything stored,
 // `useRunChat` for the turn that's streaming. Ticket 025 mounts this in the
@@ -150,6 +152,8 @@ export interface ConnectedChatProps {
   /** A bar above the messages (a Dot's schedule, 172). */
   readonly banner?: ReactNode;
   readonly brand?: ReactNode;
+  /** Offer the composer's Chat / Code switch (not in a Dot's chat, which is outside it). */
+  readonly chatModes?: boolean;
   readonly client: ApiClient;
   /** Placeholder for the composer ("Message Pip" in a Dot's chat, 172). */
   readonly composerPlaceholder?: string;
@@ -893,6 +897,7 @@ const useFirstSend = ({
   context,
   conversationId,
   importFiles,
+  mode,
   onNavigate,
   onWorkspaceChanged,
   send,
@@ -910,6 +915,8 @@ const useFirstSend = ({
   readonly conversationId: ConversationId | null;
   /** Attachments are copied into the chat's workspace too. */
   readonly importFiles: boolean;
+  /** Chat or Code, for the new chat. */
+  readonly mode: ChatMode;
   readonly onNavigate: (id: ConversationId) => void;
   /** The workspace changed (attachments were imported). */
   readonly onWorkspaceChanged: () => void;
@@ -980,7 +987,7 @@ const useFirstSend = ({
       setFirst(firstSendStarted);
       const made =
         creation.current ??
-        create({ context, defaultTarget: target ?? undefined }).then(
+        create({ context, defaultTarget: target ?? undefined, mode }).then(
           (created) => created.id
         );
       creation.current = made;
@@ -1013,6 +1020,7 @@ const useFirstSend = ({
       context,
       conversationId,
       create,
+      mode,
       onNavigate,
       prepare,
       send,
@@ -1561,6 +1569,7 @@ export function ConnectedChat({
   client,
   artifactsHref,
   banner,
+  chatModes = false,
   composerPlaceholder,
   computer,
   dotsHref,
@@ -1632,6 +1641,11 @@ export function ConnectedChat({
   const stored = data.path.data?.messages ?? NO_MESSAGES;
   const feedback = useBranchFeedback(api, stored);
   const update = useConversationUpdate(api);
+  const chatMode = useChatMode(
+    conversationId,
+    data.conversation.data?.mode,
+    update
+  );
 
   // Another chat starts from its own active leaf and artifacts.
   const [shownId, setShownId] = useState(conversationId);
@@ -1786,6 +1800,7 @@ export function ConnectedChat({
     context: draftContext,
     conversationId,
     importFiles: canImport(config),
+    mode: chatMode.mode,
     onNavigate,
     onWorkspaceChanged,
     send,
@@ -2024,6 +2039,7 @@ export function ConnectedChat({
             composer={{
               agents,
               attachmentLimits,
+              ...(chatModes ? { chatMode } : {}),
               mcp: chatMcp.composer,
               ...composerDrafts,
               models,

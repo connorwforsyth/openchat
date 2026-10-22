@@ -1052,6 +1052,7 @@ msgstr "Changing the skill {name}"
 
 #: ../../apps/desktop/src/main/menu.ts
 #: ../chat-ui/src/artifacts/artifact-full-view.tsx
+#: ../composer/src/components/chat-mode-switch.tsx
 msgid "Chat"
 msgstr "Chat"
 
@@ -1075,9 +1076,17 @@ msgstr "Chat contexts"
 msgid "Chat demo"
 msgstr "Chat demo"
 
+#: ../composer/src/components/chat-mode-switch.tsx
+msgid "Chat or Code mode"
+msgstr "Chat or Code mode"
+
 #: ../chat-ui/src/sidebar/rename-input.tsx
 msgid "Chat title"
 msgstr "Chat title"
+
+#: ../composer/src/components/chat-mode-switch.tsx
+msgid "Chat: artifacts and files, nothing runs"
+msgstr "Chat: artifacts and files, nothing runs"
 
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
 msgid "chats"
@@ -1206,6 +1215,7 @@ msgstr "Close toast"
 #: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../chat-ui/src/model/artifact-kinds.ts
 #: ../chat-ui/src/workspace/mode-toggle.tsx
+#: ../composer/src/components/chat-mode-switch.tsx
 msgid "Code"
 msgstr "Code"
 
@@ -1216,6 +1226,10 @@ msgstr "Code block"
 #: ../../apps/web/app/dev/code/page.tsx
 msgid "Code views"
 msgstr "Code views"
+
+#: ../composer/src/components/chat-mode-switch.tsx
+msgid "Code: runs commands, installs and dev servers in the sandbox"
+msgstr "Code: runs commands, installs and dev servers in the sandbox"
 
 #: ../../apps/web/app/(app)/(pages)/dots/avatar-picker.tsx
 msgid "Colour"
@@ -5009,6 +5023,14 @@ msgstr "Sending the edit starts a new branch; the original stays."
 #: ../chat-ui/src/conversation/scheduled-note.tsx
 msgid "Sent by scheduled task · {title}"
 msgstr "Sent by scheduled task · {title}"
+
+#: ../chat-ui/src/conversation/mode-note.tsx
+msgid "Sent in Chat mode"
+msgstr "Sent in Chat mode"
+
+#: ../chat-ui/src/conversation/mode-note.tsx
+msgid "Sent in Code mode"
+msgstr "Sent in Code mode"
 
 #: ../../apps/desktop/src/renderer/setup-screen.tsx
 msgid "Server address"

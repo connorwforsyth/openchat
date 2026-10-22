@@ -13,6 +13,7 @@ import type {
   SiblingInfo,
 } from "@workspace/contract/schemas/messages";
 import type { ModelRef, TokenUsage } from "@workspace/contract/schemas/models";
+import type { ChatMode } from "@workspace/contract/schemas/runs";
 import type { Id } from "@workspace/shared/ids";
 import {
   type AsyncResult,
@@ -66,6 +67,8 @@ export interface NewMessage {
   readonly conversationId: ConversationId;
   /** Minted by the caller when it needs the id up front (a run's assistant message). */
   readonly id?: MessageId;
+  /** The mode its run ran in; `null` outside the switch. */
+  readonly mode?: ChatMode | null;
   readonly model?: ModelRef | null;
   readonly parentId: MessageId | null;
   readonly parts: readonly MessagePart[];
@@ -112,6 +115,7 @@ export const insertMessage = (
         authorId: input.authorId,
         conversationId: input.conversationId,
         id: input.id,
+        mode: input.mode ?? null,
         model: input.model ?? null,
         parentId: input.parentId,
         parts: [...input.parts],
@@ -333,6 +337,7 @@ export const toMessage = (
         conversationId: row.conversationId,
         createdAt: row.createdAt.toISOString(),
         id: row.id,
+        mode: row.mode,
         model: row.model,
         parentId: row.parentId,
         parts: row.parts,
