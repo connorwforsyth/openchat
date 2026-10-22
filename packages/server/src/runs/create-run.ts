@@ -121,7 +121,7 @@ export const busyTail = (
  * The run's options with the mode it runs in: the conversation's, never the
  * client's, and none outside the switch (a Dot's chat). Pure.
  */
-export const withChatMode = (
+const withChatMode = (
   options: CreateRunInput["options"],
   chatMode: ChatMode | null
 ): RunOptions => {

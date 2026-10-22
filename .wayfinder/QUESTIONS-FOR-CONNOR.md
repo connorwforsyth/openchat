@@ -199,3 +199,10 @@ Lane `pstack/usage` (Settings → Usage, span tags). Defaults applied overnight;
 2. **Can a draft agent answer in an ordinary chat?** *Defaulted: yes, through its chip, for its owner only.* A draft is never offered in the target picker, since a chat whose default target is a draft becomes the builder's hidden test chat (033). The alternative is to keep drafts out of chats until published.
 3. **Which artifact types the menu offers.** *Defaulted: the "Make something new" kinds (161): Slides, Site, Spreadsheet, Document, Diagram, SVG, Web page, React.* The alternative is every kind, Code and Mermaid included.
 4. **What counts as Code-only in the menu.** *Defaulted: `/preview` only* (it runs a dev server). Chat mode keeps file commands, since Chat can read and edit files. The `modes` lane passes `mode` to the composer; that's the one hook.
+
+## modes lane (n2/modes)
+
+1. **What mode do chats from before modes get?** *Defaulted: Chat.* The migration gives every existing conversation `mode = 'chat'`, so an old chat that used `bash` loses it until someone switches it to Code. The alternative is to backfill `code` for chats that already have a sandbox, a one-line change in the migration.
+2. **Plan mode in a Chat chat.** *Defaulted: plan mode keeps its rules, and Chat mode still removes `bash`.* A Chat plan therefore reads files but runs no read-only shell commands. The alternative is to let plan mode's read-only `bash` through in Chat.
+3. **Where a message shows its mode.** *Defaulted: a quiet "Sent in Chat mode" or "Sent in Code mode" line under each user message.* The answer under it ran in the same mode. The alternative is to show it only when the mode changed from the message before, like the model switch marker (107).
+4. **Who may switch.** *Defaulted: anyone who can write to the chat (owner and editors).* Code isn't gated by a policy yet. An operator setting to keep a team in Chat would be new config.
