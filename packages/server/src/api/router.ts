@@ -57,6 +57,7 @@ import type { MemorySettings } from "../runs/memory";
 import { queuePosition, toRun } from "../runs/state";
 import {
   type ConversationEvents,
+  createTypingGate,
   userSummaryOf,
 } from "../stream/conversation-events";
 import { createFeedbackRouter } from "./feedback";
@@ -113,6 +114,7 @@ const invalidCursor = () =>
 
 export const createChatRouter = (services: ApiServices) => {
   const { access, db, events, executor } = services;
+  const typingAllowed = createTypingGate();
   const os = implement(contract).$context<RequestContext>();
 
   const authed = os.use(async ({ context, next }) => {
@@ -353,6 +355,10 @@ export const createChatRouter = (services: ApiServices) => {
     ),
 
     typing: authed.conversations.typing.handler(async ({ context, input }) => {
+      // Checked before anything else, so repeats cost no queries.
+      if (!typingAllowed(context.actor.userId, input.id)) {
+        return;
+      }
       await requireAccess(context.actor, input.id, "write");
       const user = await userSummaryOf(db, context.actor.userId);
       if (user) {

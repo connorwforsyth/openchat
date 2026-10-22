@@ -175,6 +175,36 @@ export const createConversationEvents = ({
   };
 };
 
+/**
+ * At most one typing signal per person per chat in `windowMs`; the client
+ * sends one every 2 seconds while someone types, and the window allows for
+ * jitter. A dropped one costs nothing: the last one holds for
+ * `TYPING_TTL_MS`.
+ */
+export const createTypingGate = (
+  windowMs = 1500,
+  now: () => number = Date.now
+) => {
+  const last = new Map<string, number>();
+  return (userId: UserId, conversationId: ConversationId): boolean => {
+    const at = now();
+    const key = `${userId}:${conversationId}`;
+    const previous = last.get(key);
+    if (previous !== undefined && at - previous < windowMs) {
+      return false;
+    }
+    last.set(key, at);
+    if (last.size > 10_000) {
+      for (const [stale, when] of last) {
+        if (at - when >= windowMs) {
+          last.delete(stale);
+        }
+      }
+    }
+    return true;
+  };
+};
+
 /** The name and avatar others see for `userId`; `null` for a user that's gone. */
 export const userSummaryOf = async (
   db: Db,
@@ -184,17 +214,32 @@ export const userSummaryOf = async (
   return found ?? null;
 };
 
-/** Keeps idle proxies from closing a chat that's quiet. */
+/**
+ * Keeps idle proxies from closing a chat that's quiet, and is how often
+ * access is checked again: a stream ends within this long of its grant
+ * being taken away.
+ */
 const HEARTBEAT_MS = 15_000;
 
 const encoder = new TextEncoder();
 
-/** `GET /api/conversations/{id}/events` as SSE, open until the client leaves. */
+/**
+ * `GET /api/conversations/{id}/events` as SSE, open until the client leaves
+ * or `mayRead` says the viewer no longer may.
+ */
 export const conversationEventsResponse = (
   events: ConversationEvents,
   conversationId: ConversationId,
   viewer: UserSummary,
-  request: Request
+  request: Request,
+  {
+    heartbeatMs = HEARTBEAT_MS,
+    mayRead,
+  }: {
+    readonly heartbeatMs?: number;
+    /** Asked on every heartbeat; `false` ends the stream. */
+    readonly mayRead: () => Promise<boolean>;
+  }
 ): Response => {
   const controller = new AbortController();
   const abort = () => controller.abort();
@@ -224,13 +269,19 @@ export const conversationEventsResponse = (
       sink.enqueue(encoder.encode(`data: ${JSON.stringify(next.value)}\n\n`));
     },
     start: (sink) => {
-      heartbeat = setInterval(() => {
+      heartbeat = setInterval(async () => {
+        const allowed = await mayRead().catch(() => false);
+        if (!allowed) {
+          // Ends `follow`, so the next pull closes the stream.
+          end();
+          return;
+        }
         try {
           sink.enqueue(encoder.encode(": keep-alive\n\n"));
         } catch {
           clearInterval(heartbeat);
         }
-      }, HEARTBEAT_MS);
+      }, heartbeatMs);
     },
   });
 

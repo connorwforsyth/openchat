@@ -20,6 +20,7 @@ import {
   type ConversationEvents,
   conversationEventsResponse,
   createConversationEvents,
+  createTypingGate,
   presentUsers,
 } from "./conversation-events";
 import { type PgliteListener, pgliteListen } from "./listen";
@@ -118,6 +119,24 @@ describe("presentUsers", () => {
   });
 });
 
+describe("createTypingGate", () => {
+  it("lets one signal per person per chat through each window", () => {
+    let now = 0;
+    const allowed = createTypingGate(1500, () => now);
+    const chat = "c1" as ConversationId;
+    const other = "c2" as ConversationId;
+    const ada = "u1" as UserId;
+    const bo = "u2" as UserId;
+    expect(allowed(ada, chat)).toBe(true);
+    now = 500;
+    expect(allowed(ada, chat)).toBe(false);
+    expect(allowed(bo, chat)).toBe(true);
+    expect(allowed(ada, other)).toBe(true);
+    now = 1600;
+    expect(allowed(ada, chat)).toBe(true);
+  });
+});
+
 describe.skipIf(process.env.TEST_DATABASE_URL)("conversation events", () => {
   it("tells followers who is present as people come and go", async () => {
     const chat = await newChat();
@@ -188,7 +207,8 @@ describe.skipIf(process.env.TEST_DATABASE_URL)("conversation events", () => {
       events,
       chat.id,
       chat.owner,
-      new Request("http://test/", { signal: request.signal })
+      new Request("http://test/", { signal: request.signal }),
+      { mayRead: () => Promise.resolve(true) }
     );
     expect(response.headers.get("content-type")).toContain("text/event-stream");
     const reader = response.body?.getReader();
@@ -207,5 +227,38 @@ describe.skipIf(process.env.TEST_DATABASE_URL)("conversation events", () => {
       { type: "presence", users: [chat.owner, maya] },
       { type: "presence", users: [maya] },
     ]);
+  });
+
+  it("ends the stream and leaves the room once the viewer may no longer read", async () => {
+    const chat = await newChat();
+    const maya = summary(await seedUser(testDb.db, { name: "Maya" }));
+    let mayRead = true;
+    const response = conversationEventsResponse(
+      events,
+      chat.id,
+      maya,
+      new Request("http://test/"),
+      { heartbeatMs: 20, mayRead: () => Promise.resolve(mayRead) }
+    );
+    const watcher = recorder(chat.id, chat.owner);
+    const reader = response.body?.getReader();
+    await reader?.read();
+    const mayaHere = (event: ConversationEvent) =>
+      event.type === "presence" &&
+      event.users.some((user) => user.id === maya.id);
+    await watcher.until((seen) => seen.some(mayaHere));
+    mayRead = false;
+    const deadline = Date.now() + 5000;
+    let done = false;
+    while (!done && Date.now() < deadline) {
+      // biome-ignore lint/performance/noAwaitInLoops: reads until the server closes the stream.
+      done = (await reader?.read())?.done ?? true;
+    }
+    expect(done).toBe(true);
+    await watcher.until((seen) => {
+      const last = seen.at(-1);
+      return last !== undefined && last.type === "presence" && !mayaHere(last);
+    });
+    await watcher.stop();
   });
 });

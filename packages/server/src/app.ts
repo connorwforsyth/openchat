@@ -159,11 +159,22 @@ export const createApp = ({
     ) {
       return problem(404, "NOT_FOUND", "Not found.");
     }
+    const { access, events } = services;
     return conversationEventsResponse(
-      services.events,
+      events,
       conversationId.data,
       viewer,
-      c.req.raw
+      c.req.raw,
+      {
+        // A grant taken away ends the stream; principals are read again
+        // too, for access that came through a team.
+        mayRead: async () =>
+          access(
+            await actorFor(services.db, session),
+            conversationId.data,
+            "read"
+          ),
+      }
     );
   });
 
