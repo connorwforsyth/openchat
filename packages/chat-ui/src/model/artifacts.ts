@@ -105,6 +105,36 @@ export const previewKind = (kind: ArtifactKind): ArtifactPreviewKind => {
   }
 };
 
+/**
+ * What an artifact's Preview tab shows: the runtime's render, the panel's
+ * own (a frame, a picture, Markdown), why it can't (a kind only the runtime
+ * draws, on an instance without one), or no tab at all for a kind whose
+ * source is the whole of it (code). It never quietly falls back to source.
+ */
+export type ArtifactPreviewPlan =
+  | { readonly origin: string; readonly type: "runtime" }
+  | { readonly panel: "frame" | "image" | "markdown"; readonly type: "panel" }
+  | { readonly reason: "no-runtime"; readonly type: "unavailable" }
+  | { readonly type: "source" };
+
+/** The Preview tab for `kind`, given the runtime's origin (`null` for none). Pure. */
+export const previewPlan = (
+  kind: ArtifactKind,
+  runtimeOrigin: string | null
+): ArtifactPreviewPlan => {
+  const needsRuntime = builtinKindDefinitions[kind].render.runtime !== null;
+  if (runtimeOrigin && needsRuntime) {
+    return { origin: runtimeOrigin, type: "runtime" };
+  }
+  const panel = previewKind(kind);
+  if (panel !== "none") {
+    return { panel, type: "panel" };
+  }
+  return needsRuntime
+    ? { reason: "no-runtime", type: "unavailable" }
+    : { type: "source" };
+};
+
 /** The document a preview frame loads (`srcdoc`). */
 export const frameDocument = (kind: ArtifactKind, content: string): string =>
   kind === "svg"

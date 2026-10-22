@@ -4423,10 +4423,6 @@ msgstr "Preview unavailable: the artifacts service isn't set up here."
 msgid "Previews can't import \"{module}\". React artifacts can import {allowed}."
 msgstr "Previews can't import \"{module}\". React artifacts can import {allowed}."
 
-#: ../chat-ui/src/artifacts/artifact-preview.tsx
-msgid "Previews of this kind need the artifact runtime. Its source is in the Code tab."
-msgstr "Previews of this kind need the artifact runtime. Its source is in the Code tab."
-
 #: ../chat-ui/src/artifacts/presentation-preview.tsx
 #: ../chat-ui/src/artifacts/presenter.tsx
 msgid "Previous"
@@ -5471,6 +5467,10 @@ msgstr "Show only Priority chats"
 msgid "Show or hide the files"
 msgstr "Show or hide the files"
 
+#: ../chat-ui/src/artifacts/artifact-preview.tsx
+msgid "Show the code"
+msgstr "Show the code"
+
 #: ../chat-ui/src/workspace/preview.tsx
 msgid "Show the page at a phone's width"
 msgstr "Show the page at a phone's width"
@@ -6112,6 +6112,10 @@ msgstr "The answer stopped. It's in the chat."
 msgid "The app signs in to the same server you use in the browser."
 msgstr "The app signs in to the same server you use in the browser."
 
+#: ../chat-ui/src/artifacts/artifact-preview.tsx
+msgid "The artifacts service isn't responding, so this preview can't be shown right now."
+msgstr "The artifacts service isn't responding, so this preview can't be shown right now."
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/audit-policy.tsx
 msgid "The audit policy couldn't be changed. Try again."
 msgstr "The audit policy couldn't be changed. Try again."
@@ -6223,10 +6227,6 @@ msgstr "The organisation couldn't be created. Try again."
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "The policy couldn't be saved. Try again."
 msgstr "The policy couldn't be saved. Try again."
-
-#: ../chat-ui/src/artifacts/artifact-preview.tsx
-msgid "The preview runtime isn't responding, so this artifact can't be previewed right now. Its source is in the Code tab."
-msgstr "The preview runtime isn't responding, so this artifact can't be previewed right now. Its source is in the Code tab."
 
 #: ../../apps/web/app/dev/composer/page.tsx
 msgid "The prompt composer with contract fixtures. Type / for a prompt template or @ to mention someone; sending fakes a short run you can stop. Nothing here calls a model."
@@ -6472,6 +6472,10 @@ msgstr "This month"
 msgid "This permanently deletes {title} and stops future runs. What it already posted stays in its chat."
 msgstr "This permanently deletes {title} and stops future runs. What it already posted stays in its chat."
 
+#: ../chat-ui/src/artifacts/artifact-preview.tsx
+msgid "This preview needs the artifacts service, which isn't running on this instance."
+msgstr "This preview needs the artifacts service, which isn't running on this instance."
+
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "This server can't store keys yet: an admin needs to set its encryption key (ENCRYPTION_KEY)."
 msgstr "This server can't store keys yet: an admin needs to set its encryption key (ENCRYPTION_KEY)."
@@ -6656,6 +6660,7 @@ msgstr "Try “every weekday at 9am”, “every 2 hours” or “tomorrow at 8:
 
 #: ../../apps/web/app/(app)/_shared/app-frame.tsx
 #: ../../apps/web/app/(app)/_shared/query-state.tsx
+#: ../chat-ui/src/artifacts/artifact-preview.tsx
 msgid "Try again"
 msgstr "Try again"
 

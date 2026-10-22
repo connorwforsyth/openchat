@@ -42,14 +42,13 @@ import { cn } from "@workspace/ui/lib/utils";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
 
 import { Markdown } from "../conversation/markdown";
-import {
-  type ArtifactPreviewKind,
-  artifactFileName,
-  previewKind,
-  versionEdit,
-} from "../model/artifacts";
+import { artifactFileName, previewPlan, versionEdit } from "../model/artifacts";
 import { useElementWidth } from "../workspace/use-element-width";
-import { ArtifactPreview, SrcdocPreview } from "./artifact-preview";
+import {
+  ArtifactPreview,
+  PreviewUnavailable,
+  SrcdocPreview,
+} from "./artifact-preview";
 import { DiagramArtifact } from "./diagram/diagram-artifact";
 import { DiagramView } from "./diagram/diagram-view";
 import { DocumentArtifact } from "./document/document-artifact";
@@ -318,7 +317,7 @@ function PanelPreview({
   readonly artifact: Artifact;
   readonly content: string;
   readonly path: string;
-  readonly preview: ArtifactPreviewKind;
+  readonly preview: "frame" | "image" | "markdown";
 }) {
   switch (preview) {
     case "frame":
@@ -343,8 +342,6 @@ function PanelPreview({
           <Markdown>{content}</Markdown>
         </article>
       );
-    case "none":
-      return null;
     default:
       return preview satisfies never;
   }
@@ -400,17 +397,11 @@ function ArtifactDetail({
   );
   const version = versions[index] ?? versions.at(-1);
   const previous = index > 0 ? versions[index - 1] : undefined;
-  // The runtime previews every kind it knows; without it, what 015 could.
-  // A deck has no preview but the runtime's, so it keeps its Preview tab
-  // and says why it can't draw rather than falling to the code.
-  const preview: ArtifactPreviewKind | "runtime" =
-    (runtimeOrigin && isRuntimeKind(artifact.kind)) ||
-    artifact.kind === "presentation"
-      ? "runtime"
-      : previewKind(artifact.kind);
+  const plan = previewPlan(artifact.kind, runtimeOrigin);
   const [view, setView] = useState<View>(
-    preview === "none" ? "code" : "preview"
+    plan.type === "source" ? "code" : "preview"
   );
+  const showSource = useCallback(() => setView("code"), []);
 
   const path = artifactFileName(
     artifact.title,
@@ -450,7 +441,7 @@ function ArtifactDetail({
       {header(
         <ArtifactHeader
           hasChanges={previous !== undefined}
-          hasPreview={preview !== "none"}
+          hasPreview={plan.type !== "source"}
           index={index}
           onStep={step}
           title={artifact.title}
@@ -459,35 +450,42 @@ function ArtifactDetail({
       )}
       {error ? <ArtifactError error={error} /> : null}
       <div className="flex min-h-0 flex-1 flex-col overflow-auto">
-        {preview === "none" ? null : (
+        {plan.type === "source" ? null : (
           <TabsContent className="flex min-h-0 flex-col" value="preview">
-            {preview === "runtime" && artifact.kind === "presentation" ? (
+            {plan.type === "runtime" && artifact.kind === "presentation" ? (
               // A deck presents and exports (164), so it has a view of its own.
               <PresentationPreview
                 content={version.content}
-                runtimeOrigin={runtimeOrigin}
+                runtimeOrigin={plan.origin}
                 title={artifact.title}
               />
             ) : null}
-            {preview === "runtime" &&
+            {plan.type === "runtime" &&
             artifact.kind !== "presentation" &&
             isRuntimeKind(artifact.kind) ? (
               <ArtifactPreview
                 content={version.content}
                 fileName={path}
                 kind={artifact.kind}
-                runtimeOrigin={runtimeOrigin}
+                onShowSource={showSource}
+                runtimeOrigin={plan.origin}
                 title={artifact.title}
               />
             ) : null}
-            {preview === "runtime" ? null : (
+            {plan.type === "panel" ? (
               <PanelPreview
                 artifact={artifact}
                 content={version.content}
                 path={path}
-                preview={preview}
+                preview={plan.panel}
               />
-            )}
+            ) : null}
+            {plan.type === "unavailable" ? (
+              <PreviewUnavailable
+                onShowSource={showSource}
+                reason={plan.reason}
+              />
+            ) : null}
           </TabsContent>
         )}
         <TabsContent value="code">

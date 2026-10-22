@@ -3,6 +3,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { ArtifactKind } from "@workspace/contract/schemas/message-parts";
 import { CircleAlertIcon } from "@workspace/icons";
+import { Button } from "@workspace/ui/components/button";
 import { cn } from "@workspace/ui/lib/utils";
 import {
   useCallback,
@@ -43,6 +44,8 @@ export interface ArtifactPreviewProps {
   /** Stamped into React elements as `data-src="<fileName>:<line>"` (D16). */
   readonly fileName: string;
   readonly kind: RuntimeKind;
+  /** Switches the view to the source, offered when there's no preview. */
+  readonly onShowSource?: () => void;
   /** Overrides `RUNTIME_READY_TIMEOUT_MS`, for tests. */
   readonly readyTimeoutMs?: number;
   /** The runtime's origin, or `null` when none is configured. */
@@ -50,9 +53,13 @@ export interface ArtifactPreviewProps {
   readonly title: string;
 }
 
-export function ArtifactPreview(props: ArtifactPreviewProps) {
+export function ArtifactPreview({
+  onShowSource,
+  ...props
+}: ArtifactPreviewProps) {
   const [unreachable, setUnreachable] = useState(false);
   const onUnreachable = useCallback(() => setUnreachable(true), []);
+  const onRetry = useCallback(() => setUnreachable(false), []);
 
   if (props.runtimeOrigin && !unreachable) {
     return (
@@ -73,19 +80,59 @@ export function ArtifactPreview(props: ArtifactPreviewProps) {
     );
   }
   return (
-    <p className="p-4 text-muted-foreground text-sm" role="status">
-      {unreachable ? (
-        <Trans>
-          The preview runtime isn't responding, so this artifact can't be
-          previewed right now. Its source is in the Code tab.
-        </Trans>
-      ) : (
-        <Trans>
-          Previews of this kind need the artifact runtime. Its source is in the
-          Code tab.
-        </Trans>
-      )}
-    </p>
+    <PreviewUnavailable
+      onRetry={unreachable ? onRetry : undefined}
+      onShowSource={onShowSource}
+      reason={unreachable ? "unreachable" : "no-runtime"}
+    />
+  );
+}
+
+/**
+ * Why there's no preview, where the preview would be, with the ways on:
+ * the source, and trying the service again when it stopped answering.
+ */
+export function PreviewUnavailable({
+  onRetry,
+  onShowSource,
+  reason,
+}: {
+  readonly onRetry?: (() => void) | undefined;
+  readonly onShowSource?: (() => void) | undefined;
+  readonly reason: "no-runtime" | "unreachable";
+}) {
+  return (
+    <div
+      className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center"
+      role="status"
+    >
+      <CircleAlertIcon aria-hidden className="size-6 text-muted-foreground" />
+      <p className="max-w-80 text-balance text-muted-foreground text-sm">
+        {reason === "unreachable" ? (
+          <Trans>
+            The artifacts service isn't responding, so this preview can't be
+            shown right now.
+          </Trans>
+        ) : (
+          <Trans>
+            This preview needs the artifacts service, which isn't running on
+            this instance.
+          </Trans>
+        )}
+      </p>
+      <div className="flex gap-2">
+        {onRetry ? (
+          <Button onClick={onRetry} size="sm" variant="outline">
+            <Trans>Try again</Trans>
+          </Button>
+        ) : null}
+        {onShowSource ? (
+          <Button onClick={onShowSource} size="sm" variant="ghost">
+            <Trans>Show the code</Trans>
+          </Button>
+        ) : null}
+      </div>
+    </div>
   );
 }
 
