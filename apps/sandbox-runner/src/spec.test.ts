@@ -8,6 +8,7 @@ import {
   type ContainerDefaults,
   DESKTOP_DISPLAY,
   DESKTOP_SESSION,
+  EGRESS_ALLOW_LABEL,
   effectiveEgress,
   parsePreviewHost,
   previewUrl,
@@ -188,20 +189,51 @@ describe("buildContainerSpec", () => {
 
   it("routes allowlisted egress through the proxy, unless the sandbox has no network", () => {
     const egress = {
+      allow: ["registry.npmjs.org"],
       mode: "allowlist" as const,
-      proxyUrl: "http://egress:3128",
     };
     const withNetwork = buildContainerSpec({
+      defaults,
+      egress,
+      egressProxyUrl: "http://runner:3128",
+      id,
+      limits: { ...limits, network: true },
+    });
+    expect(withNetwork.Env).toEqual(
+      expect.arrayContaining([
+        "HTTPS_PROXY=http://runner:3128",
+        "https_proxy=http://runner:3128",
+        "npm_config_https_proxy=http://runner:3128",
+        "NO_PROXY=localhost,127.0.0.1,::1",
+      ])
+    );
+    expect(withNetwork.Labels).toMatchObject({
+      [EGRESS_ALLOW_LABEL]: "registry.npmjs.org",
+    });
+    // Internal, like `none`: the proxy is the only way out.
+    expect(withNetwork.HostConfig?.NetworkMode).toBe(`sbx-${id}`);
+    expect(spec.Env?.some((entry) => entry.includes("PROXY"))).toBe(false);
+    expect(effectiveEgress({ mode: "open" }, { network: false })).toEqual({
+      mode: "none",
+    });
+  });
+
+  it("lets nothing out under an allowlist with no proxy to enforce it", () => {
+    const egress = {
+      allow: ["registry.npmjs.org"],
+      mode: "allowlist" as const,
+    };
+    expect(effectiveEgress(egress, { network: true })).toEqual({
+      mode: "none",
+    });
+    const bare = buildContainerSpec({
       defaults,
       egress,
       id,
       limits: { ...limits, network: true },
     });
-    expect(withNetwork.Env).toContain("HTTPS_PROXY=http://egress:3128");
-    expect(spec.Env?.some((entry) => entry.includes("PROXY"))).toBe(false);
-    expect(effectiveEgress({ mode: "open" }, { network: false })).toEqual({
-      mode: "none",
-    });
+    expect(bare.Env?.some((entry) => entry.includes("PROXY"))).toBe(false);
+    expect(bare.Labels?.[EGRESS_ALLOW_LABEL]).toBeUndefined();
   });
 });
 

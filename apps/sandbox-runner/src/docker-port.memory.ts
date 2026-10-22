@@ -34,6 +34,7 @@ export const createMemoryDocker = ({
   const connects: string[] = [];
   const pulled: string[] = [];
   let failNext: string | null = null;
+  let failWith: unknown;
   let counter = 0;
 
   const find = (nameOrId: string) =>
@@ -110,8 +111,25 @@ export const createMemoryDocker = ({
   const guard = (operation: string) => {
     if (failNext === operation) {
       failNext = null;
-      throw new Error(`fake docker: ${operation} failed`);
+      throw failWith ?? new Error(`fake docker: ${operation} failed`);
     }
+  };
+
+  /** Every container on a network gets the same fake address. */
+  const ipsOf = (container: {
+    readonly name: string;
+    readonly spec: { readonly HostConfig?: { readonly NetworkMode?: string } };
+  }): Record<string, string> => {
+    const ips: Record<string, string> = {};
+    for (const [name, network] of networks) {
+      if (
+        network.members.has(container.name) ||
+        container.spec.HostConfig?.NetworkMode === name
+      ) {
+        ips[name] = "10.0.0.2";
+      }
+    }
+    return ips;
   };
 
   const port: DockerPort = {
@@ -203,18 +221,9 @@ export const createMemoryDocker = ({
       if (!container) {
         return Promise.resolve(null);
       }
-      const ips: Record<string, string> = {};
-      for (const [name, network] of networks) {
-        if (
-          network.members.has(container.name) ||
-          container.spec.HostConfig?.NetworkMode === name
-        ) {
-          ips[name] = "10.0.0.2";
-        }
-      }
       const state: ContainerState = {
         id: container.id,
-        ips,
+        ips: ipsOf(container),
         labels: container.spec.Labels ?? {},
         running: container.running,
       };
@@ -232,7 +241,7 @@ export const createMemoryDocker = ({
           })
           .map((container) => ({
             id: container.id,
-            ips: {},
+            ips: ipsOf(container),
             labels: container.spec.Labels ?? {},
             running: container.running,
           }))
@@ -310,8 +319,9 @@ export const createMemoryDocker = ({
     created,
     docker: port,
     /** Makes the next call to `operation` throw, like a Docker outage. */
-    failNext: (operation: keyof DockerPort) => {
+    failNext: (operation: keyof DockerPort, cause?: unknown) => {
       failNext = operation;
+      failWith = cause;
     },
     networks,
     pulled,

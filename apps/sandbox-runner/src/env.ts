@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-import type { EgressPolicy } from "./spec";
-
 // The runner's settings, all from the environment and all optional: with
 // nothing set it still boots, reports itself unconfigured and refuses API
 // calls until SANDBOX_RUNNER_TOKEN is set (see `.env.example`).
@@ -18,15 +16,22 @@ export const envSchema = z.object({
   DOCKER_HOST: z.string().default("tcp://docker-socket-proxy:2375"),
   /** This runner's container, joined to sandbox networks to reach previews. */
   RUNNER_CONTAINER: unsetIfEmpty(z.string().min(1)),
+  /**
+   * The forward proxy `allowlist` sandboxes reach the internet through, on
+   * the sandbox networks only (never published). Egress policy itself comes
+   * with each create request, from `sandbox.egress` in app.config.yaml.
+   */
+  RUNNER_EGRESS_PROXY_PORT: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(65_535)
+    .default(3128),
   RUNNER_HOST: z.string().default("0.0.0.0"),
   RUNNER_PORT: z.coerce.number().int().min(1).max(65_535).default(7070),
   RUNNER_PREVIEW_PORT: z.coerce.number().int().min(1).max(65_535).default(7071),
   /** The image `desktop` sandboxes run (a Dot's computer, 172); built from `apps/sandbox-runner/desktop`. */
   SANDBOX_DESKTOP_IMAGE: z.string().min(1).default("sandbox-desktop:latest"),
-  /** `none` (default): no route out. `allowlist`: only via SANDBOX_EGRESS_PROXY. `open`: anywhere. */
-  SANDBOX_EGRESS: z.enum(["none", "allowlist", "open"]).default("none"),
-  /** An HTTP(S) proxy on the sandbox networks that enforces the allowlist. */
-  SANDBOX_EGRESS_PROXY: unsetIfEmpty(z.url()),
   SANDBOX_IDLE_MINUTES: z.coerce.number().int().min(1).default(30),
   SANDBOX_IMAGE: z.string().min(1).default("node:24-bookworm-slim"),
   SANDBOX_PIDS_LIMIT: z.coerce.number().int().min(16).default(512),
@@ -49,19 +54,3 @@ export const envSchema = z.object({
     .default("1000:1000"),
 });
 export type RunnerEnv = z.infer<typeof envSchema>;
-
-export const egressPolicy = (env: RunnerEnv): EgressPolicy => {
-  switch (env.SANDBOX_EGRESS) {
-    case "none":
-      return { mode: "none" };
-    case "open":
-      return { mode: "open" };
-    case "allowlist":
-      // Without a proxy there's nothing to enforce the list, so nothing leaves.
-      return env.SANDBOX_EGRESS_PROXY
-        ? { mode: "allowlist", proxyUrl: env.SANDBOX_EGRESS_PROXY }
-        : { mode: "none" };
-    default:
-      return env.SANDBOX_EGRESS satisfies never;
-  }
-};

@@ -4,6 +4,7 @@ import type {
   sandboxIsolationSchema,
 } from "@workspace/contract/schemas/sandbox";
 import { WORKDIR } from "@workspace/sandbox/paths";
+import type { EgressPolicy } from "@workspace/sandbox/runner/egress";
 import type {
   RunnerRuntime,
   SandboxVariant,
@@ -20,8 +21,10 @@ import type { z } from "zod";
 // - every capability dropped, no-new-privileges, the default seccomp
 //   profile, a non-root user and no privileged mode;
 // - CPU, memory (no swap), pids and (where the storage driver can) disk caps;
-// - a network of its own that is `internal` (no route out) unless the
-//   egress policy says otherwise.
+// - a network of its own that is `internal` (no route out); `open` egress
+//   adds a shared network with a route out, and `allowlist` keeps the
+//   sandbox internal with proxy variables pointing at the runner's egress
+//   proxy, the only thing on that network that can reach the internet.
 
 export type Isolation = z.infer<typeof sandboxIsolationSchema>;
 
@@ -29,6 +32,8 @@ export type Isolation = z.infer<typeof sandboxIsolationSchema>;
 export const MANAGED_LABEL = "sandbox-runner.managed";
 export const SANDBOX_LABEL = "sandbox-runner.sandbox";
 export const VARIANT_LABEL = "sandbox-runner.variant";
+/** An `allowlist` sandbox's hosts, comma-separated, for the egress proxy. */
+export const EGRESS_ALLOW_LABEL = "sandbox-runner.egress-allow";
 
 export const containerName = (id: SandboxId) => `sbx-${id}`;
 export const volumeName = (id: SandboxId) => `sbx-${id}`;
@@ -39,11 +44,7 @@ export const EGRESS_NETWORK = "sandbox-egress";
 /** Where $HOME lives: tmpfs, so tool caches never land in the workspace. */
 export const SANDBOX_HOME = "/home/sandbox";
 
-export type EgressPolicy =
-  | { readonly mode: "none" }
-  | { readonly mode: "open" }
-  /** Traffic may leave only through this proxy, which enforces the allowlist. */
-  | { readonly mode: "allowlist"; readonly proxyUrl: string };
+export type { EgressPolicy } from "@workspace/sandbox/runner/egress";
 
 export type RuntimeRequest = "auto" | RunnerRuntime;
 
@@ -101,6 +102,8 @@ export interface SandboxContainerInput {
   /** The desktop image, for a `desktop` sandbox (172, a Dot's computer). */
   readonly desktopImage?: string;
   readonly egress: EgressPolicy;
+  /** The runner's egress proxy as the sandbox reaches it; `allowlist` needs it. */
+  readonly egressProxyUrl?: string;
   readonly id: SandboxId;
   readonly limits: SandboxLimits;
   readonly variant?: SandboxVariant;
@@ -133,12 +136,24 @@ const hardening = (runtime: RunnerRuntime) => ({
   SecurityOpt: ["no-new-privileges:true"],
 });
 
-const proxyEnv = (egress: EgressPolicy): string[] =>
-  egress.mode === "allowlist"
-    ? ["HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy"].map(
-        (name) => `${name}=${egress.proxyUrl}`
-      )
-    : [];
+/**
+ * Points every common client at the egress proxy: curl, pip and git read the
+ * standard variables, npm its own, Node's fetch only with
+ * `NODE_USE_ENV_PROXY`. Anything that ignores them simply has no route out.
+ */
+const proxyEnv = (proxyUrl: string): string[] => [
+  ...[
+    "HTTP_PROXY",
+    "HTTPS_PROXY",
+    "http_proxy",
+    "https_proxy",
+    "npm_config_proxy",
+    "npm_config_https_proxy",
+  ].map((name) => `${name}=${proxyUrl}`),
+  "NO_PROXY=localhost,127.0.0.1,::1",
+  "no_proxy=localhost,127.0.0.1,::1",
+  "NODE_USE_ENV_PROXY=1",
+];
 
 /**
  * A named volume, without Docker's copy-up. While a volume is empty, Docker
@@ -160,22 +175,34 @@ const volumeMount = (
   VolumeOptions: { NoCopy: true } as MountSettings["VolumeOptions"],
 });
 
-/** The effective policy for one sandbox: its own `network: false` always wins. */
+/**
+ * The effective policy for one sandbox: its own `network: false` always
+ * wins, and an allowlist with no proxy to enforce it lets nothing out.
+ */
 export const effectiveEgress = (
   policy: EgressPolicy,
-  limits: Pick<SandboxLimits, "network">
-): EgressPolicy => (limits.network ? policy : { mode: "none" });
+  limits: Pick<SandboxLimits, "network">,
+  egressProxyUrl?: string
+): EgressPolicy => {
+  if (!limits.network) {
+    return { mode: "none" };
+  }
+  return policy.mode === "allowlist" && !egressProxyUrl
+    ? { mode: "none" }
+    : policy;
+};
 
 /** The create options for a sandbox's long-lived container. */
 export const buildContainerSpec = ({
   defaults,
   desktopImage,
   egress,
+  egressProxyUrl,
   id,
   limits,
   variant = "workspace",
 }: SandboxContainerInput): ContainerCreateOptions => {
-  const policy = effectiveEgress(egress, limits);
+  const policy = effectiveEgress(egress, limits, egressProxyUrl);
   const desktop = variant === "desktop";
   return {
     // Commands arrive through `exec`; a workspace container only idles.
@@ -184,7 +211,9 @@ export const buildContainerSpec = ({
       `HOME=${SANDBOX_HOME}`,
       "TERM=xterm-256color",
       ...(desktop ? [`DISPLAY=${DESKTOP_DISPLAY}`] : []),
-      ...proxyEnv(policy),
+      ...(policy.mode === "allowlist" && egressProxyUrl
+        ? proxyEnv(egressProxyUrl)
+        : []),
     ],
     HostConfig: {
       ...hardening(defaults.runtime),
@@ -212,6 +241,9 @@ export const buildContainerSpec = ({
       [MANAGED_LABEL]: "true",
       [SANDBOX_LABEL]: id,
       [VARIANT_LABEL]: variant,
+      ...(policy.mode === "allowlist"
+        ? { [EGRESS_ALLOW_LABEL]: policy.allow.join(",") }
+        : {}),
     },
     name: containerName(id),
     User: defaults.user,

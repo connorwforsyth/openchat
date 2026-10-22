@@ -15,6 +15,7 @@ import {
   readFileQuerySchema,
   writeFileRequestSchema,
 } from "@workspace/sandbox/runner/protocol";
+import { runnerUnavailableError } from "@workspace/sandbox/runner/unavailable";
 import { type Result, tryCatch } from "@workspace/shared/result";
 import { Hono } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
@@ -48,11 +49,15 @@ export interface AppOptions {
   readonly token: string | undefined;
 }
 
-export const createApp = ({
+/**
+ * The app with `/healthz` and the API's authentication: without a configured
+ * secret it refuses everything, saying so; with one, every request must be
+ * signed with it.
+ */
+const authenticatedApp = ({
   now = () => new Date(),
-  runner,
   token,
-}: AppOptions) => {
+}: Omit<AppOptions, "runner">) => {
   const app = new Hono<Env>();
 
   app.get("/healthz", (c) => c.json({ ok: true }));
@@ -60,12 +65,7 @@ export const createApp = ({
   app.use(`${RUNNER_API_PREFIX}/*`, async (c, next) => {
     if (!token) {
       return c.json(
-        {
-          error: {
-            message: "the runner has no SANDBOX_RUNNER_TOKEN configured",
-            type: "unavailable",
-          },
-        },
+        { error: runnerUnavailableError("runner_token_missing") },
         503
       );
     }
@@ -88,6 +88,23 @@ export const createApp = ({
     c.set("body", body);
     await next();
   });
+  return app;
+};
+
+/**
+ * What the API answers until Docker does: every authenticated call is
+ * `docker_unavailable`, so `web` can say why instead of "unreachable".
+ */
+export const createWaitingApp = (options: Omit<AppOptions, "runner">) => {
+  const app = authenticatedApp(options);
+  app.all(`${RUNNER_API_PREFIX}/*`, (c) =>
+    c.json({ error: runnerUnavailableError("docker_unavailable") }, 503)
+  );
+  return app;
+};
+
+export const createApp = ({ now, runner, token }: AppOptions) => {
+  const app = authenticatedApp({ now, token });
 
   const parseId = (value: string | undefined) =>
     sandboxIdSchema.safeParse(value);
