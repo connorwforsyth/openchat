@@ -69,7 +69,9 @@ const json = async <T>(response: Response, status = 200): Promise<T> => {
 const MORNING = {
   instructions: "Be brief.",
   name: "Morning brief",
-  schedules: [{ cron: "* * * * *", prompt: "List /work and report." }],
+  schedules: [
+    { cron: "* * * * *", emoji: "☀️", prompt: "List /work and report." },
+  ],
   target: { model: "test:model", type: "model" },
 };
 
@@ -119,6 +121,7 @@ describe("dots API", () => {
       unread: false,
     });
     expect(dot.schedules).toHaveLength(1);
+    expect(dot.schedules[0]?.emoji).toBe("☀️");
     const next = dot.schedules[0]?.nextRunAt ?? "";
     expect(new Date(next).getTime()).toBeGreaterThan(clock.getTime());
     expect(dot.nextRunAt).toBe(next);
@@ -294,6 +297,7 @@ describe("scheduled runs", () => {
     expect(path.messages[0]?.parts).toEqual([
       {
         data: {
+          emoji: "☀️",
           scheduleId: after?.schedules[0]?.id,
           title: "List /work and report",
         },

@@ -139,6 +139,7 @@ export const toSchedule = (row: ScheduleRow): Schedule => {
     conversationId: row.conversationId,
     createdAt: row.createdAt.toISOString(),
     dotId: row.dotId,
+    emoji: row.emoji,
     id: row.id,
     lastOutcome: row.lastOutcome ?? null,
     lastRunAt: iso(row.lastRunAt),
@@ -165,6 +166,7 @@ export const toConversationSchedule = (
 ): ConversationSchedule => {
   const schedule = toSchedule(row);
   return {
+    emoji: schedule.emoji,
     id: schedule.id,
     nextRunNominalAt: schedule.nextRunNominalAt,
     status: schedule.status,

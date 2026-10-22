@@ -46,7 +46,9 @@ export function ChatSchedule({
         title={t`Scheduled task: ${title}`}
         variant="ghost"
       >
-        <ClockIcon data-icon="inline-start" />
+        <span aria-hidden data-icon="inline-start">
+          {schedule.emoji}
+        </span>
         <span className="max-sm:sr-only">
           {next ? <Trans>Next run {next}</Trans> : <Trans>Paused</Trans>}
         </span>

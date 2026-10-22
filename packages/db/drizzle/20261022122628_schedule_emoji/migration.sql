@@ -1,0 +1,1 @@
+ALTER TABLE "dot_schedule" ADD COLUMN "emoji" text DEFAULT '⏰' NOT NULL;

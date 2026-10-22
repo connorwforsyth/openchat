@@ -11,6 +11,7 @@ import {
 } from "@workspace/contract/schemas/runs";
 import type { SandboxProvider } from "@workspace/contract/schemas/sandbox";
 import {
+  DEFAULT_SCHEDULE_EMOJI,
   type ScheduleMissedRunPolicy,
   type ScheduleNotify,
   type SchedulePausedReason,
@@ -147,6 +148,7 @@ export const dotSchedule = pgTable(
     dotId: idRef("dot_id", "dot").references(() => dot.id, {
       onDelete: "cascade",
     }),
+    emoji: text("emoji").notNull().default(DEFAULT_SCHEDULE_EMOJI),
     enabled: boolean("enabled").notNull().default(true),
     endsAt: instant("ends_at"),
     id: idColumn("dotSchedule"),
