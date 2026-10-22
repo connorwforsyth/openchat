@@ -1,7 +1,12 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, screen, waitFor, within } from "@testing-library/react";
 import { createApiClient, createQueryUtils } from "@workspace/client/api";
-import { conversation, fixtureId, userAda } from "@workspace/contract/fixtures";
+import {
+  conversation,
+  fixtureId,
+  publicConfig,
+  userAda,
+} from "@workspace/contract/fixtures";
 import type { ArtifactListItem } from "@workspace/contract/schemas/files";
 import type { Me } from "@workspace/contract/schemas/meta";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -11,6 +16,9 @@ import { renderWithI18n } from "../testing/render";
 import { ArtifactsPage, type ArtifactsPageProps } from "./artifacts-page";
 
 // An image that never decodes: the thumbnail's `onError`, without the network.
+const DOCUMENT = /document/i;
+const SITE = /Site/;
+const KIND_MENU = /^Kind:/;
 const BROKEN_IMAGE = "data:image/png;base64,AAAA";
 const PIXEL =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1' height='1'/%3E";
@@ -85,6 +93,9 @@ const setup = (
   const asked: URL[] = [];
   const fetch = (input: RequestInfo | URL): Promise<Response> => {
     const url = new URL(input instanceof Request ? input.url : String(input));
+    if (url.pathname.endsWith("/config")) {
+      return Promise.resolve(Response.json(publicConfig));
+    }
     asked.push(url);
     const scope = url.searchParams.get("scope");
     let items: ArtifactListItem[] = [mine, older, fromBen];
@@ -160,8 +171,10 @@ describe("ArtifactsPage", () => {
 
   it("starts a chat for a new kind from the Make something new cards", async () => {
     const { onStart } = setup();
-    await userEvent.click(screen.getByRole("button", { name: "Web page" }));
-    expect(onStart).toHaveBeenCalledWith(expect.stringContaining("Web page"));
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Document" })
+    );
+    expect(onStart).toHaveBeenCalledWith(expect.stringMatching(DOCUMENT));
   });
 
   it("builds the starter cards from the enabled kinds, with their badges", async () => {
@@ -190,6 +203,22 @@ describe("ArtifactsPage", () => {
     expect(
       within(starters).getByRole("button", { name: "Diagram" })
     ).toBeTruthy();
+  });
+
+  it("offers the kinds the instance's config turns on, and filters by them", async () => {
+    setup();
+    const starters = await screen.findByRole("region", {
+      name: "Make something new",
+    });
+    expect(within(starters).getByRole("button", { name: SITE })).toBeTruthy();
+    expect(within(starters).queryByText("Web page")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: KIND_MENU }));
+    const kinds = screen
+      .getAllByRole("menuitemradio")
+      .map((item) => item.textContent);
+    expect(kinds).toContain("Site");
+    expect(kinds).not.toContain("Web page");
+    expect(kinds).not.toContain("Markdown");
   });
 
   it("shows a runtime kind's thumbnail in the grid, and the icon otherwise", async () => {

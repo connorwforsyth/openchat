@@ -7,7 +7,10 @@ import {
   type ArtifactStore,
   artifactRefSchema,
 } from "./artifact-content";
-import { createArtifactTool } from "./registry/create-artifact";
+import {
+  createArtifactTool,
+  createArtifactToolFor,
+} from "./registry/create-artifact";
 import { toAiSdkTool } from "./registry/to-ai-sdk";
 import { updateArtifactTool } from "./registry/update-artifact";
 
@@ -57,7 +60,10 @@ export const createArtifactTools = (
 ): Readonly<Record<(typeof ARTIFACT_TOOLS)[number], Tool>> => {
   const ports = kinds ? { kinds, store } : { store };
   return {
-    [CREATE_ARTIFACT_TOOL]: toAiSdkTool(createArtifactTool, { ports }),
+    [CREATE_ARTIFACT_TOOL]: toAiSdkTool(
+      kinds ? createArtifactToolFor(kinds) : createArtifactTool,
+      { ports }
+    ),
     [UPDATE_ARTIFACT_TOOL]: toAiSdkTool(updateArtifactTool, { ports }),
   };
 };

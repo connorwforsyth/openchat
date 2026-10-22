@@ -82,6 +82,7 @@ import {
   useState,
 } from "react";
 
+import { useOfferedKinds } from "../artifacts/use-offered-kinds";
 import type { ConversationActions } from "../conversation/actions";
 import {
   type DecisionState,
@@ -1660,16 +1661,18 @@ export function ConnectedChat({
 }: ConnectedChatProps) {
   const outgoingTarget = targetToSend(sendTarget, target);
   const { i18n, t } = useLingui();
-  // "Make something new"'s kinds (161), in the menu as `@Slides` and kin.
+  const api = useMemo(() => createQueryUtils(client), [client]);
+  // "Make something new"'s kinds (161), in the menu as `@Slides` and kin:
+  // only those the instance offers.
+  const offeredKinds = useOfferedKinds(api);
   const artifactOptions = useMemo(
     (): readonly ArtifactOption[] =>
-      starterKinds().map((kind) => ({
+      starterKinds(offeredKinds).map((kind) => ({
         kind,
         label: i18n._(starterLabels[kind] ?? artifactKindLabels[kind]),
       })),
-    [i18n]
+    [i18n, offeredKinds]
   );
-  const api = useMemo(() => createQueryUtils(client), [client]);
   const queryClient = useQueryClient();
   const [leafId, setLeafId] = useState<MessageId | undefined>();
   const [selection, setSelection] = useState<WorkspaceSelection | null>(null);

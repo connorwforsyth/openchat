@@ -3,6 +3,7 @@
 import { useLingui } from "@lingui/react/macro";
 import { useQuery } from "@tanstack/react-query";
 import { kindIcon } from "@workspace/chat-ui/artifacts/kind-icon";
+import { useOfferedKinds } from "@workspace/chat-ui/artifacts/use-offered-kinds";
 import {
   artifactKindLabels,
   artifactKinds,
@@ -167,6 +168,7 @@ export function ArtifactsPanel() {
   const { i18n, t } = useLingui();
   const params = useSearchParams();
   const { query } = useApi();
+  const offered = useOfferedKinds(query);
   const kind = artifactKindSchema
     .nullable()
     .catch(null)
@@ -203,16 +205,18 @@ export function ArtifactsPanel() {
               id: "all",
               label: t`All kinds`,
             },
-            ...artifactKinds.map((each) => {
-              const Glyph = kindIcon(each);
-              return {
-                active: kind === each,
-                href: routes.artifactsOfKind(each),
-                icon: <Glyph aria-hidden className={iconClass} />,
-                id: each,
-                label: i18n._(artifactKindLabels[each]),
-              };
-            }),
+            ...artifactKinds
+              .filter((each) => offered.includes(each) || kind === each)
+              .map((each) => {
+                const Glyph = kindIcon(each);
+                return {
+                  active: kind === each,
+                  href: routes.artifactsOfKind(each),
+                  icon: <Glyph aria-hidden className={iconClass} />,
+                  id: each,
+                  label: i18n._(artifactKindLabels[each]),
+                };
+              }),
           ],
         },
         {

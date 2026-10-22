@@ -63,6 +63,7 @@ import {
 import { type ArtifactLinks, ArtifactMenu } from "./artifact-actions";
 import { ArtifactThumbnail } from "./artifact-thumbnail";
 import { KindIcon, kindIcon } from "./kind-icon";
+import { useOfferedKinds } from "./use-offered-kinds";
 
 // The Artifacts page (124, the framework proposal's "Artifacts page"):
 // everything you made or that was shared with you, across chats. Tabs All /
@@ -130,6 +131,8 @@ export function ArtifactsPage({
   thumbnailUrl,
 }: ArtifactsPageProps) {
   const { t } = useLingui();
+  const fromConfig = useOfferedKinds(api);
+  const offered = kinds ?? fromConfig;
   const [scope, setScope] = useState<ArtifactScope>("all");
   const [kind, setKind] = useState<ArtifactKind | "all">(initialKind ?? "all");
   const [view, setView] = useState<View>("list");
@@ -167,7 +170,7 @@ export function ArtifactsPage({
         </p>
       </header>
 
-      <StarterCards kinds={kinds} onStart={onStart} />
+      <StarterCards kinds={offered} onStart={onStart} />
 
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -197,7 +200,7 @@ export function ArtifactsPage({
                 <SearchIcon aria-hidden />
               </InputGroupAddon>
             </InputGroup>
-            <KindFilter onChange={setKind} value={kind} />
+            <KindFilter kinds={offered} onChange={setKind} value={kind} />
             <ToggleGroup
               aria-label={t`Layout`}
               className="max-md:hidden"
@@ -318,9 +321,12 @@ function StarterBadge({ badge }: { readonly badge: "beta" | "new" }) {
 }
 
 function KindFilter({
+  kinds,
   onChange,
   value,
 }: {
+  /** The kinds offered, and the one picked even if it's turned off. */
+  readonly kinds: readonly ArtifactKind[];
   readonly onChange: (kind: ArtifactKind | "all") => void;
   readonly value: ArtifactKind | "all";
 }) {
@@ -353,11 +359,13 @@ function KindFilter({
           <DropdownMenuRadioItem closeOnClick value="all">
             <Trans>All kinds</Trans>
           </DropdownMenuRadioItem>
-          {artifactKinds.map((each) => (
-            <DropdownMenuRadioItem closeOnClick key={each} value={each}>
-              {i18n._(artifactKindLabels[each])}
-            </DropdownMenuRadioItem>
-          ))}
+          {artifactKinds
+            .filter((each) => kinds.includes(each) || each === value)
+            .map((each) => (
+              <DropdownMenuRadioItem closeOnClick key={each} value={each}>
+                {i18n._(artifactKindLabels[each])}
+              </DropdownMenuRadioItem>
+            ))}
         </DropdownMenuRadioGroup>
       </DropdownMenuContent>
     </DropdownMenu>
