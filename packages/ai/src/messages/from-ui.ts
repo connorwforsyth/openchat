@@ -287,7 +287,12 @@ export const fromUIMessage = (
         }
     }
   }
-  const parsed = z.array(messagePartSchema).safeParse(mapped);
+  // Parts are stored as JSON, so they're checked as JSON: an SDK's own
+  // objects carry `undefined` fields (Anthropic's tool-call `caller`) that
+  // storage drops anyway.
+  const parsed = z
+    .array(messagePartSchema)
+    .safeParse(JSON.parse(JSON.stringify(mapped)));
   if (!parsed.success) {
     return err({
       message: z.prettifyError(parsed.error),

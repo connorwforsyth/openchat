@@ -285,6 +285,31 @@ describe("MessagePart <-> UIMessage", () => {
     });
   });
 
+  it("stores provider metadata that holds undefined fields, as JSON would", () => {
+    // Anthropic's SDK reports `caller: { type: "direct", toolId: undefined }`
+    // on every tool call; refusing it stored no parts and stalled the run.
+    const mapped = fromUI({
+      id: "x",
+      parts: [
+        {
+          approval: { id: "a1" },
+          callProviderMetadata: {
+            anthropic: { caller: { toolId: undefined, type: "direct" } },
+          },
+          input: { title: "Hi" },
+          state: "approval-requested",
+          toolCallId: "call-1",
+          type: "tool-create_artifact",
+        },
+      ],
+      role: "assistant",
+    });
+    expect(mapped.ok && mapped.value[0]).toMatchObject({
+      providerMetadata: { anthropic: { caller: { type: "direct" } } },
+      toolCallId: "call-1",
+    });
+  });
+
   it("keeps a provider's own document citation as data and drops custom parts", () => {
     const mapped = fromUI({
       id: "x",
