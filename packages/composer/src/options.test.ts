@@ -17,23 +17,22 @@ import {
   contextKey,
   contextOptionsFromMe,
   contextSize,
-  filterMentions,
-  filterPrompts,
-  filterSkills,
   filterTargetGroups,
   findTargetChoice,
   isAutoTarget,
+  isCodeOnly,
+  type MenuItem,
+  type MenuSources,
   matchesSearch,
+  menuItems,
   modelName,
   modelVendor,
   providerLabel,
   recentChoices,
   rememberRecent,
-  slashItems,
   targetKey,
-  unpickedSkills,
 } from "./options";
-import type { MentionCandidate, PromptOption, SkillOption } from "./schemas";
+import type { PromptOption, SkillOption } from "./schemas";
 
 const model = (
   selector: string,
@@ -389,182 +388,164 @@ const prompt = (n: number, name: string, command?: string): PromptOption => ({
   name,
 });
 
-describe("filterPrompts", () => {
-  const prompts = [
-    prompt(21, "Explain like I'm five", "eli5"),
-    prompt(22, "Summarise", "sum"),
-    prompt(23, "Release summary"),
-  ];
-
-  it("puts prefix matches on command or name first", () => {
-    expect(filterPrompts(prompts, "sum").map((p) => p.name)).toEqual([
-      "Summarise",
-      "Release summary",
-    ]);
-  });
-
-  it("lists everything for an empty query", () => {
-    expect(filterPrompts(prompts, "")).toHaveLength(3);
-  });
-
-  it("finds nothing for a miss", () => {
-    expect(filterPrompts(prompts, "zzz")).toEqual([]);
-  });
-});
-
-describe("filterMentions", () => {
-  it("matches labels, case-insensitively", () => {
-    const candidates: MentionCandidate[] = [
-      { id: agentItem.id, kind: "agent", label: "Reviewer" },
-      { id: me.user.id, kind: "user", label: "Ada" },
-    ];
-    expect(filterMentions(candidates, "AD").map((c) => c.label)).toEqual([
-      "Ada",
-    ]);
-  });
-});
-
-describe("filterMentions with files", () => {
-  const candidates: MentionCandidate[] = [
-    fileCandidate("docs/adr.md"),
-    { id: me.user.id, kind: "user", label: "Ada" },
-    fileCandidate("src/app.ts"),
-  ];
-
-  it("lists people before files, and finds files by path", () => {
-    expect(filterMentions(candidates, "ad").map((c) => c.label)).toEqual([
-      "Ada",
-      "adr.md",
-    ]);
-    expect(filterMentions(candidates, "src").map((c) => c.label)).toEqual([
-      "app.ts",
-    ]);
-  });
-});
-
-describe("slashItems", () => {
-  const prompts = [prompt(24, "New feature", "newfeat")];
-  const files = [fileCandidate("src/app.ts"), fileCandidate("README.md")];
-  const kinds = (items: ReturnType<typeof slashItems>) =>
-    items.map((item) => {
-      switch (item.kind) {
-        case "command":
-          return `/${item.command}`;
-        case "file":
-          return item.file.path;
-        case "skill":
-          return `skill:${item.skill.name}`;
-        case "mcp-server":
-          return `mcp:${item.server.name}`;
-        default:
-          return item.prompt.name;
-      }
-    });
-
-  it("offers the host's commands, in a fixed order, before prompts", () => {
-    expect(
-      kinds(
-        slashItems("", { commands: ["preview", "new-file"], files, prompts })
-      )
-    ).toEqual(["/new-file", "/preview", "New feature"]);
-    expect(
-      kinds(slashItems("new", { commands: ["new-file"], files, prompts }))
-    ).toEqual(["/new-file", "New feature"]);
-  });
-
-  it("finds MCP servers to switch for this chat, after the rest (188)", () => {
-    const docs = {
-      auth: "none" as const,
-      availability: { state: "available" as const },
-      customized: false,
-      description: null,
-      disabledTools: [],
-      enabled: true,
-      id: "0199a000-0000-7000-8000-0000000000aa" as LibraryItemId,
-      lock: null,
-      name: "docs",
-      requiredTools: [],
-      source: "instance" as const,
-      title: "Company docs",
-      transport: "http" as const,
-    };
-    expect(
-      kinds(
-        slashItems("", { commands: [], files, mcpServers: [docs], prompts })
-      )
-    ).toEqual(["New feature"]);
-    expect(
-      kinds(
-        slashItems("doc", { commands: [], files, mcpServers: [docs], prompts })
-      )
-    ).toEqual(["mcp:docs"]);
-  });
-
-  it("offers no commands the host didn't ask for", () => {
-    expect(kinds(slashItems("", { commands: [], files, prompts }))).toEqual([
-      "New feature",
-    ]);
-  });
-
-  it("lists files to open after /open:", () => {
-    expect(
-      kinds(slashItems("open:", { commands: ["open"], files, prompts }))
-    ).toEqual(["src/app.ts", "README.md"]);
-    expect(
-      kinds(slashItems("open:read", { commands: ["open"], files, prompts }))
-    ).toEqual(["README.md"]);
-  });
-
-  it("lists skills after prompts, matched by name or description (127)", () => {
-    const skills = [
-      skill(31, "Haiku", "Short poems"),
-      skill(32, "Release notes"),
-    ];
-    expect(
-      kinds(slashItems("", { commands: ["new-file"], files, prompts, skills }))
-    ).toEqual([
-      "/new-file",
-      "New feature",
-      "skill:Haiku",
-      "skill:Release notes",
-    ]);
-    expect(
-      kinds(slashItems("poem", { commands: [], files, prompts, skills }))
-    ).toEqual(["skill:Haiku"]);
-    expect(
-      kinds(slashItems("open:", { commands: ["open"], files, prompts, skills }))
-    ).toEqual(["src/app.ts", "README.md"]);
-  });
-});
-
 const skill = (n: number, name: string, description = ""): SkillOption => ({
   description,
   id: fixtureId("libraryItem", n),
   name,
 });
 
-describe("skills (127)", () => {
+describe("menuItems", () => {
+  const prompts = [
+    prompt(21, "Explain like I'm five", "eli5"),
+    prompt(22, "Summarise", "sum"),
+    prompt(24, "New feature", "newfeat"),
+  ];
   const skills = [
     skill(31, "Haiku", "Short poems"),
-    skill(32, "Release notes", "Group changes by area"),
+    skill(32, "Release notes"),
   ];
+  const agents = [
+    { ...agentItem, name: "Reviewer" },
+    {
+      ...agentItem,
+      draftVersion: fixtureId("libraryVersion", 9),
+      id: fixtureId("libraryItem", 41),
+      name: "Researcher",
+    },
+  ];
+  const artifacts = [
+    { kind: "presentation" as const, label: "Slides" },
+    { kind: "site" as const, label: "Site" },
+  ];
+  const mentions = [
+    { id: me.user.id, kind: "user" as const, label: "Ada" },
+    fileCandidate("docs/adr.md"),
+    fileCandidate("README.md"),
+  ];
+  const docs = {
+    auth: "none" as const,
+    availability: { state: "available" as const },
+    customized: false,
+    description: null,
+    disabledTools: [],
+    enabled: true,
+    id: "0199a000-0000-7000-8000-0000000000aa" as LibraryItemId,
+    lock: null,
+    name: "docs",
+    requiredTools: [],
+    source: "instance" as const,
+    title: "Company docs",
+    transport: "http" as const,
+  };
+  const everything: MenuSources = {
+    agents,
+    artifacts,
+    canUpload: true,
+    commands: ["preview", "new-file", "open"],
+    mcpServers: [docs],
+    mentions,
+    prompts,
+    skills,
+  };
+  const names = (items: readonly MenuItem[]) =>
+    items.map((item) => {
+      switch (item.kind) {
+        case "agent":
+          return `agent:${item.agent.name}`;
+        case "skill":
+          return `skill:${item.skill.name}`;
+        case "prompt":
+          return `prompt:${item.prompt.name}`;
+        case "artifact":
+          return `make:${item.artifact.label}`;
+        case "upload":
+          return "upload";
+        case "mention":
+          return `${item.candidate.kind}:${item.candidate.label}`;
+        case "command":
+          return `/${item.command}`;
+        case "mcp-server":
+          return `mcp:${item.server.name}`;
+        case "open-file":
+          return `open:${item.file.path}`;
+        default:
+          return item satisfies never;
+      }
+    });
 
-  it("finds a skill by its name or its description", () => {
-    expect(filterSkills(skills, "").map((each) => each.name)).toEqual([
-      "Haiku",
-      "Release notes",
-    ]);
-    expect(filterSkills(skills, "group").map((each) => each.name)).toEqual([
-      "Release notes",
+  it("lists every group, a few of each, before anything is typed", () => {
+    expect(names(menuItems("", everything))).toEqual([
+      "agent:Reviewer",
+      "agent:Researcher",
+      "skill:Haiku",
+      "skill:Release notes",
+      "prompt:Explain like I'm five",
+      "prompt:Summarise",
+      "prompt:New feature",
+      "make:Slides",
+      "make:Site",
+      "user:Ada",
+      "file:adr.md",
+      "file:README.md",
+      "upload",
+      "/new-file",
+      "/open",
+      "/preview",
     ]);
   });
 
-  it("leaves out the skills already on the message", () => {
-    expect(unpickedSkills(skills, [])).toBe(skills);
+  it("narrows every group to what matches, prefix matches first", () => {
+    expect(names(menuItems("re", everything))).toEqual([
+      "agent:Reviewer",
+      "agent:Researcher",
+      "skill:Release notes",
+      "prompt:New feature",
+      // By its kind, `presentation`.
+      "make:Slides",
+      "file:README.md",
+      "/preview",
+    ]);
+    expect(names(menuItems("sli", everything))).toEqual(["make:Slides"]);
+    expect(names(menuItems("sum", everything))).toEqual(["prompt:Summarise"]);
+    expect(names(menuItems("poem", everything))).toEqual(["skill:Haiku"]);
+    expect(names(menuItems("doc", everything))).toEqual([
+      "file:adr.md",
+      "mcp:docs",
+    ]);
+  });
+
+  it("offers upload by name, and only when files can be added", () => {
+    expect(names(menuItems("upl", everything, "Upload a file"))).toEqual([
+      "upload",
+    ]);
     expect(
-      unpickedSkills(skills, [{ id: fixtureId("libraryItem", 31) }]).map(
-        (each) => each.name
-      )
-    ).toEqual(["Release notes"]);
+      names(menuItems("upl", { ...everything, canUpload: false }))
+    ).toEqual([]);
+    // Not by a word's middle: "@ad" is for Ada.
+    expect(names(menuItems("ad", everything, "Upload a file"))).toEqual([
+      "user:Ada",
+      "file:adr.md",
+      "file:README.md",
+    ]);
+  });
+
+  it("lists workspace files to open after /open:", () => {
+    expect(names(menuItems("open:", everything))).toEqual([
+      "open:docs/adr.md",
+      "open:README.md",
+    ]);
+    expect(names(menuItems("open:read", everything))).toEqual([
+      "open:README.md",
+    ]);
+  });
+
+  it("leaves out what only Code can do in a Chat conversation", () => {
+    expect(isCodeOnly({ command: "preview", kind: "command" })).toBe(true);
+    expect(names(menuItems("prev", { ...everything, mode: "chat" }))).toEqual(
+      []
+    );
+    expect(names(menuItems("prev", { ...everything, mode: "code" }))).toEqual([
+      "/preview",
+    ]);
   });
 });

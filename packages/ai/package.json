@@ -25,6 +25,7 @@
     "./llm-proxy/prompt": "./src/llm-proxy/prompt.ts",
     "./memory/*": "./src/memory/*.ts",
     "./messages/approval": "./src/messages/approval.ts",
+    "./messages/chips": "./src/messages/chips.ts",
     "./messages/from-ui": "./src/messages/from-ui.ts",
     "./messages/skills": "./src/messages/skills.ts",
     "./messages/to-ui": "./src/messages/to-ui.ts",

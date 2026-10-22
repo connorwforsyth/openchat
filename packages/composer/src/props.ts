@@ -9,10 +9,12 @@ import type { DraftKey, DraftStore } from "./ports/draft-store";
 import type { PromptHistoryEntry } from "./prompt-history";
 import type {
   AgentOption,
+  ArtifactOption,
   AttachmentLimits,
   AttachmentRejection,
   ComposerAttachment,
   ComposerCommand,
+  ComposerMode,
   ComposerStatus,
   ComposerValue,
   PromptOption,
@@ -34,10 +36,16 @@ import type { ModelVariant } from "./variants";
 export type ComposerAppearance = "default" | "strip";
 
 export interface ComposerProps {
-  /** Agents for the picker and for `@` mentions. */
+  /**
+   * Agents for the picker and the `/`/`@` menu, where a pick makes that
+   * agent answer the message. The owner's drafts (`draftVersion`) are
+   * offered in the menu only.
+   */
   readonly agents?: readonly AgentOption[];
   /** Read once, when the composer mounts. Defaults to `default`. */
   readonly appearance?: ComposerAppearance;
+  /** Artifact types the menu offers ("Slides"); a pick asks for that kind. */
+  readonly artifacts?: readonly ArtifactOption[];
   readonly attachmentLimits?: AttachmentLimits;
   readonly className?: string;
   /**
@@ -74,6 +82,11 @@ export interface ComposerProps {
    * name. Left out, neither is offered.
    */
   readonly mcp?: ComposerMcp;
+  /**
+   * The conversation's mode. In `chat`, the menu leaves out what only Code
+   * can do (`isCodeOnly`); left out, everything is offered.
+   */
+  readonly mode?: ComposerMode;
   /** Models for the picker, as `meta.listModels` returns them. */
   readonly models?: readonly ModelOption[];
   readonly onAttachmentsChange?: (
@@ -116,7 +129,7 @@ export interface ComposerProps {
   readonly placeholder?: string;
   /** Whether the next message plans rather than builds (see `onPlanChange`). */
   readonly plan?: boolean;
-  /** Templates `/` offers. */
+  /** Templates the menu offers, put in as text with `{{variables}}` to fill. */
   readonly prompts?: readonly PromptOption[];
   /**
    * Whose "Recently used" models and agents the picker remembers, like the
