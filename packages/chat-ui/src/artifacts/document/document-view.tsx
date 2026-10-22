@@ -219,7 +219,7 @@ function LatestDocument({
   const label = t`Document`;
   const placeholder = t`Type / for blocks…`;
   const blockMenu = useBlockMenu(artifact.id, linkTargets);
-  const { suggestion } = blockMenu;
+  const { closeImage, suggestion } = blockMenu;
   const extensions = useMemo(
     () =>
       documentExtensions({
@@ -286,17 +286,20 @@ function LatestDocument({
     }
     const next = readDocument(latest.content);
     if (next) {
+      // An image waiting on its address would land in the old document.
+      closeImage();
       editor.commands.setContent(next, { emitUpdate: false });
     }
-  }, [editor, isMine, latest, shown.id, state]);
+  }, [closeImage, editor, isMine, latest, shown.id, state]);
 
   const loadLatest = useCallback(() => {
     const next = readDocument(latest.content);
     if (editor && next) {
+      closeImage();
       editor.commands.setContent(next, { emitUpdate: false });
     }
     save.reset(latest.id);
-  }, [editor, latest, save]);
+  }, [closeImage, editor, latest, save]);
   const keepMine = useCallback(
     () => save.keepMine(latest.id),
     [latest.id, save]

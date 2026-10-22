@@ -234,6 +234,32 @@ describe("the / block menu", () => {
     expect(text.textContent).not.toContain("/link");
   });
 
+  it("searches `/link` by a title of several words", async () => {
+    const notes = {
+      ...packing,
+      id: fixtureId("artifact", 3),
+      title: "Packing notes",
+    };
+    renderView({ linkTargets: [...linkTargets, notes] });
+    const text = await newLine();
+    await userEvent.keyboard("/link");
+    await screen.findByRole("listbox", { name: "Insert block" });
+    await userEvent.keyboard("{Enter}packing l");
+    const menu = await screen.findByRole("listbox", {
+      name: "Link to artifact",
+    });
+    await waitFor(() =>
+      expect(
+        within(menu).queryByRole("option", { name: "Packing notes" })
+      ).toBeNull()
+    );
+    await userEvent.keyboard("{Enter}");
+    const link = await within(text).findByRole("link", {
+      name: "Packing list",
+    });
+    expect(link.getAttribute("href")).toBe(`/artifacts/${packing.id}`);
+  });
+
   it("stays shut inside a code block", async () => {
     renderView({ versions: [version(1, "Intro\n\n```\nlet x = 1\n```")] });
     const text = await editor();
