@@ -274,7 +274,7 @@ drawing, and the first stage it fell out at (`trial.ts`: `run_failed`,
 `no_tool_call`, `tool_input_invalid`, `wrong_kind`, `schema_invalid`,
 `unavailable`, `render_error`, `render_timeout`). It writes `<kind>.json`,
 `<kind>.md`, `summary.md` and `screenshots/`, and with `--spend-log <tsv>`
-appends its model calls per kind. `--model` sets the chats' model; without it they use the
-instance default. Failures become offline fixtures with
+appends its model calls per kind. `--yes` needs `--model` (the chats' model; the instance default may be a
+paid one) and refuses more than `--max-trials` trials, 20 unless raised. Failures become offline fixtures with
 `record-fixtures.ts`; `packages/ai/evals/artifacts/recorded-live.test.ts`
 replays them through `create_artifact` with no model.

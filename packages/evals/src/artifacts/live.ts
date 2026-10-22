@@ -7,28 +7,26 @@
  * One trial at a time: a live model is a shared, metered resource.
  *
  *   bun packages/evals/src/artifacts/live.ts --kind presentation --yes
- *     [--kind site …] [--limit 10] [--prompt <id> …] [--model <alias or provider:model>]
+ *     --model <alias or provider:model> [--kind site …] [--limit 10] [--prompt <id> …]
+ *     [--max-trials 20]
  *     [--base-url http://localhost:3101] [--out .evals/artifacts-live] [--spend-log <tsv>]
  *
- * Without `--model`, chats use the instance's default model. Without
- * `--yes` it prints the plan and calls nothing. Writes `<kind>.json`,
+ * `--yes` needs `--model` and at most `--max-trials` trials (20 unless
+ * raised); without `--yes` it prints the plan and calls nothing. Writes `<kind>.json`,
  * `<kind>.md`, `summary.json`, `summary.md` and `screenshots/` to `--out`.
  */
 import { appendFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { parseArgs } from "node:util";
 
 import type {
   ConversationId,
   MessageId,
   RunId,
 } from "@workspace/contract/schemas/common";
-import {
-  type ArtifactKind,
-  artifactKindSchema,
-} from "@workspace/contract/schemas/message-parts";
+import type { ArtifactKind } from "@workspace/contract/schemas/message-parts";
 
 import { textOf, toolCallsOf } from "../harness";
+import { parseLiveArgs, planText } from "./live-args";
 import { ARTIFACT_PROMPTS, type ArtifactPrompt } from "./prompts";
 import { createRenderer, type Renderer } from "./render";
 import { type LiveSession, signIn } from "./session";
@@ -46,44 +44,19 @@ import {
 const POLL_MS = 250;
 const TERMINAL = new Set(["succeeded", "failed", "cancelled"]);
 
-const { values } = parseArgs({
-  options: {
-    "base-url": { default: "http://localhost:3101", type: "string" },
-    kind: { multiple: true, type: "string" },
-    limit: { default: "10", type: "string" },
-    model: { type: "string" },
-    out: { default: ".evals/artifacts-live", type: "string" },
-    prompt: { multiple: true, type: "string" },
-    "spend-lane": { default: "n2-evals", type: "string" },
-    /** A TSV that gets `<lane>\t<model calls>\t<purpose>` per kind. */
-    "spend-log": { type: "string" },
-    "timeout-s": { default: "240", type: "string" },
-    yes: { default: false, type: "boolean" },
-  },
-});
-
-const kinds: readonly ArtifactKind[] = (
-  values.kind ?? Object.keys(ARTIFACT_PROMPTS)
-).map((kind) => artifactKindSchema.parse(kind));
-const limit = Number(values.limit);
-const plan = kinds.map((kind) => ({
-  kind,
-  prompts: ARTIFACT_PROMPTS[kind]
-    .filter(
-      (each) => values.prompt === undefined || values.prompt.includes(each.id)
-    )
-    .slice(0, limit),
-}));
-const model = values.model ?? "instance default";
-const total = plan.reduce((sum, each) => sum + each.prompts.length, 0);
-
-process.stdout.write(
-  `Live artifact eval against ${values["base-url"]} on ${model}: ${total} prompts (${plan.map((each) => `${each.kind} ${each.prompts.length}`).join(", ")}).\n`
-);
-if (!values.yes) {
+const parsed = parseLiveArgs(process.argv.slice(2));
+if (!parsed.ok) {
+  process.stderr.write(`${parsed.error}\n`);
+  process.exit(2);
+}
+const options = parsed.value;
+const { plan } = options;
+process.stdout.write(`${planText(options)}\n`);
+if (!(options.yes && options.model)) {
   process.stdout.write("Pass --yes to run it. Nothing was called.\n");
   process.exit(2);
 }
+const model: string = options.model;
 
 const sleep = (ms: number) =>
   new Promise((done) => {
@@ -119,7 +92,7 @@ const runErrorOf = (
   timedOut: boolean
 ): string | null => {
   if (timedOut) {
-    return `timed out after ${values["timeout-s"]} s`;
+    return `timed out after ${options.timeoutS} s`;
   }
   return state.status === "failed" ? (state.error?.message ?? null) : null;
 };
@@ -134,10 +107,8 @@ const observe = async (
   readonly observation: Omit<TrialObservation, "render">;
 }> => {
   const chat = await api.conversations.create({
+    defaultTarget: { model, type: "model" },
     title: `eval: ${prompt.id}`,
-    ...(values.model
-      ? { defaultTarget: { model: values.model, type: "model" as const } }
-      : {}),
   });
   const started = Date.now();
   const { runId } = await api.runs.create({
@@ -148,7 +119,7 @@ const observe = async (
       type: "message",
     },
   });
-  const deadline = started + Number(values["timeout-s"]) * 1000;
+  const deadline = started + Number(options.timeoutS) * 1000;
   let msToSaved: number | null = null;
   for (;;) {
     // biome-ignore lint/performance/noAwaitInLoops: polling one run.
@@ -240,12 +211,12 @@ const runTrial = async (
   });
 };
 
-const { out } = values;
+const { out } = options;
 const screenshots = join(out, "screenshots");
 await mkdir(screenshots, { recursive: true });
-const live = await signIn(values["base-url"]);
+const live = await signIn(options.baseUrl);
 const browser = await createRenderer({
-  baseUrl: values["base-url"],
+  baseUrl: options.baseUrl,
   cookie: live.cookie,
 });
 
@@ -285,10 +256,10 @@ try {
       (sum, trial) => sum + trial.observation.calls.length + 1,
       0
     );
-    if (values["spend-log"]) {
+    if (options.spendLog) {
       await appendFile(
-        values["spend-log"],
-        `${values["spend-lane"]}\t${modelCalls}\tartifact eval: ${kind}, ${trials.length} prompts on ${model}\n`
+        options.spendLog,
+        `${options.spendLane}\t${modelCalls}\tartifact eval: ${kind}, ${trials.length} prompts on ${model}\n`
       );
     }
   }
