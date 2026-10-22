@@ -110,9 +110,13 @@ const newChat = async (harness: Harness, as?: UserId) => {
   return ((await response.json()) as Conversation).id;
 };
 
-const chipsPart = (text: string, chips: readonly PlacedChip[]) => [
-  { text, type: "text" } satisfies MessagePart,
-  { data: { chips }, name: CHIPS_DATA, type: "data" } satisfies MessagePart,
+const chipsPart = (
+  text: string,
+  chips: readonly PlacedChip[]
+): MessagePart[] => [
+  { text, type: "text" },
+  // Branded ids are strings on the wire.
+  { data: { chips: chips as never }, name: CHIPS_DATA, type: "data" },
 ];
 
 const send = async (

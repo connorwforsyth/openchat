@@ -345,7 +345,6 @@ function GroupHeading({
     <div
       className="px-1.5 pt-1.5 pb-0.5 font-medium text-muted-foreground text-xs"
       id={id}
-      role="presentation"
     >
       {titles[group]}
     </div>

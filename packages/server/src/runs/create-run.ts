@@ -2,6 +2,7 @@ import { answeringAgent, chipsOf } from "@workspace/ai/messages/chips";
 import type { SkillUse } from "@workspace/ai/messages/skills";
 import type { RunExecutor } from "@workspace/ai/ports/run-executor";
 import type { MessageId, RunId } from "@workspace/contract/schemas/common";
+import type { MessagePart } from "@workspace/contract/schemas/message-parts";
 import type { ModelSelector } from "@workspace/contract/schemas/models";
 import {
   type CreateRunInput,
@@ -122,12 +123,14 @@ const chippedAgent = async (
   db: Db,
   { input: turn }: CreateRunInput
 ): Promise<RunTarget | undefined> => {
-  let parts = turn.type === "message" ? turn.parts : undefined;
-  if (turn.type === "regenerate") {
+  const partsOf = async (): Promise<readonly Pick<MessagePart, "type">[]> => {
+    if (turn.type === "message") {
+      return turn.parts;
+    }
     const answered = await getMessage(db, turn.userMessageId);
-    parts = answered.ok ? answered.value.parts : undefined;
-  }
-  const agent = parts ? answeringAgent(chipsOf(parts)) : undefined;
+    return answered.ok ? answered.value.parts : [];
+  };
+  const agent = answeringAgent(chipsOf(await partsOf()));
   return agent
     ? {
         id: agent.id,

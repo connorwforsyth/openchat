@@ -556,9 +556,11 @@ export const menuItems = (
     ...find(prompts, (prompt) => [prompt.definition.command, prompt.name]).map(
       (prompt): MenuItem => ({ kind: "prompt", prompt })
     ),
-    ...find(artifacts, (artifact) => [artifact.label, artifact.kind]).map(
-      (artifact): MenuItem => ({ artifact, kind: "artifact" })
-    ),
+    // A short, fixed list: every kind shows, typed or not.
+    ...rank(artifacts, needle, (artifact) => [
+      artifact.label,
+      artifact.kind,
+    ]).map((artifact): MenuItem => ({ artifact, kind: "artifact" })),
     ...find(
       mentions.filter((candidate) => candidate.kind === "user"),
       (candidate) => [candidate.label]
