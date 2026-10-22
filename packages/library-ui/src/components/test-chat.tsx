@@ -61,6 +61,8 @@ export interface TestChatProps {
   readonly dirty: boolean;
   /** `null` until the agent has been created (or for someone who can't edit it). */
   readonly draft: TestChatDraft | null;
+  /** Creates the agent, for a new one; the page then opens it, test chat and all. */
+  readonly onCreate?: () => void;
 }
 
 /** How the page plugs a session in: a hook-backed component per builder. */

@@ -18,6 +18,7 @@ import {
 } from "react";
 
 import type { FormIssues, IssueCode } from "../form";
+import { SnippetEditor, type SnippetEditorProps } from "./snippet-editor";
 
 // Labelled inputs for the builders, with the contract's validation shown
 // the shadcn way (`data-invalid` on the field, `aria-invalid` on the control).
@@ -42,6 +43,9 @@ export const useIssueText = (): ((code: IssueCode) => string) => {
   };
 };
 
+// A contenteditable isn't labelable, so a snippet editor points at its label.
+const labelIdOf = (id: string) => `${id}-label`;
+
 interface FieldShellProps {
   readonly children: (props: {
     readonly "aria-describedby"?: string;
@@ -64,7 +68,9 @@ export function FieldShell({
   const issueText = useIssueText();
   return (
     <Field data-invalid={issue ? true : undefined}>
-      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      <FieldLabel htmlFor={id} id={labelIdOf(id)}>
+        {label}
+      </FieldLabel>
       {children({
         "aria-describedby": description || issue ? describedBy : undefined,
         "aria-invalid": issue ? true : undefined,
@@ -127,6 +133,32 @@ export function TextAreaField({
     <FieldShell description={description} issue={issue} label={label}>
       {(control) => (
         <Textarea {...textarea} {...control} onChange={handleChange} />
+      )}
+    </FieldShell>
+  );
+}
+
+export function SnippetField({
+  description,
+  issue,
+  label,
+  ...editor
+}: Omit<
+  SnippetEditorProps,
+  "aria-describedby" | "aria-invalid" | "aria-labelledby" | "id"
+> & {
+  readonly description?: ReactNode;
+  readonly issue?: IssueCode;
+  readonly label: ReactNode;
+}) {
+  return (
+    <FieldShell description={description} issue={issue} label={label}>
+      {(control) => (
+        <SnippetEditor
+          {...editor}
+          {...control}
+          aria-labelledby={labelIdOf(control.id)}
+        />
       )}
     </FieldShell>
   );

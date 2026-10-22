@@ -6,6 +6,7 @@ import type { AgentDefinition } from "@workspace/contract/schemas/library";
 import type { ModelOption } from "@workspace/contract/schemas/models";
 import type { SandboxProvider } from "@workspace/contract/schemas/sandbox";
 import { PaperclipIcon, PlusIcon, XIcon } from "@workspace/icons";
+import { AGENT_VARIABLES } from "@workspace/shared/agent-variables";
 import { Button } from "@workspace/ui/components/button";
 import { Checkbox } from "@workspace/ui/components/checkbox";
 import {
@@ -25,18 +26,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@workspace/ui/components/select";
-import { type ChangeEvent, useCallback, useId } from "react";
+import { type ChangeEvent, useCallback, useId, useRef } from "react";
 
 import type { FormIssues } from "../form";
-import { issueAt, TextAreaField } from "./fields";
+import { type SnippetItem, snippetMenuItems } from "../snippet";
+import { issueAt, SnippetField } from "./fields";
+import { type NewSkill, SkillsSection } from "./skills-section";
+import type { SnippetMenu } from "./snippet-editor";
 
 // The Agent Builder's form (D13, 010): instructions, model, tools, MCP
 // servers, skills, knowledge files, conversation starters and the sandbox
 // provider. Controlled and stateless: the builder owns the draft.
 
 export interface Choice {
+  readonly description: string;
   readonly id: LibraryItemId;
   readonly name: string;
+  /** Whether a version has been published; a draft only its people can use. */
+  readonly published: boolean;
 }
 
 export interface KnowledgeFile {
@@ -53,6 +60,12 @@ export interface AgentFormProps {
   readonly models: readonly ModelOption[];
   readonly onAddKnowledge?: () => Promise<readonly KnowledgeFile[]>;
   readonly onChange: (next: AgentDefinition) => void;
+  /** Creates a skill (a personal draft) for "Write a skill"; without it there's no such button. */
+  readonly onCreateSkill?: (skill: NewSkill) => Promise<Choice | null>;
+  /** A prompt's template, for the instructions' `/` menu; `null` when it can't be read. */
+  readonly onLoadPrompt?: (id: LibraryItemId) => Promise<string | null>;
+  /** Prompts the caller can use, for the instructions' `/` menu. */
+  readonly prompts?: readonly Choice[];
   readonly readOnly?: boolean;
   readonly sandboxProviders: readonly SandboxProvider[];
   /** Skills the caller can use. */
@@ -66,6 +79,7 @@ const BUILTIN_TOOLS = ["web_search", "file_search", "bash"] as const;
 const MAX_STARTERS = 8;
 const NO_SANDBOX = "none";
 const NO_KNOWLEDGE: readonly KnowledgeFile[] = [];
+const NO_PROMPTS: readonly Choice[] = [];
 
 const without = <T,>(list: readonly T[], item: T): T[] =>
   list.filter((each) => each !== item);
@@ -77,12 +91,27 @@ export function AgentForm({
   models,
   onAddKnowledge,
   onChange,
+  onCreateSkill,
+  onLoadPrompt,
+  prompts = NO_PROMPTS,
   readOnly = false,
   sandboxProviders,
   skills,
   value,
 }: AgentFormProps) {
   const { t } = useLingui();
+  // Picking a skill from `/` attaches it and edits the instructions in the
+  // same tick; each change builds on the one before, not on this render's
+  // `value`.
+  const current = useRef(value);
+  current.current = value;
+  const update = useCallback(
+    (patch: Partial<AgentDefinition>) => {
+      current.current = { ...current.current, ...patch };
+      onChange(current.current);
+    },
+    [onChange]
+  );
   const toolLabels: Record<(typeof BUILTIN_TOOLS)[number], string> = {
     bash: t`Run code in the sandbox`,
     file_search: t`Search knowledge files`,
@@ -106,9 +135,71 @@ export function AgentForm({
   const sandboxId = useId();
 
   const setInstructions = useCallback(
-    (instructions: string) => onChange({ ...value, instructions }),
-    [onChange, value]
+    (instructions: string) => update({ instructions }),
+    [update]
   );
+  const attachSkill = useCallback(
+    (id: LibraryItemId) => {
+      if (!current.current.skills.some((each) => each.id === id)) {
+        update({ skills: [...current.current.skills, { id }] });
+      }
+    },
+    [update]
+  );
+  const detachSkill = useCallback(
+    (id: LibraryItemId) =>
+      update({
+        skills: current.current.skills.filter((each) => each.id !== id),
+      }),
+    [update]
+  );
+  const variableDescriptions: Record<(typeof AGENT_VARIABLES)[number], string> =
+    {
+      current_date: t`Today's date`,
+      current_user: t`The name of the person chatting`,
+    };
+  const menu: SnippetMenu = {
+    items: (query) =>
+      snippetMenuItems(query, {
+        prompts: onLoadPrompt
+          ? prompts.map((prompt) => ({
+              id: prompt.id,
+              kind: "prompt",
+              name: prompt.name,
+            }))
+          : undefined,
+        skills: skills.map((skill) => ({
+          attached: current.current.skills.some((each) => each.id === skill.id),
+          description: skill.description,
+          id: skill.id,
+          kind: "skill",
+          name: skill.name,
+        })),
+        variables: AGENT_VARIABLES.map((name) => ({
+          description: variableDescriptions[name],
+          kind: "variable",
+          name,
+        })),
+      }),
+    onPick: (item: SnippetItem) => {
+      switch (item.kind) {
+        case "skill": {
+          attachSkill(item.id);
+          const { name } = item;
+          return t`the "${name}" skill`;
+        }
+        case "prompt":
+          return onLoadPrompt?.(item.id) ?? null;
+        case "variable":
+          return `{{${item.name}}}`;
+        case "new-variable":
+          return null;
+        default:
+          return item satisfies never;
+      }
+    },
+    title: t`Insert`,
+  };
   const setModel = useCallback(
     (model: unknown) => {
       if (typeof model === "string") {
@@ -145,16 +236,6 @@ export function AgentForm({
         mcpServers: on
           ? [...value.mcpServers, { id: id as LibraryItemId }]
           : value.mcpServers.filter((each) => each.id !== id),
-      }),
-    [onChange, value]
-  );
-  const toggleSkill = useCallback(
-    (id: string, on: boolean) =>
-      onChange({
-        ...value,
-        skills: on
-          ? [...value.skills, { id: id as LibraryItemId }]
-          : value.skills.filter((each) => each.id !== id),
       }),
     [onChange, value]
   );
@@ -209,13 +290,14 @@ export function AgentForm({
 
   return (
     <FieldGroup>
-      <TextAreaField
+      <SnippetField
         className="min-h-48 font-mono text-sm"
-        description={t`What the agent is for and how it should behave. People who can only use the agent never see this.`}
+        description={t`What the agent is for and how it should behave. People who can only use the agent never see this. Type / to insert a skill, a prompt or a variable.`}
         issue={issueAt(issues, "definition.instructions")}
         label={t`Instructions`}
-        name="instructions"
+        menu={readOnly ? undefined : menu}
         onValueChange={setInstructions}
+        placeholder={t`You are…`}
         readOnly={readOnly}
         value={value.instructions}
       />
@@ -286,27 +368,14 @@ export function AgentForm({
         )}
       </FieldSet>
 
-      <FieldSet>
-        <FieldLegend variant="label">
-          <Trans>Skills</Trans>
-        </FieldLegend>
-        {skills.length === 0 ? (
-          <FieldDescription>
-            <Trans>Build a skill to load it into this agent's sandbox.</Trans>
-          </FieldDescription>
-        ) : (
-          skills.map((skill) => (
-            <CheckRow
-              checked={value.skills.some((each) => each.id === skill.id)}
-              disabled={readOnly}
-              id={skill.id}
-              key={skill.id}
-              label={skill.name}
-              onToggle={toggleSkill}
-            />
-          ))
-        )}
-      </FieldSet>
+      <SkillsSection
+        attached={value.skills}
+        onAttach={attachSkill}
+        onCreate={onCreateSkill}
+        onDetach={detachSkill}
+        readOnly={readOnly}
+        skills={skills}
+      />
 
       <FieldSet>
         <FieldLegend variant="label">

@@ -118,6 +118,139 @@ describe("agent builder", () => {
   });
 });
 
+/** Puts the caret at the end of an editor's text (End differs by platform). */
+const caretAtEnd = (box: HTMLElement) => {
+  box.focus();
+  const selection = window.getSelection();
+  selection?.selectAllChildren(box);
+  selection?.collapseToEnd();
+};
+
+const CHANGELOG = /Changelog/;
+
+describe("agent skills", () => {
+  const renderNewAgent = () => {
+    const providers = createTestProviders();
+    render(
+      providers.wrap(
+        <ItemBuilder
+          backHref="/library"
+          target={{ kind: "agent", type: "new" }}
+          testChat={EchoTestChat}
+        />
+      )
+    );
+    return providers;
+  };
+
+  it("attaches a skill picked from / in the instructions and names it there", async () => {
+    renderNewAgent();
+    const instructions = await screen.findByRole("textbox", {
+      name: "Instructions",
+    });
+    await userEvent.fill(instructions, "Use ");
+    caretAtEnd(instructions);
+    await userEvent.keyboard("/chan");
+    await userEvent.click(
+      await screen.findByRole("option", { name: CHANGELOG })
+    );
+    await waitFor(() =>
+      expect(instructions.textContent).toBe('Use the "Changelog" skill')
+    );
+    const attached = screen.getByRole("list", { name: "Attached skills" });
+    expect(within(attached).getByText("Changelog")).toBeTruthy();
+    // It's never been published, so the agent gets someone's draft.
+    expect(within(attached).getByText("Draft")).toBeTruthy();
+  });
+
+  it("attaches a skill from the picker, and removes it", async () => {
+    renderNewAgent();
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Add skill" })
+    );
+    await userEvent.click(
+      await screen.findByRole("option", { name: CHANGELOG })
+    );
+    const attached = await screen.findByRole("list", {
+      name: "Attached skills",
+    });
+    expect(within(attached).getByText("Changelog")).toBeTruthy();
+    await userEvent.click(
+      within(attached).getByRole("button", { name: "Remove Changelog" })
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole("list", { name: "Attached skills" })).toBeNull()
+    );
+  });
+
+  it("writes a new skill as a personal draft and attaches it", async () => {
+    const { client } = renderNewAgent();
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Write a skill" })
+    );
+    const form = screen.getByRole("form", { name: "New skill" });
+    await userEvent.fill(
+      within(form).getByRole("textbox", { name: "Skill name" }),
+      "Release notes"
+    );
+    await userEvent.fill(
+      within(form).getByRole("textbox", { name: "When to use it" }),
+      "Use when writing release notes."
+    );
+    await userEvent.fill(
+      within(form).getByRole("textbox", { name: "Skill instructions" }),
+      "Group changes by area."
+    );
+    await userEvent.click(
+      within(form).getByRole("button", { name: "Create and attach" })
+    );
+    const attached = await screen.findByRole("list", {
+      name: "Attached skills",
+    });
+    expect(await within(attached).findByText("Release notes")).toBeTruthy();
+    expect(screen.queryByRole("form", { name: "New skill" })).toBeNull();
+
+    const mine = await client.library.list({
+      kind: "skill",
+      limit: 50,
+      tab: "mine",
+    });
+    const created = mine.items.find((item) => item.name === "Release notes");
+    expect(created).toMatchObject({
+      latestVersionNumber: null,
+      visibility: "private",
+    });
+    const stored = await client.library.get({
+      id: created?.id ?? SKILL,
+      revision: "draft",
+    });
+    expect(stored.definition).toMatchObject({
+      skillMd:
+        "---\nname: release-notes\ndescription: Use when writing release notes.\n---\n\nGroup changes by area.\n",
+    });
+  });
+});
+
+describe("publish state", () => {
+  it("says a draft is private until it's published", async () => {
+    renderBuilder({ id: SKILL, type: "existing" });
+    expect(
+      await screen.findByText(
+        "Draft · Only you can see it. Publish to share it with your team."
+      )
+    ).toBeTruthy();
+  });
+
+  it("says which version the team uses once published", async () => {
+    renderBuilder({ id: PROMPT, type: "existing" });
+    expect(
+      await screen.findByText(
+        "Published v1 · Your team uses this version. Edits stay in your draft until you publish again."
+      )
+    ).toBeTruthy();
+  });
+});
+
 describe("optimistic saves", () => {
   it("shows the edit at once and rolls it back when the server refuses", async () => {
     const client = createFakeLibraryClient();

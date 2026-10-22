@@ -5,6 +5,7 @@ import type { ApiClient } from "@workspace/client/api";
 import { useRunChat } from "@workspace/client/use-run-chat";
 import type { RunTarget } from "@workspace/contract/schemas/runs";
 import { Badge } from "@workspace/ui/components/badge";
+import { Button } from "@workspace/ui/components/button";
 import { useEffect, useRef, useState } from "react";
 
 import {
@@ -157,7 +158,10 @@ function DraftTestChat({
 
 /** A test chat component bound to an API client, for `ItemBuilder`'s `testChat`. */
 export const createRunTestChat = (client: RunClient): TestChatComponent =>
-  function RunTestChat({ draft, ...props }: TestChatProps) {
+  function RunTestChat({ draft, onCreate, ...props }: TestChatProps) {
+    if (!draft && onCreate) {
+      return <UnsavedTestChat onCreate={onCreate} />;
+    }
     if (!draft) {
       return (
         <p className="text-muted-foreground text-sm">
@@ -175,3 +179,29 @@ export const createRunTestChat = (client: RunClient): TestChatComponent =>
       />
     );
   };
+
+/** A new agent's test chat, until there's a draft to run. */
+function UnsavedTestChat({ onCreate }: { readonly onCreate: () => void }) {
+  const { t } = useLingui();
+  return (
+    <section
+      aria-label={t`Test chat`}
+      className="flex h-full min-h-0 flex-col gap-3"
+    >
+      <h2 className="font-medium text-sm">
+        <Trans>Test chat</Trans>
+      </h2>
+      <div className="flex min-h-48 flex-1 flex-col items-center justify-center gap-3 rounded-lg border border-border bg-background p-4 text-center">
+        <p className="text-muted-foreground text-sm">
+          <Trans>
+            The test chat runs your saved draft. Save it to start trying the
+            agent.
+          </Trans>
+        </p>
+        <Button onClick={onCreate} size="sm">
+          <Trans>Save draft and test</Trans>
+        </Button>
+      </div>
+    </section>
+  );
+}

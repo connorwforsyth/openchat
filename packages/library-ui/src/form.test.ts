@@ -5,6 +5,7 @@ import {
   definitionToSave,
   formFromDefinition,
   newDefinition,
+  newSkillMd,
   validateDraft,
 } from "./form";
 
@@ -83,5 +84,31 @@ describe("MCP secrets in the form", () => {
       auth: { headerName: "X-Key", type: "header" as const, value: "k" },
     };
     expect(definitionToSave(typed)).toBe(typed);
+  });
+});
+
+describe("newSkillMd", () => {
+  it("writes frontmatter the server reads, with the name as a slug", () => {
+    expect(
+      newSkillMd({
+        description: "Writes release notes.",
+        instructions: "\nGroup changes by area.\n\n",
+        name: "Release Notes!",
+      })
+    ).toBe(
+      "---\nname: release-notes\ndescription: Writes release notes.\n---\n\nGroup changes by area.\n"
+    );
+  });
+
+  it("quotes a description YAML would misread", () => {
+    expect(
+      newSkillMd({
+        description: "Use when: the PR is big",
+        instructions: "Be brief.",
+        name: "Reviewer",
+      })
+    ).toBe(
+      '---\nname: reviewer\ndescription: "Use when: the PR is big"\n---\n\nBe brief.\n'
+    );
   });
 });
