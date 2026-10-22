@@ -59,9 +59,10 @@ import { buildComposerValue, hasContent } from "../value";
 import { type PromptVariable, resolvePromptVariables } from "../variables";
 import { AttachmentList, RejectionMessage } from "./attachment-list";
 import { ComposerFooter } from "./composer-footer";
+import { optionId } from "./menu-listbox";
 import { SkillList } from "./skill-list";
 import { LOOKS } from "./styles";
-import { optionId, SuggestionMenu } from "./suggestion-menu";
+import { SuggestionMenu } from "./suggestion-menu";
 import { TemplateVariables } from "./template-variables";
 
 export type { ComposerProps } from "../props";
