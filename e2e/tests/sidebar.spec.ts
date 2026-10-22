@@ -7,9 +7,10 @@ import { clickHydrated, hydrated } from "../support/hydration";
 import { storageStateFor } from "../support/users";
 
 // The sidebar's feel (071): ChatGPT-like rows, a drag-resizable edge whose
-// width survives a reload without a jump, collapse and the edge peek, the
-// 480px conversation rule, the narrow-screen drawer, and rename after other
-// rows' menus were opened and closed (the audit's bug).
+// width survives a reload without a jump, collapse (hovering never opens it),
+// the 480px conversation rule and the overlay when the sidebar can't dock, the
+// narrow-screen drawer, and rename after other rows' menus were opened and
+// closed (the audit's bug).
 
 test.use({ storageState: storageStateFor("ada") });
 
@@ -23,8 +24,8 @@ const row = (page: Page, title: string): Locator =>
   sidebar(page).getByRole("button", { exact: true, name: title });
 const handle = (page: Page): Locator =>
   page.getByRole("separator", { name: "Resize sidebar" });
-const peek = (page: Page): Locator =>
-  page.locator('[data-slot="app-shell-sidebar-peek"]');
+const overlay = (page: Page): Locator =>
+  page.locator('[data-slot="app-shell-sidebar-overlay"]');
 
 const widthOf = async (locator: Locator): Promise<number> =>
   Math.round((await locator.boundingBox())?.width ?? 0);
@@ -159,52 +160,28 @@ test("the edge drags and nudges, and the width survives a reload without a jump"
   expect(await widthOf(sidebar(page))).toBe(260);
 });
 
-test("collapse and expand; collapsed, the edge peeks over the page", async ({
+test("collapse and expand; collapsed, hovering the edge shows nothing", async ({
   page,
 }) => {
   const toggle = page.getByRole("button", { name: "Toggle sidebar" });
   await page.keyboard.press("ControlOrMeta+B");
   await expect(page.locator('[data-slot="app-shell-sidebar"]')).toHaveCount(0);
-  await expect(peek(page)).not.toHaveAttribute("data-open");
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
 
-  const content = page.getByRole("main");
-  const before = await content.boundingBox();
-  // 181: the rail stays, and the edge starts beside it so its icons stay
-  // clickable; the rail itself doesn't peek.
   const rail = page.getByRole("navigation", { name: "Sidebar rail" });
   await expect(rail).toBeVisible();
   const railEnd = await rail.evaluate(
     (node) => node.getBoundingClientRect().right
   );
   await page.mouse.move(400, 400);
-  await page.mouse.move(railEnd - 4, 400, { steps: 4 });
+  await page.mouse.move(railEnd + 4, 400, { steps: 4 });
   await page.waitForTimeout(300);
-  await expect(peek(page)).not.toHaveAttribute("data-open");
-  await page.mouse.move(railEnd + 10, 400, { steps: 4 });
-  await expect(peek(page)).toHaveAttribute("data-open", "");
-  await expect(sidebar(page)).toBeVisible();
-  // An overlay: nothing moved.
-  expect(await content.boundingBox()).toEqual(before);
-
-  // A row's menu keeps it open with the pointer outside.
-  await row(page, SHORT_TITLE).hover();
-  await sidebar(page)
-    .getByRole("button", { name: `Actions for ${SHORT_TITLE}` })
-    .click();
-  const menu = page.getByRole("menu");
-  await expect(menu).toBeVisible();
-  await page.mouse.move(900, 400, { steps: 4 });
-  await page.waitForTimeout(1000);
-  await expect(peek(page)).toHaveAttribute("data-open", "");
-  await page.keyboard.press("Escape");
-  await expect(menu).toBeHidden();
-  // Then it goes, 500ms after the pointer left (and the menu closed).
-  await expect(peek(page)).not.toHaveAttribute("data-open");
   await expect(sidebar(page)).toBeHidden();
+  await expect(overlay(page)).toHaveCount(0);
 
   await clickHydrated(toggle);
   await expect(page.locator('[data-slot="app-shell-sidebar"]')).toBeVisible();
-  await expect(peek(page)).toHaveCount(0);
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
 });
 
 test("rename works after other rows' menus were opened and closed", async ({
@@ -238,7 +215,7 @@ test("rename works after other rows' menus were opened and closed", async ({
   await expect(row(page, "Sidebar spec: renamed")).toBeVisible();
 });
 
-test("the conversation keeps 480px: at 900px with the panel open the sidebar peeks", async ({
+test("the conversation keeps 480px: at 900px with the panel open the toggle shows the sidebar over the page", async ({
   page,
 }) => {
   await page.setViewportSize({ height: 800, width: 900 });
@@ -249,6 +226,8 @@ test("the conversation keeps 480px: at 900px with the panel open the sidebar pee
   const panel = page.getByRole("complementary", { name: "Side panel" });
   await expect(panel).toBeVisible();
   await expect(page.locator('[data-slot="app-shell-sidebar"]')).toHaveCount(0);
+  // Squeezed out, it doesn't come up on its own.
+  await expect(overlay(page)).toHaveCount(0);
   const panelHandle = page.getByRole("separator", {
     name: "Resize side panel",
   });
@@ -256,6 +235,27 @@ test("the conversation keeps 480px: at 900px with the panel open the sidebar pee
   // conversation's 480 leave 900 - 58 - 480.
   await expect(panelHandle).toHaveAttribute("aria-valuemax", "362");
   expect(await widthOf(page.getByRole("main"))).toBeGreaterThanOrEqual(480);
+
+  // The toggle and ⌘B show it over the page; Esc, the toggle and picking a
+  // chat close it.
+  const toggle = page.getByRole("button", { name: "Toggle sidebar" });
+  const content = page.getByRole("main");
+  const before = await content.boundingBox();
+  await clickHydrated(toggle);
+  await expect(overlay(page)).toBeVisible();
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  expect(await content.boundingBox()).toEqual(before);
+  await page.keyboard.press("Escape");
+  await expect(overlay(page)).toHaveCount(0);
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await page.keyboard.press("ControlOrMeta+B");
+  await expect(overlay(page)).toBeVisible();
+  await toggle.click();
+  await expect(overlay(page)).toHaveCount(0);
+  await toggle.click();
+  await row(page, SHORT_TITLE).click();
+  await expect(page).toHaveURL(new RegExp(`/c/${created[1]}`));
+  await expect(overlay(page)).toHaveCount(0);
 
   await page.setViewportSize({ height: 800, width: 1024 });
   await expect(page.locator('[data-slot="app-shell-sidebar"]')).toBeVisible();
