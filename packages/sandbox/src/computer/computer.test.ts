@@ -150,6 +150,17 @@ describe("the live view", () => {
     expect(taken).toMatchObject({ ok: true, value: { holder: "user" } });
   });
 
+  // A frame loaded before the screen listens stays on the proxy's error page.
+  it("answers only once the screen's port listens", async () => {
+    const { commands, host } = fakeHost();
+    await createComputers({ host }).view(conversationId);
+    expect(commands.at(-1)).toMatch(
+      new RegExp(
+        `^bash -c .*/dev/tcp/127\\.0\\.0\\.1/${DESKTOP_VIEW_PORT}.*; if `
+      )
+    );
+  });
+
   it("fails the hand-over when the VNC server won't switch input", async () => {
     const { host } = fakeHost(1);
     const computers = createComputers({ host });

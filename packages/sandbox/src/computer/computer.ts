@@ -36,6 +36,15 @@ import {
 /** The desktop's noVNC port (`apps/sandbox-runner/desktop`). */
 export const DESKTOP_VIEW_PORT = 6080;
 
+const VIEW_READY_SECONDS = 30;
+
+/**
+ * Waits, up to `VIEW_READY_SECONDS`, for the screen's port to listen. A
+ * desktop just started or restarted takes a few seconds to bring it up, and
+ * a frame loaded before then stays on the preview proxy's error page.
+ */
+const VIEW_READY_COMMAND = `bash -c 'for _ in $(seq ${VIEW_READY_SECONDS * 2}); do (: < /dev/tcp/127.0.0.1/${DESKTOP_VIEW_PORT}) 2>/dev/null && exit 0; sleep 0.5; done'`;
+
 /** A desktop needs more than a workspace: a browser, a screen. */
 export const DESKTOP_LIMITS: SandboxLimits = {
   cpu: 2,
@@ -131,7 +140,10 @@ export const createComputers = ({
   const holderOf = async (
     sandbox: Sandbox
   ): AsyncResult<ComputerHolder, SandboxError> => {
-    const ran = await sandbox.exec(CONTROL_STATUS_COMMAND, { timeoutMs: 5000 });
+    const ran = await sandbox.exec(
+      `${VIEW_READY_COMMAND}; ${CONTROL_STATUS_COMMAND}`,
+      { timeoutMs: VIEW_READY_SECONDS * 1000 + 5000 }
+    );
     return ran.ok
       ? ok(ran.value.stdout.trim() === "user" ? "user" : "agent")
       : ran;
