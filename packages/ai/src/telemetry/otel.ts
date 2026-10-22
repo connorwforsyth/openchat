@@ -9,6 +9,8 @@ import {
 import type { AppConfig } from "@workspace/config/schema";
 import { registerTelemetry, type Telemetry } from "ai";
 
+import { traceAttributesOf } from "./trace-context";
+
 // Developer and ops tracing (D21): AI SDK telemetry exported over OTLP to
 // whatever `observability.otlp` names (Langfuse, Phoenix, any collector).
 // Off by default, and with no config nothing is registered, so the SDK's
@@ -17,7 +19,8 @@ import { registerTelemetry, type Telemetry } from "ai";
 // Spans carry timings, models, token counts and tool names, never message
 // content: prompts and outputs are user data and belong in our Postgres,
 // under our permissions. `observability.recordContent` (Q28) opts in, for a
-// developer's own instance.
+// developer's own instance. Who a call is for (`trace-context.ts`) is not
+// content: it's ids, so the trace viewer can total usage per person.
 
 export interface TelemetryHandle {
   readonly enabled: boolean;
@@ -84,7 +87,10 @@ const unregister = (integration: Telemetry) => {
 };
 
 /** `recordContent` may be left out: config always has it, older callers don't. */
-type ObservabilityConfig = Omit<AppConfig["observability"], "recordContent"> &
+type ObservabilityConfig = Pick<
+  AppConfig["observability"],
+  "otlp" | "serviceName"
+> &
   Partial<Pick<AppConfig["observability"], "recordContent">>;
 
 export const startTelemetry = (
@@ -105,7 +111,10 @@ export const startTelemetry = (
     }),
     spanProcessors: [new BatchSpanProcessor(exporter)],
   });
-  const otel = new OpenTelemetry({ tracer: provider.getTracer("ai") });
+  const otel = new OpenTelemetry({
+    enrichSpan: ({ runtimeContext }) => traceAttributesOf(runtimeContext),
+    tracer: provider.getTracer("ai"),
+  });
   const recordContent =
     options.recordContent ?? observability.recordContent ?? false;
   const integration = recordContent ? otel : withoutContent(otel);

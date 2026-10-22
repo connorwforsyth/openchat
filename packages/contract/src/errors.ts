@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { microUsdSchema } from "./schemas/common";
 import { healthSchema } from "./schemas/health";
+import { spaceRefSchema } from "./schemas/spaces";
 import { principalSchema } from "./schemas/tenancy";
 import { budgetPeriodSchema } from "./schemas/usage";
 
@@ -23,6 +24,8 @@ export const conflictReasonSchema = z.enum([
   "last_owner",
   "run_active",
   "not_empty",
+  "schedule_completed",
+  "target_archived",
 ]);
 export type ConflictReason = z.infer<typeof conflictReasonSchema>;
 
@@ -38,6 +41,12 @@ export const budgetExceededDataSchema = z.object({
   principal: principalSchema,
   resetsAt: z.iso.datetime({ offset: true }),
   usedMicros: microUsdSchema,
+});
+
+/** The space whose monthly token allowance (192) the caller has used up. */
+export const allowanceSpentDataSchema = z.object({
+  resetsAt: z.iso.datetime({ offset: true }),
+  space: spaceRefSchema,
 });
 
 /** Errors any authenticated procedure can return. */
@@ -74,8 +83,17 @@ export const conflictError = {
   },
 } as const;
 
-/** Before a run is created (D24): the user's, team's or org's budget is spent. */
+/**
+ * Before a run is created (D24): the user's, team's or org's budget is
+ * spent, or the caller's token allowance in the chat's space or a space
+ * above it is (192).
+ */
 export const budgetError = {
+  ALLOWANCE_SPENT: {
+    data: allowanceSpentDataSchema,
+    message: "Your token allowance in this space is spent for the month.",
+    status: 402,
+  },
   BUDGET_EXCEEDED: {
     data: budgetExceededDataSchema,
     message: "The budget for this period is spent.",
@@ -129,6 +147,7 @@ export const readinessError = {
  * doesn't resolve or can't take the request (tools on a model without them).
  */
 export const llmProxyErrors = {
+  ALLOWANCE_SPENT: budgetError.ALLOWANCE_SPENT,
   BUDGET_EXCEEDED: budgetError.BUDGET_EXCEEDED,
   FORBIDDEN: baseErrors.FORBIDDEN,
   PROVIDER_UNAVAILABLE: providerError.PROVIDER_UNAVAILABLE,
@@ -151,6 +170,7 @@ export const errorCodeSchema = z.enum([
   "VALIDATION",
   "RATE_LIMITED",
   "BUDGET_EXCEEDED",
+  "ALLOWANCE_SPENT",
   "PROVIDER_UNAVAILABLE",
   "FEATURE_DISABLED",
   "ENCRYPTION_UNAVAILABLE",

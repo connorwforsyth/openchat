@@ -80,6 +80,7 @@ const main = async () => {
         tmpMb: env.SANDBOX_TMP_MB,
         user: env.SANDBOX_USER,
       },
+      desktopImage: env.SANDBOX_DESKTOP_IMAGE,
       egress: egressPolicy(env),
       idleMs: env.SANDBOX_IDLE_MINUTES * 60_000,
       previewTemplate,

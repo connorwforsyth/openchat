@@ -9,6 +9,7 @@ import { createArtifactTools } from "@workspace/ai/tools/artifacts";
 import { instanceArtifactKinds } from "@workspace/artifacts-kit/instance";
 import type { ArtifactKindRegistry } from "@workspace/artifacts-kit/registry";
 import type { AppConfig } from "@workspace/config/schema";
+import type { ModelSelector } from "@workspace/contract/schemas/models";
 import type { Db } from "@workspace/db/client";
 
 import {
@@ -17,6 +18,15 @@ import {
 } from "./api/artifacts-context";
 import type { ApiServices } from "./api/router";
 import { type ConversationAccess, grantAccess } from "./context";
+import {
+  type DotComputers,
+  dbDotConversation,
+  withDotComputer,
+} from "./dots/computer";
+import { dotJobHandlers } from "./dots/jobs";
+import { settleScheduleRun } from "./dots/schedules";
+import type { DotDeps, EnsureDotWorkspace } from "./dots/service";
+import { dbDotPolicy, withDotPolicy } from "./dots/turn";
 import { createEvalJobHandlers } from "./evals/run";
 import { coreJobHandlers, shouldTitle } from "./jobs/handlers";
 import {
@@ -63,8 +73,12 @@ export interface ServicesOptions {
   /** Grant check; 025 passes 012's `checkAccess`. Defaults to the grant-aware one in `context`. */
   readonly access?: ConversationAccess;
   readonly budget?: BudgetCheck;
+  /** A Dot's own computer (172); without it Dots have none. */
+  readonly computers?: DotComputers;
   readonly config: AppConfig;
   readonly db: Db;
+  /** Creates a Dot's workspace on its provider before its first run (172). */
+  readonly ensureDotWorkspace?: EnsureDotWorkspace;
   /** Background jobs; `null` runs without titles or pruning. */
   readonly jobs: JobQueue<Jobs> | null;
   /** Keys from the database (012/013); defaults to instance keys from app.config.yaml. */
@@ -92,7 +106,7 @@ export interface ServicesOptions {
     | "knowledge"
     | "mcp"
     | "mcpFor"
-    | "mcpServersFor"
+    | "mcpSelectionFor"
     | "orgPolicy"
     | "routeAuto"
     | "sandbox"
@@ -101,9 +115,22 @@ export interface ServicesOptions {
   >;
 }
 
+/**
+ * The model a schedule on an ordinary chat answers with (175): the
+ * configured one, else the `fast` alias, else the instance default. Cheap
+ * by default, since nobody's watching what it spends.
+ */
+export const scheduleModel = (config: AppConfig): ModelSelector | null =>
+  config.schedules.defaultModel ??
+  (config.models.aliases.fast ? "fast" : null) ??
+  config.models.auto.cheap ??
+  config.models.default;
+
 export interface Services extends ApiServices {
   /** The artifact kinds this instance offers, with its settings applied (125). */
   readonly artifactKinds: ArtifactKindRegistry;
+  /** What the Dots API and jobs run on (172). */
+  readonly dots: DotDeps;
   readonly executor: InProcessExecutor;
   /** Handlers for the jobs this package owns; pass them to `registerJobs`. */
   readonly jobHandlers: JobHandlers;
@@ -155,9 +182,13 @@ export const createServices = (options: ServicesOptions): Services => {
   const loadModel = createModelLoader(turnDeps);
   const streams = createPostgresStreamChannel({ db, listen: options.listen });
 
+  const access = options.access ?? grantAccess(db);
   const afterRun = async (event: RunSettled) => {
     await recordRunUsage(db, config.models.prices, event).catch(
       (cause: unknown) => report("couldn't record usage", cause)
+    );
+    await settleScheduleRun(db, event.run.id, event.status).catch(
+      (cause: unknown) => report("couldn't record a scheduled run", cause)
     );
     if (!jobs) {
       return;
@@ -192,10 +223,25 @@ export const createServices = (options: ServicesOptions): Services => {
     now: options.now,
     onSettled: afterRun,
     report,
-    // Memory wraps whichever resolver runs, so scripted test turns get it too.
-    resolveTurn: withChatMemory(
-      options.resolveTurn ?? createTurnResolver(turnDeps),
-      { db, report, settings: memory }
+    // Memory wraps whichever resolver runs, so scripted test turns get it
+    // too; a Dot's unattended policy (172) goes on last, over every tool.
+    // A Dot's computer joins before the unattended policy sees the tools.
+    resolveTurn: withDotPolicy(
+      withDotComputer(
+        withChatMemory(options.resolveTurn ?? createTurnResolver(turnDeps), {
+          db,
+          report,
+          settings: memory,
+        }),
+        options.computers,
+        dbDotConversation(db)
+      ),
+      dbDotPolicy({
+        access,
+        db,
+        limits: config.schedules,
+        now: options.now,
+      })
     ),
     timeoutMs: config.limits.runTimeoutSeconds * 1000,
     writer: streams,
@@ -226,16 +272,29 @@ export const createServices = (options: ServicesOptions): Services => {
     },
   });
 
+  const budget = options.budget ?? budgetCheck(db, options.now);
+  const dots: DotDeps = {
+    access,
+    db,
+    defaultModel: scheduleModel(config),
+    ensureWorkspace: options.ensureDotWorkspace,
+    limits: config.schedules,
+    now: options.now ?? (() => new Date()),
+    runs: { budget, db, defaultModel: config.models.default, executor },
+  };
+
   return {
-    access: options.access ?? grantAccess(db),
+    access,
     artifactKinds,
-    budget: options.budget ?? budgetCheck(db, options.now),
+    budget,
     db,
     defaultModel: config.models.default,
+    dots,
     executor,
     jobHandlers: {
       ...jobHandlers,
       ...testChatJobHandlers({ db, now: options.now }),
+      ...dotJobHandlers({ ...dots, queue: jobs }),
       ...createEvalJobHandlers({
         db,
         loadModel,

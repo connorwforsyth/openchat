@@ -16,6 +16,7 @@ import {
   type SealedSecret,
   seal,
 } from "@workspace/mcp/crypto";
+import { checkUserServer } from "@workspace/mcp/effective";
 import { type AsyncResult, err, ok } from "@workspace/shared/result";
 
 import type { Caller } from "./access";
@@ -243,6 +244,12 @@ export const prepareDefinition = async (
     case "skill":
       return await prepareSkill(deps, caller, input, previous);
     case "mcp_server": {
+      const allowed = deps.userServers
+        ? checkUserServer(deps.userServers, input)
+        : ok(undefined);
+      if (!allowed.ok) {
+        return err(invalid(allowed.error.message, ["definition", "url"]));
+      }
       const secret = secretChange(deps, input, previous);
       if ("error" in secret) {
         return err(secret.error);

@@ -7,11 +7,17 @@ import type {
   CreateRunOutput,
   RunOptions,
 } from "@workspace/contract/schemas/runs";
+import type { SpaceRef } from "@workspace/contract/schemas/spaces";
 import { listArtifacts } from "@workspace/db/queries/artifacts";
 import { getRun } from "@workspace/db/queries/runs";
+import { setSpaceAllowance } from "@workspace/db/queries/spaces";
 import { personalOrgOf } from "@workspace/db/queries/teams";
-import { listTransactions, setBudget } from "@workspace/db/queries/usage";
-import { expectOk } from "@workspace/db/testing";
+import {
+  listTransactions,
+  recordTransaction,
+  setBudget,
+} from "@workspace/db/queries/usage";
+import { expectOk, seedOrg } from "@workspace/db/testing";
 import { err, ok } from "@workspace/shared/result";
 import { tool } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
@@ -26,7 +32,7 @@ import type { SandboxToolSource } from "./sandbox";
 // this chat can pay for; a call asks first (or not, with `approval: auto`);
 // an approved call writes each picture into the workspace, saves it as an
 // `image` artifact and records its cost; a planning run never sees it; and
-// a spent hard budget stops it before anything is drawn.
+// a spent hard budget or space allowance stops it before anything is drawn.
 
 const MODEL = "test:chat";
 const IMAGE_MODEL = "test:pixel";
@@ -88,10 +94,11 @@ const memoryWorkspace = () => {
 
 const send = async (
   harness: Harness,
-  options?: Partial<RunOptions>
+  options?: Partial<RunOptions>,
+  context?: SpaceRef
 ): Promise<{ conversationId: ConversationId; runId: RunId }> => {
   const chat = await harness.request("/api/conversations", {
-    json: {},
+    json: context ? { context } : {},
     method: "POST",
   });
   const conversationId = ((await chat.json()) as Conversation).id;
@@ -266,5 +273,45 @@ describe("generate_image in a plain chat", () => {
     await send(h);
     expect(pixel.calls).toEqual([]);
     expect(JSON.stringify(prompts.at(-1))).toContain("budget");
+  });
+
+  it("draws nothing once the space's token allowance is spent (192)", async () => {
+    const pixel = mockImageModel();
+    const model = scripted([draw]);
+    h = await createHarness({
+      images: { approval: "auto", models: imageModels(pixel) },
+      models: { [MODEL]: model },
+      realTurns: true,
+    });
+    const harness = h;
+    const orgId = (await seedOrg(harness.db, harness.ownerId)).id;
+    const space: SpaceRef = { id: orgId, type: "org" };
+    await setSpaceAllowance(harness.db, {
+      monthlyTokens: 100,
+      orgId,
+      space,
+      userId: harness.ownerId,
+    });
+    // As with the budget above, the pool runs dry once the run has begun.
+    let calls = 0;
+    model.doStream = async () => {
+      calls += 1;
+      if (calls > 1) {
+        return textStream("Done.");
+      }
+      await recordTransaction(harness.db, {
+        context: space,
+        costMicros: 0,
+        kind: "chat",
+        model: MODEL,
+        orgId,
+        paidBy: { type: "instance" },
+        usage: { inputTokens: 100, outputTokens: 0 },
+        userId: harness.ownerId,
+      });
+      return draw();
+    };
+    await send(h, undefined, space);
+    expect(pixel.calls).toEqual([]);
   });
 });

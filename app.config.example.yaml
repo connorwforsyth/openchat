@@ -15,7 +15,12 @@ brand:
   name: openchat
   appId: dev.openchat.app
   urlScheme: openchat
+  # SVG, PNG or JPEG, relative to this file. One SVG is enough: drawn in
+  # currentColor it follows the theme; with its own colours it's shown as is.
   logo: ./brand/logo.svg
+  # logoDark: ./brand/logo-dark.svg   # a multi-colour logo's dark-theme version
+  # favicon: ./brand/icon.svg         # the square mark for tab and home-screen icons
+  # iconBackground: black             # behind the mark on home-screen icons
 
 auth:
   signup: invite            # open | invite | domain | sso; the first user is always admin
@@ -23,6 +28,17 @@ auth:
   oidc: []                  # SSO: [{ id, name, issuer, clientId, clientSecret }]
   # social:
   #   github: { clientId: ${GITHUB_CLIENT_ID}, clientSecret: ${GITHUB_CLIENT_SECRET} }
+  # Sign in with Microsoft (Entra ID). Off until both credentials are set;
+  # see docs/self-hosting.md, "Sign in with Microsoft (Entra ID)".
+  # microsoft:
+  #   clientId: ${MICROSOFT_CLIENT_ID}
+  #   clientSecret: ${MICROSOFT_CLIENT_SECRET}
+  #   tenantId: organizations   # common | organizations | consumers | <tenant GUID or domain>
+  #   allowedDomains: []        # e.g. [contoso.com]; empty allows any. A filter, not a security boundary
+  #   allowedTenants: []        # tenant GUIDs (the `tid` claim); empty allows any
+  #   autoProvision: false      # true: allowed users get an account without an invite; needs a tenant GUID or allowedTenants
+  #   name: Microsoft           # the button reads "Continue with <name>"
+  #   photo: { enabled: true, maxBytes: 1048576 }
 
 providers:
   anthropic: { apiKey: "${ANTHROPIC_API_KEY}" }
@@ -95,6 +111,7 @@ icons: { set: lucide }      # e.g. { set: material, style: rounded, weight: 400,
 fonts: { sans: geist, mono: geist-mono }
 
 observability: { otlp: null, recordContent: false }   # otlp: { endpoint: "${OTEL_EXPORTER_OTLP_ENDPOINT}" }; recordContent puts prompts on spans
+# userTracesUrl: "https://cloud.langfuse.com/project/<project-id>/users/{userId}"   # admins get a link from Settings → Usage
 
 limits:
   requestsPerMinute: 60
@@ -102,12 +119,73 @@ limits:
   memoryMaxChars: 8000
   # budgets: { user: { period: month, limitMicros: 20000000 } }   # 20 USD
 
+# Scheduled tasks run unattended and spend tokens with nobody watching, so
+# these guardrails are on by default (all optional; these are the defaults).
+# schedules:
+#   minIntervalMinutes: 60      # the shortest gap a recurring task may have
+#   maxRunsPerUserPerDay: 24    # rolling 24 hours, "Run now" included
+#   runStepBudget: 8            # agent steps per run
+#   runTokenBudget: 20000       # input + output tokens per run
+#   defaultModel: fast          # for tasks on ordinary chats (null: `fast` if aliased)
+
 features:
   importers: true
   publicLinks: false
 
+# Connectors (184): MCP servers you offer every user. Each user sees them in
+# Settings > Connectors and can turn them on or off, unless you say otherwise:
+#   default: on | off | required   on (the default) or off until a user flips it;
+#                                  required is always on and can't be turned off
+#   allowUserOverride: false       fixes the toggle at `default` (shown locked)
+#   reason: "..."                  shown next to a locked toggle
+#   tools: { allow: [...], deny: [...], required: [...] }   by the server's own tool names;
+#     denied tools never reach users; required ones stay on (users switch the rest, 188)
+# Secrets go in ${ENV} references, never in this file. A header or env value
+# whose variable is unset marks only that server "needs setup"; boot carries on.
+# stdio servers run in the desktop app only; the web app lists them as such.
 mcp:
-  servers: []               # instance-wide: [{ name, url, transport: http }]
+  servers: []
+  # servers:
+  #   # A remote (Streamable HTTP) server with a token from the environment.
+  #   - name: docs                      # tool prefix: docs__search, ...
+  #     title: Company docs
+  #     description: Search the handbook and runbooks
+  #     url: https://mcp.example.com/mcp
+  #     headers: { Authorization: "${DOCS_MCP_AUTHORIZATION}" }   # e.g. "Bearer ..."
+  #     tools: { deny: [delete_page] }
+  #   # Each user signs in with their own account (per-user OAuth tokens).
+  #   - name: tracker
+  #     url: https://mcp.tracker.example.com/mcp
+  #     auth: { type: oauth, scopes: [read] }
+  #     default: off
+  #   # Always on for everyone; users see why it's locked.
+  #   - name: audit
+  #     title: Audit log
+  #     url: "${AUDIT_MCP_URL:-http://audit-mcp:8080/mcp}"
+  #     default: required
+  #     reason: Required by IT for compliance
+  #   # A local stdio server, for the desktop app.
+  #   - name: files
+  #     transport: stdio
+  #     command: npx
+  #     args: ["-y", "@modelcontextprotocol/server-filesystem", "~/Documents"]
+  #     default: off
+  # Whether users may add their own servers in the MCP Library.
+  userServers:
+    allowed: true
+    transports: [http, sse]
+    hosts: []                 # e.g. ["*.example.com"]; empty means any public host
+
+# What the UI calls a feature, and where it lives (docs/self-hosting.md,
+# "Renaming features for your fork"). Code, the database and the API keep
+# the id (`mcp`); only the words and the settings address change.
+# terms:
+#   mcp:
+#     label: MCP servers      # default; plural, for headings and menus
+#     singular: MCP server    # one of them, used mid-sentence
+#     slug: mcp               # → /settings/mcp (old addresses redirect here)
+#     locales:                # for languages that inflect
+#       de: { label: MCP-Server, singular: MCP-Server }
 
 artifacts:
   origin: null              # a separate origin for artifacts and previews, e.g. https://artifacts.example.com
@@ -124,3 +202,16 @@ artifacts:
         - https://fonts.gstatic.com
         - https://cdnjs.cloudflare.com
         - https://cdn.jsdelivr.net
+
+# Voice conversations (docs/voice.md). Off until configured: no URLs (local)
+# or no key (openai) and the call button stays hidden.
+#   local:  `docker compose --profile voice up -d` runs Whisper (Speaches) and
+#           Kokoro; both stay on this machine.
+#   openai: OpenAI's audio API and, for speech to speech, Realtime. The key
+#           falls back to providers.openai.apiKey.
+voice:
+  provider: local           # local | openai
+  stt: { url: "${VOICE_STT_URL}", model: Systran/faster-whisper-base.en }
+  tts: { url: "${VOICE_TTS_URL}", model: kokoro, voice: af_heart }
+  # openai: { apiKey: "${OPENAI_API_KEY}", sttModel: gpt-4o-mini-transcribe, ttsModel: gpt-4o-mini-tts, voice: alloy, realtimeModel: gpt-realtime }
+  maxUploadMb: 10

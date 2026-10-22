@@ -161,7 +161,7 @@ function useAgentGroupLabel() {
       case "shared":
         return t`Shared with me`;
       case "libraries":
-        return t`Team & org agents`;
+        return t`Space agents`;
       case null:
         return t`Agents`;
       default:

@@ -4,6 +4,7 @@ import { Trans } from "@lingui/react/macro";
 import { QueryClient, useQuery } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { createWebAuthClient } from "@workspace/auth/client";
+import { SidebarLayoutProvider } from "@workspace/chat-ui/shell/sidebar-layout";
 import {
   type ShellLayoutState,
   useShellLayout,
@@ -13,7 +14,12 @@ import {
   themeSchema,
 } from "@workspace/chat-ui/sidebar/account-menu";
 import { createApiClient, createQueryUtils } from "@workspace/client/api";
-import type { Me, PublicConfig } from "@workspace/contract/schemas/meta";
+import type {
+  Me,
+  PublicConfig,
+  SidebarLayoutSetting,
+  UserSettings,
+} from "@workspace/contract/schemas/meta";
 import type { RunTarget } from "@workspace/contract/schemas/runs";
 import type { ChatContext, Org } from "@workspace/contract/schemas/tenancy";
 import { CircleAlertIcon } from "@workspace/icons";
@@ -54,7 +60,18 @@ import {
   gatePersister,
   PERSIST_MAX_AGE_MS,
 } from "./query-persistence";
+import {
+  openSettings as openSettingsView,
+  type SettingsSection,
+} from "./settings/settings-route";
 import { SHELL_LAYOUT_KEY, SIDEBAR_ATTRIBUTE } from "./shell-prepaint";
+import { useSidebarLayoutSetting } from "./sidebar-layout";
+import {
+  readActiveSpace,
+  spaceFromQuery,
+  writeActiveSpace,
+} from "./spaces/active-space";
+import { useTerms } from "./terms";
 import { useAfterBoot } from "./use-after-boot";
 
 // The signed-in app's client frame (039): the query cache (persisted to
@@ -83,9 +100,14 @@ export interface AppFrameValue {
   /** Opens "New organisation" (the account menu's). */
   readonly openNewOrg: () => void;
   readonly openPalette: () => void;
+  /** Opens settings, full screen over the current page (185). */
+  readonly openSettings: (section?: SettingsSection) => void;
   readonly paletteOpen: boolean;
   readonly setPaletteOpen: (open: boolean) => void;
+  readonly setSidebarLayout: (layout: SidebarLayoutSetting) => void;
   readonly setTheme: (theme: Theme) => void;
+  /** Rail or classic (181), the user's choice in Settings → Appearance. */
+  readonly sidebarLayout: SidebarLayoutSetting;
   readonly signOut: () => void;
   readonly theme: Theme;
 }
@@ -135,7 +157,10 @@ const useNewOrg = () => {
     setOpen(true);
   }, []);
   const created = useCallback(
-    (org: Org) => router.push(routes.adminOrg(org.id, "teams")),
+    (org: Org) =>
+      router.push(
+        routes.spaceSettings({ id: org.id, type: "org" }, "space-subspaces")
+      ),
     [router]
   );
   const dialog = used ? (
@@ -286,15 +311,41 @@ const Frame = ({
 }) => {
   const layout = useSharedShellLayout();
   const { setTheme, theme } = useFrameTheme();
+  const [sidebarLayout, setSidebarLayout] = useSidebarLayoutSetting(me.user.id);
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const [draftContext, setDraftContext] = useState<ChatContext>({
+  const [draftContext, setDraftContextState] = useState<ChatContext>({
     type: "personal",
   });
+  // The active space (191) is remembered per browser; read after mount so
+  // the server render and the first client render agree.
+  // A link to one space's settings (`?space=team:<id>`) makes it active.
+  useEffect(() => {
+    const linked = spaceFromQuery(window.location.search);
+    if (linked) {
+      writeActiveSpace(window.localStorage, linked);
+    }
+    setDraftContextState(linked ?? readActiveSpace(window.localStorage));
+  }, []);
+  const setDraftContext = useCallback((context: ChatContext) => {
+    setDraftContextState(context);
+    writeActiveSpace(window.localStorage, context);
+  }, []);
   const [target, setTarget] = useState<RunTarget | null>(null);
   const [paletteContext, setPaletteContext] = useState<
     PaletteContext | undefined
   >();
   const openPalette = useCallback(() => setPaletteOpen(true), []);
+  const terms = useTerms();
+  const openSettings = useCallback(
+    (section?: SettingsSection) =>
+      openSettingsView(
+        window.history,
+        window.location.pathname,
+        terms,
+        section
+      ),
+    [terms]
+  );
   const booted = useAfterBoot();
   const newOrg = useNewOrg();
   const { openNewOrg } = newOrg;
@@ -314,32 +365,41 @@ const Frame = ({
       me,
       openNewOrg,
       openPalette,
+      openSettings,
       paletteOpen,
       setPaletteOpen,
+      setSidebarLayout,
       setTheme,
+      sidebarLayout,
       signOut: onSignOut,
       theme,
     }),
     [
       config,
       draftContext,
+      setDraftContext,
       layout,
       me,
       onSignOut,
       openNewOrg,
       openPalette,
+      openSettings,
       paletteContext,
       paletteOpen,
+      setSidebarLayout,
       setTheme,
+      sidebarLayout,
       target,
       theme,
     ]
   );
   return (
     <AppFrameContext.Provider value={value}>
-      {children}
-      {booted && surfaces ? <GlobalSurfaces /> : null}
-      {newOrg.dialog}
+      <SidebarLayoutProvider value={sidebarLayout}>
+        {children}
+        {booted && surfaces ? <GlobalSurfaces /> : null}
+        {newOrg.dialog}
+      </SidebarLayoutProvider>
     </AppFrameContext.Provider>
   );
 };
@@ -348,12 +408,15 @@ export const AppFrame = ({
   children,
   config,
   initialMe,
+  initialSettings = null,
   surfaces = true,
 }: {
   readonly children: ReactNode;
   readonly config: PublicConfig;
   /** From the server when it could ask; the browser asks otherwise. */
   readonly initialMe: Me | null;
+  /** Likewise; the server renders the user's sidebar layout from it. */
+  readonly initialSettings?: UserSettings | null;
   /**
    * The palette, the `?` dialog and the shortcuts every page shares. Quick
    * AI's page (118) goes without: it's one page in a window of its own.
@@ -379,6 +442,9 @@ export const AppFrame = ({
     created.setQueryData(query.meta.config.queryKey(), config);
     if (initialMe) {
       created.setQueryData(query.me.get.queryKey(), initialMe);
+    }
+    if (initialSettings) {
+      created.setQueryData(query.me.settings.queryKey(), initialSettings);
     }
     return created;
   });

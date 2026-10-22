@@ -13,6 +13,8 @@
 @theme inline {
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-unread: var(--unread);
+  --color-window: var(--window);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-accent: var(--sidebar-accent);
@@ -52,9 +54,39 @@
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
   --font-sans: var(--font-sans);
+  /* A Dot's avatar colours (172): `bg-dot-sea`, `text-dot-ember`, … */
+  --color-dot-ember: var(--dot-ember);
+  --color-dot-sun: var(--dot-sun);
+  --color-dot-moss: var(--dot-moss);
+  --color-dot-sea: var(--dot-sea);
+  --color-dot-dusk: var(--dot-dusk);
+  --color-dot-bloom: var(--dot-bloom);
+  /*
+   * A Dot's idle life (172): a slow breath and a slow drift, transform and
+   * opacity only. Use with `motion-safe:` so reduced motion holds it still.
+   */
+  --animate-dot-breathe: dot-breathe var(--motion-ambient)
+    var(--ease-motion-in-out) infinite;
+  --animate-dot-drift: dot-drift calc(var(--motion-ambient) * 3) linear infinite;
   /* Motion easings (D28): `ease-motion-out`, `ease-motion-in-out`. */
   --ease-motion-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-motion-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  @keyframes dot-breathe {
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.06);
+      opacity: 0.88;
+    }
+  }
+  @keyframes dot-drift {
+    to {
+      transform: rotate(360deg);
+    }
+  }
 }
 
 :root {
@@ -92,6 +124,16 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  /* The sidebar's unread dot: an accent blue, apart from the neutral primary. */
+  --unread: oklch(0.6 0.2 255);
+  /* The window behind the rail and the inset cards (181): a step below the page. */
+  --window: oklch(0.967 0 0);
+  --dot-ember: oklch(0.68 0.19 35);
+  --dot-sun: oklch(0.8 0.15 80);
+  --dot-moss: oklch(0.68 0.14 150);
+  --dot-sea: oklch(0.65 0.13 230);
+  --dot-dusk: oklch(0.58 0.18 290);
+  --dot-bloom: oklch(0.7 0.17 350);
   /*
    * Motion (D28, AGENTS.md "Motion"): four durations and one exit. Things
    * appear at once (--motion-instant) and fade out over --motion-exit; only
@@ -102,6 +144,8 @@
   --motion-base: 250ms;
   --motion-slow: 350ms;
   --motion-exit: 150ms;
+  /* Ambient loops (a Dot's breath, 172): slow, and never on a keypress. */
+  --motion-ambient: 4s;
   /*
    * How far things travel as they enter and leave, as a multiplier on their
    * offset: sheets slide in by `calc(100% * var(--motion-travel))`.
@@ -151,6 +195,14 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --unread: oklch(0.7 0.16 250);
+  --window: oklch(0.115 0 0);
+  --dot-ember: oklch(0.72 0.17 35);
+  --dot-sun: oklch(0.84 0.14 80);
+  --dot-moss: oklch(0.74 0.13 150);
+  --dot-sea: oklch(0.72 0.12 230);
+  --dot-dusk: oklch(0.68 0.16 290);
+  --dot-bloom: oklch(0.76 0.15 350);
 }
 
 /*

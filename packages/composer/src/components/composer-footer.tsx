@@ -7,6 +7,7 @@ import {
   ArrowUpIcon,
   FileTextIcon,
   GlobeIcon,
+  NetworkIcon,
   StopIcon,
   ZapIcon,
 } from "@workspace/icons";
@@ -17,7 +18,7 @@ import {
 import { useCallback, useRef } from "react";
 
 import { useModelVariants } from "../hooks/use-model-variants";
-import type { ComposerAppearance } from "../props";
+import type { ComposerAppearance, ComposerMcp } from "../props";
 import type {
   AgentOption,
   FileCandidate,
@@ -39,6 +40,8 @@ export interface ComposerFooterProps {
   readonly canSubmit: boolean;
   readonly disabled: boolean;
   readonly files: readonly FileCandidate[];
+  /** This chat's mcp (188), for the + menu and the "differs" chip. */
+  readonly mcp?: ComposerMcp | undefined;
   readonly models: readonly ModelOption[];
   readonly onAddFile: ((file: FileCandidate) => void) | undefined;
   readonly onAddSkill?: ((skill: SkillOption) => void) | undefined;
@@ -74,6 +77,7 @@ export function ComposerFooter({
   attachDisabled,
   busy,
   canSubmit,
+  mcp,
   disabled,
   files,
   models,
@@ -96,6 +100,7 @@ export function ComposerFooter({
   webSearch,
 }: ComposerFooterProps) {
   const { t } = useLingui();
+  const mcpLabel = mcp?.term.label ?? "";
   const plusRef = useRef<HTMLButtonElement>(null);
   const variants = useModelVariants({
     models,
@@ -116,6 +121,10 @@ export function ComposerFooter({
     onPlanChange?.(false);
     plusRef.current?.focus();
   }, [onPlanChange]);
+  const resetMcp = useCallback(() => {
+    mcp?.onReset();
+    plusRef.current?.focus();
+  }, [mcp]);
   const turnOffFast = useCallback(() => {
     setFast(false);
     plusRef.current?.focus();
@@ -139,6 +148,7 @@ export function ComposerFooter({
           disabled={disabled}
           fast={picking ? variants.fast : undefined}
           files={files}
+          mcp={mcp}
           onAddFile={onAddFile}
           onAddSkill={onAddSkill}
           onAttach={onAttach}
@@ -184,6 +194,23 @@ export function ComposerFooter({
             <GlobeIcon aria-hidden />
             <span className="max-sm:sr-only">
               <Trans>Search</Trans>
+            </span>
+          </InputGroupButton>
+        ) : null}
+        {mcp?.customized ? (
+          <InputGroupButton
+            aria-label={t`${mcpLabel} differ from your defaults in this chat. Reset them`}
+            className="rounded-full text-foreground"
+            disabled={disabled}
+            onClick={resetMcp}
+            size="sm"
+            title={t`Reset to my defaults`}
+            type="button"
+            variant="ghost"
+          >
+            <NetworkIcon aria-hidden />
+            <span className="max-sm:sr-only">
+              <Trans>Custom tools</Trans>
             </span>
           </InputGroupButton>
         ) : null}

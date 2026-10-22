@@ -10,6 +10,7 @@ import {
 import type { z } from "zod";
 
 import type {
+  CreateSandboxSpec,
   ExecOptions,
   Sandbox,
   SandboxError,
@@ -48,6 +49,13 @@ export interface DockerClientOptions {
 }
 
 export interface DockerSandboxFactory extends SandboxFactory {
+  /**
+   * A desktop sandbox (a Dot's computer, 172): idempotent, like `create`,
+   * and outside the conversation's workspace record.
+   */
+  readonly createDesktop: (
+    spec: Pick<CreateSandboxSpec, "id" | "limits">
+  ) => AsyncResult<Sandbox, SandboxError>;
   /** The runner's runtime and isolation, for the panel and the admin warning. */
   readonly runnerStatus: () => AsyncResult<RunnerStatus, SandboxError>;
 }
@@ -299,6 +307,15 @@ export const createDockerSandboxFactory = ({
           limits: spec.limits,
           snapshotRef: spec.snapshotRef,
         }
+      );
+      return created.ok ? ok(handle(spec.id)) : created;
+    },
+    createDesktop: async (spec) => {
+      const created = await call(
+        sandboxStateResponseSchema,
+        "POST",
+        runnerPaths.sandboxes,
+        { id: spec.id, limits: spec.limits, variant: "desktop" }
       );
       return created.ok ? ok(handle(spec.id)) : created;
     },

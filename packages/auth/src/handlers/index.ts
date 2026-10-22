@@ -2,6 +2,7 @@ import { os } from "./base";
 import { grants, shareLinks } from "./grants";
 import { me } from "./me";
 import { orgs } from "./orgs";
+import { spaces } from "./spaces";
 import { teams } from "./teams";
 
 // The orgs, teams, sharing and `me` procedure groups, implemented against
@@ -9,5 +10,12 @@ import { teams } from "./teams";
 // full router and builds a `HandlerContext` (`@workspace/auth/handlers/context`)
 // per request.
 
-export const authRouter = os.router({ grants, me, orgs, shareLinks, teams });
+export const authRouter = os.router({
+  grants,
+  me,
+  orgs,
+  shareLinks,
+  spaces,
+  teams,
+});
 export type AuthRouter = typeof authRouter;

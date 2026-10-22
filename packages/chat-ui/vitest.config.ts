@@ -60,6 +60,7 @@ export default defineProject({
       "@workspace/client > @orpc/tanstack-query",
       "@workspace/contract > @orpc/contract",
       "@workspace/shared > uuidv7",
+      "@workspace/shortcuts > @tanstack/react-hotkeys",
       "@glideapps/glide-data-grid",
       "@workspace/artifacts-kit > @formulajs/formulajs",
       "@workspace/icons > lucide-react",
@@ -120,7 +121,8 @@ export default defineProject({
       screenshotFailures: false,
       // A desktop-sized frame by default (Vitest's is phone-sized, which is
       // below `md` and gets the sheets); the narrow-screen tests resize it.
-      viewport: { height: 800, width: 1280 },
+      // 1336 is 1280 plus the icon rail and the card's inset (181).
+      viewport: { height: 800, width: 1336 },
     },
     hookTimeout: 60_000,
     include: ["src/**/*.test.{ts,tsx}"],

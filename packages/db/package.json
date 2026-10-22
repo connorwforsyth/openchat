@@ -19,6 +19,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "bun src/migrate.ts",
     "lint": "ultracite check",
+    "spaces:chain": "bun src/seed/spaces-chain.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

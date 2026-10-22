@@ -13,6 +13,7 @@ import {
   tokenUsageSchema,
 } from "@workspace/contract/schemas/models";
 import {
+  isTerminalRunStatus,
   pendingApprovalSchema,
   type RunOptions,
   type RunStatus,
@@ -41,7 +42,12 @@ import {
   type NotFoundError,
   notFound,
 } from "../errors";
-import { ACTIVE_RUN_STATUSES, run, runChunk } from "../schema/chat";
+import {
+  ACTIVE_RUN_STATUSES,
+  type RunUnattended,
+  run,
+  runChunk,
+} from "../schema/chat";
 import type { StoredContext } from "./conversations";
 import {
   decodeCursor,
@@ -69,6 +75,7 @@ export interface NewRun {
   /** `queued` behind `afterRunId` when the branch is busy, else `running` once an executor takes it. */
   readonly status?: Extract<RunStatus, "queued" | "running">;
   readonly target: RunTarget;
+  readonly unattended?: RunUnattended | null;
   readonly userMessageId: MessageId;
 }
 
@@ -94,6 +101,7 @@ export const createRun = async (db: Db, input: NewRun): Promise<CreatedRun> => {
       startedAt: status === "running" ? new Date() : null,
       status,
       target: input.target,
+      unattended: input.unattended ?? null,
       userMessageId: input.userMessageId,
     })
     .onConflictDoNothing({
@@ -157,6 +165,37 @@ export const listActiveRuns = (
     .orderBy(asc(run.createdAt), asc(run.id));
 
 /**
+ * The newest run answering `userMessageId`, when it ended before it ran (a
+ * queued question someone stopped). It still holds its place in the branch
+ * queue: a turn sent under that question waits on it.
+ */
+export const stoppedRunAt = async (
+  db: Db,
+  conversationId: ConversationId,
+  userMessageId: MessageId
+): Promise<RunRow | undefined> => {
+  const [newest] = await db
+    .select()
+    .from(run)
+    .where(
+      and(
+        eq(run.conversationId, conversationId),
+        eq(run.userMessageId, userMessageId)
+      )
+    )
+    .orderBy(desc(run.createdAt), desc(run.id))
+    .limit(1);
+  if (
+    !newest ||
+    newest.assistantMessageId ||
+    !isTerminalRunStatus(newest.status)
+  ) {
+    return;
+  }
+  return newest;
+};
+
+/**
  * Every run in one of `statuses`, oldest first, across all conversations.
  * For boot-time recovery: a run still `running` when the process starts was
  * orphaned by the last one.
@@ -201,15 +240,25 @@ export const runTransitionSchema = z.discriminatedUnion("type", [
     type: z.literal("fail"),
     usage: tokenUsageSchema.optional(),
   }),
+  /** Stop on a run no pass is executing: queued, or waiting on approvals. */
   z.object({
     /** `null` when the system cancelled it. */
     cancelledBy: userIdSchema.nullable(),
     type: z.literal("cancel"),
   }),
+  /**
+   * Stop ending a running run: the pass it aborted settling its own run, or
+   * Stop itself once no pass holds the run (it crashed).
+   */
+  z.object({
+    cancelledBy: userIdSchema.nullable(),
+    type: z.literal("abort"),
+  }),
 ]);
 export type RunTransition = z.infer<typeof runTransitionSchema>;
 
 const TARGET: Record<RunTransition["type"], RunStatus> = {
+  abort: "cancelled",
   await_approval: "awaiting_approval",
   cancel: "cancelled",
   fail: "failed",
@@ -218,10 +267,16 @@ const TARGET: Record<RunTransition["type"], RunStatus> = {
   succeed: "succeeded",
 };
 
-/** Which statuses each transition may leave. Terminal statuses leave to nothing. */
+/**
+ * Which statuses each transition may leave. Terminal statuses leave to
+ * nothing. A `running` run has a pass, and only that pass ends it (or
+ * recovery fails it, or Stop aborts it once the pass is gone), so a cancel
+ * that loses to a claim or a resume must abort the pass instead.
+ */
 const FROM: Record<RunTransition["type"], readonly RunStatus[]> = {
+  abort: ["running"],
   await_approval: ["running"],
-  cancel: ["queued", "running", "awaiting_approval"],
+  cancel: ["queued", "awaiting_approval"],
   fail: ["queued", "running", "awaiting_approval"],
   resume: ["awaiting_approval"],
   start: ["queued"],
@@ -264,6 +319,7 @@ const changesFor = (transition: RunTransition, now: Date) => {
         finishedAt: now,
         ...(transition.usage ? { usage: transition.usage } : {}),
       };
+    case "abort":
     case "cancel":
       return {
         approvals: null,

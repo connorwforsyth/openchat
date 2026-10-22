@@ -2,16 +2,20 @@
 # serves it on http://localhost:3000 with Postgres (docs/self-hosting.md).
 # Every value has a safe default, so it also works without a .env. For
 # development, `docker compose up -d postgres` gives `bun dev` its database.
-# Optional profiles: search (SearXNG), sandbox (Docker sandboxes), artifacts.
+# Optional profiles: search (SearXNG), sandbox (Docker sandboxes), artifacts,
+# voice (Whisper and Kokoro, docs/voice.md).
 services:
   web:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
+      secrets: [ca, npmrc]
       # Icons and fonts are compiled in from app.config.yaml's `icons` and
       # `fonts` blocks: edit it, then `docker compose up -d --build`
       # (docs/self-hosting.md). Nothing about them goes in .env.
     image: openchat-web
+    # A local image: never look for it on Docker Hub.
+    pull_policy: build
     restart: unless-stopped
     depends_on:
       postgres:
@@ -27,6 +31,8 @@ services:
       # Same for the optional services, when their profiles run.
       SANDBOX_RUNNER_URL: http://sandbox-runner:7070
       SEARXNG_URL: ${SEARXNG_URL:+http://searxng:8080}
+      VOICE_STT_URL: ${VOICE_STT_URL:+http://whisper:8000/v1}
+      VOICE_TTS_URL: ${VOICE_TTS_URL:+http://kokoro:8880/v1}
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:${WEB_PORT:-3000}}
     ports:
       # Loopback only: put a TLS proxy in front to serve it to a network.
@@ -98,6 +104,7 @@ services:
     build:
       context: .
       dockerfile: apps/sandbox-runner/Dockerfile
+      secrets: [ca, npmrc]
     profiles: [sandbox]
     restart: unless-stopped
     depends_on: [docker-socket-proxy]
@@ -112,12 +119,23 @@ services:
       SANDBOX_EGRESS: ${SANDBOX_EGRESS:-none}
       SANDBOX_EGRESS_PROXY: ${SANDBOX_EGRESS_PROXY:-}
       SANDBOX_IMAGE: ${SANDBOX_IMAGE:-node:24-bookworm-slim}
+      # A Dot's computer (172): build it with `docker compose --profile sandbox-desktop-build build sandbox-desktop`.
+      SANDBOX_DESKTOP_IMAGE: ${SANDBOX_DESKTOP_IMAGE:-sandbox-desktop:latest}
       SANDBOX_PREVIEW_URL: ${SANDBOX_PREVIEW_URL:-http://{id}-{port}.sandbox.localhost:7071}
     ports:
       - "127.0.0.1:${SANDBOX_RUNNER_PORT:-7070}:7070"
       # Previews: a separate origin from the app (D24).
       - "127.0.0.1:${SANDBOX_PREVIEW_PORT:-7071}:7071"
     networks: [docker-api, default]
+
+  # The desktop image a Dot's computer runs (172). Never started by compose:
+  # the runner starts one container per Dot from it.
+  sandbox-desktop:
+    build:
+      context: apps/sandbox-runner/desktop
+    image: sandbox-desktop:latest
+    pull_policy: build
+    profiles: [sandbox-desktop-build]
 
   # Artifact previews (PLAN.md D24): `docker compose --profile artifacts up -d`,
   # then set ARTIFACTS_ORIGIN. Artifacts render here, on their own origin and
@@ -126,6 +144,7 @@ services:
     build:
       context: .
       dockerfile: apps/artifacts/Dockerfile
+      secrets: [ca, npmrc]
     profiles: [artifacts]
     restart: unless-stopped
     environment:
@@ -139,6 +158,35 @@ services:
     ports:
       - "127.0.0.1:${ARTIFACTS_PORT:-3910}:3910"
 
+  # Voice conversations (docs/voice.md): `docker compose --profile voice up -d`,
+  # then set VOICE_STT_URL and VOICE_TTS_URL. Both speak the OpenAI audio API
+  # and run on CPU, arm64 (Apple Silicon) included. Models download on first
+  # use into the volumes, so the first request is slow.
+  whisper:
+    # Speaches: faster-whisper (and Parakeet via onnx-asr) behind
+    # /v1/audio/transcriptions.
+    image: ghcr.io/speaches-ai/speaches:0.8.3-cpu
+    profiles: [voice]
+    restart: unless-stopped
+    environment:
+      # Keep the model loaded between turns (the default unloads after 5 min).
+      WHISPER__TTL: "-1"
+      WHISPER__CPU_THREADS: ${VOICE_STT_THREADS:-4}
+    # The model downloads once, on request (docs/voice.md):
+    #   curl -X POST localhost:8000/v1/models/Systran/faster-whisper-base.en
+    ports:
+      - "127.0.0.1:${VOICE_STT_PORT:-8000}:8000"
+    volumes:
+      - voice-models:/home/ubuntu/.cache/huggingface/hub
+
+  kokoro:
+    # Kokoro-FastAPI: the 82M-parameter Kokoro voice behind /v1/audio/speech.
+    image: ghcr.io/remsky/kokoro-fastapi-cpu:v0.2.4
+    profiles: [voice]
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${VOICE_TTS_PORT:-8880}:8880"
+
 networks:
   # Only the runner and the proxy are on it, and it has no route out.
   docker-api:
@@ -151,6 +199,17 @@ configs:
       search:
         formats: [html, json]
 
+# Build secrets for a corporate network (docs/self-hosting.md): the text of
+# a root CA that intercepts TLS, and of an .npmrc for a package mirror.
+# Unset, the builds behave as without them. They come from variables, not
+# files, because a build may read only files inside this directory.
+secrets:
+  ca:
+    environment: BUILD_CA_PEM
+  npmrc:
+    environment: BUILD_NPMRC
+
 volumes:
   postgres-data:
+  voice-models:
   web-data:

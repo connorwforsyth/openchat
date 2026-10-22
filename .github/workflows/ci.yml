@@ -16,7 +16,8 @@ jobs:
   ci:
     name: ci
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Passing runs take 13-19 minutes; at 20 the limit cut off healthy runs.
+    timeout-minutes: 30
     env:
       NEXT_TELEMETRY_DISABLED: 1
       TURBO_TELEMETRY_DISABLED: 1
@@ -118,6 +119,53 @@ jobs:
       - name: Test against Postgres 17
         working-directory: packages/db
         run: bunx vitest run
+
+  # The run queue's TLA+ model (.claude/skills/verify-run-queue). check.ts
+  # exits 0 only when every check matches the result it records, so a known
+  # finding marked `violated` passes until its fix flips it to `holds`. Runs
+  # only when the covered code, the model or this file changed: TLC takes a
+  # few minutes and Actions minutes are limited.
+  model:
+    name: model (run queue)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+
+      # HEAD^1 is the base tip on a pull_request merge commit, and the
+      # previous main on a push.
+      - id: filter
+        run: |
+          if git diff --name-only HEAD^1 HEAD | grep -qE '^(packages/server/src/runs/(executor|create-run|state)\.ts|packages/contract/src/schemas/runs\.ts|packages/db/src/queries/runs\.ts|packages/db/src/schema/chat\.ts|\.claude/skills/verify-run-queue/|\.github/workflows/ci\.yml)'; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.filter.outputs.run == 'true'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.0
+
+      # The cache key is the SHA-256 pins in check.ts (tla2tools.jar and
+      # the JREs), so it changes only when a pinned tool does.
+      - if: steps.filter.outputs.run == 'true'
+        id: pins
+        run: echo "hash=$(grep -oE '[0-9a-f]{64}' .claude/skills/verify-run-queue/model/check.ts | sort | sha256sum | cut -c1-16)" >> "$GITHUB_OUTPUT"
+
+      # tla2tools.jar, and the pinned JRE when the runner has no java.
+      # check.ts re-verifies both against its pins.
+      - if: steps.filter.outputs.run == 'true'
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/tla-tools
+          key: tla-tools-${{ runner.os }}-${{ runner.arch }}-${{ steps.pins.outputs.hash }}
+
+      - if: steps.filter.outputs.run == 'true'
+        name: Model-check the run queue
+        run: bun .claude/skills/verify-run-queue/model/check.ts
 
   # End to end (ticket 040, PLAN.md §11 M1). Pushes to main only: it builds
   # the production app and drives it in Chromium, and private-repo Actions

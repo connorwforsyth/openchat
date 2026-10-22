@@ -8,18 +8,36 @@ import {
 } from "@workspace/chat-ui/chat/use-chat-data";
 import { AppHeader } from "@workspace/chat-ui/header/app-header";
 import { AppShell } from "@workspace/chat-ui/shell/app-shell";
+import { useSidebarLayout } from "@workspace/chat-ui/shell/sidebar-layout";
 import { SidebarToggle } from "@workspace/chat-ui/shell/sidebar-toggle";
 import { useNarrowScreen } from "@workspace/chat-ui/shell/use-narrow-screen";
 import { ChatSidebar } from "@workspace/chat-ui/sidebar/chat-sidebar";
+import {
+  type RailDestination,
+  SidebarRail,
+} from "@workspace/chat-ui/sidebar/sidebar-rail";
+import { useSidebarData } from "@workspace/chat-ui/sidebar/use-sidebar-data";
 import type { ConversationId } from "@workspace/contract/schemas/common";
 import { useShortcut } from "@workspace/shortcuts/react/use-shortcut";
 import { usePathname, useRouter } from "next/navigation";
-import { type ReactNode, useCallback, useMemo, useState } from "react";
+import {
+  type ReactNode,
+  Suspense,
+  useCallback,
+  useMemo,
+  useState,
+} from "react";
 
 import { useApi } from "@/app/(app)/_shared/api";
 import { canAdmin, useAppFrame } from "@/app/(app)/_shared/app-frame";
 import { Brand } from "@/app/(app)/_shared/brand";
 import { useShellPlatform } from "@/app/(app)/_shared/desktop";
+import { useSidebarDots } from "@/app/(app)/_shared/sidebar-dots";
+import {
+  SpaceSwitcher,
+  useSidebarSpaces,
+} from "@/app/(app)/_shared/spaces/space-switcher";
+import { RailPanelFor } from "@/app/(app)/(pages)/rail-panels";
 import { routes } from "@/lib/routes";
 
 // Library, settings and admin inside the app shell (009): the same sidebar
@@ -29,12 +47,18 @@ import { routes } from "@/lib/routes";
 
 const noPanel = () => undefined;
 
+// Library, Artifacts and Scheduled have a large heading of their own, so
+// the header names only the pages that don't, as the chat header names only
+// its chat (181): a title shows once.
 const SectionTitle = ({ pathname }: { readonly pathname: string }) => {
-  if (pathname.startsWith(routes.library)) {
-    return <Trans>Library</Trans>;
-  }
-  if (pathname.startsWith(routes.artifacts)) {
-    return <Trans>Artifacts</Trans>;
+  if (
+    pathname.startsWith(routes.library) ||
+    pathname.startsWith(routes.artifacts) ||
+    pathname.startsWith(routes.dots) ||
+    pathname.startsWith(routes.schedules) ||
+    pathname.startsWith(routes.space)
+  ) {
+    return null;
   }
   if (pathname.startsWith(routes.admin)) {
     return <Trans>Admin</Trans>;
@@ -42,10 +66,49 @@ const SectionTitle = ({ pathname }: { readonly pathname: string }) => {
   return <Trans>Settings</Trans>;
 };
 
+/** Which rail button is current on a page. */
+const railDestination = (pathname: string): RailDestination => {
+  // A space's shared agents and skills are a Library section (181, 187).
+  if (
+    pathname.startsWith(routes.library) ||
+    pathname.startsWith(routes.space)
+  ) {
+    return "library";
+  }
+  if (pathname.startsWith(routes.artifacts)) {
+    return "artifacts";
+  }
+  if (pathname.startsWith(routes.dots)) {
+    return "dot";
+  }
+  if (pathname.startsWith(routes.schedules)) {
+    return "scheduled";
+  }
+  return "chats";
+};
+
+/** Destinations whose panel isn't the chat list (181). */
+const ownPanel = (destination: RailDestination): boolean =>
+  destination === "artifacts" ||
+  destination === "library" ||
+  destination === "scheduled";
+
+/**
+ * Whether a page's own panel shows in the sidebar: with the rail on a wide
+ * screen. Classic, and the phone's sheet, keep the chat list everywhere, so
+ * a page then offers the panel's filters itself (the Library's tabs).
+ */
+export const useRailPanels = (): boolean => {
+  const narrow = useNarrowScreen();
+  return useSidebarLayout() === "rail" && !narrow;
+};
+
 export function PageShell({ children }: { readonly children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const narrow = useNarrowScreen();
+  const railed = useSidebarLayout() === "rail";
+  const railPanels = useRailPanels();
   const { query } = useApi();
   const frame = useAppFrame();
   const { layout, me } = frame;
@@ -55,6 +118,16 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
     query.conversations.list.queryOptions({ input: SIDEBAR_LIST_INPUT })
   );
   const update = useConversationUpdate(query);
+  const spaces = useSidebarSpaces(chats.data?.items);
+  const sidebarDots = useSidebarDots(null);
+  const destination = railDestination(pathname);
+  const panel =
+    railPanels && ownPanel(destination) ? (
+      <Suspense>
+        <RailPanelFor destination={destination} />
+      </Suspense>
+    ) : undefined;
+  const sidebarData = useSidebarData(query);
 
   const { toggleSidebar } = layout;
   const toggleChats = useCallback(() => {
@@ -65,6 +138,14 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
     }
   }, [narrow, toggleSidebar]);
   useShortcut("sidebar.toggle", toggleChats);
+
+  // The rail's Chats button: back to chatting, with the chat panel open.
+  const showChats = useCallback(() => {
+    if (!layout.layout.sidebarOpen) {
+      toggleSidebar();
+    }
+    router.push(routes.home);
+  }, [layout.layout.sidebarOpen, router, toggleSidebar]);
 
   const newChat = useCallback(() => {
     setSheetOpen(false);
@@ -94,7 +175,7 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
     [update]
   );
 
-  const sidebarToggle = (where: "header" | "sidebar") => (
+  const sidebarToggle = (where: "header" | "rail" | "sidebar") => (
     <SidebarToggle
       expanded={narrow ? sheetOpen : layout.layout.sidebarOpen}
       onToggle={toggleChats}
@@ -108,11 +189,34 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
           <SectionTitle pathname={pathname} />
         </span>
       }
-      // The sidebar toggle is here only while the sidebar isn't docked;
-      // otherwise it's in the sidebar's top row (113).
+      // With the rail (181) the sidebar toggle is here only on a narrow
+      // screen; classic puts it here whenever the sidebar is collapsed.
       start={sidebarToggle("header")}
     />
   );
+
+  const sidebarProps = {
+    ...sidebarActions,
+    ...sidebarDots,
+    ...sidebarData,
+    account: {
+      onNewOrg: frame.openNewOrg,
+      // Org owners and admins reach admin too, not only the instance admin.
+      onOpenAdmin: canAdmin(me) ? () => router.push(routes.admin) : undefined,
+      onOpenSettings: () => frame.openSettings(),
+      onSignOut: frame.signOut,
+      onThemeChange: frame.setTheme,
+      theme: frame.theme,
+      user: me.user,
+    },
+    activeId: null,
+    artifactsHref: routes.artifacts,
+    chats: chats.data?.items ?? [],
+    dotsHref: routes.dots,
+    libraryHref: routes.library,
+    onSelect: selectChat,
+    spaces,
+  };
 
   return (
     <AppShell
@@ -123,29 +227,24 @@ export function PageShell({ children }: { readonly children: ReactNode }) {
       panelOpen={false}
       panelWidth={layout.layout.panelWidth}
       platform={platform}
+      rail={
+        railed ? (
+          <SidebarRail
+            {...sidebarProps}
+            current={destination}
+            onShowChats={showChats}
+            toggle={sidebarToggle("rail")}
+          />
+        ) : undefined
+      }
       sidebar={
         <ChatSidebar
-          {...sidebarActions}
-          account={{
-            onNewOrg: frame.openNewOrg,
-            // Org owners and admins reach admin too, not only the instance admin.
-            onOpenAdmin: canAdmin(me)
-              ? () => router.push(routes.admin)
-              : undefined,
-            onOpenSettings: () => router.push(routes.settings()),
-            onSignOut: frame.signOut,
-            onThemeChange: frame.setTheme,
-            theme: frame.theme,
-            user: me.user,
-          }}
-          activeId={null}
-          artifactsHref={routes.artifacts}
-          brand={<Brand config={frame.config} />}
-          chats={chats.data?.items ?? []}
-          libraryHref={routes.library}
+          {...sidebarProps}
+          brand={<SpaceSwitcher fallback={<Brand config={frame.config} />} />}
           onNewChat={newChat}
           onOpenPalette={openPalette}
-          onSelect={selectChat}
+          panel={panel}
+          railed={railed}
           toggle={sidebarToggle("sidebar")}
         />
       }

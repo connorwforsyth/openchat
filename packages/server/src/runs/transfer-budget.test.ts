@@ -1,5 +1,6 @@
 import { createMemoryProviderRegistry } from "@workspace/ai/ports/provider-registry.memory";
 import { textStream, toolCallStream } from "@workspace/ai/testing/mock-models";
+import { appConfigSchema } from "@workspace/config/schema";
 import type {
   ConversationId,
   MessageId,
@@ -92,11 +93,9 @@ describe("wire budget for large MCP results", () => {
       allowPrivateNetworks: true,
       config: {
         brand: { name: "Test" } as never,
-        mcp: {
-          servers: [
-            { headers: {}, name: "big", transport: "http", url: fixture.url },
-          ],
-        },
+        mcp: appConfigSchema.shape.mcp.parse({
+          servers: [{ name: "big", url: fixture.url }],
+        }),
       },
       db,
       env: {},
@@ -112,10 +111,12 @@ describe("wire budget for large MCP results", () => {
       }),
       tools: {
         mcpFor: (id) => mcp.manager.toolSource(id),
-        mcpServersFor: () =>
-          Promise.resolve(
-            mcp.registry.instanceServers.map((server) => server.id)
-          ),
+        mcpSelectionFor: () =>
+          Promise.resolve({
+            disabled: new Set(),
+            enabled: mcp.registry.instanceServers.map((server) => server.id),
+            excludedTools: new Map(),
+          }),
       },
     });
     const app = createApp({

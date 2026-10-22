@@ -41,6 +41,8 @@ import {
 export interface RunnerConfig {
   readonly choice: RuntimeChoice;
   readonly defaults: ContainerDefaults;
+  /** The image `desktop` sandboxes run (172). */
+  readonly desktopImage: string;
   readonly egress: EgressPolicy;
   /** Stop a sandbox's container after this long without calls. */
   readonly idleMs: number;
@@ -243,9 +245,12 @@ export const createRunner = ({
   const resolve = (path: string) => resolveSandboxPath(path, WORKDIR);
 
   /** The volume and networks a sandbox needs, before its container. */
-  const provision = (id: SandboxId, egress: EgressPolicy) =>
+  const provision = (id: SandboxId, egress: EgressPolicy, image: string) =>
     guarded("create the sandbox", async () => {
       await docker.ensureImage(config.defaults.image);
+      if (image !== config.defaults.image) {
+        await docker.ensureImage(image);
+      }
       await docker.createVolume(volumeName(id), {
         [MANAGED_LABEL]: "true",
         [SANDBOX_LABEL]: id,
@@ -297,10 +302,17 @@ export const createRunner = ({
     request: CreateRequest,
     egress: EgressPolicy
   ): AsyncResult<void, SandboxError> => {
-    const { id, limits } = request;
+    const { id, limits, variant } = request;
     const started = await guarded("start the sandbox", async () => {
       await docker.createContainer(
-        buildContainerSpec({ defaults: config.defaults, egress, id, limits })
+        buildContainerSpec({
+          defaults: config.defaults,
+          desktopImage: config.desktopImage,
+          egress,
+          id,
+          limits,
+          variant,
+        })
       );
       if (egress.mode === "open") {
         await docker.connectNetwork(EGRESS_NETWORK, containerName(id));
@@ -337,7 +349,14 @@ export const createRunner = ({
     }
     const egress = effectiveEgress(config.egress, limits);
     const steps = [
-      () => provision(id, egress),
+      () =>
+        provision(
+          id,
+          egress,
+          request.variant === "desktop"
+            ? config.desktopImage
+            : config.defaults.image
+        ),
       () => prepareVolume(id, snapshotRef),
       () => launch(request, egress),
     ];

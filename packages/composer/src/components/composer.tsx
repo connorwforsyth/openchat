@@ -44,7 +44,7 @@ import {
 } from "../options";
 import type { Draft } from "../ports/draft-store";
 import type { PromptHistoryDirection } from "../prompt-history";
-import type { ComposerHandoff, ComposerProps } from "../props";
+import type { ComposerHandoff, ComposerMcp, ComposerProps } from "../props";
 import type {
   AttachmentLimits,
   AttachmentRejection,
@@ -104,12 +104,26 @@ export const READY_MARK = "composer:ready";
  * Client-only: render it through ComposerLoader, which paints ComposerShell
  * first (and on the server) and loads this module as its own chunk.
  */
+/** The placeholder, in a ref the editor's plugin reads on every redraw. */
+const useLivePlaceholder = (placeholder: string | undefined) => {
+  const { t } = useLingui();
+  const fallback = t`Ask anything`;
+  const shown = useRef(placeholder ?? fallback);
+  shown.current = placeholder ?? fallback;
+  return shown;
+};
+
+/** The `/` menu's title for MCP servers: whatever the host calls them (191). */
+const termLabel = (mcp: ComposerMcp | undefined): string =>
+  mcp?.term.label ?? "";
+
 export function Composer({
   agents = NONE,
   appearance = "default",
   attachmentLimits = NO_LIMITS,
   className,
   commands = NONE,
+  mcp,
   disabled = false,
   draft,
   files: workspaceFiles = NONE,
@@ -173,10 +187,11 @@ export function Composer({
     (): SlashSources => ({
       commands,
       files: workspaceFiles.map(fileCandidate),
+      mcpServers: mcp?.servers,
       prompts,
       skills: skillsToPick,
     }),
-    [commands, prompts, skillsToPick, workspaceFiles]
+    [commands, mcp?.servers, prompts, skillsToPick, workspaceFiles]
   );
 
   const busy = status === "submitted" || status === "streaming";
@@ -184,6 +199,8 @@ export function Composer({
     !(disabled || busy) &&
     pendingTemplate === null &&
     hasContent({ attachments: files.attachments, text });
+
+  const shownPlaceholder = useLivePlaceholder(placeholder);
 
   // The editor is built once; its plugins call back through this ref so they
   // always see the current props and state.
@@ -251,7 +268,9 @@ export function Composer({
           ],
           render: menus.mentionRenderer,
         },
-        placeholder: placeholder ?? t`Ask anything`,
+        // Read live, so a placeholder that arrives later ("Message Pip",
+        // 172) shows without rebuilding the editor.
+        placeholder: () => shownPlaceholder.current,
         slash: {
           command: ({ editor: current, props: item, range }) =>
             live.current.chooseSlash(current, range, item),
@@ -418,11 +437,16 @@ export function Composer({
           current.chain().focus().deleteRange(range).run();
           addSkill(item.skill);
           return;
+        case "mcp-server":
+          // A switch for this chat (188), not words to send.
+          current.chain().focus().deleteRange(range).run();
+          mcp?.onToggle(item.server.id, !item.server.enabled);
+          return;
         default:
           return item satisfies never;
       }
     },
-    [addSkill, choosePrompt, onCommand, slash.files.length]
+    [addSkill, choosePrompt, mcp, onCommand, slash.files.length]
   );
 
   // From the + menu: the same file mention `@` makes, at the caret.
@@ -485,6 +509,14 @@ export function Composer({
       slash: (query) => slashItems(query, slash),
     });
   }, [candidates, refreshMenus, slash]);
+
+  const placeholderText = shownPlaceholder.current;
+  useEffect(() => {
+    // Redraw the empty paragraph's placeholder when it changes.
+    if (placeholderText !== "" && !editor.isDestroyed) {
+      editor.view.dispatch(editor.state.tr.setMeta("placeholder", true));
+    }
+  }, [editor, placeholderText]);
 
   useEffect(() => {
     editor.setEditable(!disabled && pendingTemplate === null, false);
@@ -610,6 +642,7 @@ export function Composer({
   const menuTitles: Record<MenuList, string> = {
     commands: t`Commands`,
     files: t`Files`,
+    mcp: termLabel(mcp),
     mentions: t`Mention`,
     prompts: t`Prompts`,
     "prompts-skills": t`Prompts and skills`,
@@ -688,6 +721,7 @@ export function Composer({
           canSubmit={canSubmit}
           disabled={disabled}
           files={slash.files}
+          mcp={mcp}
           models={models}
           onAddFile={addWorkspaceFile}
           onAddSkill={pickSkill}

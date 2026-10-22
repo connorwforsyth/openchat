@@ -108,9 +108,10 @@ describe("code blocks in markdown", () => {
       { timeout: SHIKI_TIMEOUT }
     );
 
-    // A streamed chunk on a long block re-tokenises one line, so the update,
-    // render included, lands well inside a frame budget a user would notice.
-    const started = performance.now();
+    // A streamed chunk on a long block re-tokenises one line, so it shows
+    // coloured in the same render. Re-tokenising the whole block would take
+    // the sliced, asynchronous path. Asserting this instead of a wall-clock
+    // budget keeps the test about the code, not the runner's load.
     act(() => {
       view.rerender(
         <Markdown streaming>
@@ -118,11 +119,11 @@ describe("code blocks in markdown", () => {
         </Markdown>
       );
     });
-    await vi.waitFor(() => {
-      expect(body()?.querySelectorAll("code > span")).toHaveLength(2001);
-    });
-    expect(performance.now() - started).toBeLessThan(1000);
-    expect(body()?.textContent).toContain("const more = 1;");
+    expect(body()?.querySelectorAll("code > span")).toHaveLength(2001);
+    const last = body()?.querySelector<HTMLElement>("code > span:last-child");
+    expect(last?.textContent).toBe("const more = 1;");
+    const colours = last ? tokenColours(last) : [];
+    expect(colours.some((colour) => colour.includes("var(--chart"))).toBe(true);
   });
 
   it("still copies and downloads the code", async () => {

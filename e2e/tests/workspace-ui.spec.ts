@@ -19,7 +19,13 @@ const FOUND_ONE = /^1 found$/;
 // toggle. Typing "d" in the editor no longer flips the theme.
 
 test.describe.configure({ mode: "serial" });
-test.use({ storageState: storageStateFor("ada") });
+test.use({
+  storageState: storageStateFor("ada"),
+  // Wide enough for the panel's default 560px beside the rail (181), the
+  // sidebar and the conversation; at 1280 it gets about 480, under the 512
+  // where the list and the open file take turns (070).
+  viewport: { height: 720, width: 1440 },
+});
 
 /** A chat whose workspace has a few files, made once. */
 let chatPath: string;

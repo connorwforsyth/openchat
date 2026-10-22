@@ -17,8 +17,12 @@
     "./shell/use-shell-layout": "./src/shell/use-shell-layout.ts",
     "./shortcuts/registry": "./src/shortcuts/registry.ts",
     "./sidebar/*": "./src/sidebar/*.tsx",
+    "./sidebar/use-sidebar-data": "./src/sidebar/use-sidebar-data.ts",
     "./workspace/*": "./src/workspace/*.tsx",
-    "./workspace/model/*": "./src/workspace/model/*.ts"
+    "./workspace/model/*": "./src/workspace/model/*.ts",
+    "./voice/*": "./src/voice/*.tsx",
+    "./voice/use-voice-call": "./src/voice/use-voice-call.ts",
+    "./voice/voice-engine": "./src/voice/voice-engine.ts"
   },
   "scripts": {
     "lint": "ultracite check",
@@ -45,6 +49,7 @@
     "@workspace/client": "workspace:*",
     "@workspace/code-ui": "workspace:*",
     "@workspace/composer": "workspace:*",
+    "@workspace/config": "workspace:*",
     "@workspace/contract": "workspace:*",
     "@workspace/i18n": "workspace:*",
     "@workspace/icons": "workspace:*",

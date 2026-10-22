@@ -755,7 +755,7 @@ describe("Composer", () => {
       screen.getByRole("button", { name: "Model or agent: Ada's drafter" })
     );
     const team = await screen.findByRole("group", {
-      name: "Team & org agents",
+      name: "Space agents",
     });
     expect(within(team).getByRole("option", { name: REVIEWER })).toBeTruthy();
     const fromOthers = screen.getByRole("group", { name: "Shared with me" });

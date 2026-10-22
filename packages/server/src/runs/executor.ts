@@ -12,6 +12,7 @@ import type {
   TerminalRunStatus,
 } from "@workspace/ai/ports/run-executor";
 import { toolSources } from "@workspace/ai/rag/sources";
+import { chatTrace } from "@workspace/ai/telemetry/trace-context";
 import type {
   FileId,
   MessageId,
@@ -37,6 +38,7 @@ import {
   updateMessage,
 } from "@workspace/db/queries/messages";
 import {
+  appendRunChunks,
   approvalIdsOf,
   getRun,
   listActiveRuns,
@@ -159,8 +161,6 @@ const INTERRUPTED: RunError = {
   message: "The server restarted while answering. Try again.",
   retryable: true,
 };
-
-const toJson = chunkJson;
 
 const deciderState = (messages: readonly Message[]): DeciderState => {
   const turns = messages
@@ -369,6 +369,14 @@ export const createInProcessExecutor = (
   /** Who cancelled a run this process is executing, for its final state. */
   const cancelledBy = new Map<RunId, UserId | null>();
 
+  /** Forgets a pass's controller, unless a later pass of the run holds the slot. */
+  const release = (runId: RunId, controller: AbortController) => {
+    if (active.get(runId) === controller) {
+      active.delete(runId);
+      cancelledBy.delete(runId);
+    }
+  };
+
   const track = (runId: RunId, work: Promise<void>) => {
     const tracked = work
       .catch((cause: unknown) => report("run execution crashed", cause))
@@ -385,9 +393,8 @@ export const createInProcessExecutor = (
     return moved.ok ? moved.value : null;
   };
 
-  /** Starts whatever waited on a run that just ended. */
-  const promoteAfter = async (runId: RunId): Promise<void> => {
-    const queued = await listQueuedAfter(db, runId);
+  /** Starts each queued run whose run ahead has ended; the rest keep waiting. */
+  const startEach = async (queued: readonly RunRow[]): Promise<void> => {
     for (const next of queued) {
       // biome-ignore lint/performance/noAwaitInLoops: one run per branch; normally there's only one.
       const started = await startRun(runStartFromRow(next));
@@ -396,6 +403,10 @@ export const createInProcessExecutor = (
       }
     }
   };
+
+  /** Starts whatever waited on a run that just ended. */
+  const promoteAfter = async (runId: RunId): Promise<void> =>
+    startEach(await listQueuedAfter(db, runId));
 
   const settledHook = async (event: RunSettled) => {
     try {
@@ -423,29 +434,23 @@ export const createInProcessExecutor = (
   };
 
   const failEarly = async (
-    run: RunStart,
+    runId: RunId,
     assistantMessageId: MessageId,
     error: RunError
   ) => {
     // The client sees why before the stream ends.
-    await writer.append(run.runId, { errorText: error.message, type: "error" });
+    await writer.append(runId, { errorText: error.message, type: "error" });
     await updateMessage(db, assistantMessageId, { status: "error" });
-    const failed = await transition(run.runId, { error, type: "fail" });
+    const failed = await transition(runId, { error, type: "fail" });
     if (failed) {
       await finishTerminal(failed, null, null);
-    } else {
-      await settleLostRace(run.runId, null, null);
     }
   };
 
   /** A run no process is executing any more (the last one crashed). */
   const failOrphan = async (row: RunRow) => {
     if (row.assistantMessageId) {
-      await failEarly(
-        runStartFromRow(row),
-        row.assistantMessageId,
-        INTERRUPTED
-      );
+      await failEarly(row.id, row.assistantMessageId, INTERRUPTED);
       return;
     }
     const moved = await transition(row.id, {
@@ -516,7 +521,7 @@ export const createInProcessExecutor = (
           status: "partial",
           transition: {
             cancelledBy: cancelledBy.get(runId) ?? null,
-            type: "cancel",
+            type: "abort",
           },
         };
       default:
@@ -559,7 +564,7 @@ export const createInProcessExecutor = (
   ): Promise<void> => {
     for (const chunk of chunks) {
       // biome-ignore lint/performance/noAwaitInLoops: the stream keeps call order anyway; this keeps errors per chunk.
-      const appended = await writer.append(runId, toJson(chunk));
+      const appended = await writer.append(runId, chunkJson(chunk));
       if (!appended.ok) {
         report("run stream write failed", appended.error);
       }
@@ -634,28 +639,13 @@ export const createInProcessExecutor = (
     });
     const row = await transition(run.runId, change);
     if (!row) {
-      await settleLostRace(run.runId, usage, settledTurn);
+      // Only this pass moves its run out of `running`, so this is a bug.
+      report("a pass lost its own run's transition", { runId: run.runId });
     } else if (outcome.status !== "awaiting_approval") {
       await finishTerminal(row, usage, settledTurn);
     }
     // Awaiting approval, the stream stays open: the answer continues in the
     // same stream once someone decides.
-  };
-
-  /**
-   * The run changed under us (a cancel won the compare-and-set). Whoever
-   * won moved it to a terminal state; this process still owns the stream,
-   * because it was the one writing to it.
-   */
-  const settleLostRace = async (
-    runId: RunId,
-    usage: TokenUsage | null,
-    turn: RunSettled["turn"]
-  ) => {
-    const current = await getRun(db, runId);
-    if (current.ok) {
-      await finishTerminal(current.value, usage, turn);
-    }
   };
 
   /**
@@ -685,7 +675,7 @@ export const createInProcessExecutor = (
           break;
         }
         chunks.push(next.value);
-        appends.push(writer.append(runId, toJson(next.value)));
+        appends.push(writer.append(runId, chunkJson(next.value)));
       }
     } finally {
       signal.removeEventListener("abort", onAbort);
@@ -764,7 +754,7 @@ export const createInProcessExecutor = (
     try {
       const messages = await loadBranch(run, leafId);
       if (!messages) {
-        await failEarly(run, assistantMessageId, INTERNAL);
+        await failEarly(run.runId, assistantMessageId, INTERNAL);
         return;
       }
       const resolved = await deps.resolveTurn(run, {
@@ -773,7 +763,7 @@ export const createInProcessExecutor = (
         state: deciderState(messages),
       });
       if (!resolved.ok) {
-        await failEarly(run, assistantMessageId, resolved.error);
+        await failEarly(run.runId, assistantMessageId, resolved.error);
         return;
       }
       // A planning run reads and never writes (106): held here, on every
@@ -787,8 +777,29 @@ export const createInProcessExecutor = (
         run.createdBy,
         deps.attachments?.(turn.value.resolvedModel) ?? NO_ATTACHMENTS
       );
+      const uiMessages = toUIMessages(messages, { fileUrl });
+      const continuing =
+        uiMessages.at(-1)?.role === "assistant" ? uiMessages.at(-1) : undefined;
       const executions: Executions = new Map();
+      if (controller.signal.aborted) {
+        // Stop reached this pass before its agent began (a claim or a
+        // decision landed as Stop came): nothing runs, not the model and not
+        // a call someone just approved.
+        await settle(
+          run,
+          assistantMessageId,
+          {
+            message: continuing ?? { id: "", parts: [], role: "assistant" },
+            status: "cancelled",
+            usage: { inputTokens: 0, outputTokens: 0 },
+          },
+          turn.value,
+          { executions, read: [] }
+        );
+        return;
+      }
       const agentRun = await runAgent({
+        budget: turn.value.budget,
         generateMessageId: () => assistantMessageId,
         instructions: turn.value.instructions,
         maxSteps: deps.maxSteps,
@@ -796,16 +807,17 @@ export const createInProcessExecutor = (
         model: turn.value.model,
         parameters: turn.value.parameters,
         signal: controller.signal,
+        stopAfterTools: turn.value.stopAfterTools,
         timeoutMs: deps.timeoutMs,
         toolApproval: turn.value.toolApproval,
         tools: watchExecutions(turn.value.tools, executions),
+        trace: chatTrace({ ...run, userId: run.createdBy }),
         unavailableTools: turn.value.unavailableTools,
       });
       if (!agentRun.ok) {
-        await failEarly(run, assistantMessageId, agentRun.error);
+        await failEarly(run.runId, assistantMessageId, agentRun.error);
         return;
       }
-      const uiMessages = toUIMessages(messages, { fileUrl });
       const read = await pipeToStream(
         run.runId,
         agentRun.value.stream,
@@ -815,7 +827,7 @@ export const createInProcessExecutor = (
         agentRun.value.outcome,
         read,
         controller.signal,
-        uiMessages.at(-1)?.role === "assistant" ? uiMessages.at(-1) : undefined
+        continuing
       );
       await settle(run, assistantMessageId, outcome, turn.value, {
         executions,
@@ -823,18 +835,23 @@ export const createInProcessExecutor = (
       });
     } catch (cause) {
       report("run failed unexpectedly", cause);
-      await failEarly(run, assistantMessageId, INTERNAL).catch(
+      await failEarly(run.runId, assistantMessageId, INTERNAL).catch(
         (again: unknown) => report("couldn't fail a crashed run", again)
       );
     } finally {
-      active.delete(run.runId);
-      cancelledBy.delete(run.runId);
+      release(run.runId, controller);
     }
   };
 
-  /** Claims a queued run: inserts its empty answer and marks it running, atomically. */
+  /**
+   * Claims a queued run: inserts its empty answer and marks it running,
+   * atomically. The compare-and-set is the only gate, so of two claims at
+   * once only the winner takes `active`, before its commit shows the run
+   * running to anyone who could Stop it.
+   */
   const claim = async (
-    run: RunStart
+    run: RunStart,
+    controller: AbortController
   ): Promise<Result<MessageId, RunExecutorError>> => {
     const assistantMessageId = newId("message");
     try {
@@ -862,9 +879,11 @@ export const createInProcessExecutor = (
           // Another executor (or a cancel) got there first.
           tx.rollback();
         }
+        active.set(run.runId, controller);
       });
       return ok(assistantMessageId);
     } catch (cause) {
+      release(run.runId, controller);
       if (cause instanceof TransactionRollbackError) {
         return err({ runId: run.runId, type: "already_started" });
       }
@@ -880,7 +899,7 @@ export const createInProcessExecutor = (
       return err({ runId: run.runId, type: "not_found" });
     }
     const row = found.value;
-    if (row.status !== "queued" || active.has(run.runId)) {
+    if (row.status !== "queued") {
       return err({ runId: run.runId, type: "already_started" });
     }
     // Still waiting its turn: the run ahead starts it when it ends.
@@ -889,15 +908,19 @@ export const createInProcessExecutor = (
       if (ahead.ok && !isTerminal(ahead.value.status)) {
         return ok(undefined);
       }
+      // A run ahead that ended before it ran still holds its place: whoever
+      // waited on it now waits on the run it waited on (cancelIdle does the
+      // same, but may not have yet, and a turn can land behind it later).
+      if (ahead.ok && !ahead.value.assistantMessageId) {
+        await startEach(
+          await requeueAfter(db, ahead.value.id, ahead.value.afterRunId)
+        );
+        return ok(undefined);
+      }
     }
     const controller = new AbortController();
-    active.set(run.runId, controller);
-    const claimed = await claim(run).catch((cause: unknown) => {
-      active.delete(run.runId);
-      throw cause;
-    });
+    const claimed = await claim(run, controller);
     if (!claimed.ok) {
-      active.delete(run.runId);
       return claimed;
     }
     track(
@@ -907,58 +930,73 @@ export const createInProcessExecutor = (
     return ok(undefined);
   };
 
+  /** A cancelled run's calls left without a result resolve as not run, on its stream and in its answer. */
+  const stopLeftovers = async (tx: Db, run: RunRow, by: UserId | null) => {
+    if (!run.assistantMessageId) {
+      return;
+    }
+    const answer = await getMessage(tx, run.assistantMessageId);
+    const parts = answer.ok ? answer.value.parts : [];
+    const stopped = interruptLeftovers(parts, {
+      by: by === null ? "system" : "user",
+      streamed: callIdsIn(parts),
+    });
+    // Straight to `run_chunk`, past the stream port (`writer`), so the
+    // chunks commit with the cancel. Subscribers read them in the drain they
+    // make after seeing the run end. A channel that doesn't keep its chunks
+    // in this database (Redis, say) would never see them.
+    await appendRunChunks(tx, run.id, stopped.chunks.map(chunkJson));
+    await updateMessage(tx, run.assistantMessageId, {
+      parts: stopped.parts,
+      status: "partial",
+    });
+  };
+
   /**
-   * Cancels a run no pass is executing (queued, or waiting on approvals).
-   * A waiting run's pending calls resolve as not run: announced first,
-   * because a terminal run's stream takes nothing more, then stored in the
-   * same transaction as the cancel, so a decision racing it either lands
-   * first (the run resumes, and `cancel` stops that pass) or finds it
-   * cancelled.
+   * Cancels a run no pass is executing: queued, waiting on approvals, or
+   * left `running` by a pass that crashed and couldn't fail it. The row stays
+   * locked from the read to the commit, so a claim or a decision racing it
+   * either lands first (the run is `running` with its pass's controller in
+   * `active`, and `cancel` stops that pass) or finds it cancelled. A waiting
+   * run's pending calls resolve as not run; their chunks are written in the
+   * same transaction, because a terminal run's stream takes nothing more and
+   * a cancel that loses must not have announced anything.
+   *
+   * This assumes one executor process per database. `active` holds only
+   * this process's passes, so with a second executor a run it is answering
+   * would look crashed here, and Stop would end it under its live pass.
    */
   const cancelIdle = async (row: RunRow, by: UserId | null) => {
-    const interrupt = (parts: readonly MessagePart[]) =>
-      interruptLeftovers(parts, {
-        by: by === null ? "system" : "user",
-        streamed: callIdsIn(parts),
-      });
-    if (row.assistantMessageId) {
-      const answer = await getMessage(db, row.assistantMessageId);
-      await announce(
-        row.id,
-        interrupt(answer.ok ? answer.value.parts : []).chunks
-      );
-    }
     const cancelled = await db.transaction(async (tx) => {
+      const locked = await lockRun(tx, row.id);
+      if (!locked.ok) {
+        return null;
+      }
+      const orphaned = locked.value.status === "running" && !active.has(row.id);
       const moved = await transitionRun(
         tx,
         row.id,
-        { cancelledBy: by, type: "cancel" },
+        { cancelledBy: by, type: orphaned ? "abort" : "cancel" },
         now()
       );
       if (!moved.ok) {
         return null;
       }
-      const answerId = moved.value.assistantMessageId;
-      if (answerId) {
-        const answer = await getMessage(tx, answerId);
-        await updateMessage(tx, answerId, {
-          parts: interrupt(answer.ok ? answer.value.parts : []).parts,
-          status: "partial",
-        });
-      }
+      await stopLeftovers(tx, moved.value, by);
       return moved.value;
     });
     if (!cancelled) {
       return false;
     }
-    if (row.status === "queued" && row.afterRunId) {
-      // Keep the line: whoever waited on this run now waits on the one ahead.
-      const ahead = await getRun(db, row.afterRunId);
-      if (ahead.ok && !isTerminal(ahead.value.status)) {
-        await requeueAfter(db, row.id, ahead.value.id);
-      }
-    }
+    // Keep the line: whoever waited on this run now waits on the one ahead.
+    // That one may have ended, and looked for its queue, before they moved,
+    // so each starts once this run is finished, if it has.
+    const moved =
+      row.status === "queued" && cancelled.afterRunId
+        ? await requeueAfter(db, cancelled.id, cancelled.afterRunId)
+        : [];
     await finishTerminal(cancelled, null, null);
+    await startEach(moved);
     return true;
   };
 
@@ -972,7 +1010,8 @@ export const createInProcessExecutor = (
   const recordDecisions = async (
     runId: RunId,
     decisions: readonly ToolApproval[],
-    by: UserId
+    by: UserId,
+    controller: AbortController
   ): Promise<Result<RecordedDecisions, RunExecutorError>> =>
     db.transaction(async (tx) => {
       const locked = await lockRun(tx, runId);
@@ -1008,7 +1047,7 @@ export const createInProcessExecutor = (
         });
       }
       return row.status === "awaiting_approval"
-        ? storeDecisions(tx, row, answer.value.parts, fresh, by)
+        ? storeDecisions(tx, row, answer.value.parts, fresh, by, controller)
         : refuse();
     });
 
@@ -1018,7 +1057,8 @@ export const createInProcessExecutor = (
     row: RunRow,
     answer: readonly MessagePart[],
     fresh: readonly ToolApproval[],
-    by: UserId
+    by: UserId,
+    controller: AbortController
   ): Promise<Result<RecordedDecisions, RunExecutorError>> => {
     const pending = new Set((row.approvals ?? []).map((a) => a.toolCallId));
     const unknown = fresh.find((d) => !pending.has(d.toolCallId));
@@ -1038,13 +1078,12 @@ export const createInProcessExecutor = (
     if (![...pending].every((id) => decided.has(id))) {
       return ok({ decided, fresh, resumed: null, row });
     }
-    // Claimed before the resume can commit: a cancel arriving between the
-    // commit and the pass starting finds this and aborts the pass, rather
-    // than cancelling the row under a pass that then runs the tools anyway.
-    active.set(row.id, new AbortController());
     const resumed = await transitionRun(tx, row.id, { type: "resume" }, now());
-    if (!resumed.ok) {
-      active.delete(row.id);
+    if (resumed.ok) {
+      // Taken before the resume commits: a cancel arriving between the
+      // commit and the pass starting finds this and aborts the pass, rather
+      // than cancelling the row under a pass that then runs the tools anyway.
+      active.set(row.id, controller);
     }
     return ok({
       decided,
@@ -1060,7 +1099,7 @@ export const createInProcessExecutor = (
       if (!found.ok) {
         return err({ runId, type: "not_found" });
       }
-      const row = found.value;
+      let row = found.value;
       if (isTerminal(row.status)) {
         return err({ runId, status: row.status, type: "invalid_state" });
       }
@@ -1076,34 +1115,26 @@ export const createInProcessExecutor = (
         await running.get(runId);
         return true;
       };
-      if (await abortPass()) {
-        // A pass that had already asked for approval when the abort came
-        // can still settle waiting on it (133). Stop stops that wait too,
-        // unless a decision has resumed it, which the next look stops.
-        const after = await getRun(db, runId);
-        if (
-          after.ok &&
-          after.value.status === "awaiting_approval" &&
-          !active.has(runId) &&
-          !(await cancelIdle(after.value, by))
-        ) {
-          await abortPass();
+      // Each look aborts the pass executing the run here, or cancels the run
+      // when no pass holds it. A look can lose: to a claim or a decision that
+      // starts a pass, to a pass that pauses for approval as it's aborted
+      // (133), or to one that crashes. So Stop looks again until the run has
+      // ended, or until the pass that holds it is one Stop aborted before it
+      // started: that pass never calls its agent and settles as cancelled.
+      for (;;) {
+        // biome-ignore lint/performance/noAwaitInLoops: each look reads what the last one left.
+        if (!(await abortPass()) && (await cancelIdle(row, by))) {
+          return ok(undefined);
         }
-        return ok(undefined);
+        if (active.get(runId)?.signal.aborted) {
+          return ok(undefined);
+        }
+        const current = await getRun(db, runId);
+        if (!current.ok || isTerminal(current.value.status)) {
+          return ok(undefined);
+        }
+        row = current.value;
       }
-      if (await cancelIdle(row, by)) {
-        return ok(undefined);
-      }
-      // A decision resumed it between the two looks: stop that pass.
-      if (await abortPass()) {
-        return ok(undefined);
-      }
-      const current = await getRun(db, runId);
-      return err({
-        runId,
-        status: current.ok ? current.value.status : row.status,
-        type: "invalid_state",
-      });
     },
 
     getState: async (runId) => {
@@ -1156,44 +1187,59 @@ export const createInProcessExecutor = (
     start: startRun,
 
     submitApprovals: async (runId, decisions, by) => {
-      const recorded = await recordDecisions(runId, decisions, by).catch(
-        (cause: unknown) => {
-          // The resume never committed: nothing is executing this run.
-          active.delete(runId);
-          throw cause;
-        }
-      );
+      const controller = new AbortController();
+      const recorded = await recordDecisions(
+        runId,
+        decisions,
+        by,
+        controller
+      ).catch((cause: unknown) => {
+        // The resume never committed: nothing is executing this run.
+        release(runId, controller);
+        throw cause;
+      });
       if (!recorded.ok) {
         return recorded;
       }
       const { decided, fresh, resumed, row } = recorded.value;
-      // Every client following the stream drops the decided cards now, not
-      // when the tool's output lands (the SDK streams no response).
-      if (fresh.length > 0) {
-        await announce(
+      try {
+        // Every client following the stream drops the decided cards now, not
+        // when the tool's output lands (the SDK streams no response).
+        if (fresh.length > 0) {
+          await announce(
+            runId,
+            decisionChunks(fresh, await approvalIdsOf(db, runId))
+          );
+        }
+        if (!(resumed && row.assistantMessageId)) {
+          return ok(undefined);
+        }
+        const start = runStartFromRow(resumed);
+        // Held in memory for this pass only: a crash mid-pass fails the run
+        // (`recover`), so no later pass could need them.
+        const reviews = reviewsFor(row.approvals ?? [], decided);
+        track(
           runId,
-          decisionChunks(fresh, await approvalIdsOf(db, runId))
+          execute(
+            start,
+            row.assistantMessageId,
+            row.assistantMessageId,
+            controller,
+            reviews
+          )
         );
-      }
-      const controller = active.get(runId);
-      if (!(resumed && row.assistantMessageId && controller)) {
         return ok(undefined);
+      } catch (cause) {
+        // The resume committed, but no pass will run it. Failing it frees
+        // Stop and the turns queued behind it.
+        if (resumed && row.assistantMessageId) {
+          release(runId, controller);
+          await failEarly(runId, row.assistantMessageId, INTERNAL).catch(
+            (again: unknown) => report("couldn't fail a resumed run", again)
+          );
+        }
+        throw cause;
       }
-      const start = runStartFromRow(resumed);
-      // Held in memory for this pass only: a crash mid-pass fails the run
-      // (`recover`), so no later pass could need them.
-      const reviews = reviewsFor(row.approvals ?? [], decided);
-      track(
-        runId,
-        execute(
-          start,
-          row.assistantMessageId,
-          row.assistantMessageId,
-          controller,
-          reviews
-        )
-      );
-      return ok(undefined);
     },
   };
 };

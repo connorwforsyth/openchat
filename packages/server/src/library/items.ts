@@ -61,8 +61,8 @@ const sameOwner = (a: Principal, b: { ownerId: string; ownerType: string }) =>
  * One tab of the library (D13). My library: what the caller owns. Shared
  * with me: items shared with them, a team or an org they're in (grants
  * flow down the team tree), that they don't own and whose library they
- * aren't in. Team & org: the libraries of every team (and ancestor
- * team) and org they belong to.
+ * aren't in. Spaces: the libraries of every team (and ancestor team)
+ * and org they belong to.
  */
 export const listItems = async (
   deps: LibraryDeps,

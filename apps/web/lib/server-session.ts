@@ -1,5 +1,5 @@
 import { createApiClient } from "@workspace/client/api";
-import type { Me } from "@workspace/contract/schemas/meta";
+import type { Me, UserSettings } from "@workspace/contract/schemas/meta";
 import { getSessionCookie } from "better-auth/cookies";
 import { headers } from "next/headers";
 import { cache } from "react";
@@ -46,21 +46,31 @@ const statusOf = (error: unknown): number | null =>
     ? error.status
     : null;
 
-/** Once per request; the root layout (locale) and the app layout share it. */
-export const getViewer = cache(async (): Promise<ServerViewer> => {
+/**
+ * The API over loopback with the caller's cookie, or why not: no session
+ * cookie (nobody to look up) or a loopback request (see `LOOPBACK_HEADER`).
+ */
+const loopbackClient = async () => {
   const requestHeaders = await headers();
-  // No session cookie: nobody to look up, and no round trip.
   if (!getSessionCookie(requestHeaders)) {
-    return { kind: "signed_out" };
+    return "signed_out" as const;
   }
   if (requestHeaders.has(LOOPBACK_HEADER)) {
-    return { kind: "unknown" };
+    return "unknown" as const;
   }
   const cookie = requestHeaders.get("cookie") ?? "";
-  const client = createApiClient({
+  return createApiClient({
     baseUrl: loopbackOrigin(),
     headers: () => ({ cookie, [LOOPBACK_HEADER]: "1" }),
   });
+};
+
+/** Once per request; the root layout (locale) and the app layout share it. */
+export const getViewer = cache(async (): Promise<ServerViewer> => {
+  const client = await loopbackClient();
+  if (typeof client === "string") {
+    return { kind: client };
+  }
   try {
     const me = await client.me.get(undefined, {
       signal: AbortSignal.timeout(LOOPBACK_TIMEOUT_MS),
@@ -72,3 +82,19 @@ export const getViewer = cache(async (): Promise<ServerViewer> => {
       : { kind: "unknown" };
   }
 });
+
+/**
+ * The viewer's settings, so the first paint uses their sidebar layout (181).
+ * `null` when there's no answer; the browser asks then.
+ */
+export const getViewerSettings = cache(
+  async (): Promise<UserSettings | null> => {
+    const client = await loopbackClient();
+    if (typeof client === "string") {
+      return null;
+    }
+    return await client.me
+      .settings(undefined, { signal: AbortSignal.timeout(LOOPBACK_TIMEOUT_MS) })
+      .catch(() => null);
+  }
+);

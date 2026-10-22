@@ -22,6 +22,8 @@ import { artifact, artifactVersion, file, fileChunk, skillFile } from "./files";
 import {
   agent,
   agentVersion,
+  mcpConnectorPref,
+  mcpConversationConnector,
   mcpOauthToken,
   mcpServer,
   preset,
@@ -78,6 +80,8 @@ const tables = {
   invitation,
   invitationTeam,
   invitationToken,
+  mcpConnectorPref,
+  mcpConversationConnector,
   mcpOauthToken,
   mcpServer,
   member,

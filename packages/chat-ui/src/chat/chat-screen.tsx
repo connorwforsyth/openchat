@@ -56,6 +56,7 @@ import {
 import { AppShell } from "../shell/app-shell";
 import { type Platform, PlatformProvider } from "../shell/platform";
 import { RightPanel } from "../shell/right-panel";
+import { useSidebarLayout } from "../shell/sidebar-layout";
 import { SidebarToggle } from "../shell/sidebar-toggle";
 import { useNarrowScreen } from "../shell/use-narrow-screen";
 import {
@@ -66,6 +67,7 @@ import { ShortcutHelp } from "../shortcuts/shortcut-help";
 import { ShortcutHint } from "../shortcuts/shortcut-hint";
 import { useShortcuts } from "../shortcuts/use-shortcuts";
 import { ChatSidebar, type ChatSidebarProps } from "../sidebar/chat-sidebar";
+import { type RailDestination, SidebarRail } from "../sidebar/sidebar-rail";
 import { LazyWorkspacePanel } from "../workspace/lazy-workspace-panel";
 import { type OpeningWatch, watchOpenings } from "../workspace/model/auto-open";
 import {
@@ -138,10 +140,19 @@ export interface WorkspaceHandle {
 
 export interface ChatScreenProps {
   readonly actions: ConversationActions;
+  /** A bar above the messages, in the flow (a Dot's schedule, 172). */
+  readonly banner?: ReactNode;
   readonly brand?: ReactNode;
   readonly composer: ComposerLoaderProps;
+  /**
+   * A live view pinned above the Workspace panel's files and browser (a
+   * Dot's computer, 172). It renders nothing for a chat that has none.
+   */
+  readonly computer?: ReactNode;
   readonly conversation: ChatScreenConversation;
   readonly feedback?: Readonly<Record<string, MessageFeedback>>;
+  /** Extra header controls before Share (the voice call, 172). */
+  readonly headerEnd?: ReactNode;
   /**
    * The shell's layout when the app owns it, so it survives leaving the chat
    * for another page with the same shell and can be restored before paint.
@@ -209,12 +220,22 @@ const textValue = (text: string): ComposerValue => ({
   text,
 });
 
+/** The rail lights the Dot while its chat is open, else Chats. */
+const railCurrent = (
+  activeId: ConversationId | null,
+  dotId: ConversationId | undefined
+): RailDestination =>
+  dotId !== undefined && activeId === dotId ? "dot" : "chats";
+
 function ChatScreenBody({
   actions,
+  banner,
   brand,
   composer,
+  computer,
   conversation,
   feedback,
+  headerEnd,
   layout: sharedLayout,
   messages,
   onNewChat,
@@ -235,6 +256,7 @@ function ChatScreenBody({
   const { layout, setPanel, setPanelWidth, togglePanel, toggleSidebar } =
     sharedLayout ?? ownLayout;
   const narrow = useNarrowScreen();
+  const railed = useSidebarLayout() === "rail";
   const [sidebarSheetOpen, setSidebarSheetOpen] = useState(false);
   // The panel's last section: a narrow screen's sheet keeps showing it
   // while it fades out.
@@ -280,6 +302,13 @@ function ChatScreenBody({
     }
   }, [narrow, toggleSidebar]);
   const closeSidebarSheet = useCallback(() => setSidebarSheetOpen(false), []);
+  const dotId = sidebar.dot?.conversationId;
+  // The rail's Chats button shows the chat panel; it never hides it.
+  const showChats = useCallback(() => {
+    if (!layout.sidebarOpen) {
+      toggleSidebar();
+    }
+  }, [layout.sidebarOpen, toggleSidebar]);
   // Picking a chat, starting one or searching is done with the sheet.
   const sheetSidebar = useMemo(
     () => ({
@@ -381,7 +410,6 @@ function ChatScreenBody({
     "chat.prev": () => stepChat(-1),
     "composer.focus": focusComposer,
     help: () => setHelpOpen(true),
-    "palette.open": onOpenPalette,
     "panel.artifacts": () => togglePanelBy("artifacts"),
     "panel.sandbox": toggleFiles,
     "sidebar.toggle": toggleChats,
@@ -643,7 +671,7 @@ function ChatScreenBody({
     [composer, composerFill, onSubmit, workspaceComposer]
   );
   const sidebarExpanded = narrow ? sidebarSheetOpen : layout.sidebarOpen;
-  const sidebarToggle = (where: "header" | "sidebar") => (
+  const sidebarToggle = (where: "header" | "rail" | "sidebar") => (
     <SidebarToggle
       expanded={sidebarExpanded}
       hint={<ShortcutHint id="sidebar.toggle" />}
@@ -662,16 +690,20 @@ function ChatScreenBody({
     <AppHeader
       end={
         narrow ? (
-          <HeaderOverflowMenu
-            onCopyLink={conversation.onCopyLink}
-            onInvite={conversation.onInvite}
-            onTogglePanel={toggleHalf}
-            shareDisabled={conversation.id === null}
-            shown={shownHalf}
-          />
+          <div className="flex items-center gap-1">
+            {headerEnd}
+            <HeaderOverflowMenu
+              onCopyLink={conversation.onCopyLink}
+              onInvite={conversation.onInvite}
+              onTogglePanel={toggleHalf}
+              shareDisabled={conversation.id === null}
+              shown={shownHalf}
+            />
+          </div>
         ) : (
           // The CSS covers the moment before hydration knows the width.
           <div className="flex items-center gap-1 max-md:hidden">
+            {headerEnd}
             <ShareMenu
               disabled={conversation.id === null}
               onCopyLink={conversation.onCopyLink}
@@ -714,18 +746,28 @@ function ChatScreenBody({
     />
   );
 
+  const workspacePanel = (
+    <LazyWorkspacePanel
+      artifacts={workspace.artifacts}
+      files={files}
+      halfRequest={halfRequest}
+      onSelect={select}
+      previewRequest={previewRequest}
+      revision={revision}
+      section={section}
+      selection={shown}
+    />
+  );
   const panel = (
     <RightPanel onClose={closePanel}>
-      <LazyWorkspacePanel
-        artifacts={workspace.artifacts}
-        files={files}
-        halfRequest={halfRequest}
-        onSelect={select}
-        previewRequest={previewRequest}
-        revision={revision}
-        section={section}
-        selection={shown}
-      />
+      {computer ? (
+        <>
+          {computer}
+          <div className="flex min-h-0 flex-1 flex-col">{workspacePanel}</div>
+        </>
+      ) : (
+        workspacePanel
+      )}
     </RightPanel>
   );
 
@@ -739,12 +781,23 @@ function ChatScreenBody({
       panelOpen={layout.panel !== null}
       panelWidth={layout.panelWidth}
       platform={platform}
+      rail={
+        railed ? (
+          <SidebarRail
+            {...sheetSidebar}
+            current={railCurrent(sidebar.activeId, dotId)}
+            onShowChats={showChats}
+            toggle={sidebarToggle("rail")}
+          />
+        ) : undefined
+      }
       sidebar={
         <ChatSidebar
           {...sheetSidebar}
           brand={brand}
           onNewChat={newChat}
           onOpenPalette={openPalette}
+          railed={railed}
           toggle={sidebarToggle("sidebar")}
         />
       }
@@ -753,6 +806,7 @@ function ChatScreenBody({
     >
       {/* A size container: the centred composer is placed against its height. */}
       <div className="flex min-h-0 flex-1 flex-col [container-type:size]">
+        {banner}
         <FilePreviewContext.Provider value={chatWorkspace ? previewFile : null}>
           <ConversationView
             actions={conversationActions}
