@@ -2,9 +2,14 @@
 
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { RunnerUnavailableNotice } from "@workspace/chat-ui/workspace/runner-unavailable";
 import type { ConversationId } from "@workspace/contract/schemas/common";
 import type { Dot } from "@workspace/contract/schemas/dots";
 import { KeyboardIcon, MonitorIcon, RotateCcwIcon } from "@workspace/icons";
+import {
+  type RunnerUnavailableReason,
+  runnerUnavailableReasonSchema,
+} from "@workspace/sandbox/runner/unavailable";
 import {
   type ComputerView,
   computerViewSchema,
@@ -23,14 +28,18 @@ import { useScreenLink } from "./screen-link";
 // (D24), in an iframe without same-origin rights. Watching is view-only;
 // "Take over" hands the person the mouse and keyboard and makes the Dot's
 // `computer` tool refuse input until "Give back control". Nothing renders
-// for an ordinary chat.
+// for an ordinary chat. When the sandbox runner is why it can't start, it
+// says which reason and the command that fixes it.
 
 const computerPath = (conversationId: string) =>
   `/api/computer/${conversationId}`;
 
-const problemSchema = z.object({ code: z.string() });
+const problemSchema = z.object({
+  code: z.string(),
+  reason: runnerUnavailableReasonSchema.optional().catch(undefined),
+});
 
-/** The view, or a failure carrying the server's `code` for `codeOf`. */
+/** The view, or a failure carrying the server's `code` (for `codeOf`) and the runner's `reason`. */
 const readView = async (response: Response): Promise<ComputerView> => {
   if (!response.ok) {
     const body = problemSchema.safeParse(
@@ -38,10 +47,16 @@ const readView = async (response: Response): Promise<ComputerView> => {
     );
     throw Object.assign(new Error(String(response.status)), {
       code: body.success ? body.data.code : null,
+      reason: body.success ? (body.data.reason ?? null) : null,
     });
   }
   return computerViewSchema.parse(await response.json());
 };
+
+const reasonOf = (error: unknown): RunnerUnavailableReason | null =>
+  error instanceof Error && "reason" in error
+    ? (runnerUnavailableReasonSchema.safeParse(error.reason).data ?? null)
+    : null;
 
 const viewKey = (conversationId: ConversationId) =>
   ["dot-computer", conversationId] as const;
@@ -122,6 +137,7 @@ export function DotComputerView({ dot }: { readonly dot: Dot }) {
 
   const current = view.data;
   const disabled = codeOf(view.error) === "FEATURE_DISABLED";
+  const reason = current ? null : reasonOf(view.error);
   const userHas = holder === "user";
   const status = (): string => {
     if (current && screen.failed) {
@@ -181,6 +197,12 @@ export function DotComputerView({ dot }: { readonly dot: Dot }) {
           </Button>
         ) : null}
       </div>
+      {reason ? (
+        <RunnerUnavailableNotice
+          className="border-border border-t px-3 py-2 text-sm"
+          reason={reason}
+        />
+      ) : null}
       <div className="relative aspect-[16/10] w-full bg-muted">
         {current ? (
           <iframe

@@ -1824,6 +1824,10 @@ msgstr "Dismiss"
 msgid "Docker (sandbox runner)"
 msgstr "Docker (sandbox runner)"
 
+#: ../chat-ui/src/workspace/runner-unavailable.tsx
+msgid "Docker sandboxes aren't configured: set SANDBOX_RUNNER_TOKEN in .env and sandbox.docker in app.config.yaml."
+msgstr "Docker sandboxes aren't configured: set SANDBOX_RUNNER_TOKEN in .env and sandbox.docker in app.config.yaml."
+
 #: ../chat-ui/src/artifacts/document/document-view.tsx
 #: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../chat-ui/src/model/artifact-kinds.ts
@@ -5812,6 +5816,10 @@ msgstr "The chat's model sees its latest version and, if you can edit it, can ma
 msgid "The chat's Workspace panel (files, editor, preview and artifacts) over a just-bash workspace that runs entirely in this browser tab: simulated bash, an in-memory filesystem, no server and no network. Reloading the page starts over."
 msgstr "The chat's Workspace panel (files, editor, preview and artifacts) over a just-bash workspace that runs entirely in this browser tab: simulated bash, an in-memory filesystem, no server and no network. Reloading the page starts over."
 
+#: ../chat-ui/src/workspace/runner-unavailable.tsx
+msgid "The computer's desktop image isn't built on this Docker host."
+msgstr "The computer's desktop image isn't built on this Docker host."
+
 #: ../chat-ui/src/artifacts/presentation-preview.tsx
 msgid "The deck couldn't be exported: {exportError}"
 msgstr "The deck couldn't be exported: {exportError}"
@@ -5891,6 +5899,26 @@ msgstr "The Quick AI shortcut \"{combo}\" in settings.json isn't one that can be
 #: ../../apps/web/app/(quick)/quick/quick-screen.tsx
 msgid "The reply didn't finish. Open the chat to try again."
 msgstr "The reply didn't finish. Open the chat to try again."
+
+#: ../chat-ui/src/workspace/runner-unavailable.tsx
+msgid "The sandbox runner answered with an error; its log says why."
+msgstr "The sandbox runner answered with an error; its log says why."
+
+#: ../chat-ui/src/workspace/runner-unavailable.tsx
+msgid "The sandbox runner has no SANDBOX_RUNNER_TOKEN, so it refuses every call. Set it in .env, then recreate the runner."
+msgstr "The sandbox runner has no SANDBOX_RUNNER_TOKEN, so it refuses every call. Set it in .env, then recreate the runner."
+
+#: ../chat-ui/src/workspace/runner-unavailable.tsx
+msgid "The sandbox runner is up but can't reach Docker. Start Docker, then start the runner's services."
+msgstr "The sandbox runner is up but can't reach Docker. Start Docker, then start the runner's services."
+
+#: ../chat-ui/src/workspace/runner-unavailable.tsx
+msgid "The sandbox runner isn't running."
+msgstr "The sandbox runner isn't running."
+
+#: ../chat-ui/src/workspace/runner-unavailable.tsx
+msgid "The sandbox runner rejected the app's SANDBOX_RUNNER_TOKEN: they differ. Use one value in .env, then recreate the runner."
+msgstr "The sandbox runner rejected the app's SANDBOX_RUNNER_TOKEN: they differ. Use one value in .env, then recreate the runner."
 
 #: ../../apps/web/app/(auth)/_components/auth-problem.tsx
 msgid "The server couldn't finish that. Try again in a moment; if it keeps happening, an administrator can check the server's log."
@@ -6164,6 +6192,10 @@ msgstr "Time zone and end date"
 #: ../chat-ui/src/workspace/save-site-dialog.tsx
 msgid "Title"
 msgstr "Title"
+
+#: ../chat-ui/src/workspace/runner-unavailable.tsx
+msgid "To fix it, run this from the repository:"
+msgstr "To fix it, run this from the repository:"
 
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgid "Today"
