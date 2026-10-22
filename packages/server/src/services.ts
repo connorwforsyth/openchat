@@ -177,6 +177,7 @@ export const createServices = (options: ServicesOptions): Services => {
     config,
     db,
     keyStore,
+    now: options.now,
     registry: options.registry,
   };
   const loadModel = createModelLoader(turnDeps);

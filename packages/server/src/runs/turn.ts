@@ -63,9 +63,11 @@ import type { OrgPolicy } from "@workspace/contract/schemas/tenancy";
 import type { Db } from "@workspace/db/client";
 import { listReadableIndexedFileIds } from "@workspace/db/queries/files";
 import { resolvePublishedVersion } from "@workspace/db/queries/library";
+import { userSummaries } from "@workspace/db/queries/library-items";
 import { getMessage } from "@workspace/db/queries/messages";
 import { teamLineage } from "@workspace/db/queries/teams";
 import type { McpSelection } from "@workspace/mcp/service";
+import { fillAgentVariables } from "@workspace/shared/agent-variables";
 import {
   type AsyncResult,
   err,
@@ -232,6 +234,8 @@ export interface TurnResolverDeps {
     userId: UserId,
     conversationId: ConversationId
   ) => Promise<McpSelection>;
+  /** The clock for an agent's `{{current_date}}`; the wall clock when left out. */
+  readonly now?: () => Date;
   /**
    * The org's effective policy (`org_settings` clamped by the instance), for
    * the personal-key fallback. Without it the conservative default holds.
@@ -491,6 +495,22 @@ const ARTIFACT_APPROVALS = Object.fromEntries(
 const SKILL_APPROVALS = Object.fromEntries(
   SKILL_AUTHORING_TOOLS.map((name) => [name, "ask" as const])
 );
+
+/** An agent's instructions with today's date and the run creator's name filled in. */
+const filledInstructions = async (
+  db: Db,
+  run: RunStart,
+  instructions: string,
+  now: () => Date = () => new Date()
+): Promise<string> =>
+  fillAgentVariables(instructions, {
+    current_date: now().toLocaleDateString("en", {
+      dateStyle: "full",
+      timeZone: "UTC",
+    }),
+    current_user:
+      (await userSummaries(db, [run.createdBy]))[0]?.name || "the user",
+  });
 
 export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
   const { db } = deps;
@@ -1015,7 +1035,12 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
       ...loaded.value,
       agent: { id: target.id, versionId: version.value.id },
       instructions: composeInstructions({
-        agent: definition.instructions,
+        agent: await filledInstructions(
+          db,
+          run,
+          definition.instructions,
+          deps.now
+        ),
         base: BASE,
         dynamic: await planInstructions(run),
         // A planning run can't make artifacts.
