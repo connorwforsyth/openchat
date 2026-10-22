@@ -534,13 +534,7 @@ export function ChatRoute({
       dotsHref={routes.dots}
       draftContext={chat.draftContext}
       headerExtra={
-        conversationId ? (
-          <ChatSchedule
-            conversationId={conversationId}
-            isDot={isDot}
-            schedule={conversation.data?.schedule}
-          />
-        ) : null
+        isDot ? <ChatSchedule schedule={conversation.data?.schedule} /> : null
       }
       initialPrompt={
         conversationId ? null : searchParams.get(routeParams.askAi)
