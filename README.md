@@ -105,6 +105,42 @@ Optional providers, each off until its credentials are set:
 | Microsoft (Entra ID) | `auth.microsoft` in `app.config.yaml`, secrets from `.env` | see [`docs/self-hosting.md`](docs/self-hosting.md#sign-in-with-microsoft-entra-id) |
 | Any OIDC provider (SSO) | `auth.oidc` in `app.config.yaml` | see [`docs/self-hosting.md`](docs/self-hosting.md) |
 
+## Running code (sandbox)
+
+Chats run code in a Docker sandbox: one container per chat, started by the
+`sandbox-runner` service so the app itself never touches the Docker socket.
+A Dot's computer runs there too.
+
+- **Docker:** `docker compose --profile sandbox up -d` starts the runner
+  beside the app.
+- **Local development:** `bun dev` starts the runner as well when Docker is
+  running. Without Docker, running code and the Dot's computer say the
+  runner isn't available and show the command that starts it; chat, files
+  and artifacts keep working.
+
+Network access from inside a sandbox is set in `app.config.yaml`:
+
+```yaml
+sandbox:
+  egress:
+    mode: open          # open (default) | allowlist | none
+    allow:              # used by `allowlist`; package registries prefilled
+      - registry.npmjs.org
+      - pypi.org
+      - files.pythonhosted.org
+      - github.com
+```
+
+- `open` lets sandboxes reach anywhere, so installs and dev servers work.
+- `allowlist` allows only the hosts under `allow`.
+- `none` blocks every connection out.
+
+The `SANDBOX_EGRESS` environment variable overrides `mode`.
+
+> This describes the `sandbox.egress` block and the runner start-up as
+> specified for the night-2 integration branch. If your checkout predates
+> them, egress is set with `SANDBOX_EGRESS` only.
+
 ## Behind a corporate network
 
 Installs download from `registry.npmjs.org`, and Docker builds also pull
