@@ -281,6 +281,10 @@ msgid "{seconds, plural, one {Thought for # second} other {Thought for # seconds
 msgstr "{seconds, plural, one {Thought for # second} other {Thought for # seconds}}"
 
 #: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "{slides, plural, one {# slide couldn't be drawn. The others are below.} other {# slides couldn't be drawn. The others are below.}}"
+msgstr "{slides, plural, one {# slide couldn't be drawn. The others are below.} other {# slides couldn't be drawn. The others are below.}}"
+
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
 msgid "{slides, plural, one {# slide} other {# slides}}"
 msgstr "{slides, plural, one {# slide} other {# slides}}"
 
@@ -373,10 +377,6 @@ msgstr "A short name, like a nickname."
 #: ../library-ui/src/components/skills-section.tsx
 msgid "A skill you can't see"
 msgstr "A skill you can't see"
-
-#: ../chat-ui/src/artifacts/presentation-preview.tsx
-msgid "A slide in this deck failed to draw."
-msgstr "A slide in this deck failed to draw."
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 msgid "A space needs at least one owner. Make someone else an owner first."
@@ -1601,6 +1601,10 @@ msgstr "CSV of this sheet (.csv)"
 msgid "Current"
 msgstr "Current"
 
+#: ../chat-ui/src/artifacts/presenter.tsx
+msgid "Current slide"
+msgstr "Current slide"
+
 #: ../../apps/web/app/(app)/(pages)/dots/schedule-text.tsx
 msgid "Custom ({expression})"
 msgstr "Custom ({expression})"
@@ -2064,6 +2068,10 @@ msgstr "Ember"
 #: ../chat-ui/src/artifacts/document/document-view.tsx
 msgid "Empty to-do"
 msgstr "Empty to-do"
+
+#: ../chat-ui/src/artifacts/presenter.tsx
+msgid "End of the deck"
+msgstr "End of the deck"
 
 #: ../../apps/web/app/(app)/(pages)/schedules/schedule-editor.tsx
 msgid "End repeat"
@@ -3412,6 +3420,7 @@ msgstr "Newer version"
 
 #: ../../apps/web/app/(app)/(pages)/dots/onboarding.tsx
 #: ../chat-ui/src/artifacts/presentation-preview.tsx
+#: ../chat-ui/src/artifacts/presenter.tsx
 msgid "Next"
 msgstr "Next"
 
@@ -3450,6 +3459,10 @@ msgstr "Next run {next}"
 #: ../chat-ui/src/sidebar/chat-row.tsx
 msgid "Next run: {when}"
 msgstr "Next run: {when}"
+
+#: ../chat-ui/src/artifacts/presenter.tsx
+msgid "Next slide"
+msgstr "Next slide"
 
 #: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
 msgid "No {label} yet"
@@ -3533,6 +3546,10 @@ msgstr "No matches."
 #: ../../apps/web/app/(app)/(pages)/dots/onboarding.tsx
 msgid "No model is available yet. Ask your admin to add one."
 msgstr "No model is available yet. Ask your admin to add one."
+
+#: ../chat-ui/src/artifacts/presenter.tsx
+msgid "No notes for this slide."
+msgstr "No notes for this slide."
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/admin-index.tsx
 msgid "No orgs to manage"
@@ -3669,6 +3686,10 @@ msgstr "Notes: {notes}"
 #: ../chat-ui/src/workspace/new-file-dialog.tsx
 msgid "notes.md"
 msgstr "notes.md"
+
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "Nothing answered at {origin}. Start it with bun dev, then retry."
+msgstr "Nothing answered at {origin}. Start it with bun dev, then retry."
 
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Nothing found"
@@ -4215,8 +4236,21 @@ msgid "Presentation"
 msgstr "Presentation"
 
 #: ../chat-ui/src/artifacts/presentation-preview.tsx
+#: ../chat-ui/src/artifacts/presenter.tsx
+msgid "Presenter view"
+msgstr "Presenter view"
+
+#: ../chat-ui/src/artifacts/presenter.tsx
+msgid "Presenter view: {title}"
+msgstr "Presenter view: {title}"
+
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
 msgid "Presenting {title}"
 msgstr "Presenting {title}"
+
+#: ../chat-ui/src/artifacts/presenter.tsx
+msgid "Presenting has ended."
+msgstr "Presenting has ended."
 
 #: ../library-ui/src/components/kind.tsx
 msgid "Preset"
@@ -4260,6 +4294,18 @@ msgstr "Preview of {title}"
 msgid "Preview of port {port}"
 msgstr "Preview of port {port}"
 
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "Preview unavailable: the artifacts service isn't running"
+msgstr "Preview unavailable: the artifacts service isn't running"
+
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "Preview unavailable: the artifacts service isn't set up here"
+msgstr "Preview unavailable: the artifacts service isn't set up here"
+
+#: ../chat-ui/src/artifacts/presenter.tsx
+msgid "Preview unavailable: the artifacts service isn't set up here."
+msgstr "Preview unavailable: the artifacts service isn't set up here."
+
 #: ../chat-ui/src/artifacts/artifact-preview.tsx
 msgid "Previews can't import \"{module}\". React artifacts can import {allowed}."
 msgstr "Previews can't import \"{module}\". React artifacts can import {allowed}."
@@ -4269,6 +4315,7 @@ msgid "Previews of this kind need the artifact runtime. Its source is in the Cod
 msgstr "Previews of this kind need the artifact runtime. Its source is in the Code tab."
 
 #: ../chat-ui/src/artifacts/presentation-preview.tsx
+#: ../chat-ui/src/artifacts/presenter.tsx
 msgid "Previous"
 msgstr "Previous"
 
@@ -4716,6 +4763,10 @@ msgstr "Resize sidebar"
 msgid "Resize the browser"
 msgstr "Resize the browser"
 
+#: ../chat-ui/src/artifacts/presenter.tsx
+msgid "Restart the timer"
+msgstr "Restart the timer"
+
 #: ../../apps/desktop/src/main/menu.ts
 msgid "Restart to Update"
 msgstr "Restart to Update"
@@ -4749,6 +4800,7 @@ msgstr "Resume {title}"
 #: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
 #: ../../apps/web/app/dev/ai-elements/demo.tsx
 #: ../chat-ui/src/artifacts/document/document-view.tsx
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
 #: ../chat-ui/src/conversation/approval.tsx
 #: ../chat-ui/src/workspace/preview.tsx
 #: ../chat-ui/src/workspace/workspace-panel.tsx
@@ -5382,6 +5434,12 @@ msgstr "Skipped"
 msgid "Slash command"
 msgstr "Slash command"
 
+#. placeholder {0}: position.slide + 1
+#. placeholder {1}: position.slides
+#: ../chat-ui/src/artifacts/presenter.tsx
+msgid "Slide {0} of {1}"
+msgstr "Slide {0} of {1}"
+
 #: ../chat-ui/src/artifacts/presentation-preview.tsx
 msgid "Slide {slide} of {slides}"
 msgstr "Slide {slide} of {slides}"
@@ -5389,6 +5447,10 @@ msgstr "Slide {slide} of {slides}"
 #: ../chat-ui/src/model/artifact-kinds.ts
 msgid "Slides"
 msgstr "Slides"
+
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "Slides are drawn by the artifacts service. Set ARTIFACTS_ORIGIN and start it with bun dev. The deck's JSON is in the Code tab."
+msgstr "Slides are drawn by the artifacts service. Set ARTIFACTS_ORIGIN and start it with bun dev. The deck's JSON is in the Code tab."
 
 #: ../chat-ui/src/artifacts/presentation-preview.tsx
 msgid "Slides of {title}"
@@ -5467,6 +5529,7 @@ msgid "Spark"
 msgstr "Spark"
 
 #: ../chat-ui/src/artifacts/presentation-preview.tsx
+#: ../chat-ui/src/artifacts/presenter.tsx
 msgid "Speaker notes"
 msgstr "Speaker notes"
 
@@ -6173,6 +6236,10 @@ msgstr "This chat"
 msgid "This couldn't be loaded."
 msgstr "This couldn't be loaded."
 
+#: ../chat-ui/src/artifacts/presentation-preview.tsx
+msgid "This deck couldn't be read."
+msgstr "This deck couldn't be read."
+
 #: ../../apps/web/app/(app)/_shared/query-state.tsx
 msgid "This feature is switched off on this server."
 msgstr "This feature is switched off on this server."
@@ -6277,6 +6344,10 @@ msgstr "Thought for 4 seconds"
 #: ../chat-ui/src/conversation/reasoning-part.tsx
 msgid "Thought for a few seconds"
 msgstr "Thought for a few seconds"
+
+#: ../chat-ui/src/artifacts/presenter.tsx
+msgid "Time presenting"
+msgstr "Time presenting"
 
 #: ../../apps/web/app/(app)/(pages)/schedules/schedule-editor.tsx
 msgid "Time zone"
@@ -6682,6 +6753,10 @@ msgstr "Waiting for an owner"
 #: ../chat-ui/src/conversation/message-row.tsx
 msgid "Waiting for the answer before it…"
 msgstr "Waiting for the answer before it…"
+
+#: ../chat-ui/src/artifacts/presenter.tsx
+msgid "Waiting for the presentation. Start presenting in the chat."
+msgstr "Waiting for the presentation. Start presenting in the chat."
 
 #: ../chat-ui/src/sidebar/chat-row.tsx
 msgid "Waiting for your approval"

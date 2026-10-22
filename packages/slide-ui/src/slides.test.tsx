@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { SLIDE_UI_EXPORTS } from "@workspace/artifacts-kit/kinds/presentation/slides";
 import { describe, expect, it } from "vitest";
 
@@ -7,6 +7,7 @@ import * as slideUi from "./index";
 import {
   Agenda,
   Bullets,
+  Chart,
   Closing,
   ImageSlide,
   Logo,
@@ -89,5 +90,66 @@ describe("slide-ui's layouts", () => {
     expect(notes?.hidden).toBe(true);
     expect(notes?.textContent).toBe("Say hello");
     expect(screen.getByText("Acme")).toBeTruthy();
+  });
+
+  it("draw what a model meant when a list arrives as one string or as objects", () => {
+    const { container } = render(
+      <>
+        <Bullets items={"First\nSecond" as never} title="As text" />
+        <Agenda items={[{ text: "Intro" }, { title: "Plan" }] as never} />
+      </>
+    );
+    for (const point of ["First", "Second", "Intro", "Plan"]) {
+      expect(within(container).getByText(point)).toBeTruthy();
+    }
+  });
+});
+
+describe("Chart", () => {
+  const data = {
+    labels: ["Q1", "Q2", "Q3"],
+    series: [
+      { name: "Plan", values: [3, 5, 8] },
+      { name: "Actual", values: [2, 6, 9] },
+    ],
+  };
+
+  it("draws bars, lines and pies from data, and carries the data for export", () => {
+    const { container } = render(
+      <>
+        <Chart {...data} title="Bars" />
+        <Chart {...data} title="Lines" type="line" />
+        <Chart {...data} title="Pie" type="pie" />
+      </>
+    );
+    const chart = within(container);
+    expect(chart.getByRole("img", { name: "Bars" })).toBeTruthy();
+    expect(container.querySelectorAll("rect").length).toBeGreaterThanOrEqual(6);
+    expect(container.querySelectorAll("polyline")).toHaveLength(2);
+    expect(container.querySelectorAll("path")).toHaveLength(3);
+    const carried = container.querySelector<HTMLElement>("[data-slide-chart]");
+    expect(JSON.parse(carried?.dataset.slideChart ?? "")).toEqual({
+      ...data,
+      type: "bar",
+    });
+    expect(chart.getAllByText("Actual")).toHaveLength(2);
+  });
+
+  it("takes a bare list of numbers as one series, and draws nothing for no data", () => {
+    const { container } = render(
+      <>
+        <Chart labels={["A", "B"]} series={[1, 2] as never} title="Bare" />
+        <Chart
+          labels={undefined as never}
+          series={undefined as never}
+          title="None"
+        />
+      </>
+    );
+    expect(within(container).getByText("A")).toBeTruthy();
+    expect(
+      within(container).getByRole("heading", { name: "None" })
+    ).toBeTruthy();
+    expect(container.querySelectorAll("[data-slide-chart]")).toHaveLength(2);
   });
 });

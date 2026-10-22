@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { pointsOf } from "./points";
 import { Eyebrow, Heading, Lede, Slide, Step } from "./primitives";
 import { SLIDE_COLOR, SLIDE_SPACE, SLIDE_TYPE } from "./scale";
 
@@ -71,7 +72,7 @@ export function Bullets({
           paddingInlineStart: SLIDE_SPACE.md,
         }}
       >
-        {items.map((item, index) => {
+        {pointsOf(items).map((item, index) => {
           const point = (
             // biome-ignore lint/suspicious/noArrayIndexKey: points are a fixed list from props, never reordered.
             <li key={index} style={{ fontSize: SLIDE_TYPE.body }}>
@@ -265,7 +266,7 @@ export function Agenda({ current, items, title = "Agenda" }: AgendaProps) {
           padding: 0,
         }}
       >
-        {items.map((item, index) => (
+        {pointsOf(items).map((item, index) => (
           <li
             // biome-ignore lint/suspicious/noArrayIndexKey: a fixed list from props.
             key={index}

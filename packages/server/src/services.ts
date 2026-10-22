@@ -11,12 +11,12 @@ import type { ArtifactKindRegistry } from "@workspace/artifacts-kit/registry";
 import type { AppConfig } from "@workspace/config/schema";
 import type { ModelSelector } from "@workspace/contract/schemas/models";
 import type { Db } from "@workspace/db/client";
-
 import {
   attachedArtifactsSection,
   dbArtifactStore,
 } from "./api/artifacts-context";
 import type { ApiServices } from "./api/router";
+import { compileTsx } from "./artifacts/compile-tsx";
 import { type ConversationAccess, grantAccess } from "./context";
 import {
   type DotComputers,
@@ -151,7 +151,9 @@ export const createServices = (options: ServicesOptions): Services => {
   const keyStore =
     options.keyStore ?? createMemoryKeyStore(instanceKeysFromConfig(config));
   // The instance layer of the kinds' rules (125): its site settings.
-  const artifactKinds = instanceArtifactKinds(config.artifacts.kinds);
+  const artifactKinds = instanceArtifactKinds(config.artifacts.kinds, {
+    compileTsx,
+  });
   const turnDeps = {
     artifactKinds,
     artifacts: (run: RunStart) =>

@@ -1,0 +1,62 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`recorded live failures, replayed offline > mermaid mermaid-git-graph (retried on anthropic:claude-haiku-5-5) 1`] = `
+[
+  "invalid: content isn't a valid mermaid artifact",
+  "invalid: content isn't a valid mermaid artifact",
+  "saved",
+  "saved",
+]
+`;
+
+exports[`recorded live failures, replayed offline > react react-chart (schema_invalid on anthropic:claude-haiku-5-5) 1`] = `
+[
+  "invalid: imports "recharts", which isn't available here. It may import: react, react-dom",
+]
+`;
+
+exports[`recorded live failures, replayed offline > react react-memory-game (render_error on anthropic:claude-haiku-5-5) 1`] = `
+[
+  "saved",
+]
+`;
+
+exports[`recorded live failures, replayed offline > site site-app-launch (retried on anthropic:claude-haiku-5-5) 1`] = `
+[
+  "invalid: index.tsx refers to "{href}", which isn't a file in the site",
+  "saved",
+]
+`;
+
+exports[`recorded live failures, replayed offline > site site-docs (retried on anthropic:claude-haiku-5-5) 1`] = `
+[
+  "invalid: endpoints.tsx refers to "{", which isn't a file in the site",
+  "invalid: endpoints.tsx refers to "{", which isn't a file in the site",
+  "invalid: endpoints.tsx refers to "{", which isn't a file in the site",
+  "invalid: endpoints.tsx refers to "{", which isn't a file in the site",
+  "saved",
+]
+`;
+
+exports[`recorded live failures, replayed offline > site site-restaurant (retried on anthropic:claude-haiku-5-5) 1`] = `
+[
+  "invalid: menu.tsx refers to "{", which isn't a file in the site",
+  "saved",
+]
+`;
+
+exports[`recorded live failures, replayed offline > site site-wedding (retried on anthropic:claude-haiku-5-5) 1`] = `
+[
+  "invalid: index.tsx refers to "{mailto}", which isn't a file in the site",
+  "invalid: index.tsx refers to "{replyLink}", which isn't a file in the site",
+  "invalid: index.tsx refers to "{reply.link}", which isn't a file in the site",
+  "saved",
+]
+`;
+
+exports[`recorded live failures, replayed offline > spreadsheet sheet-project-plan (retried on anthropic:claude-haiku-5-5) 1`] = `
+[
+  "input refused: language Invalid string: must match pattern /^[\\w+-]{1,32}$/",
+  "saved",
+]
+`;

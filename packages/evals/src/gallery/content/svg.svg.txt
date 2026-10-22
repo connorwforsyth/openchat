@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">Copperloaf Bakehouse brand mark</title>
+  <desc id="desc">A copper badge with a scored loaf between two ears of wheat, the Copperloaf wordmark, and the brand's four colours.</desc>
+  <defs>
+    <path id="arc-top" d="M 132 380 A 168 168 0 1 1 468 380" />
+    <path id="arc-bottom" d="M 112 380 A 188 188 0 0 0 488 380" />
+    <g id="grain">
+      <ellipse cx="0" cy="0" rx="7" ry="15" />
+    </g>
+    <g id="wheat" fill="#F6EEDF">
+      <path d="M0 0 C 4 -40, 6 -90, 2 -140" fill="none" stroke="#F6EEDF" stroke-width="4" stroke-linecap="round" />
+      <use href="#grain" transform="translate(-9 -60) rotate(-28)" />
+      <use href="#grain" transform="translate(13 -72) rotate(28)" />
+      <use href="#grain" transform="translate(-8 -86) rotate(-28)" />
+      <use href="#grain" transform="translate(14 -98) rotate(28)" />
+      <use href="#grain" transform="translate(-6 -112) rotate(-26)" />
+      <use href="#grain" transform="translate(13 -124) rotate(26)" />
+      <use href="#grain" transform="translate(3 -146) rotate(4)" />
+    </g>
+  </defs>
+
+  <rect width="1200" height="760" fill="#F6EEDF" />
+  <rect x="24" y="24" width="1152" height="712" rx="28" fill="none" stroke="#E4D3B8" stroke-width="2" />
+
+  <g>
+    <circle cx="300" cy="380" r="214" fill="#B8643A" />
+    <circle cx="300" cy="380" r="200" fill="none" stroke="#F6EEDF" stroke-width="3" />
+    <circle cx="300" cy="380" r="146" fill="none" stroke="#F6EEDF" stroke-width="3" />
+    <text font-family="Georgia, 'Times New Roman', serif" font-size="25" letter-spacing="5" fill="#F6EEDF" font-weight="700">
+      <textPath href="#arc-top" startOffset="50%" text-anchor="middle">COPPERLOAF BAKEHOUSE</textPath>
+    </text>
+    <text font-family="Georgia, 'Times New Roman', serif" font-size="22" letter-spacing="6" fill="#F6EEDF">
+      <textPath href="#arc-bottom" startOffset="50%" text-anchor="middle">EST. 2019 · MELBOURNE</textPath>
+    </text>
+    <circle cx="117" cy="380" r="5" fill="#F6EEDF" />
+    <circle cx="483" cy="380" r="5" fill="#F6EEDF" />
+
+    <use href="#wheat" transform="translate(296 506) rotate(-64) scale(0.6)" />
+    <use href="#wheat" transform="translate(304 506) rotate(64) scale(-0.6 0.6)" />
+
+    <g transform="translate(300 386) scale(0.84) translate(-300 -389)">
+      <path d="M 196 404 C 196 352, 250 334, 300 334 C 360 334, 404 352, 404 400 C 404 432, 360 444, 300 444 C 240 444, 196 436, 196 404 Z" fill="#F6EEDF" transform="rotate(-8 300 389)" />
+      <path d="M 226 402 C 262 368, 330 356, 380 372" fill="none" stroke="#7A3E22" stroke-width="8" stroke-linecap="round" transform="rotate(-8 300 389)" />
+    </g>
+  </g>
+
+  <g font-family="Georgia, 'Times New Roman', serif" fill="#3B2418">
+    <text x="600" y="250" font-size="92" font-weight="700" letter-spacing="-1">Copperloaf</text>
+    <text x="606" y="300" font-size="26" letter-spacing="9" fill="#7A3E22">BAKEHOUSE</text>
+    <text x="606" y="352" font-size="22" fill="#6B5446" font-style="italic">Fitzroy · Carlton · Brunswick · Northcote</text>
+  </g>
+
+  <line x1="606" y1="398" x2="1120" y2="398" stroke="#E4D3B8" stroke-width="2" />
+
+  <g font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif">
+    <g transform="translate(606 432)">
+      <rect width="112" height="112" rx="16" fill="#B8643A" />
+      <text y="146" font-size="18" font-weight="600" fill="#3B2418">Copper</text>
+      <text y="170" font-size="15" fill="#6B5446">#B8643A</text>
+    </g>
+    <g transform="translate(740 432)">
+      <rect width="112" height="112" rx="16" fill="#7A3E22" />
+      <text y="146" font-size="18" font-weight="600" fill="#3B2418">Crust</text>
+      <text y="170" font-size="15" fill="#6B5446">#7A3E22</text>
+    </g>
+    <g transform="translate(874 432)">
+      <rect width="112" height="112" rx="16" fill="#3B2418" />
+      <text y="146" font-size="18" font-weight="600" fill="#3B2418">Rye</text>
+      <text y="170" font-size="15" fill="#6B5446">#3B2418</text>
+    </g>
+    <g transform="translate(1008 432)">
+      <rect width="112" height="112" rx="16" fill="#FFFBF4" stroke="#E4D3B8" stroke-width="2" />
+      <text y="146" font-size="18" font-weight="600" fill="#3B2418">Flour</text>
+      <text y="170" font-size="15" fill="#6B5446">#FFFBF4</text>
+    </g>
+  </g>
+</svg>
