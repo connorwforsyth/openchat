@@ -11,6 +11,7 @@ import {
 } from "./common";
 import { messagePartSchema, partsVersionSchema } from "./message-parts";
 import { modelRefSchema, tokenUsageSchema } from "./models";
+import { chatModeSchema } from "./runs";
 
 // A conversation is a tree of messages linked by `parentId` (LibreChat's
 // model). Editing or regenerating adds a sibling under the same parent; the
@@ -40,6 +41,12 @@ export const messageSchema = z.object({
   conversationId: conversationIdSchema,
   createdAt: timestampSchema,
   id: messageIdSchema,
+  /**
+   * The chat's mode the run that wrote (assistant) or was started by (user)
+   * this message ran in. `null` outside the switch (a Dot's chat); absent
+   * from servers before it.
+   */
+  mode: chatModeSchema.nullable().optional(),
   /** The model that produced an assistant message (resolved ref, never an alias). */
   model: modelRefSchema.nullable(),
   /** `null` for a root message. */

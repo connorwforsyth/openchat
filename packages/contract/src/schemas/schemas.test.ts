@@ -140,15 +140,20 @@ const cases: Record<string, Cases> = {
     invalid: [
       { ...conversation, context: { type: "team" } },
       { ...conversation, title: "x".repeat(201) },
+      { ...conversation, mode: "build" },
     ],
     valid: [
       conversation,
       { ...conversation, context: { type: "personal" }, title: null },
+      { ...conversation, mode: "chat" },
     ],
   },
   "conversations.createConversationInputSchema": {
-    invalid: [{ context: { type: "space" } }, { title: "" }],
-    valid: [{}, { context: { id: org.id, type: "org" }, title: "Plans" }],
+    invalid: [{ context: { type: "space" } }, { title: "" }, { mode: "plan" }],
+    valid: [
+      {},
+      { context: { id: org.id, type: "org" }, mode: "code", title: "Plans" },
+    ],
   },
   "conversations.forkConversationInputSchema": {
     invalid: [{ id: convId }],
@@ -173,10 +178,14 @@ const cases: Record<string, Cases> = {
     valid: [{ context: { type: "personal" }, id: convId }],
   },
   "conversations.updateConversationInputSchema": {
-    invalid: [{ id: convId, title: "  " }],
+    invalid: [
+      { id: convId, title: "  " },
+      { id: convId, mode: null },
+    ],
     valid: [
       { id: convId },
       { archived: true, defaultTarget: null, id: convId, pinned: true },
+      { id: convId, mode: "code" },
     ],
   },
   "conversations.updateParticipantStateInputSchema": {
@@ -1438,8 +1447,14 @@ const cases: Record<string, Cases> = {
     invalid: [
       { ...userMessage, partsVersion: 2 },
       { ...userMessage, role: "tool" },
+      { ...userMessage, mode: "plan" },
     ],
-    valid: [userMessage, assistantMessage],
+    valid: [
+      userMessage,
+      assistantMessage,
+      { ...assistantMessage, mode: "code" },
+      { ...userMessage, mode: null },
+    ],
   },
   "messages.messageTreeSchema": {
     invalid: [{ conversationId: convId }],
@@ -1589,6 +1604,10 @@ const cases: Record<string, Cases> = {
       { inputTokens: 1, outputTokens: 2 },
       { cachedInputTokens: 5, inputTokens: 10, outputTokens: 2 },
     ],
+  },
+  "runs.chatModeSchema": {
+    invalid: ["plan", "Chat", "", null],
+    valid: ["chat", "code"],
   },
 
   // runs
@@ -1748,6 +1767,7 @@ const cases: Record<string, Cases> = {
       { mode: "build" },
       { mode: "" },
       { mode: null },
+      { chatMode: "plan" },
     ],
     valid: [
       // The shape before 105 still parses.
@@ -1758,6 +1778,8 @@ const cases: Record<string, Cases> = {
       // Plan mode (106); absent means a normal turn.
       { mode: "plan" },
       { fast: true, mode: "plan", reasoning: "high", webSearch: "on" },
+      { chatMode: "code" },
+      { chatMode: "chat", mode: "plan" },
     ],
   },
   "runs.runSchema": {

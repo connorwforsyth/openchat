@@ -505,6 +505,11 @@
               }
             ]
           },
+          "mode": {
+            "enum": ["chat", "code"],
+            "type": "string",
+            "default": "chat"
+          },
           "myPermission": {
             "enum": ["owner", "editor", "viewer"],
             "type": "string"
@@ -2513,6 +2518,17 @@
             "format": "uuid",
             "description": "message id (UUIDv7)"
           },
+          "mode": {
+            "anyOf": [
+              {
+                "enum": ["chat", "code"],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "model": {
             "anyOf": [
               {
@@ -3623,6 +3639,10 @@
           "options": {
             "type": "object",
             "properties": {
+              "chatMode": {
+                "enum": ["chat", "code"],
+                "type": "string"
+              },
               "fast": {
                 "type": "boolean"
               },
@@ -8911,6 +8931,11 @@
                   "defaultTarget": {
                     "$ref": "#/components/schemas/RunTarget"
                   },
+                  "mode": {
+                    "enum": ["chat", "code"],
+                    "type": "string",
+                    "default": "chat"
+                  },
                   "title": {
                     "type": "string",
                     "minLength": 1,
@@ -9462,6 +9487,10 @@
                         "type": "null"
                       }
                     ]
+                  },
+                  "mode": {
+                    "enum": ["chat", "code"],
+                    "type": "string"
                   },
                   "pinned": {
                     "type": "boolean"
@@ -25540,6 +25569,10 @@
                   "options": {
                     "type": "object",
                     "properties": {
+                      "chatMode": {
+                        "enum": ["chat", "code"],
+                        "type": "string"
+                      },
                       "fast": {
                         "type": "boolean"
                       },
