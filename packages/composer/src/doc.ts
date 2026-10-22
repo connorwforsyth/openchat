@@ -10,6 +10,8 @@ import { type MentionToken, mentionTokenSchema } from "./schemas";
 
 /** Node and mark names in the editor schema. */
 export const MENTION_NODE = "mention";
+/** A prompt's `{{variable}}` waiting to be filled in (see `variables.ts`). */
+export const VARIABLE_NODE = "promptVariable";
 const PARAGRAPH_NODE = "paragraph";
 const HARD_BREAK_NODE = "hardBreak";
 const TEXT_NODE = "text";
@@ -29,8 +31,17 @@ const stringAttr = (node: JSONContent, key: string): string | undefined => {
   return typeof value === "string" && value !== "" ? value : undefined;
 };
 
+/** Where a chip kind keeps Mention's own `id` attribute in its token. */
+const idField = {
+  agent: "id",
+  artifact: "artifact",
+  file: "path",
+  skill: "id",
+  user: "id",
+} as const satisfies Record<MentionToken["kind"], string>;
+
 /**
- * A mention node as a token. Node attributes are untyped JSON, so they're
+ * A chip node as a token. Node attributes are untyped JSON, so they're
  * parsed back into the contract's branded ids; a node that doesn't parse
  * (pasted from elsewhere, say) stays plain text.
  */
@@ -39,24 +50,64 @@ const mentionToken = (
   start: number
 ): MentionToken | undefined => {
   const label = stringAttr(node, "label") ?? "";
-  const id = stringAttr(node, "id");
   const kind = stringAttr(node, "kind") ?? "user";
+  const versionId = stringAttr(node, "versionId");
+  const field = idField[kind as MentionToken["kind"]] ?? "id";
   const parsed = mentionTokenSchema.safeParse({
     end: start + label.length + 1,
     kind,
     label,
     start,
-    // A file mention keeps its path in Mention's own `id` attribute.
-    ...(kind === "file" ? { path: id } : { id }),
+    [field]: stringAttr(node, "id"),
+    ...(versionId ? { versionId } : {}),
   });
   return parsed.success ? parsed.data : undefined;
 };
+
+// An unfilled variable with no default is dropped with the space before it
+// when what follows is a space, punctuation or the end of the line, so
+// "Write about {{topic}}." reads "Write about." and not "Write about ."
+const CLOSES = /^[\s,.;:!?)\]]|^$/;
 
 const inlineText = (node: JSONContent): string => {
   const text = node.text ?? "";
   return node.marks?.some((mark) => mark.type === CODE_MARK)
     ? `\`${text}\``
     : text;
+};
+
+/** A variable left unfilled: its default, else nothing, and maybe its space. */
+const withVariable = (
+  text: string,
+  node: JSONContent,
+  next: JSONContent | undefined
+): string => {
+  const fill = stringAttr(node, "fallback");
+  if (fill !== undefined) {
+    return text + fill;
+  }
+  const after = next?.type === TEXT_NODE ? (next.text ?? "") : "";
+  return text.endsWith(" ") && CLOSES.test(after) ? text.slice(0, -1) : text;
+};
+
+/** `text` with one inline node's text after it. */
+const withInline = (
+  text: string,
+  node: JSONContent,
+  next: JSONContent | undefined
+): string => {
+  switch (node.type) {
+    case VARIABLE_NODE:
+      return withVariable(text, node, next);
+    case HARD_BREAK_NODE:
+      return `${text}\n`;
+    case MENTION_NODE:
+      return `${text}@${stringAttr(node, "label") ?? ""}`;
+    case TEXT_NODE:
+      return text + inlineText(node);
+    default:
+      return text;
+  }
 };
 
 /** Plain text and mention tokens from the editor's JSON document. */
@@ -68,19 +119,16 @@ export const serializeDoc = (doc: JSONContent): SerializedDoc => {
     if (index > 0) {
       text += "\n";
     }
-    for (const node of block.content ?? []) {
-      if (node.type === HARD_BREAK_NODE) {
-        text += "\n";
-      } else if (node.type === MENTION_NODE) {
+    const nodes = block.content ?? [];
+    nodes.forEach((node, at) => {
+      if (node.type === MENTION_NODE) {
         const token = mentionToken(node, text.length);
-        text += `@${stringAttr(node, "label") ?? ""}`;
         if (token) {
           mentions.push(token);
         }
-      } else if (node.type === TEXT_NODE) {
-        text += inlineText(node);
       }
-    }
+      text = withInline(text, node, nodes[at + 1]);
+    });
   });
 
   const leading = LEADING_WHITESPACE.exec(text)?.[0].length ?? 0;

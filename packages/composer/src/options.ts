@@ -15,7 +15,9 @@ import { matchMcpServers } from "./mcp";
 import {
   type AgentOption,
   type AgentSource,
+  type ArtifactOption,
   type ComposerCommand,
+  type ComposerMode,
   type ContextOption,
   composerCommandSchema,
   type FileCandidate,
@@ -419,11 +421,14 @@ export const contextOptionsFromMe = (
 
 // Suggestions stay short enough to scan; typing narrows the rest.
 const SUGGESTION_LIMIT = 8;
+/** Per group before anything is typed, so every group shows in the menu. */
+const BROWSE_LIMIT = 4;
 
 const rank = <T>(
   items: readonly T[],
   query: string,
-  keys: (item: T) => readonly (string | undefined)[]
+  keys: (item: T) => readonly (string | undefined)[],
+  limit = SUGGESTION_LIMIT
 ): readonly T[] => {
   const needle = query.trim().toLowerCase();
   const scored: { item: T; score: number }[] = [];
@@ -440,108 +445,142 @@ const rank = <T>(
   // Stable sort: prefix matches first, otherwise the caller's order.
   return scored
     .sort((a, b) => a.score - b.score)
-    .slice(0, SUGGESTION_LIMIT)
+    .slice(0, limit)
     .map(({ item }) => item);
 };
 
-/** Templates for `/query`: by slash command, then name. */
-export const filterPrompts = (
-  prompts: readonly PromptOption[],
-  query: string
-): readonly PromptOption[] =>
-  rank(prompts, query, (prompt) => [prompt.definition.command, prompt.name]);
-
 /**
- * Candidates for `@query`: agents and people by label, then files by name or
- * path. Files are ranked on their own so a workspace full of them never
- * crowds the people out of the list.
+ * A row in the composer's menu, which `/` and `@` both open. Picking an
+ * agent, skill, artifact type, person or file puts a chip in the text; a
+ * prompt puts in its text; upload opens the file picker; a command or an
+ * MCP server is the host's to carry out.
  */
-export const filterMentions = (
-  candidates: readonly MentionCandidate[],
-  query: string
-): readonly MentionCandidate[] => [
-  ...rank(
-    candidates.filter((candidate) => candidate.kind !== "file"),
-    query,
-    (candidate) => [candidate.label]
-  ),
-  ...rank(
-    candidates.filter((candidate) => candidate.kind === "file"),
-    query,
-    (candidate) => [
-      candidate.label,
-      candidate.kind === "file" ? candidate.path : undefined,
-    ]
-  ),
-];
-
-/** Skills for `/query` (127): by name, then description. */
-export const filterSkills = (
-  skills: readonly SkillOption[],
-  query: string
-): readonly SkillOption[] =>
-  rank(skills, query, (skill) => [skill.name, skill.description]);
-
-/** A row in the `/` menu. */
-export type SlashItem =
-  | { readonly command: ComposerCommand; readonly kind: "command" }
-  | { readonly file: FileCandidate; readonly kind: "file" }
-  | { readonly kind: "prompt"; readonly prompt: PromptOption }
+export type MenuItem =
+  | { readonly agent: AgentOption; readonly kind: "agent" }
   | { readonly kind: "skill"; readonly skill: SkillOption }
+  | { readonly kind: "prompt"; readonly prompt: PromptOption }
+  | { readonly artifact: ArtifactOption; readonly kind: "artifact" }
+  | { readonly kind: "upload" }
+  | { readonly kind: "mention"; readonly candidate: MentionCandidate }
+  | { readonly command: ComposerCommand; readonly kind: "command" }
   /** Switches a server on or off for this chat (188). */
-  | { readonly server: Connector; readonly kind: "mcp-server" };
+  | { readonly kind: "mcp-server"; readonly server: Connector }
+  /** After `/open`, a workspace file to open. */
+  | { readonly file: FileCandidate; readonly kind: "open-file" };
 
-export interface SlashSources {
+export type MenuItemKind = MenuItem["kind"];
+
+export interface MenuSources {
+  /** Agents to mention: that agent answers the message. */
+  readonly agents?: readonly AgentOption[];
+  /** Artifact types to ask for. */
+  readonly artifacts?: readonly ArtifactOption[];
+  /** Whether the composer can take files: offers Upload. */
+  readonly canUpload?: boolean;
   /** The file commands the host handles; the rest aren't offered. */
-  readonly commands: readonly ComposerCommand[];
-  readonly files: readonly FileCandidate[];
+  readonly commands?: readonly ComposerCommand[];
   /** This chat's MCP servers (188), found by name after a word is typed. */
   readonly mcpServers?: readonly Connector[];
-  readonly prompts: readonly PromptOption[];
-  /** Skills to pick (127), less those already on the message. */
+  /** People and workspace files to mention. */
+  readonly mentions?: readonly MentionCandidate[];
+  /** Chat leaves out what only Code can do; left out, everything is offered. */
+  readonly mode?: ComposerMode;
+  readonly prompts?: readonly PromptOption[];
   readonly skills?: readonly SkillOption[];
 }
 
+/** What only a Code conversation can do: previewing runs a dev server. */
+const CODE_ONLY_COMMANDS: readonly ComposerCommand[] = ["preview"];
+
+const startsAWord = (labels: readonly string[], query: string): boolean => {
+  const needle = query.trim().toLowerCase();
+  return labels.some((label) =>
+    label
+      .toLowerCase()
+      .split(WHITESPACE)
+      .some((word) => word.startsWith(needle))
+  );
+};
+
+/** Whether Chat mode leaves `item` out of the menu. Pure. */
+export const isCodeOnly = (item: MenuItem): boolean =>
+  item.kind === "command" && CODE_ONLY_COMMANDS.includes(item.command);
+
 /**
- * The `/` menu for a query: the host's file commands (always in the same
- * order), then prompt templates, then skills (127), then MCP servers to
- * switch for this chat (188); or, after `/open`, the
- * files to open.
+ * The menu for a query, in groups: agents, skills, prompts, artifact
+ * types, people and files, upload, then the host's file commands and MCP
+ * servers to switch; or, after `/open`, the files to open. Each group is
+ * matched and capped on its own, so a long list never crowds out the rest.
  */
-export const slashItems = (
+export const menuItems = (
   query: string,
-  { commands, mcpServers = [], files, prompts, skills = [] }: SlashSources
-): readonly SlashItem[] => {
+  {
+    agents = [],
+    artifacts = [],
+    canUpload = false,
+    commands = [],
+    mcpServers = [],
+    mentions = [],
+    mode,
+    prompts = [],
+    skills = [],
+  }: MenuSources,
+  uploadLabel = "upload"
+): readonly MenuItem[] => {
   const stage = slashStage(query);
   if (stage.stage === "open") {
-    return rank(files, stage.query, (file) => [file.label, file.path]).map(
-      (file): SlashItem => ({ file, kind: "file" })
-    );
+    return rank(
+      mentions.filter(
+        (candidate): candidate is FileCandidate => candidate.kind === "file"
+      ),
+      stage.query,
+      (file) => [file.label, file.path]
+    ).map((file): MenuItem => ({ file, kind: "open-file" }));
   }
+  const needle = stage.query;
+  const limit = needle.trim() === "" ? BROWSE_LIMIT : SUGGESTION_LIMIT;
+  const find = <T>(
+    list: readonly T[],
+    keys: (item: T) => readonly (string | undefined)[]
+  ) => rank(list, needle, keys, limit);
   const offered = composerCommandSchema.options.filter((command) =>
     commands.includes(command)
   );
-  return [
-    ...rank(offered, stage.query, (command) => [command]).map(
-      (command): SlashItem => ({ command, kind: "command" })
+  const items: MenuItem[] = [
+    ...find(agents, (agent) => [agent.name, agent.description]).map(
+      (agent): MenuItem => ({ agent, kind: "agent" })
     ),
-    ...filterPrompts(prompts, stage.query).map(
-      (prompt): SlashItem => ({ kind: "prompt", prompt })
+    ...find(skills, (skill) => [skill.name, skill.description]).map(
+      (skill): MenuItem => ({ kind: "skill", skill })
     ),
-    ...filterSkills(skills, stage.query).map(
-      (skill): SlashItem => ({ kind: "skill", skill })
+    ...find(prompts, (prompt) => [prompt.definition.command, prompt.name]).map(
+      (prompt): MenuItem => ({ kind: "prompt", prompt })
     ),
-    ...matchMcpServers(mcpServers, stage.query).map(
-      (server): SlashItem => ({ kind: "mcp-server", server })
+    ...find(artifacts, (artifact) => [artifact.label, artifact.kind]).map(
+      (artifact): MenuItem => ({ artifact, kind: "artifact" })
+    ),
+    ...find(
+      mentions.filter((candidate) => candidate.kind === "user"),
+      (candidate) => [candidate.label]
+    ).map((candidate): MenuItem => ({ candidate, kind: "mention" })),
+    ...find(
+      mentions.filter((candidate) => candidate.kind === "file"),
+      (candidate) => [
+        candidate.label,
+        candidate.kind === "file" ? candidate.path : undefined,
+      ]
+    ).map((candidate): MenuItem => ({ candidate, kind: "mention" })),
+    // Last of what goes in the message, and found only by how its words
+    // start: "@ad" is Ada, not "Upload".
+    ...(canUpload && startsAWord([uploadLabel, "upload", "attach"], needle)
+      ? [{ kind: "upload" } as const]
+      : []),
+    ...find(offered, (command) => [command]).map(
+      (command): MenuItem => ({ command, kind: "command" })
+    ),
+    ...matchMcpServers(mcpServers, needle).map(
+      (server): MenuItem => ({ kind: "mcp-server", server })
     ),
   ];
+  return mode === "chat" ? items.filter((item) => !isCodeOnly(item)) : items;
 };
-
-/** `skills` without the ones already picked. Pure. */
-export const unpickedSkills = (
-  skills: readonly SkillOption[],
-  picked: readonly { readonly id: SkillOption["id"] }[]
-): readonly SkillOption[] =>
-  picked.length === 0
-    ? skills
-    : skills.filter((skill) => !picked.some((each) => each.id === skill.id));

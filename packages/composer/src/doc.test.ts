@@ -132,3 +132,91 @@ describe("textToInline", () => {
     expect(serializeDoc(textToDoc(value)).text).toBe(value);
   });
 });
+
+describe("chips beyond people and files", () => {
+  it("keep a draft's version, and an artifact chip its kind", () => {
+    const versionId = "0199a000-0000-7000-8000-0000000000bb";
+    const serialized = serializeDoc(
+      doc(
+        paragraph(
+          {
+            attrs: {
+              id: agentItem.id,
+              kind: "agent",
+              label: "Reviewer",
+              versionId,
+            },
+            type: "mention",
+          },
+          text(" make "),
+          {
+            attrs: { id: "presentation", kind: "artifact", label: "Slides" },
+            type: "mention",
+          }
+        )
+      )
+    );
+    expect(serialized).toEqual({
+      mentions: [
+        {
+          end: 9,
+          id: agentItem.id,
+          kind: "agent",
+          label: "Reviewer",
+          start: 0,
+          versionId,
+        },
+        {
+          artifact: "presentation",
+          end: 22,
+          kind: "artifact",
+          label: "Slides",
+          start: 15,
+        },
+      ],
+      text: "@Reviewer make @Slides",
+    });
+  });
+
+  it("stay text when an artifact chip names no kind we know", () => {
+    expect(
+      serializeDoc(
+        doc(
+          paragraph({
+            attrs: { id: "poster", kind: "artifact", label: "Poster" },
+            type: "mention",
+          })
+        )
+      )
+    ).toEqual({ mentions: [], text: "@Poster" });
+  });
+});
+
+describe("prompt variables", () => {
+  const variable = (name: string, fallback?: string): JSONContent => ({
+    attrs: { fallback: fallback ?? null, name },
+    type: "promptVariable",
+  });
+
+  it("are sent as their default when left unfilled", () => {
+    expect(
+      serializeDoc(
+        doc(paragraph(text("Tone: "), variable("tone", "warm"), text(".")))
+      ).text
+    ).toBe("Tone: warm.");
+  });
+
+  it("are dropped cleanly, with the space before them, when they have no default", () => {
+    const sent = (...content: JSONContent[]) =>
+      serializeDoc(doc(paragraph(...content))).text;
+    expect(sent(text("Write about "), variable("topic"), text("."))).toBe(
+      "Write about."
+    );
+    expect(sent(text("Write about "), variable("topic"), text(" today"))).toBe(
+      "Write about today"
+    );
+    expect(sent(text("Summarise "), variable("doc"))).toBe("Summarise");
+    expect(sent(variable("greeting"), text(" there"))).toBe("there");
+    expect(sent(text("a "), variable("x"), text("b"))).toBe("a b");
+  });
+});

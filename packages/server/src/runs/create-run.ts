@@ -1,3 +1,4 @@
+import { answeringAgent, chipsOf } from "@workspace/ai/messages/chips";
 import type { SkillUse } from "@workspace/ai/messages/skills";
 import type { RunExecutor } from "@workspace/ai/ports/run-executor";
 import type { MessageId, RunId } from "@workspace/contract/schemas/common";
@@ -112,11 +113,39 @@ export const busyTail = (
         )
       );
 
+/**
+ * The agent a message's `@agent` chip asks to answer it, which wins over
+ * the composer's target for that message; a regenerate reads the chips of
+ * the message it answers again. Access is checked like any target's.
+ */
+const chippedAgent = async (
+  db: Db,
+  { input: turn }: CreateRunInput
+): Promise<RunTarget | undefined> => {
+  let parts = turn.type === "message" ? turn.parts : undefined;
+  if (turn.type === "regenerate") {
+    const answered = await getMessage(db, turn.userMessageId);
+    parts = answered.ok ? answered.value.parts : undefined;
+  }
+  const agent = parts ? answeringAgent(chipsOf(parts)) : undefined;
+  return agent
+    ? {
+        id: agent.id,
+        type: "agent",
+        ...(agent.versionId ? { versionId: agent.versionId } : {}),
+      }
+    : undefined;
+};
+
 const targetFor = (
   input: CreateRunInput,
   conversation: ConversationView,
-  defaultModel: ModelSelector | null
+  defaultModel: ModelSelector | null,
+  chipped: RunTarget | undefined
 ): RunTarget | null => {
+  if (chipped) {
+    return chipped;
+  }
   if (input.target) {
     return input.target;
   }
@@ -477,7 +506,12 @@ const startRun = async (
   ) {
     return err({ type: "forbidden" });
   }
-  const target = targetFor(input, conversation, deps.defaultModel);
+  const target = targetFor(
+    input,
+    conversation,
+    deps.defaultModel,
+    await chippedAgent(db, input)
+  );
   if (!target) {
     return err({ type: "no_model" });
   }

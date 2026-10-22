@@ -28,6 +28,7 @@ import type { PickedSkill } from "@workspace/contract/schemas/runs";
 import type { Db } from "@workspace/db/client";
 import { getFile } from "@workspace/db/queries/files";
 import {
+  getVersion,
   getVersionedItem,
   resolvePublishedVersion,
 } from "@workspace/db/queries/library";
@@ -36,6 +37,7 @@ import { getMessage } from "@workspace/db/queries/messages";
 import { err, ok, type Result } from "@workspace/shared/result";
 import type { Tool, ToolApprovalStatus } from "ai";
 
+import { resolveItem } from "../library/core";
 import { canUseLibraryItem } from "../library/router";
 import type { Storage } from "../ports/storage";
 
@@ -90,17 +92,24 @@ const MAX_PICKED = 20;
 /**
  * A skill's published version (the pinned one, else the latest), as a turn
  * reads it; `undefined` when it isn't a skill or has never been published.
- * Access is the caller's to check.
+ * With `draft`, the pin may be the skill's draft instead. Access is the
+ * caller's to check.
  */
 export const loadSkillVersion = async (
   db: Db,
   id: LibraryItemId,
-  versionId?: LibraryVersionId
+  versionId?: LibraryVersionId,
+  { draft = false }: { readonly draft?: boolean } = {}
 ): Promise<TurnSkill | undefined> => {
   const [item, version] = await Promise.all([
     getVersionedItem(db, "skill", id),
-    resolvePublishedVersion(db, "skill", id, versionId),
+    draft && versionId
+      ? getVersion(db, "skill", versionId)
+      : resolvePublishedVersion(db, "skill", id, versionId),
   ]);
+  if (version.ok && version.value.itemId !== id) {
+    return;
+  }
   if (!(item.ok && version.ok)) {
     return;
   }
@@ -117,14 +126,29 @@ export const loadSkillVersion = async (
   };
 };
 
+/**
+ * A pick its sender may use: a published version for anyone with `use`, or
+ * the skill's draft (pinned by its id, as the composer does for the
+ * owner's own drafts) for someone who may `edit` it.
+ */
 const usable = async (
   db: Db,
   userId: UserId,
   use: { readonly id: LibraryItemId; readonly versionId?: LibraryVersionId }
-): Promise<TurnSkill | undefined> =>
-  (await canUseLibraryItem(db, userId, "skill", use.id))
+): Promise<TurnSkill | undefined> => {
+  const pinned = use.versionId
+    ? await getVersion(db, "skill", use.versionId)
+    : undefined;
+  if (pinned?.ok && pinned.value.status === "draft") {
+    const editable = await resolveItem(db, userId, use.id, "edit");
+    return editable.ok && editable.value.kind === "skill"
+      ? await loadSkillVersion(db, use.id, use.versionId, { draft: true })
+      : undefined;
+  }
+  return (await canUseLibraryItem(db, userId, "skill", use.id))
     ? await loadSkillVersion(db, use.id, use.versionId)
     : undefined;
+};
 
 export interface SkillRefusal {
   /** Which pick, by its place in `input.skills`. */
