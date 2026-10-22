@@ -6,6 +6,7 @@ import {
   EyeIcon,
   FileIcon,
   FileTextIcon,
+  NetworkIcon,
   PlusIcon,
   SparklesIcon,
   UserIcon,
@@ -25,6 +26,8 @@ export const suggestionKey = (suggestion: Suggestion): string => {
   switch (suggestion.kind) {
     case "command":
       return `command:${suggestion.command}`;
+    case "mcp-server":
+      return `mcp:${suggestion.server.id}`;
     case "file":
       return `file:${suggestion.file.path}`;
     case "mention":
@@ -68,6 +71,8 @@ function SuggestionIcon({ suggestion }: { readonly suggestion: Suggestion }) {
       const Icon = COMMAND_ICONS[suggestion.command];
       return <Icon aria-hidden />;
     }
+    case "mcp-server":
+      return <NetworkIcon aria-hidden />;
     case "file":
       return <FileIcon aria-hidden />;
     case "mention":
@@ -125,10 +130,28 @@ function CommandText({ command }: { readonly command: ComposerCommand }) {
   return <Labelled hint={`/${command}`} label={labels[command]} mono />;
 }
 
+/** "Turn off Company docs", with "This chat" as the hint: it's a switch, not a mention. */
+function ServerText({
+  server,
+}: {
+  readonly server: Extract<Suggestion, { kind: "mcp-server" }>["server"];
+}) {
+  const { t } = useLingui();
+  const { title } = server;
+  return (
+    <Labelled
+      hint={t`This chat`}
+      label={server.enabled ? t`Turn off ${title}` : t`Turn on ${title}`}
+    />
+  );
+}
+
 function SuggestionText({ suggestion }: { readonly suggestion: Suggestion }) {
   switch (suggestion.kind) {
     case "command":
       return <CommandText command={suggestion.command} />;
+    case "mcp-server":
+      return <ServerText server={suggestion.server} />;
     case "file":
       return (
         <Labelled

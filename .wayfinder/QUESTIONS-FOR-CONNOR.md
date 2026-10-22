@@ -106,3 +106,89 @@ Done: 009 and 010 prototypes, 042 contract PR (#31), Docker verification (045, P
 - Connor approved both contract changes and said to merge: Sites (125, PR #105) and Documents (126, PR #109).
 - 138 (image generation, branch `t/138-image-generation`): additive contract changes await approval: the `image` artifact kind, the `image-output` model capability, and optional `ModelOption.imageModel`. Also open: a per-call `model` argument, a per-turn image model picker, and forcing image generation like web search (a run option, which is a contract change).
 - Connor approved the image generation contract changes (138) and said to merge.
+
+## Open (2026-10-20, from 173–175 and 183: Dots engine and schedules, branch `t/182-dots-engine-ux`), defaults proposed
+
+- **Can a schedule target any chat?** It currently can: any chat you can write, plus "a new chat each run". Default: keep. Runs on an ordinary chat are read-only unless you turn that off.
+- **Which model answers a schedule on an ordinary chat?** It's the cheap `schedules.defaultModel` (the `fast` alias), not the chat's own model; ChatGPT's heartbeats use the thread's model. Default: cheap, for cost. The Dot's own schedules use the Dot's model.
+- **Are the guardrail defaults right?** A 60-minute minimum interval, 24 runs a day (rolling 24 h, "Run now" included), 8 steps a run and 20k tokens a run. Schedules that predate 173 aren't re-checked against the minimum interval; only the daily cap limits them. Default: keep.
+- **When should a schedule tell you by default?** New schedules use `important`: only `needs_attention` and failures notify. Migrated Dot schedules use `all`, as before. Default: keep.
+- **What happens to extra Dots?** The migration keeps each owner's primary (or oldest) Dot. The others' chats stay as ordinary chats, and their schedules keep running on those chats; the spec said archive them. Default: keep them running. Since the #141 review fixes they run read-only like any chat schedule, keep the Dot's auto-approved tools, end their prompt with its instructions and rules, and stay paused if the Dot was off.
+- **Should an extra Dot's schedules keep its model or agent?** They don't: a chat schedule runs on `schedules.defaultModel`, so a Dot that answered with a library agent loses that agent's instructions and tools, and its sandbox provider. Keeping them needs a target on the schedule, or chat schedules using the chat's own model. Default: no, as for every chat schedule.
+- **Which shortcut opens the Dot?** Resolved in the demo integration (t/180-dots-ux): ⌘. opens the Dot (from 179), Switch model moved to ⇧⌘., and ⌘⇧D stays as a second Dot key.
+- **Should the Dot be hidden from Recents?** The sidebar (t/181) hides it and pins it at the top. Default: hide.
+- **Should the Proposed schedule card say Apply and Dismiss?** It uses the approval card's Approve and Reject, and there's no Edit on the card yet. Default: relabel later.
+- **Event, webhook and monitor triggers** (from the Grok Bot and ChatGPT studies) are out of scope because each check is a paid model call. Approvals as their own message type, with plain-English rules, are a follow-up too.
+
+## Open (2026-10-20, from the sidebar build 176–179), defaults applied
+
+1. **Date headings ([177](tickets/177-sidebar-list-polish.md)):** ChatGPT's desktop app dropped them for a flat list. We kept Today / Yesterday / Previous 7 days / Older under "Last updated", and a flat list under "Created". *Assumption to confirm: keep the headings.*
+2. **⌘. is your Dot, so Switch model moved to ⇧⌘. ([177](tickets/177-sidebar-list-polish.md)):** both can't have ⌘.. *Default: Dot gets ⌘. (as in ChatGPT); rebindable in settings.*
+3. **Unread starts from first open ([176](tickets/176-sidebar-needs-attention.md)):** a chat you've never opened since this shipped (no read marker) counts as read, so old chats don't all light up. *Default: keep.*
+4. **Running / awaiting approval for ordinary chats ([176](tickets/176-sidebar-needs-attention.md)):** the conversation list carries no run state, so "Needs attention" knows Dot runs (from `dots.list`) and the open chat's own run, not background runs in other chats. A `Conversation.attention` field (contract PR) would cover them. *Default: wait until you want it.*
+5. **Not built tonight:** "Move" in the row menu (there are no projects to move to), ⌃Tab MRU switching (browsers keep ⌃Tab), ⌘1–9 row shortcuts (browsers keep them for tabs), draft rows and "hide but keep running" from the Grok study. *Default: follow-ups if you want them.*
+
+## Spaces
+
+Ticket [187](tickets/187-spaces.md). Resolved AFK from D17 so the demo could be built; each is a default you can overturn.
+
+1. **Space = org + team tree** ([188](tickets/188-space-is-org-plus-team-tree.md)): a root space is an org, a sub-space is a team. No new tenancy tables; the UI and a new `spaces` API say "space". *Default: keep.*
+2. **Visibility flows down only** ([189](tickets/189-space-visibility.md)): content shared to a space is visible in it and every sub-space below it, never up or sideways. Being in several spaces gives the union. *Default: keep.*
+3. **Roles** ([190](tickets/190-space-roles.md)): owner, admin, member. A sub-space's owner is stored as team `admin`. No viewer role. *Default: keep.*
+4. **Active space** ([191](tickets/191-active-space.md)): the sidebar switcher sets the context of new chats; remembered per browser. *Default: keep.*
+5. **Allowance in tokens, not money** ([192](tickets/192-space-allowance.md)): a monthly token pool per space; members request a monthly grant, an owner approves or denies. *Default: keep.* It is enforced before a run, after money budgets, by one pool (`ALLOWANCE_SPENT`, 402; see item 10). **A space with no pool limits nobody**; otherwise every existing space chat would stop until an owner set one. *Default: keep.*
+6. **Per-key usage** ([193](tickets/193-per-key-usage.md)): attributed when usage is recorded, to the newest key of the paying scope and provider. Earlier usage shows as "Unattributed". *Default: keep.*
+7. **Sub-space members are always in the root space too** (as teams are today). A sub-space's members settings now invite someone straight in: the invitation adds them to the root space as a member and to the sub-space on accept. Only someone who manages the root space can send it; a sub-space owner who doesn't is told who can. *Default: keep.*
+8. **Contract** ([187a](tickets/187a-contract-spaces.md)): the additive `spaces` group awaits your approval (draft PR).
+9. **Space MCP policy** ([319](tickets/319-space-mcp-policy.md), not built yet): can a sub-space owner loosen a require or ban set above them? *Proposed default: no, rules only tighten down the tree.* Does a ban also hide a member's own library server in that space's chats? *Proposed default: yes; their personal chats are untouched.*
+10. **Which pool limits a run** ([192](tickets/192-space-allowance.md)). A run is limited by the nearest pool among the chat's space and the spaces above it in which the person is a full member. Pools in spaces they aren't a member of don't apply to them, and if there's no such pool there's no token limit (money budgets still apply). Someone in a sub-space but not in its parent can't request an allowance from the parent, so its pool would otherwise lock them out with nowhere to ask. The limit is soft: usage is read, not reserved, so concurrent sends can overshoot, as with money budgets. *Defaulted, change if you disagree.* The alternative is to let sub-space members request from the spaces above them, so every pool on the way up applies.
+
+## Demo polish (2026-10-21), defaults applied
+
+1. **"Team & org" became "Spaces", not "Space".** The Library panel already has a "Space" link to the active space's page, and two "Space" entries side by side read as one. The tab lists items from every space you're in, so it says "Spaces"; the composer's agent group says "Space agents". *Default: keep. Tell us if you'd rather merge the two entries.*
+2. **Not routed through `terms:`.** `terms:` only names features with their own settings address (today, MCP), and "Space" is already a plain string in about a dozen places. Making "Space" configurable is one change across all of them. *Default: a follow-up if you want forks to rename spaces.*
+3. **Phone rows are 36px with a 40px tap area**, ChatGPT's density and under Apple's 44px. *Default: keep.*
+
+## Dots guards (review fixes for #141), defaults applied
+
+1. **How long does a one-off wait for a busy chat?** A one-off has no next slot to give way to, so it now waits on a busy chat (a run in flight or awaiting approval) for an hour from its time, then is skipped as `busy` and completes. A recurring slot still waits until the next one. *Default: an hour.*
+2. **Should a run that can't start show in the history?** A failed start (no model, a revoked agent or share) shows only as the schedule's last outcome, `failed`. The history has no row for it, because a `ScheduleRun` is either a started run or a skipped slot, and it doesn't count toward the three-failures auto-pause. *Default: leave it; a contract change could add a "couldn't start" entry with its reason.*
+3. **Reset the demo databases, or fix them by hand?** The one-Dot migration (174) was edited in place (#177), and drizzle tracks migrations by folder name, so a database that already ran the old version keeps its result. On the demo databases that means an extra Dot's schedules run with `read_only` false, without the Dot's instructions, rules or auto-approved tools, and keep firing even if the Dot was off. The extra Dot rows are deleted, so no later migration can recover what they held. *Default: reset the demo databases (drop, migrate, seed) before the next demo; nothing is fixed by hand.*
+
+## The Dot's computer (PR #161 fix round)
+
+1. **Who may open the computer's live view?** The noVNC view is served on the runner's preview origin at `{id}-6080.…`, with no token or session check. The `id` is an unsalted SHA-256 of `desktop:<conversationId>`, so anyone who holds that URL, or who knows the conversation id, can watch the screen and, while the owner has taken control, drive it. This predates PR #161, which only made sure input is off whenever the agent drives. A fix is a runner proxy change: a signed, short-lived preview token, or a salted id. *Default: leave it for a separate ticket on runner proxy auth; keep preview origins off the public internet until then.*
+
+## Sign in with Microsoft (186, branch `pstack/entra-sso`), defaulted, change if you disagree
+
+1. **Name.** Each Microsoft sign-in records the name it copied (`user.syncedName`). It updates the name only while the name still equals that record, so a name the person edited here stays. An account that existed before its first Microsoft sign-in keeps its name. *Defaulted, change if you disagree.* The alternative is to always follow the directory, as Better Auth does by default.
+2. **Photo.** The same rule applies to the photo (`user.syncedImage`). When Microsoft returns no photo, the app removes the avatar it synced from Microsoft and keeps one the person set themselves. A failed Graph request changes nothing. *Defaulted, change if you disagree.* The alternative is to keep the last synced photo when Microsoft has none.
+3. **`AvatarStore` port.** It lives in `packages/auth/src/ports/avatar-store.ts` with an in-memory fake beside it. A second port, `ProfileStore` (`ports/profile-store.ts`), reads the profile a sign-in would update. Both are in their own PR (`pstack/entra-sso-contract`). *Defaulted, change if you disagree.* The alternative is the server package, beside `Storage`.
+4. **Which Microsoft emails count.** Any tenant's admin can give their users any email address (the nOAuth pattern). So Microsoft creates accounts on its own (`autoProvision`, `signup: sso`) only from a pinned tenant, meaning a specific `tenantId` or `allowedTenants`. An invitation or `signup: domain` matches a Microsoft email only from a pinned tenant, or when the token marks the email verified (Better Auth's `emailVerified`, from the `email_verified` or `verified_primary_email` claims). *Defaulted, change if you disagree.* The alternative is to trust only pinned tenants and ignore the verified-email claims.
+5. **A directory email that changes.** Updated by the follow-ups lane (`pstack/followups-entra`). The account takes its email from the directory at sign-up and keeps it. A later sign-in leaves it alone, so a changed directory email can't take an address nobody here has yet, and it no longer collides with another account (the `microsoft_email_in_use` refusal is gone). *Defaulted, change if you disagree.* The alternatives: follow the directory while the email still equals the one the last sign-in copied, as name and photo do (needs a `syncedEmail` column, and still lets the directory take a free address), or refuse the sign-in when the directory's email changes.
+
+## Usage and Langfuse
+
+Lane `pstack/usage` (Settings → Usage, span tags). Defaults applied overnight; each is yours to overturn.
+
+1. **Usage by chat is only for your own usage.** Space managers see usage by person, not by chat, because chat titles are private. The API refuses `groupBy: conversation` for a team or org. *Default: keep.*
+2. **The Langfuse link is for instance admins only**, and it lives on the "By person" table. Its URL comes from `observability.userTracesUrl` (a template with `{userId}`), because a Langfuse user page needs a project id that can't be derived from the OTLP endpoint. *Default: keep.*
+3. **Personal chats carry no space id on spans.** Only team and org chats get `langfuse.trace.metadata.space_id`. *Default: keep. Tagging the personal org id would take a lookup per run.*
+4. **Not tagged yet: Decider calls, embeddings and image generation.** Chat runs and title calls are tagged; nothing else is. The Decider (`language-model-evaluator.ts`) and embeddings (`rag/embedder.ts`) sit behind ports (`Decider`, `Embedder`) that would need a `trace` argument, which is a port change in its own PR. Image generation (`tools/image-generation.ts`, `drawWith`) runs inside a tagged run, but the AI SDK's `generateImage` (ai 7.0.116) takes no telemetry options and makes no spans, so there is nothing to tag without a hand-made span. *Default: follow-up if you want it.*
+5. **Names in usage follow what you can see.** A key is named only to someone `keys.list` would show it to (the key's owner, or an admin of the team or org that holds it). Everyone else sees "A key you don't manage". The contract row has no key scope, so the label can't say "Team key" or "Organization key" without a contract change. *Default: keep one neutral label. A `keyScope` field on summary rows would allow the finer wording.*
+6. **Chats you lost access to.** "By chat" titles a chat only while you can still read it, and shows "A chat you no longer have access to" otherwise. The API marks a readable chat with no title yet as `label: ""`, because the frozen contract has no other way to tell it apart. *Default: keep. A contract field (say `access: "readable" | "lost"`) would make it explicit.*
+
+## e2e-setup lane (pstack/fix-e2e-setup)
+
+1. **Should an open artifact follow the model's new versions?** Opening a non-document artifact from its card pins that card's version, so after the model saves v2 the open canvas still shows v1 ("v1 of 2, read only"). `diagrams.spec.ts:60` and `presentations.spec.ts:73` expect it to follow, and fail on main as well. *Not defaulted, both left failing.* Either the canvas follows the newest version, or the specs click the newest card.
+2. **List beside the open file at 1280px.** With the rail (181) the side panel gets about 480px at 1280px, under the 512px where the file list and the open file take turns (070). So on a common laptop width the list no longer sits beside the file. *Defaulted: the workspace specs run at 1440px.* The alternative is to change shell sizing (`fitShellColumns`) so 1280 keeps the list beside.
+3. **An early ⌘K on a chat page is dropped.** Since 7867cca the palette owns ⌘K and loads after boot, so a press before it loads does nothing. *Not changed.* The alternative is to queue an early press and open the palette once it loads.
+
+## run-queue-2 lane (pstack/fix-branch-queue)
+
+1. **Where does a reply under a stopped queued question go?** You stop a question that was waiting behind an answer still being written, then reply under it. The reply now waits for that answer, and it stays under the stopped question, so the next answer sees both questions. *Defaulted: keep it under the stopped question.* The alternative is to move the reply under the answer being written, which drops the stopped question from the branch. That is one line in `placeRun`.
+
+## brand-assets lane (pstack/brand-assets)
+
+1. **Where should the logo show once you're signed in?** Nowhere visible today: the sidebar's top row is the space switcher (`Personal`) for every signed-in user, and the name is only its fallback while spaces load, so a logo there would flash. *Defaulted: the logo is on sign-in, sign-up and invitations, plus the tab and home-screen icons; the sidebar keeps the name.* Alternatives: the logo at the top of the rail, ChatGPT-style, turning into the sidebar toggle on hover (moves the toggle, which 181 keeps fixed); or the mark above "What can I help with?" (shifts the composer-first layout, D27).
+2. **Tile colours for home-screen icons.** A one-colour mark is drawn white on `brand.iconBackground`, which defaults to black. *Defaulted: keep.* A fork with a light tile gives its mark its own colours; an `iconColor` field would cover the rest.

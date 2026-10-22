@@ -9,7 +9,11 @@ FROM oven/bun:1.4.2 AS build
 WORKDIR /repo
 COPY . .
 # Scripts are skipped: the runner needs no Lingui catalogs or git hooks.
-RUN bun install --frozen-lockfile --ignore-scripts --filter sandbox-runner
+# Optional CA and .npmrc build secrets, as in apps/web/Dockerfile.
+RUN --mount=type=secret,id=ca,required=false \
+    --mount=type=secret,id=npmrc,target=/root/.npmrc,required=false \
+    if [ -s /run/secrets/ca ]; then export NODE_EXTRA_CA_CERTS=/run/secrets/ca; fi && \
+    bun install --frozen-lockfile --ignore-scripts --filter sandbox-runner
 RUN cd apps/sandbox-runner && bun run build
 
 FROM node:24-bookworm-slim

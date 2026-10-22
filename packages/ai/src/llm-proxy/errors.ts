@@ -27,7 +27,7 @@ export type LlmProxyError =
     }
   | { readonly code: "FORBIDDEN" | "UNAUTHORIZED"; readonly data?: undefined }
   | {
-      readonly code: "BUDGET_EXCEEDED";
+      readonly code: "BUDGET_EXCEEDED" | "ALLOWANCE_SPENT";
       readonly data: Readonly<Record<string, unknown>>;
     };
 

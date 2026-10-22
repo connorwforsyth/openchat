@@ -5,6 +5,33 @@ an oRPC contract for the procedures, and the OpenAPI 3.1 document generated
 from both. Frozen for the M1 workstreams; changes follow the process at the
 end of this file.
 
+## Changes (2026-10-20, 173a review)
+
+Review fixes to the schedules contract (173a). Needs the owner's review
+before `pstack/schedules-contract-impl` (the server and web side) can merge.
+
+| Change | Who needs it | Compatibility |
+|---|---|---|
+| `dots.createSchedule`, `dots.updateSchedule` and `dots.deleteSchedule`, with `dotScheduleSchema`, `DotSchedule`, `createDotScheduleInputSchema` and `updateDotScheduleInputSchema`, are deleted. `Dot.schedules` is `Schedule[]`. | Nobody: no client called them, and `schedules.*` replaces them | Breaking for the server, which drops their handlers. |
+| `ScheduleRun` is a union on `outcome`: a run (`runId` and `status` set, `outcome` `null` while it's going) or a `skipped` slot (`skipReason` set, no run fields). | The schedules page's run history | Breaking for TypeScript readers, who narrow on `outcome`, and on the wire: a run no longer sends `skipReason`, and a skipped slot no longer sends `error`, `finishedAt`, `runId`, `status` or `summary`. Each of those was always `null` there. |
+| `CONFLICT` reasons `schedule_completed` and `target_archived`, which `schedules.resume` returns (it returned `already_exists`). | The schedules page's Resume button | Additive. |
+| An unparseable cron or unsupported RRULE is documented as `VALIDATION` (422), which the server already returns, not `BAD_REQUEST`. | Clients mapping errors to fields | Docs only. |
+
+## Changes (2026-10-16, 172)
+
+Dots: always-on agents with their own conversation, workspace and cron
+schedules (ChatGPT Tasks-style). Each scheduled or manual run posts the
+schedule's prompt into the Dot's conversation and answers it; the list shows
+unread results. Needs the owner's review before the feature branch
+(`t/172-dots-scheduled-agent`) can merge.
+
+| Change | Who needs it | Compatibility |
+|---|---|---|
+| New ids `dot` and `dotSchedule` (`schemas/common.ts`) and `schemas/dots.ts`: `dotSchema` `{ id, ownerId, name, target (runTarget), instructions, sandboxProvider (null = default), autoApproveTools, enabled, conversationId, schedules[], lastRun, nextRunAt, status (idle/running/failed), unread, createdAt, updatedAt }`, `dotScheduleSchema` `{ id, dotId, cron (5-field), timezone (IANA), prompt, enabled, lastRunAt, lastStatus, nextRunAt, … }`. | The Dots server (jobs, API) and the `/dots` page | Additive. |
+| `dots.list` `GET /dots`, `dots.get` `GET /dots/{id}`, `dots.create` `POST /dots`, `dots.update` `PATCH /dots/{id}`, `dots.delete` `DELETE /dots/{id}` (the conversation stays). | The `/dots` page and its dialog | New procedures and tag (`Dots`). The server's `implement(contract)` router needs handlers before it typechecks. |
+| `dots.createSchedule` `POST /dots/{dotId}/schedules`, `dots.updateSchedule` / `dots.deleteSchedule` on `/dot-schedules/{id}`. | Editing a Dot's schedules | New procedures, as above. |
+| `dots.runNow` `POST /dots/{id}/run` `{ id, prompt? }` → `createRunOutput`; `dots.markRead` `POST /dots/{id}/read`. Unattended runs refuse `ask` tools the Dot hasn't put in `autoApproveTools`, so a Dot's run never waits on an approval. | "Run now" and unread state | New procedures, as above. |
+
 ## Changes (2026-10-01, 101)
 
 Link previews for URL sources: each source chip shows the site's favicon and
@@ -46,6 +73,7 @@ except where noted; the follow-on commit in the same PR wires each one.
 | `meta.health`: `GET /health` (liveness, and `status` for database and jobs readiness; `?ready=true` answers `NOT_READY` 503 when degraded) | Compose healthchecks and load balancers | New public procedure and error code. |
 | `OrgPolicy.persistClientCache` (default `true`), instance limit `policies.persistClientCache`, and `Me.persistClientCache` (the effective answer for this user) (D28) | The web app's persisted query cache, turned off for shared machines | New fields with defaults. A client that `PUT`s a policy without the field resets it to `true`. |
 | `UserSettings.shortcuts` (Q31) | Recorded shortcuts follow the user across devices | New output field (`{}` when none); optional on update, replaced whole. |
+| `UserSettings.sidebarLayout` (181) | The Rail or Classic sidebar choice follows the user across devices | New optional output field (missing means `rail`); optional on update. Nothing breaks. |
 
 Config (`@workspace/config`, not the contract): `observability.recordContent`
 (default `false`, Q28), the local storage default is now `./.data/files`
@@ -84,7 +112,7 @@ Schemas, by file:
 | `link-preview` | `LinkPreview` and the image route's input; the raster types it serves. |
 | `sandbox`, `search`, `meta`, `models` | Sandbox records, exec shapes and workspace file writes; chat search and web search results; `me`, public config, model refs and picker options. |
 
-Procedure groups: `conversations`, `messages`, `runs`, `library`, `mcp`,
+Procedure groups: `conversations`, `messages`, `runs`, `library`, `mcp`, `connectors`,
 `orgs`, `teams`, `grants`, `shareLinks`, `files`, `artifacts`, `memory`,
 `feedback`, `keys`, `usage`, `sandbox`, `search`, `decisions`, `me`, `meta`,
 `linkPreviews`.
@@ -99,7 +127,8 @@ Every procedure has a REST route under `/api`, a summary and one OpenAPI tag.
 - **Errors** are typed. Every authenticated procedure can return
   `UNAUTHORIZED`, `FORBIDDEN`, `NOT_FOUND`, `VALIDATION` (a domain rule the
   schema can't express) and `RATE_LIMITED`; some add `CONFLICT` (with a
-  `reason`), `BUDGET_EXCEEDED`, `PROVIDER_UNAVAILABLE`,
+  `reason`), `BUDGET_EXCEEDED`, `ALLOWANCE_SPENT` (the caller's token
+  allowance in the chat's space or one above it), `PROVIDER_UNAVAILABLE`,
   `FEATURE_DISABLED`, `ENCRYPTION_UNAVAILABLE` (`keys.create` without an
   `ENCRYPTION_KEY`) or `NOT_READY` (`meta.health?ready=true`). Input that fails a schema is oRPC's `BAD_REQUEST`.
 - **GET inputs are flat** so they fit a query string. Numbers and booleans in
@@ -155,8 +184,8 @@ stream it's plain HTTP, added to `openapi.json` by hand as `llm.proxy`.
 - Before anything is sent the proxy answers with the usual error bodies
   (`llmProxyErrors`): `UNAUTHORIZED`, `FORBIDDEN` (a context the caller isn't
   in or the instance disallows), `VALIDATION` (a model that doesn't resolve or
-  can't take the request), `RATE_LIMITED`, `BUDGET_EXCEEDED` (checked first)
-  and `PROVIDER_UNAVAILABLE` (no key for this context). A failure after a
+  can't take the request), `RATE_LIMITED`, `BUDGET_EXCEEDED` and
+  `ALLOWANCE_SPENT` (checked first) and `PROVIDER_UNAVAILABLE` (no key for this context). A failure after a
   stream starts is a final `error` part whose `error` is a `RunError`, safe to
   show.
 - The resolved model ref is in the `x-resolved-model` header. Usage is

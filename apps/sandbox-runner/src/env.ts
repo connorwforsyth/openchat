@@ -21,6 +21,8 @@ export const envSchema = z.object({
   RUNNER_HOST: z.string().default("0.0.0.0"),
   RUNNER_PORT: z.coerce.number().int().min(1).max(65_535).default(7070),
   RUNNER_PREVIEW_PORT: z.coerce.number().int().min(1).max(65_535).default(7071),
+  /** The image `desktop` sandboxes run (a Dot's computer, 172); built from `apps/sandbox-runner/desktop`. */
+  SANDBOX_DESKTOP_IMAGE: z.string().min(1).default("sandbox-desktop:latest"),
   /** `none` (default): no route out. `allowlist`: only via SANDBOX_EGRESS_PROXY. `open`: anywhere. */
   SANDBOX_EGRESS: z.enum(["none", "allowlist", "open"]).default("none"),
   /** An HTTP(S) proxy on the sandbox networks that enforces the allowlist. */

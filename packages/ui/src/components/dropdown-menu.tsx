@@ -183,6 +183,37 @@ function DropdownMenuCheckboxItem({
   );
 }
 
+/**
+ * An on/off row drawn as a switch: still a `menuitemcheckbox`, so arrows,
+ * Enter and Space work and screen readers hear "checked"; the switch is
+ * only the picture of it.
+ */
+function DropdownMenuSwitchItem({
+  className,
+  children,
+  ...props
+}: MenuPrimitive.CheckboxItem.Props) {
+  return (
+    <MenuPrimitive.CheckboxItem
+      className={cn(
+        "group/switch-item relative flex cursor-default select-none items-center gap-2 rounded-md py-1.5 ps-1.5 pe-1.5 text-sm outline-hidden focus:bg-accent focus:text-accent-foreground focus:**:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50",
+        className
+      )}
+      data-slot="dropdown-menu-switch-item"
+      {...props}
+    >
+      {children}
+      <span
+        aria-hidden
+        className="pointer-events-none ms-auto inline-flex h-[18.4px] w-[32px] shrink-0 items-center rounded-full bg-input transition-colors group-data-checked/switch-item:bg-primary dark:bg-input/80"
+        data-slot="dropdown-menu-switch-item-indicator"
+      >
+        <span className="block size-4 rounded-full bg-background transition-transform duration-(--motion-fast) ease-motion-out group-data-checked/switch-item:translate-x-[calc(100%-2px)] rtl:group-data-checked/switch-item:-translate-x-[calc(100%-2px)] dark:bg-foreground dark:group-data-checked/switch-item:bg-primary-foreground" />
+      </span>
+    </MenuPrimitive.CheckboxItem>
+  );
+}
+
 function DropdownMenuRadioGroup({ ...props }: MenuPrimitive.RadioGroup.Props) {
   return (
     <MenuPrimitive.RadioGroup
@@ -267,5 +298,6 @@ export {
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
+  DropdownMenuSwitchItem,
   DropdownMenuTrigger,
 };

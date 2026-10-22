@@ -35,6 +35,9 @@ import { skillFile } from "../schema/files";
 import {
   agent,
   agentVersion,
+  mcpConnectorPref,
+  mcpConversationConnector,
+  mcpOauthToken,
   mcpServer,
   preset,
   prompt,
@@ -421,6 +424,16 @@ export const deleteUnversionedItem = (
   db.transaction(async (tx) => {
     const table = kind === "mcp_server" ? mcpServer : preset;
     await deleteGrantsForResource(tx, { resourceId: id, resourceType: kind });
+    if (kind === "mcp_server") {
+      // Not foreign keys (instance servers have no row), so not cascaded.
+      await tx.delete(mcpOauthToken).where(eq(mcpOauthToken.mcpServerId, id));
+      await tx
+        .delete(mcpConnectorPref)
+        .where(eq(mcpConnectorPref.mcpServerId, id));
+      await tx
+        .delete(mcpConversationConnector)
+        .where(eq(mcpConversationConnector.mcpServerId, id));
+    }
     const deleted = await tx
       .delete(table)
       .where(eq(table.id, id))

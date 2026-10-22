@@ -26,6 +26,25 @@ describe("appConfigSchema", () => {
     ).toBe(false);
   });
 
+  it("defaults schedule guardrails conservatively and checks the model", () => {
+    expect(appConfigSchema.parse({}).schedules).toEqual({
+      defaultModel: null,
+      maxRunsPerUserPerDay: 24,
+      minIntervalMinutes: 60,
+      runStepBudget: 8,
+      runTokenBudget: 20_000,
+    });
+    expect(
+      appConfigSchema.safeParse({ schedules: { minIntervalMinutes: 0 } })
+        .success
+    ).toBe(false);
+    expect(
+      appConfigSchema.safeParse({
+        schedules: { defaultModel: "nowhere:model" },
+      }).success
+    ).toBe(false);
+  });
+
   it("round-trips its own output", () => {
     const parsed = appConfigSchema.parse({});
     expect(appConfigSchema.parse(JSON.parse(JSON.stringify(parsed)))).toEqual(

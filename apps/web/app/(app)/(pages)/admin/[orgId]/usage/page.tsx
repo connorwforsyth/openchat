@@ -1,28 +1,18 @@
-import { Trans } from "@lingui/react/macro";
 import { orgIdSchema } from "@workspace/contract/schemas/common";
-import { initLingui } from "@workspace/i18n/server";
-import { notFound } from "next/navigation";
-import { PageHeader } from "@/app/(app)/_shared/section-nav";
-import { requestLocale } from "@/lib/i18n";
-import { UsageAdmin } from "../../_components/usage-admin";
+import { notFound, redirect } from "next/navigation";
+
+import { routes } from "@/lib/routes";
 
 export default async function Page({
   params,
 }: {
   readonly params: Promise<{ orgId: string }>;
 }) {
-  initLingui(await requestLocale());
   const orgId = orgIdSchema.safeParse((await params).orgId);
   if (!orgId.success) {
     notFound();
   }
-  return (
-    <>
-      <PageHeader
-        description={<Trans>What this org spends, and the limits on it.</Trans>}
-        title={<Trans>Budgets and usage</Trans>}
-      />
-      <UsageAdmin orgId={orgId.data} />
-    </>
+  redirect(
+    routes.spaceSettings({ id: orgId.data, type: "org" }, "space-budgets")
   );
 }

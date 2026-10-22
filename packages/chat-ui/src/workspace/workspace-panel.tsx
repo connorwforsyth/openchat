@@ -314,8 +314,12 @@ function usePanes({
   }));
   if (turn.key !== key || turn.request !== request || turn.half !== press) {
     const requested = turn.request !== request && request !== null;
+    // The Preview turning up from nothing is the chat's default arriving
+    // (its files listed after the panel opened), not a pick: a header press
+    // still decides whose turn it is.
+    const defaulted = turn.key === null && key === "preview" && press !== null;
     const picked =
-      turn.key !== key || requested
+      (turn.key !== key && !defaulted) || requested
         ? {
             maximised: maximisedAfter(
               turn.maximised,

@@ -1,0 +1,145 @@
+import {
+  MANAGE_SCHEDULES_TOOL,
+  REPORT_TOOL,
+  SCHEDULE_TASK_TOOL,
+  scheduleTaskInputSchema,
+} from "@workspace/ai/schedules/tool";
+import { asSchema, tool } from "ai";
+import { MockLanguageModelV4 } from "ai/test";
+import { describe, expect, it } from "vitest";
+import { z } from "zod";
+import type { Turn } from "../runs/turn";
+import { computerTurn } from "./computer";
+import { UNATTENDED_REFUSAL } from "./policy";
+import { manageSchedulesInputSchema } from "./schedule-tool";
+import { chatScheduleTurn, type DotPolicy, dotTurn, guardedTurn } from "./turn";
+
+// The pure half of a Dot's turn (172): persona and schedule tools in its
+// chat, approval on adding work, and the unattended refusals on top.
+
+const noop = tool({ execute: () => "ok", inputSchema: z.object({}) });
+
+const turn: Turn = {
+  agent: null,
+  instructions: "Base.",
+  model: new MockLanguageModelV4(),
+  paidBy: null,
+  resolvedModel: "test:model" as Turn["resolvedModel"],
+};
+
+const policy = (
+  unattended: boolean,
+  autoApprove: string[] = []
+): DotPolicy => ({
+  autoApproveTools: autoApprove,
+  handle: "pip",
+  instructions: "Inbox zero.",
+  name: "Pip",
+  rules: "",
+  tools: { [MANAGE_SCHEDULES_TOOL]: noop, [SCHEDULE_TASK_TOOL]: noop },
+  unattended,
+});
+
+describe("dotTurn", () => {
+  it("gives the attended chat the persona and asks before adding a schedule", () => {
+    const out = dotTurn(turn, policy(false));
+    expect(out.instructions).toContain("Base.");
+    expect(out.instructions).toContain("You are Pip (@pip)");
+    expect(out.toolApproval).toEqual({
+      [MANAGE_SCHEDULES_TOOL]: "not-applicable",
+      [SCHEDULE_TASK_TOOL]: "user-approval",
+    });
+    expect(Object.keys(out.tools ?? {}).sort()).toEqual([
+      MANAGE_SCHEDULES_TOOL,
+      SCHEDULE_TASK_TOOL,
+    ]);
+    expect(out.unavailableTools).toBeUndefined();
+  });
+
+  it("withholds schedule_task unattended, unless the Dot auto-approves it", () => {
+    const refused = dotTurn(turn, policy(true));
+    expect(Object.keys(refused.tools ?? {})).toEqual([MANAGE_SCHEDULES_TOOL]);
+    expect(refused.unavailableTools).toEqual({
+      [SCHEDULE_TASK_TOOL]: UNATTENDED_REFUSAL,
+    });
+    expect(refused.instructions).toContain("nobody watching");
+
+    const allowed = dotTurn(turn, policy(true, [SCHEDULE_TASK_TOOL]));
+    expect(allowed.toolApproval?.[SCHEDULE_TASK_TOOL]).toBe("not-applicable");
+    expect(Object.keys(allowed.unavailableTools ?? {})).toEqual([]);
+  });
+});
+
+describe("schedule tools' input schemas", () => {
+  it("are objects at the root, as providers require", () => {
+    expect(asSchema(manageSchedulesInputSchema).jsonSchema).toMatchObject({
+      type: "object",
+    });
+    expect(asSchema(scheduleTaskInputSchema).jsonSchema).toMatchObject({
+      type: "object",
+    });
+  });
+
+  // Ollama (and every provider's prompt cache) reuses the longest prefix a
+  // turn shares with the last: the Dot's static sections go first, so only
+  // what changes per turn (mentions, memory) is read again.
+  it("keeps the prompt's prefix identical from one turn to the next", () => {
+    const VOLATILE = "<<turn>>";
+    const turnWith = (volatile: string): Turn => ({
+      ...turn,
+      instructions: `Base.\n\n${VOLATILE} ${volatile}`,
+    });
+    const prefixOf = (next: Turn) => {
+      const shaped = dotTurn(
+        computerTurn(next, { computer: noop }),
+        policy(false)
+      );
+      const text = shaped.instructions ?? "";
+      return text.slice(0, text.indexOf(VOLATILE));
+    };
+    const first = prefixOf(turnWith("Memory: likes tea. It is 09:00."));
+    const second = prefixOf(turnWith("Memory: likes coffee. It is 09:05."));
+    expect(first).toBe(second);
+    expect(first).toContain("You are Pip (@pip)");
+    expect(first).toContain("Base.");
+    expect(
+      prefixOf({ ...turnWith("x"), instructions: `Base.\n\n${VOLATILE}` })
+    ).toContain("computer");
+  });
+});
+
+describe("unattended guards (175)", () => {
+  const guards = { budget: { steps: 8, tokens: 20_000 }, readOnly: false };
+
+  it("adds the report tool, stops after it, and carries the budget", () => {
+    const out = guardedTurn({ ...turn, tools: { read: noop } }, guards);
+    expect(Object.keys(out.tools ?? {}).sort()).toEqual(["read", REPORT_TOOL]);
+    expect(out.stopAfterTools).toEqual([REPORT_TOOL]);
+    expect(out.budget).toEqual(guards.budget);
+    expect(out.toolApproval?.[REPORT_TOOL]).toBe("not-applicable");
+    expect(out.instructions).toContain(REPORT_TOOL);
+  });
+
+  it("withholds writing tools on a read-only heartbeat", () => {
+    const out = chatScheduleTurn(
+      { ...turn, tools: { read: noop, write: noop } },
+      {
+        autoApproveTools: [],
+        run: { ...guards, readOnly: true },
+        title: "Release watch",
+      }
+    );
+    expect(Object.keys(out.tools ?? {})).not.toContain("write");
+    expect(out.unavailableTools?.write).toBeDefined();
+    expect(out.instructions).toContain('scheduled task "Release watch"');
+  });
+
+  it("puts the Dot's unattended run under the same guards", () => {
+    const out = dotTurn(turn, {
+      ...policy(true, [SCHEDULE_TASK_TOOL]),
+      run: guards,
+    });
+    expect(out.stopAfterTools).toEqual([REPORT_TOOL]);
+    expect(Object.keys(out.tools ?? {})).toContain(SCHEDULE_TASK_TOOL);
+  });
+});

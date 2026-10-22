@@ -5,6 +5,7 @@
   "sideEffects": false,
   "type": "module",
   "exports": {
+    "./computer/*": "./src/computer/*.ts",
     "./docker/*": "./src/docker/*.ts",
     "./handlers/*": "./src/handlers/*.ts",
     "./just-bash/*": "./src/just-bash/*.ts",

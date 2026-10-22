@@ -1,0 +1,57 @@
+<!doctype html>
+<!-- The live view of a Dot's computer (172), served by websockify on 6080
+     through the runner's preview proxy. It talks to the VNC socket on its
+     own origin. Whether input reaches the desktop is the VNC server's call
+     (`controlCommand`), not this page's. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1" name="viewport">
+    <title>Computer</title>
+    <style>
+    html,
+    body,
+    #screen {
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: black;
+    }
+    </style>
+  </head>
+  <body>
+    <div id="screen"></div>
+    <script type="module">
+    import RFB from "./core/rfb.js";
+
+    // Retries back off (1, 2, 4, 8, 16 s), then stop and tell the app,
+    // which shows the failure and a way to try again.
+    const MAX_RETRIES = 5;
+    const scheme = location.protocol === "https:" ? "wss" : "ws";
+    const report = (state) =>
+      window.parent.postMessage({ source: "dot-computer", state }, "*");
+    let retries = 0;
+    const connect = () => {
+      const rfb = new RFB(
+        document.getElementById("screen"),
+        `${scheme}://${location.host}/websockify`
+      );
+      rfb.scaleViewport = true;
+      rfb.background = "black";
+      rfb.addEventListener("connect", () => {
+        retries = 0;
+        report("connected");
+      });
+      rfb.addEventListener("disconnect", () => {
+        if (retries >= MAX_RETRIES) {
+          report("failed");
+          return;
+        }
+        setTimeout(connect, 1000 * 2 ** retries);
+        retries += 1;
+      });
+    };
+    connect();
+    </script>
+  </body>
+</html>

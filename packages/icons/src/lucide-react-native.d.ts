@@ -79,6 +79,10 @@ declare module "lucide-react-native" {
   export const Menu: LucideIcon;
   export const MessageSquare: LucideIcon;
   export const Mic: LucideIcon;
+  export const MicOff: LucideIcon;
+  export const Phone: LucideIcon;
+  export const PhoneOff: LucideIcon;
+  export const Captions: LucideIcon;
   export const Minus: LucideIcon;
   export const Monitor: LucideIcon;
   export const Moon: LucideIcon;
@@ -89,6 +93,7 @@ declare module "lucide-react-native" {
   export const Pencil: LucideIcon;
   export const Pin: LucideIcon;
   export const PinOff: LucideIcon;
+  export const Pause: LucideIcon;
   export const Play: LucideIcon;
   export const Plus: LucideIcon;
   export const RefreshCw: LucideIcon;

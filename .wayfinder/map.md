@@ -51,6 +51,8 @@ open build ticket's **Owns** section is authoritative; this summarises it:
 | 006 i18n + icons | `packages/i18n`, `packages/icons` |
 | 007 AI Elements | `packages/ui/src/components/ai-elements/`, `.agents/skills/` or `.claude/skills/` for pierre |
 | 011–025 | see each ticket |
+| 184a contract: connectors | `packages/contract` (`connectors` group) |
+| 184 connectors config | see [the ticket](tickets/184-connectors-config.md) |
 
 **Tracker:** local-markdown (`.wayfinder/`). Frontier: `bun .wayfinder/frontier.ts`.
 No `research` or `domain-modeling` skill is installed on this machine, so
@@ -148,6 +150,10 @@ brief, and their findings land in `.context/research/`.
 - [Code blocks in chat are syntax-highlighted, incrementally while streaming](tickets/143-code-highlighting-in-chat.md): syntax-highlighted code fences in chat, incremental while streaming (shared @pierre/diffs Shiki, WASM engine) ([PR #116](https://github.com/connorwforsyth/openchat/pull/116))
 - [Desktop: updates are a visible state with menu items, and tested against a local feed](tickets/149-desktop-update-state.md): desktop update state with menu items ([PR #120](https://github.com/connorwforsyth/openchat/pull/120))
 - [Contract: `presentation`, `spreadsheet` and `diagram` artifact kinds](tickets/162-contract-new-artifact-kinds.md): presentation, spreadsheet and diagram artifact kinds (contract + placeholders) ([PR #125](https://github.com/connorwforsyth/openchat/pull/125))
+
+## Spaces (187)
+
+Destination: spaces replace orgs in the product: nested spaces, multi-membership, owner-managed membership and roles, scoped skills, agents and chats shared within a space and visible to its sub-spaces, a token allowance granted by the owner, and admin-created keys with usage per key. Decisions 188–193 (resolved AFK, see [187](tickets/187-spaces.md) and [QUESTIONS-FOR-CONNOR.md](QUESTIONS-FOR-CONNOR.md#spaces)); contract [187a](tickets/187a-contract-spaces.md).
 
 ## Not yet specified
 

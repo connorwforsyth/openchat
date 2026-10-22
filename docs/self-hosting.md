@@ -53,6 +53,10 @@ What happens on the first start:
 - The `web` image builds from the repo (a few minutes the first time).
 - `web` waits for Postgres to be healthy, then applies the database
   migrations itself (under a lock, so several replicas migrate once).
+- Run one `web` per database. Chat runs execute in the process that
+  started them, and Stop and restart recovery read that process's memory.
+  A second replica on the same database can end an answer the other one is
+  still writing.
 - `BETTER_AUTH_SECRET` and `ENCRYPTION_KEY` are required in production. If
   `.env` leaves them empty, `web` generates them once and keeps them in its
   data volume (`web-data`, file `.secrets.env`). To manage them yourself, set
@@ -66,6 +70,79 @@ rather than failing the start. Models come from `app.config.yaml` (copy
 `web` listens on `127.0.0.1:3000` only. To serve it to a network, put a TLS
 proxy (Caddy, nginx, Traefik) in front and set `BETTER_AUTH_URL` to the
 public origin.
+
+### On a corporate network
+
+Building the images pulls base images from Docker Hub (`docker/dockerfile`,
+`oven/bun`, `node`, and `pgvector/pgvector` to run) and about 1,600 packages
+from `registry.npmjs.org`. A company network can block either. Each check
+below names a symptom and its fix.
+
+1. **`pull access denied` for the `web` image.** Not the problem on its own.
+   Older checkouts asked Docker Hub for the locally built image first. The
+   real error is the build failure after it.
+2. **`lockfile had changes, but lockfile is frozen`.** Your checkout's
+   `bun.lock` differs from the repo's. `git status bun.lock` shows it, and
+   `git checkout bun.lock` restores it. A `bun install` on the host with a
+   different registry or bun version can rewrite it.
+3. **`UNABLE_TO_VERIFY_LEAF_SIGNATURE`, `SELF_SIGNED_CERT_IN_CHAIN` or
+   `UNABLE_TO_GET_ISSUER_CERT_LOCALLY` in `bun install`.** A proxy is
+   re-signing HTTPS with the company's root CA. Your laptop trusts it and the
+   build doesn't. To confirm, look at who issued the registry's certificate:
+
+   ```sh
+   openssl s_client -connect registry.npmjs.org:443 -servername registry.npmjs.org </dev/null 2>/dev/null \
+     | openssl x509 -noout -issuer
+   ```
+
+   A company name instead of a public CA means interception. Export that
+   root CA as PEM (on macOS, find its name in Keychain Access) and pass its
+   text in `BUILD_CA_PEM`:
+
+   ```sh
+   security find-certificate -p -c "<CA name>" > ~/corporate-ca.pem
+   BUILD_CA_PEM="$(cat ~/corporate-ca.pem)" docker compose up -d --build
+   ```
+
+   It's a build secret: `bun install` trusts it, and it isn't stored in the
+   image. To keep it set, export it from your shell profile.
+4. **A company npm mirror.** `npm config get registry` prints something other
+   than `https://registry.npmjs.org/`. Pass your `.npmrc` as a build secret
+   too. If it reads a token from a variable (`${NPM_TOKEN}`), put the value
+   in, since the build can't see your shell's variables, and drop any
+   `cafile=` line in favour of `BUILD_CA_PEM`:
+
+   ```sh
+   BUILD_NPMRC="$(cat ~/.npmrc)" BUILD_CA_PEM="$(cat ~/corporate-ca.pem)" \
+     docker compose up -d --build
+   ```
+
+   Set both in the shell, not in `.env`. `.env` is also the `web`
+   container's environment, and a token doesn't belong there.
+5. **`failed to resolve source metadata` or `toomanyrequests` before the
+   build starts.** Docker Hub is blocked or rate limited. Test with
+   `docker pull node:24-bookworm-slim`. Point Docker at your company's
+   registry mirror (`registry-mirrors` in Docker Desktop's Docker Engine
+   settings), or sign in with `docker login`.
+
+An outbound proxy goes in Docker Desktop (Settings › Resources › Proxies) or
+`~/.docker/config.json` under `proxies`, and Docker hands it to every build
+and container. Put the compose services in `NO_PROXY`
+(`localhost,127.0.0.1,postgres,sandbox-runner,searxng,artifacts`) so they
+still reach each other.
+
+The running `web` server needs the CA as well to reach model providers
+through the same proxy. Mount it and point Node at it in
+`docker-compose.override.yml`:
+
+```yaml
+services:
+  web:
+    environment:
+      NODE_EXTRA_CA_CERTS: /etc/ssl/certs/corporate-ca.pem
+    volumes:
+      - ~/corporate-ca.pem:/etc/ssl/certs/corporate-ca.pem:ro
+```
 
 ### Behind a proxy
 
@@ -118,6 +195,85 @@ TRUSTED_ORIGINS=https://chat.example.org, http://192.168.1.20:3000
   with wildcards. Use `TRUSTED_ORIGINS` instead; the app warns when the other
   is set.
 - `bun run setup doctor` shows the address to open.
+
+### Sign in with Microsoft (Entra ID)
+
+A "Continue with Microsoft" button for work, school or personal Microsoft
+accounts, through Better Auth's built-in Microsoft provider. The account
+takes its email from the directory when it's made. Each sign-in copies the
+person's profile photo from Microsoft Graph into the app's storage
+(`avatars/`). The name
+and photo follow the directory until the person changes them here; after
+that, their own choice stays. Microsoft's tokens are used for that one
+photo request and never saved.
+
+1. In the Azure portal, open **Microsoft Entra ID → App registrations → New
+   registration**.
+   - **Supported account types:** "this organizational directory only" for
+     one company, "any organizational directory" for any work or school
+     account, or add personal accounts too.
+   - **Redirect URI:** platform **Web**,
+     `<BETTER_AUTH_URL>/api/auth/callback/microsoft` (for example
+     `https://chat.example.com/api/auth/callback/microsoft`, or
+     `http://localhost:3000/api/auth/callback/microsoft` to try it locally).
+2. Copy the **Application (client) ID**, and the **Directory (tenant) ID**
+   if you're limiting sign-in to one tenant.
+3. **Certificates & secrets → New client secret.** Copy the secret's
+   **Value** (not its ID); note when it expires.
+4. **API permissions:** Microsoft Graph, delegated: `openid`, `profile`,
+   `email`, `offline_access` and `User.Read` (the default `User.Read` is
+   what reads the photo). Grant admin consent if your tenant requires it.
+5. Put the credentials in `.env` and turn the provider on in
+   `app.config.yaml`:
+
+```sh
+MICROSOFT_CLIENT_ID=00000000-0000-0000-0000-000000000000
+MICROSOFT_CLIENT_SECRET=…
+```
+
+```yaml
+auth:
+  microsoft:
+    clientId: ${MICROSOFT_CLIENT_ID}
+    clientSecret: ${MICROSOFT_CLIENT_SECRET}
+    tenantId: 4f1c9a7e-…        # or organizations, common, consumers
+    allowedDomains: [contoso.com]
+    autoProvision: true
+```
+
+- `tenantId` must match the account types you picked: a tenant GUID (or
+  `contoso.onmicrosoft.com`) for one directory, `organizations` for any work
+  or school account, `common` to include personal accounts.
+- `allowedTenants` (tenant GUIDs) and `allowedDomains` (email domains) are
+  checked by the server on every sign-in, not just the first; an account
+  outside them is turned away.
+- `allowedDomains` is a filter, not a security boundary. Any Microsoft
+  tenant's admin can give their own users an email at your domain, so only
+  the tenant vouches for an address. The tenant is pinned when `tenantId`
+  names one tenant or `allowedTenants` lists them.
+- Without `autoProvision`, a Microsoft account that has no account here
+  follows `signup` (invite-only by default; the first user is always the
+  admin). With it, any allowed account gets one, so it needs a pinned
+  tenant.
+- An invitation, or `signup: domain`, matches a Microsoft account's email
+  only from a pinned tenant, or when the token marks the email verified.
+  Three ID token claims count: `email_verified`, `verified_primary_email`
+  or `verified_secondary_email` listing the email, and `xms_edov` (the
+  tenant has verified the email's domain). Add `verified_primary_email` or
+  `xms_edov` as an optional claim in the app registration's **Token
+  configuration**. Nothing else in the token counts.
+- `signup: sso` counts Microsoft as single sign-on once the tenant is
+  pinned.
+- A later change to the directory's email doesn't move the account's. A
+  changed directory email could otherwise take an address someone else
+  here hasn't signed up with yet.
+- `photo.maxBytes` (default 1 MiB) skips larger photos; `photo.enabled:
+  false` skips them altogether. No photo, or a failed photo request, never
+  stops a sign-in. When Microsoft no longer has a photo, the copy the app
+  made is removed from the profile; a photo the person set here stays.
+- With either credential unset the block is ignored and the button stays
+  hidden, so the same file works with an empty `.env`.
+- Settings → Profile lists the sign-in methods linked to an account.
 
 ### Configuration file
 
@@ -414,6 +570,116 @@ features:
 `LINK_PREVIEW_TEST_ALLOW_ORIGINS` exists only for the end-to-end tests (it
 lets them preview a fixture site on loopback). Don't set it: it's ignored in
 production unless the instance itself is served from loopback.
+
+### Configuring MCP servers for your fork
+
+MCP servers give chats tools. You decide which ones
+every user gets in the `mcp` block of `app.config.yaml`; each user then
+turns them on or off in **Settings > MCP servers**, connects the ones that
+need their own sign-in, and adds servers of their own if you allow it.
+
+```yaml
+mcp:
+  servers:
+    - name: docs                        # tool prefix the model sees: docs__…
+      title: Company docs
+      url: https://mcp.example.com/mcp
+      headers: { Authorization: "${DOCS_MCP_AUTHORIZATION}" }
+    - name: tracker                     # each user signs in for themselves
+      url: https://mcp.tracker.example.com/mcp
+      auth: { type: oauth, scopes: [read] }
+      default: off
+    - name: audit
+      url: https://audit.internal/mcp
+      default: required                 # always on; users see it locked
+      reason: Required by IT for compliance
+  userServers:
+    allowed: true                       # false hides "Add your own"
+    transports: [http, sse]
+    hosts: ["*.example.com"]            # empty: any public host
+```
+
+How a user's list is worked out (`effectiveMcpServers` in `packages/mcp`):
+
+- `default: on` (the default) or `off` is where a server starts; the user's
+  own choice wins over it.
+- `default: required` is always on, for everyone, and the toggle is locked
+  with your `reason`.
+- `allowUserOverride: false` fixes a server at its `default` (locked too).
+- Servers in a user's MCP Library (theirs, or shared with them) follow, on
+  until they turn them off.
+- A server that's off is left out of every chat, agent chats included.
+
+Secrets belong in the environment, referenced as `${NAME}`; never write them
+in the file. If a referenced variable is unset, only that server shows
+"needs setup" and boot carries on. `tools: { allow, deny }` limits which of
+a server's tools are offered. `transport: stdio` entries (`command`,
+`args`, `env`) run in the desktop app only; the web app lists them as such.
+Servers you configure may reach your private network; servers users add may
+not. Changes apply on restart. `app.config.example.yaml` has more examples.
+
+### Logo and icons
+
+The logo, the tab icon and the home-screen icons come from `brand:` in
+`app.config.yaml`. Files are SVG, PNG or JPEG, relative to the config file,
+and the app serves them itself, so a new logo needs a restart, not a rebuild.
+
+```yaml
+brand:
+  name: Acme Chat
+  logo: ./brand/logo.svg         # beside the name on sign-in
+  logoDark: ./brand/logo-dark.svg  # optional: a multi-colour logo on dark themes
+  favicon: ./brand/icon.svg      # optional: the square mark, else the logo
+  iconBackground: black          # optional: behind the mark on home-screen icons
+```
+
+- One SVG is enough. The app draws each logo file one of two ways:
+  - **One colour.** Every painted part is `currentColor`, or the SVG names
+    no colours at all. The logo takes the theme's text colour, so it follows
+    light and dark by itself.
+  - **As it is.** Anything with a colour of its own (a fill, stroke, stop or
+    `color`, an embedded image, or a PNG or JPEG) is shown exactly as drawn.
+    Set `logoDark` to a version that reads on dark; without it, the same
+    file shows on both.
+- The tab icon is the favicon (else the logo). A one-colour mark is black
+  on light tab strips and white on dark ones.
+- Home-screen and installed-app icons can't be transparent: they draw the
+  mark on `iconBackground`, a one-colour mark in white. With a light
+  background, give the mark its own colours. A mark that can't be drawn
+  (an SVG with no `viewBox`, say) gets the placeholder instead,
+  with a warning in the log.
+- With no logo, or one that can't be read, the app shows the name alone,
+  and the icons use a neutral placeholder (`brand/logo.svg` in the repo).
+- The desktop app's icon is made from the same files at package time
+  (docs/desktop.md).
+
+### Renaming features for your fork
+
+The words the UI uses for a feature, and its address, come from `terms:`
+in `app.config.yaml`. Code always calls the feature by its id (`mcp`), so a
+rename never touches code, the database or the API (which stays at
+`/api/connectors`).
+
+```yaml
+terms:
+  mcp:
+    label: Plugins          # plural, for headings and menus (default "MCP servers")
+    singular: plugin        # one of them, used mid-sentence (default "MCP server")
+    slug: plugins           # Settings lives at /settings/plugins (default "mcp")
+    locales:                # for languages that inflect; either word may be left out
+      de: { label: Erweiterungen, singular: Erweiterung }
+```
+
+- Leave the block out and the defaults apply.
+- Words appear both as headings and inside sentences ("No plugins yet"), so
+  write them the way they'd read mid-sentence, unless they're a name.
+- `locales` keys are locale tags; `pt-BR` is tried before `pt`.
+- Old addresses keep working: `/settings/connectors`, and `/settings/mcp`
+  when you've set another slug, redirect to the configured one.
+- Choose a slug no other settings section uses (`profile`, `keys`, `memory`,
+  `shortcuts`, `appearance`).
+
+Changes apply on restart.
 
 ### Icon set
 

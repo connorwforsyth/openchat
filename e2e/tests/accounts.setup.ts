@@ -87,12 +87,12 @@ setup(
     const adaMe = await ada.me.get();
     expect(adaMe.user.isAdmin).toBe(true);
 
-    // An org from the account menu (044); it opens on its (empty) teams.
+    // An org from the account menu (044); it opens on its (empty) sub-spaces.
     const orgId = await createOrg(page, {
       name: "Acme",
       owner: users.ada.name,
     });
-    await expect(page.getByText("No teams yet")).toBeVisible();
+    await expect(page.getByText("No sub-spaces yet")).toBeVisible();
     await createTeam(page, { name: "Eng" });
     await createTeam(page, { name: "Platform", parent: "Eng" });
 

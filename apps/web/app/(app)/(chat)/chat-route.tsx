@@ -9,6 +9,9 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { ConnectedChat } from "@workspace/chat-ui/chat/connected-chat";
+import { SIDEBAR_LIST_INPUT } from "@workspace/chat-ui/chat/use-chat-data";
+import { VoiceCallButton } from "@workspace/chat-ui/voice/voice-call";
+import type { VoiceBridge } from "@workspace/chat-ui/voice/voice-engine";
 import {
   AUTO_TARGET,
   contextKey,
@@ -37,7 +40,19 @@ import { canAdmin, useAppFrame } from "@/app/(app)/_shared/app-frame";
 import { Brand } from "@/app/(app)/_shared/brand";
 import { useShellPlatform } from "@/app/(app)/_shared/desktop";
 import { createApiSandboxClient } from "@/app/(app)/_shared/sandbox-client";
+import { useSidebarDots } from "@/app/(app)/_shared/sidebar-dots";
+import {
+  SpaceSwitcher,
+  useSidebarSpaces,
+} from "@/app/(app)/_shared/spaces/space-switcher";
+import { useTerms } from "@/app/(app)/_shared/terms";
 import { useAfterBoot } from "@/app/(app)/_shared/use-after-boot";
+import { DotComputer } from "@/app/(app)/(pages)/dots/dot-computer";
+import {
+  DotHome,
+  useDotForConversation,
+} from "@/app/(app)/(pages)/dots/dot-home";
+import { ChatSchedule } from "@/app/(app)/(pages)/schedules/chat-schedule";
 import { routeParams, routes } from "@/lib/routes";
 
 import { messageTarget, shownTarget } from "./message-target";
@@ -360,6 +375,7 @@ export function ChatRoute({
   const conversationId = useConversationId();
   const { client, query } = useApi();
   const frame = useAppFrame();
+  const terms = useTerms();
   const platform = useShellPlatform();
   const { chat, config, layout, me } = frame;
 
@@ -451,10 +467,12 @@ export function ChatRoute({
     [router]
   );
   const openAdmin = useCallback(() => router.push(routes.admin), [router]);
+  const { openSettings: openSettingsView } = frame;
   const openSettings = useCallback(
-    () => router.push(routes.settings()),
-    [router]
+    () => openSettingsView(),
+    [openSettingsView]
   );
+
   const sandboxClient = useMemo(
     () =>
       conversationId && config.features.sandboxes
@@ -466,6 +484,30 @@ export function ChatRoute({
     [client, config.features.sandboxes, conversationId, t]
   );
 
+  const dot = useDotForConversation(conversationId ?? null);
+  const dotName = dot?.name;
+  const sidebarDots = useSidebarDots(conversationId ?? null);
+  const chats = useQuery(
+    query.conversations.list.queryOptions({ input: SIDEBAR_LIST_INPUT })
+  );
+  const sidebarSpaces = useSidebarSpaces(chats.data?.items);
+  // A Dot's chat has its Call in the Dot's bar (with its face); the header's
+  // stays for every other chat.
+  const isDot = Boolean(dot);
+  const renderVoice = useCallback(
+    (bridge: VoiceBridge) =>
+      conversationId && !isDot ? <VoiceCallButton bridge={bridge} /> : null,
+    [conversationId, isDot]
+  );
+  // The Dot bar's "Computer" opens the side panel, where its live view is
+  // pinned above the files; again closes it.
+  const { setPanel } = layout;
+  const panelOpen = layout.layout.panel !== null;
+  const toggleComputer = useCallback(
+    () => setPanel(panelOpen ? null : "files"),
+    [panelOpen, setPanel]
+  );
+
   if (conversationId === undefined) {
     // Not an id: the page renders the 404.
     return null;
@@ -475,11 +517,31 @@ export function ChatRoute({
       agents={agents}
       artifactsHref={routes.artifacts}
       artifactsRuntimeOrigin={artifactsRuntimeOrigin}
-      brand={<Brand config={config} />}
+      banner={
+        <DotHome
+          conversationId={conversationId}
+          onOpenComputer={
+            config.features.sandboxes ? toggleComputer : undefined
+          }
+        />
+      }
+      brand={<SpaceSwitcher fallback={<Brand config={config} />} />}
       client={client}
+      composerPlaceholder={dotName ? t`Message ${dotName}` : undefined}
+      computer={<DotComputer conversationId={conversationId} />}
       config={config}
       conversationId={conversationId}
+      dotsHref={routes.dots}
       draftContext={chat.draftContext}
+      headerExtra={
+        conversationId ? (
+          <ChatSchedule
+            conversationId={conversationId}
+            isDot={isDot}
+            schedule={conversation.data?.schedule}
+          />
+        ) : null
+      }
       initialPrompt={
         conversationId ? null : searchParams.get(routeParams.askAi)
       }
@@ -499,9 +561,13 @@ export function ChatRoute({
       platform={platform}
       sandboxClient={sandboxClient}
       sendTarget={sendTarget}
+      sidebarDots={sidebarDots}
+      sidebarSpaces={sidebarSpaces}
       skills={skills}
       target={target}
+      terms={terms}
       theme={frame.theme}
+      voice={renderVoice}
     />
   );
 }

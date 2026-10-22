@@ -11,6 +11,7 @@ import {
   Brain,
   Building2,
   Calendar,
+  Captions,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -58,6 +59,7 @@ import {
   Menu,
   MessageSquare,
   Mic,
+  MicOff,
   Minus,
   Monitor,
   Moon,
@@ -68,7 +70,10 @@ import {
   PanelLeft,
   PanelRight,
   Paperclip,
+  Pause,
   Pencil,
+  Phone,
+  PhoneOff,
   Pin,
   PinOff,
   Play,
@@ -125,10 +130,15 @@ export const EllipsisVerticalIcon: NativeIcon = EllipsisVertical;
 export const GripVerticalIcon: NativeIcon = GripVertical;
 export const LogOutIcon: NativeIcon = LogOut;
 export const MicIcon: NativeIcon = Mic;
+export const MicOffIcon: NativeIcon = MicOff;
+export const PhoneIcon: NativeIcon = Phone;
+export const PhoneOffIcon: NativeIcon = PhoneOff;
+export const CaptionsIcon: NativeIcon = Captions;
 export const MinusIcon: NativeIcon = Minus;
 export const MoreHorizontalIcon: NativeIcon = MoreHorizontal;
 export const PaperclipIcon: NativeIcon = Paperclip;
 export const PencilIcon: NativeIcon = Pencil;
+export const PauseIcon: NativeIcon = Pause;
 export const PlayIcon: NativeIcon = Play;
 export const PlusIcon: NativeIcon = Plus;
 export const RefreshCwIcon: NativeIcon = RefreshCw;

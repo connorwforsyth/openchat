@@ -36,10 +36,18 @@ export const runnerStatusSchema = z.object({
 });
 export type RunnerStatus = z.infer<typeof runnerStatusSchema>;
 
+/**
+ * `workspace`: an idle container commands run in. `desktop`: the same, running
+ * a graphical session an agent drives (a Dot's computer, 172).
+ */
+export const sandboxVariantSchema = z.enum(["workspace", "desktop"]);
+export type SandboxVariant = z.infer<typeof sandboxVariantSchema>;
+
 export const createRequestSchema = z.object({
   id: sandboxIdSchema,
   limits: sandboxLimitsSchema,
   snapshotRef: z.string().min(1).max(256).optional(),
+  variant: sandboxVariantSchema.default("workspace"),
 });
 export type CreateRequest = z.infer<typeof createRequestSchema>;
 

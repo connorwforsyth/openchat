@@ -3,14 +3,18 @@ import { expect, type Page, test } from "@playwright/test";
 import { BRAND_NAME } from "../support/brand";
 import { chatHeader, composer, composerReady } from "../support/chat";
 import { clickHydrated } from "../support/hydration";
+import { PALETTE_KEY } from "../support/keys";
 import {
-  LIBRARY_URL,
   SETTINGS_URL,
   SIGN_IN_FOR_LIBRARY_URL,
   SIGN_IN_URL,
 } from "../support/urls";
 import { signIn, storageStateFor, users } from "../support/users";
 
+const KEYS_URL = /\/settings\/keys$/;
+const HOME_URL = /\/$/;
+const LIBRARY_URL = /\/library$/;
+const SPACE_POLICIES_URL = /\/settings\/space-policies\?space=org%3A/;
 // The signed-in shell (039): sign-out and back in, sign-in at another
 // loopback name (054), a stale session cookie, the persisted query cache
 // (D28: gone after sign-out), the sidebar's collapsed state restored before
@@ -201,8 +205,8 @@ test.describe("shell", () => {
 
     const header = chatHeader(page);
     await expect(header.getByRole("button", { name: "Share" })).toBeVisible();
-    // 113: no rule under it, no New chat, and the sidebar's toggle in the
-    // sidebar's own top row while it's open.
+    // 113: no rule under it and no New chat. 181: the sidebar's toggle is
+    // the rail's first button, not the header's or the sidebar's.
     await expect(header).toHaveCSS("border-bottom-width", "0px");
     await expect(header.getByRole("button", { name: "New chat" })).toHaveCount(
       0
@@ -210,11 +214,13 @@ test.describe("shell", () => {
     await expect(
       header.getByRole("button", { name: "Toggle sidebar" })
     ).toHaveCount(0);
+    const rail = page.getByRole("navigation", { name: "Sidebar rail" });
+    await expect(rail.getByRole("button").first()).toHaveAccessibleName(
+      "Toggle sidebar"
+    );
     await expect(
-      page
-        .getByRole("complementary", { name: "Chats" })
-        .getByRole("button", { name: "Toggle sidebar" })
-    ).toBeVisible();
+      page.getByRole("button", { name: "Toggle sidebar" })
+    ).toHaveCount(1);
     await expect(
       header.getByRole("button", { name: SANDBOX_PILL })
     ).toHaveCount(0);
@@ -265,28 +271,50 @@ test.describe("shell", () => {
     const chats = page.getByRole("complementary", { name: "Chats" });
     await page.goto("/library");
     await expect(chats).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Library" })).toBeVisible();
+    // The page's title; the rail's Library panel has its own heading (181).
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Library" })
+    ).toBeVisible();
 
+    // Settings is a full-screen view over a page (185); its address loads it
+    // over the new chat.
     await page.goto("/settings/profile");
-    await expect(chats).toBeVisible();
-    await expect(page.getByText(users.ada.email)).toBeVisible();
+    const settings = page.getByRole("dialog", { name: "Settings" });
+    await expect(settings).toBeVisible();
+    await expect(settings.getByText(users.ada.email)).toBeVisible();
+    await settings.getByRole("button", { name: "Provider keys" }).click();
+    await expect(page).toHaveURL(KEYS_URL);
+    await page.keyboard.press("Escape");
+    await expect(settings).toBeHidden();
+    await expect(page).toHaveURL(HOME_URL);
 
     await page.goto("/admin");
     await expect(chats).toBeVisible();
     await expect(page.getByRole("link", { name: "Acme" })).toBeVisible();
     await page.getByRole("link", { name: "Acme" }).click();
-    await expect(page.getByRole("link", { name: "Members" })).toBeVisible();
-    await expect(chats).toBeVisible();
+    // An org's admin pages are its Space settings now, full-screen (187).
+    await expect(page).toHaveURL(SPACE_POLICIES_URL);
+    await expect(
+      settings.getByRole("heading", { name: "Space: Acme" })
+    ).toBeVisible();
+    await expect(
+      settings.getByRole("button", { name: "Members" })
+    ).toBeVisible();
+    await expect(
+      settings.getByRole("heading", { level: 1, name: "Policies" })
+    ).toBeVisible();
   });
 
   test("⌘K opens the palette from anywhere and runs an action", async ({
     page,
   }) => {
     await page.goto("/library");
-    await expect(page.getByRole("heading", { name: "Library" })).toBeVisible();
+    // The page's title; the rail's Library panel has its own heading (181).
+    const title = page.getByRole("heading", { level: 1, name: "Library" });
+    await expect(title).toBeVisible();
     // The palette loads after boot (composer:ready on chat pages).
     await expect(async () => {
-      await page.keyboard.press("ControlOrMeta+K");
+      await page.keyboard.press(PALETTE_KEY);
       await expect(
         page.getByPlaceholder("Search or type a command…")
       ).toBeVisible({ timeout: 1000 });
@@ -294,5 +322,12 @@ test.describe("shell", () => {
     await page.getByPlaceholder("Search or type a command…").fill("settings");
     await page.getByRole("option", { name: "Open settings" }).click();
     await expect(page).toHaveURL(SETTINGS_URL);
+    // Over the page it was opened from; closing goes back to it.
+    await expect(page.getByRole("dialog", { name: "Settings" })).toBeVisible();
+    // The modal hides the page from the accessibility tree, not the DOM.
+    await expect(page.locator("h1", { hasText: "Library" })).toBeAttached();
+    await page.keyboard.press("Escape");
+    await expect(page).toHaveURL(LIBRARY_URL);
+    await expect(title).toBeVisible();
   });
 });

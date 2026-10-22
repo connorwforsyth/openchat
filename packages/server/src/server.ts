@@ -16,6 +16,7 @@ import { REINDEX_EMBEDDINGS_JOB } from "@workspace/ai/rag/ingest";
 import { chooseWebSearch } from "@workspace/ai/search/choose";
 import { createSearchBackend } from "@workspace/ai/search/from-config";
 import { startTelemetry } from "@workspace/ai/telemetry/otel";
+import { userTracesUrlOf } from "@workspace/ai/telemetry/trace-context";
 import { authRouter } from "@workspace/auth/handlers";
 import type { HandlerContext } from "@workspace/auth/handlers/context";
 import {
@@ -30,10 +31,12 @@ import type { Db } from "@workspace/db/client";
 import { logDecision } from "@workspace/db/queries/decisions";
 import { createMcp } from "@workspace/mcp/create";
 import { loadKeyRing } from "@workspace/mcp/crypto";
-import { listUsableServers } from "@workspace/mcp/manager";
+import { type McpDeps, mcpSelectionFor } from "@workspace/mcp/service";
 
 import { createArtifactsRouter } from "./api/artifacts";
+import { createConnectorsRouter } from "./api/connectors";
 import { createDecisionsRouter } from "./api/decisions";
+import { createDotsRouter } from "./api/dots";
 import { createFilesRouter } from "./api/files";
 import { databaseProbe, downProbe, jobsProbe } from "./api/health";
 import { createKeysRouter } from "./api/keys";
@@ -50,7 +53,12 @@ import { createUsageRouter } from "./api/usage";
 import { type App, createApp } from "./app";
 import { type DatabaseProblem, openDatabase } from "./boot/database";
 import type { Session, SessionResolver } from "./context";
+import type { DotComputers } from "./dots/computer";
+import { scheduleDotTick } from "./dots/jobs";
+import type { EnsureDotWorkspace } from "./dots/service";
 import { mountArtifactImageRoutes } from "./http/artifact-images";
+import { avatarStoreFor, mountAvatarRoutes } from "./http/avatars";
+import { mountComputerRoutes } from "./http/computer";
 import { mountFileRoutes } from "./http/files";
 import { mountLlmRoute } from "./http/llm";
 import { MCP_OAUTH_CALLBACK_PATH, mountMcpRoutes } from "./http/mcp";
@@ -74,6 +82,8 @@ import {
   type ServicesOptions,
 } from "./services";
 import { createStorage } from "./storage/from-config";
+import { createVoice } from "./voice/from-config";
+import { mountVoiceRoutes } from "./voice/routes";
 
 // The whole server from the environment (025/038), for `apps/web` and later
 // `apps/worker`. In order: database (Postgres from DATABASE_URL, else the
@@ -93,6 +103,8 @@ type Env = Readonly<Record<string, string | undefined>>;
 export interface BoundSandbox {
   /** The `sandbox` procedure group (the panel). */
   readonly api: SandboxApi;
+  /** Dots' own computers (172), when the sandbox runner is configured. */
+  readonly computers?: DotComputers;
   /** The chat's sandbox tools for runs; the same providers, so the panel sees what the agent did. */
   readonly turnTools: SandboxToolSource;
 }
@@ -333,6 +345,10 @@ const startBackgroundWork = async ({
   if (!scheduled.ok) {
     report("couldn't schedule the test chat cleanup", scheduled.error);
   }
+  const ticking = await scheduleDotTick(queue);
+  if (!ticking.ok) {
+    report("couldn't schedule the Dots tick", ticking.error);
+  }
   if (embedder) {
     // Changing `embeddings.model` re-embeds what was indexed with the old
     // one (PLAN.md §8 RAG step 4); with nothing to do the job is a no-op.
@@ -347,6 +363,21 @@ const noQueue = {
       error: { message: "no job queue", type: "unavailable" as const },
       ok: false as const,
     }),
+};
+
+/** A Dot's workspace on its own provider (172); an existing one is kept. */
+const dotWorkspaceFor = (
+  sandbox: BoundSandbox | undefined
+): EnsureDotWorkspace | undefined => {
+  if (sandbox === undefined) {
+    return;
+  }
+  return async (actor, conversationId, provider) => {
+    const existing = await sandbox.api.get(actor, { conversationId });
+    if (existing.ok && existing.value === null) {
+      await sandbox.api.create(actor, { conversationId, provider });
+    }
+  };
 };
 
 export const createServerFromEnv = async (
@@ -371,8 +402,18 @@ export const createServerFromEnv = async (
   const { database } = opened;
   const { db } = database;
   const origin = appOriginOf(env);
+  const storage = createStorage(config, {
+    baseUrl: `${origin}/api/storage`,
+    env,
+    signingSecret: storageSigningSecret(env),
+  });
+  if (storage.problem) {
+    report(`uploads are unavailable: ${storage.problem}`, null);
+  }
 
   const created = createAuth({
+    // Microsoft profile photos (186) live beside uploads.
+    avatars: avatarStoreFor(storage.storage, origin),
     config,
     db,
     env,
@@ -421,15 +462,6 @@ export const createServerFromEnv = async (
     });
   const embedder = embedderFor(config, registry, report);
 
-  const storage = createStorage(config, {
-    baseUrl: `${origin}/api/storage`,
-    env,
-    signingSecret: storageSigningSecret(env),
-  });
-  if (storage.problem) {
-    report(`uploads are unavailable: ${storage.problem}`, null);
-  }
-
   const mcp = createMcp({
     config,
     db,
@@ -437,6 +469,14 @@ export const createServerFromEnv = async (
     oauthRedirectUrl: `${origin}${MCP_OAUTH_CALLBACK_PATH}`,
     warn: log,
   });
+  // Connectors (184): the operator's catalog, each user's library and choices.
+  const mcpDeps: McpDeps = {
+    catalog: mcp.registry.catalog,
+    db,
+    // The settings' and composer's tool lists (188): the user's connection.
+    listTools: (id, userId) => mcp.manager.listTools(id, userId),
+    userServers: config.mcp.userServers,
+  };
 
   const sandbox = options.sandbox?.({
     config,
@@ -452,8 +492,10 @@ export const createServerFromEnv = async (
   });
   const services = createServices({
     access: options.access,
+    computers: sandbox?.computers,
     config,
     db,
+    ensureDotWorkspace: dotWorkspaceFor(sandbox),
     jobs: jobs?.queue ?? null,
     keyStore,
     listen: database.listen,
@@ -469,12 +511,10 @@ export const createServerFromEnv = async (
       images: imageModelsOf(registry),
       knowledge: embedder ? { embedder } : undefined,
       mcpFor: (userId) => mcp.manager.toolSource(userId),
-      // Plain chats: every server the caller may use (078).
-      mcpServersFor: (userId) =>
-        listUsableServers(
-          { db, instanceServers: mcp.registry.instanceServers },
-          userId
-        ),
+      // Plain chats get every server the caller has on in that chat (078,
+      // 184, 188); every run leaves out what they or the operator turned off.
+      mcpSelectionFor: (userId, conversationId) =>
+        mcpSelectionFor(mcpDeps, { conversationId, userId }),
       orgPolicy,
       sandbox: sandbox?.turnTools,
       webSearch: webSearchFor(config, env, report),
@@ -534,7 +574,11 @@ export const createServerFromEnv = async (
         registry,
       }),
       ...createKeysRouter({ config, db, keys: keyRing, registry }),
-      ...createUsageRouter({ db }),
+      ...createUsageRouter({
+        db,
+        userTracesUrl: userTracesUrlOf(config.observability.userTracesUrl),
+      }),
+      ...createDotsRouter(services.dots),
       ...createDecisionsRouter({ db }),
       ...createArtifactsRouter({
         access: services.access,
@@ -551,6 +595,7 @@ export const createServerFromEnv = async (
         db,
         defaultModel: config.models.default,
         keys: keyRing,
+        userServers: config.mcp.userServers,
       }),
       ...createFilesRouter({
         db,
@@ -564,6 +609,7 @@ export const createServerFromEnv = async (
         search: createSearchHandlers({ db }),
       }),
       ...createMcpRouter({ db, manager: mcp.manager }),
+      ...createConnectorsRouter(mcpDeps),
       ...linkPreviewsFromEnv({ config, env, log }),
       ...createSandboxRouter({ api: sandboxApi, db }),
       ...(auth ? authRouter : {}),
@@ -578,6 +624,7 @@ export const createServerFromEnv = async (
         db,
         resolveSession,
       });
+      mountAvatarRoutes(hono, { resolveSession, storage: storage.storage });
       mountFileRoutes(hono, {
         db,
         resolveSession,
@@ -585,6 +632,12 @@ export const createServerFromEnv = async (
         storage: storage.storage,
       });
       mountMcpRoutes(hono, { manager: mcp.manager, resolveSession });
+      mountVoiceRoutes(hono, { resolveSession, voice: createVoice(config) });
+      mountComputerRoutes(hono, {
+        computers: sandbox?.computers,
+        db,
+        resolveSession,
+      });
       mountLlmRoute(hono, {
         budget: services.budget,
         config,

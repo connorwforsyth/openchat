@@ -40,6 +40,11 @@ export interface ToolCapabilities {
 }
 
 export interface ToolGrants {
+  /**
+   * Tools the caller switched off (188), by server and the server's tool
+   * name: left out of the plan's servers, whatever an agent lists.
+   */
+  readonly mcpExcludedTools?: ReadonlyMap<LibraryItemId, readonly string[]>;
   /** MCP servers the caller may `use` (ownership or a grant, D13). */
   readonly mcpServers: ReadonlySet<LibraryItemId>;
 }
@@ -61,6 +66,8 @@ export interface ToolPlan {
     readonly name: string;
   }[];
   readonly mcpServers: readonly {
+    /** Tools to leave out (188), by the server's tool name. */
+    readonly exclude?: readonly string[];
     readonly id: LibraryItemId;
     /** A subset of the server's tools; `undefined` means all of them. */
     readonly tools?: readonly string[];
@@ -130,13 +137,18 @@ export const resolveTools = (
     }
   }
 
-  const mcpServers = agent.mcpServers.filter((server) => {
-    if (grants.mcpServers.has(server.id)) {
-      return true;
-    }
-    skipped.push({ name: server.id, reason: "not_granted" });
-    return false;
-  });
+  const mcpServers = agent.mcpServers
+    .filter((server) => {
+      if (grants.mcpServers.has(server.id)) {
+        return true;
+      }
+      skipped.push({ name: server.id, reason: "not_granted" });
+      return false;
+    })
+    .map((server) => {
+      const exclude = grants.mcpExcludedTools?.get(server.id);
+      return exclude && exclude.length > 0 ? { ...server, exclude } : server;
+    });
 
   return { approvals, builtins, mcpServers, skipped };
 };

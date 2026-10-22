@@ -6,7 +6,7 @@ import { composerReady, contextControl } from "../support/chat";
 import { storageStateFor, users } from "../support/users";
 
 // Orgs from the UI (044, D17): anyone can make one from the account menu and
-// becomes its owner; the admin heading switches between the orgs you run;
+// becomes its owner; Space settings follow the space you switch to;
 // teams nest as deep as the org chart goes.
 
 test.use({ storageState: storageStateFor("ada") });
@@ -39,26 +39,25 @@ test("a second org from the account menu, a nested team tree, and switching betw
     "the creator owns the new org"
   ).toBe("owner");
 
-  // Switch to Acme from the heading, on the same admin page…
-  await page.getByRole("link", { name: "Members" }).click();
-  await expect(page).toHaveURL(new RegExp(`/admin/${beta}/members$`));
-  await page.getByRole("button", { name: "Organisation: Beta Labs" }).click();
-  await page.getByRole("menuitemradio", { name: "Acme" }).click();
-  await expect(page).toHaveURL(new RegExp(`/admin/${world.orgId}/members$`));
+  // Space settings follow the active space: a link to Acme's switches to
+  // it, and the space switcher in the sidebar offers both (187).
+  await page.goto(`/settings/space-members?space=org:${world.orgId}`);
   await expect(
-    page.getByRole("button", { name: "Organisation: Acme" })
+    page.getByRole("heading", { name: "Space: Acme" })
   ).toBeVisible();
   await expect(page.getByText(users.ben.email)).toBeVisible();
+  await page.getByRole("button", { name: "Back to app" }).click();
+  await page.getByTestId("space-switcher").click();
+  await expect(
+    page.getByRole("menuitemradio", { name: "Beta Labs" })
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
 
-  // …and back.
-  await page.getByRole("button", { name: "Organisation: Acme" }).click();
-  await page.getByRole("menuitemradio", { name: "Beta Labs" }).click();
-  await expect(page).toHaveURL(new RegExp(`/admin/${beta}/members$`));
-
-  // The new org is a chat context too (D17).
+  // The new org is a chat context too (D17). A new chat starts in the
+  // active space, Acme since the link above (191).
   await page.goto("/");
   await composerReady(page);
-  await contextControl(page, "Personal").click();
+  await contextControl(page, "Acme").click();
   await expect(
     page.getByRole("menuitemradio", { name: "Beta Labs" })
   ).toBeVisible();

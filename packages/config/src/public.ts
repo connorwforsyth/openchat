@@ -4,6 +4,8 @@ import {
 } from "@workspace/contract/schemas/meta";
 import type { SandboxProvider } from "@workspace/contract/schemas/sandbox";
 
+import { brandAssetPath } from "./brand";
+import { MICROSOFT_PROVIDER_ID, microsoftSsoOf } from "./microsoft";
 import type { Env } from "./parse";
 import type { AppConfig } from "./schema";
 import { enabledSocialProviders, socialProviderNames } from "./social";
@@ -40,6 +42,7 @@ export const toPublicConfig = (
   const sandboxProviders = availableSandboxProviders(config);
   const { sandbox } = config;
   const { site } = config.artifacts.kinds;
+  const microsoft = microsoftSsoOf(config.auth);
   return {
     // The runtime builds a site's CSP from these (125); none while sites are off.
     artifacts: { siteOrigins: site.enabled ? site.allowedOrigins : [] },
@@ -50,12 +53,16 @@ export const toPublicConfig = (
           id,
           name: socialProviderNames[id],
         })),
+        ...(microsoft
+          ? [{ id: MICROSOFT_PROVIDER_ID, name: microsoft.name }]
+          : []),
       ],
       signup: config.auth.signup,
     },
+    // The web app serves the files; the config holds paths on the server's disk.
     brand: {
-      faviconUrl: config.brand.favicon,
-      logoUrl: config.brand.logo,
+      faviconUrl: brandAssetPath("icon.svg"),
+      logoUrl: config.brand.logo ? brandAssetPath("logo") : null,
       name: config.brand.name,
     },
     // The public flags only: `linkPreviews` is server-side (101), and the

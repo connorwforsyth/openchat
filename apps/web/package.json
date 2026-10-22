@@ -25,6 +25,7 @@
     "@lingui/react": "catalog:",
     "@tanstack/react-query": "catalog:",
     "@tanstack/react-query-persist-client": "catalog:",
+    "@workspace/ai": "workspace:*",
     "@workspace/auth": "workspace:*",
     "@workspace/chat-ui": "workspace:*",
     "@workspace/client": "workspace:*",

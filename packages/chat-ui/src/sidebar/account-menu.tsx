@@ -27,6 +27,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
+import { cn } from "@workspace/ui/lib/utils";
 import { useCallback } from "react";
 import { z } from "zod";
 
@@ -36,6 +37,8 @@ export const themeSchema = z.enum(["light", "dark", "system"]);
 export type Theme = z.infer<typeof themeSchema>;
 
 export interface AccountMenuProps {
+  /** Just the avatar, for the collapsed rail (179). */
+  readonly compact?: boolean;
   /** "New organisation": anyone can create an org (D17). */
   readonly onNewOrg?: () => void;
   /** Shown only to instance or org admins (the admin area is ticket 024). */
@@ -60,6 +63,7 @@ export function AccountMenu({
   onThemeChange,
   theme,
   user,
+  compact = false,
 }: AccountMenuProps) {
   const { t } = useLingui();
   const changeTheme = useCallback(
@@ -76,14 +80,21 @@ export function AccountMenu({
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label={t`Account: ${user.name}`}
-        className="flex h-11 w-full min-w-0 items-center gap-2 rounded-md px-2 text-start text-sm outline-none transition-colors duration-(--motion-fast) hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring aria-expanded:bg-sidebar-accent"
+        className={cn(
+          "flex h-11 min-w-0 items-center gap-2 rounded-md text-start text-sm outline-none transition-colors duration-(--motion-fast) hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring aria-expanded:bg-sidebar-accent",
+          compact ? "size-9 justify-center rounded-xl" : "w-full px-2"
+        )}
       >
         <Avatar size="sm">
           {user.image ? <AvatarImage alt="" src={user.image} /> : null}
           <AvatarFallback>{initialsOf(user.name)}</AvatarFallback>
         </Avatar>
-        <span className="min-w-0 flex-1 truncate">{user.name}</span>
-        <ChevronsUpDownIcon aria-hidden className="size-4 opacity-60" />
+        {compact ? null : (
+          <>
+            <span className="min-w-0 flex-1 truncate">{user.name}</span>
+            <ChevronsUpDownIcon aria-hidden className="size-4 opacity-60" />
+          </>
+        )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-60" side="top">
         <DropdownMenuGroup>

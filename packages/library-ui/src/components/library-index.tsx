@@ -77,9 +77,11 @@ import {
 import { ConfirmDelete } from "./confirm-delete";
 import { KindTile, useKindLabels, useKindPlurals } from "./kind";
 
-// The library (D13): three tabs (My library, Shared with me, Team & org),
-// search and a kind filter over one list of cards. Opening an item goes to
-// its builder; the page decides the URLs (`itemHref`, `newHref`) and the
+// The library (D13): one list of cards for a tab (My library, Shared with
+// me, Spaces) and a kind, with search. Where the page has a panel, the panel
+// picks the tab and kind (181); where it has none, the index offers them
+// itself (`onFilterChange`). Opening an item goes
+// to its builder; the page decides the URLs (`itemHref`, `newHref`) and the
 // link component, so this works under Next or anywhere else.
 
 export type LinkComponent = ComponentType<{
@@ -94,73 +96,84 @@ const PlainLink: LinkComponent = ({ children, className, href }) => (
   </a>
 );
 
+export interface LibraryFilter {
+  readonly kind?: LibraryKind;
+  readonly tab: LibraryTab;
+}
+
 export interface LibraryIndexProps {
   /**
    * Where "Use in chat" goes for a published agent (044); `null` or left
    * out, the card has no such link.
    */
   readonly chatHref?: (item: LibraryItem) => string | null;
-  readonly initialTab?: LibraryTab;
   readonly itemHref: (item: LibraryItem) => string;
+  /** Only this kind; every kind when left out. */
+  readonly kind?: LibraryKind;
   readonly link?: LinkComponent;
   /** Where "New" goes for each kind. */
   readonly newHref: (kind: LibraryKind) => string;
+  /**
+   * Shows the index's own tabs and kinds, for a page without the panel
+   * that otherwise picks them; called with the filter chosen.
+   */
+  readonly onFilterChange?: (filter: LibraryFilter) => void;
   /** After an import, open the new item. */
   readonly onImported?: (item: LibraryItem) => void;
-  readonly onTabChange?: (tab: LibraryTab) => void;
+  readonly tab?: LibraryTab;
 }
-
-type KindFilter = LibraryKind | "all";
 
 export function LibraryIndex({
   chatHref,
-  initialTab = "mine",
   itemHref,
+  kind,
   link: Link = PlainLink,
   newHref,
+  onFilterChange,
   onImported,
-  onTabChange,
+  tab = "mine",
 }: LibraryIndexProps) {
   const { t } = useLingui();
-  const [tab, setTab] = useState<LibraryTab>(initialTab);
-  const [kind, setKind] = useState<KindFilter>("all");
   const [search, setSearch] = useState("");
   // Typing stays responsive; the list follows a beat behind.
   const query = useDeferredValue(search.trim());
   const labels = useKindLabels();
   const plurals = useKindPlurals();
 
-  const changeTab = useCallback(
-    (next: unknown) => {
-      const tabValue = next as LibraryTab;
-      setTab(tabValue);
-      onTabChange?.(tabValue);
-    },
-    [onTabChange]
-  );
+  const headings: Record<LibraryTab, ReactNode> = {
+    libraries: <Trans>Spaces</Trans>,
+    mine: kind ? plurals[kind] : <Trans>Library</Trans>,
+    shared: <Trans>Shared with me</Trans>,
+  };
+
   const changeSearch = useCallback(
     (event: ChangeEvent<HTMLInputElement>) =>
       setSearch(event.currentTarget.value),
     []
   );
+  const changeTab = useCallback(
+    (next: LibraryTab) => onFilterChange?.({ kind, tab: next }),
+    [kind, onFilterChange]
+  );
   // A toggle group can be emptied; empty means every kind.
   const changeKind = useCallback(
     (values: string[]) =>
-      setKind((values[0] as KindFilter | undefined) ?? "all"),
-    []
+      onFilterChange?.({
+        kind: BUILDABLE_KINDS.find((each) => each === values[0]),
+        tab,
+      }),
+    [onFilterChange, tab]
   );
 
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex flex-col gap-1">
-          <h1 className="font-medium text-xl">
-            <Trans>Library</Trans>
-          </h1>
+          <h1 className="font-medium text-xl">{headings[tab]}</h1>
           <p className="text-muted-foreground text-sm">
             <Trans>
               Agents, prompts, skills and MCP servers: yours, shared with you,
-              and published to your teams.
+              and published to your spaces.
             </Trans>
           </p>
         </div>
@@ -185,19 +198,21 @@ export function LibraryIndex({
         </div>
       </header>
 
-      <Tabs onValueChange={changeTab} value={tab}>
-        <TabsList>
-          <TabsTrigger value="mine">
-            <Trans>My library</Trans>
-          </TabsTrigger>
-          <TabsTrigger value="shared">
-            <Trans>Shared with me</Trans>
-          </TabsTrigger>
-          <TabsTrigger value="libraries">
-            <Trans>Team & org</Trans>
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+      {onFilterChange ? (
+        <Tabs onValueChange={changeTab} value={tab}>
+          <TabsList>
+            <TabsTrigger value="mine">
+              <Trans>My library</Trans>
+            </TabsTrigger>
+            <TabsTrigger value="shared">
+              <Trans>Shared with me</Trans>
+            </TabsTrigger>
+            <TabsTrigger value="libraries">
+              <Trans>Spaces</Trans>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      ) : null}
 
       <div className="flex flex-wrap items-center gap-3">
         <InputGroup className="max-w-xs">
@@ -212,28 +227,30 @@ export function LibraryIndex({
             <SearchIcon />
           </InputGroupAddon>
         </InputGroup>
-        <ToggleGroup
-          aria-label={t`Kind`}
-          onValueChange={changeKind}
-          size="sm"
-          value={[kind]}
-          variant="outline"
-        >
-          <ToggleGroupItem value="all">
-            <Trans>All</Trans>
-          </ToggleGroupItem>
-          {BUILDABLE_KINDS.map((each) => (
-            <ToggleGroupItem key={each} value={each}>
-              {plurals[each]}
+        {onFilterChange ? (
+          <ToggleGroup
+            aria-label={t`Kind`}
+            onValueChange={changeKind}
+            size="sm"
+            value={[kind ?? "all"]}
+            variant="outline"
+          >
+            <ToggleGroupItem value="all">
+              <Trans>All</Trans>
             </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
+            {BUILDABLE_KINDS.map((each) => (
+              <ToggleGroupItem key={each} value={each}>
+                {plurals[each]}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        ) : null}
       </div>
 
       <ItemList
         chatHref={chatHref}
         itemHref={itemHref}
-        kind={kind === "all" ? undefined : kind}
+        kind={kind}
         link={Link}
         query={query}
         tab={tab}
@@ -414,10 +431,8 @@ function EmptyTab({
       </Trans>
     );
   } else {
-    title = <Trans>No team or org items</Trans>;
-    description = (
-      <Trans>Items published to your teams and orgs show up here.</Trans>
-    );
+    title = <Trans>Nothing in your spaces yet</Trans>;
+    description = <Trans>Items published to your spaces show up here.</Trans>;
   }
   return (
     <Empty className="border border-border border-dashed">

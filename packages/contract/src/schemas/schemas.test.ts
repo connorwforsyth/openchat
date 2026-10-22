@@ -671,6 +671,95 @@ const cases: Record<string, Cases> = {
       { instructions: "", kind: "agent", model: "fast" },
     ],
   },
+  "library.connectorAvailabilitySchema": {
+    invalid: [{ state: "unconfigured" }, { state: "gone" }],
+    valid: [
+      { state: "available" },
+      { state: "desktop_only" },
+      { message: "Set DOCS_MCP_TOKEN", state: "unconfigured" },
+    ],
+  },
+  "library.connectorListSchema": {
+    invalid: [{ connectors: [] }],
+    valid: [
+      {
+        connectors: [
+          {
+            auth: "none",
+            availability: { state: "available" },
+            description: null,
+            enabled: true,
+            id: itemId,
+            lock: { reason: "Company policy", type: "required" },
+            name: "docs",
+            source: "instance",
+            title: "Docs",
+            transport: "http",
+          },
+        ],
+        userServers: { allowed: true, hosts: [], transports: ["http"] },
+      },
+    ],
+  },
+  "library.connectorLockSchema": {
+    invalid: [{ reason: null, type: "admin" }],
+    valid: [
+      { reason: null, type: "operator" },
+      { reason: "Audit", type: "required" },
+    ],
+  },
+  "library.connectorSchema": {
+    invalid: [
+      {
+        auth: "none",
+        availability: { state: "available" },
+        description: null,
+        enabled: true,
+        id: itemId,
+        lock: null,
+        name: "fs",
+        source: "plugin",
+        title: "Files",
+        transport: "stdio",
+      },
+    ],
+    valid: [
+      {
+        auth: "oauth",
+        availability: { state: "desktop_only" },
+        description: "Local files",
+        enabled: false,
+        id: itemId,
+        lock: null,
+        name: "fs",
+        source: "library",
+        title: "Files",
+        transport: "stdio",
+      },
+    ],
+  },
+  "library.connectorToolListSchema": {
+    invalid: [{ tools: [] }],
+    valid: [
+      { reachable: false, tools: [] },
+      {
+        reachable: true,
+        tools: [
+          { description: null, enabled: true, lock: null, name: "search" },
+          {
+            description: "Writes the audit log",
+            enabled: true,
+            lock: { reason: "Audit", type: "required" },
+            name: "log_event",
+          },
+        ],
+      },
+    ],
+  },
+  "library.connectorToolSchema": {
+    invalid: [{ description: null, enabled: true, lock: null, name: "" }],
+    valid: [{ description: null, enabled: false, lock: null, name: "search" }],
+  },
   "library.createLibraryItemInputSchema": {
     invalid: [
       { definition: { kind: "agent" }, name: "A" },
@@ -787,6 +876,14 @@ const cases: Record<string, Cases> = {
     invalid: [{ ...agentVersion, number: 0 }],
     valid: [agentVersion],
   },
+  "library.listConnectorsInputSchema": {
+    invalid: [{ conversationId: 3 }],
+    valid: [{}, { conversationId: convId }],
+  },
+  "library.listConnectorToolsInputSchema": {
+    invalid: [{ conversationId: "nope", id: itemId }],
+    valid: [{ id: itemId }, { conversationId: convId, id: itemId }],
+  },
   "library.listLibraryInputSchema": {
     invalid: [{}, { tab: "everything" }],
     valid: [
@@ -875,9 +972,32 @@ const cases: Record<string, Cases> = {
     invalid: [{ notes: "x" }],
     valid: [{ id: itemId, notes: "Tighter rules." }],
   },
+  "library.resetConversationConnectorsInputSchema": {
+    invalid: [{}],
+    valid: [{ conversationId: convId }],
+  },
   "library.restoreVersionInputSchema": {
     invalid: [{ id: itemId }],
     valid: [{ id: itemId, versionId: agentVersion.id }],
+  },
+  "library.setConnectorEnabledInputSchema": {
+    invalid: [{ enabled: "yes", id: itemId }],
+    valid: [
+      { enabled: false, id: itemId },
+      { conversationId: convId, enabled: true, id: itemId },
+    ],
+  },
+  "library.setConnectorToolEnabledInputSchema": {
+    invalid: [{ enabled: true, id: itemId, tool: "has space" }],
+    valid: [
+      { enabled: false, id: itemId, tool: "search_docs" },
+      {
+        conversationId: convId,
+        enabled: true,
+        id: itemId,
+        tool: "search_docs",
+      },
+    ],
   },
   "library.setMaintainersInputSchema": {
     invalid: [{ id: itemId, userIds: [] }],
@@ -912,6 +1032,14 @@ const cases: Record<string, Cases> = {
       { definition: reviewerDefinition, icon: null, id: itemId },
     ],
   },
+  "library.userServerPolicySchema": {
+    invalid: [{ allowed: true, hosts: [], transports: ["stdio"] }],
+    valid: [
+      { allowed: false, hosts: [], transports: [] },
+      { allowed: true, hosts: ["*.example.com"], transports: ["http", "sse"] },
+    ],
+  },
+
   // link previews (101)
   "linkPreview.linkPreviewImageInputSchema": {
     invalid: [{}, { src: "" }, { src: "x".repeat(8193) }],
@@ -1374,6 +1502,13 @@ const cases: Record<string, Cases> = {
         defaultTarget: null,
         locale: null,
       },
+      {
+        defaultContext: { type: "personal" },
+        defaultTarget: null,
+        locale: null,
+        shortcuts: {},
+        sidebarLayout: "sideways",
+      },
     ],
     valid: [
       {
@@ -1387,6 +1522,13 @@ const cases: Record<string, Cases> = {
         defaultTarget: null,
         locale: "en",
         shortcuts: { "palette.open": ["Mod+P"] },
+      },
+      {
+        defaultContext: { type: "personal" },
+        defaultTarget: null,
+        locale: null,
+        shortcuts: {},
+        sidebarLayout: "classic",
       },
     ],
   },
@@ -2033,13 +2175,32 @@ const cases: Record<string, Cases> = {
     ],
   },
   "usage.usageSummaryInputSchema": {
-    invalid: [{ from: t, principalId: uid, principalType: "user" }],
+    invalid: [
+      { from: t, principalId: uid, principalType: "user" },
+      {
+        from: t,
+        principalId: uid,
+        principalType: "user",
+        spaceId: teamEngineering.id,
+        to: t,
+      },
+    ],
     valid: [
       {
         from: t,
         groupBy: "day",
         principalId: org.id,
         principalType: "org",
+        to: t,
+      },
+      {
+        from: t,
+        groupBy: "conversation",
+        keyId: fixtureId("providerKey", 1),
+        principalId: uid,
+        principalType: "user",
+        spaceId: teamEngineering.id,
+        spaceType: "team",
         to: t,
       },
     ],
@@ -2056,6 +2217,13 @@ const cases: Record<string, Cases> = {
           {
             costMicros: 10,
             key: "anthropic:claude-opus-5-5",
+            usage: { inputTokens: 1, outputTokens: 1 },
+          },
+          {
+            costMicros: 4,
+            key: uid,
+            label: "Ada",
+            traceUrl: "https://langfuse.example/project/p1/users/u1",
             usage: { inputTokens: 1, outputTokens: 1 },
           },
         ],

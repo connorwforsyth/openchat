@@ -8,7 +8,10 @@ import type { McpError } from "./errors";
 import {
   fromInstanceConfig,
   fromLibraryRow,
+  type InstanceServerEntry,
+  isRemoteEntry,
   type McpServerConfig,
+  missingSecrets,
 } from "./server-config";
 
 // Where server definitions come from (LibreChat's MCPServersRegistry,
@@ -17,7 +20,12 @@ import {
 // so an empty `.env` still boots.
 
 export interface ServerRegistry {
-  /** Instance servers from app.config.yaml, available to everyone. */
+  /** The operator's whole catalog, stdio and unconfigured entries included (184). */
+  readonly catalog: readonly InstanceServerEntry[];
+  /**
+   * Instance servers this process can connect to: remote entries whose
+   * `${ENV}` secrets are all set. Who has which on is `effectiveMcpServers`.
+   */
   readonly instanceServers: readonly McpServerConfig[];
   readonly resolve: (
     id: LibraryItemId
@@ -28,9 +36,14 @@ export const createServerRegistry = (options: {
   readonly config: AppConfig["mcp"];
   readonly db?: Db;
 }): ServerRegistry => {
-  const instanceServers = options.config.servers.map(fromInstanceConfig);
+  const catalog = options.config.servers;
+  const instanceServers = catalog
+    .filter(isRemoteEntry)
+    .filter((entry) => missingSecrets(entry).length === 0)
+    .map(fromInstanceConfig);
   const byId = new Map(instanceServers.map((server) => [server.id, server]));
   return {
+    catalog,
     instanceServers,
     resolve: async (id) => {
       const instance = byId.get(id);

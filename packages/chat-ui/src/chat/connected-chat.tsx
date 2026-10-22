@@ -36,6 +36,7 @@ import type {
   SkillOption,
 } from "@workspace/composer/schemas";
 import type { ModelVariant } from "@workspace/composer/variants";
+import { defaultTerms, type Terms } from "@workspace/config/terms";
 import type {
   ArtifactId,
   ArtifactVersionId,
@@ -78,6 +79,7 @@ import {
 } from "../conversation/approval-state";
 import { PlanStatusProvider } from "../conversation/plan-card";
 import { staleEdits } from "../model/approval";
+import type { RunSignal } from "../model/attention";
 import { newestLeafUnder, type TreeNode } from "../model/branch";
 import {
   type FirstSend,
@@ -113,6 +115,14 @@ import {
 import type { Platform } from "../shell/platform";
 import type { ShellLayoutState } from "../shell/use-shell-layout";
 import type { Theme } from "../sidebar/account-menu";
+import type { ChatSidebarProps } from "../sidebar/chat-sidebar";
+import {
+  useMarkReadWhileOpen,
+  useSidebarData,
+} from "../sidebar/use-sidebar-data";
+import { createRunReplyPorts, createVoiceReplies } from "../voice/reply";
+import { VoiceBridgeContext } from "../voice/voice-bridge";
+import type { VoiceBridge } from "../voice/voice-engine";
 import type {
   WorkspaceClient,
   WorkspaceFilesSource,
@@ -121,6 +131,7 @@ import { toTreePaths } from "../workspace/model/tree";
 import { ChatScreen } from "./chat-screen";
 import { useBranchFeedback } from "./use-branch-feedback";
 import { useChatQueries, useConversationUpdate } from "./use-chat-data";
+import { useChatMcp } from "./use-chat-mcp";
 
 // The chat screen over the API (D11): TanStack Query for everything stored,
 // `useRunChat` for the turn that's streaming. Ticket 025 mounts this in the
@@ -136,16 +147,26 @@ export interface ConnectedChatProps {
    * `runtimeOriginFrom`. Omitted or `null`, previews fall back to `srcdoc`.
    */
   readonly artifactsRuntimeOrigin?: string | null;
+  /** A bar above the messages (a Dot's schedule, 172). */
+  readonly banner?: ReactNode;
   readonly brand?: ReactNode;
   readonly client: ApiClient;
+  /** Placeholder for the composer ("Message Pip" in a Dot's chat, 172). */
+  readonly composerPlaceholder?: string;
+  /** A live view above the Workspace panel (a Dot's computer, 172). */
+  readonly computer?: ReactNode;
   readonly config: PublicConfig;
   /** `null` opens a new, not-yet-created chat. */
   readonly conversationId: ConversationId | null;
+  /** Where the Dots page lives (172), for the sidebar. */
+  readonly dotsHref?: string;
   /**
    * The context a new chat starts in. Pass it with `onDraftContextChange` when
    * something outside the screen (the ⌘K palette) can change it too.
    */
   readonly draftContext?: ChatContext;
+  /** More of the header's end, before the call button: the chat's schedule (183). */
+  readonly headerExtra?: ReactNode;
   /** A new chat sends this once, as soon as it mounts ("Ask AI" in ⌘K). */
   readonly initialPrompt?: string | null;
   /** The shell's layout, when the app owns it (see `ChatScreenProps.layout`). */
@@ -181,12 +202,71 @@ export interface ConnectedChatProps {
    * Omitted, `target` goes out.
    */
   readonly sendTarget?: RunTarget | null;
+  /** The sidebar's Dot slots (172): `top` and `dots` of `ChatSidebarProps`. */
+  readonly sidebarDots?: Pick<
+    ChatSidebarProps,
+    | "dot"
+    | "dotFace"
+    | "dots"
+    | "nextRuns"
+    | "schedulesHref"
+    | "signals"
+    | "top"
+  >;
+  /** Each chat's space by name (187): `spaces` of `ChatSidebarProps`. */
+  readonly sidebarSpaces?: ChatSidebarProps["spaces"];
   /** Skills the caller can use (127), for the composer's + menu and `/`. */
   readonly skills?: readonly SkillOption[];
   /** What answers: a model or an agent. Omitted, the server's default does. */
   readonly target?: RunTarget | null;
+  /** What this instance calls its features (191); the defaults when left out. */
+  readonly terms?: Terms;
   readonly theme: Theme;
+  /**
+   * A voice call on this chat (172): rendered in the header with the chat
+   * as a `VoiceBridge`, so what's said is sent and answered like typing.
+   * Only for a chat that exists.
+   */
+  readonly voice?: (bridge: VoiceBridge) => ReactNode;
 }
+
+/**
+ * The chat as a voice call sees it (172): a turn is sent like typing, and
+ * its reply is followed by run, not guessed from what's on screen.
+ */
+const useVoiceBridge = (
+  client: Pick<ApiClient, "messages" | "runs">,
+  send: (text: string) => Promise<RunId | null>
+): VoiceBridge =>
+  useMemo(
+    () => ({
+      replies: createVoiceReplies(createRunReplyPorts({ client, send })),
+    }),
+    [client, send]
+  );
+
+const voiceSlot = (
+  voice: ConnectedChatProps["voice"],
+  conversationId: ConversationId | null,
+  bridge: VoiceBridge
+): ReactNode => (voice && conversationId ? voice(bridge) : null);
+
+/** Extra header content, if any, sits before the voice slot. */
+const headerEndOf = (extra: ReactNode, voiceNode: ReactNode): ReactNode =>
+  extra ? (
+    <>
+      {extra}
+      {voiceNode}
+    </>
+  ) : (
+    voiceNode
+  );
+
+/** The bridge for call buttons outside the header; none before the chat exists. */
+const bridgeOf = (
+  conversationId: ConversationId | null,
+  bridge: VoiceBridge
+): VoiceBridge | null => (conversationId ? bridge : null);
 
 const fileUrl = (fileId: FileId): string => `/api/files/${fileId}/content`;
 /** A generated image's bytes (138), served by its artifact version. */
@@ -552,13 +632,39 @@ const useAskOnce = (
   }, [conversationId, prompt, submit]);
 };
 
+/** Why a send failed, as far as the person can act on it. Pure. */
+export type RunFailure =
+  | { readonly type: "allowance_spent" }
+  | { readonly type: "budget_exceeded" }
+  | { readonly type: "failed" };
+
+/**
+ * Reads the oRPC error `runs.create` threw. A spent allowance (192) or
+ * budget (D24) is the person's to resolve, not a retry, so it says so.
+ */
+export const runFailure = (error: unknown): RunFailure => {
+  const code =
+    typeof error === "object" && error !== null
+      ? (error as { readonly code?: unknown }).code
+      : undefined;
+  switch (code) {
+    case "ALLOWANCE_SPENT":
+      return { type: "allowance_spent" };
+    case "BUDGET_EXCEEDED":
+      return { type: "budget_exceeded" };
+    default:
+      return { type: "failed" };
+  }
+};
+
 function RunError({
-  failed,
+  error,
   onStop,
   uploadFailed,
   waiting,
 }: {
-  readonly failed: boolean;
+  /** The send's error, if it failed. */
+  readonly error: Error | undefined;
   /** Stops the waiting answer (the composer offers Send while it waits). */
   readonly onStop: () => void;
   readonly uploadFailed: boolean;
@@ -566,6 +672,19 @@ function RunError({
   readonly waiting: boolean;
 }) {
   const { t } = useLingui();
+  const failed = error !== undefined;
+  const failureText = (failure: RunFailure): string => {
+    switch (failure.type) {
+      case "allowance_spent":
+        return t`You have no tokens left this month in the space that limits this chat. Ask an owner there for an allowance in its Token allowance settings.`;
+      case "budget_exceeded":
+        return t`The budget for this period is spent. Try again once it resets.`;
+      case "failed":
+        return t`The answer failed. Try again, or regenerate it.`;
+      default:
+        return failure satisfies never;
+    }
+  };
   if (waiting && !(uploadFailed || failed)) {
     return (
       <div
@@ -592,7 +711,7 @@ function RunError({
     <p className="text-destructive text-sm" role="alert">
       {uploadFailed
         ? t`The message couldn't be sent: an attachment didn't upload. Try again.`
-        : t`The answer failed. Try again, or regenerate it.`}
+        : failureText(runFailure(error))}
     </p>
   );
 }
@@ -769,6 +888,7 @@ interface Queued {
  */
 const useFirstSend = ({
   api,
+  beforeFirstSend,
   client,
   context,
   conversationId,
@@ -780,6 +900,11 @@ const useFirstSend = ({
   target,
 }: {
   readonly api: QueryUtils;
+  /**
+   * Runs once the new chat exists, before its message goes: the chat's
+   * connector choices made before it existed are saved here (188).
+   */
+  readonly beforeFirstSend?: (id: ConversationId) => Promise<void>;
   readonly client: ApiClient;
   readonly context: ChatContext;
   readonly conversationId: ConversationId | null;
@@ -861,6 +986,7 @@ const useFirstSend = ({
       creation.current = made;
       const ready = order.current.then(async () => {
         const id = await made;
+        await beforeFirstSend?.(id);
         return { id, outgoing: await prepare(id, value) };
       });
       order.current = ready.catch(ignore);
@@ -882,7 +1008,16 @@ const useFirstSend = ({
         throw error;
       }
     },
-    [context, conversationId, create, onNavigate, prepare, send, target]
+    [
+      beforeFirstSend,
+      context,
+      conversationId,
+      create,
+      onNavigate,
+      prepare,
+      send,
+      target,
+    ]
   );
   return { busy: firstSendBusy(first, conversationId), submit };
 };
@@ -1425,6 +1560,10 @@ export function ConnectedChat({
   brand,
   client,
   artifactsHref,
+  banner,
+  composerPlaceholder,
+  computer,
+  dotsHref,
   config,
   conversationId,
   draftContext: draftContextProp,
@@ -1445,9 +1584,14 @@ export function ConnectedChat({
   platform,
   sandboxClient,
   sendTarget,
+  sidebarDots,
+  sidebarSpaces,
   skills,
   target = null,
+  terms = defaultTerms,
   theme,
+  voice,
+  headerExtra,
 }: ConnectedChatProps) {
   const outgoingTarget = targetToSend(sendTarget, target);
   const { t } = useLingui();
@@ -1565,8 +1709,11 @@ export function ConnectedChat({
   }, [refresh, watchTitle]);
   // The run this page started last, for Stop before the runs list has it.
   const createdRunId = useRef<RunId | null>(null);
+  // A voice turn waits here for the run its send started.
+  const runWaiters = useRef<((runId: RunId | null) => void)[]>([]);
   const onRunCreated = useCallback((run: RunCreated) => {
     createdRunId.current = run.runId;
+    runWaiters.current.shift()?.(run.runId);
   }, []);
   const { chat, messages, streamingMessageId } = useLiveTurn({
     client,
@@ -1626,8 +1773,15 @@ export function ConnectedChat({
     },
     [plan, sendMessage, stopReading, t, waiting]
   );
+  const chatMcp = useChatMcp({
+    api,
+    client,
+    conversationId,
+    term: terms.mcp,
+  });
   const firstSend = useFirstSend({
     api,
+    beforeFirstSend: chatMcp.flush,
     client,
     context: draftContext,
     conversationId,
@@ -1644,6 +1798,24 @@ export function ConnectedChat({
     composerStatus,
     stop
   );
+  const sendForVoice = useCallback(
+    (text: string) =>
+      new Promise<RunId | null>((resolve) => {
+        runWaiters.current.push(resolve);
+        // Settles once the stream ends; by then the run was reported, and a
+        // send that failed before creating one answers `null`.
+        sendInTurn(text)
+          .catch(ignore)
+          .finally(() => {
+            runWaiters.current = runWaiters.current.filter(
+              (waiter) => waiter !== resolve
+            );
+            resolve(null);
+          });
+      }),
+    [sendInTurn]
+  );
+  const voiceBridge = useVoiceBridge(client, sendForVoice);
 
   const { mutateAsync: revertMemory } = useMutation(
     api.memory.revert.mutationOptions()
@@ -1799,6 +1971,24 @@ export function ConnectedChat({
   useWorkspaceInSync(api, messages);
   useLibraryInSync(api, messages);
   const current = data.conversation.data;
+  const sidebarData = useSidebarData(api);
+  useMarkReadWhileOpen(current, sidebarData.onSetLastRead);
+  // The open chat's own run feeds "Needs attention" too (176): the list
+  // doesn't carry run state, but this screen knows it.
+  const activeStatus = data.activeRun?.state.status;
+  const dotSignals = sidebarDots?.signals;
+  const signals = useMemo(() => {
+    const merged = new Map<ConversationId, RunSignal>(dotSignals ?? []);
+    if (conversationId && activeStatus === "awaiting_approval") {
+      merged.set(conversationId, "awaiting_approval");
+    } else if (
+      conversationId &&
+      (activeStatus === "running" || activeStatus === "queued")
+    ) {
+      merged.set(conversationId, "running");
+    }
+    return merged;
+  }, [activeStatus, conversationId, dotSignals]);
   const planStatus = useMemo(
     () => ({
       approved: approvedPlanIds(messages),
@@ -1824,91 +2014,108 @@ export function ConnectedChat({
   return (
     <RunActivityProvider value={activity}>
       <PlanStatusProvider value={planStatus}>
-        <ChatScreen
-          actions={actions}
-          brand={brand}
-          composer={{
-            agents,
-            attachmentLimits,
-            ...composerDrafts,
-            models,
-            onPlanChange: plan.set,
-            onStop,
-            onSubmit,
-            onTargetChange,
-            onVariantChange: setVariant,
-            // "Recently used" in the picker is each person's own (099).
-            recentsKey: me.user.id,
-            ...webSearchSwitch(config, webSearch, setWebSearch),
-            plan: plan.on,
-            skills,
-            status: shownStatus,
-            target: target ?? undefined,
-            variant,
-          }}
-          conversation={{
-            context,
-            contextLocked: current?.contextLocked ?? false,
-            contextOptions,
-            id: conversationId,
-            onContextChange,
-            onCopyLink: copyLink,
-            onRename: conversationId ? onRename : undefined,
-            participants: data.participants.data ?? [],
-            title: current?.title ?? null,
-          }}
-          feedback={feedback.byMessage}
-          layout={layout}
-          messages={messages}
-          onNewChat={newChat}
-          onOpenPalette={onOpenPalette}
-          pendingApprovals={approvals}
-          platform={platform}
-          runError={
-            <RunError
-              failed={Boolean(chat.error)}
-              onStop={stop}
-              uploadFailed={uploadFailed}
-              waiting={waiting}
-            />
-          }
-          siblings={data.path.data?.siblings ?? []}
-          sidebar={{
-            ...sidebarActions,
-            account: {
-              onNewOrg,
-              onOpenAdmin,
-              onOpenSettings,
-              onSignOut,
-              onThemeChange,
-              theme,
-              user: me.user,
-            },
-            activeId: conversationId,
-            artifactsHref,
-            chats: data.chats.data?.items ?? [],
-            libraryHref,
-            onSelect: onNavigate,
-          }}
-          streamingMessageId={streamingMessageId}
-          workspace={{
-            artifacts: {
-              api,
-              artifacts: data.artifacts.data ?? [],
-              editing: planEditing,
-              error: data.versions.isError
-                ? t`Couldn't load this artifact.`
-                : null,
-              runtimeOrigin: artifactsRuntimeOrigin,
-              versions: data.versions.data,
-            },
-            canPreview: canPreviewOn(config, sandboxRecord),
-            files: workspaceFiles,
-            onSelect: setSelection,
-            paths: workspacePaths,
-            selection,
-          }}
-        />
+        <VoiceBridgeContext.Provider
+          value={bridgeOf(conversationId, voiceBridge)}
+        >
+          <ChatScreen
+            actions={actions}
+            banner={banner}
+            brand={brand}
+            composer={{
+              agents,
+              attachmentLimits,
+              mcp: chatMcp.composer,
+              ...composerDrafts,
+              models,
+              onPlanChange: plan.set,
+              onStop,
+              onSubmit,
+              onTargetChange,
+              onVariantChange: setVariant,
+              placeholder: composerPlaceholder,
+              // "Recently used" in the picker is each person's own (099).
+              recentsKey: me.user.id,
+              ...webSearchSwitch(config, webSearch, setWebSearch),
+              plan: plan.on,
+              skills,
+              status: shownStatus,
+              target: target ?? undefined,
+              variant,
+            }}
+            computer={computer}
+            conversation={{
+              context,
+              contextLocked: current?.contextLocked ?? false,
+              contextOptions,
+              id: conversationId,
+              onContextChange,
+              onCopyLink: copyLink,
+              onRename: conversationId ? onRename : undefined,
+              participants: data.participants.data ?? [],
+              title: current?.title ?? null,
+            }}
+            feedback={feedback.byMessage}
+            headerEnd={headerEndOf(
+              headerExtra,
+              voiceSlot(voice, conversationId, voiceBridge)
+            )}
+            layout={layout}
+            messages={messages}
+            onNewChat={newChat}
+            onOpenPalette={onOpenPalette}
+            pendingApprovals={approvals}
+            platform={platform}
+            runError={
+              <RunError
+                error={chat.error}
+                onStop={stop}
+                uploadFailed={uploadFailed}
+                waiting={waiting}
+              />
+            }
+            siblings={data.path.data?.siblings ?? []}
+            sidebar={{
+              ...sidebarActions,
+              account: {
+                onNewOrg,
+                onOpenAdmin,
+                onOpenSettings,
+                onSignOut,
+                onThemeChange,
+                theme,
+                user: me.user,
+              },
+              activeId: conversationId,
+              artifactsHref,
+              chats: data.chats.data?.items ?? [],
+              dotsHref,
+              ...sidebarDots,
+              ...sidebarData,
+              libraryHref,
+              onSelect: onNavigate,
+              signals,
+              spaces: sidebarSpaces,
+            }}
+            streamingMessageId={streamingMessageId}
+            workspace={{
+              artifacts: {
+                api,
+                artifacts: data.artifacts.data ?? [],
+                editing: planEditing,
+                error: data.versions.isError
+                  ? t`Couldn't load this artifact.`
+                  : null,
+                runtimeOrigin: artifactsRuntimeOrigin,
+                versions: data.versions.data,
+              },
+              canPreview: canPreviewOn(config, sandboxRecord),
+              files: workspaceFiles,
+              onSelect: setSelection,
+              paths: workspacePaths,
+              selection,
+            }}
+          />
+        </VoiceBridgeContext.Provider>
       </PlanStatusProvider>
     </RunActivityProvider>
   );

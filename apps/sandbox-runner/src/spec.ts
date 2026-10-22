@@ -4,7 +4,10 @@ import type {
   sandboxIsolationSchema,
 } from "@workspace/contract/schemas/sandbox";
 import { WORKDIR } from "@workspace/sandbox/paths";
-import type { RunnerRuntime } from "@workspace/sandbox/runner/protocol";
+import type {
+  RunnerRuntime,
+  SandboxVariant,
+} from "@workspace/sandbox/runner/protocol";
 import { err, ok, type Result } from "@workspace/shared/result";
 import type { ContainerCreateOptions, MountSettings } from "dockerode";
 import type { z } from "zod";
@@ -25,6 +28,7 @@ export type Isolation = z.infer<typeof sandboxIsolationSchema>;
 /** Labels the runner puts on everything it creates, to find it again. */
 export const MANAGED_LABEL = "sandbox-runner.managed";
 export const SANDBOX_LABEL = "sandbox-runner.sandbox";
+export const VARIANT_LABEL = "sandbox-runner.variant";
 
 export const containerName = (id: SandboxId) => `sbx-${id}`;
 export const volumeName = (id: SandboxId) => `sbx-${id}`;
@@ -94,10 +98,26 @@ export interface ContainerDefaults {
 
 export interface SandboxContainerInput {
   readonly defaults: ContainerDefaults;
+  /** The desktop image, for a `desktop` sandbox (172, a Dot's computer). */
+  readonly desktopImage?: string;
   readonly egress: EgressPolicy;
   readonly id: SandboxId;
   readonly limits: SandboxLimits;
+  readonly variant?: SandboxVariant;
 }
+
+/**
+ * A desktop sandbox (172) is the same hardened container running the desktop
+ * image's session (Xvfb, a window manager, x11vnc and noVNC on
+ * port 6080) instead of idling; commands still arrive through
+ * `exec`, with `DISPLAY` set, and the screen is watched through the preview
+ * proxy like any other exposed port.
+ */
+export const DESKTOP_DISPLAY = ":1";
+/** The desktop image's entrypoint script (`desktop/desktop-session`). */
+export const DESKTOP_SESSION = "desktop-session";
+/** Chromium needs more than Docker's 64 MB `/dev/shm`. */
+const DESKTOP_SHM_MB = 512;
 
 const MIB = 1024 * 1024;
 
@@ -149,15 +169,23 @@ export const effectiveEgress = (
 /** The create options for a sandbox's long-lived container. */
 export const buildContainerSpec = ({
   defaults,
+  desktopImage,
   egress,
   id,
   limits,
+  variant = "workspace",
 }: SandboxContainerInput): ContainerCreateOptions => {
   const policy = effectiveEgress(egress, limits);
+  const desktop = variant === "desktop";
   return {
-    // Commands arrive through `exec`; the container itself only idles.
-    Cmd: ["sleep", "infinity"],
-    Env: [`HOME=${SANDBOX_HOME}`, "TERM=xterm-256color", ...proxyEnv(policy)],
+    // Commands arrive through `exec`; a workspace container only idles.
+    Cmd: desktop ? [DESKTOP_SESSION] : ["sleep", "infinity"],
+    Env: [
+      `HOME=${SANDBOX_HOME}`,
+      "TERM=xterm-256color",
+      ...(desktop ? [`DISPLAY=${DESKTOP_DISPLAY}`] : []),
+      ...proxyEnv(policy),
+    ],
     HostConfig: {
       ...hardening(defaults.runtime),
       Memory: limits.memoryMb * MIB,
@@ -167,6 +195,7 @@ export const buildContainerSpec = ({
       NanoCpus: Math.round(limits.cpu * 1e9),
       NetworkMode: networkName(id),
       PidsLimit: defaults.pidsLimit,
+      ...(desktop ? { ShmSize: DESKTOP_SHM_MB * MIB } : {}),
       ...(defaults.storageQuota && limits.diskMb
         ? { StorageOpt: { size: `${limits.diskMb}M` } }
         : {}),
@@ -178,8 +207,12 @@ export const buildContainerSpec = ({
         "/tmp": `rw,exec,nosuid,nodev,size=${defaults.tmpMb}m`,
       },
     },
-    Image: defaults.image,
-    Labels: { [MANAGED_LABEL]: "true", [SANDBOX_LABEL]: id },
+    Image: desktop ? (desktopImage ?? defaults.image) : defaults.image,
+    Labels: {
+      [MANAGED_LABEL]: "true",
+      [SANDBOX_LABEL]: id,
+      [VARIANT_LABEL]: variant,
+    },
     name: containerName(id),
     User: defaults.user,
     WorkingDir: WORKDIR,

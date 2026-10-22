@@ -1,3 +1,4 @@
+import { brandAssetPath } from "@workspace/config/brand";
 import { getMessages } from "@workspace/i18n/catalog";
 import { LinguiClientProvider } from "@workspace/i18n/client";
 import { initLingui } from "@workspace/i18n/server";
@@ -19,10 +20,20 @@ export const viewport: Viewport = {
   width: "device-width",
 };
 
+// The tab icon is an SVG that follows the OS theme, with a PNG for browsers
+// that don't take SVG; apps/web/app/brand serves both from `brand:`.
+const icons: Metadata["icons"] = {
+  apple: { sizes: "180x180", url: brandAssetPath("apple-icon.png") },
+  icon: [
+    { type: "image/svg+xml", url: brandAssetPath("icon.svg") },
+    { sizes: "32x32", type: "image/png", url: brandAssetPath("icon-32.png") },
+  ],
+};
+
 // The name comes from `brand:` in app.config.yaml (D18), never a literal.
 export async function generateMetadata(): Promise<Metadata> {
   const config = await getPublicConfig();
-  return config.ok ? { title: config.config.brand.name } : {};
+  return config.ok ? { icons, title: config.config.brand.name } : { icons };
 }
 
 export default async function RootLayout({

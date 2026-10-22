@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Opens Chromium on the desktop (or a new tab in the running one). The
+# profile lives on the workspace volume, so cookies persist between runs.
+# --no-sandbox: the container is the sandbox (no capabilities to nest one);
+# --test-type hides the banner warning about it.
+set -u
+url="${1:-about:blank}"
+setsid chromium --no-sandbox --no-first-run --no-default-browser-check \
+  --disable-dev-shm-usage --password-store=basic --test-type \
+  --user-data-dir=/work/.chromium --window-position=0,0 \
+  --window-size=1280,800 --start-maximized "$url" \
+  >/tmp/chromium.log 2>&1 </dev/null &

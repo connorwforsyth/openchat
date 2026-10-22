@@ -1,11 +1,16 @@
 import type {
   BudgetId,
   OrgId,
+  ProviderKeyId,
   RunId,
   TeamId,
   UserId,
 } from "@workspace/contract/schemas/common";
-import type { ModelRef, TokenUsage } from "@workspace/contract/schemas/models";
+import type {
+  ModelRef,
+  ProviderId,
+  TokenUsage,
+} from "@workspace/contract/schemas/models";
 import type { Principal } from "@workspace/contract/schemas/tenancy";
 import type {
   Budget,
@@ -29,16 +34,19 @@ import {
 import type { z } from "zod";
 import type { Db } from "../client";
 import { type NotFoundError, notFound } from "../errors";
+import { user } from "../schema/auth";
+import { conversation, run } from "../schema/chat";
 import type { PrincipalId } from "../schema/columns";
 import { budget } from "../schema/tenancy";
-import { balance, transaction } from "../schema/usage";
-import type { StoredContext } from "./conversations";
+import { balance, providerKey, transaction } from "../schema/usage";
+import { canRead, type StoredContext, type Viewer } from "./conversations";
 import {
   decodeCursor,
   type InvalidCursorError,
   type Page,
   toPage,
 } from "./page";
+import type { KeyScopeRef } from "./provider-keys";
 import { teamAncestors } from "./teams";
 
 // Usage and budgets (D17, D24). Each model call is a transaction recorded
@@ -103,6 +111,34 @@ const chargedPrincipals = async (
   ];
 };
 
+/**
+ * The stored key that paid (ticket 193): the newest key of the paying scope
+ * for the model's provider, which is the one key resolution picks. Resolved
+ * here so the key ports needn't carry key ids.
+ */
+const payingKeyId = async (
+  db: Db,
+  input: NewTransaction
+): Promise<ProviderKeyId | null> => {
+  if (input.paidBy.type === "instance") {
+    return null;
+  }
+  const provider = input.model.slice(0, input.model.indexOf(":"));
+  const [row] = await db
+    .select({ id: providerKey.id })
+    .from(providerKey)
+    .where(
+      and(
+        eq(providerKey.scopeType, input.paidBy.type),
+        eq(providerKey.scopeId, input.paidBy.id),
+        eq(providerKey.provider, provider as ProviderId)
+      )
+    )
+    .orderBy(desc(providerKey.createdAt))
+    .limit(1);
+  return row?.id ?? null;
+};
+
 /** Records a model call and adds its cost to every balance it counts toward. */
 export const recordTransaction = (
   db: Db,
@@ -110,6 +146,7 @@ export const recordTransaction = (
   now: Date = new Date()
 ): Promise<TransactionRow> =>
   db.transaction(async (tx) => {
+    const providerKeyId = await payingKeyId(tx, input);
     const [row] = await tx
       .insert(transaction)
       .values({
@@ -125,6 +162,7 @@ export const recordTransaction = (
         outputTokens: input.usage.outputTokens,
         paidById: input.paidBy.type === "instance" ? null : input.paidBy.id,
         paidByType: input.paidBy.type,
+        providerKeyId,
         reasoningTokens: input.usage.reasoningTokens ?? null,
         runId: input.runId ?? null,
         userId: input.userId,
@@ -364,26 +402,75 @@ const filterWhere = (filter: UsageFilter): SQL | undefined => {
 
 export type UsageGroupBy = z.infer<typeof usageSummaryInputSchema>["groupBy"];
 
+/** Usage in a space and the spaces below it: an org's everything, a team's subtree. */
+export type SpaceScope = Exclude<UsageFilter, { readonly type: "user" }>;
+
+export interface UsageQuery {
+  readonly from: Date;
+  readonly groupBy: UsageGroupBy;
+  /** Only usage paid with this stored key. */
+  readonly keyId?: ProviderKeyId;
+  readonly space?: SpaceScope;
+  readonly to: Date;
+  /** Who is asking: a chat is titled only if they can still read it. */
+  readonly viewer?: Viewer;
+}
+
 export interface UsageSummaryRow {
   readonly costMicros: number;
   readonly key: string;
+  /** For `key` groups: who holds the key, so a caller can hide names it may not list. */
+  readonly keyScope?: KeyScopeRef;
+  /**
+   * A chat's title (`""` while it has none) when the viewer can read it, a
+   * person's name, or a key's name or hint.
+   */
+  readonly label?: string;
   readonly usage: TokenUsage;
 }
 
-const groupKey = (groupBy: UsageGroupBy): SQL<string> => {
-  switch (groupBy) {
-    case "model":
-      return sql<string>`${transaction.model}`;
-    case "user":
-      return sql<string>`${transaction.userId}::text`;
-    case "day":
-      return sql<string>`to_char(${transaction.createdAt} at time zone 'UTC', 'YYYY-MM-DD')`;
-    case "kind":
-      return sql<string>`${transaction.kind}`;
-    default:
-      return groupBy satisfies never;
-  }
-};
+interface Group {
+  readonly key: SQL<string>;
+  readonly label?: SQL<string | null>;
+  readonly scope?: {
+    readonly id: SQL<PrincipalId | null>;
+    readonly type: SQL<KeyScopeRef["type"] | null>;
+  };
+}
+
+/**
+ * How each grouping reads its key and, where the key is an id, a name for
+ * it. `""` is the group of rows with no chat, or paid by instance keys.
+ */
+const groups = (viewer: Viewer | undefined): Record<UsageGroupBy, Group> => ({
+  conversation: {
+    key: sql<string>`coalesce(${run.conversationId}::text, '')`,
+    label: viewer
+      ? sql<
+          string | null
+        >`max(case when ${canRead(viewer)} then coalesce(${conversation.title}, '') end)`
+      : undefined,
+  },
+  day: {
+    key: sql<string>`to_char(${transaction.createdAt} at time zone 'UTC', 'YYYY-MM-DD')`,
+  },
+  key: {
+    key: sql<string>`coalesce(${transaction.providerKeyId}::text, '')`,
+    label: sql<
+      string | null
+    >`max(coalesce(nullif(${providerKey.label}, ''), '••••' || ${providerKey.hint}))`,
+    scope: {
+      id: sql<PrincipalId | null>`max(${providerKey.scopeId}::text)`,
+      type: sql<KeyScopeRef["type"] | null>`max(${providerKey.scopeType})`,
+    },
+  },
+  kind: { key: sql<string>`${transaction.kind}` },
+  model: { key: sql<string>`${transaction.model}` },
+  user: {
+    key: sql<string>`${transaction.userId}::text`,
+    label: sql<string | null>`max(${user.name})`,
+  },
+});
 
 /** Postgres sums bigints as numeric, which arrives as text. */
 const total = (column: SQL | typeof transaction.costMicros) =>
@@ -397,35 +484,44 @@ const optionalTotal = (column: typeof transaction.cachedInputTokens) =>
 export const summarizeUsage = async (
   db: Db,
   filter: UsageFilter,
-  range: {
-    readonly from: Date;
-    readonly groupBy: UsageGroupBy;
-    readonly to: Date;
-  }
+  query: UsageQuery
 ): Promise<UsageSummaryRow[]> => {
-  const key = groupKey(range.groupBy);
+  const group = groups(query.viewer)[query.groupBy];
   const rows = await db
     .select({
       cachedInputTokens: optionalTotal(transaction.cachedInputTokens),
       costMicros: total(transaction.costMicros),
       inputTokens: total(sql`${transaction.inputTokens}`),
-      key,
+      key: group.key,
+      label: group.label ?? sql<string | null>`null`,
       outputTokens: total(sql`${transaction.outputTokens}`),
       reasoningTokens: optionalTotal(transaction.reasoningTokens),
+      scopeId: group.scope?.id ?? sql<PrincipalId | null>`null`,
+      scopeType: group.scope?.type ?? sql<KeyScopeRef["type"] | null>`null`,
     })
     .from(transaction)
+    .leftJoin(run, eq(run.id, transaction.runId))
+    .leftJoin(conversation, eq(conversation.id, run.conversationId))
+    .leftJoin(providerKey, eq(providerKey.id, transaction.providerKeyId))
+    .leftJoin(user, eq(user.id, transaction.userId))
     .where(
       and(
         filterWhere(filter),
-        gte(transaction.createdAt, range.from),
-        lt(transaction.createdAt, range.to)
+        query.space ? filterWhere(query.space) : undefined,
+        query.keyId ? eq(transaction.providerKeyId, query.keyId) : undefined,
+        gte(transaction.createdAt, query.from),
+        lt(transaction.createdAt, query.to)
       )
     )
-    .groupBy(key)
-    .orderBy(desc(total(transaction.costMicros)), key);
+    .groupBy(group.key)
+    .orderBy(desc(total(transaction.costMicros)), group.key);
   return rows.map((row) => ({
     costMicros: row.costMicros,
     key: row.key,
+    ...(row.label === null ? {} : { label: row.label }),
+    ...(row.scopeId === null || row.scopeType === null
+      ? {}
+      : { keyScope: { id: row.scopeId, type: row.scopeType } }),
     usage: {
       inputTokens: row.inputTokens,
       outputTokens: row.outputTokens,

@@ -586,10 +586,16 @@ export const createMcpManager = (options: McpManagerOptions): McpManager => {
     server: McpServerConfig,
     live: Live,
     userId: UserId,
-    subset?: readonly string[]
+    subset?: readonly string[],
+    exclude: readonly string[] = []
   ): ToolSet => {
+    // The user's own switches (188) narrow the operator's filter further.
     const allowed = live.definitions.tools.filter((definition) =>
-      isToolAllowed(definition.name, server.tools, subset)
+      isToolAllowed(
+        definition.name,
+        { ...server.tools, deny: [...server.tools.deny, ...exclude] },
+        subset
+      )
     );
     const converted = live.client.toolsFromDefinitions({
       ...live.definitions,
@@ -756,7 +762,7 @@ export const createMcpManager = (options: McpManagerOptions): McpManager => {
             return err(toToolError(acquired.error));
           }
           const { live, server } = acquired.value;
-          return ok(toolsFor(server, live, userId, ref.tools));
+          return ok(toolsFor(server, live, userId, ref.tools, ref.exclude));
         } catch {
           return err({ message: "Cancelled.", type: "unavailable" });
         }

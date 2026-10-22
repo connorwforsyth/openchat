@@ -57,7 +57,10 @@ const tags = Object.entries({
   Account: "The signed-in user and their settings.",
   Admin: "Instance administration.",
   Artifacts: "Artifacts produced in conversations, with versions.",
+  Connectors:
+    "Which MCP servers each user has on: the operator catalog plus their library.",
   Conversations: "Conversations, chat context and per-user state.",
+  Dots: "Your always-on agent: one per user, and its own conversation.",
   Feedback: "Thumbs up/down on assistant messages.",
   Files: "Uploads, ingestion and semantic file search.",
   Keys: "Org, team and user provider keys (write-only).",
@@ -73,18 +76,22 @@ const tags = Object.entries({
   Orgs: "Orgs, members, invitations and org policy.",
   Runs: "Chat turns: create, stream, approve, cancel.",
   Sandbox: "Per-conversation sandboxes.",
+  Schedules:
+    "Scheduled tasks: a prompt on a recurrence, posted into your Dot, a chat, or a new chat each run.",
   Search: "Full-text search over conversations.",
   Sharing: "Grants (share) and public share links.",
   Teams: "The team tree and team membership.",
   Usage: "Usage, transactions and budgets.",
 }).map(([name, description]) => ({ description, name }));
 
-const errorResponse = (description: string, code: string) => ({
+const errorResponse = (description: string, ...codes: readonly string[]) => ({
   content: {
     "application/json": {
       schema: {
         oneOf: [
-          { $ref: `#/components/schemas/${code}Error` },
+          ...codes.map((code) => ({
+            $ref: `#/components/schemas/${code}Error`,
+          })),
           { $ref: "#/components/schemas/UndefinedError" },
         ],
       },
@@ -92,6 +99,26 @@ const errorResponse = (description: string, code: string) => ({
   },
   description,
 });
+
+/** One response per status: codes that share a status are alternatives in it. */
+const errorResponsesByStatus = (
+  errors: Readonly<Record<string, { message: string; status: number }>>
+) => {
+  const entries = Object.entries(errors);
+  const statuses = [...new Set(entries.map(([, { status }]) => status))];
+  return Object.fromEntries(
+    statuses.map((status) => {
+      const same = entries.filter(([, error]) => error.status === status);
+      return [
+        String(status),
+        errorResponse(
+          same.map(([, { message }]) => message).join(" "),
+          ...same.map(([code]) => code)
+        ),
+      ];
+    })
+  );
+};
 
 /** `GET /runs/{id}/stream`: not an oRPC procedure, documented here for OpenAPI clients. */
 const runStreamPath: OpenAPI.PathItemObject = {
@@ -212,12 +239,7 @@ const llmProxyPath: OpenAPI.PathItemObject = {
         description:
           "The body doesn't match `LlmProxyRequest` (`BAD_REQUEST`).",
       },
-      ...Object.fromEntries(
-        Object.entries(llmProxyErrors).map(([code, { message, status }]) => [
-          String(status),
-          errorResponse(message, code),
-        ])
-      ),
+      ...errorResponsesByStatus(llmProxyErrors),
     },
     summary: "Call a model (JSON or SSE)",
     tags: ["Models"],

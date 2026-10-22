@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { PEEK_CLOSE_DELAY_MS } from "../model/layout";
-import { createPeekController, type PeekTimers } from "./peek";
+import { createPeekController, isPeekBusy, type PeekTimers } from "./peek";
 
 // The peek's timing (071): open on the edge at once, close 500ms after the
 // pointer leaves, not while a menu or text field inside is in use.
@@ -78,5 +78,31 @@ describe("createPeekController", () => {
     peek.dispose();
     vi.advanceTimersByTime(PEEK_CLOSE_DELAY_MS);
     expect(onOpenChange).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("isPeekBusy", () => {
+  const sidebarWith = (html: string) => {
+    const element = document.createElement("aside");
+    element.innerHTML = html;
+    return element;
+  };
+
+  it("counts a row's open menu", () => {
+    expect(
+      isPeekBusy(
+        sidebarWith(
+          '<button aria-haspopup="menu" aria-expanded="true"></button>'
+        )
+      )
+    ).toBe(true);
+  });
+
+  // 181's foldable section headers are disclosures, open by default; they
+  // kept the peek from ever closing.
+  it("ignores an unfolded section header", () => {
+    expect(
+      isPeekBusy(sidebarWith('<h3><button aria-expanded="true"></button></h3>'))
+    ).toBe(false);
   });
 });

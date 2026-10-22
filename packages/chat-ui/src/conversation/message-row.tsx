@@ -55,6 +55,7 @@ import { LazyReasoning } from "./lazy";
 import { Markdown } from "./markdown";
 import { MemoryNote } from "./memory-note";
 import { PlanApprovalNote, PlanCard } from "./plan-card";
+import { ReportNote, ScheduledLabel } from "./scheduled-note";
 import { SkillsNote } from "./skills-note";
 import { Sources } from "./sources";
 import { ThinkingLabel } from "./thinking";
@@ -169,6 +170,10 @@ function Block({
       return <PlanApprovalNote approval={block.approval} />;
     case "skills":
       return <SkillsNote skills={block.skills} />;
+    case "scheduled":
+      return <ScheduledLabel task={block.task} />;
+    case "report":
+      return <ReportNote report={block.report} />;
     default:
       return block satisfies never;
   }
@@ -309,6 +314,7 @@ function UserMessage({
   const skills = view.blocks.flatMap((block) =>
     block.kind === "skills" ? [block] : []
   );
+  const scheduled = view.blocks.find((block) => block.kind === "scheduled");
   const startEdit = useCallback(() => setEditing(true), []);
   const cancel = useCallback(() => setEditing(false), []);
   const save = useCallback(
@@ -328,6 +334,9 @@ function UserMessage({
           <EditForm initial={text} onCancel={cancel} onSave={save} />
         ) : (
           <>
+            {scheduled?.kind === "scheduled" ? (
+              <ScheduledLabel task={scheduled.task} />
+            ) : null}
             {files.map((block) => (
               <div className="ms-auto" key={block.key}>
                 <FileParts files={block.files} />

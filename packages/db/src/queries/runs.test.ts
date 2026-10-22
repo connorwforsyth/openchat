@@ -185,6 +185,10 @@ describe("transitionRun", () => {
     expect(canTransition("running", "start")).toBe(false);
     expect(canTransition("awaiting_approval", "resume")).toBe(true);
     expect(canTransition("succeeded", "cancel")).toBe(false);
+    // Only its pass ends a running run: Stop aborts the pass instead.
+    expect(canTransition("running", "cancel")).toBe(false);
+    expect(canTransition("running", "abort")).toBe(true);
+    expect(canTransition("awaiting_approval", "cancel")).toBe(true);
   });
 });
 

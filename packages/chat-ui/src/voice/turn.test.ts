@@ -1,0 +1,262 @@
+import { describe, expect, it } from "vitest";
+
+import {
+  type CallEvent,
+  type CallState,
+  callStep,
+  DEFAULT_VAD,
+  INITIAL_CALL,
+  INITIAL_VAD,
+  orbStateOf,
+  type VadEvent,
+  vadStep,
+} from "./turn";
+
+const run = (events: readonly CallEvent[], from: CallState = INITIAL_CALL) =>
+  events.reduce(
+    (acc, event) => {
+      const step = callStep(acc.state, event);
+      return {
+        effects: [...acc.effects, ...step.effects.map((e) => e.type)],
+        state: step.state,
+      };
+    },
+    { effects: [] as string[], state: from }
+  );
+
+describe("callStep", () => {
+  it("runs a whole turn", () => {
+    const { effects, state } = run([
+      { type: "ready" },
+      { type: "speech-start" },
+      { type: "speech-end" },
+      { text: "What's next?", type: "transcribed" },
+      { type: "audio-started" },
+      { pending: true, type: "reply-finished" },
+      { type: "audio-idle" },
+    ]);
+    expect(effects).toEqual(["start-recording", "transcribe", "send"]);
+    expect(state.phase).toBe("listening");
+  });
+
+  it("waits for more sentences while the reply streams", () => {
+    const { state } = run([
+      { type: "ready" },
+      { type: "speech-start" },
+      { type: "speech-end" },
+      { text: "Hi", type: "transcribed" },
+      { type: "audio-started" },
+      { type: "audio-idle" },
+    ]);
+    expect(orbStateOf(state.phase)).toBe("thinking");
+  });
+
+  it("goes back to listening when nothing was said", () => {
+    const { effects, state } = run([
+      { type: "ready" },
+      { type: "speech-start" },
+      { type: "speech-end" },
+      { text: "  ", type: "transcribed" },
+    ]);
+    expect(effects).not.toContain("send");
+    expect(state.phase).toBe("listening");
+  });
+
+  it("lets the user barge in on the reply", () => {
+    const { effects, state } = run([
+      { type: "ready" },
+      { text: "Tell me a long story", type: "heard-text" },
+      { type: "audio-started" },
+      { type: "speech-start" },
+    ]);
+    expect(effects).toEqual(["send", "interrupt", "start-recording"]);
+    expect(state.phase).toBe("hearing");
+    expect(orbStateOf(state.phase)).toBe("listening");
+  });
+
+  it("keeps thinking when noise starts before the reply speaks", () => {
+    const { effects, state } = run([
+      { type: "ready" },
+      { type: "speech-start" },
+      { type: "speech-end" },
+      { text: "What's next?", type: "transcribed" },
+      { type: "speech-start" },
+      { type: "speech-end" },
+    ]);
+    expect(effects).toEqual(["start-recording", "transcribe", "send"]);
+    expect(state.phase).toBe("thinking");
+  });
+
+  it("lets the user talk over a pause between the reply's sentences", () => {
+    const { effects, state } = run([
+      { type: "ready" },
+      { text: "Tell me a long story", type: "heard-text" },
+      { type: "audio-started" },
+      { type: "audio-idle" },
+      { type: "speech-start" },
+    ]);
+    expect(effects).toEqual(["send", "interrupt", "start-recording"]);
+    expect(state.phase).toBe("hearing");
+  });
+
+  it("shows a pause between sentences as thinking, then speaks on", () => {
+    const paused = run([
+      { type: "ready" },
+      { text: "Tell me a long story", type: "heard-text" },
+      { type: "audio-started" },
+      { type: "audio-idle" },
+    ]);
+    expect(orbStateOf(paused.state.phase)).toBe("thinking");
+    const resumed = run([{ type: "audio-started" }], paused.state);
+    expect(resumed.state.phase).toBe("speaking");
+    const done = run(
+      [{ pending: false, type: "reply-finished" }],
+      paused.state
+    );
+    expect(done.state.phase).toBe("listening");
+  });
+
+  it("keeps listening when the user goes on while the first clause transcribes", () => {
+    const { effects, state } = run([
+      { type: "ready" },
+      { type: "speech-start" },
+      { type: "speech-end" },
+      { type: "speech-start" },
+      { text: "What's next", type: "transcribed" },
+      { type: "speech-end" },
+      { text: "What's next on my list?", type: "transcribed" },
+    ]);
+    expect(effects).toEqual([
+      "start-recording",
+      "transcribe",
+      "resume-recording",
+      "transcribe",
+      "send",
+    ]);
+    expect(state.phase).toBe("thinking");
+  });
+
+  it("ends the reply, its audio and its run when the speech service goes down", () => {
+    for (const playing of [[], [{ type: "audio-idle" }]] as const) {
+      const { effects, state } = run([
+        { type: "ready" },
+        { text: "Tell me a long story", type: "heard-text" },
+        { type: "audio-started" },
+        ...playing,
+        { error: "unavailable", type: "failed" },
+      ]);
+      expect(effects).toEqual(["send", "interrupt"]);
+      expect(state).toMatchObject({
+        error: "unavailable",
+        phase: "listening",
+        replyDone: true,
+      });
+    }
+  });
+
+  it("goes on with the reply when one sentence can't be spoken", () => {
+    const failed = run([
+      { type: "ready" },
+      { text: "Tell me a long story", type: "heard-text" },
+      { type: "audio-started" },
+      { error: "speech", type: "failed" },
+    ]);
+    expect(failed.effects).toEqual(["send"]);
+    expect(failed.state).toMatchObject({ error: "speech", phase: "speaking" });
+    // The run is still going: the queue running dry isn't the user's turn yet.
+    const idle = run([{ type: "audio-idle" }], failed.state);
+    expect(idle.state.phase).toBe("paused");
+    const done = run([{ pending: false, type: "reply-finished" }], idle.state);
+    expect(done.state.phase).toBe("listening");
+  });
+
+  it("ignores speech while muted and drops a half-heard utterance on mute", () => {
+    const heard = run([{ type: "ready" }, { type: "speech-start" }]);
+    const muted = run(
+      [{ muted: true, type: "mute" }, { type: "speech-start" }],
+      heard.state
+    );
+    expect(muted.effects).toEqual(["discard-recording"]);
+    expect(muted.state.phase).toBe("listening");
+  });
+
+  it("accepts on-device text without uploading audio", () => {
+    const { effects } = run([
+      { type: "ready" },
+      { text: "Run the digest now", type: "heard-text" },
+    ]);
+    expect(effects).toEqual(["send"]);
+  });
+
+  it("hangs up on a microphone failure, and ends for good", () => {
+    const failed = run([{ error: "microphone", type: "failed" }]);
+    expect(failed.effects).toEqual(["hang-up"]);
+    expect(run([{ type: "ready" }], failed.state).state.phase).toBe("ended");
+    const ended = run([{ type: "ready" }, { type: "end" }]);
+    expect(ended.effects).toEqual(["interrupt", "hang-up"]);
+  });
+
+  it("keeps listening after a service error, and shows it", () => {
+    const { state } = run([
+      { type: "ready" },
+      { type: "speech-start" },
+      { type: "speech-end" },
+      { error: "transcription", type: "failed" },
+    ]);
+    expect(state).toMatchObject({ error: "transcription", phase: "listening" });
+  });
+});
+
+describe("vadStep", () => {
+  const feed = (frames: readonly [number, number][]) => {
+    let state = INITIAL_VAD;
+    const events: VadEvent[] = [];
+    for (const [now, level] of frames) {
+      const step = vadStep(state, level, now, DEFAULT_VAD);
+      ({ state } = step);
+      if (step.event) {
+        events.push(step.event);
+      }
+    }
+    return events;
+  };
+
+  it("starts after sustained speech and ends after silence", () => {
+    const frames: [number, number][] = [];
+    for (let t = 0; t < 500; t += 20) {
+      frames.push([t, 0.003]);
+    }
+    for (let t = 500; t < 1500; t += 20) {
+      frames.push([t, 0.2]);
+    }
+    for (let t = 1500; t < 2500; t += 20) {
+      frames.push([t, 0.003]);
+    }
+    expect(feed(frames)).toEqual(["speech-start", "speech-end"]);
+  });
+
+  it("ignores a click", () => {
+    expect(
+      feed([
+        [0, 0.003],
+        [20, 0.3],
+        [40, 0.003],
+        [60, 0.003],
+      ])
+    ).toEqual([]);
+  });
+
+  it("doesn't end on a short pause", () => {
+    const frames: [number, number][] = [];
+    for (let t = 0; t < 400; t += 20) {
+      frames.push([t, 0.2]);
+    }
+    for (let t = 400; t < 800; t += 20) {
+      frames.push([t, 0.003]);
+    }
+    for (let t = 800; t < 1000; t += 20) {
+      frames.push([t, 0.2]);
+    }
+    expect(feed(frames)).toEqual(["speech-start"]);
+  });
+});

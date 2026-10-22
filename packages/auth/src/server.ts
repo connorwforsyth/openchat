@@ -1,4 +1,5 @@
 import { drizzleAdapter } from "@better-auth/drizzle-adapter/relations-v2";
+import { microsoftSsoOf } from "@workspace/config/microsoft";
 import type { AppConfig } from "@workspace/config/schema";
 import type {
   InvitationId,
@@ -39,7 +40,9 @@ import {
   resolveSecret,
   type SecretProblem,
 } from "./env";
+import { microsoftSso } from "./microsoft";
 import { trustedOriginsFor } from "./origins";
+import type { AvatarStore } from "./ports/avatar-store";
 import { decideSignUp, type SignUpRefusal } from "./signup";
 import {
   bootstrapUser,
@@ -48,6 +51,7 @@ import {
   isPersonalOrg,
   joinInvitedTeams,
   leaveOrgTeams,
+  profileStoreFor,
 } from "./store";
 
 // The Better Auth server (D22): email and password, GitHub and Google when
@@ -63,10 +67,14 @@ export interface AuthLog {
 }
 
 export interface CreateAuthOptions {
+  /** Where Microsoft profile photos go (186); without it they're skipped. */
+  readonly avatars?: AvatarStore;
   readonly config: AppConfig;
   readonly db: Db;
   /** Defaults to `process.env`; parsed, so unknown keys and blanks are fine. */
   readonly env?: Readonly<Record<string, string | undefined>>;
+  /** Outbound HTTP for Microsoft Graph; defaults to the global `fetch`. */
+  readonly fetch?: typeof fetch;
   readonly log?: AuthLog;
   /**
    * Overrides Better Auth's password hashing. Only tests pass this: the
@@ -223,10 +231,16 @@ const buildAuth = (
   env: AuthEnv,
   secret: string,
   {
+    avatars,
+    fetch: fetchFn,
+    log,
     origins,
     passwordHasher,
     proxies,
   }: {
+    readonly avatars?: AvatarStore;
+    readonly fetch: typeof fetch;
+    readonly log: AuthLog;
     readonly origins: readonly string[];
     readonly passwordHasher?: PasswordHasher;
     readonly proxies: TrustedProxies;
@@ -234,6 +248,20 @@ const buildAuth = (
 ) => {
   const github = socialCredentials(config, env, "github");
   const google = socialCredentials(config, env, "google");
+  const microsoftConfig = microsoftSsoOf(config.auth);
+  const microsoft = microsoftConfig
+    ? microsoftSso(microsoftConfig, {
+        avatars,
+        fetch: fetchFn,
+        profiles: profileStoreFor(db),
+        warn: log.warn,
+      })
+    : undefined;
+  // What a Microsoft sign-in synced, for the `user` hooks (186).
+  const withSynced = async <T extends object>(data: T) =>
+    microsoft ? { data: await microsoft.userData(data) } : undefined;
+  const withSyncedUpdate = async <T extends object>(data: T) =>
+    microsoft ? { data: await microsoft.userUpdate(data) } : undefined;
   const orgs = orgPlugin(db);
   const auth = betterAuth({
     advanced: {
@@ -267,6 +295,21 @@ const buildAuth = (
       },
     }),
     databaseHooks: {
+      // Graph's tokens were only for the photo; don't keep them (186).
+      ...(microsoft
+        ? {
+            account: {
+              create: {
+                before: (data) =>
+                  Promise.resolve({ data: microsoft.accountData(data) }),
+              },
+              update: {
+                before: (data) =>
+                  Promise.resolve({ data: microsoft.accountData(data) }),
+              },
+            },
+          }
+        : {}),
       user: {
         create: {
           // Runs after Better Auth's transaction commits (queued), so the
@@ -277,7 +320,9 @@ const buildAuth = (
               name: created.name,
             });
           },
+          before: withSynced,
         },
+        update: { before: withSyncedUpdate },
       },
     },
     disabledPaths: httpDisabledPaths(orgs),
@@ -294,17 +339,46 @@ const buildAuth = (
     socialProviders: {
       ...(github ? { github } : {}),
       ...(google ? { google } : {}),
+      ...(microsoft ? { microsoft: microsoft.provider } : {}),
     },
     telemetry: { enabled: false },
     // `BETTER_AUTH_URL`, its loopback aliases and `TRUSTED_ORIGINS` (054).
     // Unset, Better Auth trusts the origin each request arrives on.
     trustedOrigins: [...origins],
     user: {
+      additionalFields: {
+        // What the last sign-in copied from a provider (186), so an edit
+        // the person made since isn't overwritten. Only the `user` hooks
+        // write them.
+        syncedImage: {
+          input: false,
+          required: false,
+          returned: false,
+          type: "string",
+        },
+        syncedName: {
+          input: false,
+          required: false,
+          returned: false,
+          type: "string",
+        },
+      },
       validateUserInfo: async ({ source, user: incoming }) => {
+        const email = typeof incoming.email === "string" ? incoming.email : "";
+        // Tenant and domain allow-lists hold on every sign-in, not just the first.
+        const refused = await microsoft?.refusal({
+          action: source.action,
+          email,
+          profile: source.oauth?.profile,
+          providerId: source.oauth?.providerId,
+          userId: incoming.id,
+        });
+        if (refused) {
+          return refused;
+        }
         if (source.action !== "create-user") {
           return;
         }
-        const email = typeof incoming.email === "string" ? incoming.email : "";
         const [first, invited] = await Promise.all([
           isFirstUser(db),
           hasPendingInvitation(db, email),
@@ -313,6 +387,7 @@ const buildAuth = (
           config.auth,
           {
             email,
+            emailVerified: incoming.emailVerified === true,
             method: source.method,
             providerId: source.oauth?.providerId ?? source.sso?.providerId,
           },
@@ -346,7 +421,9 @@ export type AuthSession = Auth["$Infer"]["Session"];
 export const createAuth = ({
   config,
   db,
+  avatars,
   env = process.env,
+  fetch: fetchFn = fetch,
   log = consoleLog,
   passwordHasher,
 }: CreateAuthOptions): Result<Auth, SecretProblem> => {
@@ -373,6 +450,9 @@ export const createAuth = ({
     );
   }
   const options = {
+    avatars,
+    fetch: fetchFn,
+    log,
     origins: origins.origins,
     passwordHasher,
     proxies: trusted.proxies,

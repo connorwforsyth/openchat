@@ -5,14 +5,17 @@
   "sideEffects": false,
   "type": "module",
   "exports": {
+    "./brand": "./src/brand.ts",
     "./load": "./src/load.ts",
+    "./microsoft": "./src/microsoft.ts",
     "./parse": "./src/parse.ts",
     "./policy": "./src/policy.ts",
     "./prices": "./src/prices.ts",
     "./public": "./src/public.ts",
     "./schema": "./src/schema.ts",
     "./sites": "./src/sites.ts",
-    "./social": "./src/social.ts"
+    "./social": "./src/social.ts",
+    "./terms": "./src/terms.ts"
   },
   "scripts": {
     "lint": "ultracite check",
