@@ -22,6 +22,7 @@
     "@workspace/site-ui": "workspace:*",
     "@workspace/slide-ui": "workspace:*",
     "@workspace/ui": "workspace:*",
+    "html-to-image": "catalog:",
     "jspdf": "^4.2.1",
     "mermaid": "catalog:",
     "pptxgenjs": "^4.0.1",
