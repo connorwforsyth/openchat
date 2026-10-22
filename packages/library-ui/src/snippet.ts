@@ -46,6 +46,16 @@ export const NEW_VARIABLE_NAME = "variable";
  * A template placeholder, as the composer reads one (`@workspace/composer`'s
  * `variables.ts`), so what's highlighted is exactly what becomes a variable.
  */
+const OPEN_NAME = /\{\{\s*[A-Za-z_][A-Za-z0-9_]*$/;
+
+/**
+ * Whether the caret is at the end of a placeholder's name, right before its
+ * `}}`: where a new variable leaves it once its name is typed. A name has no
+ * spaces, so Space or Tab there means "done", and the caret jumps out.
+ */
+export const atVariableEnd = (before: string, after: string): boolean =>
+  OPEN_NAME.test(before) && after.startsWith("}}");
+
 export const PLACEHOLDER = /\{\{\s*([A-Za-z_][A-Za-z0-9_]{0,63})\s*\}\}/g;
 
 const WORD_BREAK = /[^\p{L}\p{N}]+/u;

@@ -6,6 +6,7 @@ import { fixtureId } from "@workspace/contract/fixtures";
 import { describe, expect, it } from "vitest";
 
 import {
+  atVariableEnd,
   type SnippetItem,
   type SnippetSources,
   snippetMenuItems,
@@ -91,5 +92,19 @@ describe("snippetMenuItems", () => {
     expect(names(snippetMenuItems("", { prompts: sources.prompts }))).toEqual([
       "Explain a concept",
     ]);
+  });
+});
+
+describe("atVariableEnd", () => {
+  it("is true at the end of a name, before its braces", () => {
+    expect(atVariableEnd("Launch of {{product", "}} soon")).toBe(true);
+    expect(atVariableEnd("{{ topic", "}}")).toBe(true);
+  });
+
+  it("is false anywhere else", () => {
+    expect(atVariableEnd("Launch of {{product}}", "")).toBe(false);
+    expect(atVariableEnd("Launch of product", "}}")).toBe(false);
+    expect(atVariableEnd("{{prod", "uct}}")).toBe(false);
+    expect(atVariableEnd("{{", "}}")).toBe(false);
   });
 });

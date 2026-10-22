@@ -32,6 +32,7 @@ import {
 } from "react";
 
 import {
+  atVariableEnd,
   NEW_VARIABLE_NAME,
   PLACEHOLDER,
   type SnippetItem,
@@ -116,6 +117,28 @@ const Placeholders = Extension.create({
     ];
   },
   name: "snippetPlaceholders",
+});
+
+/** Space or Tab at the end of a placeholder's name steps past its `}}`. */
+const leaveVariable = (editor: Editor, insert: string): boolean => {
+  const { $from, empty } = editor.state.selection;
+  const text = $from.parent.textContent;
+  const offset = $from.parentOffset;
+  if (!(empty && atVariableEnd(text.slice(0, offset), text.slice(offset)))) {
+    return false;
+  }
+  const after = $from.pos + "}}".length;
+  return editor.chain().setTextSelection(after).insertContent(insert).run();
+};
+
+const VariableExit = Extension.create({
+  addKeyboardShortcuts() {
+    return {
+      Space: () => leaveVariable(this.editor, " "),
+      Tab: () => leaveVariable(this.editor, ""),
+    };
+  },
+  name: "snippetVariableExit",
 });
 
 type MenuSuggestion = Omit<
@@ -213,7 +236,7 @@ const useRenderItem = () => {
           return (
             <>
               <CodeIcon aria-hidden />
-              <MenuLabel hint={item.description} label={item.name} mono />
+              <MenuLabel hint={item.description} label={item.name} />
             </>
           );
         case "new-variable":
@@ -284,6 +307,7 @@ export function SnippetEditor({
       UndoRedo,
       Placeholder.configure({ placeholder }),
       Placeholders,
+      VariableExit,
       ...(hasMenu ? [SlashMenu.configure({ suggestion })] : []),
     ];
   }, [hasMenu, placeholder, render]);
