@@ -3,7 +3,6 @@
 import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import type { Editor, Range } from "@tiptap/core";
 import { EditorContent, useEditor } from "@tiptap/react";
-import { exitSuggestion } from "@tiptap/suggestion";
 import type { LibraryItemId } from "@workspace/contract/schemas/common";
 import {
   InputGroup,
@@ -23,25 +22,19 @@ import {
 } from "react";
 
 import { acceptAttribute, filesFromTransfer } from "../attachments";
-import { textToDoc, textToInline } from "../doc";
+import { MENTION_NODE, textToDoc, textToInline } from "../doc";
 import { draftDoc } from "../drafts";
-import { createComposerExtensions, slashPluginKey } from "../editor/extensions";
+import {
+  createComposerExtensions,
+  type MentionAttrs,
+} from "../editor/extensions";
 import { useAttachments } from "../hooks/use-attachments";
 import { useDraft } from "../hooks/use-draft";
 import { useFileDrop } from "../hooks/use-file-drop";
 import { usePromptRecall } from "../hooks/use-prompt-recall";
-import {
-  type MenuList,
-  useSuggestionMenus,
-} from "../hooks/use-suggestion-menus";
+import { useSuggestionMenus } from "../hooks/use-suggestion-menus";
 import { fileCandidate, mentionCandidates } from "../mentions";
-import {
-  filterMentions,
-  type SlashItem,
-  type SlashSources,
-  slashItems,
-  unpickedSkills,
-} from "../options";
+import { type MenuItem, type MenuSources, menuItems } from "../options";
 import type { Draft } from "../ports/draft-store";
 import type { PromptHistoryDirection } from "../prompt-history";
 import type { ComposerHandoff, ComposerMcp, ComposerProps } from "../props";
@@ -49,20 +42,16 @@ import type {
   AttachmentLimits,
   AttachmentRejection,
   FileCandidate,
-  MentionCandidate,
-  PickedSkillOption,
   PromptOption,
   SkillOption,
 } from "../schemas";
 import { OPEN_TRIGGER } from "../triggers";
 import { buildComposerValue, hasContent } from "../value";
-import { type PromptVariable, resolvePromptVariables } from "../variables";
+import { templateToInline } from "../variables";
 import { AttachmentList, RejectionMessage } from "./attachment-list";
 import { ComposerFooter } from "./composer-footer";
-import { SkillList } from "./skill-list";
 import { LOOKS } from "./styles";
 import { optionId, SuggestionMenu } from "./suggestion-menu";
-import { TemplateVariables } from "./template-variables";
 
 export type { ComposerProps } from "../props";
 
@@ -74,20 +63,62 @@ export interface EditorComposerProps extends ComposerProps {
 /** What the editor's plugins call; refreshed after every render. */
 interface LiveHandlers {
   readonly addFiles: (files: readonly File[]) => void;
-  readonly candidates: readonly MentionCandidate[];
-  readonly chooseSlash: (editor: Editor, range: Range, item: SlashItem) => void;
+  readonly choose: (editor: Editor, range: Range, item: MenuItem) => void;
   readonly draftChanged: () => void;
+  readonly items: (query: string) => readonly MenuItem[];
   readonly recallPrompt: (direction: PromptHistoryDirection) => boolean;
   readonly removeLastAttachment: () => boolean;
-  readonly slash: SlashSources;
   readonly submit: () => void;
 }
 
-interface PendingTemplate {
-  readonly prompt: PromptOption;
-  readonly range: Range;
-  readonly variables: readonly PromptVariable[];
-}
+/** The chip a menu pick puts in the text; `undefined` for picks that aren't one. */
+const chipFor = (item: MenuItem): MentionAttrs | undefined => {
+  switch (item.kind) {
+    case "agent":
+      return {
+        id: item.agent.id,
+        kind: "agent",
+        label: item.agent.name,
+        versionId: item.agent.draftVersion ?? null,
+      };
+    case "skill":
+      return {
+        id: item.skill.id,
+        kind: "skill",
+        label: item.skill.name,
+        versionId: item.skill.draftVersion ?? null,
+      };
+    case "artifact":
+      return {
+        id: item.artifact.kind,
+        kind: "artifact",
+        label: item.artifact.label,
+      };
+    case "mention":
+      return {
+        id:
+          item.candidate.kind === "file"
+            ? item.candidate.path
+            : item.candidate.id,
+        kind: item.candidate.kind,
+        label: item.candidate.label,
+      };
+    case "prompt":
+    case "upload":
+    case "command":
+    case "open-file":
+    case "mcp-server":
+      return;
+    default:
+      return item satisfies never;
+  }
+};
+
+/** A chip node and the space after it, as editor content. */
+const chipContent = (attrs: MentionAttrs) => [
+  { attrs, type: MENTION_NODE },
+  { text: " ", type: "text" },
+];
 
 const NONE: readonly never[] = [];
 const NO_LIMITS: AttachmentLimits = {};
@@ -120,6 +151,7 @@ const termLabel = (mcp: ComposerMcp | undefined): string =>
 export function Composer({
   agents = NONE,
   appearance = "default",
+  artifacts = NONE,
   attachmentLimits = NO_LIMITS,
   className,
   chatMode,
@@ -131,6 +163,7 @@ export function Composer({
   fill,
   handoff,
   history = NONE,
+  mode,
   models = NONE,
   onAttachmentsChange,
   onAttachmentsRejected,
@@ -161,16 +194,6 @@ export function Composer({
 
   const [text, setText] = useState(handoff?.text ?? "");
   const [templateId, setTemplateId] = useState<LibraryItemId | null>(null);
-  const [pendingTemplate, setPendingTemplate] =
-    useState<PendingTemplate | null>(null);
-  // Skills picked for the next message (127), in the order picked.
-  const [pickedSkills, setPickedSkills] = useState<
-    readonly PickedSkillOption[]
-  >([]);
-  const skillsToPick = useMemo(
-    () => unpickedSkills(offeredSkills, pickedSkills),
-    [offeredSkills, pickedSkills]
-  );
 
   const files = useAttachments({
     disabled,
@@ -180,26 +203,51 @@ export function Composer({
   });
   const drop = useFileDrop(files.add, disabled);
   const menus = useSuggestionMenus();
-  const candidates = useMemo(
-    () => mentionCandidates(agents, people, workspaceFiles),
-    [agents, people, workspaceFiles]
+  // An owner's draft agent answers through its chip only: picked as the
+  // chat's target, it would make the chat the builder's test chat (033).
+  const pickable = useMemo(
+    () => agents.filter((agent) => agent.draftVersion === undefined),
+    [agents]
   );
-  const slash = useMemo(
-    (): SlashSources => ({
+  const fileOptions = useMemo(
+    () => workspaceFiles.map(fileCandidate),
+    [workspaceFiles]
+  );
+  const uploadLabel = t`Upload a file`;
+  const canUpload = !(disabled || files.atLimit);
+  const sources = useMemo(
+    (): MenuSources => ({
+      agents,
+      artifacts,
+      canUpload,
       commands,
-      files: workspaceFiles.map(fileCandidate),
       mcpServers: mcp?.servers,
+      mentions: mentionCandidates(people, workspaceFiles),
+      mode,
       prompts,
-      skills: skillsToPick,
+      skills: offeredSkills,
     }),
-    [commands, mcp?.servers, prompts, skillsToPick, workspaceFiles]
+    [
+      agents,
+      artifacts,
+      canUpload,
+      commands,
+      mcp?.servers,
+      mode,
+      offeredSkills,
+      people,
+      prompts,
+      workspaceFiles,
+    ]
+  );
+  const items = useCallback(
+    (query: string) => menuItems(query, sources, uploadLabel),
+    [sources, uploadLabel]
   );
 
   const busy = status === "submitted" || status === "streaming";
   const canSubmit =
-    !(disabled || busy) &&
-    pendingTemplate === null &&
-    hasContent({ attachments: files.attachments, text });
+    !(disabled || busy) && hasContent({ attachments: files.attachments, text });
 
   const shownPlaceholder = useLivePlaceholder(placeholder);
 
@@ -207,12 +255,11 @@ export function Composer({
   // always see the current props and state.
   const live = useRef<LiveHandlers>({
     addFiles: files.add,
-    candidates,
-    chooseSlash: () => undefined,
+    choose: () => undefined,
     draftChanged: () => undefined,
+    items,
     recallPrompt: () => false,
     removeLastAttachment: () => false,
-    slash,
     submit: () => undefined,
   });
 
@@ -262,22 +309,17 @@ export function Composer({
             live.current.submit();
             return true;
           },
+          variablesActive: () => !menus.isOpen(),
         },
-        mention: {
-          items: ({ query }) => [
-            ...filterMentions(live.current.candidates, query),
-          ],
-          render: menus.mentionRenderer,
+        menu: {
+          command: ({ editor: current, props: item, range }) =>
+            live.current.choose(current, range, item),
+          items: ({ query }) => [...live.current.items(query)],
+          render: menus.renderer,
         },
         // Read live, so a placeholder that arrives later ("Message Pip",
         // 172) shows without rebuilding the editor.
         placeholder: () => shownPlaceholder.current,
-        slash: {
-          command: ({ editor: current, props: item, range }) =>
-            live.current.chooseSlash(current, range, item),
-          items: ({ query }) => [...slashItems(query, live.current.slash)],
-          render: menus.slashRenderer,
-        },
       }),
       immediatelyRender: true,
       onCreate: () => {
@@ -295,24 +337,34 @@ export function Composer({
   const promptRecall = usePromptRecall(editor, history);
 
   // The draft is kept per chat (147). Attachments aren't: see draft-store.ts.
+  // Skills are chips in the text now; `skills` is only read from drafts
+  // saved before, which kept them beside it.
   const readDraft = useCallback(
     (): Draft => ({
       doc: draftDoc(editor.getJSON()),
-      skills: [...pickedSkills],
+      skills: [],
       templateId,
       version: 1,
     }),
-    [editor, pickedSkills, templateId]
+    [editor, templateId]
   );
   const restoreDraft = useCallback(
     (saved: Draft | null) => {
       // Not undoable: undo mustn't bring back another chat's words.
-      editor
+      const skills = (saved?.skills ?? []).flatMap((skill) =>
+        chipContent({
+          id: skill.id,
+          kind: "skill",
+          label: skill.name,
+          versionId: skill.versionId ?? null,
+        })
+      );
+      const chain = editor
         .chain()
         .setMeta("addToHistory", false)
-        .setContent(saved?.doc ?? "", { emitUpdate: true })
-        .run();
-      setPickedSkills(saved?.skills ?? []);
+        .setContent(saved?.doc ?? "", { emitUpdate: true });
+      // At the start of the first paragraph.
+      (skills.length > 0 ? chain.insertContentAt(1, skills) : chain).run();
       setTemplateId(saved?.templateId ?? null);
       promptRecall.reset();
     },
@@ -324,12 +376,11 @@ export function Composer({
     restore: restoreDraft,
     typedFirst: Boolean(handoff?.text),
   });
-  // Picking or removing a skill changes the draft as much as typing does.
   const { changed: draftChanged } = draftControls;
-  // biome-ignore lint/correctness/useExhaustiveDependencies: saves when these change; the draft is read when the write happens
+  // biome-ignore lint/correctness/useExhaustiveDependencies: saves when it changes; the draft is read when the write happens
   useEffect(() => {
     draftChanged();
-  }, [draftChanged, pickedSkills, templateId]);
+  }, [draftChanged, templateId]);
 
   const submit = useCallback(() => {
     if (!canSubmit) {
@@ -339,13 +390,11 @@ export function Composer({
       buildComposerValue({
         attachments: files.attachments,
         doc: editor.getJSON(),
-        skills: pickedSkills,
         templateId,
       })
     );
     editor.commands.clearContent(true);
     setTemplateId(null);
-    setPickedSkills([]);
     files.clear();
     promptRecall.reset();
     draftControls.sent();
@@ -355,66 +404,58 @@ export function Composer({
     editor,
     files,
     onSubmit,
-    pickedSkills,
     promptRecall,
     templateId,
   ]);
 
-  // A skill rides with the message as a chip (127), from + or `/`.
-  const addSkill = useCallback((skill: SkillOption) => {
-    setPickedSkills((picked) =>
-      picked.some((each) => each.id === skill.id)
-        ? picked
-        : [...picked, { id: skill.id, name: skill.name }]
-    );
-  }, []);
+  const openFilePicker = useCallback(() => fileInputRef.current?.click(), []);
 
-  const removeSkill = useCallback(
-    (skillId: PickedSkillOption["id"]) => {
-      setPickedSkills((picked) => picked.filter((each) => each.id !== skillId));
-      // The chip and its button are gone; keep focus in the composer.
-      editor.commands.focus();
-    },
-    [editor]
-  );
-
-  const pickSkill = useCallback(
-    (skill: SkillOption) => {
-      addSkill(skill);
-      editor.commands.focus();
-    },
-    [addSkill, editor]
-  );
-
-  const choosePrompt = useCallback(
+  /**
+   * A prompt goes in as text the person can edit, its `{{variables}}` as
+   * placeholders; the first is selected, so typing fills it and Tab moves
+   * to the next.
+   */
+  const insertPrompt = useCallback(
     (current: Editor, range: Range, prompt: PromptOption) => {
-      const variables = resolvePromptVariables(prompt.definition);
-      if (variables.length === 0) {
-        current
-          .chain()
-          .focus()
-          .insertContentAt(range, textToInline(prompt.definition.template))
-          .run();
-        setTemplateId(prompt.id);
-        return;
-      }
-      // Close the menu but keep `/command` in place until the form is done.
-      exitSuggestion(current.view, slashPluginKey);
-      setPendingTemplate({ prompt, range, variables });
+      current
+        .chain()
+        .focus()
+        .insertContentAt(range, templateToInline(prompt.definition))
+        .run();
+      current.chain().setTextSelection(range.from).selectVariable("next").run();
+      setTemplateId(prompt.id);
     },
     []
   );
 
-  const chooseSlash = useCallback(
-    (current: Editor, range: Range, item: SlashItem) => {
+  const choose = useCallback(
+    (current: Editor, range: Range, item: MenuItem) => {
       switch (item.kind) {
+        case "agent":
+        case "skill":
+        case "artifact":
+        case "mention": {
+          const chip = chipFor(item);
+          if (chip) {
+            current
+              .chain()
+              .focus()
+              .insertContentAt(range, chipContent(chip))
+              .run();
+          }
+          return;
+        }
         case "prompt":
-          choosePrompt(current, range, item.prompt);
+          insertPrompt(current, range, item.prompt);
+          return;
+        case "upload":
+          current.chain().focus().deleteRange(range).run();
+          openFilePicker();
           return;
         case "command":
           // `/open` becomes `/open:`, which the same menu lists files for.
           // With no files to list, the host decides what opening means.
-          if (item.command === "open" && slash.files.length > 0) {
+          if (item.command === "open" && fileOptions.length > 0) {
             current
               .chain()
               .focus()
@@ -429,14 +470,9 @@ export function Composer({
           current.chain().focus().deleteRange(range).run();
           onCommand?.(item.command);
           return;
-        case "file":
+        case "open-file":
           current.chain().focus().deleteRange(range).run();
           onCommand?.("open", item.file.path);
-          return;
-        case "skill":
-          // The skill becomes a chip; its `/query` isn't words to send.
-          current.chain().focus().deleteRange(range).run();
-          addSkill(item.skill);
           return;
         case "mcp-server":
           // A switch for this chat (188), not words to send.
@@ -447,34 +483,29 @@ export function Composer({
           return item satisfies never;
       }
     },
-    [addSkill, choosePrompt, mcp, onCommand, slash.files.length]
+    [fileOptions.length, insertPrompt, mcp, onCommand, openFilePicker]
   );
 
-  // From the + menu: the same file mention `@` makes, at the caret.
-  const addWorkspaceFile = useCallback(
-    (file: FileCandidate) => {
-      editor
-        .chain()
-        .focus()
-        .insertContent([
-          {
-            attrs: { id: file.path, kind: "file", label: file.label },
-            type: "mention",
-          },
-          { text: " ", type: "text" },
-        ])
-        .run();
-    },
-    [editor]
-  );
-
-  // From the + menu: as if chosen from `/`, over whatever is selected.
-  const usePrompt = useCallback(
-    (prompt: PromptOption) => {
+  // From the + menu: the chip `/` and `@` make, at the caret.
+  const insertAtCaret = useCallback(
+    (item: MenuItem) => {
       const { from, to } = editor.state.selection;
-      choosePrompt(editor, { from, to }, prompt);
+      choose(editor, { from, to }, item);
     },
-    [choosePrompt, editor]
+    [choose, editor]
+  );
+  const addWorkspaceFile = useCallback(
+    (file: FileCandidate) =>
+      insertAtCaret({ candidate: file, kind: "mention" }),
+    [insertAtCaret]
+  );
+  const pickSkill = useCallback(
+    (skill: SkillOption) => insertAtCaret({ kind: "skill", skill }),
+    [insertAtCaret]
+  );
+  const usePrompt = useCallback(
+    (prompt: PromptOption) => insertAtCaret({ kind: "prompt", prompt }),
+    [insertAtCaret]
   );
 
   const removeLastAttachment = useCallback(() => {
@@ -489,27 +520,22 @@ export function Composer({
   useLayoutEffect(() => {
     live.current = {
       addFiles: files.add,
-      candidates,
-      chooseSlash,
+      choose,
       draftChanged,
+      items,
       recallPrompt: promptRecall.recall,
       removeLastAttachment,
-      slash,
       submit,
     };
   });
 
-  // Mention candidates and files can land while a menu is open (the
-  // workspace listing, 065); the plugins wouldn't ask again until the next
-  // keystroke. Runs after the layout effect above, so the plugins' own next
-  // ask sees the same lists.
+  // Lists can land while the menu is open (the workspace listing, 065); the
+  // plugins wouldn't ask again until the next keystroke. Runs after the
+  // layout effect above, so the plugins' own next ask sees the same lists.
   const { refresh: refreshMenus } = menus;
   useEffect(() => {
-    refreshMenus({
-      mentions: (query) => filterMentions(candidates, query),
-      slash: (query) => slashItems(query, slash),
-    });
-  }, [candidates, refreshMenus, slash]);
+    refreshMenus(items);
+  }, [items, refreshMenus]);
 
   const placeholderText = shownPlaceholder.current;
   useEffect(() => {
@@ -520,8 +546,8 @@ export function Composer({
   }, [editor, placeholderText]);
 
   useEffect(() => {
-    editor.setEditable(!disabled && pendingTemplate === null, false);
-  }, [disabled, editor, pendingTemplate]);
+    editor.setEditable(!disabled, false);
+  }, [disabled, editor]);
 
   // The + menu's "Image" (138): offered when the chosen model can make one
   // (it calls `generate_image`, or draws itself); it starts the message.
@@ -582,30 +608,6 @@ export function Composer({
     dom.setAttribute("aria-disabled", String(disabled));
   }, [disabled, editor, listboxId, menus.active, menus.menu]);
 
-  const insertTemplate = useCallback(
-    (filled: string) => {
-      if (pendingTemplate === null) {
-        return;
-      }
-      editor.setEditable(true, false);
-      editor
-        .chain()
-        .focus()
-        .insertContentAt(pendingTemplate.range, textToInline(filled))
-        .run();
-      setTemplateId(pendingTemplate.prompt.id);
-      setPendingTemplate(null);
-    },
-    [editor, pendingTemplate]
-  );
-
-  const cancelTemplate = useCallback(() => {
-    setPendingTemplate(null);
-    // Leave the `/command` as typed; the menu stays dismissed for it.
-    editor.setEditable(true, false);
-    editor.commands.focus(pendingTemplate?.range.to);
-  }, [editor, pendingTemplate]);
-
   const removeAttachment = useCallback(
     (attachmentId: string) => {
       files.remove(attachmentId);
@@ -639,16 +641,6 @@ export function Composer({
     [submit]
   );
 
-  const openFilePicker = useCallback(() => fileInputRef.current?.click(), []);
-  const menuTitles: Record<MenuList, string> = {
-    commands: t`Commands`,
-    files: t`Files`,
-    mcp: termLabel(mcp),
-    mentions: t`Mention`,
-    prompts: t`Prompts`,
-    "prompts-skills": t`Prompts and skills`,
-    skills: t`Skills`,
-  };
   const suggestionCount = menus.menu?.items.length ?? 0;
 
   return (
@@ -674,9 +666,9 @@ export function Composer({
           activeIndex={menus.active}
           id={listboxId}
           items={menus.menu.items}
+          mcpLabel={termLabel(mcp)}
           onChoose={menus.menu.select}
           onHover={menus.hover}
-          title={menuTitles[menus.menu.list]}
         />
       ) : null}
       <InputGroup
@@ -685,24 +677,11 @@ export function Composer({
           drop.dragging && "border-ring ring-3 ring-ring/50"
         )}
       >
-        {pendingTemplate ? (
-          <TemplateVariables
-            onCancel={cancelTemplate}
-            onInsert={insertTemplate}
-            prompt={pendingTemplate.prompt}
-            variables={pendingTemplate.variables}
-          />
-        ) : null}
-        {files.attachments.length > 0 || pickedSkills.length > 0 ? (
+        {files.attachments.length > 0 ? (
           <InputGroupAddon
             align="block-start"
             className="cursor-default flex-col items-start gap-1.5"
           >
-            <SkillList
-              disabled={disabled}
-              onRemove={removeSkill}
-              skills={pickedSkills}
-            />
             <AttachmentList
               attachments={files.attachments}
               disabled={disabled}
@@ -715,14 +694,14 @@ export function Composer({
           editor={editor}
         />
         <ComposerFooter
-          agents={agents}
+          agents={pickable}
           appearance={appearance}
           attachDisabled={disabled || files.atLimit}
           busy={busy}
           canSubmit={canSubmit}
           chatMode={chatMode}
           disabled={disabled}
-          files={slash.files}
+          files={fileOptions}
           mcp={mcp}
           models={models}
           onAddFile={addWorkspaceFile}
@@ -738,7 +717,7 @@ export function Composer({
           plan={plan}
           prompts={prompts}
           recentsKey={recentsKey}
-          skills={skillsToPick}
+          skills={offeredSkills}
           target={target}
           variant={variant}
           webSearch={webSearch}
@@ -756,8 +735,9 @@ export function Composer({
       <RejectionAlert rejections={files.rejections} />
       <p className="sr-only" id={hintId}>
         <Trans>
-          Enter sends and Shift+Enter adds a line. Type / for commands, prompts
-          and skills, and @ to mention someone or a file.
+          Enter sends and Shift+Enter adds a line. Type / or @ for agents,
+          skills, prompts, things to make, files and people. Tab moves between a
+          prompt's blanks.
         </Trans>{" "}
         {history.length > 0 ? (
           <Trans>

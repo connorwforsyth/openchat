@@ -8,6 +8,11 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+import {
+  CHIPS_DATA,
+  chipsOf,
+  replaceChips,
+} from "@workspace/ai/messages/chips";
 import { SKILLS_DATA } from "@workspace/ai/messages/skills";
 import { toUIMessages } from "@workspace/ai/messages/to-ui";
 import { WORKSPACE_FILE_DATA } from "@workspace/ai/messages/workspace-file";
@@ -25,14 +30,20 @@ import {
   createStorageDraftStore,
 } from "@workspace/composer/ports/draft-store.storage";
 import { promptHistory } from "@workspace/composer/prompt-history";
-import type { ComposerProps } from "@workspace/composer/props";
+import type {
+  ComposerChatMode,
+  ComposerProps,
+} from "@workspace/composer/props";
 import type {
   AgentOption,
+  ArtifactOption,
   AttachmentLimits,
   ComposerAttachment,
   ComposerStatus,
   ComposerValue,
+  MentionToken,
   PickedSkillOption,
+  PromptOption,
   SkillOption,
 } from "@workspace/composer/schemas";
 import type { ModelVariant } from "@workspace/composer/variants";
@@ -47,7 +58,10 @@ import type {
   SandboxId,
 } from "@workspace/contract/schemas/common";
 import type { Conversation } from "@workspace/contract/schemas/conversations";
-import type { ApprovalDecision } from "@workspace/contract/schemas/message-parts";
+import type {
+  ApprovalDecision,
+  MessagePart,
+} from "@workspace/contract/schemas/message-parts";
 import type { Message } from "@workspace/contract/schemas/messages";
 import type { Me, PublicConfig } from "@workspace/contract/schemas/meta";
 import type { ModelOption } from "@workspace/contract/schemas/models";
@@ -80,6 +94,11 @@ import {
 } from "../conversation/approval-state";
 import { PlanStatusProvider } from "../conversation/plan-card";
 import { staleEdits } from "../model/approval";
+import {
+  artifactKindLabels,
+  starterKinds,
+  starterLabels,
+} from "../model/artifact-kinds";
 import type { RunSignal } from "../model/attention";
 import { newestLeafUnder, type TreeNode } from "../model/branch";
 import {
@@ -193,6 +212,8 @@ export interface ConnectedChatProps {
   readonly onTargetChange?: (target: RunTarget) => void;
   readonly onThemeChange: (theme: Theme) => void;
   readonly platform?: Platform;
+  /** Prompt templates the caller can use, for the composer's menu. */
+  readonly prompts?: readonly PromptOption[];
   /**
    * The Workspace panel's port over the API, for this chat; `null` for a
    * chat that doesn't exist yet or when sandboxes are off (`config.features`
@@ -355,6 +376,8 @@ const importToWorkspace = async (
 
 /** What a turn sends besides its text. */
 interface Outgoing {
+  /** The message's chips (`@agent`, `@Slides`), sent as a `data-chips` part. */
+  readonly chips?: readonly MentionToken[];
   readonly files: FileUIPart[];
   /** Skills picked for the message (127), sent as a `data-skills` part. */
   readonly skills?: readonly PickedSkillOption[];
@@ -369,14 +392,15 @@ const NOTHING_ELSE: Outgoing = { files: [], workspaceFiles: [] };
  * `data-workspace-file` part per mentioned workspace file, which the server
  * reads into the turn when it starts, and a `data-skills` part with the
  * skills picked for it (127), which the run transport sends as
- * `input.skills` and the chat shows until the stored message replaces it.
- * Pure.
+ * `input.skills` and the chat shows until the stored message replaces it,
+ * and a `data-chips` part saying where the text's chips are, which the
+ * server acts on and the sent message draws. Pure.
  */
 export const outgoingMessage = (
   text: string,
-  { files, skills = [], workspaceFiles }: Outgoing
+  { chips = [], files, skills = [], workspaceFiles }: Outgoing
 ) =>
-  workspaceFiles.length === 0 && skills.length === 0
+  workspaceFiles.length === 0 && skills.length === 0 && chips.length === 0
     ? { files, text }
     : {
         parts: [
@@ -390,14 +414,56 @@ export const outgoingMessage = (
             ? [
                 {
                   data: {
-                    skills: skills.map(({ id, name }) => ({ id, name })),
+                    skills: skills.map(({ id, name, versionId }) => ({
+                      id,
+                      name,
+                      ...(versionId ? { versionId } : {}),
+                    })),
                   },
                   type: `data-${SKILLS_DATA}` as const,
                 },
               ]
             : []),
+          ...(chips.length > 0
+            ? [
+                {
+                  data: { chips: [...chips] },
+                  type: `data-${CHIPS_DATA}` as const,
+                },
+              ]
+            : []),
         ],
       };
+
+/**
+ * What an edited message sends besides its text: the chips it was written
+ * with that are still in it, so an `@agent` still answers and a skill
+ * still loads. The edit form is plain text. Pure.
+ */
+export const editedOutgoing = (
+  text: string,
+  parts: readonly MessagePart[]
+): Outgoing => {
+  const chips = replaceChips(text, chipsOf(parts));
+  return {
+    chips,
+    files: [],
+    skills: chips.flatMap((chip) =>
+      chip.kind === "skill"
+        ? [
+            {
+              id: chip.id,
+              name: chip.label,
+              ...(chip.versionId ? { versionId: chip.versionId } : {}),
+            },
+          ]
+        : []
+    ),
+    workspaceFiles: chips.flatMap((chip) =>
+      chip.kind === "file" ? [chip.path] : []
+    ),
+  };
+};
 
 /** Mentioned workspace files, in text order. Pure. */
 const mentionedFiles = (value: ComposerValue): string[] =>
@@ -457,6 +523,19 @@ const webSearchSwitch = (
 ): Pick<ComposerProps, "onWebSearchChange" | "webSearch"> =>
   config.features.webSearch === true
     ? { onWebSearchChange: onChange, webSearch: on }
+    : {};
+
+/**
+ * The Chat / Code switch, and the menu held to the mode, where the chat is
+ * inside the switch and the instance has sandboxes. Pure.
+ */
+const chatModeSwitch = (
+  config: PublicConfig,
+  offered: boolean | undefined,
+  chatMode: ComposerChatMode
+): Pick<ComposerProps, "chatMode" | "mode"> =>
+  offered === true && config.features.sandboxes
+    ? { chatMode, mode: chatMode.mode }
     : {};
 
 /** Paths the composer offers: files only, relative to the workspace. Pure. */
@@ -970,6 +1049,7 @@ const useFirstSend = ({
         onWorkspaceChanged();
       }
       return {
+        chips: value.mentions,
         files: uploaded.map((each) => each.part),
         skills: value.skills,
         workspaceFiles: [...mentionedFiles(value), ...imported],
@@ -1569,7 +1649,7 @@ export function ConnectedChat({
   client,
   artifactsHref,
   banner,
-  chatModes = false,
+  chatModes,
   composerPlaceholder,
   computer,
   dotsHref,
@@ -1596,6 +1676,7 @@ export function ConnectedChat({
   sidebarDots,
   sidebarSpaces,
   skills,
+  prompts,
   target = null,
   terms = defaultTerms,
   theme,
@@ -1603,7 +1684,16 @@ export function ConnectedChat({
   headerExtra,
 }: ConnectedChatProps) {
   const outgoingTarget = targetToSend(sendTarget, target);
-  const { t } = useLingui();
+  const { i18n, t } = useLingui();
+  // "Make something new"'s kinds (161), in the menu as `@Slides` and kin.
+  const artifactOptions = useMemo(
+    (): readonly ArtifactOption[] =>
+      starterKinds().map((kind) => ({
+        kind,
+        label: i18n._(starterLabels[kind] ?? artifactKindLabels[kind]),
+      })),
+    [i18n]
+  );
   const api = useMemo(() => createQueryUtils(client), [client]);
   const queryClient = useQueryClient();
   const [leafId, setLeafId] = useState<MessageId | undefined>();
@@ -1869,7 +1959,7 @@ export function ConnectedChat({
         // An edit answers the same parent: send it from that point.
         const at = stored.findIndex((item) => item.id === message.id);
         setMessages(toUIMessages(stored.slice(0, at), { fileUrl }));
-        send(text);
+        send(text, editedOutgoing(text, message.parts));
       },
       onEditPlan: (editing) => {
         setEditingPlan(editing);
@@ -2038,8 +2128,9 @@ export function ConnectedChat({
             brand={brand}
             composer={{
               agents,
+              artifacts: artifactOptions,
               attachmentLimits,
-              ...(chatModes ? { chatMode } : {}),
+              ...chatModeSwitch(config, chatModes, chatMode),
               mcp: chatMcp.composer,
               ...composerDrafts,
               models,
@@ -2053,6 +2144,7 @@ export function ConnectedChat({
               recentsKey: me.user.id,
               ...webSearchSwitch(config, webSearch, setWebSearch),
               plan: plan.on,
+              prompts,
               skills,
               status: shownStatus,
               target: target ?? undefined,

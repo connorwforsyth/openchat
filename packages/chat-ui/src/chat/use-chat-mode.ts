@@ -1,6 +1,6 @@
 import type { ConversationId } from "@workspace/contract/schemas/common";
 import type { ChatMode } from "@workspace/contract/schemas/runs";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 // The composer's Chat / Code switch. A chat's mode is the conversation's,
 // saved as it's switched; a new chat's waits in this hook until the first
@@ -38,13 +38,14 @@ export const useChatMode = (
     }
   }, [conversationId]);
   const onChange = useCallback(
-    (mode: ChatMode) => {
-      setChosen({ conversationId, mode });
+    (next: ChatMode) => {
+      setChosen({ conversationId, mode: next });
       if (conversationId) {
-        save({ id: conversationId, mode });
+        save({ id: conversationId, mode: next });
       }
     },
     [conversationId, save]
   );
-  return { mode: shownChatMode(conversationId, stored, chosen), onChange };
+  const mode = shownChatMode(conversationId, stored, chosen);
+  return useMemo(() => ({ mode, onChange }), [mode, onChange]);
 };
