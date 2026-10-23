@@ -527,7 +527,8 @@
                 "properties": {
                   "emoji": {
                     "type": "string",
-                    "maxLength": 32
+                    "maxLength": 32,
+                    "description": "One emoji grapheme, including flag pairs, keycaps and joined sequences."
                   },
                   "id": {
                     "type": "string",
@@ -555,13 +556,7 @@
                     "maxLength": 80
                   }
                 },
-                "required": [
-                  "emoji",
-                  "id",
-                  "nextRunNominalAt",
-                  "status",
-                  "title"
-                ]
+                "required": ["id", "nextRunNominalAt", "status", "title"]
               },
               {
                 "type": "null"
@@ -10982,6 +10977,7 @@
                         "emoji": {
                           "type": "string",
                           "maxLength": 32,
+                          "description": "One emoji grapheme, including flag pairs, keycaps and joined sequences.",
                           "default": "⏰"
                         },
                         "enabled": {
@@ -11291,7 +11287,8 @@
                           },
                           "emoji": {
                             "type": "string",
-                            "maxLength": 32
+                            "maxLength": 32,
+                            "description": "One emoji grapheme, including flag pairs, keycaps and joined sequences."
                           },
                           "id": {
                             "type": "string",
@@ -11510,7 +11507,6 @@
                           "conversationId",
                           "createdAt",
                           "dotId",
-                          "emoji",
                           "id",
                           "lastOutcome",
                           "lastRunAt",
@@ -11972,7 +11968,8 @@
                             },
                             "emoji": {
                               "type": "string",
-                              "maxLength": 32
+                              "maxLength": 32,
+                              "description": "One emoji grapheme, including flag pairs, keycaps and joined sequences."
                             },
                             "id": {
                               "type": "string",
@@ -12195,7 +12192,6 @@
                             "conversationId",
                             "createdAt",
                             "dotId",
-                            "emoji",
                             "id",
                             "lastOutcome",
                             "lastRunAt",
@@ -12756,7 +12752,8 @@
                           },
                           "emoji": {
                             "type": "string",
-                            "maxLength": 32
+                            "maxLength": 32,
+                            "description": "One emoji grapheme, including flag pairs, keycaps and joined sequences."
                           },
                           "id": {
                             "type": "string",
@@ -12975,7 +12972,6 @@
                           "conversationId",
                           "createdAt",
                           "dotId",
-                          "emoji",
                           "id",
                           "lastOutcome",
                           "lastRunAt",
@@ -13513,7 +13509,8 @@
                           },
                           "emoji": {
                             "type": "string",
-                            "maxLength": 32
+                            "maxLength": 32,
+                            "description": "One emoji grapheme, including flag pairs, keycaps and joined sequences."
                           },
                           "id": {
                             "type": "string",
@@ -13732,7 +13729,6 @@
                           "conversationId",
                           "createdAt",
                           "dotId",
-                          "emoji",
                           "id",
                           "lastOutcome",
                           "lastRunAt",
@@ -14188,7 +14184,8 @@
                           },
                           "emoji": {
                             "type": "string",
-                            "maxLength": 32
+                            "maxLength": 32,
+                            "description": "One emoji grapheme, including flag pairs, keycaps and joined sequences."
                           },
                           "id": {
                             "type": "string",
@@ -14407,7 +14404,6 @@
                           "conversationId",
                           "createdAt",
                           "dotId",
-                          "emoji",
                           "id",
                           "lastOutcome",
                           "lastRunAt",
@@ -27982,6 +27978,7 @@
                   "emoji": {
                     "type": "string",
                     "maxLength": 32,
+                    "description": "One emoji grapheme, including flag pairs, keycaps and joined sequences.",
                     "default": "⏰"
                   },
                   "missedRunPolicy": {
@@ -28171,7 +28168,8 @@
                     },
                     "emoji": {
                       "type": "string",
-                      "maxLength": 32
+                      "maxLength": 32,
+                      "description": "One emoji grapheme, including flag pairs, keycaps and joined sequences."
                     },
                     "id": {
                       "type": "string",
@@ -28385,7 +28383,6 @@
                     "conversationId",
                     "createdAt",
                     "dotId",
-                    "emoji",
                     "id",
                     "lastOutcome",
                     "lastRunAt",
@@ -28575,7 +28572,8 @@
                       },
                       "emoji": {
                         "type": "string",
-                        "maxLength": 32
+                        "maxLength": 32,
+                        "description": "One emoji grapheme, including flag pairs, keycaps and joined sequences."
                       },
                       "id": {
                         "type": "string",
@@ -28789,7 +28787,6 @@
                       "conversationId",
                       "createdAt",
                       "dotId",
-                      "emoji",
                       "id",
                       "lastOutcome",
                       "lastRunAt",
@@ -29073,7 +29070,8 @@
                     },
                     "emoji": {
                       "type": "string",
-                      "maxLength": 32
+                      "maxLength": 32,
+                      "description": "One emoji grapheme, including flag pairs, keycaps and joined sequences."
                     },
                     "id": {
                       "type": "string",
@@ -29287,7 +29285,6 @@
                     "conversationId",
                     "createdAt",
                     "dotId",
-                    "emoji",
                     "id",
                     "lastOutcome",
                     "lastRunAt",
@@ -29432,7 +29429,8 @@
                   },
                   "emoji": {
                     "type": "string",
-                    "maxLength": 32
+                    "maxLength": 32,
+                    "description": "One emoji grapheme, including flag pairs, keycaps and joined sequences."
                   },
                   "missedRunPolicy": {
                     "enum": ["run_once", "skip"],
@@ -29614,7 +29612,8 @@
                     },
                     "emoji": {
                       "type": "string",
-                      "maxLength": 32
+                      "maxLength": 32,
+                      "description": "One emoji grapheme, including flag pairs, keycaps and joined sequences."
                     },
                     "id": {
                       "type": "string",
@@ -29828,7 +29827,6 @@
                     "conversationId",
                     "createdAt",
                     "dotId",
-                    "emoji",
                     "id",
                     "lastOutcome",
                     "lastRunAt",
@@ -30274,7 +30272,8 @@
                     },
                     "emoji": {
                       "type": "string",
-                      "maxLength": 32
+                      "maxLength": 32,
+                      "description": "One emoji grapheme, including flag pairs, keycaps and joined sequences."
                     },
                     "id": {
                       "type": "string",
@@ -30488,7 +30487,6 @@
                     "conversationId",
                     "createdAt",
                     "dotId",
-                    "emoji",
                     "id",
                     "lastOutcome",
                     "lastRunAt",
@@ -30664,7 +30662,8 @@
                     },
                     "emoji": {
                       "type": "string",
-                      "maxLength": 32
+                      "maxLength": 32,
+                      "description": "One emoji grapheme, including flag pairs, keycaps and joined sequences."
                     },
                     "id": {
                       "type": "string",
@@ -30878,7 +30877,6 @@
                     "conversationId",
                     "createdAt",
                     "dotId",
-                    "emoji",
                     "id",
                     "lastOutcome",
                     "lastRunAt",
