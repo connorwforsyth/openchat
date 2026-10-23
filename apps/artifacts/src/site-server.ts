@@ -50,7 +50,6 @@ export interface SiteResponse {
 
 /** How long the origins are trusted before asking the app again. */
 const ORIGINS_TTL_MS = 30_000;
-/** How many published builds are kept, by token, publish time and theme. */
 const BUILDS_KEPT = 50;
 
 const LEADING_SLASHES = /^\/+/;
@@ -197,7 +196,6 @@ export const createSiteServer = (options: SiteServerOptions) => {
     builds.set(key, built);
   };
 
-  /** The link's site, built once per published version and instance theme. */
   const publishedBuild = async (
     token: string
   ): Promise<BuiltSite | SiteResponse> => {
