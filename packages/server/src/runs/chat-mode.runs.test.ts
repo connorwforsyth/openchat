@@ -13,8 +13,10 @@ import type {
   RunOptions,
 } from "@workspace/contract/schemas/runs";
 import { getMessage } from "@workspace/db/queries/messages";
+import { message } from "@workspace/db/schema/chat";
 import { type Tool, tool } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
+import { eq } from "drizzle-orm";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
@@ -140,6 +142,45 @@ const modesOf = async (harness: Harness, run: Run) => {
 };
 
 describe("Chat and Code modes", () => {
+  it.each(["chat", "code", null] as const)(
+    "regenerates an original %s turn after switching modes",
+    async (mode) => {
+      h = await createHarness();
+      const chat = await newChat(h, { mode: mode ?? "code" });
+      offerSandbox(h, scripted([]));
+      const original = await send(h, chat.id);
+      if (mode === null) {
+        await h.db
+          .update(message)
+          .set({ mode: null })
+          .where(eq(message.id, original.userMessageId));
+      }
+      await setMode(h, chat.id, mode === "chat" ? "code" : "chat");
+      const model = scripted([]);
+      offerSandbox(h, model);
+      const regenerated = await json<CreateRunOutput>(
+        await h.request("/api/runs", {
+          json: {
+            conversationId: chat.id,
+            input: {
+              type: "regenerate",
+              userMessageId: original.userMessageId,
+            },
+            target: { model: "test:chat", type: "model" },
+          },
+          method: "POST",
+        }),
+        202
+      );
+      await h.services.executor.idle();
+      const run = await json<Run>(
+        await h.request(`/api/runs/${regenerated.runId}`)
+      );
+      expect(run.options?.chatMode).toBe(mode ?? "chat");
+      expect(await modesOf(h, run)).toEqual([mode, mode ?? "chat"]);
+      expect(offered(model).includes("bash")).toBe(mode === "code");
+    }
+  );
   it("start a new chat in Chat, which runs no code and says why", async () => {
     h = await createHarness();
     const chat = await newChat(h);

@@ -118,8 +118,8 @@ export const busyTail = (
       );
 
 /**
- * The run's options with the mode it runs in: the conversation's, never the
- * client's, and none outside the switch (a Dot's chat). Pure.
+ * The run's options with its resolved mode, never the client's, and none
+ * outside the switch (a Dot's chat). Pure.
  */
 const withChatMode = (
   options: CreateRunInput["options"],
@@ -334,7 +334,7 @@ const placeRun = async (
   input: CreateRunInput,
   resolved: {
     readonly agentDraft: boolean;
-    /** The conversation's mode; `null` outside the switch (a Dot's chat). */
+    /** The turn's mode; `null` outside the switch (a Dot's chat). */
     readonly chatMode: ChatMode | null;
     readonly context: StoredContext;
     /** The message's picked skills, checked (127). */
@@ -509,6 +509,19 @@ export const mayRun = async (
     : await canUseLibraryItem(db, actor.userId, "agent", target.id);
 };
 
+const modeForTurn = async (
+  db: Db,
+  { input }: CreateRunInput,
+  conversationMode: ChatMode | undefined
+): Promise<ChatMode> => {
+  if (input.type === "regenerate") {
+    const original = await getMessage(db, input.userMessageId);
+    // Legacy messages predate the switch and default to Chat, like old chats.
+    return original.ok ? (original.value.mode ?? "chat") : "chat";
+  }
+  return conversationMode ?? "chat";
+};
+
 const startRun = async (
   deps: CreateRunDeps,
   actor: Actor,
@@ -563,9 +576,10 @@ const startRun = async (
   }
   await moveOnFromWaiting(deps, actor, input);
   const dot = await getDotByConversation(db, conversation.id);
+  const chatMode = await modeForTurn(db, input, conversation.mode);
   const placed = await placeRun(db, actor, input, {
     agentDraft: draft.value !== null,
-    chatMode: dot ? null : conversation.mode,
+    chatMode: dot ? null : chatMode,
     context: context.value,
     skills: skills.value,
     target,

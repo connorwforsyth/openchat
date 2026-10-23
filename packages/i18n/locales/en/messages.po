@@ -4710,6 +4710,7 @@ msgstr "Resume {title}"
 #: ../../apps/web/app/dev/ai-elements/demo.tsx
 #: ../chat-ui/src/artifacts/document/document-view.tsx
 #: ../chat-ui/src/artifacts/presentation-preview.tsx
+#: ../chat-ui/src/chat/connected-chat.tsx
 #: ../chat-ui/src/conversation/approval.tsx
 #: ../chat-ui/src/workspace/preview.tsx
 #: ../chat-ui/src/workspace/workspace-panel.tsx
@@ -5938,6 +5939,14 @@ msgstr "The library didn't load"
 #: ../chat-ui/src/chat/connected-chat.tsx
 msgid "The message couldn't be sent: an attachment didn't upload. Try again."
 msgstr "The message couldn't be sent: an attachment didn't upload. Try again."
+
+#: ../chat-ui/src/chat/connected-chat.tsx
+msgid "The message is waiting. Retry to send it in the selected mode."
+msgstr "The message is waiting. Retry to send it in the selected mode."
+
+#: ../chat-ui/src/chat/connected-chat.tsx
+msgid "The mode couldn't be saved. Choose the mode again to retry."
+msgstr "The mode couldn't be saved. Choose the mode again to retry."
 
 #: ../../apps/web/app/(app)/_shared/new-org-dialog.tsx
 msgid "The organisation couldn't be created. Try again."
