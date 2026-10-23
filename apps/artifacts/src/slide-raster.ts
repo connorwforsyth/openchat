@@ -13,7 +13,7 @@ import { opaqueBounds } from "./slide-rules";
 
 /** Twice the canvas, so a page stays sharp when zoomed or printed. */
 const PIXEL_RATIO = 2;
-/** The slide is opaque, so JPEG keeps it exact to the eye at a fraction of PNG's size. */
+/** JPEG keeps a flattened page exact to the eye at a fraction of PNG's size. */
 const PAGE_QUALITY = 0.95;
 const ISOLATE = "deck-raster-isolate";
 const TARGET = "data-deck-raster-target";
@@ -35,8 +35,22 @@ const drawSlide = async (host: HTMLElement): Promise<HTMLCanvasElement> => {
 };
 
 /** The slide drawn in `host` as a JPEG `data:` URL. */
-export const slidePicture = async (host: HTMLElement): Promise<string> =>
-  (await drawSlide(host)).toDataURL("image/jpeg", PAGE_QUALITY);
+export const slidePicture = async (host: HTMLElement): Promise<string> => {
+  const drawn = await drawSlide(host);
+  const page = document.createElement("canvas");
+  page.width = drawn.width;
+  page.height = drawn.height;
+  const context = page.getContext("2d");
+  if (!context) {
+    throw new Error("The slide picture needs a canvas context.");
+  }
+  // JPEG drops alpha; transparent parts of a slide show its theme's paper.
+  context.fillStyle =
+    getComputedStyle(host).getPropertyValue("--background").trim() || "white";
+  context.fillRect(0, 0, page.width, page.height);
+  context.drawImage(drawn, 0, 0);
+  return page.toDataURL("image/jpeg", PAGE_QUALITY);
+};
 
 /** Pictures of single elements of the slide drawn in `host`. */
 export const regionRasterizer =
@@ -53,6 +67,8 @@ export const regionRasterizer =
     let slide: HTMLCanvasElement;
     try {
       slide = await drawSlide(host);
+    } catch {
+      return null;
     } finally {
       element.removeAttribute(TARGET);
       host.classList.remove(ISOLATE);
