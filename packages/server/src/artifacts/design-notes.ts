@@ -1,5 +1,8 @@
-import type { ArtifactDesignNotes } from "@workspace/artifacts-kit/instance";
-import { THEMED_KINDS } from "@workspace/artifacts-kit/kind-theme";
+import {
+  type ArtifactDesignNotes,
+  artifactDesignNotesSchema,
+} from "@workspace/artifacts-kit/instance";
+import { MAX_DESIGN, THEMED_KINDS } from "@workspace/artifacts-kit/kind-theme";
 
 // The instance's house style for artifacts (n2): `DESIGN.md` in its brand
 // folder for every kind, then `kinds/<kind>/DESIGN.md`. Prose only; it's
@@ -16,10 +19,21 @@ export const readArtifactDesign = async (
   const shared = (await read(`${dir}/DESIGN.md`))?.trim() ?? "";
   const entries = await Promise.all(
     THEMED_KINDS.map(async (kind) => {
-      const own = (await read(`${dir}/kinds/${kind}/DESIGN.md`))?.trim() ?? "";
-      const notes = [shared, own].filter(Boolean).join("\n\n");
+      // Reserve the kind's own notes before fitting the shared prose.
+      const own = (
+        (await read(`${dir}/kinds/${kind}/DESIGN.md`))?.trim() ?? ""
+      ).slice(0, MAX_DESIGN);
+      const room = Math.max(
+        0,
+        MAX_DESIGN - own.length - (own ? SEPARATOR.length : 0)
+      );
+      const notes = [shared.slice(0, room), own]
+        .filter(Boolean)
+        .join(SEPARATOR);
       return notes ? [[kind, notes] as const] : [];
     })
   );
-  return Object.fromEntries(entries.flat());
+  return artifactDesignNotesSchema.parse(Object.fromEntries(entries.flat()));
 };
+
+const SEPARATOR = "\n\n";

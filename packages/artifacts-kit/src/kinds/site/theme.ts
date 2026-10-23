@@ -104,11 +104,12 @@ export const siteTailwindInput = (
     '@import "tailwindcss";',
     ...(theme ? [`@theme inline {${theme}}`] : []),
     ...(light ? [`:root {${light}}`] : []),
+    // The instance's own values (`brand/…/theme.css`): light before the
+    // app's dark rule, so a file without `.dark` leaves dark mode the app's.
+    ...(brandLight ? [`:root {${brandLight}}`] : []),
     ...(dark
       ? [`@media (prefers-color-scheme: dark) {\n  :root {${dark}}\n}`]
       : []),
-    // The instance's own values (`brand/…/theme.css`), over the app's.
-    ...(brandLight ? [`:root {${brandLight}}`] : []),
     ...(brandDark
       ? [`@media (prefers-color-scheme: dark) {\n  :root {${brandDark}}\n}`]
       : []),
