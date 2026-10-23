@@ -124,6 +124,20 @@ export const useLibraryItem = (
   });
 };
 
+/** Reads an item on demand (a prompt's template for a `/` menu), through the cache. */
+export const useFetchItem = () => {
+  const client = useLibraryClient();
+  const queryClient = useQueryClient();
+  return useCallback(
+    (id: LibraryItemId, revision: "draft" | "latest") =>
+      queryClient.fetchQuery({
+        queryFn: () => client.library.get({ id, revision }),
+        queryKey: libraryKeys.detail(id, revision),
+      }),
+    [client, queryClient]
+  );
+};
+
 export const useVersions = (id: LibraryItemId, enabled = true) => {
   const client = useLibraryClient();
   return useQuery({

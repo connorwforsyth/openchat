@@ -576,6 +576,7 @@ export function ChatRoute({
     () => setPanel(panelOpen ? null : "files"),
     [panelOpen, setPanel]
   );
+  const showComputer = useCallback(() => setPanel("files"), [setPanel]);
 
   if (conversationId === undefined) {
     // Not an id: the page renders the 404.
@@ -592,6 +593,7 @@ export function ChatRoute({
           onOpenComputer={
             config.features.sandboxes ? toggleComputer : undefined
           }
+          onShowComputer={showComputer}
         />
       }
       brand={<SpaceSwitcher fallback={<Brand config={config} />} />}

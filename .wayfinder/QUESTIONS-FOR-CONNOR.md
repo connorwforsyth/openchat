@@ -193,6 +193,13 @@ Lane `pstack/usage` (Settings → Usage, span tags). Defaults applied overnight;
 1. **Where should the logo show once you're signed in?** Nowhere visible today: the sidebar's top row is the space switcher (`Personal`) for every signed-in user, and the name is only its fallback while spaces load, so a logo there would flash. *Defaulted: the logo is on sign-in, sign-up and invitations, plus the tab and home-screen icons; the sidebar keeps the name.* Alternatives: the logo at the top of the rail, ChatGPT-style, turning into the sidebar toggle on hover (moves the toggle, which 181 keeps fixed); or the mark above "What can I help with?" (shifts the composer-first layout, D27).
 2. **Tile colours for home-screen icons.** A one-colour mark is drawn white on `brand.iconBackground`, which defaults to black. *Defaulted: keep.* A fork with a light tile gives its mark its own colours; an `iconColor` field would cover the rest.
 
+## night-2 fixes lane (n2/fix-*)
+
+1. **Where does the sidebar go when there's no room to dock it?** With the side panel open on a narrow window, the toggle now shows the sidebar over the page, and it never appears on its own. *Defaulted: overlay on toggle only.* The alternative is for the toggle to close the panel to make room.
+2. **Where do Restart and Reset sit on the Dot?** They are in a ⋯ menu beside "Computer" in the Dot's header, and in the computer panel's header. Reset asks first. *Defaulted: the menu.* The alternative is a visible Restart button beside "Computer", which costs header space.
+3. **Schedules on ordinary chats.** The header's schedule button is gone from ordinary chats, so a chat's heartbeat schedule no longer shows "Next run …" there. It still shows on the Schedules page and in the sidebar row. *Defaulted: removed from the header everywhere but the Dot.*
+4. **Can the model choose a schedule's emoji?** Schedules the agent proposes get ⏰, and only people pick another one. *Defaulted: no model choice*, which avoids validation retries on small models.
+
 ## menu lane (n2/menu)
 
 1. **An `@agent` chip answers that one message, or switches the chat?** *Defaulted: that message only.* The server makes the chip's agent the run's target for the message (and its regenerate); the composer's picker keeps what the chat answers with. The alternative is to also set the chat's default target, so the next plain message goes to the agent too.
@@ -206,3 +213,9 @@ Lane `pstack/usage` (Settings → Usage, span tags). Defaults applied overnight;
 2. **Plan mode in a Chat chat.** *Defaulted: plan mode keeps its rules, and Chat mode still removes `bash`.* A Chat plan therefore reads files but runs no read-only shell commands. The alternative is to let plan mode's read-only `bash` through in Chat.
 3. **Where a message shows its mode.** *Defaulted: a quiet "Sent in Chat mode" or "Sent in Code mode" line under each user message.* The answer under it ran in the same mode. The alternative is to show it only when the mode changed from the message before, like the model switch marker (107).
 4. **Who may switch.** *Defaulted: anyone who can write to the chat (owner and editors).* Code isn't gated by a policy yet. An operator setting to keep a team in Chat would be new config.
+
+## editors lane (n2/editors)
+
+1. **A published agent can carry draft skills.** The Skills section marks a skill "Draft" when it was never published, and a skill written inline is saved as the writer's own draft. Teammates using the published agent can't load someone's draft skill. *Defaulted: show the Draft badge, change no sharing rule.* Alternatives: publishing an agent offers to publish its draft skills with it, or the publish dialog warns and lists them.
+2. **`{{current_date}}` is the UTC date.** The server fills it per turn without the user's time zone, so near midnight it can be a day off for the person chatting. *Defaulted: UTC, long English form ("Thursday, October 22, 2026").* The alternative is to send the browser's time zone with each run and format in it, which touches the run contract.
+3. **Images in documents are by address only.** The `/` menu's Image asks for an https address or a path in this app; there's no upload from the document editor yet. *Defaulted: address only.* The alternative is an upload that stores the file and inserts its app path.

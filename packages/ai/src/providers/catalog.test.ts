@@ -10,6 +10,7 @@ import {
   catalogRequest,
   describeCatalogError,
   fetchCatalog,
+  parseCatalog,
 } from "./catalog";
 
 // Every catalog is a canned response from a fake `fetch`: no test here
@@ -161,6 +162,30 @@ describe("fetchCatalog", () => {
     ]);
     expect(seen).toEqual([
       { headers: {}, url: "http://localhost:11434/api/tags" },
+      {
+        headers: { "content-type": "application/json" },
+        url: "http://localhost:11434/api/show",
+      },
+      {
+        headers: { "content-type": "application/json" },
+        url: "http://localhost:11434/api/show",
+      },
+    ]);
+  });
+
+  it("leaves Ollama tags capabilities unknown", () => {
+    expect(
+      parseCatalog("ollama", {
+        models: [
+          { capabilities: ["completion", "tools"], name: "qwen2.5:3b" },
+          { capabilities: ["completion", "vision"], name: "qwen2.5vl:3b" },
+          { name: "older:latest" },
+        ],
+      })?.map(({ id, traits }) => ({ id, traits }))
+    ).toEqual([
+      { id: "qwen2.5:3b", traits: undefined },
+      { id: "qwen2.5vl:3b", traits: undefined },
+      { id: "older:latest", traits: undefined },
     ]);
   });
 

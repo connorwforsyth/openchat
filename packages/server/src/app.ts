@@ -4,7 +4,10 @@ import type { AnyRouter } from "@orpc/server";
 import { BatchHandlerPlugin } from "@orpc/server/plugins";
 import { ZodToJsonSchemaConverter } from "@orpc/zod/zod4";
 import { generateOpenApi } from "@workspace/contract/openapi";
-import { runIdSchema } from "@workspace/contract/schemas/common";
+import {
+  conversationIdSchema,
+  runIdSchema,
+} from "@workspace/contract/schemas/common";
 import { getRun } from "@workspace/db/queries/runs";
 import { Hono } from "hono";
 
@@ -16,6 +19,10 @@ import {
   type SessionResolver,
 } from "./context";
 import { problem } from "./http/problem";
+import {
+  conversationEventsResponse,
+  userSummaryOf,
+} from "./stream/conversation-events";
 import { runStreamResponse } from "./stream/sse";
 
 // The HTTP app (D26): Hono as a thin adapter over the oRPC contract, served
@@ -128,6 +135,47 @@ export const createApp = ({
       return problem(404, "NOT_FOUND", "Not found.");
     }
     return runStreamResponse(services.streams, run.value.id, c.req.raw);
+  });
+
+  // A conversation's live channel (D25, contract README "The conversation
+  // events"): SSE, like the run stream, not a procedure.
+  app.get("/api/conversations/:id/events", async (c) => {
+    if (!services) {
+      return noDatabase();
+    }
+    const session = await resolveSession(c.req.raw);
+    if (!session) {
+      return problem(401, "UNAUTHORIZED", "Sign in to continue.");
+    }
+    const conversationId = conversationIdSchema.safeParse(c.req.param("id"));
+    const actor = await actorFor(services.db, session);
+    const viewer = await userSummaryOf(services.db, session.userId);
+    if (
+      !(
+        conversationId.success &&
+        viewer &&
+        (await services.access(actor, conversationId.data, "read"))
+      )
+    ) {
+      return problem(404, "NOT_FOUND", "Not found.");
+    }
+    const { access, events } = services;
+    return conversationEventsResponse(
+      events,
+      conversationId.data,
+      viewer,
+      c.req.raw,
+      {
+        // A grant taken away ends the stream; principals are read again
+        // too, for access that came through a team.
+        mayRead: async () =>
+          access(
+            await actorFor(services.db, session),
+            conversationId.data,
+            "read"
+          ),
+      }
+    );
   });
 
   app.all("/api/*", async (c) => {

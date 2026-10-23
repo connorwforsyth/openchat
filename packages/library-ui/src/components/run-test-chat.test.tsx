@@ -1,6 +1,12 @@
 import { setupI18n } from "@lingui/core";
 import { I18nProvider } from "@lingui/react";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import type { ApiClient } from "@workspace/client/api";
 import { fixtureId } from "@workspace/contract/fixtures";
 import type { AgentDefinition } from "@workspace/contract/schemas/library";
@@ -74,6 +80,26 @@ describe("run test chat", () => {
     expect(
       await screen.findByText("Create the agent to try it in a test chat.")
     ).toBeTruthy();
+  });
+
+  it("offers to save a new agent so it can be tested", async () => {
+    const onCreate = vi.fn();
+    const TestChat = createRunTestChat(fakeClient().client);
+    render(
+      <I18nProvider i18n={i18n}>
+        <TestChat
+          definition={definition}
+          dirty
+          draft={null}
+          onCreate={onCreate}
+        />
+      </I18nProvider>
+    );
+    const chat = await screen.findByRole("region", { name: "Test chat" });
+    await userEvent.click(
+      within(chat).getByRole("button", { name: "Save draft and test" })
+    );
+    expect(onCreate).toHaveBeenCalledOnce();
   });
 
   it("saves edits, then opens a test chat pinned to the draft", async () => {

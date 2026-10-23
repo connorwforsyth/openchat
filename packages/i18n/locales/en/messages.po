@@ -17,6 +17,17 @@ msgstr "- I prefer pnpm over npm\n"
 msgid "(couldn't read this time)"
 msgstr "(couldn't read this time)"
 
+#. placeholder {0}: people.length
+#: ../chat-ui/src/chat/live-presence.tsx
+msgid "{0, plural, other {# people are typing…}}"
+msgstr "{0, plural, other {# people are typing…}}"
+
+#. placeholder {0}: first.name
+#. placeholder {1}: second.name
+#: ../chat-ui/src/chat/live-presence.tsx
+msgid "{0} and {1} are typing…"
+msgstr "{0} and {1} are typing…"
+
 #. placeholder {0}: grant.user.name
 #: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
 msgid "{0} asks for {tokens} tokens a month"
@@ -36,6 +47,11 @@ msgstr "{0} has no sub-spaces yet."
 #: ../../apps/web/app/dev/sandbox/demo.tsx
 msgid "{0} is outside the workspace"
 msgstr "{0} is outside the workspace"
+
+#. placeholder {0}: first.name
+#: ../chat-ui/src/chat/live-presence.tsx
+msgid "{0} is typing…"
+msgstr "{0} is typing…"
 
 #. placeholder {0}: dot.name
 #: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
@@ -239,6 +255,10 @@ msgstr "{name}, page {0}"
 msgid "{name}, your Dot"
 msgstr "{name}, your Dot"
 
+#: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
+msgid "{name}'s computer options"
+msgstr "{name}'s computer options"
+
 #: ../chat-ui/src/conversation/skill-card.tsx
 msgid "{name}'s library"
 msgstr "{name}'s library"
@@ -374,6 +394,10 @@ msgstr "A secret is saved. It's never shown; type a new one to replace it."
 msgid "A short name, like a nickname."
 msgstr "A short name, like a nickname."
 
+#: ../library-ui/src/components/skills-section.tsx
+msgid "A skill you can't see"
+msgstr "A skill you can't see"
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 msgid "A space needs at least one owner. Make someone else an owner first."
 msgstr "A space needs at least one owner. Make someone else an owner first."
@@ -505,6 +529,10 @@ msgstr "Add node"
 msgid "Add people, teams or orgs"
 msgstr "Add people, teams or orgs"
 
+#: ../library-ui/src/components/skills-section.tsx
+msgid "Add skill"
+msgstr "Add skill"
+
 #: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
 msgid "Add someone from {rootName}"
 msgstr "Add someone from {rootName}"
@@ -579,6 +607,10 @@ msgstr "Agents, prompts, skills and MCP servers: yours, shared with you, and pub
 msgid "AI Elements"
 msgstr "AI Elements"
 
+#: ../../apps/web/app/(app)/(pages)/schedules/emoji-picker.tsx
+msgid "Alarm clock"
+msgstr "Alarm clock"
+
 #: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
 #: ../../apps/web/app/(app)/(pages)/schedules/schedules-screen.tsx
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
@@ -611,7 +643,7 @@ msgstr "Already have an account? <0>Sign in</0>"
 msgid "Already used by “{other}”."
 msgstr "Already used by “{other}”."
 
-#. placeholder {0}: say(TEMPLATE_CRON[template])
+#. placeholder {0}: say(TEMPLATE_SCHEDULE[template].cron)
 #: ../../apps/web/app/(app)/(pages)/dots/onboarding.tsx
 msgid "Also check in {0}"
 msgstr "Also check in {0}"
@@ -795,9 +827,17 @@ msgstr "At least 8 characters."
 msgid "Attach files"
 msgstr "Attach files"
 
+#: ../library-ui/src/components/snippet-editor.tsx
+msgid "Attached"
+msgstr "Attached"
+
 #: ../library-ui/src/components/agent-form.tsx
 msgid "Attached file"
 msgstr "Attached file"
+
+#: ../library-ui/src/components/skills-section.tsx
+msgid "Attached skills"
+msgstr "Attached skills"
 
 #: ../chat-ui/src/conversation/file-parts.tsx
 msgid "Attachment"
@@ -853,6 +893,10 @@ msgstr "Bad answer"
 msgid "Base URL (optional)"
 msgstr "Base URL (optional)"
 
+#: ../../apps/web/app/(app)/(pages)/schedules/emoji-picker.tsx
+msgid "Bell"
+msgstr "Bell"
+
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgctxt "artifact kind badge"
 msgid "Beta"
@@ -877,6 +921,10 @@ msgstr "Bloom"
 #: ../chat-ui/src/artifacts/document/document-toolbar.tsx
 msgid "Bold"
 msgstr "Bold"
+
+#: ../../apps/web/app/(app)/(pages)/schedules/emoji-picker.tsx
+msgid "Brain"
+msgstr "Brain"
 
 #: ../chat-ui/src/header/branch-switcher.tsx
 msgid "Branches"
@@ -905,14 +953,11 @@ msgstr "Budgets"
 msgid "Budgets and usage"
 msgstr "Budgets and usage"
 
-#: ../library-ui/src/components/agent-form.tsx
-msgid "Build a skill to load it into this agent's sandbox."
-msgstr "Build a skill to load it into this agent's sandbox."
-
 #: ../library-ui/src/components/library-index.tsx
 msgid "Build an agent, prompt, skill or MCP server, or import one."
 msgstr "Build an agent, prompt, skill or MCP server, or import one."
 
+#: ../chat-ui/src/artifacts/document/block-menu.tsx
 #: ../chat-ui/src/artifacts/document/document-toolbar.tsx
 msgid "Bulleted list"
 msgstr "Bulleted list"
@@ -936,6 +981,10 @@ msgstr "By model"
 #: ../../apps/web/app/(app)/_shared/settings/usage-settings.tsx
 msgid "By person"
 msgstr "By person"
+
+#: ../../apps/web/app/(app)/(pages)/schedules/emoji-picker.tsx
+msgid "Calendar"
+msgstr "Calendar"
 
 #: ../chat-ui/src/voice/voice-call.tsx
 msgid "Call ended"
@@ -968,6 +1017,7 @@ msgstr "Can't reach the server"
 
 #: ../../apps/web/app/(app)/_shared/confirm.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
+#: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
 #: ../chat-ui/src/artifacts/artifact-actions.tsx
 #: ../chat-ui/src/artifacts/document/document-view.tsx
 #: ../chat-ui/src/artifacts/plan-editor.tsx
@@ -977,6 +1027,7 @@ msgstr "Can't reach the server"
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 #: ../library-ui/src/components/confirm-delete.tsx
 #: ../library-ui/src/components/publish-dialog.tsx
+#: ../library-ui/src/components/skills-section.tsx
 #: ../shortcuts/src/react/shortcuts-editor.tsx
 msgid "Cancel"
 msgstr "Cancel"
@@ -1005,6 +1056,10 @@ msgstr "Change {number} accepted"
 #: ../code-ui/src/diff-view.tsx
 msgid "Change {number} rejected"
 msgstr "Change {number} rejected"
+
+#: ../../apps/web/app/(app)/(pages)/schedules/emoji-picker.tsx
+msgid "Change emoji, now {value}"
+msgstr "Change emoji, now {value}"
 
 #: ../../apps/desktop/src/main/menu.ts
 msgid "Change Server…"
@@ -1050,6 +1105,10 @@ msgstr "Changing a skill"
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Changing the skill {name}"
 msgstr "Changing the skill {name}"
+
+#: ../../apps/web/app/(app)/(pages)/schedules/emoji-picker.tsx
+msgid "Chart"
+msgstr "Chart"
 
 #: ../../apps/desktop/src/main/menu.ts
 #: ../chat-ui/src/artifacts/artifact-full-view.tsx
@@ -1128,6 +1187,10 @@ msgstr "Check for Updates…"
 #: ../../apps/web/app/(app)/(pages)/dots/dot-home.tsx
 msgid "Check in now"
 msgstr "Check in now"
+
+#: ../../apps/web/app/(app)/(pages)/schedules/emoji-picker.tsx
+msgid "Check mark"
+msgstr "Check mark"
 
 #: ../../apps/web/app/(auth)/invite/[token]/page.tsx
 msgid "Check that you copied the whole link, or ask for a new one."
@@ -1220,6 +1283,7 @@ msgstr "Close toast"
 msgid "Code"
 msgstr "Code"
 
+#: ../chat-ui/src/artifacts/document/block-menu.tsx
 #: ../chat-ui/src/artifacts/document/document-toolbar.tsx
 msgid "Code block"
 msgstr "Code block"
@@ -1269,8 +1333,16 @@ msgid "Computer"
 msgstr "Computer"
 
 #: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
+msgid "Computer options"
+msgstr "Computer options"
+
+#: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
 msgid "Computers aren't set up on this server"
 msgstr "Computers aren't set up on this server"
+
+#: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
+msgid "Computers aren't set up on this server."
+msgstr "Computers aren't set up on this server."
 
 #: ../../apps/desktop/src/renderer/setup-screen.tsx
 #: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
@@ -1470,6 +1542,14 @@ msgstr "Couldn't reach this {singular} to list its tools."
 msgid "Couldn't read {code}"
 msgstr "Couldn't read {code}"
 
+#: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
+msgid "Couldn't reset {name}'s computer"
+msgstr "Couldn't reset {name}'s computer"
+
+#: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
+msgid "Couldn't restart {name}'s computer"
+msgstr "Couldn't restart {name}'s computer"
+
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Couldn't run {code}"
 msgstr "Couldn't run {code}"
@@ -1537,6 +1617,10 @@ msgstr "Create an account"
 #: ../../apps/web/app/(auth)/invite/[token]/page.tsx
 msgid "Create an account with the email address the invitation was sent to, or sign in if you already have one."
 msgstr "Create an account with the email address the invitation was sent to, or sign in if you already have one."
+
+#: ../library-ui/src/components/skills-section.tsx
+msgid "Create and attach"
+msgstr "Create and attach"
 
 #: ../../apps/web/app/(app)/_shared/new-org-dialog.tsx
 msgid "Create organisation"
@@ -1727,6 +1811,10 @@ msgstr "Describe a picture to make"
 msgid "Description"
 msgstr "Description"
 
+#: ../chat-ui/src/artifacts/document/block-menu.tsx
+msgid "Description (optional)"
+msgstr "Description (optional)"
+
 #: ../library-ui/src/components/prompt-form.tsx
 msgid "Description for {name}"
 msgstr "Description for {name}"
@@ -1839,6 +1927,10 @@ msgstr "Disconnect"
 msgid "Dismiss"
 msgstr "Dismiss"
 
+#: ../chat-ui/src/artifacts/document/block-menu.tsx
+msgid "Divider"
+msgstr "Divider"
+
 #: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
 msgid "Docker (sandbox runner)"
 msgstr "Docker (sandbox runner)"
@@ -1858,6 +1950,10 @@ msgstr "Documents, pages and diagrams from your chats, and ones shared with you.
 #: ../chat-ui/src/workspace/save-site-dialog.tsx
 msgid "Done"
 msgstr "Done"
+
+#: ../chat-ui/src/artifacts/document/document-view.tsx
+msgid "Done: {task}"
+msgstr "Done: {task}"
 
 #: ../chat-ui/src/artifacts/image-preview.tsx
 #: ../chat-ui/src/conversation/generated-images.tsx
@@ -1914,11 +2010,20 @@ msgid "Downloading Update… {0}%"
 msgstr "Downloading Update… {0}%"
 
 #: ../composer/src/components/chip.tsx
-#: ../composer/src/components/suggestion-menu.tsx
+#: ../composer/src/components/menu-listbox.tsx
 #: ../library-ui/src/components/badges.tsx
+#: ../library-ui/src/components/skills-section.tsx
 #: ../library-ui/src/components/version-history.tsx
 msgid "Draft"
 msgstr "Draft"
+
+#: ../library-ui/src/components/item-builder.tsx
+msgid "Draft · Only you can see it. Publish to share it with your team."
+msgstr "Draft · Only you can see it. Publish to share it with your team."
+
+#: ../library-ui/src/components/item-builder.tsx
+msgid "Draft · Shared with people you chose. Publish to share it with your team."
+msgstr "Draft · Shared with people you chose. Publish to share it with your team."
 
 #: ../chat-ui/src/conversation/skill-card.tsx
 msgid "Draft · v{version}"
@@ -2038,6 +2143,10 @@ msgstr "Email and password"
 #: ../../apps/web/app/(app)/(pages)/dots/avatar-picker.tsx
 msgid "Ember"
 msgstr "Ember"
+
+#: ../chat-ui/src/artifacts/document/document-view.tsx
+msgid "Empty to-do"
+msgstr "Empty to-do"
 
 #: ../chat-ui/src/artifacts/presenter.tsx
 msgid "End of the deck"
@@ -2277,6 +2386,10 @@ msgstr "Files found"
 msgid "Fill in every variable to see the message."
 msgstr "Fill in every variable to see the message."
 
+#: ../library-ui/src/components/skills-section.tsx
+msgid "Find a skill"
+msgstr "Find a skill"
+
 #: ../chat-ui/src/artifacts/artifact-actions.tsx
 #: ../library-ui/src/components/share-dialog.tsx
 msgid "Find people, teams or orgs"
@@ -2344,6 +2457,10 @@ msgstr "From your library"
 msgid "Frontmatter with a name and description, then the instructions the agent follows."
 msgstr "Frontmatter with a name and description, then the instructions the agent follows."
 
+#: ../library-ui/src/components/skill-form.tsx
+msgid "Frontmatter with a name and description, then the instructions the agent follows. Type / to insert a prompt."
+msgstr "Frontmatter with a name and description, then the instructions the agent follows. Type / to insert a prompt."
+
 #: ../shortcuts/src/react/help-dialog.tsx
 msgid "General"
 msgstr "General"
@@ -2406,14 +2523,17 @@ msgstr "Header"
 msgid "Header name"
 msgstr "Header name"
 
+#: ../chat-ui/src/artifacts/document/block-menu.tsx
 #: ../chat-ui/src/artifacts/document/document-toolbar.tsx
 msgid "Heading 1"
 msgstr "Heading 1"
 
+#: ../chat-ui/src/artifacts/document/block-menu.tsx
 #: ../chat-ui/src/artifacts/document/document-toolbar.tsx
 msgid "Heading 2"
 msgstr "Heading 2"
 
+#: ../chat-ui/src/artifacts/document/block-menu.tsx
 #: ../chat-ui/src/artifacts/document/document-toolbar.tsx
 msgid "Heading 3"
 msgstr "Heading 3"
@@ -2433,6 +2553,10 @@ msgstr "Help me look back on my week and plan the next one."
 #: ../chat-ui/src/conversation/empty-state.tsx
 msgid "Help me plan a team offsite. Ask me a few questions first, then suggest an agenda."
 msgstr "Help me plan a team offsite. Ask me a few questions first, then suggest an agenda."
+
+#: ../chat-ui/src/chat/live-presence.tsx
+msgid "Here now: {names}"
+msgstr "Here now: {names}"
 
 #: ../../apps/web/app/(app)/(pages)/dots/dot-home.tsx
 msgid "Here to help"
@@ -2483,11 +2607,13 @@ msgstr "How the app looks on this device."
 msgid "https://chat.example.com"
 msgstr "https://chat.example.com"
 
+#: ../chat-ui/src/artifacts/document/block-menu.tsx
 #: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../composer/src/components/plus-menu.tsx
 msgid "Image"
 msgstr "Image"
 
+#: ../chat-ui/src/artifacts/document/block-menu.tsx
 #: ../chat-ui/src/artifacts/document/document-toolbar.tsx
 msgid "Image address"
 msgstr "Image address"
@@ -2536,14 +2662,26 @@ msgstr "Inline code"
 msgid "Input"
 msgstr "Input"
 
+#: ../chat-ui/src/artifacts/document/block-menu.tsx
 #: ../chat-ui/src/artifacts/document/document-toolbar.tsx
+#: ../library-ui/src/components/agent-form.tsx
+#: ../library-ui/src/components/prompt-form.tsx
 msgid "Insert"
 msgstr "Insert"
+
+#: ../library-ui/src/components/skill-form.tsx
+msgid "Insert a prompt"
+msgstr "Insert a prompt"
+
+#: ../chat-ui/src/artifacts/document/block-menu.tsx
+msgid "Insert block"
+msgstr "Insert block"
 
 #: ../chat-ui/src/artifacts/document/document-toolbar.tsx
 msgid "Insert divider"
 msgstr "Insert divider"
 
+#: ../chat-ui/src/artifacts/document/block-menu.tsx
 #: ../chat-ui/src/artifacts/document/document-toolbar.tsx
 msgid "Insert image"
 msgstr "Insert image"
@@ -2628,6 +2766,10 @@ msgstr "It was shared for use only. Ask its owner for view access to see its ins
 #: ../chat-ui/src/workspace/file-view.tsx
 msgid "It's removed from this chat's workspace for you and the agent. This can't be undone."
 msgstr "It's removed from this chat's workspace for you and the agent. This can't be undone."
+
+#: ../library-ui/src/components/skills-section.tsx
+msgid "It's saved as your own draft until you publish it."
+msgstr "It's saved as your own draft until you publish it."
 
 #: ../chat-ui/src/artifacts/document/document-toolbar.tsx
 msgid "Italic"
@@ -2808,6 +2950,10 @@ msgstr "light"
 msgid "Light"
 msgstr "Light"
 
+#: ../../apps/web/app/(app)/(pages)/schedules/emoji-picker.tsx
+msgid "Light bulb"
+msgstr "Light bulb"
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "Limit (USD)"
 msgstr "Limit (USD)"
@@ -2824,6 +2970,10 @@ msgstr "Link address"
 #: ../chat-ui/src/header/share-menu.tsx
 msgid "Link copied"
 msgstr "Link copied"
+
+#: ../chat-ui/src/artifacts/document/block-menu.tsx
+msgid "Link to artifact"
+msgstr "Link to artifact"
 
 #: ../../apps/web/app/(app)/_shared/settings/connected-accounts.tsx
 msgid "Linked {since}"
@@ -2899,6 +3049,14 @@ msgstr "Low"
 #: ../library-ui/src/components/prompt-form.tsx
 msgid "Lowercase letters, digits and dashes. Type / and this in the composer to use it."
 msgstr "Lowercase letters, digits and dashes. Type / and this in the composer to use it."
+
+#: ../../apps/web/app/(app)/(pages)/schedules/emoji-picker.tsx
+msgid "Magnifying glass"
+msgstr "Magnifying glass"
+
+#: ../../apps/web/app/(app)/(pages)/schedules/emoji-picker.tsx
+msgid "Mailbox"
+msgstr "Mailbox"
 
 #: ../library-ui/src/components/badges.tsx
 msgid "Maintainer"
@@ -3156,6 +3314,10 @@ msgstr "Monthly on the 1st"
 msgid "Monthly token pool for {0}"
 msgstr "Monthly token pool for {0}"
 
+#: ../../apps/web/app/(app)/(pages)/schedules/emoji-picker.tsx
+msgid "Moon"
+msgstr "Moon"
+
 #: ../chat-ui/src/header/overflow-menu.tsx
 #: ../library-ui/src/components/item-builder.tsx
 msgid "More actions"
@@ -3264,6 +3426,10 @@ msgctxt "artifact kind badge"
 msgid "New"
 msgstr "New"
 
+#: ../library-ui/src/components/item-builder.tsx
+msgid "New · Create it to save a draft only you can see."
+msgstr "New · Create it to save a draft only you can see."
+
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
 #: ../chat-ui/src/artifacts/artifact-actions.tsx
 #: ../chat-ui/src/header/chat-title.tsx
@@ -3318,6 +3484,10 @@ msgstr "New organisation"
 msgid "New scheduled task"
 msgstr "New scheduled task"
 
+#: ../library-ui/src/components/skills-section.tsx
+msgid "New skill"
+msgstr "New skill"
+
 #: ../chat-ui/src/artifacts/diagram/diagram-view.tsx
 msgid "New step"
 msgstr "New step"
@@ -3336,12 +3506,20 @@ msgstr "New sub-space in {0}"
 msgid "New task"
 msgstr "New task"
 
+#: ../library-ui/src/components/snippet-editor.tsx
+msgid "New variable"
+msgstr "New variable"
+
 #: ../chat-ui/src/artifacts/artifact-view.tsx
 #: ../chat-ui/src/artifacts/diagram/diagram-view.tsx
 #: ../chat-ui/src/artifacts/document/document-view.tsx
 #: ../chat-ui/src/artifacts/spreadsheet/spreadsheet-view.tsx
 msgid "Newer version"
 msgstr "Newer version"
+
+#: ../../apps/web/app/(app)/(pages)/schedules/emoji-picker.tsx
+msgid "Newspaper"
+msgstr "Newspaper"
 
 #: ../../apps/web/app/(app)/(pages)/dots/onboarding.tsx
 #: ../chat-ui/src/artifacts/presentation-preview.tsx
@@ -3524,6 +3702,10 @@ msgstr "No sign-in methods are linked."
 msgid "No skills shared here yet."
 msgstr "No skills shared here yet."
 
+#: ../library-ui/src/components/skills-section.tsx
+msgid "No skills to add."
+msgstr "No skills to add."
+
 #: ../../apps/web/app/(app)/(pages)/space/space-home.tsx
 msgid "No spaces yet."
 msgstr "No spaces yet."
@@ -3698,6 +3880,7 @@ msgstr "Nothing yet. When {0} works on its own, each run shows up here."
 msgid "now"
 msgstr "now"
 
+#: ../chat-ui/src/artifacts/document/block-menu.tsx
 #: ../chat-ui/src/artifacts/document/document-toolbar.tsx
 msgid "Numbered list"
 msgstr "Numbered list"
@@ -4285,6 +4468,7 @@ msgid "Profile and language"
 msgstr "Profile and language"
 
 #: ../library-ui/src/components/kind.tsx
+#: ../library-ui/src/components/snippet-editor.tsx
 msgid "Prompt"
 msgstr "Prompt"
 
@@ -4384,6 +4568,10 @@ msgstr "Published the skill {name}"
 msgid "Published v{version}"
 msgstr "Published v{version}"
 
+#: ../library-ui/src/components/item-builder.tsx
+msgid "Published v{version} · Your team uses this version. Edits stay in your draft until you publish again."
+msgstr "Published v{version} · Your team uses this version. Edits stay in your draft until you publish again."
+
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Publishing a skill"
 msgstr "Publishing a skill"
@@ -4429,6 +4617,7 @@ msgstr "Quick AI Shortcut"
 msgid "Quit"
 msgstr "Quit"
 
+#: ../chat-ui/src/artifacts/document/block-menu.tsx
 #: ../chat-ui/src/artifacts/document/document-toolbar.tsx
 msgid "Quote"
 msgstr "Quote"
@@ -4533,6 +4722,10 @@ msgstr "Reject the rest"
 msgid "Rejected"
 msgstr "Rejected"
 
+#: ../library-ui/src/components/skills-section.tsx
+msgid "Release notes"
+msgstr "Release notes"
+
 #: ../chat-ui/src/workspace/file-view.tsx
 #: ../chat-ui/src/workspace/preview.tsx
 msgid "Reload"
@@ -4554,6 +4747,7 @@ msgstr "Remove {0}"
 #: ../composer/src/components/attachment-list.tsx
 #: ../library-ui/src/components/agent-form.tsx
 #: ../library-ui/src/components/share-dialog.tsx
+#: ../library-ui/src/components/skills-section.tsx
 msgid "Remove {name}"
 msgstr "Remove {name}"
 
@@ -4635,9 +4829,21 @@ msgstr "Reset"
 msgid "Reset {description}"
 msgstr "Reset {description}"
 
+#: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
+msgid "Reset {name}'s computer?"
+msgstr "Reset {name}'s computer?"
+
 #: ../shortcuts/src/react/shortcuts-editor.tsx
 msgid "Reset all"
 msgstr "Reset all"
+
+#: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
+msgid "Reset computer"
+msgstr "Reset computer"
+
+#: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
+msgid "Reset computer…"
+msgstr "Reset computer…"
 
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Reset the workspace?"
@@ -4660,6 +4866,10 @@ msgstr "Reset zoom and pan"
 msgid "Resets {resets}"
 msgstr "Resets {resets}"
 
+#: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
+msgid "Resetting…"
+msgstr "Resetting…"
+
 #: ../chat-ui/src/shell/app-shell.tsx
 msgid "Resize side panel"
 msgstr "Resize side panel"
@@ -4672,6 +4882,10 @@ msgstr "Resize sidebar"
 msgid "Resize the browser"
 msgstr "Resize the browser"
 
+#: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
+msgid "Restart computer"
+msgstr "Restart computer"
+
 #: ../chat-ui/src/artifacts/presenter.tsx
 msgid "Restart the timer"
 msgstr "Restart the timer"
@@ -4679,6 +4893,10 @@ msgstr "Restart the timer"
 #: ../../apps/desktop/src/main/menu.ts
 msgid "Restart to Update"
 msgstr "Restart to Update"
+
+#: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
+msgid "Restarting…"
+msgstr "Restarting…"
 
 #: ../../apps/web/app/(app)/_shared/settings/memory-settings.tsx
 #: ../chat-ui/src/artifacts/document/document-view.tsx
@@ -4837,6 +5055,10 @@ msgstr "Save as site…"
 #: ../library-ui/src/components/item-builder.tsx
 msgid "Save draft"
 msgstr "Save draft"
+
+#: ../library-ui/src/components/run-test-chat.tsx
+msgid "Save draft and test"
+msgstr "Save draft and test"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "Save policy"
@@ -5304,12 +5526,21 @@ msgid "site (the whole workspace if empty)"
 msgstr "site (the whole workspace if empty)"
 
 #: ../library-ui/src/components/kind.tsx
+#: ../library-ui/src/components/snippet-editor.tsx
 msgid "Skill"
 msgstr "Skill"
 
 #: ../library-ui/src/components/skill-form.tsx
 msgid "Skill files"
 msgstr "Skill files"
+
+#: ../library-ui/src/components/skills-section.tsx
+msgid "Skill instructions"
+msgstr "Skill instructions"
+
+#: ../library-ui/src/components/skills-section.tsx
+msgid "Skill name"
+msgstr "Skill name"
 
 #: ../chat-ui/src/conversation/skill-card.tsx
 msgid "Skill: {name}"
@@ -5326,8 +5557,8 @@ msgstr "skills"
 #: ../../apps/web/app/(app)/(pages)/space/space-home.tsx
 #: ../composer/src/components/plus-menu.tsx
 #: ../composer/src/components/suggestion-menu.tsx
-#: ../library-ui/src/components/agent-form.tsx
 #: ../library-ui/src/components/kind.tsx
+#: ../library-ui/src/components/skills-section.tsx
 msgid "Skills"
 msgstr "Skills"
 
@@ -5495,10 +5726,6 @@ msgstr "Start the app and open a preview"
 msgid "Start voice chat"
 msgstr "Start voice chat"
 
-#: ../chat-ui/src/artifacts/document/document-view.tsx
-msgid "Start writing…"
-msgstr "Start writing…"
-
 #: ../library-ui/src/components/agent-form.tsx
 msgid "Starter {position}"
 msgstr "Starter {position}"
@@ -5595,6 +5822,7 @@ msgid "Suggestions"
 msgstr "Suggestions"
 
 #: ../../apps/web/app/(app)/(pages)/dots/avatar-picker.tsx
+#: ../../apps/web/app/(app)/(pages)/schedules/emoji-picker.tsx
 msgid "Sun"
 msgstr "Sun"
 
@@ -5643,6 +5871,10 @@ msgstr "Switched to {modelLabel}"
 msgid "System"
 msgstr "System"
 
+#: ../chat-ui/src/artifacts/document/block-menu.tsx
+msgid "Table"
+msgstr "Table"
+
 #: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
 msgid "Take over"
 msgstr "Take over"
@@ -5688,6 +5920,7 @@ msgstr "Tells you"
 msgid "Template"
 msgstr "Template"
 
+#: ../library-ui/src/components/run-test-chat.tsx
 #: ../library-ui/src/components/test-chat.tsx
 msgid "Test chat"
 msgstr "Test chat"
@@ -5704,6 +5937,7 @@ msgstr "Testing draft"
 msgid "Testing what's on screen; save to keep it."
 msgstr "Testing what's on screen; save to keep it."
 
+#: ../chat-ui/src/artifacts/document/block-menu.tsx
 #: ../chat-ui/src/artifacts/document/document-toolbar.tsx
 msgid "Text"
 msgstr "Text"
@@ -5804,6 +6038,10 @@ msgstr "That's too long."
 msgid "That's too many."
 msgstr "That's too many."
 
+#: ../library-ui/src/components/agent-form.tsx
+msgid "the \"{name}\" skill"
+msgstr "the \"{name}\" skill"
+
 #: ../chat-ui/src/conversation/skill-card.tsx
 msgid "the {name} org library"
 msgstr "the {name} org library"
@@ -5815,6 +6053,10 @@ msgstr "the {name} team library"
 #: ../../apps/web/app/dev/code/demo.tsx
 msgid "The accepted changes couldn't be applied."
 msgstr "The accepted changes couldn't be applied."
+
+#: ../library-ui/src/components/skills-section.tsx
+msgid "The agent loads these when a task calls for them. Type / in the instructions to mention one."
+msgstr "The agent loads these when a task calls for them. Type / in the instructions to mention one."
 
 #: ../chat-ui/src/conversation/skill-card.tsx
 msgid "The agent wants to change a skill's draft, and name it {name}."
@@ -5884,6 +6126,10 @@ msgstr "The chat's model sees its latest version and, if you can edit it, can ma
 msgid "The chat's Workspace panel (files, editor, preview and artifacts) over a just-bash workspace that runs entirely in this browser tab: simulated bash, an in-memory filesystem, no server and no network. Reloading the page starts over."
 msgstr "The chat's Workspace panel (files, editor, preview and artifacts) over a just-bash workspace that runs entirely in this browser tab: simulated bash, an in-memory filesystem, no server and no network. Reloading the page starts over."
 
+#: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
+msgid "The computer isn't available right now. Check that the sandbox runner is running."
+msgstr "The computer isn't available right now. Check that the sandbox runner is running."
+
 #: ../chat-ui/src/artifacts/presentation-preview.tsx
 msgid "The deck couldn't be exported: {exportError}"
 msgstr "The deck couldn't be exported: {exportError}"
@@ -5948,6 +6194,10 @@ msgstr "The message is waiting. Retry to send it in the selected mode."
 msgid "The mode couldn't be saved. Choose the mode again to retry."
 msgstr "The mode couldn't be saved. Choose the mode again to retry."
 
+#: ../library-ui/src/components/agent-form.tsx
+msgid "The name of the person chatting"
+msgstr "The name of the person chatting"
+
 #: ../../apps/web/app/(app)/_shared/new-org-dialog.tsx
 msgid "The organisation couldn't be created. Try again."
 msgstr "The organisation couldn't be created. Try again."
@@ -5988,6 +6238,10 @@ msgstr "The server's streamable HTTP or SSE endpoint."
 msgid "The site couldn't be published. Try again."
 msgstr "The site couldn't be published. Try again."
 
+#: ../library-ui/src/components/skills-section.tsx
+msgid "The skill couldn't be saved. Try again."
+msgstr "The skill couldn't be saved. Try again."
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
 msgid "The sub-space couldn't be created. Try again."
 msgstr "The sub-space couldn't be created. Try again."
@@ -5995,6 +6249,10 @@ msgstr "The sub-space couldn't be created. Try again."
 #: ../library-ui/src/components/item-builder.tsx
 msgid "The test chat needs a server to run against."
 msgstr "The test chat needs a server to run against."
+
+#: ../library-ui/src/components/run-test-chat.tsx
+msgid "The test chat runs your saved draft. Save it to start trying the agent."
+msgstr "The test chat runs your saved draft. Save it to start trying the agent."
 
 #: ../../apps/web/app/(app)/_shared/settings/appearance-settings.tsx
 msgid "The theme is saved in this browser."
@@ -6200,6 +6458,10 @@ msgstr "This server signs people in with single sign-on, and none is set up yet.
 msgid "This server's configuration forbids audit policies, so admins can't read chat content in any org."
 msgstr "This server's configuration forbids audit policies, so admins can't read chat content in any org."
 
+#: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
+msgid "This stops what {name} is doing and erases everything on its computer: files, downloads and browser data. It starts again empty. This can't be undone."
+msgstr "This stops what {name} is doing and erases everything on its computer: files, downloads and browser data. It starts again empty. This can't be undone."
+
 #: ../chat-ui/src/artifacts/publish-dialog.tsx
 msgid "This version can't be published yet:"
 msgstr "This version can't be published yet:"
@@ -6253,9 +6515,21 @@ msgstr "Time zone and end date"
 msgid "Title"
 msgstr "Title"
 
+#: ../chat-ui/src/artifacts/document/document-view.tsx
+msgid "To do: {task}"
+msgstr "To do: {task}"
+
+#: ../chat-ui/src/artifacts/document/block-menu.tsx
+msgid "To-do list"
+msgstr "To-do list"
+
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgid "Today"
 msgstr "Today"
+
+#: ../library-ui/src/components/agent-form.tsx
+msgid "Today's date"
+msgstr "Today's date"
 
 #: ../chat-ui/src/shell/sidebar-toggle.tsx
 #: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
@@ -6371,6 +6645,10 @@ msgstr "Turn on {title}"
 msgid "Turned off on this instance"
 msgstr "Turned off on this instance"
 
+#: ../chat-ui/src/artifacts/document/document-view.tsx
+msgid "Type / for blocks…"
+msgstr "Type / for blocks…"
+
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "Unarchive"
 msgstr "Unarchive"
@@ -6477,8 +6755,8 @@ msgid "Use"
 msgstr "Use"
 
 #: ../library-ui/src/components/prompt-form.tsx
-msgid "Use {example} for a value people fill in when they use the prompt."
-msgstr "Use {example} for a value people fill in when they use the prompt."
+msgid "Use {example} for a value people fill in when they use the prompt. Type / to insert a variable or another prompt."
+msgstr "Use {example} for a value people fill in when they use the prompt. Type / to insert a variable or another prompt."
 
 #: ../chat-ui/src/artifacts/artifact-actions.tsx
 msgid "Use {title} in a chat"
@@ -6500,6 +6778,10 @@ msgstr "Use a web (https://) or email (mailto:) address."
 msgid "Use an email address from an approved domain."
 msgstr "Use an email address from an approved domain."
 
+#: ../chat-ui/src/artifacts/document/block-menu.tsx
+msgid "Use an https:// address or a file in this app."
+msgstr "Use an https:// address or a file in this app."
+
 #: ../../apps/desktop/src/renderer/setup-screen.tsx
 msgid "Use an https:// address. Plain http:// only works for this computer."
 msgstr "Use an https:// address. Plain http:// only works for this computer."
@@ -6517,6 +6799,10 @@ msgstr "Use lets people chat with it. View also shows its instructions and lets 
 #: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
 msgid "Use the {name} tool"
 msgstr "Use the {name} tool"
+
+#: ../library-ui/src/components/skills-section.tsx
+msgid "Use when writing release notes from a list of changes."
+msgstr "Use when writing release notes from a list of changes."
 
 #: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
 msgid "Used"
@@ -6770,8 +7056,12 @@ msgid "What should it do each time?"
 msgstr "What should it do each time?"
 
 #: ../library-ui/src/components/agent-form.tsx
-msgid "What the agent is for and how it should behave. People who can only use the agent never see this."
-msgstr "What the agent is for and how it should behave. People who can only use the agent never see this."
+msgid "What the agent is for and how it should behave. People who can only use the agent never see this. Type / to insert a skill, a prompt or a variable."
+msgstr "What the agent is for and how it should behave. People who can only use the agent never see this. Type / to insert a skill, a prompt or a variable."
+
+#: ../chat-ui/src/artifacts/document/block-menu.tsx
+msgid "What the image shows"
+msgstr "What the image shows"
 
 #: ../chat-ui/src/conversation/feedback.tsx
 msgid "What went wrong? (optional)"
@@ -6806,9 +7096,17 @@ msgstr "When someone shares an item with you or your team, it shows up here."
 msgid "When spent"
 msgstr "When spent"
 
+#: ../library-ui/src/components/skills-section.tsx
+msgid "When the agent should use it. The agent reads this to decide."
+msgstr "When the agent should use it. The agent reads this to decide."
+
 #: ../../apps/web/app/(app)/(pages)/dots/dot-profile.tsx
 msgid "When to ask first"
 msgstr "When to ask first"
+
+#: ../library-ui/src/components/skills-section.tsx
+msgid "When to use it"
+msgstr "When to use it"
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "Where members of this org may hold chats. The context decides whose keys pay and where usage counts."
@@ -6895,6 +7193,10 @@ msgstr "Workspace panel"
 msgid "Would send “{submitted}”."
 msgstr "Would send “{submitted}”."
 
+#: ../library-ui/src/components/skills-section.tsx
+msgid "Write a skill"
+msgstr "Write a skill"
+
 #: ../chat-ui/src/conversation/empty-state.tsx
 msgid "Write a small TypeScript function that groups a list of dates by ISO week, with a couple of tests."
 msgstr "Write a small TypeScript function that groups a list of dates by ISO week, with a couple of tests."
@@ -6915,6 +7217,10 @@ msgstr "Yesterday"
 #: ../library-ui/src/components/badges.tsx
 msgid "You"
 msgstr "You"
+
+#: ../library-ui/src/components/agent-form.tsx
+msgid "You are…"
+msgstr "You are…"
 
 #: ../../apps/desktop/src/renderer/setup-screen.tsx
 msgid "You can change it later from the app menu."
