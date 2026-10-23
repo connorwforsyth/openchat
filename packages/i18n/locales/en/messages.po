@@ -255,6 +255,10 @@ msgstr "{name}, page {0}"
 msgid "{name}, your Dot"
 msgstr "{name}, your Dot"
 
+#: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
+msgid "{name}'s computer options"
+msgstr "{name}'s computer options"
+
 #: ../chat-ui/src/conversation/skill-card.tsx
 msgid "{name}'s library"
 msgstr "{name}'s library"
@@ -997,6 +1001,7 @@ msgstr "Can't reach the server"
 
 #: ../../apps/web/app/(app)/_shared/confirm.tsx
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
+#: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
 #: ../chat-ui/src/artifacts/artifact-actions.tsx
 #: ../chat-ui/src/artifacts/document/document-view.tsx
 #: ../chat-ui/src/artifacts/plan-editor.tsx
@@ -1286,8 +1291,16 @@ msgid "Computer"
 msgstr "Computer"
 
 #: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
+msgid "Computer options"
+msgstr "Computer options"
+
+#: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
 msgid "Computers aren't set up on this server"
 msgstr "Computers aren't set up on this server"
+
+#: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
+msgid "Computers aren't set up on this server."
+msgstr "Computers aren't set up on this server."
 
 #: ../../apps/desktop/src/renderer/setup-screen.tsx
 #: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
@@ -1486,6 +1499,14 @@ msgstr "Couldn't reach this {singular} to list its tools."
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Couldn't read {code}"
 msgstr "Couldn't read {code}"
+
+#: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
+msgid "Couldn't reset {name}'s computer"
+msgstr "Couldn't reset {name}'s computer"
+
+#: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
+msgid "Couldn't restart {name}'s computer"
+msgstr "Couldn't restart {name}'s computer"
 
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Couldn't run {code}"
@@ -4746,9 +4767,21 @@ msgstr "Reset"
 msgid "Reset {description}"
 msgstr "Reset {description}"
 
+#: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
+msgid "Reset {name}'s computer?"
+msgstr "Reset {name}'s computer?"
+
 #: ../shortcuts/src/react/shortcuts-editor.tsx
 msgid "Reset all"
 msgstr "Reset all"
+
+#: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
+msgid "Reset computer"
+msgstr "Reset computer"
+
+#: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
+msgid "Reset computer…"
+msgstr "Reset computer…"
 
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Reset the workspace?"
@@ -4771,6 +4804,10 @@ msgstr "Reset zoom and pan"
 msgid "Resets {resets}"
 msgstr "Resets {resets}"
 
+#: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
+msgid "Resetting…"
+msgstr "Resetting…"
+
 #: ../chat-ui/src/shell/app-shell.tsx
 msgid "Resize side panel"
 msgstr "Resize side panel"
@@ -4783,6 +4820,10 @@ msgstr "Resize sidebar"
 msgid "Resize the browser"
 msgstr "Resize the browser"
 
+#: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
+msgid "Restart computer"
+msgstr "Restart computer"
+
 #: ../chat-ui/src/artifacts/presenter.tsx
 msgid "Restart the timer"
 msgstr "Restart the timer"
@@ -4790,6 +4831,10 @@ msgstr "Restart the timer"
 #: ../../apps/desktop/src/main/menu.ts
 msgid "Restart to Update"
 msgstr "Restart to Update"
+
+#: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
+msgid "Restarting…"
+msgstr "Restarting…"
 
 #: ../../apps/web/app/(app)/_shared/settings/memory-settings.tsx
 #: ../chat-ui/src/artifacts/document/document-view.tsx
@@ -6009,6 +6054,10 @@ msgstr "The chat's model sees its latest version and, if you can edit it, can ma
 msgid "The chat's Workspace panel (files, editor, preview and artifacts) over a just-bash workspace that runs entirely in this browser tab: simulated bash, an in-memory filesystem, no server and no network. Reloading the page starts over."
 msgstr "The chat's Workspace panel (files, editor, preview and artifacts) over a just-bash workspace that runs entirely in this browser tab: simulated bash, an in-memory filesystem, no server and no network. Reloading the page starts over."
 
+#: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
+msgid "The computer isn't available right now. Check that the sandbox runner is running."
+msgstr "The computer isn't available right now. Check that the sandbox runner is running."
+
 #: ../chat-ui/src/artifacts/presentation-preview.tsx
 msgid "The deck couldn't be exported: {exportError}"
 msgstr "The deck couldn't be exported: {exportError}"
@@ -6328,6 +6377,10 @@ msgstr "This server signs people in with single sign-on, and none is set up yet.
 #: ../../apps/web/app/(app)/(pages)/admin/_components/audit-policy.tsx
 msgid "This server's configuration forbids audit policies, so admins can't read chat content in any org."
 msgstr "This server's configuration forbids audit policies, so admins can't read chat content in any org."
+
+#: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
+msgid "This stops what {name} is doing and erases everything on its computer: files, downloads and browser data. It starts again empty. This can't be undone."
+msgstr "This stops what {name} is doing and erases everything on its computer: files, downloads and browser data. It starts again empty. This can't be undone."
 
 #: ../chat-ui/src/artifacts/publish-dialog.tsx
 msgid "This version can't be published yet:"

@@ -37,6 +37,8 @@ const baseTurn: Turn = {
 };
 
 const computers: DotComputers = {
+  reset: () => Promise.reject(new Error("unused")),
+  restart: () => Promise.reject(new Error("unused")),
   setControl: () => Promise.reject(new Error("unused")),
   tools: () => ({ [COMPUTER_TOOL]: fakeTool(COMPUTER_TOOL) }),
   view: () => Promise.reject(new Error("unused")),

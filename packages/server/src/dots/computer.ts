@@ -1,10 +1,19 @@
-import type { ConversationId } from "@workspace/contract/schemas/common";
+import type { RunExecutor } from "@workspace/ai/ports/run-executor";
+import type {
+  ConversationId,
+  UserId,
+} from "@workspace/contract/schemas/common";
 import type { Db } from "@workspace/db/client";
 import { getDotByConversation } from "@workspace/db/queries/dots";
+import { listActiveRuns } from "@workspace/db/queries/runs";
 import type { AsyncResult } from "@workspace/shared/result";
 import type { Tool } from "ai";
 import type { Turn, TurnResolver } from "../runs/turn";
-import type { ComputerHolder, ComputerView } from "./computer-view";
+import type {
+  ComputerHolder,
+  ComputerPowerAction,
+  ComputerView,
+} from "./computer-view";
 
 // A Dot's own computer (172). `@workspace/sandbox` builds the desktop and the
 // `computer` tool (it depends on this package, so the shell binds it in);
@@ -22,6 +31,14 @@ export const COMPUTER_INSTRUCTIONS =
 
 /** The desktop side, bound by the shell from `@workspace/sandbox`. A port. */
 export interface DotComputers {
+  /** Wipes the computer and its files, then starts a fresh one. */
+  readonly reset: (
+    conversationId: ConversationId
+  ) => AsyncResult<ComputerView, unknown>;
+  /** Restarts the computer, keeping its files; starts it if it's stopped. */
+  readonly restart: (
+    conversationId: ConversationId
+  ) => AsyncResult<ComputerView, unknown>;
   readonly setControl: (
     conversationId: ConversationId,
     holder: ComputerHolder
@@ -33,6 +50,32 @@ export interface DotComputers {
     conversationId: ConversationId
   ) => AsyncResult<ComputerView, unknown>;
 }
+
+export interface PowerCycleDeps {
+  readonly computers: DotComputers;
+  readonly db: Db;
+  readonly executor: Pick<RunExecutor, "cancel">;
+}
+
+/**
+ * Stops the conversation's runs as Stop would, then restarts or resets its
+ * computer, so no turn acts on a computer going away under it. The newest
+ * run goes first: stopping the one being written first would start the
+ * queued turn behind it. A run that ended meanwhile is already stopped.
+ */
+export const powerCycleComputer = async (
+  { computers, db, executor }: PowerCycleDeps,
+  conversationId: ConversationId,
+  action: ComputerPowerAction,
+  by: UserId
+): AsyncResult<ComputerView, unknown> => {
+  const active = await listActiveRuns(db, conversationId);
+  for (const run of [...active].reverse()) {
+    // biome-ignore lint/performance/noAwaitInLoops: each stop settles before the run behind it can start.
+    await executor.cancel(run.id, by);
+  }
+  return computers[action](conversationId);
+};
 
 /** Whether a conversation is a Dot's. A port, so tests fake it. */
 export type DotConversationCheck = (
