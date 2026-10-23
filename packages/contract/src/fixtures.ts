@@ -82,6 +82,7 @@ export const conversation: Conversation = {
   defaultTarget: { model: "strong", type: "model" },
   id: fixtureId("conversation", 1),
   lastMessageAt: fixtureTime(3),
+  mode: "code",
   myPermission: "owner",
   myState: {
     activeLeafId: fixtureId("message", 4),
