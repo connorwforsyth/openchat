@@ -13,7 +13,6 @@ import { opaqueBounds } from "./slide-rules";
 
 /** Twice the canvas, so a page stays sharp when zoomed or printed. */
 const PIXEL_RATIO = 2;
-/** JPEG keeps a flattened page exact to the eye at a fraction of PNG's size. */
 const PAGE_QUALITY = 0.95;
 const ISOLATE = "deck-raster-isolate";
 const TARGET = "data-deck-raster-target";
