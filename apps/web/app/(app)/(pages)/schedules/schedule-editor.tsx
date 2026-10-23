@@ -9,11 +9,12 @@ import {
   useRecurrenceText,
 } from "@workspace/chat-ui/conversation/schedule-text";
 import type { ConversationId } from "@workspace/contract/schemas/common";
-import type {
-  Schedule,
-  ScheduleNotify,
-  ScheduleRecurrence,
-  ScheduleTarget,
+import {
+  DEFAULT_SCHEDULE_EMOJI,
+  type Schedule,
+  type ScheduleNotify,
+  type ScheduleRecurrence,
+  type ScheduleTarget,
 } from "@workspace/contract/schemas/schedules";
 import { ChevronDownIcon } from "@workspace/icons";
 import { Button } from "@workspace/ui/components/button";
@@ -51,6 +52,8 @@ import {
 import { useApi } from "@/app/(app)/_shared/api";
 import { type Option, OptionSelect } from "@/app/(app)/_shared/option-select";
 
+import { EmojiPicker } from "./emoji-picker";
+
 // Making or editing a scheduled task (183): a title, the task, and "When"
 // in plain words ("every weekday at 9am") read back as the rule and the
 // next run before you save. The chat's Proposed card is the other way in;
@@ -58,6 +61,7 @@ import { type Option, OptionSelect } from "@/app/(app)/_shared/option-select";
 
 /** What the editor starts from: a stored schedule, or a template. */
 export interface ScheduleSeed {
+  readonly emoji?: string;
   readonly notify?: ScheduleNotify;
   readonly prompt: string;
   readonly target?: ScheduleTarget;
@@ -80,6 +84,11 @@ const zones = (): readonly string[] => {
     return ["UTC"];
   }
 };
+
+const emojiOf = (
+  schedule: Schedule | null,
+  seed: ScheduleSeed | null
+): string => schedule?.emoji ?? seed?.emoji ?? DEFAULT_SCHEDULE_EMOJI;
 
 type TargetChoice = "dot" | "chat" | "new";
 
@@ -127,6 +136,7 @@ export function ScheduleEditor({
   const say = useRecurrenceText();
   const limits = useQuery(query.schedules.limits.queryOptions({ input: {} }));
   const [title, setTitle] = useState(schedule?.title ?? seed?.title ?? "");
+  const [emoji, setEmoji] = useState(() => emojiOf(schedule, seed));
   const [prompt, setPrompt] = useState(schedule?.prompt ?? seed?.prompt ?? "");
   const [when, setWhen] = useState(seed?.when ?? "");
   const [timezone, setTimezone] = useState(
@@ -205,6 +215,7 @@ export function ScheduleEditor({
         throw new Error("unparsed");
       }
       const fields = {
+        emoji,
         notify,
         prompt: prompt.trim(),
         recurrence: parsed.recurrence,
@@ -277,14 +288,17 @@ export function ScheduleEditor({
             <FieldLabel htmlFor={`${ids}-title`}>
               <Trans>Name</Trans>
             </FieldLabel>
-            <Input
-              autoComplete="off"
-              id={`${ids}-title`}
-              maxLength={80}
-              onChange={change(setTitle)}
-              placeholder={t`Morning brief`}
-              value={title}
-            />
+            <div className="flex gap-2">
+              <EmojiPicker onChange={setEmoji} value={emoji} />
+              <Input
+                autoComplete="off"
+                id={`${ids}-title`}
+                maxLength={80}
+                onChange={change(setTitle)}
+                placeholder={t`Morning brief`}
+                value={title}
+              />
+            </div>
           </Field>
 
           <Field>

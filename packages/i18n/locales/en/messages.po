@@ -607,6 +607,10 @@ msgstr "Agents, prompts, skills and MCP servers: yours, shared with you, and pub
 msgid "AI Elements"
 msgstr "AI Elements"
 
+#: ../../apps/web/app/(app)/(pages)/schedules/emoji-picker.tsx
+msgid "Alarm clock"
+msgstr "Alarm clock"
+
 #: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
 #: ../../apps/web/app/(app)/(pages)/schedules/schedules-screen.tsx
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
@@ -639,7 +643,7 @@ msgstr "Already have an account? <0>Sign in</0>"
 msgid "Already used by “{other}”."
 msgstr "Already used by “{other}”."
 
-#. placeholder {0}: say(TEMPLATE_CRON[template])
+#. placeholder {0}: say(TEMPLATE_SCHEDULE[template].cron)
 #: ../../apps/web/app/(app)/(pages)/dots/onboarding.tsx
 msgid "Also check in {0}"
 msgstr "Also check in {0}"
@@ -889,6 +893,10 @@ msgstr "Bad answer"
 msgid "Base URL (optional)"
 msgstr "Base URL (optional)"
 
+#: ../../apps/web/app/(app)/(pages)/schedules/emoji-picker.tsx
+msgid "Bell"
+msgstr "Bell"
+
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgctxt "artifact kind badge"
 msgid "Beta"
@@ -913,6 +921,10 @@ msgstr "Bloom"
 #: ../chat-ui/src/artifacts/document/document-toolbar.tsx
 msgid "Bold"
 msgstr "Bold"
+
+#: ../../apps/web/app/(app)/(pages)/schedules/emoji-picker.tsx
+msgid "Brain"
+msgstr "Brain"
 
 #: ../chat-ui/src/header/branch-switcher.tsx
 msgid "Branches"
@@ -969,6 +981,10 @@ msgstr "By model"
 #: ../../apps/web/app/(app)/_shared/settings/usage-settings.tsx
 msgid "By person"
 msgstr "By person"
+
+#: ../../apps/web/app/(app)/(pages)/schedules/emoji-picker.tsx
+msgid "Calendar"
+msgstr "Calendar"
 
 #: ../chat-ui/src/voice/voice-call.tsx
 msgid "Call ended"
@@ -1041,6 +1057,10 @@ msgstr "Change {number} accepted"
 msgid "Change {number} rejected"
 msgstr "Change {number} rejected"
 
+#: ../../apps/web/app/(app)/(pages)/schedules/emoji-picker.tsx
+msgid "Change emoji, now {value}"
+msgstr "Change emoji, now {value}"
+
 #: ../../apps/desktop/src/main/menu.ts
 msgid "Change Server…"
 msgstr "Change Server…"
@@ -1085,6 +1105,10 @@ msgstr "Changing a skill"
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Changing the skill {name}"
 msgstr "Changing the skill {name}"
+
+#: ../../apps/web/app/(app)/(pages)/schedules/emoji-picker.tsx
+msgid "Chart"
+msgstr "Chart"
 
 #: ../../apps/desktop/src/main/menu.ts
 #: ../chat-ui/src/artifacts/artifact-full-view.tsx
@@ -1154,6 +1178,10 @@ msgstr "Check for Updates…"
 #: ../../apps/web/app/(app)/(pages)/dots/dot-home.tsx
 msgid "Check in now"
 msgstr "Check in now"
+
+#: ../../apps/web/app/(app)/(pages)/schedules/emoji-picker.tsx
+msgid "Check mark"
+msgstr "Check mark"
 
 #: ../../apps/web/app/(auth)/invite/[token]/page.tsx
 msgid "Check that you copied the whole link, or ask for a new one."
@@ -2908,6 +2936,10 @@ msgstr "light"
 msgid "Light"
 msgstr "Light"
 
+#: ../../apps/web/app/(app)/(pages)/schedules/emoji-picker.tsx
+msgid "Light bulb"
+msgstr "Light bulb"
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "Limit (USD)"
 msgstr "Limit (USD)"
@@ -3003,6 +3035,14 @@ msgstr "Low"
 #: ../library-ui/src/components/prompt-form.tsx
 msgid "Lowercase letters, digits and dashes. Type / and this in the composer to use it."
 msgstr "Lowercase letters, digits and dashes. Type / and this in the composer to use it."
+
+#: ../../apps/web/app/(app)/(pages)/schedules/emoji-picker.tsx
+msgid "Magnifying glass"
+msgstr "Magnifying glass"
+
+#: ../../apps/web/app/(app)/(pages)/schedules/emoji-picker.tsx
+msgid "Mailbox"
+msgstr "Mailbox"
 
 #: ../library-ui/src/components/badges.tsx
 msgid "Maintainer"
@@ -3260,6 +3300,10 @@ msgstr "Monthly on the 1st"
 msgid "Monthly token pool for {0}"
 msgstr "Monthly token pool for {0}"
 
+#: ../../apps/web/app/(app)/(pages)/schedules/emoji-picker.tsx
+msgid "Moon"
+msgstr "Moon"
+
 #: ../chat-ui/src/header/overflow-menu.tsx
 #: ../library-ui/src/components/item-builder.tsx
 msgid "More actions"
@@ -3458,6 +3502,10 @@ msgstr "New variable"
 #: ../chat-ui/src/artifacts/spreadsheet/spreadsheet-view.tsx
 msgid "Newer version"
 msgstr "Newer version"
+
+#: ../../apps/web/app/(app)/(pages)/schedules/emoji-picker.tsx
+msgid "Newspaper"
+msgstr "Newspaper"
 
 #: ../../apps/web/app/(app)/(pages)/dots/onboarding.tsx
 #: ../chat-ui/src/artifacts/presentation-preview.tsx
@@ -5751,6 +5799,7 @@ msgid "Suggestions"
 msgstr "Suggestions"
 
 #: ../../apps/web/app/(app)/(pages)/dots/avatar-picker.tsx
+#: ../../apps/web/app/(app)/(pages)/schedules/emoji-picker.tsx
 msgid "Sun"
 msgstr "Sun"
 

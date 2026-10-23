@@ -16,11 +16,13 @@ export const DOT_TEMPLATE_IDS: readonly DotTemplateId[] = [
   "weekly-review",
 ];
 
-/** When each template's starter schedule runs, in the owner's time zone. */
-export const TEMPLATE_CRON: Readonly<Record<DotTemplateId, string>> = {
-  "daily-brief": "0 8 * * *",
-  "follow-up": "0 9 * * 1-5",
-  "weekly-review": "0 16 * * 5",
+/** Each template's starter schedule: when it runs, in the owner's time zone, and its label. */
+export const TEMPLATE_SCHEDULE: Readonly<
+  Record<DotTemplateId, { readonly cron: string; readonly emoji: string }>
+> = {
+  "daily-brief": { cron: "0 8 * * *", emoji: "☀️" },
+  "follow-up": { cron: "0 9 * * 1-5", emoji: "🔔" },
+  "weekly-review": { cron: "0 16 * * 5", emoji: "🗓️" },
 };
 
 export interface DotTemplateText {
@@ -37,6 +39,7 @@ export interface OnboardingDraft {
   /** The starter schedule, when the owner kept one. */
   readonly schedule: {
     readonly cron: string;
+    readonly emoji: string;
     readonly prompt: string;
     readonly timezone: string;
   } | null;

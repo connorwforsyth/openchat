@@ -278,6 +278,7 @@ export const createSchedule = async (
       autoApproveTools: [...input.autoApproveTools],
       conversationId: target.value.conversationId,
       dotId: target.value.dotId,
+      emoji: input.emoji,
       enabled: active,
       id,
       missedRunPolicy: input.missedRunPolicy,
@@ -321,6 +322,7 @@ const editColumns = (input: UpdateScheduleInput) => ({
   ...(input.autoApproveTools
     ? { autoApproveTools: [...input.autoApproveTools] }
     : {}),
+  ...(input.emoji ? { emoji: input.emoji } : {}),
   ...(input.missedRunPolicy ? { missedRunPolicy: input.missedRunPolicy } : {}),
   ...(input.notify ? { notify: input.notify } : {}),
   ...(input.prompt === undefined ? {} : { prompt: input.prompt }),
@@ -576,7 +578,11 @@ const postScheduleRun = async (
         parentId: await latestMessageId(db, conversationId),
         parts: [
           {
-            data: { scheduleId: schedule.id, title: schedule.title },
+            data: {
+              emoji: schedule.emoji,
+              scheduleId: schedule.id,
+              title: schedule.title,
+            },
             name: SCHEDULED_TASK_DATA,
             type: "data",
           },

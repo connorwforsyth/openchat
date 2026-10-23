@@ -42,7 +42,7 @@ import {
   type DotTemplateText,
   type OnboardingDraft,
   suggestedAvatar,
-  TEMPLATE_CRON,
+  TEMPLATE_SCHEDULE,
 } from "./templates";
 
 // Making a Dot (172): not a form with a cron in it, but three short steps
@@ -144,6 +144,7 @@ function TemplateButton({
       type="button"
       variant={picked ? "secondary" : "outline"}
     >
+      <span aria-hidden>{TEMPLATE_SCHEDULE[id].emoji}</span>
       {template.label}
     </Button>
   );
@@ -265,7 +266,7 @@ function PurposeStep({
             type="checkbox"
           />
           <span>
-            <Trans>Also check in {say(TEMPLATE_CRON[template])}</Trans>
+            <Trans>Also check in {say(TEMPLATE_SCHEDULE[template].cron)}</Trans>
           </span>
         </label>
       ) : null}
@@ -344,7 +345,7 @@ export function DotOnboarding({ existing, onCreated }: DotOnboardingProps) {
       const schedule =
         template && keepSchedule
           ? {
-              cron: TEMPLATE_CRON[template],
+              ...TEMPLATE_SCHEDULE[template],
               prompt: templates[template].task,
               timezone: localTimeZone(),
             }
