@@ -15,6 +15,12 @@ import {
 // it's on, and the public origins sites may load from.
 
 export interface ArtifactKindSettings {
+  /**
+   * The kinds the instance offers (`artifacts.kinds.enabled`); every
+   * built-in kind when left out. A kind not here can't be made or changed;
+   * its artifacts still render, from the built-in definitions.
+   */
+  readonly enabled?: readonly string[];
   readonly site: {
     readonly allowedOrigins: readonly string[];
     readonly enabled: boolean;
@@ -44,22 +50,26 @@ export const instanceArtifactKinds = (
   { compileTsx, design = {} }: ArtifactKindPorts = {}
 ): ArtifactKindRegistry => {
   const { site: _defaults, ...others } = builtinKindDefinitions;
-  return createArtifactKindRegistry([
-    // In place, so the kinds keep their order.
-    ...Object.values({
-      ...others,
-      presentation: presentationKindWith({
-        compile: compileTsx,
-        design: design.presentation,
+  const offered = (kind: string) =>
+    settings.enabled === undefined || settings.enabled.includes(kind);
+  return createArtifactKindRegistry(
+    [
+      // In place, so the kinds keep their order.
+      ...Object.values({
+        ...others,
+        presentation: presentationKindWith({
+          compile: compileTsx,
+          design: design.presentation,
+        }),
       }),
-    }),
-    ...(settings.site.enabled
-      ? [
-          siteKind({
-            allowedOrigins: settings.site.allowedOrigins,
-            design: design.site,
-          }),
-        ]
-      : []),
-  ]);
+      ...(settings.site.enabled
+        ? [
+            siteKind({
+              allowedOrigins: settings.site.allowedOrigins,
+              design: design.site,
+            }),
+          ]
+        : []),
+    ].filter((definition) => offered(definition.kind))
+  );
 };

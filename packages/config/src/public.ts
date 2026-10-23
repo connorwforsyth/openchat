@@ -1,3 +1,4 @@
+import type { ArtifactKind } from "@workspace/contract/schemas/message-parts";
 import {
   featureFlagSchema,
   type PublicConfig,
@@ -32,6 +33,15 @@ export const availableSandboxProviders = (
 };
 
 /**
+ * The kinds the instance offers: its allow-list, without sites while the
+ * Site kind's own switch is off.
+ */
+export const offeredKinds = (config: AppConfig): ArtifactKind[] =>
+  config.artifacts.kinds.enabled.filter(
+    (kind) => kind !== "site" || config.artifacts.kinds.site.enabled
+  );
+
+/**
  * `env` is where environment-only social sign-in comes from
  * (`GITHUB_CLIENT_ID` and friends); pass `process.env` at the shell.
  */
@@ -45,7 +55,10 @@ export const toPublicConfig = (
   const microsoft = microsoftSsoOf(config.auth);
   return {
     // The runtime builds a site's CSP from these (125); none while sites are off.
-    artifacts: { siteOrigins: site.enabled ? site.allowedOrigins : [] },
+    artifacts: {
+      kinds: offeredKinds(config),
+      siteOrigins: site.enabled ? site.allowedOrigins : [],
+    },
     auth: {
       providers: [
         ...config.auth.oidc.map(({ id, name }) => ({ id, name })),

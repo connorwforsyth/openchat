@@ -206,6 +206,12 @@ mcp:
 artifacts:
   origin: null              # a separate origin for artifacts and previews, e.g. https://artifacts.example.com
   kinds:
+    # The kinds people and the model may make. A kind left out isn't offered
+    # (the model's tools, "Make something new", the kind filters); artifacts
+    # of it still open, read only. Off by default: markdown (documents stand
+    # in), html and react (sites stand in) and code (Code mode). Add any of
+    # them back to this list to turn it on.
+    enabled: [document, site, presentation, spreadsheet, diagram, mermaid, svg, image]
     site:                   # Sites (125): small static websites, published to a link on the runtime's origin
       enabled: true
       # stack: deprecated and ignored (163). Pages are TSX built from

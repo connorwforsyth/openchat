@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 // set ids, and the config enum has to stay equal to them.
 import { iconSetIds } from "../../icons/src/set-ids";
 import { toPublicConfig } from "./public";
-import { appConfigSchema } from "./schema";
+import { appConfigSchema, DEFAULT_ARTIFACT_KINDS } from "./schema";
 
 describe("appConfigSchema", () => {
   it("offers exactly the icon sets packages/icons knows", () => {
@@ -167,6 +167,44 @@ describe("appConfigSchema", () => {
         artifacts: { kinds: { site: { enabled: false } } },
       });
       expect(toPublicConfig(off).artifacts.siteOrigins).toEqual([]);
+    });
+  });
+
+  describe("artifacts.kinds.enabled", () => {
+    it("offers every kind but markdown, html, react and code by default", () => {
+      const { kinds } = toPublicConfig(appConfigSchema.parse({})).artifacts;
+      expect(kinds).toEqual([...DEFAULT_ARTIFACT_KINDS]);
+      for (const off of ["markdown", "html", "react", "code"]) {
+        expect(kinds).not.toContain(off);
+      }
+    });
+
+    it("brings a kind back when it's listed, and leaves sites out while their switch is off", () => {
+      const config = appConfigSchema.parse({
+        artifacts: {
+          kinds: {
+            enabled: ["document", "html", "site", "html"],
+            site: { enabled: false },
+          },
+        },
+      });
+      expect(config.artifacts.kinds.enabled).toEqual([
+        "document",
+        "html",
+        "site",
+      ]);
+      expect(toPublicConfig(config).artifacts.kinds).toEqual([
+        "document",
+        "html",
+      ]);
+    });
+
+    it("refuses a kind that doesn't exist", () => {
+      expect(
+        appConfigSchema.safeParse({
+          artifacts: { kinds: { enabled: ["pdf"] } },
+        }).success
+      ).toBe(false);
     });
   });
 });

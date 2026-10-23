@@ -1,11 +1,13 @@
 import { builtinArtifactKinds } from "@workspace/artifacts-kit/builtin";
 import { importsAllowed } from "@workspace/artifacts-kit/checks";
 import { defineArtifactKind } from "@workspace/artifacts-kit/define";
+import { instanceArtifactKinds } from "@workspace/artifacts-kit/instance";
 import { reactKind } from "@workspace/artifacts-kit/kinds/react";
 import { createArtifactKindRegistry } from "@workspace/artifacts-kit/registry";
 import type { ArtifactId } from "@workspace/contract/schemas/common";
 import { newId } from "@workspace/shared/ids";
 import { ok } from "@workspace/shared/result";
+import { asSchema } from "ai";
 import { describe, expect, it } from "vitest";
 
 import { RECORDED_REPLIES } from "../../evals/artifacts/fixtures";
@@ -257,5 +259,41 @@ describe("a kind's checks", () => {
       await createArtifactTools(store).create_artifact.execute?.(input, call)
     ).toMatchObject({ status: "saved" });
     expect(saved).toHaveLength(1);
+  });
+});
+
+describe("an instance that turns kinds off", () => {
+  const offered = instanceArtifactKinds({
+    enabled: ["document", "site", "svg"],
+    site: { allowedOrigins: [], enabled: true },
+  });
+
+  it("never offers the model a kind it turned off", async () => {
+    const tools = createArtifactTools(
+      {
+        list: () => Promise.resolve([]),
+        read: () => Promise.resolve(null),
+        save: () => Promise.reject(new Error("not saved in this test")),
+      },
+      offered
+    );
+    const schema = JSON.stringify(
+      await asSchema(tools.create_artifact.inputSchema).jsonSchema
+    );
+    expect(schema).toContain('"enum":["svg","site","document"]');
+    for (const off of ["html", "react", "markdown", "code"]) {
+      expect(schema).not.toContain(`"${off}"`);
+      expect(schema).not.toContain(`${off}:`);
+    }
+    expect(tools.create_artifact.description).toContain(
+      "(a document, a web page or an SVG image)"
+    );
+  });
+
+  it("leaves its kinds' guides out", () => {
+    expect(offered.instructionFiles().map((file) => file.source)).toEqual([
+      "kinds/document",
+      "kinds/site",
+    ]);
   });
 });

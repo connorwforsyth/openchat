@@ -1,3 +1,7 @@
+import {
+  type ArtifactKind,
+  artifactKindSchema,
+} from "@workspace/contract/schemas/message-parts";
 import { featureFlagSchema } from "@workspace/contract/schemas/meta";
 import {
   AUTO_MODEL,
@@ -861,6 +865,23 @@ const mcpSchema = z
  * they may load fonts, styles, scripts and images from. The site's CSP blocks everything else.
  * Admins edit it here; it applies on restart.
  */
+/**
+ * The kinds an instance offers unless its config says otherwise (Connor,
+ * night 2): documents stand in for Markdown, sites for single web pages and
+ * React components, and code belongs to Code mode, so markdown, html, react
+ * and code are off. Listing them in `artifacts.kinds.enabled` brings them back.
+ */
+export const DEFAULT_ARTIFACT_KINDS = [
+  "document",
+  "site",
+  "presentation",
+  "spreadsheet",
+  "diagram",
+  "mermaid",
+  "svg",
+  "image",
+] as const satisfies readonly ArtifactKind[];
+
 const siteKindSchema = z
   .strictObject({
     allowedOrigins: z
@@ -926,8 +947,21 @@ const voiceSchema = z
 
 const artifactsSchema = z
   .strictObject({
-    /** Per-kind settings (the framework's instance layer), today sites. */
-    kinds: z.strictObject({ site: siteKindSchema }).prefault({}),
+    /** Per-kind settings (the framework's instance layer). */
+    kinds: z
+      .strictObject({
+        /**
+         * The kinds people and the model may make: an allow-list. A kind
+         * left out isn't offered (the model's tools, the Artifacts page);
+         * artifacts of it still open, read only.
+         */
+        enabled: z
+          .array(artifactKindSchema)
+          .default([...DEFAULT_ARTIFACT_KINDS])
+          .transform((kinds) => [...new Set(kinds)]),
+        site: siteKindSchema,
+      })
+      .prefault({}),
     /** Separate origin for artifacts and previews (D24); `null` serves them sandboxed from a data origin. */
     origin: z.url().nullable().default(null),
   })

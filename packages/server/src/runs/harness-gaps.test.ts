@@ -537,7 +537,8 @@ describe("connector switches at runtime (188)", () => {
 });
 
 describe("artifacts at runtime", () => {
-  const page = "<!doctype html><html><body><h1>Hello</h1></body></html>";
+  const page =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><text>Hello</text></svg>';
 
   it("creates an artifact and then its next version, each once approved", async () => {
     const { db } = testDb;
@@ -548,7 +549,7 @@ describe("artifacts at runtime", () => {
         toolCallStream(CREATE_ARTIFACT_TOOL, {
           content: page,
           title: "Landing page",
-          type: "html",
+          type: "svg",
         }),
       // The first turn's closing words.
       () => textStream("Made it."),
@@ -570,7 +571,7 @@ describe("artifacts at runtime", () => {
       expect(created.run.status).toBe("succeeded");
       const [artifact] = await listArtifacts(db, first.conversationId);
       expect(artifact).toMatchObject({
-        kind: "html",
+        kind: "svg",
         messageId: created.answer.id,
         title: "Landing page",
       });
@@ -585,7 +586,7 @@ describe("artifacts at runtime", () => {
         created.answer.parts.find((part) => part.type === "artifact-ref")
       ).toEqual({
         artifactId,
-        kind: "html",
+        kind: "svg",
         title: "Landing page",
         type: "artifact-ref",
         versionId: artifact?.latestVersionId,
