@@ -43,7 +43,8 @@ const VIEW_READY_SECONDS = 30;
  * desktop just started or restarted takes a few seconds to bring it up, and
  * a frame loaded before then stays on the preview proxy's error page.
  */
-const VIEW_READY_COMMAND = `bash -c 'for _ in $(seq ${VIEW_READY_SECONDS * 2}); do (: < /dev/tcp/127.0.0.1/${DESKTOP_VIEW_PORT}) 2>/dev/null && exit 0; sleep 0.5; done'`;
+const viewReadyCommand = (seconds: number) =>
+  `bash -c 'for _ in $(seq ${Math.ceil(seconds * 2)}); do (: < /dev/tcp/127.0.0.1/${DESKTOP_VIEW_PORT}) 2>/dev/null && exit 0; sleep 0.5; done'`;
 
 /** A desktop needs more than a workspace: a browser, a screen. */
 export const DESKTOP_LIMITS: SandboxLimits = {
@@ -130,9 +131,11 @@ const base64Of = (bytes: Uint8Array): string =>
 export const createComputers = ({
   host,
   limits = DESKTOP_LIMITS,
+  viewReadySeconds = VIEW_READY_SECONDS,
 }: {
   readonly host: DesktopHost;
   readonly limits?: SandboxLimits;
+  readonly viewReadySeconds?: number;
 }): Computers => {
   const desktop = (conversationId: ConversationId) =>
     host.createDesktop({ id: desktopIdFor(conversationId), limits });
@@ -141,8 +144,10 @@ export const createComputers = ({
     sandbox: Sandbox
   ): AsyncResult<ComputerHolder, SandboxError> => {
     const ran = await sandbox.exec(
-      `${VIEW_READY_COMMAND}; ${CONTROL_STATUS_COMMAND}`,
-      { timeoutMs: VIEW_READY_SECONDS * 1000 + 5000 }
+      viewReadySeconds > 0
+        ? `${viewReadyCommand(viewReadySeconds)}; ${CONTROL_STATUS_COMMAND}`
+        : CONTROL_STATUS_COMMAND,
+      { timeoutMs: viewReadySeconds * 1000 + 5000 }
     );
     return ran.ok
       ? ok(ran.value.stdout.trim() === "user" ? "user" : "agent")

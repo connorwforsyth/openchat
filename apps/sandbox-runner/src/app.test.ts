@@ -645,7 +645,11 @@ describe("a Dot's computer on the runner", () => {
 
   it("restarts keeping the desktop's files, and starts one if there's none", async () => {
     const { factory, fake } = setup();
-    const computers = createComputers({ host: factory, limits: desktopLimits });
+    const computers = createComputers({
+      host: factory,
+      limits: desktopLimits,
+      viewReadySeconds: 0,
+    });
     const started = await must(computers.restart(conversationId));
     expect(started.holder).toBe("agent");
     const sandbox = await must(factory.attach(desktop));
@@ -659,7 +663,11 @@ describe("a Dot's computer on the runner", () => {
 
   it("resets to a fresh desktop without its files, with or without one", async () => {
     const { factory } = setup();
-    const computers = createComputers({ host: factory, limits: desktopLimits });
+    const computers = createComputers({
+      host: factory,
+      limits: desktopLimits,
+      viewReadySeconds: 0,
+    });
     await must(computers.reset(conversationId));
     const sandbox = await must(factory.attach(desktop));
     await must(sandbox.writeFile("notes.txt", "gone"));
