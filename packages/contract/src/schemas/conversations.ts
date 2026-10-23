@@ -62,7 +62,7 @@ export const conversationSchema = z.object({
    * Chat or Code; new chats start in `chat`. A change applies from the next
    * message. Absent from servers before it, which read as `chat`.
    */
-  mode: chatModeSchema.default("chat"),
+  mode: chatModeSchema.default("chat").optional(),
   myPermission: conversationPermissionSchema,
   myState: participantStateSchema,
   ownerId: userIdSchema,

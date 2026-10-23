@@ -2450,3 +2450,14 @@ describe("run and library helpers", () => {
     );
   });
 });
+
+describe("conversation mode rollout", () => {
+  it("accepts an older producer and defaults its missing mode to chat", () => {
+    const { mode: _mode, ...legacy } = conversation;
+    const producer: z.infer<typeof modules.conversations.conversationSchema> =
+      legacy;
+    expect(modules.conversations.conversationSchema.parse(producer).mode).toBe(
+      "chat"
+    );
+  });
+});
