@@ -55,6 +55,7 @@ const deck: DeckLayout = {
         { h: 100, src: PNG, type: "image", w: 100, x: 1700, y: 900 },
       ],
       notes: "Welcome everyone.",
+      picture: null,
     },
     {
       background: null,
@@ -65,6 +66,7 @@ const deck: DeckLayout = {
         text("   "),
       ],
       notes: "",
+      picture: null,
     },
   ],
   title: "Q3",
@@ -107,9 +109,103 @@ describe("pptxOps", () => {
   });
 });
 
+const chart = (
+  type: "bar" | "line" | "pie",
+  series = [
+    { name: "Q2", values: [12, 9] },
+    { name: "Q3", values: [15] },
+  ]
+): SlideLayout["items"][number] => ({
+  chart: { labels: ["North", "South"], series, type },
+  colors: [ink, accent],
+  fontSize: 28,
+  h: 640,
+  labelColor: ink,
+  type: "chart",
+  w: 1632,
+  x: 144,
+  y: 288,
+});
+
+const only = (item: SlideLayout["items"][number]): SlideLayout => ({
+  background: null,
+  items: [item],
+  notes: "",
+  picture: null,
+});
+
+describe("pptxOps charts", () => {
+  it("makes a bar chart native, a colour a series, missing values zero", () => {
+    expect(pptxOps(only(chart("bar")))).toEqual([
+      {
+        chartType: "bar",
+        data: [
+          { labels: ["North", "South"], name: "Q2", values: [12, 9] },
+          { labels: ["North", "South"], name: "Q3", values: [15, 0] },
+        ],
+        kind: "chart",
+        options: expect.objectContaining({
+          barDir: "col",
+          chartColors: ["141414", "0064C8"],
+          h: 4.444,
+          showLegend: true,
+          showValue: true,
+          w: 11.333,
+          x: 1,
+          y: 2,
+        }),
+      },
+    ]);
+  });
+
+  it("gives a pie its first series, a colour a slice", () => {
+    const [op] = pptxOps(
+      only(chart("pie", [{ name: "Mix", values: [62, 25, 13] }]))
+    );
+    expect(op).toMatchObject({
+      chartType: "pie",
+      data: [{ name: "Mix", values: [62, 25] }],
+      options: { chartColors: ["141414", "0064C8"], showLegend: true },
+    });
+  });
+
+  it("leaves out a chart with nothing to draw", () => {
+    expect(pptxOps(only(chart("line", [])))).toEqual([]);
+  });
+});
+
 describe("pdfOps", () => {
+  it("draws a slide with a picture as that picture under invisible text", () => {
+    const ops = pdfOps({ ...(deck.slides[0] as SlideLayout), picture: PNG });
+    expect(ops.map((op) => op.kind)).toEqual(["image", "text"]);
+    expect(ops[0]).toMatchObject({
+      format: "PNG",
+      h: 810,
+      src: PNG,
+      w: 1440,
+      x: 0,
+      y: 0,
+    });
+    expect(ops[1]).toMatchObject({
+      mode: "invisible",
+      text: "Quarterly review",
+    });
+  });
+
+  it("draws a slide without a picture from its items, background first", () => {
+    const [background, , title] = pdfOps(deck.slides[0] as SlideLayout);
+    expect(background).toMatchObject({
+      fill: paper,
+      h: 810,
+      kind: "shape",
+      w: 1440,
+    });
+    expect(title).toMatchObject({ mode: "fill" });
+    expect(pdfOps(only(chart("bar")))).toEqual([]);
+  });
+
   it("maps canvas pixels to points, a quarter smaller", () => {
-    const [shape, title] = pdfOps(deck.slides[0] as SlideLayout);
+    const [, shape, title] = pdfOps(deck.slides[0] as SlideLayout);
     expect(shape).toMatchObject({ h: 225, kind: "shape", radius: 18, w: 450 });
     expect(title).toMatchObject({ font: "bold", fontSize: 96, kind: "text" });
     expect(pdfOps(deck.slides[1] as SlideLayout)[1]).toMatchObject({
@@ -151,6 +247,18 @@ describe("the exported files", () => {
       notes.map((name) => zip.file(name)?.async("string") ?? "")
     );
     expect(allNotes.join("")).toContain("Welcome everyone.");
+  });
+
+  it("writes a native chart part into the .pptx", async () => {
+    const zip = await JSZip.loadAsync(
+      await writePptx({ slides: [only(chart("bar"))], title: "Charts" })
+    );
+    const chartXml =
+      (await zip.file("ppt/charts/chart1.xml")?.async("string")) ?? "";
+    expect(chartXml).toContain("<c:barChart>");
+    expect(
+      (await zip.file("ppt/slides/slide1.xml")?.async("string")) ?? ""
+    ).toContain("<c:chart ");
   });
 
   it("writes a PDF with a page a slide", async () => {
