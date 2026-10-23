@@ -7,6 +7,7 @@ import {
   scheduleEmojiSchema,
   scheduleRecurrenceSchema,
   scheduleRunSchema,
+  scheduleSchema,
   scheduleTargetSchema,
 } from "./schedules";
 
@@ -35,6 +36,18 @@ const started = {
 };
 
 describe("schedule schemas", () => {
+  it("keeps older schedule responses readable during the emoji rollout", () => {
+    expect(scheduleSchema.shape.emoji.parse(undefined)).toBeUndefined();
+    expect(
+      conversationScheduleSchema.parse({
+        id: CONVERSATION,
+        nextRunNominalAt: null,
+        status: "paused",
+        title: "Heartbeat",
+      }).emoji
+    ).toBeUndefined();
+  });
+
   it("round-trips each target", () => {
     for (const target of [
       { kind: "dot" },
@@ -93,13 +106,23 @@ describe("schedule schemas", () => {
   });
 
   it("accepts one emoji, including ones built from several code points", () => {
-    for (const emoji of ["⏰", "☀️", "🗓️", "👋🏽", "👩‍💻"]) {
+    for (const emoji of ["⏰", "☀️", "🗓️", "👋🏽", "👩‍💻", "🇺🇸", "1️⃣", "#⃣", "*️⃣"]) {
       expect(scheduleEmojiSchema.parse(emoji)).toBe(emoji);
     }
   });
 
   it("refuses text, two emoji and an empty label", () => {
-    for (const emoji of ["", "a", "ab", "⏰⏰", "⏰ x", "1"]) {
+    for (const emoji of [
+      "",
+      "a",
+      "ab",
+      "⏰⏰",
+      "⏰ x",
+      "1",
+      "🇺",
+      "🇺🇸🇨🇦",
+      "11️⃣",
+    ]) {
       expect(scheduleEmojiSchema.safeParse(emoji).success).toBe(false);
     }
   });
