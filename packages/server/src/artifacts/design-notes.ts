@@ -19,7 +19,6 @@ export const readArtifactDesign = async (
   const shared = (await read(`${dir}/DESIGN.md`))?.trim() ?? "";
   const entries = await Promise.all(
     THEMED_KINDS.map(async (kind) => {
-      // Reserve the kind's own notes before fitting the shared prose.
       const own = (
         (await read(`${dir}/kinds/${kind}/DESIGN.md`))?.trim() ?? ""
       ).slice(0, MAX_DESIGN);
