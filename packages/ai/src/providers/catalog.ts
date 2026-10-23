@@ -12,7 +12,7 @@ import type { ProviderCredentials } from "../ports/provider-registry";
 import { type FetchFunction, isKeyless } from "./factory";
 
 // A provider's model catalog (095): what it says it serves, for providers
-// with `discover: true`. One GET per provider and key, with the same key a
+// with `discover: true`. Requests use the same key a
 // model call in that context would use (D17); the key goes in a header,
 // never the URL, and neither is ever part of an error or a log line.
 
@@ -102,7 +102,7 @@ export const catalogKindOf = (
 };
 
 /**
- * Whether `id`'s catalog is kept by the model server itself (Ollama's tags),
+ * Whether `id`'s catalog is kept by the model server itself (Ollama),
  * so what it says a model can do is the server's own word.
  */
 export const catalogFromServer = (id: string, config: ProviderConfig) =>
@@ -294,11 +294,17 @@ const googleList = z.object({
 const ollamaList = z.object({
   models: z.array(
     z.looseObject({
-      /** What the model takes, by Ollama 0.6 and later: `vision`, `tools`. */
-      capabilities: strings,
       name: z.string().min(1),
     })
   ),
+});
+
+const ollamaShow = z.object({
+  capabilities: strings,
+  projector_info: z
+    .object({ "clip.has_vision_encoder": z.boolean().optional() })
+    .optional()
+    .catch(undefined),
 });
 
 const GOOGLE_PREFIX = /^models\//;
@@ -376,13 +382,7 @@ export const parseCatalog = (
     case "ollama": {
       const parsed = ollamaList.safeParse(body);
       return parsed.success
-        ? parsed.data.models.map((model) =>
-            entry(model.name, {
-              traits: model.capabilities && {
-                vision: model.capabilities.includes("vision"),
-              },
-            })
-          )
+        ? parsed.data.models.map((model) => entry(model.name, {}))
         : null;
     }
     default:
@@ -504,12 +504,13 @@ export const fetchCatalog = async (
   }
   const { headers, kind, url } = request.value;
   const timeout = AbortSignal.timeout(timeoutMs);
+  const requestSignal = signal ? AbortSignal.any([signal, timeout]) : timeout;
   let response: Response;
   try {
     response = await fetch(url, {
       headers,
       method: "GET",
-      signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
+      signal: requestSignal,
     });
   } catch {
     return err({ type: timeout.aborted ? "timeout" : "unreachable" });
@@ -526,7 +527,47 @@ export const fetchCatalog = async (
     });
   }
   const models = parseCatalog(kind, body);
-  return models ? ok(validFor(id, models)) : err({ type: "invalid_response" });
+  if (!models) {
+    return err({ type: "invalid_response" });
+  }
+  const valid = validFor(id, models);
+  if (kind !== "ollama") {
+    return ok(valid);
+  }
+  const showUrl = `${url.slice(0, -"tags".length)}show`;
+  return ok(
+    await Promise.all(
+      valid.map(async (model) => {
+        try {
+          const shown = await fetch(showUrl, {
+            body: JSON.stringify({ model: model.id }),
+            headers: { ...headers, "content-type": "application/json" },
+            method: "POST",
+            signal: requestSignal,
+          });
+          if (!shown.ok) {
+            return model;
+          }
+          const parsed = ollamaShow.safeParse(await shown.json());
+          if (!parsed.success || requestSignal.aborted) {
+            return model;
+          }
+          const { capabilities, projector_info: projector } = parsed.data;
+          // v0.6 has projector metadata but no capabilities. Only a verified
+          // vision encoder establishes support; absent metadata stays unknown.
+          const vision = capabilities
+            ? capabilities.includes("vision")
+            : projector?.["clip.has_vision_encoder"] === true || undefined;
+          return vision === undefined
+            ? model
+            : { ...model, traits: { ...model.traits, vision } };
+        } catch {
+          // Metadata failure must not hide installed models from the picker.
+          return model;
+        }
+      })
+    )
+  );
 };
 
 /** A short, secret-free reason for a log line. */

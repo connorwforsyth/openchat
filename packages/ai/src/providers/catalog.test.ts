@@ -162,10 +162,18 @@ describe("fetchCatalog", () => {
     ]);
     expect(seen).toEqual([
       { headers: {}, url: "http://localhost:11434/api/tags" },
+      {
+        headers: { "content-type": "application/json" },
+        url: "http://localhost:11434/api/show",
+      },
+      {
+        headers: { "content-type": "application/json" },
+        url: "http://localhost:11434/api/show",
+      },
     ]);
   });
 
-  it("reads which of Ollama's models see from their capabilities", () => {
+  it("leaves Ollama tags capabilities unknown", () => {
     expect(
       parseCatalog("ollama", {
         models: [
@@ -175,8 +183,8 @@ describe("fetchCatalog", () => {
         ],
       })?.map(({ id, traits }) => ({ id, traits }))
     ).toEqual([
-      { id: "qwen2.5:3b", traits: { vision: false } },
-      { id: "qwen2.5vl:3b", traits: { vision: true } },
+      { id: "qwen2.5:3b", traits: undefined },
+      { id: "qwen2.5vl:3b", traits: undefined },
       { id: "older:latest", traits: undefined },
     ]);
   });

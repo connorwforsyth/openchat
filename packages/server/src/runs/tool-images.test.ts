@@ -10,7 +10,7 @@ import { describe, expect, it } from "vitest";
 import { createModelLoader } from "./turn";
 
 // An image a tool returned, as the run's model reaches a local Ollama: the
-// loader asks Ollama's tags which models see, and the request that leaves
+// loader asks Ollama's model metadata which models see, and the request that leaves
 // carries the image where Ollama reads it (a user message; its tool
 // messages are text) or, for a model that can't see, a note naming one
 // that can. The fetch is canned: nothing reaches a server.
@@ -25,12 +25,9 @@ const config = appConfigSchema.parse({
   },
 });
 
-// Trimmed from Ollama 0.40's `/api/tags`.
+// The tags endpoint lists names; capabilities come from `/api/show`.
 const tags = {
-  models: [
-    { capabilities: ["completion", "tools"], name: "qwen2.5:3b" },
-    { capabilities: ["completion", "vision"], name: "qwen2.5vl:3b" },
-  ],
+  models: [{ name: "qwen2.5:3b" }, { name: "qwen2.5vl:3b" }],
 };
 
 const IMAGE =
@@ -87,6 +84,17 @@ const sentTo = async (selector: string): Promise<readonly Sent[]> => {
     const url = String(input);
     if (url.endsWith("/api/tags")) {
       return Promise.resolve(Response.json(tags));
+    }
+    if (url.endsWith("/api/show")) {
+      const { model } = JSON.parse(String(init?.body));
+      return Promise.resolve(
+        Response.json({
+          capabilities:
+            model === "qwen2.5vl:3b"
+              ? ["completion", "vision"]
+              : ["completion", "tools"],
+        })
+      );
     }
     bodies.push(JSON.parse(String(init?.body)));
     return Promise.resolve(

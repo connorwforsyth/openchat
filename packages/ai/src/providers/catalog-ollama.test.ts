@@ -66,6 +66,7 @@ describe("Ollama model metadata", () => {
   it.each([
     {},
     { capabilities: "vision" },
+    { capabilities: ["vision", 1] },
     { projector_info: { "clip.has_vision_encoder": "true" } },
     { projector_info: { "clip.has_vision_encoder": false } },
   ])("keeps incomplete or malformed metadata unknown (%j)", async (body) => {
@@ -131,6 +132,7 @@ describe("Ollama model metadata", () => {
 
   it("shares the catalog timeout with show requests", async () => {
     let aborted = false;
+    const signals: (AbortSignal | null | undefined)[] = [];
     server.use(
       list(["custom:latest"]),
       http.post(`${ROOT}/api/show`, async ({ request }) => {
@@ -142,10 +144,16 @@ describe("Ollama model metadata", () => {
       })
     );
     const result = await fetchCatalog("ollama", config, undefined, {
+      fetch: (input, init) => {
+        signals.push(init?.signal);
+        return globalThis.fetch(input, init);
+      },
       timeoutMs: 80,
     });
     expect(result.ok && result.value[0]?.traits).toBeUndefined();
     expect(aborted).toBe(true);
+    expect(signals).toHaveLength(2);
+    expect(signals[0]).toBe(signals[1]);
   });
 
   it("cancels show with the caller's signal", async () => {

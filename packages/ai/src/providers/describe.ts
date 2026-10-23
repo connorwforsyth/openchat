@@ -205,7 +205,7 @@ export const costOf = (
  * image reaches the model as a file part is the provider config's call
  * (`options.capabilities`), and the card shouldn't promise otherwise. The
  * exception is a catalog the model server keeps itself (`fromServer`: Ollama's
- * tags), whose "yes" to vision is the server's own word.
+ * metadata), whose "yes" to vision is the server's own word.
  */
 export const capabilitiesWith = (
   provider: readonly ModelCapability[],

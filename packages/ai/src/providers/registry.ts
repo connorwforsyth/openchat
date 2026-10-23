@@ -259,7 +259,7 @@ export const buildRegistry = (
     credentials: ProviderCredentials | undefined
   ): AsyncResult<readonly CatalogModel[], CatalogError> => {
     const providerConfig = config.providers[provider];
-    // Ollama's tags are read for what its models can do (vision) even when
+    // Ollama's metadata is read for what its models can do (vision) even when
     // they aren't discovered: the server's own word, from a local call.
     const reads =
       providerConfig &&
