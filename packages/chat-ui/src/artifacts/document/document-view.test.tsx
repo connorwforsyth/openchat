@@ -1,4 +1,4 @@
-import { cleanup, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, screen, waitFor, within } from "@testing-library/react";
 import { markdownToDocument } from "@workspace/artifacts-kit/kinds/document/markdown";
 import { serializeDocument } from "@workspace/artifacts-kit/kinds/document/schema";
 import { fixtureId } from "@workspace/contract/fixtures";
@@ -6,7 +6,7 @@ import type {
   Artifact,
   ArtifactVersion,
 } from "@workspace/contract/schemas/files";
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 
@@ -267,6 +267,49 @@ describe("the / block menu", () => {
     await userEvent.keyboard("{End} /");
     await waitFor(() => expect(text.textContent).toContain("let x = 1 /"));
     expect(screen.queryByRole("listbox")).toBeNull();
+  });
+
+  it("closes the image dialog when another version replaces the document", async () => {
+    let replace: (next: readonly ArtifactVersion[]) => void = () => undefined;
+    const onSave = vi.fn<DocumentViewProps["onSave"]>((input) =>
+      Promise.resolve({ ...version(3, "x"), content: input.content })
+    );
+    function Scenario() {
+      const [current, setCurrent] =
+        useState<readonly ArtifactVersion[]>(versions);
+      replace = (next) => {
+        setCurrent(next);
+      };
+      return (
+        <DocumentView
+          access="owner"
+          artifact={brief}
+          header={header}
+          onSave={onSave}
+          onSelect={vi.fn()}
+          versions={current}
+        />
+      );
+    }
+    renderWithI18n(<Scenario />);
+    const text = await newLine();
+    await userEvent.keyboard("/image");
+    await screen.findByRole("listbox", { name: "Insert block" });
+    await userEvent.keyboard("{Enter}");
+    expect(
+      await screen.findByRole("dialog", { name: "Insert image" })
+    ).toBeTruthy();
+    await waitFor(() => expect(screen.getByText("Saved")).toBeTruthy(), {
+      timeout: 3000,
+    });
+    const saved = onSave.mock.calls.length;
+    act(() => replace([...versions, version(4, "A replacement document.")]));
+    await waitFor(() =>
+      expect(text.textContent).toBe("A replacement document.")
+    );
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(onSave).toHaveBeenCalledTimes(saved);
+    expect(text.querySelector("img")).toBeNull();
   });
 
   it("inserts an image by its address, refusing an unsafe one", async () => {

@@ -277,6 +277,7 @@ const useDraft = (
   const valid = Object.keys(issues).length === 0;
 
   const [createPending, setCreatePending] = useState(false);
+  const createInFlight = useRef(false);
   const save = useCallback(() => {
     if (!(form && canEdit)) {
       return;
@@ -295,12 +296,15 @@ const useDraft = (
     if (!detail) {
       // Held from the first click until the page moves to the new item, so
       // a second click can't make a second one; only a failure lets go.
-      if (createPending) {
+      // biome-ignore lint/suspicious/noUnnecessaryConditions: repeated save calls read the previous call's ref write before React renders.
+      if (createInFlight.current) {
         return;
       }
+      createInFlight.current = true;
       setCreatePending(true);
       createItem(input, {
         onError: () => {
+          createInFlight.current = false;
           setCreatePending(false);
           setProblem(t`It couldn't be created. Try again.`);
         },
@@ -314,17 +318,7 @@ const useDraft = (
     });
     // The typed secret has been sent; it isn't kept on screen.
     setForm({ ...form, definition });
-  }, [
-    canEdit,
-    createItem,
-    createPending,
-    detail,
-    form,
-    onCreated,
-    saveDraft,
-    t,
-    valid,
-  ]);
+  }, [canEdit, createItem, detail, form, onCreated, saveDraft, t, valid]);
 
   // The test chat runs the stored draft (033), so a test message saves
   // what's on screen first: an edit then shows up in the very next answer.

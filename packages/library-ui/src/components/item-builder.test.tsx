@@ -1,4 +1,5 @@
 import {
+  act,
   cleanup,
   configure,
   render,
@@ -85,6 +86,53 @@ describe("builder form validation", () => {
 });
 
 describe("creating", () => {
+  it("creates once when save shortcuts arrive before the next render", async () => {
+    const client = createFakeLibraryClient();
+    const create = vi.spyOn(client.library, "create");
+    const { onCreated } = renderBuilder(
+      { kind: "prompt", type: "new" },
+      client
+    );
+    await userEvent.fill(screen.getByRole("textbox", { name: "Name" }), "Hi");
+    await userEvent.fill(
+      screen.getByRole("textbox", { name: "Template" }),
+      "Say hi."
+    );
+    act(() => {
+      for (const _ of [1, 2]) {
+        window.dispatchEvent(
+          new KeyboardEvent("keydown", { ctrlKey: true, key: "s" })
+        );
+      }
+    });
+    await waitFor(() => expect(onCreated).toHaveBeenCalled());
+    expect(create).toHaveBeenCalledOnce();
+    expect(onCreated).toHaveBeenCalledOnce();
+  });
+
+  it("allows another create attempt after an error", async () => {
+    const client = createFakeLibraryClient();
+    client.failNext("library.create");
+    const create = vi.spyOn(client.library, "create");
+    const { onCreated } = renderBuilder(
+      { kind: "prompt", type: "new" },
+      client
+    );
+    await userEvent.fill(screen.getByRole("textbox", { name: "Name" }), "Hi");
+    await userEvent.fill(
+      screen.getByRole("textbox", { name: "Template" }),
+      "Say hi."
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Create" }));
+    expect(
+      await screen.findByText("It couldn't be created. Try again.")
+    ).toBeTruthy();
+    expect(onCreated).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Create" }));
+    await waitFor(() => expect(onCreated).toHaveBeenCalledOnce());
+    expect(create).toHaveBeenCalledTimes(2);
+  });
+
   it("makes one item however often Create is pressed before the page moves", async () => {
     const { onCreated } = renderBuilder({ kind: "prompt", type: "new" });
     await userEvent.fill(screen.getByRole("textbox", { name: "Name" }), "Hi");
