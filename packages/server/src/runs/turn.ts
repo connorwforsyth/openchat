@@ -88,6 +88,7 @@ import type { Tool, ToolApprovalStatus, ToolSet } from "ai";
 
 import { actorFor } from "../context";
 import { canUseLibraryItem } from "../library/router";
+import { fillAgentInstructions } from "./agent-instructions";
 import { draftFor } from "./drafts";
 import { chatImageTools, type ImageModels } from "./images";
 import { approvedPlanFor } from "./plan-artifact";
@@ -244,6 +245,8 @@ export interface TurnResolverDeps {
     userId: UserId,
     conversationId: ConversationId
   ) => Promise<McpSelection>;
+  /** The clock for an agent's `{{current_date}}`; the wall clock when left out. */
+  readonly now?: () => Date;
   /**
    * The org's effective policy (`org_settings` clamped by the instance), for
    * the personal-key fallback. Without it the conservative default holds.
@@ -1055,7 +1058,12 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
       ...loaded.value,
       agent: { id: target.id, versionId: version.value.id },
       instructions: composeInstructions({
-        agent: definition.instructions,
+        agent: await fillAgentInstructions(
+          db,
+          run.createdBy,
+          definition.instructions,
+          deps.now
+        ),
         base: BASE,
         dynamic: await planInstructions(run),
         // A planning run can't make artifacts.

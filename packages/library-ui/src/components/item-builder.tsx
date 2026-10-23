@@ -5,11 +5,12 @@ import type {
   LibraryItemId,
   LibraryVersionId,
 } from "@workspace/contract/schemas/common";
-import type {
-  LibraryDefinitionInput,
-  LibraryItemDetail,
-  LibraryKind,
-  SkillDefinition,
+import {
+  isVersionedLibraryKind,
+  type LibraryDefinitionInput,
+  type LibraryItemDetail,
+  type LibraryKind,
+  type SkillDefinition,
 } from "@workspace/contract/schemas/library";
 import {
   ArrowLeftIcon,
@@ -17,9 +18,11 @@ import {
   CopyIcon,
   DownloadIcon,
   EllipsisIcon,
+  LockIcon,
   MessageSquareIcon,
   ShareIcon,
   Trash2Icon,
+  UsersIcon,
 } from "@workspace/icons";
 import {
   Alert,
@@ -53,6 +56,7 @@ import {
   type FormIssues,
   formFromDefinition,
   newDefinition,
+  newSkillMd,
   sameForm,
   validateDraft,
 } from "../form";
@@ -61,12 +65,14 @@ import {
   useDeleteItem,
   useDuplicateItem,
   useExportItem,
+  useFetchItem,
   useLibraryItem,
   useLibraryList,
   useModels,
   usePublicConfig,
   useUpdateItem,
 } from "../hooks";
+import { type PublishState, publishStateOf } from "../publish-state";
 import { downloadJson, exportFileName } from "../transfer";
 import { AgentForm, type Choice, type KnowledgeFile } from "./agent-form";
 import { AccessBadge, VersionBadge, VisibilityBadge } from "./badges";
@@ -79,6 +85,7 @@ import { PromptForm, PromptPreview } from "./prompt-form";
 import { PublishDialog } from "./publish-dialog";
 import { ShareDialog } from "./share-dialog";
 import { SkillFiles, type SkillFilesProps, SkillForm } from "./skill-form";
+import type { NewSkill } from "./skills-section";
 import type { TestChatComponent } from "./test-chat";
 import { VersionHistory } from "./version-history";
 
@@ -179,8 +186,8 @@ const formOf = (detail: LibraryItemDetail): DraftForm | null =>
       }
     : null;
 
-/** Items the caller could attach, across all three tabs. */
-const useChoices = (kind: "mcp_server" | "skill"): Choice[] => {
+/** Items the caller could attach or insert, across all three tabs. */
+const useChoices = (kind: "mcp_server" | "prompt" | "skill"): Choice[] => {
   const mine = useLibraryList({ kind, tab: "mine" });
   const shared = useLibraryList({ kind, tab: "shared" });
   const libraries = useLibraryList({ kind, tab: "libraries" });
@@ -188,11 +195,60 @@ const useChoices = (kind: "mcp_server" | "skill"): Choice[] => {
   for (const list of [mine, shared, libraries]) {
     for (const page of list.data?.pages ?? []) {
       for (const item of page.items) {
-        seen.set(item.id, { id: item.id, name: item.name });
+        seen.set(item.id, {
+          description: item.description,
+          id: item.id,
+          name: item.name,
+          published: item.latestVersionNumber !== null,
+        });
       }
     }
   }
   return [...seen.values()];
+};
+
+/** A prompt's template for a `/` menu: the latest version, else the draft; `null` when neither can be read. */
+const useLoadPrompt = () => {
+  const fetchItem = useFetchItem();
+  return useCallback(
+    async (id: LibraryItemId): Promise<string | null> => {
+      try {
+        const latest = await fetchItem(id, "latest");
+        const item = latest.definition ? latest : await fetchItem(id, "draft");
+        return item.definition?.kind === "prompt"
+          ? item.definition.template
+          : null;
+      } catch {
+        return null;
+      }
+    },
+    [fetchItem]
+  );
+};
+
+/** "Write a skill": saves it as the writer's own draft. */
+const useCreateSkill = () => {
+  const { mutateAsync } = useCreateItem();
+  return useCallback(
+    async (skill: NewSkill): Promise<Choice | null> => {
+      try {
+        const created = await mutateAsync({
+          definition: { files: [], kind: "skill", skillMd: newSkillMd(skill) },
+          description: skill.description,
+          name: skill.name,
+        });
+        return {
+          description: created.description,
+          id: created.id,
+          name: created.name,
+          published: false,
+        };
+      } catch {
+        return null;
+      }
+    },
+    [mutateAsync]
+  );
 };
 
 const canEditWith = (access: LibraryItemDetail["myAccess"]) =>
@@ -220,6 +276,8 @@ const useDraft = (
   const issues: FormIssues = form ? validateDraft(form) : {};
   const valid = Object.keys(issues).length === 0;
 
+  const [createPending, setCreatePending] = useState(false);
+  const createInFlight = useRef(false);
   const save = useCallback(() => {
     if (!(form && canEdit)) {
       return;
@@ -236,8 +294,20 @@ const useDraft = (
       name: form.name,
     };
     if (!detail) {
+      // Held from the first click until the page moves to the new item, so
+      // a second click can't make a second one; only a failure lets go.
+      // biome-ignore lint/suspicious/noUnnecessaryConditions: repeated save calls read the previous call's ref write before React renders.
+      if (createInFlight.current) {
+        return;
+      }
+      createInFlight.current = true;
+      setCreatePending(true);
       createItem(input, {
-        onError: () => setProblem(t`It couldn't be created. Try again.`),
+        onError: () => {
+          createInFlight.current = false;
+          setCreatePending(false);
+          setProblem(t`It couldn't be created. Try again.`);
+        },
         onSuccess: (created) => onCreated?.(created),
       });
       return;
@@ -285,7 +355,7 @@ const useDraft = (
     problem,
     save,
     saveBeforeTest,
-    saving: update.isPending || create.isPending,
+    saving: update.isPending || create.isPending || createPending,
     setForm,
     setProblem,
   };
@@ -312,6 +382,7 @@ function Builder({
   const draft = useDraft(detail, kind, onCreated);
   const { form, save, setForm } = draft;
   const [dialog, setDialog] = useState<Dialogs>(null);
+  const openPublish = useCallback(() => setDialog("publish"), []);
 
   // ⌘S / Ctrl+S saves, as in any editor.
   const saveRef = useRef(save);
@@ -368,6 +439,13 @@ function Builder({
         saving={draft.saving}
       />
 
+      {draft.canEdit ? (
+        <PublishStrip
+          onPublish={detail ? openPublish : undefined}
+          state={publishStateOf(kind, detail)}
+        />
+      ) : null}
+
       {detail ? <DuplicateNotice id={detail.id} /> : null}
 
       {draft.problem ? (
@@ -396,6 +474,7 @@ function Builder({
               definition={form.definition}
               detail={detail}
               dirty={draft.dirty}
+              onCreate={detail ? undefined : save}
               skill={skill}
               testChat={testChat}
             />
@@ -538,7 +617,7 @@ function HeaderActions({
   const access = detail?.myAccess ?? "owner";
   const canEdit = canEditWith(access);
   const manage = access === "owner" || access === "maintainer";
-  const versioned = kind === "agent" || kind === "prompt" || kind === "skill";
+  const versioned = isVersionedLibraryKind(kind);
   const openHistory = useCallback(() => onDialog("history"), [onDialog]);
   const openShare = useCallback(() => onDialog("share"), [onDialog]);
   const openPublish = useCallback(() => onDialog("publish"), [onDialog]);
@@ -569,7 +648,8 @@ function HeaderActions({
               <Trans>Share</Trans>
             </Button>
           ) : null}
-          {canEdit ? (
+          {/* Versioned kinds publish from the strip that says where they stand. */}
+          {canEdit && !versioned ? (
             <Button onClick={openPublish}>
               <Trans>Publish</Trans>
             </Button>
@@ -720,6 +800,12 @@ function KindForm({
   const config = usePublicConfig();
   const mcpChoices = useChoices("mcp_server");
   const skillChoices = useChoices("skill");
+  // A prompt doesn't offer itself.
+  const promptChoices = useChoices("prompt").filter(
+    (prompt) => prompt.id !== detail?.id
+  );
+  const loadPrompt = useLoadPrompt();
+  const createSkill = useCreateSkill();
   switch (definition.kind) {
     case "agent":
       return (
@@ -730,6 +816,9 @@ function KindForm({
           models={models.data ?? []}
           onAddKnowledge={onAddKnowledge}
           onChange={onChange}
+          onCreateSkill={createSkill}
+          onLoadPrompt={loadPrompt}
+          prompts={promptChoices}
           readOnly={readOnly}
           sandboxProviders={config.data?.sandbox.providers ?? []}
           skills={skillChoices}
@@ -741,6 +830,8 @@ function KindForm({
         <PromptForm
           issues={issues}
           onChange={onChange}
+          onLoadPrompt={loadPrompt}
+          prompts={promptChoices}
           readOnly={readOnly}
           value={definition}
         />
@@ -751,6 +842,8 @@ function KindForm({
           issues={issues}
           onAddFiles={skill?.onAddFiles}
           onChange={onChange}
+          onLoadPrompt={loadPrompt}
+          prompts={promptChoices}
           readOnly={readOnly}
           value={definition}
         />
@@ -780,6 +873,7 @@ function KindPanel({
   definition,
   detail,
   dirty,
+  onCreate,
   skill,
   testChat: TestChat,
 }: {
@@ -787,6 +881,8 @@ function KindPanel({
   readonly definition: LibraryDefinitionInput;
   readonly detail: LibraryItemDetail | null;
   readonly dirty: boolean;
+  /** Creates the item, for a new agent's "Save draft and test". */
+  readonly onCreate?: () => void;
   readonly skill?: ItemBuilderProps["skill"];
   readonly testChat?: TestChatComponent;
 }) {
@@ -809,6 +905,7 @@ function KindPanel({
               ? { itemId: detail.id, versionId: detail.draftVersionId }
               : null
           }
+          onCreate={onCreate}
         />
       );
     }
@@ -903,6 +1000,72 @@ function BuilderDialogs({
         open={dialog === "delete"}
       />
     </>
+  );
+}
+
+function PublishStrip({
+  onPublish,
+  state,
+}: {
+  /** Opens the publish dialog; absent before the item exists. */
+  readonly onPublish?: () => void;
+  readonly state: PublishState | null;
+}) {
+  if (state === null) {
+    return null;
+  }
+  let icon: ReactNode = <UsersIcon aria-hidden className="size-4 shrink-0" />;
+  let text: ReactNode;
+  switch (state.type) {
+    case "new":
+      icon = <LockIcon aria-hidden className="size-4 shrink-0" />;
+      text = <Trans>New · Create it to save a draft only you can see.</Trans>;
+      break;
+    case "draft":
+      if (state.shared) {
+        text = (
+          <Trans>
+            Draft · Shared with people you chose. Publish to share it with your
+            team.
+          </Trans>
+        );
+      } else {
+        icon = <LockIcon aria-hidden className="size-4 shrink-0" />;
+        text = (
+          <Trans>
+            Draft · Only you can see it. Publish to share it with your team.
+          </Trans>
+        );
+      }
+      break;
+    case "published": {
+      const { version } = state;
+      text = (
+        <Trans>
+          Published v{version} · Your team uses this version. Edits stay in your
+          draft until you publish again.
+        </Trans>
+      );
+      break;
+    }
+    default:
+      return state satisfies never;
+  }
+  return (
+    <div
+      className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-muted px-3 py-2 text-sm"
+      data-slot="publish-state"
+    >
+      <span className="flex min-w-0 flex-1 items-center gap-2 text-muted-foreground">
+        {icon}
+        <span>{text}</span>
+      </span>
+      {onPublish ? (
+        <Button onClick={onPublish} size="sm">
+          <Trans>Publish</Trans>
+        </Button>
+      ) : null}
+    </div>
   );
 }
 

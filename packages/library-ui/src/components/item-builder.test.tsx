@@ -1,4 +1,5 @@
 import {
+  act,
   cleanup,
   configure,
   render,
@@ -84,6 +85,70 @@ describe("builder form validation", () => {
   });
 });
 
+describe("creating", () => {
+  it("creates once when save shortcuts arrive before the next render", async () => {
+    const client = createFakeLibraryClient();
+    const create = vi.spyOn(client.library, "create");
+    const { onCreated } = renderBuilder(
+      { kind: "prompt", type: "new" },
+      client
+    );
+    await userEvent.fill(screen.getByRole("textbox", { name: "Name" }), "Hi");
+    await userEvent.fill(
+      screen.getByRole("textbox", { name: "Template" }),
+      "Say hi."
+    );
+    act(() => {
+      for (const _ of [1, 2]) {
+        window.dispatchEvent(
+          new KeyboardEvent("keydown", { ctrlKey: true, key: "s" })
+        );
+      }
+    });
+    await waitFor(() => expect(onCreated).toHaveBeenCalled());
+    expect(create).toHaveBeenCalledOnce();
+    expect(onCreated).toHaveBeenCalledOnce();
+  });
+
+  it("allows another create attempt after an error", async () => {
+    const client = createFakeLibraryClient();
+    client.failNext("library.create");
+    const create = vi.spyOn(client.library, "create");
+    const { onCreated } = renderBuilder(
+      { kind: "prompt", type: "new" },
+      client
+    );
+    await userEvent.fill(screen.getByRole("textbox", { name: "Name" }), "Hi");
+    await userEvent.fill(
+      screen.getByRole("textbox", { name: "Template" }),
+      "Say hi."
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Create" }));
+    expect(
+      await screen.findByText("It couldn't be created. Try again.")
+    ).toBeTruthy();
+    expect(onCreated).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Create" }));
+    await waitFor(() => expect(onCreated).toHaveBeenCalledOnce());
+    expect(create).toHaveBeenCalledTimes(2);
+  });
+
+  it("makes one item however often Create is pressed before the page moves", async () => {
+    const { onCreated } = renderBuilder({ kind: "prompt", type: "new" });
+    await userEvent.fill(screen.getByRole("textbox", { name: "Name" }), "Hi");
+    await userEvent.fill(
+      screen.getByRole("textbox", { name: "Template" }),
+      "Say hi."
+    );
+    const create = screen.getByRole("button", { name: "Create" });
+    await userEvent.dblClick(create);
+    await waitFor(() => expect(onCreated).toHaveBeenCalledOnce());
+    await userEvent.click(create, { force: true });
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(onCreated).toHaveBeenCalledOnce();
+  });
+});
+
 describe("agent builder", () => {
   it("tests the draft on screen, before it's saved", async () => {
     const providers = createTestProviders();
@@ -114,6 +179,139 @@ describe("agent builder", () => {
     await userEvent.click(within(chat).getByRole("button", { name: "Ahoy?" }));
     expect(
       await within(chat).findByText("Answer like a pirate.", { exact: false })
+    ).toBeTruthy();
+  });
+});
+
+/** Puts the caret at the end of an editor's text (End differs by platform). */
+const caretAtEnd = (box: HTMLElement) => {
+  box.focus();
+  const selection = window.getSelection();
+  selection?.selectAllChildren(box);
+  selection?.collapseToEnd();
+};
+
+const CHANGELOG = /Changelog/;
+
+describe("agent skills", () => {
+  const renderNewAgent = () => {
+    const providers = createTestProviders();
+    render(
+      providers.wrap(
+        <ItemBuilder
+          backHref="/library"
+          target={{ kind: "agent", type: "new" }}
+          testChat={EchoTestChat}
+        />
+      )
+    );
+    return providers;
+  };
+
+  it("attaches a skill picked from / in the instructions and names it there", async () => {
+    renderNewAgent();
+    const instructions = await screen.findByRole("textbox", {
+      name: "Instructions",
+    });
+    await userEvent.fill(instructions, "Use ");
+    caretAtEnd(instructions);
+    await userEvent.keyboard("/chan");
+    await userEvent.click(
+      await screen.findByRole("option", { name: CHANGELOG })
+    );
+    await waitFor(() =>
+      expect(instructions.textContent).toBe('Use the "Changelog" skill')
+    );
+    const attached = screen.getByRole("list", { name: "Attached skills" });
+    expect(within(attached).getByText("Changelog")).toBeTruthy();
+    // It's never been published, so the agent gets someone's draft.
+    expect(within(attached).getByText("Draft")).toBeTruthy();
+  });
+
+  it("attaches a skill from the picker, and removes it", async () => {
+    renderNewAgent();
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Add skill" })
+    );
+    await userEvent.click(
+      await screen.findByRole("option", { name: CHANGELOG })
+    );
+    const attached = await screen.findByRole("list", {
+      name: "Attached skills",
+    });
+    expect(within(attached).getByText("Changelog")).toBeTruthy();
+    await userEvent.click(
+      within(attached).getByRole("button", { name: "Remove Changelog" })
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole("list", { name: "Attached skills" })).toBeNull()
+    );
+  });
+
+  it("writes a new skill as a personal draft and attaches it", async () => {
+    const { client } = renderNewAgent();
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Write a skill" })
+    );
+    const form = screen.getByRole("form", { name: "New skill" });
+    await userEvent.fill(
+      within(form).getByRole("textbox", { name: "Skill name" }),
+      "Release notes"
+    );
+    await userEvent.fill(
+      within(form).getByRole("textbox", { name: "When to use it" }),
+      "Use when writing release notes."
+    );
+    await userEvent.fill(
+      within(form).getByRole("textbox", { name: "Skill instructions" }),
+      "Group changes by area."
+    );
+    await userEvent.click(
+      within(form).getByRole("button", { name: "Create and attach" })
+    );
+    const attached = await screen.findByRole("list", {
+      name: "Attached skills",
+    });
+    expect(await within(attached).findByText("Release notes")).toBeTruthy();
+    expect(screen.queryByRole("form", { name: "New skill" })).toBeNull();
+
+    const mine = await client.library.list({
+      kind: "skill",
+      limit: 50,
+      tab: "mine",
+    });
+    const created = mine.items.find((item) => item.name === "Release notes");
+    expect(created).toMatchObject({
+      latestVersionNumber: null,
+      visibility: "private",
+    });
+    const stored = await client.library.get({
+      id: created?.id ?? SKILL,
+      revision: "draft",
+    });
+    expect(stored.definition).toMatchObject({
+      skillMd:
+        "---\nname: release-notes\ndescription: Use when writing release notes.\n---\n\nGroup changes by area.\n",
+    });
+  });
+});
+
+describe("publish state", () => {
+  it("says a draft is private until it's published", async () => {
+    renderBuilder({ id: SKILL, type: "existing" });
+    expect(
+      await screen.findByText(
+        "Draft · Only you can see it. Publish to share it with your team."
+      )
+    ).toBeTruthy();
+  });
+
+  it("says which version the team uses once published", async () => {
+    renderBuilder({ id: PROMPT, type: "existing" });
+    expect(
+      await screen.findByText(
+        "Published v1 · Your team uses this version. Edits stay in your draft until you publish again."
+      )
     ).toBeTruthy();
   });
 });

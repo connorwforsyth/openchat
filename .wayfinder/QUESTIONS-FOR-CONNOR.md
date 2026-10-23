@@ -206,3 +206,9 @@ Lane `pstack/usage` (Settings → Usage, span tags). Defaults applied overnight;
 2. **Can a draft agent answer in an ordinary chat?** *Defaulted: yes, through its chip, for its owner only.* A draft is never offered in the target picker, since a chat whose default target is a draft becomes the builder's hidden test chat (033). The alternative is to keep drafts out of chats until published.
 3. **Which artifact types the menu offers.** *Defaulted: the "Make something new" kinds (161): Slides, Site, Spreadsheet, Document, Diagram, SVG, Web page, React.* The alternative is every kind, Code and Mermaid included.
 4. **What counts as Code-only in the menu.** *Defaulted: `/preview` only* (it runs a dev server). Chat mode keeps file commands, since Chat can read and edit files. The `modes` lane passes `mode` to the composer; that's the one hook.
+
+## editors lane (n2/editors)
+
+1. **A published agent can carry draft skills.** The Skills section marks a skill "Draft" when it was never published, and a skill written inline is saved as the writer's own draft. Teammates using the published agent can't load someone's draft skill. *Defaulted: show the Draft badge, change no sharing rule.* Alternatives: publishing an agent offers to publish its draft skills with it, or the publish dialog warns and lists them.
+2. **`{{current_date}}` is the UTC date.** The server fills it per turn without the user's time zone, so near midnight it can be a day off for the person chatting. *Defaulted: UTC, long English form ("Thursday, October 22, 2026").* The alternative is to send the browser's time zone with each run and format in it, which touches the run contract.
+3. **Images in documents are by address only.** The `/` menu's Image asks for an https address or a path in this app; there's no upload from the document editor yet. *Defaulted: address only.* The alternative is an upload that stores the file and inserts its app path.
