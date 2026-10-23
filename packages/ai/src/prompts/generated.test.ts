@@ -13,7 +13,7 @@ describe("generated.ts", () => {
     expect({ base: BASE, fragments: FRAGMENTS }).toEqual(bundle);
   });
 
-  it("has the five base layers in order and the five fragments", () => {
+  it("has the five base layers in order and its fragments", () => {
     expect(BASE.map(({ source }) => source)).toEqual([
       "base/10-identity.md",
       "base/20-safety.md",
@@ -23,6 +23,7 @@ describe("generated.ts", () => {
     ]);
     expect(Object.keys(FRAGMENTS).sort()).toEqual([
       "artifacts",
+      "chat-mode",
       "memory",
       "mentions",
       "plan",

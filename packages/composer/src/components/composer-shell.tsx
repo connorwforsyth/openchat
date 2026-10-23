@@ -32,6 +32,7 @@ const noop = () => undefined;
 export function ComposerShell({
   agents = NONE,
   appearance = "default",
+  chatMode,
   className,
   disabled = false,
   failed = false,
@@ -90,6 +91,7 @@ export function ComposerShell({
           attachDisabled={disabled}
           busy={status === "submitted" || status === "streaming"}
           canSubmit={false}
+          chatMode={chatMode}
           disabled={disabled}
           files={NONE}
           models={models}

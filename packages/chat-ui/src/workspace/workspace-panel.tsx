@@ -19,6 +19,7 @@ import {
   TriangleAlertIcon,
   UploadIcon,
 } from "@workspace/icons";
+import { runnerUnavailableOf } from "@workspace/sandbox/runner/unavailable";
 import {
   Alert,
   AlertDescription,
@@ -106,6 +107,7 @@ import {
 import { NewFileDialog } from "./new-file-dialog";
 import { BrowserView } from "./preview";
 import { RenderedFile } from "./rendered-file";
+import { RunnerUnavailableNotice } from "./runner-unavailable";
 import { SaveSiteDialog } from "./save-site-dialog";
 import { SplitHandle } from "./split-handle";
 import { useElementHeight, useElementWidth } from "./use-element-width";
@@ -768,6 +770,16 @@ function BrowserPane({
   );
 }
 
+/** The runner's reason and fix when that's why, the server's text otherwise. */
+function FailureReason({ message }: { readonly message: string }) {
+  const why = runnerUnavailableOf(message);
+  return why ? (
+    <RunnerUnavailableNotice reason={why.reason} />
+  ) : (
+    <p>{message}</p>
+  );
+}
+
 /** Failures speak, at the foot of the panel so the header rows stay aligned. */
 function PanelStatus({ view }: { readonly view: FilesView }) {
   const { actions, status } = view;
@@ -783,7 +795,7 @@ function PanelStatus({ view }: { readonly view: FilesView }) {
             <Trans>The workspace didn't start</Trans>
           </AlertTitle>
           <AlertDescription>
-            <p>{status.message}</p>
+            <FailureReason message={status.message} />
             <p>
               <Trans>
                 It starts again the next time you or the agent use a file.

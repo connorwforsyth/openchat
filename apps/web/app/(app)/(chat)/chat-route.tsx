@@ -597,6 +597,7 @@ export function ChatRoute({
         />
       }
       brand={<SpaceSwitcher fallback={<Brand config={config} />} />}
+      chatModes={!isDot}
       client={client}
       composerPlaceholder={dotName ? t`Message ${dotName}` : undefined}
       computer={<DotComputer conversationId={conversationId} />}

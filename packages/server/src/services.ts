@@ -6,7 +6,10 @@ import {
 import type { ProviderRegistry } from "@workspace/ai/ports/provider-registry";
 import type { RunStart } from "@workspace/ai/ports/run-executor";
 import { createArtifactTools } from "@workspace/ai/tools/artifacts";
-import { instanceArtifactKinds } from "@workspace/artifacts-kit/instance";
+import {
+  type ArtifactDesignNotes,
+  instanceArtifactKinds,
+} from "@workspace/artifacts-kit/instance";
 import type { ArtifactKindRegistry } from "@workspace/artifacts-kit/registry";
 import type { AppConfig } from "@workspace/config/schema";
 import type { ModelSelector } from "@workspace/contract/schemas/models";
@@ -73,6 +76,8 @@ import {
 export interface ServicesOptions {
   /** Grant check; 025 passes 012's `checkAccess`. Defaults to the grant-aware one in `context`. */
   readonly access?: ConversationAccess;
+  /** The instance's DESIGN.md prose per kind, added to that kind's guide. */
+  readonly artifactDesign?: ArtifactDesignNotes;
   readonly budget?: BudgetCheck;
   /** A Dot's own computer (172); without it Dots have none. */
   readonly computers?: DotComputers;
@@ -154,6 +159,7 @@ export const createServices = (options: ServicesOptions): Services => {
   // The instance layer of the kinds' rules (125): its site settings.
   const artifactKinds = instanceArtifactKinds(config.artifacts.kinds, {
     compileTsx,
+    design: options.artifactDesign,
   });
   const turnDeps = {
     artifactKinds,

@@ -1,5 +1,6 @@
 import type { Compile } from "../../checks";
 import { defineArtifactKind } from "../../define";
+import { withHouseStyle } from "../../kind-theme";
 import {
   PRESENTATION_LIMITS,
   type Presentation,
@@ -107,10 +108,13 @@ export interface PresentationKindOptions {
    * The server passes it; without one, slides are compiled when drawn.
    */
   readonly compile?: Compile;
+  /** The instance's DESIGN.md prose for decks. */
+  readonly design?: string;
 }
 
 export const presentationKindWith = ({
   compile,
+  design,
 }: PresentationKindOptions = {}) =>
   defineArtifactKind<Presentation>({
     capabilities: {
@@ -135,7 +139,7 @@ export const presentationKindWith = ({
       { extension: "pdf", format: "file" },
     ],
     icon: "PlayIcon",
-    instructions: PRESENTATION_INSTRUCTIONS,
+    instructions: withHouseStyle(PRESENTATION_INSTRUCTIONS, design),
     kind: "presentation",
     label: "Presentation",
     operations: PRESENTATION_EDITS,

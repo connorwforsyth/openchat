@@ -193,6 +193,12 @@ Lane `pstack/usage` (Settings → Usage, span tags). Defaults applied overnight;
 1. **Where should the logo show once you're signed in?** Nowhere visible today: the sidebar's top row is the space switcher (`Personal`) for every signed-in user, and the name is only its fallback while spaces load, so a logo there would flash. *Defaulted: the logo is on sign-in, sign-up and invitations, plus the tab and home-screen icons; the sidebar keeps the name.* Alternatives: the logo at the top of the rail, ChatGPT-style, turning into the sidebar toggle on hover (moves the toggle, which 181 keeps fixed); or the mark above "What can I help with?" (shifts the composer-first layout, D27).
 2. **Tile colours for home-screen icons.** A one-colour mark is drawn white on `brand.iconBackground`, which defaults to black. *Defaulted: keep.* A fork with a light tile gives its mark its own colours; an `iconColor` field would cover the rest.
 
+## slides lane (n2/slides stack)
+
+1. **Where does the artifact runtime find the brand folder?** The runtime is its own service and doesn't read `app.config.yaml`, so its `theme.css` files come from `ARTIFACTS_BRAND_DIR`. The app reads `DESIGN.md` from `brand/` beside `app.config.yaml`, as it does the logo. *Defaulted: two sources, unset means no theme.* The alternative is a `brand.dir` config key the app passes to the runtime in each render message, so one setting covers both.
+2. **Dark-mode theme values.** A `theme.css` that sets only `:root` leaves dark mode on the app's dark theme. *Defaulted: light uses `:root`, dark uses `.dark`.* The alternative is to let dark fall back to the file's light values where `.dark` sets none.
+3. **Export quality PR (#228) is optional.** Ticket 164's export works; #228 fixes what it loses (gradient fills, rotation, opacity, native charts) and makes the PDF a picture of each slide with an invisible text layer. *Defaulted: opened last in the stack for you to take or drop.*
+
 ## night-2 fixes lane (n2/fix-*)
 
 1. **Where does the sidebar go when there's no room to dock it?** With the side panel open on a narrow window, the toggle now shows the sidebar over the page, and it never appears on its own. *Defaulted: overlay on toggle only.* The alternative is for the toggle to close the panel to make room.
@@ -206,6 +212,13 @@ Lane `pstack/usage` (Settings → Usage, span tags). Defaults applied overnight;
 2. **Can a draft agent answer in an ordinary chat?** *Defaulted: yes, through its chip, for its owner only.* A draft is never offered in the target picker, since a chat whose default target is a draft becomes the builder's hidden test chat (033). The alternative is to keep drafts out of chats until published.
 3. **Which artifact types the menu offers.** *Defaulted: the "Make something new" kinds (161): Slides, Site, Spreadsheet, Document, Diagram, SVG, Web page, React.* The alternative is every kind, Code and Mermaid included.
 4. **What counts as Code-only in the menu.** *Defaulted: `/preview` only* (it runs a dev server). Chat mode keeps file commands, since Chat can read and edit files. The `modes` lane passes `mode` to the composer; that's the one hook.
+
+## modes lane (n2/modes)
+
+1. **What mode do chats from before modes get?** *Defaulted: Chat.* The migration gives every existing conversation `mode = 'chat'`, so an old chat that used `bash` loses it until someone switches it to Code. The alternative is to backfill `code` for chats that already have a sandbox, a one-line change in the migration.
+2. **Plan mode in a Chat chat.** *Defaulted: plan mode keeps its rules, and Chat mode still removes `bash`.* A Chat plan therefore reads files but runs no read-only shell commands. The alternative is to let plan mode's read-only `bash` through in Chat.
+3. **Where a message shows its mode.** *Defaulted: a quiet "Sent in Chat mode" or "Sent in Code mode" line under each user message.* The answer under it ran in the same mode. The alternative is to show it only when the mode changed from the message before, like the model switch marker (107).
+4. **Who may switch.** *Defaulted: anyone who can write to the chat (owner and editors).* Code isn't gated by a policy yet. An operator setting to keep a team in Chat would be new config.
 
 ## editors lane (n2/editors)
 

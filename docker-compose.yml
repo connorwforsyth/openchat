@@ -77,7 +77,8 @@ services:
     ports:
       - "127.0.0.1:${SEARXNG_PORT:-8080}:8080"
 
-  # Docker sandboxes (PLAN.md D7, D24): `docker compose --profile sandbox up -d`.
+  # Docker sandboxes (PLAN.md D7, D24): `bun dev` starts them, or
+  # `docker compose --profile sandbox up -d sandbox-runner`.
   # The runner is the only service that can reach Docker, and only through
   # this proxy, which allows just the API sections it uses. No other service
   # (`web` included) ever mounts the socket.
@@ -108,16 +109,18 @@ services:
     profiles: [sandbox]
     restart: unless-stopped
     depends_on: [docker-socket-proxy]
-    # A stable name, so the runner can join sandbox networks to reach previews.
-    container_name: sandbox-runner
+    # A stable name, so the runner can join sandbox networks to reach previews
+    # and sandboxes can find its egress proxy. Override it to run a second
+    # checkout's runner beside this one.
+    container_name: ${SANDBOX_RUNNER_CONTAINER:-sandbox-runner}
     environment:
       DOCKER_HOST: tcp://docker-socket-proxy:2375
-      RUNNER_CONTAINER: sandbox-runner
+      RUNNER_CONTAINER: ${SANDBOX_RUNNER_CONTAINER:-sandbox-runner}
       # Required: the API refuses every call without it. Share it with `web`.
       SANDBOX_RUNNER_TOKEN: ${SANDBOX_RUNNER_TOKEN:-}
       SANDBOX_RUNTIME: ${SANDBOX_RUNTIME:-auto}
-      SANDBOX_EGRESS: ${SANDBOX_EGRESS:-none}
-      SANDBOX_EGRESS_PROXY: ${SANDBOX_EGRESS_PROXY:-}
+      # Egress isn't set here: `sandbox.egress` in app.config.yaml travels with
+      # each sandbox, and allowlisted ones go through this runner's proxy.
       SANDBOX_IMAGE: ${SANDBOX_IMAGE:-node:24-bookworm-slim}
       # A Dot's computer (172): build it with `docker compose --profile sandbox-desktop-build build sandbox-desktop`.
       SANDBOX_DESKTOP_IMAGE: ${SANDBOX_DESKTOP_IMAGE:-sandbox-desktop:latest}

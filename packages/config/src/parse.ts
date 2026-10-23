@@ -105,6 +105,26 @@ export const interpolateEnv = (
   return { errors: [], value };
 };
 
+/**
+ * Variables that override a setting whatever the file says, so a deployment
+ * can change it without editing the YAML. Pure: a new object, `raw` untouched.
+ */
+export const applyEnvOverrides = (
+  raw: Readonly<Record<string, unknown>>,
+  env: Env
+): Record<string, unknown> => {
+  const egress = env.SANDBOX_EGRESS?.trim();
+  if (!egress) {
+    return { ...raw };
+  }
+  const sandbox = (raw.sandbox ?? {}) as Readonly<Record<string, unknown>>;
+  const current = (sandbox.egress ?? {}) as Readonly<Record<string, unknown>>;
+  return {
+    ...raw,
+    sandbox: { ...sandbox, egress: { ...current, mode: egress } },
+  };
+};
+
 const toConfigErrors = (error: z.ZodError): ConfigError[] =>
   error.issues.map((issue) => ({
     message: issue.message,
@@ -138,7 +158,10 @@ export const parseConfig = (
       { message: "the config must be a mapping of sections", path: [] },
     ]);
   }
-  const interpolated = interpolateEnv(raw, env);
+  const interpolated = interpolateEnv(
+    applyEnvOverrides(raw as Record<string, unknown>, env),
+    env
+  );
   const parsed = appConfigSchema.safeParse(interpolated.value);
   const errors = [
     ...interpolated.errors,

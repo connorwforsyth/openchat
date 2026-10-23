@@ -50,7 +50,7 @@ describe("bun run setup", () => {
     );
     const env = parseEnv(files.files.get(FILES.env) ?? "");
     expect(env.ANTHROPIC_API_KEY).toBe(FAKE_KEYS.anthropic);
-    expect(env.SANDBOX_EGRESS).toBe("open");
+    expect(env.SANDBOX_EGRESS).toBe("");
     expect(files.secretPaths).toEqual(new Set([FILES.env]));
   });
 

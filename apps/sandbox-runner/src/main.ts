@@ -3,16 +3,19 @@ import { setTimeout as sleep } from "node:timers/promises";
 
 import { serve } from "@hono/node-server";
 
-import { createApp, createPreviewApp } from "./app";
+import { createApp, createPreviewApp, createWaitingApp } from "./app";
 import { createDockerodePort } from "./dockerode";
-import { egressPolicy, envSchema } from "./env";
+import { createEgressProxy } from "./egress-proxy";
+import { envSchema } from "./env";
 import { createPreviewUpgrade } from "./preview-upgrade";
 import { createRunner, type Log } from "./runner";
 import { selectRuntime } from "./spec";
 
-// The imperative shell: read the environment, find out what the Docker host
-// offers, then serve the internal API and the preview proxy. The only
-// component with Docker access, and only through the socket proxy (D7).
+// The imperative shell: read the environment, serve the internal API at
+// once (answering `docker_unavailable` until Docker does), find out what the
+// Docker host offers, then serve sandboxes, the preview proxy and the egress
+// proxy. The only component with Docker access, and only through the socket
+// proxy (D7).
 
 const log: Log = (level, message, fields = {}) => {
   const line = JSON.stringify({
@@ -42,6 +45,17 @@ const main = async () => {
   }
   const env = parsed.data;
   const docker = createDockerodePort(env.DOCKER_HOST);
+  if (!env.SANDBOX_RUNNER_TOKEN) {
+    log("warn", "SANDBOX_RUNNER_TOKEN is not set; the API refuses every call");
+  }
+
+  // Up before Docker, so `web` hears why nothing works rather than nothing.
+  let serving = createWaitingApp({ token: env.SANDBOX_RUNNER_TOKEN });
+  const api = serve({
+    fetch: (request) => serving.fetch(request),
+    hostname: env.RUNNER_HOST,
+    port: env.RUNNER_PORT,
+  });
 
   // The runner is no use without Docker, so wait for the proxy to come up.
   let runtimes: string[] | undefined;
@@ -64,10 +78,9 @@ const main = async () => {
   if (choice.value.warning) {
     log("warn", choice.value.warning);
   }
-  if (!env.SANDBOX_RUNNER_TOKEN) {
-    log("warn", "SANDBOX_RUNNER_TOKEN is not set; the API refuses every call");
-  }
 
+  // Docker sets a container's hostname to its id unless told otherwise.
+  const runnerContainer = env.RUNNER_CONTAINER ?? hostname();
   const previewTemplate = env.SANDBOX_PREVIEW_URL.trim() || null;
   const runner = createRunner({
     config: {
@@ -81,11 +94,11 @@ const main = async () => {
         user: env.SANDBOX_USER,
       },
       desktopImage: env.SANDBOX_DESKTOP_IMAGE,
-      egress: egressPolicy(env),
+      // Sandboxes find the runner by its container name on their network.
+      egressProxyUrl: `http://${runnerContainer}:${env.RUNNER_EGRESS_PROXY_PORT}`,
       idleMs: env.SANDBOX_IDLE_MINUTES * 60_000,
       previewTemplate,
-      // Docker sets a container's hostname to its id unless told otherwise.
-      runnerContainer: env.RUNNER_CONTAINER ?? hostname(),
+      runnerContainer,
     },
     docker,
     log,
@@ -100,11 +113,7 @@ const main = async () => {
     });
   }
 
-  const api = serve({
-    fetch: createApp({ runner, token: env.SANDBOX_RUNNER_TOKEN }).fetch,
-    hostname: env.RUNNER_HOST,
-    port: env.RUNNER_PORT,
-  });
+  serving = createApp({ runner, token: env.SANDBOX_RUNNER_TOKEN });
   const preview = previewTemplate
     ? serve({
         fetch: createPreviewApp({ runner }).fetch,
@@ -114,7 +123,12 @@ const main = async () => {
     : null;
   // WebSocket upgrades (dev-server hot reload) skip Hono and arrive here.
   preview?.on("upgrade", createPreviewUpgrade({ runner }));
+  const egress = createEgressProxy({
+    allowFor: runner.egressAllowFor,
+    log,
+  }).listen(env.RUNNER_EGRESS_PROXY_PORT, env.RUNNER_HOST);
   log("info", "sandbox-runner listening", {
+    egressProxyPort: env.RUNNER_EGRESS_PROXY_PORT,
     isolation: choice.value.isolation,
     port: env.RUNNER_PORT,
     previewPort: preview ? env.RUNNER_PREVIEW_PORT : null,
@@ -137,6 +151,7 @@ const main = async () => {
     clearInterval(reaper);
     api.close();
     preview?.close();
+    egress.close();
   };
   process.once("SIGTERM", shutdown);
   process.once("SIGINT", shutdown);

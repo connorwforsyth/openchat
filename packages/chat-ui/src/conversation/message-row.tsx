@@ -56,6 +56,7 @@ import { FileParts } from "./file-parts";
 import { LazyReasoning } from "./lazy";
 import { Markdown } from "./markdown";
 import { MemoryNote } from "./memory-note";
+import { ModeNote } from "./mode-note";
 import { PlanApprovalNote, PlanCard } from "./plan-card";
 import { ReportNote, ScheduledLabel } from "./scheduled-note";
 import { SkillsNote } from "./skills-note";
@@ -366,6 +367,11 @@ function UserMessage({
                 <SkillsNote skills={block.skills} />
               </div>
             ))}
+            {message.mode ? (
+              <div className="ms-auto">
+                <ModeNote mode={message.mode} />
+              </div>
+            ) : null}
             <MessageFooter className="gap-1 px-0 opacity-0 pointer-coarse:opacity-100 focus-within:opacity-100 group-hover/message:opacity-100">
               <BranchSwitcher
                 info={siblings}

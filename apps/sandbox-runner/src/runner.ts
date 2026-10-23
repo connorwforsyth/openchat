@@ -13,6 +13,10 @@ import {
   MAX_FILE_BYTES,
   type RunnerStatus,
 } from "@workspace/sandbox/runner/protocol";
+import {
+  type RunnerUnavailableReason,
+  runnerUnavailableError,
+} from "@workspace/sandbox/runner/unavailable";
 import { newId } from "@workspace/shared/ids";
 import { type AsyncResult, err, ok } from "@workspace/shared/result";
 
@@ -23,6 +27,7 @@ import {
   buildNetworkSpec,
   type ContainerDefaults,
   containerName,
+  EGRESS_ALLOW_LABEL,
   EGRESS_NETWORK,
   type EgressPolicy,
   effectiveEgress,
@@ -43,7 +48,8 @@ export interface RunnerConfig {
   readonly defaults: ContainerDefaults;
   /** The image `desktop` sandboxes run (172). */
   readonly desktopImage: string;
-  readonly egress: EgressPolicy;
+  /** The egress proxy as sandboxes reach it; `null` turns `allowlist` into `none`. */
+  readonly egressProxyUrl: string | null;
   /** Stop a sandbox's container after this long without calls. */
   readonly idleMs: number;
   /** `http://{id}-{port}.sandbox.localhost:7071`; `null` turns previews off. */
@@ -82,6 +88,33 @@ const unavailable = (message: string): SandboxError => ({
   message,
   type: "unavailable",
 });
+
+const DOCKER_DOWN_CODES = new Set([
+  "ECONNREFUSED",
+  "ECONNRESET",
+  "EAI_AGAIN",
+  "ENOENT",
+  "ENOTFOUND",
+]);
+
+/**
+ * Whether a Docker call failed because Docker (or the socket proxy in front
+ * of it) isn't there, rather than refusing this one call. Pure.
+ */
+export const isDockerDown = (cause: unknown): boolean => {
+  if (typeof cause !== "object" || cause === null) {
+    return false;
+  }
+  const { code, statusCode } = cause as {
+    readonly code?: unknown;
+    readonly statusCode?: unknown;
+  };
+  return (
+    (typeof code === "string" && DOCKER_DOWN_CODES.has(code)) ||
+    statusCode === 502 ||
+    statusCode === 503
+  );
+};
 
 const FIND_TYPES: Readonly<Record<string, FileEntry["type"]>> = {
   d: "directory",
@@ -134,13 +167,29 @@ export const createRunner = ({
    * map only saves a Docker call per preview request.
    */
   const joined = new Map<SandboxId, AsyncResult<void, SandboxError>>();
+  /**
+   * The egress proxy's view: an `allowlist` sandbox's hosts by its address
+   * on its own network, and addresses known to have no allowlist. Both are
+   * rebuilt from Docker's labels on a miss, and forgotten whenever a
+   * sandbox starts or goes, since that's when addresses change hands.
+   */
+  const allowByIp = new Map<string, readonly string[]>();
+  const deniedIps = new Set<string>();
+  const forgetAddresses = () => {
+    allowByIp.clear();
+    deniedIps.clear();
+  };
 
   const touch = (id: SandboxId) => lastUsed.set(id, now().getTime());
 
-  /** Runs a Docker call, turning a throw into `unavailable`. */
+  /**
+   * Runs a Docker call, turning a throw into `unavailable`: Docker itself
+   * being down is `docker_unavailable`, `otherwise` names a known cause.
+   */
   const guarded = async <T>(
     what: string,
-    action: () => Promise<T>
+    action: () => Promise<T>,
+    otherwise?: RunnerUnavailableReason
   ): AsyncResult<T, SandboxError> => {
     try {
       return ok(await action());
@@ -148,7 +197,14 @@ export const createRunner = ({
       log("error", `docker: ${what} failed`, {
         cause: cause instanceof Error ? cause.message : String(cause),
       });
-      return err(unavailable(`the sandbox host couldn't ${what}`));
+      if (isDockerDown(cause)) {
+        return err(runnerUnavailableError("docker_unavailable"));
+      }
+      return err(
+        otherwise
+          ? runnerUnavailableError(otherwise)
+          : unavailable(`the sandbox host couldn't ${what}`)
+      );
     }
   };
 
@@ -170,6 +226,7 @@ export const createRunner = ({
       if (!started.ok) {
         return started;
       }
+      forgetAddresses();
     }
     touch(id);
     return ok(containerName(id));
@@ -244,13 +301,26 @@ export const createRunner = ({
 
   const resolve = (path: string) => resolveSandboxPath(path, WORKDIR);
 
+  /** The images a sandbox runs; a desktop image can't be pulled, only built. */
+  const ensureImages = async (
+    image: string
+  ): AsyncResult<void, SandboxError> => {
+    const base = await guarded("pull the sandbox image", () =>
+      docker.ensureImage(config.defaults.image)
+    );
+    if (!base.ok || image === config.defaults.image) {
+      return base;
+    }
+    return guarded(
+      "find the desktop image",
+      () => docker.ensureImage(image),
+      "desktop_image_missing"
+    );
+  };
+
   /** The volume and networks a sandbox needs, before its container. */
-  const provision = (id: SandboxId, egress: EgressPolicy, image: string) =>
+  const provision = (id: SandboxId, egress: EgressPolicy) =>
     guarded("create the sandbox", async () => {
-      await docker.ensureImage(config.defaults.image);
-      if (image !== config.defaults.image) {
-        await docker.ensureImage(image);
-      }
       await docker.createVolume(volumeName(id), {
         [MANAGED_LABEL]: "true",
         [SANDBOX_LABEL]: id,
@@ -303,12 +373,21 @@ export const createRunner = ({
     egress: EgressPolicy
   ): AsyncResult<void, SandboxError> => {
     const { id, limits, variant } = request;
+    // The proxy is the runner itself, so it must be on the sandbox's
+    // network before the sandbox's first request.
+    if (egress.mode === "allowlist") {
+      const joinedFirst = await joinNetwork(id);
+      if (!joinedFirst.ok) {
+        return joinedFirst;
+      }
+    }
     const started = await guarded("start the sandbox", async () => {
       await docker.createContainer(
         buildContainerSpec({
           defaults: config.defaults,
           desktopImage: config.desktopImage,
           egress,
+          egressProxyUrl: config.egressProxyUrl ?? undefined,
           id,
           limits,
           variant,
@@ -319,6 +398,7 @@ export const createRunner = ({
       }
       await docker.startContainer(containerName(id));
     });
+    forgetAddresses();
     if (started.ok && config.previewTemplate) {
       // Best effort: without it previews fail, commands still work.
       const reachable = await joinNetwork(id);
@@ -347,16 +427,19 @@ export const createRunner = ({
       touch(id);
       return ok({ state: existing.value.running ? "ready" : "stopped" });
     }
-    const egress = effectiveEgress(config.egress, limits);
+    const egress = effectiveEgress(
+      request.egress,
+      limits,
+      config.egressProxyUrl ?? undefined
+    );
     const steps = [
       () =>
-        provision(
-          id,
-          egress,
+        ensureImages(
           request.variant === "desktop"
             ? config.desktopImage
             : config.defaults.image
         ),
+      () => provision(id, egress),
       () => prepareVolume(id, snapshotRef),
       () => launch(request, egress),
     ];
@@ -679,6 +762,7 @@ export const createRunner = ({
     lastUsed.delete(id);
     previews.delete(id);
     joined.delete(id);
+    forgetAddresses();
     return removed;
   };
 
@@ -746,17 +830,51 @@ export const createRunner = ({
         ids.add(id);
       }
     }
-    const rejoins = config.previewTemplate
-      ? await Promise.all([...ids].map((id) => joinNetwork(id)))
-      : [];
+    // Previews and the egress proxy both need the runner on each network.
+    const rejoins = await Promise.all([...ids].map((id) => joinNetwork(id)));
     return ok({
       rejoined: rejoins.filter((result) => result.ok).length,
       running: ids.size,
     });
   };
 
+  /**
+   * The hosts the sandbox at `ip` may reach through the egress proxy, or
+   * `null` when it isn't an `allowlist` sandbox this Docker host knows.
+   */
+  const egressAllowFor = async (
+    ip: string
+  ): Promise<readonly string[] | null> => {
+    const known = allowByIp.get(ip);
+    if (known || deniedIps.has(ip)) {
+      return known ?? null;
+    }
+    const found = await guarded("list allowlisted sandboxes", () =>
+      docker.listContainers(EGRESS_ALLOW_LABEL)
+    );
+    if (!found.ok) {
+      return null;
+    }
+    for (const container of found.value) {
+      const id = container.labels[SANDBOX_LABEL];
+      const address = id ? container.ips[networkName(id as SandboxId)] : null;
+      if (address && container.running) {
+        allowByIp.set(
+          address,
+          (container.labels[EGRESS_ALLOW_LABEL] ?? "")
+            .split(",")
+            .filter(Boolean)
+        );
+      }
+    }
+    const allow = allowByIp.get(ip) ?? null;
+    if (!allow) {
+      deniedIps.add(ip);
+    }
+    return allow;
+  };
+
   const status = (): RunnerStatus => ({
-    egress: config.egress.mode,
     isolation: config.choice.isolation,
     runtime: config.choice.runtime,
     sandboxes: lastUsed.size,
@@ -766,6 +884,7 @@ export const createRunner = ({
   return {
     create,
     destroy,
+    egressAllowFor,
     exec,
     exposePort,
     listFiles,

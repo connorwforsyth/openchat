@@ -468,6 +468,52 @@ const sandboxLimitsSchema = z
   })
   .prefault({});
 
+/**
+ * A host a sandbox may reach under `allowlist` egress: `registry.npmjs.org`,
+ * or `*.example.com` for any subdomain of it (not the apex). Lowercase, no
+ * scheme, port or path.
+ */
+const EGRESS_HOST =
+  /^(\*\.)?([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/;
+
+export const egressHostSchema = z
+  .string()
+  .regex(
+    EGRESS_HOST,
+    "a lowercase hostname like `registry.npmjs.org`, or `*.example.com`"
+  );
+
+/** What package installs need: npm, PyPI and GitHub. */
+export const DEFAULT_EGRESS_ALLOW = [
+  "registry.npmjs.org",
+  "registry.yarnpkg.com",
+  "pypi.org",
+  "files.pythonhosted.org",
+  "github.com",
+  "api.github.com",
+  "codeload.github.com",
+  "objects.githubusercontent.com",
+  "raw.githubusercontent.com",
+  "release-assets.githubusercontent.com",
+] as const;
+
+export const egressModeSchema = z.enum(["open", "allowlist", "none"]);
+
+/**
+ * Where sandboxes may connect (D7). `open`: anywhere. `allowlist`: only the
+ * `allow` hosts, through the runner's proxy. `none`: nowhere. The
+ * `SANDBOX_EGRESS` variable overrides `mode`.
+ */
+const sandboxEgressSchema = z
+  .strictObject({
+    allow: z
+      .array(egressHostSchema)
+      .max(256)
+      .default([...DEFAULT_EGRESS_ALLOW]),
+    mode: egressModeSchema.default("open"),
+  })
+  .prefault({});
+
 const sandboxSchema = z
   .strictObject({
     /** Provider for new sandboxes; `none` turns sandboxes off. */
@@ -477,8 +523,6 @@ const sandboxSchema = z
     docker: z
       .strictObject({
         limits: sandboxLimitsSchema,
-        /** Outbound network from containers. */
-        network: z.boolean().default(true),
         runnerUrl: z.url(),
         /** `runsc` (gVisor) where the host has it; the runner warns and falls back otherwise (D7). */
         runtime: z.enum(["runsc", "runc"]).default("runsc"),
@@ -487,6 +531,7 @@ const sandboxSchema = z
       })
       .optional(),
     e2b: apiKeyBlock.optional(),
+    egress: sandboxEgressSchema,
     microsandbox: z.strictObject({ url: z.url() }).optional(),
     vercel: z
       .strictObject({

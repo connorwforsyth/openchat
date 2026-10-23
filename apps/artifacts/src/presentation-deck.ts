@@ -15,8 +15,14 @@ import {
   notesOf,
   START,
 } from "./presentation";
-import { canvasColorReader, captureSlide } from "./slide-capture";
+import {
+  canvasColorReader,
+  captureSlide,
+  type ReadColor,
+} from "./slide-capture";
 import type { SlideLayout } from "./slide-layout";
+import { regionRasterizer, slidePicture } from "./slide-raster";
+import { failedSlideLayout } from "./slide-rules";
 
 // A deck on the runtime page (164). Every slide is drawn at its full
 // 1920×1080 and scaled to fit (CSS `transform`, so it's crisp at any size):
@@ -235,6 +241,74 @@ export const mountDeck = (
     show();
   };
 
+  /** The theme's colours for a slide that failed: the error card's. */
+  const failedColors = (readColor: ReadColor) => {
+    const token = (name: string) =>
+      readColor(
+        getComputedStyle(document.documentElement)
+          .getPropertyValue(`--${name}`)
+          .trim()
+      );
+    const ink = { a: 1, b: 0, g: 0, r: 0 };
+    return {
+      background: token("muted"),
+      foreground: token("destructive") ?? ink,
+      muted: token("muted-foreground") ?? ink,
+    };
+  };
+
+  /** One slide drawn at full size in `host` and read back for `format`. */
+  const exportSlide = async (
+    slide: LoadedSlide,
+    index: number,
+    host: HTMLElement,
+    { format, readColor }: { format: ExportFormat; readColor: ReadColor }
+  ): Promise<{ page: SlideLayout; root: Root | null }> => {
+    let failure = slide.element.ok ? null : slide.element.error;
+    let slideReact: Root | null = null;
+    if (slide.element.ok) {
+      slideReact = slideRoot(host, (error) => {
+        failure ??= error;
+      });
+      const { value } = slide.element;
+      flushSync(() => slideReact?.render(value));
+      await picturesLoaded(host);
+    }
+    const notes = notesOf(
+      slide.notes,
+      [...host.querySelectorAll("[data-notes]")].map(
+        (each) => each.textContent ?? ""
+      )
+    );
+    if (failure) {
+      const failed = failedSlideLayout(
+        {
+          id: slide.id,
+          message: failure.message || failure.kind,
+          notes,
+          number: index + 1,
+        },
+        failedColors(readColor)
+      );
+      return { page: failed, root: slideReact };
+    }
+    const captured = withBackground(
+      await captureSlide(host, notes, {
+        rasterize: format === "pptx" ? regionRasterizer(host) : null,
+        readColor,
+      })
+    );
+    if (format === "pptx") {
+      return { page: captured, root: slideReact };
+    }
+    const picture = await slidePicture(host).catch((error: unknown) => {
+      // The page is still drawn, from its shapes and text.
+      console.warn(`slide "${slide.id}" couldn't be pictured`, error);
+      return null;
+    });
+    return { page: { ...captured, picture }, root: slideReact };
+  };
+
   const exportAs = async (format: ExportFormat): Promise<Uint8Array> => {
     const capture = document.createElement("div");
     capture.className = "deck-capture";
@@ -244,29 +318,21 @@ export const mountDeck = (
     try {
       const readColor = canvasColorReader();
       const layouts: SlideLayout[] = [];
-      for (const slide of deck.slides) {
+      for (const [index, slide] of deck.slides.entries()) {
         const host = document.createElement("div");
         host.style.width = `${WIDTH}px`;
         host.style.height = `${HEIGHT}px`;
         host.style.overflow = "hidden";
         capture.append(host);
-        if (slide.element.ok) {
-          const slideReact = slideRoot(host, () => undefined);
-          captureRoots.push(slideReact);
-          const { value } = slide.element;
-          flushSync(() => slideReact.render(value));
-          // biome-ignore lint/performance/noAwaitInLoops: one slide drawn and read at a time keeps the page light.
-          await picturesLoaded(host);
+        // biome-ignore lint/performance/noAwaitInLoops: one slide drawn and read at a time keeps the page light.
+        const { page, root: drawn } = await exportSlide(slide, index, host, {
+          format,
+          readColor,
+        });
+        if (drawn) {
+          captureRoots.push(drawn);
         }
-        const notes = notesOf(
-          slide.notes,
-          [...host.querySelectorAll("[data-notes]")].map(
-            (each) => each.textContent ?? ""
-          )
-        );
-        layouts.push(
-          withBackground(await captureSlide(host, notes, readColor))
-        );
+        layouts.push(page);
       }
       const { writePdf, writePptx } = await import("./slide-export");
       const layoutDeck = { slides: layouts, title: deck.title };

@@ -152,11 +152,21 @@ describe("withBackground", () => {
 
   it("makes a full-canvas box the slide's background", () => {
     expect(
-      withBackground({ background: null, items: [full], notes: "" })
-    ).toEqual({ background: fill, items: [], notes: "" });
+      withBackground({
+        background: null,
+        items: [full],
+        notes: "",
+        picture: null,
+      })
+    ).toEqual({ background: fill, items: [], notes: "", picture: null });
     const smaller = { ...full, w: 800 };
     expect(
-      withBackground({ background: null, items: [smaller], notes: "" }).items
+      withBackground({
+        background: null,
+        items: [smaller],
+        notes: "",
+        picture: null,
+      }).items
     ).toEqual([smaller]);
   });
 });
@@ -174,5 +184,17 @@ describe("slideDeckCss", () => {
     expect(light).not.toEqual(dark);
     expect(light).toContain("[data-step-hidden] { visibility: hidden; }");
     expect(light).not.toContain("transition");
+  });
+
+  it("puts the instance's deck theme after the app's, so it wins", async () => {
+    const globals = await readFile(
+      new URL("../../../packages/ui/src/styles/globals.css", import.meta.url),
+      "utf8"
+    );
+    const css = slideDeckCss(globals, "light", "--primary: red;");
+    expect(css.indexOf(":root {--primary: red;}")).toBeGreaterThan(
+      css.indexOf("--background:")
+    );
+    expect(slideDeckCss(globals, "light")).not.toContain("--primary: red");
   });
 });

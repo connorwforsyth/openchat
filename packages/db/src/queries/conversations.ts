@@ -10,7 +10,7 @@ import type {
   ConversationPermission,
 } from "@workspace/contract/schemas/conversations";
 import type { MessageRole } from "@workspace/contract/schemas/messages";
-import type { RunTarget } from "@workspace/contract/schemas/runs";
+import type { ChatMode, RunTarget } from "@workspace/contract/schemas/runs";
 import type { SearchHit } from "@workspace/contract/schemas/search";
 import type {
   ChatContext,
@@ -145,6 +145,7 @@ const selectViews = (db: Db, viewer: Viewer) =>
 export interface NewConversation {
   readonly context: StoredContext;
   readonly defaultTarget?: RunTarget | null;
+  readonly mode?: ChatMode;
   readonly ownerId: UserId;
   /** `test` for an Agent Builder test chat; `chat` by default. */
   readonly purpose?: ConversationPurpose;
@@ -163,6 +164,7 @@ export const createConversation = (
         contextId: input.context.id,
         contextType: input.context.type,
         defaultTarget: input.defaultTarget ?? null,
+        mode: input.mode ?? "chat",
         ownerId: input.ownerId,
         purpose: input.purpose ?? "chat",
         title: input.title ?? null,
@@ -309,6 +311,7 @@ export const listConversations = async (
 export interface ConversationPatch {
   readonly archived?: boolean;
   readonly defaultTarget?: RunTarget | null;
+  readonly mode?: ChatMode;
   readonly title?: string;
 }
 
@@ -321,6 +324,7 @@ export const updateConversation = async (
     .update(conversation)
     .set({
       ...(patch.title === undefined ? {} : { title: patch.title }),
+      ...(patch.mode === undefined ? {} : { mode: patch.mode }),
       ...(patch.defaultTarget === undefined
         ? {}
         : { defaultTarget: patch.defaultTarget }),

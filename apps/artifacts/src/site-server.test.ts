@@ -1,7 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 
-import { describe, expect, it } from "vitest";
+import type { KindTheme } from "@workspace/artifacts-kit/kind-theme";
+import { describe, expect, it, vi } from "vitest";
 
 import { buildPreview, navigationTarget, pageError } from "./site-preview";
 import {
@@ -226,6 +227,47 @@ describe("the site preview", () => {
 });
 
 describe("published sites", () => {
+  it("rebuilds when the instance theme changes, and reuses equal theme values", async () => {
+    let theme: KindTheme = {
+      dark: {},
+      light: { "--primary": "navy", "--radius": "2px" },
+    };
+    const build = vi.fn(compile);
+    const sites = createSiteServer({
+      apiOrigin: "http://app.test",
+      appOrigins: [],
+      compile: build,
+      fetch: fakeApi().fetch,
+      runtimeUrl: () => RUNTIME,
+      theme: () => Promise.resolve(theme),
+      themeCss,
+    });
+    expect((await sites.published(`/s/${TOKEN}/`))?.body).toContain(
+      "--primary: navy"
+    );
+    expect(build).toHaveBeenCalledTimes(1);
+    theme = {
+      dark: {},
+      light: Object.fromEntries([
+        ["--radius", "2px"],
+        ["--primary", "navy"],
+      ]),
+    };
+    await sites.published(`/s/${TOKEN}/`);
+    expect(build).toHaveBeenCalledTimes(1);
+    theme = { dark: {}, light: { "--primary": "teal" } };
+    const changed = await sites.published(`/s/${TOKEN}/`);
+    expect(changed?.status).toBe(200);
+    expect(changed?.body).toContain("--primary: teal");
+    expect(changed?.body).not.toContain("--primary: navy");
+    expect(build).toHaveBeenCalledTimes(2);
+    theme = { dark: { "--primary": "aqua" }, light: { "--primary": "teal" } };
+    expect((await sites.published(`/s/${TOKEN}/`))?.body).toContain(
+      "--primary: aqua"
+    );
+    expect(build).toHaveBeenCalledTimes(3);
+  });
+
   it("serve each file with the published CSP and the app's origins", async () => {
     const sites = server();
     const page = await sites.published(`/s/${TOKEN}/`);

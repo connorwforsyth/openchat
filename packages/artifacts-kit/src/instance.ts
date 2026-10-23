@@ -1,5 +1,7 @@
+import { z } from "zod";
 import { builtinKindDefinitions } from "./builtin";
 import type { Compile } from "./checks";
+import { MAX_DESIGN, THEMED_KINDS } from "./kind-theme";
 import { presentationKindWith } from "./kinds/presentation/kind";
 import { siteKind } from "./kinds/site/kind";
 import {
@@ -27,14 +29,25 @@ export interface ArtifactKindSettings {
   };
 }
 
+/**
+ * The instance's house style per kind, from its brand folder's DESIGN.md
+ * files: prose only, added to the kind's guide for the model.
+ */
+export const artifactDesignNotesSchema = z.partialRecord(
+  z.enum(THEMED_KINDS),
+  z.string().max(MAX_DESIGN)
+);
+export type ArtifactDesignNotes = z.infer<typeof artifactDesignNotesSchema>;
+
 export interface ArtifactKindPorts {
   /** Compiles TSX as the artifact runtime does: slides are checked with it on save. */
   readonly compileTsx?: Compile;
+  readonly design?: ArtifactDesignNotes;
 }
 
 export const instanceArtifactKinds = (
   settings: ArtifactKindSettings,
-  { compileTsx }: ArtifactKindPorts = {}
+  { compileTsx, design = {} }: ArtifactKindPorts = {}
 ): ArtifactKindRegistry => {
   const { site: _defaults, ...others } = builtinKindDefinitions;
   const offered = (kind: string) =>
@@ -44,10 +57,18 @@ export const instanceArtifactKinds = (
       // In place, so the kinds keep their order.
       ...Object.values({
         ...others,
-        presentation: presentationKindWith({ compile: compileTsx }),
+        presentation: presentationKindWith({
+          compile: compileTsx,
+          design: design.presentation,
+        }),
       }),
       ...(settings.site.enabled
-        ? [siteKind({ allowedOrigins: settings.site.allowedOrigins })]
+        ? [
+            siteKind({
+              allowedOrigins: settings.site.allowedOrigins,
+              design: design.site,
+            }),
+          ]
         : []),
     ].filter((definition) => offered(definition.kind))
   );

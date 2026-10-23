@@ -6,12 +6,13 @@ import {
 import { createDockerSandboxFactory } from "@workspace/sandbox/docker/client";
 import type { Sandbox } from "@workspace/sandbox/ports/sandbox";
 import { signRequest } from "@workspace/sandbox/runner/auth";
+import { runnerUnavailableError } from "@workspace/sandbox/runner/unavailable";
 import { describe, expect, it } from "vitest";
 
-import { createApp, createPreviewApp } from "./app";
+import { createApp, createPreviewApp, createWaitingApp } from "./app";
 import { createMemoryDocker } from "./docker-port.memory";
 import { createRunner, type RunnerConfig } from "./runner";
-import { SANDBOX_LABEL, selectRuntime } from "./spec";
+import { EGRESS_ALLOW_LABEL, SANDBOX_LABEL, selectRuntime } from "./spec";
 
 const id = fixtureId("sandbox", 1);
 const conversationId = fixtureId("conversation", 1);
@@ -45,7 +46,7 @@ const setup = (
         user: "1000:1000",
       },
       desktopImage: "sandbox-desktop:test",
-      egress: { mode: "none" },
+      egressProxyUrl: "http://runner:3128",
       idleMs: 60_000,
       previewTemplate: "http://{id}-{port}.sandbox.localhost:7071",
       runnerContainer: "runner",
@@ -146,7 +147,7 @@ describe("runner API authentication", () => {
           user: "1000:1000",
         },
         desktopImage: "sandbox-desktop:test",
-        egress: { mode: "none" },
+        egressProxyUrl: null,
         idleMs: 1,
         previewTemplate: null,
         runnerContainer: null,
@@ -221,7 +222,6 @@ describe("runner through the docker client", () => {
     const { factory } = setup();
     const status = await must(factory.runnerStatus());
     expect(status).toMatchObject({
-      egress: "none",
       isolation: "container",
       runtime: "runc",
       sandboxes: 0,
@@ -502,10 +502,7 @@ describe("runner through the docker client", () => {
       token,
     });
     expect(await unreachable.attach(id)).toEqual({
-      error: {
-        message: "the sandbox runner is unreachable",
-        type: "unavailable",
-      },
+      error: runnerUnavailableError("runner_unreachable"),
       ok: false,
     });
     const tokenless = createDockerSandboxFactory({
@@ -513,6 +510,136 @@ describe("runner through the docker client", () => {
       token: undefined,
     });
     expect((await tokenless.runnerStatus()).ok).toBe(false);
+  });
+});
+
+describe("why the runner can't serve", () => {
+  it("says the runner has no token, through the client", async () => {
+    const { runner } = setup();
+    const app = createApp({ runner, token: undefined });
+    const factory = createDockerSandboxFactory({
+      fetch: async (input, init) => await app.request(String(input), init),
+      runnerUrl: RUNNER,
+      token,
+    });
+    expect(await factory.runnerStatus()).toEqual({
+      error: runnerUnavailableError("runner_token_missing"),
+      ok: false,
+    });
+  });
+
+  it("says Docker is down while it waits for Docker, to signed calls only", async () => {
+    const app = createWaitingApp({ token });
+    const factory = createDockerSandboxFactory({
+      fetch: async (input, init) => await app.request(String(input), init),
+      runnerUrl: RUNNER,
+      token,
+    });
+    expect(await factory.create({ conversationId, id, limits })).toEqual({
+      error: runnerUnavailableError("docker_unavailable"),
+      ok: false,
+    });
+    expect((await app.request("/v1/status")).status).toBe(401);
+    expect((await app.request("/healthz")).status).toBe(200);
+  });
+
+  it("says Docker is down when a Docker call can't connect", async () => {
+    const { factory, fake } = setup();
+    fake.failNext(
+      "inspectContainer",
+      Object.assign(new Error("connect ECONNREFUSED"), {
+        code: "ECONNREFUSED",
+      })
+    );
+    expect(await factory.create({ conversationId, id, limits })).toEqual({
+      error: runnerUnavailableError("docker_unavailable"),
+      ok: false,
+    });
+  });
+
+  it("says the desktop image isn't built when it can't be found", async () => {
+    const { factory, fake } = setup();
+    // The base image is ensured first, then the desktop's.
+    await fake.docker.ensureImage("node:24-bookworm-slim");
+    const ensure = fake.docker.ensureImage;
+    fake.docker.ensureImage = (image) =>
+      image === "sandbox-desktop:test"
+        ? Promise.reject(new Error("pull access denied"))
+        : ensure(image);
+    expect(await factory.createDesktop({ id, limits })).toEqual({
+      error: runnerUnavailableError("desktop_image_missing"),
+      ok: false,
+    });
+  });
+});
+
+describe("allowlist egress", () => {
+  const allowlisted = () => {
+    const { fake, runner } = setup();
+    const app = createApp({ runner, token });
+    const factory = createDockerSandboxFactory({
+      egress: { allow: ["registry.npmjs.org"], mode: "allowlist" },
+      fetch: async (input, init) => await app.request(String(input), init),
+      runnerUrl: RUNNER,
+      token,
+    });
+    return { factory, fake, runner };
+  };
+
+  it("keeps the sandbox internal, pointed at the runner's proxy", async () => {
+    const { factory, fake } = allowlisted();
+    await must(
+      factory.create({
+        conversationId,
+        id,
+        limits: { ...limits, network: true },
+      })
+    );
+    const main = fake.created.find((spec) => spec.name === `sbx-${id}`);
+    expect(main?.HostConfig?.NetworkMode).toBe(`sbx-${id}`);
+    expect(main?.Env).toContain("HTTPS_PROXY=http://runner:3128");
+    expect(main?.Labels?.[EGRESS_ALLOW_LABEL]).toBe("registry.npmjs.org");
+    expect(fake.networks.get(`sbx-${id}`)).toMatchObject({ internal: true });
+    expect(fake.networks.has("sandbox-egress")).toBe(false);
+    // The proxy is the runner, so it's on the network before the sandbox runs.
+    expect(fake.networks.get(`sbx-${id}`)?.members.has("runner")).toBe(true);
+  });
+
+  it("tells the proxy each sandbox's hosts by its address, and no one else's", async () => {
+    const { factory, runner } = allowlisted();
+    await must(
+      factory.create({
+        conversationId,
+        id,
+        limits: { ...limits, network: true },
+      })
+    );
+    expect(await runner.egressAllowFor("10.0.0.2")).toEqual([
+      "registry.npmjs.org",
+    ]);
+    expect(await runner.egressAllowFor("10.0.0.99")).toBe(null);
+  });
+
+  it("forgets a destroyed sandbox's hosts", async () => {
+    const { factory, runner } = allowlisted();
+    const sandbox = await must(
+      factory.create({
+        conversationId,
+        id,
+        limits: { ...limits, network: true },
+      })
+    );
+    expect(await runner.egressAllowFor("10.0.0.2")).not.toBe(null);
+    await must(sandbox.destroy());
+    expect(await runner.egressAllowFor("10.0.0.2")).toBe(null);
+  });
+
+  it("gives a sandbox without network no proxy and no list", async () => {
+    const { factory, fake, runner } = allowlisted();
+    await must(factory.create({ conversationId, id, limits }));
+    const main = fake.created.find((spec) => spec.name === `sbx-${id}`);
+    expect(main?.Env?.some((entry) => entry.includes("PROXY"))).toBe(false);
+    expect(await runner.egressAllowFor("10.0.0.2")).toBe(null);
   });
 });
 

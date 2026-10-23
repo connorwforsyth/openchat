@@ -93,6 +93,22 @@ sandbox:
     token: "${SANDBOX_RUNNER_TOKEN}"
     runtime: runsc          # gVisor; the runner warns and falls back to runc if it's missing
     limits: { cpu: 2, memoryMb: 2048, diskMb: 10240 }
+  # Where sandboxes may connect: open (anywhere) | allowlist (only `allow`,
+  # through the runner's proxy) | none. SANDBOX_EGRESS overrides `mode`.
+  # `allow` takes hostnames, or `*.example.com` for any subdomain.
+  egress:
+    mode: open
+    allow:
+      - registry.npmjs.org
+      - registry.yarnpkg.com
+      - pypi.org
+      - files.pythonhosted.org
+      - github.com
+      - api.github.com
+      - codeload.github.com
+      - objects.githubusercontent.com
+      - raw.githubusercontent.com
+      - release-assets.githubusercontent.com
 
 # ./.data is git-ignored; in the Docker image it's the `web-data` volume.
 storage: { driver: local, path: ./.data/files }

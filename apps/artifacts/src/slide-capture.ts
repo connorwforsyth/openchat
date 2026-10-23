@@ -1,4 +1,12 @@
 import type { LayoutColor, LayoutItem, SlideLayout } from "./slide-layout";
+import {
+  type Box,
+  type ChartLook,
+  chartItemOf,
+  RASTER_BLEED,
+  rasterReason,
+  regionOf,
+} from "./slide-rules";
 
 // A rendered slide's DOM as a layout tree (164), for the exports: every
 // painted box a shape, every run of text a text box, every picture an
@@ -55,16 +63,13 @@ const hasOwnText = (element: Element): boolean =>
 
 const px = (value: string): number => Number.parseFloat(value) || 0;
 
-/** An `<svg>` or `<img>` as a PNG `data:` URL, or `null` if it can't be read. */
+/** An `<img>`'s picture as a `data:` URL, or `null` if it can't be read. */
 const pictureOf = async (
-  element: Element,
+  image: HTMLImageElement,
   width: number,
   height: number
 ): Promise<string | null> => {
-  const source =
-    element instanceof HTMLImageElement
-      ? element.currentSrc || element.src
-      : `data:image/svg+xml;charset=utf-8,${encodeURIComponent(new XMLSerializer().serializeToString(element))}`;
+  const source = image.currentSrc || image.src;
   if (!source.startsWith("data:")) {
     // The runtime loads nothing from the network, so there's nothing to embed.
     return null;
@@ -75,21 +80,37 @@ const pictureOf = async (
   ) {
     return source;
   }
-  const image = new Image();
-  image.src = source;
+  const decoded = new Image();
+  decoded.src = source;
   try {
-    await image.decode();
+    await decoded.decode();
   } catch {
     return null;
   }
   const canvas = document.createElement("canvas");
   canvas.width = Math.max(1, Math.round(width));
   canvas.height = Math.max(1, Math.round(height));
-  canvas.getContext("2d")?.drawImage(image, 0, 0, canvas.width, canvas.height);
+  canvas
+    .getContext("2d")
+    ?.drawImage(decoded, 0, 0, canvas.width, canvas.height);
   return canvas.toDataURL("image/png");
 };
 
-type Box = Pick<LayoutItem, "h" | "w" | "x" | "y">;
+/**
+ * A picture of `element` as the browser draws it, cut to `region` of the
+ * slide: a port, so the walk stays free of the rasterizer.
+ */
+export type Rasterize = (
+  element: Element,
+  region: Box
+) => Promise<Extract<LayoutItem, { type: "image" }> | null>;
+
+/** `color` seen through its own and its ancestors' opacity. */
+const faded = (
+  color: LayoutColor | null,
+  opacity: number
+): LayoutColor | null =>
+  color === null || opacity >= 1 ? color : { ...color, a: color.a * opacity };
 
 const TRAILING_SPACE = /\s+\n/g;
 
@@ -109,10 +130,11 @@ const textOf = (
   element: HTMLElement,
   style: CSSStyleDeclaration,
   box: Box,
-  readColor: ReadColor
+  readColor: ReadColor,
+  opacity: number
 ): LayoutItem | null => {
   const text = element.innerText.replace(TRAILING_SPACE, "\n").trim();
-  const color = readColor(style.color);
+  const color = faded(readColor(style.color), opacity);
   if (text === "" || !color) {
     return null;
   }
@@ -138,13 +160,14 @@ const textOf = (
 const shapeOf = (
   style: CSSStyleDeclaration,
   box: Box,
-  readColor: ReadColor
+  readColor: ReadColor,
+  opacity: number
 ): LayoutItem | null => {
-  const fill = readColor(style.backgroundColor);
+  const fill = faded(readColor(style.backgroundColor), opacity);
   const width = px(style.borderTopWidth);
   const line =
     width > 0 && style.borderTopStyle !== "none"
-      ? readColor(style.borderTopColor)
+      ? faded(readColor(style.borderTopColor), opacity)
       : null;
   return fill || line
     ? {
@@ -162,74 +185,186 @@ const isHidden = (style: CSSStyleDeclaration): boolean =>
   style.visibility === "hidden" ||
   Number(style.opacity) === 0;
 
+/** The chart slide-ui's `Chart` drew in `figure`, in the theme's colours. */
+const chartLookOf = (
+  figure: Element,
+  svg: Element,
+  readColor: ReadColor
+): ChartLook => {
+  const style = getComputedStyle(figure);
+  const colors = [1, 2, 3, 4, 5].flatMap((n) => {
+    const color = readColor(style.getPropertyValue(`--chart-${n}`).trim());
+    return color ? [color] : [];
+  });
+  // The drawing's labels are sized in its viewBox, which is scaled to fit.
+  const label = svg.querySelector("text");
+  const viewBox = (svg as SVGSVGElement).viewBox?.baseVal;
+  const scale =
+    viewBox && viewBox.width > 0
+      ? svg.getBoundingClientRect().width / viewBox.width
+      : 1;
+  return {
+    colors,
+    fontSize: label ? px(getComputedStyle(label).fontSize) * scale || 28 : 28,
+    labelColor: (label && readColor(getComputedStyle(label).fill)) ??
+      readColor(style.color) ?? { a: 1, b: 0, g: 0, r: 0 },
+  };
+};
+
 /**
- * What one element contributes, and whether its children still need a
- * visit: a picture or a block of text is whole; a box is drawn under its
+ * A slide-ui `Chart`'s figure as a native chart, and the figure's other
+ * children still to visit; `null` if `element` isn't one or its data
+ * doesn't read, so it's drawn as anything else is.
+ */
+const chartOf = (
+  element: Element,
+  origin: DOMRect,
+  readColor: ReadColor
+): Found | null => {
+  const data = element.getAttribute("data-slide-chart");
+  const svg = data === null ? null : element.querySelector("svg");
+  if (data === null || svg === null) {
+    return null;
+  }
+  const chart = chartItemOf(
+    data,
+    boxOf(svg, origin),
+    chartLookOf(element, svg, readColor)
+  );
+  return chart.ok
+    ? {
+        // The native chart draws its own legend.
+        children: [...element.children].filter(
+          (child) => child !== svg && child.tagName !== "FIGCAPTION"
+        ),
+        items: [chart.value],
+      }
+    : null;
+};
+
+interface Walk {
+  /** The element's opacity and its ancestors', multiplied. */
+  readonly opacity: number;
+  /** `null` when the export draws the slide from its picture (the PDF). */
+  readonly rasterize: Rasterize | null;
+  readonly readColor: ReadColor;
+}
+
+interface Found {
+  /** The children still to visit; none when this element was whole. */
+  readonly children: readonly Element[];
+  readonly items: readonly LayoutItem[];
+}
+
+const boxOf = (element: Element, origin: DOMRect): Box => {
+  const rect = element.getBoundingClientRect();
+  return {
+    h: rect.height,
+    w: rect.width,
+    x: rect.left - origin.left,
+    y: rect.top - origin.top,
+  };
+};
+
+/**
+ * What one element contributes, and which children still need a visit: a
+ * picture, a chart or a block of text is whole; a box is drawn under its
  * children.
  */
 const itemsOf = async (
   element: Element,
   box: Box,
-  { isCanvas, readColor }: { isCanvas: boolean; readColor: ReadColor }
-): Promise<{ items: LayoutItem[]; visitChildren: boolean }> => {
+  origin: DOMRect,
+  { isCanvas, rasterize, readColor, opacity }: Walk & { isCanvas: boolean }
+): Promise<Found> => {
   const style = getComputedStyle(element);
+  const none: Found = { children: [], items: [] };
   if (isHidden(style) || box.w === 0 || box.h === 0) {
-    return { items: [], visitChildren: false };
+    return none;
   }
-  if (element instanceof HTMLImageElement || element instanceof SVGSVGElement) {
+  const chart = rasterize ? chartOf(element, origin, readColor) : null;
+  if (chart) {
+    return chart;
+  }
+  const reason = rasterReason({
+    backdropFilter: style.backdropFilter,
+    backgroundImage: style.backgroundImage,
+    boxShadow: style.boxShadow,
+    clipPath: style.clipPath,
+    filter: style.filter,
+    maskImage: style.maskImage,
+    tag: element.tagName,
+    transform: style.transform,
+  });
+  if (reason && rasterize) {
+    const picture = await rasterize(
+      element,
+      regionOf(box, RASTER_BLEED[reason])
+    );
+    return { children: [], items: picture === null ? [] : [picture] };
+  }
+  if (reason === "svg" || reason === "canvas") {
+    return none;
+  }
+  if (element instanceof HTMLImageElement) {
     const src = await pictureOf(element, box.w, box.h);
     return {
+      children: [],
       items: src ? [{ ...box, src, type: "image" }] : [],
-      visitChildren: false,
     };
   }
-  const shape = isCanvas ? null : shapeOf(style, box, readColor);
+  const shape = isCanvas ? null : shapeOf(style, box, readColor, opacity);
   const items = shape ? [shape] : [];
   // Text a block holds directly is one text box, with its inline runs.
   if (element instanceof HTMLElement && hasOwnText(element)) {
-    const text = textOf(element, style, box, readColor);
-    return { items: text ? [...items, text] : items, visitChildren: false };
+    const text = textOf(element, style, box, readColor, opacity);
+    return { children: [], items: text ? [...items, text] : items };
   }
-  return { items, visitChildren: true };
+  return { children: [...element.children], items };
 };
 
 /**
  * The layout of the slide drawn in `canvas` (its 1920×1080 element), with
- * `notes`. Hidden elements are left out; a step counts as shown.
+ * `notes`. Hidden elements are left out; a step counts as shown. With
+ * `rasterize` (the PowerPoint), what can't be a native shape, text box or
+ * chart becomes a picture of its region; without it (the PDF, which has a
+ * picture of the whole slide), only the text matters.
  */
 export const captureSlide = async (
   canvas: HTMLElement,
   notes: string,
-  readColor: ReadColor
+  {
+    rasterize,
+    readColor,
+  }: { readonly rasterize: Rasterize | null; readonly readColor: ReadColor }
 ): Promise<SlideLayout> => {
   const origin = canvas.getBoundingClientRect();
   const items: LayoutItem[] = [];
 
-  const visit = async (element: Element, isCanvas: boolean): Promise<void> => {
-    const rect = element.getBoundingClientRect();
-    const found = await itemsOf(
-      element,
-      {
-        h: rect.height,
-        w: rect.width,
-        x: rect.left - origin.left,
-        y: rect.top - origin.top,
-      },
-      { isCanvas, readColor }
-    );
+  const visit = async (
+    element: Element,
+    isCanvas: boolean,
+    opacity: number
+  ): Promise<void> => {
+    const own = opacity * Number(getComputedStyle(element).opacity || 1);
+    const found = await itemsOf(element, boxOf(element, origin), origin, {
+      isCanvas,
+      opacity: own,
+      rasterize,
+      readColor,
+    });
     items.push(...found.items);
-    if (found.visitChildren) {
-      for (const child of element.children) {
-        // biome-ignore lint/performance/noAwaitInLoops: in document order, which is the order the slide paints.
-        await visit(child, false);
-      }
+    for (const child of found.children) {
+      // biome-ignore lint/performance/noAwaitInLoops: in document order, which is the order the slide paints.
+      await visit(child, false, own);
     }
   };
 
-  await visit(canvas, true);
+  await visit(canvas, true, 1);
   return {
     background: readColor(getComputedStyle(canvas).backgroundColor),
     items,
     notes,
+    picture: null,
   };
 };

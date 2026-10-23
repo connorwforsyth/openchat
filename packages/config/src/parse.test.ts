@@ -288,3 +288,86 @@ describe("readable errors", () => {
     );
   });
 });
+
+describe("sandbox egress", () => {
+  it("is open by default, with the package registries listed for allowlist", () => {
+    const { egress } = expectOk("").sandbox;
+    expect(egress.mode).toBe("open");
+    expect(egress.allow).toEqual(
+      expect.arrayContaining([
+        "registry.npmjs.org",
+        "pypi.org",
+        "files.pythonhosted.org",
+        "github.com",
+      ])
+    );
+  });
+
+  it("reads the mode and the host list from the file", () => {
+    const { egress } = expectOk(
+      "sandbox:\n  egress:\n    mode: allowlist\n    allow: [registry.npmjs.org, '*.example.com']"
+    ).sandbox;
+    expect(egress).toEqual({
+      allow: ["registry.npmjs.org", "*.example.com"],
+      mode: "allowlist",
+    });
+  });
+
+  it("accepts 256 egress hosts and rejects 257 at config load", () => {
+    const hosts = Array.from(
+      { length: 256 },
+      (_, index) => `host${index}.example`
+    );
+    const config = (allow: readonly string[]) =>
+      `sandbox:\n  egress:\n    mode: allowlist\n    allow: [${allow.join(", ")}]`;
+    expect(expectOk(config(hosts)).sandbox.egress.allow).toEqual(hosts);
+    expect(
+      expectErrors(config([...hosts, "overflow.example"]))[0]?.path
+    ).toEqual(["sandbox", "egress", "allow"]);
+  });
+
+  it("lets SANDBOX_EGRESS override the file's mode and keeps its list", () => {
+    const { egress } = expectOk(
+      "sandbox:\n  egress: { mode: open, allow: [pypi.org] }",
+      { SANDBOX_EGRESS: "none" }
+    ).sandbox;
+    expect(egress).toEqual({ allow: ["pypi.org"], mode: "none" });
+  });
+
+  it("ignores an empty SANDBOX_EGRESS", () => {
+    expect(
+      expectOk("sandbox: { egress: { mode: allowlist } }", {
+        SANDBOX_EGRESS: "",
+      }).sandbox.egress.mode
+    ).toBe("allowlist");
+  });
+
+  it("rejects an unknown mode, from the file or the variable", () => {
+    expect(
+      expectErrors("sandbox: { egress: { mode: some } }")[0]?.path
+    ).toEqual(["sandbox", "egress", "mode"]);
+    expect(expectErrors("", { SANDBOX_EGRESS: "everywhere" })[0]?.path).toEqual(
+      ["sandbox", "egress", "mode"]
+    );
+  });
+
+  it("rejects hosts with a scheme, a port or capitals", () => {
+    const errors = expectErrors(
+      "sandbox:\n  egress:\n    allow: ['https://pypi.org', 'pypi.org:443', 'PyPI.org', '*']"
+    );
+    expect(errors.map((error) => error.path.join("."))).toEqual([
+      "sandbox.egress.allow.0",
+      "sandbox.egress.allow.1",
+      "sandbox.egress.allow.2",
+      "sandbox.egress.allow.3",
+    ]);
+  });
+
+  it("no longer accepts sandbox.docker.network; egress replaces it", () => {
+    expect(
+      expectErrors(
+        "sandbox:\n  docker: { runnerUrl: 'http://runner:7070', network: false }"
+      )[0]?.path
+    ).toEqual(["sandbox", "docker"]);
+  });
+});

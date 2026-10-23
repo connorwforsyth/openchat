@@ -1112,6 +1112,7 @@ msgstr "Chart"
 
 #: ../../apps/desktop/src/main/menu.ts
 #: ../chat-ui/src/artifacts/artifact-full-view.tsx
+#: ../composer/src/components/chat-mode-switch.tsx
 msgid "Chat"
 msgstr "Chat"
 
@@ -1135,9 +1136,17 @@ msgstr "Chat contexts"
 msgid "Chat demo"
 msgstr "Chat demo"
 
+#: ../composer/src/components/chat-mode-switch.tsx
+msgid "Chat or Code mode"
+msgstr "Chat or Code mode"
+
 #: ../chat-ui/src/sidebar/rename-input.tsx
 msgid "Chat title"
 msgstr "Chat title"
+
+#: ../composer/src/components/chat-mode-switch.tsx
+msgid "Chat: artifacts and files, nothing runs"
+msgstr "Chat: artifacts and files, nothing runs"
 
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
 msgid "chats"
@@ -1270,6 +1279,7 @@ msgstr "Close toast"
 #: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../chat-ui/src/model/artifact-kinds.ts
 #: ../chat-ui/src/workspace/mode-toggle.tsx
+#: ../composer/src/components/chat-mode-switch.tsx
 msgid "Code"
 msgstr "Code"
 
@@ -1281,6 +1291,10 @@ msgstr "Code block"
 #: ../../apps/web/app/dev/code/page.tsx
 msgid "Code views"
 msgstr "Code views"
+
+#: ../composer/src/components/chat-mode-switch.tsx
+msgid "Code: runs commands, installs and dev servers in the sandbox"
+msgstr "Code: runs commands, installs and dev servers in the sandbox"
 
 #: ../../apps/web/app/(app)/(pages)/dots/avatar-picker.tsx
 msgid "Colour"
@@ -1920,6 +1934,10 @@ msgstr "Divider"
 #: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
 msgid "Docker (sandbox runner)"
 msgstr "Docker (sandbox runner)"
+
+#: ../chat-ui/src/workspace/runner-unavailable.tsx
+msgid "Docker sandboxes aren't configured: set SANDBOX_RUNNER_TOKEN in .env and sandbox.docker in app.config.yaml."
+msgstr "Docker sandboxes aren't configured: set SANDBOX_RUNNER_TOKEN in .env and sandbox.docker in app.config.yaml."
 
 #: ../chat-ui/src/artifacts/document/document-view.tsx
 #: ../chat-ui/src/conversation/artifact-card.tsx
@@ -4914,6 +4932,7 @@ msgstr "Resume {title}"
 #: ../../apps/web/app/dev/ai-elements/demo.tsx
 #: ../chat-ui/src/artifacts/document/document-view.tsx
 #: ../chat-ui/src/artifacts/presentation-preview.tsx
+#: ../chat-ui/src/chat/connected-chat.tsx
 #: ../chat-ui/src/conversation/approval.tsx
 #: ../chat-ui/src/workspace/preview.tsx
 #: ../chat-ui/src/workspace/workspace-panel.tsx
@@ -5269,6 +5288,14 @@ msgstr "Sending the edit starts a new branch; the original stays."
 #: ../chat-ui/src/conversation/scheduled-note.tsx
 msgid "Sent by scheduled task · {title}"
 msgstr "Sent by scheduled task · {title}"
+
+#: ../chat-ui/src/conversation/mode-note.tsx
+msgid "Sent in Chat mode"
+msgstr "Sent in Chat mode"
+
+#: ../chat-ui/src/conversation/mode-note.tsx
+msgid "Sent in Code mode"
+msgstr "Sent in Code mode"
 
 #: ../../apps/desktop/src/renderer/setup-screen.tsx
 msgid "Server address"
@@ -6107,6 +6134,10 @@ msgstr "The chat's Workspace panel (files, editor, preview and artifacts) over a
 msgid "The computer isn't available right now. Check that the sandbox runner is running."
 msgstr "The computer isn't available right now. Check that the sandbox runner is running."
 
+#: ../chat-ui/src/workspace/runner-unavailable.tsx
+msgid "The computer's desktop image isn't built on this Docker host."
+msgstr "The computer's desktop image isn't built on this Docker host."
+
 #: ../chat-ui/src/artifacts/presentation-preview.tsx
 msgid "The deck couldn't be exported: {exportError}"
 msgstr "The deck couldn't be exported: {exportError}"
@@ -6163,6 +6194,14 @@ msgstr "The library didn't load"
 msgid "The message couldn't be sent: an attachment didn't upload. Try again."
 msgstr "The message couldn't be sent: an attachment didn't upload. Try again."
 
+#: ../chat-ui/src/chat/connected-chat.tsx
+msgid "The message is waiting. Retry to send it in the selected mode."
+msgstr "The message is waiting. Retry to send it in the selected mode."
+
+#: ../chat-ui/src/chat/connected-chat.tsx
+msgid "The mode couldn't be saved. Choose the mode again to retry."
+msgstr "The mode couldn't be saved. Choose the mode again to retry."
+
 #: ../library-ui/src/components/agent-form.tsx
 msgid "The name of the person chatting"
 msgstr "The name of the person chatting"
@@ -6190,6 +6229,26 @@ msgstr "The Quick AI shortcut \"{combo}\" in settings.json isn't one that can be
 #: ../../apps/web/app/(quick)/quick/quick-screen.tsx
 msgid "The reply didn't finish. Open the chat to try again."
 msgstr "The reply didn't finish. Open the chat to try again."
+
+#: ../chat-ui/src/workspace/runner-unavailable.tsx
+msgid "The sandbox runner answered with an error; its log says why."
+msgstr "The sandbox runner answered with an error; its log says why."
+
+#: ../chat-ui/src/workspace/runner-unavailable.tsx
+msgid "The sandbox runner has no SANDBOX_RUNNER_TOKEN, so it refuses every call. Set it in .env, then recreate the runner."
+msgstr "The sandbox runner has no SANDBOX_RUNNER_TOKEN, so it refuses every call. Set it in .env, then recreate the runner."
+
+#: ../chat-ui/src/workspace/runner-unavailable.tsx
+msgid "The sandbox runner is up but can't reach Docker. Start Docker, then start the runner's services."
+msgstr "The sandbox runner is up but can't reach Docker. Start Docker, then start the runner's services."
+
+#: ../chat-ui/src/workspace/runner-unavailable.tsx
+msgid "The sandbox runner isn't running."
+msgstr "The sandbox runner isn't running."
+
+#: ../chat-ui/src/workspace/runner-unavailable.tsx
+msgid "The sandbox runner rejected the app's SANDBOX_RUNNER_TOKEN: they differ. Use one value in .env, then recreate the runner."
+msgstr "The sandbox runner rejected the app's SANDBOX_RUNNER_TOKEN: they differ. Use one value in .env, then recreate the runner."
 
 #: ../../apps/web/app/(auth)/_components/auth-problem.tsx
 msgid "The server couldn't finish that. Try again in a moment; if it keeps happening, an administrator can check the server's log."
@@ -6487,6 +6546,10 @@ msgstr "Title"
 #: ../chat-ui/src/artifacts/document/document-view.tsx
 msgid "To do: {task}"
 msgstr "To do: {task}"
+
+#: ../chat-ui/src/workspace/runner-unavailable.tsx
+msgid "To fix it, run this from the repository:"
+msgstr "To fix it, run this from the repository:"
 
 #: ../chat-ui/src/artifacts/document/block-menu.tsx
 msgid "To-do list"

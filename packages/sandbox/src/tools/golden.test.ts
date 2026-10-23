@@ -283,7 +283,9 @@ const toolsOfTurn = async (
     return (await response.json()) as T;
   };
   try {
-    const chat = await post<Conversation>("/api/conversations", {});
+    const chat = await post<Conversation>("/api/conversations", {
+      mode: "code",
+    });
     if (attachment) {
       await attach(userId, chat.id);
     }

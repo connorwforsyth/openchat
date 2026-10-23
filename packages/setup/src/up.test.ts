@@ -86,9 +86,30 @@ describe("planUp", () => {
       }),
       "/repo"
     );
-    expect(commandLines(plan)[0]).toBe(
-      "docker compose --profile sandbox up -d --build --wait postgres sandbox-runner"
+    expect(commandLines(plan).slice(0, 2)).toEqual([
+      "docker compose up -d --wait postgres",
+      "docker compose --profile sandbox up -d --build --wait sandbox-runner",
+    ]);
+  });
+
+  it("goes on without Docker when only the runner needs it, saying how to start it", async () => {
+    const local = planUp(
+      filesFor({ ...localAnswers, sandbox: "docker", search: false }),
+      "/repo"
     );
+    const runner = createFakeRunner((command) => ({
+      code: command.command === "docker" ? 1 : 0,
+    }));
+    const printed: string[] = [];
+    const result = await runUp(local, {
+      print: (line) => printed.push(line),
+      runner,
+    });
+    expect(result.ok).toBe(true);
+    expect(printed).toContain(
+      "Sandbox runner not started: Docker isn't running. Start Docker, then run: docker compose --profile sandbox up -d sandbox-runner"
+    );
+    expect(runner.calls.map((call) => call.command)).toEqual(["docker", "bun"]);
   });
 
   it("passes keys to bun dev through the environment, never the arguments", () => {
@@ -115,7 +136,7 @@ describe("runUp", () => {
     });
     expect(result).toEqual({ ok: true, value: "http://localhost:3000" });
     expect(runner.calls.map((call) => call.args.join(" "))).toEqual([
-      "compose version",
+      "info --format {{.ServerVersion}}",
       "compose --profile sandbox up -d --build --wait",
     ]);
     expect(runner.calls[1]?.inherit).toBe(true);

@@ -94,7 +94,11 @@ const json = async <T>(response: Response, status = 200): Promise<T> => {
 const newChat = async (harness: Harness): Promise<ConversationId> =>
   (
     await json<Conversation>(
-      await harness.request("/api/conversations", { json: {}, method: "POST" }),
+      // Code mode: planning keeps a read-only bash, which Chat mode has none of.
+      await harness.request("/api/conversations", {
+        json: { mode: "code" },
+        method: "POST",
+      }),
       201
     )
   ).id;

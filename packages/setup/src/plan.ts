@@ -75,7 +75,8 @@ export const envUpdates = (
 
   if (answers.sandbox === "docker") {
     updates.SANDBOX_RUNNER_TOKEN = env.SANDBOX_RUNNER_TOKEN || random();
-    updates.SANDBOX_EGRESS = answers.egress;
+    // app.config.yaml's `sandbox.egress` decides; a value left here would override it.
+    updates.SANDBOX_EGRESS = "";
     updates.SANDBOX_RUNNER_URL = env.SANDBOX_RUNNER_URL || LOCAL_URLS.runner;
   }
 
