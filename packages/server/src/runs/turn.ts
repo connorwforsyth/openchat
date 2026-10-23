@@ -24,12 +24,23 @@ import type { PromptFile } from "@workspace/ai/prompts/codegen";
 import { composeInstructions } from "@workspace/ai/prompts/compose";
 import { BASE, FRAGMENTS } from "@workspace/ai/prompts/generated";
 import { fillPrompt } from "@workspace/ai/prompts/template";
+import { providerCapabilities } from "@workspace/ai/providers/capabilities";
+import {
+  type CatalogTraits,
+  catalogFromServer,
+} from "@workspace/ai/providers/catalog";
+import { capabilitiesWith } from "@workspace/ai/providers/describe";
 import { identityOf } from "@workspace/ai/providers/reasoning";
 import type { DiscoveringRegistry } from "@workspace/ai/providers/registry";
 import {
   runSettings,
   withRunSettings,
 } from "@workspace/ai/providers/run-settings";
+import {
+  type ToolImageFit,
+  toolImageFit,
+  withToolImages,
+} from "@workspace/ai/providers/tool-images";
 import { ARTIFACT_TOOLS } from "@workspace/ai/tools/artifacts";
 import { GENERATE_IMAGE_TOOL } from "@workspace/ai/tools/registry/generate-image";
 import { loadArtifactGuideTool } from "@workspace/ai/tools/registry/load-artifact-guide";
@@ -422,14 +433,14 @@ export const createModelLoader = (
           : unavailable(provider)
       );
     }
-    const reasons = await catalogSaysReasons(
+    const { images, reasons } = await modelTraits(
       deps,
       ref.value,
       credentials,
       provider
     );
     return ok({
-      model: model.value,
+      model: withToolImages(model.value, images),
       paidBy: credentials?.source ?? null,
       ...(reasons === undefined ? {} : { reasons }),
       resolvedModel: ref.value,
@@ -437,25 +448,48 @@ export const createModelLoader = (
   };
 };
 
+/** Vision models a note may name, at most. */
+const VISION_SUGGESTIONS = 2;
+
 /**
- * Whether an OpenAI-compatible provider's catalog says the model reasons;
- * native providers' SDKs know their own models, so they aren't asked.
+ * What a run needs to know of its model beyond what the SDK does: whether
+ * it reasons (105), and how images from tools reach it. Only an
+ * OpenAI-compatible provider's catalog is asked; native providers' SDKs
+ * know their own models.
  */
-const catalogSaysReasons = async (
+const modelTraits = async (
   deps: Pick<TurnResolverDeps, "catalog" | "config">,
   ref: ModelRef,
   credentials: ProviderCredentials | undefined,
   provider: string
-): Promise<boolean | undefined> => {
-  if (
-    !deps.catalog ||
-    deps.config.providers?.[provider]?.type !== "openai-compatible"
-  ) {
-    return;
+): Promise<{ readonly images: ToolImageFit; readonly reasons?: boolean }> => {
+  const config = deps.config.providers?.[provider];
+  if (!config) {
+    return { images: { type: "inline" } };
   }
-  const models = await deps.catalog(provider, credentials).catch(() => null);
+  const models =
+    deps.catalog && config.type === "openai-compatible"
+      ? await deps.catalog(provider, credentials).catch(() => null)
+      : null;
+  const capabilitiesOf = (traits: CatalogTraits | undefined) =>
+    capabilitiesWith(providerCapabilities(config), traits, {
+      fromServer: catalogFromServer(provider, config),
+    });
   const modelId = parseModelRef(ref)?.modelId;
-  return models?.find((model) => model.id === modelId)?.traits?.reasoning;
+  const listed = models?.find((model) => model.id === modelId);
+  const seeing = (models ?? [])
+    .filter(
+      (model) =>
+        model.kind === undefined &&
+        capabilitiesOf(model.traits).includes("vision")
+    )
+    .slice(0, VISION_SUGGESTIONS)
+    .map((model) => `${provider}:${model.id}`);
+  const reasons = listed?.traits?.reasoning;
+  return {
+    images: toolImageFit(config.type, capabilitiesOf(listed?.traits), seeing),
+    ...(reasons === undefined ? {} : { reasons }),
+  };
 };
 
 /** Attachments one plain chat checks for before offering `file_search`. */

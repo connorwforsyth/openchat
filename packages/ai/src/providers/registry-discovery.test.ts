@@ -184,7 +184,48 @@ describe("model discovery", () => {
     expect(
       options.map((option) => [option.selector, option.available])
     ).toEqual([["ollama:llama3.2:latest", true]]);
-    expect(calls).toEqual(["http://localhost:11434/api/tags"]);
+    expect(calls).toEqual([
+      "http://localhost:11434/api/tags",
+      "http://localhost:11434/api/show",
+      "http://localhost:11434/api/show",
+    ]);
+  });
+
+  it("isolates an explicit vision override to one configured model", async () => {
+    const { fetch } = counting(
+      json({
+        models: [{ name: "my-vision-model:latest" }, { name: "text:latest" }],
+      })
+    );
+    const registry = build(
+      {
+        providers: {
+          "local-vision": {
+            baseURL: "http://localhost:11434/v1",
+            include: ["my-vision-model:latest"],
+            models: ["my-vision-model:latest"],
+            options: { capabilities: "tools, vision", catalog: "ollama" },
+            type: "openai-compatible",
+          },
+        },
+      },
+      { fetch }
+    );
+    const options = await registry.listModels({});
+    expect(
+      options.map(({ selector, capabilities }) => ({ capabilities, selector }))
+    ).toEqual([
+      {
+        capabilities: ["tools", "vision"],
+        selector: "local-vision:my-vision-model:latest",
+      },
+    ]);
+    expect(
+      await registry.checkModel("local-vision:text:latest", undefined)
+    ).toEqual({
+      error: { selector: "local-vision:text:latest", type: "not_offered" },
+      ok: false,
+    });
   });
 
   it("fetches nothing without a key, and lists the configured models as unavailable", async () => {
