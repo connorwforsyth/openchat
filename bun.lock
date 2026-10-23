@@ -482,11 +482,14 @@
       "name": "@workspace/evals",
       "version": "0.0.0",
       "devDependencies": {
+        "@playwright/test": "catalog:",
         "@types/node": "catalog:",
         "@workspace/ai": "workspace:*",
+        "@workspace/artifacts-kit": "workspace:*",
         "@workspace/client": "workspace:*",
         "@workspace/config": "workspace:*",
         "@workspace/contract": "workspace:*",
+        "@workspace/db": "workspace:*",
         "@workspace/shared": "workspace:*",
         "@workspace/typescript-config": "workspace:*",
         "ai": "catalog:",
@@ -701,6 +704,7 @@
         "hono": "catalog:",
         "pg-boss": "catalog:",
         "postgres": "catalog:",
+        "sucrase": "catalog:",
         "zod": "catalog:",
       },
       "devDependencies": {

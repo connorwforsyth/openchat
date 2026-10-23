@@ -236,6 +236,32 @@ describe("turnFor", () => {
       { data: { path: "src/app.ts" }, name: "workspace-file", type: "data" },
     ]);
   });
+
+  it("keeps the message's chips, so the server acts on them and history draws them", () => {
+    const chips = [
+      {
+        artifact: "presentation",
+        end: 7,
+        kind: "artifact",
+        label: "Slides",
+        start: 0,
+      },
+    ];
+    expect(
+      userParts({
+        id: "m",
+        parts: [
+          { text: "@Slides on otters", type: "text" },
+          { data: { chips }, type: "data-chips" },
+          { data: { chips: [{ kind: "nope" }] }, type: "data-chips" },
+        ],
+        role: "user",
+      })
+    ).toEqual([
+      { text: "@Slides on otters", type: "text" },
+      { data: { chips }, name: "chips", type: "data" },
+    ]);
+  });
 });
 
 describe("createRunTransport", () => {

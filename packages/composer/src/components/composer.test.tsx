@@ -75,6 +75,7 @@ const releaseNotes: SkillOption = {
 const SUMMARISE = /Summarise/;
 const EXPLAIN = /Explain/;
 const REVIEWER = /Reviewer/;
+const RESEARCHER = /Researcher/;
 const BO = /Bo/;
 const APP_TS = /app\.ts/;
 const NEW_FILE = /New file/;
@@ -92,7 +93,6 @@ const FAST_MODE = /Fast mode/;
 
 /** Skills in the + menu, named with their descriptions. */
 const HAIKU_ITEM = /^Haiku/;
-const RELEASE_ITEM = /^Release notes/;
 
 /** The + menu's Plan switch, named with its hint. */
 const PLAN_ITEM = /^Plan/;
@@ -208,8 +208,11 @@ describe("Composer", () => {
     await userEvent.click(editor);
     await userEvent.keyboard("/sum");
 
-    const listbox = await screen.findByRole("listbox", { name: "Prompts" });
+    const listbox = await screen.findByRole("listbox", { name: "Suggestions" });
     expect(editor.getAttribute("aria-controls")).toBe(listbox.id);
+    expect(
+      within(listbox).getByRole("group", { name: "Prompts" })
+    ).toBeTruthy();
     const option = screen.getByRole("option", { name: SUMMARISE });
     expect(option.getAttribute("aria-selected")).toBe("true");
     expect(editor.getAttribute("aria-activedescendant")).toBe(option.id);
@@ -234,33 +237,19 @@ describe("Composer", () => {
     expect(editor.textContent).toBe("/ex");
   });
 
-  it("asks for a template's variables, then fills them in", async () => {
+  it("puts a template in as text, its variables filled in place with Tab between them", async () => {
     const { editor, onSubmit } = renderComposer();
     await userEvent.click(editor);
     await userEvent.keyboard("Please /expl");
     await userEvent.click(await screen.findByRole("option", { name: EXPLAIN }));
-
-    const topic = screen.getByRole("textbox", { name: "topic" });
-    await waitFor(() => expect(document.activeElement).toBe(topic));
-    expect(screen.getByRole("textbox", { name: "audience" })).toHaveProperty(
-      "value",
-      "a new hire"
-    );
     expect(screen.queryByRole("listbox")).toBeNull();
+    // Each `{{variable}}` is a placeholder in the text; the first is selected.
+    expect(editor.textContent).toBe("Please Explain topic to audience.");
 
-    // A blank variable without a default blocks the insert.
-    await userEvent.click(
-      screen.getByRole("button", { name: "Insert prompt" })
-    );
-    expect(screen.getByRole("alert").textContent).toContain(
-      "Fill in every field"
-    );
-    expect(topic.getAttribute("aria-invalid")).toBe("true");
-
-    await userEvent.fill(topic, "branching");
-    await userEvent.keyboard("{Enter}");
-    expect(screen.queryByRole("textbox", { name: "topic" })).toBeNull();
-    expect(editor.textContent).toBe("Please Explain branching to a new hire.");
+    await userEvent.keyboard("branching");
+    expect(editor.textContent).toBe("Please Explain branching to audience.");
+    // Tab goes to the next one; leaving it, it's sent as its default.
+    await userEvent.keyboard("{Tab}");
     expect(document.activeElement).toBe(editor);
 
     await userEvent.keyboard("{Enter}");
@@ -270,23 +259,114 @@ describe("Composer", () => {
     });
   });
 
-  it("inserts @ mentions and submits them as tokens", async () => {
+  it("drops a variable left unfilled with no default, and its space", async () => {
     const { editor, onSubmit } = renderComposer();
     await userEvent.click(editor);
-    await userEvent.keyboard("ask @re");
-    expect(
-      await screen.findByRole("listbox", { name: "Mention" })
-    ).toBeTruthy();
-    await userEvent.keyboard("{Enter}about @b");
+    await userEvent.keyboard("/expl");
+    await userEvent.click(await screen.findByRole("option", { name: EXPLAIN }));
+    // Tab to the audience, and fill that one only.
+    await userEvent.keyboard("{Tab}everyone");
+    expect(editor.textContent).toBe("Explain topic to everyone.");
+    // Shift+Tab goes back.
+    await userEvent.keyboard("{Shift>}{Tab}{/Shift}");
+    await userEvent.keyboard("{Enter}");
+    expect(lastValue(onSubmit).text).toBe("Explain to everyone.");
+  });
+
+  it("inserts @ mentions as chips and submits them as tokens", async () => {
+    const { editor, onSubmit } = renderComposer();
+    await userEvent.click(editor);
+    await userEvent.keyboard("ask @rev");
+    const listbox = await screen.findByRole("listbox", { name: "Suggestions" });
+    expect(within(listbox).getByRole("group", { name: "Agents" })).toBeTruthy();
+    await userEvent.keyboard("{Enter}about @bo");
     await screen.findByRole("option", { name: BO });
     await userEvent.keyboard("{ArrowDown}{ArrowUp}{Tab}");
-    expect(editor.textContent).toBe("ask @Reviewer about @Bo ");
+    // A chip shows its name with an icon; it's sent as `@name`.
+    expect(editor.textContent).toBe("ask Reviewer about Bo ");
+    expect(editor.querySelector('[data-chip="agent"]')?.textContent).toBe(
+      "Reviewer"
+    );
+
+    await userEvent.keyboard("{Enter}");
+    expect(lastValue(onSubmit)).toMatchObject({
+      mentions: [
+        {
+          end: 13,
+          id: agentItem.id,
+          kind: "agent",
+          label: "Reviewer",
+          start: 4,
+        },
+        { end: 23, id: userBo.id, kind: "user", label: "Bo", start: 20 },
+      ],
+      text: "ask @Reviewer about @Bo",
+    });
+  });
+
+  it("makes an artifact chip from / and an owner's draft agent a Draft chip", async () => {
+    const draft = {
+      ...agentItem,
+      draftVersion: fixtureId("libraryVersion", 7),
+      id: fixtureId("libraryItem", 50),
+      name: "Researcher",
+    };
+    const { editor, onSubmit } = renderComposer({
+      agents: [agentItem, draft],
+      artifacts: [{ kind: "presentation", label: "Slides" }],
+    });
+    await userEvent.click(editor);
+    await userEvent.keyboard("/sli");
+    await screen.findByRole("group", { name: "Make" });
+    await userEvent.keyboard("{Enter}about otters @resea");
+    const option = await screen.findByRole("option", { name: RESEARCHER });
+    expect(option.textContent).toContain("Draft");
+    await userEvent.keyboard("{Enter}");
+    expect(editor.textContent).toBe("Slides about otters ResearcherDraft ");
 
     await userEvent.keyboard("{Enter}");
     expect(lastValue(onSubmit).mentions).toEqual([
-      { end: 13, id: agentItem.id, kind: "agent", label: "Reviewer", start: 4 },
-      { end: 23, id: userBo.id, kind: "user", label: "Bo", start: 20 },
+      {
+        artifact: "presentation",
+        end: 7,
+        kind: "artifact",
+        label: "Slides",
+        start: 0,
+      },
+      {
+        end: 32,
+        id: draft.id,
+        kind: "agent",
+        label: "Researcher",
+        start: 21,
+        versionId: draft.draftVersion,
+      },
     ]);
+  });
+
+  it("opens the file picker from the menu's Upload", async () => {
+    const { editor } = renderComposer();
+    const input =
+      document.querySelector<HTMLInputElement>('input[type="file"]');
+    const opened = vi.fn((event: Event) => event.preventDefault());
+    input?.addEventListener("click", opened);
+    await userEvent.click(editor);
+    await userEvent.keyboard("note /upl");
+    await screen.findByRole("option", { name: "Upload a file" });
+    await userEvent.keyboard("{Enter}");
+    expect(opened).toHaveBeenCalledOnce();
+    expect(editor.textContent?.trim()).toBe("note");
+  });
+
+  it("leaves out Code-only commands in a Chat conversation", async () => {
+    const { editor } = renderComposer({
+      commands: ["new-file", "preview"],
+      mode: "chat",
+    });
+    await userEvent.click(editor);
+    await userEvent.keyboard("/");
+    await screen.findByRole("option", { name: NEW_FILE });
+    expect(screen.queryByRole("option", { name: PREVIEW })).toBeNull();
   });
 
   it("mentions a workspace file and submits its path", async () => {
@@ -299,7 +379,7 @@ describe("Composer", () => {
     // The folder is the hint beside the name.
     expect(option.textContent).toContain("src");
     await userEvent.keyboard("{Enter}");
-    expect(editor.textContent).toBe("fix @app.ts ");
+    expect(editor.textContent).toBe("fix app.ts ");
 
     await userEvent.keyboard("{Enter}");
     expect(lastValue(onSubmit).mentions).toEqual([
@@ -316,14 +396,14 @@ describe("Composer", () => {
     });
     await userEvent.click(editor);
     await userEvent.keyboard("/op");
-    await screen.findByRole("listbox", { name: "Commands" });
+    await screen.findByRole("group", { name: "Commands" });
     await userEvent.keyboard("{Enter}");
 
     // The list is redrawn as the query changes, so each look finds it afresh.
     const fileOptions = async () =>
-      within(
-        await screen.findByRole("listbox", { name: "Files" })
-      ).getAllByRole("option");
+      within(await screen.findByRole("group", { name: "Files" })).getAllByRole(
+        "option"
+      );
     expect(await fileOptions()).toHaveLength(2);
     expect(editor.textContent).toBe("/open:");
     await userEvent.keyboard("read");
@@ -352,7 +432,7 @@ describe("Composer", () => {
     rerender(withFiles(["src/app.ts"]));
     await screen.findByRole("option", { name: APP_TS });
     await userEvent.keyboard("{Enter}");
-    expect(editor.textContent).toBe("fix @app.ts ");
+    expect(editor.textContent).toBe("fix app.ts ");
   });
 
   it("adds files that arrive while /open lists them", async () => {
@@ -371,15 +451,15 @@ describe("Composer", () => {
     const editor = screen.getByRole("textbox", { name: "Message" });
     await userEvent.click(editor);
     await userEvent.keyboard("/op");
-    await screen.findByRole("listbox", { name: "Commands" });
+    await screen.findByRole("group", { name: "Commands" });
     await userEvent.keyboard("{Enter}");
-    const listbox = await screen.findByRole("listbox", { name: "Files" });
+    const listbox = await screen.findByRole("group", { name: "Files" });
     expect(within(listbox).getAllByRole("option")).toHaveLength(1);
 
     rerender(withFiles(["README.md", "src/app.ts"]));
     await waitFor(() =>
       expect(
-        within(screen.getByRole("listbox", { name: "Files" })).getAllByRole(
+        within(screen.getByRole("group", { name: "Files" })).getAllByRole(
           "option"
         )
       ).toHaveLength(2)
@@ -416,7 +496,7 @@ describe("Composer", () => {
     const { editor, unmount } = renderComposer();
     await userEvent.click(editor);
     await userEvent.keyboard("/");
-    await screen.findByRole("listbox", { name: "Prompts" });
+    await screen.findByRole("group", { name: "Prompts" });
     expect(screen.queryByRole("option", { name: NEW_FILE })).toBeNull();
     expect(screen.queryByRole("option", { name: OPEN_FILE })).toBeNull();
     expect(screen.queryByRole("option", { name: PREVIEW })).toBeNull();
@@ -425,12 +505,10 @@ describe("Composer", () => {
     const second = renderComposer({ commands: ["preview"] });
     await userEvent.click(second.editor);
     await userEvent.keyboard("/");
-    const listbox = await screen.findByRole("listbox", { name: "Commands" });
+    const listbox = await screen.findByRole("group", { name: "Commands" });
     const options = within(listbox).getAllByRole("option");
     expect(options.map((option) => option.textContent)).toEqual([
       "Preview/preview",
-      "Summarise/summarise",
-      "Explain/explain",
     ]);
   });
 
@@ -548,7 +626,7 @@ describe("Composer", () => {
     await userEvent.click(
       await screen.findByRole("menuitem", { name: APP_TS })
     );
-    await waitFor(() => expect(editor.textContent).toContain("@app.ts"));
+    await waitFor(() => expect(editor.textContent).toContain("app.ts"));
 
     await userEvent.click(
       screen.getByRole("button", { name: "Add to message" })
@@ -584,59 +662,34 @@ describe("Composer", () => {
     await userEvent.click(
       await screen.findByRole("menuitem", { name: HAIKU_ITEM })
     );
-    const chips = await screen.findByRole("list", { name: "Skills" });
-    expect(chips.textContent).toContain("Haiku");
-    expect(document.activeElement).toBe(editor);
-
-    // Picked once: it isn't offered again.
-    await userEvent.click(
-      screen.getByRole("button", { name: "Add to message" })
+    await waitFor(() =>
+      expect(editor.querySelector('[data-chip="skill"]')?.textContent).toBe(
+        "Haiku"
+      )
     );
-    await userEvent.click(
-      await screen.findByRole("menuitem", { name: "Skills" })
-    );
-    await screen.findByRole("menuitem", { name: RELEASE_ITEM });
-    expect(screen.queryByRole("menuitem", { name: HAIKU_ITEM })).toBeNull();
-    await userEvent.keyboard("{Escape}{Escape}");
 
-    await userEvent.click(editor);
     await userEvent.keyboard("A poem please{Enter}");
     expect(lastValue(onSubmit)).toMatchObject({
       skills: [{ id: haiku.id, name: "Haiku" }],
-      text: "A poem please",
+      text: "@Haiku A poem please",
     });
     // The next message starts without it.
-    expect(screen.queryByRole("list", { name: "Skills" })).toBeNull();
+    expect(editor.querySelector("[data-chip]")).toBeNull();
   });
 
-  it("picks a skill from /, and its chip comes off with ×", async () => {
+  it("picks a skill from /, and Backspace takes its chip off", async () => {
     const { editor, onSubmit } = renderComposer({
       skills: [haiku, releaseNotes],
     });
     await userEvent.click(editor);
     await userEvent.keyboard("/release");
-    const listbox = await screen.findByRole("listbox", { name: "Skills" });
-    expect(listbox.textContent).toContain("Release notes");
+    const skills = await screen.findByRole("group", { name: "Skills" });
+    expect(skills.textContent).toContain("Release notes");
     await userEvent.keyboard("{Enter}");
-    await screen.findByRole("list", { name: "Skills" });
-    // The `/query` became the chip; it isn't text to send.
-    expect(editor.textContent).toBe("");
+    expect(editor.textContent).toBe("Release notes ");
 
-    await userEvent.keyboard("/");
-    const both = await screen.findByRole("listbox", {
-      name: "Prompts and skills",
-    });
-    expect(both.textContent).toContain("Haiku");
-    expect(both.textContent).not.toContain("Release notes");
-    await userEvent.keyboard("{Escape}");
-
-    await userEvent.click(
-      screen.getByRole("button", { name: "Remove skill Release notes" })
-    );
-    expect(screen.queryByRole("list", { name: "Skills" })).toBeNull();
-    expect(document.activeElement).toBe(editor);
-    await userEvent.keyboard("{Backspace}hi{Enter}");
-    expect(lastValue(onSubmit).skills).toEqual([]);
+    await userEvent.keyboard("{Backspace}{Backspace}hi{Enter}");
+    expect(lastValue(onSubmit)).toMatchObject({ skills: [], text: "hi" });
   });
 
   it("offers workspace files and prompts only when there are some", async () => {

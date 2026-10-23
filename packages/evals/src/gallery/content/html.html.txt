@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Copperloaf Northcote: counter menu</title>
+<style>
+  :root {
+    --flour: #FFFBF4;
+    --paper: #F6EEDF;
+    --line: #E4D3B8;
+    --copper: #B8643A;
+    --crust: #7A3E22;
+    --rye: #3B2418;
+    --muted: #6B5446;
+    --serif: Georgia, "Times New Roman", serif;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--rye);
+    font-family: var(--sans);
+    line-height: 1.5;
+  }
+  .board {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 48px 40px 56px;
+  }
+  header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    padding-bottom: 28px;
+    border-bottom: 2px solid var(--rye);
+  }
+  .brand { display: flex; align-items: center; gap: 18px; }
+  .brand svg { flex: none; }
+  h1 {
+    margin: 0;
+    font-family: var(--serif);
+    font-size: 52px;
+    line-height: 1;
+    letter-spacing: -0.5px;
+  }
+  .where {
+    margin: 6px 0 0;
+    color: var(--crust);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+  .hours { text-align: end; color: var(--muted); font-size: 15px; }
+  .hours strong { color: var(--rye); }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 40px;
+    margin-top: 36px;
+  }
+  h2 {
+    margin: 0 0 4px;
+    font-family: var(--serif);
+    font-size: 26px;
+  }
+  .note { margin: 0 0 18px; color: var(--muted); font-size: 14px; font-style: italic; }
+  ul { list-style: none; margin: 0; padding: 0; }
+  li {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    column-gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px dashed var(--line);
+  }
+  li:last-child { border-bottom: 0; }
+  .name { font-weight: 600; }
+  .price { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--crust); }
+  .desc { grid-column: 1 / -1; color: var(--muted); font-size: 14px; }
+  .tag {
+    display: inline-block;
+    margin-inline-start: 8px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--copper);
+    color: var(--flour);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    vertical-align: 2px;
+  }
+  .special {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 28px;
+    margin-top: 44px;
+    padding: 28px 32px;
+    border-radius: 20px;
+    background: var(--rye);
+    color: var(--flour);
+  }
+  .special h3 { margin: 0; font-family: var(--serif); font-size: 30px; }
+  .special p { margin: 4px 0 0; color: var(--line); }
+  .special .big { font-family: var(--serif); font-size: 44px; font-weight: 700; color: var(--paper); }
+  footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 24px;
+    margin-top: 36px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  @media (max-width: 860px) {
+    .grid { grid-template-columns: 1fr; }
+    header, footer { flex-direction: column; align-items: flex-start; }
+    .hours { text-align: start; }
+    .special { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<main class="board">
+  <header>
+    <div class="brand">
+      <svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
+        <circle cx="32" cy="32" r="31" fill="#B8643A" />
+        <path d="M13 36 C13 26 22 22 32 22 C43 22 51 26 51 35 C51 41 43 43 32 43 C21 43 13 41 13 36 Z" fill="#F6EEDF" />
+        <path d="M19 35 C26 29 37 27 46 30" fill="none" stroke="#7A3E22" stroke-width="3" stroke-linecap="round" />
+      </svg>
+      <div>
+        <h1>Copperloaf</h1>
+        <p class="where">Northcote · 212 High Street</p>
+      </div>
+    </div>
+    <p class="hours"><strong>Open every day</strong><br>Mon to Fri 7 am to 3 pm · Sat and Sun 7 am to 2 pm</p>
+  </header>
+
+  <section class="grid" aria-label="Menu">
+    <div>
+      <h2>Bread</h2>
+      <p class="note">Baked here from 5 am. Whole loaves only.</p>
+      <ul>
+        <li><span class="name">Country loaf</span><span class="price">$12</span><span class="desc">Our everyday sourdough, 16-hour cold proof</span></li>
+        <li><span class="name">Seeded rye</span><span class="price">$13</span><span class="desc">Sunflower, linseed and caraway, dense and moist</span></li>
+        <li><span class="name">Baguette</span><span class="price">$6</span><span class="desc">Out of the oven at 7, 10 and noon</span></li>
+        <li><span class="name">Fruit sourdough</span><span class="price">$14</span><span class="desc">Muscatels, figs and orange peel</span></li>
+        <li><span class="name">Fig and walnut <span class="tag">Sat</span></span><span class="price">$15</span><span class="desc">Northcote only, while it lasts</span></li>
+      </ul>
+    </div>
+    <div>
+      <h2>Pastry</h2>
+      <p class="note">Laminated in Fitzroy, baked through the morning.</p>
+      <ul>
+        <li><span class="name">Croissant</span><span class="price">$5.5</span><span class="desc">Pepe Saya butter, 27 layers</span></li>
+        <li><span class="name">Pain au chocolat</span><span class="price">$6.5</span><span class="desc">Two batons of 64% dark chocolate</span></li>
+        <li><span class="name">Cardamom bun</span><span class="price">$6</span><span class="desc">Knotted, brushed with cardamom syrup</span></li>
+        <li><span class="name">Almond croissant</span><span class="price">$7.5</span><span class="desc">Twice-baked with frangipane</span></li>
+        <li><span class="name">Seasonal Danish <span class="tag">New</span></span><span class="price">$7</span><span class="desc">This week: poached quince and custard</span></li>
+      </ul>
+    </div>
+    <div>
+      <h2>Coffee and more</h2>
+      <p class="note">Beans from Small Batch, roasted in North Melbourne.</p>
+      <ul>
+        <li><span class="name">Espresso or long black</span><span class="price">$4.5</span><span class="desc">Seasonal blend, ask about the single origin</span></li>
+        <li><span class="name">Flat white or latte</span><span class="price">$5.5</span><span class="desc">Oat or almond at no extra cost</span></li>
+        <li><span class="name">Filter, by the cup</span><span class="price">$6</span><span class="desc">Changes every week</span></li>
+        <li><span class="name">Chai</span><span class="price">$6</span><span class="desc">Brewed with our own spice mix</span></li>
+        <li><span class="name">Toast with butter and jam</span><span class="price">$9</span><span class="desc">Two thick slices of the country loaf</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="special" aria-label="Opening offer">
+    <svg width="56" height="56" viewBox="0 0 56 56" aria-hidden="true">
+      <circle cx="28" cy="28" r="27" fill="none" stroke="#B8643A" stroke-width="2" />
+      <path d="M28 12 L32 23 L44 23 L34 30 L38 42 L28 35 L18 42 L22 30 L12 23 L24 23 Z" fill="#B8643A" />
+    </svg>
+    <div>
+      <h3>Opening week: a free coffee with every loaf</h3>
+      <p>Saturday 6 to Friday 12 February. Pre-order in the app and skip the queue.</p>
+    </div>
+    <span class="big">6 Feb</span>
+  </section>
+
+  <footer>
+    <span>Allergens and ingredients for every item are in the folder by the till. Please ask us.</span>
+    <span>copperloaf.com.au · @copperloafbakehouse</span>
+  </footer>
+</main>
+</body>
+</html>

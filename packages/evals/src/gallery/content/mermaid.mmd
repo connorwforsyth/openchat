@@ -1,0 +1,31 @@
+gantt
+    title Northcote shop: fit-out to opening day
+    dateFormat YYYY-MM-DD
+    axisFormat %d %b
+    tickInterval 2week
+    excludes weekends
+
+    section Approvals
+    Lease signed                  :milestone, lease, 2026-09-02, 0d
+    Planning and oven permit      :done, permit, 2026-09-07, 2026-10-30
+    Health registration           :active, health, 2026-10-19, 2026-12-11
+
+    section Build
+    Strip out and new floor       :build1, 2026-11-09, 3w
+    Plumbing, gas and three-phase power :build2, after build1, 3w
+    Counter and joinery           :build3, after build2, 2w
+    Christmas shutdown            :shutdown, 2026-12-24, 2027-01-04
+
+    section Equipment
+    Oven ships from Italy         :ship, 2026-12-01, 2027-01-08
+    Oven installed and commissioned :oven, 2027-01-11, 1w
+    Mixer, retarder and coffee    :equip, 2027-01-11, 2027-01-15
+
+    section People
+    Hiring                        :hire, 2026-11-02, 2027-01-08
+    Training at Carlton           :train, 2027-01-18, 2027-01-29
+    Trial bakes on site           :trial, 2027-01-25, 2027-02-02
+
+    section Opening
+    Soft opening for neighbours   :milestone, soft, 2027-02-03, 0d
+    Public opening                :milestone, open, 2027-02-06, 0d
