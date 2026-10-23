@@ -151,3 +151,36 @@ export const newDefinition = (
 /** Whether two forms would save the same thing. */
 export const sameForm = (a: DraftForm, b: DraftForm): boolean =>
   JSON.stringify(a) === JSON.stringify(b);
+
+const NOT_SLUG = /[^a-z0-9]+/g;
+const EDGE_DASHES = /^-+|-+$/g;
+const TRAILING_DASHES = /-+$/;
+const LINE_BREAKS = /\s*[\r\n]+\s*/g;
+
+/** A skill's `name` in its frontmatter: the Agent Skills format's lowercase slug. */
+export const skillSlug = (name: string): string =>
+  name
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(NOT_SLUG, "-")
+    .replace(EDGE_DASHES, "")
+    .slice(0, 64)
+    .replace(TRAILING_DASHES, "");
+
+/** What YAML reads as plain text, as `@workspace/ai`'s `composeSkillMd` decides it. */
+const PLAIN_SCALAR = /^[\w ,.()'/-]*$/;
+
+const frontmatterValue = (value: string): string => {
+  const line = value.replace(LINE_BREAKS, " ").trim();
+  return PLAIN_SCALAR.test(line) && !line.startsWith("'")
+    ? line
+    : JSON.stringify(line);
+};
+
+/** A new skill's `SKILL.md`: frontmatter with its slug and description, then the instructions. */
+export const newSkillMd = (skill: {
+  readonly description: string;
+  readonly instructions: string;
+  readonly name: string;
+}): string =>
+  `---\nname: ${skillSlug(skill.name)}\ndescription: ${frontmatterValue(skill.description)}\n---\n\n${skill.instructions.trim()}\n`;

@@ -18,7 +18,6 @@ import type {
   ScheduleRunOutcome,
 } from "@workspace/contract/schemas/schedules";
 import {
-  ClockIcon,
   PauseIcon,
   PencilIcon,
   PlayIcon,
@@ -296,6 +295,9 @@ export function ScheduleRow({
           type="button"
         >
           <span className="flex w-full items-center gap-2">
+            <span aria-hidden className="shrink-0">
+              {schedule.emoji}
+            </span>
             <span className="truncate font-medium">{title}</span>
             {schedule.lastOutcome === "needs_attention" ? (
               <Badge>
@@ -373,7 +375,7 @@ export function ScheduleRow({
           <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
             <DrawerHeader className="gap-1 p-0">
               <DrawerTitle className="flex items-center gap-2 font-semibold text-lg">
-                <ClockIcon aria-hidden className="size-4" />
+                <span aria-hidden>{schedule.emoji}</span>
                 {title}
               </DrawerTitle>
               <DrawerDescription>

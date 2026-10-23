@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
+import type { z } from "zod";
 
+import { dotScheduleInputSchema } from "./dots";
 import {
   conversationScheduleSchema,
   createScheduleInputSchema,
+  scheduleEmojiSchema,
   scheduleRecurrenceSchema,
   scheduleRunSchema,
+  scheduleSchema,
   scheduleTargetSchema,
 } from "./schedules";
 
@@ -33,6 +37,28 @@ const started = {
 };
 
 describe("schedule schemas", () => {
+  it("accepts an existing typed Dot starter without an emoji", () => {
+    const starter: z.infer<typeof dotScheduleInputSchema> = {
+      cron: "0 8 * * *",
+      enabled: true,
+      prompt: "Brief me",
+      timezone: "UTC",
+    };
+    expect(dotScheduleInputSchema.parse(starter).emoji).toBe("⏰");
+  });
+
+  it("keeps older schedule responses readable during the emoji rollout", () => {
+    expect(scheduleSchema.shape.emoji.parse(undefined)).toBeUndefined();
+    expect(
+      conversationScheduleSchema.parse({
+        id: CONVERSATION,
+        nextRunNominalAt: null,
+        status: "paused",
+        title: "Heartbeat",
+      }).emoji
+    ).toBeUndefined();
+  });
+
   it("round-trips each target", () => {
     for (const target of [
       { kind: "dot" },
@@ -82,11 +108,42 @@ describe("schedule schemas", () => {
     });
     expect(input).toMatchObject({
       autoApproveTools: [],
+      emoji: "⏰",
       missedRunPolicy: "run_once",
       notify: "important",
       paused: false,
     });
     expect(input.readOnly).toBeUndefined();
+  });
+
+  it("accepts one emoji, including ones built from several code points", () => {
+    for (const emoji of ["⏰", "☀️", "🗓️", "👋🏽", "👩‍💻", "🇺🇸", "1️⃣", "#⃣", "*️⃣"]) {
+      expect(scheduleEmojiSchema.parse(emoji)).toBe(emoji);
+    }
+  });
+
+  it("refuses text, two emoji and an empty label", () => {
+    for (const emoji of [
+      "",
+      "a",
+      "ab",
+      "⏰⏰",
+      "⏰ x",
+      "1",
+      "🇺",
+      "🇺🇸🇨🇦",
+      "11️⃣",
+    ]) {
+      expect(scheduleEmojiSchema.safeParse(emoji).success).toBe(false);
+    }
+  });
+
+  it("gives a Dot's starter schedule the default emoji unless it names one", () => {
+    const starter = { cron: "0 8 * * *", prompt: "Brief me" };
+    expect(dotScheduleInputSchema.parse(starter).emoji).toBe("⏰");
+    expect(dotScheduleInputSchema.parse({ ...starter, emoji: "☀️" }).emoji).toBe(
+      "☀️"
+    );
   });
 
   it("caps the prompt so a run doesn't resend an essay", () => {
@@ -103,6 +160,7 @@ describe("schedule schemas", () => {
   it("parses the conversation's schedule summary", () => {
     expect(
       conversationScheduleSchema.parse({
+        emoji: "🔔",
         id: CONVERSATION,
         nextRunNominalAt: null,
         status: "paused",

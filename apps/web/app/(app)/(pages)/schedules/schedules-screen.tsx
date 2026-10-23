@@ -64,16 +64,19 @@ export function SchedulesScreen() {
   const templates: readonly ScheduleSeed[] = useMemo(
     () => [
       {
+        emoji: "☀️",
         prompt: t`Give me a short brief for today: what's on, what changed overnight, and anything I should look at first.`,
         title: t`Daily brief`,
         when: "every morning at 8",
       },
       {
+        emoji: "🔔",
         prompt: t`Check whether anything I'm waiting on has moved. Only tell me if something needs a reply or a decision.`,
         title: t`Follow-up monitor`,
         when: "weekdays at 2pm",
       },
       {
+        emoji: "🗓️",
         prompt: t`Review my week: what got done, what slipped, and three things to focus on next week.`,
         title: t`Weekly review`,
         when: "every friday at 4pm",
@@ -280,7 +283,12 @@ function TemplateButton({
       onClick={pick}
       type="button"
     >
-      <span className="font-medium text-sm">{template.title}</span>
+      <span className="font-medium text-sm">
+        <span aria-hidden className="me-1.5">
+          {template.emoji}
+        </span>
+        {template.title}
+      </span>
       <span className="line-clamp-2 text-muted-foreground text-xs">
         {template.prompt}
       </span>

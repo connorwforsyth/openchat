@@ -1,4 +1,5 @@
 import type { DotActivity } from "@workspace/contract/schemas/dots";
+import { scheduleEmojiSchema } from "@workspace/contract/schemas/schedules";
 import { describe, expect, it } from "vitest";
 import { unseenRuns } from "./activity";
 import { DOT_AVATAR_COLORS, DOT_AVATAR_STYLES } from "./dot-avatar";
@@ -7,7 +8,7 @@ import {
   createInputOf,
   DOT_TEMPLATE_IDS,
   suggestedAvatar,
-  TEMPLATE_CRON,
+  TEMPLATE_SCHEDULE,
 } from "./templates";
 
 const target = { model: "test:model", type: "model" } as const;
@@ -19,7 +20,12 @@ describe("createInputOf", () => {
         avatar: { color: "dusk", style: "blob" },
         name: "  Pip ",
         purpose: " Inbox zero. ",
-        schedule: { cron: "0 8 * * *", prompt: "Brief me.", timezone: "UTC" },
+        schedule: {
+          cron: "0 8 * * *",
+          emoji: "☀️",
+          prompt: "Brief me.",
+          timezone: "UTC",
+        },
       },
       target,
       true
@@ -29,7 +35,9 @@ describe("createInputOf", () => {
       instructions: "Inbox zero.",
       name: "Pip",
       primary: true,
-      schedules: [{ cron: "0 8 * * *", enabled: true, prompt: "Brief me." }],
+      schedules: [
+        { cron: "0 8 * * *", emoji: "☀️", enabled: true, prompt: "Brief me." },
+      ],
     });
   });
 
@@ -52,7 +60,15 @@ describe("createInputOf", () => {
 describe("templates", () => {
   it("each starts on a schedule people can read", () => {
     for (const id of DOT_TEMPLATE_IDS) {
-      expect(describeCron(TEMPLATE_CRON[id]).type).not.toBe("custom");
+      expect(describeCron(TEMPLATE_SCHEDULE[id].cron).type).not.toBe("custom");
+    }
+  });
+
+  it("labels each starter schedule with one emoji", () => {
+    for (const id of DOT_TEMPLATE_IDS) {
+      expect(
+        scheduleEmojiSchema.safeParse(TEMPLATE_SCHEDULE[id].emoji).success
+      ).toBe(true);
     }
   });
 

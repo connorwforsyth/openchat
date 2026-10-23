@@ -3,6 +3,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { Editor } from "@tiptap/core";
 import { useEditorState } from "@tiptap/react";
+import { isSafeImageUrl } from "@workspace/artifacts-kit/kinds/document/checks";
 import {
   ChevronDownIcon,
   CircleCheckIcon,
@@ -53,7 +54,6 @@ type Block = "paragraph" | `h${(typeof HEADINGS)[number]}`;
 const SAFE_URL = /^(?:https?:|mailto:|\/(?!\/)|#)/i;
 
 const isLinkAddress = (value: string) => SAFE_URL.test(value);
-const isImageAddress = (value: string) => IMAGE_URL.test(value);
 
 type Command = (editor: Editor) => void;
 
@@ -77,7 +77,6 @@ const COMMANDS = {
   taskList: (editor) => editor.chain().focus().toggleTaskList().run(),
   undo: (editor) => editor.chain().focus().undo().run(),
 } satisfies Record<string, Command>;
-const IMAGE_URL = /^(?:https:|\/(?!\/))/i;
 
 export function DocumentToolbar({ editor }: { readonly editor: Editor }) {
   const { t } = useLingui();
@@ -506,7 +505,7 @@ function ImageButton({ editor }: { readonly editor: Editor }) {
       <PopoverContent align="start" className="w-80">
         {open ? (
           <AddressForm
-            check={isImageAddress}
+            check={isSafeImageUrl}
             label={t`Image address`}
             onSubmit={insert}
             problem={t`Images load over https.`}

@@ -505,6 +505,11 @@
               }
             ]
           },
+          "mode": {
+            "enum": ["chat", "code"],
+            "type": "string",
+            "default": "chat"
+          },
           "myPermission": {
             "enum": ["owner", "editor", "viewer"],
             "type": "string"
@@ -525,6 +530,11 @@
               {
                 "type": "object",
                 "properties": {
+                  "emoji": {
+                    "type": "string",
+                    "maxLength": 32,
+                    "description": "One emoji grapheme, including flag pairs, keycaps and joined sequences."
+                  },
                   "id": {
                     "type": "string",
                     "format": "uuid",
@@ -2595,6 +2605,17 @@
             "format": "uuid",
             "description": "message id (UUIDv7)"
           },
+          "mode": {
+            "anyOf": [
+              {
+                "enum": ["chat", "code"],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "model": {
             "anyOf": [
               {
@@ -3705,6 +3726,10 @@
           "options": {
             "type": "object",
             "properties": {
+              "chatMode": {
+                "enum": ["chat", "code"],
+                "type": "string"
+              },
               "fast": {
                 "type": "boolean"
               },
@@ -8993,6 +9018,11 @@
                   "defaultTarget": {
                     "$ref": "#/components/schemas/RunTarget"
                   },
+                  "mode": {
+                    "enum": ["chat", "code"],
+                    "type": "string",
+                    "default": "chat"
+                  },
                   "title": {
                     "type": "string",
                     "minLength": 1,
@@ -9544,6 +9574,10 @@
                         "type": "null"
                       }
                     ]
+                  },
+                  "mode": {
+                    "enum": ["chat", "code"],
+                    "type": "string"
                   },
                   "pinned": {
                     "type": "boolean"
@@ -11161,6 +11195,12 @@
                           "minLength": 9,
                           "maxLength": 120
                         },
+                        "emoji": {
+                          "type": "string",
+                          "maxLength": 32,
+                          "description": "One emoji grapheme, including flag pairs, keycaps and joined sequences.",
+                          "default": "⏰"
+                        },
                         "enabled": {
                           "type": "boolean",
                           "default": true
@@ -11465,6 +11505,11 @@
                                 "type": "null"
                               }
                             ]
+                          },
+                          "emoji": {
+                            "type": "string",
+                            "maxLength": 32,
+                            "description": "One emoji grapheme, including flag pairs, keycaps and joined sequences."
                           },
                           "id": {
                             "type": "string",
@@ -12141,6 +12186,11 @@
                                   "type": "null"
                                 }
                               ]
+                            },
+                            "emoji": {
+                              "type": "string",
+                              "maxLength": 32,
+                              "description": "One emoji grapheme, including flag pairs, keycaps and joined sequences."
                             },
                             "id": {
                               "type": "string",
@@ -12921,6 +12971,11 @@
                               }
                             ]
                           },
+                          "emoji": {
+                            "type": "string",
+                            "maxLength": 32,
+                            "description": "One emoji grapheme, including flag pairs, keycaps and joined sequences."
+                          },
                           "id": {
                             "type": "string",
                             "format": "uuid",
@@ -13673,6 +13728,11 @@
                               }
                             ]
                           },
+                          "emoji": {
+                            "type": "string",
+                            "maxLength": 32,
+                            "description": "One emoji grapheme, including flag pairs, keycaps and joined sequences."
+                          },
                           "id": {
                             "type": "string",
                             "format": "uuid",
@@ -14342,6 +14402,11 @@
                                 "type": "null"
                               }
                             ]
+                          },
+                          "emoji": {
+                            "type": "string",
+                            "maxLength": 32,
+                            "description": "One emoji grapheme, including flag pairs, keycaps and joined sequences."
                           },
                           "id": {
                             "type": "string",
@@ -22469,6 +22534,26 @@
                     "artifacts": {
                       "type": "object",
                       "properties": {
+                        "kinds": {
+                          "type": "array",
+                          "items": {
+                            "enum": [
+                              "code",
+                              "html",
+                              "react",
+                              "markdown",
+                              "svg",
+                              "mermaid",
+                              "site",
+                              "document",
+                              "image",
+                              "presentation",
+                              "spreadsheet",
+                              "diagram"
+                            ],
+                            "type": "string"
+                          }
+                        },
                         "siteOrigins": {
                           "type": "array",
                           "items": {
@@ -25732,6 +25817,10 @@
                   "options": {
                     "type": "object",
                     "properties": {
+                      "chatMode": {
+                        "enum": ["chat", "code"],
+                        "type": "string"
+                      },
                       "fast": {
                         "type": "boolean"
                       },
@@ -28131,6 +28220,12 @@
                     },
                     "default": []
                   },
+                  "emoji": {
+                    "type": "string",
+                    "maxLength": 32,
+                    "description": "One emoji grapheme, including flag pairs, keycaps and joined sequences.",
+                    "default": "⏰"
+                  },
                   "missedRunPolicy": {
                     "enum": ["run_once", "skip"],
                     "type": "string",
@@ -28315,6 +28410,11 @@
                           "type": "null"
                         }
                       ]
+                    },
+                    "emoji": {
+                      "type": "string",
+                      "maxLength": 32,
+                      "description": "One emoji grapheme, including flag pairs, keycaps and joined sequences."
                     },
                     "id": {
                       "type": "string",
@@ -28714,6 +28814,11 @@
                             "type": "null"
                           }
                         ]
+                      },
+                      "emoji": {
+                        "type": "string",
+                        "maxLength": 32,
+                        "description": "One emoji grapheme, including flag pairs, keycaps and joined sequences."
                       },
                       "id": {
                         "type": "string",
@@ -29208,6 +29313,11 @@
                         }
                       ]
                     },
+                    "emoji": {
+                      "type": "string",
+                      "maxLength": 32,
+                      "description": "One emoji grapheme, including flag pairs, keycaps and joined sequences."
+                    },
                     "id": {
                       "type": "string",
                       "format": "uuid",
@@ -29562,6 +29672,11 @@
                       "pattern": "^[a-zA-Z0-9_.:-]+$"
                     }
                   },
+                  "emoji": {
+                    "type": "string",
+                    "maxLength": 32,
+                    "description": "One emoji grapheme, including flag pairs, keycaps and joined sequences."
+                  },
                   "missedRunPolicy": {
                     "enum": ["run_once", "skip"],
                     "type": "string"
@@ -29739,6 +29854,11 @@
                           "type": "null"
                         }
                       ]
+                    },
+                    "emoji": {
+                      "type": "string",
+                      "maxLength": 32,
+                      "description": "One emoji grapheme, including flag pairs, keycaps and joined sequences."
                     },
                     "id": {
                       "type": "string",
@@ -30395,6 +30515,11 @@
                         }
                       ]
                     },
+                    "emoji": {
+                      "type": "string",
+                      "maxLength": 32,
+                      "description": "One emoji grapheme, including flag pairs, keycaps and joined sequences."
+                    },
                     "id": {
                       "type": "string",
                       "format": "uuid",
@@ -30779,6 +30904,11 @@
                           "type": "null"
                         }
                       ]
+                    },
+                    "emoji": {
+                      "type": "string",
+                      "maxLength": 32,
+                      "description": "One emoji grapheme, including flag pairs, keycaps and joined sequences."
                     },
                     "id": {
                       "type": "string",

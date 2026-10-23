@@ -112,6 +112,7 @@ export const runnerPaths = {
   file: (id: string) => `${RUNNER_API_PREFIX}/sandboxes/${id}/file`,
   files: (id: string) => `${RUNNER_API_PREFIX}/sandboxes/${id}/files`,
   ports: (id: string) => `${RUNNER_API_PREFIX}/sandboxes/${id}/ports`,
+  restart: (id: string) => `${RUNNER_API_PREFIX}/sandboxes/${id}/restart`,
   sandbox: (id: string) => `${RUNNER_API_PREFIX}/sandboxes/${id}`,
   sandboxes: `${RUNNER_API_PREFIX}/sandboxes`,
   snapshot: (id: string) => `${RUNNER_API_PREFIX}/sandboxes/${id}/snapshot`,

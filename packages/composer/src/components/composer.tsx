@@ -50,8 +50,9 @@ import { buildComposerValue, hasContent } from "../value";
 import { templateToInline } from "../variables";
 import { AttachmentList, RejectionMessage } from "./attachment-list";
 import { ComposerFooter } from "./composer-footer";
+import { optionId } from "./menu-listbox";
 import { LOOKS } from "./styles";
-import { optionId, SuggestionMenu } from "./suggestion-menu";
+import { SuggestionMenu } from "./suggestion-menu";
 
 export type { ComposerProps } from "../props";
 

@@ -172,6 +172,17 @@ export const createApp = ({ now, runner, token }: AppOptions) => {
       : c.json({ error: destroyed.error }, STATUS[destroyed.error.type]);
   });
 
+  api.post("/sandboxes/:id/restart", async (c) => {
+    const id = parseId(c.req.param("id"));
+    if (!id.success) {
+      return badRequest(c);
+    }
+    return reply(c, await runner.restart(id.data), (status) => ({
+      id: id.data,
+      status,
+    }));
+  });
+
   api.post("/sandboxes/:id/exec", (c) => {
     const id = parseId(c.req.param("id"));
     const request = parseBody(c.get("body"), execRequestSchema);

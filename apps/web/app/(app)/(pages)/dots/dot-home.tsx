@@ -102,12 +102,15 @@ export interface DotHomeProps {
   readonly extensions?: Partial<DotExtensions>;
   /** Shows "Computer", which opens the side panel's live view. */
   readonly onOpenComputer?: () => void;
+  /** Opens the live view (never closes it), for a restart to show itself. */
+  readonly onShowComputer?: () => void;
 }
 
 export function DotHome({
   conversationId,
   extensions,
   onOpenComputer,
+  onShowComputer,
 }: DotHomeProps) {
   const { t } = useLingui();
   const { client, query } = useApi();
@@ -116,7 +119,7 @@ export function DotHome({
   const dot = useDotForConversation(conversationId);
   const [profileOpen, setProfileOpen] = useState(false);
   const [tab, setTab] = useState<DotProfileTab>("activity");
-  const { CallButton } = { ...dotExtensions, ...extensions };
+  const { CallButton, ComputerMenu } = { ...dotExtensions, ...extensions };
   const refresh = useCallback(
     () => queryClient.invalidateQueries({ queryKey: query.dots.key() }),
     [query, queryClient]
@@ -211,6 +214,9 @@ export function DotHome({
             >
               <MonitorIcon />
             </Button>
+          ) : null}
+          {onOpenComputer && ComputerMenu ? (
+            <ComputerMenu dot={dot} onShow={onShowComputer} />
           ) : null}
           <Button
             aria-label={t`Run ${name} now`}

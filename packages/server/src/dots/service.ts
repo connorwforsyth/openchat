@@ -256,6 +256,7 @@ export const createDot = async (
     // biome-ignore lint/performance/noAwaitInLoops: a starter template has one or two schedules.
     const made = await createSchedule(deps, actor, {
       autoApproveTools: [],
+      emoji: schedule.emoji,
       missedRunPolicy: "run_once",
       notify: "all",
       paused: !schedule.enabled,

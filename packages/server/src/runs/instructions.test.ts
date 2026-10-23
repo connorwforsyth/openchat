@@ -115,8 +115,12 @@ interface TurnCase {
     readonly mode?: "auto" | "propose";
   };
   readonly mentions?: readonly string[];
+  /** The server's clock. */
+  readonly now?: Date;
   /** A planning run (106). */
   readonly plan?: boolean;
+  /** The display name of the user who sends the message. */
+  readonly userName?: string;
   readonly workspace?: boolean;
 }
 
@@ -152,8 +156,12 @@ const publishedAgent = async (
 /** Runs one turn as a fresh user and returns the system message the model got, `null` for none. */
 const systemPromptOf = async (turn: TurnCase): Promise<string | null> => {
   const { db } = testDb;
-  const user = await seedUser(db);
+  const user = await seedUser(
+    db,
+    turn.userName === undefined ? {} : { name: turn.userName }
+  );
   await seedOrg(db, user.id, { isPersonal: true });
+  const { now } = turn;
   if (turn.memory) {
     expectOk(
       await writeMemory(db, {
@@ -171,6 +179,7 @@ const systemPromptOf = async (turn: TurnCase): Promise<string | null> => {
     config: configFor(turn),
     db,
     jobs: null,
+    now: now ? () => now : undefined,
     registry: createMemoryProviderRegistry({
       keyless: ["test"],
       languageModels: { "test:chat": model },
@@ -264,6 +273,20 @@ describe("the system prompt, by turn type", () => {
         workspace: true,
       })
     ).toMatchSnapshot();
+  });
+});
+
+describe("an agent's variables", () => {
+  it("fills in today's date and the name of the person chatting", async () => {
+    const system = await systemPromptOf({
+      agent:
+        "Today is {{current_date}}. You're helping {{ current_user }}. Keep {{topic}} as written.",
+      now: new Date("2026-03-09T12:00:00Z"),
+      userName: "Grace Hopper",
+    });
+    expect(system).toContain(
+      "Today is Monday, March 9, 2026. You're helping Grace Hopper. Keep {{topic}} as written."
+    );
   });
 });
 

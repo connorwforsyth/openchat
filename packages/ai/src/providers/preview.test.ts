@@ -94,6 +94,17 @@ describe("capabilitiesWith", () => {
     ]);
     expect(capabilitiesWith(["tools"], undefined)).toEqual(["tools"]);
   });
+
+  it("adds vision when the model server's own catalog says yes", () => {
+    const fromServer = { fromServer: true };
+    expect(capabilitiesWith(["tools"], { vision: true }, fromServer)).toEqual([
+      "tools",
+      "vision",
+    ]);
+    expect(capabilitiesWith(["tools"], { vision: false }, fromServer)).toEqual([
+      "tools",
+    ]);
+  });
 });
 
 describe("parseCatalog's prices and traits", () => {

@@ -1,5 +1,6 @@
 import type { ScheduleRecurrence } from "@workspace/contract/schemas/schedules";
 import {
+  scheduleEmojiSchema,
   scheduleNotifySchema,
   schedulePromptSchema,
   scheduleTimeZoneSchema,
@@ -39,6 +40,8 @@ export const reportInputSchema = z.object({
 export const SCHEDULED_TASK_DATA = "scheduled-task";
 
 export const scheduledTaskDataSchema = z.object({
+  /** Absent on messages sent before schedules had one, and on a Dot's "Run now". */
+  emoji: scheduleEmojiSchema.optional(),
   scheduleId: z.string().nullable(),
   title: z.string(),
 });

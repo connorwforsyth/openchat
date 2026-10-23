@@ -44,6 +44,7 @@
     "@tiptap/pm": "catalog:",
     "@tiptap/react": "catalog:",
     "@tiptap/starter-kit": "catalog:",
+    "@tiptap/suggestion": "catalog:",
     "@workspace/ai": "workspace:*",
     "@workspace/artifacts-kit": "workspace:*",
     "@workspace/client": "workspace:*",

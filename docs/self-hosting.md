@@ -490,7 +490,28 @@ supplied is left off.
   (`options.capabilities` for an OpenAI-compatible server), less anything the
   catalog says the model lacks; Reasoning shows when the catalog says the
   model reasons (gateway tags, OpenRouter's parameters, Google's `thinking`).
-  The card never claims vision the provider config doesn't send.
+  Ollama additionally reads each model's `/api/show` metadata. Newer servers
+  report `capabilities`; on v0.6, a verified vision encoder in
+  `projector_info` establishes vision support. Missing, invalid or failed
+  metadata leaves support unknown. Names and `/api/tags` do not establish
+  capabilities.
+
+  For a model whose vision support you have verified but whose server omits
+  the metadata, give that model its own restricted provider entry. This
+  applies the explicit capability only to that model, keeping mixed catalogs
+  separate:
+
+  ```yaml
+  providers:
+    local-vision:
+      type: openai-compatible
+      baseURL: http://localhost:11434/v1
+      models: [my-vision-model:latest]
+      include: [my-vision-model:latest]
+      options:
+        catalog: ollama
+        capabilities: tools, vision
+  ```
 
 ### Conversation titles
 

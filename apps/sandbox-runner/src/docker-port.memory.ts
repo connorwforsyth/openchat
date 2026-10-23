@@ -33,6 +33,8 @@ export const createMemoryDocker = ({
   /** Every `connectNetwork` call, as `network container`. */
   const connects: string[] = [];
   const pulled: string[] = [];
+  /** Every `stopContainer` call, by name or id. */
+  const stops: string[] = [];
   let failNext: string | null = null;
   let failWith: unknown;
   let counter = 0;
@@ -284,6 +286,7 @@ export const createMemoryDocker = ({
     },
 
     stopContainer: (nameOrId) => {
+      stops.push(nameOrId);
       const container = find(nameOrId);
       if (container) {
         container.running = false;
@@ -335,6 +338,7 @@ export const createMemoryDocker = ({
         network.members.delete(container);
       }
     },
+    stops,
     volumes,
   };
 };

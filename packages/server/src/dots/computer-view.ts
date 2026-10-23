@@ -14,3 +14,10 @@ export const computerViewSchema = z.object({
   url: z.url(),
 });
 export type ComputerView = z.infer<typeof computerViewSchema>;
+
+/**
+ * What the owner can do to the whole computer. Both stop the Dot's runs
+ * first. `restart` keeps its files; `reset` wipes them for a fresh one.
+ */
+export const computerPowerActionSchema = z.enum(["restart", "reset"]);
+export type ComputerPowerAction = z.infer<typeof computerPowerActionSchema>;

@@ -766,6 +766,25 @@ export const createRunner = ({
     return removed;
   };
 
+  /** Stops and starts a sandbox's container, keeping its volume. */
+  const restart = async (
+    id: SandboxId
+  ): AsyncResult<SandboxStatus, SandboxError> => {
+    const found = await state(id);
+    if (!found.ok) {
+      return found;
+    }
+    const restarted = await guarded("restart the sandbox", async () => {
+      await docker.stopContainer(containerName(id));
+      await docker.startContainer(containerName(id));
+    });
+    if (!restarted.ok) {
+      return restarted;
+    }
+    touch(id);
+    return ok({ state: "ready" });
+  };
+
   /** Stops containers idle past `idleMs`; the next call starts them again. */
   const reapIdle = async (): Promise<SandboxId[]> => {
     const cutoff = now().getTime() - config.idleMs;
@@ -873,6 +892,7 @@ export const createRunner = ({
     readFile,
     reapIdle,
     recover,
+    restart,
     snapshot,
     state,
     status,
