@@ -155,6 +155,10 @@ brief, and their findings land in `.context/research/`.
 
 Destination: spaces replace orgs in the product: nested spaces, multi-membership, owner-managed membership and roles, scoped skills, agents and chats shared within a space and visible to its sub-spaces, a token allowance granted by the owner, and admin-created keys with usage per key. Decisions 188–193 (resolved AFK, see [187](tickets/187-spaces.md) and [QUESTIONS-FOR-CONNOR.md](QUESTIONS-FOR-CONNOR.md#spaces)); contract [187a](tickets/187a-contract-spaces.md).
 
+## Email (320)
+
+Destination: outbound transactional email any self-hoster can point at their own relay, then notifications, then a Dot mailbox. Phase 1 is [320](tickets/320-email-foundation.md) (Mailer port, SMTP and Graph adapters, React Email, outbox and pg-boss job, invite emails, `features.email`, Mailpit); stubs [321](tickets/321-email-notifications.md) notifications, [322](tickets/322-email-dot-mailbox.md) Dot mailbox and [323](tickets/323-email-own-receiver.md) own receiver. Research: [`.context/research/email`](../.context/research/email/README.md).
+
 ## Not yet specified
 
 These waves are in scope. Each one graduates into tickets when the gate before it
