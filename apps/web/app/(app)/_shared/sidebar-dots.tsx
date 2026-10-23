@@ -83,7 +83,7 @@ function DotLink({
       <NextRun
         at={dot.nextRunAt}
         emoji={
-          dot.schedules.find((each) => each.nextRunAt === dot.nextRunAt)
+          dot.schedules.find((each) => each.nextRunNominalAt === dot.nextRunAt)
             ?.emoji ?? null
         }
       />
