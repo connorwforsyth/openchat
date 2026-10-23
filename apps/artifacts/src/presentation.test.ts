@@ -175,4 +175,16 @@ describe("slideDeckCss", () => {
     expect(light).toContain("[data-step-hidden] { visibility: hidden; }");
     expect(light).not.toContain("transition");
   });
+
+  it("puts the instance's deck theme after the app's, so it wins", async () => {
+    const globals = await readFile(
+      new URL("../../../packages/ui/src/styles/globals.css", import.meta.url),
+      "utf8"
+    );
+    const css = slideDeckCss(globals, "light", "--primary: red;");
+    expect(css.indexOf(":root {--primary: red;}")).toBeGreaterThan(
+      css.indexOf("--background:")
+    );
+    expect(slideDeckCss(globals, "light")).not.toContain("--primary: red");
+  });
 });

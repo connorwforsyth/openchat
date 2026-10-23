@@ -1,3 +1,4 @@
+import type { KindTheme } from "@workspace/artifacts-kit/kind-theme";
 import {
   type BuiltSite,
   buildSite,
@@ -36,6 +37,8 @@ export interface SiteServerOptions {
    * shells (163), or `null` if the build has none, when TSX pages fail.
    */
   readonly runtimeUrl: () => string | null;
+  /** The instance's own site theme, read when a site is built. */
+  readonly theme?: () => Promise<KindTheme>;
   readonly themeCss: string;
 }
 
@@ -47,7 +50,6 @@ export interface SiteResponse {
 
 /** How long the origins are trusted before asking the app again. */
 const ORIGINS_TTL_MS = 30_000;
-/** How long published builds are kept, by token and publish time. */
 const BUILDS_KEPT = 50;
 
 const LEADING_SLASHES = /^\/+/;
@@ -194,7 +196,6 @@ export const createSiteServer = (options: SiteServerOptions) => {
     builds.set(key, built);
   };
 
-  /** The link's site, built once per published version. */
   const publishedBuild = async (
     token: string
   ): Promise<BuiltSite | SiteResponse> => {
@@ -202,17 +203,28 @@ export const createSiteServer = (options: SiteServerOptions) => {
     if ("status" in published) {
       return published;
     }
-    const key = `${token}@${published.publishedAt}`;
-    const kept = builds.get(key);
-    if (kept) {
-      return kept;
-    }
     try {
+      const theme = await options.theme?.();
+      const key = JSON.stringify([
+        token,
+        published.publishedAt,
+        Object.entries(theme?.light ?? {}).sort(([a], [b]) =>
+          a.localeCompare(b)
+        ),
+        Object.entries(theme?.dark ?? {}).sort(([a], [b]) =>
+          a.localeCompare(b)
+        ),
+      ]);
+      const kept = builds.get(key);
+      if (kept) {
+        return kept;
+      }
       const runtimeUrl = options.runtimeUrl();
       const built = await buildSite(
         published.content,
         {
           compile: options.compile,
+          theme,
           themeCss: options.themeCss,
           tsx: runtimeUrl ? siteTsxPorts(runtimeUrl) : undefined,
         },

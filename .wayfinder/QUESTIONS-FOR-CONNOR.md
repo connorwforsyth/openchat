@@ -193,6 +193,12 @@ Lane `pstack/usage` (Settings → Usage, span tags). Defaults applied overnight;
 1. **Where should the logo show once you're signed in?** Nowhere visible today: the sidebar's top row is the space switcher (`Personal`) for every signed-in user, and the name is only its fallback while spaces load, so a logo there would flash. *Defaulted: the logo is on sign-in, sign-up and invitations, plus the tab and home-screen icons; the sidebar keeps the name.* Alternatives: the logo at the top of the rail, ChatGPT-style, turning into the sidebar toggle on hover (moves the toggle, which 181 keeps fixed); or the mark above "What can I help with?" (shifts the composer-first layout, D27).
 2. **Tile colours for home-screen icons.** A one-colour mark is drawn white on `brand.iconBackground`, which defaults to black. *Defaulted: keep.* A fork with a light tile gives its mark its own colours; an `iconColor` field would cover the rest.
 
+## slides lane (n2/slides stack)
+
+1. **Where does the artifact runtime find the brand folder?** The runtime is its own service and doesn't read `app.config.yaml`, so its `theme.css` files come from `ARTIFACTS_BRAND_DIR`. The app reads `DESIGN.md` from `brand/` beside `app.config.yaml`, as it does the logo. *Defaulted: two sources, unset means no theme.* The alternative is a `brand.dir` config key the app passes to the runtime in each render message, so one setting covers both.
+2. **Dark-mode theme values.** A `theme.css` that sets only `:root` leaves dark mode on the app's dark theme. *Defaulted: light uses `:root`, dark uses `.dark`.* The alternative is to let dark fall back to the file's light values where `.dark` sets none.
+3. **Export quality PR (#228) is optional.** Ticket 164's export works; #228 fixes what it loses (gradient fills, rotation, opacity, native charts) and makes the PDF a picture of each slide with an invisible text layer. *Defaulted: opened last in the stack for you to take or drop.*
+
 ## night-2 fixes lane (n2/fix-*)
 
 1. **Where does the sidebar go when there's no room to dock it?** With the side panel open on a narrow window, the toggle now shows the sidebar over the page, and it never appears on its own. *Defaulted: overlay on toggle only.* The alternative is for the toggle to close the panel to make room.

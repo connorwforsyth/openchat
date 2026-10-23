@@ -1,3 +1,4 @@
+import type { KindTheme } from "../../kind-theme";
 import { extensionOf, isTsxPage, pageOf, type SiteContent } from "./content";
 import { resolveInSite } from "./scan";
 import { siteTailwindInput } from "./theme";
@@ -39,6 +40,8 @@ export interface SiteTsxPorts {
 
 export interface SiteBuildPorts {
   readonly compile: CompileTailwind;
+  /** The instance's own values for sites (`brand/…/theme.css`), over `themeCss`. */
+  readonly theme?: KindTheme;
   /** The instance's theme, `globals.css` as text (`./theme.ts`). */
   readonly themeCss: string;
   /** Needed only when the site has TSX pages. */
@@ -234,12 +237,12 @@ const previewNavigation = (path: string, pages: readonly string[]) =>
  */
 export const buildSite = async (
   content: SiteContent,
-  { compile, themeCss, tsx }: SiteBuildPorts,
+  { compile, theme, themeCss, tsx }: SiteBuildPorts,
   target: SiteBuildTarget
 ): Promise<BuiltSite> => {
   const served = servedFiles(content.files, tsx);
   const hasTsx = Object.keys(content.files).some(isTsxPage);
-  const css = await compile(siteTailwindInput(themeCss), [
+  const css = await compile(siteTailwindInput(themeCss, theme), [
     ...new Set([
       ...tailwindCandidates(content.files),
       ...(hasTsx && tsx ? tsx.candidates : []),

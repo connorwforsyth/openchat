@@ -1,4 +1,5 @@
 import { builtinArtifactKinds } from "@workspace/artifacts-kit/builtin";
+import { themeDeclarations } from "@workspace/artifacts-kit/kind-theme";
 import {
   type ExportRequest,
   type FrameMessage,
@@ -7,9 +8,9 @@ import {
   RUNTIME_CHANNEL,
   type RuntimeError,
 } from "@workspace/chat-ui/artifacts/runtime-protocol";
-
 import { parseSvg, renderHtml, type Teardown } from "./documents";
 import { runtimeError } from "./errors";
+import { pageKindThemes, themeOf } from "./kind-themes";
 
 // One renderer per `render.runtime` a kind definition names
 // (`@workspace/artifacts-kit`, 123). The page (`main.ts`) looks the
@@ -109,7 +110,14 @@ const presentation: Renderer = async (container, request, context) => {
     return null;
   }
   const controller = mountDeck(container, deck.value, {
-    css: slideDeckCss(assets.SLIDE_ASSETS.themeCss, request.theme),
+    css: slideDeckCss(
+      assets.SLIDE_ASSETS.themeCss,
+      request.theme,
+      themeDeclarations(
+        themeOf(pageKindThemes(document), "presentation"),
+        request.theme
+      )
+    ),
     onError: context.fail,
     onPosition: (position) =>
       context.post({

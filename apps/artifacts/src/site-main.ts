@@ -7,8 +7,8 @@ import {
   type RuntimeError,
   readHostMessage,
 } from "@workspace/chat-ui/artifacts/runtime-protocol";
-
 import { runtimeError } from "./errors";
+import { pageKindThemes, themeOf } from "./kind-themes";
 import { SITE_ASSETS } from "./site-assets";
 import {
   buildPreview,
@@ -81,6 +81,7 @@ const start = (container: HTMLElement, parentOrigin: string) => {
     }
     const built = await buildPreview(request.code, {
       compile,
+      theme: themeOf(pageKindThemes(document), "site"),
       themeCss: SITE_ASSETS.themeCss,
       tsx,
     });
