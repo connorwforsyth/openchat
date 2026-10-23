@@ -360,3 +360,75 @@ it("keeps a pending send bound to its own chat when another chat saves later", a
     expect(await result.current.flush()).toBe(false);
   });
 });
+
+it("waits for its own save after leaving, changing another chat and returning", async () => {
+  const first = deferred();
+  const second = deferred();
+  const save = vi
+    .fn()
+    .mockReturnValueOnce(first.promise)
+    .mockReturnValueOnce(second.promise);
+  const { result, rerender } = renderHook(
+    ({ conversationId }) => useChatMode(conversationId, "chat", save),
+    { initialProps: { conversationId: id } }
+  );
+  act(() => result.current.onChange("code"));
+  rerender({
+    conversationId: "0190a000-0000-7000-8000-00000000000b" as ConversationId,
+  });
+  act(() => result.current.onChange("code"));
+  rerender({ conversationId: id });
+  const send = vi.fn();
+  let sending: Promise<void> = Promise.resolve();
+  await act(async () => {
+    sending = result.current.flush().then((saved) => {
+      if (saved) {
+        send();
+      }
+    });
+    await Promise.resolve();
+  });
+  expect(send).not.toHaveBeenCalled();
+  await act(async () => {
+    first.resolve();
+    await sending;
+  });
+  expect(send).toHaveBeenCalledOnce();
+  await act(async () => {
+    second.resolve();
+    await second.promise;
+  });
+});
+
+it("shows a save failure on returning to its chat and permits a new save", async () => {
+  const first = deferred();
+  const save = vi
+    .fn()
+    .mockImplementationOnce(async () => {
+      await first.promise;
+      throw new Error("offline");
+    })
+    .mockResolvedValue(undefined);
+  const { result, rerender } = renderHook(
+    ({ conversationId }) => useChatMode(conversationId, "chat", save),
+    { initialProps: { conversationId: id } }
+  );
+  act(() => result.current.onChange("code"));
+  rerender({
+    conversationId: "0190a000-0000-7000-8000-00000000000b" as ConversationId,
+  });
+  await act(async () => {
+    result.current.onChange("code");
+    first.resolve();
+    await result.current.flush();
+  });
+  expect(result.current.failed).toBe(false);
+  rerender({ conversationId: id });
+  expect(result.current.failed).toBe(true);
+  expect(await result.current.flush()).toBe(false);
+  await act(async () => {
+    result.current.onChange("code");
+    expect(await result.current.flush()).toBe(true);
+  });
+  expect(result.current.failed).toBe(false);
+});
