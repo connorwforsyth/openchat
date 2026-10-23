@@ -67,6 +67,33 @@ describe("followConversationEvents", () => {
     ]);
   });
 
+  it.each([408, 429])(
+    "retries transient HTTP %i and delivers the next stream",
+    async (status) => {
+      const controller = new AbortController();
+      const seen: ConversationEvent[] = [];
+      let calls = 0;
+      await followConversationEvents(CHAT, {
+        fetch: () => {
+          calls += 1;
+          return Promise.resolve(
+            calls === 1
+              ? new Response(null, { status })
+              : sse({ type: "typing", user: ada })
+          );
+        },
+        onEvent: (event) => {
+          seen.push(event);
+          controller.abort();
+        },
+        retryDelayMs: () => 0,
+        signal: controller.signal,
+      });
+      expect(calls).toBe(2);
+      expect(seen).toEqual([{ type: "typing", user: ada }]);
+    }
+  );
+
   it("stops for good when the server refuses", async () => {
     let calls = 0;
     await followConversationEvents(CHAT, {

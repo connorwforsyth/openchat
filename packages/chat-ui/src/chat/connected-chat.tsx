@@ -915,13 +915,15 @@ const useSettling = ({
  * and following before the question shows would put the answer under the
  * wrong message.
  */
-const useFollowRunningReply = ({
+export const useFollowRunningReply = ({
+  createdRunId,
   conversationId,
   messages,
   resumeStream,
   running,
   status,
 }: {
+  readonly createdRunId: { readonly current: RunId | null };
   readonly conversationId: ConversationId | null;
   readonly messages: readonly Message[];
   readonly resumeStream: () => Promise<void>;
@@ -940,11 +942,16 @@ const useFollowRunningReply = ({
     if (checked.current === key || (idle && !asked)) {
       return;
     }
-    checked.current = key;
-    if (idle) {
-      resumeStream().catch(ignore);
+    if (running.id === createdRunId.current) {
+      checked.current = key;
+      return;
     }
-  }, [asked, conversationId, idle, resumeStream, running]);
+    if (!idle) {
+      return;
+    }
+    checked.current = key;
+    resumeStream().catch(ignore);
+  }, [asked, conversationId, createdRunId, idle, resumeStream, running]);
 };
 
 /** A message waiting for its new chat's address (134). */
@@ -1466,6 +1473,7 @@ const useRunControls = ({
   const runningRunId = runToFollow(activeRuns);
   useFollowRunningReply({
     conversationId,
+    createdRunId,
     messages,
     resumeStream,
     running:

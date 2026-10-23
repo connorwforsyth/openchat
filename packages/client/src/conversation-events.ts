@@ -27,7 +27,8 @@ const defaultDelay = (attempt: number) =>
   Math.min(500 * 2 ** (attempt - 1), 15_000);
 
 /** The server said no for good: signed out, or no access to the chat. */
-const FATAL = (status: number) => status >= 400 && status < 500;
+const FATAL = (status: number) =>
+  status >= 400 && status < 500 && status !== 408 && status !== 429;
 
 const wait = (ms: number, signal: AbortSignal) =>
   new Promise<void>((resolve) => {
@@ -54,7 +55,7 @@ const parseEvent = (data: string): ConversationEvent | null => {
 
 /**
  * Reads the conversation's events until `signal` aborts or the server
- * refuses (4xx). Resolves then; never rejects.
+ * permanently refuses. Resolves then; never rejects.
  */
 export const followConversationEvents = async (
   conversationId: ConversationId,

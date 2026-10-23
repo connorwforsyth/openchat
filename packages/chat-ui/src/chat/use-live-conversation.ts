@@ -111,7 +111,9 @@ export const useLiveConversation = ({
 }): LiveConversation => {
   const [state, dispatch] = useReducer(liveReducer, NOBODY);
   const latest = useRef({ onCatchUp, onRun });
-  latest.current = { onCatchUp, onRun };
+  useEffect(() => {
+    latest.current = { onCatchUp, onRun };
+  });
 
   useEffect(() => {
     dispatch({ type: "reset" });
@@ -144,7 +146,7 @@ export const useLiveConversation = ({
       return;
     }
     const timer = setTimeout(
-      () => dispatch({ now: Date.now(), type: "tick" }),
+      () => dispatch({ now: Math.max(Date.now(), earliest), type: "tick" }),
       Math.max(0, earliest - Date.now())
     );
     return () => clearTimeout(timer);

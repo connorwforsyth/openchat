@@ -14,7 +14,7 @@ import {
   seedUser,
   type TestDb,
 } from "@workspace/db/testing";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import {
   type ConversationEvents,
@@ -108,6 +108,156 @@ const recorder = (
     },
   };
 };
+
+describe("listener recovery", () => {
+  it("retries a failed listener and delivers to the existing follower", async () => {
+    vi.useFakeTimers();
+    const chat = "0198d2a1-7c3e-7b40-8a00-000000000001" as ConversationId;
+    const viewer = {
+      email: null,
+      id: "0198d2a1-7c3e-7b40-8a00-0000000000aa" as UserId,
+      image: null,
+      name: "Ada",
+    };
+    const notify: { current: (payload: string) => void } = {
+      current: () => undefined,
+    };
+    const unlisten = vi.fn(() => Promise.resolve());
+    const listen = vi.fn(
+      (_channel: string, onPayload: (payload: string) => void) => {
+        if (listen.mock.calls.length === 1) {
+          return Promise.reject(new Error("temporarily unavailable"));
+        }
+        notify.current = onPayload;
+        return Promise.resolve(unlisten);
+      }
+    );
+    const source = createConversationEvents({ db: testDb.db, listen });
+    const controller = new AbortController();
+    const iterator = source
+      .follow(chat, viewer, controller.signal)
+      [Symbol.asyncIterator]();
+    try {
+      await iterator.next();
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(listen).toHaveBeenCalledTimes(2);
+      const next = iterator.next();
+      notify.current(
+        JSON.stringify({
+          conversationId: chat,
+          event: { type: "typing", user: viewer },
+        })
+      );
+      await expect(next).resolves.toMatchObject({
+        value: { type: "typing", user: viewer },
+      });
+    } finally {
+      controller.abort();
+      await iterator.return?.();
+      await source.stop();
+      vi.useRealTimers();
+    }
+    expect(unlisten).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["resolve", "reject"] as const)(
+    "stops while an in-flight listener will %s",
+    async (outcome) => {
+      vi.useFakeTimers();
+      const unlisten = vi.fn(() => Promise.resolve());
+      let resolveListen: (value: () => Promise<void>) => void = () => undefined;
+      let rejectListen: (error: Error) => void = () => undefined;
+      const listen = vi.fn(
+        () =>
+          new Promise<() => Promise<void>>((resolve, reject) => {
+            resolveListen = resolve;
+            rejectListen = reject;
+          })
+      );
+      const source = createConversationEvents({ db: testDb.db, listen });
+      const controller = new AbortController();
+      const viewer = {
+        email: null,
+        id: "u1" as UserId,
+        image: null,
+        name: "Ada",
+      };
+      const iterator = source
+        .follow("c1" as ConversationId, viewer, controller.signal)
+        [Symbol.asyncIterator]();
+      try {
+        await iterator.next();
+        const stopping = source.stop();
+        if (outcome === "resolve") {
+          resolveListen(unlisten);
+        } else {
+          rejectListen(new Error("offline"));
+        }
+        await stopping;
+        await vi.advanceTimersByTimeAsync(5000);
+        expect(listen).toHaveBeenCalledTimes(1);
+        expect(unlisten).toHaveBeenCalledTimes(outcome === "resolve" ? 1 : 0);
+      } finally {
+        controller.abort();
+        await iterator.return?.();
+        vi.useRealTimers();
+      }
+    }
+  );
+
+  it("cancels retry when the final follower leaves", async () => {
+    vi.useFakeTimers();
+    const listen = vi.fn(() => Promise.reject(new Error("offline")));
+    const source = createConversationEvents({ db: testDb.db, listen });
+    const controller = new AbortController();
+    const viewer = {
+      email: null,
+      id: "u1" as UserId,
+      image: null,
+      name: "Ada",
+    };
+    const iterator = source
+      .follow("c1" as ConversationId, viewer, controller.signal)
+      [Symbol.asyncIterator]();
+    try {
+      await iterator.next();
+      controller.abort();
+      await iterator.return?.();
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(listen).toHaveBeenCalledTimes(1);
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      await source.stop();
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not retry after stopping with a failed listener", async () => {
+    vi.useFakeTimers();
+    const listen = vi.fn(() => Promise.reject(new Error("offline")));
+    const source = createConversationEvents({ db: testDb.db, listen });
+    const controller = new AbortController();
+    const viewer = {
+      email: null,
+      id: "0198d2a1-7c3e-7b40-8a00-0000000000aa" as UserId,
+      image: null,
+      name: "Ada",
+    };
+    const iterator = source
+      .follow("c1" as ConversationId, viewer, controller.signal)
+      [Symbol.asyncIterator]();
+    try {
+      await iterator.next();
+      await source.stop();
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(listen).toHaveBeenCalledTimes(1);
+    } finally {
+      controller.abort();
+      await iterator.return?.();
+      vi.useRealTimers();
+    }
+  });
+});
 
 describe("presentUsers", () => {
   it("lists each person once, however many tabs they have open", () => {

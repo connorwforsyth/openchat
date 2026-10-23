@@ -78,10 +78,23 @@ export const createConversationEvents = ({
   const rooms = new Map<ConversationId, Set<Follower>>();
   let listening: Promise<(() => Promise<void>) | null> | null = null;
 
+  let retryTimer: ReturnType<typeof setTimeout> | null = null;
+  let stopped = false;
+
+  const cancelRetry = () => {
+    if (retryTimer !== null) {
+      clearTimeout(retryTimer);
+      retryTimer = null;
+    }
+  };
+
   const deliver = (
     conversationId: ConversationId,
     event: ConversationEvent
   ) => {
+    if (stopped) {
+      return;
+    }
     for (const follower of rooms.get(conversationId) ?? []) {
       follower.push(event);
     }
@@ -95,7 +108,7 @@ export const createConversationEvents = ({
   };
 
   const ensureListening = () => {
-    if (!listen) {
+    if (!listen || stopped || rooms.size === 0) {
       return;
     }
     listening ??= listen(CONVERSATION_EVENTS_CHANNEL, (payload) => {
@@ -111,6 +124,12 @@ export const createConversationEvents = ({
       }
     }).catch(() => {
       listening = null;
+      if (!stopped && rooms.size > 0 && retryTimer === null) {
+        retryTimer = setTimeout(() => {
+          retryTimer = null;
+          ensureListening();
+        }, 1000);
+      }
       return null;
     });
   };
@@ -154,6 +173,9 @@ export const createConversationEvents = ({
       room.delete(follower);
       if (room.size === 0) {
         rooms.delete(conversationId);
+        if (rooms.size === 0) {
+          cancelRetry();
+        }
       } else {
         announce(conversationId);
       }
@@ -168,6 +190,8 @@ export const createConversationEvents = ({
       );
     },
     stop: async () => {
+      stopped = true;
+      cancelRetry();
       const unlisten = await listening;
       listening = null;
       await unlisten?.();
