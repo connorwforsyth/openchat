@@ -5,6 +5,12 @@
 
 // biome-ignore lint/performance/noBarrelFile: this module is the package's public surface, the list a slide imports from.
 export {
+  Chart,
+  type ChartProps,
+  type ChartSeries,
+  type ChartType,
+} from "./chart";
+export {
   Agenda,
   type AgendaProps,
   Bullets,

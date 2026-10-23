@@ -134,6 +134,20 @@ const cases: Record<string, Cases> = {
     invalid: ["2026-09-26", "yesterday", 0],
     valid: [t, "2026-09-26T09:00:00+10:00"],
   },
+  "conversations.conversationEventSchema": {
+    invalid: [
+      { status: "done", type: "run" },
+      { type: "typing", user: { id: uid } },
+      { type: "joined" },
+    ],
+    valid: [
+      { authorId: uid, messageId: msgId, type: "message" },
+      { authorId: null, messageId: msgId, type: "message" },
+      { runId: runAwaitingApproval.id, status: "running", type: "run" },
+      { type: "presence", users: [userAda] },
+      { type: "typing", user: userAda },
+    ],
+  },
 
   // conversations
   "conversations.conversationSchema": {
@@ -2433,6 +2447,17 @@ describe("run and library helpers", () => {
       modules.messageParts.messagePartSchema.options
         .map((o) => o.shape.type.value)
         .sort()
+    );
+  });
+});
+
+describe("conversation mode rollout", () => {
+  it("accepts an older producer and defaults its missing mode to chat", () => {
+    const { mode: _mode, ...legacy } = conversation;
+    const producer: z.infer<typeof modules.conversations.conversationSchema> =
+      legacy;
+    expect(modules.conversations.conversationSchema.parse(producer).mode).toBe(
+      "chat"
     );
   });
 });

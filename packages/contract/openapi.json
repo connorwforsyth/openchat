@@ -600,6 +600,88 @@
           "visibility"
         ]
       },
+      "ConversationEvent": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "authorId": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "user id (UUIDv7)"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "messageId": {
+                "type": "string",
+                "format": "uuid",
+                "description": "message id (UUIDv7)"
+              },
+              "type": {
+                "const": "message"
+              }
+            },
+            "required": ["authorId", "messageId", "type"]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "runId": {
+                "type": "string",
+                "format": "uuid",
+                "description": "run id (UUIDv7)"
+              },
+              "status": {
+                "enum": [
+                  "queued",
+                  "running",
+                  "awaiting_approval",
+                  "succeeded",
+                  "failed",
+                  "cancelled"
+                ],
+                "type": "string"
+              },
+              "type": {
+                "const": "run"
+              }
+            },
+            "required": ["runId", "status", "type"]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "const": "presence"
+              },
+              "users": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/UserSummary"
+                }
+              }
+            },
+            "required": ["type", "users"]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "const": "typing"
+              },
+              "user": {
+                "$ref": "#/components/schemas/UserSummary"
+              }
+            },
+            "required": ["type", "user"]
+          }
+        ]
+      },
       "File": {
         "type": "object",
         "properties": {
@@ -9983,6 +10065,116 @@
                   "oneOf": [
                     {
                       "$ref": "#/components/schemas/CONFLICTError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "422",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/VALIDATIONError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "429",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/RATE_LIMITEDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/conversations/{id}/typing": {
+      "post": {
+        "operationId": "conversations.typing",
+        "summary": "Say the caller is typing",
+        "description": "Tells the chat's other participants the caller is writing a message (a `typing` event on `GET /conversations/{id}/events`). Send it again while they keep typing; it lapses after `TYPING_TTL_MS`.",
+        "tags": ["Conversations"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "conversation id (UUIDv7)"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No content."
+          },
+          "401": {
+            "description": "401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/UNAUTHORIZEDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/FORBIDDENError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/NOT_FOUNDError"
                     },
                     {
                       "$ref": "#/components/schemas/UndefinedError"
@@ -37286,6 +37478,76 @@
             }
           }
         }
+      }
+    },
+    "/conversations/{id}/events": {
+      "get": {
+        "description": "Streams what other participants do in a conversation as Server-Sent Events (D25): new messages, runs starting and ending, who has the chat open, and who is typing. Each event's `data` is one JSON `ConversationEvent`. Events are hints, not a log: there are no ids and no resume, so a client that reconnects refetches the branch and the active runs. The first event is `presence`.",
+        "operationId": "conversations.events",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "contentMediaType": "application/json",
+                  "contentSchema": {
+                    "$ref": "#/components/schemas/ConversationEvent"
+                  },
+                  "description": "`data: <ConversationEvent JSON>` events.",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The event stream. It stays open until the client leaves."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/UNAUTHORIZEDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Not signed in."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/NOT_FOUNDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "No such conversation."
+          }
+        },
+        "summary": "Follow a conversation live (SSE)",
+        "tags": ["Conversations"]
       }
     },
     "/llm": {

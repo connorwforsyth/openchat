@@ -51,6 +51,7 @@ export const testFrame = (
   },
   config,
   layout: {
+    claimSidebarToggle: vi.fn(),
     layout: { panel: null, panelWidth: 400, sidebarOpen: true },
     setPanel: vi.fn(),
     setPanelWidth: vi.fn(),

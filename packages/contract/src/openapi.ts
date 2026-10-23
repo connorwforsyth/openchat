@@ -5,6 +5,7 @@ import { contract } from "./contract";
 import { llmProxyErrors } from "./errors";
 import { jsonValueSchema, providerMetadataSchema } from "./schemas/common";
 import {
+  conversationEventSchema,
   conversationSchema,
   participantStateSchema,
 } from "./schemas/conversations";
@@ -46,8 +47,9 @@ import {
 import { budgetSchema, transactionSchema } from "./schemas/usage";
 
 // OpenAPI 3.1 from the contract (D26), for the Swift client, Scalar and the
-// docs site. Everything comes from the oRPC contract except the run stream and
-// the model proxy, which are plain HTTP (SSE) routes added by hand below so
+// docs site. Everything comes from the oRPC contract except the run stream,
+// the conversation events and the model proxy, which are plain HTTP (SSE)
+// routes added by hand below so
 // non-TypeScript clients can find them.
 
 /** The API version: bump the major on a breaking contract change. */
@@ -183,6 +185,53 @@ const runStreamPath: OpenAPI.PathItemObject = {
   },
 };
 
+/**
+ * Each event's `data`, typed by `contentSchema` (JSON Schema 2020-12, which
+ * OpenAPI 3.1 allows but the generator's types don't list).
+ */
+const conversationEventData = {
+  contentMediaType: "application/json",
+  contentSchema: { $ref: "#/components/schemas/ConversationEvent" },
+  description: "`data: <ConversationEvent JSON>` events.",
+  type: "string" as const,
+};
+
+/** `GET /conversations/{id}/events`: not an oRPC procedure, documented here for OpenAPI clients. */
+const conversationEventsPath: OpenAPI.PathItemObject = {
+  get: {
+    description: [
+      "Streams what other participants do in a conversation as Server-Sent Events",
+      "(D25): new messages, runs starting and ending, who has the chat open, and who",
+      "is typing. Each event's `data` is one JSON `ConversationEvent`. Events are",
+      "hints, not a log: there are no ids and no resume, so a client that reconnects",
+      "refetches the branch and the active runs. The first event is `presence`.",
+    ].join(" "),
+    operationId: "conversations.events",
+    parameters: [
+      {
+        in: "path",
+        name: "id",
+        required: true,
+        schema: { format: "uuid", type: "string" },
+      },
+    ],
+    responses: {
+      "200": {
+        content: {
+          "text/event-stream": {
+            schema: conversationEventData,
+          },
+        },
+        description: "The event stream. It stays open until the client leaves.",
+      },
+      "401": errorResponse("Not signed in.", "UNAUTHORIZED"),
+      "404": errorResponse("No such conversation.", "NOT_FOUND"),
+    },
+    summary: "Follow a conversation live (SSE)",
+    tags: ["Conversations"],
+  },
+};
+
 /** `POST /llm`: the model proxy (D7), not an oRPC procedure, documented here for OpenAPI clients. */
 const llmProxyPath: OpenAPI.PathItemObject = {
   post: {
@@ -261,6 +310,7 @@ const commonSchemas = {
   Budget: { schema: budgetSchema },
   ChatContext: { schema: chatContextSchema },
   Conversation: { schema: conversationSchema },
+  ConversationEvent: { schema: conversationEventSchema },
   File: { schema: fileSchema },
   LibraryDefinition: { schema: libraryDefinitionSchema },
   LibraryDefinitionInput: { schema: libraryDefinitionInputSchema },
@@ -425,6 +475,7 @@ export const generateOpenApi = async (): Promise<OpenAPI.Document> => {
     },
     paths: {
       ...withoutNoContentBodies(document.paths ?? {}),
+      "/conversations/{id}/events": conversationEventsPath,
       "/llm": llmProxyPath,
       "/runs/{id}/stream": runStreamPath,
     },

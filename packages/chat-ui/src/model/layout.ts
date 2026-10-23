@@ -95,9 +95,6 @@ export const CENTRE_MIN_WIDTH = 480;
 /** How far one ←/→ press moves a resize handle. */
 export const RESIZE_KEY_STEP = 16;
 
-/** How long a peeking sidebar stays after the pointer leaves it. */
-export const PEEK_CLOSE_DELAY_MS = 500;
-
 /** Where the sidebar's width is kept (`localStorage`). */
 export const SIDEBAR_WIDTH_STORAGE_KEY = "chat-ui:sidebar-width";
 
@@ -127,8 +124,13 @@ export interface ShellColumns {
   /** The panel's width, when it's open. */
   readonly panel: number;
   readonly panelMax: number;
-  /** The docked sidebar's width, or `null` when it can't dock (it peeks). */
+  /** The docked sidebar's width, or `null` when it's collapsed or can't dock. */
   readonly sidebar: number | null;
+  /**
+   * There's room to dock the sidebar, open or not. Without it, the toggle
+   * shows the sidebar over the page instead.
+   */
+  readonly sidebarFits: boolean;
   /** The widest the sidebar may be dragged right now. */
   readonly sidebarMax: number;
 }
@@ -137,7 +139,8 @@ export interface ShellColumns {
  * Fits the sidebar and the panel around a conversation of at least
  * `CENTRE_MIN_WIDTH`. The sidebar yields first: it shrinks toward its
  * minimum, and when even that leaves the open panel less than its own
- * minimum it stops docking (the user's choice is kept; it peeks instead).
+ * minimum it stops docking (the user's choice is kept for when there's
+ * room; until then the toggle shows it over the page).
  * Then the panel shrinks. `viewport` is `null` before the first measure,
  * when the stored widths are used as they are.
  */
@@ -159,14 +162,16 @@ export const fitShellColumns = ({
       panel: panelWidth,
       panelMax: PANEL_MAX_WIDTH,
       sidebar: sidebarOpen ? sidebarWidth : null,
+      sidebarFits: true,
       sidebarMax: SIDEBAR_MAX_WIDTH,
     };
   }
   const panelReserve = panelOpen ? PANEL_MIN_WIDTH : 0;
   const room = viewport - CENTRE_MIN_WIDTH - panelReserve;
   const sidebarMax = clampTo(room, SIDEBAR_MIN_WIDTH, SIDEBAR_MAX_WIDTH);
+  const sidebarFits = room >= SIDEBAR_MIN_WIDTH;
   const sidebar =
-    sidebarOpen && room >= SIDEBAR_MIN_WIDTH
+    sidebarOpen && sidebarFits
       ? clampTo(sidebarWidth, SIDEBAR_MIN_WIDTH, sidebarMax)
       : null;
   const panelMax = clampTo(
@@ -178,6 +183,7 @@ export const fitShellColumns = ({
     panel: clampTo(panelWidth, PANEL_MIN_WIDTH, panelMax),
     panelMax,
     sidebar,
+    sidebarFits,
     sidebarMax,
   };
 };

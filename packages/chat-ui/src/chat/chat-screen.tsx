@@ -253,8 +253,14 @@ function ChatScreenBody({
   // Hooks can't be conditional, so the screen's own layout always exists; it
   // just goes unused when the app passes one in.
   const ownLayout = useShellLayout();
-  const { layout, setPanel, setPanelWidth, togglePanel, toggleSidebar } =
-    sharedLayout ?? ownLayout;
+  const {
+    claimSidebarToggle,
+    layout,
+    setPanel,
+    setPanelWidth,
+    togglePanel,
+    toggleSidebar,
+  } = sharedLayout ?? ownLayout;
   const narrow = useNarrowScreen();
   const railed = useSidebarLayout() === "rail";
   const [sidebarSheetOpen, setSidebarSheetOpen] = useState(false);
@@ -670,10 +676,8 @@ function ChatScreenBody({
     }),
     [composer, composerFill, onSubmit, workspaceComposer]
   );
-  const sidebarExpanded = narrow ? sidebarSheetOpen : layout.sidebarOpen;
   const sidebarToggle = (where: "header" | "rail" | "sidebar") => (
     <SidebarToggle
-      expanded={sidebarExpanded}
       hint={<ShortcutHint id="sidebar.toggle" />}
       onToggle={toggleChats}
       placement={where}
@@ -773,6 +777,7 @@ function ChatScreenBody({
 
   return (
     <AppShell
+      claimSidebarToggle={claimSidebarToggle}
       header={header}
       onPanelClose={closePanel}
       onPanelWidthChange={setPanelWidth}

@@ -704,6 +704,7 @@
         "hono": "catalog:",
         "pg-boss": "catalog:",
         "postgres": "catalog:",
+        "sucrase": "catalog:",
         "zod": "catalog:",
       },
       "devDependencies": {

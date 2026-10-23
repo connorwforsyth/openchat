@@ -82,6 +82,17 @@ export const conversations = {
     })
     .input(setConversationContextInputSchema)
     .output(conversationSchema),
+  typing: authed
+    .route({
+      description:
+        "Tells the chat's other participants the caller is writing a message (a `typing` event on `GET /conversations/{id}/events`). Send it again while they keep typing; it lapses after `TYPING_TTL_MS`.",
+      method: "POST",
+      path: "/conversations/{id}/typing",
+      successStatus: 204,
+      summary: "Say the caller is typing",
+    })
+    .input(byId)
+    .output(z.void()),
   update: authed
     .route({
       method: "PATCH",

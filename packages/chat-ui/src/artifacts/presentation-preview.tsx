@@ -7,7 +7,9 @@ import {
   CircleAlertIcon,
   DownloadIcon,
   FileTextIcon,
+  MonitorIcon,
   PlayIcon,
+  RefreshCwIcon,
   XIcon,
 } from "@workspace/icons";
 import { Button } from "@workspace/ui/components/button";
@@ -22,6 +24,7 @@ import {
   useCallback,
   useEffect,
   useEffectEvent,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -29,6 +32,12 @@ import {
 import { artifactFileName } from "../model/artifacts";
 import { useDocumentTheme, useParentOrigin } from "./artifact-preview";
 import { downloadFile } from "./document/export";
+import {
+  type PresenterMessage,
+  presenterChannelName,
+  presenterMessageSchema,
+  presenterPath,
+} from "./presenter";
 import {
   type ExportFormat,
   type FrameMessage,
@@ -50,10 +59,56 @@ import {
 
 type Position = Extract<FrameMessage, { type: "position" }>;
 
+/**
+ * Whether the runtime is there to draw the deck: no origin configured, the
+ * frame loading, the frame said `ready`, or it never did.
+ */
+export type RuntimeConnection =
+  | "connecting"
+  | "ready"
+  | "unconfigured"
+  | "unreachable";
+
+/** How long the frame has to say `ready` before the panel says it isn't coming. */
+export const RUNTIME_READY_TIMEOUT_MS = 10_000;
+
+/** Where the panel stands with the runtime. Pure. */
+export const connectionOf = (
+  runtimeOrigin: string | null,
+  ready: boolean,
+  timedOut: boolean
+): RuntimeConnection => {
+  if (runtimeOrigin === null) {
+    return "unconfigured";
+  }
+  if (ready) {
+    return "ready";
+  }
+  return timedOut ? "unreachable" : "connecting";
+};
+
+const SLIDE_ERROR = /^slide "([^"]+)": ([\s\S]*)$/;
+
+/** A failed slide's id and why, or the deck's own error. Pure. */
+export const deckProblem = (
+  error: RuntimeError
+):
+  | { readonly kind: "deck"; readonly message: string }
+  | {
+      readonly id: string;
+      readonly kind: "slide";
+      readonly message: string;
+    } => {
+  const match = SLIDE_ERROR.exec(error.message);
+  return match
+    ? { id: match[1] ?? "", kind: "slide", message: match[2] ?? "" }
+    : { kind: "deck", message: error.message || error.kind };
+};
+
 /** The presenter's keys, as the action each one is. */
 export const presentKeyAction = (
   key: string
-): PresentAction | "close" | "notes" | null => {
+): PresentAction | "close" | "notes" | "presenter" | null => {
   switch (key) {
     case "ArrowRight":
     case "ArrowDown":
@@ -75,6 +130,9 @@ export const presentKeyAction = (
     case "n":
     case "N":
       return "notes";
+    case "p":
+    case "P":
+      return "presenter";
     default:
       return null;
   }
@@ -103,10 +161,121 @@ export interface PresentationPreviewProps {
   readonly content: string;
   /** Overrides how messages reach the frame, for tests. */
   readonly post?: PostToFrame;
-  /** The runtime's origin; a deck has no preview without it. */
-  readonly runtimeOrigin: string;
+  /** The runtime's origin; without one the panel says the deck can't be drawn here. */
+  readonly runtimeOrigin: string | null;
   readonly title: string;
 }
+
+/**
+ * Whether the frame has had `RUNTIME_READY_TIMEOUT_MS` to say `ready` and
+ * hasn't; each retry (`attempt`) starts the wait again.
+ */
+const useReadyTimeout = (
+  ready: boolean,
+  runtimeOrigin: string | null,
+  attempt: number
+): boolean => {
+  const [timedOut, setTimedOut] = useState(false);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` is the trigger.
+  useEffect(() => {
+    setTimedOut(false);
+    if (ready || runtimeOrigin === null) {
+      return;
+    }
+    const timer = window.setTimeout(
+      () => setTimedOut(true),
+      RUNTIME_READY_TIMEOUT_MS
+    );
+    return () => window.clearTimeout(timer);
+  }, [attempt, ready, runtimeOrigin]);
+  return timedOut;
+};
+
+/**
+ * The panel's side of the presenter window: a session channel that sends
+ * the deck and each position, and takes the window's commands.
+ */
+const usePresenterSession = ({
+  content,
+  onCommand,
+  position,
+  presenting,
+  startedAt,
+  title,
+}: {
+  readonly content: string;
+  readonly onCommand: (action: PresentAction) => void;
+  readonly position: Position | null;
+  readonly presenting: boolean;
+  readonly startedAt: number;
+  readonly title: string;
+}) => {
+  const [session] = useState(() => crypto.randomUUID());
+  const channelRef = useRef<BroadcastChannel | null>(null);
+  const tell = useCallback((message: PresenterMessage) => {
+    channelRef.current?.postMessage(message);
+  }, []);
+  const deck = useEffectEvent(() =>
+    tell({ content, startedAt, title, type: "deck" })
+  );
+  const where = useEffectEvent(() => {
+    if (position) {
+      tell({
+        notes: position.notes,
+        slide: position.slide,
+        slides: position.slides,
+        step: position.step,
+        type: "position",
+      });
+    }
+  });
+  const command = useEffectEvent(onCommand);
+
+  useEffect(() => {
+    const channel = new BroadcastChannel(presenterChannelName(session));
+    channelRef.current = channel;
+    channel.onmessage = (event: MessageEvent) => {
+      const parsed = presenterMessageSchema.safeParse(event.data);
+      if (!parsed.success) {
+        return;
+      }
+      if (parsed.data.type === "hello") {
+        deck();
+        where();
+      } else if (parsed.data.type === "command") {
+        command(parsed.data.action);
+      }
+    };
+    return () => {
+      channel.close();
+      channelRef.current = null;
+    };
+  }, [session]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: these are the triggers; `deck` reads them.
+  useEffect(() => deck(), [content, startedAt, title]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: as above, for `where`.
+  useEffect(() => where(), [position]);
+  useEffect(() => {
+    if (!presenting) {
+      tell({ type: "ended" });
+    }
+  }, [presenting, tell]);
+
+  const opened = useRef<Window | null>(null);
+  const open = useCallback(() => {
+    opened.current = window.open(
+      presenterPath(session),
+      `presenter-${session}`,
+      "popup,width=1280,height=800"
+    );
+  }, [session]);
+  const isOpen = useCallback(
+    () => opened.current !== null && !opened.current.closed,
+    []
+  );
+  return useMemo(() => ({ isOpen, open }), [isOpen, open]);
+};
 
 export function PresentationPreview({
   content,
@@ -120,11 +289,13 @@ export function PresentationPreview({
   const lastId = useRef(0);
   const lastExport = useRef(0);
   const [ready, setReady] = useState(false);
-  const [error, setError] = useState<RuntimeError | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  const [errors, setErrors] = useState<readonly RuntimeError[]>([]);
   const [height, setHeight] = useState<number | null>(null);
   const [position, setPosition] = useState<Position | null>(null);
   const [presenting, setPresenting] = useState(false);
   const [notesOpen, setNotesOpen] = useState(true);
+  const [startedAt, setStartedAt] = useState(() => Date.now());
   const [exporting, setExporting] = useState<ExportFormat | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
   const theme = useDocumentTheme();
@@ -145,7 +316,7 @@ export function PresentationPreview({
       return;
     }
     lastId.current += 1;
-    setError(null);
+    setErrors([]);
     send({
       channel: RUNTIME_CHANNEL,
       code: content,
@@ -177,6 +348,7 @@ export function PresentationPreview({
 
   const start = useCallback(() => {
     setPresenting(true);
+    setStartedAt(Date.now());
     present("enter");
     present("first");
     // Full screen where the browser allows it; the overlay covers the
@@ -191,6 +363,21 @@ export function PresentationPreview({
       document.exitFullscreen().catch(() => undefined);
     }
   }, [present]);
+
+  const presenterWindow = usePresenterSession({
+    content,
+    onCommand: (action) => {
+      if (action === "exit") {
+        stop();
+      } else {
+        present(action);
+      }
+    },
+    position,
+    presenting,
+    startedAt,
+    title,
+  });
 
   const exportAs = useCallback(
     (format: ExportFormat) => {
@@ -232,7 +419,7 @@ export function PresentationPreview({
         return;
       case "error":
         if (value.id === current) {
-          setError(value.error);
+          setErrors((known) => [...known, value.error]);
         }
         return;
       case "resize":
@@ -279,6 +466,8 @@ export function PresentationPreview({
       stop();
     } else if (action === "notes") {
       setNotesOpen((open) => !open);
+    } else if (action === "presenter") {
+      presenterWindow.open();
     } else {
       present(action);
     }
@@ -289,9 +478,11 @@ export function PresentationPreview({
       return;
     }
     const listener = (event: KeyboardEvent) => onKey(event);
-    // Leaving full screen with the browser's own Escape ends presenting too.
+    // Leaving full screen with the browser's own Escape ends presenting
+    // too, unless a presenter window is open: the browser leaves full
+    // screen when one opens, and the talk goes on.
     const onFullscreen = () => {
-      if (!document.fullscreenElement) {
+      if (!(document.fullscreenElement || presenterWindow.isOpen())) {
         setPresenting(false);
         present("exit");
       }
@@ -302,12 +493,30 @@ export function PresentationPreview({
       window.removeEventListener("keydown", listener);
       document.removeEventListener("fullscreenchange", onFullscreen);
     };
-  }, [present, presenting]);
+  }, [present, presenterWindow, presenting]);
+
+  const timedOut = useReadyTimeout(ready, runtimeOrigin, attempt);
+
+  const retry = useCallback(() => {
+    setReady(false);
+    setAttempt((count) => count + 1);
+  }, []);
 
   const next = useCallback(() => present("next"), [present]);
   const previous = useCallback(() => present("previous"), [present]);
   const toggleNotes = useCallback(() => setNotesOpen((open) => !open), []);
 
+  const connection = connectionOf(runtimeOrigin, ready, timedOut);
+
+  if (runtimeOrigin === null) {
+    return (
+      <RuntimeUnavailable
+        connection="unconfigured"
+        onRetry={retry}
+        origin={null}
+      />
+    );
+  }
   if (!parentOrigin) {
     return null;
   }
@@ -325,15 +534,13 @@ export function PresentationPreview({
         ready={ready}
         slides={slides}
       />
-      {error ? <DeckError error={error} /> : null}
-      {exportError ? (
-        <p
-          className="bg-destructive/5 px-4 py-2 text-destructive text-sm"
-          role="alert"
-        >
-          <Trans>The deck couldn't be exported: {exportError}</Trans>
-        </p>
-      ) : null}
+      <DeckNotices
+        connection={connection}
+        errors={errors}
+        exportError={exportError}
+        onRetry={retry}
+        origin={runtimeOrigin}
+      />
       {ready ? null : (
         <span className="sr-only" role="status">
           <Trans>Loading preview</Trans>
@@ -347,7 +554,9 @@ export function PresentationPreview({
         aria-modal={presenting ? true : undefined}
         className={cn(
           "flex flex-1 flex-col",
-          presenting && "fixed inset-0 z-50 bg-background"
+          presenting && "fixed inset-0 z-50 bg-background",
+          // Kept loading out of sight, so a slow runtime still shows up.
+          connection === "unreachable" && "hidden"
         )}
         ref={stageRef}
         role={presenting ? "dialog" : undefined}
@@ -359,6 +568,7 @@ export function PresentationPreview({
             // Presenting, the keys and clicks are this side's.
             presenting && "pointer-events-none"
           )}
+          key={attempt}
           ref={frameRef}
           referrerPolicy="no-referrer"
           sandbox="allow-scripts"
@@ -373,6 +583,7 @@ export function PresentationPreview({
             notesOpen={notesOpen}
             onExit={stop}
             onNext={next}
+            onPresenter={presenterWindow.open}
             onPrevious={previous}
             onToggleNotes={toggleNotes}
             slide={slide}
@@ -450,6 +661,7 @@ function PresenterBar({
   notesOpen,
   onExit,
   onNext,
+  onPresenter,
   onPrevious,
   onToggleNotes,
   slide,
@@ -459,6 +671,7 @@ function PresenterBar({
   readonly notesOpen: boolean;
   readonly onExit: () => void;
   readonly onNext: () => void;
+  readonly onPresenter: () => void;
   readonly onPrevious: () => void;
   readonly onToggleNotes: () => void;
   readonly slide: number;
@@ -510,6 +723,10 @@ function PresenterBar({
           <FileTextIcon aria-hidden />
           <Trans>Notes</Trans>
         </Button>
+        <Button onClick={onPresenter} size="sm" variant="ghost">
+          <MonitorIcon aria-hidden />
+          <Trans>Presenter view</Trans>
+        </Button>
         <Button onClick={onExit} size="sm" variant="ghost">
           <XIcon aria-hidden />
           <Trans>Exit</Trans>
@@ -519,7 +736,98 @@ function PresenterBar({
   );
 }
 
-function DeckError({ error }: { readonly error: RuntimeError }) {
+/** What's wrong above the deck: the runtime, its slides, or an export. */
+function DeckNotices({
+  connection,
+  errors,
+  exportError,
+  onRetry,
+  origin,
+}: {
+  readonly connection: RuntimeConnection;
+  readonly errors: readonly RuntimeError[];
+  readonly exportError: string | null;
+  readonly onRetry: () => void;
+  readonly origin: string;
+}) {
+  return (
+    <>
+      {connection === "unreachable" ? (
+        <RuntimeUnavailable
+          connection="unreachable"
+          onRetry={onRetry}
+          origin={origin}
+        />
+      ) : null}
+      {errors.length > 0 ? <DeckErrors errors={errors} /> : null}
+      {exportError ? (
+        <p
+          className="bg-destructive/5 px-4 py-2 text-destructive text-sm"
+          role="alert"
+        >
+          <Trans>The deck couldn't be exported: {exportError}</Trans>
+        </p>
+      ) : null}
+    </>
+  );
+}
+
+/**
+ * Why there's no deck: no artifact runtime is configured, or the one
+ * configured isn't answering. Never the code in its place (D24).
+ */
+function RuntimeUnavailable({
+  connection,
+  onRetry,
+  origin,
+}: {
+  readonly connection: "unconfigured" | "unreachable";
+  readonly onRetry: () => void;
+  readonly origin: string | null;
+}) {
+  return (
+    <div
+      className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-12 text-center"
+      role="alert"
+    >
+      <CircleAlertIcon aria-hidden className="size-5 text-muted-foreground" />
+      <p className="font-medium text-sm">
+        {connection === "unconfigured" ? (
+          <Trans>
+            Preview unavailable: the artifacts service isn't set up here
+          </Trans>
+        ) : (
+          <Trans>
+            Preview unavailable: the artifacts service isn't running
+          </Trans>
+        )}
+      </p>
+      <p className="max-w-sm text-muted-foreground text-sm">
+        {connection === "unconfigured" ? (
+          <Trans>
+            Slides are drawn by the artifacts service. Set ARTIFACTS_ORIGIN and
+            start it with bun dev. The deck's JSON is in the Code tab.
+          </Trans>
+        ) : (
+          <Trans>
+            Nothing answered at {origin}. Start it with bun dev, then retry.
+          </Trans>
+        )}
+      </p>
+      {connection === "unreachable" ? (
+        <Button onClick={onRetry} size="sm" variant="outline">
+          <RefreshCwIcon aria-hidden />
+          <Trans>Retry</Trans>
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
+/** Each slide that couldn't be drawn, and why; the rest of the deck still shows. */
+function DeckErrors({ errors }: { readonly errors: readonly RuntimeError[] }) {
+  const problems = errors.map(deckProblem);
+  const slides = problems.filter((each) => each.kind === "slide").length;
   return (
     <div className="flex gap-2 bg-destructive/5 px-4 py-3 text-sm" role="alert">
       <CircleAlertIcon
@@ -528,13 +836,29 @@ function DeckError({ error }: { readonly error: RuntimeError }) {
       />
       <div className="min-w-0 flex-1">
         <p className="text-destructive">
-          <Trans>A slide in this deck failed to draw.</Trans>
+          {slides > 0 ? (
+            <Plural
+              one="# slide couldn't be drawn. The others are below."
+              other="# slides couldn't be drawn. The others are below."
+              value={slides}
+            />
+          ) : (
+            <Trans>This deck couldn't be read.</Trans>
+          )}
         </p>
-        {error.message ? (
-          <pre className="mt-1 overflow-x-auto whitespace-pre-wrap font-mono text-muted-foreground text-xs">
-            {error.message}
-          </pre>
-        ) : null}
+        <ul className="mt-1 flex flex-col gap-1">
+          {problems.map((problem, index) => (
+            <li
+              className="overflow-x-auto whitespace-pre-wrap font-mono text-muted-foreground text-xs"
+              // biome-ignore lint/suspicious/noArrayIndexKey: errors arrive in order and are only ever appended.
+              key={index}
+            >
+              {problem.kind === "slide"
+                ? `${problem.id}: ${problem.message}`
+                : problem.message}
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );
