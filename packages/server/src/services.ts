@@ -62,6 +62,7 @@ import {
   type TurnResolver,
   type TurnResolverDeps,
 } from "./runs/turn";
+import { createConversationEvents } from "./stream/conversation-events";
 import type { Listen } from "./stream/listen";
 import {
   createPostgresStreamChannel,
@@ -185,10 +186,12 @@ export const createServices = (options: ServicesOptions): Services => {
     config,
     db,
     keyStore,
+    now: options.now,
     registry: options.registry,
   };
   const loadModel = createModelLoader(turnDeps);
   const streams = createPostgresStreamChannel({ db, listen: options.listen });
+  const events = createConversationEvents({ db, listen: options.listen });
 
   const access = options.access ?? grantAccess(db);
   const afterRun = async (event: RunSettled) => {
@@ -298,6 +301,7 @@ export const createServices = (options: ServicesOptions): Services => {
     db,
     defaultModel: config.models.default,
     dots,
+    events,
     executor,
     jobHandlers: {
       ...jobHandlers,
@@ -316,6 +320,7 @@ export const createServices = (options: ServicesOptions): Services => {
     stop: async () => {
       await executor.shutdown();
       await streams.stop();
+      await events.stop();
     },
     streams,
   };

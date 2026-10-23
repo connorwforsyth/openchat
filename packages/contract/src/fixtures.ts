@@ -82,6 +82,7 @@ export const conversation: Conversation = {
   defaultTarget: { model: "strong", type: "model" },
   id: fixtureId("conversation", 1),
   lastMessageAt: fixtureTime(3),
+  mode: "code",
   myPermission: "owner",
   myState: {
     activeLeafId: fixtureId("message", 4),
@@ -396,6 +397,16 @@ export const me: Me = {
 
 export const publicConfig: PublicConfig = {
   artifacts: {
+    kinds: [
+      "svg",
+      "mermaid",
+      "site",
+      "document",
+      "image",
+      "presentation",
+      "diagram",
+      "spreadsheet",
+    ],
     siteOrigins: ["https://fonts.googleapis.com", "https://fonts.gstatic.com"],
   },
   auth: { providers: [{ id: "github", name: "GitHub" }], signup: "invite" },

@@ -47,7 +47,7 @@ export type SidebarChat = Pick<
   /** The soonest schedule posting here (173a), for "Next run". */
   readonly schedule?: Pick<
     NonNullable<Conversation["schedule"]>,
-    "nextRunNominalAt"
+    "emoji" | "nextRunNominalAt"
   > | null;
 };
 
@@ -173,8 +173,14 @@ const useLongPress = (onLongPress: () => void) => {
   };
 };
 
-/** A clock on rows a schedule targets; the time is in its tooltip. */
-function NextRunMark({ at }: { readonly at: string | null }) {
+/** The schedule's emoji, or a clock, on rows a schedule targets; the time is in its tooltip. */
+function NextRunMark({
+  at,
+  emoji,
+}: {
+  readonly at: string | null;
+  readonly emoji: string | null;
+}) {
   const { i18n, t } = useLingui();
   if (at === null) {
     return null;
@@ -192,7 +198,7 @@ function NextRunMark({ at }: { readonly at: string | null }) {
       )}
       title={t`Next run: ${when}`}
     >
-      <ClockIcon aria-hidden />
+      {emoji ? <span aria-hidden>{emoji}</span> : <ClockIcon aria-hidden />}
       <span className="sr-only">{t`Next run: ${when}`}</span>
     </span>
   );
@@ -417,7 +423,10 @@ export const ChatRow = memo(function ChatRowInner({
           {title}
         </span>
         <SpaceMark space={space ?? null} />
-        <NextRunMark at={nextRunAt ?? null} />
+        <NextRunMark
+          at={nextRunAt ?? null}
+          emoji={chat.schedule?.emoji ?? null}
+        />
         <StatusMark attention={attention} />
       </button>
       <DropdownMenu

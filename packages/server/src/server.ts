@@ -640,6 +640,7 @@ export const createServerFromEnv = async (
       mountComputerRoutes(hono, {
         computers: sandbox?.computers,
         db,
+        executor: services.executor,
         resolveSession,
       });
       mountLlmRoute(hono, {

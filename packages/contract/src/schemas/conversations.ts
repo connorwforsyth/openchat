@@ -8,7 +8,7 @@ import {
   timestampSchema,
   userIdSchema,
 } from "./common";
-import { runStatusSchema, runTargetSchema } from "./runs";
+import { chatModeSchema, runStatusSchema, runTargetSchema } from "./runs";
 import { conversationScheduleSchema } from "./schedules";
 import {
   chatContextSchema,
@@ -58,6 +58,11 @@ export const conversationSchema = z.object({
   defaultTarget: runTargetSchema.nullable(),
   id: conversationIdSchema,
   lastMessageAt: timestampSchema.nullable(),
+  /**
+   * Chat or Code; new chats start in `chat`. A change applies from the next
+   * message. Absent from servers before it, which read as `chat`.
+   */
+  mode: chatModeSchema.default("chat").optional(),
   myPermission: conversationPermissionSchema,
   myState: participantStateSchema,
   ownerId: userIdSchema,
@@ -77,6 +82,7 @@ export type Conversation = z.infer<typeof conversationSchema>;
 export const createConversationInputSchema = z.object({
   context: chatContextSchema.default({ type: "personal" }),
   defaultTarget: runTargetSchema.optional(),
+  mode: chatModeSchema.default("chat"),
   title: z.string().trim().min(1).max(200).optional(),
 });
 
@@ -84,6 +90,8 @@ export const updateConversationInputSchema = z.object({
   archived: z.boolean().optional(),
   defaultTarget: runTargetSchema.nullable().optional(),
   id: conversationIdSchema,
+  /** Applies from the next message; a run already going keeps its mode. */
+  mode: chatModeSchema.optional(),
   pinned: z.boolean().optional(),
   title: z.string().trim().min(1).max(200).optional(),
 });

@@ -28,6 +28,7 @@ const row = (overrides: Partial<ScheduleRow> = {}): ScheduleRow => ({
   createdAt: new Date("2026-10-01T00:00:00Z"),
   cron: null,
   dotId: null,
+  emoji: "⏰",
   enabled: true,
   endsAt: null,
   id: "0199f000-0000-7000-8000-0000000000s1" as never,

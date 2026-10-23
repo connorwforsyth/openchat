@@ -36,6 +36,16 @@ import {
 /** The desktop's noVNC port (`apps/sandbox-runner/desktop`). */
 export const DESKTOP_VIEW_PORT = 6080;
 
+const VIEW_READY_SECONDS = 30;
+
+/**
+ * Waits, up to `VIEW_READY_SECONDS`, for the screen's port to listen. A
+ * desktop just started or restarted takes a few seconds to bring it up, and
+ * a frame loaded before then stays on the preview proxy's error page.
+ */
+const viewReadyCommand = (seconds: number) =>
+  `bash -c 'for _ in $(seq ${Math.ceil(seconds * 2)}); do (: < /dev/tcp/127.0.0.1/${DESKTOP_VIEW_PORT}) 2>/dev/null && exit 0; sleep 0.5; done'`;
+
 /** A desktop needs more than a workspace: a browser, a screen. */
 export const DESKTOP_LIMITS: SandboxLimits = {
   cpu: 2,
@@ -82,9 +92,20 @@ export type ComputerOutput =
     };
 
 /** The runner calls a computer needs. A port, so tests fake it. */
-export type DesktopHost = Pick<DockerSandboxFactory, "createDesktop">;
+export type DesktopHost = Pick<
+  DockerSandboxFactory,
+  "createDesktop" | "remove" | "restart"
+>;
 
 export interface Computers {
+  /** Wipes the desktop and its files, then starts a fresh one. */
+  readonly reset: (
+    conversationId: ConversationId
+  ) => AsyncResult<ComputerView, SandboxError>;
+  /** Restarts the desktop, keeping its files; starts it if there's none. */
+  readonly restart: (
+    conversationId: ConversationId
+  ) => AsyncResult<ComputerView, SandboxError>;
   readonly setControl: (
     conversationId: ConversationId,
     holder: ComputerHolder
@@ -110,9 +131,11 @@ const base64Of = (bytes: Uint8Array): string =>
 export const createComputers = ({
   host,
   limits = DESKTOP_LIMITS,
+  viewReadySeconds = VIEW_READY_SECONDS,
 }: {
   readonly host: DesktopHost;
   readonly limits?: SandboxLimits;
+  readonly viewReadySeconds?: number;
 }): Computers => {
   const desktop = (conversationId: ConversationId) =>
     host.createDesktop({ id: desktopIdFor(conversationId), limits });
@@ -120,7 +143,12 @@ export const createComputers = ({
   const holderOf = async (
     sandbox: Sandbox
   ): AsyncResult<ComputerHolder, SandboxError> => {
-    const ran = await sandbox.exec(CONTROL_STATUS_COMMAND, { timeoutMs: 5000 });
+    const ran = await sandbox.exec(
+      viewReadySeconds > 0
+        ? `${viewReadyCommand(viewReadySeconds)}; ${CONTROL_STATUS_COMMAND}`
+        : CONTROL_STATUS_COMMAND,
+      { timeoutMs: viewReadySeconds * 1000 + 5000 }
+    );
     return ran.ok
       ? ok(ran.value.stdout.trim() === "user" ? "user" : "agent")
       : ran;
@@ -187,6 +215,16 @@ export const createComputers = ({
   };
 
   return {
+    reset: async (conversationId) => {
+      const removed = await host.remove(desktopIdFor(conversationId));
+      return removed.ok ? view(conversationId) : removed;
+    },
+    restart: async (conversationId) => {
+      const restarted = await host.restart(desktopIdFor(conversationId));
+      return restarted.ok || restarted.error.type === "not_found"
+        ? view(conversationId)
+        : restarted;
+    },
     setControl: async (conversationId, holder) => {
       const sandbox = await desktop(conversationId);
       if (!sandbox.ok) {

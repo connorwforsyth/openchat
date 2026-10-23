@@ -134,32 +134,57 @@ const workspaceFile = (path: string): Result<string, string> => {
 const decoder = new TextDecoder("utf-8", { fatal: true });
 
 /**
+ * The bytes of the workspace file `path` names: missing is empty (for
+ * `write`), outside `/work` is an error. Also returns the checked path.
+ */
+export const readBytes = async (
+  sandbox: ToolSandbox,
+  path: string,
+  { missingIsEmpty }: { readonly missingIsEmpty: boolean }
+): AsyncResult<{ bytes: Uint8Array; target: string }, string> => {
+  const target = workspaceFile(path);
+  if (!target.ok) {
+    return target;
+  }
+  const read = await sandbox.readFile(target.value);
+  if (read.ok) {
+    return ok({ bytes: read.value, target: target.value });
+  }
+  if (read.error.type !== "not_found") {
+    return err(describeError(read.error));
+  }
+  return missingIsEmpty
+    ? ok({ bytes: new Uint8Array(), target: target.value })
+    : err(describeError({ ...read.error, path }));
+};
+
+/** `bytes` as UTF-8 text, or an error naming `path` when they aren't. */
+export const decodeText = (
+  path: string,
+  bytes: Uint8Array
+): Result<string, string> => {
+  try {
+    return ok(decoder.decode(bytes));
+  } catch {
+    return err(`${path} is not a UTF-8 text file`);
+  }
+};
+
+/**
  * The workspace file `path` names, as text: missing is empty (for `write`),
  * binary or outside `/work` is an error. Also returns the checked path.
  */
 export const readText = async (
   sandbox: ToolSandbox,
   path: string,
-  { missingIsEmpty }: { readonly missingIsEmpty: boolean }
+  options: { readonly missingIsEmpty: boolean }
 ): AsyncResult<{ target: string; text: string }, string> => {
-  const target = workspaceFile(path);
-  if (!target.ok) {
-    return target;
-  }
-  const read = await sandbox.readFile(target.value);
+  const read = await readBytes(sandbox, path, options);
   if (!read.ok) {
-    if (read.error.type !== "not_found") {
-      return err(describeError(read.error));
-    }
-    return missingIsEmpty
-      ? ok({ target: target.value, text: "" })
-      : err(describeError({ ...read.error, path }));
+    return read;
   }
-  try {
-    return ok({ target: target.value, text: decoder.decode(read.value) });
-  } catch {
-    return err(`${path} is not a UTF-8 text file`);
-  }
+  const text = decodeText(path, read.value.bytes);
+  return text.ok ? ok({ target: read.value.target, text: text.value }) : text;
 };
 
 /** Pages written with `write` or `edit` preview without a server of the agent's own. */

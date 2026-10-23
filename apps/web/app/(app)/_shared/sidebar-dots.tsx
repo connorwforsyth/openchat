@@ -34,7 +34,13 @@ function UnreadMark({ dot }: { readonly dot: Dot }) {
   ) : null;
 }
 
-function NextRun({ at }: { readonly at: string | null }) {
+function NextRun({
+  at,
+  emoji,
+}: {
+  readonly at: string | null;
+  readonly emoji: string | null;
+}) {
   const { i18n, t } = useLingui();
   if (at === null) {
     return null;
@@ -49,7 +55,7 @@ function NextRun({ at }: { readonly at: string | null }) {
       className="flex shrink-0 items-center gap-1 text-muted-foreground text-xs [&_svg]:size-3"
       title={t`Next run: ${when}`}
     >
-      <ClockIcon aria-hidden />
+      {emoji ? <span aria-hidden>{emoji}</span> : <ClockIcon aria-hidden />}
       <span className="sr-only">{t`Next run: ${when}`}</span>
     </span>
   );
@@ -74,7 +80,13 @@ function DotLink({
     >
       <DotAvatar animated avatar={dot.avatar} size="xs" />
       <span className="min-w-0 flex-1 truncate">{dot.name}</span>
-      <NextRun at={dot.nextRunAt} />
+      <NextRun
+        at={dot.nextRunAt}
+        emoji={
+          dot.schedules.find((each) => each.nextRunNominalAt === dot.nextRunAt)
+            ?.emoji ?? null
+        }
+      />
       <ShortcutKbd
         className="pointer-coarse:hidden opacity-0 transition-opacity duration-(--motion-fast) group-hover/dot:opacity-100 group-focus-visible/dot:opacity-100"
         id="dot.open"

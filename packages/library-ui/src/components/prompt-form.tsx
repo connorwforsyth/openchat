@@ -7,6 +7,7 @@ import {
   type PromptVariable,
   resolvePromptVariables,
 } from "@workspace/composer/variables";
+import type { LibraryItemId } from "@workspace/contract/schemas/common";
 import type { PromptDefinition } from "@workspace/contract/schemas/library";
 import {
   FieldDescription,
@@ -18,7 +19,14 @@ import { Input } from "@workspace/ui/components/input";
 import { type ChangeEvent, useCallback, useState } from "react";
 
 import type { FormIssues } from "../form";
-import { issueAt, TextAreaField, TextField } from "./fields";
+import {
+  NEW_VARIABLE_NAME,
+  type SnippetItem,
+  snippetMenuItems,
+} from "../snippet";
+import type { Choice } from "./agent-form";
+import { issueAt, SnippetField, TextField } from "./fields";
+import type { SnippetMenu } from "./snippet-editor";
 
 // The Prompt builder (D13): a template with `{{variables}}`, an optional
 // `/command`, and per-variable descriptions and defaults. The variables are
@@ -28,15 +36,23 @@ import { issueAt, TextAreaField, TextField } from "./fields";
 export interface PromptFormProps {
   readonly issues: FormIssues;
   readonly onChange: (next: PromptDefinition) => void;
+  /** Another prompt's template, for the `/` menu; `null` when it can't be read. */
+  readonly onLoadPrompt?: (id: LibraryItemId) => Promise<string | null>;
+  /** Other prompts, for the `/` menu. */
+  readonly prompts?: readonly Choice[];
   readonly readOnly?: boolean;
   readonly value: PromptDefinition;
 }
+
+const NO_PROMPTS: readonly Choice[] = [];
 
 type VariablePatch = Partial<Pick<PromptVariable, "default" | "description">>;
 
 export function PromptForm({
   issues,
   onChange,
+  onLoadPrompt,
+  prompts = NO_PROMPTS,
   readOnly = false,
   value,
 }: PromptFormProps) {
@@ -49,6 +65,39 @@ export function PromptForm({
     (template: string) => onChange({ ...value, template }),
     [onChange, value]
   );
+  const menu: SnippetMenu = {
+    items: (query) =>
+      snippetMenuItems(query, {
+        newVariable: true,
+        prompts: onLoadPrompt
+          ? prompts.map((prompt) => ({
+              id: prompt.id,
+              kind: "prompt",
+              name: prompt.name,
+            }))
+          : undefined,
+        variables: variables.map((variable) => ({
+          description: variable.description,
+          kind: "variable",
+          name: variable.name,
+        })),
+      }),
+    onPick: (item: SnippetItem) => {
+      switch (item.kind) {
+        case "new-variable":
+          return `{{${NEW_VARIABLE_NAME}}}`;
+        case "variable":
+          return `{{${item.name}}}`;
+        case "prompt":
+          return onLoadPrompt?.(item.id) ?? null;
+        case "skill":
+          return null;
+        default:
+          return item satisfies never;
+      }
+    },
+    title: t`Insert`,
+  };
   const setCommand = useCallback(
     (command: string) =>
       onChange({ ...value, command: command === "" ? undefined : command }),
@@ -77,12 +126,12 @@ export function PromptForm({
 
   return (
     <FieldGroup>
-      <TextAreaField
+      <SnippetField
         className="min-h-40 font-mono text-sm"
-        description={t`Use ${example} for a value people fill in when they use the prompt.`}
+        description={t`Use ${example} for a value people fill in when they use the prompt. Type / to insert a variable or another prompt.`}
         issue={issueAt(issues, "definition.template")}
         label={t`Template`}
-        name="template"
+        menu={readOnly ? undefined : menu}
         onValueChange={setTemplate}
         readOnly={readOnly}
         value={value.template}

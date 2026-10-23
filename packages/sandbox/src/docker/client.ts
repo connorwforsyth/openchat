@@ -56,6 +56,13 @@ export interface DockerSandboxFactory extends SandboxFactory {
   readonly createDesktop: (
     spec: Pick<CreateSandboxSpec, "id" | "limits">
   ) => AsyncResult<Sandbox, SandboxError>;
+  /** Removes a sandbox and its files; one that's already gone is fine. */
+  readonly remove: (id: SandboxId) => AsyncResult<void, SandboxError>;
+  /**
+   * Stops and starts a sandbox, keeping its files; a stopped one just
+   * starts. `not_found` when there's no such sandbox.
+   */
+  readonly restart: (id: SandboxId) => AsyncResult<void, SandboxError>;
   /** The runner's runtime and isolation, for the panel and the admin warning. */
   readonly runnerStatus: () => AsyncResult<RunnerStatus, SandboxError>;
 }
@@ -230,8 +237,10 @@ export const createDockerSandboxFactory = ({
       : err(unavailable("the sandbox runner sent no output"));
   };
 
+  const remove = (id: SandboxId) => callVoid("DELETE", runnerPaths.sandbox(id));
+
   const handle = (id: SandboxId): Sandbox => ({
-    destroy: () => callVoid("DELETE", runnerPaths.sandbox(id)),
+    destroy: () => remove(id),
     exec: (command, options = {}) => exec(id, command, options),
     exposePort: (port) =>
       call(exposePortResponseSchema, "POST", runnerPaths.ports(id), { port }),
@@ -320,6 +329,8 @@ export const createDockerSandboxFactory = ({
       return created.ok ? ok(handle(spec.id)) : created;
     },
     provider: "docker",
+    remove,
+    restart: (id) => callVoid("POST", runnerPaths.restart(id)),
     runnerStatus: () => call(runnerStatusSchema, "GET", runnerPaths.status),
   };
 };

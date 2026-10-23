@@ -6,9 +6,10 @@ import {
   scheduleTaskInputSchema,
 } from "@workspace/ai/schedules/tool";
 import type { DotScheduleId } from "@workspace/contract/schemas/common";
-import type {
-  CreateScheduleInput,
-  Schedule,
+import {
+  type CreateScheduleInput,
+  DEFAULT_SCHEDULE_EMOJI,
+  type Schedule,
 } from "@workspace/contract/schemas/schedules";
 import { err, type Result } from "@workspace/shared/result";
 import { type Tool, tool } from "ai";
@@ -74,6 +75,7 @@ export const proposalToSchedule = (
     ok: true,
     value: {
       autoApproveTools: [],
+      emoji: DEFAULT_SCHEDULE_EMOJI,
       missedRunPolicy: "run_once",
       notify: input.notify,
       paused: false,

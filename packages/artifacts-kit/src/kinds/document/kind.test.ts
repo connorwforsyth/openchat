@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { builtinArtifactKinds } from "../../builtin";
+import { isSafeImageUrl } from "./checks";
 import { documentKind } from "./kind";
 import { markdownToDocument } from "./markdown";
 import { documentHeadings, findSection } from "./operations";
@@ -83,6 +84,15 @@ describe("the document kind", () => {
       'the link to "javascript:alert(1)" isn\'t allowed: links go to http(s), mailto or a path in this app',
       'the image "http://example.com/a.png" isn\'t allowed: images load over https or from this app',
     ]);
+  });
+
+  it("tells an editor whether an image address may load", () => {
+    expect(isSafeImageUrl("https://example.com/a.png")).toBe(true);
+    expect(isSafeImageUrl(" /api/files/1 ")).toBe(true);
+    expect(isSafeImageUrl("http://example.com/a.png")).toBe(false);
+    expect(isSafeImageUrl("javascript:alert(1)")).toBe(false);
+    expect(isSafeImageUrl("data:image/png;base64,AAAA")).toBe(false);
+    expect(isSafeImageUrl("//evil.example/a.png")).toBe(false);
   });
 
   it("caps a document's size", () => {

@@ -47,6 +47,8 @@ const fakeHost = (exitCode = 0) => {
       created.push(spec.id);
       return Promise.resolve(ok(sandbox));
     },
+    remove: () => Promise.resolve(ok(undefined)),
+    restart: () => Promise.resolve(ok(undefined)),
   };
   return { commands, created, host };
 };
@@ -135,6 +137,16 @@ describe("the computer tool", () => {
 });
 
 describe("the live view", () => {
+  it("can read the holder without polling for an in-memory desktop", async () => {
+    const { commands, host } = fakeHost();
+    const view = await createComputers({ host, viewReadySeconds: 0 }).view(
+      conversationId
+    );
+    expect(view).toMatchObject({ ok: true, value: { holder: "agent" } });
+    expect(commands.join("\n")).not.toContain("/dev/tcp");
+    expect(commands.join("\n")).not.toContain("sleep");
+  });
+
   it("exposes noVNC and reports who drives", async () => {
     const { host } = fakeHost();
     const computers = createComputers({ host });
@@ -146,6 +158,17 @@ describe("the live view", () => {
     );
     const taken = await computers.setControl(conversationId, "user");
     expect(taken).toMatchObject({ ok: true, value: { holder: "user" } });
+  });
+
+  // A frame loaded before the screen listens stays on the proxy's error page.
+  it("answers only once the screen's port listens", async () => {
+    const { commands, host } = fakeHost();
+    await createComputers({ host }).view(conversationId);
+    expect(commands.at(-1)).toMatch(
+      new RegExp(
+        `^bash -c .*/dev/tcp/127\\.0\\.0\\.1/${DESKTOP_VIEW_PORT}.*; if `
+      )
+    );
   });
 
   it("fails the hand-over when the VNC server won't switch input", async () => {

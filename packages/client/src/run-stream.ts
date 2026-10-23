@@ -102,7 +102,7 @@ const withCursor = (url: string, cursor: number): string => {
 };
 
 /** Parsed SSE events from a response body, as they arrive. */
-async function* sseEvents(
+export async function* sseEvents(
   reader: ReadableStreamDefaultReader<Uint8Array>
 ): AsyncGenerator<SseEvent> {
   const decoder = new TextDecoder();

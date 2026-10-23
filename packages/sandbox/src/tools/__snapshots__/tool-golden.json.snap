@@ -2180,7 +2180,7 @@
     },
     {
       "approval": "not-applicable",
-      "customModelOutput": false,
+      "customModelOutput": true,
       "model": {
         "type": "function",
         "name": "read",
@@ -2211,12 +2211,12 @@
           ],
           "additionalProperties": false
         },
-        "description": "Read a text file from the workspace (/work, the user's Files panel), optionally a range of lines. Paths must be inside /work; relative paths are relative to it."
+        "description": "Read a file from the workspace (/work, the user's Files panel): text, optionally a range of lines, or an image (PNG, JPEG, GIF, WebP), which you are shown. Paths must be inside /work; relative paths are relative to it."
       },
       "name": "read",
       "outputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
-        "anyOf": [
+        "oneOf": [
           {
             "type": "object",
             "properties": {
@@ -2245,6 +2245,39 @@
               "status",
               "totalLines",
               "truncated"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "mediaType": {
+                "type": "string",
+                "enum": [
+                  "image/gif",
+                  "image/jpeg",
+                  "image/png",
+                  "image/webp"
+                ]
+              },
+              "path": {
+                "type": "string"
+              },
+              "size": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "status": {
+                "type": "string",
+                "const": "image"
+              }
+            },
+            "required": [
+              "mediaType",
+              "path",
+              "size",
+              "status"
             ],
             "additionalProperties": false
           },
@@ -5809,7 +5842,7 @@
     },
     {
       "approval": "not-applicable",
-      "customModelOutput": false,
+      "customModelOutput": true,
       "model": {
         "type": "function",
         "name": "read",
@@ -5840,12 +5873,12 @@
           ],
           "additionalProperties": false
         },
-        "description": "Read a text file from the workspace (/work, the user's Files panel), optionally a range of lines. Paths must be inside /work; relative paths are relative to it."
+        "description": "Read a file from the workspace (/work, the user's Files panel): text, optionally a range of lines, or an image (PNG, JPEG, GIF, WebP), which you are shown. Paths must be inside /work; relative paths are relative to it."
       },
       "name": "read",
       "outputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
-        "anyOf": [
+        "oneOf": [
           {
             "type": "object",
             "properties": {
@@ -5874,6 +5907,39 @@
               "status",
               "totalLines",
               "truncated"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "mediaType": {
+                "type": "string",
+                "enum": [
+                  "image/gif",
+                  "image/jpeg",
+                  "image/png",
+                  "image/webp"
+                ]
+              },
+              "path": {
+                "type": "string"
+              },
+              "size": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "status": {
+                "type": "string",
+                "const": "image"
+              }
+            },
+            "required": [
+              "mediaType",
+              "path",
+              "size",
+              "status"
             ],
             "additionalProperties": false
           },
