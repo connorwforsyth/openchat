@@ -51,6 +51,7 @@ open build ticket's **Owns** section is authoritative; this summarises it:
 | 006 i18n + icons | `packages/i18n`, `packages/icons` |
 | 007 AI Elements | `packages/ui/src/components/ai-elements/`, `.agents/skills/` or `.claude/skills/` for pierre |
 | 011–025 | see each ticket |
+| 330 runner build | `apps/sandbox-runner/package.json` build command, ticket 330 |
 | 184a contract: connectors | `packages/contract` (`connectors` group) |
 | 184 connectors config | see [the ticket](tickets/184-connectors-config.md) |
 
