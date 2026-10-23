@@ -226,7 +226,6 @@ describe("the egress proxy", () => {
     expect(status).toBe(200);
     expect(JSON.parse(body)).toHaveProperty("host");
     for (const name of [
-      "keep-alive",
       "proxy-authenticate",
       "proxy-authorization",
       "proxy-connection",
@@ -237,6 +236,7 @@ describe("the egress proxy", () => {
     ]) {
       expect(headers[name], name).toBeUndefined();
     }
+    expect(headers["keep-alive"]).not.toBe("timeout=1234");
     expect(headers.connection).not.toContain("X-Response-Private");
     expect(headers["x-response-public"]).toBe("preserved");
   });

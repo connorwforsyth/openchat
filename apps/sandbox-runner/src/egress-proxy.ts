@@ -1,6 +1,7 @@
 import {
   createServer,
   request as forward,
+  type IncomingHttpHeaders,
   type IncomingMessage,
   type Server,
 } from "node:http";
@@ -56,6 +57,30 @@ export interface EgressProxyDeps {
   readonly ports?: readonly number[];
 }
 
+const HOP_BY_HOP = [
+  "connection",
+  "keep-alive",
+  "proxy-authenticate",
+  "proxy-authorization",
+  "proxy-connection",
+  "te",
+  "trailer",
+  "transfer-encoding",
+  "upgrade",
+];
+
+const withoutHopByHop = (headers: IncomingHttpHeaders) => {
+  const nominated = (headers.connection ?? "")
+    .split(",")
+    .map((name) => name.trim().toLowerCase());
+  const excluded = new Set([...HOP_BY_HOP, ...nominated]);
+  return Object.fromEntries(
+    Object.entries(headers).filter(
+      ([name]) => !excluded.has(name.toLowerCase())
+    )
+  );
+};
+
 const refusal = (target: EgressTarget) =>
   `${target.host}:${target.port} isn't on this sandbox's egress allowlist (sandbox.egress.allow in app.config.yaml)\n`;
 
@@ -93,21 +118,19 @@ export const createEgressProxy = ({
       response.end(refusal(target));
       return;
     }
-    const {
-      "proxy-authorization": _authorization,
-      "proxy-connection": _connection,
-      ...headers
-    } = request.headers;
     const upstream = forward(
       {
-        headers,
+        headers: { ...withoutHopByHop(request.headers), host: url.host },
         host: target.host,
         method: request.method,
         path: `${url.pathname}${url.search}`,
         port: target.port,
       },
       (answer) => {
-        response.writeHead(answer.statusCode ?? 502, answer.headers);
+        response.writeHead(
+          answer.statusCode ?? 502,
+          withoutHopByHop(answer.headers)
+        );
         answer.pipe(response);
       }
     );

@@ -502,7 +502,10 @@ export const egressModeSchema = z.enum(["open", "allowlist", "none"]);
  */
 const sandboxEgressSchema = z
   .strictObject({
-    allow: z.array(egressHostSchema).default([...DEFAULT_EGRESS_ALLOW]),
+    allow: z
+      .array(egressHostSchema)
+      .max(256)
+      .default([...DEFAULT_EGRESS_ALLOW]),
     mode: egressModeSchema.default("open"),
   })
   .prefault({});
