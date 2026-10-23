@@ -42,8 +42,10 @@ export const useChatMode = (
   const [chosen, setChosen] = useState<Chosen | null>(null);
   const choice = useRef(chosen);
   const [savedChoice, setSavedChoice] = useState<Chosen | null>(null);
-  const [failedId, setFailedId] = useState<ConversationId | null>(null);
-  const pending = useRef({ conversationId, promise: Promise.resolve(true) });
+  const [failedIds, setFailedIds] = useState<ReadonlySet<ConversationId>>(
+    () => new Set()
+  );
+  const pending = useRef(new Map<ConversationId, Promise<boolean>>());
   const source = useRef({ conversationId, stored, storedAt });
   useLayoutEffect(() => {
     source.current = { conversationId, stored, storedAt };
@@ -73,43 +75,63 @@ export const useChatMode = (
       choice.current = selected;
       setChosen(selected);
       setSavedChoice(null);
-      setFailedId(null);
-      if (conversationId) {
-        // Serial writes prevent an older save from landing after a newer choice.
-        const promise = pending.current.promise.then(async () => {
-          let saved = false;
-          try {
-            await save({ id: conversationId, mode: next });
-            saved = true;
-          } catch {
-            saved = false;
-          }
-          if (choice.current === selected) {
-            if (saved) {
-              setSavedChoice(selected);
-            } else {
-              choice.current = null;
-              setChosen(null);
-              setFailedId(conversationId);
-            }
-          }
-          return saved;
-        });
-        pending.current = { conversationId, promise };
+      if (conversationId === null) {
+        return;
       }
+      setFailedIds((previous) => {
+        const nextFailed = new Set(previous);
+        nextFailed.delete(conversationId);
+        return nextFailed;
+      });
+      // Serial writes prevent an older save from landing after a newer choice.
+      const previousSave =
+        pending.current.get(conversationId) ?? Promise.resolve(true);
+      const promise = previousSave.then(async () => {
+        let saved = false;
+        try {
+          await save({ id: conversationId, mode: next });
+          saved = true;
+        } catch {
+          saved = false;
+        }
+        if (choice.current === selected) {
+          if (saved) {
+            setSavedChoice(selected);
+          } else {
+            choice.current = null;
+            setChosen(null);
+          }
+        }
+        if (pending.current.get(conversationId) !== promise) {
+          return saved;
+        }
+        if (saved) {
+          pending.current.delete(conversationId);
+        } else {
+          setFailedIds((previousFailed) =>
+            new Set(previousFailed).add(conversationId)
+          );
+        }
+        return saved;
+      });
+      pending.current.set(conversationId, promise);
     },
     [conversationId, save]
   );
   const flush = useCallback(async () => {
     const id = source.current.conversationId;
-    let saving = pending.current;
-    while (saving.conversationId === id) {
+    if (id === null) {
+      return true;
+    }
+    let saving = pending.current.get(id);
+    while (saving) {
       // biome-ignore lint/performance/noAwaitInLoops: a newer choice may arrive while this save waits.
-      const saved = await saving.promise;
-      if (saving === pending.current || pending.current.conversationId !== id) {
+      const saved = await saving;
+      const latest = pending.current.get(id);
+      if (latest === undefined || saving === latest) {
         return saved;
       }
-      saving = pending.current;
+      saving = latest;
     }
     return true;
   }, []);
@@ -123,7 +145,7 @@ export const useChatMode = (
     []
   );
   const mode = shownChatMode(conversationId, stored, chosen);
-  const failed = conversationId !== null && failedId === conversationId;
+  const failed = conversationId !== null && failedIds.has(conversationId);
   return useMemo(
     () => ({ current, failed, flush, mode, onChange }),
     [current, failed, flush, mode, onChange]
