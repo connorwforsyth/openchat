@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { z } from "zod";
 
 import { dotScheduleInputSchema } from "./dots";
 import {
@@ -36,6 +37,16 @@ const started = {
 };
 
 describe("schedule schemas", () => {
+  it("accepts an existing typed Dot starter without an emoji", () => {
+    const starter: z.infer<typeof dotScheduleInputSchema> = {
+      cron: "0 8 * * *",
+      enabled: true,
+      prompt: "Brief me",
+      timezone: "UTC",
+    };
+    expect(dotScheduleInputSchema.parse(starter).emoji).toBe("⏰");
+  });
+
   it("keeps older schedule responses readable during the emoji rollout", () => {
     expect(scheduleSchema.shape.emoji.parse(undefined)).toBeUndefined();
     expect(
