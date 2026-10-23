@@ -30,7 +30,10 @@ import {
   createStorageDraftStore,
 } from "@workspace/composer/ports/draft-store.storage";
 import { promptHistory } from "@workspace/composer/prompt-history";
-import type { ComposerProps } from "@workspace/composer/props";
+import type {
+  ComposerChatMode,
+  ComposerProps,
+} from "@workspace/composer/props";
 import type {
   AgentOption,
   ArtifactOption,
@@ -63,6 +66,7 @@ import type { Message } from "@workspace/contract/schemas/messages";
 import type { Me, PublicConfig } from "@workspace/contract/schemas/meta";
 import type { ModelOption } from "@workspace/contract/schemas/models";
 import type {
+  ChatMode,
   PendingApproval,
   Run,
   RunOptions,
@@ -77,6 +81,7 @@ import {
   type ReactNode,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -149,6 +154,7 @@ import { PresentPeople, TypingNote } from "./live-presence";
 import { useBranchFeedback } from "./use-branch-feedback";
 import { useChatQueries, useConversationUpdate } from "./use-chat-data";
 import { useChatMcp } from "./use-chat-mcp";
+import { useChatMode } from "./use-chat-mode";
 import { useLiveConversation } from "./use-live-conversation";
 
 // The chat screen over the API (D11): TanStack Query for everything stored,
@@ -168,6 +174,8 @@ export interface ConnectedChatProps {
   /** A bar above the messages (a Dot's schedule, 172). */
   readonly banner?: ReactNode;
   readonly brand?: ReactNode;
+  /** Offer the composer's Chat / Code switch (not in a Dot's chat, which is outside it). */
+  readonly chatModes?: boolean;
   readonly client: ApiClient;
   /** Placeholder for the composer ("Message Pip" in a Dot's chat, 172). */
   readonly composerPlaceholder?: string;
@@ -520,6 +528,19 @@ const webSearchSwitch = (
     ? { onWebSearchChange: onChange, webSearch: on }
     : {};
 
+/**
+ * The Chat / Code switch, and the menu held to the mode, where the chat is
+ * inside the switch and the instance has sandboxes. Pure.
+ */
+const chatModeSwitch = (
+  config: PublicConfig,
+  offered: boolean | undefined,
+  chatMode: ComposerChatMode
+): Pick<ComposerProps, "chatMode" | "mode"> =>
+  offered === true && config.features.sandboxes
+    ? { chatMode, mode: chatMode.mode }
+    : {};
+
 /** Paths the composer offers: files only, relative to the workspace. Pure. */
 const filePaths = (
   entries: Parameters<typeof toTreePaths>[0] | undefined
@@ -724,12 +745,18 @@ export const runFailure = (error: unknown): RunFailure => {
 
 function RunError({
   error,
+  modeFailed,
+  onRetryMode,
+  modeBlocked,
   onStop,
   uploadFailed,
   waiting,
 }: {
   /** The send's error, if it failed. */
   readonly error: Error | undefined;
+  readonly modeFailed: boolean;
+  readonly modeBlocked: boolean;
+  readonly onRetryMode: () => void;
   /** Stops the waiting answer (the composer offers Send while it waits). */
   readonly onStop: () => void;
   readonly uploadFailed: boolean;
@@ -737,6 +764,36 @@ function RunError({
   readonly waiting: boolean;
 }) {
   const { t } = useLingui();
+  if (modeFailed || modeBlocked) {
+    return (
+      <div
+        className="flex items-center justify-between gap-2 text-destructive text-sm"
+        role="alert"
+      >
+        <p>
+          {modeFailed ? (
+            <Trans>
+              The mode couldn't be saved. Choose the mode again to retry.
+            </Trans>
+          ) : (
+            <Trans>
+              The message is waiting. Retry to send it in the selected mode.
+            </Trans>
+          )}
+        </p>
+        {modeBlocked ? (
+          <Button
+            disabled={modeFailed}
+            onClick={onRetryMode}
+            size="sm"
+            variant="outline"
+          >
+            <Trans>Retry</Trans>
+          </Button>
+        ) : null}
+      </div>
+    );
+  }
   const failed = error !== undefined;
   const failureText = (failure: RunFailure): string => {
     switch (failure.type) {
@@ -965,13 +1022,15 @@ interface Queued {
  * to. Until then the composer is busy (`busy`), and a message sent anyway
  * joins the same chat after the first rather than making another (134).
  */
-const useFirstSend = ({
+export const useFirstSend = ({
   api,
   beforeFirstSend,
+  beforeSend,
   client,
   context,
   conversationId,
   importFiles,
+  mode,
   onNavigate,
   onWorkspaceChanged,
   send,
@@ -984,11 +1043,14 @@ const useFirstSend = ({
    * connector choices made before it existed are saved here (188).
    */
   readonly beforeFirstSend?: (id: ConversationId) => Promise<void>;
+  readonly beforeSend: () => Promise<boolean>;
   readonly client: ApiClient;
   readonly context: ChatContext;
   readonly conversationId: ConversationId | null;
   /** Attachments are copied into the chat's workspace too. */
   readonly importFiles: boolean;
+  /** Chat or Code, for the new chat. */
+  readonly mode: () => ChatMode;
   readonly onNavigate: (id: ConversationId) => void;
   /** The workspace changed (attachments were imported). */
   readonly onWorkspaceChanged: () => void;
@@ -1000,6 +1062,17 @@ const useFirstSend = ({
 }) => {
   const [first, setFirst] = useState<FirstSend<Queued> | null>(null);
   const [sending, setSending] = useState(false);
+  const [blocked, setBlocked] = useState<
+    readonly {
+      readonly conversationId: ConversationId | null;
+      readonly value: ComposerValue;
+    }[]
+  >([]);
+  const activeConversation = useRef(conversationId);
+  useLayoutEffect(() => {
+    activeConversation.current = conversationId;
+    setBlocked([]);
+  }, [conversationId]);
   // One chat per first send, however many messages race to it.
   const creation = useRef<Promise<ConversationId> | null>(null);
   // Messages get ready in the order they were sent, whatever they upload.
@@ -1053,6 +1126,13 @@ const useFirstSend = ({
 
   const submit = useCallback(
     async (value: ComposerValue) => {
+      const modeSaved = await beforeSend();
+      if (!modeSaved) {
+        if (activeConversation.current === conversationId) {
+          setBlocked((current) => [...current, { conversationId, value }]);
+        }
+        return;
+      }
       if (conversationId) {
         send(value.text, await prepare(conversationId, value));
         return;
@@ -1060,9 +1140,11 @@ const useFirstSend = ({
       setFirst(firstSendStarted);
       const made =
         creation.current ??
-        create({ context, defaultTarget: target ?? undefined }).then(
-          (created) => created.id
-        );
+        create({
+          context,
+          defaultTarget: target ?? undefined,
+          mode: mode(),
+        }).then((created) => created.id);
       creation.current = made;
       const ready = order.current.then(async () => {
         const id = await made;
@@ -1090,16 +1172,44 @@ const useFirstSend = ({
     },
     [
       beforeFirstSend,
+      beforeSend,
       context,
       conversationId,
       create,
+      mode,
       onNavigate,
       prepare,
       send,
       target,
     ]
   );
-  return { busy: firstSendBusy(first, conversationId), submit };
+  const replaying = useRef<boolean>(false);
+  const retryBlocked = useCallback(async () => {
+    // biome-ignore lint/suspicious/noUnnecessaryConditions: another invocation can enter while this replay awaits I/O.
+    if (replaying.current) {
+      return;
+    }
+    replaying.current = true;
+    try {
+      setBlocked((current) =>
+        current.filter((item) => item.conversationId !== conversationId)
+      );
+      for (const { value } of blocked.filter(
+        (item) => item.conversationId === conversationId
+      )) {
+        // biome-ignore lint/performance/noAwaitInLoops: retain the order in which messages were submitted.
+        await submit(value);
+      }
+    } finally {
+      replaying.current = false;
+    }
+  }, [blocked, conversationId, submit]);
+  return {
+    blocked: blocked.some((item) => item.conversationId === conversationId),
+    busy: firstSendBusy(first, conversationId),
+    retryBlocked,
+    submit,
+  };
 };
 
 const TITLE_WAIT_MS = 30_000;
@@ -1647,6 +1757,7 @@ export function ConnectedChat({
   client,
   artifactsHref,
   banner,
+  chatModes,
   composerPlaceholder,
   computer,
   dotsHref,
@@ -1728,6 +1839,24 @@ export function ConnectedChat({
   const stored = data.path.data?.messages ?? NO_MESSAGES;
   const feedback = useBranchFeedback(api, stored);
   const update = useConversationUpdate(api);
+  const { mutateAsync: saveMode } = useMutation(
+    api.conversations.update.mutationOptions({
+      onSettled: () =>
+        queryClient.invalidateQueries({ queryKey: api.conversations.key() }),
+      onSuccess: (saved) => {
+        queryClient.setQueryData(
+          api.conversations.get.queryKey({ input: { id: saved.id } }),
+          saved
+        );
+      },
+    })
+  );
+  const chatMode = useChatMode(
+    conversationId,
+    data.conversation.data?.mode,
+    saveMode,
+    data.conversation.dataUpdatedAt
+  );
 
   // Another chat starts from its own active leaf and artifacts.
   const [shownId, setShownId] = useState(conversationId);
@@ -1892,17 +2021,22 @@ export function ConnectedChat({
   const firstSend = useFirstSend({
     api,
     beforeFirstSend: chatMcp.flush,
+    beforeSend: chatMode.flush,
     client,
     context: draftContext,
     conversationId,
     importFiles: canImport(config),
+    mode: chatMode.current,
     onNavigate,
     onWorkspaceChanged,
     send,
     sendInTurn,
     target: outgoingTarget,
   });
-  const { submit } = firstSend;
+  const { submit, retryBlocked } = firstSend;
+  const onRetryMode = useCallback(() => {
+    retryBlocked().catch(() => setUploadFailed(true));
+  }, [retryBlocked]);
   const { onStop, status: shownStatus } = whileFirstSend(
     firstSend.busy,
     composerStatus,
@@ -2135,6 +2269,7 @@ export function ConnectedChat({
               agents,
               artifacts: artifactOptions,
               attachmentLimits,
+              ...chatModeSwitch(config, chatModes, chatMode),
               mcp: chatMcp.composer,
               ...composerDrafts,
               models,
@@ -2187,6 +2322,9 @@ export function ConnectedChat({
             runError={
               <RunError
                 error={chat.error}
+                modeBlocked={firstSend.blocked}
+                modeFailed={chatMode.failed}
+                onRetryMode={onRetryMode}
                 onStop={stop}
                 uploadFailed={uploadFailed}
                 waiting={waiting}

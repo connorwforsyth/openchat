@@ -66,6 +66,7 @@ import {
   type ModelAttachments,
   NO_ATTACHMENTS,
 } from "./attachments";
+import { chatModeTurn } from "./chat-mode";
 import {
   chunkJson,
   decisionChunks,
@@ -766,11 +767,10 @@ export const createInProcessExecutor = (
         await failEarly(run.runId, assistantMessageId, resolved.error);
         return;
       }
-      // A planning run reads and never writes (106): held here, on every
-      // pass, after every wrapper has added its tools.
-      const turn = ok(
-        run.options.mode === "plan" ? planTurn(resolved.value) : resolved.value
-      );
+      // A planning run reads and never writes (106), and a Chat run runs no
+      // code: held here, on every pass, after every wrapper has added its tools.
+      const moded = chatModeTurn(resolved.value, run.options.chatMode);
+      const turn = ok(run.options.mode === "plan" ? planTurn(moded) : moded);
       await setRunResolvedModel(db, run.runId, turn.value.resolvedModel);
       const forModel = await attachmentsForModel(
         messages,
@@ -860,6 +860,7 @@ export const createInProcessExecutor = (
           authorId: null,
           conversationId: run.conversationId,
           id: assistantMessageId,
+          mode: run.options.chatMode ?? null,
           parentId: run.userMessageId,
           parts: [],
           role: "assistant",

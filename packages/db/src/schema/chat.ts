@@ -12,6 +12,8 @@ import {
 } from "@workspace/contract/schemas/messages";
 import type { ModelRef, TokenUsage } from "@workspace/contract/schemas/models";
 import {
+  type ChatMode,
+  chatModeSchema,
   type PendingApproval,
   type RunError,
   type RunOptions,
@@ -86,6 +88,8 @@ export const conversation = pgTable(
     defaultTarget: jsonb("default_target").$type<RunTarget>(),
     id: idColumn("conversation"),
     lastMessageAt: instant("last_message_at"),
+    /** Chat or Code: which tools its runs get. A run records the mode it started in. */
+    mode: text("mode").$type<ChatMode>().notNull().default("chat"),
     ownerId: idRef("owner_id", "user")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
@@ -113,6 +117,7 @@ export const conversation = pgTable(
       oneOf(t.contextType, chatContextTypeSchema.options)
     ),
     check("conversation_purpose", oneOf(t.purpose, CONVERSATION_PURPOSES)),
+    check("conversation_mode", oneOf(t.mode, chatModeSchema.options)),
   ]
 );
 
@@ -171,6 +176,8 @@ export const message = pgTable(
       .references(() => conversation.id, { onDelete: "cascade" }),
     createdAt: createdAt(),
     id: idColumn("message"),
+    /** The mode its run ran in; `null` outside the switch (a Dot's chat). */
+    mode: text("mode").$type<ChatMode>(),
     /** The resolved model ref, never an alias. */
     model: text("model").$type<ModelRef>(),
     /** `null` for a root message. Same conversation (composite key below). */
@@ -213,6 +220,7 @@ export const message = pgTable(
     check("message_parent_not_self", sql`${t.parentId} <> ${t.id}`),
     check("message_role", oneOf(t.role, messageRoleSchema.options)),
     check("message_status", oneOf(t.status, messageStatusSchema.options)),
+    check("message_mode", oneOf(t.mode, chatModeSchema.options)),
   ]
 );
 

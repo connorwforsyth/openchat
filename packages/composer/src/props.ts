@@ -2,7 +2,7 @@ import type { Term } from "@workspace/config/terms";
 import type { LibraryItemId } from "@workspace/contract/schemas/common";
 import type { Connector } from "@workspace/contract/schemas/library";
 import type { ModelOption } from "@workspace/contract/schemas/models";
-import type { RunTarget } from "@workspace/contract/schemas/runs";
+import type { ChatMode, RunTarget } from "@workspace/contract/schemas/runs";
 import type { UserSummary } from "@workspace/contract/schemas/tenancy";
 
 import type { DraftKey, DraftStore } from "./ports/draft-store";
@@ -35,6 +35,11 @@ import type { ModelVariant } from "./variants";
  */
 export type ComposerAppearance = "default" | "strip";
 
+export interface ComposerChatMode {
+  readonly mode: ChatMode;
+  readonly onChange: (mode: ChatMode) => void;
+}
+
 export interface ComposerProps {
   /**
    * Agents for the picker and the `/`/`@` menu, where a pick makes that
@@ -47,6 +52,12 @@ export interface ComposerProps {
   /** Artifact types the menu offers ("Slides"); a pick asks for that kind. */
   readonly artifacts?: readonly ArtifactOption[];
   readonly attachmentLimits?: AttachmentLimits;
+  /**
+   * The chat's mode, Chat or Code, and what to call when it's switched.
+   * Pass it to offer the switch; the host saves it on the conversation, and
+   * it applies from the next message.
+   */
+  readonly chatMode?: ComposerChatMode;
   readonly className?: string;
   /**
    * File commands `/` offers ahead of prompts, for the host to carry out in

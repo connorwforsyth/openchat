@@ -18,7 +18,11 @@ import {
 import { useCallback, useRef } from "react";
 
 import { useModelVariants } from "../hooks/use-model-variants";
-import type { ComposerAppearance, ComposerMcp } from "../props";
+import type {
+  ComposerAppearance,
+  ComposerChatMode,
+  ComposerMcp,
+} from "../props";
 import type {
   AgentOption,
   FileCandidate,
@@ -26,6 +30,7 @@ import type {
   SkillOption,
 } from "../schemas";
 import type { ModelVariant } from "../variants";
+import { ChatModeSwitch } from "./chat-mode-switch";
 import { PlusMenu } from "./plus-menu";
 import { STRIP_SEND_CLASS } from "./styles";
 import { TargetPicker } from "./target-picker";
@@ -38,6 +43,7 @@ export interface ComposerFooterProps {
   readonly attachDisabled: boolean;
   readonly busy: boolean;
   readonly canSubmit: boolean;
+  readonly chatMode?: ComposerChatMode | undefined;
   readonly disabled: boolean;
   readonly files: readonly FileCandidate[];
   /** This chat's mcp (188), for the + menu and the "differs" chip. */
@@ -77,6 +83,7 @@ export function ComposerFooter({
   attachDisabled,
   busy,
   canSubmit,
+  chatMode,
   mcp,
   disabled,
   files,
@@ -163,6 +170,13 @@ export function ComposerFooter({
           triggerRef={plusRef}
           webSearch={webSearch}
         />
+        {chatMode ? (
+          <ChatModeSwitch
+            disabled={disabled}
+            mode={chatMode.mode}
+            onModeChange={chatMode.onChange}
+          />
+        ) : null}
         {plan && onPlanChange ? (
           <InputGroupButton
             aria-label={t`Plan mode is on. Turn it off`}

@@ -155,6 +155,7 @@ export function Composer({
   artifacts = NONE,
   attachmentLimits = NO_LIMITS,
   className,
+  chatMode,
   commands = NONE,
   mcp,
   disabled = false,
@@ -699,6 +700,7 @@ export function Composer({
           attachDisabled={disabled || files.atLimit}
           busy={busy}
           canSubmit={canSubmit}
+          chatMode={chatMode}
           disabled={disabled}
           files={fileOptions}
           mcp={mcp}

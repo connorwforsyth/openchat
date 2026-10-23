@@ -869,7 +869,13 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
       base: BASE,
       // A planning run's own fragment says what it may do in the workspace.
       dynamic: [
-        ...(sandbox.sandbox && !planning ? [FRAGMENTS.workspace] : []),
+        ...(sandbox.sandbox && !planning
+          ? [
+              run.options.chatMode === "chat"
+                ? FRAGMENTS["chat-mode"]
+                : FRAGMENTS.workspace,
+            ]
+          : []),
         ...(await planInstructions(run)),
       ],
       // A planning run can't make artifacts (126).

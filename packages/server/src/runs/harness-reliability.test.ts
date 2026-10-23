@@ -42,7 +42,10 @@ const json = async <T>(response: Response, status = 200): Promise<T> => {
 
 const newConversation = async () =>
   json<Conversation>(
-    await h.request("/api/conversations", { json: {}, method: "POST" }),
+    await h.request("/api/conversations", {
+      json: { mode: "code" },
+      method: "POST",
+    }),
     201
   );
 

@@ -223,6 +223,7 @@ export const createChatRouter = (services: ApiServices) => {
       const row = await createConversation(db, {
         context: stored.value,
         defaultTarget: input.defaultTarget ?? null,
+        mode: input.mode,
         ownerId: context.actor.userId,
         purpose: draft ? "test" : "chat",
         title: input.title ?? null,
@@ -271,6 +272,7 @@ export const createChatRouter = (services: ApiServices) => {
         const row = await createConversation(tx, {
           context: stored.value,
           defaultTarget: source.value.defaultTarget,
+          mode: source.value.mode,
           ownerId: actor.userId,
           title: input.title ?? source.value.title,
         });
@@ -284,6 +286,7 @@ export const createChatRouter = (services: ApiServices) => {
                 : null,
             authorId: message.authorId,
             conversationId: row.id,
+            mode: message.mode,
             model: message.model,
             parentId,
             parts: message.parts,
@@ -368,14 +371,20 @@ export const createChatRouter = (services: ApiServices) => {
 
     update: authed.conversations.update.handler(async ({ context, input }) => {
       const { actor } = context;
-      const { archived, defaultTarget, id, pinned, title } = input;
+      const { archived, defaultTarget, id, mode, pinned, title } = input;
       if (
         archived !== undefined ||
         defaultTarget !== undefined ||
+        mode !== undefined ||
         title !== undefined
       ) {
         await requireAccess(actor, id, "write");
-        await updateConversation(db, id, { archived, defaultTarget, title });
+        await updateConversation(db, id, {
+          archived,
+          defaultTarget,
+          mode,
+          title,
+        });
         if (archived) {
           // Archiving a chat pauses the schedules posting into it (173).
           await pauseSchedulesFor(db, id);
