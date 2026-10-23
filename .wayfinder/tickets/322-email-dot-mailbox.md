@@ -20,7 +20,7 @@ takes. Research: [`.context/research/email`](../../.context/research/email/READM
 - Sources against a mailbox the operator already has: IMAP (imapflow IDLE)
   or Microsoft Graph delta polling. An opaque, rotatable address token per
   Dot.
-- `inbound_email` deduped by Message-ID; DMARC pass and a sender allowlist
+- `inbound_email` deduped by `(mailbox, Message-ID)`; DMARC pass and a sender allowlist
   (the owner by default); unknown senders quarantined, never shown to the
   model; RFC 3834 loop rules.
 - Email-triggered runs are unattended, read-only and budgeted (175).

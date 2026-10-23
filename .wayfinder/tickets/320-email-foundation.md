@@ -45,12 +45,17 @@ sources: [`.context/research/email`](../../.context/research/email/README.md)
   `idempotency_key`, template id and props, never rendered HTML) and
   `email_suppression`. The domain write and the outbox insert share one
   transaction. An `email.send` pg-boss job per row claims it, renders,
-  sends and records the message id; transient errors retry with backoff,
+  sends and records the message id; transient errors persist `retry`,
+  `last_error` and the incremented attempt count before retrying with backoff,
   permanent ones fail without retry. An `email.sweep` cron re-enqueues
-  orphaned rows. Link-bearing props are encrypted (D24) and nulled once
+  orphaned rows. External delivery is at-least-once; a crash after relay
+  acceptance but before recording `sent_at` may cause another send. The
+  outbox key deduplicates rows, and singleton jobs prevent concurrent sends.
+  Link-bearing props are encrypted (D24) and nulled once
   sent.
 - **Invites:** `orgs.invite` takes `sendEmail?: boolean` and answers
-  `emailed: boolean`. The copy-link path stays in every case. Better Auth
+  `emailed: boolean`, meaning the outbox accepted the message. It does not
+  report provider delivery. The copy-link path stays in every case. Better Auth
   reset and verify hooks are set only when email is configured, and never
   awaited (timing).
 - **Dev inbox:** a Mailpit service in `docker-compose.yml` under a `mail`
