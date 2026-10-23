@@ -166,7 +166,7 @@ export type Dot = z.infer<typeof dotSchema>;
 
 export const dotScheduleInputSchema = z.object({
   cron: cronExpressionSchema,
-  emoji: scheduleEmojiSchema.default(DEFAULT_SCHEDULE_EMOJI),
+  emoji: scheduleEmojiSchema.default(DEFAULT_SCHEDULE_EMOJI).optional(),
   enabled: z.boolean().default(true),
   prompt: dotPromptSchema,
   timezone: timeZoneSchema.default("UTC"),
