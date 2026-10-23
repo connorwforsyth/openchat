@@ -43,20 +43,41 @@ export function Title(props: TitleProps) {
   at start (or on change), like the deck itself. It never reaches the
   model's context; only the export names and props do, through the guide.
 - **Same sandbox.** The override runs in the runtime's sandboxed frame with
-  the same module table: React and the library, no network.
-- **Export mapping.** An override of a known piece keeps that piece's
-  `data-slide-*` markers, so PowerPoint export still maps it natively. Anything
-  else is pictured, as custom regions are today.
+  React and the library, no network. Its evaluator has a separate allowlist
+  and module table. `@workspace/slide-ui/base` resolves to the original
+  `slideUi` exports, and `@workspace/site-ui/base` resolves to the original
+  `siteUi` exports. These proposed subpaths are not available today. Add them
+  to the override evaluator's permitted modules and table together. Deck and
+  site source keep their current allowlists. The base entries never point at
+  the merged exports, so `BaseTitle` cannot resolve to its own override.
+- **Export behavior.** PowerPoint export captures rendered DOM into
+  `SlideLayout` text, shape and image items. It does not map components by
+  `data-slide-*` markers. Both delegating overrides and replacements use that
+  capture path, with its existing limitations. Module layering promises no
+  extra native mapping or automatic screenshot fallback. Implementation must
+  test capture and export for an override that delegates to `BaseTitle` and
+  one that replaces it without rendering the base component.
 
 ### Where it plugs in
 
-- `apps/artifacts/src/presentation.ts` builds `slideModules`. It would merge
-  the compiled override module over `slideUi` for the
-  `@workspace/slide-ui` entry.
+- `apps/artifacts/src/presentation.ts` currently uses shared `slideModules`.
+  The proposed runtime would compile an instance's overrides against the
+  unwrapped base table, then create a new immutable module table with those
+  exports merged over `slideUi` for the `@workspace/slide-ui` entry. It must
+  never mutate the shared table or a previous instance's table.
+- Pass that table explicitly through `loadPresentation` and `loadSlide` to
+  `evaluateArtifact`. Create it once per instance configuration revision,
+  retain it for the whole deck render and export lifecycle, and replace it
+  atomically for new renders when the override file changes. In-flight
+  renders retain their original table. Cache compiled overrides by instance
+  and revision. Two instances rendering concurrently must never share merged
+  module tables.
 - `packages/artifacts-kit/src/kinds/presentation/slides.ts` reads the export
   list from the override (passed in as a port, as `Compile` is) so the save
   check and the guide agree with what renders.
-- Sites follow the same path through `site-ui`.
+- Sites follow the same path through `site-ui`, with an instance-scoped
+  module table passed to each page evaluator. The site's pages retain one
+  configuration revision throughout a build and render.
 
 ## Open questions for Connor
 

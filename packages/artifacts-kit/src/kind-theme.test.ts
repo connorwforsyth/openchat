@@ -27,6 +27,30 @@ describe("parseKindTheme", () => {
     ).toEqual({ "--slide-font": '"Inter", sans-serif' });
   });
 
+  it("refuses a value whose brackets or quotes don't close, so it can't swallow the rules after it", () => {
+    expect(
+      parseKindTheme(
+        `:root { --primary: var(--x; --border: "a; --muted: image-set("x.png" 1x); --radius: calc(8px + 2px); --slide-font: "Inter", sans-serif; }`,
+        "presentation"
+      ).light
+    ).toEqual({
+      "--radius": "calc(8px + 2px)",
+      "--slide-font": '"Inter", sans-serif',
+    });
+    expect(
+      parseKindTheme(":root{--radius: calc(1px + 2px}", "presentation").light
+    ).toEqual({});
+  });
+
+  it.each(["[red", "red]", "([)]", "red)", "'Inter"])(
+    "refuses unbalanced delimiters in %s",
+    (value) => {
+      expect(
+        parseKindTheme(`:root { --primary: ${value}; }`, "site").light
+      ).toEqual({});
+    }
+  );
+
   it("lets each kind name its own variables", () => {
     const css = ":root { --card: white; --slide-font: Inter; }";
     expect(parseKindTheme(css, "site").light).toEqual({ "--card": "white" });

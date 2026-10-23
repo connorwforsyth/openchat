@@ -447,6 +447,7 @@ msgid "Activity"
 msgstr "Activity"
 
 #: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
+#: ../composer/src/components/suggestion-menu.tsx
 msgid "Add"
 msgstr "Add"
 
@@ -560,6 +561,7 @@ msgid "agents"
 msgstr "agents"
 
 #: ../../apps/web/app/(app)/(pages)/space/space-home.tsx
+#: ../composer/src/components/suggestion-menu.tsx
 #: ../composer/src/components/target-picker.tsx
 #: ../library-ui/src/components/kind.tsx
 msgid "Agents"
@@ -973,7 +975,6 @@ msgstr "Can't reach the server"
 #: ../chat-ui/src/conversation/message-row.tsx
 #: ../chat-ui/src/workspace/file-view.tsx
 #: ../chat-ui/src/workspace/workspace-panel.tsx
-#: ../composer/src/components/template-variables.tsx
 #: ../library-ui/src/components/confirm-delete.tsx
 #: ../library-ui/src/components/publish-dialog.tsx
 #: ../shortcuts/src/react/shortcuts-editor.tsx
@@ -1230,7 +1231,7 @@ msgstr "Command and output"
 msgid "Command palette"
 msgstr "Command palette"
 
-#: ../composer/src/components/composer.tsx
+#: ../composer/src/components/suggestion-menu.tsx
 msgid "Commands"
 msgstr "Commands"
 
@@ -1898,6 +1899,8 @@ msgstr "Download table as Markdown"
 msgid "Downloading Update… {0}%"
 msgstr "Downloading Update… {0}%"
 
+#: ../composer/src/components/chip.tsx
+#: ../composer/src/components/suggestion-menu.tsx
 #: ../library-ui/src/components/badges.tsx
 #: ../library-ui/src/components/version-history.tsx
 msgid "Draft"
@@ -2047,8 +2050,8 @@ msgid "Enter an email address."
 msgstr "Enter an email address."
 
 #: ../composer/src/components/composer.tsx
-msgid "Enter sends and Shift+Enter adds a line. Type / for commands, prompts and skills, and @ to mention someone or a file."
-msgstr "Enter sends and Shift+Enter adds a line. Type / for commands, prompts and skills, and @ to mention someone or a file."
+msgid "Enter sends and Shift+Enter adds a line. Type / or @ for agents, skills, prompts, things to make, files and people. Tab moves between a prompt's blanks."
+msgstr "Enter sends and Shift+Enter adds a line. Type / or @ for agents, skills, prompts, things to make, files and people. Tab moves between a prompt's blanks."
 
 #: ../../apps/desktop/src/renderer/setup-screen.tsx
 msgid "Enter your server's address."
@@ -2243,7 +2246,7 @@ msgstr "files"
 #: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 #: ../code-ui/src/file-tree.tsx
-#: ../composer/src/components/composer.tsx
+#: ../composer/src/components/suggestion-menu.tsx
 #: ../library-ui/src/components/skill-form.tsx
 msgid "Files"
 msgstr "Files"
@@ -2255,14 +2258,6 @@ msgstr "Files are turned off on this server."
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Files found"
 msgstr "Files found"
-
-#: ../composer/src/components/template-variables.tsx
-msgid "Fill in “{promptName}”"
-msgstr "Fill in “{promptName}”"
-
-#: ../composer/src/components/template-variables.tsx
-msgid "Fill in every field to insert the prompt."
-msgstr "Fill in every field to insert the prompt."
 
 #: ../library-ui/src/components/prompt-form.tsx
 msgid "Fill in every variable to see the message."
@@ -2528,7 +2523,6 @@ msgid "Input"
 msgstr "Input"
 
 #: ../chat-ui/src/artifacts/document/document-toolbar.tsx
-#: ../composer/src/components/template-variables.tsx
 msgid "Insert"
 msgstr "Insert"
 
@@ -2539,10 +2533,6 @@ msgstr "Insert divider"
 #: ../chat-ui/src/artifacts/document/document-toolbar.tsx
 msgid "Insert image"
 msgstr "Insert image"
-
-#: ../composer/src/components/template-variables.tsx
-msgid "Insert prompt"
-msgstr "Insert prompt"
 
 #: ../chat-ui/src/artifacts/document/document-toolbar.tsx
 msgid "Insert table"
@@ -2900,6 +2890,10 @@ msgstr "Lowercase letters, digits and dashes. Type / and this in the composer to
 msgid "Maintainer"
 msgstr "Maintainer"
 
+#: ../composer/src/components/suggestion-menu.tsx
+msgid "Make"
+msgstr "Make"
+
 #: ../composer/src/components/composer.tsx
 msgid "Make an image of "
 msgstr "Make an image of "
@@ -3053,10 +3047,6 @@ msgstr "Memory couldn't be saved. Try again."
 #: ../chat-ui/src/conversation/memory-note.tsx
 msgid "Memory updated: {0}"
 msgstr "Memory updated: {0}"
-
-#: ../composer/src/components/composer.tsx
-msgid "Mention"
-msgstr "Mention"
 
 #: ../chat-ui/src/artifacts/diagram/diagram-view.tsx
 msgid "Mermaid (.mmd)"
@@ -4013,6 +4003,10 @@ msgstr "PDF (print)…"
 msgid "Pebble"
 msgstr "Pebble"
 
+#: ../composer/src/components/suggestion-menu.tsx
+msgid "People"
+msgstr "People"
+
 #: ../chat-ui/src/header/share-menu.tsx
 msgid "People in this chat"
 msgstr "People in this chat"
@@ -4288,14 +4282,10 @@ msgstr "Prompt input"
 msgid "prompts"
 msgstr "prompts"
 
-#: ../composer/src/components/composer.tsx
+#: ../composer/src/components/suggestion-menu.tsx
 #: ../library-ui/src/components/kind.tsx
 msgid "Prompts"
 msgstr "Prompts"
-
-#: ../composer/src/components/composer.tsx
-msgid "Prompts and skills"
-msgstr "Prompts and skills"
 
 #: ../chat-ui/src/conversation/schedule-card.tsx
 msgid "Proposed"
@@ -4568,10 +4558,6 @@ msgstr "Remove key"
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 msgid "Remove member"
 msgstr "Remove member"
-
-#: ../composer/src/components/skill-list.tsx
-msgid "Remove skill {name}"
-msgstr "Remove skill {name}"
 
 #: ../library-ui/src/components/agent-form.tsx
 msgid "Remove starter {position}"
@@ -5315,9 +5301,8 @@ msgid "skills"
 msgstr "skills"
 
 #: ../../apps/web/app/(app)/(pages)/space/space-home.tsx
-#: ../composer/src/components/composer.tsx
 #: ../composer/src/components/plus-menu.tsx
-#: ../composer/src/components/skill-list.tsx
+#: ../composer/src/components/suggestion-menu.tsx
 #: ../library-ui/src/components/agent-form.tsx
 #: ../library-ui/src/components/kind.tsx
 msgid "Skills"
@@ -5582,6 +5567,7 @@ msgid "Submit review"
 msgstr "Submit review"
 
 #: ../chat-ui/src/conversation/empty-state.tsx
+#: ../composer/src/components/suggestion-menu.tsx
 msgid "Suggestions"
 msgstr "Suggestions"
 
@@ -6429,6 +6415,11 @@ msgstr "Updated {when}"
 #: ../../apps/web/app/(app)/_shared/settings/memory-settings.tsx
 msgid "Updated in a chat"
 msgstr "Updated in a chat"
+
+#: ../composer/src/components/composer.tsx
+#: ../composer/src/components/suggestion-menu.tsx
+msgid "Upload a file"
+msgstr "Upload a file"
 
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Upload files…"

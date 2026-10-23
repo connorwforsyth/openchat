@@ -1,3 +1,4 @@
+import { CHIPS_DATA, chipsDataSchema } from "@workspace/ai/messages/chips";
 import { SKILLS_DATA, skillsDataSchema } from "@workspace/ai/messages/skills";
 import {
   WORKSPACE_FILE_DATA,
@@ -57,8 +58,8 @@ const ABSOLUTE = /^https?:\/\//;
 const TRAILING_SLASH = /\/$/;
 
 /**
- * Text, file and workspace-file mention parts of a `UIMessage` as the
- * contract's user parts. A mention the server can't read is dropped here
+ * Text, file, workspace-file mention and chips parts of a `UIMessage` as
+ * the contract's user parts. A mention the server can't read is dropped here
  * rather than stored. Pure.
  */
 export const userParts = (message: UIMessage): UserMessagePart[] =>
@@ -72,6 +73,14 @@ export const userParts = (message: UIMessage): UserMessagePart[] =>
       );
       return ref.success
         ? [{ data: ref.data, name: WORKSPACE_FILE_DATA, type: "data" }]
+        : [];
+    }
+    if (part.type === `data-${CHIPS_DATA}`) {
+      const chips = chipsDataSchema.safeParse(
+        (part as { readonly data?: unknown }).data
+      );
+      return chips.success
+        ? [{ data: chips.data, name: CHIPS_DATA, type: "data" }]
         : [];
     }
     if (part.type !== "file") {

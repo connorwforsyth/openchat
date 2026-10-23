@@ -6,30 +6,20 @@ import type {
 } from "@tiptap/suggestion";
 import { useCallback, useMemo, useRef, useState } from "react";
 
-import type { Suggestion } from "../components/suggestion-menu";
-import type { MentionAttrs } from "../editor/extensions";
-import type { SlashItem } from "../options";
-import type { MentionCandidate } from "../schemas";
+import type { MenuItem } from "../options";
 import { menuKeyAction, moveActive, slashStage } from "../triggers";
 
 // TipTap's Suggestion utility finds `/query` and `@query` and drives a
 // renderer through lifecycle hooks. This hook is that renderer for both
-// menus: it mirrors the plugin's state into React so SuggestionMenu can draw
-// it, and answers the plugin's key events. Focus never leaves the editor.
+// triggers, which open the same menu: it mirrors the plugin's state into
+// React so SuggestionMenu can draw it, and answers the plugin's key events.
+// Focus never leaves the editor.
 
-/** What the open menu lists, which names it. */
-export type MenuList =
-  | "commands"
-  | "files"
-  | "mentions"
-  | "prompts"
-  | "prompts-skills"
-  | "mcp"
-  | "skills";
+/** What the open menu lists: everything, or after `/open`, files to open. */
+export type MenuList = "files" | "menu";
 
 export interface OpenMenu {
-  readonly char: "/" | "@";
-  readonly items: readonly Suggestion[];
+  readonly items: readonly MenuItem[];
   readonly list: MenuList;
   /** Runs the plugin's command for the item at this index. */
   readonly select: (index: number) => void;
@@ -47,13 +37,10 @@ const CLOSED: MenuSnapshot = { active: 0, menu: null, query: "" };
  * Where each menu's items come from, for a query. The plugins ask only when
  * the text changes; a refresh asks again when the host's lists change.
  */
-export interface SuggestionSources {
-  readonly mentions: (query: string) => readonly MentionCandidate[];
-  readonly slash: (query: string) => readonly SlashItem[];
-}
+export type SuggestionSource = (query: string) => readonly MenuItem[];
 
 /** Redraws the open menu from new sources, for the query it shows. */
-type Requery = (sources: SuggestionSources) => void;
+type Requery = (source: SuggestionSource) => void;
 
 type Renderer<I, S> = () => {
   onExit: () => void;
@@ -62,52 +49,13 @@ type Renderer<I, S> = () => {
   onUpdate: (props: SuggestionProps<I, S>) => void;
 };
 
-const slashList = (query: string, items: readonly SlashItem[]): MenuList => {
-  if (slashStage(query).stage === "open") {
-    return "files";
-  }
-  if (items.some((item) => item.kind === "command")) {
-    return "commands";
-  }
-  if (items.length > 0 && items.every((item) => item.kind === "mcp-server")) {
-    return "mcp";
-  }
-  const skills = items.some((item) => item.kind === "skill");
-  if (!skills) {
-    return "prompts";
-  }
-  return items.some((item) => item.kind === "prompt")
-    ? "prompts-skills"
-    : "skills";
-};
-
-const slashMenu = (props: SuggestionProps<SlashItem, SlashItem>): OpenMenu => ({
-  char: "/",
+const openMenu = (props: SuggestionProps<MenuItem, MenuItem>): OpenMenu => ({
   items: props.items,
-  list: slashList(props.query, props.items),
+  list: slashStage(props.query).stage === "open" ? "files" : "menu",
   select: (index) => {
     const item = props.items[index];
     if (item) {
       props.command(item);
-    }
-  },
-});
-
-const mentionMenu = (
-  props: SuggestionProps<MentionCandidate, MentionAttrs>
-): OpenMenu => ({
-  char: "@",
-  items: props.items.map((candidate) => ({ candidate, kind: "mention" })),
-  list: "mentions",
-  select: (index) => {
-    const candidate = props.items[index];
-    if (candidate) {
-      const { kind, label } = candidate;
-      props.command({
-        id: kind === "file" ? candidate.path : candidate.id,
-        kind,
-        label,
-      });
     }
   },
 });
@@ -205,46 +153,16 @@ export function useSuggestionMenus() {
     [update]
   );
 
-  const slashRenderer = useMemo(
-    (): Renderer<SlashItem, SlashItem> => () => {
-      const render = keepWhileLoading<SlashItem, SlashItem>((props) =>
-        show(slashMenu(props), props.query)
+  const renderer = useMemo(
+    (): Renderer<MenuItem, MenuItem> => () => {
+      const render = keepWhileLoading<MenuItem, MenuItem>((props) =>
+        show(openMenu(props), props.query)
       );
-      const onProps = (props: SuggestionProps<SlashItem, SlashItem>) => {
-        requery.current = (sources) =>
+      const onProps = (props: SuggestionProps<MenuItem, MenuItem>) => {
+        requery.current = (source) =>
           render({
             ...props,
-            items: [...sources.slash(props.query)],
-            loading: false,
-          });
-        render(props);
-      };
-      return {
-        onExit: () => {
-          requery.current = null;
-          render.reset();
-          close();
-        },
-        onKeyDown,
-        onStart: onProps,
-        onUpdate: onProps,
-      };
-    },
-    [close, onKeyDown, show]
-  );
-
-  const mentionRenderer = useMemo(
-    (): Renderer<MentionCandidate, MentionAttrs> => () => {
-      const render = keepWhileLoading<MentionCandidate, MentionAttrs>((props) =>
-        show(mentionMenu(props), props.query)
-      );
-      const onProps = (
-        props: SuggestionProps<MentionCandidate, MentionAttrs>
-      ) => {
-        requery.current = (sources) =>
-          render({
-            ...props,
-            items: [...sources.mentions(props.query)],
+            items: [...source(props.query)],
             loading: false,
           });
         render(props);
@@ -272,8 +190,8 @@ export function useSuggestionMenus() {
    * lists change: an active suggestion is filtered again for its query, and
    * the menu opens, grows or shrinks to match.
    */
-  const refresh = useCallback((sources: SuggestionSources) => {
-    requery.current?.(sources);
+  const refresh = useCallback((source: SuggestionSource) => {
+    requery.current?.(source);
   }, []);
 
   return {
@@ -282,9 +200,8 @@ export function useSuggestionMenus() {
     hover,
     /** For key handlers outside the plugins: is a menu showing right now? */
     isOpen,
-    mentionRenderer,
     menu: snapshot.menu,
     refresh,
-    slashRenderer,
+    renderer,
   };
 }

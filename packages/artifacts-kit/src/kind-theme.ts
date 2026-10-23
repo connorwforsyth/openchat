@@ -78,8 +78,35 @@ export const EMPTY_THEME: KindTheme = { dark: {}, light: {} };
 const COMMENT = /\/\*[\s\S]*?\*\//g;
 const DECLARATION = /^\s*(--[a-z0-9-]+)\s*:\s*([^;]*?)\s*$/i;
 /** What a value may not hold: no loading, no escaping the declaration. */
-const UNSAFE_VALUE = /url\(|@import|expression\(|[<>{}\\]|\/\*/i;
+const UNSAFE_VALUE = /url\(|image-set\(|@import|expression\(|[<>{}\\]|\/\*/i;
 const MAX_VALUE = 200;
+
+/**
+ * Whether every bracket and quote in `value` closes: an open `(` or quote
+ * would carry on into the rules written after the theme and swallow them.
+ * Pure.
+ */
+const isBalanced = (value: string): boolean => {
+  const brackets: string[] = [];
+  let quote: string | null = null;
+  for (const char of value) {
+    if (quote !== null) {
+      if (char === quote) {
+        quote = null;
+      }
+    } else if (char === '"' || char === "'") {
+      quote = char;
+    } else if (char === "(" || char === "[") {
+      brackets.push(char);
+    } else if (
+      (char === ")" || char === "]") &&
+      brackets.pop() !== (char === ")" ? "(" : "[")
+    ) {
+      return false;
+    }
+  }
+  return brackets.length === 0 && quote === null;
+};
 
 const declarationsOf = (
   body: string,
@@ -95,7 +122,8 @@ const declarationsOf = (
       value &&
       allowed.has(name) &&
       value.length <= MAX_VALUE &&
-      !UNSAFE_VALUE.test(value)
+      !UNSAFE_VALUE.test(value) &&
+      isBalanced(value)
     ) {
       tokens[name] = value;
     }
@@ -177,7 +205,8 @@ export const themeDeclarations = (
     .map(([name, value]) => `${name}: ${value};`)
     .join(" ");
 
-const MAX_DESIGN = 8000;
+/** The most house-style prose a guide takes, shared and kind notes together. */
+export const MAX_DESIGN = 8000;
 
 /**
  * A kind's guide with the instance's house style (its DESIGN.md prose)

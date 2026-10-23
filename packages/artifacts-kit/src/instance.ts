@@ -1,6 +1,7 @@
+import { z } from "zod";
 import { builtinKindDefinitions } from "./builtin";
 import type { Compile } from "./checks";
-import type { ThemedKind } from "./kind-theme";
+import { MAX_DESIGN, THEMED_KINDS } from "./kind-theme";
 import { presentationKindWith } from "./kinds/presentation/kind";
 import { siteKind } from "./kinds/site/kind";
 import {
@@ -26,7 +27,11 @@ export interface ArtifactKindSettings {
  * The instance's house style per kind, from its brand folder's DESIGN.md
  * files: prose only, added to the kind's guide for the model.
  */
-export type ArtifactDesignNotes = Partial<Record<ThemedKind, string>>;
+export const artifactDesignNotesSchema = z.partialRecord(
+  z.enum(THEMED_KINDS),
+  z.string().max(MAX_DESIGN)
+);
+export type ArtifactDesignNotes = z.infer<typeof artifactDesignNotesSchema>;
 
 export interface ArtifactKindPorts {
   /** Compiles TSX as the artifact runtime does: slides are checked with it on save. */

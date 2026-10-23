@@ -141,7 +141,7 @@ describe("composer mcp (188)", () => {
     const editor = screen.getByRole("textbox", { name: "Message" });
     await userEvent.click(editor);
     await userEvent.keyboard("/doc");
-    await screen.findByRole("listbox", { name: "MCP servers" });
+    await screen.findByRole("group", { name: "MCP servers" });
     expect(screen.getByRole("option", { name: TURN_OFF_DOCS })).toBeTruthy();
     await userEvent.keyboard("{Enter}");
     expect(mcp.onToggle).toHaveBeenLastCalledWith(base.id, false);
