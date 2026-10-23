@@ -8,6 +8,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+import { RunnerUnavailableNotice } from "@workspace/chat-ui/workspace/runner-unavailable";
 import type { ConversationId } from "@workspace/contract/schemas/common";
 import type { Dot } from "@workspace/contract/schemas/dots";
 import {
@@ -17,6 +18,10 @@ import {
   RefreshCwIcon,
   RotateCcwIcon,
 } from "@workspace/icons";
+import {
+  type RunnerUnavailableReason,
+  runnerUnavailableReasonSchema,
+} from "@workspace/sandbox/runner/unavailable";
 import {
   type ComputerPowerAction,
   type ComputerView,
@@ -53,16 +58,19 @@ import { useScreenLink } from "./screen-link";
 // profile's Computer tab. The screen is noVNC on the sandbox preview origin
 // (D24), in an iframe without same-origin rights. Watching is view-only;
 // "Take over" hands the person the mouse and keyboard and makes the Dot's
-// `computer` tool refuse input until "Give back control". Restart and
-// "Reset computer" stop the Dot's runs and bring the screen back, with or
-// without its files. Nothing renders for an ordinary chat.
+// `computer` tool refuse input until "Give back control". Restart and reset
+// stop its runs before restoring the screen. Runner failures include the
+// reason and recovery command. Nothing renders for an ordinary chat.
 
 const computerPath = (conversationId: string) =>
   `/api/computer/${conversationId}`;
 
-const problemSchema = z.object({ code: z.string() });
+const problemSchema = z.object({
+  code: z.string(),
+  reason: runnerUnavailableReasonSchema.optional().catch(undefined),
+});
 
-/** The view, or a failure carrying the server's `code` for `codeOf`. */
+/** The view, or a failure carrying the server's `code` (for `codeOf`) and the runner's `reason`. */
 const readView = async (response: Response): Promise<ComputerView> => {
   if (!response.ok) {
     const body = problemSchema.safeParse(
@@ -70,10 +78,16 @@ const readView = async (response: Response): Promise<ComputerView> => {
     );
     throw Object.assign(new Error(String(response.status)), {
       code: body.success ? body.data.code : null,
+      reason: body.success ? (body.data.reason ?? null) : null,
     });
   }
   return computerViewSchema.parse(await response.json());
 };
+
+const reasonOf = (error: unknown): RunnerUnavailableReason | null =>
+  error instanceof Error && "reason" in error
+    ? (runnerUnavailableReasonSchema.safeParse(error.reason).data ?? null)
+    : null;
 
 const viewKey = (conversationId: ConversationId) =>
   ["dot-computer", conversationId] as const;
@@ -282,6 +296,7 @@ export function DotComputerView({ dot }: { readonly dot: Dot }) {
 
   const current = power.pending ? undefined : view.data;
   const disabled = codeOf(view.error) === "FEATURE_DISABLED";
+  const reason = current ? null : reasonOf(view.error);
   const userHas = holder === "user";
   const status = (): string => {
     if (power.pending === "restart") {
@@ -348,6 +363,12 @@ export function DotComputerView({ dot }: { readonly dot: Dot }) {
         ) : null}
         {disabled ? null : <DotComputerActions dot={dot} />}
       </div>
+      {reason ? (
+        <RunnerUnavailableNotice
+          className="border-border border-t px-3 py-2 text-sm"
+          reason={reason}
+        />
+      ) : null}
       <div className="relative aspect-[16/10] w-full bg-muted">
         {current ? (
           <iframe

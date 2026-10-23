@@ -4,6 +4,7 @@ import { parseDocument } from "yaml";
 import {
   compatibleKeyVariable,
   type Defaults,
+  egressSchema,
   ICON_VARIABLES,
   iconSetSchema,
   iconStyleSchema,
@@ -160,7 +161,11 @@ export const readDefaults = (files: CurrentFiles): Defaults => {
         : null,
     database: env.DATABASE_URL ? "postgres" : "pglite",
     domains: Array.isArray(auth.domains) ? auth.domains.map(String) : [],
-    egress: env.SANDBOX_EGRESS === "open" ? "open" : "none",
+    egress: pick(
+      egressSchema,
+      env.SANDBOX_EGRESS || record(sandbox.egress).mode,
+      "allowlist"
+    ),
     fastModel: toRef(aliases.fast ?? auto.cheap, aliases),
     iconEnv: {
       ignored: hasIconBlock,

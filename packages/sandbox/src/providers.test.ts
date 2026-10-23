@@ -4,6 +4,7 @@ import { fixtureId } from "@workspace/contract/fixtures";
 import { describe, expect, it } from "vitest";
 
 import { sandboxProvidersFromConfig } from "./providers";
+import { runnerUnavailableText } from "./runner/unavailable";
 import { installHostAsyncHook } from "./testing/host-async-hook";
 
 const config = (text: string): AppConfig => {
@@ -79,11 +80,23 @@ describe("sandboxProvidersFromConfig", () => {
     });
     expect(await docker?.isolation()).toEqual({
       error: {
-        message: "the sandbox runner token is not configured",
+        message: runnerUnavailableText("not_configured"),
         type: "unavailable",
       },
       ok: false,
     });
+  });
+
+  it("gives docker sandboxes network unless egress is none", () => {
+    const network = (egress: string) =>
+      sandboxProvidersFromConfig(
+        config(
+          `sandbox: { docker: { runnerUrl: 'http://runner.test:7070' }, egress: { mode: ${egress} } }`
+        )
+      ).get("docker")?.limits.network;
+    expect(network("open")).toBe(true);
+    expect(network("allowlist")).toBe(true);
+    expect(network("none")).toBe(false);
   });
 
   it("lists configured remote providers as unavailable for now", async () => {

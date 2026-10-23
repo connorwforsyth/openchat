@@ -123,7 +123,7 @@ describe("the preview proxy's WebSocket upgrades", () => {
           user: "1000:1000",
         },
         desktopImage: "sandbox-desktop:test",
-        egress: { mode: "none" },
+        egressProxyUrl: null,
         idleMs: 60_000,
         previewTemplate: "http://{id}-{port}.sandbox.localhost:7071",
         runnerContainer: "runner",
@@ -132,7 +132,12 @@ describe("the preview proxy's WebSocket upgrades", () => {
       log: () => undefined,
     });
     const ready = [
-      await runner.create({ id, limits, variant: "workspace" }),
+      await runner.create({
+        egress: { mode: "none" },
+        id,
+        limits,
+        variant: "workspace",
+      }),
       await runner.exposePort(id, EXPOSED),
       await runner.exposePort(id, DEAD),
     ];

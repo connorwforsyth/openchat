@@ -85,16 +85,18 @@ ENCRYPTION_KEY=
 # ENCRYPTION_KEY. Old secrets still open and are resealed when next written.
 ENCRYPTION_KEY_PREVIOUS=
 
-# --- Docker sandboxes (optional \`sandbox\` compose profile) ---
+# --- Docker sandboxes (\`bun dev\` starts the runner when Docker is running) ---
 # Shared secret between web and sandbox-runner; the runner refuses every call
 # without it. Any long random string, e.g. \`openssl rand -hex 32\`.
 SANDBOX_RUNNER_TOKEN=
 SANDBOX_RUNNER_URL=http://localhost:7070
 # auto (gVisor if the host has it, else runc with a warning) | runsc | runc
 SANDBOX_RUNTIME=auto
-# none (default) | allowlist (via SANDBOX_EGRESS_PROXY) | open
-SANDBOX_EGRESS=none
-SANDBOX_EGRESS_PROXY=
+# Where sandboxes may connect is \`sandbox.egress\` in app.config.yaml. Set this
+# (open | allowlist | none) only to override its mode for one deployment.
+SANDBOX_EGRESS=
+# The runner's container name; change it to run a second checkout's runner.
+SANDBOX_RUNNER_CONTAINER=sandbox-runner
 SANDBOX_IMAGE=node:24-bookworm-slim
 # Previews are served from their own origin, never the app's.
 SANDBOX_PREVIEW_URL=http://{id}-{port}.sandbox.localhost:7071
@@ -228,6 +230,22 @@ sandbox:
     token: "\${SANDBOX_RUNNER_TOKEN}"
     runtime: runsc # gVisor; the runner warns and falls back to runc if it's missing
     limits: { cpu: 2, memoryMb: 2048, diskMb: 10240 }
+  # Where sandboxes may connect: open (anywhere) | allowlist (only \`allow\`,
+  # through the runner's proxy) | none. SANDBOX_EGRESS overrides \`mode\`.
+  # \`allow\` takes hostnames, or \`*.example.com\` for any subdomain.
+  egress:
+    mode: open
+    allow:
+      - registry.npmjs.org
+      - registry.yarnpkg.com
+      - pypi.org
+      - files.pythonhosted.org
+      - github.com
+      - api.github.com
+      - codeload.github.com
+      - objects.githubusercontent.com
+      - raw.githubusercontent.com
+      - release-assets.githubusercontent.com
 
 # ./.data is git-ignored; in the Docker image it's the \`web-data\` volume.
 storage: { driver: local, path: ./.data/files }
@@ -454,16 +472,18 @@ ENCRYPTION_KEY=
 # ENCRYPTION_KEY. Old secrets still open and are resealed when next written.
 ENCRYPTION_KEY_PREVIOUS=
 
-# --- Docker sandboxes (optional \`sandbox\` compose profile) ---
+# --- Docker sandboxes (\`bun dev\` starts the runner when Docker is running) ---
 # Shared secret between web and sandbox-runner; the runner refuses every call
 # without it. Any long random string, e.g. \`openssl rand -hex 32\`.
 SANDBOX_RUNNER_TOKEN=
 SANDBOX_RUNNER_URL=http://localhost:7070
 # auto (gVisor if the host has it, else runc with a warning) | runsc | runc
 SANDBOX_RUNTIME=auto
-# none (default) | allowlist (via SANDBOX_EGRESS_PROXY) | open
-SANDBOX_EGRESS=none
-SANDBOX_EGRESS_PROXY=
+# Where sandboxes may connect is \`sandbox.egress\` in app.config.yaml. Set this
+# (open | allowlist | none) only to override its mode for one deployment.
+SANDBOX_EGRESS=
+# The runner's container name; change it to run a second checkout's runner.
+SANDBOX_RUNNER_CONTAINER=sandbox-runner
 SANDBOX_IMAGE=node:24-bookworm-slim
 # Previews are served from their own origin, never the app's.
 SANDBOX_PREVIEW_URL=http://{id}-{port}.sandbox.localhost:7071
@@ -588,6 +608,22 @@ sandbox:
     token: "\${SANDBOX_RUNNER_TOKEN}"
     runtime: runsc # gVisor; the runner warns and falls back to runc if it's missing
     limits: { cpu: 2, memoryMb: 2048, diskMb: 10240 }
+  # Where sandboxes may connect: open (anywhere) | allowlist (only \`allow\`,
+  # through the runner's proxy) | none. SANDBOX_EGRESS overrides \`mode\`.
+  # \`allow\` takes hostnames, or \`*.example.com\` for any subdomain.
+  egress:
+    mode: open
+    allow:
+      - registry.npmjs.org
+      - registry.yarnpkg.com
+      - pypi.org
+      - files.pythonhosted.org
+      - github.com
+      - api.github.com
+      - codeload.github.com
+      - objects.githubusercontent.com
+      - raw.githubusercontent.com
+      - release-assets.githubusercontent.com
 
 # ./.data is git-ignored; in the Docker image it's the \`web-data\` volume.
 storage: { driver: local, path: ./.data/files }
@@ -801,16 +837,18 @@ ENCRYPTION_KEY=
 # ENCRYPTION_KEY. Old secrets still open and are resealed when next written.
 ENCRYPTION_KEY_PREVIOUS=
 
-# --- Docker sandboxes (optional \`sandbox\` compose profile) ---
+# --- Docker sandboxes (\`bun dev\` starts the runner when Docker is running) ---
 # Shared secret between web and sandbox-runner; the runner refuses every call
 # without it. Any long random string, e.g. \`openssl rand -hex 32\`.
 SANDBOX_RUNNER_TOKEN=fake-random-1
 SANDBOX_RUNNER_URL=http://localhost:7070
 # auto (gVisor if the host has it, else runc with a warning) | runsc | runc
 SANDBOX_RUNTIME=auto
-# none (default) | allowlist (via SANDBOX_EGRESS_PROXY) | open
-SANDBOX_EGRESS=open
-SANDBOX_EGRESS_PROXY=
+# Where sandboxes may connect is \`sandbox.egress\` in app.config.yaml. Set this
+# (open | allowlist | none) only to override its mode for one deployment.
+SANDBOX_EGRESS=
+# The runner's container name; change it to run a second checkout's runner.
+SANDBOX_RUNNER_CONTAINER=sandbox-runner
 SANDBOX_IMAGE=node:24-bookworm-slim
 # Previews are served from their own origin, never the app's.
 SANDBOX_PREVIEW_URL=http://{id}-{port}.sandbox.localhost:7071
@@ -940,6 +978,22 @@ sandbox:
     token: "\${SANDBOX_RUNNER_TOKEN}"
     runtime: runsc # gVisor; the runner warns and falls back to runc if it's missing
     limits: { cpu: 2, memoryMb: 2048, diskMb: 10240 }
+  # Where sandboxes may connect: open (anywhere) | allowlist (only \`allow\`,
+  # through the runner's proxy) | none. SANDBOX_EGRESS overrides \`mode\`.
+  # \`allow\` takes hostnames, or \`*.example.com\` for any subdomain.
+  egress:
+    mode: open
+    allow:
+      - registry.npmjs.org
+      - registry.yarnpkg.com
+      - pypi.org
+      - files.pythonhosted.org
+      - github.com
+      - api.github.com
+      - codeload.github.com
+      - objects.githubusercontent.com
+      - raw.githubusercontent.com
+      - release-assets.githubusercontent.com
 
 # ./.data is git-ignored; in the Docker image it's the \`web-data\` volume.
 storage: { driver: local, path: ./.data/files }

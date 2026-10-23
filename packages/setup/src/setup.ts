@@ -83,7 +83,7 @@ const summary = (answers: Answers): string => {
     `Models:     ${answers.strongModel ?? "first available"}${answers.fastModel ? `, fast ${answers.fastModel}` : ""}`,
     `Keys:       ${keys.length > 0 ? `${keys.join(", ")} saved in .env` : "unchanged"}`,
     `Sign-up:    ${answers.signup}`,
-    `Sandboxes:  ${answers.sandbox}${answers.sandbox === "docker" ? `, network ${answers.egress === "open" ? "open" : "off"}` : ""}`,
+    `Sandboxes:  ${answers.sandbox}${answers.sandbox === "docker" ? `, network ${answers.egress}` : ""}`,
     `Services:   ${services.length > 0 ? services.join(", ") : "none"}`,
     `Icons:      ${answers.icons.set}${answers.icons.style ? ` (${answers.icons.style})` : ""}`,
   ].join("\n");

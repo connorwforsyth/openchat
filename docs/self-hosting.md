@@ -760,7 +760,28 @@ docker compose --profile search --profile sandbox up -d
 `web` never mounts the Docker socket; only `sandbox-runner` reaches Docker,
 through the proxy, on an internal network (D24). Without the `sandbox`
 profile, chats still get just-bash sandboxes, which run in-process and need
-no Docker.
+no Docker. For development, `bun dev` starts the runner when Docker is
+running and `SANDBOX_RUNNER_TOKEN` is set, and says in one line what to run
+when it can't. A second checkout on the same machine sets its own
+`SANDBOX_RUNNER_CONTAINER`, `SANDBOX_RUNNER_PORT` and `SANDBOX_PREVIEW_PORT`.
+
+### Sandbox egress
+
+`sandbox.egress` in `app.config.yaml` decides where Docker sandboxes may
+connect, and `SANDBOX_EGRESS` overrides its `mode`:
+
+| `mode` | What a sandbox can reach |
+|---|---|
+| `open` (default) | Anywhere, your local network included |
+| `allowlist` | Only the hosts in `allow` (npm, PyPI and GitHub out of the box), on ports 80 and 443 |
+| `none` | Nothing |
+
+Under `allowlist` the sandbox stays on a network with no route out, and its
+proxy variables (`HTTPS_PROXY`, npm's, Node's `NODE_USE_ENV_PROXY`) point at a
+forward proxy in `sandbox-runner`, which refuses any host not on the list.
+`allow` takes hostnames, or `*.example.com` for any subdomain. The policy
+travels with each new sandbox, so a change applies to sandboxes created after
+a restart; reset a workspace to apply it to one that exists.
 
 ## Updating
 

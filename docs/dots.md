@@ -148,8 +148,12 @@ gateway. Only the latest three screenshots reach the model
   `POST /api/computer/:conversationId/control` (owner only).
 - **Image:** `docker build -t sandbox-desktop:latest apps/sandbox-runner/desktop`
   (or `docker compose --profile sandbox-desktop-build build sandbox-desktop`);
-  the runner's `SANDBOX_DESKTOP_IMAGE` names it. The runner needs `open`
-  egress (or an allowlist proxy) for the browser to reach the web.
+  the runner's `SANDBOX_DESKTOP_IMAGE` names it. The browser reaches the web
+  under `sandbox.egress.mode: open`; under `allowlist` only the listed hosts.
+- **When it can't start**, the live view says why and the command that fixes
+  it: the runner isn't running, its token is missing or differs from the
+  app's, it can't reach Docker, or the desktop image isn't built (the table
+  is `packages/sandbox/src/runner/unavailable.ts`).
 
 ## Remote sandbox
 
@@ -184,9 +188,10 @@ provider and recovers when the runner is back.
 
 ## Demo: a "Morning brief" Dot every minute
 
-Needs Postgres (`docker compose up -d`), a configured model provider (or
-Ollama running locally), and optionally the sandbox runner
-(`docker compose --profile sandbox up -d`).
+Needs Postgres (`docker compose up -d postgres`), a configured model
+provider (or Ollama running locally), and optionally the sandbox runner
+(`bun dev` starts it when Docker is running, or
+`docker compose --profile sandbox up -d sandbox-runner`).
 
 1. `bun install`, then `bun run db:migrate` (or let the app migrate at boot)
    and `bun dev`. Set `CONFIG_PATH` to the repo's `app.config.yaml` if you run

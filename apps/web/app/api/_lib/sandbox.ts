@@ -20,6 +20,7 @@ import {
 } from "@workspace/sandbox/handlers/workspace-files";
 import { snapshotStoreOnStorage } from "@workspace/sandbox/just-bash/snapshot-store";
 import { sandboxProvidersFromConfig } from "@workspace/sandbox/providers";
+import { egressPolicyFor } from "@workspace/sandbox/runner/egress";
 import type { BoundSandbox, SandboxBinding } from "@workspace/server/server";
 
 // The sandbox handlers and the agents' sandbox tools, bound to this
@@ -72,6 +73,7 @@ export const bindSandbox: SandboxBinding = ({ config, db, storage }) => {
     config.features.sandboxes && docker
       ? createComputers({
           host: createDockerSandboxFactory({
+            egress: egressPolicyFor(config.sandbox.egress),
             runnerUrl: docker.runnerUrl,
             token: docker.token,
           }),
