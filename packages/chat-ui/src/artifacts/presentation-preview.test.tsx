@@ -4,9 +4,11 @@ import { userEvent } from "vitest/browser";
 
 import { renderWithI18n } from "../testing/render";
 import {
+  deckProblem,
   PresentationPreview,
   presentationFileName,
   presentKeyAction,
+  RUNTIME_READY_TIMEOUT_MS,
 } from "./presentation-preview";
 import { RUNTIME_CHANNEL } from "./runtime-protocol";
 
@@ -149,5 +151,62 @@ describe("PresentationPreview", () => {
       "application/vnd.openxmlformats-officedocument.presentationml.presentation"
     );
     created.mockRestore();
+  });
+
+  it("says the artifacts service isn't set up, rather than showing the code", () => {
+    renderWithI18n(<PresentationPreview {...props} runtimeOrigin={null} />);
+    expect(screen.getByRole("alert").textContent).toContain(
+      "Preview unavailable: the artifacts service isn't set up here"
+    );
+    expect(screen.queryByTitle(PREVIEW)).toBeNull();
+  });
+
+  it("says the artifacts service isn't running when the frame never answers, and recovers if it does", async () => {
+    vi.useFakeTimers();
+    const spy = vi.fn();
+    renderWithI18n(<PresentationPreview {...props} post={spy} />);
+    await vi.advanceTimersByTimeAsync(RUNTIME_READY_TIMEOUT_MS + 1);
+    vi.useRealTimers();
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain(
+      "Preview unavailable: the artifacts service isn't running"
+    );
+    expect(alert.textContent).toContain(RUNTIME);
+    expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
+    await ready(spy);
+    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+  });
+
+  it("lists every slide that failed, and keeps the deck", async () => {
+    const spy = vi.fn();
+    renderWithI18n(<PresentationPreview {...props} post={spy} />);
+    await ready(spy);
+    for (const id of ["two", "five"]) {
+      fromFrame({
+        error: { kind: "syntax", message: `slide "${id}": Unexpected token` },
+        id: "1",
+        type: "error",
+      });
+    }
+    const alert = await screen.findByRole("alert");
+    await waitFor(() =>
+      expect(alert.textContent).toContain(
+        "2 slides couldn't be drawn. The others are below."
+      )
+    );
+    expect(alert.textContent).toContain("five: Unexpected token");
+    expect(frame()).toBeTruthy();
+  });
+});
+
+describe("deckProblem", () => {
+  it("tells a slide's error from the deck's", () => {
+    expect(
+      deckProblem({ kind: "render", message: 'slide "intro": boom' })
+    ).toEqual({ id: "intro", kind: "slide", message: "boom" });
+    expect(deckProblem({ kind: "syntax", message: "isn't JSON" })).toEqual({
+      kind: "deck",
+      message: "isn't JSON",
+    });
   });
 });

@@ -8,10 +8,11 @@ import type {
   ArtifactListItem,
   ArtifactVersion,
 } from "@workspace/contract/schemas/files";
-import { type ReactNode, useCallback } from "react";
+import { type ReactNode, useCallback, useMemo } from "react";
 
 import type { ArtifactSelection } from "../artifact-view";
 import type { PlanEditing } from "../plan-editor";
+import type { LinkTarget } from "./blocks";
 import { DocumentView } from "./document-view";
 import type { SaveDocumentVersion } from "./use-document-save";
 
@@ -67,6 +68,17 @@ export function DocumentArtifact({
     enabled: info === undefined,
   });
   const known = info ?? detail.data?.artifact;
+  const canEdit = known?.access === "owner" || known?.access === "editor";
+  // What the `/` menu can link to; its first page is plenty to pick from.
+  const others = useQuery({
+    ...api.artifacts.listAll.queryOptions({ input: {} }),
+    enabled: canEdit,
+  });
+  const linkTargets = useMemo(
+    (): readonly LinkTarget[] | undefined =>
+      others.data?.items.map(({ id, kind, title }) => ({ id, kind, title })),
+    [others.data]
+  );
   const save = useSaveDocumentVersion(api, artifact.id);
   return (
     <DocumentView
@@ -76,6 +88,7 @@ export function DocumentArtifact({
       authorName={known?.ownerName}
       editing={editing}
       header={header}
+      linkTargets={linkTargets}
       onSave={save}
       onSelect={onSelect}
       versionId={versionId}

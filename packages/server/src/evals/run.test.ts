@@ -19,12 +19,12 @@ import {
   createVersionedItem,
   publishDraft,
 } from "@workspace/db/queries/library";
+import { userSummaries } from "@workspace/db/queries/library-items";
 import { transaction } from "@workspace/db/schema/usage";
 import { expectOk } from "@workspace/db/testing";
 import { MockLanguageModelV4 } from "ai/test";
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-
 import { enqueueJob } from "../jobs/registry";
 import { createHarness, type Harness } from "../testing/harness";
 import {
@@ -94,6 +94,40 @@ const publishedVersion = async (
 };
 
 describe("eval.run", () => {
+  it("fills the agent's variables, as a chat does", async () => {
+    const { item } = await createVersionedItem(h.db, "agent", {
+      createdBy: h.ownerId,
+      definition: {
+        ...definition,
+        instructions: "Today is {{current_date}}. Answer {{current_user}}.",
+      },
+      name: "Greeter",
+      owner: { id: h.ownerId, type: "user" },
+    });
+    const published = expectOk(
+      await publishDraft(h.db, "agent", item.id as LibraryItemId, {
+        publishedBy: h.ownerId,
+      })
+    );
+    const dataset = await createEvalDataset(h.db, {
+      agentId: item.id as LibraryItemId,
+      createdBy: h.ownerId,
+      name: "Hello",
+    });
+    await addEvalCases(h.db, dataset.id, [{ input: "Hi" }]);
+    await enqueueEvalRun(h.jobs, h.db, {
+      agentVersionId: published.version.id as LibraryVersionId,
+      createdBy: h.ownerId,
+      datasetId: dataset.id,
+    });
+    await h.jobs.drain();
+
+    const [owner] = await userSummaries(h.db, [h.ownerId]);
+    const prompt = JSON.stringify(model.doStreamCalls[0]?.prompt);
+    expect(prompt).not.toContain("{{");
+    expect(prompt).toContain(`Answer ${owner?.name}.`);
+  });
+
   it("runs every case against the version and stores the scores", async () => {
     const { agentId, versionId } = await publishedVersion();
     const dataset = await createEvalDataset(h.db, {

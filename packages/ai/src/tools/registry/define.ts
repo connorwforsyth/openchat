@@ -56,8 +56,22 @@ export interface ToolRunContext {
   readonly workspace?: unknown;
 }
 
+/** A file the model is shown with a call's result: an image `read` found. */
+export interface ToolModelFile {
+  /** Base64. */
+  readonly data: string;
+  readonly mediaType: string;
+}
+
 /** What `execute` gets: the run's bindings, plus this call's id and abort signal. */
 export type ToolContext<Run extends ToolRunContext = ToolRunContext> = Run & {
+  /**
+   * Shows the model `file` after the result's `modelText`, in this run
+   * only: the stored result stays what `execute` returns, so a chat's
+   * history never carries the bytes. Absent when the definition has no
+   * `modelText`.
+   */
+  readonly show?: (file: ToolModelFile) => void;
   /** Aborts when the run is stopped (072) or times out. */
   readonly signal: AbortSignal | undefined;
   readonly toolCallId: string;

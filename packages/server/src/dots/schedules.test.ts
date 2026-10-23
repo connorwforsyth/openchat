@@ -205,6 +205,7 @@ describe("schedules API", () => {
       await request("/api/conversations")
     );
     expect(listed.items.find((each) => each.id === chat.id)?.schedule).toEqual({
+      emoji: "⏰",
       id: schedule.id,
       nextRunNominalAt: "2026-10-20T09:00:00.000Z",
       status: "active",
@@ -337,6 +338,45 @@ describe("schedules API", () => {
       await request(`/api/schedules/${schedule.id}/resume`, { method: "POST" })
     );
     expect(again).toMatchObject({ pausedReason: null, status: "active" });
+  });
+
+  it("labels a task with the emoji it's given, or ⏰", async () => {
+    const chat = await newChat();
+    const target = { conversationId: chat.id, kind: "conversation" };
+    expect((await create({ target })).emoji).toBe("⏰");
+    const sunny = await create({ emoji: "☀️", target });
+    expect(sunny.emoji).toBe("☀️");
+    await create({ emoji: "sun", target }, 400);
+
+    const changed = await json<Schedule>(
+      await request(`/api/schedules/${sunny.id}`, {
+        json: { emoji: "🔔" },
+        method: "PATCH",
+      })
+    );
+    expect(changed).toMatchObject({ emoji: "🔔", title: sunny.title });
+  });
+
+  it("gives schedules made before emoji labels ⏰", async () => {
+    const chat = await newChat();
+    await create({
+      emoji: "☀️",
+      target: { conversationId: chat.id, kind: "conversation" },
+    });
+    await h.db.execute(sql`alter table dot_schedule drop column emoji`);
+    await h.db.execute(
+      sql.raw(
+        await readFile(
+          join(
+            MIGRATIONS_FOLDER,
+            "20261022122628_schedule_emoji/migration.sql"
+          ),
+          "utf8"
+        )
+      )
+    );
+    const [only] = await json<Schedule[]>(await request("/api/schedules"));
+    expect(only?.emoji).toBe("⏰");
   });
 
   it("retitles schedules the schedules migration cut mid-word", async () => {
@@ -517,7 +557,7 @@ describe("scheduled runs", () => {
       "assistant",
     ]);
     expect(path.messages[0]?.parts[0]).toEqual({
-      data: { scheduleId: schedule.id, title: "Release watch" },
+      data: { emoji: "⏰", scheduleId: schedule.id, title: "Release watch" },
       name: "scheduled-task",
       type: "data",
     });

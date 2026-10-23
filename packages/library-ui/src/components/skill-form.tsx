@@ -4,7 +4,7 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import { useQuery } from "@tanstack/react-query";
 import { CodeView } from "@workspace/code-ui/code-view";
 import { FileTree } from "@workspace/code-ui/file-tree";
-import type { FileId } from "@workspace/contract/schemas/common";
+import type { FileId, LibraryItemId } from "@workspace/contract/schemas/common";
 import type { SkillDefinition } from "@workspace/contract/schemas/library";
 import { PlayIcon, PlusIcon, XIcon } from "@workspace/icons";
 import { Button } from "@workspace/ui/components/button";
@@ -18,7 +18,10 @@ import { Skeleton } from "@workspace/ui/components/skeleton";
 import { useCallback, useState } from "react";
 
 import type { FormIssues } from "../form";
-import { issueAt, TextAreaField } from "./fields";
+import { snippetMenuItems } from "../snippet";
+import type { Choice } from "./agent-form";
+import { issueAt, SnippetField } from "./fields";
+import type { SnippetMenu } from "./snippet-editor";
 
 // The Skill builder (D13): the Agent Skills format, a `SKILL.md` with
 // frontmatter plus bundled scripts and resources. Files are uploads the page
@@ -31,6 +34,10 @@ export interface SkillFormProps {
   readonly issues: FormIssues;
   readonly onAddFiles?: () => Promise<SkillDefinition["files"]>;
   readonly onChange: (next: SkillDefinition) => void;
+  /** A prompt's template, for the `/` menu; `null` when it can't be read. */
+  readonly onLoadPrompt?: (id: LibraryItemId) => Promise<string | null>;
+  /** Prompts, for the `/` menu. */
+  readonly prompts?: readonly Choice[];
   readonly readOnly?: boolean;
   readonly value: SkillDefinition;
 }
@@ -39,10 +46,28 @@ export function SkillForm({
   issues,
   onAddFiles,
   onChange,
+  onLoadPrompt,
+  prompts,
   readOnly = false,
   value,
 }: SkillFormProps) {
   const { t } = useLingui();
+  const menu: SnippetMenu | undefined =
+    onLoadPrompt && prompts && !readOnly
+      ? {
+          items: (query) =>
+            snippetMenuItems(query, {
+              prompts: prompts.map((prompt) => ({
+                id: prompt.id,
+                kind: "prompt",
+                name: prompt.name,
+              })),
+            }),
+          onPick: (item) =>
+            item.kind === "prompt" ? onLoadPrompt(item.id) : null,
+          title: t`Insert a prompt`,
+        }
+      : undefined;
   const setSkillMd = useCallback(
     (skillMd: string) => onChange({ ...value, skillMd }),
     [onChange, value]
@@ -66,12 +91,16 @@ export function SkillForm({
 
   return (
     <FieldGroup>
-      <TextAreaField
+      <SnippetField
         className="min-h-72 font-mono text-sm"
-        description={t`Frontmatter with a name and description, then the instructions the agent follows.`}
+        description={
+          menu
+            ? t`Frontmatter with a name and description, then the instructions the agent follows. Type / to insert a prompt.`
+            : t`Frontmatter with a name and description, then the instructions the agent follows.`
+        }
         issue={issueAt(issues, "definition.skillMd")}
         label={SKILL_MD}
-        name="skillMd"
+        menu={menu}
         onValueChange={setSkillMd}
         readOnly={readOnly}
         spellCheck={false}

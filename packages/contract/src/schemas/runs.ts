@@ -178,10 +178,25 @@ export const runModeSchema = z.enum(["plan"]);
 export type RunMode = z.infer<typeof runModeSchema>;
 
 /**
+ * A chat's mode. `chat`: artifacts and the workspace's files (read, upload,
+ * edit), nothing that executes. `code`: adds the sandbox (shell commands,
+ * installs, dev servers and previews). The server enforces it when it
+ * resolves a turn's tools. A Dot's chat is outside the switch.
+ */
+export const chatModeSchema = z.enum(["chat", "code"]);
+export type ChatMode = z.infer<typeof chatModeSchema>;
+
+/**
  * Per-turn switches from the composer. `auto` lets the Decider and agent
  * config choose; an absent field leaves the provider's default.
  */
 export const runOptionsSchema = z.object({
+  /**
+   * The chat's mode this run ran in. The server records it from the
+   * conversation's `mode` as the run is created and ignores a client's
+   * value. Absent outside the switch (a Dot's chat) and on older runs.
+   */
+  chatMode: chatModeSchema.optional(),
   /**
    * The provider's fast tier for this turn (105), where the model has one
    * (OpenAI's priority processing, Anthropic's fast mode). Ignored where it

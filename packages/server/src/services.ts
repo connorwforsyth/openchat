@@ -11,12 +11,12 @@ import type { ArtifactKindRegistry } from "@workspace/artifacts-kit/registry";
 import type { AppConfig } from "@workspace/config/schema";
 import type { ModelSelector } from "@workspace/contract/schemas/models";
 import type { Db } from "@workspace/db/client";
-
 import {
   attachedArtifactsSection,
   dbArtifactStore,
 } from "./api/artifacts-context";
 import type { ApiServices } from "./api/router";
+import { compileTsx } from "./artifacts/compile-tsx";
 import { type ConversationAccess, grantAccess } from "./context";
 import {
   type DotComputers,
@@ -59,6 +59,7 @@ import {
   type TurnResolver,
   type TurnResolverDeps,
 } from "./runs/turn";
+import { createConversationEvents } from "./stream/conversation-events";
 import type { Listen } from "./stream/listen";
 import {
   createPostgresStreamChannel,
@@ -151,7 +152,9 @@ export const createServices = (options: ServicesOptions): Services => {
   const keyStore =
     options.keyStore ?? createMemoryKeyStore(instanceKeysFromConfig(config));
   // The instance layer of the kinds' rules (125): its site settings.
-  const artifactKinds = instanceArtifactKinds(config.artifacts.kinds);
+  const artifactKinds = instanceArtifactKinds(config.artifacts.kinds, {
+    compileTsx,
+  });
   const turnDeps = {
     artifactKinds,
     artifacts: (run: RunStart) =>
@@ -177,10 +180,12 @@ export const createServices = (options: ServicesOptions): Services => {
     config,
     db,
     keyStore,
+    now: options.now,
     registry: options.registry,
   };
   const loadModel = createModelLoader(turnDeps);
   const streams = createPostgresStreamChannel({ db, listen: options.listen });
+  const events = createConversationEvents({ db, listen: options.listen });
 
   const access = options.access ?? grantAccess(db);
   const afterRun = async (event: RunSettled) => {
@@ -290,6 +295,7 @@ export const createServices = (options: ServicesOptions): Services => {
     db,
     defaultModel: config.models.default,
     dots,
+    events,
     executor,
     jobHandlers: {
       ...jobHandlers,
@@ -308,6 +314,7 @@ export const createServices = (options: ServicesOptions): Services => {
     stop: async () => {
       await executor.shutdown();
       await streams.stop();
+      await events.stop();
     },
     streams,
   };

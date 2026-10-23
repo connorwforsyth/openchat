@@ -5,6 +5,16 @@ an oRPC contract for the procedures, and the OpenAPI 3.1 document generated
 from both. Frozen for the M1 workstreams; changes follow the process at the
 end of this file.
 
+## Changes (2026-10-22, schedule emoji)
+
+Schedules get an emoji label. Needs the owner's review before
+`n2/fix-schedule-emoji` (migration, server and web) can merge.
+
+| Change | Who needs it | Compatibility |
+|---|---|---|
+| `scheduleEmojiSchema` (one emoji grapheme) and `DEFAULT_SCHEDULE_EMOJI` (`⏰`). `Schedule.emoji` and `ConversationSchedule.emoji` are required. | The schedules list and editor, the sidebar's schedule rows, the Dot header's schedule indicator | Breaking for the server, which must store and send `emoji`; a response without it fails the output schema. |
+| `CreateScheduleInput.emoji` and `DotScheduleInput.emoji` are optional, defaulting to `⏰`. `UpdateScheduleInput.emoji` is optional. | The schedule editor, the schedules page's templates and the Dot onboarding's starter schedule | Additive. |
+
 ## Changes (2026-10-20, 173a review)
 
 Review fixes to the schedules contract (173a). Needs the owner's review
@@ -158,6 +168,23 @@ so it's added to `openapi.json` by hand (`openapi.ts`) as a
 - Chunks are opaque JSON in this contract (`jsonValueSchema`) so it doesn't pin
   an AI SDK version. When a run finishes, its output is stored as our own
   `MessagePart`s, versioned by `partsVersion`.
+
+## The conversation events (not a procedure)
+
+`GET /api/conversations/{id}/events` is Server-Sent Events (D25) that keep an
+open chat current while other people use it. It's added to `openapi.json` by
+hand as `conversations.events`; each event's `data` is one JSON
+`ConversationEvent`.
+
+- `message`: a message was stored. `run`: a run was created or changed
+  status; on `running` a client that isn't already reading it follows
+  `GET /runs/{id}/stream`. `presence`: everyone with the chat open, sent
+  first and on every change. `typing`: someone is writing, from
+  `conversations.typing`; it lapses after `TYPING_TTL_MS`.
+- Events are hints, not a log. There are no ids and no resume: a client that
+  reconnects refetches the branch and the active runs.
+- Anyone who can read the chat (`resource_grant`, D25) may subscribe; only
+  editors may send `typing`.
 
 ## The model proxy (not a procedure)
 

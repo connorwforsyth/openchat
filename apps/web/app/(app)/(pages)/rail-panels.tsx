@@ -14,7 +14,6 @@ import { libraryTabSchema } from "@workspace/contract/schemas/library";
 import { artifactKindSchema } from "@workspace/contract/schemas/message-parts";
 import {
   Building2Icon,
-  ClockIcon,
   LayoutGridIcon,
   PlusIcon,
   ShareIcon,
@@ -70,7 +69,11 @@ export function ScheduledPanel() {
     return {
       active: open === schedule.id,
       href: routes.scheduleEdit(schedule.id),
-      icon: <ClockIcon aria-hidden className={iconClass} />,
+      icon: (
+        <span aria-hidden className={`${iconClass} text-sm leading-4`}>
+          {schedule.emoji}
+        </span>
+      ),
       id: schedule.id,
       label: schedule.title,
       meta,

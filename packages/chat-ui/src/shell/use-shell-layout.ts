@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   clampPanelWidth,
@@ -57,14 +57,23 @@ export const useShellLayout = (storageKey = SHELL_LAYOUT_STORAGE_KEY) => {
     }
   }, [layout, restored, storageKey]);
 
-  const toggleSidebar = useCallback(
-    () =>
-      setLayout((current) => ({
-        ...current,
-        sidebarOpen: !current.sidebarOpen,
-      })),
-    []
-  );
+  // With no room to dock the sidebar, the shell claims the toggle and shows
+  // it over the page instead, so ⌘B, the palette and the buttons agree.
+  const claimed = useRef<(() => void) | null>(null);
+  const toggleSidebar = useCallback(() => {
+    const claim = claimed.current;
+    if (claim !== null) {
+      claim();
+      return;
+    }
+    setLayout((current) => ({
+      ...current,
+      sidebarOpen: !current.sidebarOpen,
+    }));
+  }, []);
+  const claimSidebarToggle = useCallback((toggle: (() => void) | null) => {
+    claimed.current = toggle;
+  }, []);
   const setPanel = useCallback(
     (panel: WorkspaceSection | null) =>
       setLayout((current) => ({ ...current, panel })),
@@ -84,7 +93,14 @@ export const useShellLayout = (storageKey = SHELL_LAYOUT_STORAGE_KEY) => {
     []
   );
 
-  return { layout, setPanel, setPanelWidth, togglePanel, toggleSidebar };
+  return {
+    claimSidebarToggle,
+    layout,
+    setPanel,
+    setPanelWidth,
+    togglePanel,
+    toggleSidebar,
+  };
 };
 
 export type ShellLayoutState = ReturnType<typeof useShellLayout>;

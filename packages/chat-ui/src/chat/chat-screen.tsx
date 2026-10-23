@@ -144,6 +144,8 @@ export interface ChatScreenProps {
   readonly banner?: ReactNode;
   readonly brand?: ReactNode;
   readonly composer: ComposerLoaderProps;
+  /** A line over the composer (who else is typing, D25). */
+  readonly composerNote?: ReactNode;
   /**
    * A live view pinned above the Workspace panel's files and browser (a
    * Dot's computer, 172). It renders nothing for a chat that has none.
@@ -160,6 +162,8 @@ export interface ChatScreenProps {
    */
   readonly layout?: ShellLayoutState;
   readonly messages: readonly Message[];
+  /** Every keystroke in the composer, to tell others this person is typing. */
+  readonly onComposerInput?: () => void;
   readonly onNewChat: () => void;
   /** Opens the ⌘K palette (ticket 024). */
   readonly onOpenPalette?: () => void;
@@ -232,6 +236,8 @@ function ChatScreenBody({
   banner,
   brand,
   composer,
+  composerNote,
+  onComposerInput,
   computer,
   conversation,
   feedback,
@@ -253,8 +259,14 @@ function ChatScreenBody({
   // Hooks can't be conditional, so the screen's own layout always exists; it
   // just goes unused when the app passes one in.
   const ownLayout = useShellLayout();
-  const { layout, setPanel, setPanelWidth, togglePanel, toggleSidebar } =
-    sharedLayout ?? ownLayout;
+  const {
+    claimSidebarToggle,
+    layout,
+    setPanel,
+    setPanelWidth,
+    togglePanel,
+    toggleSidebar,
+  } = sharedLayout ?? ownLayout;
   const narrow = useNarrowScreen();
   const railed = useSidebarLayout() === "rail";
   const [sidebarSheetOpen, setSidebarSheetOpen] = useState(false);
@@ -670,10 +682,8 @@ function ChatScreenBody({
     }),
     [composer, composerFill, onSubmit, workspaceComposer]
   );
-  const sidebarExpanded = narrow ? sidebarSheetOpen : layout.sidebarOpen;
   const sidebarToggle = (where: "header" | "rail" | "sidebar") => (
     <SidebarToggle
-      expanded={sidebarExpanded}
       hint={<ShortcutHint id="sidebar.toggle" />}
       onToggle={toggleChats}
       placement={where}
@@ -773,6 +783,7 @@ function ChatScreenBody({
 
   return (
     <AppShell
+      claimSidebarToggle={claimSidebarToggle}
       header={header}
       onPanelClose={closePanel}
       onPanelWidthChange={setPanelWidth}
@@ -824,12 +835,16 @@ function ChatScreenBody({
             streamingMessageId={streamingMessageId}
           />
         </FilePreviewContext.Provider>
-        <ComposerDock
-          composer={composerProps}
-          onSuggestion={composerDisabled ? undefined : sendSuggestion}
-          placement={placement}
-          ref={composerRef}
-        />
+        {composerNote}
+        {/* `contents`: only listens, so the dock keeps its place in the column. */}
+        <div className="contents" onInput={onComposerInput}>
+          <ComposerDock
+            composer={composerProps}
+            onSuggestion={composerDisabled ? undefined : sendSuggestion}
+            placement={placement}
+            ref={composerRef}
+          />
+        </div>
       </div>
       <ShortcutHelp onOpenChange={setHelpOpen} open={helpOpen} />
       {newFile.asked && files.kind === "chat" ? (

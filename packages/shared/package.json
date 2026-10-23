@@ -5,6 +5,7 @@
   "sideEffects": false,
   "type": "module",
   "exports": {
+    "./agent-variables": "./src/agent-variables.ts",
     "./ids": "./src/ids.ts",
     "./result": "./src/result.ts",
     "./utils": "./src/utils.ts"

@@ -134,21 +134,40 @@ const cases: Record<string, Cases> = {
     invalid: ["2026-09-26", "yesterday", 0],
     valid: [t, "2026-09-26T09:00:00+10:00"],
   },
+  "conversations.conversationEventSchema": {
+    invalid: [
+      { status: "done", type: "run" },
+      { type: "typing", user: { id: uid } },
+      { type: "joined" },
+    ],
+    valid: [
+      { authorId: uid, messageId: msgId, type: "message" },
+      { authorId: null, messageId: msgId, type: "message" },
+      { runId: runAwaitingApproval.id, status: "running", type: "run" },
+      { type: "presence", users: [userAda] },
+      { type: "typing", user: userAda },
+    ],
+  },
 
   // conversations
   "conversations.conversationSchema": {
     invalid: [
       { ...conversation, context: { type: "team" } },
       { ...conversation, title: "x".repeat(201) },
+      { ...conversation, mode: "build" },
     ],
     valid: [
       conversation,
       { ...conversation, context: { type: "personal" }, title: null },
+      { ...conversation, mode: "chat" },
     ],
   },
   "conversations.createConversationInputSchema": {
-    invalid: [{ context: { type: "space" } }, { title: "" }],
-    valid: [{}, { context: { id: org.id, type: "org" }, title: "Plans" }],
+    invalid: [{ context: { type: "space" } }, { title: "" }, { mode: "plan" }],
+    valid: [
+      {},
+      { context: { id: org.id, type: "org" }, mode: "code", title: "Plans" },
+    ],
   },
   "conversations.forkConversationInputSchema": {
     invalid: [{ id: convId }],
@@ -173,10 +192,14 @@ const cases: Record<string, Cases> = {
     valid: [{ context: { type: "personal" }, id: convId }],
   },
   "conversations.updateConversationInputSchema": {
-    invalid: [{ id: convId, title: "  " }],
+    invalid: [
+      { id: convId, title: "  " },
+      { id: convId, mode: null },
+    ],
     valid: [
       { id: convId },
       { archived: true, defaultTarget: null, id: convId, pinned: true },
+      { id: convId, mode: "code" },
     ],
   },
   "conversations.updateParticipantStateInputSchema": {
@@ -1438,8 +1461,14 @@ const cases: Record<string, Cases> = {
     invalid: [
       { ...userMessage, partsVersion: 2 },
       { ...userMessage, role: "tool" },
+      { ...userMessage, mode: "plan" },
     ],
-    valid: [userMessage, assistantMessage],
+    valid: [
+      userMessage,
+      assistantMessage,
+      { ...assistantMessage, mode: "code" },
+      { ...userMessage, mode: null },
+    ],
   },
   "messages.messageTreeSchema": {
     invalid: [{ conversationId: convId }],
@@ -1589,6 +1618,10 @@ const cases: Record<string, Cases> = {
       { inputTokens: 1, outputTokens: 2 },
       { cachedInputTokens: 5, inputTokens: 10, outputTokens: 2 },
     ],
+  },
+  "runs.chatModeSchema": {
+    invalid: ["plan", "Chat", "", null],
+    valid: ["chat", "code"],
   },
 
   // runs
@@ -1748,6 +1781,7 @@ const cases: Record<string, Cases> = {
       { mode: "build" },
       { mode: "" },
       { mode: null },
+      { chatMode: "plan" },
     ],
     valid: [
       // The shape before 105 still parses.
@@ -1758,6 +1792,8 @@ const cases: Record<string, Cases> = {
       // Plan mode (106); absent means a normal turn.
       { mode: "plan" },
       { fast: true, mode: "plan", reasoning: "high", webSearch: "on" },
+      { chatMode: "code" },
+      { chatMode: "chat", mode: "plan" },
     ],
   },
   "runs.runSchema": {
@@ -2411,6 +2447,17 @@ describe("run and library helpers", () => {
       modules.messageParts.messagePartSchema.options
         .map((o) => o.shape.type.value)
         .sort()
+    );
+  });
+});
+
+describe("conversation mode rollout", () => {
+  it("accepts an older producer and defaults its missing mode to chat", () => {
+    const { mode: _mode, ...legacy } = conversation;
+    const producer: z.infer<typeof modules.conversations.conversationSchema> =
+      legacy;
+    expect(modules.conversations.conversationSchema.parse(producer).mode).toBe(
+      "chat"
     );
   });
 });
