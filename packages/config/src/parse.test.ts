@@ -313,6 +313,19 @@ describe("sandbox egress", () => {
     });
   });
 
+  it("accepts 256 egress hosts and rejects 257 at config load", () => {
+    const hosts = Array.from(
+      { length: 256 },
+      (_, index) => `host${index}.example`
+    );
+    const config = (allow: readonly string[]) =>
+      `sandbox:\n  egress:\n    mode: allowlist\n    allow: [${allow.join(", ")}]`;
+    expect(expectOk(config(hosts)).sandbox.egress.allow).toEqual(hosts);
+    expect(
+      expectErrors(config([...hosts, "overflow.example"]))[0]?.path
+    ).toEqual(["sandbox", "egress", "allow"]);
+  });
+
   it("lets SANDBOX_EGRESS override the file's mode and keeps its list", () => {
     const { egress } = expectOk(
       "sandbox:\n  egress: { mode: open, allow: [pypi.org] }",

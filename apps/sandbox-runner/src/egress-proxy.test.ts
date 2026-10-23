@@ -1,5 +1,10 @@
 import { once } from "node:events";
-import { createServer, request, type Server } from "node:http";
+import {
+  createServer,
+  type IncomingHttpHeaders,
+  request,
+  type Server,
+} from "node:http";
 import { type AddressInfo, createServer as createTcpServer } from "node:net";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -58,7 +63,25 @@ describe("the egress proxy", () => {
   const asked: string[] = [];
 
   beforeAll(async () => {
-    upstream = createServer((_req, res) => res.end("upstream says hi"));
+    upstream = createServer((req, res) => {
+      if (req.url === "/headers") {
+        res.writeHead(200, {
+          connection: "close, X-Response-Private",
+          "keep-alive": "timeout=1234",
+          "proxy-authenticate": "private",
+          "proxy-authorization": "private",
+          "proxy-connection": "private",
+          te: "trailers",
+          trailer: "X-Response-Trailer",
+          upgrade: "private",
+          "x-response-private": "private",
+          "x-response-public": "preserved",
+        });
+        res.end(JSON.stringify(req.headers));
+        return;
+      }
+      res.end("upstream says hi");
+    });
     upstream.listen(0, "127.0.0.1");
     await once(upstream, "listening");
     upstreamPort = (upstream.address() as AddressInfo).port;
@@ -109,23 +132,29 @@ describe("the egress proxy", () => {
       connectRequest.end();
     });
 
-  const get = (url: string) =>
-    new Promise<{ status: number; body: string }>((resolve, reject) => {
-      const getRequest = request(
-        { host: "127.0.0.1", path: url, port: proxyPort },
-        (response) => {
-          let body = "";
-          response.on("data", (chunk) => {
-            body += chunk;
-          });
-          response.on("end", () =>
-            resolve({ body, status: response.statusCode ?? 0 })
-          );
-        }
-      );
-      getRequest.on("error", reject);
-      getRequest.end();
-    });
+  const get = (url: string, headers?: IncomingHttpHeaders) =>
+    new Promise<{ status: number; body: string; headers: IncomingHttpHeaders }>(
+      (resolve, reject) => {
+        const getRequest = request(
+          { headers, host: "127.0.0.1", path: url, port: proxyPort },
+          (response) => {
+            let body = "";
+            response.on("data", (chunk) => {
+              body += chunk;
+            });
+            response.on("end", () =>
+              resolve({
+                body,
+                headers: response.headers,
+                status: response.statusCode ?? 0,
+              })
+            );
+          }
+        );
+        getRequest.on("error", reject);
+        getRequest.end();
+      }
+    );
 
   it("tunnels HTTPS to a listed host, asking by the sandbox's address", async () => {
     expect(await tunnel(`localhost:${echoPort}`)).toEqual({
@@ -141,13 +170,75 @@ describe("the egress proxy", () => {
   });
 
   it("forwards plain HTTP to a listed host, and refuses the rest", async () => {
-    expect(await get(`http://localhost:${upstreamPort}/`)).toEqual({
+    expect(await get(`http://localhost:${upstreamPort}/`)).toMatchObject({
       body: "upstream says hi",
       status: 200,
     });
     const refused = await get(`http://example.com:${upstreamPort}/`);
     expect(refused.status).toBe(403);
     expect(refused.body).toContain("isn't on this sandbox's egress allowlist");
+  });
+
+  it("uses the allowlisted URL authority instead of the client's Host", async () => {
+    const response = await get(`http://localhost:${upstreamPort}/headers`, {
+      host: "unlisted.example",
+    });
+    expect(JSON.parse(response.body).host).toBe(`localhost:${upstreamPort}`);
+  });
+
+  it("removes hop-by-hop and Connection-nominated request headers", async () => {
+    const response = await get(`http://localhost:${upstreamPort}/headers`, {
+      connection: "close, X-Request-Private, X-Second-Private",
+      "keep-alive": "timeout=1234",
+      "proxy-authenticate": "private",
+      "proxy-authorization": "private",
+      "proxy-connection": "private",
+      te: "trailers",
+      trailer: "X-Request-Trailer",
+      "transfer-encoding": "chunked",
+      upgrade: "private",
+      "x-request-private": "private",
+      "x-request-public": "preserved",
+      "x-second-private": "private",
+    });
+    const headers = JSON.parse(response.body);
+    for (const name of [
+      "keep-alive",
+      "proxy-authenticate",
+      "proxy-authorization",
+      "proxy-connection",
+      "te",
+      "trailer",
+      "upgrade",
+      "x-request-private",
+      "x-second-private",
+    ]) {
+      expect(headers[name], name).toBeUndefined();
+    }
+    expect(headers.connection).not.toContain("X-Request-Private");
+    expect(headers["x-request-public"]).toBe("preserved");
+  });
+
+  it("removes hop-by-hop and Connection-nominated response headers", async () => {
+    const { body, headers, status } = await get(
+      `http://localhost:${upstreamPort}/headers`
+    );
+    expect(status).toBe(200);
+    expect(JSON.parse(body)).toHaveProperty("host");
+    for (const name of [
+      "keep-alive",
+      "proxy-authenticate",
+      "proxy-authorization",
+      "proxy-connection",
+      "te",
+      "trailer",
+      "upgrade",
+      "x-response-private",
+    ]) {
+      expect(headers[name], name).toBeUndefined();
+    }
+    expect(headers.connection).not.toContain("X-Response-Private");
+    expect(headers["x-response-public"]).toBe("preserved");
   });
 
   it("isn't a web server: a relative request is a bad request", async () => {
