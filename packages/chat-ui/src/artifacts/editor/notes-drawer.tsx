@@ -15,6 +15,7 @@ import {
   useCallback,
   useEffect,
   useId,
+  useRef,
   useState,
 } from "react";
 
@@ -45,7 +46,16 @@ export function NotesDrawer({
   const { t } = useLingui();
   const id = useId();
   const shell = useShellPanels();
-  const hide = useCallback(() => shell?.toggle("notes"), [shell]);
+  const section = useRef<HTMLElement>(null);
+  // The button goes with the notes; focus moves to the toolbar's toggle,
+  // which brings them back.
+  const hide = useCallback(() => {
+    const toggle = section.current
+      ?.closest("[data-artifact-editor]")
+      ?.querySelector<HTMLElement>('[data-panel-toggle="notes"]');
+    shell?.toggle("notes");
+    toggle?.focus();
+  }, [shell]);
   const [draft, setDraft] = useState(value);
   useEffect(() => setDraft(value), [value]);
 
@@ -75,7 +85,11 @@ export function NotesDrawer({
   );
 
   return (
-    <section aria-label={label} className="shrink-0 border-t bg-background">
+    <section
+      aria-label={label}
+      className="shrink-0 border-t bg-background"
+      ref={section}
+    >
       <div className="flex h-9 items-center gap-2 ps-3 pe-1 text-xs">
         <FileTextIcon aria-hidden className="size-3.5 text-muted-foreground" />
         <label className="font-medium" htmlFor={id}>

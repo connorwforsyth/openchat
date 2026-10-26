@@ -18,15 +18,11 @@ export const editorPanelsSchema = z.object({
   notes: z.boolean().catch(true),
   rail: z.boolean().catch(true),
 });
-export type EditorPanels = z.infer<typeof editorPanelsSchema>;
+export type EditorPanels = Readonly<z.infer<typeof editorPanelsSchema>>;
 
 export const EDITOR_PANELS_STORAGE_KEY = "artifact-editor:panels";
 
-export const defaultEditorPanels: EditorPanels = {
-  inspector: true,
-  notes: true,
-  rail: true,
-};
+export const defaultEditorPanels: EditorPanels = editorPanelsSchema.parse({});
 
 /** What's stored, read leniently: anything unreadable shows the panel. */
 export const parseEditorPanels = (raw: string | null): EditorPanels => {
@@ -74,6 +70,11 @@ const onStorage = (event: StorageEvent) => {
 
 const subscribe = (listener: () => void) => {
   if (listeners.size === 0) {
+    // Unwatched, it could have missed another tab's change.
+    const raw = readStored(EDITOR_PANELS_STORAGE_KEY);
+    if (raw !== null) {
+      current = parseEditorPanels(raw);
+    }
     window.addEventListener("storage", onStorage);
   }
   listeners.add(listener);
@@ -81,8 +82,6 @@ const subscribe = (listener: () => void) => {
     listeners.delete(listener);
     if (listeners.size === 0) {
       window.removeEventListener("storage", onStorage);
-      // Unwatched, it could miss another tab's change: read it afresh.
-      current = null;
     }
   };
 };

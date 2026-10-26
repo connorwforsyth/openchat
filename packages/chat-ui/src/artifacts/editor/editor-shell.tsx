@@ -116,6 +116,7 @@ const PANEL_SHORTCUTS: Readonly<Record<EditorPanel, ShortcutId>> = {
 export function EditorShell({
   canvas,
   className,
+  covered = false,
   drawer,
   inspector,
   inspectorPlaceholder,
@@ -126,6 +127,8 @@ export function EditorShell({
 }: {
   readonly canvas: ReactNode;
   readonly className?: string;
+  /** The canvas fills the window (presenting): the panel keys are off. */
+  readonly covered?: boolean;
   /** Under the canvas, always shown ("Change this"). */
   readonly drawer?: ReactNode;
   /** What's picked, to change it; `null` when nothing is. */
@@ -144,11 +147,15 @@ export function EditorShell({
   const hasRail = Boolean(rail);
   const hasInspector = Boolean(inspector ?? inspectorPlaceholder);
   const hasNotes = Boolean(notes);
-  useShortcut("editor.rail", () => toggle("rail"), { enabled: hasRail });
-  useShortcut("editor.inspector", () => toggle("inspector"), {
-    enabled: hasInspector,
+  useShortcut("editor.rail", () => toggle("rail"), {
+    enabled: hasRail && !covered,
   });
-  useShortcut("editor.notes", () => toggle("notes"), { enabled: hasNotes });
+  useShortcut("editor.inspector", () => toggle("inspector"), {
+    enabled: hasInspector && !covered,
+  });
+  useShortcut("editor.notes", () => toggle("notes"), {
+    enabled: hasNotes && !covered,
+  });
   const context = useMemo((): PanelsContextValue => {
     const has: Readonly<Record<EditorPanel, boolean>> = {
       inspector: hasInspector,
@@ -262,6 +269,7 @@ function PanelToggle({
             aria-label={label}
             aria-pressed={shown}
             className="text-muted-foreground aria-pressed:text-foreground"
+            data-panel-toggle={panel}
             onClick={toggle}
             size="icon-sm"
             variant="ghost"

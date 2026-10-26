@@ -578,6 +578,7 @@ Edit only that slide, with update_artifact's update_slide.`
           <DeckStage deck={deckView} />
         </>
       }
+      covered={deckView.presenting}
       drawer={
         current && canEdit && ask.available ? (
           <div className="shrink-0 border-t px-3 py-2">

@@ -12,13 +12,21 @@ import {
   toggleEditorPanel,
 } from "./panels";
 
-beforeEach(() => window.localStorage.removeItem(EDITOR_PANELS_STORAGE_KEY));
+// The store reads storage when the first editor mounts.
+beforeEach(() =>
+  window.localStorage.setItem(
+    EDITOR_PANELS_STORAGE_KEY,
+    JSON.stringify(defaultEditorPanels)
+  )
+);
 afterEach(cleanup);
 
 const shell = ({
+  covered = false,
   inspector = null,
   width = 1000,
 }: {
+  readonly covered?: boolean;
   readonly inspector?: string | null;
   readonly width?: number;
 } = {}) =>
@@ -26,6 +34,7 @@ const shell = ({
     <div style={{ height: 600, width }}>
       <EditorShell
         canvas={<div>The slide</div>}
+        covered={covered}
         inspector={inspector ? <div>{inspector}</div> : null}
         inspectorPlaceholder={<div>Pick something</div>}
         notes={
@@ -122,6 +131,13 @@ describe("EditorShell's panels", () => {
     await userEvent.click(screen.getByRole("button", { name: "Hide notes" }));
     expect(screen.queryByRole("textbox", { name: "Speaker notes" })).toBeNull();
     expect(toggle("Notes").getAttribute("aria-pressed")).toBe("false");
+    expect(document.activeElement).toBe(toggle("Notes"));
+  });
+
+  it("leaves the panels alone while the canvas covers the window", async () => {
+    shell({ covered: true });
+    await userEvent.keyboard("t");
+    expect(screen.getByText("Thumbnails rail")).toBeTruthy();
   });
 
   it("lays the inspector over the canvas in a narrow pane, only for a pick", async () => {
