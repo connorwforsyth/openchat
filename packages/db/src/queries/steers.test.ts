@@ -1,3 +1,4 @@
+import type { RunId } from "@workspace/contract/schemas/common";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
 import {
@@ -15,12 +16,15 @@ import {
   newestLeafId,
 } from "./messages";
 import { createRun, getRun, transitionRun } from "./runs";
-import { removeUnrunTurn, takeSteer } from "./steers";
+import { nextSteer, removeUnrunTurn, takeSteer } from "./steers";
 
 let testDb: TestDb;
 
-/** Takes the steer's message as it is. */
-const asIs = (asked: unknown) => Promise.resolve(asked);
+/** What the executor does between steps: find the steer, then take it. */
+const take = async (db: TestDb["db"], runId: RunId) => {
+  const candidate = await nextSteer(db, runId);
+  return candidate ? await takeSteer(db, runId, candidate) : null;
+};
 beforeAll(async () => {
   testDb = await createTestDb();
 });
@@ -100,7 +104,7 @@ describe("takeSteer", () => {
     const { answer, chat, db, queue, running } = await answering();
     const steer = await queue("use b", answer.id, running.id, "steer");
 
-    const taken = await takeSteer(db, running.id, asIs);
+    const taken = await take(db, running.id);
 
     expect(taken).toMatchObject({
       previousAnswerId: answer.id,
@@ -126,7 +130,7 @@ describe("takeSteer", () => {
       steer.asked.id,
       taken?.answer.id,
     ]);
-    expect(await takeSteer(db, running.id, asIs)).toBeNull();
+    expect(await take(db, running.id)).toBeNull();
   });
 
   test("leaves someone else's steer queued: the run goes on as its own creator", async () => {
@@ -139,20 +143,30 @@ describe("takeSteer", () => {
       "steer",
       other.id
     );
-    expect(await takeSteer(db, running.id, asIs)).toBeNull();
+    expect(await take(db, running.id)).toBeNull();
     expect(expectOk(await getRun(db, steer.queued.id)).status).toBe("queued");
   });
 
-  test("leaves the steer queued when its message can't be prepared", async () => {
+  test("takes only the steer it was asked for, after the same answer", async () => {
     const { answer, db, queue, running } = await answering();
     const steer = await queue("use b", answer.id, running.id, "steer");
+    const candidate = await nextSteer(db, running.id);
+    expect(candidate).toMatchObject({
+      answerId: answer.id,
+      runId: steer.queued.id,
+    });
+    const asked = candidate as NonNullable<typeof candidate>;
+    // Read before, changed since: a different answer, or the steer stopped.
     expect(
-      await takeSteer(db, running.id, () => Promise.resolve(null))
+      await takeSteer(db, running.id, { ...asked, answerId: steer.asked.id })
     ).toBeNull();
-    await expect(
-      takeSteer(db, running.id, () => Promise.reject(new Error("no file")))
-    ).rejects.toThrow("no file");
-    expect(expectOk(await getRun(db, steer.queued.id)).status).toBe("queued");
+    expectOk(
+      await transitionRun(db, steer.queued.id, {
+        cancelledBy: null,
+        type: "cancel",
+      })
+    );
+    expect(await takeSteer(db, running.id, asked)).toBeNull();
     expect(expectOk(await getRun(db, running.id)).assistantMessageId).toBe(
       answer.id
     );
@@ -161,7 +175,7 @@ describe("takeSteer", () => {
   test("leaves a plain queued turn queued", async () => {
     const { answer, db, queue, running } = await answering();
     const next = await queue("later", answer.id, running.id, "queue");
-    expect(await takeSteer(db, running.id, asIs)).toBeNull();
+    expect(await take(db, running.id)).toBeNull();
     expect(expectOk(await getRun(db, next.queued.id)).status).toBe("queued");
   });
 
@@ -175,7 +189,7 @@ describe("takeSteer", () => {
       "queue"
     );
 
-    const taken = await takeSteer(db, running.id, asIs);
+    const taken = await take(db, running.id);
 
     expect(taken?.answer.parentId).toBe(steer.asked.id);
     expect(expectOk(await getMessage(db, later.asked.id)).parentId).toBe(
@@ -194,7 +208,7 @@ describe("takeSteer", () => {
     const { answer, db, queue, running } = await answering();
     await queue("use b", answer.id, running.id, "steer");
     expectOk(await transitionRun(db, running.id, { type: "succeed" }));
-    expect(await takeSteer(db, running.id, asIs)).toBeNull();
+    expect(await take(db, running.id)).toBeNull();
   });
 });
 

@@ -5,6 +5,7 @@ import type {
 } from "@workspace/contract/schemas/common";
 import type { Message } from "@workspace/contract/schemas/messages";
 import type { Run, TurnDelivery } from "@workspace/contract/schemas/runs";
+import { z } from "zod";
 
 // The turns waiting on an answer being written (D25's branch queue), as the
 // composer's queue shows them. The server keeps the queue, so a reload and
@@ -73,12 +74,11 @@ export const withoutQueued = (
 export type QueueFailure = "failed" | "finished" | "forbidden";
 
 /** The failure an API error stands for. Pure. */
+const errorCodeSchema = z.object({ code: z.string() });
+
 export const queueFailureOf = (error: unknown): QueueFailure => {
-  const code =
-    typeof error === "object" && error !== null
-      ? (error as { readonly code?: unknown }).code
-      : undefined;
-  switch (code) {
+  const parsed = errorCodeSchema.safeParse(error);
+  switch (parsed.success ? parsed.data.code : undefined) {
     case "FORBIDDEN":
       return "forbidden";
     case "CONFLICT":

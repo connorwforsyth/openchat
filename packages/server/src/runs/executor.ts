@@ -57,7 +57,7 @@ import {
   setRunResolvedModel,
   transitionRun,
 } from "@workspace/db/queries/runs";
-import { takeSteer } from "@workspace/db/queries/steers";
+import { nextSteer, takeSteer } from "@workspace/db/queries/steers";
 import { newId } from "@workspace/shared/ids";
 import { err, ok, type Result } from "@workspace/shared/result";
 import {
@@ -822,8 +822,9 @@ export const createInProcessExecutor = (
         );
         return;
       }
-      // The message the model reads for a steer, made before the steer is
-      // taken, so a failure here leaves it queued rather than lost.
+      // A steer's message is made into what the model reads (its files
+      // read too) outside any transaction, then that steer alone is taken:
+      // no I/O under the take's locks, and a failure leaves it queued.
       const prepareSteer = async (row: MessageRow) => {
         const asked = toMessage(row);
         if (!asked.ok) {
@@ -839,23 +840,33 @@ export const createInProcessExecutor = (
         );
         return message ? { asked: asked.value, message } : null;
       };
+      const takeNextSteer = async () => {
+        const candidate = await nextSteer(db, run.runId);
+        const prepared = candidate
+          ? await prepareSteer(candidate.userMessage)
+          : null;
+        const taken =
+          candidate && prepared
+            ? await takeSteer(db, run.runId, candidate, now())
+            : null;
+        return taken && prepared ? { prepared, taken } : null;
+      };
       const steer = async (): Promise<TakenSteer | null> => {
-        const taken = await takeSteer(db, run.runId, prepareSteer, now()).catch(
-          (cause: unknown) => {
-            report("couldn't take a steer", cause);
-            return null;
-          }
-        );
-        if (!taken) {
+        const next = await takeNextSteer().catch((cause: unknown) => {
+          report("couldn't take a steer", cause);
+          return null;
+        });
+        if (!next) {
           return null;
         }
+        const { prepared, taken } = next;
         answerId = taken.answer.id;
         // Its own run never ran; anyone following its stream sees it end.
         const closed = await writer.close(taken.run.id, "cancelled");
         if (!closed.ok) {
           report("couldn't close a taken steer's stream", closed.error);
         }
-        const { asked, message } = taken.prepared;
+        const { asked, message } = prepared;
         return {
           data: {
             answerId: taken.answer.id,
