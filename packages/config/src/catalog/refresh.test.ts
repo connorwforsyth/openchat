@@ -121,6 +121,10 @@ describe("throughputOf", () => {
     ).toBe(20);
   });
 
+  it("counts a trickle under one token a second as 1", () => {
+    expect(throughputOf("x/y", endpoints(["x", 0.3]))).toBe(1);
+  });
+
   it("is unknown when nothing reports", () => {
     expect(throughputOf("x/y", endpoints(["a", null]))).toBeUndefined();
   });

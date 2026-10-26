@@ -9,6 +9,7 @@ import {
   evalLanguageModel,
 } from "@workspace/ai/evals/model";
 import { parseConfig } from "@workspace/config/parse";
+import { effectivePrices } from "@workspace/config/prices";
 import type { AppConfig } from "@workspace/config/schema";
 import { parse as parseYaml } from "yaml";
 
@@ -235,6 +236,7 @@ const planLive = async (
       isSet: (name) => Boolean(process.env[name]),
       judge,
       model,
+      prices: effectivePrices(live.config),
     })
   );
   const blocked = blockers(judge ? [model, judge] : [model], estimate);
