@@ -206,6 +206,11 @@ models:
   # Defaults to auto.cheap. Set to false to name chats from their first message.
   # conversationTitleModel: fast
 
+  # Costs are kept in US dollars; this only changes how they're shown, at a
+  # fixed rate you set (nothing is fetched). Budgets are typed in this currency.
+  # usage:
+  #   currency: { code: AUD, perUsd: 1.52 }
+
   # Instance-wide limits; each org chooses within them in the admin UI.
 policies:
   chatContext: [ personal, team, org ]
@@ -594,6 +599,11 @@ models:
   # Defaults to auto.cheap. Set to false to name chats from their first message.
   # conversationTitleModel: fast
 
+  # Costs are kept in US dollars; this only changes how they're shown, at a
+  # fixed rate you set (nothing is fetched). Budgets are typed in this currency.
+  # usage:
+  #   currency: { code: AUD, perUsd: 1.52 }
+
   # Instance-wide limits; each org chooses within them in the admin UI.
 policies:
   chatContext: [ personal, team, org ]
@@ -973,6 +983,11 @@ models:
     strong: Hard problems and long documents
   # Defaults to auto.cheap. Set to false to name chats from their first message.
   # conversationTitleModel: fast
+
+  # Costs are kept in US dollars; this only changes how they're shown, at a
+  # fixed rate you set (nothing is fetched). Budgets are typed in this currency.
+  # usage:
+  #   currency: { code: AUD, perUsd: 1.52 }
 
   # Instance-wide limits; each org chooses within them in the admin UI.
 policies:
