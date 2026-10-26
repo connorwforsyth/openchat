@@ -5285,6 +5285,7 @@ msgstr "Sending a message saves your changes to the draft first."
 msgid "Sending the edit starts a new branch; the original stays."
 msgstr "Sending the edit starts a new branch; the original stays."
 
+#: ../../apps/web/app/(quick)/quick/quick-screen.tsx
 #: ../chat-ui/src/conversation/message-row.tsx
 msgid "Sending…"
 msgstr "Sending…"
