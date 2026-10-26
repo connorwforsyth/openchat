@@ -107,24 +107,28 @@ Optional providers, each off until its credentials are set:
 
 ## Running code (sandbox)
 
-Chats run code in a Docker sandbox: one container per chat, started by the
-`sandbox-runner` service so the app itself never touches the Docker socket.
-A Dot's computer runs there too.
+Each chat gets a workspace under `/work` where the model runs code. Out of
+the box that's just-bash, a simulated shell that runs in-process and needs
+no Docker. For real containers (one per chat), set `sandbox.default: docker`
+in `app.config.yaml` and `SANDBOX_RUNNER_TOKEN` in `.env`; the containers
+are started by the `sandbox-runner` service, so the app itself never touches
+the Docker socket. A Dot's computer always runs there.
 
 - **Docker:** `docker compose --profile sandbox up -d` starts the runner
   beside the app.
 - **Local development:** `bun dev` starts the runner as well when Docker is
-  running. Without Docker, running code and the Dot's computer say the
-  runner isn't available and show the command that starts it; chat, files
-  and artifacts keep working.
+  running and `SANDBOX_RUNNER_TOKEN` is set, and otherwise prints one line
+  saying why not and what to run. While the runner is down, Docker
+  sandboxes and the Dot's computer show the command that starts it; new
+  chats fall back to just-bash, and chat, files and artifacts keep working.
 
-Network access from inside a sandbox is set in `app.config.yaml`:
+Network access from inside a Docker sandbox is set in `app.config.yaml`:
 
 ```yaml
 sandbox:
   egress:
     mode: open          # open (default) | allowlist | none
-    allow:              # used by `allowlist`; package registries prefilled
+    allow:              # used by `allowlist`; npm, PyPI and GitHub by default
       - registry.npmjs.org
       - pypi.org
       - files.pythonhosted.org
@@ -132,14 +136,13 @@ sandbox:
 ```
 
 - `open` lets sandboxes reach anywhere, so installs and dev servers work.
-- `allowlist` allows only the hosts under `allow`.
+- `allowlist` allows only the hosts under `allow` (hostnames, or
+  `*.example.com` for any subdomain), through the runner's proxy.
 - `none` blocks every connection out.
 
-The `SANDBOX_EGRESS` environment variable overrides `mode`.
-
-> This describes the `sandbox.egress` block and the runner start-up as
-> specified for the night-2 integration branch. If your checkout predates
-> them, egress is set with `SANDBOX_EGRESS` only.
+The `SANDBOX_EGRESS` environment variable overrides `mode`. A change applies
+to sandboxes created after a restart; see
+[`docs/self-hosting.md`](docs/self-hosting.md#sandbox-egress).
 
 ## Behind a corporate network
 
@@ -161,7 +164,7 @@ base images from Docker Hub. If `bun install` fails behind a proxy:
 |---|---|
 | `bun dev` | Runs the app (and the workspace watchers) in development |
 | `bun run check` / `bun run fix` | Ultracite (Biome) lint and format, check or fix |
-| `bun run check:guards` | The repo guards: tokens, icon imports, brand, Lingui |
+| `bun run check:guards` | The repo guards: tokens, icon imports, brand, Lingui, motion |
 | `bun run typecheck` | TypeScript across the workspace |
 | `bun run test` | Vitest across the workspace |
 | `bun run test:e2e` | Playwright against a production build |
@@ -190,7 +193,7 @@ packages/
   setup/            `bun run setup`
 e2e/                Playwright tests
 scripts/ci/         repo guards run by `lint`
-docs/               self-hosting, desktop, decisions
+docs/               self-hosting, desktop, Dots, voice, decisions
 ```
 
 ## Further reading
@@ -200,4 +203,6 @@ docs/               self-hosting, desktop, decisions
 - [`docs/self-hosting.md`](docs/self-hosting.md): running and operating an
   instance
 - [`docs/desktop.md`](docs/desktop.md): the desktop app
+- [`docs/dots.md`](docs/dots.md) and [`docs/voice.md`](docs/voice.md): Dots
+  and voice conversations
 - [`e2e/README.md`](e2e/README.md): the end-to-end tests
