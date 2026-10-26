@@ -291,13 +291,20 @@ export const createServices = (options: ServicesOptions): Services => {
     ensureWorkspace: options.ensureDotWorkspace,
     limits: config.schedules,
     now: options.now ?? (() => new Date()),
-    runs: { budget, db, defaultModel: config.models.default, executor },
+    runs: {
+      budget,
+      chatModes: config.features.chatModes,
+      db,
+      defaultModel: config.models.default,
+      executor,
+    },
   };
 
   return {
     access,
     artifactKinds,
     budget,
+    chatModes: config.features.chatModes,
     db,
     defaultModel: config.models.default,
     dots,

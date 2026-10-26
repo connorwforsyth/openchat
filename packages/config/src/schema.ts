@@ -746,6 +746,12 @@ const featuresSchema = z
   .strictObject({
     ...publicFlagShape,
     /**
+     * The composer's Chat / Code switch. Off: no switch,
+     * no mode on messages, and every run gets the sandbox tools the
+     * instance has. Off until Code mode has its own view.
+     */
+    chatModes: z.boolean().default(false),
+    /**
      * Source chips show the site's favicon and a preview card, fetched by
      * the server (101). Off: chips show the host, and nothing is fetched.
      * Server-side only, so it isn't one of the public feature flags.
@@ -753,11 +759,11 @@ const featuresSchema = z
     linkPreviews: z.boolean().default(true),
   })
   .prefault({})
-  .transform(({ linkPreviews, ...flags }) => {
+  .transform(({ chatModes, linkPreviews, ...flags }) => {
     const set = Object.fromEntries(
       Object.entries(flags).filter(([, value]) => value !== undefined)
     ) as Partial<Record<FeatureFlag, boolean>>;
-    return { ...featureDefaults, ...set, linkPreviews };
+    return { ...featureDefaults, ...set, chatModes, linkPreviews };
   });
 
 // MCP connectors (D18, 184). The operator's catalog: each entry says

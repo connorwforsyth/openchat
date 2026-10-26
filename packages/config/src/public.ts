@@ -78,6 +78,7 @@ export const toPublicConfig = (
       logoUrl: config.brand.logo ? brandAssetPath("logo") : null,
       name: config.brand.name,
     },
+    chatModes: config.features.chatModes,
     // The public flags only: `linkPreviews` is server-side (101), and the
     // contract's record takes exactly the public ones.
     features: Object.fromEntries(

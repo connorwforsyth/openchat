@@ -66,6 +66,11 @@ export type CreateRunError =
 
 export interface CreateRunDeps {
   readonly budget: BudgetCheck;
+  /**
+   * `features.chatModes`: whether runs take the chat's Chat / Code mode.
+   * Off, no run has a mode and every one gets the sandbox.
+   */
+  readonly chatModes: boolean;
   readonly db: Db;
   /** `models.default` from app.config.yaml: the target when neither the run nor the chat names one. */
   readonly defaultModel: ModelSelector | null;
@@ -522,6 +527,16 @@ const modeForTurn = async (
   return conversationMode ?? "chat";
 };
 
+/** The turn's mode; `null` while the switch is off or in a Dot's chat. */
+const chatModeFor = async (
+  { chatModes, db }: CreateRunDeps,
+  input: CreateRunInput,
+  conversation: ConversationView
+): Promise<ChatMode | null> =>
+  chatModes && !(await getDotByConversation(db, conversation.id))
+    ? modeForTurn(db, input, conversation.mode)
+    : null;
+
 const startRun = async (
   deps: CreateRunDeps,
   actor: Actor,
@@ -575,11 +590,9 @@ const startRun = async (
     return skills;
   }
   await moveOnFromWaiting(deps, actor, input);
-  const dot = await getDotByConversation(db, conversation.id);
-  const chatMode = await modeForTurn(db, input, conversation.mode);
   const placed = await placeRun(db, actor, input, {
     agentDraft: draft.value !== null,
-    chatMode: dot ? null : chatMode,
+    chatMode: await chatModeFor(deps, input, conversation),
     context: context.value,
     skills: skills.value,
     target,

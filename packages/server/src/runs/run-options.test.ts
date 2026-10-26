@@ -78,7 +78,6 @@ describe("a run's reasoning and fast options", () => {
     });
     expect(run.state.status).toBe("succeeded");
     expect(run.options).toEqual({
-      chatMode: "chat",
       fast: true,
       reasoning: "low",
       sandbox: "auto",
@@ -87,7 +86,6 @@ describe("a run's reasoning and fast options", () => {
     // Without them, the defaults.
     const plain = await runWith(h, "openai:gpt-5.2");
     expect(plain.options).toEqual({
-      chatMode: "chat",
       sandbox: "auto",
       webSearch: "auto",
     });
