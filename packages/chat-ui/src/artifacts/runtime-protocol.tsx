@@ -1,5 +1,5 @@
 import { slideIdSchema } from "@workspace/artifacts-kit/kinds/presentation/content";
-import { slideTargetSchema } from "@workspace/artifacts-kit/kinds/presentation/visual-edits";
+import { slideTargetSchema } from "@workspace/artifacts-kit/kinds/presentation/edit-target";
 import { REACT_IMPORTS } from "@workspace/artifacts-kit/kinds/react";
 import { artifactKindSchema } from "@workspace/contract/schemas/message-parts";
 import { err, ok, type Result } from "@workspace/shared/result";

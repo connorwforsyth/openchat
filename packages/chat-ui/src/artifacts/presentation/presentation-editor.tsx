@@ -12,11 +12,10 @@ import {
   type DeckAction,
 } from "@workspace/artifacts-kit/kinds/presentation/deck-actions";
 import {
-  applyDeckVisualEdits,
   editFor,
   type SlideChange,
   type SlideTarget,
-} from "@workspace/artifacts-kit/kinds/presentation/visual-edits";
+} from "@workspace/artifacts-kit/kinds/presentation/edit-target";
 import type { QueryUtils } from "@workspace/client/api";
 import type {
   Artifact,
@@ -70,6 +69,15 @@ export interface PresentationEditorProps {
   /** Oldest first. */
   readonly versions: readonly ArtifactVersion[];
 }
+
+// The edit engine (a TSX parser) loads on the first edit, not with the chat.
+let engine: Promise<
+  typeof import("@workspace/artifacts-kit/kinds/presentation/visual-edits")
+> | null = null;
+const loadEngine = () => {
+  engine ??= import("@workspace/artifacts-kit/kinds/presentation/visual-edits");
+  return engine;
+};
 
 const parseDeck = (content: string): Presentation | null => {
   const parsed = presentationContentSchema.safeParse(content);
@@ -242,10 +250,11 @@ function DeckEditor({
   );
 
   const edit = useCallback(
-    (target: SlideTarget, slideChange: SlideChange, key: string) => {
+    async (target: SlideTarget, slideChange: SlideChange, key: string) => {
       if (!(canEdit && deck)) {
         return false;
       }
+      const { applyDeckVisualEdits } = await loadEngine();
       const result = applyDeckVisualEdits(deck, [editFor(target, slideChange)]);
       if (!result.ok) {
         setProblem(result.error.join("\n"));
@@ -282,7 +291,7 @@ function DeckEditor({
         edited.target,
         { kind: "text", previous: edited.previous, value: edited.text },
         `text:${targetKey(edited.target)}`
-      );
+      ).catch(() => undefined);
     },
     [edit]
   );
@@ -338,16 +347,14 @@ function DeckEditor({
       if (!picked || picked.text === null) {
         return;
       }
-      const done = edit(
+      // The next keystroke's "before" is this one's "after", before the
+      // frame has drawn it.
+      setPicked({ ...picked, text });
+      edit(
         picked.target,
         { kind: "text", previous: picked.text, value: text },
         `text:${targetKey(picked.target)}`
-      );
-      // The next keystroke's "before" is this one's "after", before the
-      // frame has drawn it.
-      if (done) {
-        setPicked({ ...picked, text });
-      }
+      ).catch(() => undefined);
     },
     [edit, picked]
   );

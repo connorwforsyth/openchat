@@ -3,7 +3,7 @@
 // and components/inspector/{inspect-overlay,inline-text-editor}.tsx.
 // MIT, Copyright (c) 2026 Yiwei Ho; see NOTICE.open-slide.
 import { slideFileName } from "@workspace/artifacts-kit/kinds/presentation/content";
-import type { SlideTarget } from "@workspace/artifacts-kit/kinds/presentation/visual-edits";
+import type { SlideTarget } from "@workspace/artifacts-kit/kinds/presentation/edit-target";
 import type { PickedElement } from "@workspace/chat-ui/artifacts/runtime-protocol";
 
 import type { ReadColor } from "./slide-capture";

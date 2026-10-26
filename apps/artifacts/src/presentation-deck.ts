@@ -1,4 +1,4 @@
-import type { SlideTarget } from "@workspace/artifacts-kit/kinds/presentation/visual-edits";
+import type { SlideTarget } from "@workspace/artifacts-kit/kinds/presentation/edit-target";
 import type {
   DeckView,
   ExportFormat,

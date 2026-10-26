@@ -1,7 +1,7 @@
 "use client";
 
 import { Plural, Trans, useLingui } from "@lingui/react/macro";
-import type { SlideTarget } from "@workspace/artifacts-kit/kinds/presentation/visual-edits";
+import type { SlideTarget } from "@workspace/artifacts-kit/kinds/presentation/edit-target";
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
