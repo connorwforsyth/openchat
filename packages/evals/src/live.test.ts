@@ -129,6 +129,12 @@ describe("preflight", () => {
         type: "openai-compatible",
       }),
       model: target(),
+      prices: {
+        "anthropic:claude-haiku-4-5": {
+          inputMicros: 1_000_000,
+          outputMicros: 5_000_000,
+        },
+      },
     });
     expect(text).toContain('anthropic:claude-haiku-4-5 (alias "fast")');
     expect(text).toContain(
@@ -139,7 +145,10 @@ describe("preflight", () => {
     );
     expect(text).toContain("2 live cases (example 2)");
     expect(text).toContain("~25,900 input + ~2,560 output tokens");
-    expect(text).toContain("Cost              not estimated");
+    // 25,900 input at $1/M and 2,560 output at $5/M; the judge has no price.
+    expect(text).toContain(
+      "Cost              about $0.04 at list prices; no price for ollama:qwen3"
+    );
   });
 
   it("says judged checks will be skipped without a judge", () => {
@@ -149,9 +158,13 @@ describe("preflight", () => {
       isSet: () => false,
       judge: null,
       model: target({ hasKey: false }),
+      prices: {},
     });
     expect(text).toContain("none: judged checks will be skipped");
     expect(text).toContain("NO KEY from $ANTHROPIC_API_KEY (not set)");
+    expect(text).toContain(
+      "Cost              not estimated: no price for anthropic:claude-haiku-4-5"
+    );
   });
 });
 

@@ -17,6 +17,9 @@ import { CATALOG_SOURCES, generatedCatalogSchema } from "../src/catalog/schema";
 // Gateway language model's recent output speed. Both are public and keyless.
 // This is the only code that fetches them; the app reads the committed file.
 // Run: `bun run catalog:refresh` in packages/config, then review the diff.
+// A model whose endpoints fail (other than a 404, which means none) or
+// can't be read would lose its speed, so
+// the refresh stops and names them; `--allow-partial` writes it anyway.
 
 const CONCURRENCY = 8;
 
@@ -37,25 +40,54 @@ const language = gatewayModelsSchema
   .data.filter((model) => model.type === "language")
   .map((model) => model.id);
 
+const allowPartial = process.argv.includes("--allow-partial");
 const speed: (readonly [string, number])[] = [];
+const failed: string[] = [];
 const queue = [...language];
 await Promise.all(
   Array.from({ length: CONCURRENCY }, async () => {
     for (let id = queue.shift(); id !== undefined; id = queue.shift()) {
       // biome-ignore lint/performance/noAwaitInLoops: each worker fetches in turn; CONCURRENCY workers is the limit
-      const reply = await json(
-        `${CATALOG_SOURCES.speed}/${id}/endpoints`
-      ).catch(() => null);
+      const reply = await fetch(`${CATALOG_SOURCES.speed}/${id}/endpoints`)
+        .then((response) => {
+          // Batch variants have no endpoints page: no stats, not a failure.
+          if (response.status === 404) {
+            return null;
+          }
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          return response.json();
+        })
+        .catch((cause: unknown) => {
+          failed.push(`${id} (${String(cause)})`);
+          return null;
+        });
+      if (reply === null) {
+        continue;
+      }
       const endpoints = gatewayEndpointsSchema.safeParse(reply);
-      const tokensPerSecond = endpoints.success
-        ? throughputOf(id, endpoints.data)
-        : undefined;
+      if (!endpoints.success) {
+        failed.push(`${id} (unexpected endpoints shape)`);
+        continue;
+      }
+      const tokensPerSecond = throughputOf(id, endpoints.data);
       if (tokensPerSecond !== undefined) {
         speed.push([id, tokensPerSecond]);
       }
     }
   })
 );
+
+if (failed.length > 0) {
+  console.error(
+    `No speed for ${failed.length} model(s) whose endpoints failed:\n${failed.map((each) => `  ${each}`).join("\n")}`
+  );
+  if (!allowPartial) {
+    console.error("Nothing written. Rerun, or pass --allow-partial.");
+    process.exit(1);
+  }
+}
 
 const catalog = generatedCatalogSchema.parse(
   buildCatalog(prices, speed, new Date().toISOString())
@@ -64,7 +96,15 @@ const target = fileURLToPath(
   new URL("../src/catalog/generated.ts", import.meta.url)
 );
 await writeFile(target, renderCatalog(catalog));
-spawnSync("bunx", ["biome", "check", "--write", target], { stdio: "ignore" });
+const biome = spawnSync("bunx", ["biome", "check", "--write", target], {
+  stdio: "inherit",
+});
+if (biome.status !== 0) {
+  console.error(
+    `biome check --write failed on ${target}; fix it before committing.`
+  );
+  process.exit(biome.status ?? 1);
+}
 
 const counts = Object.entries(catalog.prices).map(
   ([source, models]) => `${source} ${Object.keys(models).length}`

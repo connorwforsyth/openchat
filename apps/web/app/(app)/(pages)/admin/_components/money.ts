@@ -12,10 +12,17 @@ export const formatMicros = (
   currency: DisplayCurrency
 ): string => {
   const amount = (micros / MICROS_PER_USD) * currency.perUsd;
+  const style = { currency: currency.code, style: "currency" } as const;
+  // The currency's own digits (2 for USD, 0 for JPY, 3 for BHD), and two
+  // more for an amount under its smallest unit, so one cheap call doesn't
+  // read as nothing.
+  const digits =
+    new Intl.NumberFormat(locale, style).resolvedOptions()
+      .maximumFractionDigits ?? 2;
+  const tiny = amount > 0 && amount < 10 ** -digits;
   return formatNumber(amount, locale, {
-    currency: currency.code,
-    maximumFractionDigits: amount > 0 && amount < 0.01 ? 4 : 2,
-    style: "currency",
+    ...style,
+    maximumFractionDigits: tiny ? digits + 2 : digits,
   });
 };
 

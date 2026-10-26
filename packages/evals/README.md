@@ -215,8 +215,10 @@ them. They are the **J** checks of the eval plan:
   `CONFIG_PATH`;
 - **before calling anything**, prints the model under test and the judge
   (provider, type, endpoint, and which env variable its key comes from, never
-  the key), the number of cases, and a rough token estimate. There's no cost
-  figure until the price table (`models.prices`, ticket 086) lands;
+  the key), the number of cases, a rough token estimate, and what those
+  tokens cost at the instance's prices (`models.prices` in app.config, else
+  the model catalogue's list prices in `packages/config/src/catalog`); a
+  model with neither is named as unpriced;
 - runs only with `--yes`, or a yes at the prompt when the terminal is
   interactive; otherwise it exits 2 having called nothing;
 - refuses when `CI` is set, unless `--allow-ci` is given too;
