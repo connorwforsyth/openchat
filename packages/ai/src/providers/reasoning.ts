@@ -102,6 +102,15 @@ const ANTHROPIC_ADAPTIVE: readonly AnthropicAdaptive[] = [
     match: /claude-(opus|sonnet)-4-6/,
     xhigh: "max",
   },
+  // Later Opus, Sonnet and Fable ids than these, until they get rows of
+  // their own: adaptive, with xhigh. Turning thinking off is a 400 on the
+  // newest ones, so it isn't offered.
+  {
+    canDisable: false,
+    defaultLevel: "medium",
+    match: /claude-(opus|sonnet|fable)-([6-9]|\d{2,})/,
+    xhigh: "xhigh",
+  },
 ];
 
 /** The adaptive-thinking row for an Anthropic model id, if it has one. */

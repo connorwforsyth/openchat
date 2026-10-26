@@ -6,5 +6,5 @@ import type { ReactNode } from "react";
  * background gradient is neither.
  */
 export function PulseLabel({ children }: { readonly children: ReactNode }) {
-  return <span className="motion-safe:animate-pulse">{children}</span>;
+  return <span className="motion-safe:animate-status-pulse">{children}</span>;
 }

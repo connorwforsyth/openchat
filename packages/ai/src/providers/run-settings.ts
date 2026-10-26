@@ -4,6 +4,7 @@ import type {
   SharedV4ProviderOptions,
 } from "@ai-sdk/provider";
 import type { ProviderType } from "@workspace/config/schema";
+import type { ModelParameters } from "@workspace/contract/schemas/models";
 import type {
   ReasoningLevel,
   RunOptions,
@@ -34,6 +35,8 @@ export interface RunSettings {
 
 export interface RunSettingsInput extends ModelIdentity {
   readonly options: Pick<RunOptions, "fast" | "reasoning" | "reasoningEffort">;
+  /** The agent's or preset's own thinking level (`parameters.reasoningEffort`). */
+  readonly presetEffort?: ModelParameters["reasoningEffort"];
   /** The configured provider's adapter. */
   readonly providerType: ProviderType;
   /**
@@ -99,13 +102,17 @@ const adaptiveThinking = (
 
 /**
  * The call settings a run's `reasoning` and `fast` make for this model. A
- * level the model doesn't take is dropped, not an error: the model's
- * default applies (`defaultReasoningLevel`, sent explicitly to Anthropic's
- * adaptive models). So is fast mode where the model has no fast tier.
+ * level the model doesn't take is dropped, not an error. Anthropic's
+ * adaptive models get the run's level, else the preset's `reasoningEffort`,
+ * else the model's default (`defaultReasoningLevel`), always explicitly;
+ * other models get the run's level, and the preset's or the provider's
+ * default applies without one. Fast mode is dropped where the model has no
+ * fast tier.
  */
 export const runSettings = ({
   modelId,
   options,
+  presetEffort,
   providerType,
   reasons,
   vendor,
@@ -124,9 +131,13 @@ export const runSettings = ({
   const adaptive =
     providerType === "anthropic" ? anthropicAdaptive(modelId) : undefined;
   if (adaptive) {
+    const preset =
+      presetEffort && reasoningLevels(identity).includes(presetEffort)
+        ? presetEffort
+        : undefined;
     const thinking = adaptiveThinking(
       adaptive,
-      level ?? defaultReasoningLevel(identity)
+      level ?? preset ?? defaultReasoningLevel(identity)
     );
     return {
       providerOptions: { anthropic: { ...thinking, ...fast?.anthropic } },
@@ -139,9 +150,11 @@ export const runSettings = ({
 };
 
 /**
- * `model` with `settings` applied to every call: the level wins over a
- * preset's `reasoningEffort`, and the provider options merge over any the
- * call already has. The model itself when there's nothing to add.
+ * `model` with `settings` applied to every call: a portable level wins over
+ * a preset's `reasoningEffort` (Anthropic's adaptive models carry theirs,
+ * preset included, in the provider options), and the provider options
+ * merge over any the call already has. The model itself when there's
+ * nothing to add.
  */
 export const withRunSettings = (
   model: LanguageModelV4,

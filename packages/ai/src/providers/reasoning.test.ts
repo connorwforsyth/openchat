@@ -231,6 +231,39 @@ describe("runSettings", () => {
     ).toEqual(adaptive("high"));
   });
 
+  it("sends a preset's level to an adaptive model when the run names none", () => {
+    const withPreset = (
+      presetEffort: "off" | "low" | "medium" | "high",
+      options: Parameters<typeof runSettings>[0]["options"] = {}
+    ) =>
+      runSettings({
+        modelId: "claude-haiku-5-5",
+        options,
+        presetEffort,
+        providerType: "anthropic",
+        reasons: undefined,
+        vendor: "anthropic",
+      });
+    expect(withPreset("high")).toEqual(adaptive("high"));
+    expect(withPreset("low", { reasoning: "medium" })).toEqual(
+      adaptive("medium")
+    );
+  });
+
+  it("treats a later Opus, Sonnet or Fable as adaptive, with xhigh and no off", () => {
+    expect(levels("anthropic", "claude-opus-6")).toEqual([
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+    ]);
+    expect(
+      settings("anthropic", "anthropic", "claude-sonnet-6-1", {
+        reasoning: "xhigh",
+      })
+    ).toEqual(adaptive("xhigh"));
+  });
+
   it("leaves other Anthropic routes to the SDK's portable setting", () => {
     expect(
       settings("bedrock", "anthropic", "anthropic.claude-haiku-5-5", {
