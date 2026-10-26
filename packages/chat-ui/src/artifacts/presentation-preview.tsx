@@ -883,7 +883,7 @@ export function DeckNotices({ deck }: { readonly deck: Deck }) {
  * Why there's no deck: no artifact runtime is configured, or the one
  * configured isn't answering. Never the code in its place (D24).
  */
-export function RuntimeUnavailable({
+function RuntimeUnavailable({
   connection,
   onRetry,
   origin,

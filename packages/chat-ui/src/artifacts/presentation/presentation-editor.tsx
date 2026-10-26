@@ -141,7 +141,7 @@ const targetKey = (target: SlideTarget): string =>
     ":"
   );
 
-export function DeckEditor({
+function DeckEditor({
   artifact,
   ask,
   latest,

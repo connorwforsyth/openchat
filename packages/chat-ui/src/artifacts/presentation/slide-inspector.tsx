@@ -112,7 +112,7 @@ export function SlideInspector({
     (value: number) => onStyle({ key: "opacity", value: String(value / 100) }),
     [onStyle]
   );
-  const isText = element.kind === "text" && element.text !== null;
+  const isText = element.text !== null;
   return (
     <InspectorPanel onClose={onClose} title={nameOf(element)}>
       {canEdit ? null : (

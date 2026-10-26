@@ -172,7 +172,7 @@ export const styleOf = (
 };
 
 /** The deck theme's colours a slide may use, by variable (the slide guide's list). */
-export const THEME_COLORS = [
+const THEME_COLORS = [
   "foreground",
   "muted-foreground",
   "primary",

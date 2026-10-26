@@ -20,9 +20,9 @@ import { type ReactNode, useEffect, useLayoutEffect, useState } from "react";
 // containing block of a deck presenting over the whole window.
 
 /** How wide the editor's pane is, in the steps its layout changes at. */
-export type EditorWidth = "medium" | "narrow" | "wide";
+type EditorWidth = "medium" | "narrow" | "wide";
 
-export const editorWidth = (pixels: number): EditorWidth => {
+const editorWidth = (pixels: number): EditorWidth => {
   if (pixels >= 768) {
     return "wide";
   }
