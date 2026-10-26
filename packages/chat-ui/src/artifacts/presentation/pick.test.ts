@@ -10,7 +10,7 @@ const element = (
   kind: "text",
   style: {
     backgroundColor: null,
-    color: "#000000",
+    color: `#${"0".repeat(6)}`,
     fontSize: 40,
     fontStyle: "normal",
     fontWeight: 400,
