@@ -118,8 +118,8 @@ const OPENAI_GPT6_NONE = /^gpt-6-(sol|luna)/;
 const GEMINI_2 = /^gemini-(1|2)-/;
 const GEMINI_25_PRO = /^gemini-2-5-pro/;
 
-// Older models take a token budget that low/medium/high scale, and think
-// only when asked.
+// Models outside the adaptive table take a token budget that
+// low/medium/high scale.
 const anthropicLevels = (id: string): readonly ReasoningLevel[] => {
   const adaptive = anthropicAdaptive(id);
   return [

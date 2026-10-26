@@ -5285,6 +5285,10 @@ msgstr "Sending a message saves your changes to the draft first."
 msgid "Sending the edit starts a new branch; the original stays."
 msgstr "Sending the edit starts a new branch; the original stays."
 
+#: ../chat-ui/src/conversation/message-row.tsx
+msgid "Sending…"
+msgstr "Sending…"
+
 #: ../chat-ui/src/conversation/scheduled-note.tsx
 msgid "Sent by scheduled task · {title}"
 msgstr "Sent by scheduled task · {title}"
@@ -5761,10 +5765,6 @@ msgstr "Status unavailable"
 #: ../../apps/web/app/(app)/(pages)/dots/onboarding.tsx
 msgid "Step {position} of {total}"
 msgstr "Step {position} of {total}"
-
-#: ../chat-ui/src/conversation/message-row.tsx
-msgid "Still working on this answer…"
-msgstr "Still working on this answer…"
 
 #: ../chat-ui/src/chat/connected-chat.tsx
 #: ../composer/src/components/composer-footer.tsx
@@ -6362,7 +6362,6 @@ msgid "Thinking: {label}"
 msgstr "Thinking: {label}"
 
 #: ../chat-ui/src/conversation/reasoning-part.tsx
-#: ../chat-ui/src/conversation/thinking.tsx
 msgid "Thinking…"
 msgstr "Thinking…"
 

@@ -1,0 +1,118 @@
+import { setupI18n } from "@lingui/core";
+import { I18nProvider } from "@lingui/react";
+import { cleanup, render, screen } from "@testing-library/react";
+import type { Message } from "@workspace/contract/schemas/messages";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { treeMessages } from "../fixtures";
+import type { AnswerPhase } from "../model/run-activity";
+import { RunActivityProvider } from "./approval-state";
+import { MessageRow } from "./message-row";
+
+// Reasoning renders synchronously here; see conversation-view.test.
+vi.mock("./lazy", () => import("../testing/sync-lazy"));
+
+const i18n = setupI18n({ locale: "en", messages: { en: {} } });
+
+const THOUGHT_FOR = /Thought for/;
+const WORKING = /Still working/;
+
+const base = treeMessages.find((message) => message.role === "assistant");
+if (!base) {
+  throw new Error("fixture answer");
+}
+
+const reasoning = {
+  text: "Slow could mean latency or relevance.",
+  type: "reasoning",
+} as const;
+const answer = { text: "Both can work at 2M rows.", type: "text" } as const;
+
+const row = ({
+  parts,
+  phase,
+  status = "partial",
+  streaming,
+}: {
+  readonly parts: Message["parts"];
+  readonly phase?: AnswerPhase;
+  readonly status?: Message["status"];
+  readonly streaming: boolean;
+}) => (
+  <I18nProvider i18n={i18n}>
+    <RunActivityProvider
+      value={{
+        answers: new Map(phase ? [[base.id, phase]] : []),
+        decisions: new Map(),
+      }}
+    >
+      <MessageRow
+        approvals={undefined}
+        feedback={undefined}
+        message={{ ...base, parts, status }}
+        results={[]}
+        siblings={undefined}
+        streaming={streaming}
+      />
+    </RunActivityProvider>
+  </I18nProvider>
+);
+
+afterEach(() => {
+  cleanup();
+});
+
+describe("thinking", () => {
+  it("stays open while it streams and collapses once the answer moves on", () => {
+    const view = render(row({ parts: [reasoning], streaming: true }));
+    expect(screen.getByText("Thinking…")).toBeTruthy();
+    expect(screen.getByText(reasoning.text)).toBeTruthy();
+
+    view.rerender(row({ parts: [reasoning, answer], streaming: true }));
+    expect(screen.queryByText("Thinking…")).toBeNull();
+    expect(screen.getByText(THOUGHT_FOR)).toBeTruthy();
+    expect(screen.queryByText(reasoning.text)).toBeNull();
+    expect(screen.getByText(answer.text)).toBeTruthy();
+  });
+});
+
+describe("the answer's status line", () => {
+  it("says Sending… until the run writes, then gives way to the answer", () => {
+    const view = render(row({ parts: [], streaming: true }));
+    expect(screen.getByRole("status").textContent).toBe("Sending…");
+
+    view.rerender(row({ parts: [answer], streaming: true }));
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  it("shows a page opened mid-answer where its run stands", () => {
+    const view = render(
+      row({ parts: [answer], phase: "running", streaming: false })
+    );
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.queryByText(WORKING)).toBeNull();
+
+    view.rerender(row({ parts: [], phase: "running", streaming: false }));
+    expect(screen.getByRole("status").textContent).toBe("Sending…");
+
+    view.rerender(row({ parts: [], phase: "queued", streaming: false }));
+    expect(screen.getByRole("status").textContent).toBe(
+      "Waiting for the answer before it…"
+    );
+
+    view.rerender(row({ parts: [answer], phase: "waiting", streaming: false }));
+    expect(screen.getByRole("status").textContent).toBe(
+      "Waiting for your approval."
+    );
+
+    view.rerender(row({ parts: [answer], streaming: false }));
+    expect(screen.getByRole("status").textContent).toBe(
+      "This answer stopped early."
+    );
+
+    view.rerender(
+      row({ parts: [answer], status: "complete", streaming: false })
+    );
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+});
