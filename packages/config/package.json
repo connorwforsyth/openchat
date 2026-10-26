@@ -19,6 +19,7 @@
   },
   "scripts": {
     "lint": "ultracite check",
+    "prices:refresh": "bun scripts/refresh-prices.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

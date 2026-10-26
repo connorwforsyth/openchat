@@ -151,8 +151,8 @@ export const budgetCheck =
 
 /**
  * Records a finished run's model usage against the user and the context.
- * The cost is the turn's tokens at the resolved model's price in
- * `models.prices`; a model with no price there is recorded at 0, so it
+ * The cost is the turn's tokens at the resolved model's price
+ * (`effectivePrices`); a model with no price is recorded at 0, so it
  * counts toward no budget. Whoever's key paid, the cost is the same.
  */
 export const recordRunUsage = async (

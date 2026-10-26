@@ -1,0 +1,1860 @@
+{
+  "fetchedAt": "2026-10-26T11:16:59.347Z",
+  "prices": {
+    "anthropic": {
+      "claude-fable-5": {
+        "cachedInputMicros": 1000000,
+        "inputMicros": 10000000,
+        "outputMicros": 50000000
+      },
+      "claude-fable-5-1": {
+        "cachedInputMicros": 250000,
+        "inputMicros": 10000000,
+        "outputMicros": 50000000
+      },
+      "claude-haiku-4-5": {
+        "cachedInputMicros": 100000,
+        "inputMicros": 1000000,
+        "outputMicros": 5000000
+      },
+      "claude-haiku-4-5-20251001": {
+        "cachedInputMicros": 100000,
+        "inputMicros": 1000000,
+        "outputMicros": 5000000
+      },
+      "claude-haiku-5-5": {
+        "cachedInputMicros": 10000,
+        "inputMicros": 100000,
+        "outputMicros": 500000
+      },
+      "claude-opus-4-5": {
+        "cachedInputMicros": 500000,
+        "inputMicros": 5000000,
+        "outputMicros": 25000000
+      },
+      "claude-opus-4-5-20251101": {
+        "cachedInputMicros": 500000,
+        "inputMicros": 5000000,
+        "outputMicros": 25000000
+      },
+      "claude-opus-4-6": {
+        "cachedInputMicros": 500000,
+        "inputMicros": 5000000,
+        "outputMicros": 25000000
+      },
+      "claude-opus-4-7": {
+        "cachedInputMicros": 500000,
+        "inputMicros": 5000000,
+        "outputMicros": 25000000
+      },
+      "claude-opus-4-8": {
+        "cachedInputMicros": 500000,
+        "inputMicros": 5000000,
+        "outputMicros": 25000000
+      },
+      "claude-opus-5": {
+        "cachedInputMicros": 500000,
+        "inputMicros": 5000000,
+        "outputMicros": 25000000
+      },
+      "claude-opus-5-5": {
+        "cachedInputMicros": 200000,
+        "inputMicros": 4000000,
+        "outputMicros": 20000000
+      },
+      "claude-sonnet-4-5": {
+        "cachedInputMicros": 300000,
+        "inputMicros": 3000000,
+        "outputMicros": 15000000
+      },
+      "claude-sonnet-4-5-20250929": {
+        "cachedInputMicros": 300000,
+        "inputMicros": 3000000,
+        "outputMicros": 15000000
+      },
+      "claude-sonnet-4-6": {
+        "cachedInputMicros": 300000,
+        "inputMicros": 3000000,
+        "outputMicros": 15000000
+      },
+      "claude-sonnet-5": {
+        "cachedInputMicros": 200000,
+        "inputMicros": 2000000,
+        "outputMicros": 10000000
+      },
+      "claude-sonnet-5-5": {
+        "cachedInputMicros": 100000,
+        "inputMicros": 2000000,
+        "outputMicros": 10000000
+      }
+    },
+    "google": {
+      "deep-research-max-preview-04-2026": {
+        "cachedInputMicros": 200000,
+        "inputMicros": 2000000,
+        "outputMicros": 12000000
+      },
+      "deep-research-preview-04-2026": {
+        "cachedInputMicros": 200000,
+        "inputMicros": 2000000,
+        "outputMicros": 12000000
+      },
+      "gemini-2.5-computer-use-preview-10-2025": {
+        "inputMicros": 1250000,
+        "outputMicros": 10000000
+      },
+      "gemini-2.5-flash": {
+        "cachedInputMicros": 30000,
+        "inputMicros": 300000,
+        "outputMicros": 2500000
+      },
+      "gemini-2.5-flash-image": {
+        "cachedInputMicros": 75000,
+        "inputMicros": 300000,
+        "outputMicros": 30000000
+      },
+      "gemini-2.5-flash-lite": {
+        "cachedInputMicros": 10000,
+        "inputMicros": 100000,
+        "outputMicros": 400000
+      },
+      "gemini-2.5-flash-preview-tts": {
+        "inputMicros": 500000,
+        "outputMicros": 10000000
+      },
+      "gemini-2.5-pro": {
+        "cachedInputMicros": 125000,
+        "inputMicros": 1250000,
+        "outputMicros": 10000000
+      },
+      "gemini-2.5-pro-preview-tts": {
+        "inputMicros": 1000000,
+        "outputMicros": 20000000
+      },
+      "gemini-3-flash-preview": {
+        "cachedInputMicros": 50000,
+        "inputMicros": 500000,
+        "outputMicros": 3000000
+      },
+      "gemini-3-pro-image": {
+        "inputMicros": 2000000,
+        "outputMicros": 120000000
+      },
+      "gemini-3-pro-image-preview": {
+        "inputMicros": 2000000,
+        "outputMicros": 120000000
+      },
+      "gemini-3.1-flash-image": {
+        "inputMicros": 500000,
+        "outputMicros": 60000000
+      },
+      "gemini-3.1-flash-image-preview": {
+        "inputMicros": 500000,
+        "outputMicros": 60000000
+      },
+      "gemini-3.1-flash-lite": {
+        "cachedInputMicros": 25000,
+        "inputMicros": 250000,
+        "outputMicros": 1500000
+      },
+      "gemini-3.1-flash-lite-image": {
+        "inputMicros": 250000,
+        "outputMicros": 30000000
+      },
+      "gemini-3.1-flash-lite-preview": {
+        "cachedInputMicros": 25000,
+        "inputMicros": 250000,
+        "outputMicros": 1500000
+      },
+      "gemini-3.1-flash-live-preview": {
+        "inputMicros": 750000,
+        "outputMicros": 4500000
+      },
+      "gemini-3.1-flash-tts-preview": {
+        "inputMicros": 1000000,
+        "outputMicros": 20000000
+      },
+      "gemini-3.1-pro-preview": {
+        "cachedInputMicros": 200000,
+        "inputMicros": 2000000,
+        "outputMicros": 12000000
+      },
+      "gemini-3.1-pro-preview-customtools": {
+        "cachedInputMicros": 200000,
+        "inputMicros": 2000000,
+        "outputMicros": 12000000
+      },
+      "gemini-3.5-flash": {
+        "cachedInputMicros": 150000,
+        "inputMicros": 1500000,
+        "outputMicros": 9000000
+      },
+      "gemini-3.5-flash-lite": {
+        "cachedInputMicros": 30000,
+        "inputMicros": 300000,
+        "outputMicros": 2500000
+      },
+      "gemini-3.5-live-translate-preview": {
+        "inputMicros": 3500000,
+        "outputMicros": 21000000
+      },
+      "gemini-3.6-flash": {
+        "cachedInputMicros": 75000,
+        "inputMicros": 750000,
+        "outputMicros": 3750000
+      },
+      "gemini-3.7-flash": {
+        "cachedInputMicros": 75000,
+        "inputMicros": 750000,
+        "outputMicros": 3750000
+      },
+      "gemini-3.8-flash": {
+        "cachedInputMicros": 75000,
+        "inputMicros": 750000,
+        "outputMicros": 3750000
+      },
+      "gemini-4-argon": {
+        "cachedInputMicros": 100000,
+        "inputMicros": 2000000,
+        "outputMicros": 10000000
+      },
+      "gemini-embedding-001": {
+        "inputMicros": 150000,
+        "outputMicros": 0
+      },
+      "gemini-embedding-2": {
+        "inputMicros": 200000,
+        "outputMicros": 0
+      },
+      "gemini-flash-latest": {
+        "cachedInputMicros": 75000,
+        "inputMicros": 750000,
+        "outputMicros": 3750000
+      },
+      "gemini-flash-lite-latest": {
+        "cachedInputMicros": 30000,
+        "inputMicros": 300000,
+        "outputMicros": 2500000
+      },
+      "gemini-omni-flash-preview": {
+        "inputMicros": 1500000,
+        "outputMicros": 17500000
+      },
+      "gemini-pro-latest": {
+        "cachedInputMicros": 200000,
+        "inputMicros": 2000000,
+        "outputMicros": 12000000
+      },
+      "lyria-3-clip-preview": {
+        "inputMicros": 0,
+        "outputMicros": 0
+      },
+      "lyria-3-pro-preview": {
+        "inputMicros": 0,
+        "outputMicros": 0
+      }
+    },
+    "openai": {
+      "gpt-3.5-turbo": {
+        "cachedInputMicros": 0,
+        "inputMicros": 500000,
+        "outputMicros": 1500000
+      },
+      "gpt-4": {
+        "inputMicros": 30000000,
+        "outputMicros": 60000000
+      },
+      "gpt-4-turbo": {
+        "inputMicros": 10000000,
+        "outputMicros": 30000000
+      },
+      "gpt-4.1": {
+        "cachedInputMicros": 500000,
+        "inputMicros": 2000000,
+        "outputMicros": 8000000
+      },
+      "gpt-4.1-mini": {
+        "cachedInputMicros": 100000,
+        "inputMicros": 400000,
+        "outputMicros": 1600000
+      },
+      "gpt-4.1-nano": {
+        "cachedInputMicros": 25000,
+        "inputMicros": 100000,
+        "outputMicros": 400000
+      },
+      "gpt-4o": {
+        "cachedInputMicros": 1250000,
+        "inputMicros": 2500000,
+        "outputMicros": 10000000
+      },
+      "gpt-4o-2024-05-13": {
+        "inputMicros": 5000000,
+        "outputMicros": 15000000
+      },
+      "gpt-4o-2024-08-06": {
+        "cachedInputMicros": 1250000,
+        "inputMicros": 2500000,
+        "outputMicros": 10000000
+      },
+      "gpt-4o-2024-11-20": {
+        "cachedInputMicros": 1250000,
+        "inputMicros": 2500000,
+        "outputMicros": 10000000
+      },
+      "gpt-4o-mini": {
+        "cachedInputMicros": 75000,
+        "inputMicros": 150000,
+        "outputMicros": 600000
+      },
+      "gpt-5": {
+        "cachedInputMicros": 125000,
+        "inputMicros": 1250000,
+        "outputMicros": 10000000
+      },
+      "gpt-5-mini": {
+        "cachedInputMicros": 25000,
+        "inputMicros": 250000,
+        "outputMicros": 2000000
+      },
+      "gpt-5-nano": {
+        "cachedInputMicros": 5000,
+        "inputMicros": 50000,
+        "outputMicros": 400000
+      },
+      "gpt-5-pro": {
+        "inputMicros": 15000000,
+        "outputMicros": 120000000
+      },
+      "gpt-5.1": {
+        "cachedInputMicros": 125000,
+        "inputMicros": 1250000,
+        "outputMicros": 10000000
+      },
+      "gpt-5.2": {
+        "cachedInputMicros": 175000,
+        "inputMicros": 1750000,
+        "outputMicros": 14000000
+      },
+      "gpt-5.2-pro": {
+        "inputMicros": 21000000,
+        "outputMicros": 168000000
+      },
+      "gpt-5.3-codex": {
+        "cachedInputMicros": 175000,
+        "inputMicros": 1750000,
+        "outputMicros": 14000000
+      },
+      "gpt-5.3-codex-spark": {
+        "cachedInputMicros": 175000,
+        "inputMicros": 1750000,
+        "outputMicros": 14000000
+      },
+      "gpt-5.4": {
+        "cachedInputMicros": 250000,
+        "inputMicros": 2500000,
+        "outputMicros": 15000000
+      },
+      "gpt-5.4-mini": {
+        "cachedInputMicros": 75000,
+        "inputMicros": 750000,
+        "outputMicros": 4500000
+      },
+      "gpt-5.4-nano": {
+        "cachedInputMicros": 20000,
+        "inputMicros": 200000,
+        "outputMicros": 1250000
+      },
+      "gpt-5.4-pro": {
+        "inputMicros": 30000000,
+        "outputMicros": 180000000
+      },
+      "gpt-5.5": {
+        "cachedInputMicros": 500000,
+        "inputMicros": 5000000,
+        "outputMicros": 30000000
+      },
+      "gpt-5.5-pro": {
+        "inputMicros": 30000000,
+        "outputMicros": 180000000
+      },
+      "gpt-5.6": {
+        "cachedInputMicros": 400000,
+        "inputMicros": 4000000,
+        "outputMicros": 20000000
+      },
+      "gpt-5.6-luna": {
+        "cachedInputMicros": 20000,
+        "inputMicros": 200000,
+        "outputMicros": 1200000
+      },
+      "gpt-5.6-sol": {
+        "cachedInputMicros": 400000,
+        "inputMicros": 4000000,
+        "outputMicros": 20000000
+      },
+      "gpt-5.6-terra": {
+        "cachedInputMicros": 200000,
+        "inputMicros": 2000000,
+        "outputMicros": 12000000
+      },
+      "gpt-6-astra": {
+        "cachedInputMicros": 1000000,
+        "inputMicros": 10000000,
+        "outputMicros": 50000000
+      },
+      "gpt-6-luna": {
+        "cachedInputMicros": 10000,
+        "inputMicros": 100000,
+        "outputMicros": 500000
+      },
+      "gpt-6-sol": {
+        "cachedInputMicros": 200000,
+        "inputMicros": 2000000,
+        "outputMicros": 10000000
+      },
+      "gpt-6.1-sol": {
+        "cachedInputMicros": 100000,
+        "inputMicros": 2000000,
+        "outputMicros": 10000000
+      },
+      "gpt-daybreak-blue-latest": {
+        "cachedInputMicros": 400000,
+        "inputMicros": 4000000,
+        "outputMicros": 20000000
+      },
+      "gpt-daybreak-red-latest": {
+        "cachedInputMicros": 1250000,
+        "inputMicros": 12500000,
+        "outputMicros": 75000000
+      },
+      "gpt-image-2": {
+        "cachedInputMicros": 1250000,
+        "inputMicros": 5000000,
+        "outputMicros": 30000000
+      },
+      "gpt-realtime-2.1": {
+        "cachedInputMicros": 400000,
+        "inputMicros": 4000000,
+        "outputMicros": 24000000
+      },
+      "o1": {
+        "cachedInputMicros": 7500000,
+        "inputMicros": 15000000,
+        "outputMicros": 60000000
+      },
+      "o1-pro": {
+        "inputMicros": 150000000,
+        "outputMicros": 600000000
+      },
+      "o3": {
+        "cachedInputMicros": 500000,
+        "inputMicros": 2000000,
+        "outputMicros": 8000000
+      },
+      "o3-mini": {
+        "cachedInputMicros": 550000,
+        "inputMicros": 1100000,
+        "outputMicros": 4400000
+      },
+      "o3-pro": {
+        "inputMicros": 20000000,
+        "outputMicros": 80000000
+      },
+      "o4-mini": {
+        "cachedInputMicros": 275000,
+        "inputMicros": 1100000,
+        "outputMicros": 4400000
+      },
+      "text-embedding-3-large": {
+        "inputMicros": 130000,
+        "outputMicros": 0
+      },
+      "text-embedding-3-small": {
+        "inputMicros": 20000,
+        "outputMicros": 0
+      },
+      "text-embedding-ada-002": {
+        "inputMicros": 100000,
+        "outputMicros": 0
+      }
+    },
+    "vercel": {
+      "alibaba/qwen-3-14b": {
+        "inputMicros": 120000,
+        "outputMicros": 240000
+      },
+      "alibaba/qwen-3-235b": {
+        "inputMicros": 220000,
+        "outputMicros": 880000
+      },
+      "alibaba/qwen-3-30b": {
+        "inputMicros": 120000,
+        "outputMicros": 500000
+      },
+      "alibaba/qwen-3-32b": {
+        "inputMicros": 150000,
+        "outputMicros": 600000
+      },
+      "alibaba/qwen3-coder": {
+        "cachedInputMicros": 22000,
+        "inputMicros": 220000,
+        "outputMicros": 1800000
+      },
+      "alibaba/qwen3-coder-30b-a3b": {
+        "inputMicros": 150000,
+        "outputMicros": 600000
+      },
+      "alibaba/qwen3-coder-next": {
+        "inputMicros": 500000,
+        "outputMicros": 1200000
+      },
+      "alibaba/qwen3-max-thinking": {
+        "cachedInputMicros": 240000,
+        "inputMicros": 1200000,
+        "outputMicros": 6000000
+      },
+      "alibaba/qwen3-next-80b-a3b-instruct": {
+        "inputMicros": 150000,
+        "outputMicros": 1200000
+      },
+      "alibaba/qwen3-next-80b-a3b-thinking": {
+        "inputMicros": 150000,
+        "outputMicros": 1200000
+      },
+      "alibaba/qwen3-vl-instruct": {
+        "cachedInputMicros": 110000,
+        "inputMicros": 200000,
+        "outputMicros": 880000
+      },
+      "alibaba/qwen3.5-flash": {
+        "cachedInputMicros": 10000,
+        "inputMicros": 100000,
+        "outputMicros": 400000
+      },
+      "alibaba/qwen3.5-plus": {
+        "cachedInputMicros": 40000,
+        "inputMicros": 400000,
+        "outputMicros": 2400000
+      },
+      "alibaba/qwen3.6-27b": {
+        "inputMicros": 600000,
+        "outputMicros": 3600000
+      },
+      "alibaba/qwen3.6-plus": {
+        "cachedInputMicros": 50000,
+        "inputMicros": 500000,
+        "outputMicros": 3000000
+      },
+      "alibaba/qwen3.7-flash": {
+        "cachedInputMicros": 6000,
+        "inputMicros": 30000,
+        "outputMicros": 130000
+      },
+      "alibaba/qwen3.7-max": {
+        "cachedInputMicros": 500000,
+        "inputMicros": 2500000,
+        "outputMicros": 7500000
+      },
+      "alibaba/qwen3.7-plus": {
+        "cachedInputMicros": 80000,
+        "inputMicros": 400000,
+        "outputMicros": 1600000
+      },
+      "alibaba/qwen3.8-2.4t-a95b": {
+        "cachedInputMicros": 250000,
+        "inputMicros": 2000000,
+        "outputMicros": 6000000
+      },
+      "alibaba/qwen3.8-27b": {
+        "cachedInputMicros": 100000,
+        "inputMicros": 500000,
+        "outputMicros": 3000000
+      },
+      "alibaba/qwen3.8-flash": {
+        "cachedInputMicros": 16000,
+        "inputMicros": 150000,
+        "outputMicros": 470000
+      },
+      "alibaba/qwen3.8-max": {
+        "cachedInputMicros": 250000,
+        "inputMicros": 2000000,
+        "outputMicros": 6000000
+      },
+      "alibaba/qwen3.8-max-0902": {
+        "cachedInputMicros": 250000,
+        "inputMicros": 2000000,
+        "outputMicros": 6000000
+      },
+      "alibaba/qwen3.8-max-prime": {
+        "cachedInputMicros": 500000,
+        "inputMicros": 4000000,
+        "outputMicros": 12000000
+      },
+      "alibaba/qwen3.8-omni-flash": {
+        "cachedInputMicros": 16000,
+        "inputMicros": 150000,
+        "outputMicros": 470000
+      },
+      "amazon/nova-2-lite": {
+        "cachedInputMicros": 82500,
+        "inputMicros": 330000,
+        "outputMicros": 2750000
+      },
+      "amazon/nova-lite": {
+        "cachedInputMicros": 15000,
+        "inputMicros": 60000,
+        "outputMicros": 240000
+      },
+      "amazon/nova-micro": {
+        "cachedInputMicros": 8750,
+        "inputMicros": 35000,
+        "outputMicros": 140000
+      },
+      "amazon/nova-pro": {
+        "cachedInputMicros": 200000,
+        "inputMicros": 800000,
+        "outputMicros": 3200000
+      },
+      "anthropic/claude-fable-5": {
+        "cachedInputMicros": 1000000,
+        "inputMicros": 10000000,
+        "outputMicros": 50000000
+      },
+      "anthropic/claude-fable-5.1": {
+        "cachedInputMicros": 250000,
+        "inputMicros": 10000000,
+        "outputMicros": 50000000
+      },
+      "anthropic/claude-haiku-4.5": {
+        "cachedInputMicros": 100000,
+        "inputMicros": 1000000,
+        "outputMicros": 5000000
+      },
+      "anthropic/claude-haiku-5.5": {
+        "cachedInputMicros": 10000,
+        "inputMicros": 100000,
+        "outputMicros": 500000
+      },
+      "anthropic/claude-opus-4.5": {
+        "cachedInputMicros": 500000,
+        "inputMicros": 5000000,
+        "outputMicros": 25000000
+      },
+      "anthropic/claude-opus-4.6": {
+        "cachedInputMicros": 500000,
+        "inputMicros": 5000000,
+        "outputMicros": 25000000
+      },
+      "anthropic/claude-opus-4.7": {
+        "cachedInputMicros": 500000,
+        "inputMicros": 5000000,
+        "outputMicros": 25000000
+      },
+      "anthropic/claude-opus-4.8": {
+        "cachedInputMicros": 500000,
+        "inputMicros": 5000000,
+        "outputMicros": 25000000
+      },
+      "anthropic/claude-opus-4.8-fast": {
+        "cachedInputMicros": 1000000,
+        "inputMicros": 10000000,
+        "outputMicros": 50000000
+      },
+      "anthropic/claude-opus-5": {
+        "cachedInputMicros": 500000,
+        "inputMicros": 5000000,
+        "outputMicros": 25000000
+      },
+      "anthropic/claude-opus-5-fast": {
+        "cachedInputMicros": 1000000,
+        "inputMicros": 10000000,
+        "outputMicros": 50000000
+      },
+      "anthropic/claude-opus-5.5": {
+        "cachedInputMicros": 200000,
+        "inputMicros": 4000000,
+        "outputMicros": 20000000
+      },
+      "anthropic/claude-opus-5.5-fast": {
+        "cachedInputMicros": 400000,
+        "inputMicros": 8000000,
+        "outputMicros": 40000000
+      },
+      "anthropic/claude-sonnet-4.5": {
+        "cachedInputMicros": 300000,
+        "inputMicros": 3000000,
+        "outputMicros": 15000000
+      },
+      "anthropic/claude-sonnet-4.6": {
+        "cachedInputMicros": 300000,
+        "inputMicros": 3000000,
+        "outputMicros": 15000000
+      },
+      "anthropic/claude-sonnet-5": {
+        "cachedInputMicros": 200000,
+        "inputMicros": 2000000,
+        "outputMicros": 10000000
+      },
+      "anthropic/claude-sonnet-5.5": {
+        "cachedInputMicros": 100000,
+        "inputMicros": 2000000,
+        "outputMicros": 10000000
+      },
+      "arcee-ai/trinity-large-thinking": {
+        "cachedInputMicros": 60000,
+        "inputMicros": 250000,
+        "outputMicros": 800000
+      },
+      "bytedance/seed-1.6": {
+        "cachedInputMicros": 50000,
+        "inputMicros": 250000,
+        "outputMicros": 2000000
+      },
+      "bytedance/seed-1.8": {
+        "cachedInputMicros": 50000,
+        "inputMicros": 250000,
+        "outputMicros": 2000000
+      },
+      "bytedance/seed-2.1-turbo": {
+        "cachedInputMicros": 100000,
+        "inputMicros": 500000,
+        "outputMicros": 2500000
+      },
+      "callstack/apex": {
+        "cachedInputMicros": 200000,
+        "inputMicros": 500000,
+        "outputMicros": 3000000
+      },
+      "cohere/command-a": {
+        "inputMicros": 2500000,
+        "outputMicros": 10000000
+      },
+      "deepseek/deepseek-r1": {
+        "inputMicros": 1350000,
+        "outputMicros": 5400000
+      },
+      "deepseek/deepseek-v3.1": {
+        "cachedInputMicros": 130000,
+        "inputMicros": 250000,
+        "outputMicros": 950000
+      },
+      "deepseek/deepseek-v3.2": {
+        "inputMicros": 620000,
+        "outputMicros": 1850000
+      },
+      "deepseek/deepseek-v3.2-thinking": {
+        "inputMicros": 620000,
+        "outputMicros": 1850000
+      },
+      "deepseek/deepseek-v4-flash": {
+        "cachedInputMicros": 28000,
+        "inputMicros": 130000,
+        "outputMicros": 260000
+      },
+      "deepseek/deepseek-v4-flash-0731": {
+        "cachedInputMicros": 14000,
+        "inputMicros": 76000,
+        "outputMicros": 153000
+      },
+      "deepseek/deepseek-v4-flash-vision-exp": {
+        "cachedInputMicros": 6800,
+        "inputMicros": 215600,
+        "outputMicros": 646800
+      },
+      "deepseek/deepseek-v4-pro": {
+        "cachedInputMicros": 22000,
+        "inputMicros": 660000,
+        "outputMicros": 1980000
+      },
+      "deepseek/deepseek-v4-pro-0813": {
+        "cachedInputMicros": 66000,
+        "inputMicros": 660000,
+        "outputMicros": 1980000
+      },
+      "deepseek/deepseek-v4.1-flash": {
+        "cachedInputMicros": 1500,
+        "inputMicros": 75000,
+        "outputMicros": 300000
+      },
+      "deepseek/deepseek-v4.1-flash-1017": {
+        "cachedInputMicros": 1500,
+        "inputMicros": 75000,
+        "outputMicros": 300000
+      },
+      "deepseek/deepseek-v4.1-flash-1017-fast": {
+        "cachedInputMicros": 14000,
+        "inputMicros": 600000,
+        "outputMicros": 2400000
+      },
+      "deepseek/deepseek-v4.1-flash-fast": {
+        "cachedInputMicros": 14000,
+        "inputMicros": 600000,
+        "outputMicros": 2400000
+      },
+      "elorian/glimpse": {
+        "cachedInputMicros": 60000,
+        "inputMicros": 600000,
+        "outputMicros": 3000000
+      },
+      "fireworks/ember-1": {
+        "cachedInputMicros": 300000,
+        "inputMicros": 3000000,
+        "outputMicros": 15000000
+      },
+      "google/gemini-2.5-flash": {
+        "cachedInputMicros": 30000,
+        "inputMicros": 300000,
+        "outputMicros": 2500000
+      },
+      "google/gemini-2.5-flash-image": {
+        "cachedInputMicros": 30000,
+        "inputMicros": 300000,
+        "outputMicros": 2500000
+      },
+      "google/gemini-2.5-flash-lite": {
+        "cachedInputMicros": 10000,
+        "inputMicros": 100000,
+        "outputMicros": 400000
+      },
+      "google/gemini-2.5-pro": {
+        "cachedInputMicros": 125000,
+        "inputMicros": 1250000,
+        "outputMicros": 10000000
+      },
+      "google/gemini-3-flash": {
+        "cachedInputMicros": 50000,
+        "inputMicros": 500000,
+        "outputMicros": 3000000
+      },
+      "google/gemini-3-pro-image": {
+        "cachedInputMicros": 200000,
+        "inputMicros": 2000000,
+        "outputMicros": 12000000
+      },
+      "google/gemini-3.1-flash-image": {
+        "cachedInputMicros": 50000,
+        "inputMicros": 500000,
+        "outputMicros": 3000000
+      },
+      "google/gemini-3.1-flash-image-preview": {
+        "cachedInputMicros": 50000,
+        "inputMicros": 500000,
+        "outputMicros": 3000000
+      },
+      "google/gemini-3.1-flash-lite": {
+        "cachedInputMicros": 30000,
+        "inputMicros": 250000,
+        "outputMicros": 1500000
+      },
+      "google/gemini-3.1-flash-lite-image": {
+        "cachedInputMicros": 30000,
+        "inputMicros": 250000,
+        "outputMicros": 1500000
+      },
+      "google/gemini-3.1-pro-preview": {
+        "cachedInputMicros": 200000,
+        "inputMicros": 2000000,
+        "outputMicros": 12000000
+      },
+      "google/gemini-3.5-flash": {
+        "cachedInputMicros": 150000,
+        "inputMicros": 1500000,
+        "outputMicros": 9000000
+      },
+      "google/gemini-3.5-flash-lite": {
+        "cachedInputMicros": 30000,
+        "inputMicros": 300000,
+        "outputMicros": 2500000
+      },
+      "google/gemini-3.5-transcribe": {
+        "inputMicros": 2000000,
+        "outputMicros": 12000000
+      },
+      "google/gemini-3.6-flash": {
+        "cachedInputMicros": 75000,
+        "inputMicros": 750000,
+        "outputMicros": 3750000
+      },
+      "google/gemini-3.7-flash": {
+        "cachedInputMicros": 75000,
+        "inputMicros": 750000,
+        "outputMicros": 3750000
+      },
+      "google/gemini-3.8-flash": {
+        "cachedInputMicros": 75000,
+        "inputMicros": 750000,
+        "outputMicros": 3750000
+      },
+      "google/gemini-3.8-flash-lite-tts": {
+        "inputMicros": 500000,
+        "outputMicros": 6000000
+      },
+      "google/gemini-3.8-flash-tts": {
+        "inputMicros": 500000,
+        "outputMicros": 9000000
+      },
+      "google/gemini-3.8-live": {
+        "inputMicros": 750000,
+        "outputMicros": 4500000
+      },
+      "google/gemini-3.8-live-extended-thinking": {
+        "inputMicros": 750000,
+        "outputMicros": 4500000
+      },
+      "google/gemini-4-argon": {
+        "cachedInputMicros": 100000,
+        "inputMicros": 2000000,
+        "outputMicros": 10000000
+      },
+      "google/gemini-nano-banana-2.1": {
+        "cachedInputMicros": 150000,
+        "inputMicros": 1500000,
+        "outputMicros": 7500000
+      },
+      "google/gemini-omni-flash-preview": {
+        "inputMicros": 1500000,
+        "outputMicros": 9000000
+      },
+      "google/gemma-4-26b-a4b-it": {
+        "cachedInputMicros": 15000,
+        "inputMicros": 150000,
+        "outputMicros": 600000
+      },
+      "google/gemma-4-31b-it": {
+        "inputMicros": 140000,
+        "outputMicros": 400000
+      },
+      "inception/mercury-2": {
+        "cachedInputMicros": 25000,
+        "inputMicros": 250000,
+        "outputMicros": 750000
+      },
+      "inception/mercury-2.5": {
+        "cachedInputMicros": 4000,
+        "inputMicros": 40000,
+        "outputMicros": 150000
+      },
+      "inception/mercury-3": {
+        "cachedInputMicros": 10000,
+        "inputMicros": 100000,
+        "outputMicros": 350000
+      },
+      "inception/mercury-coder-small": {
+        "inputMicros": 250000,
+        "outputMicros": 1000000
+      },
+      "inclusionai/ling-3.0-flash": {
+        "cachedInputMicros": 4200,
+        "inputMicros": 21000,
+        "outputMicros": 63000
+      },
+      "inclusionai/ling-3.0-flash-fin": {
+        "cachedInputMicros": 15000,
+        "inputMicros": 75000,
+        "outputMicros": 220000
+      },
+      "inclusionai/ling-3.0-flash-sante": {
+        "cachedInputMicros": 15000,
+        "inputMicros": 75000,
+        "outputMicros": 220000
+      },
+      "inclusionai/ling-3.0-flash-vl": {
+        "cachedInputMicros": 15000,
+        "inputMicros": 75000,
+        "outputMicros": 220000
+      },
+      "inclusionai/ling-3.1-flash": {
+        "cachedInputMicros": 60000,
+        "inputMicros": 300000,
+        "outputMicros": 900000
+      },
+      "inference-net/schematron-v2-small": {
+        "cachedInputMicros": 50000,
+        "inputMicros": 50000,
+        "outputMicros": 230000
+      },
+      "inference-net/schematron-v2-turbo": {
+        "cachedInputMicros": 30000,
+        "inputMicros": 30000,
+        "outputMicros": 150000
+      },
+      "interfaze/interfaze-beta": {
+        "inputMicros": 1500000,
+        "outputMicros": 3500000
+      },
+      "liquid/lfm2.5-24b-a2b": {
+        "cachedInputMicros": 25000,
+        "inputMicros": 50000,
+        "outputMicros": 700000
+      },
+      "meituan/longcat-2.5-preview": {
+        "cachedInputMicros": 6000,
+        "inputMicros": 300000,
+        "outputMicros": 1200000
+      },
+      "meta/llama-3.1-70b": {
+        "inputMicros": 720000,
+        "outputMicros": 720000
+      },
+      "meta/llama-3.1-8b": {
+        "inputMicros": 220000,
+        "outputMicros": 220000
+      },
+      "meta/llama-3.3-70b": {
+        "inputMicros": 720000,
+        "outputMicros": 720000
+      },
+      "meta/llama-4-maverick": {
+        "inputMicros": 240000,
+        "outputMicros": 970000
+      },
+      "meta/llama-4-scout": {
+        "inputMicros": 170000,
+        "outputMicros": 660000
+      },
+      "meta/muse-glimmer-30b": {
+        "cachedInputMicros": 40000,
+        "inputMicros": 350000,
+        "outputMicros": 1500000
+      },
+      "meta/muse-spark-1.1": {
+        "cachedInputMicros": 150000,
+        "inputMicros": 1250000,
+        "outputMicros": 4250000
+      },
+      "meta/muse-spark-1.2": {
+        "cachedInputMicros": 150000,
+        "inputMicros": 1250000,
+        "outputMicros": 4250000
+      },
+      "meta/muse-spark-1.2-contributor": {
+        "cachedInputMicros": 2000,
+        "inputMicros": 100000,
+        "outputMicros": 200000
+      },
+      "meta/muse-spark-1.3": {
+        "cachedInputMicros": 150000,
+        "inputMicros": 1250000,
+        "outputMicros": 4250000
+      },
+      "meta/muse-spark-1.3-contributor": {
+        "cachedInputMicros": 2000,
+        "inputMicros": 100000,
+        "outputMicros": 200000
+      },
+      "meta/muse-spark-open": {
+        "cachedInputMicros": 150000,
+        "inputMicros": 1250000,
+        "outputMicros": 4250000
+      },
+      "meta/muse-wonder-1.0": {
+        "cachedInputMicros": 200000,
+        "inputMicros": 4000000,
+        "outputMicros": 20000000
+      },
+      "microsoft/mai-image-2.6": {
+        "inputMicros": 5000000,
+        "outputMicros": 38000000
+      },
+      "microsoft/mai-image-2.6-flash": {
+        "inputMicros": 1750000,
+        "outputMicros": 19000000
+      },
+      "minimax/minimax-m2": {
+        "cachedInputMicros": 30000,
+        "inputMicros": 300000,
+        "outputMicros": 1200000
+      },
+      "minimax/minimax-m2.1": {
+        "cachedInputMicros": 30000,
+        "inputMicros": 300000,
+        "outputMicros": 1200000
+      },
+      "minimax/minimax-m2.1-lightning": {
+        "cachedInputMicros": 30000,
+        "inputMicros": 300000,
+        "outputMicros": 2400000
+      },
+      "minimax/minimax-m2.5": {
+        "cachedInputMicros": 30000,
+        "inputMicros": 300000,
+        "outputMicros": 1200000
+      },
+      "minimax/minimax-m2.5-highspeed": {
+        "cachedInputMicros": 30000,
+        "inputMicros": 600000,
+        "outputMicros": 2400000
+      },
+      "minimax/minimax-m2.7": {
+        "cachedInputMicros": 60000,
+        "inputMicros": 300000,
+        "outputMicros": 1200000
+      },
+      "minimax/minimax-m2.7-highspeed": {
+        "cachedInputMicros": 60000,
+        "inputMicros": 600000,
+        "outputMicros": 2400000
+      },
+      "minimax/minimax-m3": {
+        "cachedInputMicros": 60000,
+        "inputMicros": 300000,
+        "outputMicros": 1200000
+      },
+      "minimax/minimax-m3.1-flash": {
+        "cachedInputMicros": 15000,
+        "inputMicros": 150000,
+        "outputMicros": 600000
+      },
+      "mistral/codestral": {
+        "cachedInputMicros": 30000,
+        "inputMicros": 300000,
+        "outputMicros": 900000
+      },
+      "mistral/ministral-14b": {
+        "cachedInputMicros": 20000,
+        "inputMicros": 200000,
+        "outputMicros": 200000
+      },
+      "mistral/ministral-3b": {
+        "cachedInputMicros": 10000,
+        "inputMicros": 100000,
+        "outputMicros": 100000
+      },
+      "mistral/ministral-8b": {
+        "cachedInputMicros": 15000,
+        "inputMicros": 150000,
+        "outputMicros": 150000
+      },
+      "mistral/mistral-large-3": {
+        "cachedInputMicros": 50000,
+        "inputMicros": 500000,
+        "outputMicros": 1500000
+      },
+      "mistral/mistral-large-4": {
+        "cachedInputMicros": 140000,
+        "inputMicros": 1360000,
+        "outputMicros": 4180000
+      },
+      "mistral/mistral-medium-3.5": {
+        "cachedInputMicros": 150000,
+        "inputMicros": 1500000,
+        "outputMicros": 7500000
+      },
+      "mistral/mistral-nemo": {
+        "inputMicros": 29000,
+        "outputMicros": 30000
+      },
+      "mistral/mistral-small": {
+        "cachedInputMicros": 15000,
+        "inputMicros": 150000,
+        "outputMicros": 600000
+      },
+      "mixedbread/toast-1": {
+        "cachedInputMicros": 36000,
+        "inputMicros": 300000,
+        "outputMicros": 720000
+      },
+      "moonshotai/kimi-k2": {
+        "inputMicros": 570000,
+        "outputMicros": 2300000
+      },
+      "moonshotai/kimi-k2.5": {
+        "inputMicros": 600000,
+        "outputMicros": 3000000
+      },
+      "moonshotai/kimi-k2.6": {
+        "cachedInputMicros": 160000,
+        "inputMicros": 950000,
+        "outputMicros": 4000000
+      },
+      "moonshotai/kimi-k2.7-code": {
+        "cachedInputMicros": 190000,
+        "inputMicros": 950000,
+        "outputMicros": 4000000
+      },
+      "moonshotai/kimi-k2.7-code-highspeed": {
+        "cachedInputMicros": 380000,
+        "inputMicros": 1900000,
+        "outputMicros": 8000000
+      },
+      "moonshotai/kimi-k3": {
+        "cachedInputMicros": 300000,
+        "inputMicros": 3000000,
+        "outputMicros": 15000000
+      },
+      "moonshotai/kimi-k3-fast": {
+        "cachedInputMicros": 450000,
+        "inputMicros": 4500000,
+        "outputMicros": 22500000
+      },
+      "moonshotai/kimi-k3.1-pro": {
+        "cachedInputMicros": 200000,
+        "inputMicros": 2000000,
+        "outputMicros": 10000000
+      },
+      "moonshotai/kimi-k3.1-pro-highspeed": {
+        "cachedInputMicros": 200000,
+        "inputMicros": 4000000,
+        "outputMicros": 20000000
+      },
+      "morph/morph-v3-fast": {
+        "inputMicros": 800000,
+        "outputMicros": 1200000
+      },
+      "morph/morph-v3-large": {
+        "inputMicros": 900000,
+        "outputMicros": 1900000
+      },
+      "nvidia/nemotron-3-nano-30b-a3b": {
+        "cachedInputMicros": 25000,
+        "inputMicros": 50000,
+        "outputMicros": 200000
+      },
+      "nvidia/nemotron-3-super-120b-a12b": {
+        "inputMicros": 150000,
+        "outputMicros": 650000
+      },
+      "nvidia/nemotron-3-ultra-550b-a55b": {
+        "cachedInputMicros": 120000,
+        "inputMicros": 600000,
+        "outputMicros": 2400000
+      },
+      "nvidia/nemotron-3.5-lightning": {
+        "cachedInputMicros": 10000,
+        "inputMicros": 50000,
+        "outputMicros": 200000
+      },
+      "nvidia/nemotron-3.5-lightning-free": {
+        "inputMicros": 0,
+        "outputMicros": 0
+      },
+      "nvidia/nemotron-3.5-super-vl": {
+        "cachedInputMicros": 40000,
+        "inputMicros": 200000,
+        "outputMicros": 500000
+      },
+      "nvidia/nemotron-nano-12b-v2-vl": {
+        "inputMicros": 200000,
+        "outputMicros": 600000
+      },
+      "nvidia/nemotron-nano-9b-v2": {
+        "inputMicros": 60000,
+        "outputMicros": 230000
+      },
+      "openai/gpt-4.1": {
+        "cachedInputMicros": 500000,
+        "inputMicros": 2000000,
+        "outputMicros": 8000000
+      },
+      "openai/gpt-4.1-fast": {
+        "cachedInputMicros": 875000,
+        "inputMicros": 3500000,
+        "outputMicros": 14000000
+      },
+      "openai/gpt-4.1-mini": {
+        "cachedInputMicros": 100000,
+        "inputMicros": 400000,
+        "outputMicros": 1600000
+      },
+      "openai/gpt-4.1-mini-fast": {
+        "cachedInputMicros": 175000,
+        "inputMicros": 700000,
+        "outputMicros": 2800000
+      },
+      "openai/gpt-4.1-nano": {
+        "cachedInputMicros": 30000,
+        "inputMicros": 100000,
+        "outputMicros": 400000
+      },
+      "openai/gpt-4o": {
+        "cachedInputMicros": 1250000,
+        "inputMicros": 2500000,
+        "outputMicros": 10000000
+      },
+      "openai/gpt-4o-fast": {
+        "cachedInputMicros": 2125000,
+        "inputMicros": 4250000,
+        "outputMicros": 17000000
+      },
+      "openai/gpt-4o-mini": {
+        "cachedInputMicros": 75000,
+        "inputMicros": 150000,
+        "outputMicros": 600000
+      },
+      "openai/gpt-4o-mini-fast": {
+        "cachedInputMicros": 125000,
+        "inputMicros": 250000,
+        "outputMicros": 1000000
+      },
+      "openai/gpt-4o-mini-transcribe": {
+        "inputMicros": 1250000,
+        "outputMicros": 5000000
+      },
+      "openai/gpt-4o-transcribe": {
+        "inputMicros": 2500000,
+        "outputMicros": 10000000
+      },
+      "openai/gpt-5": {
+        "cachedInputMicros": 125000,
+        "inputMicros": 1250000,
+        "outputMicros": 10000000
+      },
+      "openai/gpt-5-codex": {
+        "cachedInputMicros": 130000,
+        "inputMicros": 1250000,
+        "outputMicros": 10000000
+      },
+      "openai/gpt-5-fast": {
+        "cachedInputMicros": 250000,
+        "inputMicros": 2500000,
+        "outputMicros": 20000000
+      },
+      "openai/gpt-5-mini": {
+        "cachedInputMicros": 25000,
+        "inputMicros": 250000,
+        "outputMicros": 2000000
+      },
+      "openai/gpt-5-mini-fast": {
+        "cachedInputMicros": 45000,
+        "inputMicros": 450000,
+        "outputMicros": 3600000
+      },
+      "openai/gpt-5-nano": {
+        "cachedInputMicros": 5000,
+        "inputMicros": 50000,
+        "outputMicros": 400000
+      },
+      "openai/gpt-5-pro": {
+        "inputMicros": 15000000,
+        "outputMicros": 120000000
+      },
+      "openai/gpt-5.1-codex": {
+        "cachedInputMicros": 130000,
+        "inputMicros": 1250000,
+        "outputMicros": 10000000
+      },
+      "openai/gpt-5.1-codex-max": {
+        "cachedInputMicros": 125000,
+        "inputMicros": 1250000,
+        "outputMicros": 10000000
+      },
+      "openai/gpt-5.1-codex-mini": {
+        "cachedInputMicros": 30000,
+        "inputMicros": 250000,
+        "outputMicros": 2000000
+      },
+      "openai/gpt-5.1-thinking": {
+        "cachedInputMicros": 125000,
+        "inputMicros": 1250000,
+        "outputMicros": 10000000
+      },
+      "openai/gpt-5.1-thinking-fast": {
+        "cachedInputMicros": 250000,
+        "inputMicros": 2500000,
+        "outputMicros": 20000000
+      },
+      "openai/gpt-5.2": {
+        "cachedInputMicros": 175000,
+        "inputMicros": 1750000,
+        "outputMicros": 14000000
+      },
+      "openai/gpt-5.2-codex": {
+        "cachedInputMicros": 175000,
+        "inputMicros": 1750000,
+        "outputMicros": 14000000
+      },
+      "openai/gpt-5.2-fast": {
+        "cachedInputMicros": 350000,
+        "inputMicros": 3500000,
+        "outputMicros": 28000000
+      },
+      "openai/gpt-5.2-pro": {
+        "inputMicros": 21000000,
+        "outputMicros": 168000000
+      },
+      "openai/gpt-5.3-codex": {
+        "cachedInputMicros": 175000,
+        "inputMicros": 1750000,
+        "outputMicros": 14000000
+      },
+      "openai/gpt-5.3-codex-fast": {
+        "cachedInputMicros": 350000,
+        "inputMicros": 3500000,
+        "outputMicros": 28000000
+      },
+      "openai/gpt-5.4": {
+        "cachedInputMicros": 250000,
+        "inputMicros": 2500000,
+        "outputMicros": 15000000
+      },
+      "openai/gpt-5.4-fast": {
+        "cachedInputMicros": 500000,
+        "inputMicros": 5000000,
+        "outputMicros": 30000000
+      },
+      "openai/gpt-5.4-mini": {
+        "cachedInputMicros": 75000,
+        "inputMicros": 750000,
+        "outputMicros": 4500000
+      },
+      "openai/gpt-5.4-mini-fast": {
+        "cachedInputMicros": 150000,
+        "inputMicros": 1500000,
+        "outputMicros": 9000000
+      },
+      "openai/gpt-5.4-nano": {
+        "cachedInputMicros": 20000,
+        "inputMicros": 200000,
+        "outputMicros": 1250000
+      },
+      "openai/gpt-5.4-pro": {
+        "inputMicros": 30000000,
+        "outputMicros": 180000000
+      },
+      "openai/gpt-5.5": {
+        "cachedInputMicros": 500000,
+        "inputMicros": 5000000,
+        "outputMicros": 30000000
+      },
+      "openai/gpt-5.5-fast": {
+        "cachedInputMicros": 1250000,
+        "inputMicros": 12500000,
+        "outputMicros": 75000000
+      },
+      "openai/gpt-5.5-pro": {
+        "inputMicros": 30000000,
+        "outputMicros": 180000000
+      },
+      "openai/gpt-5.6-luna": {
+        "cachedInputMicros": 20000,
+        "inputMicros": 200000,
+        "outputMicros": 1200000
+      },
+      "openai/gpt-5.6-luna-fast": {
+        "cachedInputMicros": 40000,
+        "inputMicros": 400000,
+        "outputMicros": 2400000
+      },
+      "openai/gpt-5.6-sol": {
+        "cachedInputMicros": 400000,
+        "inputMicros": 4000000,
+        "outputMicros": 20000000
+      },
+      "openai/gpt-5.6-sol-fast": {
+        "cachedInputMicros": 800000,
+        "inputMicros": 8000000,
+        "outputMicros": 40000000
+      },
+      "openai/gpt-5.6-terra": {
+        "cachedInputMicros": 200000,
+        "inputMicros": 2000000,
+        "outputMicros": 12000000
+      },
+      "openai/gpt-5.6-terra-fast": {
+        "cachedInputMicros": 400000,
+        "inputMicros": 4000000,
+        "outputMicros": 24000000
+      },
+      "openai/gpt-6-astra": {
+        "cachedInputMicros": 1000000,
+        "inputMicros": 10000000,
+        "outputMicros": 50000000
+      },
+      "openai/gpt-6-astra-fast": {
+        "cachedInputMicros": 2000000,
+        "inputMicros": 20000000,
+        "outputMicros": 100000000
+      },
+      "openai/gpt-6-luna": {
+        "cachedInputMicros": 10000,
+        "inputMicros": 100000,
+        "outputMicros": 500000
+      },
+      "openai/gpt-6-luna-fast": {
+        "cachedInputMicros": 20000,
+        "inputMicros": 200000,
+        "outputMicros": 1000000
+      },
+      "openai/gpt-6-sol": {
+        "cachedInputMicros": 200000,
+        "inputMicros": 2000000,
+        "outputMicros": 10000000
+      },
+      "openai/gpt-6-sol-fast": {
+        "cachedInputMicros": 400000,
+        "inputMicros": 4000000,
+        "outputMicros": 20000000
+      },
+      "openai/gpt-6.1-sol": {
+        "cachedInputMicros": 100000,
+        "inputMicros": 2000000,
+        "outputMicros": 10000000
+      },
+      "openai/gpt-6.1-sol-fast": {
+        "cachedInputMicros": 200000,
+        "inputMicros": 4000000,
+        "outputMicros": 20000000
+      },
+      "openai/gpt-image-1-mini": {
+        "cachedInputMicros": 200000,
+        "inputMicros": 2000000,
+        "outputMicros": 8000000
+      },
+      "openai/gpt-image-1.5": {
+        "cachedInputMicros": 1250000,
+        "inputMicros": 5000000,
+        "outputMicros": 32000000
+      },
+      "openai/gpt-image-2": {
+        "cachedInputMicros": 1250000,
+        "inputMicros": 5000000,
+        "outputMicros": 30000000
+      },
+      "openai/gpt-image-2.5-flare": {
+        "cachedInputMicros": 1250000,
+        "inputMicros": 5000000,
+        "outputMicros": 30000000
+      },
+      "openai/gpt-image-2.5-sunburst": {
+        "cachedInputMicros": 1250000,
+        "inputMicros": 5000000,
+        "outputMicros": 30000000
+      },
+      "openai/gpt-oss-120b": {
+        "cachedInputMicros": 100000,
+        "inputMicros": 100000,
+        "outputMicros": 500000
+      },
+      "openai/gpt-oss-20b": {
+        "inputMicros": 30000,
+        "outputMicros": 140000
+      },
+      "openai/gpt-oss-safeguard-120b": {
+        "inputMicros": 150000,
+        "outputMicros": 600000
+      },
+      "openai/gpt-oss-safeguard-20b": {
+        "inputMicros": 70000,
+        "outputMicros": 200000
+      },
+      "openai/gpt-realtime-1.5": {
+        "cachedInputMicros": 400000,
+        "inputMicros": 4000000,
+        "outputMicros": 16000000
+      },
+      "openai/gpt-realtime-2": {
+        "cachedInputMicros": 400000,
+        "inputMicros": 4000000,
+        "outputMicros": 24000000
+      },
+      "openai/gpt-realtime-2.1": {
+        "cachedInputMicros": 400000,
+        "inputMicros": 4000000,
+        "outputMicros": 24000000
+      },
+      "openai/gpt-realtime-mini": {
+        "cachedInputMicros": 60000,
+        "inputMicros": 600000,
+        "outputMicros": 2400000
+      },
+      "openai/o1": {
+        "cachedInputMicros": 7500000,
+        "inputMicros": 15000000,
+        "outputMicros": 60000000
+      },
+      "openai/o3": {
+        "cachedInputMicros": 500000,
+        "inputMicros": 2000000,
+        "outputMicros": 8000000
+      },
+      "openai/o3-fast": {
+        "cachedInputMicros": 875000,
+        "inputMicros": 3500000,
+        "outputMicros": 14000000
+      },
+      "openai/o3-mini": {
+        "cachedInputMicros": 550000,
+        "inputMicros": 1100000,
+        "outputMicros": 4400000
+      },
+      "openai/o3-pro": {
+        "inputMicros": 20000000,
+        "outputMicros": 80000000
+      },
+      "openai/o4-mini": {
+        "cachedInputMicros": 275000,
+        "inputMicros": 1100000,
+        "outputMicros": 4400000
+      },
+      "perplexity/sonar": {
+        "inputMicros": 250000,
+        "outputMicros": 2500000
+      },
+      "poolside/laguna-s-2.1": {
+        "cachedInputMicros": 9000,
+        "inputMicros": 90000,
+        "outputMicros": 180000
+      },
+      "poolside/laguna-s-2.1-free": {
+        "inputMicros": 0,
+        "outputMicros": 0
+      },
+      "quiverai/arrow-2": {
+        "cachedInputMicros": 400000,
+        "inputMicros": 4000000,
+        "outputMicros": 20000000
+      },
+      "quiverai/arrow-2-telos": {
+        "cachedInputMicros": 600000,
+        "inputMicros": 6000000,
+        "outputMicros": 30000000
+      },
+      "reflection/beam": {
+        "inputMicros": 0,
+        "outputMicros": 0
+      },
+      "reflection/beam-free": {
+        "inputMicros": 0,
+        "outputMicros": 0
+      },
+      "sakana/fugu-max": {
+        "cachedInputMicros": 250000,
+        "inputMicros": 2000000,
+        "outputMicros": 6000000
+      },
+      "sakana/fugu-ultra": {
+        "cachedInputMicros": 500000,
+        "inputMicros": 5000000,
+        "outputMicros": 30000000
+      },
+      "sakana/fugu-ultra-v2": {
+        "cachedInputMicros": 500000,
+        "inputMicros": 5000000,
+        "outputMicros": 30000000
+      },
+      "sakana/namazu": {
+        "cachedInputMicros": 150000,
+        "inputMicros": 950000,
+        "outputMicros": 4000000
+      },
+      "scaledown/scaledown-extract-1": {
+        "inputMicros": 50000,
+        "outputMicros": 0
+      },
+      "scaledown/scaledown-summarize-1": {
+        "inputMicros": 50000,
+        "outputMicros": 0
+      },
+      "spacexai/grok-4.20-multi-agent": {
+        "cachedInputMicros": 200000,
+        "inputMicros": 1250000,
+        "outputMicros": 2500000
+      },
+      "spacexai/grok-4.20-multi-agent-beta": {
+        "cachedInputMicros": 200000,
+        "inputMicros": 1250000,
+        "outputMicros": 2500000
+      },
+      "spacexai/grok-4.20-non-reasoning": {
+        "cachedInputMicros": 200000,
+        "inputMicros": 1250000,
+        "outputMicros": 2500000
+      },
+      "spacexai/grok-4.20-non-reasoning-beta": {
+        "cachedInputMicros": 400000,
+        "inputMicros": 1250000,
+        "outputMicros": 2500000
+      },
+      "spacexai/grok-4.20-reasoning": {
+        "cachedInputMicros": 200000,
+        "inputMicros": 1250000,
+        "outputMicros": 2500000
+      },
+      "spacexai/grok-4.20-reasoning-beta": {
+        "cachedInputMicros": 200000,
+        "inputMicros": 1250000,
+        "outputMicros": 2500000
+      },
+      "spacexai/grok-4.3": {
+        "cachedInputMicros": 200000,
+        "inputMicros": 1250000,
+        "outputMicros": 2500000
+      },
+      "spacexai/grok-4.5": {
+        "cachedInputMicros": 300000,
+        "inputMicros": 2000000,
+        "outputMicros": 6000000
+      },
+      "spacexai/grok-4.6": {
+        "cachedInputMicros": 500000,
+        "inputMicros": 2000000,
+        "outputMicros": 6000000
+      },
+      "spacexai/grok-4.7": {
+        "cachedInputMicros": 500000,
+        "inputMicros": 2000000,
+        "outputMicros": 6000000
+      },
+      "spacexai/grok-build-0.1": {
+        "cachedInputMicros": 200000,
+        "inputMicros": 1000000,
+        "outputMicros": 2000000
+      },
+      "stealth/glyph-cluster": {
+        "inputMicros": 0,
+        "outputMicros": 0
+      },
+      "stepfun/step-3.7-flash": {
+        "cachedInputMicros": 40000,
+        "inputMicros": 200000,
+        "outputMicros": 1150000
+      },
+      "stepfun/step-5-preview": {
+        "cachedInputMicros": 100000,
+        "inputMicros": 1000000,
+        "outputMicros": 2700000
+      },
+      "tencent/hy-mt2-lite": {
+        "inputMicros": 44000,
+        "outputMicros": 177000
+      },
+      "tencent/hy-mt2-plus": {
+        "inputMicros": 74000,
+        "outputMicros": 295000
+      },
+      "tencent/hy-mt2-pro": {
+        "inputMicros": 74000,
+        "outputMicros": 295000
+      },
+      "tencent/hy3": {
+        "cachedInputMicros": 35000,
+        "inputMicros": 140000,
+        "outputMicros": 580000
+      },
+      "tencent/hy4-preview": {
+        "cachedInputMicros": 42000,
+        "inputMicros": 834000,
+        "outputMicros": 2501000
+      },
+      "thinkingmachines/inkling": {
+        "cachedInputMicros": 170000,
+        "inputMicros": 1000000,
+        "outputMicros": 4050000
+      },
+      "thinkingmachines/inkling-small": {
+        "cachedInputMicros": 100000,
+        "inputMicros": 450000,
+        "outputMicros": 1200000
+      },
+      "xiaomi/mimo-v2.5": {
+        "cachedInputMicros": 2500,
+        "inputMicros": 119000,
+        "outputMicros": 238000
+      },
+      "xiaomi/mimo-v2.5-pro": {
+        "cachedInputMicros": 2800,
+        "inputMicros": 304500,
+        "outputMicros": 609000
+      },
+      "xiaomi/mimo-v2.6-flash": {
+        "cachedInputMicros": 2800,
+        "inputMicros": 140000,
+        "outputMicros": 280000
+      },
+      "xiaomi/mimo-v2.6-pro": {
+        "cachedInputMicros": 3600,
+        "inputMicros": 435000,
+        "outputMicros": 870000
+      },
+      "xiaomi/mimo-v2.6-pro-ultraspeed": {
+        "cachedInputMicros": 36000,
+        "inputMicros": 4350000,
+        "outputMicros": 8700000
+      },
+      "zai/glm-4.5": {
+        "cachedInputMicros": 110000,
+        "inputMicros": 600000,
+        "outputMicros": 2200000
+      },
+      "zai/glm-4.5-air": {
+        "cachedInputMicros": 30000,
+        "inputMicros": 200000,
+        "outputMicros": 1100000
+      },
+      "zai/glm-4.5v": {
+        "cachedInputMicros": 110000,
+        "inputMicros": 600000,
+        "outputMicros": 1800000
+      },
+      "zai/glm-4.6": {
+        "cachedInputMicros": 110000,
+        "inputMicros": 600000,
+        "outputMicros": 2200000
+      },
+      "zai/glm-4.7": {
+        "inputMicros": 600000,
+        "outputMicros": 2200000
+      },
+      "zai/glm-4.7-flash": {
+        "inputMicros": 70000,
+        "outputMicros": 400000
+      },
+      "zai/glm-4.7-flashx": {
+        "cachedInputMicros": 10000,
+        "inputMicros": 60000,
+        "outputMicros": 400000
+      },
+      "zai/glm-5": {
+        "inputMicros": 1000000,
+        "outputMicros": 3200000
+      },
+      "zai/glm-5-turbo": {
+        "cachedInputMicros": 240000,
+        "inputMicros": 1200000,
+        "outputMicros": 4000000
+      },
+      "zai/glm-5.1": {
+        "cachedInputMicros": 260000,
+        "inputMicros": 1400000,
+        "outputMicros": 4400000
+      },
+      "zai/glm-5.2": {
+        "cachedInputMicros": 160000,
+        "inputMicros": 800000,
+        "outputMicros": 2550000
+      },
+      "zai/glm-5.2-fast": {
+        "cachedInputMicros": 560000,
+        "inputMicros": 2800000,
+        "outputMicros": 8800000
+      },
+      "zai/glm-5.3": {
+        "cachedInputMicros": 200000,
+        "inputMicros": 1200000,
+        "outputMicros": 4000000
+      },
+      "zai/glm-5.3-fast": {
+        "cachedInputMicros": 210000,
+        "inputMicros": 2100000,
+        "outputMicros": 6600000
+      },
+      "zai/glm-5.3-flash": {
+        "cachedInputMicros": 30000,
+        "inputMicros": 150000,
+        "outputMicros": 500000
+      },
+      "zai/glm-5.3-flashx": {
+        "cachedInputMicros": 75000,
+        "inputMicros": 370000,
+        "outputMicros": 1250000
+      },
+      "zai/glm-5v-turbo": {
+        "cachedInputMicros": 240000,
+        "inputMicros": 1200000,
+        "outputMicros": 4000000
+      }
+    }
+  },
+  "source": "https://models.dev/api.json"
+}

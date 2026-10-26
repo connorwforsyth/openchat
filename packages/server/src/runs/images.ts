@@ -11,7 +11,7 @@ import {
   generateImageTool,
 } from "@workspace/ai/tools/registry/generate-image";
 import { toAiSdkTool } from "@workspace/ai/tools/registry/to-ai-sdk";
-import { imageCost } from "@workspace/config/prices";
+import { effectivePrices, imageCost } from "@workspace/config/prices";
 import type { AppConfig } from "@workspace/config/schema";
 import { parseModelRef } from "@workspace/contract/schemas/models";
 import type { Db } from "@workspace/db/client";
@@ -40,7 +40,8 @@ export type ImageModels = Pick<
 >;
 
 export interface ImageTurnDeps {
-  readonly config: Pick<AppConfig, "models">;
+  readonly config: Pick<AppConfig, "models"> &
+    Partial<Pick<AppConfig, "providers">>;
   readonly db: Db;
   readonly models: ImageModels;
   readonly now?: () => Date;
@@ -127,7 +128,7 @@ export const chatImageTools = async (
         db,
         {
           context: who.context,
-          costMicros: imageCost(deps.config.models.prices, ref, count, usage)
+          costMicros: imageCost(effectivePrices(deps.config), ref, count, usage)
             .costMicros,
           kind: "tool",
           model: ref,

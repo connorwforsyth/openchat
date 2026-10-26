@@ -264,7 +264,7 @@ const authSchema = z
  */
 const priceMicrosSchema = z.int().min(0).max(1_000_000_000_000);
 
-/** What one model charges. No price ships built in: a wrong one is worse than none. */
+/** What one model charges, as the operator sets it or models.dev lists it. */
 export const modelPriceSchema = z
   .strictObject({
     /**
@@ -380,8 +380,10 @@ const modelsSchema = z
     image: imageModelsSchema,
     /**
      * Prices by `provider:modelId` ref (what an alias resolves to), used to
-     * fill `costMicros` on usage rows. A model that isn't listed is unpriced:
-     * its usage is recorded at cost 0 and counts toward no budget.
+     * fill `costMicros` on usage rows. They override the models.dev list
+     * prices shipped for Anthropic, OpenAI, Google and the Vercel AI Gateway
+     * (`effectivePrices`). A model in neither is unpriced: its usage is
+     * recorded at cost 0 and counts toward no budget.
      */
     prices: z.record(modelRefSchema, modelPriceSchema).default({}),
     /**

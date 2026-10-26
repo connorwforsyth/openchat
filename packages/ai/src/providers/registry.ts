@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import type { ImageModelV4, ProviderV4 } from "@ai-sdk/provider";
+import { effectivePrices } from "@workspace/config/prices";
 import type { AppConfig } from "@workspace/config/schema";
 import {
   AUTO_MODEL,
@@ -125,7 +126,8 @@ export const buildRegistry = (
   config: RegistryConfig,
   options: RegistryOptions = {}
 ): DiscoveringRegistry => {
-  const { aliases, descriptions, prices, ratings } = config.models;
+  const { aliases, descriptions, ratings } = config.models;
+  const prices = effectivePrices(config);
   const now = options.now ?? Date.now;
   const log = options.log ?? (() => undefined);
 
@@ -425,7 +427,7 @@ export const buildRegistry = (
    * description and ratings, by selector then by the ref it resolves to,
    * beat the catalog's (096, 099). The name and capabilities come
    * from the catalog, else the id and the provider; the price from the
-   * catalog, else `models.prices`. Nothing is guessed.
+   * catalog, else `effectivePrices`. Nothing is guessed.
    */
   const described = (
     option: ModelOption,
