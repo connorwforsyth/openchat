@@ -3,7 +3,7 @@
 // models.dev). Speed: the Vercel AI Gateway's public endpoint stats.
 
 export const GENERATED_CATALOG = {
-  fetchedAt: "2026-10-26T11:26:44.009Z",
+  fetchedAt: "2026-10-26T11:40:19.495Z",
   prices: {
     anthropic: {
       "claude-fable-5": {

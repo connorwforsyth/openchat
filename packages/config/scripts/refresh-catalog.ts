@@ -64,7 +64,7 @@ const target = fileURLToPath(
   new URL("../src/catalog/generated.ts", import.meta.url)
 );
 await writeFile(target, renderCatalog(catalog));
-spawnSync("bunx", ["biome", "format", "--write", target], { stdio: "ignore" });
+spawnSync("bunx", ["biome", "check", "--write", target], { stdio: "ignore" });
 
 const counts = Object.entries(catalog.prices).map(
   ([source, models]) => `${source} ${Object.keys(models).length}`
