@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 
+import { type Editable, partOf } from "./editable";
 import {
   SLIDE_COLOR,
   SLIDE_FONT,
@@ -30,7 +31,7 @@ const TONES: Readonly<Record<SlideTone, CSSProperties>> = {
   muted: { backgroundColor: SLIDE_COLOR.muted, color: SLIDE_COLOR.foreground },
 };
 
-export interface SlideProps {
+export interface SlideProps extends Editable<"slide"> {
   /** `center` puts the content in the middle of the canvas. */
   readonly align?: "center" | "start";
   readonly children?: ReactNode;
@@ -42,11 +43,15 @@ export interface SlideProps {
 export function Slide({
   align = "start",
   children,
+  "data-src": source,
+  styles,
   tone = "default",
 }: SlideProps) {
   return (
     <section
       data-slide-canvas=""
+      data-src={source}
+      {...partOf("slide")}
       style={{
         ...TONES[tone],
         boxSizing: "border-box",
@@ -64,6 +69,7 @@ export function Slide({
         position: "relative",
         textAlign: align === "center" ? "center" : "start",
         width: SLIDE_WIDTH,
+        ...styles?.slide,
       }}
     >
       {children}
@@ -91,7 +97,7 @@ export function Notes({ children }: { readonly children?: ReactNode }) {
   );
 }
 
-export interface LogoProps {
+export interface LogoProps extends Editable<"logo"> {
   /** Words for the picture, or the mark itself without `src`. */
   readonly alt?: string;
   /** A `data:` URL; the runtime loads nothing from the network. */
@@ -100,9 +106,17 @@ export interface LogoProps {
 }
 
 /** A small mark in the canvas's bottom end corner. */
-export function Logo({ alt = "", src, text }: LogoProps) {
+export function Logo({
+  alt = "",
+  "data-src": source,
+  src,
+  styles,
+  text,
+}: LogoProps) {
   return (
     <div
+      data-src={source}
+      {...partOf("logo")}
       style={{
         alignItems: "center",
         color: SLIDE_COLOR.mutedForeground,
@@ -113,6 +127,7 @@ export function Logo({ alt = "", src, text }: LogoProps) {
         insetBlockEnd: SLIDE_SPACE.lg,
         insetInlineEnd: SLIDE_PADDING.inline,
         position: "absolute",
+        ...styles?.logo,
       }}
     >
       {src ? (
@@ -125,21 +140,34 @@ export function Logo({ alt = "", src, text }: LogoProps) {
           width={168}
         />
       ) : null}
-      {text ? <span>{text}</span> : null}
+      {text ? <span {...partOf("logo", "text")}>{text}</span> : null}
     </div>
   );
+}
+
+/** A layout's part: which it is, its text's prop, and its styles. */
+export interface PartProps {
+  readonly children?: ReactNode;
+  /** The part's name in the layout's `styles`. */
+  readonly part: string;
+  /** The prop its words come from, when it's one. */
+  readonly prop?: string;
+  readonly style?: CSSProperties;
 }
 
 /** A slide's heading, in the type scale. */
 export function Heading({
   children,
+  part,
+  prop,
   size = "heading",
-}: {
-  readonly children?: ReactNode;
+  style,
+}: PartProps & {
   readonly size?: "display" | "heading" | "title";
 }) {
   return (
     <h2
+      {...partOf(part, prop)}
       style={{
         fontSize: SLIDE_TYPE[size],
         fontWeight: 700,
@@ -147,6 +175,7 @@ export function Heading({
         lineHeight: 1.08,
         margin: 0,
         textWrap: "balance",
+        ...style,
       }}
     >
       {children}
@@ -155,15 +184,17 @@ export function Heading({
 }
 
 /** Quieter text under a heading. */
-export function Lede({ children }: { readonly children?: ReactNode }) {
+export function Lede({ children, part, prop, style }: PartProps) {
   return (
     <p
+      {...partOf(part, prop)}
       style={{
         color: "inherit",
         fontSize: SLIDE_TYPE.body,
         margin: 0,
         opacity: 0.75,
         textWrap: "pretty",
+        ...style,
       }}
     >
       {children}
@@ -172,9 +203,10 @@ export function Lede({ children }: { readonly children?: ReactNode }) {
 }
 
 /** The small capitals over a title. */
-export function Eyebrow({ children }: { readonly children?: ReactNode }) {
+export function Eyebrow({ children, part, prop, style }: PartProps) {
   return (
     <p
+      {...partOf(part, prop)}
       style={{
         fontSize: SLIDE_TYPE.eyebrow,
         fontWeight: 600,
@@ -182,6 +214,7 @@ export function Eyebrow({ children }: { readonly children?: ReactNode }) {
         margin: 0,
         opacity: 0.7,
         textTransform: "uppercase",
+        ...style,
       }}
     >
       {children}

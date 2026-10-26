@@ -39,9 +39,24 @@ describe("loadSlide", () => {
       return;
     }
     const html = renderToStaticMarkup(element.value);
-    expect(html).toContain('data-src="slides/intro.tsx:5"');
+    // The wrapper `<div>` is line 5, its `<` at column 4.
+    expect(html).toContain('<div data-src="slides/intro.tsx:5:4"');
     expect(html).toContain("Q3 review");
     expect(html).toContain("data-slide-canvas");
+  });
+
+  it("keeps a stamp written in the source rather than restamping it", () => {
+    const element = loadSlide(
+      'export default () => <p data-src="kept.tsx:1:0">x</p>;',
+      "kept"
+    );
+    expect(element.ok).toBe(true);
+    if (!element.ok) {
+      return;
+    }
+    expect(renderToStaticMarkup(element.value)).toContain(
+      '<p data-src="kept.tsx:1:0">x</p>'
+    );
   });
 
   it("refuses what a slide may not import, even what a React artifact may", () => {

@@ -73,7 +73,36 @@ describe("slide-ui's layouts", () => {
     expect(screen.getAllByRole("listitem")).toHaveLength(4);
     expect(screen.getByText("42%")).toBeTruthy();
     expect(screen.getByRole("img", { name: "A chart" })).toBeTruthy();
-    expect(screen.getByText("“Hello”")).toBeTruthy();
+    expect(
+      screen.getByText("Hello", { selector: "blockquote span" }).parentElement
+        ?.textContent
+    ).toBe("“Hello”");
+  });
+
+  it("mark where they're written and which prop each part's words come from", () => {
+    const { container } = render(
+      <Bullets
+        data-src="slides/points.tsx:3:9"
+        items={["One", "Two"]}
+        styles={{
+          items: { fontWeight: 700 },
+          title: { color: "var(--primary)" },
+        }}
+        title="Points"
+      />
+    );
+    const canvas = canvasOf(container);
+    expect(canvas.dataset.src).toBe("slides/points.tsx:3:9");
+    expect(canvas.dataset.part).toBe("slide");
+    const heading = within(canvas).getByRole("heading", { name: "Points" });
+    expect([heading.dataset.part, heading.dataset.prop]).toEqual([
+      "title",
+      "title",
+    ]);
+    expect(heading.style.color).toBe("var(--primary)");
+    const [, second] = within(canvas).getAllByRole("listitem");
+    expect(second?.dataset.prop).toBe("items.1");
+    expect(second?.style.fontWeight).toBe("700");
   });
 
   it("mark steps for the presenter, and keep notes out of sight", () => {

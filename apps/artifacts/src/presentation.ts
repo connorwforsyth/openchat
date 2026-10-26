@@ -2,6 +2,7 @@ import {
   presentationContentSchema,
   slideFileName,
 } from "@workspace/artifacts-kit/kinds/presentation/content";
+import { stampSourceLocations } from "@workspace/artifacts-kit/kinds/presentation/editing/loc-tags";
 import { SLIDE_MODULES } from "@workspace/artifacts-kit/kinds/presentation/slides";
 import type {
   PresentAction,
@@ -27,8 +28,10 @@ import {
 // (`./react-artifact`), against a module table that adds
 // `@workspace/slide-ui`, and its elements are stamped `data-src` with the
 // slide's own file name (`slides/<id>.tsx`), so Annotate works as it does
-// for React. Where the presenter goes next is a pure function of where they
-// are and how many steps each slide has.
+// for React. A slide's stamps also carry the column
+// (`slides/<id>.tsx:<line>:<col>`), which the slides editor needs to name
+// one element on a line. Where the presenter goes next is a pure function
+// of where they are and how many steps each slide has.
 
 /** What `require` resolves to inside a slide. */
 export const slideModules: Readonly<Record<string, unknown>> = {
@@ -57,13 +60,16 @@ export interface LoadedDeck {
 export const loadSlide = (
   source: string,
   id: string
-): Result<ReactElement, RuntimeError> =>
-  flatMap(
-    flatMap(compileArtifact(source, slideFileName(id)), (compiled) =>
-      evaluateArtifact(compiled, slideModules, permitted)
+): Result<ReactElement, RuntimeError> => {
+  const fileName = slideFileName(id);
+  return flatMap(
+    flatMap(
+      compileArtifact(stampSourceLocations(source, fileName), fileName),
+      (compiled) => evaluateArtifact(compiled, slideModules, permitted)
     ),
     artifactElement
   );
+};
 
 /**
  * The deck, with each slide loaded on its own: one broken slide is that
