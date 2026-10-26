@@ -230,6 +230,13 @@ Lane `pstack/usage` (Settings → Usage, span tags). Defaults applied overnight;
 2. **`{{current_date}}` is the UTC date.** The server fills it per turn without the user's time zone, so near midnight it can be a day off for the person chatting. *Defaulted: UTC, long English form ("Thursday, October 22, 2026").* The alternative is to send the browser's time zone with each run and format in it, which touches the run contract.
 3. **Images in documents are by address only.** The `/` menu's Image asks for an https address or a path in this app; there's no upload from the document editor yet. *Defaulted: address only.* The alternative is an upload that stores the file and inserts its app path.
 
+## slides-final lane (n2/slides-final)
+
+1. **"Change this slide" posts a visible message in the deck's chat.** *Defaulted: yes.* The request ("Change slide 4 ("growth") of the presentation …") lands in the chat as a user message, so its reply, its approval and its edit sit with every other turn, and the editor follows the run. The alternative is a hidden instruction that only shows its result, which needs a new run input.
+2. **One version per editing burst.** *Decided by root: coalesce.* The slides editor saves after 60 seconds without a change (`SAVE_IDLE_MS`), and at once before Change this slide and when the editor closes; the page warns before closing with edits unsaved. Documents, spreadsheets and diagrams keep their 800 ms pause. The alternative was one version per session.
+3. **A colour of one's own is written into the slide as `#rrggbb`.** The theme's colours are offered first and written as `var(--…)`, so they follow the theme; a picked custom colour is a literal, which the slide guide tells the model not to write. *Defaulted: allow it for people.* The alternative is theme colours only.
+4. **Undo after the agent's change.** *Defaulted: the agent's version joins the editor's history, so Undo takes it back (saved as a new version).* The alternative is that Undo only covers a person's own edits.
+
 ## prices lane (n2/prices)
 
 1. **The curated Intelligence ratings are my judgment.** `packages/config/src/catalog/intelligence.ts` rates 27 models 1 to 5 by family tier (Opus and Fable 5, Sonnet 4, Haiku 5.5 3, GPT-5 4, Gemini 3.5 Flash 3, small Ollama models 1). *Defaulted: those values.* Change any line in that file, or override per model with `models.ratings` in app.config, or replace the file once a benchmark source (Artificial Analysis needs a key) is chosen.

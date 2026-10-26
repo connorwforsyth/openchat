@@ -263,6 +263,13 @@ describe("set-part-style", () => {
     );
   });
 
+  it("keeps quoted keys quoted", () => {
+    const styled = `export default () => <Title styles={{ 'title': { 'font-size': "96px" } }} title="Q3" />;`;
+    expect(style(styled, "title", "color", "blue").source).toBe(
+      `export default () => <Title styles={{ 'title': { 'font-size': "96px", color: 'blue' } }} title="Q3" />;`
+    );
+  });
+
   it("removes a cleared key, then the empty part, then the prop", () => {
     const styled = `export default () => <Title title="Q3" styles={{ title: { color: "red" } }} />;`;
     expect(style(styled, "title", "color", null).source).toBe(TITLE);

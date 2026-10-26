@@ -197,6 +197,8 @@ function RuntimePreview({
       case "position":
       case "exported":
       case "export-failed":
+      case "layout":
+      case "picked":
         return;
       default:
         return message.value satisfies never;

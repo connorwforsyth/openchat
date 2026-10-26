@@ -87,6 +87,29 @@ describe("readFrameMessage (in the panel)", () => {
     ).toEqual({ ok: true, value: ready });
   });
 
+  it("has no message for the frame to edit the deck or undo", () => {
+    // The deck's own code runs in the frame and can post what the runtime
+    // can; edits are made on this side only.
+    for (const data of [
+      {
+        channel: RUNTIME_CHANNEL,
+        id: "1",
+        previous: "Q3",
+        target: { column: 4, line: 5, slide: "intro" },
+        text: "Owned",
+        type: "text-edited",
+      },
+      { channel: RUNTIME_CHANNEL, command: "undo", id: "1", type: "command" },
+    ]) {
+      expect(
+        readFrameMessage(
+          { data, origin: "null", source: frameWindow },
+          frameWindow
+        )
+      ).toEqual({ error: "shape", ok: false });
+    }
+  });
+
   it("rejects another window, a real origin, or no frame yet", () => {
     expect(
       readFrameMessage(

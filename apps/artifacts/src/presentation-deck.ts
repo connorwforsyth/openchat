@@ -1,5 +1,8 @@
+import type { SlideTarget } from "@workspace/artifacts-kit/kinds/presentation/edit-target";
 import type {
+  DeckView,
   ExportFormat,
+  PickedElement,
   PresentAction,
   RuntimeError,
 } from "@workspace/chat-ui/artifacts/runtime-protocol";
@@ -20,14 +23,16 @@ import {
   captureSlide,
   type ReadColor,
 } from "./slide-capture";
+import { type Inspector, inspectSlide } from "./slide-inspect";
 import type { SlideLayout } from "./slide-layout";
 import { regionRasterizer, slidePicture } from "./slide-raster";
 import { failedSlideLayout } from "./slide-rules";
 
 // A deck on the runtime page (164). Every slide is drawn at its full
 // 1920×1080 and scaled to fit (CSS `transform`, so it's crisp at any size):
-// down the page in the overview, or one at a time, fitted to the window,
-// while presenting. Each slide is its own React root, so one that throws
+// down the page in the overview and the slides editor's rail, or one at a
+// time, fitted to the window, while presenting and on the editor's canvas
+// (where a click picks an element to edit, `./slide-inspect`). Each slide is its own React root, so one that throws
 // is that slide's error and the others still draw. Nothing animates (D28):
 // the presenter drives it from the keyboard.
 
@@ -44,10 +49,29 @@ export interface DeckReport {
   readonly steps: number;
 }
 
+/** Where each slide sits on the page, top to bottom. */
+export type DeckLayout = readonly {
+  readonly height: number;
+  readonly top: number;
+}[];
+
+/** What the slides editor's canvas edits (n2). */
+export interface DeckEditing {
+  /** The slide shown, by id; the first when it isn't one. */
+  readonly focus?: string;
+  /** Whether a click picks an element in it. */
+  readonly inspect?: boolean;
+  readonly onPicked: (element: PickedElement | null) => void;
+  /** Picked again once the slide is drawn. */
+  readonly selection?: SlideTarget | null;
+}
+
 export interface DeckController {
   readonly control: (action: PresentAction) => void;
   /** The deck as a file, drawn afresh with every step showing. */
   readonly exportAs: (format: ExportFormat) => Promise<Uint8Array>;
+  /** In the `slide` view, shows `focus` and picks `selection` in it. */
+  readonly select: (focus: string, selection: SlideTarget | null) => void;
   readonly teardown: () => void;
 }
 
@@ -122,18 +146,25 @@ export const mountDeck = (
   deck: LoadedDeck,
   {
     css,
+    editing,
     onError,
+    onLayout,
     onPosition,
+    view = "overview",
   }: {
     readonly css: string;
+    readonly editing?: DeckEditing;
     readonly onError: (error: RuntimeError) => void;
+    readonly onLayout?: (layout: DeckLayout) => void;
     readonly onPosition: (report: DeckReport) => void;
+    readonly view?: DeckView;
   }
 ): DeckController => {
   const style = document.createElement("style");
   style.textContent = css;
   const root = document.createElement("div");
   root.className = "deck";
+  root.dataset.view = view;
   container.append(style, root);
 
   const roots: Root[] = [];
@@ -168,8 +199,17 @@ export const mountDeck = (
     return frame;
   });
 
-  let position: DeckPosition = START;
+  const indexOf = (id: string | undefined) =>
+    Math.max(
+      0,
+      deck.slides.findIndex((slide) => slide.id === id)
+    );
+  let focus = indexOf(editing?.focus);
+  let position: DeckPosition =
+    view === "slide" ? { slide: focus, step: 0 } : START;
   let presenting = false;
+  let inspector: Inspector | null = null;
+  const pickColor = canvasColorReader();
 
   const stepsIn = (frame: HTMLElement | undefined): HTMLElement[] =>
     frame ? [...frame.querySelectorAll<HTMLElement>("[data-step]")] : [];
@@ -180,7 +220,8 @@ export const mountDeck = (
       window.innerHeight / HEIGHT
     );
     frames.forEach((frame, index) => {
-      const current = presenting && index === position.slide;
+      const current =
+        (presenting || view === "slide") && index === position.slide;
       frame.style.width = current ? `${WIDTH * scale}px` : "";
       frame.style.height = current ? `${HEIGHT * scale}px` : "";
       const fit = current ? scale : frame.clientWidth / WIDTH;
@@ -189,6 +230,32 @@ export const mountDeck = (
         canvas.style.transform = `scale(${fit})`;
       }
     });
+    if (view === "rail" && onLayout) {
+      onLayout(
+        frames.map((frame) => ({
+          height: frame.offsetHeight,
+          top: frame.offsetTop,
+        }))
+      );
+    }
+  };
+
+  /** Picking on the slide shown, while it's the editor's canvas. */
+  const inspect = (selection: SlideTarget | null) => {
+    inspector?.teardown();
+    inspector = null;
+    const frame = frames[position.slide];
+    const slide = deck.slides[position.slide];
+    if (
+      !(editing?.inspect && view === "slide" && !presenting && frame && slide)
+    ) {
+      return;
+    }
+    inspector = inspectSlide(frame, slide.id, {
+      onPicked: editing.onPicked,
+      readColor: pickColor,
+    });
+    inspector.pick(selection?.slide === slide.id ? selection : null);
   };
 
   const show = () => {
@@ -226,6 +293,7 @@ export const mountDeck = (
   observer.observe(root);
   window.addEventListener("resize", layout);
   show();
+  inspect(editing?.selection ?? null);
 
   const control = (action: PresentAction) => {
     if (action === "enter") {
@@ -233,12 +301,28 @@ export const mountDeck = (
     } else if (action === "exit") {
       presenting = false;
     }
-    position = nextPosition(
-      position,
-      action,
-      frames.map((frame) => stepsIn(frame).length)
-    );
+    position =
+      action === "exit" && view === "slide"
+        ? { slide: focus, step: 0 }
+        : nextPosition(
+            position,
+            action,
+            frames.map((frame) => stepsIn(frame).length)
+          );
     show();
+    if (action === "enter" || action === "exit") {
+      inspect(null);
+    }
+  };
+
+  const select = (id: string, selection: SlideTarget | null) => {
+    if (view !== "slide" || presenting) {
+      return;
+    }
+    focus = indexOf(id);
+    position = { slide: focus, step: 0 };
+    show();
+    inspect(selection);
   };
 
   /** The theme's colours for a slide that failed: the error card's. */
@@ -348,7 +432,9 @@ export const mountDeck = (
   return {
     control,
     exportAs,
+    select,
     teardown: () => {
+      inspector?.teardown();
       observer.disconnect();
       window.removeEventListener("resize", layout);
       for (const each of roots) {

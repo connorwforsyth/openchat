@@ -74,6 +74,32 @@ export const slideDeckCss = (
 .deck[data-presenting] .deck-slide { display: none; border-radius: 0; box-shadow: none; }
 .deck[data-presenting] .deck-slide[data-current] { display: block; flex: none; }
 [data-step-hidden] { visibility: hidden; }
+.deck[data-view="rail"] { gap: 8px; padding: 8px; }
+.deck[data-view="slide"] {
+  min-height: 100vh;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+}
+.deck[data-view="slide"] .deck-slide {
+  display: none;
+  flex: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+.deck[data-view="slide"] .deck-slide[data-current] { display: block; }
+.inspect-outline {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  z-index: 1;
+  box-sizing: border-box;
+  pointer-events: none;
+  border-radius: 2px;
+}
+.inspect-outline[data-inspect="hover"] { outline: 1px dashed var(--primary); }
+.inspect-outline[data-inspect="picked"] { outline: 2px solid var(--primary); }
+.deck[data-presenting] .inspect-outline { display: none; }
 .deck-capture {
   position: fixed;
   inset-block-start: 0;
