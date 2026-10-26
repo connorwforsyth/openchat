@@ -17,9 +17,9 @@ import { CATALOG_SOURCES, generatedCatalogSchema } from "../src/catalog/schema";
 // Gateway language model's recent output speed. Both are public and keyless.
 // This is the only code that fetches them; the app reads the committed file.
 // Run: `bun run catalog:refresh` in packages/config, then review the diff.
-// A model whose endpoints fail (other than a 404, which means none) or
-// can't be read would lose its speed, so
-// the refresh stops and names them; `--allow-partial` writes it anyway.
+// A model whose endpoints fail or can't be read would lose its speed, so the
+// refresh stops and names them; `--allow-partial` writes it anyway. Batch
+// variants (`…-batch`) have no endpoints page, so their 404 is expected.
 
 const CONCURRENCY = 8;
 
@@ -50,8 +50,7 @@ await Promise.all(
       // biome-ignore lint/performance/noAwaitInLoops: each worker fetches in turn; CONCURRENCY workers is the limit
       const reply = await fetch(`${CATALOG_SOURCES.speed}/${id}/endpoints`)
         .then((response) => {
-          // Batch variants have no endpoints page: no stats, not a failure.
-          if (response.status === 404) {
+          if (response.status === 404 && id.endsWith("-batch")) {
             return null;
           }
           if (!response.ok) {

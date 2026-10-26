@@ -161,7 +161,7 @@ const costLine = (
   }
   const missing =
     unpriced.length === 0 ? "" : `; no price for ${unpriced.join(", ")}`;
-  return `about ${dollars(total)} at list prices${missing}`;
+  return `about ${dollars(total)} at this instance's prices${missing}`;
 };
 
 /** What the run will call, as the CLI prints it before asking. Pure. */

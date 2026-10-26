@@ -147,7 +147,7 @@ describe("preflight", () => {
     expect(text).toContain("~25,900 input + ~2,560 output tokens");
     // 25,900 input at $1/M and 2,560 output at $5/M; the judge has no price.
     expect(text).toContain(
-      "Cost              about $0.04 at list prices; no price for ollama:qwen3"
+      "Cost              about $0.04 at this instance's prices; no price for ollama:qwen3"
     );
   });
 
