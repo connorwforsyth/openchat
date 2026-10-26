@@ -1,3 +1,5 @@
+import { slideIdSchema } from "@workspace/artifacts-kit/kinds/presentation/content";
+import { slideTargetSchema } from "@workspace/artifacts-kit/kinds/presentation/visual-edits";
 import { REACT_IMPORTS } from "@workspace/artifacts-kit/kinds/react";
 import { artifactKindSchema } from "@workspace/contract/schemas/message-parts";
 import { err, ok, type Result } from "@workspace/shared/result";
@@ -50,6 +52,14 @@ export const MAX_FRAME_HEIGHT = 20_000;
 
 const renderIdSchema = z.string().min(1).max(64);
 
+/**
+ * How a deck lays out (164): `overview`, every slide down the page (the
+ * default); `rail`, packed small for the slides editor's sorter; `slide`,
+ * one slide fitted to the frame, for the editor's canvas.
+ */
+export const deckViewSchema = z.enum(["overview", "rail", "slide"]);
+export type DeckView = z.infer<typeof deckViewSchema>;
+
 /** Host → frame: render this artifact, replacing whatever is showing. */
 export const renderRequestSchema = z.object({
   channel: z.literal(RUNTIME_CHANNEL),
@@ -59,12 +69,20 @@ export const renderRequestSchema = z.object({
    * `data-src="<fileName>:<line>"` for the Annotate wave (D16).
    */
   fileName: z.string().min(1).max(256),
+  /** The slide shown. */
+  focus: slideIdSchema.optional(),
   /** Echoed back on `rendered` and `error`, so stale replies are dropped. */
   id: renderIdSchema,
+  /** Whether a click on the slide picks an element in it, to edit. */
+  inspect: z.boolean().optional(),
   kind: runtimeKindSchema,
+  /** The element picked before this render, picked again once it's drawn. */
+  selection: slideTargetSchema.nullable().optional(),
   theme: runtimeThemeSchema,
   title: z.string().max(200),
   type: z.literal("render"),
+  /** A deck's layout; the rest is for its `slide` view. */
+  view: deckViewSchema.optional(),
 });
 export type RenderRequest = z.infer<typeof renderRequestSchema>;
 
@@ -103,11 +121,25 @@ export const exportRequestSchema = z.object({
 });
 export type ExportRequest = z.infer<typeof exportRequestSchema>;
 
+/**
+ * Host → frame: in a deck's `slide` view, show `focus` and pick
+ * `selection` in it, without drawing the deck again.
+ */
+export const selectRequestSchema = z.object({
+  channel: z.literal(RUNTIME_CHANNEL),
+  focus: slideIdSchema,
+  id: renderIdSchema,
+  selection: slideTargetSchema.nullable(),
+  type: z.literal("select"),
+});
+export type SelectRequest = z.infer<typeof selectRequestSchema>;
+
 /** Every message the host sends. */
 export const hostMessageSchema = z.discriminatedUnion("type", [
   renderRequestSchema,
   presentRequestSchema,
   exportRequestSchema,
+  selectRequestSchema,
 ]);
 export type HostMessage = z.infer<typeof hostMessageSchema>;
 
@@ -136,6 +168,50 @@ export const runtimeErrorSchema = z.object({
   message: z.string().max(MAX_MESSAGE_LENGTH),
 });
 export type RuntimeError = z.infer<typeof runtimeErrorSchema>;
+
+/** A colour as the slides editor's colour fields take it. */
+export const hexColorSchema = z.string().regex(/^#[\da-f]{6}$/);
+
+/**
+ * The styles an element picked in a slide has, as drawn: what the slides
+ * editor's inspector shows and edits.
+ */
+export const pickedStyleSchema = z.object({
+  /** `null` when it has none of its own (transparent). */
+  backgroundColor: hexColorSchema.nullable(),
+  color: hexColorSchema,
+  fontSize: z.number().min(0).max(4000),
+  fontStyle: z.enum(["italic", "normal"]),
+  fontWeight: z.number().int().min(1).max(1000),
+  letterSpacing: z.number().min(-1000).max(1000),
+  /** A multiple of the font size; `null` for the browser's normal. */
+  lineHeight: z.number().min(0).max(100).nullable(),
+  opacity: z.number().min(0).max(1),
+  textAlign: z.enum(["center", "end", "justify", "start"]),
+});
+export type PickedStyle = z.infer<typeof pickedStyleSchema>;
+
+/** One of the deck theme's colours, by its variable's name. */
+export const themeColorSchema = z.object({
+  name: z.string().regex(/^[a-z][a-z\d-]{0,39}$/),
+  value: hexColorSchema,
+});
+export type ThemeColor = z.infer<typeof themeColorSchema>;
+
+/** The element a click picked in a slide. */
+export const pickedElementSchema = z.object({
+  /** Words the editor can rewrite, a picture, or anything else. */
+  kind: z.enum(["box", "image", "text"]),
+  style: pickedStyleSchema,
+  /** Its tag, lower case, as the inspector names it. */
+  tag: z.string().max(40),
+  target: slideTargetSchema,
+  /** Its words, when they're one run of text the editor can rewrite. */
+  text: z.string().max(10_000).nullable(),
+  /** The deck theme's colours, to offer before a colour of one's own. */
+  theme: z.array(themeColorSchema).max(20),
+});
+export type PickedElement = z.infer<typeof pickedElementSchema>;
 
 /** Frame → host. */
 export const frameMessageSchema = z.discriminatedUnion("type", [
@@ -169,6 +245,45 @@ export const frameMessageSchema = z.discriminatedUnion("type", [
     step: z.number().int().min(0),
     steps: z.number().int().min(0),
     type: z.literal("position"),
+  }),
+  // Where each slide sits in a `rail`, from the frame's top, so the sorter
+  // lays its controls over them.
+  z.object({
+    channel: z.literal(RUNTIME_CHANNEL),
+    id: renderIdSchema,
+    slides: z
+      .array(
+        z.object({
+          height: z.number().min(0).max(MAX_FRAME_HEIGHT),
+          top: z.number().min(0).max(MAX_FRAME_HEIGHT),
+        })
+      )
+      .max(100),
+    type: z.literal("layout"),
+  }),
+  // What a click picked in the `slide` view (`null`: nothing, or Escape),
+  // and again after each render while it stays picked.
+  z.object({
+    channel: z.literal(RUNTIME_CHANNEL),
+    element: pickedElementSchema.nullable(),
+    id: renderIdSchema,
+    type: z.literal("picked"),
+  }),
+  // Undo or redo pressed while the slide has the keyboard.
+  z.object({
+    channel: z.literal(RUNTIME_CHANNEL),
+    command: z.enum(["redo", "undo"]),
+    id: renderIdSchema,
+    type: z.literal("command"),
+  }),
+  // Words typed into a picked element on the slide itself.
+  z.object({
+    channel: z.literal(RUNTIME_CHANNEL),
+    id: renderIdSchema,
+    previous: z.string().max(10_000),
+    target: slideTargetSchema,
+    text: z.string().max(10_000),
+    type: z.literal("text-edited"),
   }),
   z.object({
     channel: z.literal(RUNTIME_CHANNEL),

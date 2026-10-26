@@ -7,6 +7,7 @@ import {
   type RenderRequest,
   RUNTIME_CHANNEL,
   type RuntimeError,
+  type SelectRequest,
 } from "@workspace/chat-ui/artifacts/runtime-protocol";
 import { parseSvg, renderHtml, type Teardown } from "./documents";
 import { runtimeError } from "./errors";
@@ -19,7 +20,7 @@ import { pageKindThemes, themeOf } from "./kind-themes";
 // here. React and Mermaid load on first use.
 
 /** What the host may ask of a render once it's drawn: a deck's (164). */
-export type RenderControl = ExportRequest | PresentRequest;
+export type RenderControl = ExportRequest | PresentRequest | SelectRequest;
 
 /** What a renderer reports through, for the render it was given. */
 export interface RenderContext {
@@ -118,7 +119,42 @@ const presentation: Renderer = async (container, request, context) => {
         request.theme
       )
     ),
+    editing: {
+      focus: request.focus,
+      inspect: request.inspect,
+      onCommand: (command) =>
+        context.post({
+          channel: RUNTIME_CHANNEL,
+          command,
+          id: request.id,
+          type: "command",
+        }),
+      onPicked: (element) =>
+        context.post({
+          channel: RUNTIME_CHANNEL,
+          element,
+          id: request.id,
+          type: "picked",
+        }),
+      onText: ({ previous, target, text }) =>
+        context.post({
+          channel: RUNTIME_CHANNEL,
+          id: request.id,
+          previous,
+          target,
+          text,
+          type: "text-edited",
+        }),
+      selection: request.selection,
+    },
     onError: context.fail,
+    onLayout: (slides) =>
+      context.post({
+        channel: RUNTIME_CHANNEL,
+        id: request.id,
+        slides: [...slides],
+        type: "layout",
+      }),
     onPosition: (position) =>
       context.post({
         ...position,
@@ -126,10 +162,15 @@ const presentation: Renderer = async (container, request, context) => {
         id: request.id,
         type: "position",
       }),
+    view: request.view,
   });
   context.listen((control) => {
     if (control.type === "present") {
       controller.control(control.action);
+      return;
+    }
+    if (control.type === "select") {
+      controller.select(control.focus, control.selection);
       return;
     }
     const { format, id, request: asked } = control;

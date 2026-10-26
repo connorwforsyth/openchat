@@ -57,7 +57,7 @@ import { DocumentView } from "./document/document-view";
 import { fitArtifactHeader } from "./header-fit";
 import { ImageArtifactPreview } from "./image-preview";
 import { type PlanEditing, PlanEditor } from "./plan-editor";
-import { PresentationPreview } from "./presentation-preview";
+import { PresentationEditor } from "./presentation/presentation-editor";
 import { isRuntimeKind } from "./runtime-protocol";
 import { SpreadsheetArtifact } from "./spreadsheet/spreadsheet-artifact";
 import { SpreadsheetView } from "./spreadsheet/spreadsheet-view";
@@ -254,9 +254,11 @@ export function ArtifactView({
   if (versions && versions.length > 0) {
     return (
       <ArtifactDetail
+        api={api}
         artifact={artifact}
         error={error}
         header={header}
+        info={info}
         key={artifact.id}
         onSelect={onSelect}
         runtimeOrigin={runtimeOrigin}
@@ -376,15 +378,19 @@ function ArtifactSource({
 }
 
 function ArtifactDetail({
+  api,
   artifact,
   error,
   header,
+  info,
   onSelect,
   runtimeOrigin,
   versionId,
   versions,
 }: {
+  readonly api: QueryUtils | undefined;
   readonly artifact: Artifact;
+  readonly info: ArtifactListItem | undefined;
   readonly error: string | null | undefined;
   readonly header: (content: ReactNode) => ReactNode;
   readonly onSelect: (selection: ArtifactSelection) => void;
@@ -462,11 +468,17 @@ function ArtifactDetail({
         {preview === "none" ? null : (
           <TabsContent className="flex min-h-0 flex-col" value="preview">
             {preview === "runtime" && artifact.kind === "presentation" ? (
-              // A deck presents and exports (164), so it has a view of its own.
-              <PresentationPreview
-                content={version.content}
+              // A deck presents, exports and is edited (164), so it has a
+              // view of its own.
+              <PresentationEditor
+                api={api}
+                artifact={artifact}
+                info={info}
+                onSelect={onSelect}
+                pinned={versionId !== undefined}
                 runtimeOrigin={runtimeOrigin}
-                title={artifact.title}
+                version={version}
+                versions={versions}
               />
             ) : null}
             {preview === "runtime" &&

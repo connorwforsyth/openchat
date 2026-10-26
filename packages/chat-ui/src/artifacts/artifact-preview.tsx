@@ -197,6 +197,10 @@ function RuntimePreview({
       case "position":
       case "exported":
       case "export-failed":
+      case "command":
+      case "layout":
+      case "picked":
+      case "text-edited":
         return;
       default:
         return message.value satisfies never;
