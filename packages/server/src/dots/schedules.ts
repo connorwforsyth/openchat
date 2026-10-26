@@ -65,6 +65,7 @@ import { err, ok, type Result } from "@workspace/shared/result";
 
 import type { Actor, ConversationAccess } from "../context";
 import { storeContext } from "../runs/chat-context";
+import { newChatMode } from "../runs/chat-mode";
 import {
   type CreateRunDeps,
   type CreateRunError,
@@ -562,6 +563,7 @@ const postScheduleRun = async (
     const chat = await createConversation(db, {
       context: context.value,
       defaultTarget: target,
+      mode: newChatMode(deps.runs.chatModes, undefined),
       ownerId: schedule.ownerId,
       title: `${schedule.title || "Scheduled task"} · ${dateLabel(claim.nominalAt ?? deps.now(), schedule.timezone)}`,
     });

@@ -66,7 +66,7 @@ import {
   type ModelAttachments,
   NO_ATTACHMENTS,
 } from "./attachments";
-import { chatModeTurn } from "./chat-mode";
+import { chatModeTurn, runWithChatModes } from "./chat-mode";
 import {
   chunkJson,
   decisionChunks,
@@ -118,6 +118,8 @@ export interface InProcessExecutorDeps {
    * `file_search` answers from it.
    */
   readonly attachments?: (model: ModelRef) => ModelAttachments;
+  /** `features.chatModes`; off, a run's stored Chat / Code mode is ignored. */
+  readonly chatModes: boolean;
   readonly db: Db;
   /** Where the answer's `file` parts point clients (and providers) for uploads. */
   readonly fileUrl?: (fileId: FileId) => string;
@@ -746,12 +748,13 @@ export const createInProcessExecutor = (
 
   /** One pass of the agent over the branch, from `leafId`. */
   const execute = async (
-    run: RunStart,
+    started: RunStart,
     assistantMessageId: MessageId,
     leafId: MessageId,
     controller: AbortController,
     reviews: ToolReviews = new Map()
   ): Promise<void> => {
+    const run = runWithChatModes(started, deps.chatModes);
     try {
       const messages = await loadBranch(run, leafId);
       if (!messages) {

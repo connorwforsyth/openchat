@@ -229,6 +229,7 @@ export const createServices = (options: ServicesOptions): Services => {
     : undefined;
   const executor = createInProcessExecutor({
     attachments: (model) => attachmentsFor(config.providers, model, readUpload),
+    chatModes: config.features.chatModes,
     db,
     maxSteps: config.limits.agentMaxSteps,
     now: options.now,

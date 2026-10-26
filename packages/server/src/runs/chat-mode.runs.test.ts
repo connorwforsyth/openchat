@@ -260,7 +260,9 @@ describe("Chat and Code modes", () => {
 describe("with features.chatModes off", () => {
   it("gives a chat stored in Chat mode the sandbox, and records no mode", async () => {
     h = await createHarness();
-    const chat = await newChat(h, { mode: "chat" });
+    const chat = await newChat(h);
+    // Switched to Chat while the switch was on.
+    await setMode(h, chat.id, "chat");
     const model = scripted([
       () => toolCallStream("bash", { command: "npm install" }, "b1"),
     ]);
@@ -274,6 +276,17 @@ describe("with features.chatModes off", () => {
     expect(spies.bash.execute).toHaveBeenCalledOnce();
     expect(run.options?.chatMode).toBeUndefined();
     expect(await modesOf(h, run)).toEqual([null, null]);
+  });
+
+  it("makes new chats Code chats, whatever the client asks", async () => {
+    h = await createHarness();
+    expect((await newChat(h, { mode: "chat" })).mode).toBe("code");
+    expect((await newChat(h)).mode).toBe("code");
+  });
+
+  it("keeps new chats in the mode asked for while it's on", async () => {
+    h = await createHarness({ chatModes: true });
+    expect((await newChat(h)).mode).toBe("chat");
   });
 
   it("regenerates a turn sent while it was on in Chat mode with the sandbox", async () => {
