@@ -21,7 +21,7 @@ export interface PaletteChoice {
 }
 
 export interface PaletteContext {
-  /** The chat's artifacts: opens the header's Artifacts list (night 2). */
+  /** The chat's artifacts and tasks: toggles the outputs card (night 2). */
   readonly artifacts?: { readonly onOpen: () => void };
   /** Chat context (Personal / team / org). Locked after the first message (D17). */
   readonly chatContext?: PaletteChoice & { readonly locked: boolean };
@@ -77,7 +77,7 @@ export const buildContextActions = (
             ],
             section: "actions",
             shortcutId: "panel.artifacts",
-            title: i18n._(msg`Show this chat's artifacts`),
+            title: i18n._(msg`Show or hide artifacts and tasks`),
           },
           artifacts.onOpen
         ),

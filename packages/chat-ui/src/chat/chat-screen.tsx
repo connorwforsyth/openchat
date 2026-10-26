@@ -10,7 +10,6 @@ import type {
 } from "@workspace/composer/schemas";
 import type { ConversationId } from "@workspace/contract/schemas/common";
 import type { Participant } from "@workspace/contract/schemas/conversations";
-import type { Artifact } from "@workspace/contract/schemas/files";
 import type {
   Message,
   SiblingInfo,
@@ -35,13 +34,14 @@ import { ConversationView } from "../conversation/conversation-view";
 import type { MessageFeedback } from "../conversation/feedback";
 import { FilePreviewContext } from "../conversation/file-change-card";
 import { AppHeader } from "../header/app-header";
-import { ArtifactsMenu } from "../header/artifacts-menu";
 import { BranchSwitcher } from "../header/branch-switcher";
+import type { ChatTask } from "../header/chat-tasks";
 import { ChatTitle } from "../header/chat-title";
 import { ContextControl, showsContext } from "../header/context-control";
 import { HeaderOverflowMenu } from "../header/overflow-menu";
 import { PanelToggles } from "../header/panel-toggles";
 import { ShareMenu } from "../header/share-menu";
+import { useOutputsCard } from "../header/use-outputs-card";
 import { type ArtifactWatch, watchArtifacts } from "../model/artifact-openings";
 import { activeFork, stepSibling } from "../model/branch";
 import { groupChats, orderedChats } from "../model/date-groups";
@@ -159,8 +159,8 @@ const useComposerFill = (hostFill: ComposerFill | undefined) => {
 export interface ChatScreenProps {
   readonly actions: ConversationActions;
   /**
-   * Asks for the header's Artifacts list (the ⌘K palette's "Show this chat's
-   * artifacts"); each new value opens it once.
+   * Asks for the outputs card (the ⌘K palette's entry); each new value
+   * toggles it once.
    */
   readonly artifactsRequest?: number;
   /** A bar above the messages, in the flow (a Dot's schedule, 172). */
@@ -190,6 +190,11 @@ export interface ChatScreenProps {
   readonly onNewChat: () => void;
   /** Opens the ⌘K palette (ticket 024). */
   readonly onOpenPalette?: () => void;
+  /** The outputs card's tasks, and whose card it is (night 2, decision 4). */
+  readonly outputs?: {
+    readonly owner?: string;
+    readonly tasks: readonly ChatTask[];
+  };
   readonly pendingApprovals?: readonly PendingApproval[];
   readonly platform?: Platform;
   /** A run-level error to show after the last message. */
@@ -276,6 +281,7 @@ function ChatScreenBody({
   messages,
   onNewChat,
   onOpenPalette,
+  outputs,
   pendingApprovals,
   platform = "web",
   runError,
@@ -453,7 +459,7 @@ function ChatScreenBody({
     "chat.prev": () => stepChat(-1),
     "composer.focus": focusComposer,
     help: () => setHelpOpen(true),
-    "panel.artifacts": () => toggleArtifacts(),
+    "panel.artifacts": () => toggleOutputs("keyboard"),
     "panel.sandbox": toggleFiles,
     "sidebar.toggle": toggleChats,
   });
@@ -510,11 +516,19 @@ function ChatScreenBody({
     },
     [actions, select]
   );
-  const { menu: artifactsMenu, toggle: toggleArtifacts } = useArtifactsMenu({
+  const {
+    button: outputsButton,
+    card: outputsCard,
+    toggle: toggleOutputs,
+  } = useOutputsCard({
     artifacts: workspace.artifacts.artifacts,
+    chatId: conversation.id,
+    hint: <ShortcutHint id="panel.artifacts" />,
+    owner: outputs?.owner,
     request: artifactsRequest,
     select,
     shown: layout.panel === "artifacts" ? shown : null,
+    tasks: outputs?.tasks ?? NO_TASKS,
   });
   const openFile = useCallback(
     (path: string) => {
@@ -760,7 +774,7 @@ function ChatScreenBody({
         narrow ? (
           <div className="flex items-center gap-1">
             {headerEnd}
-            {artifactsMenu}
+            {outputsButton}
             <HeaderOverflowMenu
               onCopyLink={conversation.onCopyLink}
               onInvite={conversation.onInvite}
@@ -779,7 +793,7 @@ function ChatScreenBody({
               onInvite={conversation.onInvite}
               participants={conversation.participants}
             />
-            {artifactsMenu}
+            {outputsButton}
             <PanelToggles
               filesHint={<ShortcutHint id="panel.sandbox" />}
               onToggle={toggleHalf}
@@ -876,7 +890,8 @@ function ChatScreenBody({
       sidebarSheetOpen={sidebarSheetOpen}
     >
       {/* A size container: the centred composer is placed against its height. */}
-      <div className="flex min-h-0 flex-1 flex-col [container-type:size]">
+      <div className="relative flex min-h-0 flex-1 flex-col [container-type:size]">
+        {outputsCard}
         {banner}
         <FilePreviewContext.Provider value={chatWorkspace ? previewFile : null}>
           <ConversationView
@@ -921,55 +936,7 @@ function ChatScreenBody({
 }
 
 const noop = () => undefined;
-
-/**
- * The header's Artifacts list: its button, A and the palette open it (each
- * new `request` from the palette opens it once), and a pick opens that
- * artifact in the panel.
- */
-const useArtifactsMenu = ({
-  artifacts,
-  request,
-  select,
-  shown,
-}: {
-  readonly artifacts: readonly Artifact[];
-  readonly request: number;
-  readonly select: (selection: WorkspaceSelection) => void;
-  /** What the panel shows when it's on the artifacts, else `null`. */
-  readonly shown: WorkspaceSelection | null;
-}) => {
-  const [open, setOpen] = useState(false);
-  const [asked, setAsked] = useState(request);
-  if (asked !== request) {
-    setAsked(request);
-    setOpen(true);
-  }
-  const pick = useCallback(
-    (artifact: Artifact) => {
-      setOpen(false);
-      select({ artifactId: artifact.id, kind: "artifact" });
-    },
-    [select]
-  );
-  const toggle = useCallback(() => setOpen((was) => !was), []);
-  const current =
-    shown?.kind === "artifact"
-      ? (shown.artifactId ?? artifacts[0]?.id ?? null)
-      : null;
-  return {
-    menu: (
-      <ArtifactsMenu
-        artifacts={artifacts}
-        current={current}
-        onOpenChange={setOpen}
-        onPick={pick}
-        open={open}
-      />
-    ),
-    toggle,
-  };
-};
+const NO_TASKS: readonly ChatTask[] = [];
 
 /**
  * The chat screen. The platform wraps everything so the shortcut hook, which

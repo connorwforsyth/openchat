@@ -29,6 +29,7 @@ import {
   sidebarChats,
   treeMessages,
 } from "../fixtures";
+import { OUTPUTS_STORAGE_KEY } from "../header/use-outputs-card";
 import { localBranchPath } from "../model/branch";
 import type { ArtifactRefPart } from "../model/parts";
 import { SidebarLayoutProvider } from "../shell/sidebar-layout";
@@ -111,6 +112,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   window.localStorage.removeItem(SHELL_LAYOUT_STORAGE_KEY);
+  window.localStorage.removeItem(OUTPUTS_STORAGE_KEY);
 });
 
 afterEach(() => {
@@ -118,6 +120,11 @@ afterEach(() => {
 });
 
 const SANDBOX_PILL = /^Sandbox/;
+const COMPARE_THEM = /Compare them/u;
+const outputs = () =>
+  screen.queryByRole("region", { name: "Artifacts and tasks" });
+const findOutputs = () =>
+  screen.findByRole("region", { name: "Artifacts and tasks" });
 const ANY_CONTEXT_CHIP = /^Chat context/;
 const NOT_BLANK = /\S/;
 
@@ -206,8 +213,8 @@ describe("header (D14)", () => {
           )
       );
     // The sidebar toggle is in the rail on a wide screen (181).
-    // Artifacts is the chat's list of what it made (night 2).
-    const expected = ["Share", "Artifacts", "Files", "Browser"];
+    // The outputs card's button: what the chat made and what's going on.
+    const expected = ["Share", "Artifacts and tasks", "Files", "Browser"];
     expect(controls).toEqual(
       expected.map((name) => header().getByRole("button", { name }))
     );
@@ -326,7 +333,7 @@ describe("header (D14)", () => {
     expect(sidePanel()).toBeNull();
   });
 
-  it("keeps S on the files and A on the artifacts list", async () => {
+  it("keeps S on the files and A on the outputs card", async () => {
     renderWithI18n(<ChatScreen {...props()} />);
     const files = header().getByRole("button", { name: "Files" });
     await userEvent.keyboard("s");
@@ -340,12 +347,72 @@ describe("header (D14)", () => {
         screen.queryByRole("complementary", { name: "Side panel" })
       ).toBeNull()
     );
-    // A opens the header's list, not the panel.
+    // A toggles the card, not the panel; opened by key, it takes the focus.
+    expect(await findOutputs()).toBeTruthy();
     await userEvent.keyboard("a");
-    expect(await screen.findByText("Artifacts in this chat")).toBeTruthy();
+    await waitFor(() => expect(outputs()).toBeNull());
+    await userEvent.keyboard("a");
+    expect(await findOutputs()).toBeTruthy();
+    expect(outputs()?.contains(document.activeElement)).toBe(true);
     expect(
       screen.queryByRole("complementary", { name: "Side panel" })
     ).toBeNull();
+  });
+
+  it("remembers the card collapsed, per person, across a reload", async () => {
+    const owned = props({ outputs: { owner: "u1", tasks: [] } });
+    const first = renderWithI18n(<ChatScreen {...owned} />);
+    await findOutputs();
+    await userEvent.click(
+      header().getByRole("button", { name: "Artifacts and tasks" })
+    );
+    await waitFor(() => expect(outputs()).toBeNull());
+    first.unmount();
+    renderWithI18n(<ChatScreen {...owned} />);
+    const toggle = header().getByRole("button", {
+      name: "Artifacts and tasks",
+    });
+    await waitFor(() =>
+      expect(toggle.getAttribute("aria-expanded")).toBe("false")
+    );
+    expect(outputs()).toBeNull();
+    // Someone else on this browser has their own.
+    cleanup();
+    renderWithI18n(
+      <ChatScreen {...props({ outputs: { owner: "u2", tasks: [] } })} />
+    );
+    expect(await findOutputs()).toBeTruthy();
+    window.localStorage.removeItem(`${OUTPUTS_STORAGE_KEY}:u1`);
+    window.localStorage.removeItem(`${OUTPUTS_STORAGE_KEY}:u2`);
+  });
+
+  it("lists the agent's tasks and takes a click to that turn", async () => {
+    const [asked] = path.messages;
+    if (!asked) {
+      throw new Error("fixture messages");
+    }
+    renderWithI18n(
+      <ChatScreen
+        {...props({
+          outputs: {
+            tasks: [
+              {
+                messageId: asked.id,
+                runId: "r0" as never,
+                status: "running",
+                step: null,
+                text: "Compare them",
+              },
+            ],
+          },
+        })}
+      />
+    );
+    const card = within(await findOutputs());
+    await userEvent.click(card.getByRole("button", { name: COMPARE_THEM }));
+    expect(document.activeElement?.getAttribute("data-message-id")).toBe(
+      asked.id
+    );
   });
 });
 
@@ -566,7 +633,7 @@ describe("shortcuts", () => {
     ).toMatchObject({ sidebarOpen: false });
   });
 
-  it("A opens the artifacts list, a pick opens it in the panel, and J/K move between chats", async () => {
+  it("A toggles the outputs card, a pick opens it in the panel, and J/K move between chats", async () => {
     const onSelect = vi.fn();
     const base = props();
     const onWorkspaceSelect = vi.fn();
@@ -579,9 +646,8 @@ describe("shortcuts", () => {
       />
     );
     const [first] = chatArtifacts;
-    await userEvent.keyboard("a");
-    const item = await screen.findByRole("option", {
-      name: new RegExp(first?.title ?? "", "u"),
+    const item = within(await findOutputs()).getByRole("button", {
+      name: first?.title ?? "",
     });
     await userEvent.click(item);
     expect(onWorkspaceSelect).toHaveBeenLastCalledWith({
@@ -591,16 +657,16 @@ describe("shortcuts", () => {
     expect(
       await screen.findByRole("region", { name: "Workspace" })
     ).toBeTruthy();
-    await waitFor(() =>
-      expect(screen.queryByText("Artifacts in this chat")).toBeNull()
-    );
-    // Escape closes the list without a pick.
-    await userEvent.keyboard("a");
-    await screen.findByText("Artifacts in this chat");
+    // It stays open beside the panel; Escape inside it collapses it.
+    expect(outputs()).toBeTruthy();
+    item.focus();
     await userEvent.keyboard("{Escape}");
-    await waitFor(() =>
-      expect(screen.queryByText("Artifacts in this chat")).toBeNull()
+    await waitFor(() => expect(outputs()).toBeNull());
+    expect(document.activeElement?.getAttribute("aria-label")).toBe(
+      "Artifacts and tasks"
     );
+    // The page's own keys go on from the header.
+    (document.activeElement as HTMLElement | null)?.blur();
 
     // The open chat is first in "Today" after the pinned one.
     await userEvent.keyboard("j");

@@ -379,6 +379,10 @@ msgstr "A key you don't manage"
 msgid "A member"
 msgstr "A member"
 
+#: ../chat-ui/src/header/outputs-card.tsx
+msgid "A message"
+msgstr "A message"
+
 #: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
 msgid "A monthly token pool for {name}. Members draw on it once an owner approves their request."
 msgstr "A monthly token pool for {name}. Members draw on it once an owner approves their request."
@@ -792,20 +796,20 @@ msgstr "artifacts"
 #: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
 #: ../chat-ui/src/artifacts/artifact-full-view.tsx
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
-#: ../chat-ui/src/header/artifacts-menu.tsx
+#: ../chat-ui/src/header/outputs-card.tsx
 #: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 #: ../chat-ui/src/sidebar/sidebar-rail.tsx
 msgid "Artifacts"
 msgstr "Artifacts"
 
+#: ../chat-ui/src/header/outputs-card.tsx
+msgid "Artifacts and tasks"
+msgstr "Artifacts and tasks"
+
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgid "Artifacts couldn't be loaded."
 msgstr "Artifacts couldn't be loaded."
-
-#: ../chat-ui/src/header/artifacts-menu.tsx
-msgid "Artifacts in this chat"
-msgstr "Artifacts in this chat"
 
 #: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
 msgid "Ask"
@@ -1380,6 +1384,14 @@ msgstr "Code views"
 #: ../composer/src/components/chat-mode-switch.tsx
 msgid "Code: runs commands, installs and dev servers in the sandbox"
 msgstr "Code: runs commands, installs and dev servers in the sandbox"
+
+#: ../chat-ui/src/header/outputs-card.tsx
+msgid "Collapse"
+msgstr "Collapse"
+
+#: ../chat-ui/src/header/outputs-card.tsx
+msgid "Collapse artifacts and tasks"
+msgstr "Collapse artifacts and tasks"
 
 #: ../../apps/web/app/(app)/(pages)/dots/avatar-picker.tsx
 #: ../chat-ui/src/artifacts/presentation/slide-inspector.tsx
@@ -2522,14 +2534,6 @@ msgstr "Fill"
 msgid "Fill in every variable to see the message."
 msgstr "Fill in every variable to see the message."
 
-#: ../chat-ui/src/header/artifacts-menu.tsx
-msgid "Filter"
-msgstr "Filter"
-
-#: ../chat-ui/src/header/artifacts-menu.tsx
-msgid "Filter artifacts"
-msgstr "Filter artifacts"
-
 #: ../library-ui/src/components/skills-section.tsx
 msgid "Find a skill"
 msgstr "Find a skill"
@@ -3239,7 +3243,7 @@ msgstr "Make your Dot"
 msgid "Makes images"
 msgstr "Makes images"
 
-#: ../chat-ui/src/header/artifacts-menu.tsx
+#: ../chat-ui/src/header/outputs-card.tsx
 msgid "Making…"
 msgstr "Making…"
 
@@ -3755,10 +3759,6 @@ msgstr "No allowance set"
 msgid "No archived chats."
 msgstr "No archived chats."
 
-#: ../chat-ui/src/header/artifacts-menu.tsx
-msgid "No artifact has that name."
-msgstr "No artifact has that name."
-
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgid "No artifacts yet. Ask for a document, a page or a diagram in a chat and it shows up here."
 msgstr "No artifacts yet. Ask for a document, a page or a diagram in a chat and it shows up here."
@@ -4045,7 +4045,7 @@ msgstr "Nothing shared with you"
 msgid "Nothing yet."
 msgstr "Nothing yet."
 
-#: ../chat-ui/src/header/artifacts-menu.tsx
+#: ../chat-ui/src/header/outputs-card.tsx
 msgid "Nothing yet. Ask for a document, a deck, a site or a diagram and it appears here."
 msgstr "Nothing yet. Ask for a document, a deck, a site or a diagram and it appears here."
 
@@ -4802,6 +4802,7 @@ msgid "Queue"
 msgstr "Queue"
 
 #: ../chat-ui/src/chat/queue-tray.tsx
+#: ../chat-ui/src/header/outputs-card.tsx
 msgid "Queued"
 msgstr "Queued"
 
@@ -5700,6 +5701,11 @@ msgstr "Show only Priority"
 msgid "Show only Priority chats"
 msgstr "Show only Priority chats"
 
+#: ../palette/src/context-actions.ts
+#: ../shortcuts/src/registry.ts
+msgid "Show or hide artifacts and tasks"
+msgstr "Show or hide artifacts and tasks"
+
 #: ../shortcuts/src/registry.ts
 msgid "Show or hide the files"
 msgstr "Show or hide the files"
@@ -5715,11 +5721,6 @@ msgstr "Show the page at a phone's width"
 #: ../palette/src/context-actions.ts
 msgid "Show the workspace"
 msgstr "Show the workspace"
-
-#: ../palette/src/context-actions.ts
-#: ../shortcuts/src/registry.ts
-msgid "Show this chat's artifacts"
-msgstr "Show this chat's artifacts"
 
 #: ../chat-ui/src/voice/voice-call.tsx
 msgid "Show transcript"
@@ -6046,6 +6047,10 @@ msgstr "Steer"
 msgid "Steer now"
 msgstr "Steer now"
 
+#: ../chat-ui/src/header/outputs-card.tsx
+msgid "Steering"
+msgstr "Steering"
+
 #: ../chat-ui/src/chat/queue-tray.tsx
 msgid "Steering at the next step…"
 msgstr "Steering at the next step…"
@@ -6196,6 +6201,7 @@ msgid "tasks"
 msgstr "tasks"
 
 #: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
+#: ../chat-ui/src/header/outputs-card.tsx
 msgid "Tasks"
 msgstr "Tasks"
 
@@ -7289,6 +7295,10 @@ msgstr "Voice isn't answering right now. Try again in a moment."
 msgid "Waiting for an owner"
 msgstr "Waiting for an owner"
 
+#: ../chat-ui/src/header/outputs-card.tsx
+msgid "Waiting for approval"
+msgstr "Waiting for approval"
+
 #: ../chat-ui/src/conversation/message-row.tsx
 msgid "Waiting for the answer before it…"
 msgstr "Waiting for the answer before it…"
@@ -7564,6 +7574,10 @@ msgstr "Working on it. The chat shows the progress."
 #: ../../apps/web/app/(app)/(pages)/dots/dot-home.tsx
 msgid "Working on it…"
 msgstr "Working on it…"
+
+#: ../chat-ui/src/header/outputs-card.tsx
+msgid "Working…"
+msgstr "Working…"
 
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "Works"
