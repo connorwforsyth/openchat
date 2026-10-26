@@ -76,6 +76,9 @@ export const takeSteer = async (
         and(
           eq(run.afterRunId, runId),
           eq(run.status, "queued"),
+          // The run goes on as its own creator (memory, budget, files), so
+          // only their steer joins it; anyone else's runs as their own turn.
+          eq(run.createdBy, answering.createdBy),
           sql`${run.options}->>'delivery' = 'steer'`
         )
       )

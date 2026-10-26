@@ -6020,6 +6020,10 @@ msgstr "Steer now"
 msgid "Steering at the next step…"
 msgstr "Steering at the next step…"
 
+#: ../chat-ui/src/chat/queue-tray.tsx
+msgid "Steers the answer before it"
+msgstr "Steers the answer before it"
+
 #: ../../apps/web/app/(app)/(pages)/dots/onboarding.tsx
 msgid "Step {position} of {total}"
 msgstr "Step {position} of {total}"

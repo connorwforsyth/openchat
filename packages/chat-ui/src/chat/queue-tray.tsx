@@ -75,6 +75,9 @@ function QueuedRow({
   const edit = useCallback(() => actions.onEdit(turn), [actions, turn]);
   const remove = useCallback(() => actions.onRemove(turn), [actions, turn]);
   const steering = turn.delivery === "steer";
+  // Only the turn next in line can join the answer being written; a steer
+  // behind another turn joins the answer to that one.
+  const steersNow = steering && turn.position === 1;
   const text = turn.text ?? "";
   return (
     <li
@@ -94,13 +97,15 @@ function QueuedRow({
       )}
       <span className="min-w-0 flex-1 truncate">{text}</span>
       <span className="shrink-0 text-muted-foreground text-xs">
-        {steering ? (
+        {steersNow ? (
           <span className="motion-safe:animate-pulse">
             <Trans>Steering at the next step…</Trans>
           </span>
-        ) : (
-          <Trans>Queued</Trans>
-        )}
+        ) : null}
+        {steering && !steersNow ? (
+          <Trans>Steers the answer before it</Trans>
+        ) : null}
+        {steering ? null : <Trans>Queued</Trans>}
       </span>
       <span className="flex shrink-0 items-center">
         {steering ? null : (

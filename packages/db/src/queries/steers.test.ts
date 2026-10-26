@@ -72,7 +72,8 @@ const answering = async () => {
     text: string,
     parentId: string,
     after: string,
-    delivery: "queue" | "steer"
+    delivery: "queue" | "steer",
+    by: string = owner.id
   ) => {
     const asked = await say(text, parentId);
     const queued = (
@@ -80,7 +81,7 @@ const answering = async () => {
         afterRunId: after as never,
         context,
         conversationId: chat.id,
-        createdBy: owner.id,
+        createdBy: by as never,
         options: { delivery, sandbox: "auto", webSearch: "auto" },
         target: { model: "fast", type: "model" },
         userMessageId: asked.id,
@@ -123,6 +124,20 @@ describe("takeSteer", () => {
       taken?.answer.id,
     ]);
     expect(await takeSteer(db, running.id)).toBeNull();
+  });
+
+  test("leaves someone else's steer queued: the run goes on as its own creator", async () => {
+    const { answer, db, queue, running } = await answering();
+    const other = await seedUser(db);
+    const steer = await queue(
+      "use b",
+      answer.id,
+      running.id,
+      "steer",
+      other.id
+    );
+    expect(await takeSteer(db, running.id)).toBeNull();
+    expect(expectOk(await getRun(db, steer.queued.id)).status).toBe("queued");
   });
 
   test("leaves a plain queued turn queued", async () => {

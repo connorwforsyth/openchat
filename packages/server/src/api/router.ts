@@ -222,13 +222,19 @@ export const createChatRouter = (services: ApiServices) => {
       },
     });
 
-  /** A queued turn someone who may send in its chat asks about. */
+  /**
+   * A queued turn its author asks about: steering it or taking it back
+   * (which deletes the message) is theirs, not every editor's.
+   */
   const queuedRun = async (
     actor: Actor,
     id: RunRow["id"],
     errors: Parameters<typeof notQueued>[1]
   ): Promise<RunRow> => {
     const row = await readableRun(actor, id, "write");
+    if (row.createdBy !== actor.userId) {
+      throw new ORPCError("FORBIDDEN");
+    }
     if (row.status !== "queued") {
       throw notQueued(row, errors);
     }
