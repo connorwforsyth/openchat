@@ -1,3 +1,4 @@
+import { type Editable, partOf } from "./editable";
 import { Heading, Slide } from "./primitives";
 import { SLIDE_COLOR, SLIDE_SPACE, SLIDE_TYPE } from "./scale";
 
@@ -13,7 +14,7 @@ export interface ChartSeries {
   readonly values: readonly number[];
 }
 
-export interface ChartProps {
+export interface ChartProps extends Editable<"caption" | "slide" | "title"> {
   readonly caption?: string;
   /** One label per value: the categories along the axis, or the pie's slices. */
   readonly labels: readonly string[];
@@ -212,16 +213,20 @@ export const chartDataOf = (
 
 export function Chart({
   caption,
+  "data-src": source,
   labels: givenLabels,
   series: givenSeries,
+  styles,
   title,
   type = "bar",
 }: ChartProps) {
   const { labels, series } = chartDataOf(givenLabels, givenSeries);
   const Draw = DRAW[type] ?? Bars;
   return (
-    <Slide>
-      <Heading>{title}</Heading>
+    <Slide data-src={source} styles={styles}>
+      <Heading part="title" prop="title" style={styles?.title}>
+        {title}
+      </Heading>
       <figure
         data-slide-chart={JSON.stringify({ labels, series, type })}
         style={{
@@ -274,10 +279,12 @@ export function Chart({
         ) : null}
         {caption ? (
           <p
+            {...partOf("caption", "caption")}
             style={{
               color: SLIDE_COLOR.mutedForeground,
               fontSize: SLIDE_TYPE.caption,
               margin: 0,
+              ...styles?.caption,
             }}
           >
             {caption}

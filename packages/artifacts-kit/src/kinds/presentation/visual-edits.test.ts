@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { type Presentation, slideFileName } from "./content";
+import { stampSourceLocations } from "./editing/loc-tags";
 import {
   applyDeckVisualEdits,
   applyVisualEdits,
   type DeckVisualEdit,
   deckVisualEditSchema,
-  stampSourceLocations,
+  editFor,
   visualEditOpSchema,
 } from "./visual-edits";
 
@@ -223,5 +224,118 @@ describe("schemas", () => {
         slide: "intro",
       }).success
     ).toBe(false);
+  });
+});
+
+describe("set-part-style", () => {
+  const TITLE = `export default () => <Title title="Q3" />;`;
+  const style = (
+    source: string,
+    part: string,
+    key: string,
+    value: string | null
+  ) =>
+    applyVisualEdits(source, [
+      {
+        column: 21,
+        line: 1,
+        ops: [{ key, kind: "set-part-style", part, value }],
+      },
+    ]);
+
+  it("adds a styles prop for the part", () => {
+    const { results, source } = style(
+      TITLE,
+      "title",
+      "color",
+      "var(--primary)"
+    );
+    expect(results).toEqual([{ ok: true }]);
+    expect(source).toBe(
+      `export default () => <Title title="Q3" styles={{ title: { color: 'var(--primary)' } }} />;`
+    );
+  });
+
+  it("merges into the part and keeps the others", () => {
+    const styled = `export default () => <Title styles={{ title: { color: "red", fontSize: "96px" }, subtitle: { opacity: 0.5 } }} title="Q3" />;`;
+    expect(style(styled, "title", "color", "blue").source).toBe(
+      `export default () => <Title styles={{ title: { fontSize: "96px", color: 'blue' }, subtitle: { opacity: 0.5 } }} title="Q3" />;`
+    );
+  });
+
+  it("removes a cleared key, then the empty part, then the prop", () => {
+    const styled = `export default () => <Title title="Q3" styles={{ title: { color: "red" } }} />;`;
+    expect(style(styled, "title", "color", null).source).toBe(TITLE);
+  });
+
+  it("refuses a styles prop it can't read", () => {
+    const { results } = style(
+      `export default () => <Title title="Q3" styles={shared} />;`,
+      "title",
+      "color",
+      "red"
+    );
+    expect(results).toEqual([
+      { error: "styles prop has unsupported form", ok: false },
+    ]);
+  });
+});
+
+describe("editFor", () => {
+  const at = { column: 6, line: 7, slide: "intro" };
+
+  it("styles an element in the source, or a layout's part", () => {
+    expect(editFor(at, { key: "color", kind: "style", value: "red" })).toEqual({
+      ...at,
+      ops: [{ key: "color", kind: "set-style", value: "red" }],
+    });
+    expect(
+      editFor(
+        { ...at, part: "title", prop: "title" },
+        { key: "color", kind: "style", value: null }
+      ).ops
+    ).toEqual([
+      { key: "color", kind: "set-part-style", part: "title", value: null },
+    ]);
+  });
+
+  it("rewrites text in the source, or the prop a layout drew it from", () => {
+    expect(
+      editFor(at, { kind: "text", previous: "Where", value: "Here" }).ops
+    ).toEqual([{ kind: "set-text", prevText: "Where", value: "Here" }]);
+    expect(
+      editFor(
+        { ...at, part: "items", prop: "items.1" },
+        { kind: "text", previous: "Churn down", value: "Churn flat" }
+      ).ops
+    ).toEqual([
+      {
+        kind: "set-prop",
+        prevText: "Churn down",
+        prop: "items.1",
+        value: "Churn flat",
+      },
+    ]);
+  });
+
+  it("edits a layout's text end to end from a stamp", () => {
+    const stamped = stampSourceLocations(INTRO, slideFileName("intro"));
+    const { line, column } = stampOf(stamped, "Bullets");
+    const result = applyDeckVisualEdits(DECK, [
+      editFor(
+        { column, line, part: "items", prop: "items.2", slide: "intro" },
+        { kind: "text", previous: "Hiring paused", value: "Hiring resumed" }
+      ),
+      editFor(
+        { column, line, part: "items", slide: "intro" },
+        { key: "fontWeight", kind: "style", value: "700" }
+      ),
+    ]);
+    if (!result.ok) {
+      throw new Error(result.error.join("\n"));
+    }
+    expect(result.value.slides[0]?.source).toContain(
+      `<Bullets items={["Revenue up", "Churn down", 'Hiring resumed']} styles={{ items: { fontWeight: '700' } }} />`
+    );
   });
 });

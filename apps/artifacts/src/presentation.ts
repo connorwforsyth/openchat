@@ -2,8 +2,8 @@ import {
   presentationContentSchema,
   slideFileName,
 } from "@workspace/artifacts-kit/kinds/presentation/content";
+import { stampSourceLocations } from "@workspace/artifacts-kit/kinds/presentation/editing/loc-tags";
 import { SLIDE_MODULES } from "@workspace/artifacts-kit/kinds/presentation/slides";
-import { stampSourceLocations } from "@workspace/artifacts-kit/kinds/presentation/visual-edits";
 import type {
   PresentAction,
   RuntimeError,

@@ -7,7 +7,6 @@ import {
   slideSchema,
 } from "./content";
 import { applyEditBatch } from "./editing/batch-edit";
-import { injectLocTags } from "./editing/loc-tags";
 
 // Visual edits to a slide's TSX (the slides editor): a click in the rendered
 // slide names an element by its `data-src` stamp, and each op rewrites that
@@ -17,6 +16,8 @@ import { injectLocTags } from "./editing/loc-tags";
 // would be code.
 const styleKeySchema = z.string().regex(/^[A-Za-z_$][\w$]*$/);
 const offsetSchema = z.number().int().min(0);
+
+const propPathSchema = z.string().regex(/^[A-Za-z_$][\w$-]*(?:\.\d+)?$/);
 
 export const visualEditOpSchema = z.discriminatedUnion("kind", [
   z.object({
@@ -38,11 +39,18 @@ export const visualEditOpSchema = z.discriminatedUnion("kind", [
     start: offsetSchema,
     value: z.string().nullable(),
   }),
+  // A slide-ui layout's part (its title, its points), through `styles`.
+  z.object({
+    key: styleKeySchema,
+    kind: z.literal("set-part-style"),
+    part: styleKeySchema,
+    value: z.string().nullable(),
+  }),
   z.object({
     kind: z.literal("set-prop"),
     prevText: z.string().optional(),
     /** An attribute (`title`), or one element of an array attribute (`items.2`). */
-    prop: z.string().regex(/^[A-Za-z_$][\w$-]*(?:\.\d+)?$/),
+    prop: propPathSchema,
     value: z.string(),
   }),
 ]);
@@ -140,12 +148,66 @@ export const applyDeckVisualEdits = (
 };
 
 /**
- * Stamps each JSX element with `data-src="<fileName>:<line>:<column>"`, the
- * location `applyVisualEdits` takes. Fragments, member-expression tags and
- * elements already carrying `data-src` are left alone. Source that doesn't
- * parse comes back unchanged.
+ * What a click in the slides editor picked: an element written in a
+ * slide's source, at its stamp, or one part of a slide-ui layout there
+ * (`part` names it in the layout's `styles`; `prop` is where its text
+ * comes from, like `title` or `items.2`).
  */
-export const stampSourceLocations = (
-  source: string,
-  fileName: string
-): string => injectLocTags(source, fileName) ?? source;
+export const slideTargetSchema = z.object({
+  column: offsetSchema,
+  line: z.number().int().min(1),
+  part: styleKeySchema.optional(),
+  prop: propPathSchema.optional(),
+  slide: slideIdSchema,
+});
+export type SlideTarget = z.infer<typeof slideTargetSchema>;
+
+/** What a person changed about the element they picked. */
+export type SlideChange =
+  | {
+      readonly key: string;
+      readonly kind: "style";
+      readonly value: string | null;
+    }
+  | {
+      readonly kind: "text";
+      /** The text before, so the edit lands on the element that showed it. */
+      readonly previous: string;
+      readonly value: string;
+    };
+
+/** The edit that makes `change` to `target`. Pure. */
+export const editFor = (
+  target: SlideTarget,
+  change: SlideChange
+): DeckVisualEdit => {
+  const at = { column: target.column, line: target.line, slide: target.slide };
+  if (change.kind === "style") {
+    return {
+      ...at,
+      ops: [
+        target.part === undefined
+          ? { key: change.key, kind: "set-style", value: change.value }
+          : {
+              key: change.key,
+              kind: "set-part-style",
+              part: target.part,
+              value: change.value,
+            },
+      ],
+    };
+  }
+  return {
+    ...at,
+    ops: [
+      target.prop === undefined
+        ? { kind: "set-text", prevText: change.previous, value: change.value }
+        : {
+            kind: "set-prop",
+            prevText: change.previous,
+            prop: target.prop,
+            value: change.value,
+          },
+    ],
+  };
+};

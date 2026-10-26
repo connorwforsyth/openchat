@@ -63,3 +63,15 @@ export function injectLocTags(code: string, fileName: string): string | null {
   }
   return next;
 }
+
+/**
+ * Stamps each JSX element with `data-src="<fileName>:<line>:<column>"`, the
+ * location a visual edit takes. Fragments, member-expression tags and
+ * elements already carrying `data-src` are left alone. Source that doesn't
+ * parse comes back unchanged. The runtime imports this alone, without the
+ * edit engine.
+ */
+export const stampSourceLocations = (
+  source: string,
+  fileName: string
+): string => injectLocTags(source, fileName) ?? source;

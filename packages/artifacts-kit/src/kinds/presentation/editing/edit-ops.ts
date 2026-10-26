@@ -4,6 +4,7 @@
 import * as t from "@babel/types";
 import type { VisualEditOp } from "../visual-edits";
 import { findJsxAncestors, parseSource, walkAll, walkJsx } from "./babel-walk";
+import { buildPartStyleSplice } from "./part-style";
 import { textDiff } from "./text-diff";
 
 export type EditOp = VisualEditOp;
@@ -1475,6 +1476,20 @@ export function planEdit(
   );
   if (styleOps.length > 0) {
     const result = buildStyleSplice(source, element, styleOps);
+    if (result && "error" in result) {
+      return { error: result.error, ok: false, status: 422 };
+    }
+    if (result) {
+      splices.push(result);
+    }
+  }
+
+  // Not in open-slide: a slide-ui layout's parts, styled through `styles`.
+  const partOps = ops.flatMap((op) =>
+    op.kind === "set-part-style" ? [op] : []
+  );
+  if (partOps.length > 0) {
+    const result = buildPartStyleSplice(source, element, partOps);
     if (result && "error" in result) {
       return { error: result.error, ok: false, status: 422 };
     }
