@@ -23,11 +23,19 @@ export interface PartStyleOp {
 }
 
 type Entry =
-  | { readonly kind: "key"; readonly name: string; text: string }
+  | {
+      readonly kind: "key";
+      /** The key as written (`fontSize`, `'font-size'`), kept on rewrite. */
+      readonly keyText: string;
+      readonly name: string;
+      text: string;
+    }
   | { readonly kind: "raw"; readonly text: string };
 
 interface Part {
   entries: Entry[];
+  /** The part's key as written. */
+  readonly keyText: string;
   /** The part's object as written, when it isn't a plain object literal. */
   readonly raw: string | null;
 }
@@ -62,7 +70,12 @@ const entriesOf = (source: string, object: t.ObjectExpression): Entry[] =>
         ? keyName(property.key)
         : null;
     return name !== null && t.isObjectProperty(property)
-      ? { kind: "key", name, text: textOf(source, property.value) }
+      ? {
+          keyText: textOf(source, property.key),
+          kind: "key",
+          name,
+          text: textOf(source, property.value),
+        }
       : { kind: "raw", text: textOf(source, property) };
   });
 
@@ -89,11 +102,12 @@ const readParts = (
     if (name === null || !t.isObjectProperty(property)) {
       return { error: "styles prop has unsupported key" };
     }
+    const keyText = textOf(source, property.key);
     parts.set(
       name,
       t.isObjectExpression(property.value)
-        ? { entries: entriesOf(source, property.value), raw: null }
-        : { entries: [], raw: textOf(source, property.value) }
+        ? { entries: entriesOf(source, property.value), keyText, raw: null }
+        : { entries: [], keyText, raw: textOf(source, property.value) }
     );
   }
   return parts;
@@ -102,7 +116,7 @@ const readParts = (
 const writeEntries = (entries: readonly Entry[]): string =>
   entries
     .map((entry) =>
-      entry.kind === "key" ? `${entry.name}: ${entry.text}` : entry.text
+      entry.kind === "key" ? `${entry.keyText}: ${entry.text}` : entry.text
     )
     .join(", ");
 
@@ -116,7 +130,12 @@ const applyOp = (part: Part, op: PartStyleOp): Part => {
       ...part,
       entries: [
         ...kept,
-        { kind: "key", name: op.key, text: jsString(op.value) },
+        {
+          keyText: op.key,
+          kind: "key",
+          name: op.key,
+          text: jsString(op.value),
+        },
       ],
     };
   }
@@ -124,7 +143,10 @@ const applyOp = (part: Part, op: PartStyleOp): Part => {
   return {
     ...part,
     entries: hasRaw
-      ? [...kept, { kind: "key", name: op.key, text: "undefined" }]
+      ? [
+          ...kept,
+          { keyText: op.key, kind: "key", name: op.key, text: "undefined" },
+        ]
       : kept,
   };
 };
@@ -146,7 +168,11 @@ export function buildPartStyleSplice(
     return parts;
   }
   for (const op of ops) {
-    const part = parts.get(op.part) ?? { entries: [], raw: null };
+    const part = parts.get(op.part) ?? {
+      entries: [],
+      keyText: op.part,
+      raw: null,
+    };
     if (part.raw !== null) {
       return { error: `styles.${op.part} isn't an object literal` };
     }
@@ -154,10 +180,10 @@ export function buildPartStyleSplice(
   }
   const written = [...parts]
     .filter(([, part]) => part.raw !== null || part.entries.length > 0)
-    .map(([name, part]) =>
+    .map(([, part]) =>
       part.raw === null
-        ? `${name}: { ${writeEntries(part.entries)} }`
-        : `${name}: ${part.raw}`
+        ? `${part.keyText}: { ${writeEntries(part.entries)} }`
+        : `${part.keyText}: ${part.raw}`
     );
   if (written.length === 0) {
     if (!attr) {

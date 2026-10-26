@@ -10,7 +10,7 @@ import { Button } from "@workspace/ui/components/button";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { type ChangeEvent, useCallback, useState } from "react";
 
-import { useSaveDocumentVersion } from "./document/document-artifact";
+import { useSaveVersion } from "./editor/use-version-save";
 
 // "Edit as text" (Connor, night 2): a Mermaid artifact is a Diagram whose
 // format is text, so its source is where a person changes it. A save is a
@@ -34,7 +34,7 @@ export function MermaidText({
   readonly version: ArtifactVersion;
 }) {
   const { t } = useLingui();
-  const save = useSaveDocumentVersion(api, artifactId);
+  const save = useSaveVersion(api, artifactId);
   const [text, setText] = useState(version.content);
   const [state, setState] = useState<SaveState>({ type: "idle" });
   const change = useCallback(

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import type { QueryUtils } from "@workspace/client/api";
 import type { ArtifactVersionId } from "@workspace/contract/schemas/common";
 import type {
@@ -8,13 +8,13 @@ import type {
   ArtifactListItem,
   ArtifactVersion,
 } from "@workspace/contract/schemas/files";
-import { type ReactNode, useCallback, useMemo } from "react";
+import { type ReactNode, useMemo } from "react";
 
 import type { ArtifactSelection } from "../artifact-view";
+import { useSaveVersion } from "../editor/use-version-save";
 import type { PlanEditing } from "../plan-editor";
 import type { LinkTarget } from "./blocks";
 import { DocumentView } from "./document-view";
-import type { SaveDocumentVersion } from "./use-document-save";
 
 // A Document wired to the API (126): who may edit it and whose it is (the
 // artifact's detail, unless the host already has it), and saving a
@@ -33,24 +33,6 @@ export interface DocumentArtifactProps {
   readonly versionId?: ArtifactVersionId;
   readonly versions: readonly ArtifactVersion[];
 }
-
-/** Saves a person's edit, then refreshes every artifact query. */
-export const useSaveDocumentVersion = (
-  api: QueryUtils,
-  id: Artifact["id"]
-): SaveDocumentVersion => {
-  const queryClient = useQueryClient();
-  const { mutateAsync } = useMutation(
-    api.artifacts.saveVersion.mutationOptions({
-      onSuccess: () =>
-        queryClient.invalidateQueries({ queryKey: api.artifacts.key() }),
-    })
-  );
-  return useCallback(
-    (input) => mutateAsync({ ...input, id }),
-    [id, mutateAsync]
-  );
-};
 
 export function DocumentArtifact({
   actions,
@@ -79,7 +61,7 @@ export function DocumentArtifact({
       others.data?.items.map(({ id, kind, title }) => ({ id, kind, title })),
     [others.data]
   );
-  const save = useSaveDocumentVersion(api, artifact.id);
+  const save = useSaveVersion(api, artifact.id);
   return (
     <DocumentView
       access={known?.access ?? null}

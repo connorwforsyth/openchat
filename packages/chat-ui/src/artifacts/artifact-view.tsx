@@ -62,7 +62,7 @@ import { fitArtifactHeader } from "./header-fit";
 import { ImageArtifactPreview } from "./image-preview";
 import { MermaidText } from "./mermaid-text";
 import { type PlanEditing, PlanEditor } from "./plan-editor";
-import { PresentationPreview } from "./presentation-preview";
+import { PresentationEditor } from "./presentation/presentation-editor";
 import { isRuntimeKind } from "./runtime-protocol";
 import { SpreadsheetArtifact } from "./spreadsheet/spreadsheet-artifact";
 import { SpreadsheetView } from "./spreadsheet/spreadsheet-view";
@@ -263,6 +263,7 @@ export function ArtifactView({
         artifact={artifact}
         error={error}
         header={header}
+        info={info}
         key={artifact.id}
         onSelect={onSelect}
         runtimeOrigin={runtimeOrigin}
@@ -379,16 +380,21 @@ function ArtifactSource({
   );
 }
 
-/** The Preview tab's body, one branch per plan. */
+/**
+ * The Preview tab's body, one branch per plan. A deck is drawn by `deck`,
+ * which the caller builds: its view (164) is a world of its own.
+ */
 function PlannedPreview({
   artifact,
   content,
+  deck,
   onShowSource,
   path,
   plan,
 }: {
   readonly artifact: Artifact;
   readonly content: string;
+  readonly deck: (runtimeOrigin: string | null) => ReactNode;
   readonly onShowSource: () => void;
   readonly path: string;
   readonly plan: ArtifactPreviewPlan;
@@ -396,14 +402,7 @@ function PlannedPreview({
   switch (plan.type) {
     case "runtime":
       if (artifact.kind === "presentation") {
-        // A deck presents and exports (164), so it has a view of its own.
-        return (
-          <PresentationPreview
-            content={content}
-            runtimeOrigin={plan.origin}
-            title={artifact.title}
-          />
-        );
+        return deck(plan.origin);
       }
       return isRuntimeKind(artifact.kind) ? (
         <ArtifactPreview
@@ -425,7 +424,11 @@ function PlannedPreview({
         />
       );
     case "unavailable":
-      return (
+      // A deck's own view says why it can't draw, and keeps what works
+      // without the service (its editor, when there is one).
+      return artifact.kind === "presentation" ? (
+        deck(null)
+      ) : (
         <PreviewUnavailable onShowSource={onShowSource} reason={plan.reason} />
       );
     case "source":
@@ -440,6 +443,7 @@ function ArtifactDetail({
   artifact,
   error,
   header,
+  info,
   onSelect,
   runtimeOrigin,
   versionId,
@@ -447,6 +451,7 @@ function ArtifactDetail({
 }: {
   readonly api: QueryUtils | undefined;
   readonly artifact: Artifact;
+  readonly info: ArtifactListItem | undefined;
   readonly error: string | null | undefined;
   readonly header: (content: ReactNode) => ReactNode;
   readonly onSelect: (selection: ArtifactSelection) => void;
@@ -467,6 +472,24 @@ function ArtifactDetail({
     plan.type === "source" ? "code" : "preview"
   );
   const showSource = useCallback(() => setView("code"), []);
+  // The mount point for a deck's view (164): the slides editor, which
+  // presents, exports and edits it.
+  const deck = useCallback(
+    (origin: string | null) =>
+      version ? (
+        <PresentationEditor
+          api={api}
+          artifact={artifact}
+          info={info}
+          onSelect={onSelect}
+          pinned={versionId !== undefined}
+          runtimeOrigin={origin}
+          version={version}
+          versions={versions}
+        />
+      ) : null,
+    [api, artifact, info, onSelect, version, versionId, versions]
+  );
 
   const path = artifactFileName(
     artifact.title,
@@ -531,6 +554,7 @@ function ArtifactDetail({
             <PlannedPreview
               artifact={artifact}
               content={version.content}
+              deck={deck}
               onShowSource={showSource}
               path={path}
               plan={plan}

@@ -11,7 +11,7 @@ import type {
 import type { ReactNode } from "react";
 
 import type { ArtifactSelection } from "../artifact-view";
-import { useSaveDocumentVersion } from "../document/document-artifact";
+import { useSaveVersion } from "../editor/use-version-save";
 import { DiagramView } from "./diagram-view";
 
 // A Diagram wired to the API (165): who may edit it (the artifact's detail,
@@ -42,7 +42,7 @@ export function DiagramArtifact({
     enabled: info === undefined,
   });
   const known = info ?? detail.data?.artifact;
-  const save = useSaveDocumentVersion(api, artifact.id);
+  const save = useSaveVersion(api, artifact.id);
   return (
     <DiagramView
       access={known?.access ?? null}

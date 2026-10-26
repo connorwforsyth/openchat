@@ -1,4 +1,4 @@
-import type { ChatMode } from "@workspace/contract/schemas/runs";
+import type { ChatMode, RunOptions } from "@workspace/contract/schemas/runs";
 import type { ToolApprovalStatus, ToolSet } from "ai";
 
 import type { Turn } from "./turn";
@@ -16,6 +16,32 @@ export const CODE_TOOLS = ["bash", "preview"] as const;
 /** What the model reads when it calls a tool Chat mode left out. */
 export const chatModeUnavailable = (name: string): string =>
   `\`${name}\` runs code, and this chat is in Chat mode. Do what you can with files and artifacts, and tell the user to switch the composer to Code mode to run it.`;
+
+/**
+ * The mode a new chat is stored with. While `features.chatModes` is off it's
+ * Code, whatever was asked, so turning the switch on later takes nothing
+ * away from chats that already have the sandbox. Pure.
+ */
+export const newChatMode = (
+  chatModes: boolean,
+  requested: ChatMode | undefined
+): ChatMode | undefined => (chatModes ? requested : "code");
+
+/**
+ * A run as the instance allows it: with `features.chatModes` off, any mode
+ * the run was placed with (queued, or waiting on approval, across a flip of
+ * the flag) is dropped, so it gets every tool. Pure.
+ */
+export const runWithChatModes = <R extends { readonly options: RunOptions }>(
+  run: R,
+  chatModes: boolean
+): R => {
+  if (chatModes || run.options.chatMode === undefined) {
+    return run;
+  }
+  const { chatMode: _dropped, ...options } = run.options;
+  return { ...run, options };
+};
 
 type ModedTurn = Pick<Turn, "toolApproval" | "tools" | "unavailableTools">;
 

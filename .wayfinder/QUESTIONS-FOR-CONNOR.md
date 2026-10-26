@@ -222,13 +222,20 @@ Lane `pstack/usage` (Settings → Usage, span tags). Defaults applied overnight;
 
 ## modes-off lane (n2/modes-off)
 
-1. **Chats made while `features.chatModes` is off, once it's back on.** *Defaulted: they're Chat chats.* A conversation is still created with `mode = 'chat'` while the switch is hidden, the same as chats from before modes, so turning the flag on takes `bash` away from them until someone switches them to Code. The alternative is to create them as `code` while the flag is off, so turning it on changes nothing for chats people already have.
+1. **Chats made while `features.chatModes` is off, once it's back on.** *Decided (root, 2026-10-27): they're Code chats.* While the switch is off, a new chat (a fork, and a schedule's new chat, too) is stored with `mode = 'code'`, whatever the client asks, so turning the flag on later takes `bash` from none of them (`newChatMode`, n2/modes-off-followup). Chats from before modes keep the modes lane's default (Chat).
 
 ## editors lane (n2/editors)
 
 1. **A published agent can carry draft skills.** The Skills section marks a skill "Draft" when it was never published, and a skill written inline is saved as the writer's own draft. Teammates using the published agent can't load someone's draft skill. *Defaulted: show the Draft badge, change no sharing rule.* Alternatives: publishing an agent offers to publish its draft skills with it, or the publish dialog warns and lists them.
 2. **`{{current_date}}` is the UTC date.** The server fills it per turn without the user's time zone, so near midnight it can be a day off for the person chatting. *Defaulted: UTC, long English form ("Thursday, October 22, 2026").* The alternative is to send the browser's time zone with each run and format in it, which touches the run contract.
 3. **Images in documents are by address only.** The `/` menu's Image asks for an https address or a path in this app; there's no upload from the document editor yet. *Defaulted: address only.* The alternative is an upload that stores the file and inserts its app path.
+
+## slides-final lane (n2/slides-final)
+
+1. **"Change this slide" posts a visible message in the deck's chat.** *Defaulted: yes.* The request ("Change slide 4 ("growth") of the presentation …") lands in the chat as a user message, so its reply, its approval and its edit sit with every other turn, and the editor follows the run. The alternative is a hidden instruction that only shows its result, which needs a new run input.
+2. **One version per editing burst.** *Decided by root: coalesce.* The slides editor saves after 60 seconds without a change (`SAVE_IDLE_MS`), and at once before Change this slide and when the editor closes; the page warns before closing with edits unsaved. Documents, spreadsheets and diagrams keep their 800 ms pause. The alternative was one version per session.
+3. **A colour of one's own is written into the slide as `#rrggbb`.** The theme's colours are offered first and written as `var(--…)`, so they follow the theme; a picked custom colour is a literal, which the slide guide tells the model not to write. *Defaulted: allow it for people.* The alternative is theme colours only.
+4. **Undo after the agent's change.** *Defaulted: the agent's version joins the editor's history, so Undo takes it back (saved as a new version).* The alternative is that Undo only covers a person's own edits.
 
 ## prices lane (n2/prices)
 
