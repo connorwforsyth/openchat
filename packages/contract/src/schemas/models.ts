@@ -134,7 +134,12 @@ export const modelOptionSchema = z.object({
    * ref's provider. Absent for `auto`.
    */
   provider: providerIdSchema.optional(),
-  /** Only what the config's `models.ratings` says (099); never guessed. */
+  /**
+   * The picker's bars (099), field by field: the config's `models.ratings`
+   * (the alias's, else the ref's), else the repo's committed model catalogue
+   * (speed from Gateway throughput, intelligence from a curated list). A
+   * field neither covers is absent.
+   */
   ratings: modelRatingsSchema.optional(),
   /** What to send back: the alias if there is one, else the ref. */
   selector: modelSelectorSchema,
