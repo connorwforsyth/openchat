@@ -187,6 +187,17 @@ export const chatModeSchema = z.enum(["chat", "code"]);
 export type ChatMode = z.infer<typeof chatModeSchema>;
 
 /**
+ * How a turn sent while its branch is busy reaches the answer being
+ * written. `queue`: it waits and runs as the next turn. `steer`: the running
+ * answer takes it at its next step (between model calls and tool calls) and
+ * carries on with it, without stopping. The server decides: a steer the
+ * answer can't take (it ends first, or the turn isn't next in line) runs as
+ * the next turn, as `queue` would. Absent means `queue`.
+ */
+export const turnDeliverySchema = z.enum(["queue", "steer"]);
+export type TurnDelivery = z.infer<typeof turnDeliverySchema>;
+
+/**
  * Per-turn switches from the composer. `auto` lets the Decider and agent
  * config choose; an absent field leaves the provider's default.
  */
@@ -197,6 +208,8 @@ export const runOptionsSchema = z.object({
    * value. Absent outside the switch (a Dot's chat) and on older runs.
    */
   chatMode: chatModeSchema.optional(),
+  /** How the turn joins a busy branch; absent means `queue`. */
+  delivery: turnDeliverySchema.optional(),
   /**
    * The provider's fast tier for this turn (105), where the model has one
    * (OpenAI's priority processing, Anthropic's fast mode). Ignored where it

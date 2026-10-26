@@ -3730,6 +3730,10 @@
                 "enum": ["chat", "code"],
                 "type": "string"
               },
+              "delivery": {
+                "enum": ["queue", "steer"],
+                "type": "string"
+              },
               "fast": {
                 "type": "boolean"
               },
@@ -22563,9 +22567,6 @@
                       },
                       "required": ["siteOrigins"]
                     },
-                    "chatModes": {
-                      "type": "boolean"
-                    },
                     "auth": {
                       "type": "object",
                       "properties": {
@@ -22620,6 +22621,9 @@
                         }
                       },
                       "required": ["faviconUrl", "logoUrl", "name"]
+                    },
+                    "chatModes": {
+                      "type": "boolean"
                     },
                     "features": {
                       "type": "object",
@@ -25824,6 +25828,10 @@
                         "enum": ["chat", "code"],
                         "type": "string"
                       },
+                      "delivery": {
+                        "enum": ["queue", "steer"],
+                        "type": "string"
+                      },
                       "fast": {
                         "type": "boolean"
                       },
@@ -26346,6 +26354,140 @@
         }
       }
     },
+    "/runs/{id}/steer": {
+      "post": {
+        "operationId": "runs.steer",
+        "summary": "Steer with a queued turn",
+        "description": "Asks a queued turn to steer the answer it waits on: that answer takes it at its next step. If the answer ends first, the turn runs next as queued. `CONFLICT` (`run_active` or `run_finished`) if it isn't queued any more.",
+        "tags": ["Runs"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "run id (UUIDv7)"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Run"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/UNAUTHORIZEDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/FORBIDDENError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/NOT_FOUNDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/CONFLICTError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "422",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/VALIDATIONError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "429",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/RATE_LIMITEDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/runs/{runId}/approvals": {
       "post": {
         "operationId": "runs.submitApprovals",
@@ -26403,6 +26545,149 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Run"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/UNAUTHORIZEDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/FORBIDDENError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/NOT_FOUNDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/CONFLICTError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "422",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/VALIDATIONError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "429",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/RATE_LIMITEDError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UndefinedError"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/runs/{id}/withdraw": {
+      "post": {
+        "operationId": "runs.withdraw",
+        "summary": "Withdraw a queued turn",
+        "description": "Takes back a queued turn before it starts: the run is cancelled and its message removed, unless another turn already follows it. `CONFLICT` (`run_active` or `run_finished`) if it isn't queued any more.",
+        "tags": ["Runs"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "run id (UUIDv7)"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "messageRemoved": {
+                      "type": "boolean"
+                    },
+                    "run": {
+                      "$ref": "#/components/schemas/Run"
+                    }
+                  },
+                  "required": ["messageRemoved", "run"]
                 }
               }
             }

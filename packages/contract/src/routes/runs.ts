@@ -68,6 +68,17 @@ export const runs = {
       })
     )
     .output(pageOf(runSchema)),
+  steer: authed
+    .errors(conflictError)
+    .route({
+      description:
+        "Asks a queued turn to steer the answer it waits on: that answer takes it at its next step. If the answer ends first, the turn runs next as queued. `CONFLICT` (`run_active` or `run_finished`) if it isn't queued any more.",
+      method: "POST",
+      path: "/runs/{id}/steer",
+      summary: "Steer with a queued turn",
+    })
+    .input(z.object({ id: runIdSchema }))
+    .output(runSchema),
   submitApprovals: authed
     .errors(conflictError)
     .route({
@@ -79,4 +90,15 @@ export const runs = {
     })
     .input(submitApprovalsInputSchema)
     .output(runSchema),
+  withdraw: authed
+    .errors(conflictError)
+    .route({
+      description:
+        "Takes back a queued turn before it starts: the run is cancelled and its message removed, unless another turn already follows it. `CONFLICT` (`run_active` or `run_finished`) if it isn't queued any more.",
+      method: "POST",
+      path: "/runs/{id}/withdraw",
+      summary: "Withdraw a queued turn",
+    })
+    .input(z.object({ id: runIdSchema }))
+    .output(z.object({ messageRemoved: z.boolean(), run: runSchema })),
 };
