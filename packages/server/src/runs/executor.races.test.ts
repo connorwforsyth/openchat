@@ -252,6 +252,7 @@ const setup = async () => {
     close: (runId, status: TerminalRunStatus) => channel.close(runId, status),
   };
   const executor = createInProcessExecutor({
+    chatModes: false,
     db: holdingTransactions(db),
     onSettled: (event) => {
       settled.push(event.run.id);
