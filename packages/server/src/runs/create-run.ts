@@ -68,9 +68,9 @@ export interface CreateRunDeps {
   readonly budget: BudgetCheck;
   /**
    * `features.chatModes`: whether runs take the chat's Chat / Code mode.
-   * Off (or absent), no run has a mode and every one gets the sandbox.
+   * Off, no run has a mode and every one gets the sandbox.
    */
-  readonly chatModes?: boolean;
+  readonly chatModes: boolean;
   readonly db: Db;
   /** `models.default` from app.config.yaml: the target when neither the run nor the chat names one. */
   readonly defaultModel: ModelSelector | null;
@@ -527,7 +527,7 @@ const modeForTurn = async (
   return conversationMode ?? "chat";
 };
 
-/** The turn's mode; `null` while the switch is off and in a Dot's chat. */
+/** The turn's mode; `null` while the switch is off or in a Dot's chat. */
 const chatModeFor = async (
   { chatModes, db }: CreateRunDeps,
   input: CreateRunInput,

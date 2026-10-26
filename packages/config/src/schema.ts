@@ -746,7 +746,7 @@ const featuresSchema = z
   .strictObject({
     ...publicFlagShape,
     /**
-     * The composer's Chat / Code switch (Connor, night 2). Off: no switch,
+     * The composer's Chat / Code switch. Off: no switch,
      * no mode on messages, and every run gets the sandbox tools the
      * instance has. Off until Code mode has its own view.
      */

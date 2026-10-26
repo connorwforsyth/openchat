@@ -545,10 +545,10 @@ const showsModes = (
  */
 const chatModeSwitch = (
   config: PublicConfig,
-  offered: boolean,
+  shown: boolean,
   chatMode: ComposerChatMode
 ): Pick<ComposerProps, "chatMode" | "mode"> =>
-  offered && config.features.sandboxes ? { chatMode, mode: chatMode.mode } : {};
+  shown && config.features.sandboxes ? { chatMode, mode: chatMode.mode } : {};
 
 /** What message rows read from the screen: run activity, and whether modes show. */
 function RowContexts({
