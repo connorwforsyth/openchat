@@ -379,16 +379,21 @@ function ArtifactSource({
   );
 }
 
-/** The Preview tab's body, one branch per plan. */
+/**
+ * The Preview tab's body, one branch per plan. A deck is drawn by `deck`,
+ * which the caller builds: its view (164) is a world of its own.
+ */
 function PlannedPreview({
   artifact,
   content,
+  deck,
   onShowSource,
   path,
   plan,
 }: {
   readonly artifact: Artifact;
   readonly content: string;
+  readonly deck: (runtimeOrigin: string | null) => ReactNode;
   readonly onShowSource: () => void;
   readonly path: string;
   readonly plan: ArtifactPreviewPlan;
@@ -396,14 +401,7 @@ function PlannedPreview({
   switch (plan.type) {
     case "runtime":
       if (artifact.kind === "presentation") {
-        // A deck presents and exports (164), so it has a view of its own.
-        return (
-          <PresentationPreview
-            content={content}
-            runtimeOrigin={plan.origin}
-            title={artifact.title}
-          />
-        );
+        return deck(plan.origin);
       }
       return isRuntimeKind(artifact.kind) ? (
         <ArtifactPreview
@@ -425,7 +423,11 @@ function PlannedPreview({
         />
       );
     case "unavailable":
-      return (
+      // A deck's own view says why it can't draw, and keeps what works
+      // without the service (its editor, when there is one).
+      return artifact.kind === "presentation" ? (
+        deck(null)
+      ) : (
         <PreviewUnavailable onShowSource={onShowSource} reason={plan.reason} />
       );
     case "source":
@@ -467,6 +469,17 @@ function ArtifactDetail({
     plan.type === "source" ? "code" : "preview"
   );
   const showSource = useCallback(() => setView("code"), []);
+  // The mount point for a deck's view (164): the slides editor goes here.
+  const deck = useCallback(
+    (origin: string | null) => (
+      <PresentationPreview
+        content={version?.content ?? ""}
+        runtimeOrigin={origin}
+        title={artifact.title}
+      />
+    ),
+    [artifact.title, version?.content]
+  );
 
   const path = artifactFileName(
     artifact.title,
@@ -531,6 +544,7 @@ function ArtifactDetail({
             <PlannedPreview
               artifact={artifact}
               content={version.content}
+              deck={deck}
               onShowSource={showSource}
               path={path}
               plan={plan}
