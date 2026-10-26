@@ -275,7 +275,7 @@ export const createChatRouter = (services: ApiServices) => {
         const row = await createConversation(tx, {
           context: stored.value,
           defaultTarget: source.value.defaultTarget,
-          mode: source.value.mode,
+          mode: newChatMode(services.chatModes, source.value.mode),
           ownerId: actor.userId,
           title: input.title ?? source.value.title,
         });

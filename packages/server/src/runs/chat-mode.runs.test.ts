@@ -13,7 +13,7 @@ import type {
   RunOptions,
 } from "@workspace/contract/schemas/runs";
 import { getMessage } from "@workspace/db/queries/messages";
-import { message } from "@workspace/db/schema/chat";
+import { message, run as runTable } from "@workspace/db/schema/chat";
 import { type Tool, tool } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
 import { eq } from "drizzle-orm";
@@ -284,6 +284,22 @@ describe("with features.chatModes off", () => {
     expect((await newChat(h)).mode).toBe("code");
   });
 
+  it("forks a Chat chat into a Code chat", async () => {
+    h = await createHarness();
+    const chat = await newChat(h);
+    await setMode(h, chat.id, "chat");
+    offerSandbox(h, scripted([]));
+    const sent = await send(h, chat.id);
+    const forked = await json<Conversation>(
+      await h.request(`/api/conversations/${chat.id}/fork`, {
+        json: { leafId: sent.assistantMessageId },
+        method: "POST",
+      }),
+      201
+    );
+    expect(forked.mode).toBe("code");
+  });
+
   it("keeps new chats in the mode asked for while it's on", async () => {
     h = await createHarness({ chatModes: true });
     expect((await newChat(h)).mode).toBe("chat");
@@ -317,5 +333,43 @@ describe("with features.chatModes off", () => {
     );
     expect(run.options?.chatMode).toBeUndefined();
     expect(offered(model)).toContain("bash");
+  });
+
+  it("gives a run placed in Chat mode before the flip every tool when it resumes", async () => {
+    h = await createHarness();
+    const bash = spyTool();
+    const turn = {
+      toolApproval: { bash: "user-approval" as const },
+      tools: { bash: bash.tool },
+    };
+    h.nextTurn({
+      ...turn,
+      model: scripted([
+        () => toolCallStream("bash", { command: "npm install" }, "b1"),
+      ]),
+    });
+    const resumed = scripted([]);
+    h.nextTurn({ ...turn, model: resumed });
+    const chat = await newChat(h);
+    const waiting = await send(h, chat.id);
+    expect(waiting.state.status).toBe("awaiting_approval");
+    // Placed while the switch was on, in Chat mode.
+    await h.db
+      .update(runTable)
+      .set({
+        options: { chatMode: "chat", sandbox: "auto", webSearch: "auto" },
+      })
+      .where(eq(runTable.id, waiting.id));
+
+    await h.request(`/api/runs/${waiting.id}/approvals`, {
+      json: {
+        decisions: [{ decision: { decision: "approve" }, toolCallId: "b1" }],
+      },
+      method: "POST",
+    });
+    await h.services.executor.idle();
+
+    expect(bash.execute).toHaveBeenCalledOnce();
+    expect(offered(resumed)).toContain("bash");
   });
 });

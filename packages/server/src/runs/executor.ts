@@ -896,8 +896,10 @@ export const createInProcessExecutor = (
   };
 
   const startRun = async (
-    run: RunStart
+    started: RunStart
   ): Promise<Result<void, RunExecutorError>> => {
+    // Before the answer is claimed, so it records the mode the run gets.
+    const run = runWithChatModes(started, deps.chatModes);
     const found = await getRun(db, run.runId);
     if (!found.ok) {
       return err({ runId: run.runId, type: "not_found" });
