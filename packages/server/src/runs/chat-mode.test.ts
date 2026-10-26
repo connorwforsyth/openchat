@@ -7,12 +7,22 @@ const run = (options: RunOptions) => ({ id: "r1", options });
 
 describe("runWithChatModes", () => {
   it("drops a stored mode while features.chatModes is off", () => {
-    const queued = run({ chatMode: "chat", sandbox: "auto" });
-    expect(runWithChatModes(queued, false)).toEqual(run({ sandbox: "auto" }));
+    const queued = run({
+      chatMode: "chat",
+      sandbox: "auto",
+      webSearch: "auto",
+    });
+    expect(runWithChatModes(queued, false)).toEqual(
+      run({ sandbox: "auto", webSearch: "auto" })
+    );
   });
 
   it("keeps it while the switch is on", () => {
-    const queued = run({ chatMode: "chat", sandbox: "auto" });
+    const queued = run({
+      chatMode: "chat",
+      sandbox: "auto",
+      webSearch: "auto",
+    });
     expect(runWithChatModes(queued, true)).toBe(queued);
   });
 });
