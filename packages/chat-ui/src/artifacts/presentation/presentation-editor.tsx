@@ -75,7 +75,13 @@ let engine: Promise<
   typeof import("@workspace/artifacts-kit/kinds/presentation/visual-edits")
 > | null = null;
 const loadEngine = () => {
-  engine ??= import("@workspace/artifacts-kit/kinds/presentation/visual-edits");
+  engine ??= import(
+    "@workspace/artifacts-kit/kinds/presentation/visual-edits"
+  ).catch((error: unknown) => {
+    // A failed load (offline, a new deploy) is tried again on the next edit.
+    engine = null;
+    throw error;
+  });
   return engine;
 };
 
@@ -175,6 +181,9 @@ function DeckEditor({
   const isLatest = version.id === latest.id;
   const canEdit = mayEdit && isLatest;
   const [content, setContent] = useState(version.content);
+  // The deck as last changed, ahead of the render that shows it: an edit
+  // that waited for the engine applies to this, not to what it first saw.
+  const latestContent = useRef(content);
   const deck = useMemo(() => parseDeck(content), [content]);
   const history = useEditorHistory(version.content);
   const versionSave = useVersionSave({ baseVersionId: latest.id, save });
@@ -200,9 +209,10 @@ function DeckEditor({
   /** Shows and keeps `next`, the deck's whole text: one step of history. */
   const keep = useCallback(
     (next: string, key?: string) => {
-      if (next === content) {
+      if (next === latestContent.current) {
         return;
       }
+      latestContent.current = next;
       setProblem(null);
       setContent(next);
       history.record(next, key);
@@ -213,7 +223,7 @@ function DeckEditor({
         onSelect({ artifactId: artifact.id });
       }
     },
-    [artifact.id, change, content, history, onSelect, pinned]
+    [artifact.id, change, history, onSelect, pinned]
   );
 
   // A version made elsewhere (the agent, another editor) shows at once
@@ -225,6 +235,7 @@ function DeckEditor({
     }
     latestShown.current = latest.id;
     if (!isMine(latest.id) && state === "saved") {
+      latestContent.current = latest.content;
       setContent(latest.content);
       history.record(latest.content);
     }
@@ -251,11 +262,18 @@ function DeckEditor({
 
   const edit = useCallback(
     async (target: SlideTarget, slideChange: SlideChange, key: string) => {
-      if (!(canEdit && deck)) {
+      if (!canEdit) {
         return false;
       }
-      const { applyDeckVisualEdits } = await loadEngine();
-      const result = applyDeckVisualEdits(deck, [editFor(target, slideChange)]);
+      const engineModule = await loadEngine().catch(() => null);
+      const base = parseDeck(latestContent.current);
+      if (!(engineModule && base)) {
+        setProblem(t`the editor couldn't load. Try again.`);
+        return false;
+      }
+      const result = engineModule.applyDeckVisualEdits(base, [
+        editFor(target, slideChange),
+      ]);
       if (!result.ok) {
         setProblem(result.error.join("\n"));
         return false;
@@ -263,22 +281,31 @@ function DeckEditor({
       keep(presentationText(result.value), key);
       return true;
     },
-    [canEdit, deck, keep]
+    [canEdit, keep, t]
   );
 
   const step = useCallback(
     (to: string | null) => {
-      if (to === null || !canEdit) {
+      if (to === null) {
         return;
       }
+      latestContent.current = to;
       setProblem(null);
       setContent(to);
       change(to);
     },
-    [canEdit, change]
+    [change]
   );
-  const undo = useCallback(() => step(history.undo()), [history, step]);
-  const redo = useCallback(() => step(history.redo()), [history, step]);
+  const undo = useCallback(() => {
+    if (canEdit) {
+      step(history.undo());
+    }
+  }, [canEdit, history, step]);
+  const redo = useCallback(() => {
+    if (canEdit) {
+      step(history.redo());
+    }
+  }, [canEdit, history, step]);
   const onKeyDown = useUndoKeys({ onRedo: redo, onUndo: undo });
 
   const onText = useCallback(
@@ -337,7 +364,7 @@ function DeckEditor({
           picked.target,
           { key: styleChange.key, kind: "style", value: styleChange.value },
           `style:${styleChange.key}:${targetKey(picked.target)}`
-        );
+        ).catch(() => undefined);
       }
     },
     [edit, picked]
@@ -406,6 +433,7 @@ Edit only that slide, with update_artifact's update_slide.`
   );
 
   const loadLatest = useCallback(() => {
+    latestContent.current = latest.content;
     setContent(latest.content);
     history.reset(latest.content);
     versionSave.reset(latest.id);

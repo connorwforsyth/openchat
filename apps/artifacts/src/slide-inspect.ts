@@ -230,6 +230,15 @@ export const pickedElement = (
   };
 };
 
+/** Undo or redo, as the editor reads them: ⌘Z / Ctrl+Z, ⇧⌘Z / Ctrl+Y. */
+const undoCommand = (event: KeyboardEvent): "redo" | "undo" | null => {
+  const key = event.key.toLowerCase();
+  if ((event.metaKey || event.ctrlKey) && key === "z") {
+    return event.shiftKey ? "redo" : "undo";
+  }
+  return event.ctrlKey && key === "y" ? "redo" : null;
+};
+
 export interface Inspector {
   /** Picks `target` (or nothing) in the slide drawn now, and says so. */
   readonly pick: (target: SlideTarget | null) => void;
@@ -362,9 +371,10 @@ export const inspectSlide = (
       choose(null);
       return;
     }
-    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z") {
+    const command = undoCommand(event);
+    if (command) {
       event.preventDefault();
-      onCommand(event.shiftKey ? "redo" : "undo");
+      onCommand(command);
     }
   };
   const onFocusOut = (event: FocusEvent) => {

@@ -5,6 +5,8 @@ import { artifactKindSchema } from "@workspace/contract/schemas/message-parts";
 import { err, ok, type Result } from "@workspace/shared/result";
 import { z } from "zod";
 
+import { elementStyleSchema, themeColorSchema } from "./editor/style";
+
 // The wire protocol between the artifacts panel and the artifact runtime
 // (`apps/artifacts`, D24): a static page on its own origin that the panel
 // loads in a sandboxed iframe and sends artifact code to over `postMessage`.
@@ -169,40 +171,11 @@ export const runtimeErrorSchema = z.object({
 });
 export type RuntimeError = z.infer<typeof runtimeErrorSchema>;
 
-/** A colour as the slides editor's colour fields take it. */
-export const hexColorSchema = z.string().regex(/^#[\da-f]{6}$/);
-
-/**
- * The styles an element picked in a slide has, as drawn: what the slides
- * editor's inspector shows and edits.
- */
-export const pickedStyleSchema = z.object({
-  /** `null` when it has none of its own (transparent). */
-  backgroundColor: hexColorSchema.nullable(),
-  color: hexColorSchema,
-  fontSize: z.number().min(0).max(4000),
-  fontStyle: z.enum(["italic", "normal"]),
-  fontWeight: z.number().int().min(1).max(1000),
-  letterSpacing: z.number().min(-1000).max(1000),
-  /** A multiple of the font size; `null` for the browser's normal. */
-  lineHeight: z.number().min(0).max(100).nullable(),
-  opacity: z.number().min(0).max(1),
-  textAlign: z.enum(["center", "end", "justify", "start"]),
-});
-export type PickedStyle = z.infer<typeof pickedStyleSchema>;
-
-/** One of the deck theme's colours, by its variable's name. */
-export const themeColorSchema = z.object({
-  name: z.string().regex(/^[a-z][a-z\d-]{0,39}$/),
-  value: hexColorSchema,
-});
-export type ThemeColor = z.infer<typeof themeColorSchema>;
-
 /** The element a click picked in a slide. */
 export const pickedElementSchema = z.object({
   /** Words the editor can rewrite, a picture, or anything else. */
   kind: z.enum(["box", "image", "text"]),
-  style: pickedStyleSchema,
+  style: elementStyleSchema,
   /** Its tag, lower case, as the inspector names it. */
   tag: z.string().max(40),
   target: slideTargetSchema,

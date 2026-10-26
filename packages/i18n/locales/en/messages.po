@@ -6388,6 +6388,10 @@ msgstr "The deck couldn't be exported: {0}"
 msgid "The demo workspace couldn't do that."
 msgstr "The demo workspace couldn't do that."
 
+#: ../chat-ui/src/artifacts/presentation/presentation-editor.tsx
+msgid "the editor couldn't load. Try again."
+msgstr "the editor couldn't load. Try again."
+
 #: ../composer/src/components/composer-shell.tsx
 msgid "The editor didn't load. Reload the page to try again."
 msgstr "The editor didn't load. Reload the page to try again."
