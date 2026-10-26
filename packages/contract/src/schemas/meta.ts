@@ -111,6 +111,14 @@ export const publicConfigSchema = z.object({
     logoUrl: z.string().nullable(),
     name: z.string().min(1),
   }),
+  /**
+   * Whether chats offer the Chat / Code switch (`features.chatModes`). Off,
+   * the switch and each message's mode are hidden, and every run gets the
+   * sandbox tools the instance has. Absent from an older server: off. Not a
+   * `features` key, since that record is exhaustive and a new key would
+   * break every producer written before it.
+   */
+  chatModes: z.boolean().optional(),
   features: z.record(featureFlagSchema, z.boolean()),
   limits: z.object({
     memoryMaxChars: z.int().min(1),
