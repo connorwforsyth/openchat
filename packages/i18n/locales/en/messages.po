@@ -379,6 +379,10 @@ msgstr "A key you don't manage"
 msgid "A member"
 msgstr "A member"
 
+#: ../chat-ui/src/chat/queue-tray.tsx
+msgid "A message was queued after it, so it stays in the chat."
+msgstr "A message was queued after it, so it stays in the chat."
+
 #: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
 msgid "A monthly token pool for {name}. Members draw on it once an owner approves their request."
 msgstr "A monthly token pool for {name}. Members draw on it once an owner approves their request."
@@ -1571,6 +1575,10 @@ msgstr "Couldn't change {code}"
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Couldn't change a skill"
 msgstr "Couldn't change a skill"
+
+#: ../chat-ui/src/chat/queue-tray.tsx
+msgid "Couldn't change the queued message. Try again."
+msgstr "Couldn't change the queued message. Try again."
 
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Couldn't change the skill {name}"
@@ -4118,6 +4126,10 @@ msgstr "Only the org's owners can change this."
 msgid "Only the owner, so far."
 msgstr "Only the owner, so far."
 
+#: ../chat-ui/src/chat/queue-tray.tsx
+msgid "Only the person who sent a queued message can change it."
+msgstr "Only the person who sent a queued message can change it."
+
 #: ../../apps/web/app/(app)/(pages)/schedules/schedule-editor.tsx
 msgid "Only when it needs me"
 msgstr "Only when it needs me"
@@ -6319,6 +6331,10 @@ msgstr "That isn't valid."
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "That key couldn't be removed. Try again."
 msgstr "That key couldn't be removed. Try again."
+
+#: ../chat-ui/src/chat/queue-tray.tsx
+msgid "That message isn't queued any more."
+msgstr "That message isn't queued any more."
 
 #: ../../apps/web/app/(auth)/_components/auth-problem.tsx
 msgid "That password is too long. Choose a shorter one."

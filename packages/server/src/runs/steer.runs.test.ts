@@ -4,6 +4,7 @@ import type {
   ConversationId,
   MessageId,
   RunId,
+  UserId,
 } from "@workspace/contract/schemas/common";
 import type { Conversation } from "@workspace/contract/schemas/conversations";
 import type {
@@ -11,9 +12,10 @@ import type {
   Run,
   TurnDelivery,
 } from "@workspace/contract/schemas/runs";
+import { upsertGrant } from "@workspace/db/queries/grants";
 import { getBranchPath, newestLeafId } from "@workspace/db/queries/messages";
 import { getRun, readRunChunks } from "@workspace/db/queries/runs";
-import { expectOk } from "@workspace/db/testing";
+import { expectOk, seedOrg, seedUser } from "@workspace/db/testing";
 import { tool } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
 import { afterEach, describe, expect, it } from "vitest";
@@ -376,25 +378,88 @@ describe("the queue's actions", () => {
     await h.services.executor.idle();
   });
 
-  it("a person who can only read the chat can't steer or withdraw", async () => {
+  /** Someone the chat is shared with at `permission`. */
+  const collaborator = async (
+    harness: Harness,
+    chat: ConversationId,
+    permission: "editor" | "viewer"
+  ): Promise<UserId> => {
+    const person = await seedUser(harness.db);
+    await seedOrg(harness.db, person.id, { isPersonal: true });
+    expectOk(
+      await upsertGrant(harness.db, {
+        grantedBy: harness.ownerId,
+        permission,
+        principal: { id: person.id, type: "user" },
+        resource: { resourceId: chat, resourceType: "conversation" },
+      })
+    );
+    return person.id as UserId;
+  };
+
+  const tryActions = (harness: Harness, runId: RunId, as: UserId) =>
+    Promise.all(
+      ["steer", "withdraw"].map(async (action) => {
+        const response = await harness.request(`/api/runs/${runId}/${action}`, {
+          as,
+          method: "POST",
+        });
+        return response.status;
+      })
+    );
+
+  it("someone who can only read the chat can't steer or take back a turn", async () => {
     h = await createHarness();
     const { answering, chat, gate } = await busyTurn(h);
     const queued = await send(h, chat, "Later.", answering.assistantMessageId);
-    const { seedOrg, seedUser } = await import("@workspace/db/testing");
-    const stranger = await seedUser(h.db);
-    await seedOrg(h.db, stranger.id, { isPersonal: true });
-    for (const action of ["steer", "withdraw"]) {
-      // biome-ignore lint/performance/noAwaitInLoops: two requests, in turn.
-      const response = await h.request(`/api/runs/${queued.runId}/${action}`, {
-        as: stranger.id as never,
-        method: "POST",
-      });
-      expect([403, 404]).toContain(response.status);
-    }
+    const reader = await collaborator(h, chat, "viewer");
+    expect(await tryActions(h, queued.runId, reader)).toEqual([403, 403]);
     h.nextTurn({
       model: new MockLanguageModelV4({ doStream: textStream("Later, then.") }),
     });
     gate.release();
     await h.services.executor.idle();
+    expect(await runOf(h, queued.runId)).toMatchObject({ status: "succeeded" });
+  });
+
+  it("an editor who didn't send a turn can't steer or take it back, and their own steer runs as their turn", async () => {
+    h = await createHarness();
+    const { answering, chat, gate, model } = await busyTurn(h);
+    const queued = await send(h, chat, "Later.", answering.assistantMessageId);
+    const editor = await collaborator(h, chat, "editor");
+    expect(await tryActions(h, queued.runId, editor)).toEqual([403, 403]);
+
+    const response = await h.request("/api/runs", {
+      as: editor,
+      json: {
+        conversationId: chat,
+        input: {
+          parentId: answering.assistantMessageId,
+          parts: [{ text: "Focus on b.", type: "text" }],
+          type: "message",
+        },
+        options: { delivery: "steer" },
+        target: { model: "test:chat", type: "model" },
+      },
+      method: "POST",
+    });
+    expect(response.status).toBe(202);
+    const theirs = (await response.json()) as CreateRunOutput;
+    h.nextTurn({
+      model: new MockLanguageModelV4({ doStream: textStream("Later, then.") }),
+    });
+    h.nextTurn({
+      model: new MockLanguageModelV4({
+        doStream: textStream("For the editor."),
+      }),
+    });
+    gate.release();
+    await h.services.executor.idle();
+    // The owner's answer never read it: it ran as the editor's own turn.
+    expect(userTexts(model, 1)).toEqual(["Look into it."]);
+    expect(await runOf(h, theirs.runId)).toMatchObject({
+      createdBy: editor,
+      status: "succeeded",
+    });
   });
 });

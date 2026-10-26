@@ -39,6 +39,7 @@ import {
   getBranchPath,
   getMessage,
   insertMessage,
+  type MessageRow,
   toMessage,
   updateMessage,
 } from "@workspace/db/queries/messages";
@@ -821,22 +822,12 @@ export const createInProcessExecutor = (
         );
         return;
       }
-      const steer = async (): Promise<TakenSteer | null> => {
-        const taken = await takeSteer(db, run.runId, now()).catch(
-          (cause: unknown) => {
-            report("couldn't take a steer", cause);
-            return null;
-          }
-        );
-        const asked = taken ? toMessage(taken.userMessage) : null;
-        if (!(taken && asked?.ok)) {
+      // The message the model reads for a steer, made before the steer is
+      // taken, so a failure here leaves it queued rather than lost.
+      const prepareSteer = async (row: MessageRow) => {
+        const asked = toMessage(row);
+        if (!asked.ok) {
           return null;
-        }
-        answerId = taken.answer.id;
-        // Its own run never ran; anyone following its stream sees it end.
-        const closed = await writer.close(taken.run.id, "cancelled");
-        if (!closed.ok) {
-          report("couldn't close a taken steer's stream", closed.error);
         }
         const [message] = toUIMessages(
           await attachmentsForModel(
@@ -846,21 +837,38 @@ export const createInProcessExecutor = (
           ),
           { fileUrl }
         );
-        return message
-          ? {
-              data: {
-                answerId: taken.answer.id,
-                message: {
-                  authorId: asked.value.authorId,
-                  createdAt: asked.value.createdAt,
-                  id: asked.value.id,
-                  parts: asked.value.parts,
-                },
-                previousAnswerId: taken.previousAnswerId,
-              },
-              message,
-            }
-          : null;
+        return message ? { asked: asked.value, message } : null;
+      };
+      const steer = async (): Promise<TakenSteer | null> => {
+        const taken = await takeSteer(db, run.runId, prepareSteer, now()).catch(
+          (cause: unknown) => {
+            report("couldn't take a steer", cause);
+            return null;
+          }
+        );
+        if (!taken) {
+          return null;
+        }
+        answerId = taken.answer.id;
+        // Its own run never ran; anyone following its stream sees it end.
+        const closed = await writer.close(taken.run.id, "cancelled");
+        if (!closed.ok) {
+          report("couldn't close a taken steer's stream", closed.error);
+        }
+        const { asked, message } = taken.prepared;
+        return {
+          data: {
+            answerId: taken.answer.id,
+            message: {
+              authorId: asked.authorId,
+              createdAt: asked.createdAt,
+              id: asked.id,
+              parts: asked.parts,
+            },
+            previousAnswerId: taken.previousAnswerId,
+          },
+          message,
+        };
       };
       const agentRun = await runAgent({
         budget: turn.value.budget,

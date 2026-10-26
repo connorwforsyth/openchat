@@ -11,6 +11,7 @@ import type {
   ConversationId,
   MessageId,
   RunId,
+  UserId,
 } from "@workspace/contract/schemas/common";
 import type { Message } from "@workspace/contract/schemas/messages";
 import type { Run, TurnDelivery } from "@workspace/contract/schemas/runs";
@@ -19,8 +20,6 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { type QueuedTurn, queuedTurns } from "../model/queue";
 import { runInFront } from "../model/run-activity";
 import type { QueueActions } from "./queue-tray";
-
-const ignore = () => undefined;
 
 /**
  * The composer's queue (D25's branch queue, from the active runs): the
@@ -34,16 +33,19 @@ export const useQueue = ({
   client,
   messages,
   refresh,
+  viewer,
 }: {
   readonly activeRuns: readonly Run[] | undefined;
   readonly api: QueryUtils;
   readonly client: ApiClient;
   readonly messages: readonly Message[];
   readonly refresh: () => void;
+  /** Who is looking: only their own queued turns get actions. */
+  readonly viewer: UserId;
 }) => {
   const listed = useMemo(
-    () => queuedTurns(activeRuns, messages),
-    [activeRuns, messages]
+    () => queuedTurns(activeRuns, messages, viewer),
+    [activeRuns, messages, viewer]
   );
   const missing = useQueries({
     queries: listed
@@ -57,41 +59,56 @@ export const useQueue = ({
     () =>
       fetched.length === 0
         ? listed
-        : queuedTurns(activeRuns, [...messages, ...fetched]),
-    [activeRuns, fetched, listed, messages]
+        : queuedTurns(activeRuns, [...messages, ...fetched], viewer),
+    [activeRuns, fetched, listed, messages, viewer]
   );
 
   const [pending, setPending] = useState<ReadonlySet<RunId>>(() => new Set());
   const [fill, setFill] = useState<ComposerFill>();
+  // Rejects as the server did, for the tray to say why.
   const act = useCallback(
-    (turn: QueuedTurn, action: () => Promise<unknown>) => {
+    async <T>(turn: QueuedTurn, action: () => Promise<T>): Promise<T> => {
       setPending((current) => new Set(current).add(turn.runId));
-      action()
-        .catch(ignore)
-        .finally(() => {
-          setPending((current) => {
-            const next = new Set(current);
-            next.delete(turn.runId);
-            return next;
-          });
-          refresh();
+      try {
+        return await action();
+      } finally {
+        setPending((current) => {
+          const next = new Set(current);
+          next.delete(turn.runId);
+          return next;
         });
+        refresh();
+      }
     },
     [refresh]
   );
   const actions = useMemo(
     (): QueueActions => ({
+      // A turn queued under it keeps its message in the chat, as a stopped
+      // question: then the text stays there, not back in the composer.
       onEdit: (turn) =>
         act(turn, async () => {
-          await client.runs.withdraw({ id: turn.runId });
-          setFill((last) => ({
-            id: (last?.id ?? 0) + 1,
-            text: turn.text ?? "",
-          }));
+          const { messageRemoved } = await client.runs.withdraw({
+            id: turn.runId,
+          });
+          if (messageRemoved) {
+            setFill((last) => ({
+              id: (last?.id ?? 0) + 1,
+              text: turn.text ?? "",
+            }));
+          }
+          return { kept: !messageRemoved };
         }),
       onRemove: (turn) =>
-        act(turn, () => client.runs.withdraw({ id: turn.runId })),
-      onSteer: (turn) => act(turn, () => client.runs.steer({ id: turn.runId })),
+        act(turn, async () => {
+          const { messageRemoved } = await client.runs.withdraw({
+            id: turn.runId,
+          });
+          return { kept: !messageRemoved };
+        }),
+      onSteer: async (turn) => {
+        await act(turn, () => client.runs.steer({ id: turn.runId }));
+      },
     }),
     [act, client]
   );

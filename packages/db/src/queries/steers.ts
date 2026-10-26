@@ -39,9 +39,11 @@ const lockInOrder = async (tx: Db, runId: RunId): Promise<RunRow | null> => {
   return locked.ok ? locked.value : null;
 };
 
-export interface TakenSteer {
+export interface TakenSteer<Prepared> {
   /** The answer the run writes from here on, under the steer's message. */
   readonly answer: MessageRow;
+  /** What `prepare` made of the steer's message. */
+  readonly prepared: Prepared;
   /** The answer the steer came after. */
   readonly previousAnswerId: MessageId;
   /** The steer's run, now ended unrun. */
@@ -54,15 +56,20 @@ export interface TakenSteer {
  * Takes the steer waiting next in line behind `runId`, if there is one it
  * can take: queued directly behind the run, under the answer the run is
  * writing. Turns queued behind the steer move after the new answer. All in
- * one transaction,
- * with the run and the steer locked, so a Stop or a claim on either sees
- * the steer either still queued or already taken. `null`: none to take.
+ * one transaction, with the run and the steer locked, so a Stop or a claim
+ * on either sees the steer either still queued or already taken.
+ *
+ * `prepare` turns the steer's message into what the model will read before
+ * anything is written: when it gives `null` or throws, the steer stays
+ * queued and runs as the next turn, never taken and then lost. `null`:
+ * none to take.
  */
-export const takeSteer = async (
+export const takeSteer = async <Prepared>(
   db: Db,
   runId: RunId,
+  prepare: (asked: MessageRow) => Promise<Prepared | null>,
   now: Date = new Date()
-): Promise<TakenSteer | null> =>
+): Promise<TakenSteer<Prepared> | null> =>
   await db.transaction(async (tx) => {
     const answering = await lockInOrder(tx, runId);
     const previousAnswerId = answering?.assistantMessageId;
@@ -90,6 +97,10 @@ export const takeSteer = async (
     }
     const asked = await getMessage(tx, steer.userMessageId);
     if (!asked.ok || asked.value.parentId !== previousAnswerId) {
+      return null;
+    }
+    const prepared = await prepare(asked.value);
+    if (prepared === null) {
       return null;
     }
     const answer = await insertMessage(tx, {
@@ -143,6 +154,7 @@ export const takeSteer = async (
       answer: dated
         ? { ...answer.value, createdAt: dated.createdAt }
         : answer.value,
+      prepared,
       previousAnswerId,
       run: ended.value,
       userMessage: asked.value,

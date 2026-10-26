@@ -18,6 +18,9 @@ import { createRun, getRun, transitionRun } from "./runs";
 import { removeUnrunTurn, takeSteer } from "./steers";
 
 let testDb: TestDb;
+
+/** Takes the steer's message as it is. */
+const asIs = (asked: unknown) => Promise.resolve(asked);
 beforeAll(async () => {
   testDb = await createTestDb();
 });
@@ -97,7 +100,7 @@ describe("takeSteer", () => {
     const { answer, chat, db, queue, running } = await answering();
     const steer = await queue("use b", answer.id, running.id, "steer");
 
-    const taken = await takeSteer(db, running.id);
+    const taken = await takeSteer(db, running.id, asIs);
 
     expect(taken).toMatchObject({
       previousAnswerId: answer.id,
@@ -123,7 +126,7 @@ describe("takeSteer", () => {
       steer.asked.id,
       taken?.answer.id,
     ]);
-    expect(await takeSteer(db, running.id)).toBeNull();
+    expect(await takeSteer(db, running.id, asIs)).toBeNull();
   });
 
   test("leaves someone else's steer queued: the run goes on as its own creator", async () => {
@@ -136,14 +139,29 @@ describe("takeSteer", () => {
       "steer",
       other.id
     );
-    expect(await takeSteer(db, running.id)).toBeNull();
+    expect(await takeSteer(db, running.id, asIs)).toBeNull();
     expect(expectOk(await getRun(db, steer.queued.id)).status).toBe("queued");
+  });
+
+  test("leaves the steer queued when its message can't be prepared", async () => {
+    const { answer, db, queue, running } = await answering();
+    const steer = await queue("use b", answer.id, running.id, "steer");
+    expect(
+      await takeSteer(db, running.id, () => Promise.resolve(null))
+    ).toBeNull();
+    await expect(
+      takeSteer(db, running.id, () => Promise.reject(new Error("no file")))
+    ).rejects.toThrow("no file");
+    expect(expectOk(await getRun(db, steer.queued.id)).status).toBe("queued");
+    expect(expectOk(await getRun(db, running.id)).assistantMessageId).toBe(
+      answer.id
+    );
   });
 
   test("leaves a plain queued turn queued", async () => {
     const { answer, db, queue, running } = await answering();
     const next = await queue("later", answer.id, running.id, "queue");
-    expect(await takeSteer(db, running.id)).toBeNull();
+    expect(await takeSteer(db, running.id, asIs)).toBeNull();
     expect(expectOk(await getRun(db, next.queued.id)).status).toBe("queued");
   });
 
@@ -157,7 +175,7 @@ describe("takeSteer", () => {
       "queue"
     );
 
-    const taken = await takeSteer(db, running.id);
+    const taken = await takeSteer(db, running.id, asIs);
 
     expect(taken?.answer.parentId).toBe(steer.asked.id);
     expect(expectOk(await getMessage(db, later.asked.id)).parentId).toBe(
@@ -176,7 +194,7 @@ describe("takeSteer", () => {
     const { answer, db, queue, running } = await answering();
     await queue("use b", answer.id, running.id, "steer");
     expectOk(await transitionRun(db, running.id, { type: "succeed" }));
-    expect(await takeSteer(db, running.id)).toBeNull();
+    expect(await takeSteer(db, running.id, asIs)).toBeNull();
   });
 });
 

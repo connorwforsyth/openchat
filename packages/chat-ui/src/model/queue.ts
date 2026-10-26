@@ -1,4 +1,8 @@
-import type { MessageId, RunId } from "@workspace/contract/schemas/common";
+import type {
+  MessageId,
+  RunId,
+  UserId,
+} from "@workspace/contract/schemas/common";
 import type { Message } from "@workspace/contract/schemas/messages";
 import type { Run, TurnDelivery } from "@workspace/contract/schemas/runs";
 
@@ -12,6 +16,8 @@ import type { Run, TurnDelivery } from "@workspace/contract/schemas/runs";
 export interface QueuedTurn {
   readonly delivery: TurnDelivery;
   readonly messageId: MessageId;
+  /** Whether the viewer sent it: only its author may steer, edit or remove it. */
+  readonly mine: boolean;
   /** 1 is next. */
   readonly position: number;
   readonly runId: RunId;
@@ -29,7 +35,8 @@ const textOf = (message: Message | undefined): string | null =>
 /** The queued turns, next first, with their text where `messages` has it. Pure. */
 export const queuedTurns = (
   runs: readonly Run[] | undefined,
-  messages: readonly Message[]
+  messages: readonly Message[],
+  viewer: UserId
 ): readonly QueuedTurn[] => {
   const byId = new Map(messages.map((message) => [message.id, message]));
   return (runs ?? [])
@@ -39,6 +46,7 @@ export const queuedTurns = (
             {
               delivery: run.options?.delivery ?? "queue",
               messageId: run.userMessageId,
+              mine: run.createdBy === viewer,
               position: run.state.position,
               runId: run.id,
               text: textOf(byId.get(run.userMessageId)),
@@ -59,4 +67,24 @@ export const withoutQueued = (
   }
   const waiting = new Set<string>(queued.map((turn) => turn.messageId));
   return messages.filter((message) => !waiting.has(message.id));
+};
+
+/** Why an action on a queued turn didn't happen, for the person to read. */
+export type QueueFailure = "failed" | "finished" | "forbidden";
+
+/** The failure an API error stands for. Pure. */
+export const queueFailureOf = (error: unknown): QueueFailure => {
+  const code =
+    typeof error === "object" && error !== null
+      ? (error as { readonly code?: unknown }).code
+      : undefined;
+  switch (code) {
+    case "FORBIDDEN":
+      return "forbidden";
+    case "CONFLICT":
+    case "NOT_FOUND":
+      return "finished";
+    default:
+      return "failed";
+  }
 };
