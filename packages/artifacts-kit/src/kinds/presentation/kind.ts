@@ -138,7 +138,7 @@ export const presentationKindWith = ({
       { extension: "pptx", format: "file" },
       { extension: "pdf", format: "file" },
     ],
-    icon: "PlayIcon",
+    icon: "PresentationIcon",
     instructions: withHouseStyle(PRESENTATION_INSTRUCTIONS, design),
     kind: "presentation",
     label: "Presentation",

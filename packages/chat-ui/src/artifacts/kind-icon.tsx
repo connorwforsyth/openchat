@@ -11,10 +11,11 @@ import {
   type Icon,
   ImageIcon,
   LayersIcon,
-  LayoutGridIcon,
   MonitorIcon,
   NetworkIcon,
-  PlayIcon,
+  PenToolIcon,
+  PresentationIcon,
+  SheetIcon,
 } from "@workspace/icons";
 import type { IconName } from "@workspace/icons/names";
 
@@ -33,10 +34,11 @@ const kindIcons: Partial<Record<IconName, Icon>> = {
   GlobeIcon,
   ImageIcon,
   LayersIcon,
-  LayoutGridIcon,
   MonitorIcon,
   NetworkIcon,
-  PlayIcon,
+  PenToolIcon,
+  PresentationIcon,
+  SheetIcon,
 };
 
 /** The icon of the kind `kind` is shown as (Mermaid is a Diagram). */
