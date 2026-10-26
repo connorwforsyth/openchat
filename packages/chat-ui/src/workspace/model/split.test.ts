@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   clampSplit,
-  LIST_BESIDE_FROM,
   MIN_PANE_HEIGHT,
   maximisedAfter,
   maximisedForHalf,
@@ -19,10 +18,9 @@ import {
 // at a width, and which half a pick asks for when they take turns.
 
 const wide = {
-  filesSelected: true,
   hasPreview: true,
   maximised: null,
-  view: "main",
+  view: "files",
   width: 900,
 } as const;
 
@@ -59,9 +57,6 @@ describe("paneLayout", () => {
       browser: true,
       divider: true,
       files: true,
-      list: true,
-      listAlone: false,
-      main: true,
       maximisable: true,
       turns: false,
     });
@@ -73,10 +68,7 @@ describe("paneLayout", () => {
     expect(layout.divider).toBe(false);
     expect(layout.files).toBe(true);
     expect(layout.maximisable).toBe(false);
-    // No browser to take turns with, but the list and the file still do.
     expect(layout.turns).toBe(false);
-    expect(layout.list).toBe(false);
-    expect(layout.main).toBe(true);
   });
 
   it("hides the other half while one is maximised", () => {
@@ -104,37 +96,12 @@ describe("paneLayout", () => {
     expect(browser.turns).toBe(true);
     expect(browser.maximisable).toBe(false);
     expect([browser.browser, browser.files]).toEqual([true, false]);
-    const list = paneLayout({ ...narrow, view: "list" });
-    expect([list.browser, list.files, list.list, list.main]).toEqual([
-      false,
-      true,
-      true,
-      false,
-    ]);
-    const main = paneLayout({ ...narrow, view: "main" });
-    expect([main.browser, main.list, main.main]).toEqual([false, false, true]);
-  });
-
-  it("stacks between SPLIT_BELOW and LIST_BESIDE_FROM, the list and the file taking turns below", () => {
-    const between = { ...wide, width: (SPLIT_BELOW + LIST_BESIDE_FROM) / 2 };
-    // The browser's turn leaves the open file below in view…
-    const browser = paneLayout({ ...between, view: "browser" });
-    expect([browser.browser, browser.list, browser.main]).toEqual([
-      true,
-      false,
-      true,
-    ]);
-    // …or the list, with nothing open.
-    const nothing = paneLayout({
-      ...between,
-      filesSelected: false,
-      view: "browser",
-    });
-    expect([nothing.list, nothing.main]).toEqual([true, false]);
+    const files = paneLayout({ ...narrow, view: "files" });
+    expect([files.browser, files.files]).toEqual([false, true]);
   });
 
   it("lays out as wide before the width is measured", () => {
-    expect(paneLayout({ ...wide, view: "list", width: 0 })).toEqual(
+    expect(paneLayout({ ...wide, view: "browser", width: 0 })).toEqual(
       paneLayout(wide)
     );
   });
@@ -151,10 +118,10 @@ describe("viewOf", () => {
         { kind: "file", path: "site/index.html" },
         { "site/index.html": "code" }
       )
-    ).toBe("main");
-    expect(viewOf({ kind: "file", path: "README.md" }, {})).toBe("main");
-    expect(viewOf({ kind: "artifact" }, {})).toBe("main");
-    expect(viewOf(null, {})).toBe("list");
+    ).toBe("files");
+    expect(viewOf({ kind: "file", path: "README.md" }, {})).toBe("files");
+    expect(viewOf({ kind: "artifact" }, {})).toBe("files");
+    expect(viewOf(null, {})).toBe("files");
   });
 });
 
@@ -207,8 +174,7 @@ describe("a header press", () => {
   });
 
   it("takes the half's turn on a narrow panel", () => {
-    expect(viewForHalf("browser", true)).toBe("browser");
-    expect(viewForHalf("files", true)).toBe("main");
-    expect(viewForHalf("files", false)).toBe("list");
+    expect(viewForHalf("browser")).toBe("browser");
+    expect(viewForHalf("files")).toBe("files");
   });
 });

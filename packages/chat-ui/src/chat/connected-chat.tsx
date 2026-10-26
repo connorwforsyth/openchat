@@ -168,6 +168,8 @@ export interface ConnectedChatProps {
   readonly agents?: readonly AgentOption[];
   /** Where the Artifacts page lives (124). */
   readonly artifactsHref?: string;
+  /** Opens the header's Artifacts list once per new value (the palette's). */
+  readonly artifactsRequest?: number;
   /**
    * The artifact runtime's origin (`ARTIFACTS_ORIGIN`, D24), normalised with
    * `runtimeOriginFrom`. Omitted or `null`, previews fall back to `srcdoc`.
@@ -1799,6 +1801,7 @@ export function ConnectedChat({
   brand,
   client,
   artifactsHref,
+  artifactsRequest,
   banner,
   chatModes,
   composerPlaceholder,
@@ -2309,6 +2312,7 @@ export function ConnectedChat({
         >
           <ChatScreen
             actions={actions}
+            artifactsRequest={artifactsRequest}
             banner={banner}
             brand={brand}
             composer={{

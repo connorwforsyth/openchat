@@ -25,6 +25,7 @@ import type {
 } from "./model/client";
 import { SAVE_IDLE_MS, SLOW_SAVE_MS } from "./model/editor";
 import { SPLIT_STORAGE_KEY } from "./model/split";
+import { FILES_DOCK_STORAGE_KEY } from "./use-files-dock";
 import { WorkspacePanel, type WorkspacePanelProps } from "./workspace-panel";
 
 // The Workspace panel (060) over a fake `WorkspaceClient`: the list and
@@ -227,7 +228,7 @@ beforeAll(async () => {
 afterEach(cleanup);
 
 describe("the list and the main area", () => {
-  it("lists the files and the artifacts under the browser, and selects them", async () => {
+  it("docks the files under what's open, with no list of artifacts, and selects them", async () => {
     const { client } = fakeClient({
       "/work/notes.txt": { content: "# Notes\n", etag: V1 },
     });
@@ -248,20 +249,45 @@ describe("the list and the main area", () => {
     // The browser is its own half, on top (097): the list has no Preview.
     expect(workspace.getByRole("region", { name: "Browser" })).toBeTruthy();
     expect(workspace.queryByRole("button", { name: "Preview" })).toBeNull();
+    // Artifacts are the header's list now, not the panel's.
     const [first] = chatArtifacts;
-    if (!first) {
-      throw new Error("fixture artifacts");
-    }
-    await userEvent.click(workspace.getByRole("button", { name: first.title }));
+    expect(
+      workspace.queryByRole("button", { name: first?.title ?? "" })
+    ).toBeNull();
+    const dock = workspace.getByRole("navigation", { name: "Files" });
+    const row = await treeItem("notes.txt");
+    await press(row());
     expect(onSelect).toHaveBeenLastCalledWith({
-      artifactId: first.id,
-      kind: "artifact",
+      kind: "file",
+      path: "notes.txt",
     });
-    // The tree lists what the workspace holds.
-    await waitFor(() => expect(client.listFiles).toHaveBeenCalled());
-    expect(workspace.queryByText("No files yet")).toBeNull();
-    // Nothing selected: the main area asks for a pick.
-    expect(workspace.getByText("Select a file to open it.")).toBeTruthy();
+    // Nothing selected: the main area, above the dock, asks for a pick.
+    const pick = workspace.getByText("Select a file to open it.");
+    expect(dock.previousElementSibling?.contains(pick)).toBe(true);
+  });
+
+  it("folds the dock to its row, and remembers that", async () => {
+    const { client } = fakeClient({
+      "/work/notes.txt": { content: "notes\n", etag: V1 },
+    });
+    const view = renderWithI18n(
+      <WorkspacePanel {...props({ files: chatFiles(client) })} />
+    );
+    await treeItem("notes.txt");
+    const fold = panel().getByRole("button", { expanded: true, name: "Files" });
+    await userEvent.click(fold);
+    expect(fold.getAttribute("aria-expanded")).toBe("false");
+    expect(
+      panel().queryByRole("combobox", { name: "Search files" })
+    ).toBeNull();
+    view.unmount();
+    renderWithI18n(<WorkspacePanel {...props({ files: chatFiles(client) })} />);
+    expect(
+      panel()
+        .getByRole("button", { name: "Files" })
+        .getAttribute("aria-expanded")
+    ).toBe("false");
+    window.localStorage.removeItem(FILES_DOCK_STORAGE_KEY);
   });
 
   it("shows no terminal, port box or status badge", async () => {
@@ -328,11 +354,6 @@ describe("the list and the main area", () => {
         })}
       />
     );
-    expect(
-      panel()
-        .getByRole("button", { name: second.title })
-        .getAttribute("aria-current")
-    ).toBe("true");
     expect(panel().getByText("Loading artifact")).toBeTruthy();
   });
 });
@@ -579,7 +600,8 @@ describe("states", () => {
     if (!newFile) {
       throw new Error("no New file button");
     }
-    await userEvent.click(newFile);
+    await waitFor(() => expect(newFile.hasAttribute("disabled")).toBe(false));
+    await press(newFile);
     const dialog = within(
       await screen.findByRole("dialog", { name: "New file" })
     );
@@ -609,7 +631,8 @@ describe("states", () => {
     if (!newFile) {
       throw new Error("no New file button");
     }
-    await userEvent.click(newFile);
+    await waitFor(() => expect(newFile.hasAttribute("disabled")).toBe(false));
+    await press(newFile);
     const dialog = within(
       await screen.findByRole("dialog", { name: "New file" })
     );
@@ -1117,7 +1140,7 @@ describe("the file search (070)", () => {
 });
 
 describe("a narrow panel (070)", () => {
-  it("shows the list or the file, with a way back to the list", async () => {
+  it("keeps the files docked under the open file", async () => {
     const { client } = fakeClient({
       "/work/notes.txt": { content: "notes\n", etag: V1 },
     });
@@ -1129,24 +1152,11 @@ describe("a narrow panel (070)", () => {
         />
       </div>
     );
-    // The file, full width; the list is out of the way.
     expect(await editable()).toBeTruthy();
-    const nav = () =>
-      panel().queryByRole("navigation", { name: "Workspace contents" });
-    await waitFor(() => expect(nav()).toBeNull());
-
-    const back = () =>
-      panel().queryByRole("button", { name: "Back to the list" });
-    await userEvent.click(back() as HTMLElement);
-    expect(nav()).not.toBeNull();
-    // The file is out of the way now (kept, so it keeps its edits).
-    expect(back()).toBeNull();
-
-    // The same file opens again from the tree.
-    const row = await treeItem("notes.txt");
-    await press(row());
-    await waitFor(() => expect(nav()).toBeNull());
-    expect(back()).not.toBeNull();
+    expect(panel().getByRole("navigation", { name: "Files" })).toBeTruthy();
+    expect(
+      panel().queryByRole("button", { name: "Back to the list" })
+    ).toBeNull();
   });
 
   it("keeps the Preview toolbar to one row at 340px: the rest is in its menu", async () => {
@@ -1190,8 +1200,7 @@ describe("the browser over the files (097)", () => {
     "/work/notes.txt": { content: "notes\n", etag: V1 },
   };
   const browser = () => panel().queryByRole("region", { name: "Browser" });
-  const nav = () =>
-    panel().queryByRole("navigation", { name: "Workspace contents" });
+  const nav = () => panel().queryByRole("navigation", { name: "Files" });
   const divider = () =>
     panel().getByRole("separator", { name: "Resize the browser" });
   /** Visible, as `hidden` leaves it in the DOM but off screen. */
