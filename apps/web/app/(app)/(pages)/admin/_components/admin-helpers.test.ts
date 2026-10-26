@@ -6,7 +6,7 @@ import {
 } from "@workspace/contract/schemas/tenancy";
 import { describe, expect, it } from "vitest";
 
-import { formatMicros, usdToMicros } from "./money";
+import { amountToMicros, formatMicros } from "./money";
 import { policyFormState, toggleContext } from "./policy-state";
 import { buildTeamTree, flattenTree, subtreeIds } from "./team-tree";
 
@@ -109,16 +109,29 @@ describe("team tree", () => {
 
 describe("money", () => {
   it("parses dollar amounts to integer micros", () => {
-    expect(usdToMicros("12.50")).toBe(12_500_000);
-    expect(usdToMicros("0.000001")).toBe(1);
-    expect(usdToMicros("3")).toBe(3_000_000);
-    expect(usdToMicros("-1")).toBeNull();
-    expect(usdToMicros("1.2345678")).toBeNull();
-    expect(usdToMicros("ten")).toBeNull();
+    expect(amountToMicros("12.50")).toBe(12_500_000);
+    expect(amountToMicros("0.000001")).toBe(1);
+    expect(amountToMicros("3")).toBe(3_000_000);
+    expect(amountToMicros("-1")).toBeNull();
+    expect(amountToMicros("1.2345678")).toBeNull();
+    expect(amountToMicros("ten")).toBeNull();
   });
 
   it("formats micros as currency", () => {
     expect(formatMicros(12_500_000, "en")).toBe("$12.50");
     expect(formatMicros(1500, "en")).toBe("$0.0015");
+  });
+
+  const aud = { code: "AUD", perUsd: 1.52 };
+
+  it("shows micro-USD in the display currency at its fixed rate", () => {
+    expect(formatMicros(10_000_000, "en", aud)).toBe("A$15.20");
+    expect(formatMicros(1000, "en", aud)).toBe("A$0.0015");
+  });
+
+  it("takes an amount in the display currency and stores micro-USD", () => {
+    expect(amountToMicros("15.20", aud)).toBe(10_000_000);
+    expect(amountToMicros("1", aud)).toBe(657_895);
+    expect(amountToMicros("ten", aud)).toBeNull();
   });
 });

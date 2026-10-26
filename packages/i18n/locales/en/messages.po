@@ -2962,9 +2962,10 @@ msgstr "Light"
 msgid "Light bulb"
 msgstr "Light bulb"
 
+#. placeholder {0}: currency.code
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
-msgid "Limit (USD)"
-msgstr "Limit (USD)"
+msgid "Limit ({0})"
+msgstr "Limit ({0})"
 
 #: ../chat-ui/src/artifacts/document/document-toolbar.tsx
 msgid "Link"
@@ -5488,6 +5489,10 @@ msgstr "Show transcript"
 #: ../../apps/desktop/src/main/menu.ts
 msgid "Show Window"
 msgstr "Show Window"
+
+#: ../../apps/web/app/(app)/(pages)/admin/_components/cost.tsx
+msgid "Shown in {code}, converted from US dollars at a fixed {rate} per dollar."
+msgstr "Shown in {code}, converted from US dollars at a fixed {rate} per dollar."
 
 #: ../chat-ui/src/shell/app-shell.tsx
 msgid "Side panel"
