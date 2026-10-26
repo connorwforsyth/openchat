@@ -5,16 +5,25 @@ import type { ModelOption } from "@workspace/contract/schemas/models";
 import type { RunTarget } from "@workspace/contract/schemas/runs";
 import {
   ArrowUpIcon,
+  CornerDownLeftIcon,
   FileTextIcon,
   GlobeIcon,
   NetworkIcon,
   StopIcon,
   ZapIcon,
 } from "@workspace/icons";
+import { comboKeycaps } from "@workspace/shortcuts/keys";
+import { useDetectedPlatform } from "@workspace/shortcuts/react/context";
 import {
   InputGroupAddon,
   InputGroupButton,
 } from "@workspace/ui/components/input-group";
+import { Kbd, KbdGroup } from "@workspace/ui/components/kbd";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@workspace/ui/components/tooltip";
 import { useCallback, useRef } from "react";
 
 import { useModelVariants } from "../hooks/use-model-variants";
@@ -55,6 +64,8 @@ export interface ComposerFooterProps {
   /** The + menu's "Image" (138); left out, it isn't offered. */
   readonly onMakeImage?: (() => void) | undefined;
   readonly onPlanChange?: ((on: boolean) => void) | undefined;
+  /** Steers the answer being written with the message; see `ComposerProps.onSteer`. */
+  readonly onSteer?: (() => void) | undefined;
   readonly onStop: (() => void) | undefined;
   readonly onTargetChange: ((target: RunTarget) => void) | undefined;
   readonly onUsePrompt: ((prompt: PromptOption) => void) | undefined;
@@ -93,6 +104,7 @@ export function ComposerFooter({
   onAttach,
   onMakeImage,
   onPlanChange,
+  onSteer,
   onStop,
   onTargetChange,
   onUsePrompt,
@@ -140,7 +152,12 @@ export function ComposerFooter({
   if (appearance === "strip") {
     return (
       <div className={STRIP_SEND_CLASS}>
-        <SendButton busy={busy} canSubmit={canSubmit} onStop={onStop} />
+        <SendButton
+          busy={busy}
+          canSubmit={canSubmit}
+          onSteer={onSteer}
+          onStop={onStop}
+        />
       </div>
     );
   }
@@ -265,19 +282,97 @@ export function ComposerFooter({
             value={variants.level}
           />
         ) : null}
-        <SendButton busy={busy} canSubmit={canSubmit} onStop={onStop} />
+        <SendButton
+          busy={busy}
+          canSubmit={canSubmit}
+          onSteer={onSteer}
+          onStop={onStop}
+        />
       </div>
     </InputGroupAddon>
   );
 }
 
-/** Send, or Stop while a run is going: the footer's last button, and a strip's only one. */
+function Keycaps({ combo }: { readonly combo: string }) {
+  const platform = useDetectedPlatform();
+  return (
+    <KbdGroup aria-hidden>
+      {comboKeycaps(combo, platform).map((key) => (
+        <Kbd key={key}>{key}</Kbd>
+      ))}
+    </KbdGroup>
+  );
+}
+
+/**
+ * Send, or Stop while a run is going: the footer's last button, and a
+ * strip's only one. While a run is going and there's a message to send
+ * (a host that can steer), Steer and Queue come before Stop.
+ */
 function SendButton({
   busy,
   canSubmit,
+  onSteer,
   onStop,
-}: Pick<ComposerFooterProps, "busy" | "canSubmit" | "onStop">) {
+}: Pick<ComposerFooterProps, "busy" | "canSubmit" | "onSteer" | "onStop">) {
   const { t } = useLingui();
+  if (busy && canSubmit && onSteer) {
+    return (
+      <div className="flex items-center gap-1">
+        <InputGroupButton
+          aria-label={t`Stop`}
+          className="rounded-full"
+          disabled={onStop === undefined}
+          onClick={onStop}
+          size="icon-sm"
+          type="button"
+          variant="ghost"
+        >
+          <StopIcon aria-hidden />
+        </InputGroupButton>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <InputGroupButton
+                aria-keyshortcuts="Meta+Enter Control+Enter"
+                className="rounded-full"
+                onClick={onSteer}
+                size="sm"
+                type="button"
+                variant="outline"
+              />
+            }
+          >
+            <CornerDownLeftIcon aria-hidden />
+            <Trans>Steer</Trans>
+          </TooltipTrigger>
+          <TooltipContent>
+            <Trans>Add to the answer being written, at its next step</Trans>
+            <Keycaps combo="Mod+Enter" />
+          </TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <InputGroupButton
+                aria-label={t`Queue`}
+                className="rounded-full"
+                size="icon-sm"
+                type="submit"
+                variant="default"
+              />
+            }
+          >
+            <ArrowUpIcon aria-hidden />
+          </TooltipTrigger>
+          <TooltipContent>
+            <Trans>Send when this answer ends</Trans>
+            <Keycaps combo="Enter" />
+          </TooltipContent>
+        </Tooltip>
+      </div>
+    );
+  }
   return busy ? (
     // A plain button, not submit: Enter in the textarea must never stop a run.
     <InputGroupButton

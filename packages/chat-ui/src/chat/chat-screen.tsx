@@ -567,6 +567,17 @@ function ChatScreenBody({
   // "Edit this image" (138): a follow-up naming the picture's workspace
   // path goes in the composer, for the person to finish and send.
   const [composerFill, setComposerFill] = useState<ComposerFill>();
+  // The host's own fills (a queued message taken back to edit) join the
+  // same sequence, so each applies once whichever came last.
+  const hostFill = composer.fill;
+  const [hostFillId, setHostFillId] = useState(hostFill?.id);
+  if (hostFill && hostFill.id !== hostFillId) {
+    setHostFillId(hostFill.id);
+    setComposerFill((last) => ({
+      id: (last?.id ?? 0) + 1,
+      text: hostFill.text,
+    }));
+  }
   const editImage = useCallback(
     ({ path }: { readonly path: string }) =>
       setComposerFill((last) => ({

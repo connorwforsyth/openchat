@@ -6,6 +6,12 @@ import type { Run } from "@workspace/contract/schemas/runs";
 // written or wait on a decision, which run Stop stops, and whether the only
 // thing going on is a change waiting for the person. Pure.
 
+/**
+ * How many unfinished runs the chat lists: the one answering and the turns
+ * queued behind it, which the composer's queue shows.
+ */
+export const ACTIVE_RUNS_LIMIT = 20;
+
 /** How an unfinished answer's run is doing. */
 export type AnswerPhase = "queued" | "running" | "waiting";
 
@@ -53,7 +59,18 @@ export const stoppableRun = (runs: readonly Run[] | undefined): Run | null =>
 export const runToFollow = (
   runs: readonly Run[] | undefined
 ): string | null | undefined =>
-  runs ? (runs.find((run) => phaseOf(run) !== null)?.id ?? null) : undefined;
+  runs ? (runInFront(runs)?.id ?? null) : undefined;
+
+/**
+ * The run in front: the one answering (or waiting on a decision), else the
+ * turn queued longest. Newest first, like the list, so a turn queued behind
+ * an answer never comes before it.
+ */
+export const runInFront = (runs: readonly Run[]): Run | undefined =>
+  runs.find((run) => {
+    const phase = phaseOf(run);
+    return phase === "running" || phase === "waiting";
+  }) ?? runs.filter((run) => phaseOf(run) === "queued").at(-1);
 
 /**
  * Tool calls on screen still waiting for a decision: asked about, and with

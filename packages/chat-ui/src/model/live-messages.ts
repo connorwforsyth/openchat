@@ -2,6 +2,12 @@ import {
   fromUIMessage,
   type RecordedDecision,
 } from "@workspace/ai/messages/from-ui";
+import {
+  STEER_DATA,
+  splitAtSteers,
+  steerDataSchema,
+  steerOf,
+} from "@workspace/ai/messages/steer";
 import type {
   ConversationId,
   MessageId,
@@ -226,6 +232,91 @@ export const caughtUp = (
   );
 };
 
+/**
+ * An answer that took steers (`data-steer` markers), as the messages the
+ * server stores it as: the answer so far, each steer's own message, and the
+ * answer that goes on under it. Anything else comes back as it is. Pure.
+ */
+export const splitSteered = (message: Message): readonly Message[] => {
+  const markers = message.parts.flatMap((part) => {
+    const steer = steerOf(part);
+    return steer ? [steer] : [];
+  });
+  const [first] = markers;
+  if (!first) {
+    return [message];
+  }
+  return splitAtSteers(first.previousAnswerId, message.parts).flatMap(
+    (segment): Message[] => {
+      const answer: Message = {
+        ...message,
+        id: segment.answerId,
+        parentId: segment.steer?.message.id ?? message.parentId,
+        parts: [...segment.parts],
+      };
+      if (!segment.steer) {
+        return [answer];
+      }
+      const { message: asked, previousAnswerId } = segment.steer;
+      return [
+        {
+          agent: null,
+          authorId: asked.authorId,
+          conversationId: message.conversationId,
+          createdAt: asked.createdAt,
+          id: asked.id,
+          model: null,
+          parentId: previousAnswerId,
+          parts: asked.parts,
+          partsVersion: 1,
+          role: "user",
+          runId: null,
+          status: "complete",
+          usage: null,
+        },
+        answer,
+      ];
+    }
+  );
+};
+
+/**
+ * Every answer split at its steers (`splitSteered`), each message once: a
+ * steer the stored branch already has shows where the live answer put it.
+ * Pure.
+ */
+const withSteersSplit = (messages: readonly Message[]): readonly Message[] => {
+  if (!messages.some((message) => message.parts.some(steerOf))) {
+    return messages;
+  }
+  const seen = new Set<string>();
+  return messages.flatMap(splitSteered).filter((message) => {
+    if (seen.has(message.id)) {
+      return false;
+    }
+    seen.add(message.id);
+    return true;
+  });
+};
+
+/**
+ * The answer a live message is writing now: after a steer, the one the
+ * last steer started. Pure.
+ */
+export const answerIdOf = (message: UIMessage): string => {
+  let { id } = message;
+  for (const part of message.parts) {
+    if (part.type === `data-${STEER_DATA}`) {
+      const { data } = part as { readonly data?: unknown };
+      const steer = steerDataSchema.safeParse(data);
+      if (steer.success) {
+        id = steer.data.answerId;
+      }
+    }
+  }
+  return id;
+};
+
 /** A live message's mapping, and the decisions it was mapped with. */
 export interface LiveMapping {
   readonly decided: string;
@@ -302,11 +393,11 @@ export const mergeLive = (
     : path;
   const tail = liveTail(new Set(path.map((message) => message.id)), live);
   if (tail.length === 0) {
-    return streaming ? stored : path;
+    return streaming ? withSteersSplit(stored) : path;
   }
   const merged: Message[] = [...stored];
   for (const message of tail) {
     merged.push(mapLive(message, merged.at(-1)?.id ?? null));
   }
-  return merged;
+  return withSteersSplit(merged);
 };

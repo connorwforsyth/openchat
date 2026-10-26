@@ -138,6 +138,7 @@ it("holds an existing chat submit behind its same-tick mode save", async () => {
         onNavigate: vi.fn(),
         onWorkspaceChanged: vi.fn(),
         send,
+        sendBusy: vi.fn(),
         sendInTurn: vi.fn(),
         target: null,
       });
@@ -204,6 +205,7 @@ it.each([false, true])(
           onNavigate: vi.fn(),
           onWorkspaceChanged: vi.fn(),
           send,
+          sendBusy: vi.fn(),
           sendInTurn: vi.fn(),
           target: null,
         });

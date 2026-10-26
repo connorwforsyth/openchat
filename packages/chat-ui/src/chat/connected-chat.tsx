@@ -21,7 +21,11 @@ import {
   createQueryUtils,
   type QueryUtils,
 } from "@workspace/client/api";
-import { type RunCreated, userParts } from "@workspace/client/run-transport";
+import {
+  pickedSkills,
+  type RunCreated,
+  userParts,
+} from "@workspace/client/run-transport";
 import { useRunChat } from "@workspace/client/use-run-chat";
 import { contextOptionsFromMe } from "@workspace/composer/options";
 import { NEW_CHAT_DRAFT_KEY } from "@workspace/composer/ports/draft-store";
@@ -64,10 +68,12 @@ import type { Me, PublicConfig } from "@workspace/contract/schemas/meta";
 import type { ModelOption } from "@workspace/contract/schemas/models";
 import type {
   ChatMode,
+  CreateRunInput,
   PendingApproval,
   Run,
   RunOptions,
   RunTarget,
+  TurnDelivery,
 } from "@workspace/contract/schemas/runs";
 import type { SandboxRecord } from "@workspace/contract/schemas/sandbox";
 import type { ChatContext } from "@workspace/contract/schemas/tenancy";
@@ -109,7 +115,11 @@ import {
   firstSendQueued,
   firstSendStarted,
 } from "../model/first-send";
-import { type LiveMapping, mergeLive } from "../model/live-messages";
+import {
+  answerIdOf,
+  type LiveMapping,
+  mergeLive,
+} from "../model/live-messages";
 import type { MemoryUpdate } from "../model/parts";
 import {
   approvedPlanIds,
@@ -117,7 +127,9 @@ import {
   planApprovalMessage,
   planApprovalParts,
 } from "../model/plan";
+import { withoutQueued } from "../model/queue";
 import {
+  ACTIVE_RUNS_LIMIT,
   answerPhases,
   runToFollow,
   stoppableRun,
@@ -151,11 +163,13 @@ import { toTreePaths } from "../workspace/model/tree";
 import { chatModeSwitch, showsModes } from "./chat-modes";
 import { ChatScreen } from "./chat-screen";
 import { PresentPeople, TypingNote } from "./live-presence";
+import { QueueTray } from "./queue-tray";
 import { useBranchFeedback } from "./use-branch-feedback";
 import { useChatQueries, useConversationUpdate } from "./use-chat-data";
 import { useChatMcp } from "./use-chat-mcp";
 import { useChatMode } from "./use-chat-mode";
 import { useLiveConversation } from "./use-live-conversation";
+import { useBusyComposer, useQueue, useSendBusy } from "./use-queue";
 
 // The chat screen over the API (D11): TanStack Query for everything stored,
 // `useRunChat` for the turn that's streaming. Ticket 025 mounts this in the
@@ -508,6 +522,33 @@ const sentParts = (message: UIMessage) => [
 ];
 
 /**
+ * A message sent while an answer is being written, as its run's `input`:
+ * what `useChat` would have sent, under `parentId`. Pure.
+ */
+const busyInput = (
+  text: string,
+  outgoing: Outgoing,
+  parentId: MessageId | null
+): CreateRunInput["input"] => {
+  const sent = outgoingMessage(text, outgoing);
+  const message = {
+    id: "",
+    parts: (sent.parts ?? [
+      ...sent.files,
+      { text: sent.text, type: "text" },
+    ]) as UIMessage["parts"],
+    role: "user",
+  } satisfies UIMessage;
+  const skills = pickedSkills(message);
+  return {
+    parentId,
+    parts: sentParts(message),
+    ...(skills.length > 0 ? { skills } : {}),
+    type: "message",
+  };
+};
+
+/**
  * Plan mode's switch (106), with a ref the run's fields read when a message
  * goes, so approving a plan can turn it off for that very message.
  */
@@ -622,26 +663,23 @@ const useLiveTurn = ({
   useEffect(() => {
     fieldsRef.current = { context, target, variant, webSearch };
   });
+  const runFields = useCallback(() => {
+    const fields = fieldsRef.current;
+    const options = turnOptions(fields.webSearch, fields.variant, plan.current);
+    return {
+      context: fields.context,
+      // Web search off means "let the Decider choose" (`auto`).
+      ...(options ? { options } : {}),
+      ...(fields.target ? { target: fields.target } : {}),
+    };
+  }, [plan]);
   const chat = useRunChat({
     client,
     conversationId: conversationId ?? "new",
     initialMessages,
     onFinish,
     onRunCreated,
-    runFields: () => {
-      const fields = fieldsRef.current;
-      const options = turnOptions(
-        fields.webSearch,
-        fields.variant,
-        plan.current
-      );
-      return {
-        context: fields.context,
-        // Web search off means "let the Decider choose" (`auto`).
-        ...(options ? { options } : {}),
-        ...(fields.target ? { target: fields.target } : {}),
-      };
-    },
+    runFields,
     toParts: sentParts,
   });
   const { messages: live, setMessages, status } = chat;
@@ -658,7 +696,9 @@ const useLiveTurn = ({
 
   const last = live.at(-1);
   const lastAnswer = last?.role === "assistant" ? (last.id as MessageId) : null;
-  const streamingMessageId = busy ? lastAnswer : null;
+  // After a steer the run writes a new answer under it.
+  const streamingMessageId =
+    busy && last?.role === "assistant" ? (answerIdOf(last) as MessageId) : null;
   // Until then the finished answer stays as streamed.
   const liveMessageId = busy || settling ? lastAnswer : null;
   const cache = useRef(new WeakMap<UIMessage, LiveMapping>());
@@ -680,7 +720,7 @@ const useLiveTurn = ({
     [conversationId, live, liveMessageId, me.user.id, stored]
   );
 
-  return { chat, messages, streamingMessageId };
+  return { chat, messages, runFields, streamingMessageId };
 };
 
 /** A new chat's context: the caller's when it passes one, else the screen's own. */
@@ -925,7 +965,7 @@ const awaitingRunFor = async (
       );
     }
     const runs = await client.runs
-      .list({ active: true, conversationId, limit: 5 })
+      .list({ active: true, conversationId, limit: ACTIVE_RUNS_LIMIT })
       .catch(() => null);
     const run = runs?.items.find(
       (each) =>
@@ -1043,6 +1083,7 @@ export const useFirstSend = ({
   onNavigate,
   onWorkspaceChanged,
   send,
+  sendBusy,
   sendInTurn,
   target,
 }: {
@@ -1064,6 +1105,12 @@ export const useFirstSend = ({
   /** The workspace changed (attachments were imported). */
   readonly onWorkspaceChanged: () => void;
   readonly send: (text: string, outgoing: Outgoing) => void;
+  /** Sends while an answer is being written: queued, or steered into it. */
+  readonly sendBusy: (
+    text: string,
+    outgoing: Outgoing,
+    delivery: TurnDelivery
+  ) => Promise<void>;
   /** Sends, and settles once the turn's answer has ended. */
   readonly sendInTurn: (text: string, outgoing: Outgoing) => Promise<void>;
   /** Stored as the new chat's default, so reopening it continues with the same agent or model. */
@@ -1134,12 +1181,20 @@ export const useFirstSend = ({
   );
 
   const submit = useCallback(
-    async (value: ComposerValue) => {
+    async (value: ComposerValue, delivery?: TurnDelivery) => {
       const modeSaved = await beforeSend();
       if (!modeSaved) {
         if (activeConversation.current === conversationId) {
           setBlocked((current) => [...current, { conversationId, value }]);
         }
+        return;
+      }
+      if (conversationId && delivery) {
+        await sendBusy(
+          value.text,
+          await prepare(conversationId, value),
+          delivery
+        );
         return;
       }
       if (conversationId) {
@@ -1189,6 +1244,7 @@ export const useFirstSend = ({
       onNavigate,
       prepare,
       send,
+      sendBusy,
       target,
     ]
   );
@@ -1585,7 +1641,7 @@ const useRunControls = ({
   const activeRuns = useQuery(
     api.runs.list.queryOptions({
       input: conversationId
-        ? { active: true, conversationId, limit: 5 }
+        ? { active: true, conversationId, limit: ACTIVE_RUNS_LIMIT }
         : skipToken,
     })
   ).data?.items;
@@ -1952,7 +2008,7 @@ export function ConnectedChat({
     createdRunId.current = run.runId;
     runWaiters.current.shift()?.(run.runId);
   }, []);
-  const { chat, messages, streamingMessageId } = useLiveTurn({
+  const { chat, messages, runFields, streamingMessageId } = useLiveTurn({
     client,
     context,
     conversationId,
@@ -2005,6 +2061,15 @@ export function ConnectedChat({
     },
     [sendInTurn]
   );
+  const sendBusy = useSendBusy({
+    answering: streamingMessageId,
+    branch: messages,
+    client,
+    conversationId,
+    input: busyInput,
+    refresh,
+    runFields,
+  });
   // Approving a plan (106): a normal run (plan mode off for it, and after)
   // whose message carries the approval, and the edited plan if it changed.
   const approvePlan = useCallback(
@@ -2042,6 +2107,7 @@ export function ConnectedChat({
     onNavigate,
     onWorkspaceChanged,
     send,
+    sendBusy,
     sendInTurn,
     target: outgoingTarget,
   });
@@ -2182,6 +2248,12 @@ export function ConnectedChat({
   }, []);
   const waitingRef = useRef(waiting);
   waitingRef.current = waiting;
+  const { delivery, onSteer } = useBusyComposer({
+    conversationId,
+    status: shownStatus,
+    submit,
+    uploadFailed: setUploadFailed,
+  });
   const onSubmit = useCallback(
     (value: ComposerValue) => {
       setUploadFailed(false);
@@ -2190,9 +2262,20 @@ export function ConnectedChat({
       if (waitingRef.current) {
         stopReading().catch(ignore);
       }
-      submit(value).catch(() => setUploadFailed(true));
+      submit(value, delivery).catch(() => setUploadFailed(true));
     },
-    [stopReading, submit]
+    [delivery, stopReading, submit]
+  );
+  const queue = useQueue({
+    activeRuns: data.activeRuns,
+    api,
+    client,
+    messages,
+    refresh,
+  });
+  const shownMessages = useMemo(
+    () => withoutQueued(messages, queue.turns),
+    [messages, queue.turns]
   );
 
   useAskOnce(initialPrompt, conversationId, onSubmit);
@@ -2286,6 +2369,8 @@ export function ConnectedChat({
               ...composerDrafts,
               models,
               onPlanChange: plan.set,
+              ...queue.composer,
+              onSteer,
               onStop,
               onSubmit,
               onTargetChange,
@@ -2302,7 +2387,14 @@ export function ConnectedChat({
               variant,
             }}
             composerNote={
-              <TypingNote people={live.typing} shared={live.others} />
+              <>
+                <QueueTray
+                  actions={queue.actions}
+                  pending={queue.pending}
+                  turns={queue.turns}
+                />
+                <TypingNote people={live.typing} shared={live.others} />
+              </>
             }
             computer={computer}
             conversation={{
@@ -2325,7 +2417,7 @@ export function ConnectedChat({
               voiceSlot(voice, conversationId, voiceBridge)
             )}
             layout={layout}
-            messages={messages}
+            messages={shownMessages}
             onComposerInput={live.onTyping}
             onNewChat={newChat}
             onOpenPalette={onOpenPalette}

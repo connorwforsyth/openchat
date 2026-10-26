@@ -56,6 +56,8 @@ export interface RunTransportOptions
 const UPLOADED = /\/api\/files\/([0-9a-f-]{36})\/content$/i;
 const ABSOLUTE = /^https?:\/\//;
 const TRAILING_SLASH = /\/$/;
+/** Enough to reach the answer being written past the turns queued after it. */
+const ACTIVE_RUNS = 20;
 
 /**
  * Text, file, workspace-file mention and chips parts of a `UIMessage` as
@@ -210,9 +212,12 @@ export const createRunTransport = (
       const active = await options.client.runs.list({
         active: true,
         conversationId: chatId as ConversationId,
-        limit: 1,
+        limit: ACTIVE_RUNS,
       });
-      const [run] = active.items;
+      // Newest first: the answer being written, not a turn queued behind it.
+      const run =
+        active.items.find((each) => each.state.status !== "queued") ??
+        active.items.at(-1);
       return run
         ? stream(chatId, `/api/runs/${run.id}/stream`, 0, abortSignal)
         : null;

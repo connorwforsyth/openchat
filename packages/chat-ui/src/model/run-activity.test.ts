@@ -71,6 +71,17 @@ describe("run activity", () => {
     expect(runToFollow([waiting])).toBe("r3");
   });
 
+  it("follows the answer being written, not a turn queued behind it", () => {
+    // Newest first, as the list comes: the queued turn is newer.
+    expect(runToFollow([queued, running])).toBe("r1");
+    const later = run(
+      "r4",
+      { afterRunId: "r2" as never, position: 2, status: "queued" },
+      null as never
+    );
+    expect(runToFollow([later, queued])).toBe("r2");
+  });
+
   it("waits for the person only while a card is up and nothing is on its way", () => {
     const pending = waitingCalls([answer([pendingCall("c1")])]);
     expect(pending).toEqual(["c1"]);

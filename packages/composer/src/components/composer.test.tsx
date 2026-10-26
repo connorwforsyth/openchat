@@ -203,6 +203,44 @@ describe("Composer", () => {
     expect(editor.textContent).toBe("next question");
   });
 
+  it("queues on Enter and steers on Mod+Enter while streaming, when the host can steer", async () => {
+    const onSteer = vi.fn<(value: ComposerValue) => void>();
+    const onStop = vi.fn();
+    const { editor, onSubmit } = renderComposer({
+      onSteer,
+      onStop,
+      status: "streaming",
+    });
+    await userEvent.click(editor);
+    await userEvent.keyboard("later{Enter}");
+    expect(lastValue(onSubmit).text).toBe("later");
+    expect(onSteer).not.toHaveBeenCalled();
+    expect(editor.textContent).toBe("");
+
+    await userEvent.keyboard(
+      "focus on b{ControlOrMeta>}{Enter}{/ControlOrMeta}"
+    );
+    expect(onSteer.mock.lastCall?.[0].text).toBe("focus on b");
+    expect(onSubmit).toHaveBeenCalledOnce();
+
+    await userEvent.keyboard("again");
+    await userEvent.click(screen.getByRole("button", { name: "Steer" }));
+    expect(onSteer.mock.lastCall?.[0].text).toBe("again");
+    // Stop stays within reach while there's a message to send.
+    await userEvent.keyboard("more");
+    await userEvent.click(screen.getByRole("button", { name: "Stop" }));
+    expect(onStop).toHaveBeenCalledOnce();
+  });
+
+  it("Mod+Enter just sends when nothing is streaming", async () => {
+    const onSteer = vi.fn<(value: ComposerValue) => void>();
+    const { editor, onSubmit } = renderComposer({ onSteer });
+    await userEvent.click(editor);
+    await userEvent.keyboard("hi{ControlOrMeta>}{Enter}{/ControlOrMeta}");
+    expect(lastValue(onSubmit).text).toBe("hi");
+    expect(onSteer).not.toHaveBeenCalled();
+  });
+
   it("inserts a template from the / menu", async () => {
     const { editor, onSubmit } = renderComposer();
     await userEvent.click(editor);
