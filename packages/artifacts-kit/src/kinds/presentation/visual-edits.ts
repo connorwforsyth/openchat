@@ -6,18 +6,12 @@ import {
   slideIdSchema,
   slideSchema,
 } from "./content";
+import { offsetSchema, propPathSchema, styleKeySchema } from "./edit-target";
 import { applyEditBatch } from "./editing/batch-edit";
 
 // Visual edits to a slide's TSX (the slides editor): a click in the rendered
 // slide names an element by its `data-src` stamp, and each op rewrites that
 // element's source in place. The engine is open-slide's (./editing).
-
-// Ops land in source as an object key, so a key that isn't an identifier
-// would be code.
-const styleKeySchema = z.string().regex(/^[A-Za-z_$][\w$]*$/);
-const offsetSchema = z.number().int().min(0);
-
-const propPathSchema = z.string().regex(/^[A-Za-z_$][\w$-]*(?:\.\d+)?$/);
 
 export const visualEditOpSchema = z.discriminatedUnion("kind", [
   z.object({
@@ -145,69 +139,4 @@ export const applyDeckVisualEdits = (
   });
 
   return problems.length > 0 ? err(problems) : ok({ ...deck, slides });
-};
-
-/**
- * What a click in the slides editor picked: an element written in a
- * slide's source, at its stamp, or one part of a slide-ui layout there
- * (`part` names it in the layout's `styles`; `prop` is where its text
- * comes from, like `title` or `items.2`).
- */
-export const slideTargetSchema = z.object({
-  column: offsetSchema,
-  line: z.number().int().min(1),
-  part: styleKeySchema.optional(),
-  prop: propPathSchema.optional(),
-  slide: slideIdSchema,
-});
-export type SlideTarget = z.infer<typeof slideTargetSchema>;
-
-/** What a person changed about the element they picked. */
-export type SlideChange =
-  | {
-      readonly key: string;
-      readonly kind: "style";
-      readonly value: string | null;
-    }
-  | {
-      readonly kind: "text";
-      /** The text before, so the edit lands on the element that showed it. */
-      readonly previous: string;
-      readonly value: string;
-    };
-
-/** The edit that makes `change` to `target`. Pure. */
-export const editFor = (
-  target: SlideTarget,
-  change: SlideChange
-): DeckVisualEdit => {
-  const at = { column: target.column, line: target.line, slide: target.slide };
-  if (change.kind === "style") {
-    return {
-      ...at,
-      ops: [
-        target.part === undefined
-          ? { key: change.key, kind: "set-style", value: change.value }
-          : {
-              key: change.key,
-              kind: "set-part-style",
-              part: target.part,
-              value: change.value,
-            },
-      ],
-    };
-  }
-  return {
-    ...at,
-    ops: [
-      target.prop === undefined
-        ? { kind: "set-text", prevText: change.previous, value: change.value }
-        : {
-            kind: "set-prop",
-            prevText: change.previous,
-            prop: target.prop,
-            value: change.value,
-          },
-    ],
-  };
 };

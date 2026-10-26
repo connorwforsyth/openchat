@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { type Presentation, slideFileName } from "./content";
+import { editFor } from "./edit-target";
 import { stampSourceLocations } from "./editing/loc-tags";
 import {
   applyDeckVisualEdits,
   applyVisualEdits,
   type DeckVisualEdit,
   deckVisualEditSchema,
-  editFor,
   visualEditOpSchema,
 } from "./visual-edits";
 
