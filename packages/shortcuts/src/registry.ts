@@ -119,7 +119,7 @@ export const shortcutRegistry: readonly ShortcutDefinition[] = [
     ["A"],
     "chat",
     "panels",
-    msg`Show the workspace artifacts`
+    msg`Show this chat's artifacts`
   ),
   // The sidebar's keys (176, 177), after ChatGPT's command registry.
   // ⌘⇧D (from 182) stays as a second key; nothing else binds it.

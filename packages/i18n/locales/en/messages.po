@@ -788,9 +788,10 @@ msgstr "artifacts"
 #: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
 #: ../chat-ui/src/artifacts/artifact-full-view.tsx
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
+#: ../chat-ui/src/header/artifacts-menu.tsx
+#: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 #: ../chat-ui/src/sidebar/sidebar-rail.tsx
-#: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Artifacts"
 msgstr "Artifacts"
 
@@ -798,7 +799,7 @@ msgstr "Artifacts"
 msgid "Artifacts couldn't be loaded."
 msgstr "Artifacts couldn't be loaded."
 
-#: ../chat-ui/src/workspace/workspace-panel.tsx
+#: ../chat-ui/src/header/artifacts-menu.tsx
 msgid "Artifacts in this chat"
 msgstr "Artifacts in this chat"
 
@@ -1357,7 +1358,6 @@ msgid "Close toast"
 msgstr "Close toast"
 
 #: ../chat-ui/src/artifacts/artifact-view.tsx
-#: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../chat-ui/src/model/artifact-kinds.ts
 #: ../chat-ui/src/workspace/mode-toggle.tsx
 #: ../composer/src/components/chat-mode-switch.tsx
@@ -1926,10 +1926,13 @@ msgstr "Developer gallery"
 msgid "Devices"
 msgstr "Devices"
 
-#: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../chat-ui/src/model/artifact-kinds.ts
 msgid "Diagram"
 msgstr "Diagram"
+
+#: ../chat-ui/src/artifacts/mermaid-text.tsx
+msgid "Diagram source"
+msgstr "Diagram source"
 
 #. placeholder {0}: artifact.title
 #: ../chat-ui/src/artifacts/diagram/diagram-view.tsx
@@ -2035,10 +2038,13 @@ msgid "Docker sandboxes aren't configured: set SANDBOX_RUNNER_TOKEN in .env and 
 msgstr "Docker sandboxes aren't configured: set SANDBOX_RUNNER_TOKEN in .env and sandbox.docker in app.config.yaml."
 
 #: ../chat-ui/src/artifacts/document/document-view.tsx
-#: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../chat-ui/src/model/artifact-kinds.ts
 msgid "Document"
 msgstr "Document"
+
+#: ../palette/src/context-actions.ts
+msgid "documents"
+msgstr "documents"
 
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgid "Documents, pages and diagrams from your chats, and ones shared with you."
@@ -2183,6 +2189,10 @@ msgstr "Edit {0}"
 #: ../../apps/web/app/(app)/(pages)/schedules/schedule-list.tsx
 msgid "Edit {title}"
 msgstr "Edit {title}"
+
+#: ../chat-ui/src/artifacts/artifact-view.tsx
+msgid "Edit as text"
+msgstr "Edit as text"
 
 #: ../chat-ui/src/conversation/message-row.tsx
 msgid "Edit message"
@@ -2507,6 +2517,14 @@ msgstr "Fill"
 msgid "Fill in every variable to see the message."
 msgstr "Fill in every variable to see the message."
 
+#: ../chat-ui/src/header/artifacts-menu.tsx
+msgid "Filter"
+msgstr "Filter"
+
+#: ../chat-ui/src/header/artifacts-menu.tsx
+msgid "Filter artifacts"
+msgstr "Filter artifacts"
+
 #: ../library-ui/src/components/skills-section.tsx
 msgid "Find a skill"
 msgstr "Find a skill"
@@ -2523,10 +2541,6 @@ msgstr "First run"
 #: ../../apps/web/app/(app)/(pages)/schedules/schedule-editor.tsx
 msgid "first run {next}"
 msgstr "first run {next}"
-
-#: ../chat-ui/src/conversation/artifact-card.tsx
-msgid "Flowchart"
-msgstr "Flowchart"
 
 #: ../shortcuts/src/registry.ts
 msgid "Focus the composer"
@@ -2586,7 +2600,6 @@ msgstr "Frontmatter with a name and description, then the instructions the agent
 msgid "General"
 msgstr "General"
 
-#: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../chat-ui/src/model/artifact-kinds.ts
 msgid "Generated image"
 msgstr "Generated image"
@@ -2733,7 +2746,6 @@ msgid "https://chat.example.com"
 msgstr "https://chat.example.com"
 
 #: ../chat-ui/src/artifacts/document/block-menu.tsx
-#: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../composer/src/components/plus-menu.tsx
 msgid "Image"
 msgstr "Image"
@@ -3140,6 +3152,10 @@ msgstr "Loading archived chats…"
 msgid "Loading artifact"
 msgstr "Loading artifact"
 
+#: ../code-ui/src/diff-view.tsx
+msgid "Loading changes…"
+msgstr "Loading changes…"
+
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Loading files…"
 msgstr "Loading files…"
@@ -3218,6 +3234,10 @@ msgstr "Make your Dot"
 msgid "Makes images"
 msgstr "Makes images"
 
+#: ../chat-ui/src/header/artifacts-menu.tsx
+msgid "Making…"
+msgstr "Making…"
+
 #: ../../apps/web/app/(app)/(pages)/dots/dot-profile.tsx
 msgid "Manage memory"
 msgstr "Manage memory"
@@ -3242,7 +3262,6 @@ msgstr "Mark every chat as read"
 msgid "Mark the chat as unread"
 msgstr "Mark the chat as unread"
 
-#: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../chat-ui/src/model/artifact-kinds.ts
 #: ../ui/src/components/markdown.tsx
 msgid "Markdown"
@@ -3359,10 +3378,6 @@ msgstr "Memory updated: {0}"
 #: ../chat-ui/src/artifacts/diagram/diagram-view.tsx
 msgid "Mermaid (.mmd)"
 msgstr "Mermaid (.mmd)"
-
-#: ../chat-ui/src/model/artifact-kinds.ts
-msgid "Mermaid diagram"
-msgstr "Mermaid diagram"
 
 #: ../composer/src/components/composer-shell.tsx
 #: ../composer/src/components/composer.tsx
@@ -3735,6 +3750,10 @@ msgstr "No allowance set"
 msgid "No archived chats."
 msgstr "No archived chats."
 
+#: ../chat-ui/src/header/artifacts-menu.tsx
+msgid "No artifact has that name."
+msgstr "No artifact has that name."
+
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgid "No artifacts yet. Ask for a document, a page or a diagram in a chat and it shows up here."
 msgstr "No artifacts yet. Ask for a document, a page or a diagram in a chat and it shows up here."
@@ -3904,10 +3923,6 @@ msgstr "None"
 msgid "None (the whole space)"
 msgstr "None (the whole space)"
 
-#: ../chat-ui/src/workspace/workspace-panel.tsx
-msgid "None yet"
-msgstr "None yet"
-
 #: ../../apps/web/app/(app)/_shared/spaces/space-switcher.tsx
 msgid "Not a member"
 msgstr "Not a member"
@@ -4024,6 +4039,10 @@ msgstr "Nothing shared with you"
 #: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
 msgid "Nothing yet."
 msgstr "Nothing yet."
+
+#: ../chat-ui/src/header/artifacts-menu.tsx
+msgid "Nothing yet. Ask for a document, a deck, a site or a diagram and it appears here."
+msgstr "Nothing yet. Ask for a document, a deck, a site or a diagram and it appears here."
 
 #. placeholder {0}: dot.name
 #: ../../apps/web/app/(app)/(pages)/dots/dot-profile.tsx
@@ -4507,7 +4526,6 @@ msgstr "Preferences"
 msgid "Present"
 msgstr "Present"
 
-#: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../chat-ui/src/model/artifact-kinds.ts
 msgid "Presentation"
 msgstr "Presentation"
@@ -4590,10 +4608,6 @@ msgstr "Preview unavailable: the artifacts service isn't set up here."
 #: ../chat-ui/src/artifacts/artifact-preview.tsx
 msgid "Previews can't import \"{module}\". React artifacts can import {allowed}."
 msgstr "Previews can't import \"{module}\". React artifacts can import {allowed}."
-
-#: ../chat-ui/src/artifacts/artifact-preview.tsx
-msgid "Previews of this kind need the artifact runtime. Its source is in the Code tab."
-msgstr "Previews of this kind need the artifact runtime. Its source is in the Code tab."
 
 #: ../chat-ui/src/artifacts/presentation-preview.tsx
 #: ../chat-ui/src/artifacts/presenter.tsx
@@ -4817,7 +4831,6 @@ msgstr "Ran {code}"
 msgid "Ran {tool}"
 msgstr "Ran {tool}"
 
-#: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../chat-ui/src/model/artifact-kinds.ts
 msgid "React component"
 msgstr "React component"
@@ -5207,6 +5220,10 @@ msgstr "Running {tool}"
 msgid "Runs in an ordinary chat can read but not change files."
 msgstr "Runs in an ordinary chat can read but not change files."
 
+#: ../chat-ui/src/artifacts/artifact-preview.tsx
+msgid "Runtime preview of {title}"
+msgstr "Runtime preview of {title}"
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "Sampled scoring"
 msgstr "Sampled scoring"
@@ -5228,6 +5245,7 @@ msgstr "Sandboxes are turned off on this server."
 #: ../../apps/web/app/(app)/(pages)/dots/dot-dialog.tsx
 #: ../../apps/web/app/(app)/(pages)/schedules/schedule-editor.tsx
 #: ../chat-ui/src/artifacts/artifact-actions.tsx
+#: ../chat-ui/src/artifacts/mermaid-text.tsx
 msgid "Save"
 msgstr "Save"
 
@@ -5656,6 +5674,10 @@ msgstr "Show only Priority chats"
 msgid "Show or hide the files"
 msgstr "Show or hide the files"
 
+#: ../chat-ui/src/artifacts/artifact-preview.tsx
+msgid "Show the code"
+msgstr "Show the code"
+
 #: ../chat-ui/src/workspace/preview.tsx
 msgid "Show the page at a phone's width"
 msgstr "Show the page at a phone's width"
@@ -5664,9 +5686,10 @@ msgstr "Show the page at a phone's width"
 msgid "Show the workspace"
 msgstr "Show the workspace"
 
+#: ../palette/src/context-actions.ts
 #: ../shortcuts/src/registry.ts
-msgid "Show the workspace artifacts"
-msgstr "Show the workspace artifacts"
+msgid "Show this chat's artifacts"
+msgstr "Show this chat's artifacts"
 
 #: ../chat-ui/src/voice/voice-call.tsx
 msgid "Show transcript"
@@ -5715,7 +5738,6 @@ msgstr "Simulated (just-bash)"
 msgid "Single keys work when you're not typing in a text field."
 msgstr "Single keys work when you're not typing in a text field."
 
-#: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../chat-ui/src/model/artifact-kinds.ts
 msgid "Site"
 msgstr "Site"
@@ -5794,6 +5816,10 @@ msgstr "Slide {slide} of {slides}"
 #: ../chat-ui/src/artifacts/presentation/slide-inspector.tsx
 msgid "Slide background"
 msgstr "Slide background"
+
+#: ../palette/src/context-actions.ts
+msgid "slides"
+msgstr "slides"
 
 #: ../chat-ui/src/artifacts/presentation/slide-rail.tsx
 #: ../chat-ui/src/model/artifact-kinds.ts
@@ -5926,7 +5952,6 @@ msgstr "Spent"
 msgid "Split"
 msgstr "Split"
 
-#: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../chat-ui/src/model/artifact-kinds.ts
 msgid "Spreadsheet"
 msgstr "Spreadsheet"
@@ -6345,6 +6370,14 @@ msgstr "The answer stopped. It's in the chat."
 msgid "The app signs in to the same server you use in the browser."
 msgstr "The app signs in to the same server you use in the browser."
 
+#: ../chat-ui/src/artifacts/artifact-preview.tsx
+msgid "The artifacts service hasn't answered yet, so this is a plain preview."
+msgstr "The artifacts service hasn't answered yet, so this is a plain preview."
+
+#: ../chat-ui/src/artifacts/artifact-preview.tsx
+msgid "The artifacts service hasn't answered yet. It may still be starting, or it may have stopped. The preview appears as soon as it answers."
+msgstr "The artifacts service hasn't answered yet. It may still be starting, or it may have stopped. The preview appears as soon as it answers."
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/audit-policy.tsx
 msgid "The audit policy couldn't be changed. Try again."
 msgstr "The audit policy couldn't be changed. Try again."
@@ -6465,10 +6498,6 @@ msgstr "The organisation couldn't be created. Try again."
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "The policy couldn't be saved. Try again."
 msgstr "The policy couldn't be saved. Try again."
-
-#: ../chat-ui/src/artifacts/artifact-preview.tsx
-msgid "The preview runtime isn't responding, so this artifact can't be previewed right now. Its source is in the Code tab."
-msgstr "The preview runtime isn't responding, so this artifact can't be previewed right now. Its source is in the Code tab."
 
 #: ../../apps/web/app/dev/composer/page.tsx
 msgid "The prompt composer with contract fixtures. Type / for a prompt template or @ to mention someone; sending fakes a short run you can stop. Nothing here calls a model."
@@ -6718,6 +6747,10 @@ msgstr "This month"
 msgid "This permanently deletes {title} and stops future runs. What it already posted stays in its chat."
 msgstr "This permanently deletes {title} and stops future runs. What it already posted stays in its chat."
 
+#: ../chat-ui/src/artifacts/artifact-preview.tsx
+msgid "This preview needs the artifacts service, which isn't running on this instance."
+msgstr "This preview needs the artifacts service, which isn't running on this instance."
+
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "This server can't store keys yet: an admin needs to set its encryption key (ENCRYPTION_KEY)."
 msgstr "This server can't store keys yet: an admin needs to set its encryption key (ENCRYPTION_KEY)."
@@ -6761,6 +6794,11 @@ msgstr "This version couldn't be read as a document."
 #: ../chat-ui/src/artifacts/spreadsheet/spreadsheet-view.tsx
 msgid "This version couldn't be read as a spreadsheet."
 msgstr "This version couldn't be read as a spreadsheet."
+
+#. placeholder {0}: state.message
+#: ../chat-ui/src/artifacts/mermaid-text.tsx
+msgid "This version wasn't saved: {0}"
+msgstr "This version wasn't saved: {0}"
 
 #: ../chat-ui/src/conversation/approval.tsx
 msgid "This was already decided, in another tab or by someone else, or the answer stopped."
@@ -6907,6 +6945,7 @@ msgstr "Try “every weekday at 9am”, “every 2 hours” or “tomorrow at 8:
 
 #: ../../apps/web/app/(app)/_shared/app-frame.tsx
 #: ../../apps/web/app/(app)/_shared/query-state.tsx
+#: ../chat-ui/src/artifacts/artifact-preview.tsx
 msgid "Try again"
 msgstr "Try again"
 
@@ -7293,7 +7332,6 @@ msgstr "Wants to use {code} from {server}"
 msgid "Warns"
 msgstr "Warns"
 
-#: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../chat-ui/src/model/artifact-kinds.ts
 msgid "Web page"
 msgstr "Web page"
@@ -7498,14 +7536,6 @@ msgstr "Workspace"
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Workspace actions"
 msgstr "Workspace actions"
-
-#: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
-msgid "Workspace artifacts"
-msgstr "Workspace artifacts"
-
-#: ../chat-ui/src/workspace/workspace-panel.tsx
-msgid "Workspace contents"
-msgstr "Workspace contents"
 
 #: ../../apps/web/app/dev/sandbox/page.tsx
 msgid "Workspace panel"

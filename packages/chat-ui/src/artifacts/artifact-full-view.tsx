@@ -162,7 +162,7 @@ export function ArtifactFullView({
       </div>
       <section
         aria-label={artifact?.title ?? t`Artifact`}
-        className="flex min-h-[60vh] flex-1 flex-col overflow-hidden rounded-xl border border-border"
+        className="flex min-h-80 flex-1 flex-col overflow-hidden rounded-xl border border-border"
       >
         {artifact ? (
           <ArtifactView

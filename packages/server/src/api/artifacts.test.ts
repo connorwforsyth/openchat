@@ -276,6 +276,24 @@ describe("the Artifacts page (124)", () => {
     expect(
       (await call(artifacts.listAll, { query: "v2" }, as(owner.id))).items
     ).toHaveLength(1);
+    // Diagram is also Mermaid, as people see it.
+    const other = await seedArtifact();
+    const login = expectOk(
+      await saveArtifactVersion(db, {
+        content: "sequenceDiagram\n  A->>B: hi",
+        conversationId: other.chat.id,
+        kind: "mermaid",
+        language: null,
+        messageId: other.second.version.messageId,
+        title: "Login",
+      })
+    );
+    const diagrams = await call(
+      artifacts.listAll,
+      { kind: "diagram" },
+      as(other.owner.id)
+    );
+    expect(diagrams.items.map((item) => item.id)).toEqual([login.artifact.id]);
     expect(
       (await call(artifacts.listAll, { query: "v1" }, as(owner.id))).items
     ).toHaveLength(0);

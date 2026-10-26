@@ -7,6 +7,8 @@ import { artifactPage, artifactPlan, artifactVersions } from "../fixtures";
 import { renderWithI18n } from "../testing/render";
 import { ArtifactView, type ArtifactViewProps } from "./artifact-view";
 
+const NO_SERVICE = /needs the artifacts service, which isn't running/;
+
 afterEach(cleanup);
 
 const NO_ARTIFACTS = /No artifacts yet/;
@@ -174,5 +176,29 @@ describe("ArtifactView editing a plan (106)", () => {
     renderAt(900, { editing: editing({ artifactId: artifactPage.id }) });
     expect(screen.queryByRole("textbox")).toBeNull();
     expect(screen.getByRole("tablist")).toBeTruthy();
+  });
+});
+
+describe("ArtifactView's preview without the artifacts service", () => {
+  const site = { ...artifactPage, kind: "site" as const, title: "Bakery" };
+  const siteVersions = (pageVersions ?? []).map((version) => ({
+    ...version,
+    content: '{"files":{"index.html":"<p>Hi</p>"}}',
+  }));
+
+  it("opens on Preview and says why it can't show, instead of the code", async () => {
+    renderAt(900, {
+      artifact: site,
+      runtimeOrigin: null,
+      versions: siteVersions,
+    });
+    expect(row().getByRole("tab", { name: "Preview" })).toBeTruthy();
+    expect(screen.getByText(NO_SERVICE)).toBeTruthy();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Show the code" })
+    );
+    expect(
+      row().getByRole("tab", { name: "Code" }).getAttribute("aria-selected")
+    ).toBe("true");
   });
 });

@@ -1,7 +1,12 @@
 import { parseProposedEdit } from "@workspace/code-ui/review/patch";
 import { describe, expect, it } from "vitest";
 
-import { artifactFileName, previewKind, versionEdit } from "./artifacts";
+import {
+  artifactFileName,
+  previewKind,
+  previewPlan,
+  versionEdit,
+} from "./artifacts";
 
 describe("artifactFileName", () => {
   it("names files so the viewer picks a language", () => {
@@ -42,5 +47,41 @@ describe("previewKind", () => {
     expect(previewKind("svg")).toBe("frame");
     expect(previewKind("markdown")).toBe("markdown");
     expect(previewKind("react")).toBe("none");
+  });
+});
+
+describe("previewPlan", () => {
+  const origin = "http://artifacts.localhost:3910";
+
+  it("renders every runtime kind in the runtime when there is one", () => {
+    for (const kind of ["html", "svg", "react", "mermaid", "site"] as const) {
+      expect(previewPlan(kind, origin)).toEqual({ origin, type: "runtime" });
+    }
+  });
+
+  it("without the runtime, frames HTML and SVG and says why React, Mermaid and sites can't preview", () => {
+    expect(previewPlan("html", null)).toEqual({
+      panel: "frame",
+      type: "panel",
+    });
+    expect(previewPlan("svg", null)).toEqual({ panel: "frame", type: "panel" });
+    for (const kind of ["react", "mermaid", "site"] as const) {
+      expect(previewPlan(kind, null)).toEqual({
+        reason: "no-runtime",
+        type: "unavailable",
+      });
+    }
+  });
+
+  it("draws Markdown and images itself, and gives code no preview", () => {
+    expect(previewPlan("markdown", origin)).toEqual({
+      panel: "markdown",
+      type: "panel",
+    });
+    expect(previewPlan("image", null)).toEqual({
+      panel: "image",
+      type: "panel",
+    });
+    expect(previewPlan("code", origin)).toEqual({ type: "source" });
   });
 });

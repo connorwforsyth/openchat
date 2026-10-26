@@ -21,10 +21,14 @@ export default async function Page({
   if (!id.success) {
     notFound();
   }
+  // A definite height, not a minimum: a grid, a canvas or a code view
+  // fills the page and scrolls inside it.
   return (
-    <ArtifactScreen
-      id={id.data}
-      runtimeOrigin={runtimeOriginFrom(process.env.ARTIFACTS_ORIGIN)}
-    />
+    <div className="mx-auto flex h-full w-full max-w-6xl flex-col p-4 md:p-6">
+      <ArtifactScreen
+        id={id.data}
+        runtimeOrigin={runtimeOriginFrom(process.env.ARTIFACTS_ORIGIN)}
+      />
+    </div>
   );
 }

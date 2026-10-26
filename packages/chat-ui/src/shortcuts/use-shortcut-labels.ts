@@ -18,7 +18,7 @@ export const useShortcutLabels = (): Readonly<Record<ShortcutId, string>> => {
       "composer.focus": t`Focus the message box`,
       help: t`Keyboard shortcuts`,
       "palette.open": t`Search and commands`,
-      "panel.artifacts": t`Workspace artifacts`,
+      "panel.artifacts": t`Artifacts`,
       "panel.sandbox": t`Files`,
       "sidebar.toggle": t`Toggle sidebar`,
     }),

@@ -5,6 +5,7 @@ import {
   type ArtifactKindDefinition,
   starterKindsOf,
 } from "@workspace/artifacts-kit/define";
+import { displayKind, isDisplayedKind } from "@workspace/artifacts-kit/display";
 import type { ArtifactKind } from "@workspace/contract/schemas/message-parts";
 
 // The artifact kinds as people read them (124). Everything else about a kind
@@ -21,7 +22,8 @@ export const artifactKindLabels: Readonly<
   html: msg`Web page`,
   image: msg`Generated image`,
   markdown: msg`Markdown`,
-  mermaid: msg`Mermaid diagram`,
+  // Shown as a Diagram (night 2): one kind to people, two formats.
+  mermaid: msg`Diagram`,
   presentation: msg`Presentation`,
   react: msg`React component`,
   site: msg`Site`,
@@ -43,6 +45,18 @@ export const starterLabels: Readonly<
 export const artifactKinds = Object.keys(
   builtinKindDefinitions
 ) as ArtifactKind[];
+
+/**
+ * The kinds people pick from (filters, the rail): each kind shown as
+ * itself, so a Diagram is listed once for both its formats.
+ */
+export const displayedKinds = artifactKinds.filter(isDisplayedKind);
+
+/** Whether any of `offered` is shown as `kind`. */
+export const offersKind = (
+  offered: readonly ArtifactKind[],
+  kind: ArtifactKind
+): boolean => offered.some((each) => displayKind(each) === kind);
 
 export const artifactKindDefinition = (
   kind: ArtifactKind
