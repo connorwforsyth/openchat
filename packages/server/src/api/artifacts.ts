@@ -1,5 +1,6 @@
 import { implement, ORPCError } from "@orpc/server";
 import { builtinArtifactKinds } from "@workspace/artifacts-kit/builtin";
+import { kindsShownAs } from "@workspace/artifacts-kit/display";
 import type { ArtifactKindRegistry } from "@workspace/artifacts-kit/registry";
 import { contract } from "@workspace/contract/contract";
 import { baseErrors } from "@workspace/contract/errors";
@@ -383,7 +384,9 @@ export const createArtifactsRouter = ({
       const page = await listArtifactPage(db, {
         actor: context.actor,
         after: after?.value,
-        kind: input.kind,
+        // A kind people see stands for every format shown as it (Diagram
+        // is also Mermaid).
+        kinds: input.kind ? kindsShownAs(input.kind) : undefined,
         limit: input.limit,
         query: input.query || undefined,
         scope: input.scope,

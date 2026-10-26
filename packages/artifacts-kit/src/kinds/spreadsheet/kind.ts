@@ -72,7 +72,7 @@ export const spreadsheetKind = defineArtifactKind<Spreadsheet>({
     { extension: "xlsx", format: "file" },
     { extension: "csv", format: "file" },
   ],
-  icon: "LayoutGridIcon",
+  icon: "SheetIcon",
   instructions: SPREADSHEET_INSTRUCTIONS,
   kind: "spreadsheet",
   label: "Spreadsheet",

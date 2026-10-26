@@ -6,7 +6,8 @@ import { kindIcon } from "@workspace/chat-ui/artifacts/kind-icon";
 import { useOfferedKinds } from "@workspace/chat-ui/artifacts/use-offered-kinds";
 import {
   artifactKindLabels,
-  artifactKinds,
+  displayedKinds,
+  offersKind,
 } from "@workspace/chat-ui/model/artifact-kinds";
 import { RailPanel } from "@workspace/chat-ui/sidebar/rail-panel";
 import type { RailDestination } from "@workspace/chat-ui/sidebar/sidebar-rail";
@@ -208,8 +209,8 @@ export function ArtifactsPanel() {
               id: "all",
               label: t`All kinds`,
             },
-            ...artifactKinds
-              .filter((each) => offered.includes(each) || kind === each)
+            ...displayedKinds
+              .filter((each) => offersKind(offered, each) || kind === each)
               .map((each) => {
                 const Glyph = kindIcon(each);
                 return {

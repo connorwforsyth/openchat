@@ -2,7 +2,8 @@
 
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { ArtifactKind } from "@workspace/contract/schemas/message-parts";
-import { CircleAlertIcon } from "@workspace/icons";
+import { CircleAlertIcon, LoaderCircleIcon } from "@workspace/icons";
+import { Button } from "@workspace/ui/components/button";
 import { cn } from "@workspace/ui/lib/utils";
 import {
   useCallback,
@@ -31,18 +32,22 @@ import {
 // an opaque origin and can't reach this app's cookies, storage or DOM. We
 // post it the code, and it reports back errors and its content height.
 //
-// Without a runtime (an empty .env), or if it never answers, HTML and SVG
-// fall back to a `srcdoc` frame under the same sandbox; React and Mermaid
-// need the runtime's compiler and renderer, so they say so instead.
+// Without a runtime (an empty .env), HTML and SVG render in a `srcdoc` frame
+// under the same sandbox; React, Mermaid and sites need the runtime's
+// compiler and renderer, so they say so instead. A runtime that's slow to
+// answer keeps its frame: the preview says it's waiting, offers a retry, and
+// shows the render whenever it arrives.
 
-/** How long the runtime has to say `ready` before we stop waiting. */
-export const RUNTIME_READY_TIMEOUT_MS = 8000;
+/** How long the runtime has to say `ready` before the preview says it's waiting. */
+export const RUNTIME_READY_TIMEOUT_MS = 10_000;
 
 export interface ArtifactPreviewProps {
   readonly content: string;
   /** Stamped into React elements as `data-src="<fileName>:<line>"` (D16). */
   readonly fileName: string;
   readonly kind: RuntimeKind;
+  /** Switches the view to the source, offered when there's no preview. */
+  readonly onShowSource?: () => void;
   /** Overrides `RUNTIME_READY_TIMEOUT_MS`, for tests. */
   readonly readyTimeoutMs?: number;
   /** The runtime's origin, or `null` when none is configured. */
@@ -50,20 +55,15 @@ export interface ArtifactPreviewProps {
   readonly title: string;
 }
 
-export function ArtifactPreview(props: ArtifactPreviewProps) {
-  const [unreachable, setUnreachable] = useState(false);
-  const onUnreachable = useCallback(() => setUnreachable(true), []);
+/** Kinds a `srcdoc` frame can draw without the runtime. */
+const drawsWithoutRuntime = (kind: RuntimeKind): kind is "html" | "svg" =>
+  kind === "html" || kind === "svg";
 
-  if (props.runtimeOrigin && !unreachable) {
-    return (
-      <RuntimePreview
-        {...props}
-        onUnreachable={onUnreachable}
-        runtimeOrigin={props.runtimeOrigin}
-      />
-    );
+export function ArtifactPreview(props: ArtifactPreviewProps) {
+  if (props.runtimeOrigin) {
+    return <RuntimePreview {...props} runtimeOrigin={props.runtimeOrigin} />;
   }
-  if (props.kind === "html" || props.kind === "svg") {
+  if (drawsWithoutRuntime(props.kind)) {
     return (
       <SrcdocPreview
         content={props.content}
@@ -73,19 +73,55 @@ export function ArtifactPreview(props: ArtifactPreviewProps) {
     );
   }
   return (
-    <p className="p-4 text-muted-foreground text-sm" role="status">
-      {unreachable ? (
-        <Trans>
-          The preview runtime isn't responding, so this artifact can't be
-          previewed right now. Its source is in the Code tab.
-        </Trans>
-      ) : (
-        <Trans>
-          Previews of this kind need the artifact runtime. Its source is in the
-          Code tab.
-        </Trans>
-      )}
-    </p>
+    <PreviewUnavailable onShowSource={props.onShowSource} reason="no-runtime" />
+  );
+}
+
+/**
+ * Why there's no preview, where the preview would be, with the ways on:
+ * the source, and trying the service again when it stopped answering.
+ */
+export function PreviewUnavailable({
+  onRetry,
+  onShowSource,
+  reason,
+}: {
+  readonly onRetry?: (() => void) | undefined;
+  readonly onShowSource?: (() => void) | undefined;
+  readonly reason: "no-runtime" | "slow";
+}) {
+  return (
+    <div
+      className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center"
+      role="status"
+    >
+      <CircleAlertIcon aria-hidden className="size-6 text-muted-foreground" />
+      <p className="max-w-80 text-balance text-muted-foreground text-sm">
+        {reason === "slow" ? (
+          <Trans>
+            The artifacts service hasn't answered yet. It may still be starting,
+            or it may have stopped. The preview appears as soon as it answers.
+          </Trans>
+        ) : (
+          <Trans>
+            This preview needs the artifacts service, which isn't running on
+            this instance.
+          </Trans>
+        )}
+      </p>
+      <div className="flex gap-2">
+        {onRetry ? (
+          <Button onClick={onRetry} size="sm" variant="outline">
+            <Trans>Try again</Trans>
+          </Button>
+        ) : null}
+        {onShowSource ? (
+          <Button onClick={onShowSource} size="sm" variant="ghost">
+            <Trans>Show the code</Trans>
+          </Button>
+        ) : null}
+      </div>
+    </div>
   );
 }
 
@@ -117,26 +153,60 @@ type FrameState =
   | { readonly status: "rendered" }
   | { readonly error: RuntimeError; readonly status: "error" };
 
+/**
+ * Where the preview stands with the runtime: waiting for its frame to say
+ * `ready`, ready, or still waiting after `RUNTIME_READY_TIMEOUT_MS`.
+ */
+export type RuntimeWait = "connecting" | "ready" | "slow";
+
+/** Pure. */
+export const runtimeWait = (ready: boolean, timedOut: boolean): RuntimeWait => {
+  if (ready) {
+    return "ready";
+  }
+  return timedOut ? "slow" : "connecting";
+};
+
+/** Whether `ms` have passed since `attempt` began without the frame being ready. */
+const useTimedOut = (ready: boolean, attempt: number, ms: number): boolean => {
+  const [expired, setExpired] = useState<number | null>(null);
+  useEffect(() => {
+    if (ready) {
+      return;
+    }
+    const timer = window.setTimeout(() => setExpired(attempt), ms);
+    return () => window.clearTimeout(timer);
+  }, [attempt, ms, ready]);
+  return expired === attempt;
+};
+
 function RuntimePreview({
   content,
   fileName,
   kind,
-  onUnreachable,
+  onShowSource,
   readyTimeoutMs = RUNTIME_READY_TIMEOUT_MS,
   runtimeOrigin,
   title,
-}: ArtifactPreviewProps & {
-  readonly onUnreachable: () => void;
-  readonly runtimeOrigin: string;
-}) {
+}: ArtifactPreviewProps & { readonly runtimeOrigin: string }) {
   const { t } = useLingui();
   const frameRef = useRef<HTMLIFrameElement>(null);
+  // Each retry is a new frame; `ready` and the render belong to one.
+  const [attempt, setAttempt] = useState(0);
   const [ready, setReady] = useState(false);
   const lastId = useRef(0);
   const [state, setState] = useState<FrameState>({ status: "loading" });
   const [height, setHeight] = useState<number | null>(null);
   const theme = useDocumentTheme();
   const parentOrigin = useParentOrigin();
+  const wait = runtimeWait(ready, useTimedOut(ready, attempt, readyTimeoutMs));
+
+  const retry = useCallback(() => {
+    setReady(false);
+    setState({ status: "loading" });
+    setHeight(null);
+    setAttempt((count) => count + 1);
+  }, []);
 
   const post = useEffectEvent(() => {
     const frame = frameRef.current?.contentWindow;
@@ -211,38 +281,76 @@ function RuntimePreview({
     return () => window.removeEventListener("message", listener);
   }, []);
 
-  useEffect(() => {
-    if (ready) {
-      return;
-    }
-    const timer = window.setTimeout(onUnreachable, readyTimeoutMs);
-    return () => window.clearTimeout(timer);
-  }, [onUnreachable, ready, readyTimeoutMs]);
-
   if (!parentOrigin) {
     return null;
   }
+  // HTML and SVG draw without the runtime, so a slow one shows them that
+  // way, and says so, while its own frame keeps loading out of sight.
+  const standIn = wait === "slow" && drawsWithoutRuntime(kind);
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="relative flex flex-1 flex-col">
       {state.status === "error" ? <PreviewError error={state.error} /> : null}
-      {state.status === "loading" ? (
-        <span className="sr-only" role="status">
-          <Trans>Loading preview</Trans>
-        </span>
+      {standIn ? (
+        <>
+          <SlowNotice onRetry={retry} />
+          <SrcdocPreview content={content} kind={kind} title={title} />
+        </>
       ) : null}
       <iframe
         // Until the page reports its height, it fills the view.
         className={cn(
           "block min-h-80 w-full bg-background",
-          height === null && "flex-1"
+          height === null && "flex-1",
+          standIn && "hidden"
         )}
+        key={attempt}
         ref={frameRef}
         referrerPolicy="no-referrer"
         sandbox="allow-scripts"
         src={runtimeUrl(runtimeOrigin, parentOrigin, kind)}
         style={height === null ? undefined : { height }}
-        title={t`Preview of ${title}`}
+        title={
+          standIn ? t`Runtime preview of ${title}` : t`Preview of ${title}`
+        }
       />
+      {wait === "slow" && !standIn ? (
+        <div className="absolute inset-0 flex bg-background">
+          <PreviewUnavailable
+            onRetry={retry}
+            onShowSource={onShowSource}
+            reason="slow"
+          />
+        </div>
+      ) : null}
+      {wait !== "slow" && state.status === "loading" ? (
+        <div
+          className="absolute inset-0 flex items-center justify-center gap-2 bg-background text-muted-foreground text-sm"
+          role="status"
+        >
+          <LoaderCircleIcon aria-hidden className="size-4 animate-spin" />
+          <Trans>Loading preview</Trans>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** The strip over a stand-in preview: why it's plain, and a retry. */
+function SlowNotice({ onRetry }: { readonly onRetry: () => void }) {
+  return (
+    <div
+      className="flex items-center gap-2 border-border border-b bg-muted/50 px-4 py-2 text-muted-foreground text-sm"
+      role="status"
+    >
+      <CircleAlertIcon aria-hidden className="size-4 shrink-0" />
+      <p className="min-w-0 flex-1">
+        <Trans>
+          The artifacts service hasn't answered yet, so this is a plain preview.
+        </Trans>
+      </p>
+      <Button onClick={onRetry} size="sm" variant="outline">
+        <Trans>Try again</Trans>
+      </Button>
     </div>
   );
 }

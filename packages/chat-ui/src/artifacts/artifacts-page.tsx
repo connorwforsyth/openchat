@@ -57,6 +57,8 @@ import {
   artifactKindDefinition,
   artifactKindLabels,
   artifactKinds,
+  displayedKinds,
+  offersKind,
   starterKinds,
   starterLabels,
 } from "../model/artifact-kinds";
@@ -359,8 +361,8 @@ function KindFilter({
           <DropdownMenuRadioItem closeOnClick value="all">
             <Trans>All kinds</Trans>
           </DropdownMenuRadioItem>
-          {artifactKinds
-            .filter((each) => kinds.includes(each) || each === value)
+          {displayedKinds
+            .filter((each) => offersKind(kinds, each) || each === value)
             .map((each) => (
               <DropdownMenuRadioItem closeOnClick key={each} value={each}>
                 {i18n._(artifactKindLabels[each])}

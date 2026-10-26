@@ -72,12 +72,14 @@ import {
   Paperclip,
   Pause,
   Pencil,
+  PenTool,
   Phone,
   PhoneOff,
   Pin,
   PinOff,
   Play,
   Plus,
+  Presentation,
   RefreshCw,
   RotateCcw,
   Search,
@@ -85,6 +87,7 @@ import {
   Settings,
   Shapes,
   Share,
+  Sheet,
   Shield,
   Sparkles,
   Square,
@@ -189,6 +192,8 @@ export const LockIcon: NativeIcon = Lock;
 export const MessageSquareIcon: NativeIcon = MessageSquare;
 export const MonitorIcon: NativeIcon = Monitor;
 export const MoonIcon: NativeIcon = Moon;
+export const PenToolIcon: NativeIcon = PenTool;
+export const PresentationIcon: NativeIcon = Presentation;
 export const SparklesIcon: NativeIcon = Sparkles;
 export const StarIcon: NativeIcon = Star;
 export const SunIcon: NativeIcon = Sun;
@@ -207,6 +212,7 @@ export const MailIcon: NativeIcon = Mail;
 export const NetworkIcon: NativeIcon = Network;
 export const PaletteIcon: NativeIcon = Palette;
 export const PanelRightIcon: NativeIcon = PanelRight;
+export const SheetIcon: NativeIcon = Sheet;
 export const ShieldIcon: NativeIcon = Shield;
 export const TerminalIcon: NativeIcon = Terminal;
 export const WalletIcon: NativeIcon = Wallet;

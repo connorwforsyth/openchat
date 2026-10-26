@@ -40,6 +40,7 @@ import { ContextControl, showsContext } from "../header/context-control";
 import { HeaderOverflowMenu } from "../header/overflow-menu";
 import { PanelToggles } from "../header/panel-toggles";
 import { ShareMenu } from "../header/share-menu";
+import { type ArtifactWatch, watchArtifacts } from "../model/artifact-openings";
 import { activeFork, stepSibling } from "../model/branch";
 import { groupChats, orderedChats } from "../model/date-groups";
 import type { WorkspaceSection } from "../model/layout";
@@ -177,6 +178,12 @@ export interface ChatScreenProps {
     "brand" | "onNewChat" | "onOpenPalette"
   >;
   readonly streamingMessageId?: ChatScreenStreamingId;
+  /**
+   * The answer this page asked for, while it streams: the artifacts it makes
+   * open in the panel by themselves. `null` for a stream the page picked up
+   * (after a reload) or another member's run.
+   */
+  readonly watchedMessageId?: ChatScreenStreamingId;
   readonly workspace: ChatScreenWorkspace;
   /** Receives `WorkspaceHandle`, for opening files from the composer. */
   readonly workspaceHandle?: Ref<WorkspaceHandle>;
@@ -252,6 +259,7 @@ function ChatScreenBody({
   sidebar,
   siblings,
   streamingMessageId = null,
+  watchedMessageId = null,
   workspace,
   workspaceHandle,
 }: ChatScreenProps) {
@@ -563,6 +571,27 @@ function ChatScreenBody({
     sources,
     streamingMessageId,
   ]);
+
+  // An artifact the watched answer makes (or a new version of one) opens as
+  // its card would; artifacts in the history don't.
+  const artifactWatch = useRef<ArtifactWatch | null>(null);
+  const artifactsChat = useRef(conversation.id);
+  useEffect(() => {
+    // Another chat starts its own stocktake.
+    if (artifactsChat.current !== conversation.id) {
+      artifactWatch.current = null;
+      artifactsChat.current = conversation.id;
+    }
+    const seen = watchArtifacts(
+      artifactWatch.current,
+      messages,
+      watchedMessageId
+    );
+    artifactWatch.current = seen.watch;
+    if (seen.open) {
+      openArtifact(seen.open);
+    }
+  }, [conversation.id, messages, openArtifact, watchedMessageId]);
   const chatWorkspace = files.kind === "chat";
   // "Edit this image" (138): a follow-up naming the picture's workspace
   // path goes in the composer, for the person to finish and send.

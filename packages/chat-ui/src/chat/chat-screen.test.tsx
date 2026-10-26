@@ -30,6 +30,7 @@ import {
   treeMessages,
 } from "../fixtures";
 import { localBranchPath } from "../model/branch";
+import type { ArtifactRefPart } from "../model/parts";
 import { SidebarLayoutProvider } from "../shell/sidebar-layout";
 import { SHELL_LAYOUT_STORAGE_KEY } from "../shell/use-shell-layout";
 import { modKey, renderWithI18n } from "../testing/render";
@@ -1004,6 +1005,102 @@ describe("the Preview opens by itself (066)", () => {
       workspace.getByRole<HTMLInputElement>("textbox", { name: "Address" })
         .value
     ).toBe("/index.html");
+  });
+});
+
+describe("an artifact opens by itself", () => {
+  const answer = path.messages
+    .filter((each) => each.role === "assistant")
+    .at(-1);
+  if (!answer) {
+    throw new Error("fixture answer");
+  }
+  const [, artifact] = chatArtifacts;
+  if (!artifact) {
+    throw new Error("fixture artifact");
+  }
+  const versionId = fixtureId("artifactVersion", 99);
+  const made: ArtifactRefPart = {
+    artifactId: artifact.id,
+    kind: artifact.kind,
+    title: artifact.title,
+    type: "artifact-ref",
+    versionId,
+  };
+  const withAnswer = (parts: Message["parts"]): Message[] => [
+    ...path.messages.filter((each) => each.id !== answer.id),
+    { ...answer, parts },
+  ];
+
+  /** The screen with a branch the test can move on, as a stream would. */
+  const live = (watchedMessageId: Message["id"] | null) => {
+    const onSelect = vi.fn();
+    let setMessages: (next: readonly Message[]) => void = () => undefined;
+    function Live() {
+      const [messages, set] = useState<readonly Message[]>(withAnswer([]));
+      setMessages = set;
+      const base = props();
+      return (
+        <ChatScreen
+          {...props({
+            messages,
+            workspace: { ...base.workspace, onSelect },
+          })}
+          streamingMessageId={answer?.id ?? null}
+          watchedMessageId={watchedMessageId}
+        />
+      );
+    }
+    renderWithI18n(<Live />);
+    return {
+      onSelect,
+      stream: (next: readonly Message[]) => act(() => setMessages(next)),
+    };
+  };
+
+  const workspaceRegion = () =>
+    screen.queryByRole("region", { name: "Workspace" });
+
+  it("when the answer this artifact asked for makes one", async () => {
+    const { onSelect, stream } = live(answer.id);
+    expect(workspaceRegion()).toBeNull();
+    stream(withAnswer([made]));
+    expect(onSelect).toHaveBeenCalledWith({
+      artifactId: artifact.id,
+      kind: "artifact",
+      versionId,
+    });
+    expect(
+      await screen.findByRole("region", { name: "Workspace" })
+    ).toBeTruthy();
+  });
+
+  it("not for a chat opened with artifacts in its history", async () => {
+    const onSelect = vi.fn();
+    const base = props();
+    renderWithI18n(
+      <ChatScreen
+        {...props({
+          messages: withAnswer([made]),
+          workspace: { ...base.workspace, onSelect },
+        })}
+      />
+    );
+    expect(
+      await screen.findAllByRole("button", {
+        name: `Open artifact: ${artifact.title}`,
+      })
+    ).not.toHaveLength(0);
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(workspaceRegion()).toBeNull();
+  });
+
+  it("not for a stream this artifact picked up rather than asked for", async () => {
+    const { onSelect, stream } = live(null);
+    stream(withAnswer([made]));
+    await act(() => new Promise((resolve) => window.setTimeout(resolve, 50)));
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(workspaceRegion()).toBeNull();
   });
 });
 
