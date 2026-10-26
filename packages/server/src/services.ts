@@ -11,6 +11,7 @@ import {
   instanceArtifactKinds,
 } from "@workspace/artifacts-kit/instance";
 import type { ArtifactKindRegistry } from "@workspace/artifacts-kit/registry";
+import { effectivePrices } from "@workspace/config/prices";
 import type { AppConfig } from "@workspace/config/schema";
 import type { ModelSelector } from "@workspace/contract/schemas/models";
 import type { Db } from "@workspace/db/client";
@@ -194,9 +195,10 @@ export const createServices = (options: ServicesOptions): Services => {
   const events = createConversationEvents({ db, listen: options.listen });
 
   const access = options.access ?? grantAccess(db);
+  const prices = effectivePrices(config);
   const afterRun = async (event: RunSettled) => {
-    await recordRunUsage(db, config.models.prices, event).catch(
-      (cause: unknown) => report("couldn't record usage", cause)
+    await recordRunUsage(db, prices, event).catch((cause: unknown) =>
+      report("couldn't record usage", cause)
     );
     await settleScheduleRun(db, event.run.id, event.status).catch(
       (cause: unknown) => report("couldn't record a scheduled run", cause)
@@ -318,7 +320,7 @@ export const createServices = (options: ServicesOptions): Services => {
         db,
         loadModel,
         now: options.now,
-        prices: config.models.prices,
+        prices,
         report,
       }),
     },

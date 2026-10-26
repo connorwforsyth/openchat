@@ -7,7 +7,7 @@ import {
   type LlmUsageEvent,
   llmProxyResponse,
 } from "@workspace/ai/llm-proxy/handle";
-import { usageCost } from "@workspace/config/prices";
+import { effectivePrices, usageCost } from "@workspace/config/prices";
 import type { LlmUsage } from "@workspace/contract/schemas/llm";
 import { llmProxyRequestSchema } from "@workspace/contract/schemas/llm";
 import type { TokenUsage } from "@workspace/contract/schemas/models";
@@ -80,9 +80,8 @@ const usageRecorder =
       const tokens = tokenUsageOf(usage);
       await recordTransaction(deps.db, {
         context,
-        // Priced from `models.prices`, as for runs; 0 when the model has no price.
         costMicros: usageCost(
-          deps.config.models.prices,
+          effectivePrices(deps.config),
           event.resolvedModel,
           tokens
         ).costMicros,

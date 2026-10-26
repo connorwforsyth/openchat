@@ -5,6 +5,7 @@
   "sideEffects": false,
   "type": "module",
   "exports": {
+    "./catalog": "./src/catalog/catalog.ts",
     "./brand": "./src/brand.ts",
     "./load": "./src/load.ts",
     "./microsoft": "./src/microsoft.ts",
@@ -15,9 +16,11 @@
     "./schema": "./src/schema.ts",
     "./sites": "./src/sites.ts",
     "./social": "./src/social.ts",
-    "./terms": "./src/terms.ts"
+    "./terms": "./src/terms.ts",
+    "./currency": "./src/currency.ts"
   },
   "scripts": {
+    "catalog:refresh": "bun scripts/refresh-catalog.ts",
     "lint": "ultracite check",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"

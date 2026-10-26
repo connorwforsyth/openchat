@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 
 import type { ImageModelV4, ProviderV4 } from "@ai-sdk/provider";
+import { ratingsOf } from "@workspace/config/catalog";
+import { effectivePrices } from "@workspace/config/prices";
 import type { AppConfig } from "@workspace/config/schema";
 import {
   AUTO_MODEL,
@@ -125,7 +127,8 @@ export const buildRegistry = (
   config: RegistryConfig,
   options: RegistryOptions = {}
 ): DiscoveringRegistry => {
-  const { aliases, descriptions, prices, ratings } = config.models;
+  const { aliases, descriptions } = config.models;
+  const prices = effectivePrices(config);
   const now = options.now ?? Date.now;
   const log = options.log ?? (() => undefined);
 
@@ -425,7 +428,8 @@ export const buildRegistry = (
    * description and ratings, by selector then by the ref it resolves to,
    * beat the catalog's (096, 099). The name and capabilities come
    * from the catalog, else the id and the provider; the price from the
-   * catalog, else `models.prices`. Nothing is guessed.
+   * catalog, else `effectivePrices`; ratings fall back to the repo's model
+   * catalogue (`ratingsOf`).
    */
   const described = (
     option: ModelOption,
@@ -442,13 +446,14 @@ export const buildRegistry = (
       oneLine(listed?.description);
     const provider = vendorOf(target);
     const modelId = parseModelRef(target)?.modelId;
-    const rated = ratings[option.selector] ?? ratings[target];
-    // The catalog's price, else the one the config bills usage at.
-    const priced = prices[target];
-    const cost = costOf(
-      listed?.pricing ??
-        (priced && { input: priced.inputMicros, output: priced.outputMicros })
-    );
+    const rated = ratingsOf(config, option.selector, target);
+    // The operator's price, else the provider catalog's, else the list
+    // price usage is billed at.
+    const own = config.models.prices[target];
+    const listPrice = prices[target];
+    const asCost = (price: typeof listPrice) =>
+      price && { input: price.inputMicros, output: price.outputMicros };
+    const cost = costOf(asCost(own) ?? listed?.pricing ?? asCost(listPrice));
     return {
       ...option,
       capabilities: capabilitiesWith(option.capabilities, listed?.traits, {
