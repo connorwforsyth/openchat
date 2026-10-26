@@ -16,7 +16,8 @@
     "./schema": "./src/schema.ts",
     "./sites": "./src/sites.ts",
     "./social": "./src/social.ts",
-    "./terms": "./src/terms.ts"
+    "./terms": "./src/terms.ts",
+    "./currency": "./src/currency.ts"
   },
   "scripts": {
     "catalog:refresh": "bun scripts/refresh-catalog.ts",

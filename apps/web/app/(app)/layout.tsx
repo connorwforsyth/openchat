@@ -1,7 +1,7 @@
 import { initLingui } from "@workspace/i18n/server";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
-
+import { getCurrency } from "@/lib/currency";
 import { requestLocale } from "@/lib/i18n";
 import { getPublicConfig } from "@/lib/public-config";
 import { routes } from "@/lib/routes";
@@ -9,6 +9,7 @@ import { getViewer, getViewerSettings } from "@/lib/server-session";
 import { getTerms } from "@/lib/terms";
 
 import { AppFrame } from "./_shared/app-frame";
+import { CurrencyProvider } from "./_shared/currency";
 import { shellPrepaintScript } from "./_shared/shell-prepaint";
 import { TermsProvider } from "./_shared/terms";
 import { BadConfigNotice } from "./_shared/unavailable";
@@ -28,11 +29,12 @@ export default async function SignedInLayout({
 }) {
   const locale = await requestLocale();
   initLingui(locale);
-  const [config, viewer, settings, terms] = await Promise.all([
+  const [config, viewer, settings, terms, currency] = await Promise.all([
     getPublicConfig(),
     getViewer(),
     getViewerSettings(),
     getTerms(locale),
+    getCurrency(),
   ]);
   if (!config.ok) {
     return <BadConfigNotice />;
@@ -47,13 +49,15 @@ export default async function SignedInLayout({
         dangerouslySetInnerHTML={{ __html: shellPrepaintScript }}
       />
       <TermsProvider terms={terms}>
-        <AppFrame
-          config={config.config}
-          initialMe={viewer.kind === "signed_in" ? viewer.me : null}
-          initialSettings={settings}
-        >
-          {children}
-        </AppFrame>
+        <CurrencyProvider currency={currency}>
+          <AppFrame
+            config={config.config}
+            initialMe={viewer.kind === "signed_in" ? viewer.me : null}
+            initialSettings={settings}
+          >
+            {children}
+          </AppFrame>
+        </CurrencyProvider>
       </TermsProvider>
     </>
   );

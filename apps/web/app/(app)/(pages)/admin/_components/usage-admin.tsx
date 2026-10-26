@@ -44,10 +44,12 @@ import { type FormEvent, useCallback, useMemo, useState } from "react";
 
 import { useApi } from "@/app/(app)/_shared/api";
 import { ConfirmButton } from "@/app/(app)/_shared/confirm";
+import { useCurrency } from "@/app/(app)/_shared/currency";
 import { type Option, OptionSelect } from "@/app/(app)/_shared/option-select";
 import { QueryState } from "@/app/(app)/_shared/query-state";
 import { Cost, PricesNote } from "./cost";
-import { formatMicros, usdToMicros } from "./money";
+
+import { amountToMicros, formatMicros } from "./money";
 import { buildTeamTree, flattenTree } from "./team-tree";
 
 // Budgets and a usage summary (D17, D24). Spend is integer micro-USD; team
@@ -159,9 +161,10 @@ const BudgetRow = ({
 }) => {
   const { i18n, t } = useLingui();
   const periods = usePeriodLabels();
+  const currency = useCurrency();
   const remove = useCallback(() => onDelete(budget), [budget, onDelete]);
-  const used = formatMicros(budget.usedMicros, i18n.locale);
-  const limit = formatMicros(budget.limitMicros, i18n.locale);
+  const used = formatMicros(budget.usedMicros, i18n.locale, currency);
+  const limit = formatMicros(budget.limitMicros, i18n.locale, currency);
   const resets = formatDate(budget.resetsAt, i18n.locale);
   return (
     <TableRow>
@@ -203,6 +206,7 @@ const SetBudgetForm = ({
 }) => {
   const { t } = useLingui();
   const { query } = useApi();
+  const currency = useCurrency();
   const periods = usePeriodLabels();
   const [target, setTarget] = useState<string>(orgId);
   const [period, setPeriod] = useState<Period>("month");
@@ -225,8 +229,9 @@ const SetBudgetForm = ({
     (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       const form = event.currentTarget;
-      const micros = usdToMicros(
-        String(new FormData(form).get("amount") ?? "")
+      const micros = amountToMicros(
+        String(new FormData(form).get("amount") ?? ""),
+        currency
       );
       if (micros === null || micros === 0) {
         setProblem("amount");
@@ -253,7 +258,7 @@ const SetBudgetForm = ({
         }
       );
     },
-    [hard, mutate, onSaved, orgId, period, target, teams]
+    [currency, hard, mutate, onSaved, orgId, period, target, teams]
   );
 
   return (
@@ -284,7 +289,7 @@ const SetBudgetForm = ({
           </Field>
           <Field>
             <FieldLabel htmlFor="budget-amount">
-              <Trans>Limit (USD)</Trans>
+              <Trans>Limit ({currency.code})</Trans>
             </FieldLabel>
             <Input
               id="budget-amount"
@@ -306,7 +311,9 @@ const SetBudgetForm = ({
         {problem ? (
           <FieldError>
             {problem === "amount" ? (
-              <Trans>Enter an amount in dollars, like 25 or 12.50.</Trans>
+              <Trans>
+                Enter an amount in {currency.code}, like 25 or 12.50.
+              </Trans>
             ) : (
               <Trans>The budget couldn't be saved. Try again.</Trans>
             )}

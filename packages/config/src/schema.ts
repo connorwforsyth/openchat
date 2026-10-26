@@ -14,7 +14,7 @@ import {
 import { sandboxProviderSchema } from "@workspace/contract/schemas/sandbox";
 import { instancePolicySchema } from "@workspace/contract/schemas/tenancy";
 import { z } from "zod";
-
+import { usageSchema } from "./currency";
 import {
   microsoftSsoOf,
   microsoftSsoSchema,
@@ -998,6 +998,8 @@ export const appConfigSchema = z
     storage: storageSchema,
     /** What the UI calls features, and their addresses (191). */
     terms: termsSchema,
+    /** How usage is shown: `currency: { code: AUD, perUsd: 1.52 }`. */
+    usage: usageSchema,
     version: z.literal(1).default(1),
     voice: voiceSchema,
   })
