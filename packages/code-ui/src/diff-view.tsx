@@ -1,7 +1,10 @@
 "use client";
 
 import { Plural, Trans, useLingui } from "@lingui/react/macro";
-import type { DiffLineAnnotation } from "@pierre/diffs";
+import {
+  type DiffLineAnnotation,
+  getFiletypeFromFileName,
+} from "@pierre/diffs";
 import { FileDiff } from "@pierre/diffs/react";
 import type { ApprovalDecision } from "@workspace/contract/schemas/message-parts";
 import type { ProposedEdit } from "@workspace/contract/schemas/runs";
@@ -33,6 +36,7 @@ import { codeThemeNames, preferredHighlighter } from "./theme/code-theme";
 import { diffsHostStyle } from "./theme/host-styles";
 import { registerCodeThemes } from "./theme/register";
 import { useCodeThemeType } from "./theme/use-code-theme-type";
+import { useHighlighterReady } from "./theme/use-highlighter-ready";
 
 registerCodeThemes();
 
@@ -128,6 +132,9 @@ function ParsedDiffView<Meta>({
   renderAnnotation,
 }: ParsedDiffViewProps<Meta>) {
   const { themeType } = useCodeThemeType();
+  const ready = useHighlighterReady(
+    fileDiff.lang ?? getFiletypeFromFileName(path)
+  );
   const [diffStyle, setDiffStyle] = useState(defaultDiffStyle);
   const [review, dispatch] = useReducer(
     reviewReducer,
@@ -217,13 +224,19 @@ function ParsedDiffView<Meta>({
         meta={<ChangeCounts additions={additions} deletions={deletions} />}
         path={path}
       />
-      <FileDiff
-        fileDiff={fileDiff}
-        lineAnnotations={lineAnnotations}
-        options={options}
-        renderAnnotation={renderLineAnnotation}
-        style={diffsHostStyle(themeType)}
-      />
+      {ready ? (
+        <FileDiff
+          fileDiff={fileDiff}
+          lineAnnotations={lineAnnotations}
+          options={options}
+          renderAnnotation={renderLineAnnotation}
+          style={diffsHostStyle(themeType)}
+        />
+      ) : (
+        <p className="p-4 text-muted-foreground text-sm" role="status">
+          <Trans>Loading changes…</Trans>
+        </p>
+      )}
       {reviewing ? (
         <ReviewFooter
           dispatch={dispatch}

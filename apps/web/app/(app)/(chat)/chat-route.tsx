@@ -111,6 +111,7 @@ const useConversationId = (): ConversationId | null | undefined => {
 
 /** Offers the palette this chat's model, context and workspace (D14). */
 const usePaletteContext = ({
+  askArtifacts,
   context,
   contextOptions,
   locked,
@@ -119,6 +120,8 @@ const usePaletteContext = ({
   onTargetChange,
   target,
 }: {
+  /** Opens the header's Artifacts list. */
+  readonly askArtifacts: () => void;
   readonly context: ChatContext;
   readonly contextOptions: readonly ContextOption[];
   readonly locked: boolean;
@@ -135,6 +138,7 @@ const usePaletteContext = ({
 
   const paletteContext = useMemo(
     (): PaletteContext => ({
+      artifacts: { onOpen: askArtifacts },
       chatContext: {
         current: contextKey(context),
         locked,
@@ -168,6 +172,7 @@ const usePaletteContext = ({
       },
     }),
     [
+      askArtifacts,
       context,
       contextOptions,
       locked,
@@ -520,7 +525,15 @@ export function ChatRoute({
     }
   }, [agentParam, agentOwner, changeTarget]);
 
+  // The palette's "Show this chat's artifacts" asks the chat to open its
+  // header's list; each ask is a new number.
+  const [artifactsRequest, setArtifactsRequest] = useState(0);
+  const askArtifacts = useCallback(
+    () => setArtifactsRequest((count) => count + 1),
+    []
+  );
   usePaletteContext({
+    askArtifacts,
     context,
     contextOptions,
     locked: conversation.data?.contextLocked ?? false,
@@ -586,6 +599,7 @@ export function ChatRoute({
     <ConnectedChat
       agents={agents}
       artifactsHref={routes.artifacts}
+      artifactsRequest={artifactsRequest}
       artifactsRuntimeOrigin={artifactsRuntimeOrigin}
       banner={
         <DotHome

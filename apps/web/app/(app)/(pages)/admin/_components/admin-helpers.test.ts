@@ -130,6 +130,15 @@ describe("money", () => {
     expect(formatMicros(1000, "en", aud)).toBe("A$0.0015");
   });
 
+  it("keeps each currency's own fraction digits", () => {
+    const jpy = { code: "JPY", perUsd: 150 };
+    const bhd = { code: "BHD", perUsd: 0.376 };
+    expect(formatMicros(10_000_000, "en", jpy)).toBe("¥1,500");
+    expect(formatMicros(1000, "en", jpy)).toBe("¥0.15");
+    expect(formatMicros(10_000_000, "en", bhd)).toBe("BHD\u00a03.760");
+    expect(formatMicros(1000, "en", bhd)).toBe("BHD\u00a00.00038");
+  });
+
   it("takes an amount in the display currency and stores micro-USD", () => {
     expect(amountToMicros("15.20", aud)).toBe(10_000_000);
     expect(amountToMicros("1", aud)).toBe(657_895);

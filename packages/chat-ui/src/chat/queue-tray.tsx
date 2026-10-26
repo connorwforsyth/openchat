@@ -98,7 +98,7 @@ function QueuedRow({
       <span className="min-w-0 flex-1 truncate">{text}</span>
       <span className="shrink-0 text-muted-foreground text-xs">
         {steersNow ? (
-          <span className="motion-safe:animate-pulse">
+          <span className="motion-safe:animate-status-pulse">
             <Trans>Steering at the next step…</Trans>
           </span>
         ) : null}

@@ -184,7 +184,8 @@ describe("the page", () => {
     );
     expect(await ids({ scope: "mine" })).not.toContain(bens.artifact.id);
     expect(await ids({ scope: "shared" })).toEqual([bens.artifact.id]);
-    expect(await ids({ kind: "html" })).toEqual([page.artifact.id]);
+    expect(await ids({ kinds: ["html"] })).toEqual([page.artifact.id]);
+    expect(await ids({ kinds: ["svg", "html"] })).toEqual([page.artifact.id]);
     expect(await ids({ query: "aboard" })).toEqual([page.artifact.id]);
     expect(await ids({ query: "50%" })).toEqual([]);
 

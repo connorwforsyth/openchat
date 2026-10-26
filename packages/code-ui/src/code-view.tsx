@@ -1,9 +1,10 @@
 "use client";
 
-import type {
-  LineAnnotation,
-  SelectedLineRange,
-  SupportedLanguages,
+import {
+  getFiletypeFromFileName,
+  type LineAnnotation,
+  type SelectedLineRange,
+  type SupportedLanguages,
 } from "@pierre/diffs";
 import { File } from "@pierre/diffs/react";
 import { cn } from "@workspace/ui/lib/utils";
@@ -14,6 +15,7 @@ import { codeThemeNames, preferredHighlighter } from "./theme/code-theme";
 import { diffsHostStyle } from "./theme/host-styles";
 import { registerCodeThemes } from "./theme/register";
 import { useCodeThemeType } from "./theme/use-code-theme-type";
+import { useHighlighterReady } from "./theme/use-highlighter-ready";
 
 registerCodeThemes();
 
@@ -53,6 +55,7 @@ export function CodeView<Meta = undefined>({
   wrap = false,
 }: CodeViewProps<Meta>) {
   const { themeType } = useCodeThemeType();
+  const ready = useHighlighterReady(language ?? getFiletypeFromFileName(path));
   const file = useMemo(
     () => ({ contents, lang: language, name: path }),
     [contents, language, path]
@@ -78,14 +81,25 @@ export function CodeView<Meta = undefined>({
       )}
     >
       {header ? <CodeHeader actions={headerActions} path={path} /> : null}
-      <File
-        file={file}
-        lineAnnotations={annotations}
-        options={options}
-        renderAnnotation={renderAnnotation}
-        selectedLines={selectedLines}
-        style={diffsHostStyle(themeType)}
-      />
+      {ready ? (
+        <File
+          file={file}
+          lineAnnotations={annotations}
+          options={options}
+          renderAnnotation={renderAnnotation}
+          selectedLines={selectedLines}
+          style={diffsHostStyle(themeType)}
+        />
+      ) : (
+        <pre
+          className={cn(
+            "overflow-x-auto p-4 font-mono text-sm",
+            wrap && "whitespace-pre-wrap"
+          )}
+        >
+          {contents}
+        </pre>
+      )}
     </div>
   );
 }

@@ -460,7 +460,8 @@ export interface ArtifactPageFilter {
   };
   /** The last row of the previous page (`decodeCursor`). */
   readonly after?: CursorKey;
-  readonly kind?: ArtifactKind;
+  /** Only these kinds; every kind when left out. */
+  readonly kinds?: readonly ArtifactKind[];
   readonly limit: number;
   /** Case-insensitive, on the title and the latest version's content. */
   readonly query?: string;
@@ -518,7 +519,7 @@ export const listArtifactPage = async (
     .where(
       and(
         scope,
-        filter.kind ? eq(artifact.kind, filter.kind) : undefined,
+        filter.kinds ? inArray(artifact.kind, [...filter.kinds]) : undefined,
         pattern
           ? or(
               ilike(artifact.title, pattern),

@@ -10,6 +10,7 @@ import type {
 } from "@workspace/composer/schemas";
 import type { ConversationId } from "@workspace/contract/schemas/common";
 import type { Participant } from "@workspace/contract/schemas/conversations";
+import type { Artifact } from "@workspace/contract/schemas/files";
 import type {
   Message,
   SiblingInfo,
@@ -34,12 +35,14 @@ import { ConversationView } from "../conversation/conversation-view";
 import type { MessageFeedback } from "../conversation/feedback";
 import { FilePreviewContext } from "../conversation/file-change-card";
 import { AppHeader } from "../header/app-header";
+import { ArtifactsMenu } from "../header/artifacts-menu";
 import { BranchSwitcher } from "../header/branch-switcher";
 import { ChatTitle } from "../header/chat-title";
 import { ContextControl, showsContext } from "../header/context-control";
 import { HeaderOverflowMenu } from "../header/overflow-menu";
 import { PanelToggles } from "../header/panel-toggles";
 import { ShareMenu } from "../header/share-menu";
+import { type ArtifactWatch, watchArtifacts } from "../model/artifact-openings";
 import { activeFork, stepSibling } from "../model/branch";
 import { groupChats, orderedChats } from "../model/date-groups";
 import type { WorkspaceSection } from "../model/layout";
@@ -138,8 +141,28 @@ export interface WorkspaceHandle {
   readonly openPreview: (path?: string) => void;
 }
 
+/**
+ * What the composer is filled with: this screen's own fills ("Edit this
+ * image") and the host's (a queued message taken back to edit), as one
+ * sequence, so each applies once whichever came last.
+ */
+const useComposerFill = (hostFill: ComposerFill | undefined) => {
+  const [fill, setFill] = useState<ComposerFill>();
+  const [hostFillId, setHostFillId] = useState(hostFill?.id);
+  if (hostFill && hostFill.id !== hostFillId) {
+    setHostFillId(hostFill.id);
+    setFill((last) => ({ id: (last?.id ?? 0) + 1, text: hostFill.text }));
+  }
+  return [fill, setFill] as const;
+};
+
 export interface ChatScreenProps {
   readonly actions: ConversationActions;
+  /**
+   * Asks for the header's Artifacts list (the ⌘K palette's "Show this chat's
+   * artifacts"); each new value opens it once.
+   */
+  readonly artifactsRequest?: number;
   /** A bar above the messages, in the flow (a Dot's schedule, 172). */
   readonly banner?: ReactNode;
   readonly brand?: ReactNode;
@@ -177,6 +200,12 @@ export interface ChatScreenProps {
     "brand" | "onNewChat" | "onOpenPalette"
   >;
   readonly streamingMessageId?: ChatScreenStreamingId;
+  /**
+   * The answer this page asked for, while it streams: the artifacts it makes
+   * open in the panel by themselves. `null` for a stream the page picked up
+   * (after a reload) or another member's run.
+   */
+  readonly watchedMessageId?: ChatScreenStreamingId;
   readonly workspace: ChatScreenWorkspace;
   /** Receives `WorkspaceHandle`, for opening files from the composer. */
   readonly workspaceHandle?: Ref<WorkspaceHandle>;
@@ -233,6 +262,7 @@ const railCurrent = (
 
 function ChatScreenBody({
   actions,
+  artifactsRequest = 0,
   banner,
   brand,
   composer,
@@ -252,6 +282,7 @@ function ChatScreenBody({
   sidebar,
   siblings,
   streamingMessageId = null,
+  watchedMessageId = null,
   workspace,
   workspaceHandle,
 }: ChatScreenProps) {
@@ -422,7 +453,7 @@ function ChatScreenBody({
     "chat.prev": () => stepChat(-1),
     "composer.focus": focusComposer,
     help: () => setHelpOpen(true),
-    "panel.artifacts": () => togglePanelBy("artifacts"),
+    "panel.artifacts": () => toggleArtifacts(),
     "panel.sandbox": toggleFiles,
     "sidebar.toggle": toggleChats,
   });
@@ -479,6 +510,12 @@ function ChatScreenBody({
     },
     [actions, select]
   );
+  const { menu: artifactsMenu, toggle: toggleArtifacts } = useArtifactsMenu({
+    artifacts: workspace.artifacts.artifacts,
+    request: artifactsRequest,
+    select,
+    shown: layout.panel === "artifacts" ? shown : null,
+  });
   const openFile = useCallback(
     (path: string) => {
       select({ kind: "file", path: workspacePath(path) });
@@ -563,28 +600,38 @@ function ChatScreenBody({
     sources,
     streamingMessageId,
   ]);
+
+  // An artifact the watched answer makes (or a new version of one) opens as
+  // its card would; artifacts in the history don't.
+  const artifactWatch = useRef<ArtifactWatch | null>(null);
+  const artifactsChat = useRef(conversation.id);
+  useEffect(() => {
+    // Another chat starts its own stocktake.
+    if (artifactsChat.current !== conversation.id) {
+      artifactWatch.current = null;
+      artifactsChat.current = conversation.id;
+    }
+    const seen = watchArtifacts(
+      artifactWatch.current,
+      messages,
+      watchedMessageId
+    );
+    artifactWatch.current = seen.watch;
+    if (seen.open) {
+      openArtifact(seen.open);
+    }
+  }, [conversation.id, messages, openArtifact, watchedMessageId]);
   const chatWorkspace = files.kind === "chat";
   // "Edit this image" (138): a follow-up naming the picture's workspace
   // path goes in the composer, for the person to finish and send.
-  const [composerFill, setComposerFill] = useState<ComposerFill>();
-  // The host's own fills (a queued message taken back to edit) join the
-  // same sequence, so each applies once whichever came last.
-  const hostFill = composer.fill;
-  const [hostFillId, setHostFillId] = useState(hostFill?.id);
-  if (hostFill && hostFill.id !== hostFillId) {
-    setHostFillId(hostFill.id);
-    setComposerFill((last) => ({
-      id: (last?.id ?? 0) + 1,
-      text: hostFill.text,
-    }));
-  }
+  const [composerFill, setComposerFill] = useComposerFill(composer.fill);
   const editImage = useCallback(
     ({ path }: { readonly path: string }) =>
       setComposerFill((last) => ({
         id: (last?.id ?? 0) + 1,
         text: t`Edit the image ${path}: `,
       })),
-    [t]
+    [setComposerFill, t]
   );
   const conversationActions = useMemo(
     () => ({
@@ -713,6 +760,7 @@ function ChatScreenBody({
         narrow ? (
           <div className="flex items-center gap-1">
             {headerEnd}
+            {artifactsMenu}
             <HeaderOverflowMenu
               onCopyLink={conversation.onCopyLink}
               onInvite={conversation.onInvite}
@@ -731,6 +779,7 @@ function ChatScreenBody({
               onInvite={conversation.onInvite}
               participants={conversation.participants}
             />
+            {artifactsMenu}
             <PanelToggles
               filesHint={<ShortcutHint id="panel.sandbox" />}
               onToggle={toggleHalf}
@@ -872,6 +921,55 @@ function ChatScreenBody({
 }
 
 const noop = () => undefined;
+
+/**
+ * The header's Artifacts list: its button, A and the palette open it (each
+ * new `request` from the palette opens it once), and a pick opens that
+ * artifact in the panel.
+ */
+const useArtifactsMenu = ({
+  artifacts,
+  request,
+  select,
+  shown,
+}: {
+  readonly artifacts: readonly Artifact[];
+  readonly request: number;
+  readonly select: (selection: WorkspaceSelection) => void;
+  /** What the panel shows when it's on the artifacts, else `null`. */
+  readonly shown: WorkspaceSelection | null;
+}) => {
+  const [open, setOpen] = useState(false);
+  const [asked, setAsked] = useState(request);
+  if (asked !== request) {
+    setAsked(request);
+    setOpen(true);
+  }
+  const pick = useCallback(
+    (artifact: Artifact) => {
+      setOpen(false);
+      select({ artifactId: artifact.id, kind: "artifact" });
+    },
+    [select]
+  );
+  const toggle = useCallback(() => setOpen((was) => !was), []);
+  const current =
+    shown?.kind === "artifact"
+      ? (shown.artifactId ?? artifacts[0]?.id ?? null)
+      : null;
+  return {
+    menu: (
+      <ArtifactsMenu
+        artifacts={artifacts}
+        current={current}
+        onOpenChange={setOpen}
+        onPick={pick}
+        open={open}
+      />
+    ),
+    toggle,
+  };
+};
 
 /**
  * The chat screen. The platform wraps everything so the shortcut hook, which

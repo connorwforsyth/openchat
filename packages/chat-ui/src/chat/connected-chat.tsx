@@ -180,6 +180,8 @@ export interface ConnectedChatProps {
   readonly agents?: readonly AgentOption[];
   /** Where the Artifacts page lives (124). */
   readonly artifactsHref?: string;
+  /** Opens the header's Artifacts list once per new value (the palette's). */
+  readonly artifactsRequest?: number;
   /**
    * The artifact runtime's origin (`ARTIFACTS_ORIGIN`, D24), normalised with
    * `runtimeOriginFrom`. Omitted or `null`, previews fall back to `srcdoc`.
@@ -663,6 +665,17 @@ const useLiveTurn = ({
   useEffect(() => {
     fieldsRef.current = { context, target, variant, webSearch };
   });
+  // Whether the run streaming now is one this page created. A stream it
+  // picked up (after a reload, or a run someone else started) wasn't asked
+  // for here, so its artifacts don't open by themselves.
+  const [askedHere, setAskedHere] = useState(false);
+  const created = useCallback(
+    (run: RunCreated) => {
+      setAskedHere(true);
+      onRunCreated(run);
+    },
+    [onRunCreated]
+  );
   const runFields = useCallback(() => {
     const fields = fieldsRef.current;
     const options = turnOptions(fields.webSearch, fields.variant, plan.current);
@@ -678,12 +691,15 @@ const useLiveTurn = ({
     conversationId: conversationId ?? "new",
     initialMessages,
     onFinish,
-    onRunCreated,
+    onRunCreated: created,
     runFields,
     toParts: sentParts,
   });
   const { messages: live, setMessages, status } = chat;
   const busy = status === "submitted" || status === "streaming";
+  if (askedHere && !busy) {
+    setAskedHere(false);
+  }
   const settling = useSettling({ busy, conversationId, storedAt });
 
   // Back on the stored branch whenever nothing streams and the branch has
@@ -699,6 +715,7 @@ const useLiveTurn = ({
   // After a steer the run writes a new answer under it.
   const streamingMessageId =
     busy && last?.role === "assistant" ? (answerIdOf(last) as MessageId) : null;
+  const watchedMessageId = askedHere ? streamingMessageId : null;
   // Until then the finished answer stays as streamed.
   const liveMessageId = busy || settling ? lastAnswer : null;
   const cache = useRef(new WeakMap<UIMessage, LiveMapping>());
@@ -720,7 +737,7 @@ const useLiveTurn = ({
     [conversationId, live, liveMessageId, me.user.id, stored]
   );
 
-  return { chat, messages, runFields, streamingMessageId };
+  return { chat, messages, runFields, streamingMessageId, watchedMessageId };
 };
 
 /** A new chat's context: the caller's when it passes one, else the screen's own. */
@@ -1821,6 +1838,7 @@ export function ConnectedChat({
   brand,
   client,
   artifactsHref,
+  artifactsRequest,
   banner,
   chatModes,
   composerPlaceholder,
@@ -2013,20 +2031,21 @@ export function ConnectedChat({
     },
     [api, queryClient]
   );
-  const { chat, messages, runFields, streamingMessageId } = useLiveTurn({
-    client,
-    context,
-    conversationId,
-    me,
-    onFinish,
-    onRunCreated,
-    plan: plan.ref,
-    stored,
-    storedAt: data.path.dataUpdatedAt,
-    target: outgoingTarget,
-    variant,
-    webSearch: webSearchOn(config, webSearch),
-  });
+  const { chat, messages, runFields, streamingMessageId, watchedMessageId } =
+    useLiveTurn({
+      client,
+      context,
+      conversationId,
+      me,
+      onFinish,
+      onRunCreated,
+      plan: plan.ref,
+      stored,
+      storedAt: data.path.dataUpdatedAt,
+      target: outgoingTarget,
+      variant,
+      webSearch: webSearchOn(config, webSearch),
+    });
   const { regenerate, sendMessage, setMessages } = chat;
   const { activity, composerStatus, decisions, stop, unseen, waiting } =
     useRunControls({
@@ -2364,6 +2383,7 @@ export function ConnectedChat({
         >
           <ChatScreen
             actions={actions}
+            artifactsRequest={artifactsRequest}
             banner={banner}
             brand={brand}
             composer={{
@@ -2464,6 +2484,7 @@ export function ConnectedChat({
               spaces: sidebarSpaces,
             }}
             streamingMessageId={streamingMessageId}
+            watchedMessageId={watchedMessageId}
             workspace={{
               artifacts: {
                 api,

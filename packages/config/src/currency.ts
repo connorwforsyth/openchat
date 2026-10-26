@@ -18,8 +18,9 @@ export const displayCurrencySchema = z
         "a currency this runtime can format"
       ),
     /**
-     * Units of `code` per US dollar: `1.52` shows $1.00 as A$1.52. Capped so
-     * a converted cost stays a safe integer of the currency's millionths.
+     * Units of `code` per US dollar: `1.52` shows $1.00 as A$1.52. The cap
+     * only catches a slipped decimal point; no currency is near a million
+     * to the dollar.
      */
     perUsd: z.number().positive().max(1_000_000),
   })

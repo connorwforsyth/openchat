@@ -2,15 +2,13 @@ import type { PanelHalf, WorkspaceSelection } from "../../model/workspace";
 import { type FileMode, isHtmlPath } from "./browser";
 
 // The Workspace panel as two halves (097): the browser on top, the files
-// (the list beside the open file) below, with a divider between them. Pure,
+// (the open file or artifact, over the docked file list) below, with a
+// divider between them. Pure,
 // so the rules are tested without rendering: how high the browser is, which
 // halves show at a width, and which half a narrow panel shows after a pick.
 
 /** Below this panel width the halves take turns instead of stacking. */
 export const SPLIT_BELOW = 420;
-
-/** Below this width (the old `@lg`, 32rem) the list and the open file take turns. */
-export const LIST_BESIDE_FROM = 512;
 
 /** Neither half gets shorter than this: a header row and a little content. */
 export const MIN_PANE_HEIGHT = 120;
@@ -61,23 +59,17 @@ export const parseSplit = (raw: string | null): number => {
 /** A half someone made take the whole height, until they restore it. */
 export type Maximised = "browser" | "files" | null;
 
-/** What a narrow panel shows: the list, the open file or the browser. */
-export type TurnView = "browser" | "list" | "main";
+/** What a narrow panel shows: the browser or the files. */
+export type TurnView = "browser" | "files";
 
-/** The halves and columns on screen. */
+/** The halves on screen. */
 export interface PaneLayout {
   /** The browser half. */
   readonly browser: boolean;
   /** The divider between the halves. */
   readonly divider: boolean;
-  /** The files half. */
+  /** The files half: what's open, over the file list. */
   readonly files: boolean;
-  /** Within the files half, the list. */
-  readonly list: boolean;
-  /** The list and the open file take turns (070). */
-  readonly listAlone: boolean;
-  /** Within the files half, the open file (or artifact). */
-  readonly main: boolean;
   /** Either half can be maximised (the halves are stacked). */
   readonly maximisable: boolean;
   /** The halves take turns. */
@@ -87,43 +79,30 @@ export interface PaneLayout {
 /**
  * Which halves show. With nothing to preview the files take the whole
  * height. A panel under `SPLIT_BELOW` shows one half at a time, by its turn;
- * otherwise they stack, unless one is maximised. A panel under
- * `LIST_BESIDE_FROM` shows the list or the open file, not both (070).
+ * otherwise they stack, unless one is maximised.
  */
 export const paneLayout = ({
-  filesSelected,
   hasPreview,
   maximised,
   view,
   width,
 }: {
-  /** The files half has something open. */
-  readonly filesSelected: boolean;
   readonly hasPreview: boolean;
   readonly maximised: Maximised;
   readonly view: TurnView;
   /** The panel's width; 0 before it's measured (laid out as wide). */
   readonly width: number;
 }): PaneLayout => {
-  const measured = width > 0;
-  const turns = hasPreview && measured && width < SPLIT_BELOW;
+  const turns = hasPreview && width > 0 && width < SPLIT_BELOW;
   const stacked = hasPreview && !turns;
   const browser = turns ? view === "browser" : stacked && maximised !== "files";
   const files = turns
-    ? view !== "browser"
+    ? view === "files"
     : !(stacked && maximised === "browser");
-  const listAlone = measured && width < LIST_BESIDE_FROM;
-  // Beside each other, both; taking turns, the list unless a file is open
-  // and it's the file's turn (the browser's turn, when stacked, leaves the
-  // file below in view).
-  const main = listAlone ? view !== "list" && filesSelected : true;
   return {
     browser,
     divider: browser && files,
     files,
-    list: listAlone ? !main : true,
-    listAlone,
-    main,
     maximisable: stacked,
     turns,
   };
@@ -132,7 +111,7 @@ export const paneLayout = ({
 /**
  * The view a pick asks for on a narrow panel: the browser for the Preview
  * and for an HTML file (it opens in the browser, unless it was switched to
- * its code), the file for anything else, the list for nothing.
+ * its code), the files for anything else.
  */
 export const viewOf = (
   selection: WorkspaceSelection | null,
@@ -140,15 +119,15 @@ export const viewOf = (
 ): TurnView => {
   switch (selection?.kind) {
     case undefined:
-      return "list";
+      return "files";
     case "preview":
       return "browser";
     case "file":
       return isHtmlPath(selection.path) && modes[selection.path] !== "code"
         ? "browser"
-        : "main";
+        : "files";
     case "artifact":
-      return "main";
+      return "files";
     default:
       return selection satisfies never;
   }
@@ -198,12 +177,4 @@ export const maximisedForHalf = (
 };
 
 /** Whose turn a header press makes it on a narrow panel. */
-export const viewForHalf = (
-  half: PanelHalf,
-  filesSelected: boolean
-): TurnView => {
-  if (half === "browser") {
-    return "browser";
-  }
-  return filesSelected ? "main" : "list";
-};
+export const viewForHalf = (half: PanelHalf): TurnView => half;

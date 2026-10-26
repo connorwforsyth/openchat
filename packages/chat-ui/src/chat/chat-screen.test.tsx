@@ -30,6 +30,7 @@ import {
   treeMessages,
 } from "../fixtures";
 import { localBranchPath } from "../model/branch";
+import type { ArtifactRefPart } from "../model/parts";
 import { SidebarLayoutProvider } from "../shell/sidebar-layout";
 import { SHELL_LAYOUT_STORAGE_KEY } from "../shell/use-shell-layout";
 import { modKey, renderWithI18n } from "../testing/render";
@@ -189,7 +190,7 @@ const newChat = (overrides: Partial<ChatScreenProps> = {}) => {
 };
 
 describe("header (D14)", () => {
-  it("has at most three controls besides the title, context and branch switcher", async () => {
+  it("has at most four controls besides the title, context and branch switcher", async () => {
     renderWithI18n(<ChatScreen {...props()} />);
     // Collapsing the sidebar brings its toggle here: the busiest the header
     // gets. There's no New chat button in either state (113).
@@ -205,15 +206,12 @@ describe("header (D14)", () => {
           )
       );
     // The sidebar toggle is in the rail on a wide screen (181).
-    const expected = ["Share", "Files", "Browser"];
+    // Artifacts is the chat's list of what it made (night 2).
+    const expected = ["Share", "Artifacts", "Files", "Browser"];
     expect(controls).toEqual(
       expected.map((name) => header().getByRole("button", { name }))
     );
-    // No sandbox pill, no separate Artifacts button.
     expect(header().queryByRole("button", { name: SANDBOX_PILL })).toBeNull();
-    expect(
-      header().queryByRole("button", { name: "Artifacts panel" })
-    ).toBeNull();
   });
 
   it("keeps the sidebar toggle first in the rail, open or collapsed (181)", async () => {
@@ -328,7 +326,7 @@ describe("header (D14)", () => {
     expect(sidePanel()).toBeNull();
   });
 
-  it("keeps S on the files and A on the artifacts", async () => {
+  it("keeps S on the files and A on the artifacts list", async () => {
     renderWithI18n(<ChatScreen {...props()} />);
     const files = header().getByRole("button", { name: "Files" });
     await userEvent.keyboard("s");
@@ -342,12 +340,12 @@ describe("header (D14)", () => {
         screen.queryByRole("complementary", { name: "Side panel" })
       ).toBeNull()
     );
-    // Artifacts are in the files' half, so Files shows as pressed.
+    // A opens the header's list, not the panel.
     await userEvent.keyboard("a");
+    expect(await screen.findByText("Artifacts in this chat")).toBeTruthy();
     expect(
-      await screen.findByRole("complementary", { name: "Side panel" })
-    ).toBeTruthy();
-    expect(files.getAttribute("aria-pressed")).toBe("true");
+      screen.queryByRole("complementary", { name: "Side panel" })
+    ).toBeNull();
   });
 });
 
@@ -568,25 +566,40 @@ describe("shortcuts", () => {
     ).toMatchObject({ sidebarOpen: false });
   });
 
-  it("A toggles the artifacts panel and J/K move between chats", async () => {
+  it("A opens the artifacts list, a pick opens it in the panel, and J/K move between chats", async () => {
     const onSelect = vi.fn();
     const base = props();
+    const onWorkspaceSelect = vi.fn();
     renderWithI18n(
-      <ChatScreen {...props({ sidebar: { ...base.sidebar, onSelect } })} />
+      <ChatScreen
+        {...props({
+          sidebar: { ...base.sidebar, onSelect },
+          workspace: { ...base.workspace, onSelect: onWorkspaceSelect },
+        })}
+      />
     );
-    // A opens the Workspace panel on the chat's artifacts (060).
+    const [first] = chatArtifacts;
     await userEvent.keyboard("a");
-    const workspace = within(
-      await screen.findByRole("region", { name: "Workspace" })
-    );
+    const item = await screen.findByRole("option", {
+      name: new RegExp(first?.title ?? "", "u"),
+    });
+    await userEvent.click(item);
+    expect(onWorkspaceSelect).toHaveBeenLastCalledWith({
+      artifactId: first?.id,
+      kind: "artifact",
+    });
     expect(
-      (
-        await workspace.findByRole("button", { name: chatArtifacts[0]?.title })
-      ).getAttribute("aria-current")
-    ).toBe("true");
-    await userEvent.keyboard("a");
+      await screen.findByRole("region", { name: "Workspace" })
+    ).toBeTruthy();
     await waitFor(() =>
-      expect(screen.queryByRole("region", { name: "Workspace" })).toBeNull()
+      expect(screen.queryByText("Artifacts in this chat")).toBeNull()
+    );
+    // Escape closes the list without a pick.
+    await userEvent.keyboard("a");
+    await screen.findByText("Artifacts in this chat");
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() =>
+      expect(screen.queryByText("Artifacts in this chat")).toBeNull()
     );
 
     // The open chat is first in "Today" after the pinned one.
@@ -643,10 +656,8 @@ describe("the Workspace panel (060)", () => {
       await screen.findByRole("region", { name: "Workspace" })
     );
     expect(
-      (
-        await workspace.findByRole("button", { name: chatArtifacts[0]?.title })
-      ).getAttribute("aria-current")
-    ).toBe("true");
+      await workspace.findByText(chatArtifacts[0]?.title ?? "")
+    ).toBeTruthy();
   });
 
   it("S opens the files; a new chat gets the normal empty state", async () => {
@@ -1007,6 +1018,102 @@ describe("the Preview opens by itself (066)", () => {
   });
 });
 
+describe("an artifact opens by itself", () => {
+  const answer = path.messages
+    .filter((each) => each.role === "assistant")
+    .at(-1);
+  if (!answer) {
+    throw new Error("fixture answer");
+  }
+  const [, artifact] = chatArtifacts;
+  if (!artifact) {
+    throw new Error("fixture artifact");
+  }
+  const versionId = fixtureId("artifactVersion", 99);
+  const made: ArtifactRefPart = {
+    artifactId: artifact.id,
+    kind: artifact.kind,
+    title: artifact.title,
+    type: "artifact-ref",
+    versionId,
+  };
+  const withAnswer = (parts: Message["parts"]): Message[] => [
+    ...path.messages.filter((each) => each.id !== answer.id),
+    { ...answer, parts },
+  ];
+
+  /** The screen with a branch the test can move on, as a stream would. */
+  const live = (watchedMessageId: Message["id"] | null) => {
+    const onSelect = vi.fn();
+    let setMessages: (next: readonly Message[]) => void = () => undefined;
+    function Live() {
+      const [messages, set] = useState<readonly Message[]>(withAnswer([]));
+      setMessages = set;
+      const base = props();
+      return (
+        <ChatScreen
+          {...props({
+            messages,
+            workspace: { ...base.workspace, onSelect },
+          })}
+          streamingMessageId={answer?.id ?? null}
+          watchedMessageId={watchedMessageId}
+        />
+      );
+    }
+    renderWithI18n(<Live />);
+    return {
+      onSelect,
+      stream: (next: readonly Message[]) => act(() => setMessages(next)),
+    };
+  };
+
+  const workspaceRegion = () =>
+    screen.queryByRole("region", { name: "Workspace" });
+
+  it("when the answer this artifact asked for makes one", async () => {
+    const { onSelect, stream } = live(answer.id);
+    expect(workspaceRegion()).toBeNull();
+    stream(withAnswer([made]));
+    expect(onSelect).toHaveBeenCalledWith({
+      artifactId: artifact.id,
+      kind: "artifact",
+      versionId,
+    });
+    expect(
+      await screen.findByRole("region", { name: "Workspace" })
+    ).toBeTruthy();
+  });
+
+  it("not for a chat opened with artifacts in its history", async () => {
+    const onSelect = vi.fn();
+    const base = props();
+    renderWithI18n(
+      <ChatScreen
+        {...props({
+          messages: withAnswer([made]),
+          workspace: { ...base.workspace, onSelect },
+        })}
+      />
+    );
+    expect(
+      await screen.findAllByRole("button", {
+        name: `Open artifact: ${artifact.title}`,
+      })
+    ).not.toHaveLength(0);
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(workspaceRegion()).toBeNull();
+  });
+
+  it("not for a stream this artifact picked up rather than asked for", async () => {
+    const { onSelect, stream } = live(null);
+    stream(withAnswer([made]));
+    await act(() => new Promise((resolve) => window.setTimeout(resolve, 50)));
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(workspaceRegion()).toBeNull();
+  });
+});
+
 describe("sidebar", () => {
   it("lists chats flat under Pinned and Chats, and archives with an undo", async () => {
     const onArchive = vi.fn();
@@ -1135,7 +1242,7 @@ describe("narrow screens", () => {
 
   it("goes back to the side-by-side layout when the screen widens", async () => {
     renderWithI18n(<ChatScreen {...props()} />);
-    await userEvent.keyboard("a");
+    await userEvent.keyboard("s");
     expect(await sheet("Side panel")).toBeTruthy();
 
     await page.viewport(1336, 800);

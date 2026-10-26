@@ -1,4 +1,5 @@
 import type { EvalModelTarget } from "@workspace/ai/evals/model";
+import { type ModelPrices, usageCost } from "@workspace/config/prices";
 
 import type { Suite } from "./suite";
 
@@ -8,8 +9,9 @@ import type { Suite } from "./suite";
 //
 // The token figures are rough on purpose. Each model call carries the
 // app's instructions and every tool's definition, which dominate a short
-// chat; the constants below say what is assumed. There's no cost figure:
-// the price table (`models.prices`) is ticket 086, not on this branch.
+// chat; the constants below say what is assumed. The cost is those tokens
+// at the instance's prices (`effectivePrices`: app.config's, else the model
+// catalogue's list prices), so it's as rough as they are.
 
 /** Tokens in one call to the model under test (instructions and tool definitions included). */
 export const MODEL_INPUT_TOKENS = 5000;
@@ -134,6 +136,34 @@ const describeTarget = (
 
 const tokens = (count: number): string => count.toLocaleString("en-US");
 
+const dollars = (micros: number): string =>
+  micros > 0 && micros < 10_000
+    ? "under $0.01"
+    : `$${(micros / 1e6).toFixed(2)}`;
+
+/** The estimate's tokens at `prices`, naming any model that has no price. */
+const costLine = (
+  prices: ModelPrices,
+  calls: readonly {
+    readonly input: number;
+    readonly output: number;
+    readonly ref: string;
+  }[]
+): string => {
+  const costs = calls.map(({ input, output, ref }) => ({
+    ref,
+    ...usageCost(prices, ref, { inputTokens: input, outputTokens: output }),
+  }));
+  const unpriced = costs.filter((each) => !each.priced).map((each) => each.ref);
+  const total = costs.reduce((sum, each) => sum + each.costMicros, 0);
+  if (unpriced.length === costs.length) {
+    return `not estimated: no price for ${unpriced.join(", ")}`;
+  }
+  const missing =
+    unpriced.length === 0 ? "" : `; no price for ${unpriced.join(", ")}`;
+  return `about ${dollars(total)} at this instance's prices${missing}`;
+};
+
 /** What the run will call, as the CLI prints it before asking. Pure. */
 export const preflight = ({
   configPath,
@@ -141,6 +171,7 @@ export const preflight = ({
   isSet,
   judge,
   model,
+  prices,
 }: {
   readonly configPath: string;
   readonly estimate: LiveEstimateTotals;
@@ -148,6 +179,8 @@ export const preflight = ({
   readonly isSet: (name: string) => boolean;
   readonly judge: LiveTarget | null;
   readonly model: LiveTarget;
+  /** The instance's prices (`effectivePrices`), to cost the estimate. */
+  readonly prices: ModelPrices;
 }): string =>
   [
     "Live evals call real models, and may cost money.",
@@ -158,7 +191,10 @@ export const preflight = ({
     `  Cases             ${estimate.cases} live cases (${estimate.suites.map((suite) => `${suite.name} ${suite.cases}`).join(", ")})`,
     `  Model calls       about ${estimate.model.calls}: ~${tokens(estimate.model.input)} input + ~${tokens(estimate.model.output)} output tokens`,
     `  Judge calls       ${judge ? `about ${estimate.judge.calls}: ~${tokens(estimate.judge.input)} input + ~${tokens(estimate.judge.output)} output tokens` : "none"}`,
-    "  Cost              not estimated: there's no price table on this branch (models.prices, ticket 086)",
+    `  Cost              ${costLine(prices, [
+      { ...estimate.model, ref: model.target.ref },
+      ...(judge ? [{ ...estimate.judge, ref: judge.target.ref }] : []),
+    ])}`,
     "",
     `  Rough: assumes ~${tokens(MODEL_INPUT_TOKENS)} input tokens a model call (instructions and tool definitions),`,
     "  and a model that stops where the case expects. Embeddings and web search use local stand-ins.",

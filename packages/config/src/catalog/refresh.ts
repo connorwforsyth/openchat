@@ -96,6 +96,10 @@ export const pricesFromModelsDev = (
     ])
   ) as GeneratedCatalog["prices"];
 
+/** At least 1: a model that reports a trickle is slow, not unknown. */
+const wholeTokens = (perSecond: number): number =>
+  Math.max(1, Math.round(perSecond));
+
 /**
  * A model's typical output speed in tokens per second: the median over the
  * last hour on its maker's own endpoint (`anthropic` for an `anthropic/…`
@@ -114,7 +118,7 @@ export const throughputOf = (
   });
   const own = reported.find((endpoint) => endpoint.provider === creator);
   if (own) {
-    return Math.round(own.p50);
+    return wholeTokens(own.p50);
   }
   const values = reported.map((endpoint) => endpoint.p50).sort((a, b) => a - b);
   if (values.length === 0) {
@@ -125,7 +129,7 @@ export const throughputOf = (
     values.length % 2 === 1
       ? (values[middle] ?? 0)
       : ((values[middle - 1] ?? 0) + (values[middle] ?? 0)) / 2;
-  return Math.round(median);
+  return wholeTokens(median);
 };
 
 export const buildCatalog = (

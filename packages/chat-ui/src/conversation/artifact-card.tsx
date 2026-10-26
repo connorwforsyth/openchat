@@ -1,58 +1,11 @@
 "use client";
 
-import { Trans, useLingui } from "@lingui/react/macro";
-import { CodeIcon, FileTextIcon, GlobeIcon, ImageIcon } from "@workspace/icons";
+import { useLingui } from "@lingui/react/macro";
 import { useCallback } from "react";
 
+import { KindLabel, kindIcon } from "../artifacts/kind-icon";
 import type { ArtifactRefPart } from "../model/parts";
 import { useConversationActions } from "./actions";
-
-function KindLabel({ kind }: { readonly kind: ArtifactRefPart["kind"] }) {
-  switch (kind) {
-    case "code":
-      return <Trans>Code</Trans>;
-    case "html":
-      return <Trans>Web page</Trans>;
-    case "react":
-      return <Trans>React component</Trans>;
-    case "document":
-      return <Trans>Document</Trans>;
-    case "markdown":
-      return <Trans>Markdown</Trans>;
-    case "svg":
-      return <Trans>Image</Trans>;
-    case "mermaid":
-      return <Trans>Diagram</Trans>;
-    case "site":
-      return <Trans>Site</Trans>;
-    case "image":
-      return <Trans>Generated image</Trans>;
-    case "presentation":
-      return <Trans>Presentation</Trans>;
-    case "spreadsheet":
-      return <Trans>Spreadsheet</Trans>;
-    case "diagram":
-      return <Trans>Flowchart</Trans>;
-    default:
-      return kind satisfies never;
-  }
-}
-
-const iconFor = (kind: ArtifactRefPart["kind"]) => {
-  switch (kind) {
-    case "html":
-    case "react":
-    case "site":
-      return GlobeIcon;
-    case "document":
-    case "markdown":
-      return FileTextIcon;
-    case "image":
-      return ImageIcon;
-    default:
-      return CodeIcon;
-  }
-};
 
 /** A reference to an artifact the message made; opens it in the Artifacts panel. */
 export function ArtifactCard({ part }: { readonly part: ArtifactRefPart }) {
@@ -62,7 +15,9 @@ export function ArtifactCard({ part }: { readonly part: ArtifactRefPart }) {
     () => onOpenArtifact?.(part),
     [onOpenArtifact, part]
   );
-  const Icon = iconFor(part.kind);
+  // The kinds' own names and icons, as the panel and the Artifacts page
+  // show them.
+  const Icon = kindIcon(part.kind);
   return (
     <button
       aria-label={t`Open artifact: ${part.title}`}
