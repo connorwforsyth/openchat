@@ -1,3 +1,4 @@
+import { createAnthropic } from "@ai-sdk/anthropic";
 import { generateText } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
 import { describe, expect, it } from "vitest";
@@ -31,6 +32,20 @@ describe("reasoningLevels", () => {
     ]);
     // Always thinks: no off. A gateway's `vendor/` prefix and dots don't matter.
     expect(levels("anthropic", "anthropic/claude-opus-5.5")).toEqual([
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+    ]);
+    // Haiku 5.5 can turn thinking off; Sonnet 5.5 can't.
+    expect(levels("anthropic", "claude-haiku-5-5")).toEqual([
+      "off",
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+    ]);
+    expect(levels("anthropic", "claude-sonnet-5-5")).toEqual([
       "low",
       "medium",
       "high",
@@ -90,10 +105,13 @@ describe("defaultReasoningLevel", () => {
 
   it("is what the provider does when nothing is sent", () => {
     expect(fallback("anthropic", "claude-sonnet-4-5")).toBe("off");
-    expect(fallback("anthropic", "claude-opus-5")).toBe("off");
+    expect(fallback("anthropic", "claude-opus-5")).toBe("high");
+    expect(fallback("anthropic", "claude-opus-4-7")).toBe("off");
     expect(fallback("anthropic", "claude-sonnet-5")).toBe("high");
     expect(fallback("anthropic", "anthropic/claude-opus-5.5")).toBe("medium");
     expect(fallback("anthropic", "claude-fable-5-1")).toBe("high");
+    expect(fallback("anthropic", "claude-sonnet-5-5")).toBe("high");
+    expect(fallback("anthropic", "claude-haiku-5-5")).toBe("medium");
     expect(fallback("openai", "o4-mini")).toBe("medium");
     expect(fallback("openai", "gpt-5")).toBe("medium");
     expect(fallback("openai", "gpt-5.1")).toBe("off");
@@ -110,6 +128,8 @@ describe("defaultReasoningLevel", () => {
   it("is always one of the model's levels", () => {
     for (const [vendor, modelId] of [
       ["anthropic", "claude-opus-5.5"],
+      ["anthropic", "claude-haiku-5-5"],
+      ["anthropic", "claude-sonnet-5.5"],
       ["openai", "gpt-6-sol"],
       ["google", "gemini-2.5-pro"],
       ["deepseek", "deepseek-r2"],
@@ -158,12 +178,104 @@ describe("runSettings", () => {
     reasons?: boolean
   ) => runSettings({ modelId, options, providerType, reasons, vendor });
 
-  it("maps a level to the SDK's reasoning setting, off to none", () => {
+  const adaptive = (effort: string) => ({
+    providerOptions: {
+      anthropic: {
+        effort,
+        thinking: { display: "summarized", type: "adaptive" },
+      },
+    },
+  });
+
+  it("sends Anthropic's adaptive models summarized thinking at the level", () => {
+    expect(
+      settings("anthropic", "anthropic", "claude-haiku-5-5", {
+        reasoning: "high",
+      })
+    ).toEqual(adaptive("high"));
     expect(
       settings("anthropic", "anthropic", "claude-opus-5", {
         reasoning: "xhigh",
       })
-    ).toEqual({ reasoning: "xhigh" });
+    ).toEqual(adaptive("xhigh"));
+    // 4.6 has no xhigh; its next effort up is max.
+    expect(
+      settings("anthropic", "anthropic", "claude-sonnet-4-6", {
+        reasoning: "xhigh",
+      })
+    ).toEqual(adaptive("max"));
+    expect(
+      settings("anthropic", "anthropic", "claude-haiku-5-5", {
+        reasoning: "off",
+      })
+    ).toEqual({
+      providerOptions: { anthropic: { thinking: { type: "disabled" } } },
+    });
+  });
+
+  it("sends an adaptive model's default level when the run names none", () => {
+    expect(settings("anthropic", "anthropic", "claude-haiku-5-5", {})).toEqual(
+      adaptive("medium")
+    );
+    expect(
+      settings("anthropic", "anthropic", "anthropic/claude-opus-5.5", {})
+    ).toEqual(adaptive("medium"));
+    expect(settings("anthropic", "anthropic", "claude-opus-4-7", {})).toEqual({
+      providerOptions: { anthropic: { thinking: { type: "disabled" } } },
+    });
+    // Off where thinking can't be turned off falls back to the default.
+    expect(
+      settings("anthropic", "anthropic", "claude-sonnet-5-5", {
+        reasoning: "off",
+      })
+    ).toEqual(adaptive("high"));
+  });
+
+  it("sends a preset's level to an adaptive model when the run names none", () => {
+    const withPreset = (
+      presetEffort: "off" | "low" | "medium" | "high",
+      options: Parameters<typeof runSettings>[0]["options"] = {}
+    ) =>
+      runSettings({
+        modelId: "claude-haiku-5-5",
+        options,
+        presetEffort,
+        providerType: "anthropic",
+        reasons: undefined,
+        vendor: "anthropic",
+      });
+    expect(withPreset("high")).toEqual(adaptive("high"));
+    expect(withPreset("low", { reasoning: "medium" })).toEqual(
+      adaptive("medium")
+    );
+  });
+
+  it("treats a later Opus, Sonnet or Fable as adaptive, with xhigh and no off", () => {
+    expect(levels("anthropic", "claude-opus-6")).toEqual([
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+    ]);
+    expect(
+      settings("anthropic", "anthropic", "claude-sonnet-6-1", {
+        reasoning: "xhigh",
+      })
+    ).toEqual(adaptive("xhigh"));
+  });
+
+  it("leaves other Anthropic routes to the SDK's portable setting", () => {
+    expect(
+      settings("bedrock", "anthropic", "anthropic.claude-haiku-5-5", {
+        reasoning: "high",
+      })
+    ).toEqual({ reasoning: "high" });
+    expect(settings("anthropic", "anthropic", "claude-haiku-4-5", {})).toEqual(
+      {}
+    );
+  });
+
+  it("maps a level to the SDK's reasoning setting, off to none", () => {
     expect(
       settings("anthropic", "anthropic", "claude-sonnet-4-5", {
         reasoning: "off",
@@ -188,11 +300,6 @@ describe("runSettings", () => {
   });
 
   it("drops a level the model doesn't take", () => {
-    expect(
-      settings("anthropic", "anthropic", "claude-opus-5-5", {
-        reasoning: "off",
-      })
-    ).toEqual({});
     expect(settings("openai", "openai", "o3", { reasoning: "xhigh" })).toEqual(
       {}
     );
@@ -219,7 +326,11 @@ describe("runSettings", () => {
     });
     expect(
       settings("anthropic", "anthropic", "claude-opus-4-6", { fast: true })
-    ).toEqual({ providerOptions: { anthropic: { speed: "fast" } } });
+    ).toEqual({
+      providerOptions: {
+        anthropic: { speed: "fast", thinking: { type: "disabled" } },
+      },
+    });
     expect(settings("openai", "openai", "gpt-5-nano", { fast: true })).toEqual(
       {}
     );
@@ -256,6 +367,57 @@ describe("withRunSettings", () => {
       openai: { serviceTier: "priority", user: "u1" },
       other: { x: 1 },
     });
+  });
+
+  it("puts summarized adaptive thinking on Anthropic's wire", async () => {
+    const bodies: unknown[] = [];
+    const anthropic = createAnthropic({
+      apiKey: "test",
+      fetch: (_url, init) => {
+        bodies.push(JSON.parse(String(init?.body)));
+        return Promise.resolve(
+          Response.json({
+            content: [{ text: "ok", type: "text" }],
+            id: "msg_1",
+            model: "claude-haiku-5-5",
+            role: "assistant",
+            stop_reason: "end_turn",
+            type: "message",
+            usage: { input_tokens: 1, output_tokens: 1 },
+          })
+        );
+      },
+    });
+    const send = (options: { reasoning?: "high" | "off" }) =>
+      generateText({
+        maxOutputTokens: 1000,
+        model: withRunSettings(
+          anthropic("claude-haiku-5-5"),
+          runSettings({
+            modelId: "claude-haiku-5-5",
+            options,
+            providerType: "anthropic",
+            reasons: true,
+            vendor: "anthropic",
+          })
+        ),
+        prompt: "hi",
+      });
+    await send({});
+    await send({ reasoning: "high" });
+    await send({ reasoning: "off" });
+    expect(bodies).toMatchObject([
+      {
+        output_config: { effort: "medium" },
+        thinking: { display: "summarized", type: "adaptive" },
+      },
+      {
+        output_config: { effort: "high" },
+        thinking: { display: "summarized", type: "adaptive" },
+      },
+      { thinking: { type: "disabled" } },
+    ]);
+    expect(bodies[2]).not.toHaveProperty("output_config");
   });
 
   it("leaves the model alone when there's nothing to add", () => {

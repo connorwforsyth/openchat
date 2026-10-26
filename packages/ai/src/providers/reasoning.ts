@@ -38,24 +38,107 @@ const VENDOR_PREFIX = /^[^/]+\//;
 export const bareModelId = (modelId: string): string =>
   modelId.replace(VENDOR_PREFIX, "").toLowerCase().replaceAll(".", "-");
 
-// Anthropic: models the SDK sends adaptive thinking with an effort to (they
-// take xhigh); the rest get a token budget that low/medium/high scale.
-const ANTHROPIC_ADAPTIVE = /claude-(opus|sonnet|fable)-(4-[6-9]|[5-9])/;
-// Anthropic models that always think: the SDK turns "none" into low effort.
-const ANTHROPIC_ALWAYS_THINKS = /claude-(opus-5-5|fable-5)/;
+// Anthropic models with adaptive thinking, newest first (first match wins).
+// Facts from Anthropic's model docs: whether `thinking: disabled` is accepted
+// (at effort high or below), and what the model does with nothing sent. Their
+// thinking goes out as provider options (`run-settings.ts`), since the SDK
+// guesses at ids it doesn't know and leaves `display` at the API's default,
+// which is `omitted` (empty thinking text) on every 4.7-and-later model.
+export interface AnthropicAdaptive {
+  readonly canDisable: boolean;
+  /** The level a run without one gets; the composer shows it as the default. */
+  readonly defaultLevel: ReasoningLevel;
+  readonly match: RegExp;
+  /** The effort `xhigh` sends: 4.6 has no xhigh, so it gets max. */
+  readonly xhigh: "max" | "xhigh";
+}
+
+const ANTHROPIC_ADAPTIVE: readonly AnthropicAdaptive[] = [
+  // Effort defaults to medium; thinking can't be turned off.
+  {
+    canDisable: false,
+    defaultLevel: "medium",
+    match: /claude-opus-5-5/,
+    xhigh: "xhigh",
+  },
+  // `disabled` is a 400 (only `between_tools` turns it off); effort high.
+  {
+    canDisable: false,
+    defaultLevel: "high",
+    match: /claude-sonnet-5-5/,
+    xhigh: "xhigh",
+  },
+  // Thinks at medium by default. Not low: at low it skips thinking on
+  // everyday prompts, so there's nothing to show.
+  {
+    canDisable: true,
+    defaultLevel: "medium",
+    match: /claude-haiku-5-5/,
+    xhigh: "xhigh",
+  },
+  {
+    canDisable: false,
+    defaultLevel: "high",
+    match: /claude-fable-5/,
+    xhigh: "xhigh",
+  },
+  // Opus 5 and Sonnet 5 think by default at high.
+  {
+    canDisable: true,
+    defaultLevel: "high",
+    match: /claude-(opus|sonnet)-5/,
+    xhigh: "xhigh",
+  },
+  // Opus 4.7 and 4.8 don't think unless asked.
+  {
+    canDisable: true,
+    defaultLevel: "off",
+    match: /claude-opus-4-[78]/,
+    xhigh: "xhigh",
+  },
+  {
+    canDisable: true,
+    defaultLevel: "off",
+    match: /claude-(opus|sonnet)-4-6/,
+    xhigh: "max",
+  },
+  // Later Opus, Sonnet and Fable ids than these, until they get rows of
+  // their own: adaptive, with xhigh. Turning thinking off is a 400 on the
+  // newest ones, so it isn't offered.
+  {
+    canDisable: false,
+    defaultLevel: "medium",
+    match: /claude-(opus|sonnet|fable)-([6-9]|\d{2,})/,
+    xhigh: "xhigh",
+  },
+];
+
+/** The adaptive-thinking row for an Anthropic model id, if it has one. */
+export const anthropicAdaptive = (
+  modelId: string
+): AnthropicAdaptive | undefined => {
+  const id = bareModelId(modelId);
+  return ANTHROPIC_ADAPTIVE.find(({ match }) => match.test(id));
+};
+
 const OPENAI_O_SERIES = /^o\d/;
 const OPENAI_GPT = /^gpt-(\d+)(?:-(\d+))?/;
 const OPENAI_GPT6_NONE = /^gpt-6-(sol|luna)/;
 const GEMINI_2 = /^gemini-(1|2)-/;
 const GEMINI_25_PRO = /^gemini-2-5-pro/;
 
-const anthropicLevels = (id: string): readonly ReasoningLevel[] => [
-  ...(ANTHROPIC_ALWAYS_THINKS.test(id) ? [] : (["off"] as const)),
-  "low",
-  "medium",
-  "high",
-  ...(ANTHROPIC_ADAPTIVE.test(id) ? (["xhigh"] as const) : []),
-];
+// Models outside the adaptive table take a token budget that
+// low/medium/high scale.
+const anthropicLevels = (id: string): readonly ReasoningLevel[] => {
+  const adaptive = anthropicAdaptive(id);
+  return [
+    ...(adaptive?.canDisable === false ? [] : (["off"] as const)),
+    "low",
+    "medium",
+    "high",
+    ...(adaptive ? (["xhigh"] as const) : []),
+  ];
+};
 
 const openaiLevels = (id: string): readonly ReasoningLevel[] => {
   if (!(OPENAI_O_SERIES.test(id) || OPENAI_GPT.test(id))) {
@@ -96,8 +179,8 @@ const googleLevels = (id: string): readonly ReasoningLevel[] => {
  * The thinking levels a reasoning model takes, lowest first. Whether it
  * reasons at all is the caller's to know (`capabilities`, the catalog):
  *
- * - Anthropic: off (except models that always think), low, medium, high;
- *   adaptive models (4.6 on, 5.x) also xhigh.
+ * - Anthropic: off (except adaptive models that can't turn thinking off),
+ *   low, medium, high; adaptive models (4.6 on, 5.x) also xhigh.
  * - OpenAI: low, medium, high; off from GPT-5.1; minimal on GPT-5; xhigh
  *   on GPT-6.
  * - Google: Gemini 2.5's budget (off, except 2.5 Pro), or Gemini 3's level
@@ -131,11 +214,8 @@ export const reasoningLevels = ({
 // What a model does with no `reasoning` sent, from the installed SDK
 // providers' docs and the makers' own (113). The composer shows it as the
 // level in use until someone picks another, and picking it sends nothing.
-// Anthropic: thinking is off unless asked for, except on models that always
-// think (effort defaults to medium on Opus 5.5, high elsewhere) and Sonnet
-// 5, which thinks by default (the SDK sends `disabled` for that reason).
-const ANTHROPIC_DEFAULT_MEDIUM = /claude-opus-5-5/;
-const ANTHROPIC_THINKS_BY_DEFAULT = /claude-sonnet-5/;
+// Anthropic: the adaptive table's default, which the server sends; older
+// models think only when asked.
 // OpenAI: `medium` (the SDK's documented default), except GPT-5.1 and
 // GPT-5.2, which OpenAI documents as defaulting to `none` (their Codex
 // models keep medium).
@@ -143,16 +223,6 @@ const OPENAI_DEFAULT_NONE = /^gpt-5-[12](?!\d)(?!.*codex)/;
 // Gemini 2.5 Flash-Lite doesn't think unless asked; the rest of 2.5 think
 // dynamically, nearest a medium budget. Gemini 3 defaults to `high`.
 const GEMINI_FLASH_LITE = /^gemini-2-5-flash-lite/;
-
-const anthropicDefault = (id: string): ReasoningLevel => {
-  if (ANTHROPIC_DEFAULT_MEDIUM.test(id)) {
-    return "medium";
-  }
-  return ANTHROPIC_ALWAYS_THINKS.test(id) ||
-    ANTHROPIC_THINKS_BY_DEFAULT.test(id)
-    ? "high"
-    : "off";
-};
 
 const googleDefault = (id: string): ReasoningLevel => {
   if (GEMINI_2.test(id)) {
@@ -164,7 +234,7 @@ const googleDefault = (id: string): ReasoningLevel => {
 const preferredDefault = (vendor: string, id: string): ReasoningLevel => {
   switch (vendor) {
     case "anthropic":
-      return anthropicDefault(id);
+      return anthropicAdaptive(id)?.defaultLevel ?? "off";
     case "openai":
       return OPENAI_DEFAULT_NONE.test(id) ? "off" : "medium";
     case "google":

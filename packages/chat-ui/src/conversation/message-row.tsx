@@ -58,10 +58,10 @@ import { Markdown } from "./markdown";
 import { MemoryNote } from "./memory-note";
 import { ModeNote } from "./mode-note";
 import { PlanApprovalNote, PlanCard } from "./plan-card";
+import { PulseLabel } from "./pulse-label";
 import { ReportNote, ScheduledLabel } from "./scheduled-note";
 import { SkillsNote } from "./skills-note";
 import { Sources } from "./sources";
-import { ThinkingLabel } from "./thinking";
 import { ToolPart } from "./tool-part";
 
 const COPIED_MS = 1500;
@@ -131,20 +131,23 @@ function CopyAction({ text }: { readonly text: string }) {
 function Block({
   approvals,
   block,
+  live,
   running,
   streaming,
 }: {
   readonly approvals: readonly PendingApproval[] | undefined;
   readonly block: RenderBlock;
+  /** The block is the one being written: last in a streaming message. */
+  readonly live: boolean;
   /** The answer's run is still going. */
   readonly running: boolean;
   readonly streaming: boolean;
 }) {
   switch (block.kind) {
     case "text":
-      return <Markdown streaming={streaming}>{block.text}</Markdown>;
+      return <Markdown streaming={live}>{block.text}</Markdown>;
     case "reasoning":
-      return <LazyReasoning streaming={streaming} text={block.text} />;
+      return <LazyReasoning streaming={live} text={block.text} />;
     case "tool":
       return (
         <ToolPart
@@ -182,37 +185,71 @@ function Block({
   }
 }
 
+/** The one line under an answer that says where it stands, if any. */
+type AnswerNote = "error" | "queued" | "sending" | "stopped" | "waiting";
+
 /**
- * What the stored answer's status means for its run. A `partial` answer is
- * one still being written, one waiting on a decision, or one that ended
- * early; only the last says it stopped (072: answers still working read
- * "stopped early" after a reload).
+ * Where an answer stands, from its stored status and its run (072: a page
+ * opened mid-answer shows the same). A `partial` answer is one still being
+ * written, one waiting on a decision, or one that ended early; only the
+ * last says it stopped. A run with nothing to show yet is "Sending…"; once
+ * it writes, the answer's own blocks show it working.
  */
-function StatusNote({
+const answerNote = ({
+  empty,
   phase,
   status,
+  streaming,
 }: {
+  readonly empty: boolean;
   readonly phase: AnswerPhase | undefined;
   readonly status: Message["status"];
-}) {
-  switch (status) {
-    case "complete":
+  readonly streaming: boolean;
+}): AnswerNote | null => {
+  if (status === "error") {
+    return "error";
+  }
+  if (phase === "queued" || phase === "waiting") {
+    return status === "partial" ? phase : null;
+  }
+  if (streaming || phase === "running") {
+    return empty ? "sending" : null;
+  }
+  return status === "partial" ? "stopped" : null;
+};
+
+function StatusNote({ note }: { readonly note: AnswerNote | null }) {
+  switch (note) {
+    case null:
       return null;
-    case "partial":
+    case "sending":
+      return (
+        <p className="text-muted-foreground text-sm" role="status">
+          <PulseLabel>
+            <Trans>Sending…</Trans>
+          </PulseLabel>
+        </p>
+      );
+    case "queued":
       return (
         <p className="text-muted-foreground text-xs" role="status">
-          {phase === undefined ? (
-            <Trans>This answer stopped early.</Trans>
-          ) : null}
-          {phase === "running" ? (
-            <Trans>Still working on this answer…</Trans>
-          ) : null}
-          {phase === "queued" ? (
+          <PulseLabel>
             <Trans>Waiting for the answer before it…</Trans>
-          ) : null}
-          {phase === "waiting" ? (
-            <Trans>Waiting for your approval.</Trans>
-          ) : null}
+          </PulseLabel>
+        </p>
+      );
+    // Static: it waits on the person, not on the app, and the card above
+    // already asks.
+    case "waiting":
+      return (
+        <p className="text-muted-foreground text-xs" role="status">
+          <Trans>Waiting for your approval.</Trans>
+        </p>
+      );
+    case "stopped":
+      return (
+        <p className="text-muted-foreground text-xs" role="status">
+          <Trans>This answer stopped early.</Trans>
         </p>
       );
     case "error":
@@ -226,7 +263,7 @@ function StatusNote({
         </p>
       );
     default:
-      return status satisfies never;
+      return note satisfies never;
   }
 }
 
@@ -421,22 +458,25 @@ function AssistantMessage({
       data-message-id={message.id}
     >
       <MessageContent className="gap-3 text-[15px] text-foreground leading-[1.75]">
-        {view.blocks.map((block) => (
+        {view.blocks.map((block, index) => (
           <Block
             approvals={approvals}
             block={block}
             key={block.key}
+            live={streaming && index === view.blocks.length - 1}
             running={phase !== undefined}
             streaming={streaming}
           />
         ))}
-        {streaming && view.blocks.length === 0 ? (
-          <p className="text-muted-foreground text-sm">
-            <ThinkingLabel />
-          </p>
-        ) : null}
         <Sources sources={view.sources} />
-        <StatusNote phase={phase} status={message.status} />
+        <StatusNote
+          note={answerNote({
+            empty: view.blocks.length === 0,
+            phase,
+            status: message.status,
+            streaming,
+          })}
+        />
         {streaming ? null : (
           <MessageFooter className="-ms-1.5 gap-1 px-0">
             <BranchSwitcher info={siblings} onSelect={onSelectBranch ?? noop} />

@@ -3,7 +3,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Markdown } from "@workspace/chat-ui/conversation/markdown";
-import { ThinkingLabel } from "@workspace/chat-ui/conversation/thinking";
+import { PulseLabel } from "@workspace/chat-ui/conversation/pulse-label";
 import type { RunCreated } from "@workspace/client/run-transport";
 import { useRunChat } from "@workspace/client/use-run-chat";
 import { ComposerLoader } from "@workspace/composer/components/composer-loader";
@@ -195,7 +195,11 @@ function QuickTurn({
         className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-3 text-sm leading-relaxed"
         data-slot="quick-reply"
       >
-        {reply === "" && busy ? <ThinkingLabel /> : null}
+        {reply === "" && busy ? (
+          <PulseLabel>
+            <Trans>Sending…</Trans>
+          </PulseLabel>
+        ) : null}
         {reply === "" ? null : (
           <Markdown streaming={status === "streaming"}>{reply}</Markdown>
         )}

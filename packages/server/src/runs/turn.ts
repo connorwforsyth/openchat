@@ -894,6 +894,7 @@ export const createTurnResolver = (deps: TurnResolverDeps): TurnResolver => {
       ? runSettings({
           ...identityOf(model.resolvedModel),
           options: run.options,
+          presetEffort: target.parameters?.reasoningEffort,
           providerType,
           reasons,
         })

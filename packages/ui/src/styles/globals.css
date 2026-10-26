@@ -68,6 +68,12 @@
   --animate-dot-breathe: dot-breathe var(--motion-ambient)
     var(--ease-motion-in-out) infinite;
   --animate-dot-drift: dot-drift calc(var(--motion-ambient) * 3) linear infinite;
+  /*
+   * A status still going ("Sending…"): opacity only, on the ambient clock.
+   * Use with `motion-safe:`.
+   */
+  --animate-status-pulse: status-pulse calc(var(--motion-ambient) / 2)
+    var(--ease-motion-in-out) infinite;
   /* Motion easings (D28): `ease-motion-out`, `ease-motion-in-out`. */
   --ease-motion-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-motion-in-out: cubic-bezier(0.77, 0, 0.175, 1);
@@ -80,6 +86,15 @@
     50% {
       transform: scale(1.06);
       opacity: 0.88;
+    }
+  }
+  @keyframes status-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
     }
   }
   @keyframes dot-drift {
