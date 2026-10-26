@@ -106,7 +106,7 @@ describe("a run's reasoning and fast options", () => {
     });
   });
 
-  it("reach an Anthropic model as its reasoning setting and fast speed", async () => {
+  it("reach an Anthropic model as adaptive thinking and fast speed", async () => {
     const opus = mock();
     h = await createHarness({
       models: { "anthropic:claude-opus-4-6": opus },
@@ -118,9 +118,12 @@ describe("a run's reasoning and fast options", () => {
       reasoning: "high",
     });
     const [call] = opus.doStreamCalls;
-    expect(call?.reasoning).toBe("high");
     expect(call?.providerOptions).toMatchObject({
-      anthropic: { speed: "fast" },
+      anthropic: {
+        effort: "high",
+        speed: "fast",
+        thinking: { display: "summarized", type: "adaptive" },
+      },
     });
   });
 
