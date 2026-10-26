@@ -2713,6 +2713,10 @@ msgstr "hide"
 msgid "Hide"
 msgstr "Hide"
 
+#: ../chat-ui/src/artifacts/editor/notes-drawer.tsx
+msgid "Hide notes"
+msgstr "Hide notes"
+
 #: ../palette/src/context-actions.ts
 msgid "Hide the workspace"
 msgstr "Hide the workspace"
@@ -2835,6 +2839,11 @@ msgstr "Insert table"
 #: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
 msgid "Inside"
 msgstr "Inside"
+
+#: ../chat-ui/src/artifacts/editor/editor-shell.tsx
+#: ../chat-ui/src/artifacts/presentation/slide-inspector.tsx
+msgid "Inspector"
+msgstr "Inspector"
 
 #: ../library-ui/src/components/agent-form.tsx
 msgid "Instructions"
@@ -3952,6 +3961,7 @@ msgstr "Not shared with anyone yet."
 msgid "Not with Fast mode"
 msgstr "Not with Fast mode"
 
+#: ../chat-ui/src/artifacts/editor/editor-shell.tsx
 #: ../chat-ui/src/artifacts/presentation-preview.tsx
 msgid "Notes"
 msgstr "Notes"
@@ -4432,6 +4442,14 @@ msgstr "Pick a shape and a colour. You can change them later."
 #: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
 msgid "Pick a space in the sidebar's space switcher. Your personal space has no members or allowance."
 msgstr "Pick a space in the sidebar's space switcher. Your personal space has no members or allowance."
+
+#: ../chat-ui/src/artifacts/presentation/slide-inspector.tsx
+msgid "Pick something on the slide to change its words and style."
+msgstr "Pick something on the slide to change its words and style."
+
+#: ../chat-ui/src/artifacts/presentation/slide-inspector.tsx
+msgid "Pick something on the slide to see its words and style."
+msgstr "Pick something on the slide to see its words and style."
 
 #: ../composer/src/components/target-picker.tsx
 msgid "Picks a fast or strong model for each message"
@@ -5701,6 +5719,18 @@ msgid "Show only Priority chats"
 msgstr "Show only Priority chats"
 
 #: ../shortcuts/src/registry.ts
+msgid "Show or hide the editor's inspector"
+msgstr "Show or hide the editor's inspector"
+
+#: ../shortcuts/src/registry.ts
+msgid "Show or hide the editor's notes"
+msgstr "Show or hide the editor's notes"
+
+#: ../shortcuts/src/registry.ts
+msgid "Show or hide the editor's thumbnails"
+msgstr "Show or hide the editor's thumbnails"
+
+#: ../shortcuts/src/registry.ts
 msgid "Show or hide the files"
 msgstr "Show or hide the files"
 
@@ -6860,6 +6890,10 @@ msgstr "Thought for 4 seconds"
 #: ../chat-ui/src/conversation/reasoning-part.tsx
 msgid "Thought for a few seconds"
 msgstr "Thought for a few seconds"
+
+#: ../chat-ui/src/artifacts/editor/editor-shell.tsx
+msgid "Thumbnails"
+msgstr "Thumbnails"
 
 #: ../chat-ui/src/artifacts/presentation/slide-rail.tsx
 msgid "Thumbnails of {title}"
