@@ -46,7 +46,7 @@ import {
   useDeck,
 } from "../presentation-preview";
 import type { PickedElement } from "../runtime-protocol";
-import { acceptPick, type Picked } from "./pick";
+import { judgePick, nextPick, type Picked } from "./pick";
 import { SlideInspector } from "./slide-inspector";
 import { SlideRail } from "./slide-rail";
 
@@ -94,6 +94,9 @@ const loadEngine = () => {
  * before closing with it unsaved.
  */
 export const SAVE_IDLE_MS = 60_000;
+
+/** The longest a run of edits goes unsaved, however steady. */
+export const SAVE_MAX_MS = 5 * 60_000;
 
 const parseDeck = (content: string): Presentation | null => {
   const parsed = presentationContentSchema.safeParse(content);
@@ -203,12 +206,25 @@ function DeckEditor({
   });
   const { change, saved: isMine, state } = versionSave;
   const [problem, setProblem] = useState<string | null>(null);
+  // When the edits waiting to be saved began.
+  const burstStart = useRef<number | null>(null);
+  const { flush } = versionSave;
+  const flushSoon = useCallback(() => {
+    flush().catch(() => undefined);
+  }, [flush]);
+  useEffect(() => {
+    if (state === "saved") {
+      burstStart.current = null;
+    }
+  }, [state]);
 
   const slides = useMemo(
     () => deck?.slides.map((slide) => slide.id) ?? [],
     [deck]
   );
   const [focus, setFocus] = useState<string | undefined>(slides[0]);
+  const focusRef = useRef(focus);
+  focusRef.current = focus;
   const current = deck?.slides.find((slide) => slide.id === focus);
   const index = current && deck ? deck.slides.indexOf(current) : -1;
   const [picked, setPicked] = useState<Picked | null>(null);
@@ -224,19 +240,20 @@ function DeckEditor({
   }, []);
   const onPicked = useCallback(
     (element: PickedElement | null, from: PickSource) =>
-      setPicked((now) => {
-        if (
-          !acceptPick({
+      setPicked((now) =>
+        nextPick(
+          now,
+          element,
+          judgePick({
             current: now,
             epoch: epochRef.current,
+            focus: focusRef.current,
             from,
             incoming: element,
-          })
-        ) {
-          return now;
-        }
-        return element ? { element, epoch: from.epoch } : null;
-      }),
+          }),
+          from.epoch
+        )
+      ),
     []
   );
 
@@ -258,13 +275,20 @@ function DeckEditor({
       setContent(next);
       history.record(next, key);
       change(next);
+      // A long run of edits still saves every few minutes.
+      const now = Date.now();
+      burstStart.current ??= now;
+      if (now - burstStart.current >= SAVE_MAX_MS) {
+        burstStart.current = null;
+        flushSoon();
+      }
       // Pinned to the version being edited, the host would hold on to it
       // once this saves a newer one.
       if (pinned) {
         onSelect({ artifactId: artifact.id });
       }
     },
-    [artifact.id, change, history, onSelect, pinned]
+    [artifact.id, change, flushSoon, history, onSelect, pinned]
   );
 
   // A version made elsewhere (the agent, another editor) shows at once
@@ -448,9 +472,8 @@ function DeckEditor({
     [act, focus]
   );
 
-  const { flush } = versionSave;
   useEffect(() => {
-    if (state !== "unsaved" && state !== "saving") {
+    if (state === "saved") {
       return;
     }
     const warn = (event: BeforeUnloadEvent) => event.preventDefault();
@@ -463,8 +486,14 @@ function DeckEditor({
       if (!current) {
         return;
       }
-      // The agent edits the latest version: what's here goes first.
-      await flush();
+      // The agent edits the latest version: what's here goes first, or
+      // the agent's edit would land on top of a deck without it.
+      if (!(await flush())) {
+        setProblem(
+          t`your changes aren't saved yet, so the agent wasn't asked. Save them, then try again.`
+        );
+        return;
+      }
       const number = index + 1;
       const slide = current.id;
       const title = artifactTitle;

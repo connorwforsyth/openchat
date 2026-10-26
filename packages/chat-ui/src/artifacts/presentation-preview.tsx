@@ -376,8 +376,9 @@ export function useDeck({
     });
   });
 
+  const epoch = editing?.epoch;
   // biome-ignore lint/correctness/useExhaustiveDependencies: these are the triggers; `render` reads them.
-  useEffect(() => render(), [ready, content, theme, title]);
+  useEffect(() => render(), [ready, content, theme, title, epoch]);
 
   // Picking another slide, or nothing, without drawing the deck again.
   const select = useCallback(

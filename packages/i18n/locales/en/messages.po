@@ -7630,6 +7630,10 @@ msgstr "Your allowance"
 msgid "Your browser keeps that combination; pick another one."
 msgstr "Your browser keeps that combination; pick another one."
 
+#: ../chat-ui/src/artifacts/presentation/presentation-editor.tsx
+msgid "your changes aren't saved yet, so the agent wasn't asked. Save them, then try again."
+msgstr "your changes aren't saved yet, so the agent wasn't asked. Save them, then try again."
+
 #: ../library-ui/src/components/run-test-chat.tsx
 msgid "Your changes couldn't be saved, so the message wasn't sent."
 msgstr "Your changes couldn't be saved, so the message wasn't sent."
