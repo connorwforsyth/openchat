@@ -40,11 +40,8 @@ import {
 } from "react";
 
 import type { ArtifactSelection } from "../artifact-view";
-import { OlderVersion, SaveStatus } from "../document/document-view";
-import {
-  type SaveDocumentVersion,
-  useDocumentSave,
-} from "../document/use-document-save";
+import { OlderVersion, SaveStatus } from "../editor/save-status";
+import { type SaveVersion, useVersionSave } from "../editor/use-version-save";
 import { exportCsv, exportXlsx } from "./export";
 import {
   addSheet,
@@ -68,7 +65,7 @@ export interface SpreadsheetViewProps {
   readonly actions?: ReactNode;
   readonly artifact: Artifact;
   readonly header: (content: ReactNode) => ReactNode;
-  readonly onSave: SaveDocumentVersion;
+  readonly onSave: SaveVersion;
   readonly onSelect: (selection: ArtifactSelection) => void;
   /** The version shown; omitted, the latest. */
   readonly versionId?: ArtifactVersionId;
@@ -152,7 +149,7 @@ function SheetEditor({
   const [sheetIndex, setSheetIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>("A1");
   const [problems, setProblems] = useState<readonly string[]>([]);
-  const save = useDocumentSave({ baseVersionId: latest.id, save: onSave });
+  const save = useVersionSave({ baseVersionId: latest.id, save: onSave });
   const { change, saved: isMine, state } = save;
 
   // A version made elsewhere (the model, another editor) shows at once when

@@ -11,7 +11,7 @@ import type {
 import type { ReactNode } from "react";
 
 import type { ArtifactSelection } from "../artifact-view";
-import { useSaveDocumentVersion } from "../document/document-artifact";
+import { useSaveVersion } from "../editor/use-version-save";
 import { SpreadsheetView } from "./spreadsheet-view";
 
 // A Spreadsheet wired to the API (166), as a Document is (126): who may
@@ -45,7 +45,7 @@ export function SpreadsheetArtifact({
     enabled: info === undefined,
   });
   const known = info ?? detail.data?.artifact;
-  const save = useSaveDocumentVersion(api, artifact.id);
+  const save = useSaveVersion(api, artifact.id);
   return (
     <SpreadsheetView
       access={known?.access ?? null}

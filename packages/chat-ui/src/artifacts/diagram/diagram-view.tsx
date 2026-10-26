@@ -37,11 +37,8 @@ import {
 } from "react";
 
 import type { ArtifactSelection } from "../artifact-view";
-import { OlderVersion, SaveStatus } from "../document/document-view";
-import {
-  type SaveDocumentVersion,
-  useDocumentSave,
-} from "../document/use-document-save";
+import { OlderVersion, SaveStatus } from "../editor/save-status";
+import { type SaveVersion, useVersionSave } from "../editor/use-version-save";
 import { DiagramCanvas, type DiagramCanvasHandle } from "./diagram-canvas";
 import { exportMermaid, exportPicture } from "./export";
 import { addNode } from "./flow";
@@ -58,7 +55,7 @@ export interface DiagramViewProps {
   readonly artifact: Artifact;
   /** Frames the title bar in the host's row (the panel adds Close). */
   readonly header: (content: ReactNode) => ReactNode;
-  readonly onSave: SaveDocumentVersion;
+  readonly onSave: SaveVersion;
   readonly onSelect: (selection: ArtifactSelection) => void;
   /** The version shown; omitted, the latest. */
   readonly versionId?: ArtifactVersionId;
@@ -134,7 +131,7 @@ function DiagramVersion({
 }) {
   const { t } = useLingui();
   const [diagram, setDiagram] = useState(() => readDiagram(shown.content));
-  const save = useDocumentSave({ baseVersionId: latest.id, save: onSave });
+  const save = useVersionSave({ baseVersionId: latest.id, save: onSave });
   const { change, saved: isMine, state } = save;
   const canvas = useRef<DiagramCanvasHandle>(null);
 
