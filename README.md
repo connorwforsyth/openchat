@@ -1,0 +1,208 @@
+# Self-hosted AI chat
+
+A self-hosted, multi-user AI chat platform: agents, MCP tools, files and
+retrieval, branching conversations, artifacts and sandboxes, on a TypeScript
+stack (Next.js 16, Postgres with pgvector, bun and Turborepo). The product
+name is a working codename read from `app.config.yaml` (`brand:`), so this
+README calls it "the app". [`PLAN.md`](PLAN.md) is the spec.
+
+## Quick start with Docker
+
+You need Docker with Compose v2. From the repo root:
+
+```sh
+cp .env.example .env
+docker compose up -d
+```
+
+The first start builds the `web` image (a few minutes), starts Postgres,
+applies the migrations and serves the app on <http://localhost:3000>. Create
+an account: **the first account becomes the administrator**; after that,
+people join by invitation (Admin › Members).
+
+With no model configured, the app looks for a local Ollama. To add
+providers, either run the guided setup (needs bun, see below):
+
+```sh
+bun install
+bun run setup          # asks a few questions, writes .env and app.config.yaml
+bun run setup up       # builds and starts it, and prints the URL
+bun run setup doctor   # checks Docker, ports, config, health and models
+```
+
+or copy `app.config.example.yaml` to `app.config.yaml` and edit it. Running
+it in Docker, deploying behind TLS, optional services, updates and backups:
+[`docs/self-hosting.md`](docs/self-hosting.md).
+
+## Local development
+
+Prerequisites:
+
+- [bun](https://bun.sh) 1.4 (the repo pins `bun@1.4.0` in `package.json`)
+- Node.js 22 or newer (Next.js builds and runs on Node; the images use 24)
+- Docker, for Postgres and the optional services
+
+```sh
+bun install                       # also installs the pre-commit hook
+cp .env.example .env              # optional; every variable is optional
+docker compose up -d postgres     # Postgres + pgvector on localhost:5432
+bun dev                           # http://localhost:3000
+```
+
+- **No Docker?** Leave `DATABASE_URL` empty (or skip `.env`) and the server
+  runs on an embedded database (PGlite) in `apps/web/.data/pglite`. Fine
+  for trying things out, not for deployments.
+- `bun run setup` also has a local mode: choose `bun dev` when it asks, and
+  `bun run setup up` starts what `bun dev` needs and then runs it.
+- The main checkout serves on 3000; a linked git worktree gets its own
+  stable port, and `bun dev` prints it. `PORT` overrides both.
+- Before writing anything in `apps/web`, read [`AGENTS.md`](AGENTS.md):
+  Next.js 16 differs from earlier versions, and the repo has rules for
+  types, UI tokens, icons, strings and motion that CI enforces.
+
+## Configuration
+
+- **`.env`**: secrets and service URLs. Every variable is optional and
+  documented in [`.env.example`](.env.example); a missing value turns its
+  feature off rather than failing the start. In production, set
+  `BETTER_AUTH_SECRET` and `ENCRYPTION_KEY` yourself or let the `web`
+  container generate them once.
+- **`app.config.yaml`**: providers, models, sign-up, sandboxes, search,
+  icons, fonts and the brand. Start from
+  [`app.config.example.yaml`](app.config.example.yaml); secrets are
+  referenced as `${ENV_NAME}`, never written in the file. Icons and fonts
+  are compiled in, so rebuild the image after changing them
+  (`docker compose up -d --build`).
+
+`.env`, `app.config.yaml` and `docker-compose.override.yml` are gitignored.
+
+## Sign-in
+
+Sign-in uses [Better Auth](https://www.better-auth.com). Email and password
+works with no setup. The first account becomes the administrator; after that,
+`auth.signup` in `app.config.yaml` decides who can join: `invite` (default),
+`open`, `domain` (with `auth.domains`) or `sso`.
+
+What it needs:
+
+- **`BETTER_AUTH_SECRET`**, a random value (`openssl rand -base64 32`). In
+  development a fixed dev-only secret is used, with a warning; in production
+  sign-in stays off until it's set (the Docker image generates one on first
+  start).
+- **`BETTER_AUTH_URL`**, the address people use, e.g.
+  `https://chat.example.com`. Sign-in is refused from any other origin, so
+  open the app at exactly this address (`http://localhost:3000` locally).
+  Add extra hostnames or LAN addresses to `TRUSTED_ORIGINS`.
+- **Behind a reverse proxy**, list it in `TRUSTED_PROXIES` so rate limits see
+  real client addresses.
+
+Optional providers, each off until its credentials are set:
+
+| Provider | Where | Callback URL to register |
+|---|---|---|
+| GitHub | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` in `.env` | `<BETTER_AUTH_URL>/api/auth/callback/github` |
+| Google | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` in `.env` | `<BETTER_AUTH_URL>/api/auth/callback/google` |
+| Microsoft (Entra ID) | `auth.microsoft` in `app.config.yaml`, secrets from `.env` | see [`docs/self-hosting.md`](docs/self-hosting.md#sign-in-with-microsoft-entra-id) |
+| Any OIDC provider (SSO) | `auth.oidc` in `app.config.yaml` | see [`docs/self-hosting.md`](docs/self-hosting.md) |
+
+## Running code (sandbox)
+
+Each chat gets a workspace under `/work` where the model runs code. Out of
+the box that's just-bash, a simulated shell that runs in-process and needs
+no Docker. For real containers (one per chat), set `sandbox.default: docker`
+in `app.config.yaml` and `SANDBOX_RUNNER_TOKEN` in `.env`; the containers
+are started by the `sandbox-runner` service, so the app itself never touches
+the Docker socket. A Dot's computer always runs there.
+
+- **Docker:** `docker compose --profile sandbox up -d` starts the runner
+  beside the app.
+- **Local development:** `bun dev` starts the runner as well when Docker is
+  running and `SANDBOX_RUNNER_TOKEN` is set, and otherwise prints one line
+  saying why not and what to run. While the runner is down, Docker
+  sandboxes and the Dot's computer show the command that starts it; new
+  chats fall back to just-bash, and chat, files and artifacts keep working.
+
+Network access from inside a Docker sandbox is set in `app.config.yaml`:
+
+```yaml
+sandbox:
+  egress:
+    mode: open          # open (default) | allowlist | none
+    allow:              # used by `allowlist`; npm, PyPI and GitHub by default
+      - registry.npmjs.org
+      - pypi.org
+      - files.pythonhosted.org
+      - github.com
+```
+
+- `open` lets sandboxes reach anywhere, so installs and dev servers work.
+- `allowlist` allows only the hosts under `allow` (hostnames, or
+  `*.example.com` for any subdomain), through the runner's proxy.
+- `none` blocks every connection out.
+
+The `SANDBOX_EGRESS` environment variable overrides `mode`. A change applies
+to sandboxes created after a restart; see
+[`docs/self-hosting.md`](docs/self-hosting.md#sandbox-egress).
+
+## Behind a corporate network
+
+Installs download from `registry.npmjs.org`, and Docker builds also pull
+base images from Docker Hub. If `bun install` fails behind a proxy:
+
+- **An outbound proxy.** Export `HTTP_PROXY` and `HTTPS_PROXY` before
+  `bun install`. For Docker, set it in Docker Desktop (Settings › Resources ›
+  Proxies); Docker passes it to builds and containers.
+- **TLS interception**, which shows up as `SELF_SIGNED_CERT_IN_CHAIN` or
+  `UNABLE_TO_GET_ISSUER_CERT_LOCALLY`. Export the company's root CA as PEM
+  (on macOS, `security find-certificate -a -p -c "<CA name>" > corporate-ca.pem`)
+  and `export NODE_EXTRA_CA_CERTS=/path/to/corporate-ca.pem` before
+  `bun install` and `bun dev`.
+
+## Common commands
+
+| Command | What it does |
+|---|---|
+| `bun dev` | Runs the app (and the workspace watchers) in development |
+| `bun run check` / `bun run fix` | Ultracite (Biome) lint and format, check or fix |
+| `bun run check:guards` | The repo guards: tokens, icon imports, brand, Lingui, motion |
+| `bun run typecheck` | TypeScript across the workspace |
+| `bun run test` | Vitest across the workspace |
+| `bun run test:e2e` | Playwright against a production build |
+| `bun turbo typecheck lint test build` | What CI runs |
+| `bun run db:generate` / `bun run db:migrate` | Drizzle migrations (the server also migrates at boot) |
+| `bun run i18n:extract` | Re-extract the Lingui catalogs after changing strings |
+
+Filter any turbo task to one package, e.g.
+`bun turbo test --filter=@workspace/ui`.
+
+## Project layout
+
+bun workspaces and Turborepo; packages use the `@workspace/*` scope and
+ship TypeScript source with no build step.
+
+```
+apps/
+  web/              Next.js app, with the API at /api
+  artifacts/        artifact runtime, served on its own origin
+  sandbox-runner/   runs Docker sandboxes (the only service that reaches Docker)
+  desktop/          Electron shell around an instance
+packages/
+  contract/         oRPC + zod contract between client and server
+  server/ db/ auth/ ai/ mcp/ sandbox/ config/ ...   the server side
+  ui/ chat-ui/ composer/ icons/ i18n/ ...           the client side
+  setup/            `bun run setup`
+e2e/                Playwright tests
+scripts/ci/         repo guards run by `lint`
+docs/               self-hosting, desktop, Dots, voice, decisions
+```
+
+## Further reading
+
+- [`PLAN.md`](PLAN.md): the spec and its decisions (D1–D28)
+- [`AGENTS.md`](AGENTS.md): rules for anyone changing the code
+- [`docs/self-hosting.md`](docs/self-hosting.md): running and operating an
+  instance
+- [`docs/desktop.md`](docs/desktop.md): the desktop app
+- [`docs/dots.md`](docs/dots.md) and [`docs/voice.md`](docs/voice.md): Dots
+  and voice conversations
+- [`e2e/README.md`](e2e/README.md): the end-to-end tests
