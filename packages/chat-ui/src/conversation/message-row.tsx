@@ -367,11 +367,7 @@ function UserMessage({
                 <SkillsNote skills={block.skills} />
               </div>
             ))}
-            {message.mode ? (
-              <div className="ms-auto">
-                <ModeNote mode={message.mode} />
-              </div>
-            ) : null}
+            {message.mode ? <ModeNote mode={message.mode} /> : null}
             <MessageFooter className="gap-1 px-0 opacity-0 pointer-coarse:opacity-100 focus-within:opacity-100 group-hover/message:opacity-100">
               <BranchSwitcher
                 info={siblings}

@@ -220,6 +220,10 @@ Lane `pstack/usage` (Settings → Usage, span tags). Defaults applied overnight;
 3. **Where a message shows its mode.** *Defaulted: a quiet "Sent in Chat mode" or "Sent in Code mode" line under each user message.* The answer under it ran in the same mode. The alternative is to show it only when the mode changed from the message before, like the model switch marker (107).
 4. **Who may switch.** *Defaulted: anyone who can write to the chat (owner and editors).* Code isn't gated by a policy yet. An operator setting to keep a team in Chat would be new config.
 
+## modes-off lane (n2/modes-off)
+
+1. **Chats made while `features.chatModes` is off, once it's back on.** *Defaulted: they're Chat chats.* A conversation is still created with `mode = 'chat'` while the switch is hidden, the same as chats from before modes, so turning the flag on takes `bash` away from them until someone switches them to Code. The alternative is to create them as `code` while the flag is off, so turning it on changes nothing for chats people already have.
+
 ## editors lane (n2/editors)
 
 1. **A published agent can carry draft skills.** The Skills section marks a skill "Draft" when it was never published, and a skill written inline is saved as the writer's own draft. Teammates using the published agent can't load someone's draft skill. *Defaulted: show the Draft badge, change no sharing rule.* Alternatives: publishing an agent offers to publish its draft skills with it, or the publish dialog warns and lists them.

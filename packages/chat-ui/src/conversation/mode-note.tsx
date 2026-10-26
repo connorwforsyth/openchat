@@ -3,14 +3,23 @@
 import { Trans } from "@lingui/react/macro";
 import type { ChatMode } from "@workspace/contract/schemas/runs";
 import { CodeIcon, MessageSquareIcon } from "@workspace/icons";
+import { createContext, useContext } from "react";
 
 // Under a message: the mode it was sent in, Chat or Code. A message from
-// before the switch, or in a Dot's chat, has none and shows nothing.
+// before the switch, or in a Dot's chat, has none and shows nothing; nor
+// does any message while the instance has the switch off
+// (`features.chatModes`), though it keeps the mode it was sent in.
+
+/** Whether the screen shows modes; off unless the host offers the switch. */
+export const ShowModesContext = createContext(false);
 
 export function ModeNote({ mode }: { readonly mode: ChatMode }) {
+  if (!useContext(ShowModesContext)) {
+    return null;
+  }
   return (
     <p
-      className="flex items-center gap-1.5 text-muted-foreground text-xs"
+      className="ms-auto flex items-center gap-1.5 text-muted-foreground text-xs"
       data-mode={mode}
       data-slot="message-mode"
     >
