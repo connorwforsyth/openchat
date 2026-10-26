@@ -5014,6 +5014,10 @@ msgstr "Running {tool}"
 msgid "Runs in an ordinary chat can read but not change files."
 msgstr "Runs in an ordinary chat can read but not change files."
 
+#: ../chat-ui/src/artifacts/artifact-preview.tsx
+msgid "Runtime preview of {title}"
+msgstr "Runtime preview of {title}"
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/org-policy-form.tsx
 msgid "Sampled scoring"
 msgstr "Sampled scoring"
@@ -6104,8 +6108,12 @@ msgid "The app signs in to the same server you use in the browser."
 msgstr "The app signs in to the same server you use in the browser."
 
 #: ../chat-ui/src/artifacts/artifact-preview.tsx
-msgid "The artifacts service isn't responding, so this preview can't be shown right now."
-msgstr "The artifacts service isn't responding, so this preview can't be shown right now."
+msgid "The artifacts service hasn't answered yet, so this is a plain preview."
+msgstr "The artifacts service hasn't answered yet, so this is a plain preview."
+
+#: ../chat-ui/src/artifacts/artifact-preview.tsx
+msgid "The artifacts service hasn't answered yet. It may still be starting, or it may have stopped. The preview appears as soon as it answers."
+msgstr "The artifacts service hasn't answered yet. It may still be starting, or it may have stopped. The preview appears as soon as it answers."
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/audit-policy.tsx
 msgid "The audit policy couldn't be changed. Try again."

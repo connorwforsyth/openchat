@@ -9,8 +9,9 @@ import { RUNTIME_CHANNEL } from "./runtime-protocol";
 // runtime" are dispatched by hand, from the frame's window.
 const RUNTIME = "http://127.0.0.1:9";
 const PREVIEW = /Preview of/;
+const RUNTIME_PREVIEW = /Runtime preview of/;
 const NEEDS_RUNTIME = /needs the artifacts service, which isn't running/;
-const NOT_RESPONDING = /isn't responding/;
+const NOT_ANSWERED = /hasn't answered yet/;
 const SHOW_CODE = /Show the code/;
 const TRY_AGAIN = /Try again/;
 const SYNTAX = /syntax error/;
@@ -131,27 +132,53 @@ describe("ArtifactPreview with a runtime", () => {
     await waitFor(() => expect(frame().style.height).toBe("480px"));
   });
 
-  it("falls back to srcdoc for HTML when the runtime never answers", async () => {
+  it("shows HTML in a srcdoc frame while a slow runtime keeps loading", async () => {
     renderWithI18n(
       <ArtifactPreview {...props} readyTimeoutMs={20} runtimeOrigin={RUNTIME} />
     );
-    await waitFor(() =>
-      expect(frame().getAttribute("srcdoc")).toBe(props.content)
-    );
+    expect(await screen.findByText(NOT_ANSWERED)).toBeTruthy();
+    expect(frame().getAttribute("srcdoc")).toBe(props.content);
+    const runtime = screen.getByTitle<HTMLIFrameElement>(RUNTIME_PREVIEW);
+    expect(runtime.src).toContain(RUNTIME);
+    fromFrame({ type: "ready" }, runtime.contentWindow);
+    await waitFor(() => expect(screen.queryByText(NOT_ANSWERED)).toBeNull());
+    expect(frame().src).toContain(RUNTIME);
   });
 
-  it("says so for React when the runtime never answers", async () => {
+  it("keeps a slow runtime's frame, says it's waiting, and shows the render when it answers", async () => {
+    const onShowSource = vi.fn();
     renderWithI18n(
       <ArtifactPreview
         {...props}
         kind="react"
+        onShowSource={onShowSource}
         readyTimeoutMs={20}
         runtimeOrigin={RUNTIME}
       />
     );
-    expect(await screen.findByText(NOT_RESPONDING)).toBeTruthy();
-    await act(() => screen.getByRole("button", { name: TRY_AGAIN }).click());
+    expect(await screen.findByText(NOT_ANSWERED)).toBeTruthy();
     expect(frame().src).toContain(RUNTIME);
+    await act(() => screen.getByRole("button", { name: SHOW_CODE }).click());
+    expect(onShowSource).toHaveBeenCalledOnce();
+    fromFrame({ type: "ready" });
+    await waitFor(() => expect(screen.queryByText(NOT_ANSWERED)).toBeNull());
+  });
+
+  it("loads a new frame on Try again and waits for it afresh", async () => {
+    renderWithI18n(
+      <ArtifactPreview
+        {...props}
+        kind="react"
+        readyTimeoutMs={40}
+        runtimeOrigin={RUNTIME}
+      />
+    );
+    const first = frame();
+    expect(await screen.findByText(NOT_ANSWERED)).toBeTruthy();
+    await act(() => screen.getByRole("button", { name: TRY_AGAIN }).click());
+    expect(screen.queryByText(NOT_ANSWERED)).toBeNull();
+    expect(frame()).not.toBe(first);
+    expect(await screen.findByText(NOT_ANSWERED)).toBeTruthy();
   });
 
   it("doesn't fall back once the runtime is ready", async () => {
@@ -161,5 +188,6 @@ describe("ArtifactPreview with a runtime", () => {
     fromFrame({ type: "ready" });
     await new Promise((resolve) => window.setTimeout(resolve, 80));
     expect(frame().hasAttribute("srcdoc")).toBe(false);
+    expect(screen.queryByText(NOT_ANSWERED)).toBeNull();
   });
 });
