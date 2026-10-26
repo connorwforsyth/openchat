@@ -27,6 +27,7 @@ import {
 } from "ai";
 
 import { toRunError } from "../errors/run-error";
+import { STEER_DATA, type SteerData } from "../messages/steer";
 import { ARTIFACT_REF_DATA } from "../messages/to-ui";
 import { type TraceContext, tracedCall } from "../telemetry/trace-context";
 import {
@@ -83,6 +84,12 @@ export interface RunAgentInput {
   readonly signal?: AbortSignal;
   /** The loop ends after a step that called one of these (a scheduled run's `report`). */
   readonly stopAfterTools?: readonly string[];
+  /**
+   * Asked between steps, from the second on: a steer waiting for this
+   * answer, already taken (`null`: none). The model reads its message as
+   * the next user turn, and the stream and the outcome get its marker.
+   */
+  readonly takeSteer?: () => Promise<TakenSteer | null>;
   /** Wall clock for the whole turn (app.config.yaml `limits.runTimeoutSeconds`). */
   readonly timeoutMs?: number;
   readonly toolApproval?: Readonly<Record<string, ToolApprovalStatus>>;
@@ -95,6 +102,12 @@ export interface RunAgentInput {
    * the SDK's "unavailable tool" with the list of the ones it has.
    */
   readonly unavailableTools?: Readonly<Record<string, string>>;
+}
+
+/** A steer the answer took: its marker, and its message as the model reads it. */
+export interface TakenSteer {
+  readonly data: SteerData;
+  readonly message: UIMessage;
 }
 
 export interface AwaitedCall {
@@ -292,6 +305,61 @@ const artifactRefsInStream = (
   });
 };
 
+const steerPart = (data: SteerData) => ({
+  data,
+  id: data.message.id,
+  type: `data-${STEER_DATA}` as const,
+});
+
+const stepStarts = (message: UIMessage | undefined): number =>
+  message?.role === "assistant"
+    ? message.parts.filter((part) => part.type === "step-start").length
+    : 0;
+
+/**
+ * The answer with each taken steer's marker before the step it came
+ * before. `offset` is how many steps the answer had before this pass (a
+ * resumed answer keeps its earlier ones). Pure.
+ */
+export const withSteers = (
+  message: UIMessage,
+  steers: ReadonlyMap<number, SteerData>,
+  offset: number
+): UIMessage => {
+  if (steers.size === 0) {
+    return message;
+  }
+  let step = -offset;
+  const parts = message.parts.flatMap((part): UIPart[] => {
+    if (part.type !== "step-start") {
+      return [part];
+    }
+    const steer = steers.get(step);
+    step += 1;
+    return steer ? [steerPart(steer) as UIPart, part] : [part];
+  });
+  return { ...message, parts };
+};
+
+/** Puts each taken steer's marker on the stream just before its step starts. */
+const steersInStream = (
+  steers: ReadonlyMap<number, SteerData>
+): TransformStream<UIMessageChunk, UIMessageChunk> => {
+  let step = 0;
+  return new TransformStream({
+    transform: (chunk, controller) => {
+      if (chunk.type === "start-step") {
+        const steer = steers.get(step);
+        if (steer) {
+          controller.enqueue(steerPart(steer) as UIMessageChunk);
+        }
+        step += 1;
+      }
+      controller.enqueue(chunk);
+    },
+  });
+};
+
 /** A call the SDK refused before running anything: an unknown tool or bad input. */
 const isToolCallError = (error: unknown): error is Error =>
   NoSuchToolError.isInstance(error) ||
@@ -336,6 +404,8 @@ export const runAgent = async (
   }
 
   let usage: TokenUsage = { inputTokens: 0, outputTokens: 0 };
+  /** Steers taken, by the step (of this pass) they came before. */
+  const steers = new Map<number, SteerData>();
   let failure: RunError | undefined;
   // A refused call reaches `onError` twice: as the error (the call's chunk)
   // and then as its text (the result's chunk). Both are the call's, not the run's.
@@ -350,10 +420,25 @@ export const runAgent = async (
     activeTools: input.activeTools ? [...input.activeTools] : undefined,
     instructions: input.instructions,
     model: input.model,
-    // Old screenshots would crowd the context out (172).
-    prepareStep: ({ messages: stepMessages }) => ({
-      messages: keepRecentToolImages(stepMessages),
-    }),
+    // Old screenshots would crowd the context out (172). A steer joins as
+    // the next user turn; the messages a step returns carry on to the next.
+    prepareStep: async ({ messages: stepMessages, stepNumber }) => {
+      const kept = keepRecentToolImages(stepMessages);
+      const taken =
+        stepNumber > 0 && input.takeSteer ? await input.takeSteer() : null;
+      if (!taken) {
+        return { messages: kept };
+      }
+      steers.set(stepNumber, taken.data);
+      return {
+        messages: [
+          ...kept,
+          ...(await convertToModelMessages([taken.message], {
+            tools: input.tools,
+          })),
+        ],
+      };
+    },
     repairToolCall: input.unavailableTools
       ? explainUnavailable(input.unavailableTools)
       : undefined,
@@ -382,7 +467,14 @@ export const runAgent = async (
   const stream = result.toUIMessageStream({
     generateMessageId: input.generateMessageId,
     onEnd: ({ isAborted, responseMessage }) => {
-      const base = { message: withArtifactRefs(responseMessage), usage };
+      const base = {
+        message: withSteers(
+          withArtifactRefs(responseMessage),
+          steers,
+          stepStarts(messages.at(-1))
+        ),
+        usage,
+      };
       if (failure) {
         settle({ ...base, error: failure, status: "failed" });
       } else if (isAborted || input.signal?.aborted) {
@@ -419,6 +511,8 @@ export const runAgent = async (
 
   return ok({
     outcome,
-    stream: stream.pipeThrough(artifactRefsInStream(messages)),
+    stream: stream
+      .pipeThrough(artifactRefsInStream(messages))
+      .pipeThrough(steersInStream(steers)),
   });
 };

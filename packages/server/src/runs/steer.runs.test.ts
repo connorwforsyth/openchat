@@ -1,0 +1,400 @@
+import { STEER_DATA } from "@workspace/ai/messages/steer";
+import { textStream, toolCallStream } from "@workspace/ai/testing/mock-models";
+import type {
+  ConversationId,
+  MessageId,
+  RunId,
+} from "@workspace/contract/schemas/common";
+import type { Conversation } from "@workspace/contract/schemas/conversations";
+import type {
+  CreateRunOutput,
+  Run,
+  TurnDelivery,
+} from "@workspace/contract/schemas/runs";
+import { getBranchPath, newestLeafId } from "@workspace/db/queries/messages";
+import { getRun, readRunChunks } from "@workspace/db/queries/runs";
+import { expectOk } from "@workspace/db/testing";
+import { tool } from "ai";
+import { MockLanguageModelV4 } from "ai/test";
+import { afterEach, describe, expect, it } from "vitest";
+import { z } from "zod";
+import {
+  createHarness,
+  type Harness,
+  scriptedModel,
+  textParts,
+} from "../testing/harness";
+
+// Steering (`delivery: "steer"`), through the API and the executor: a turn
+// sent while an answer is being written joins that answer at its next step
+// boundary, and the tree shows it where it was taken. One the answer can't
+// take runs as the next turn.
+
+let h: Harness | undefined;
+afterEach(() => h?.close());
+
+/** A tool whose call waits until the test lets it finish. */
+const gatedTool = () => {
+  let release: () => void = () => undefined;
+  let called: () => void = () => undefined;
+  const done = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const calledOnce = new Promise<void>((resolve) => {
+    called = resolve;
+  });
+  return {
+    called: calledOnce,
+    release: () => release(),
+    tools: {
+      wait: tool({
+        execute: async () => {
+          called();
+          await done;
+          return "waited";
+        },
+        inputSchema: z.object({}),
+      }),
+    },
+  };
+};
+
+/** Calls `wait`, then answers. */
+const callThenAnswer = (answer: string) => {
+  let calls = 0;
+  return new MockLanguageModelV4({
+    doStream: () => {
+      calls += 1;
+      return Promise.resolve(
+        calls === 1 ? toolCallStream("wait", {}) : textStream(answer)
+      );
+    },
+  });
+};
+
+const newChat = async (harness: Harness): Promise<ConversationId> =>
+  (
+    (await (
+      await harness.request("/api/conversations", { json: {}, method: "POST" })
+    ).json()) as Conversation
+  ).id;
+
+const send = async (
+  harness: Harness,
+  conversationId: ConversationId,
+  text: string,
+  parentId: MessageId | null,
+  delivery?: TurnDelivery
+): Promise<CreateRunOutput> => {
+  const response = await harness.request("/api/runs", {
+    json: {
+      conversationId,
+      input: { parentId, parts: [{ text, type: "text" }], type: "message" },
+      ...(delivery ? { options: { delivery } } : {}),
+      target: { model: "test:chat", type: "model" },
+    },
+    method: "POST",
+  });
+  if (response.status !== 202) {
+    throw new Error(`POST /api/runs answered ${response.status}`);
+  }
+  return (await response.json()) as CreateRunOutput;
+};
+
+const runOf = async (harness: Harness, id: RunId) =>
+  expectOk(await getRun(harness.db, id));
+
+const pathOf = async (harness: Harness, conversationId: ConversationId) => {
+  const leaf = await newestLeafId(harness.db, conversationId);
+  return expectOk(
+    await getBranchPath(harness.db, conversationId, leaf as MessageId)
+  ).messages;
+};
+
+const textOf = (parts: readonly { type: string; text?: string }[]) =>
+  parts.flatMap((part) => (part.type === "text" ? [part.text] : [])).join("");
+
+const userTexts = (model: MockLanguageModelV4, call: number): string[] =>
+  (model.doStreamCalls[call]?.prompt ?? []).flatMap((message) =>
+    message.role === "user"
+      ? message.content.flatMap((part) =>
+          part.type === "text" ? [part.text] : []
+        )
+      : []
+  );
+
+/** A turn whose first step waits in `wait` until released. */
+const busyTurn = async (harness: Harness, answer = "Done.") => {
+  const gate = gatedTool();
+  const model = callThenAnswer(answer);
+  harness.nextTurn({ model, tools: gate.tools });
+  const chat = await newChat(harness);
+  const first = await send(harness, chat, "Look into it.", null);
+  await gate.called;
+  const answering = await runOf(harness, first.runId);
+  return { answering, chat, first, gate, model };
+};
+
+describe("steering a running answer", () => {
+  it("joins at the next step: the model reads it, and the tree shows it where it was taken", async () => {
+    h = await createHarness();
+    const { answering, chat, first, gate, model } = await busyTurn(
+      h,
+      "Using the steer."
+    );
+    const firstAnswer = answering.assistantMessageId as MessageId;
+
+    const steer = await send(h, chat, "Focus on b.", firstAnswer, "steer");
+    expect(steer.status).toBe("queued");
+    gate.release();
+    await h.services.executor.idle();
+
+    expect(userTexts(model, 1)).toEqual(["Look into it.", "Focus on b."]);
+    const path = await pathOf(h, chat);
+    expect(path.map((message) => message.role)).toEqual([
+      "user",
+      "assistant",
+      "user",
+      "assistant",
+    ]);
+    const [, before, steered, after] = path;
+    expect(before).toMatchObject({ id: firstAnswer, status: "complete" });
+    expect(before?.parts.some((part) => part.type === "tool-call")).toBe(true);
+    expect(steered).toMatchObject({ id: steer.userMessageId });
+    expect(after).toMatchObject({ runId: first.runId, status: "complete" });
+    expect(textOf(after?.parts ?? [])).toBe("Using the steer.");
+    expect(
+      path
+        .flatMap((message) => message.parts)
+        .some((part) => part.type === "data" && part.name === STEER_DATA)
+    ).toBe(false);
+
+    expect(await runOf(h, first.runId)).toMatchObject({
+      assistantMessageId: after?.id,
+      status: "succeeded",
+    });
+    expect(await runOf(h, steer.runId)).toMatchObject({
+      assistantMessageId: null,
+      status: "cancelled",
+    });
+    const chunks = await readRunChunks(h.db, first.runId);
+    expect(
+      chunks.some(
+        (chunk) =>
+          (chunk.payload as { type?: string }).type === `data-${STEER_DATA}`
+      )
+    ).toBe(true);
+  });
+
+  it("runs as the next turn when the answer has no step left to take it", async () => {
+    h = await createHarness();
+    const scripted = scriptedModel();
+    h.nextTurn({ model: scripted.model });
+    const chat = await newChat(h);
+    const first = await send(h, chat, "Say hi.", null);
+    scripted.push(...textParts.start(), textParts.delta("Hi"));
+    const steer = await send(
+      h,
+      chat,
+      "And bye.",
+      (await runOf(h, first.runId)).assistantMessageId,
+      "steer"
+    );
+    const next = new MockLanguageModelV4({ doStream: textStream("Bye.") });
+    h.nextTurn({ model: next });
+    scripted.push(textParts.textEnd(), textParts.finish());
+    scripted.end();
+    await h.services.executor.idle();
+
+    expect(await runOf(h, steer.runId)).toMatchObject({ status: "succeeded" });
+    expect(userTexts(next, 0)).toEqual(["Say hi.", "And bye."]);
+    const path = await pathOf(h, chat);
+    expect(path.map((message) => textOf(message.parts))).toEqual([
+      "Say hi.",
+      "Hi",
+      "And bye.",
+      "Bye.",
+    ]);
+  });
+
+  it("takes a steer that a queued turn already follows, and the turn runs after", async () => {
+    h = await createHarness();
+    const { answering, chat, gate, model } = await busyTurn(h, "Using b.");
+    const firstAnswer = answering.assistantMessageId as MessageId;
+    await send(h, chat, "Focus on b.", firstAnswer, "steer");
+    const queued = await send(h, chat, "Then sum up.", firstAnswer);
+    h.nextTurn({
+      model: new MockLanguageModelV4({ doStream: textStream("Summed up.") }),
+    });
+    gate.release();
+    await h.services.executor.idle();
+
+    expect(userTexts(model, 1)).toEqual(["Look into it.", "Focus on b."]);
+    expect(await runOf(h, queued.runId)).toMatchObject({ status: "succeeded" });
+    const path = await pathOf(h, chat);
+    expect(path.map((message) => textOf(message.parts))).toEqual([
+      "Look into it.",
+      "",
+      "Focus on b.",
+      "Using b.",
+      "Then sum up.",
+      "Summed up.",
+    ]);
+  });
+
+  it("queues a plain turn, as before", async () => {
+    h = await createHarness();
+    const { answering, chat, gate } = await busyTurn(h);
+    const queued = await send(
+      h,
+      chat,
+      "Later.",
+      answering.assistantMessageId,
+      "queue"
+    );
+    h.nextTurn({
+      model: new MockLanguageModelV4({ doStream: textStream("Later, then.") }),
+    });
+    gate.release();
+    await h.services.executor.idle();
+    const path = await pathOf(h, chat);
+    expect(path.map((message) => textOf(message.parts)).slice(-2)).toEqual([
+      "Later.",
+      "Later, then.",
+    ]);
+    expect(await runOf(h, queued.runId)).toMatchObject({ status: "succeeded" });
+  });
+
+  it("queues a turn sent from the answer before a steer behind the run that took it", async () => {
+    h = await createHarness();
+    const one = gatedTool();
+    const two = gatedTool();
+    let calls = 0;
+    const model = new MockLanguageModelV4({
+      doStream: () => {
+        calls += 1;
+        if (calls === 1) {
+          return Promise.resolve(toolCallStream("wait", {}, "call-1"));
+        }
+        return Promise.resolve(
+          calls === 2
+            ? toolCallStream("hold", {}, "call-2")
+            : textStream("Both done.")
+        );
+      },
+    });
+    h.nextTurn({ model, tools: { ...one.tools, hold: two.tools.wait } });
+    const chat = await newChat(h);
+    const first = await send(h, chat, "Look into it.", null);
+    await one.called;
+    const firstAnswer = (await runOf(h, first.runId))
+      .assistantMessageId as MessageId;
+    await send(h, chat, "Focus on b.", firstAnswer, "steer");
+    one.release();
+    // The second step's call means the steer was taken before it.
+    await two.called;
+    // A page that hadn't seen the steer still sends from the first answer.
+    const late = await send(h, chat, "One more.", firstAnswer);
+    expect(late.status).toBe("queued");
+    h.nextTurn({
+      model: new MockLanguageModelV4({ doStream: textStream("Sure.") }),
+    });
+    two.release();
+    await h.services.executor.idle();
+    const path = await pathOf(h, chat);
+    expect(path.map((message) => textOf(message.parts))).toEqual([
+      "Look into it.",
+      "",
+      "Focus on b.",
+      "Both done.",
+      "One more.",
+      "Sure.",
+    ]);
+  });
+});
+
+describe("the queue's actions", () => {
+  it("steer now marks a queued turn, and the answer takes it", async () => {
+    h = await createHarness();
+    const { answering, chat, gate, model } = await busyTurn(h);
+    const queued = await send(
+      h,
+      chat,
+      "Focus on b.",
+      answering.assistantMessageId
+    );
+    const promoted = await h.request(`/api/runs/${queued.runId}/steer`, {
+      method: "POST",
+    });
+    expect(promoted.status).toBe(200);
+    expect(((await promoted.json()) as Run).options?.delivery).toBe("steer");
+    gate.release();
+    await h.services.executor.idle();
+    expect(userTexts(model, 1)).toEqual(["Look into it.", "Focus on b."]);
+  });
+
+  it("withdraw takes a queued turn back, message and all", async () => {
+    h = await createHarness();
+    const { answering, chat, gate } = await busyTurn(h);
+    const queued = await send(
+      h,
+      chat,
+      "Never mind.",
+      answering.assistantMessageId
+    );
+    const withdrawn = await h.request(`/api/runs/${queued.runId}/withdraw`, {
+      method: "POST",
+    });
+    expect(withdrawn.status).toBe(200);
+    expect(await withdrawn.json()).toMatchObject({
+      messageRemoved: true,
+      run: { state: { status: "cancelled" } },
+    });
+    gate.release();
+    await h.services.executor.idle();
+    const path = await pathOf(h, chat);
+    expect(path.map((message) => textOf(message.parts))).not.toContain(
+      "Never mind."
+    );
+    const again = await h.request(`/api/runs/${queued.runId}/withdraw`, {
+      method: "POST",
+    });
+    expect(again.status).toBe(404);
+  });
+
+  it("refuses a turn that already started", async () => {
+    h = await createHarness();
+    const { first, gate } = await busyTurn(h);
+    for (const action of ["steer", "withdraw"]) {
+      // biome-ignore lint/performance/noAwaitInLoops: two requests, in turn.
+      const response = await h.request(`/api/runs/${first.runId}/${action}`, {
+        method: "POST",
+      });
+      expect(response.status).toBe(409);
+    }
+    gate.release();
+    await h.services.executor.idle();
+  });
+
+  it("a person who can only read the chat can't steer or withdraw", async () => {
+    h = await createHarness();
+    const { answering, chat, gate } = await busyTurn(h);
+    const queued = await send(h, chat, "Later.", answering.assistantMessageId);
+    const { seedOrg, seedUser } = await import("@workspace/db/testing");
+    const stranger = await seedUser(h.db);
+    await seedOrg(h.db, stranger.id, { isPersonal: true });
+    for (const action of ["steer", "withdraw"]) {
+      // biome-ignore lint/performance/noAwaitInLoops: two requests, in turn.
+      const response = await h.request(`/api/runs/${queued.runId}/${action}`, {
+        as: stranger.id as never,
+        method: "POST",
+      });
+      expect([403, 404]).toContain(response.status);
+    }
+    h.nextTurn({
+      model: new MockLanguageModelV4({ doStream: textStream("Later, then.") }),
+    });
+    gate.release();
+    await h.services.executor.idle();
+  });
+});

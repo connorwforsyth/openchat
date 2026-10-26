@@ -18,6 +18,8 @@ import type {
 } from "@workspace/contract/schemas/conversations";
 import type { z } from "zod";
 
+import { ACTIVE_RUNS_LIMIT, runInFront } from "../model/run-activity";
+
 // The queries and mutations behind `ConnectedChat`, split out so each piece
 // reads on its own. Keys come from the contract through
 // `@orpc/tanstack-query` (D11).
@@ -71,7 +73,7 @@ export const useChatQueries = (
   const runs = useQuery(
     api.runs.list.queryOptions({
       input: conversationId
-        ? { active: true, conversationId, limit: 5 }
+        ? { active: true, conversationId, limit: ACTIVE_RUNS_LIMIT }
         : skipToken,
     })
   );
@@ -93,12 +95,11 @@ export const useChatQueries = (
   // `undefined` until the list loads: a run still producing a reply, which a
   // page opened mid-reply follows (PLAN.md §11 M1 step 3).
   const runningRunId = runs.data
-    ? (runs.data.items.find(
-        (run) => run.state.status === "running" || run.state.status === "queued"
-      )?.id ?? null)
+    ? (runInFront(runs.data.items)?.id ?? null)
     : undefined;
   return {
     activeRun,
+    activeRuns: runs.data?.items,
     artifacts,
     chats,
     conversation,

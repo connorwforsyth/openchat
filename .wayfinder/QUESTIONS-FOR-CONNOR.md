@@ -243,6 +243,7 @@ Lane `pstack/usage` (Settings → Usage, span tags). Defaults applied overnight;
 2. **Long-context price tiers aren't applied.** models.dev lists them (Haiku 5.5 costs five times more above 100k tokens of context), but a run's usage is summed over its steps, so no single call's context size is known. *Defaulted: base rates, so a call over the threshold is under-counted.* The alternative is to record usage per step, which changes how runs settle.
 3. **Cache writes are charged as input.** The recorded usage has no cache-write count (`tokenUsageSchema` in the contract), so Anthropic's 1.25x cache-write rate isn't charged. *Defaulted: input price.* Adding `cacheWriteTokens` is a contract change.
 4. **No marker for estimated prices or ratings per row.** Usage rows don't record where their price came from, and the picker's ratings carry no source, so the UI says it once ("Costs are estimates at models.dev list prices unless this instance sets its own") instead of per row. A per-row marker needs a `priced`/`source` field on usage rows and on `ModelOption.ratings`, both contract changes. The contract's comment on `ModelOption.ratings` ("only what the config says; never guessed") is now stale for the same reason.
+
 ## n2-artifacts lane (n2/artifacts, n2/artifacts-panel)
 
 1. **Does a new artifact reopen a panel you closed during the run?** Auto-open goes through the same path as clicking the artifact's card, so it opens a closed panel. The browser preview (066) stays shut if you closed the panel mid-run. *Defaulted: artifacts reopen it.* The alternative is to respect a mid-run close, as the Preview does, which is a one-line check in `chat-screen.tsx`.
@@ -255,3 +256,11 @@ Lane `pstack/usage` (Settings → Usage, span tags). Defaults applied overnight;
 3. **No thumbnails on chat cards.** A card holds only a reference, so a picture costs a version fetch or a runtime render per card, and the app has no thumbnail service yet. *Defaulted: each kind's own icon and name; no picture.* The alternative is a small SVG and image thumbnail from the version, fetched when the card scrolls into view.
 4. **A reload reopens the panel on the newest artifact, not the one you had open.** The layout stores the panel's section, not its selection (unchanged from before). *Defaulted: left as is.* Storing the selection per chat is a small follow-up.
 5. **A deck without the artifacts service.** It opens on Preview and says the service isn't running, with Show the code. *Defaulted: same as React and sites.*
+
+## steer lane (n2/steer)
+
+1. **Enter queues, ⌘↵ steers.** While an answer is being written, Enter queues the message as the next turn and ⌘↵ (Ctrl+Enter elsewhere), or the Steer button, steers the answer at its next step. *Defaulted: as Claude Code and Codex do.* The alternative is Enter steers and ⌘↵ queues.
+2. **A steer that changes how the answer is made runs as its own turn.** A message that picks skills, names an agent, or approves a plan can't join an answer already being written, so the server queues it instead. *Defaulted: queue it.* The alternative is to refuse the steer with a message.
+3. **Remove deletes a queued message.** Remove and Edit take a queued turn back with its message, so it leaves no trace in the chat. If another turn was queued under it meanwhile, it stays as a stopped question. *Defaulted: delete.* The alternative is to keep it in the chat as stopped, as Stop on a queued turn does.
+4. **Quick AI doesn't queue or steer.** Each Quick AI ask is a new chat, and ⌘↵ there already means "Open in the app". *Defaulted: unchanged.* The alternative is follow-ups in the Quick AI window, which would need a different key for opening in the app.
+5. **A steer sent while a card waits for approval moves on.** As with any message sent then (072), the waiting answer stops and the steer runs as the next turn. *Defaulted: unchanged.* The alternative is to hold the steer until someone decides.

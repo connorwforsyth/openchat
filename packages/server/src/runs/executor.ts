@@ -1,8 +1,13 @@
-import { type AgentOutcome, runAgent } from "@workspace/ai/agent/run-agent";
+import {
+  type AgentOutcome,
+  runAgent,
+  type TakenSteer,
+} from "@workspace/ai/agent/run-agent";
 import {
   fromUIMessage,
   type RecordedDecision,
 } from "@workspace/ai/messages/from-ui";
+import { splitAtSteers } from "@workspace/ai/messages/steer";
 import { toUIMessages } from "@workspace/ai/messages/to-ui";
 import type {
   RunExecutor,
@@ -51,6 +56,7 @@ import {
   setRunResolvedModel,
   transitionRun,
 } from "@workspace/db/queries/runs";
+import { takeSteer } from "@workspace/db/queries/steers";
 import { newId } from "@workspace/shared/ids";
 import { err, ok, type Result } from "@workspace/shared/result";
 import {
@@ -611,13 +617,25 @@ export const createInProcessExecutor = (
       report("couldn't store the answer's parts", mapped.error);
     }
     const cited = mapped.ok ? withCitations(mapped.value) : [];
+    // An answer that took steers is stored as the answers they split it
+    // into; all but the last are done.
+    const segments = splitAtSteers(assistantMessageId, cited);
+    const last = segments.at(-1) ?? { answerId: assistantMessageId, parts: [] };
+    for (const done of segments.slice(0, -1)) {
+      // biome-ignore lint/performance/noAwaitInLoops: one per steer taken; normally none.
+      await updateMessage(db, done.answerId, {
+        model: turn.resolvedModel,
+        parts: done.parts,
+        status: "complete",
+      });
+    }
     const answered =
       outcome.status === "cancelled"
-        ? await interruptPass(run.runId, cited, { ...pass, before })
-        : cited;
+        ? await interruptPass(run.runId, [...last.parts], { ...pass, before })
+        : last.parts;
     const parts =
       outcome.status === "succeeded" && run.options.mode === "plan"
-        ? await withSavedPlan(run, assistantMessageId, answered)
+        ? await withSavedPlan(run, last.answerId, answered)
         : answered;
     const usage =
       outcome.usage.inputTokens + outcome.usage.outputTokens > 0
@@ -634,7 +652,7 @@ export const createInProcessExecutor = (
       usage,
       await proposedEdits(outcome, turn)
     );
-    await updateMessage(db, assistantMessageId, {
+    await updateMessage(db, last.answerId, {
       model: turn.resolvedModel,
       parts,
       status,
@@ -755,6 +773,8 @@ export const createInProcessExecutor = (
     reviews: ToolReviews = new Map()
   ): Promise<void> => {
     const run = runWithChatModes(started, deps.chatModes);
+    // The answer being written; a steer moves the run on to a new one.
+    let answerId = assistantMessageId;
     try {
       const messages = await loadBranch(run, leafId);
       if (!messages) {
@@ -801,6 +821,47 @@ export const createInProcessExecutor = (
         );
         return;
       }
+      const steer = async (): Promise<TakenSteer | null> => {
+        const taken = await takeSteer(db, run.runId, now()).catch(
+          (cause: unknown) => {
+            report("couldn't take a steer", cause);
+            return null;
+          }
+        );
+        const asked = taken ? toMessage(taken.userMessage) : null;
+        if (!(taken && asked?.ok)) {
+          return null;
+        }
+        answerId = taken.answer.id;
+        // Its own run never ran; anyone following its stream sees it end.
+        const closed = await writer.close(taken.run.id, "cancelled");
+        if (!closed.ok) {
+          report("couldn't close a taken steer's stream", closed.error);
+        }
+        const [message] = toUIMessages(
+          await attachmentsForModel(
+            [asked.value],
+            run.createdBy,
+            deps.attachments?.(turn.value.resolvedModel) ?? NO_ATTACHMENTS
+          ),
+          { fileUrl }
+        );
+        return message
+          ? {
+              data: {
+                answerId: taken.answer.id,
+                message: {
+                  authorId: asked.value.authorId,
+                  createdAt: asked.value.createdAt,
+                  id: asked.value.id,
+                  parts: asked.value.parts,
+                },
+                previousAnswerId: taken.previousAnswerId,
+              },
+              message,
+            }
+          : null;
+      };
       const agentRun = await runAgent({
         budget: turn.value.budget,
         generateMessageId: () => assistantMessageId,
@@ -811,6 +872,7 @@ export const createInProcessExecutor = (
         parameters: turn.value.parameters,
         signal: controller.signal,
         stopAfterTools: turn.value.stopAfterTools,
+        takeSteer: steer,
         timeoutMs: deps.timeoutMs,
         toolApproval: turn.value.toolApproval,
         tools: watchExecutions(turn.value.tools, executions),
@@ -838,8 +900,8 @@ export const createInProcessExecutor = (
       });
     } catch (cause) {
       report("run failed unexpectedly", cause);
-      await failEarly(run.runId, assistantMessageId, INTERNAL).catch(
-        (again: unknown) => report("couldn't fail a crashed run", again)
+      await failEarly(run.runId, answerId, INTERNAL).catch((again: unknown) =>
+        report("couldn't fail a crashed run", again)
       );
     } finally {
       release(run.runId, controller);

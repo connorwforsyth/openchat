@@ -1,5 +1,5 @@
 import { answeringAgent, chipsOf } from "@workspace/ai/messages/chips";
-import type { SkillUse } from "@workspace/ai/messages/skills";
+import { type SkillUse, skillUsesOf } from "@workspace/ai/messages/skills";
 import type { RunExecutor } from "@workspace/ai/ports/run-executor";
 import type { MessageId, RunId } from "@workspace/contract/schemas/common";
 import type { MessagePart } from "@workspace/contract/schemas/message-parts";
@@ -110,7 +110,8 @@ const lastInLine = (
  */
 export const busyTail = (
   active: readonly RunRow[],
-  anchor: MessageId | null
+  anchor: MessageId | null,
+  anchorRunId: RunId | null = null
 ): RunRow | undefined =>
   anchor === null
     ? undefined
@@ -118,9 +119,29 @@ export const busyTail = (
         active,
         active.find(
           (run) =>
-            run.userMessageId === anchor || run.assistantMessageId === anchor
+            run.userMessageId === anchor ||
+            run.assistantMessageId === anchor ||
+            run.id === anchorRunId
         )
       );
+
+/**
+ * The run that wrote `anchor`, when it's an answer. A run that took a steer
+ * goes on in a new answer, so a turn sent from the answer before it (a page
+ * that hadn't seen the steer yet) still waits on that run.
+ */
+const anchorRunOf = async (
+  db: Db,
+  anchor: MessageId | null
+): Promise<RunId | null> => {
+  if (anchor === null) {
+    return null;
+  }
+  const found = await getMessage(db, anchor);
+  return found.ok && found.value.role === "assistant"
+    ? found.value.runId
+    : null;
+};
 
 /**
  * The run's options with its resolved mode, never the client's, and none
@@ -132,6 +153,30 @@ const withChatMode = (
 ): RunOptions => {
   const { chatMode: _ignored, ...rest } = runOptionsSchema.parse(options ?? {});
   return chatMode ? { ...rest, chatMode } : rest;
+};
+
+/**
+ * Whether a turn asked to steer may: only a plain message can join an
+ * answer already being written. One that picks skills or an agent, or
+ * approves a plan, changes how the answer is made, so it runs as the next
+ * turn instead. Pure.
+ */
+export const maySteer = (
+  { input: turn }: CreateRunInput,
+  skills: readonly SkillUse[]
+): boolean =>
+  turn.type === "message" && skills.length === 0 && partsMaySteer(turn.parts);
+
+/** Whether a stored message's parts may steer (`maySteer`). Pure. */
+export const partsMaySteer = (parts: readonly MessagePart[]): boolean =>
+  skillUsesOf(parts).length === 0 &&
+  !answeringAgent(chipsOf(parts)) &&
+  !planApprovalOf(parts);
+
+/** The options stored for the turn: a steer that may not steer queues. Pure. */
+const withDelivery = (options: RunOptions, steerable: boolean): RunOptions => {
+  const { delivery, ...rest } = options;
+  return delivery === "steer" && steerable ? { ...rest, delivery } : rest;
 };
 
 /**
@@ -355,7 +400,11 @@ const placeRun = async (
     placed = await db.transaction(async (tx) => {
       // A question stopped while it was queued never got an answer, so a
       // reply under it waits on its place in the queue, under that question.
-      let tail = busyTail(await listActiveRuns(tx, conversationId), anchor);
+      let tail = busyTail(
+        await listActiveRuns(tx, conversationId),
+        anchor,
+        await anchorRunOf(tx, anchor)
+      );
       if (!tail && anchor !== null) {
         tail = await stoppedRunAt(tx, conversationId, anchor);
       }
@@ -386,7 +435,10 @@ const placeRun = async (
         conversationId,
         createdBy: actor.userId,
         idempotencyKey: input.idempotencyKey ?? null,
-        options: withChatMode(input.options, resolved.chatMode),
+        options: withDelivery(
+          withChatMode(input.options, resolved.chatMode),
+          maySteer(input, resolved.skills)
+        ),
         status: "queued",
         target: resolved.target,
         unattended: resolved.unattended,
@@ -481,7 +533,7 @@ const moveOnFromWaiting = async (
 ): Promise<void> => {
   const anchor = turn.type === "message" ? turn.parentId : turn.userMessageId;
   const active = await listActiveRuns(deps.db, conversationId);
-  let tail = busyTail(active, anchor);
+  let tail = busyTail(active, anchor, await anchorRunOf(deps.db, anchor));
   if (!tail && anchor !== null) {
     // Under a question stopped while it was queued, the turn follows what
     // that question waited on, as a reply under that answer would.

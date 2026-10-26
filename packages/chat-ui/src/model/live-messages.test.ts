@@ -1,13 +1,16 @@
+import { STEER_DATA, type SteerData } from "@workspace/ai/messages/steer";
 import { fixtureId, userAda } from "@workspace/contract/fixtures";
 import type {
   ApprovalState,
   MessagePart,
 } from "@workspace/contract/schemas/message-parts";
+import { newId } from "@workspace/shared/ids";
 import type { UIMessage } from "ai";
 import { describe, expect, it } from "vitest";
-
 import { treeMessages } from "../fixtures";
+
 import {
+  answerIdOf,
   caughtUp,
   type Decisions,
   liveParts,
@@ -324,5 +327,98 @@ describe("liveParts", () => {
         })
       )
     ).toEqual(["text", "c2:pending"]);
+  });
+});
+
+describe("an answer that took a steer", () => {
+  const path = treeMessages.slice(0, 2);
+  const [question, stored] = path;
+  const context = {
+    authorId: userAda.id,
+    conversationId: question?.conversationId ?? fixtureId("conversation", 1),
+    now: "2026-10-27T10:00:00.000Z",
+  };
+  const firstAnswer = stored?.id as SteerData["previousAnswerId"];
+  const steer: SteerData = {
+    answerId: newId("message"),
+    message: {
+      authorId: userAda.id,
+      createdAt: "2026-10-27T10:00:01.000Z",
+      id: newId("message"),
+      parts: [{ text: "Focus on b.", type: "text" }],
+    },
+    previousAnswerId: firstAnswer,
+  };
+  const live: UIMessage = {
+    id: firstAnswer,
+    parts: [
+      { text: "Looking at a.", type: "text" },
+      { data: steer, id: steer.message.id, type: `data-${STEER_DATA}` },
+      { text: "Now b.", type: "text" },
+    ],
+    role: "assistant",
+  };
+
+  it("shows the steer where the answer took it, and the rest under it", () => {
+    const merged = mergeLive(
+      path,
+      [ui(question?.id ?? "q", "user", "Hi"), live],
+      context,
+      undefined,
+      firstAnswer
+    );
+    expect(merged.map((message) => message.id)).toEqual([
+      question?.id,
+      firstAnswer,
+      steer.message.id,
+      steer.answerId,
+    ]);
+    const [, before, asked, after] = merged;
+    expect(before?.parts).toEqual([{ text: "Looking at a.", type: "text" }]);
+    expect(asked).toMatchObject({
+      parentId: firstAnswer,
+      parts: [{ text: "Focus on b.", type: "text" }],
+      role: "user",
+    });
+    expect(after).toMatchObject({
+      parentId: steer.message.id,
+      parts: [{ text: "Now b.", type: "text" }],
+      role: "assistant",
+    });
+  });
+
+  it("shows it once when the stored branch already has it", () => {
+    const storedSteer = {
+      ...(stored as NonNullable<typeof stored>),
+      id: steer.message.id,
+      parentId: firstAnswer,
+      parts: [{ text: "Focus on b.", type: "text" as const }],
+      role: "user" as const,
+    };
+    const storedAnswer = {
+      ...(stored as NonNullable<typeof stored>),
+      id: steer.answerId,
+      parentId: steer.message.id,
+      parts: [],
+    };
+    const merged = mergeLive(
+      [...path, storedSteer, storedAnswer],
+      [ui(question?.id ?? "q", "user", "Hi"), live],
+      context,
+      undefined,
+      firstAnswer
+    );
+    expect(merged.map((message) => message.id)).toEqual([
+      question?.id,
+      firstAnswer,
+      steer.message.id,
+      steer.answerId,
+    ]);
+    expect(merged.at(-1)?.parts).toEqual([{ text: "Now b.", type: "text" }]);
+  });
+
+  it("writes into the answer the last steer started", () => {
+    expect(answerIdOf(live)).toBe(steer.answerId);
+    expect(answerIdOf(ui("x", "assistant", "plain"))).toBe("x");
   });
 });

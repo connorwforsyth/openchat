@@ -56,10 +56,12 @@ export interface ComposerKeyHandlers {
    */
   readonly onHistoryKey: (direction: PromptHistoryDirection) => boolean;
   /**
-   * Enter or Mod+Enter. Return false while a suggestion menu is open: this
-   * keymap runs before the Suggestion plugins, which then pick the option.
+   * Enter (`send`) or Mod+Enter (`steer`, which sends like Enter unless an
+   * answer is being written). Return false while a suggestion menu is open:
+   * this keymap runs before the Suggestion plugins, which then pick the
+   * option.
    */
-  readonly onSubmitKey: () => boolean;
+  readonly onSubmitKey: (how: "send" | "steer") => boolean;
   /** Whether Tab may move between a prompt's variables: not while a menu is open. */
   readonly variablesActive: () => boolean;
 }
@@ -195,8 +197,8 @@ const ComposerKeys = Extension.create<{ keys: ComposerKeyHandlers }>({
       ArrowUp: () =>
         !this.editor.view.composing && keys.onHistoryKey("backward"),
       Backspace: () => this.editor.isEmpty && keys.onBackspaceEmpty(),
-      Enter: () => keys.onSubmitKey(),
-      "Mod-Enter": () => keys.onSubmitKey(),
+      Enter: () => keys.onSubmitKey("send"),
+      "Mod-Enter": () => keys.onSubmitKey("steer"),
       "Shift-Tab": () =>
         keys.variablesActive() &&
         this.editor.commands.selectVariable("previous"),

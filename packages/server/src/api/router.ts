@@ -8,6 +8,7 @@ import type {
 } from "@workspace/contract/schemas/common";
 import type { Conversation } from "@workspace/contract/schemas/conversations";
 import type { ModelSelector } from "@workspace/contract/schemas/models";
+import { isTerminalRunStatus } from "@workspace/contract/schemas/runs";
 import type { Db } from "@workspace/db/client";
 import {
   createConversation,
@@ -39,6 +40,7 @@ import {
   listRuns,
   type RunRow,
 } from "@workspace/db/queries/runs";
+import { markSteer, removeUnrunTurn } from "@workspace/db/queries/steers";
 
 import {
   type AccessLevel,
@@ -52,7 +54,12 @@ import { toConversationSchedule } from "../dots/schedule-policy";
 import type { StreamChannel } from "../ports/stream-channel";
 import { type BudgetCheck, storeContext } from "../runs/chat-context";
 import { newChatMode } from "../runs/chat-mode";
-import { type CreateRunError, createRun, mayRun } from "../runs/create-run";
+import {
+  type CreateRunError,
+  createRun,
+  mayRun,
+  partsMaySteer,
+} from "../runs/create-run";
 import { pinnedDraft } from "../runs/drafts";
 import type { MemorySettings } from "../runs/memory";
 import { queuePosition, toRun } from "../runs/state";
@@ -198,6 +205,40 @@ export const createChatRouter = (services: ApiServices) => {
     }
     await requireAccess(actor, found.value.conversationId, level);
     return found.value;
+  };
+
+  /** Why a turn isn't queued any more, as the conflict to answer with. */
+  const notQueued = (
+    row: RunRow,
+    errors: {
+      CONFLICT: (options: {
+        data: { reason: "run_active" | "run_finished" };
+      }) => Error;
+    }
+  ): Error =>
+    errors.CONFLICT({
+      data: {
+        reason: isTerminalRunStatus(row.status) ? "run_finished" : "run_active",
+      },
+    });
+
+  /**
+   * A queued turn its author asks about: steering it or taking it back
+   * (which deletes the message) is theirs, not every editor's.
+   */
+  const queuedRun = async (
+    actor: Actor,
+    id: RunRow["id"],
+    errors: Parameters<typeof notQueued>[1]
+  ): Promise<RunRow> => {
+    const row = await readableRun(actor, id, "write");
+    if (row.createdBy !== actor.userId) {
+      throw new ORPCError("FORBIDDEN");
+    }
+    if (row.status !== "queued") {
+      throw notQueued(row, errors);
+    }
+    return row;
   };
 
   const conversations = {
@@ -602,6 +643,32 @@ export const createChatRouter = (services: ApiServices) => {
       };
     }),
 
+    steer: authed.runs.steer.handler(async ({ context, errors, input }) => {
+      const queued = await queuedRun(context.actor, input.id, errors);
+      const asked = await getMessage(db, queued.userMessageId);
+      if (!(asked.ok && partsMaySteer(asked.value.parts))) {
+        throw validationError({
+          data: {
+            issues: [
+              {
+                message:
+                  "A message that picks skills or an agent, or approves a plan, runs as its own turn.",
+                path: ["id"],
+              },
+            ],
+          },
+        });
+      }
+      const marked = await markSteer(db, input.id);
+      if (!marked) {
+        throw notQueued(
+          await readableRun(context.actor, input.id, "read"),
+          errors
+        );
+      }
+      return runOf(marked);
+    }),
+
     submitApprovals: authed.runs.submitApprovals.handler(
       async ({ context, errors, input }) => {
         const run = await readableRun(context.actor, input.runId, "write");
@@ -642,6 +709,26 @@ export const createChatRouter = (services: ApiServices) => {
           }
         }
         return runOf(await readableRun(context.actor, input.runId, "read"));
+      }
+    ),
+
+    withdraw: authed.runs.withdraw.handler(
+      async ({ context, errors, input }) => {
+        await queuedRun(context.actor, input.id, errors);
+        const cancelled = await executor.cancel(input.id, context.actor.userId);
+        if (!cancelled.ok) {
+          throw cancelled.error.type === "invalid_state"
+            ? errors.CONFLICT({ data: { reason: "run_finished" } })
+            : new ORPCError("NOT_FOUND");
+        }
+        const run = await runOf(
+          await readableRun(context.actor, input.id, "read")
+        );
+        // A turn that started before the cancel landed keeps its answer.
+        const messageRemoved =
+          run.state.status === "cancelled" &&
+          (await removeUnrunTurn(db, input.id));
+        return { messageRemoved, run };
       }
     ),
   };
