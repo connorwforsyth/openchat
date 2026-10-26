@@ -472,14 +472,30 @@ function DeckEditor({
     [act, focus]
   );
 
+  // Edits wait up to a minute: leaving the tab or the page saves them now
+  // (as an open file does), and closing with them unsaved asks first.
   useEffect(() => {
     if (state === "saved") {
       return;
     }
+    const saveNow = () => {
+      flush().catch(() => undefined);
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        saveNow();
+      }
+    };
     const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener("pagehide", saveNow);
+    document.addEventListener("visibilitychange", onVisibilityChange);
     window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [state]);
+    return () => {
+      window.removeEventListener("pagehide", saveNow);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("beforeunload", warn);
+    };
+  }, [flush, state]);
   const artifactTitle = artifact.title;
   const changeSlide = useCallback(
     async (instruction: string) => {

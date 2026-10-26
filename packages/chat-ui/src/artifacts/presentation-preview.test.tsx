@@ -157,6 +157,33 @@ describe("PresentationPreview", () => {
     created.mockRestore();
   });
 
+  it("downloads only the export it asked for, once", async () => {
+    const created = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:x");
+    const spy = vi.fn();
+    renderWithI18n(<PresentationPreview {...props} post={spy} />);
+    await ready(spy);
+    const exported = (asked: string | undefined) =>
+      fromFrame({
+        data: new Uint8Array([80, 75]),
+        format: "pptx",
+        id: "1",
+        request: asked,
+        type: "exported",
+      });
+    // The deck's own code can post this; nobody asked for it.
+    exported("0");
+    exported("1");
+    await userEvent.click(screen.getByRole("button", { name: "Export" }));
+    await userEvent.click(
+      await screen.findByRole("menuitem", { name: "PowerPoint (.pptx)" })
+    );
+    const [request] = sent(spy, "export") as { request?: string }[];
+    exported(request?.request);
+    exported(request?.request);
+    await waitFor(() => expect(created).toHaveBeenCalledOnce());
+    created.mockRestore();
+  });
+
   it("says the artifacts service isn't set up, rather than showing the code", () => {
     renderWithI18n(<PresentationPreview {...props} runtimeOrigin={null} />);
     expect(screen.getByRole("alert").textContent).toContain(

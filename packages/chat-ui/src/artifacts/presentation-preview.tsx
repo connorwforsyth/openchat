@@ -326,6 +326,12 @@ export function useDeck({
   const lastId = useRef(0);
   const renderEpoch = useRef(0);
   const lastExport = useRef(0);
+  // The export asked for and not yet answered. The deck's own code shares
+  // the frame and can post `exported` too, so only this one is taken, once.
+  const pendingExport = useRef<{
+    readonly format: ExportFormat;
+    readonly request: string;
+  } | null>(null);
   const [ready, setReady] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [errors, setErrors] = useState<readonly RuntimeError[]>([]);
@@ -449,6 +455,7 @@ export function useDeck({
         return;
       }
       lastExport.current += 1;
+      pendingExport.current = { format, request: String(lastExport.current) };
       setExporting(format);
       setExportError(null);
       send({
@@ -504,7 +511,11 @@ export function useDeck({
         }
         return;
       case "exported":
-        if (value.request === String(lastExport.current)) {
+        if (
+          value.request === pendingExport.current?.request &&
+          value.format === pendingExport.current.format
+        ) {
+          pendingExport.current = null;
           setExporting(null);
           downloadFile(
             new Blob([value.data], { type: MEDIA_TYPES[value.format] }),
@@ -513,7 +524,8 @@ export function useDeck({
         }
         return;
       case "export-failed":
-        if (value.request === String(lastExport.current)) {
+        if (value.request === pendingExport.current?.request) {
+          pendingExport.current = null;
           setExporting(null);
           setExportError(value.message);
         }
