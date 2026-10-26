@@ -122,14 +122,7 @@ export function SlideInspector({
       )}
       <fieldset className="contents" disabled={!canEdit}>
         {isText ? (
-          <InspectorSection
-            action={
-              <span className="text-muted-foreground text-xs">
-                <Trans>Or double-click the slide</Trans>
-              </span>
-            }
-            title={t`Words`}
-          >
+          <InspectorSection title={t`Words`}>
             <TextContentField
               label={t`Words`}
               onChange={onText}

@@ -41,10 +41,12 @@ import {
   DeckActions,
   DeckNotices,
   DeckStage,
+  type PickSource,
   PresentationPreview,
   useDeck,
 } from "../presentation-preview";
 import type { PickedElement } from "../runtime-protocol";
+import { acceptPick, type Picked } from "./pick";
 import { SlideInspector } from "./slide-inspector";
 import { SlideRail } from "./slide-rail";
 
@@ -84,6 +86,14 @@ const loadEngine = () => {
   });
   return engine;
 };
+
+/**
+ * How long editing pauses before the deck is saved as a version: one
+ * version per burst of editing, not one per change. What's waiting is
+ * saved before asking the agent, on leaving the editor, and the page warns
+ * before closing with it unsaved.
+ */
+export const SAVE_IDLE_MS = 60_000;
 
 const parseDeck = (content: string): Presentation | null => {
   const parsed = presentationContentSchema.safeParse(content);
@@ -186,7 +196,11 @@ function DeckEditor({
   const latestContent = useRef(content);
   const deck = useMemo(() => parseDeck(content), [content]);
   const history = useEditorHistory(version.content);
-  const versionSave = useVersionSave({ baseVersionId: latest.id, save });
+  const versionSave = useVersionSave({
+    baseVersionId: latest.id,
+    delay: SAVE_IDLE_MS,
+    save,
+  });
   const { change, saved: isMine, state } = versionSave;
   const [problem, setProblem] = useState<string | null>(null);
 
@@ -197,7 +211,34 @@ function DeckEditor({
   const [focus, setFocus] = useState<string | undefined>(slides[0]);
   const current = deck?.slides.find((slide) => slide.id === focus);
   const index = current && deck ? deck.slides.indexOf(current) : -1;
-  const [picked, setPicked] = useState<PickedElement | null>(null);
+  const [picked, setPicked] = useState<Picked | null>(null);
+  // Moves on whenever the deck's source changes under the editor (the
+  // agent's version, undo, redo, Load theirs): a pick from before can name
+  // an element that's no longer where it was, so it's dropped.
+  const epochRef = useRef(0);
+  const [epoch, setEpoch] = useState(0);
+  const moveEpoch = useCallback(() => {
+    epochRef.current += 1;
+    setEpoch(epochRef.current);
+    setPicked(null);
+  }, []);
+  const onPicked = useCallback(
+    (element: PickedElement | null, from: PickSource) =>
+      setPicked((now) => {
+        if (
+          !acceptPick({
+            current: now,
+            epoch: epochRef.current,
+            from,
+            incoming: element,
+          })
+        ) {
+          return now;
+        }
+        return element ? { element, epoch: from.epoch } : null;
+      }),
+    []
+  );
 
   // A slide that's gone (deleted, undone) gives way to the first.
   useEffect(() => {
@@ -236,10 +277,11 @@ function DeckEditor({
     latestShown.current = latest.id;
     if (!isMine(latest.id) && state === "saved") {
       latestContent.current = latest.content;
+      moveEpoch();
       setContent(latest.content);
       history.record(latest.content);
     }
-  }, [history, isLatest, isMine, latest, state]);
+  }, [history, isLatest, isMine, latest, moveEpoch, state]);
 
   const act = useCallback(
     (action: DeckAction, key?: string) => {
@@ -290,11 +332,12 @@ function DeckEditor({
         return;
       }
       latestContent.current = to;
+      moveEpoch();
       setProblem(null);
       setContent(to);
       change(to);
     },
-    [change]
+    [change, moveEpoch]
   );
   const undo = useCallback(() => {
     if (canEdit) {
@@ -308,34 +351,14 @@ function DeckEditor({
   }, [canEdit, history, step]);
   const onKeyDown = useUndoKeys({ onRedo: redo, onUndo: undo });
 
-  const onText = useCallback(
-    (edited: {
-      readonly previous: string;
-      readonly target: SlideTarget;
-      readonly text: string;
-    }) => {
-      edit(
-        edited.target,
-        { kind: "text", previous: edited.previous, value: edited.text },
-        `text:${targetKey(edited.target)}`
-      ).catch(() => undefined);
-    },
-    [edit]
-  );
-  const onCommand = useCallback(
-    (command: "redo" | "undo") => (command === "undo" ? undo() : redo()),
-    [redo, undo]
-  );
-
   const deckView = useDeck({
     content,
     editing: {
+      epoch,
       focus,
       inspect: true,
-      onCommand,
-      onPicked: setPicked,
-      onText,
-      selection: picked?.target ?? null,
+      onPicked,
+      selection: picked?.element.target ?? null,
     },
     runtimeOrigin,
     title: artifact.title,
@@ -357,33 +380,47 @@ function DeckEditor({
     }
   }, [focus, select]);
 
+  /** The pick, if it still belongs to the source on screen. */
+  const live = useCallback((): Picked | null => {
+    if (picked && picked.epoch !== epochRef.current) {
+      setPicked(null);
+      setProblem(t`the slide changed. Pick the element again.`);
+      return null;
+    }
+    return picked;
+  }, [picked, t]);
+
   const onStyle = useCallback(
     (styleChange: StyleChange) => {
-      if (picked) {
+      const now = live();
+      if (now) {
+        const { target } = now.element;
         edit(
-          picked.target,
+          target,
           { key: styleChange.key, kind: "style", value: styleChange.value },
-          `style:${styleChange.key}:${targetKey(picked.target)}`
+          `style:${styleChange.key}:${targetKey(target)}`
         ).catch(() => undefined);
       }
     },
-    [edit, picked]
+    [edit, live]
   );
   const onWords = useCallback(
     (text: string) => {
-      if (!picked || picked.text === null) {
+      const now = live();
+      if (!now || now.element.text === null) {
         return;
       }
+      const { target, text: previous } = now.element;
       // The next keystroke's "before" is this one's "after", before the
       // frame has drawn it.
-      setPicked({ ...picked, text });
+      setPicked({ ...now, element: { ...now.element, text } });
       edit(
-        picked.target,
-        { kind: "text", previous: picked.text, value: text },
-        `text:${targetKey(picked.target)}`
+        target,
+        { kind: "text", previous, value: text },
+        `text:${targetKey(target)}`
       ).catch(() => undefined);
     },
-    [edit, picked]
+    [edit, live]
   );
 
   const onAdd = useCallback(
@@ -412,6 +449,14 @@ function DeckEditor({
   );
 
   const { flush } = versionSave;
+  useEffect(() => {
+    if (state !== "unsaved" && state !== "saving") {
+      return;
+    }
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [state]);
   const artifactTitle = artifact.title;
   const changeSlide = useCallback(
     async (instruction: string) => {
@@ -434,10 +479,11 @@ Edit only that slide, with update_artifact's update_slide.`
 
   const loadLatest = useCallback(() => {
     latestContent.current = latest.content;
+    moveEpoch();
     setContent(latest.content);
     history.reset(latest.content);
     versionSave.reset(latest.id);
-  }, [history, latest, versionSave]);
+  }, [history, latest, moveEpoch, versionSave]);
   const keepMine = useCallback(
     () => versionSave.keepMine(latest.id),
     [latest.id, versionSave]
@@ -521,7 +567,7 @@ Edit only that slide, with update_artifact's update_slide.`
         picked ? (
           <SlideInspector
             canEdit={canEdit}
-            element={picked}
+            element={picked.element}
             onClose={unpick}
             onStyle={onStyle}
             onText={onWords}

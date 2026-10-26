@@ -1,6 +1,6 @@
 // Adapted from open-slide (https://github.com/open-slide/open-slide),
 // packages/core/src/app/lib/inspector/{pick-target,inline-text,visual-dom}.ts
-// and components/inspector/{inspect-overlay,inline-text-editor}.tsx.
+// and components/inspector/inspect-overlay.tsx.
 // MIT, Copyright (c) 2026 Yiwei Ho; see NOTICE.open-slide.
 import { slideFileName } from "@workspace/artifacts-kit/kinds/presentation/content";
 import type { SlideTarget } from "@workspace/artifacts-kit/kinds/presentation/edit-target";
@@ -16,8 +16,8 @@ type ThemeColor = PickedElement["theme"][number];
 // runs here, beside them, and tells the editor what was picked as data:
 // where it's written (`data-src`), which part of a layout it is
 // (`data-part`, `data-prop`), its words and its styles as drawn. Hovering
-// outlines what a click would pick; a double click edits its words in
-// place. The editor rewrites the source and draws the deck again.
+// outlines what a click would pick. The editor rewrites the source and
+// draws the deck again.
 
 // Tags that are part of a run of text rather than a container of their
 // own, so `<p>a <strong>b</strong></p>` stays one thing to pick.
@@ -230,15 +230,6 @@ export const pickedElement = (
   };
 };
 
-/** Undo or redo, as the editor reads them: ⌘Z / Ctrl+Z, ⇧⌘Z / Ctrl+Y. */
-const undoCommand = (event: KeyboardEvent): "redo" | "undo" | null => {
-  const key = event.key.toLowerCase();
-  if ((event.metaKey || event.ctrlKey) && key === "z") {
-    return event.shiftKey ? "redo" : "undo";
-  }
-  return event.ctrlKey && key === "y" ? "redo" : null;
-};
-
 export interface Inspector {
   /** Picks `target` (or nothing) in the slide drawn now, and says so. */
   readonly pick: (target: SlideTarget | null) => void;
@@ -246,26 +237,19 @@ export interface Inspector {
 }
 
 /**
- * Picking in `frame`, the slide on screen: outlines, clicks, Escape, and
- * editing words in place on a double click.
+ * Picking in `frame`, the slide on screen: outlines, clicks and Escape. It
+ * only reports; it never edits. The slide's own code runs in this window
+ * and can post anything this can, so every change is made and checked by
+ * the editor on the app's side.
  */
 export const inspectSlide = (
   frame: HTMLElement,
   slide: string,
   {
-    onCommand,
     onPicked,
-    onText,
     readColor,
   }: {
-    /** Undo or redo, pressed while the slide has the keyboard. */
-    readonly onCommand: (command: "redo" | "undo") => void;
     readonly onPicked: (element: PickedElement | null) => void;
-    readonly onText: (edit: {
-      readonly previous: string;
-      readonly target: SlideTarget;
-      readonly text: string;
-    }) => void;
     readonly readColor: ReadColor;
   }
 ): Inspector => {
@@ -279,7 +263,6 @@ export const inspectSlide = (
   frame.dataset.inspecting = "";
 
   let picked: Pick | null = null;
-  let editing: { readonly pick: Pick; readonly previous: string } | null = null;
 
   const place = (outline: HTMLElement, anchor: HTMLElement | null) => {
     if (!anchor?.isConnected) {
@@ -304,82 +287,18 @@ export const inspectSlide = (
   const at = (event: Event): Pick | null =>
     event.target instanceof Element ? pickAt(event.target, slide, frame) : null;
 
-  const finishEditing = (keep: boolean) => {
-    const current = editing;
-    if (!current) {
-      return;
-    }
-    editing = null;
-    const { anchor, target } = current.pick;
-    anchor.removeAttribute("contenteditable");
-    const text = anchor.textContent ?? "";
-    if (!keep) {
-      anchor.textContent = current.previous;
-      return;
-    }
-    if (text !== current.previous) {
-      onText({ previous: current.previous, target, text });
-    }
-  };
-
   const onPointerMove = (event: PointerEvent) => {
-    if (editing) {
-      return;
-    }
     const next = at(event);
     place(hover, next && next.anchor !== picked?.anchor ? next.anchor : null);
   };
   const onPointerLeave = () => place(hover, null);
   const onClick = (event: MouseEvent) => {
-    if (editing?.pick.anchor.contains(event.target as Node)) {
-      return;
-    }
-    finishEditing(true);
     event.preventDefault();
     choose(at(event));
   };
-  const onDoubleClick = (event: MouseEvent) => {
-    const next = at(event);
-    if (!next || textOf(next.anchor, next.target) === null) {
-      return;
-    }
-    event.preventDefault();
-    if (next.anchor !== picked?.anchor) {
-      choose(next);
-    }
-    editing = { pick: next, previous: next.anchor.textContent ?? "" };
-    next.anchor.setAttribute("contenteditable", "plaintext-only");
-    next.anchor.focus();
-    const range = document.createRange();
-    range.selectNodeContents(next.anchor);
-    const selection = window.getSelection();
-    selection?.removeAllRanges();
-    selection?.addRange(range);
-  };
   const onKeyDown = (event: KeyboardEvent) => {
-    if (editing) {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        finishEditing(false);
-      } else if (event.key === "Enter" && !event.shiftKey) {
-        event.preventDefault();
-        finishEditing(true);
-      }
-      return;
-    }
     if (event.key === "Escape" && picked) {
       choose(null);
-      return;
-    }
-    const command = undoCommand(event);
-    if (command) {
-      event.preventDefault();
-      onCommand(command);
-    }
-  };
-  const onFocusOut = (event: FocusEvent) => {
-    if (editing && event.target === editing.pick.anchor) {
-      finishEditing(true);
     }
   };
   const onResize = () => {
@@ -389,8 +308,6 @@ export const inspectSlide = (
   frame.addEventListener("pointermove", onPointerMove);
   frame.addEventListener("pointerleave", onPointerLeave);
   frame.addEventListener("click", onClick);
-  frame.addEventListener("dblclick", onDoubleClick);
-  frame.addEventListener("focusout", onFocusOut);
   window.addEventListener("keydown", onKeyDown);
   window.addEventListener("resize", onResize);
 
@@ -400,12 +317,9 @@ export const inspectSlide = (
       choose(anchor && target ? { anchor, target } : null);
     },
     teardown: () => {
-      finishEditing(false);
       frame.removeEventListener("pointermove", onPointerMove);
       frame.removeEventListener("pointerleave", onPointerLeave);
       frame.removeEventListener("click", onClick);
-      frame.removeEventListener("dblclick", onDoubleClick);
-      frame.removeEventListener("focusout", onFocusOut);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("resize", onResize);
       hover.remove();

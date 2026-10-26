@@ -122,28 +122,12 @@ const presentation: Renderer = async (container, request, context) => {
     editing: {
       focus: request.focus,
       inspect: request.inspect,
-      onCommand: (command) =>
-        context.post({
-          channel: RUNTIME_CHANNEL,
-          command,
-          id: request.id,
-          type: "command",
-        }),
       onPicked: (element) =>
         context.post({
           channel: RUNTIME_CHANNEL,
           element,
           id: request.id,
           type: "picked",
-        }),
-      onText: ({ previous, target, text }) =>
-        context.post({
-          channel: RUNTIME_CHANNEL,
-          id: request.id,
-          previous,
-          target,
-          text,
-          type: "text-edited",
         }),
       selection: request.selection,
     },

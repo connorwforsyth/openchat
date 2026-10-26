@@ -4,11 +4,15 @@ import { userEvent } from "vitest/browser";
 
 import { renderWithI18n } from "../testing/render";
 import {
+  type DeckEditing,
+  DeckStage,
   deckProblem,
+  type PostToFrame,
   PresentationPreview,
   presentationFileName,
   presentKeyAction,
   RUNTIME_READY_TIMEOUT_MS,
+  useDeck,
 } from "./presentation-preview";
 import { RUNTIME_CHANNEL } from "./runtime-protocol";
 
@@ -208,5 +212,53 @@ describe("deckProblem", () => {
       kind: "deck",
       message: "isn't JSON",
     });
+  });
+});
+
+describe("useDeck, editing", () => {
+  function Editing({
+    editing,
+    post,
+  }: {
+    readonly editing: DeckEditing;
+    readonly post: PostToFrame;
+  }) {
+    const deck = useDeck({
+      content: '{"title":"Deck","slides":[]}',
+      editing,
+      post,
+      runtimeOrigin: RUNTIME,
+      title: "Deck",
+    });
+    return <DeckStage deck={deck} />;
+  }
+
+  it("hands a pick on with the render's epoch and whether the frame had the focus", async () => {
+    const spy = vi.fn();
+    const onPicked = vi.fn();
+    renderWithI18n(
+      <Editing
+        editing={{
+          epoch: 7,
+          focus: "intro",
+          inspect: true,
+          onPicked,
+          selection: null,
+        }}
+        post={spy}
+      />
+    );
+    fromFrame({ type: "ready" });
+    await waitFor(() => expect(sent(spy, "render")).toHaveLength(1));
+    expect(sent(spy, "render")[0]).toMatchObject({
+      focus: "intro",
+      inspect: true,
+      view: "slide",
+    });
+    fromFrame({ element: null, id: "1", type: "picked" });
+    expect(onPicked).toHaveBeenCalledWith(null, { epoch: 7, focused: false });
+    // A pick for an older render is dropped.
+    fromFrame({ element: null, id: "0", type: "picked" });
+    expect(onPicked).toHaveBeenCalledTimes(1);
   });
 });

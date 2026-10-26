@@ -4230,10 +4230,6 @@ msgstr "or"
 msgid "Or add it to a recent chat"
 msgstr "Or add it to a recent chat"
 
-#: ../chat-ui/src/artifacts/presentation/slide-inspector.tsx
-msgid "Or double-click the slide"
-msgstr "Or double-click the slide"
-
 #. placeholder {0}: dot.name
 #: ../../apps/web/app/(app)/(pages)/dots/dot-profile.tsx
 msgid "Or just ask {0} in the chat: “every weekday at 8, brief me”."
@@ -6515,6 +6511,10 @@ msgstr "The site couldn't be published. Try again."
 #: ../library-ui/src/components/skills-section.tsx
 msgid "The skill couldn't be saved. Try again."
 msgstr "The skill couldn't be saved. Try again."
+
+#: ../chat-ui/src/artifacts/presentation/presentation-editor.tsx
+msgid "the slide changed. Pick the element again."
+msgstr "the slide changed. Pick the element again."
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
 msgid "The sub-space couldn't be created. Try again."

@@ -235,28 +235,15 @@ export const frameMessageSchema = z.discriminatedUnion("type", [
     type: z.literal("layout"),
   }),
   // What a click picked in the `slide` view (`null`: nothing, or Escape),
-  // and again after each render while it stays picked.
+  // and again after each render while it stays picked. The deck's own code
+  // runs in the frame and can post this too, so it's a claim: the editor
+  // decides what to believe (`presentation/pick.ts`), and the frame never
+  // sends edits.
   z.object({
     channel: z.literal(RUNTIME_CHANNEL),
     element: pickedElementSchema.nullable(),
     id: renderIdSchema,
     type: z.literal("picked"),
-  }),
-  // Undo or redo pressed while the slide has the keyboard.
-  z.object({
-    channel: z.literal(RUNTIME_CHANNEL),
-    command: z.enum(["redo", "undo"]),
-    id: renderIdSchema,
-    type: z.literal("command"),
-  }),
-  // Words typed into a picked element on the slide itself.
-  z.object({
-    channel: z.literal(RUNTIME_CHANNEL),
-    id: renderIdSchema,
-    previous: z.string().max(10_000),
-    target: slideTargetSchema,
-    text: z.string().max(10_000),
-    type: z.literal("text-edited"),
   }),
   z.object({
     channel: z.literal(RUNTIME_CHANNEL),

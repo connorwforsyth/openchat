@@ -61,13 +61,7 @@ export interface DeckEditing {
   readonly focus?: string;
   /** Whether a click picks an element in it. */
   readonly inspect?: boolean;
-  readonly onCommand: (command: "redo" | "undo") => void;
   readonly onPicked: (element: PickedElement | null) => void;
-  readonly onText: (edit: {
-    readonly previous: string;
-    readonly target: SlideTarget;
-    readonly text: string;
-  }) => void;
   /** Picked again once the slide is drawn. */
   readonly selection?: SlideTarget | null;
 }
@@ -258,9 +252,7 @@ export const mountDeck = (
       return;
     }
     inspector = inspectSlide(frame, slide.id, {
-      onCommand: editing.onCommand,
       onPicked: editing.onPicked,
-      onText: editing.onText,
       readColor: pickColor,
     });
     inspector.pick(selection?.slide === slide.id ? selection : null);

@@ -270,41 +270,26 @@ const usePresenterSession = ({
   return useMemo(() => ({ isOpen, open }), [isOpen, open]);
 };
 
-type EditorMessage = Extract<
-  FrameMessage,
-  { type: "command" | "picked" | "text-edited" }
->;
-
-/** Hands the frame's editing news to the slides editor. */
-const toEditor = (editing: DeckEditing, message: EditorMessage) => {
-  switch (message.type) {
-    case "picked":
-      editing.onPicked(message.element);
-      return;
-    case "text-edited":
-      editing.onText(message);
-      return;
-    case "command":
-      editing.onCommand(message.command);
-      return;
-    default:
-      return message satisfies never;
-  }
-};
+/** Where a pick came from, as far as this side can tell. */
+export interface PickSource {
+  readonly epoch: number;
+  readonly focused: boolean;
+}
 
 /** What the slides editor asks of the deck (n2): its canvas view. */
 export interface DeckEditing {
+  /** Which source the deck is drawn from; the editor moves it on when the deck changes under it. */
+  readonly epoch: number;
   /** The slide shown. */
   readonly focus: string | undefined;
   /** Whether a click on the slide picks an element in it. */
   readonly inspect: boolean;
-  readonly onCommand: (command: "redo" | "undo") => void;
-  readonly onPicked: (element: PickedElement | null) => void;
-  readonly onText: (edit: {
-    readonly previous: string;
-    readonly target: SlideTarget;
-    readonly text: string;
-  }) => void;
+  /**
+   * What the frame says was picked, with what the editor needs to judge
+   * the claim: the `epoch` the render it came from was asked with, and
+   * whether the frame had the person's focus.
+   */
+  readonly onPicked: (element: PickedElement | null, from: PickSource) => void;
   /** What's picked now, picked again when the deck is drawn again. */
   readonly selection: SlideTarget | null;
 }
@@ -339,6 +324,7 @@ export function useDeck({
   const frameRef = useRef<HTMLIFrameElement>(null);
   const stageRef = useRef<HTMLElement>(null);
   const lastId = useRef(0);
+  const renderEpoch = useRef(0);
   const lastExport = useRef(0);
   const [ready, setReady] = useState(false);
   const [attempt, setAttempt] = useState(0);
@@ -368,6 +354,7 @@ export function useDeck({
       return;
     }
     lastId.current += 1;
+    renderEpoch.current = editing?.epoch ?? 0;
     setErrors([]);
     send({
       channel: RUNTIME_CHANNEL,
@@ -508,10 +495,11 @@ export function useDeck({
         }
         return;
       case "picked":
-      case "text-edited":
-      case "command":
         if (value.id === current && editing) {
-          toEditor(editing, value);
+          editing.onPicked(value.element, {
+            epoch: renderEpoch.current,
+            focused: document.activeElement === frameRef.current,
+          });
         }
         return;
       case "exported":

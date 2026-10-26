@@ -100,10 +100,6 @@ export const slideDeckCss = (
 .inspect-outline[data-inspect="hover"] { outline: 1px dashed var(--primary); }
 .inspect-outline[data-inspect="picked"] { outline: 2px solid var(--primary); }
 .deck[data-presenting] .inspect-outline { display: none; }
-.deck-slide[data-inspecting] [contenteditable] {
-  outline: 2px solid var(--primary);
-  cursor: text;
-}
 .deck-capture {
   position: fixed;
   inset-block-start: 0;
