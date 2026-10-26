@@ -17,6 +17,7 @@ import type { Run, TurnDelivery } from "@workspace/contract/schemas/runs";
 import { useCallback, useMemo, useRef, useState } from "react";
 
 import { type QueuedTurn, queuedTurns } from "../model/queue";
+import { runInFront } from "../model/run-activity";
 import type { QueueActions } from "./queue-tray";
 
 const ignore = () => undefined;
@@ -150,16 +151,18 @@ export const useSendBusy = <Outgoing>({
 };
 
 /**
- * The composer while an answer streams: Enter queues (`delivery`), and
- * Mod+Enter or Steer steers. Not before the answer's run exists (a new
- * chat's first send), so nothing can land ahead of it.
+ * The composer while an answer is on its way: Enter queues (`delivery`),
+ * and Mod+Enter or Steer steers. Only once the server has the answer's run
+ * (it streams, or the active runs list it), so nothing lands ahead of it.
  */
 export const useBusyComposer = ({
+  activeRuns,
   conversationId,
   status,
   submit,
   uploadFailed,
 }: {
+  readonly activeRuns: readonly Run[] | undefined;
   readonly conversationId: ConversationId | null;
   readonly status: ComposerStatus;
   readonly submit: (
@@ -178,7 +181,10 @@ export const useBusyComposer = ({
     },
     [submit, uploadFailed]
   );
-  return conversationId !== null && status === "streaming"
+  const runExists =
+    status === "streaming" ||
+    (status === "submitted" && runInFront(activeRuns ?? []) !== undefined);
+  return conversationId !== null && runExists
     ? { delivery: "queue", onSteer: steer }
     : { delivery: undefined, onSteer: undefined };
 };

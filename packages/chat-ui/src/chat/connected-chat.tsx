@@ -2004,10 +2004,15 @@ export function ConnectedChat({
   const createdRunId = useRef<RunId | null>(null);
   // A voice turn waits here for the run its send started.
   const runWaiters = useRef<((runId: RunId | null) => void)[]>([]);
-  const onRunCreated = useCallback((run: RunCreated) => {
-    createdRunId.current = run.runId;
-    runWaiters.current.shift()?.(run.runId);
-  }, []);
+  const onRunCreated = useCallback(
+    (run: RunCreated) => {
+      createdRunId.current = run.runId;
+      runWaiters.current.shift()?.(run.runId);
+      // The composer takes queued and steered messages once the list has it.
+      queryClient.invalidateQueries({ queryKey: api.runs.key() }).catch(ignore);
+    },
+    [api, queryClient]
+  );
   const { chat, messages, runFields, streamingMessageId } = useLiveTurn({
     client,
     context,
@@ -2249,6 +2254,7 @@ export function ConnectedChat({
   const waitingRef = useRef(waiting);
   waitingRef.current = waiting;
   const { delivery, onSteer } = useBusyComposer({
+    activeRuns: data.activeRuns,
     conversationId,
     status: shownStatus,
     submit,

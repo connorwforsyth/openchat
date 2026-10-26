@@ -314,6 +314,60 @@ describe("createRunTransport", () => {
   });
 });
 
+describe("reconnectToStream", () => {
+  const NEXT_ID = "01a0de5f-bf67-7628-9db6-f0c96ff5586d";
+  const queuedRun = { id: NEXT_ID, state: { status: "queued" } };
+  const runningRun = { id: RUN_ID, state: { status: "running" } };
+
+  const transportWith = (items: readonly unknown[]) => {
+    const urls: string[] = [];
+    const transport = createRunTransport({
+      client: {
+        runs: {
+          create: () =>
+            Promise.resolve({
+              conversationId: "c1",
+              runId: RUN_ID,
+              status: "running",
+              streamUrl: `/api/runs/${RUN_ID}/stream`,
+              userMessageId: "u1",
+            }),
+          list: () => Promise.resolve({ items, nextCursor: null }),
+        },
+      } as unknown as Pick<ApiClient, "runs">,
+      fetch: ((url: string) => {
+        urls.push(url.split("?")[0] ?? url);
+        return Promise.resolve(new Response(serve(cursorOf(url))));
+      }) as unknown as typeof fetch,
+    });
+    return { transport, urls };
+  };
+
+  it("follows the answer being written, not a turn queued behind it", async () => {
+    // Newest first, as the list comes.
+    const { transport, urls } = transportWith([queuedRun, runningRun]);
+    const stream = await transport.reconnectToStream({ chatId: "c1" });
+    await readAll(stream as ReadableStream<UIMessageChunk>);
+    expect(urls).toEqual([`/api/runs/${RUN_ID}/stream`]);
+  });
+
+  it("follows the turn queued next once the answer it read has ended", async () => {
+    const { transport, urls } = transportWith([queuedRun]);
+    await readAll(
+      await transport.sendMessages({
+        abortSignal: undefined,
+        chatId: "c1",
+        messageId: undefined,
+        messages: [user("u-client", "hello")],
+        trigger: "submit-message",
+      })
+    );
+    const stream = await transport.reconnectToStream({ chatId: "c1" });
+    await readAll(stream as ReadableStream<UIMessageChunk>);
+    expect(urls.at(-1)).toBe(`/api/runs/${NEXT_ID}/stream`);
+  });
+});
+
 describe("reconcileId", () => {
   it("swaps the optimistic id for the stored one", () => {
     expect(

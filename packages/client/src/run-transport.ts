@@ -203,12 +203,8 @@ export const createRunTransport = (
 
   return {
     reconnectToStream: async ({ abortSignal, chatId }) => {
-      const known = current.get(chatId);
-      if (known) {
-        // Replay from the start: the page's copy of the answer may be older
-        // than the cursor if it was rebuilt from the server.
-        return stream(chatId, known.streamUrl, 0, abortSignal);
-      }
+      // The run in front, from the server: after an answer, the turn queued
+      // behind it is the one to follow, not the stream this page last read.
       const active = await options.client.runs.list({
         active: true,
         conversationId: chatId as ConversationId,
@@ -218,9 +214,13 @@ export const createRunTransport = (
       const run =
         active.items.find((each) => each.state.status !== "queued") ??
         active.items.at(-1);
-      return run
-        ? stream(chatId, `/api/runs/${run.id}/stream`, 0, abortSignal)
-        : null;
+      if (run) {
+        return stream(chatId, `/api/runs/${run.id}/stream`, 0, abortSignal);
+      }
+      const known = current.get(chatId);
+      // Replay from the start: the page's copy of the answer may be older
+      // than the cursor if it was rebuilt from the server.
+      return known ? stream(chatId, known.streamUrl, 0, abortSignal) : null;
     },
 
     sendMessages: async ({
