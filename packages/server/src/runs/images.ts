@@ -12,7 +12,7 @@ import {
 } from "@workspace/ai/tools/registry/generate-image";
 import { toAiSdkTool } from "@workspace/ai/tools/registry/to-ai-sdk";
 import { effectivePrices, imageCost } from "@workspace/config/prices";
-import type { AppConfig } from "@workspace/config/schema";
+import type { ModelsConfig } from "@workspace/config/schema";
 import { parseModelRef } from "@workspace/contract/schemas/models";
 import type { Db } from "@workspace/db/client";
 import type { StoredContext } from "@workspace/db/queries/conversations";
@@ -40,8 +40,7 @@ export type ImageModels = Pick<
 >;
 
 export interface ImageTurnDeps {
-  readonly config: Pick<AppConfig, "models"> &
-    Partial<Pick<AppConfig, "providers">>;
+  readonly config: ModelsConfig;
   readonly db: Db;
   readonly models: ImageModels;
   readonly now?: () => Date;

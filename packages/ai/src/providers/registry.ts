@@ -447,12 +447,13 @@ export const buildRegistry = (
     const provider = vendorOf(target);
     const modelId = parseModelRef(target)?.modelId;
     const rated = ratingsOf(config, option.selector, target);
-    // The catalog's price, else the one the config bills usage at.
-    const priced = prices[target];
-    const cost = costOf(
-      listed?.pricing ??
-        (priced && { input: priced.inputMicros, output: priced.outputMicros })
-    );
+    // The operator's price, else the provider catalog's, else the list
+    // price usage is billed at.
+    const own = config.models.prices[target];
+    const listPrice = prices[target];
+    const asCost = (price: typeof listPrice) =>
+      price && { input: price.inputMicros, output: price.outputMicros };
+    const cost = costOf(asCost(own) ?? listed?.pricing ?? asCost(listPrice));
     return {
       ...option,
       capabilities: capabilitiesWith(option.capabilities, listed?.traits, {

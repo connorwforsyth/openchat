@@ -3,7 +3,12 @@ import {
   parseModelRef,
 } from "@workspace/contract/schemas/models";
 
-import type { AppConfig, ModelPrice, ProviderConfig } from "../schema";
+import type {
+  AppConfig,
+  ModelPrice,
+  ModelsConfig,
+  ProviderConfig,
+} from "../schema";
 import { GENERATED_CATALOG } from "./generated";
 import { INTELLIGENCE } from "./intelligence";
 import {
@@ -130,11 +135,11 @@ const catalogRatingsOf = (catalogId: string | undefined): Partial<Ratings> => {
 };
 
 /**
- * A model's ratings for the picker: the alias's in `models.ratings`, else
- * its ref's, with the catalogue's filling any field they leave out.
+ * A model's ratings for the picker, field by field: the alias's in
+ * `models.ratings`, else its ref's, else the catalogue's.
  */
 export const ratingsOf = (
-  config: Pick<AppConfig, "models"> & Partial<Pick<AppConfig, "providers">>,
+  config: ModelsConfig,
   selector: string,
   target: ModelRef | undefined
 ): Ratings | undefined => {
@@ -148,8 +153,8 @@ export const ratingsOf = (
       : {};
   const own = {
     ...listed,
-    ...(ratings[selector] ??
-      (target === undefined ? undefined : ratings[target])),
+    ...(target === undefined ? {} : ratings[target]),
+    ...ratings[selector],
   };
   return own.intelligence === undefined && own.speed === undefined
     ? undefined

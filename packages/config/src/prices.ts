@@ -5,7 +5,7 @@ import {
 } from "@workspace/contract/schemas/models";
 
 import { listPricesOf } from "./catalog/catalog";
-import type { AppConfig } from "./schema";
+import type { AppConfig, ModelsConfig } from "./schema";
 
 // What a model call cost, from its token usage and the instance's prices.
 // Pure, and here rather than in the server so anything holding a parsed config
@@ -17,22 +17,28 @@ import type { AppConfig } from "./schema";
 
 export type ModelPrices = AppConfig["models"]["prices"];
 
+const expanded = new WeakMap<ModelsConfig, ModelPrices>();
+
 /**
  * Every price the instance charges at: models.dev's list price for each
  * configured provider's models, under that provider's own id, with
  * `models.prices` winning wherever the operator set one. A model in neither
  * is unpriced.
  */
-export const effectivePrices = (
-  config: Pick<AppConfig, "models"> & Partial<Pick<AppConfig, "providers">>
-): ModelPrices => {
+export const effectivePrices = (config: ModelsConfig): ModelPrices => {
+  const known = expanded.get(config);
+  if (known) {
+    return known;
+  }
   const listed = Object.entries(config.providers ?? {}).flatMap(
     ([id, provider]) =>
       Object.entries(listPricesOf(provider))
         .map(([model, price]) => [`${id}:${model}`, price] as const)
         .filter(([ref]) => modelRefSchema.safeParse(ref).success)
   );
-  return { ...Object.fromEntries(listed), ...config.models.prices };
+  const prices = { ...Object.fromEntries(listed), ...config.models.prices };
+  expanded.set(config, prices);
+  return prices;
 };
 
 export type UsageCost =

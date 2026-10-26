@@ -3,6 +3,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { OrgId } from "@workspace/contract/schemas/common";
+import type { TokenUsage } from "@workspace/contract/schemas/models";
 import type { Team } from "@workspace/contract/schemas/tenancy";
 import type { Budget } from "@workspace/contract/schemas/usage";
 import { formatDate, formatNumber } from "@workspace/i18n/format";
@@ -68,6 +69,9 @@ const usePeriodLabels = (): Readonly<Record<Period, string>> => {
   return { day: t`Daily`, month: t`Monthly`, week: t`Weekly` };
 };
 
+const tokensOf = (row: { readonly usage: TokenUsage }) =>
+  row.usage.inputTokens + row.usage.outputTokens;
+
 const Summary = ({ orgId }: { readonly orgId: OrgId }) => {
   const { i18n } = useLingui();
   const { query } = useApi();
@@ -86,10 +90,7 @@ const Summary = ({ orgId }: { readonly orgId: OrgId }) => {
   return (
     <QueryState query={summary}>
       {(data) => {
-        const tokens = data.rows.reduce(
-          (sum, row) => sum + row.usage.inputTokens + row.usage.outputTokens,
-          0
-        );
+        const tokens = data.rows.reduce((sum, row) => sum + tokensOf(row), 0);
         return (
           <div className="flex flex-col gap-4">
             <p className="font-medium text-2xl tabular-nums">
@@ -131,9 +132,7 @@ const Summary = ({ orgId }: { readonly orgId: OrgId }) => {
                         <TableCell className="text-end tabular-nums">
                           <Cost
                             micros={row.costMicros}
-                            tokens={
-                              row.usage.inputTokens + row.usage.outputTokens
-                            }
+                            tokens={tokensOf(row)}
                           />
                         </TableCell>
                       </TableRow>

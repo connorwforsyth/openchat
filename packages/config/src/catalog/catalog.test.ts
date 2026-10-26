@@ -102,7 +102,7 @@ describe("ratingsOf", () => {
     ).toBeUndefined();
   });
 
-  it("lets app.config win, the alias over its ref, the catalogue filling gaps", () => {
+  it("lets app.config win field by field, the alias over its ref", () => {
     const config = configOf({
       models: {
         aliases: { fast: "anthropic:claude-haiku-5-5" },
@@ -114,7 +114,7 @@ describe("ratingsOf", () => {
       providers,
     });
     expect(ratingsOf(config, "fast", "anthropic:claude-haiku-5-5")).toEqual({
-      intelligence: INTELLIGENCE["anthropic/claude-haiku-5.5"],
+      intelligence: 1,
       speed: 5,
     });
     const own = configOf({

@@ -1073,5 +1073,9 @@ export const appConfigSchema = z
   });
 
 export type AppConfig = z.infer<typeof appConfigSchema>;
+
+/** The models and, where the caller has them, the providers they run on. */
+export type ModelsConfig = Pick<AppConfig, "models"> &
+  Partial<Pick<AppConfig, "providers">>;
 /** What the YAML may contain, before defaults. */
 export type AppConfigInput = z.input<typeof appConfigSchema>;
