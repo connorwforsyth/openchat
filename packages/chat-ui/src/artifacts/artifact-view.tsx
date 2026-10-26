@@ -62,7 +62,7 @@ import { fitArtifactHeader } from "./header-fit";
 import { ImageArtifactPreview } from "./image-preview";
 import { MermaidText } from "./mermaid-text";
 import { type PlanEditing, PlanEditor } from "./plan-editor";
-import { PresentationPreview } from "./presentation-preview";
+import { PresentationEditor } from "./presentation/presentation-editor";
 import { isRuntimeKind } from "./runtime-protocol";
 import { SpreadsheetArtifact } from "./spreadsheet/spreadsheet-artifact";
 import { SpreadsheetView } from "./spreadsheet/spreadsheet-view";
@@ -263,6 +263,7 @@ export function ArtifactView({
         artifact={artifact}
         error={error}
         header={header}
+        info={info}
         key={artifact.id}
         onSelect={onSelect}
         runtimeOrigin={runtimeOrigin}
@@ -442,6 +443,7 @@ function ArtifactDetail({
   artifact,
   error,
   header,
+  info,
   onSelect,
   runtimeOrigin,
   versionId,
@@ -449,6 +451,7 @@ function ArtifactDetail({
 }: {
   readonly api: QueryUtils | undefined;
   readonly artifact: Artifact;
+  readonly info: ArtifactListItem | undefined;
   readonly error: string | null | undefined;
   readonly header: (content: ReactNode) => ReactNode;
   readonly onSelect: (selection: ArtifactSelection) => void;
@@ -469,16 +472,23 @@ function ArtifactDetail({
     plan.type === "source" ? "code" : "preview"
   );
   const showSource = useCallback(() => setView("code"), []);
-  // The mount point for a deck's view (164): the slides editor goes here.
+  // The mount point for a deck's view (164): the slides editor, which
+  // presents, exports and edits it.
   const deck = useCallback(
-    (origin: string | null) => (
-      <PresentationPreview
-        content={version?.content ?? ""}
-        runtimeOrigin={origin}
-        title={artifact.title}
-      />
-    ),
-    [artifact.title, version?.content]
+    (origin: string | null) =>
+      version ? (
+        <PresentationEditor
+          api={api}
+          artifact={artifact}
+          info={info}
+          onSelect={onSelect}
+          pinned={versionId !== undefined}
+          runtimeOrigin={origin}
+          version={version}
+          versions={versions}
+        />
+      ) : null,
+    [api, artifact, info, onSelect, version, versionId, versions]
   );
 
   const path = artifactFileName(

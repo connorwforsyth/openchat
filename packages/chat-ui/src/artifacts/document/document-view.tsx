@@ -21,10 +21,7 @@ import {
   CheckIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  CircleAlertIcon,
-  CircleIcon,
   DownloadIcon,
-  LoaderCircleIcon,
   PencilIcon,
 } from "@workspace/icons";
 import { Button } from "@workspace/ui/components/button";
@@ -46,17 +43,14 @@ import {
 } from "react";
 
 import type { ArtifactSelection } from "../artifact-view";
+import { OlderVersion, SaveStatus } from "../editor/save-status";
+import { type SaveVersion, useVersionSave } from "../editor/use-version-save";
 import type { PlanEditing } from "../plan-editor";
 import { BlockMenu, useBlockMenu } from "./block-menu";
 import type { LinkTarget } from "./blocks";
 import { DocumentToolbar } from "./document-toolbar";
 import { exportDocx, exportMarkdown, printDocument } from "./export";
 import { documentExtensions } from "./extensions";
-import {
-  type DocumentSaveState,
-  type SaveDocumentVersion,
-  useDocumentSave,
-} from "./use-document-save";
 
 // A Document artifact (126) as a page: after Claude's document view, a
 // title bar (the title, its versions, whether edits are saved, Export, and
@@ -79,7 +73,7 @@ export interface DocumentViewProps {
   readonly header: (content: ReactNode) => ReactNode;
   /** What the `/` menu's "Link to artifact" lists; without any, it isn't offered. */
   readonly linkTargets?: readonly LinkTarget[];
-  readonly onSave: SaveDocumentVersion;
+  readonly onSave: SaveVersion;
   readonly onSelect: (selection: ArtifactSelection) => void;
   /** The version shown; omitted, the latest. */
   readonly versionId?: ArtifactVersionId;
@@ -209,7 +203,7 @@ function LatestDocument({
     () => (initial ? opensWithTitle(initial, artifact.title) : false),
     [artifact.title, initial]
   );
-  const save = useDocumentSave({
+  const save = useVersionSave({
     baseVersionId: latest.id,
     save: onSave,
   });
@@ -596,124 +590,6 @@ function TitleBar({
       </DropdownMenu>
       {actions}
     </div>
-  );
-}
-
-export function SaveStatus({
-  canEdit,
-  onKeepMine,
-  onLoadLatest,
-  onRetry,
-  state,
-}: {
-  readonly canEdit: boolean;
-  readonly onKeepMine: () => void;
-  readonly onLoadLatest: () => void;
-  readonly onRetry: () => void;
-  readonly state: DocumentSaveState;
-}) {
-  const quiet = "shrink-0 text-muted-foreground text-xs";
-  if (!canEdit) {
-    return (
-      <span className={quiet}>
-        <Trans>Read only</Trans>
-      </span>
-    );
-  }
-  switch (state) {
-    case "saved":
-      return (
-        <output
-          className={cn(quiet, "inline-flex items-center gap-1")}
-          data-save-state={state}
-        >
-          <CheckIcon aria-hidden className="size-3.5" />
-          <span className="sr-only sm:not-sr-only">
-            <Trans>Saved</Trans>
-          </span>
-        </output>
-      );
-    case "unsaved":
-      return (
-        <output
-          className={cn(quiet, "inline-flex items-center gap-1")}
-          data-save-state={state}
-        >
-          <CircleIcon aria-hidden className="size-2 fill-current" />
-          <span className="sr-only sm:not-sr-only">
-            <Trans>Edited</Trans>
-          </span>
-        </output>
-      );
-    case "saving":
-      return (
-        <output
-          className={cn(quiet, "inline-flex items-center gap-1")}
-          data-save-state={state}
-        >
-          <LoaderCircleIcon
-            aria-hidden
-            className="size-3.5 motion-safe:animate-spin"
-          />
-          <span className="sr-only sm:not-sr-only">
-            <Trans>Saving…</Trans>
-          </span>
-        </output>
-      );
-    case "error":
-      return (
-        <span
-          className="inline-flex shrink-0 items-center gap-1 text-destructive text-xs"
-          data-save-state={state}
-          role="alert"
-        >
-          <CircleAlertIcon aria-hidden className="size-3.5" />
-          <Trans>Couldn't save</Trans>
-          <Button onClick={onRetry} size="xs" variant="ghost">
-            <Trans>Retry</Trans>
-          </Button>
-        </span>
-      );
-    case "conflict":
-      return (
-        <span
-          className="inline-flex shrink-0 items-center gap-1 text-xs"
-          data-save-state={state}
-          role="alert"
-        >
-          <CircleAlertIcon aria-hidden className="size-3.5 text-destructive" />
-          <Trans>Changed elsewhere</Trans>
-          <Button onClick={onLoadLatest} size="xs" variant="ghost">
-            <Trans>Load theirs</Trans>
-          </Button>
-          <Button onClick={onKeepMine} size="xs" variant="outline">
-            <Trans>Keep mine</Trans>
-          </Button>
-        </span>
-      );
-    default:
-      return state satisfies never;
-  }
-}
-
-export function OlderVersion({
-  canRestore,
-  number,
-  onRestore,
-}: {
-  readonly canRestore: boolean;
-  readonly number: number;
-  readonly onRestore: () => void;
-}) {
-  return (
-    <span className="inline-flex shrink-0 items-center gap-1 text-muted-foreground text-xs">
-      <Trans>Version {number}, read only</Trans>
-      {canRestore ? (
-        <Button onClick={onRestore} size="xs" variant="outline">
-          <Trans>Restore</Trans>
-        </Button>
-      ) : null}
-    </span>
   );
 }
 

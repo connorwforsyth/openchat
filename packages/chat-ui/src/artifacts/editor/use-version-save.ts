@@ -1,12 +1,18 @@
 "use client";
 
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { QueryUtils } from "@workspace/client/api";
 import type { ArtifactVersionId } from "@workspace/contract/schemas/common";
-import type { ArtifactVersion } from "@workspace/contract/schemas/files";
+import type {
+  Artifact,
+  ArtifactVersion,
+} from "@workspace/contract/schemas/files";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-// Saving a person's edits to a document (126): each pause in typing saves
-// the document as a new version (`POST /artifacts/{id}/versions`), on top
-// of the version they were editing. The state is always on screen, so a
+// Saving a person's edits to an artifact, shared by every kind's editor
+// (documents, 126; spreadsheets; diagrams; slides): each pause in editing
+// saves the artifact as a new version (`POST /artifacts/{id}/versions`), on
+// top of the version they were editing. The state is always on screen, so a
 // person knows whether what they see is kept.
 //
 // - `saved`: nothing waiting. `unsaved`: edits wait for the pause.
@@ -14,7 +20,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 // - `conflict`: another version landed first (the model, or someone else):
 //   the person picks theirs or the new one, nothing is lost silently.
 
-export type DocumentSaveState =
+export type VersionSaveState =
   | "conflict"
   | "error"
   | "saved"
@@ -22,7 +28,7 @@ export type DocumentSaveState =
   | "unsaved";
 
 /** The save port: the next version on top of `baseVersionId`. */
-export type SaveDocumentVersion = (input: {
+export type SaveVersion = (input: {
   readonly baseVersionId: ArtifactVersionId;
   readonly content: string;
 }) => Promise<ArtifactVersion>;
@@ -36,7 +42,7 @@ interface Live {
   inFlight: Promise<boolean> | null;
   /** Versions this editor saved. */
   readonly mine: Set<ArtifactVersionId>;
-  /** The document as edited, waiting to be saved. */
+  /** The artifact as edited, waiting to be saved. */
   pending: string | null;
   timer: ReturnType<typeof setTimeout> | null;
 }
@@ -49,10 +55,10 @@ const isConflict = (error: unknown): boolean =>
   error !== null &&
   (error as { readonly code?: unknown }).code === "CONFLICT";
 
-export interface DocumentSave {
+export interface VersionSave {
   /** The version edits are saved on top of. */
   readonly baseVersionId: ArtifactVersionId;
-  /** Records an edit (the whole document as it now stands) and saves after a pause. */
+  /** Records an edit (the whole artifact as it now stands) and saves after a pause. */
   readonly change: (content: string) => void;
   /** Saves now; `true` once nothing is waiting. */
   readonly flush: () => Promise<boolean>;
@@ -62,10 +68,10 @@ export interface DocumentSave {
   readonly reset: (versionId: ArtifactVersionId) => void;
   /** Whether a version is one this editor saved, so seeing it isn't news. */
   readonly saved: (versionId: ArtifactVersionId) => boolean;
-  readonly state: DocumentSaveState;
+  readonly state: VersionSaveState;
 }
 
-export function useDocumentSave({
+export function useVersionSave({
   baseVersionId,
   delay = SAVE_DELAY_MS,
   save,
@@ -73,9 +79,9 @@ export function useDocumentSave({
   /** The latest version when the editor opened it. */
   readonly baseVersionId: ArtifactVersionId;
   readonly delay?: number;
-  readonly save: SaveDocumentVersion;
-}): DocumentSave {
-  const [state, setState] = useState<DocumentSaveState>("saved");
+  readonly save: SaveVersion;
+}): VersionSave {
+  const [state, setState] = useState<VersionSaveState>("saved");
   // What changes between renders without being shown: one mutable record,
   // read by the timers and the save in flight.
   const live = useRef<Live>({
@@ -237,3 +243,21 @@ export function useDocumentSave({
     state,
   };
 }
+
+/** The save port on the API: saves a version, then refreshes every artifact query. */
+export const useSaveVersion = (
+  api: QueryUtils,
+  id: Artifact["id"]
+): SaveVersion => {
+  const queryClient = useQueryClient();
+  const { mutateAsync } = useMutation(
+    api.artifacts.saveVersion.mutationOptions({
+      onSuccess: () =>
+        queryClient.invalidateQueries({ queryKey: api.artifacts.key() }),
+    })
+  );
+  return useCallback(
+    (input) => mutateAsync({ ...input, id }),
+    [id, mutateAsync]
+  );
+};

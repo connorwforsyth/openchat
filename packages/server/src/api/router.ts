@@ -51,6 +51,7 @@ import { DOT_RUN_KEY_PREFIX, isDotRunKey } from "../dots/policy";
 import { toConversationSchedule } from "../dots/schedule-policy";
 import type { StreamChannel } from "../ports/stream-channel";
 import { type BudgetCheck, storeContext } from "../runs/chat-context";
+import { newChatMode } from "../runs/chat-mode";
 import { type CreateRunError, createRun, mayRun } from "../runs/create-run";
 import { pinnedDraft } from "../runs/drafts";
 import type { MemorySettings } from "../runs/memory";
@@ -225,7 +226,7 @@ export const createChatRouter = (services: ApiServices) => {
       const row = await createConversation(db, {
         context: stored.value,
         defaultTarget: input.defaultTarget ?? null,
-        mode: input.mode,
+        mode: newChatMode(services.chatModes, input.mode),
         ownerId: context.actor.userId,
         purpose: draft ? "test" : "chat",
         title: input.title ?? null,
@@ -274,7 +275,7 @@ export const createChatRouter = (services: ApiServices) => {
         const row = await createConversation(tx, {
           context: stored.value,
           defaultTarget: source.value.defaultTarget,
-          mode: source.value.mode,
+          mode: newChatMode(services.chatModes, source.value.mode),
           ownerId: actor.userId,
           title: input.title ?? source.value.title,
         });

@@ -1,6 +1,7 @@
 "use client";
 
 import { Plural, Trans, useLingui } from "@lingui/react/macro";
+import type { SlideTarget } from "@workspace/artifacts-kit/kinds/presentation/edit-target";
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -42,6 +43,7 @@ import {
   type ExportFormat,
   type FrameMessage,
   type HostMessage,
+  type PickedElement,
   type PresentAction,
   RUNTIME_CHANNEL,
   type RuntimeError,
@@ -157,15 +159,6 @@ export type PostToFrame = (frame: Window, message: HostMessage) => void;
 const postToFrame: PostToFrame = (frame, message) =>
   frame.postMessage(message, "*");
 
-export interface PresentationPreviewProps {
-  readonly content: string;
-  /** Overrides how messages reach the frame, for tests. */
-  readonly post?: PostToFrame;
-  /** The runtime's origin; without one the panel says the deck can't be drawn here. */
-  readonly runtimeOrigin: string | null;
-  readonly title: string;
-}
-
 /**
  * Whether the frame has had `RUNTIME_READY_TIMEOUT_MS` to say `ready` and
  * hasn't; each retry (`attempt`) starts the wait again.
@@ -277,17 +270,68 @@ const usePresenterSession = ({
   return useMemo(() => ({ isOpen, open }), [isOpen, open]);
 };
 
-export function PresentationPreview({
+/** Where a pick came from, as far as this side can tell. */
+export interface PickSource {
+  readonly epoch: number;
+  readonly focused: boolean;
+}
+
+/** What the slides editor asks of the deck (n2): its canvas view. */
+export interface DeckEditing {
+  /** Which source the deck is drawn from; the editor moves it on when the deck changes under it. */
+  readonly epoch: number;
+  /** The slide shown. */
+  readonly focus: string | undefined;
+  /** Whether a click on the slide picks an element in it. */
+  readonly inspect: boolean;
+  /**
+   * What the frame says was picked, with what the editor needs to judge
+   * the claim: the `epoch` the render it came from was asked with, and
+   * whether the frame had the person's focus.
+   */
+  readonly onPicked: (element: PickedElement | null, from: PickSource) => void;
+  /** What's picked now, picked again when the deck is drawn again. */
+  readonly selection: SlideTarget | null;
+}
+
+export interface UseDeckOptions {
+  readonly content: string;
+  /** The slides editor's canvas; without it, the overview. */
+  readonly editing?: DeckEditing;
+  /** Overrides how messages reach the frame, for tests. */
+  readonly post?: PostToFrame;
+  readonly runtimeOrigin: string | null;
+  readonly title: string;
+}
+
+export interface PresentationPreviewProps
+  extends Omit<UseDeckOptions, "editing"> {}
+
+/**
+ * A deck drawn by the runtime, presented and exported: the frame, where it
+ * stands, and what can be done with it. `PresentationPreview` and the
+ * slides editor lay out its pieces (`DeckActions`, `DeckNotices`,
+ * `DeckStage`) as each needs.
+ */
+export function useDeck({
   content,
+  editing,
   post = postToFrame,
   runtimeOrigin,
   title,
-}: PresentationPreviewProps) {
+}: UseDeckOptions) {
   const { t } = useLingui();
   const frameRef = useRef<HTMLIFrameElement>(null);
-  const stageRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLElement>(null);
   const lastId = useRef(0);
+  const renderEpoch = useRef(0);
   const lastExport = useRef(0);
+  // The export asked for and not yet answered. The deck's own code shares
+  // the frame and can post `exported` too, so only this one is taken, once.
+  const pendingExport = useRef<{
+    readonly format: ExportFormat;
+    readonly request: string;
+  } | null>(null);
   const [ready, setReady] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [errors, setErrors] = useState<readonly RuntimeError[]>([]);
@@ -316,6 +360,7 @@ export function PresentationPreview({
       return;
     }
     lastId.current += 1;
+    renderEpoch.current = editing?.epoch ?? 0;
     setErrors([]);
     send({
       channel: RUNTIME_CHANNEL,
@@ -326,11 +371,36 @@ export function PresentationPreview({
       theme,
       title,
       type: "render",
+      ...(editing
+        ? {
+            focus: editing.focus,
+            inspect: editing.inspect,
+            selection: editing.selection,
+            view: "slide" as const,
+          }
+        : {}),
     });
   });
 
+  const epoch = editing?.epoch;
   // biome-ignore lint/correctness/useExhaustiveDependencies: these are the triggers; `render` reads them.
-  useEffect(() => render(), [ready, content, theme, title]);
+  useEffect(() => render(), [ready, content, theme, title, epoch]);
+
+  // Picking another slide, or nothing, without drawing the deck again.
+  const select = useCallback(
+    (focus: string, selection: SlideTarget | null) => {
+      if (lastId.current > 0) {
+        send({
+          channel: RUNTIME_CHANNEL,
+          focus,
+          id: String(lastId.current),
+          selection,
+          type: "select",
+        });
+      }
+    },
+    [send]
+  );
 
   const present = useCallback(
     (action: PresentAction) => {
@@ -385,6 +455,7 @@ export function PresentationPreview({
         return;
       }
       lastExport.current += 1;
+      pendingExport.current = { format, request: String(lastExport.current) };
       setExporting(format);
       setExportError(null);
       send({
@@ -416,6 +487,7 @@ export function PresentationPreview({
         }
         return;
       case "rendered":
+      case "layout":
         return;
       case "error":
         if (value.id === current) {
@@ -430,8 +502,20 @@ export function PresentationPreview({
           setPosition(value);
         }
         return;
+      case "picked":
+        if (value.id === current && editing) {
+          editing.onPicked(value.element, {
+            epoch: renderEpoch.current,
+            focused: document.activeElement === frameRef.current,
+          });
+        }
+        return;
       case "exported":
-        if (value.request === String(lastExport.current)) {
+        if (
+          value.request === pendingExport.current?.request &&
+          value.format === pendingExport.current.format
+        ) {
+          pendingExport.current = null;
           setExporting(null);
           downloadFile(
             new Blob([value.data], { type: MEDIA_TYPES[value.format] }),
@@ -440,7 +524,8 @@ export function PresentationPreview({
         }
         return;
       case "export-failed":
-        if (value.request === String(lastExport.current)) {
+        if (value.request === pendingExport.current?.request) {
+          pendingExport.current = null;
           setExporting(null);
           setExportError(value.message);
         }
@@ -506,120 +591,155 @@ export function PresentationPreview({
   const previous = useCallback(() => present("previous"), [present]);
   const toggleNotes = useCallback(() => setNotesOpen((open) => !open), []);
 
-  const connection = connectionOf(runtimeOrigin, ready, timedOut);
+  return {
+    attempt,
+    connection: connectionOf(runtimeOrigin, ready, timedOut),
+    errors,
+    exportError,
+    exporting,
+    exportPdf,
+    exportPptx,
+    frameRef,
+    height,
+    label: presenting ? t`Presenting ${title}` : t`Slides of ${title}`,
+    next,
+    notes: position?.notes ?? "",
+    notesOpen,
+    openPresenter: presenterWindow.open,
+    presenting,
+    previous,
+    ready,
+    retry,
+    runtimeOrigin,
+    select,
+    slide: position ? position.slide + 1 : 0,
+    slides: position?.slides ?? 0,
+    src:
+      runtimeOrigin && parentOrigin
+        ? runtimeUrl(runtimeOrigin, parentOrigin, "presentation")
+        : null,
+    stageRef,
+    start,
+    stop,
+    title,
+    toggleNotes,
+    view: editing ? ("slide" as const) : ("overview" as const),
+  };
+}
 
-  if (runtimeOrigin === null) {
+export type Deck = ReturnType<typeof useDeck>;
+
+export function PresentationPreview(props: PresentationPreviewProps) {
+  const deck = useDeck(props);
+  if (deck.runtimeOrigin === null) {
     return (
       <RuntimeUnavailable
         connection="unconfigured"
-        onRetry={retry}
+        onRetry={deck.retry}
         origin={null}
       />
     );
   }
-  if (!parentOrigin) {
+  if (!deck.src) {
     return null;
   }
-  const slide = position ? position.slide + 1 : 0;
-  const slides = position?.slides ?? 0;
-  const notes = position?.notes ?? "";
-
   return (
     <div className="flex flex-1 flex-col">
-      <DeckToolbar
-        exporting={exporting}
-        onExportPdf={exportPdf}
-        onExportPptx={exportPptx}
-        onPresent={start}
-        ready={ready}
-        slides={slides}
-      />
-      <DeckNotices
-        connection={connection}
-        errors={errors}
-        exportError={exportError}
-        onRetry={retry}
-        origin={runtimeOrigin}
-      />
-      {ready ? null : (
+      <div className="flex h-10 shrink-0 items-center gap-1 border-b px-2">
+        <span
+          aria-live="polite"
+          className="min-w-0 flex-1 truncate ps-1 text-muted-foreground text-xs tabular-nums"
+        >
+          {deck.slides > 0 ? (
+            <Plural one="# slide" other="# slides" value={deck.slides} />
+          ) : null}
+        </span>
+        <DeckActions deck={deck} />
+      </div>
+      <DeckNotices deck={deck} />
+      <DeckStage deck={deck} />
+    </div>
+  );
+}
+
+/**
+ * The deck's frame, and while presenting the same frame over the whole
+ * window with the presenter's bar: moving it would reload it. In the
+ * editor's `slide` view it's one slide, fitted to the pane's width.
+ */
+export function DeckStage({ deck }: { readonly deck: Deck }) {
+  const { t } = useLingui();
+  if (!deck.src) {
+    return null;
+  }
+  const { presenting } = deck;
+  const fitted = deck.view === "slide" && !presenting;
+  return (
+    <>
+      {deck.ready ? null : (
         <span className="sr-only" role="status">
           <Trans>Loading preview</Trans>
         </span>
       )}
       {/* biome-ignore lint/a11y/useAriaPropsSupportedByRole: aria-modal is set only while the role is dialog. */}
       <section
-        // Presenting, the same frame covers the window: moving it would
-        // reload it. No transition (D28).
-        aria-label={presenting ? t`Presenting ${title}` : t`Slides of ${title}`}
+        // No transition (D28).
+        aria-label={deck.label}
         aria-modal={presenting ? true : undefined}
         className={cn(
           "flex flex-1 flex-col",
+          fitted && "items-center justify-center bg-muted/30 p-3",
           presenting && "fixed inset-0 z-50 bg-background",
           // Kept loading out of sight, so a slow runtime still shows up.
-          connection === "unreachable" && "hidden"
+          deck.connection === "unreachable" && "hidden"
         )}
-        ref={stageRef}
+        ref={deck.stageRef}
         role={presenting ? "dialog" : undefined}
       >
         <iframe
           className={cn(
-            "block min-h-80 w-full bg-background",
-            (presenting || height === null) && "flex-1",
+            "block w-full bg-background",
+            fitted ? "aspect-video max-h-full rounded-md border" : "min-h-80",
+            !fitted && (presenting || deck.height === null) && "flex-1",
             // Presenting, the keys and clicks are this side's.
             presenting && "pointer-events-none"
           )}
-          key={attempt}
-          ref={frameRef}
+          key={deck.attempt}
+          ref={deck.frameRef}
           referrerPolicy="no-referrer"
           sandbox="allow-scripts"
-          src={runtimeUrl(runtimeOrigin, parentOrigin, "presentation")}
-          style={presenting || height === null ? undefined : { height }}
+          src={deck.src}
+          style={
+            fitted || presenting || deck.height === null
+              ? undefined
+              : { height: deck.height }
+          }
           tabIndex={presenting ? -1 : undefined}
-          title={t`Preview of ${title}`}
+          title={t`Preview of ${deck.title}`}
         />
         {presenting ? (
           <PresenterBar
-            notes={notesOpen ? notes : ""}
-            notesOpen={notesOpen}
-            onExit={stop}
-            onNext={next}
-            onPresenter={presenterWindow.open}
-            onPrevious={previous}
-            onToggleNotes={toggleNotes}
-            slide={slide}
-            slides={slides}
+            notes={deck.notesOpen ? deck.notes : ""}
+            notesOpen={deck.notesOpen}
+            onExit={deck.stop}
+            onNext={deck.next}
+            onPresenter={deck.openPresenter}
+            onPrevious={deck.previous}
+            onToggleNotes={deck.toggleNotes}
+            slide={deck.slide}
+            slides={deck.slides}
           />
         ) : null}
       </section>
-    </div>
+    </>
   );
 }
 
-function DeckToolbar({
-  exporting,
-  onExportPdf,
-  onExportPptx,
-  onPresent,
-  ready,
-  slides,
-}: {
-  readonly exporting: ExportFormat | null;
-  readonly onExportPdf: () => void;
-  readonly onExportPptx: () => void;
-  readonly onPresent: () => void;
-  readonly ready: boolean;
-  readonly slides: number;
-}) {
+/** Export and Present. */
+export function DeckActions({ deck }: { readonly deck: Deck }) {
+  const { exporting, ready, slides } = deck;
   return (
-    <div className="flex h-10 shrink-0 items-center gap-1 border-b px-2">
-      <span
-        aria-live="polite"
-        className="min-w-0 flex-1 truncate ps-1 text-muted-foreground text-xs tabular-nums"
-      >
-        {slides > 0 ? (
-          <Plural one="# slide" other="# slides" value={slides} />
-        ) : null}
-      </span>
+    <>
       <DropdownMenu>
         <DropdownMenuTrigger
           render={
@@ -634,24 +754,24 @@ function DeckToolbar({
           {exporting ? <Trans>Exporting…</Trans> : <Trans>Export</Trans>}
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
-          <DropdownMenuItem onClick={onExportPptx}>
+          <DropdownMenuItem onClick={deck.exportPptx}>
             <Trans>PowerPoint (.pptx)</Trans>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={onExportPdf}>
+          <DropdownMenuItem onClick={deck.exportPdf}>
             <Trans>PDF (.pdf)</Trans>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
       <Button
         disabled={!ready || slides === 0}
-        onClick={onPresent}
+        onClick={deck.start}
         size="sm"
         variant="secondary"
       >
         <PlayIcon aria-hidden />
         <Trans>Present</Trans>
       </Button>
-    </div>
+    </>
   );
 }
 
@@ -737,35 +857,23 @@ function PresenterBar({
 }
 
 /** What's wrong above the deck: the runtime, its slides, or an export. */
-function DeckNotices({
-  connection,
-  errors,
-  exportError,
-  onRetry,
-  origin,
-}: {
-  readonly connection: RuntimeConnection;
-  readonly errors: readonly RuntimeError[];
-  readonly exportError: string | null;
-  readonly onRetry: () => void;
-  readonly origin: string;
-}) {
+export function DeckNotices({ deck }: { readonly deck: Deck }) {
   return (
     <>
-      {connection === "unreachable" ? (
+      {deck.connection === "unreachable" ? (
         <RuntimeUnavailable
           connection="unreachable"
-          onRetry={onRetry}
-          origin={origin}
+          onRetry={deck.retry}
+          origin={deck.runtimeOrigin}
         />
       ) : null}
-      {errors.length > 0 ? <DeckErrors errors={errors} /> : null}
-      {exportError ? (
+      {deck.errors.length > 0 ? <DeckErrors errors={deck.errors} /> : null}
+      {deck.exportError ? (
         <p
           className="bg-destructive/5 px-4 py-2 text-destructive text-sm"
           role="alert"
         >
-          <Trans>The deck couldn't be exported: {exportError}</Trans>
+          <Trans>The deck couldn't be exported: {deck.exportError}</Trans>
         </p>
       ) : null}
     </>
