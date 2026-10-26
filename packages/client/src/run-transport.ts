@@ -1,3 +1,7 @@
+import {
+  ANNOTATIONS_DATA,
+  annotationsDataSchema,
+} from "@workspace/ai/messages/annotations";
 import { CHIPS_DATA, chipsDataSchema } from "@workspace/ai/messages/chips";
 import { SKILLS_DATA, skillsDataSchema } from "@workspace/ai/messages/skills";
 import {
@@ -6,6 +10,7 @@ import {
 } from "@workspace/ai/messages/workspace-file";
 import type {
   ConversationId,
+  JsonValue,
   MessageId,
   RunId,
 } from "@workspace/contract/schemas/common";
@@ -59,31 +64,44 @@ const TRAILING_SLASH = /\/$/;
 /** Enough to reach the answer being written past the turns queued after it. */
 const ACTIVE_RUNS = 20;
 
+interface Check {
+  readonly safeParse: (
+    data: unknown
+  ) =>
+    | { readonly data: unknown; readonly success: true }
+    | { readonly success: false };
+}
+
 /**
- * Text, file, workspace-file mention and chips parts of a `UIMessage` as
- * the contract's user parts. A mention the server can't read is dropped here
- * rather than stored. Pure.
+ * The data parts a sent message keeps, each checked by its feature's
+ * schema: `@file` mentions, chips and notes pinned on an artifact.
+ */
+const SENT_DATA = new Map<string, Check>([
+  [WORKSPACE_FILE_DATA, workspaceFileRefSchema],
+  [CHIPS_DATA, chipsDataSchema],
+  [ANNOTATIONS_DATA, annotationsDataSchema],
+]);
+
+const sentData = (type: string, data: unknown): UserMessagePart[] => {
+  const name = type.slice("data-".length);
+  const parsed = SENT_DATA.get(name)?.safeParse(data);
+  return parsed?.success
+    ? [{ data: parsed.data as JsonValue, name, type: "data" }]
+    : [];
+};
+
+/**
+ * Text, file, workspace-file mention, chips and annotations parts of a
+ * `UIMessage` as the contract's user parts. A part the server can't read
+ * is dropped here rather than stored. Pure.
  */
 export const userParts = (message: UIMessage): UserMessagePart[] =>
   message.parts.flatMap((part): UserMessagePart[] => {
     if (part.type === "text") {
       return [{ text: part.text, type: "text" }];
     }
-    if (part.type === `data-${WORKSPACE_FILE_DATA}`) {
-      const ref = workspaceFileRefSchema.safeParse(
-        (part as { readonly data?: unknown }).data
-      );
-      return ref.success
-        ? [{ data: ref.data, name: WORKSPACE_FILE_DATA, type: "data" }]
-        : [];
-    }
-    if (part.type === `data-${CHIPS_DATA}`) {
-      const chips = chipsDataSchema.safeParse(
-        (part as { readonly data?: unknown }).data
-      );
-      return chips.success
-        ? [{ data: chips.data, name: CHIPS_DATA, type: "data" }]
-        : [];
+    if (part.type.startsWith("data-")) {
+      return sentData(part.type, (part as { readonly data?: unknown }).data);
     }
     if (part.type !== "file") {
       return [];
