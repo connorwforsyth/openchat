@@ -411,6 +411,7 @@ export const publicConfig: PublicConfig = {
   },
   auth: { providers: [{ id: "github", name: "GitHub" }], signup: "invite" },
   brand: { faviconUrl: null, logoUrl: null, name: "Chat" },
+  chatModes: false,
   features: {
     fileUploads: true,
     importers: true,

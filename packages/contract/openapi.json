@@ -22563,6 +22563,9 @@
                       },
                       "required": ["siteOrigins"]
                     },
+                    "chatModes": {
+                      "type": "boolean"
+                    },
                     "auth": {
                       "type": "object",
                       "properties": {
