@@ -10,6 +10,7 @@ import type {
 } from "@workspace/composer/schemas";
 import type { ConversationId } from "@workspace/contract/schemas/common";
 import type { Participant } from "@workspace/contract/schemas/conversations";
+import type { Artifact } from "@workspace/contract/schemas/files";
 import type {
   Message,
   SiblingInfo,
@@ -34,6 +35,7 @@ import { ConversationView } from "../conversation/conversation-view";
 import type { MessageFeedback } from "../conversation/feedback";
 import { FilePreviewContext } from "../conversation/file-change-card";
 import { AppHeader } from "../header/app-header";
+import { ArtifactsMenu } from "../header/artifacts-menu";
 import { BranchSwitcher } from "../header/branch-switcher";
 import { ChatTitle } from "../header/chat-title";
 import { ContextControl, showsContext } from "../header/context-control";
@@ -141,6 +143,11 @@ export interface WorkspaceHandle {
 
 export interface ChatScreenProps {
   readonly actions: ConversationActions;
+  /**
+   * Asks for the header's Artifacts list (the ⌘K palette's "Show this chat's
+   * artifacts"); each new value opens it once.
+   */
+  readonly artifactsRequest?: number;
   /** A bar above the messages, in the flow (a Dot's schedule, 172). */
   readonly banner?: ReactNode;
   readonly brand?: ReactNode;
@@ -240,6 +247,7 @@ const railCurrent = (
 
 function ChatScreenBody({
   actions,
+  artifactsRequest = 0,
   banner,
   brand,
   composer,
@@ -430,7 +438,7 @@ function ChatScreenBody({
     "chat.prev": () => stepChat(-1),
     "composer.focus": focusComposer,
     help: () => setHelpOpen(true),
-    "panel.artifacts": () => togglePanelBy("artifacts"),
+    "panel.artifacts": () => toggleArtifacts(),
     "panel.sandbox": toggleFiles,
     "sidebar.toggle": toggleChats,
   });
@@ -487,6 +495,12 @@ function ChatScreenBody({
     },
     [actions, select]
   );
+  const { menu: artifactsMenu, toggle: toggleArtifacts } = useArtifactsMenu({
+    artifacts: workspace.artifacts.artifacts,
+    request: artifactsRequest,
+    select,
+    shown: layout.panel === "artifacts" ? shown : null,
+  });
   const openFile = useCallback(
     (path: string) => {
       select({ kind: "file", path: workspacePath(path) });
@@ -731,6 +745,7 @@ function ChatScreenBody({
         narrow ? (
           <div className="flex items-center gap-1">
             {headerEnd}
+            {artifactsMenu}
             <HeaderOverflowMenu
               onCopyLink={conversation.onCopyLink}
               onInvite={conversation.onInvite}
@@ -749,6 +764,7 @@ function ChatScreenBody({
               onInvite={conversation.onInvite}
               participants={conversation.participants}
             />
+            {artifactsMenu}
             <PanelToggles
               filesHint={<ShortcutHint id="panel.sandbox" />}
               onToggle={toggleHalf}
@@ -890,6 +906,55 @@ function ChatScreenBody({
 }
 
 const noop = () => undefined;
+
+/**
+ * The header's Artifacts list: its button, A and the palette open it (each
+ * new `request` from the palette opens it once), and a pick opens that
+ * artifact in the panel.
+ */
+const useArtifactsMenu = ({
+  artifacts,
+  request,
+  select,
+  shown,
+}: {
+  readonly artifacts: readonly Artifact[];
+  readonly request: number;
+  readonly select: (selection: WorkspaceSelection) => void;
+  /** What the panel shows when it's on the artifacts, else `null`. */
+  readonly shown: WorkspaceSelection | null;
+}) => {
+  const [open, setOpen] = useState(false);
+  const [asked, setAsked] = useState(request);
+  if (asked !== request) {
+    setAsked(request);
+    setOpen(true);
+  }
+  const pick = useCallback(
+    (artifact: Artifact) => {
+      setOpen(false);
+      select({ artifactId: artifact.id, kind: "artifact" });
+    },
+    [select]
+  );
+  const toggle = useCallback(() => setOpen((was) => !was), []);
+  const current =
+    shown?.kind === "artifact"
+      ? (shown.artifactId ?? artifacts[0]?.id ?? null)
+      : null;
+  return {
+    menu: (
+      <ArtifactsMenu
+        artifacts={artifacts}
+        current={current}
+        onOpenChange={setOpen}
+        onPick={pick}
+        open={open}
+      />
+    ),
+    toggle,
+  };
+};
 
 /**
  * The chat screen. The platform wraps everything so the shortcut hook, which

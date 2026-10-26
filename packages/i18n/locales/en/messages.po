@@ -788,9 +788,10 @@ msgstr "artifacts"
 #: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
 #: ../chat-ui/src/artifacts/artifact-full-view.tsx
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
+#: ../chat-ui/src/header/artifacts-menu.tsx
+#: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 #: ../chat-ui/src/sidebar/sidebar-rail.tsx
-#: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Artifacts"
 msgstr "Artifacts"
 
@@ -798,7 +799,7 @@ msgstr "Artifacts"
 msgid "Artifacts couldn't be loaded."
 msgstr "Artifacts couldn't be loaded."
 
-#: ../chat-ui/src/workspace/workspace-panel.tsx
+#: ../chat-ui/src/header/artifacts-menu.tsx
 msgid "Artifacts in this chat"
 msgstr "Artifacts in this chat"
 
@@ -2041,6 +2042,10 @@ msgstr "Docker sandboxes aren't configured: set SANDBOX_RUNNER_TOKEN in .env and
 msgid "Document"
 msgstr "Document"
 
+#: ../palette/src/context-actions.ts
+msgid "documents"
+msgstr "documents"
+
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgid "Documents, pages and diagrams from your chats, and ones shared with you."
 msgstr "Documents, pages and diagrams from your chats, and ones shared with you."
@@ -2511,6 +2516,14 @@ msgstr "Fill"
 #: ../library-ui/src/components/prompt-form.tsx
 msgid "Fill in every variable to see the message."
 msgstr "Fill in every variable to see the message."
+
+#: ../chat-ui/src/header/artifacts-menu.tsx
+msgid "Filter"
+msgstr "Filter"
+
+#: ../chat-ui/src/header/artifacts-menu.tsx
+msgid "Filter artifacts"
+msgstr "Filter artifacts"
 
 #: ../library-ui/src/components/skills-section.tsx
 msgid "Find a skill"
@@ -3221,6 +3234,10 @@ msgstr "Make your Dot"
 msgid "Makes images"
 msgstr "Makes images"
 
+#: ../chat-ui/src/header/artifacts-menu.tsx
+msgid "Making…"
+msgstr "Making…"
+
 #: ../../apps/web/app/(app)/(pages)/dots/dot-profile.tsx
 msgid "Manage memory"
 msgstr "Manage memory"
@@ -3733,6 +3750,10 @@ msgstr "No allowance set"
 msgid "No archived chats."
 msgstr "No archived chats."
 
+#: ../chat-ui/src/header/artifacts-menu.tsx
+msgid "No artifact has that name."
+msgstr "No artifact has that name."
+
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgid "No artifacts yet. Ask for a document, a page or a diagram in a chat and it shows up here."
 msgstr "No artifacts yet. Ask for a document, a page or a diagram in a chat and it shows up here."
@@ -3902,10 +3923,6 @@ msgstr "None"
 msgid "None (the whole space)"
 msgstr "None (the whole space)"
 
-#: ../chat-ui/src/workspace/workspace-panel.tsx
-msgid "None yet"
-msgstr "None yet"
-
 #: ../../apps/web/app/(app)/_shared/spaces/space-switcher.tsx
 msgid "Not a member"
 msgstr "Not a member"
@@ -4022,6 +4039,10 @@ msgstr "Nothing shared with you"
 #: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
 msgid "Nothing yet."
 msgstr "Nothing yet."
+
+#: ../chat-ui/src/header/artifacts-menu.tsx
+msgid "Nothing yet. Ask for a document, a deck, a site or a diagram and it appears here."
+msgstr "Nothing yet. Ask for a document, a deck, a site or a diagram and it appears here."
 
 #. placeholder {0}: dot.name
 #: ../../apps/web/app/(app)/(pages)/dots/dot-profile.tsx
@@ -5665,9 +5686,10 @@ msgstr "Show the page at a phone's width"
 msgid "Show the workspace"
 msgstr "Show the workspace"
 
+#: ../palette/src/context-actions.ts
 #: ../shortcuts/src/registry.ts
-msgid "Show the workspace artifacts"
-msgstr "Show the workspace artifacts"
+msgid "Show this chat's artifacts"
+msgstr "Show this chat's artifacts"
 
 #: ../chat-ui/src/voice/voice-call.tsx
 msgid "Show transcript"
@@ -5794,6 +5816,10 @@ msgstr "Slide {slide} of {slides}"
 #: ../chat-ui/src/artifacts/presentation/slide-inspector.tsx
 msgid "Slide background"
 msgstr "Slide background"
+
+#: ../palette/src/context-actions.ts
+msgid "slides"
+msgstr "slides"
 
 #: ../chat-ui/src/artifacts/presentation/slide-rail.tsx
 #: ../chat-ui/src/model/artifact-kinds.ts
@@ -7510,14 +7536,6 @@ msgstr "Workspace"
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Workspace actions"
 msgstr "Workspace actions"
-
-#: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
-msgid "Workspace artifacts"
-msgstr "Workspace artifacts"
-
-#: ../chat-ui/src/workspace/workspace-panel.tsx
-msgid "Workspace contents"
-msgstr "Workspace contents"
 
 #: ../../apps/web/app/dev/sandbox/page.tsx
 msgid "Workspace panel"

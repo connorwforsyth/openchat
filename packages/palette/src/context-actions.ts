@@ -21,6 +21,8 @@ export interface PaletteChoice {
 }
 
 export interface PaletteContext {
+  /** The chat's artifacts: opens the header's Artifacts list (night 2). */
+  readonly artifacts?: { readonly onOpen: () => void };
   /** Chat context (Personal / team / org). Locked after the first message (D17). */
   readonly chatContext?: PaletteChoice & { readonly locked: boolean };
   readonly model?: PaletteChoice;
@@ -61,18 +63,33 @@ export const buildContextActions = (
   i18n: I18n,
   context: PaletteContext
 ): readonly PaletteAction[] => {
-  const { chatContext, model, permissionMode, workspace } = context;
+  const { artifacts, chatContext, model, permissionMode, workspace } = context;
+  const artifactsAction = artifacts
+    ? [
+        paletteAction(
+          {
+            id: "artifacts:open",
+            keywords: [
+              i18n._(msg`artifacts`),
+              i18n._(msg`slides`),
+              i18n._(msg`documents`),
+              i18n._(msg`preview`),
+            ],
+            section: "actions",
+            shortcutId: "panel.artifacts",
+            title: i18n._(msg`Show this chat's artifacts`),
+          },
+          artifacts.onOpen
+        ),
+      ]
+    : [];
   const workspaceAction =
     workspace?.available === true
       ? [
           paletteAction(
             {
               id: "workspace:toggle",
-              keywords: [
-                i18n._(msg`files`),
-                i18n._(msg`artifacts`),
-                i18n._(msg`preview`),
-              ],
+              keywords: [i18n._(msg`files`), i18n._(msg`preview`)],
               section: "actions",
               shortcutId: "panel.sandbox",
               title: workspace.open
@@ -98,6 +115,7 @@ export const buildContextActions = (
           (label) => i18n._(msg`Switch chat context to ${label}`),
           [i18n._(msg`context`), i18n._(msg`team`)]
         )),
+    ...artifactsAction,
     ...workspaceAction,
     ...choices(
       "permission",
