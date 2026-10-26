@@ -26,7 +26,8 @@ import { chatModeUnavailable } from "./chat-mode";
 // Chat and Code modes through real runs: a Chat run is never offered a tool
 // that runs code, and a call to one comes back as a tool error; the run
 // records the conversation's mode (never the client's), and so do its
-// messages; switching applies from the next message.
+// messages; switching applies from the next message. With
+// `features.chatModes` off, none of it: every run gets the sandbox.
 
 let h: Harness | undefined;
 afterEach(() => h?.close());
@@ -145,7 +146,7 @@ describe("Chat and Code modes", () => {
   it.each(["chat", "code", null] as const)(
     "regenerates an original %s turn after switching modes",
     async (mode) => {
-      h = await createHarness();
+      h = await createHarness({ chatModes: true });
       const chat = await newChat(h, { mode: mode ?? "code" });
       offerSandbox(h, scripted([]));
       const original = await send(h, chat.id);
@@ -182,7 +183,7 @@ describe("Chat and Code modes", () => {
     }
   );
   it("start a new chat in Chat, which runs no code and says why", async () => {
-    h = await createHarness();
+    h = await createHarness({ chatModes: true });
     const chat = await newChat(h);
     expect(chat.mode).toBe("chat");
     const model = scripted([
@@ -214,7 +215,7 @@ describe("Chat and Code modes", () => {
   });
 
   it("give a Code chat the sandbox", async () => {
-    h = await createHarness();
+    h = await createHarness({ chatModes: true });
     const chat = await newChat(h, { mode: "code" });
     const model = scripted([
       () => toolCallStream("bash", { command: "npm install" }, "b1"),
@@ -232,7 +233,7 @@ describe("Chat and Code modes", () => {
   });
 
   it("take the conversation's mode, not the client's, from the next message", async () => {
-    h = await createHarness();
+    h = await createHarness({ chatModes: true });
     const chat = await newChat(h);
     offerSandbox(h, scripted([]));
     const first = await send(h, chat.id, { chatMode: "code" });
@@ -253,5 +254,55 @@ describe("Chat and Code modes", () => {
       await h.request(`/api/messages/${first.assistantMessageId}`)
     );
     expect(firstAnswer.mode).toBe("chat");
+  });
+});
+
+describe("with features.chatModes off", () => {
+  it("gives a chat stored in Chat mode the sandbox, and records no mode", async () => {
+    h = await createHarness();
+    const chat = await newChat(h, { mode: "chat" });
+    const model = scripted([
+      () => toolCallStream("bash", { command: "npm install" }, "b1"),
+    ]);
+    const spies = offerSandbox(h, model);
+
+    const run = await send(h, chat.id, { chatMode: "chat" });
+
+    expect(offered(model)).toEqual(
+      expect.arrayContaining(["bash", "edit", "preview", "read", "write"])
+    );
+    expect(spies.bash.execute).toHaveBeenCalledOnce();
+    expect(run.options?.chatMode).toBeUndefined();
+    expect(await modesOf(h, run)).toEqual([null, null]);
+  });
+
+  it("regenerates a turn sent while it was on in Chat mode with the sandbox", async () => {
+    h = await createHarness();
+    const chat = await newChat(h, { mode: "chat" });
+    offerSandbox(h, scripted([]));
+    const first = await send(h, chat.id);
+    await h.db
+      .update(message)
+      .set({ mode: "chat" })
+      .where(eq(message.id, first.userMessageId));
+    const model = scripted([]);
+    offerSandbox(h, model);
+    const regenerated = await json<CreateRunOutput>(
+      await h.request("/api/runs", {
+        json: {
+          conversationId: chat.id,
+          input: { type: "regenerate", userMessageId: first.userMessageId },
+          target: { model: "test:chat", type: "model" },
+        },
+        method: "POST",
+      }),
+      202
+    );
+    await h.services.executor.idle();
+    const run = await json<Run>(
+      await h.request(`/api/runs/${regenerated.runId}`)
+    );
+    expect(run.options?.chatMode).toBeUndefined();
+    expect(offered(model)).toContain("bash");
   });
 });

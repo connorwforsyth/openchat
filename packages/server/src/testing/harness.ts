@@ -150,6 +150,8 @@ const listenFor = (testDb: TestDb): Listen => {
 };
 
 export interface HarnessOptions {
+  /** `features.chatModes`: runs take the chat's Chat / Code mode (off by default). */
+  readonly chatModes?: boolean;
   /**
    * Image models for real turns' `generate_image` (138), and whether a call
    * asks (`models.image.approval`, `ask` by default).
@@ -188,6 +190,7 @@ export const createHarness = async (
   const base = testConfig(options.prices);
   const config: AppConfig = {
     ...base,
+    features: { ...base.features, chatModes: options.chatModes ?? false },
     models: {
       ...base.models,
       image: {
