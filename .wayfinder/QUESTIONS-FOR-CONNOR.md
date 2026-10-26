@@ -222,7 +222,7 @@ Lane `pstack/usage` (Settings → Usage, span tags). Defaults applied overnight;
 
 ## modes-off lane (n2/modes-off)
 
-1. **Chats made while `features.chatModes` is off, once it's back on.** *Defaulted: they're Chat chats.* A conversation is still created with `mode = 'chat'` while the switch is hidden, the same as chats from before modes, so turning the flag on takes `bash` away from them until someone switches them to Code. The alternative is to create them as `code` while the flag is off, so turning it on changes nothing for chats people already have.
+1. **Chats made while `features.chatModes` is off, once it's back on.** *Decided (root, 2026-10-27): they're Code chats.* While the switch is off, a new chat (and a schedule's new chat) is stored with `mode = 'code'`, whatever the client asks, so turning the flag on later takes `bash` from none of them (`newChatMode`, n2/modes-off-followup). Chats from before modes keep the modes lane's default (Chat).
 
 ## editors lane (n2/editors)
 
