@@ -7,7 +7,8 @@ import type { Turn } from "./turn";
 // tools (read, write, edit) and loses everything that executes in the
 // sandbox. The executor applies `chatModeTurn` on every pass, after every
 // wrapper has added its tools, so no resolver can hand a Chat run a shell.
-// A run outside the switch (a Dot's chat) has no `chatMode` and keeps all.
+// A run outside the switch (a Dot's chat, or any chat while
+// `features.chatModes` is off) has no `chatMode` and keeps all.
 
 /** Sandbox tools that run code: a shell, and the dev-server preview it starts. */
 export const CODE_TOOLS = ["bash", "preview"] as const;

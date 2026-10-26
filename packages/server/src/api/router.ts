@@ -77,6 +77,8 @@ import { createMemoryRouter } from "./memory";
 export interface ApiServices {
   readonly access: ConversationAccess;
   readonly budget: BudgetCheck;
+  /** `features.chatModes`: runs take the chat's Chat / Code mode. */
+  readonly chatModes: boolean;
   readonly db: Db;
   /** `models.default`: the target when neither the run nor the chat names one. */
   readonly defaultModel: ModelSelector | null;
@@ -566,6 +568,7 @@ export const createChatRouter = (services: ApiServices) => {
       const created = await createRun(
         {
           budget: services.budget,
+          chatModes: services.chatModes,
           db,
           defaultModel: services.defaultModel,
           executor,

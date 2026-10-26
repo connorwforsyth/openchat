@@ -147,6 +147,7 @@ limits:
 features:
   importers: true
   publicLinks: false
+  chatModes: false          # the composer's Chat / Code switch; off, every chat gets the sandbox tools
 
 # Connectors (184): MCP servers you offer every user. Each user sees them in
 # Settings > Connectors and can turn them on or off, unless you say otherwise:

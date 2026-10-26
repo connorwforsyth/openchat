@@ -94,6 +94,7 @@ import {
   type RunActivity,
   RunActivityProvider,
 } from "../conversation/approval-state";
+import { ShowModesContext } from "../conversation/mode-note";
 import { PlanStatusProvider } from "../conversation/plan-card";
 import { staleEdits } from "../model/approval";
 import {
@@ -175,7 +176,10 @@ export interface ConnectedChatProps {
   /** A bar above the messages (a Dot's schedule, 172). */
   readonly banner?: ReactNode;
   readonly brand?: ReactNode;
-  /** Offer the composer's Chat / Code switch (not in a Dot's chat, which is outside it). */
+  /**
+   * Offer the composer's Chat / Code switch (not in a Dot's chat, which is
+   * outside it). It shows only while the instance has `features.chatModes` on.
+   */
   readonly chatModes?: boolean;
   readonly client: ApiClient;
   /** Placeholder for the composer ("Message Pip" in a Dot's chat, 172). */
@@ -529,18 +533,41 @@ const webSearchSwitch = (
     ? { onWebSearchChange: onChange, webSearch: on }
     : {};
 
+/** Whether the chat shows Chat / Code: offered here and on in the instance. Pure. */
+const showsModes = (
+  config: PublicConfig,
+  offered: boolean | undefined
+): boolean => offered === true && config.chatModes === true;
+
 /**
  * The Chat / Code switch, and the menu held to the mode, where the chat is
  * inside the switch and the instance has sandboxes. Pure.
  */
 const chatModeSwitch = (
   config: PublicConfig,
-  offered: boolean | undefined,
+  shown: boolean,
   chatMode: ComposerChatMode
 ): Pick<ComposerProps, "chatMode" | "mode"> =>
-  offered === true && config.features.sandboxes
-    ? { chatMode, mode: chatMode.mode }
-    : {};
+  shown && config.features.sandboxes ? { chatMode, mode: chatMode.mode } : {};
+
+/** What message rows read from the screen: run activity, and whether modes show. */
+function RowContexts({
+  activity,
+  children,
+  showModes,
+}: {
+  readonly activity: RunActivity;
+  readonly children: ReactNode;
+  readonly showModes: boolean;
+}) {
+  return (
+    <RunActivityProvider value={activity}>
+      <ShowModesContext.Provider value={showModes}>
+        {children}
+      </ShowModesContext.Provider>
+    </RunActivityProvider>
+  );
+}
 
 /** Paths the composer offers: files only, relative to the workspace. Pure. */
 const filePaths = (
@@ -1798,6 +1825,7 @@ export function ConnectedChat({
   // "Make something new"'s kinds (161), in the menu as `@Slides` and kin:
   // only those the instance offers.
   const offeredKinds = useOfferedKinds(api);
+  const showModes = showsModes(config, chatModes);
   const artifactOptions = useMemo(
     (): readonly ArtifactOption[] =>
       starterKinds(offeredKinds).map((kind) => ({
@@ -2259,7 +2287,7 @@ export function ConnectedChat({
   );
 
   return (
-    <RunActivityProvider value={activity}>
+    <RowContexts activity={activity} showModes={showModes}>
       <PlanStatusProvider value={planStatus}>
         <VoiceBridgeContext.Provider
           value={bridgeOf(conversationId, voiceBridge)}
@@ -2272,7 +2300,7 @@ export function ConnectedChat({
               agents,
               artifacts: artifactOptions,
               attachmentLimits,
-              ...chatModeSwitch(config, chatModes, chatMode),
+              ...chatModeSwitch(config, showModes, chatMode),
               mcp: chatMcp.composer,
               ...composerDrafts,
               models,
@@ -2377,7 +2405,7 @@ export function ConnectedChat({
           />
         </VoiceBridgeContext.Provider>
       </PlanStatusProvider>
-    </RunActivityProvider>
+    </RowContexts>
   );
 }
 
