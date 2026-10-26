@@ -31,9 +31,7 @@ const gatewayOf = (provider: ProviderConfig): PriceSource | undefined =>
     : GATEWAY_HOSTS[new URL(provider.baseURL).hostname];
 
 /** Where a configured provider's list prices live in the catalogue, if anywhere. */
-export const priceSourceOf = (
-  provider: ProviderConfig
-): PriceSource | undefined => {
+const priceSourceOf = (provider: ProviderConfig): PriceSource | undefined => {
   switch (provider.type) {
     case "anthropic":
     case "google":
@@ -117,9 +115,7 @@ export const speedRating = (tokensPerSecond: number): number =>
 type Ratings = AppConfig["models"]["ratings"][string];
 
 /** What the catalogue rates a model, if anything. */
-export const catalogRatingsOf = (
-  catalogId: string | undefined
-): Partial<Ratings> => {
+const catalogRatingsOf = (catalogId: string | undefined): Partial<Ratings> => {
   if (catalogId === undefined) {
     return {};
   }
