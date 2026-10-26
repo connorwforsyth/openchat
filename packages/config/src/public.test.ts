@@ -28,6 +28,14 @@ describe("toPublicConfig", () => {
     expect(publicConfigSchema.safeParse(result).success).toBe(true);
   });
 
+  it("offers the Chat / Code switch only when features.chatModes is on", () => {
+    expect(toPublicConfig(config("")).chatModes).toBe(false);
+    const on = toPublicConfig(config("features: { chatModes: true }"));
+    expect(on.chatModes).toBe(true);
+    expect(on.features).not.toHaveProperty("chatModes");
+    expect(publicConfigSchema.safeParse(on).success).toBe(true);
+  });
+
   it("lists sign-in providers without their secrets", () => {
     const text = [
       "auth:",
