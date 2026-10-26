@@ -311,7 +311,9 @@ const SetBudgetForm = ({
         {problem ? (
           <FieldError>
             {problem === "amount" ? (
-              <Trans>Enter an amount in dollars, like 25 or 12.50.</Trans>
+              <Trans>
+                Enter an amount in {currency.code}, like 25 or 12.50.
+              </Trans>
             ) : (
               <Trans>The budget couldn't be saved. Try again.</Trans>
             )}

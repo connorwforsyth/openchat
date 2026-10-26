@@ -1,4 +1,4 @@
-import { type DisplayCurrency, USD } from "@workspace/config/currency";
+import type { DisplayCurrency } from "@workspace/config/currency";
 import { formatNumber } from "@workspace/i18n/format";
 
 // Money is integer micro-USD on the wire (1 USD = 1_000_000), never a float.
@@ -9,7 +9,7 @@ export const MICROS_PER_USD = 1_000_000;
 export const formatMicros = (
   micros: number,
   locale: string,
-  currency: DisplayCurrency = USD
+  currency: DisplayCurrency
 ): string => {
   const amount = (micros / MICROS_PER_USD) * currency.perUsd;
   return formatNumber(amount, locale, {
@@ -27,7 +27,7 @@ const AMOUNT = /^\d+(?:\.\d{0,6})?$/;
  */
 export const amountToMicros = (
   input: string,
-  currency: DisplayCurrency = USD
+  currency: DisplayCurrency
 ): number | null => {
   const trimmed = input.trim().replace(",", ".");
   if (!AMOUNT.test(trimmed)) {

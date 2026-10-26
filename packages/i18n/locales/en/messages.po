@@ -2172,9 +2172,10 @@ msgstr "End voice chat"
 msgid "Enter a valid email address."
 msgstr "Enter a valid email address."
 
+#. placeholder {0}: currency.code
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
-msgid "Enter an amount in dollars, like 25 or 12.50."
-msgstr "Enter an amount in dollars, like 25 or 12.50."
+msgid "Enter an amount in {0}, like 25 or 12.50."
+msgstr "Enter an amount in {0}, like 25 or 12.50."
 
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 msgid "Enter an email address."

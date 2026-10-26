@@ -1,3 +1,4 @@
+import { USD } from "@workspace/config/currency";
 import { fixtureId, fixtureTime } from "@workspace/contract/fixtures";
 import {
   instancePolicySchema,
@@ -109,17 +110,17 @@ describe("team tree", () => {
 
 describe("money", () => {
   it("parses dollar amounts to integer micros", () => {
-    expect(amountToMicros("12.50")).toBe(12_500_000);
-    expect(amountToMicros("0.000001")).toBe(1);
-    expect(amountToMicros("3")).toBe(3_000_000);
-    expect(amountToMicros("-1")).toBeNull();
-    expect(amountToMicros("1.2345678")).toBeNull();
-    expect(amountToMicros("ten")).toBeNull();
+    expect(amountToMicros("12.50", USD)).toBe(12_500_000);
+    expect(amountToMicros("0.000001", USD)).toBe(1);
+    expect(amountToMicros("3", USD)).toBe(3_000_000);
+    expect(amountToMicros("-1", USD)).toBeNull();
+    expect(amountToMicros("1.2345678", USD)).toBeNull();
+    expect(amountToMicros("ten", USD)).toBeNull();
   });
 
   it("formats micros as currency", () => {
-    expect(formatMicros(12_500_000, "en")).toBe("$12.50");
-    expect(formatMicros(1500, "en")).toBe("$0.0015");
+    expect(formatMicros(12_500_000, "en", USD)).toBe("$12.50");
+    expect(formatMicros(1500, "en", USD)).toBe("$0.0015");
   });
 
   const aud = { code: "AUD", perUsd: 1.52 };
