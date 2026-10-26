@@ -250,13 +250,17 @@ describe("listModels' preview facts", () => {
     const strong = options.get("strong");
     expect(strong?.displayName).toBe("Claude Opus 5.5");
     expect(strong?.capabilities).toEqual(["tools", "vision", "files"]);
-    expect(strong).not.toHaveProperty("cost");
-    expect(strong).not.toHaveProperty("ratings");
     const gpt = options.get("gateway:openai/gpt-4.1");
     expect(gpt?.displayName).toBe("GPT-4.1");
     expect(gpt).not.toHaveProperty("cost");
     // Auto is the UI's to describe.
     expect(options.get("auto")).not.toHaveProperty("displayName");
+  });
+
+  it("prices and rates a known model from the repo's model catalogue", async () => {
+    const strong = (await bySelector()).get("strong");
+    expect(strong?.cost?.input).toBeGreaterThan(0);
+    expect(strong?.ratings?.intelligence).toBeDefined();
   });
 
   it("prices from config where the catalog has none, the catalog first", async () => {

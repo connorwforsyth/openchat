@@ -389,8 +389,9 @@ const modelsSchema = z
     /**
      * How fast and how capable a model is, 1 (least) to 5 (most), for the
      * picker's preview bars (099), keyed by alias or `provider:model` ref
-     * (`strong: { speed: 3, intelligence: 5 }`). Nothing is guessed: a model
-     * with no rating shows no bar. The alias's rating beats its ref's.
+     * (`strong: { speed: 3, intelligence: 5 }`). The alias's rating beats its
+     * ref's, and either beats the model catalogue (`ratingsOf`), which fills
+     * the fields they leave out. A model rated nowhere shows no bar.
      */
     ratings: z
       .record(

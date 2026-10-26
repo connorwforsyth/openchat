@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import snapshotJson from "./models-dev.snapshot.json";
+import { GENERATED_CATALOG } from "./catalog/generated";
 import {
   effectivePrices,
   imageCost,
@@ -269,7 +269,7 @@ describe("imageCost", () => {
 });
 
 describe("effectivePrices", () => {
-  const listed = snapshotJson.prices;
+  const listed = GENERATED_CATALOG.prices;
   const haiku = listed.anthropic["claude-haiku-5-5"];
 
   const pricesFor = (input: unknown) =>
