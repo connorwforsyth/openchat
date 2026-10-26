@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { imageCost, type ModelPrices, usageCost } from "./prices";
+import { GENERATED_CATALOG } from "./catalog/generated";
+import {
+  effectivePrices,
+  imageCost,
+  type ModelPrices,
+  usageCost,
+} from "./prices";
 import { appConfigSchema } from "./schema";
 
 const prices: ModelPrices = {
@@ -259,5 +265,91 @@ describe("imageCost", () => {
         outputTokens: 10_000,
       }).costMicros
     ).toBe(20_000);
+  });
+});
+
+describe("effectivePrices", () => {
+  const listed = GENERATED_CATALOG.prices;
+  const haiku = listed.anthropic["claude-haiku-5-5"];
+
+  const pricesFor = (input: unknown) =>
+    effectivePrices(appConfigSchema.parse(input));
+
+  it("prices a native provider's models at models.dev's list price", () => {
+    const book = pricesFor({ providers: { anthropic: {}, openai: {} } });
+    expect(book["anthropic:claude-haiku-5-5"]).toEqual(haiku);
+    expect(book["openai:gpt-5"]).toEqual(listed.openai["gpt-5"]);
+  });
+
+  it("uses the provider's own id, whatever it's called", () => {
+    const book = pricesFor({ providers: { work: { type: "anthropic" } } });
+    expect(book["work:claude-haiku-5-5"]).toEqual(haiku);
+    expect(book).not.toHaveProperty("anthropic:claude-haiku-5-5");
+  });
+
+  it("prices the Vercel AI Gateway by its base URL and model ids", () => {
+    const book = pricesFor({
+      providers: {
+        gateway: {
+          baseURL: "https://ai-gateway.vercel.sh/v1",
+          type: "openai-compatible",
+        },
+      },
+    });
+    expect(book["gateway:anthropic/claude-haiku-5.5"]).toEqual(
+      listed.vercel["anthropic/claude-haiku-5.5"]
+    );
+  });
+
+  it("leaves local, unknown-gateway, Azure and Bedrock models unpriced", () => {
+    const book = pricesFor({
+      providers: {
+        azure: { options: { resourceName: "r" } },
+        bedrock: { options: { region: "us-east-1" } },
+        ollama: {
+          baseURL: "http://localhost:11434/v1",
+          type: "openai-compatible",
+        },
+        other: {
+          baseURL: "https://llm.example.com/v1",
+          type: "openai-compatible",
+        },
+      },
+    });
+    expect(book).toEqual({});
+    expect(
+      usageCost(book, "ollama:qwen2.5:3b", {
+        inputTokens: 9,
+        outputTokens: 9,
+      })
+    ).toEqual({ costMicros: 0, priced: false });
+  });
+
+  it("lets the operator's price win, model by model", () => {
+    const own = { inputMicros: 1_000_000, outputMicros: 2_000_000 };
+    const book = pricesFor({
+      models: { prices: { "anthropic:claude-haiku-5-5": own } },
+      providers: { anthropic: {} },
+    });
+    expect(book["anthropic:claude-haiku-5-5"]).toEqual(own);
+    expect(book["anthropic:claude-opus-5-5"]).toEqual(
+      listed.anthropic["claude-opus-5-5"]
+    );
+  });
+
+  it("costs a call with cached input at the list prices", () => {
+    const book = pricesFor({ providers: { anthropic: {} } });
+    const usage = {
+      cachedInputTokens: 400_000,
+      inputTokens: 1_000_000,
+      outputTokens: 1_000_000,
+    };
+    expect(usageCost(book, "anthropic:claude-haiku-5-5", usage)).toEqual({
+      costMicros:
+        0.6 * haiku.inputMicros +
+        0.4 * haiku.cachedInputMicros +
+        haiku.outputMicros,
+      priced: true,
+    });
   });
 });

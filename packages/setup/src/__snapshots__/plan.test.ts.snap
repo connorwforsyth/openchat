@@ -192,8 +192,12 @@ models:
   # picker. \`discover: true\` adds a discovering provider's image models (the
   # gateway's \`type: image\`). Calls ask first unless \`approval: auto\`.
   # image: { default: openai:gpt-image-1, discover: false, approval: ask }
-  # Per-image prices sit beside token prices (micro-USD; 40000 is 4 cents):
+  # Usage is priced and the picker rated from the repo's model catalogue
+  # (packages/config/src/catalog: models.dev list prices, Gateway speed, a
+  # curated intelligence list). \`prices\` and \`ratings\` here override it.
+  # Prices are micro-USD per million tokens; per-image prices sit beside them:
   # prices: { "openai:gpt-image-1": { imageMicros: 40000 } }
+  # ratings: { strong: { speed: 3, intelligence: 5 } }
   # One line under each model in the picker, by alias or provider:model ref.
   # Beats what a provider's catalog says; \`auto\` has its own.
   descriptions:
@@ -578,8 +582,12 @@ models:
   # picker. \`discover: true\` adds a discovering provider's image models (the
   # gateway's \`type: image\`). Calls ask first unless \`approval: auto\`.
   # image: { default: openai:gpt-image-1, discover: false, approval: ask }
-  # Per-image prices sit beside token prices (micro-USD; 40000 is 4 cents):
+  # Usage is priced and the picker rated from the repo's model catalogue
+  # (packages/config/src/catalog: models.dev list prices, Gateway speed, a
+  # curated intelligence list). \`prices\` and \`ratings\` here override it.
+  # Prices are micro-USD per million tokens; per-image prices sit beside them:
   # prices: { "openai:gpt-image-1": { imageMicros: 40000 } }
+  # ratings: { strong: { speed: 3, intelligence: 5 } }
   # One line under each model in the picker, by alias or provider:model ref.
   # Beats what a provider's catalog says; \`auto\` has its own.
   descriptions:
@@ -954,8 +962,12 @@ models:
   # picker. \`discover: true\` adds a discovering provider's image models (the
   # gateway's \`type: image\`). Calls ask first unless \`approval: auto\`.
   # image: { default: openai:gpt-image-1, discover: false, approval: ask }
-  # Per-image prices sit beside token prices (micro-USD; 40000 is 4 cents):
+  # Usage is priced and the picker rated from the repo's model catalogue
+  # (packages/config/src/catalog: models.dev list prices, Gateway speed, a
+  # curated intelligence list). \`prices\` and \`ratings\` here override it.
+  # Prices are micro-USD per million tokens; per-image prices sit beside them:
   # prices: { "openai:gpt-image-1": { imageMicros: 40000 } }
+  # ratings: { strong: { speed: 3, intelligence: 5 } }
   # One line under each model in the picker, by alias or provider:model ref.
   # Beats what a provider's catalog says; \`auto\` has its own.
   descriptions:

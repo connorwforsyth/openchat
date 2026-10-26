@@ -30,12 +30,11 @@ import {
   useMemo,
   useState,
 } from "react";
-
+import { Cost, PricesNote } from "@/app/(app)/(pages)/admin/_components/cost";
 import {
   InviteForm,
   MembersAdmin,
 } from "@/app/(app)/(pages)/admin/_components/members-admin";
-import { formatMicros } from "@/app/(app)/(pages)/admin/_components/money";
 import { TeamsAdmin } from "@/app/(app)/(pages)/admin/_components/teams-admin";
 import { useApi } from "../api";
 import { KeysManager } from "../keys-manager";
@@ -977,13 +976,14 @@ export const SpaceKeys = () => {
                     {i18n.number(row.tokens)}
                   </TableCell>
                   <TableCell className="text-end tabular-nums">
-                    {formatMicros(row.costMicros, i18n.locale)}
+                    <Cost micros={row.costMicros} tokens={row.tokens} />
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         )}
+        {rows.length === 0 ? null : <PricesNote />}
       </section>
       <section className="flex flex-col gap-3">
         <h2 className="font-medium">

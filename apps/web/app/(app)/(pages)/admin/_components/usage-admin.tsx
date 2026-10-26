@@ -3,6 +3,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { OrgId } from "@workspace/contract/schemas/common";
+import type { TokenUsage } from "@workspace/contract/schemas/models";
 import type { Team } from "@workspace/contract/schemas/tenancy";
 import type { Budget } from "@workspace/contract/schemas/usage";
 import { formatDate, formatNumber } from "@workspace/i18n/format";
@@ -45,6 +46,7 @@ import { useApi } from "@/app/(app)/_shared/api";
 import { ConfirmButton } from "@/app/(app)/_shared/confirm";
 import { type Option, OptionSelect } from "@/app/(app)/_shared/option-select";
 import { QueryState } from "@/app/(app)/_shared/query-state";
+import { Cost, PricesNote } from "./cost";
 import { formatMicros, usdToMicros } from "./money";
 import { buildTeamTree, flattenTree } from "./team-tree";
 
@@ -67,6 +69,9 @@ const usePeriodLabels = (): Readonly<Record<Period, string>> => {
   return { day: t`Daily`, month: t`Monthly`, week: t`Weekly` };
 };
 
+const tokensOf = (row: { readonly usage: TokenUsage }) =>
+  row.usage.inputTokens + row.usage.outputTokens;
+
 const Summary = ({ orgId }: { readonly orgId: OrgId }) => {
   const { i18n } = useLingui();
   const { query } = useApi();
@@ -85,10 +90,12 @@ const Summary = ({ orgId }: { readonly orgId: OrgId }) => {
   return (
     <QueryState query={summary}>
       {(data) => {
-        const total = formatMicros(data.totalCostMicros, i18n.locale);
+        const tokens = data.rows.reduce((sum, row) => sum + tokensOf(row), 0);
         return (
           <div className="flex flex-col gap-4">
-            <p className="font-medium text-2xl tabular-nums">{total}</p>
+            <p className="font-medium text-2xl tabular-nums">
+              <Cost micros={data.totalCostMicros} tokens={tokens} />
+            </p>
             {data.rows.length === 0 ? (
               <p className="text-muted-foreground text-sm">
                 <Trans>No usage this month yet.</Trans>
@@ -123,13 +130,17 @@ const Summary = ({ orgId }: { readonly orgId: OrgId }) => {
                           )}
                         </TableCell>
                         <TableCell className="text-end tabular-nums">
-                          {formatMicros(row.costMicros, i18n.locale)}
+                          <Cost
+                            micros={row.costMicros}
+                            tokens={tokensOf(row)}
+                          />
                         </TableCell>
                       </TableRow>
                     ))}
                 </TableBody>
               </Table>
             )}
+            <PricesNote />
           </div>
         );
       }}

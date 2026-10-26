@@ -5,6 +5,7 @@
   "sideEffects": false,
   "type": "module",
   "exports": {
+    "./catalog": "./src/catalog/catalog.ts",
     "./brand": "./src/brand.ts",
     "./load": "./src/load.ts",
     "./microsoft": "./src/microsoft.ts",
@@ -18,6 +19,7 @@
     "./terms": "./src/terms.ts"
   },
   "scripts": {
+    "catalog:refresh": "bun scripts/refresh-catalog.ts",
     "lint": "ultracite check",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"

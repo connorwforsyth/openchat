@@ -264,7 +264,7 @@ const authSchema = z
  */
 const priceMicrosSchema = z.int().min(0).max(1_000_000_000_000);
 
-/** What one model charges. No price ships built in: a wrong one is worse than none. */
+/** What one model charges, as the operator sets it or models.dev lists it. */
 export const modelPriceSchema = z
   .strictObject({
     /**
@@ -380,15 +380,18 @@ const modelsSchema = z
     image: imageModelsSchema,
     /**
      * Prices by `provider:modelId` ref (what an alias resolves to), used to
-     * fill `costMicros` on usage rows. A model that isn't listed is unpriced:
-     * its usage is recorded at cost 0 and counts toward no budget.
+     * fill `costMicros` on usage rows. They override the models.dev list
+     * prices shipped for Anthropic, OpenAI, Google and the Vercel AI Gateway
+     * (`effectivePrices`). A model in neither is unpriced: its usage is
+     * recorded at cost 0 and counts toward no budget.
      */
     prices: z.record(modelRefSchema, modelPriceSchema).default({}),
     /**
      * How fast and how capable a model is, 1 (least) to 5 (most), for the
      * picker's preview bars (099), keyed by alias or `provider:model` ref
-     * (`strong: { speed: 3, intelligence: 5 }`). Nothing is guessed: a model
-     * with no rating shows no bar. The alias's rating beats its ref's.
+     * (`strong: { speed: 3, intelligence: 5 }`). The alias's rating beats its
+     * ref's, and either beats the model catalogue (`ratingsOf`), which fills
+     * the fields they leave out. A model rated nowhere shows no bar.
      */
     ratings: z
       .record(
@@ -1076,5 +1079,9 @@ export const appConfigSchema = z
   });
 
 export type AppConfig = z.infer<typeof appConfigSchema>;
+
+/** The models and, where the caller has them, the providers they run on. */
+export type ModelsConfig = Pick<AppConfig, "models"> &
+  Partial<Pick<AppConfig, "providers">>;
 /** What the YAML may contain, before defaults. */
 export type AppConfigInput = z.input<typeof appConfigSchema>;

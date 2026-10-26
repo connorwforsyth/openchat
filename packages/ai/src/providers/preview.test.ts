@@ -250,8 +250,6 @@ describe("listModels' preview facts", () => {
     const strong = options.get("strong");
     expect(strong?.displayName).toBe("Claude Opus 5.5");
     expect(strong?.capabilities).toEqual(["tools", "vision", "files"]);
-    expect(strong).not.toHaveProperty("cost");
-    expect(strong).not.toHaveProperty("ratings");
     const gpt = options.get("gateway:openai/gpt-4.1");
     expect(gpt?.displayName).toBe("GPT-4.1");
     expect(gpt).not.toHaveProperty("cost");
@@ -259,7 +257,13 @@ describe("listModels' preview facts", () => {
     expect(options.get("auto")).not.toHaveProperty("displayName");
   });
 
-  it("prices from config where the catalog has none, the catalog first", async () => {
+  it("prices and rates a known model from the repo's model catalogue", async () => {
+    const strong = (await bySelector()).get("strong");
+    expect(strong?.cost?.input).toBeGreaterThan(0);
+    expect(strong?.ratings?.intelligence).toBeDefined();
+  });
+
+  it("shows the operator's price first, then the provider catalog's", async () => {
     const options = await bySelector(
       {},
       {
@@ -278,7 +282,8 @@ describe("listModels' preview facts", () => {
       output: 25_000_000,
       tier: 4,
     });
-    expect(options.get("fast")?.cost?.tier).toBe(2);
+    // The catalog lists $1/$5, but the operator's price is what usage is billed at.
+    expect(options.get("fast")?.cost?.tier).toBe(1);
   });
 
   it("rates from config, the alias's rating beating its ref's", async () => {
@@ -287,7 +292,7 @@ describe("listModels' preview facts", () => {
       "gateway:anthropic/claude-haiku-4.5": { intelligence: 1, speed: 1 },
       "gateway:openai/gpt-4.1": { intelligence: 4 },
     });
-    expect(options.get("fast")?.ratings).toEqual({ speed: 5 });
+    expect(options.get("fast")?.ratings).toEqual({ intelligence: 1, speed: 5 });
     expect(options.get("gateway:openai/gpt-4.1")?.ratings).toEqual({
       intelligence: 4,
     });
