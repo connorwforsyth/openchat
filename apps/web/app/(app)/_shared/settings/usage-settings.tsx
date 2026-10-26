@@ -26,7 +26,7 @@ import {
 import { useApi } from "@/app/(app)/_shared/api";
 import { type Option, OptionSelect } from "@/app/(app)/_shared/option-select";
 import { QueryState } from "@/app/(app)/_shared/query-state";
-import { formatMicros } from "@/app/(app)/(pages)/admin/_components/money";
+import { Cost, PricesNote } from "@/app/(app)/(pages)/admin/_components/cost";
 
 // Tokens and cost from our own usage table (D17): yours everywhere, yours in
 // one space, or everyone's in a space you manage. By day, by model, by chat
@@ -240,7 +240,7 @@ const UsageReport = ({
                   {formatNumber(tokens, i18n.locale)}
                 </Stat>
                 <Stat label={<Trans>Cost</Trans>}>
-                  {formatMicros(days.totalCostMicros, i18n.locale)}
+                  <Cost micros={days.totalCostMicros} tokens={tokens} />
                 </Stat>
               </dl>
               {keyOptions.length > 1 ? (
@@ -252,6 +252,7 @@ const UsageReport = ({
                 />
               ) : null}
             </div>
+            <PricesNote />
             <DayTable rows={days.rows} />
             <QueryState query={byModel}>
               {(data) => <GroupTable groupBy="model" summary={data} />}
@@ -317,7 +318,7 @@ const AmountCells = ({ row }: { readonly row: Row }) => {
         {formatNumber(tokensOf(row), i18n.locale)}
       </TableCell>
       <TableCell className="text-end tabular-nums">
-        {formatMicros(row.costMicros, i18n.locale)}
+        <Cost micros={row.costMicros} tokens={tokensOf(row)} />
       </TableCell>
     </>
   );
@@ -348,7 +349,7 @@ const TotalRow = ({ rows }: { readonly rows: readonly Row[] }) => {
           {formatNumber(tokens, i18n.locale)}
         </TableCell>
         <TableCell className="text-end tabular-nums">
-          {formatMicros(cost, i18n.locale)}
+          <Cost micros={cost} tokens={tokens} />
         </TableCell>
       </TableRow>
     </TableFooter>

@@ -1470,6 +1470,10 @@ msgstr "Copy the last reply"
 msgid "Cost"
 msgstr "Cost"
 
+#: ../../apps/web/app/(app)/(pages)/admin/_components/cost.tsx
+msgid "Costs are estimates at <0>models.dev</0> list prices unless this instance sets its own. Unpriced models aren't counted."
+msgstr "Costs are estimates at <0>models.dev</0> list prices unless this instance sets its own. Unpriced models aren't counted."
+
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Couldn't change {code}"
 msgstr "Couldn't change {code}"
@@ -6719,6 +6723,10 @@ msgstr "Unmute microphone"
 #: ../library-ui/src/components/version-history.tsx
 msgid "Unpin"
 msgstr "Unpin"
+
+#: ../../apps/web/app/(app)/(pages)/admin/_components/cost.tsx
+msgid "Unpriced"
+msgstr "Unpriced"
 
 #: ../chat-ui/src/artifacts/publish-dialog.tsx
 msgid "Unpublish"
