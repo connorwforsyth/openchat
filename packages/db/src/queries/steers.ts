@@ -1,10 +1,16 @@
 import type { MessageId, RunId } from "@workspace/contract/schemas/common";
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, ne, sql } from "drizzle-orm";
 
 import type { Db } from "../client";
 import { conversation, message, run } from "../schema/chat";
 import { getMessage, insertMessage, type MessageRow } from "./messages";
-import { getRun, lockRun, type RunRow, transitionRun } from "./runs";
+import {
+  getRun,
+  lockRun,
+  type RunRow,
+  requeueAfter,
+  transitionRun,
+} from "./runs";
 
 // Steering (`delivery: "steer"`) and taking a queued turn back. A steer is
 // a queued turn like any other until the answer it waits on takes it at a
@@ -47,8 +53,8 @@ export interface TakenSteer {
 /**
  * Takes the steer waiting next in line behind `runId`, if there is one it
  * can take: queued directly behind the run, under the answer the run is
- * writing, with nothing queued behind it yet (a turn under it would be
- * left beside the new answer instead of after it). All in one transaction,
+ * writing. Turns queued behind the steer move after the new answer. All in
+ * one transaction,
  * with the run and the steer locked, so a Stop or a claim on either sees
  * the steer either still queued or already taken. `null`: none to take.
  */
@@ -83,14 +89,6 @@ export const takeSteer = async (
     if (!asked.ok || asked.value.parentId !== previousAnswerId) {
       return null;
     }
-    const [follower] = await tx
-      .select({ id: message.id })
-      .from(message)
-      .where(eq(message.parentId, steer.userMessageId))
-      .limit(1);
-    if (follower) {
-      return null;
-    }
     const answer = await insertMessage(tx, {
       authorId: null,
       conversationId: answering.conversationId,
@@ -104,6 +102,27 @@ export const takeSteer = async (
     if (!answer.ok) {
       return tx.rollback();
     }
+    // Turns queued behind the steer follow the answer that goes on under it,
+    // and wait on the run writing it. The answer is dated just after the
+    // steer, before them, so a child is still always newer than its parent
+    // (`newestLeafId` reads the branch's end that way).
+    const [dated] = await tx
+      .update(message)
+      .set({
+        createdAt: sql`(select m.created_at from message m where m.id = ${steer.userMessageId}) + interval '1 microsecond'`,
+      })
+      .where(eq(message.id, answer.value.id))
+      .returning({ createdAt: message.createdAt });
+    await tx
+      .update(message)
+      .set({ parentId: answer.value.id })
+      .where(
+        and(
+          eq(message.parentId, steer.userMessageId),
+          ne(message.id, answer.value.id)
+        )
+      );
+    await requeueAfter(tx, steer.id, runId);
     await tx
       .update(run)
       .set({ assistantMessageId: answer.value.id })
@@ -118,7 +137,9 @@ export const takeSteer = async (
       return tx.rollback();
     }
     return {
-      answer: answer.value,
+      answer: dated
+        ? { ...answer.value, createdAt: dated.createdAt }
+        : answer.value,
       previousAnswerId,
       run: ended.value,
       userMessage: asked.value,

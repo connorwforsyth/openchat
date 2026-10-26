@@ -132,12 +132,29 @@ describe("takeSteer", () => {
     expect(expectOk(await getRun(db, next.queued.id)).status).toBe("queued");
   });
 
-  test("leaves a steer that a turn already queued behind as the next turn", async () => {
-    const { answer, db, queue, running } = await answering();
+  test("moves a turn queued behind the steer after the answer that goes on", async () => {
+    const { answer, chat, db, queue, running } = await answering();
     const steer = await queue("use b", answer.id, running.id, "steer");
-    await queue("and then c", steer.asked.id, steer.queued.id, "queue");
-    expect(await takeSteer(db, running.id)).toBeNull();
-    expect(expectOk(await getRun(db, steer.queued.id)).status).toBe("queued");
+    const later = await queue(
+      "and then c",
+      steer.asked.id,
+      steer.queued.id,
+      "queue"
+    );
+
+    const taken = await takeSteer(db, running.id);
+
+    expect(taken?.answer.parentId).toBe(steer.asked.id);
+    expect(expectOk(await getMessage(db, later.asked.id)).parentId).toBe(
+      taken?.answer.id
+    );
+    expect(expectOk(await getRun(db, later.queued.id))).toMatchObject({
+      afterRunId: running.id,
+      status: "queued",
+    });
+    // Every child is newer than its parent, so the branch's newest message
+    // is still its end.
+    expect(await newestLeafId(db, chat.id)).toBe(later.asked.id);
   });
 
   test("takes nothing for a run that isn't running", async () => {

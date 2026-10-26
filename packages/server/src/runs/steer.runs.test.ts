@@ -217,6 +217,31 @@ describe("steering a running answer", () => {
     ]);
   });
 
+  it("takes a steer that a queued turn already follows, and the turn runs after", async () => {
+    h = await createHarness();
+    const { answering, chat, gate, model } = await busyTurn(h, "Using b.");
+    const firstAnswer = answering.assistantMessageId as MessageId;
+    await send(h, chat, "Focus on b.", firstAnswer, "steer");
+    const queued = await send(h, chat, "Then sum up.", firstAnswer);
+    h.nextTurn({
+      model: new MockLanguageModelV4({ doStream: textStream("Summed up.") }),
+    });
+    gate.release();
+    await h.services.executor.idle();
+
+    expect(userTexts(model, 1)).toEqual(["Look into it.", "Focus on b."]);
+    expect(await runOf(h, queued.runId)).toMatchObject({ status: "succeeded" });
+    const path = await pathOf(h, chat);
+    expect(path.map((message) => textOf(message.parts))).toEqual([
+      "Look into it.",
+      "",
+      "Focus on b.",
+      "Using b.",
+      "Then sum up.",
+      "Summed up.",
+    ]);
+  });
+
   it("queues a plain turn, as before", async () => {
     h = await createHarness();
     const { answering, chat, gate } = await busyTurn(h);
