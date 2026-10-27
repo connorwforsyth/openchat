@@ -121,9 +121,9 @@ function AnnotateLayer({
   const [open, setOpen] = useState<string | null>(null);
   const [status, setStatus] = useState<SendStatus>("idle");
   const layer = useRef<HTMLDivElement>(null);
-  const toggleRef = useRef<HTMLButtonElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
   const overlay = useRef<HTMLDivElement>(null);
-  const top = useHeaderBottom(layer, toggleRef);
+  const top = useHeaderBottom(layer, headerRef, active);
 
   const locators = useRef(new Map<Element, Locator>());
   const register = useCallback((element: Element, locator: Locator) => {
@@ -235,19 +235,23 @@ function AnnotateLayer({
     return () => root?.removeEventListener("keydown", listener);
   }, []);
 
+  // The host's row is the one element in `contents`: the overlay starts
+  // under it.
   const annotated = useCallback(
-    (content: ReactNode) =>
-      header(
-        <>
-          {content}
-          <AnnotateToggle
-            active={active}
-            count={drafts.length}
-            onToggle={toggle}
-            ref={toggleRef}
-          />
-        </>
-      ),
+    (content: ReactNode) => (
+      <div className="contents" ref={headerRef}>
+        {header(
+          <>
+            {content}
+            <AnnotateToggle
+              active={active}
+              count={drafts.length}
+              onToggle={toggle}
+            />
+          </>
+        )}
+      </div>
+    ),
     [active, drafts.length, header, toggle]
   );
 
@@ -305,38 +309,37 @@ function AnnotateLayer({
 }
 
 /**
- * The bottom of the header row the toggle sits in, from the layer's top:
- * the overlay covers what's below it. The row is the toggle's first
- * ancestor as wide as the layer.
+ * The bottom of the view's header row, from the layer's top: the overlay
+ * covers what's below it. Measured again whenever either changes size.
  */
 const useHeaderBottom = (
   layer: RefObject<HTMLElement | null>,
-  toggle: RefObject<HTMLElement | null>
+  header: RefObject<HTMLElement | null>,
+  /** Measured again on switching on, in case the row was redrawn. */
+  active: boolean
 ): number => {
   const [top, setTop] = useState(0);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `active` is a trigger, not read.
   useLayoutEffect(() => {
     const root = layer.current;
+    const row = header.current?.firstElementChild;
     if (!root) {
       return;
     }
     const measure = () => {
-      const area = root.getBoundingClientRect();
-      let row: HTMLElement | null = toggle.current;
-      while (
-        row?.parentElement &&
-        row.getBoundingClientRect().width < area.width - 1
-      ) {
-        row = row.parentElement;
-      }
-      const bottom = row ? row.getBoundingClientRect().bottom - area.top : 0;
-      // Climbed past the row (no header): cover everything.
-      setTop(bottom > 0 && bottom < area.height / 2 ? bottom : 0);
+      const bottom = row
+        ? row.getBoundingClientRect().bottom - root.getBoundingClientRect().top
+        : 0;
+      setTop(Math.max(0, bottom));
     };
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(root);
+    if (row) {
+      observer.observe(row);
+    }
     return () => observer.disconnect();
-  }, [layer, toggle]);
+  }, [active, header, layer]);
   return top;
 };
 
@@ -344,12 +347,10 @@ function AnnotateToggle({
   active,
   count,
   onToggle,
-  ref,
 }: {
   readonly active: boolean;
   readonly count: number;
   readonly onToggle: () => void;
-  readonly ref: RefObject<HTMLButtonElement | null>;
 }) {
   const { t } = useLingui();
   const label = active ? t`Stop annotating` : t`Annotate`;
@@ -363,7 +364,6 @@ function AnnotateToggle({
       aria-pressed={active}
       className="shrink-0"
       onClick={onToggle}
-      ref={ref}
       size={count > 0 ? "sm" : "icon-sm"}
       title={t`Annotate (M)`}
       variant={active ? "secondary" : "ghost"}

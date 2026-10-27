@@ -121,13 +121,10 @@ const diagramNode = (element: Element): AnnotationTarget | null => {
     : { id: id.slice(0, 200), type: "node" };
 };
 
-/** The element our own view drew at `box`, through any shadow roots. */
-const hitAt = (box: ClientBox, skip: Element): Element | null => {
-  let hit =
-    document
-      .elementsFromPoint(box.x, box.y)
-      .find((element) => !skip.contains(element)) ?? null;
-  while (hit?.shadowRoot) {
+/** An element and, through any shadow roots, the one drawn inside it. */
+const deepest = (element: Element, box: ClientBox): Element => {
+  let hit = element;
+  while (hit.shadowRoot) {
     const inner = hit.shadowRoot.elementFromPoint(box.x, box.y);
     if (!inner || inner === hit) {
       break;
@@ -180,33 +177,62 @@ export const probeFrame = (
   });
 };
 
+/** What our own views say about `hit`, without asking a frame. */
+const readView = (
+  hit: Element,
+  box: ClientBox,
+  locators: ReadonlyMap<Element, Locator>
+): AnnotationTarget | null => {
+  for (let at: Element | null = hit; at; at = at.parentElement) {
+    const locator = locators.get(at);
+    if (locator) {
+      return locator(box);
+    }
+  }
+  if (hit instanceof HTMLImageElement) {
+    return imageBox(hit, box);
+  }
+  return asTarget(passage(hit) ?? diagramNode(hit) ?? codeLine(hit));
+};
+
 /**
- * What is under `box`: a view's registered locator, then what our views
- * draw (a document's passage, a diagram node, an image, code lines), then
- * the runtime frame's answer. `skip` is the layer's own overlay.
+ * What is under `box`, from the top of what's drawn there down: a view's
+ * registered locator, what our views draw (a document's passage, a diagram
+ * node, an image, code lines), or the runtime frame's answer. Controls a
+ * view lays over a frame (a deck's sorter) say nothing, so the frame under
+ * them is asked. `skip` is the layer's own overlay.
  */
 export const locate = (
   box: ClientBox,
   skip: Element,
   locators: ReadonlyMap<Element, Locator>
 ): Promise<AnnotationTarget | null> => {
-  const hit = hitAt(box, skip);
-  if (!hit) {
-    return Promise.resolve(null);
-  }
-  if (hit instanceof HTMLIFrameElement) {
-    return probeFrame(hit, box);
-  }
-  for (let at: Element | null = hit; at; at = at.parentElement) {
-    const locator = locators.get(at);
-    if (locator) {
-      return Promise.resolve(locator(box));
+  const stack = document
+    .elementsFromPoint(box.x, box.y)
+    .filter((element) => !skip.contains(element));
+  for (const element of stack) {
+    if (element instanceof HTMLIFrameElement) {
+      return probeFrame(element, box);
+    }
+    const target = readView(deepest(element, box), box, locators);
+    if (target) {
+      return Promise.resolve(target);
     }
   }
-  if (hit instanceof HTMLImageElement) {
-    return Promise.resolve(imageBox(hit, box));
-  }
-  return Promise.resolve(
-    asTarget(passage(hit) ?? diagramNode(hit) ?? codeLine(hit))
+  // A frame that takes no pointer (a thumbnail rail under its controls)
+  // isn't hit at all; the last one drawn under the point is on top.
+  const frame = [...document.querySelectorAll("iframe")]
+    .filter((each) => !skip.contains(each) && covers(each, box))
+    .at(-1);
+  return frame ? probeFrame(frame, box) : Promise.resolve(null);
+};
+
+const covers = (element: Element, box: ClientBox): boolean => {
+  const rect = element.getBoundingClientRect();
+  return (
+    box.x >= rect.left &&
+    box.x < rect.right &&
+    box.y >= rect.top &&
+    box.y < rect.bottom
   );
 };
