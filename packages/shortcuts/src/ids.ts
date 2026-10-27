@@ -29,5 +29,8 @@ export const shortcutIdSchema = z.enum([
   "attention.next",
   "attention.filter",
   "unread.clear",
+  "editor.rail",
+  "editor.inspector",
+  "editor.notes",
 ]);
 export type ShortcutId = z.infer<typeof shortcutIdSchema>;

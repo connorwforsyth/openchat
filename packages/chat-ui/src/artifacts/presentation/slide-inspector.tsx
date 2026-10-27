@@ -171,3 +171,25 @@ export function SlideInspector({
     </InspectorPanel>
   );
 }
+
+/** The docked inspector while nothing on the slide is picked. */
+export function SlideInspectorPlaceholder({
+  canEdit,
+}: {
+  readonly canEdit: boolean;
+}) {
+  const { t } = useLingui();
+  return (
+    <InspectorPanel title={t`Inspector`}>
+      <p className="px-3 py-3 text-muted-foreground text-xs">
+        {canEdit ? (
+          <Trans>
+            Pick something on the slide to change its words and style.
+          </Trans>
+        ) : (
+          <Trans>Pick something on the slide to see its words and style.</Trans>
+        )}
+      </p>
+    </InspectorPanel>
+  );
+}
