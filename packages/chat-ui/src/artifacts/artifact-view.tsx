@@ -3,7 +3,6 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { QueryUtils } from "@workspace/client/api";
 import { CodeView } from "@workspace/code-ui/code-view";
-import { DiffView } from "@workspace/code-ui/diff-view";
 import type {
   ArtifactId,
   ArtifactVersionId,
@@ -16,11 +15,9 @@ import type {
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
-  CodeIcon,
   EllipsisIcon,
-  EyeIcon,
   FileTextIcon,
-  HistoryIcon,
+  PencilIcon,
 } from "@workspace/icons";
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -32,21 +29,13 @@ import {
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
 import { Skeleton } from "@workspace/ui/components/skeleton";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@workspace/ui/components/tabs";
-import { cn } from "@workspace/ui/lib/utils";
-import { type ReactNode, useCallback, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useState } from "react";
 
 import { Markdown } from "../conversation/markdown";
 import {
   type ArtifactPreviewPlan,
   artifactFileName,
   previewPlan,
-  versionEdit,
 } from "../model/artifacts";
 import { useElementWidth } from "../workspace/use-element-width";
 import {
@@ -67,16 +56,17 @@ import { isRuntimeKind } from "./runtime-protocol";
 import { SpreadsheetArtifact } from "./spreadsheet/spreadsheet-artifact";
 import { SpreadsheetView } from "./spreadsheet/spreadsheet-view";
 
-// One artifact in the Workspace panel (D16, D27, 060): its preview, source
-// (CodeView) and what changed since the previous version (DiffView), with
-// its versions. Artifacts stay database rows rendered on their own origin
-// (D24), not workspace files; the panel lists them beside the files. Data
-// comes in as props, fetched by the host.
+// One artifact in the Workspace panel (D16, D27, 060), with its versions.
+// An artifact shows as its rendered self, never its source (Connor, night 2):
+// there's no Code tab, and a preview that can't draw says why instead.
+// A code artifact's source is what it is, so that's what it shows. Artifacts
+// stay database rows rendered on their own origin (D24), not workspace
+// files. Data comes in as props, fetched by the host.
 //
-// One header row, like every Workspace view (070, 075): the title, the
-// versions and the Preview/Code/Changes tabs, in the host's frame (its
-// `header`), which adds the panel's Close. The content sits flush under it:
-// no card, no gutter, no second strip naming the file again.
+// One header row, like every Workspace view (070, 075): the title and the
+// versions, in the host's frame (its `header`), which adds the panel's
+// Close. The content sits flush under it: no card, no gutter, no second
+// strip naming the file again.
 
 export interface ArtifactSelection {
   readonly artifactId: ArtifactId;
@@ -112,8 +102,8 @@ export interface ArtifactViewProps {
   readonly onSelect: (selection: ArtifactSelection) => void;
   /**
    * The artifact runtime's origin (`ARTIFACTS_ORIGIN`, D24). Without one,
-   * HTML and SVG preview in a `srcdoc` frame and React and Mermaid show
-   * source only.
+   * HTML and SVG preview in a `srcdoc` frame, and React, Mermaid and sites
+   * say they need the service.
    */
   readonly runtimeOrigin?: string | null;
   /** The version shown; omitted, the latest. */
@@ -121,8 +111,6 @@ export interface ArtifactViewProps {
   /** Versions of the artifact, oldest first; `undefined` while loading. */
   readonly versions: readonly ArtifactVersion[] | undefined;
 }
-
-type View = "preview" | "code" | "changes";
 
 const readOnly = () =>
   Promise.reject(new Error("This document can't be edited here."));
@@ -304,17 +292,6 @@ function ArtifactError({ error }: { readonly error: string }) {
   );
 }
 
-/** What changed since the previous version; an image's versions have no lines (138). */
-const editBetween = (
-  kind: Artifact["kind"],
-  path: string,
-  previous: ArtifactVersion | undefined,
-  version: ArtifactVersion | undefined
-) =>
-  previous && version && kind !== "image"
-    ? versionEdit(path, previous.content, version.content)
-    : null;
-
 /** The preview the panel draws itself, without the runtime. */
 function PanelPreview({
   artifact,
@@ -355,47 +332,21 @@ function PanelPreview({
   }
 }
 
-/** The Code tab: the source, or a note for an image, which has none (138). */
-function ArtifactSource({
-  content,
-  kind,
-  path,
-}: {
-  readonly content: string;
-  readonly kind: Artifact["kind"];
-  readonly path: string;
-}) {
-  return kind === "image" ? (
-    <p className="p-4 text-muted-foreground text-sm">
-      <Trans>A generated image has no source to show.</Trans>
-    </p>
-  ) : (
-    /* The title row already names it: no CodeHeader, no card. */
-    <CodeView
-      className="rounded-none border-0"
-      contents={content}
-      header={false}
-      path={path}
-    />
-  );
-}
-
 /**
- * The Preview tab's body, one branch per plan. A deck is drawn by `deck`,
- * which the caller builds: its view (164) is a world of its own.
+ * The artifact as itself, one branch per plan. A deck is drawn by `deck`,
+ * which the caller builds: its view (164) is a world of its own. Code is
+ * the one kind whose source is what it is.
  */
 function PlannedPreview({
   artifact,
   content,
   deck,
-  onShowSource,
   path,
   plan,
 }: {
   readonly artifact: Artifact;
   readonly content: string;
   readonly deck: (runtimeOrigin: string | null) => ReactNode;
-  readonly onShowSource: () => void;
   readonly path: string;
   readonly plan: ArtifactPreviewPlan;
 }) {
@@ -409,7 +360,6 @@ function PlannedPreview({
           content={content}
           fileName={path}
           kind={artifact.kind}
-          onShowSource={onShowSource}
           runtimeOrigin={plan.origin}
           title={artifact.title}
         />
@@ -429,10 +379,18 @@ function PlannedPreview({
       return artifact.kind === "presentation" ? (
         deck(null)
       ) : (
-        <PreviewUnavailable onShowSource={onShowSource} reason={plan.reason} />
+        <PreviewUnavailable reason={plan.reason} />
       );
     case "source":
-      return null;
+      // The title row already names it: no CodeHeader, no card.
+      return (
+        <CodeView
+          className="rounded-none border-0"
+          contents={content}
+          header={false}
+          path={path}
+        />
+      );
     default:
       return plan satisfies never;
   }
@@ -466,12 +424,7 @@ function ArtifactDetail({
       : versions.length - 1
   );
   const version = versions[index] ?? versions.at(-1);
-  const previous = index > 0 ? versions[index - 1] : undefined;
   const plan = previewPlan(artifact.kind, runtimeOrigin);
-  const [view, setView] = useState<View>(
-    plan.type === "source" ? "code" : "preview"
-  );
-  const showSource = useCallback(() => setView("code"), []);
   // The mount point for a deck's view (164): the slides editor, which
   // presents, exports and edits it.
   const deck = useCallback(
@@ -496,10 +449,6 @@ function ArtifactDetail({
     artifact.kind,
     version?.language ?? null
   );
-  const edit = useMemo(
-    () => editBetween(artifact.kind, path, previous, version),
-    [artifact.kind, path, previous, version]
-  );
 
   const step = useCallback(
     (delta: -1 | 1) => {
@@ -510,18 +459,15 @@ function ArtifactDetail({
     },
     [artifact.id, index, onSelect, versions]
   );
-  const onView = useCallback((value: unknown) => {
-    if (value === "preview" || value === "code" || value === "changes") {
-      setView(value);
-    }
-  }, []);
 
-  // A Mermaid diagram is edited as its text (night 2), where the API is.
+  // A Mermaid diagram is edited as its text (night 2), where the API is:
+  // an editor, not a code viewer, so it's the one switch the row keeps.
   const textEditable = artifact.kind === "mermaid" && api !== undefined;
+  const [editingText, setEditingText] = useState(false);
   const saved = useCallback(
     (next: ArtifactVersion) => {
       onSelect({ artifactId: artifact.id, versionId: next.id });
-      setView("preview");
+      setEditingText(false);
     },
     [artifact.id, onSelect]
   );
@@ -531,17 +477,12 @@ function ArtifactDetail({
   }
 
   return (
-    <Tabs
-      className="h-full min-h-0 flex-1 gap-0"
-      onValueChange={onView}
-      value={view}
-    >
+    <div className="flex h-full min-h-0 flex-1 flex-col">
       {header(
         <ArtifactHeader
-          editAsText={textEditable}
-          hasChanges={previous !== undefined}
-          hasPreview={plan.type !== "source"}
+          editingText={textEditable ? editingText : null}
           index={index}
+          onEditingTextChange={setEditingText}
           onStep={step}
           title={artifact.title}
           versions={versions}
@@ -549,68 +490,45 @@ function ArtifactDetail({
       )}
       {error ? <ArtifactError error={error} /> : null}
       <div className="flex min-h-0 flex-1 flex-col overflow-auto">
-        {plan.type === "source" ? null : (
-          <TabsContent className="flex min-h-0 flex-col" value="preview">
-            <PlannedPreview
-              artifact={artifact}
-              content={version.content}
-              deck={deck}
-              onShowSource={showSource}
-              path={path}
-              plan={plan}
-            />
-          </TabsContent>
+        {textEditable && editingText && api ? (
+          <MermaidText
+            api={api}
+            artifactId={artifact.id}
+            key={version.id}
+            onSaved={saved}
+            version={version}
+          />
+        ) : (
+          <PlannedPreview
+            artifact={artifact}
+            content={version.content}
+            deck={deck}
+            path={path}
+            plan={plan}
+          />
         )}
-        <TabsContent value="code">
-          {textEditable && api ? (
-            <MermaidText
-              api={api}
-              artifactId={artifact.id}
-              key={version.id}
-              onSaved={saved}
-              version={version}
-            />
-          ) : (
-            <ArtifactSource
-              content={version.content}
-              kind={artifact.kind}
-              path={path}
-            />
-          )}
-        </TabsContent>
-        <TabsContent value="changes">
-          {edit ? (
-            // Its own strip is the Unified/Split switch and the counts.
-            <DiffView className="rounded-none border-0" edit={edit} />
-          ) : (
-            <p className="p-4 text-muted-foreground text-sm">
-              <Trans>No changes from the previous version.</Trans>
-            </p>
-          )}
-        </TabsContent>
       </div>
-    </Tabs>
+    </div>
   );
 }
 
 /**
- * The header row's contents: the title, then the versions and the tabs, with
- * a "…" menu for the versions when the row is narrow (`fitArtifactHeader`).
+ * The header row's contents: the title, then the versions, with a "…" menu
+ * for them when the row is narrow (`fitArtifactHeader`), and a Mermaid
+ * diagram's "Edit as text".
  */
 function ArtifactHeader({
-  editAsText,
-  hasChanges,
-  hasPreview,
+  editingText,
   index,
+  onEditingTextChange,
   onStep,
   title,
   versions,
 }: {
-  /** The Code tab edits the source: "Edit as text". */
-  readonly editAsText: boolean;
-  readonly hasChanges: boolean;
-  readonly hasPreview: boolean;
+  /** Whether the diagram's text is open; `null` when it can't be edited. */
+  readonly editingText: boolean | null;
   readonly index: number;
+  readonly onEditingTextChange: (editing: boolean) => void;
   readonly onStep: (delta: -1 | 1) => void;
   readonly title: string;
   readonly versions: readonly ArtifactVersion[];
@@ -620,17 +538,21 @@ function ArtifactHeader({
   // so its width is the room there is, whatever it shows.
   const [measure, width] = useElementWidth<HTMLDivElement>();
   const fit = fitArtifactHeader({
-    tabs: hasPreview ? 3 : 2,
+    tabs: editingText === null ? 0 : 1,
     versions: versions.length > 1,
     width,
   });
   const older = useCallback(() => onStep(-1), [onStep]);
   const newer = useCallback(() => onStep(1), [onStep]);
+  const toggleText = useCallback(
+    () => onEditingTextChange(!editingText),
+    [editingText, onEditingTextChange]
+  );
   const number = versions[index]?.number ?? index + 1;
   const total = versions.length;
   const isOldest = index === 0;
   const isNewest = index >= total - 1;
-  const words = fit.tabLabels ? "inline" : "hidden";
+  const editLabel = t`Edit as text`;
 
   return (
     <div className="flex min-w-0 flex-1 items-center gap-1" ref={measure}>
@@ -670,32 +592,22 @@ function ArtifactHeader({
           </Button>
         </div>
       ) : null}
-      <TabsList
-        aria-label={t`Artifact views`}
-        className="h-7 shrink-0 gap-0.5 bg-transparent p-0"
-      >
-        {hasPreview ? (
-          <ViewTab
-            icon={<EyeIcon aria-hidden />}
-            label={t`Preview`}
-            value="preview"
-            words={words}
-          />
-        ) : null}
-        <ViewTab
-          icon={<CodeIcon aria-hidden />}
-          label={editAsText ? t`Edit as text` : t`Code`}
-          value="code"
-          words={words}
-        />
-        <ViewTab
-          disabled={!hasChanges}
-          icon={<HistoryIcon aria-hidden />}
-          label={t`Changes`}
-          value="changes"
-          words={words}
-        />
-      </TabsList>
+      {editingText === null ? null : (
+        <Button
+          aria-label={editLabel}
+          aria-pressed={editingText}
+          className="h-7 min-w-7 shrink-0 px-1.5 text-muted-foreground text-xs aria-pressed:bg-muted aria-pressed:text-foreground"
+          onClick={toggleText}
+          size="sm"
+          title={editLabel}
+          variant="ghost"
+        >
+          <PencilIcon aria-hidden />
+          <span className={fit.tabLabels ? "inline" : "hidden"}>
+            {editLabel}
+          </span>
+        </Button>
+      )}
       {fit.menu ? (
         <DropdownMenu>
           <DropdownMenuTrigger
@@ -730,40 +642,5 @@ function ArtifactHeader({
         </DropdownMenu>
       ) : null}
     </div>
-  );
-}
-
-/**
- * One of Preview, Code and Changes: a quiet segment like the files' Preview |
- * Code switch (070), an icon with its word when the row has room.
- */
-function ViewTab({
-  disabled = false,
-  icon,
-  label,
-  value,
-  words,
-}: {
-  readonly disabled?: boolean;
-  readonly icon: ReactNode;
-  readonly label: string;
-  readonly value: View;
-  readonly words: "hidden" | "inline";
-}) {
-  return (
-    <TabsTrigger
-      aria-label={label}
-      className={cn(
-        "h-7 min-w-7 flex-none rounded-md px-1.5 text-muted-foreground text-xs hover:bg-muted",
-        // The segment's fill is the selection: no raised pill, no outline.
-        "data-active:bg-muted data-active:text-foreground group-data-[variant=default]/tabs-list:data-active:shadow-none dark:data-active:border-transparent dark:data-active:bg-muted"
-      )}
-      disabled={disabled}
-      title={label}
-      value={value}
-    >
-      {icon}
-      <span className={words}>{label}</span>
-    </TabsTrigger>
   );
 }

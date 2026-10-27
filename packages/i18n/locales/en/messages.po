@@ -367,10 +367,6 @@ msgstr "A file with that name already exists."
 msgid "A folder of plain HTML, CSS and JavaScript, with an index.html, becomes a site you can preview and publish. Build an app first and save the folder it builds to."
 msgstr "A folder of plain HTML, CSS and JavaScript, with an index.html, becomes a site you can preview and publish. Build an app first and save the folder it builds to."
 
-#: ../chat-ui/src/artifacts/artifact-view.tsx
-msgid "A generated image has no source to show."
-msgstr "A generated image has no source to show."
-
 #: ../../apps/web/app/(app)/_shared/settings/usage-settings.tsx
 msgid "A key you don't manage"
 msgstr "A key you don't manage"
@@ -785,10 +781,6 @@ msgstr "Archived chats"
 msgid "Artifact"
 msgstr "Artifact"
 
-#: ../chat-ui/src/artifacts/artifact-view.tsx
-msgid "Artifact views"
-msgstr "Artifact views"
-
 #: ../palette/src/context-actions.ts
 msgid "artifacts"
 msgstr "artifacts"
@@ -1170,10 +1162,6 @@ msgstr "Changed elsewhere"
 msgid "Changed the skill {name}"
 msgstr "Changed the skill {name}"
 
-#: ../chat-ui/src/artifacts/artifact-view.tsx
-msgid "Changes"
-msgstr "Changes"
-
 #: ../chat-ui/src/conversation/skill-card.tsx
 msgid "Changes to SKILL.md"
 msgstr "Changes to SKILL.md"
@@ -1365,7 +1353,6 @@ msgstr "Close panel"
 msgid "Close toast"
 msgstr "Close toast"
 
-#: ../chat-ui/src/artifacts/artifact-view.tsx
 #: ../chat-ui/src/model/artifact-kinds.ts
 #: ../chat-ui/src/workspace/mode-toggle.tsx
 #: ../composer/src/components/chat-mode-switch.tsx
@@ -3314,6 +3301,10 @@ msgstr "Maximise the browser"
 msgid "Maximise the files"
 msgstr "Maximise the files"
 
+#: ../chat-ui/src/workspace/workspace-panel.tsx
+msgid "Maximise the preview"
+msgstr "Maximise the preview"
+
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
 msgid "MCP"
 msgstr "MCP"
@@ -3783,10 +3774,6 @@ msgstr "No artifacts yet. Code, pages and documents the agent makes in this chat
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "No budgets"
 msgstr "No budgets"
-
-#: ../chat-ui/src/artifacts/artifact-view.tsx
-msgid "No changes from the previous version."
-msgstr "No changes from the previous version."
 
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "No changes to {path}"
@@ -4599,7 +4586,6 @@ msgstr "Press keys…"
 msgid "preview"
 msgstr "preview"
 
-#: ../chat-ui/src/artifacts/artifact-view.tsx
 #: ../chat-ui/src/conversation/file-change-card.tsx
 #: ../chat-ui/src/workspace/mode-toggle.tsx
 #: ../chat-ui/src/workspace/workspace-panel.tsx
@@ -5134,6 +5120,14 @@ msgstr "Resize sidebar"
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Resize the browser"
 msgstr "Resize the browser"
+
+#: ../chat-ui/src/workspace/workspace-panel.tsx
+msgid "Resize the file list"
+msgstr "Resize the file list"
+
+#: ../chat-ui/src/workspace/workspace-panel.tsx
+msgid "Resize the preview"
+msgstr "Resize the preview"
 
 #: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
 msgid "Restart computer"
@@ -5749,10 +5743,6 @@ msgstr "Show or hide the editor's thumbnails"
 msgid "Show or hide the files"
 msgstr "Show or hide the files"
 
-#: ../chat-ui/src/artifacts/artifact-preview.tsx
-msgid "Show the code"
-msgstr "Show the code"
-
 #: ../chat-ui/src/workspace/preview.tsx
 msgid "Show the page at a phone's width"
 msgstr "Show the page at a phone's width"
@@ -5897,8 +5887,8 @@ msgid "Slides"
 msgstr "Slides"
 
 #: ../chat-ui/src/artifacts/presentation-preview.tsx
-msgid "Slides are drawn by the artifacts service. Set ARTIFACTS_ORIGIN and start it with bun dev. The deck's JSON is in the Code tab."
-msgstr "Slides are drawn by the artifacts service. Set ARTIFACTS_ORIGIN and start it with bun dev. The deck's JSON is in the Code tab."
+msgid "Slides are drawn by the artifacts service. Set ARTIFACTS_ORIGIN and start it with bun dev."
+msgstr "Slides are drawn by the artifacts service. Set ARTIFACTS_ORIGIN and start it with bun dev."
 
 #: ../chat-ui/src/artifacts/presentation-preview.tsx
 msgid "Slides of {title}"

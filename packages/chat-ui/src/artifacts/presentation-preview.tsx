@@ -914,7 +914,7 @@ function RuntimeUnavailable({
         {connection === "unconfigured" ? (
           <Trans>
             Slides are drawn by the artifacts service. Set ARTIFACTS_ORIGIN and
-            start it with bun dev. The deck's JSON is in the Code tab.
+            start it with bun dev.
           </Trans>
         ) : (
           <Trans>
