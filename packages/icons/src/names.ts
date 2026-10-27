@@ -44,6 +44,7 @@ export const iconNames = [
   "PaperclipIcon",
   "PencilIcon",
   "PinIcon",
+  "SquareDashedMousePointerIcon",
   "PinOffIcon",
   "PauseIcon",
   "PlayIcon",

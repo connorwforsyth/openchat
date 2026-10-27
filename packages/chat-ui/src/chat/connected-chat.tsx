@@ -89,7 +89,14 @@ import {
   useRef,
   useState,
 } from "react";
-
+import {
+  annotationsInput,
+  useChatAnnotateSink,
+} from "../artifacts/annotate/chat-sink";
+import {
+  type AnnotateSink,
+  AnnotateSinkProvider,
+} from "../artifacts/annotate/sink";
 import { useOfferedKinds } from "../artifacts/use-offered-kinds";
 import type { ConversationActions } from "../conversation/actions";
 import {
@@ -99,6 +106,7 @@ import {
 } from "../conversation/approval-state";
 import { ShowModesContext } from "../conversation/mode-note";
 import { PlanStatusProvider } from "../conversation/plan-card";
+import { chatTasks } from "../header/chat-tasks";
 import { staleEdits } from "../model/approval";
 import {
   artifactKindLabels,
@@ -525,8 +533,7 @@ const sentParts = (message: UIMessage) => [
  * what `useChat` would have sent, under `parentId`. Pure.
  */
 const busyInput = (
-  text: string,
-  outgoing: Outgoing,
+  { outgoing, text }: { readonly outgoing: Outgoing; readonly text: string },
   parentId: MessageId | null
 ): CreateRunInput["input"] => {
   const sent = outgoingMessage(text, outgoing);
@@ -571,20 +578,27 @@ const webSearchSwitch = (
     ? { onWebSearchChange: onChange, webSearch: on }
     : {};
 
-/** What message rows read from the screen: run activity, and whether modes show. */
+/**
+ * What message rows read from the screen: run activity, and whether modes
+ * show; and where Annotate's notes on an artifact go.
+ */
 function RowContexts({
   activity,
+  annotateSink,
   children,
   showModes,
 }: {
   readonly activity: RunActivity;
+  readonly annotateSink: AnnotateSink | null;
   readonly children: ReactNode;
   readonly showModes: boolean;
 }) {
   return (
     <RunActivityProvider value={activity}>
       <ShowModesContext.Provider value={showModes}>
-        {children}
+        <AnnotateSinkProvider value={annotateSink}>
+          {children}
+        </AnnotateSinkProvider>
       </ShowModesContext.Provider>
     </RunActivityProvider>
   );
@@ -1127,7 +1141,10 @@ export const useFirstSend = ({
   readonly onWorkspaceChanged: () => void;
   readonly send: (text: string, outgoing: Outgoing) => void;
   /** Sends while an answer is being written; the server decides how it joins. */
-  readonly sendBusy: (text: string, outgoing: Outgoing) => Promise<void>;
+  readonly sendBusy: (sent: {
+    readonly outgoing: Outgoing;
+    readonly text: string;
+  }) => Promise<void>;
   /** Sends, and settles once the turn's answer has ended. */
   readonly sendInTurn: (text: string, outgoing: Outgoing) => Promise<void>;
   /** Stored as the new chat's default, so reopening it continues with the same agent or model. */
@@ -1209,7 +1226,10 @@ export const useFirstSend = ({
       if (conversationId && whileBusy) {
         // One after another, so quick messages reach the server in order.
         const sent = order.current.then(async () =>
-          sendBusy(value.text, await prepare(conversationId, value))
+          sendBusy({
+            outgoing: await prepare(conversationId, value),
+            text: value.text,
+          })
         );
         order.current = sent.catch(ignore);
         await sent;
@@ -1911,9 +1931,9 @@ export function ConnectedChat({
   const titleWatch = useTitleWatch(conversationId);
   const shownAt = useShownAt(conversationId);
 
+  const artifactPick = useArtifactPick(selection, conversationId);
   const data = useChatQueries(api, {
-    artifactId:
-      selection?.kind === "artifact" ? (selection.artifactId ?? null) : null,
+    artifactId: artifactPick?.artifactId ?? null,
     conversationId,
     leafId,
     sandboxes: config.features.sandboxes,
@@ -2182,6 +2202,9 @@ export function ConnectedChat({
   const actions = useMemo(
     (): ConversationActions => ({
       artifactImageUrl,
+      ...(artifactsHref
+        ? { artifactHref: (id) => `${artifactsHref}/${id}` }
+        : {}),
       fileUrl,
       ...(libraryHref
         ? { libraryItemHref: (id) => `${libraryHref}/${id}` }
@@ -2230,6 +2253,7 @@ export function ConnectedChat({
     }),
     [
       approvePlan,
+      artifactsHref,
       conversationId,
       decide,
       feedback.clear,
@@ -2290,6 +2314,13 @@ export function ConnectedChat({
     },
     [sendsWhileBusy, stopReading, submit]
   );
+  const outputs = useMemo(
+    () => ({
+      owner: me.user.id,
+      tasks: chatTasks(data.activeRuns, messages),
+    }),
+    [data.activeRuns, me.user.id, messages]
+  );
 
   useAskOnce(initialPrompt, conversationId, onSubmit);
   const composerDrafts = useComposerDrafts(
@@ -2323,6 +2354,23 @@ export function ConnectedChat({
   useWorkspaceInSync(api, messages);
   useLibraryInSync(api, messages);
   const current = data.conversation.data;
+  const sendAnnotationsBusy = useSendBusy({
+    answering: streamingMessageId,
+    branch: messages,
+    client,
+    conversationId,
+    input: annotationsInput,
+    refresh,
+    runFields,
+  });
+  const annotateSink = useChatAnnotateSink({
+    busy: sendsWhileBusy,
+    conversation: current,
+    sendBusy: sendAnnotationsBusy,
+    sendMessage,
+    stopReading,
+    waiting,
+  });
   const sidebarData = useSidebarData(api);
   useMarkReadWhileOpen(current, sidebarData.onSetLastRead);
   // The open chat's own run feeds "Needs attention" too (176): the list
@@ -2364,7 +2412,11 @@ export function ConnectedChat({
   );
 
   return (
-    <RowContexts activity={activity} showModes={showModes}>
+    <RowContexts
+      activity={activity}
+      annotateSink={annotateSink}
+      showModes={showModes}
+    >
       <PlanStatusProvider value={planStatus}>
         <VoiceBridgeContext.Provider
           value={bridgeOf(conversationId, voiceBridge)}
@@ -2427,6 +2479,7 @@ export function ConnectedChat({
             onComposerInput={live.onTyping}
             onNewChat={newChat}
             onOpenPalette={onOpenPalette}
+            outputs={outputs}
             pendingApprovals={approvals}
             platform={platform}
             runError={
@@ -2490,3 +2543,24 @@ export function ConnectedChat({
 }
 
 const NO_MESSAGES: readonly Message[] = [];
+
+/**
+ * The last artifact picked in this chat. The panel keeps an artifact open
+ * above a file opened after it (night 2), so the versions it loads follow
+ * this, not the selection. Another chat starts with none.
+ */
+function useArtifactPick(
+  selection: WorkspaceSelection | null,
+  conversationId: ConversationId | null
+) {
+  const [held, setHeld] = useState(() => ({
+    chat: conversationId,
+    pick: selection?.kind === "artifact" ? selection : null,
+  }));
+  if (held.chat !== conversationId) {
+    setHeld({ chat: conversationId, pick: null });
+  } else if (selection?.kind === "artifact" && selection !== held.pick) {
+    setHeld({ chat: conversationId, pick: selection });
+  }
+  return held.chat === conversationId ? held.pick : null;
+}

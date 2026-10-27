@@ -1,6 +1,10 @@
 import { setupI18n } from "@lingui/core";
 import { I18nProvider } from "@lingui/react";
 import { cleanup, render, screen } from "@testing-library/react";
+import {
+  type AnnotationsData,
+  annotationsParts,
+} from "@workspace/ai/messages/annotations";
 import type { Message } from "@workspace/contract/schemas/messages";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -16,6 +20,7 @@ const i18n = setupI18n({ locale: "en", messages: { en: {} } });
 
 const THOUGHT_FOR = /Thought for/;
 const WORKING = /Still working/;
+const ANNOTATIONS_TAG = /artifact-annotations/;
 
 const base = treeMessages.find((message) => message.role === "assistant");
 if (!base) {
@@ -124,5 +129,46 @@ describe("the answer's status line", () => {
       row({ parts: [answer], status: "complete", streaming: false })
     );
     expect(screen.queryByRole("status")).toBeNull();
+  });
+});
+
+describe("notes on an artifact", () => {
+  const user = treeMessages.find((message) => message.role === "user");
+  if (!user) {
+    throw new Error("fixture question");
+  }
+
+  it("shows the notes people wrote, not the block the model read", () => {
+    const data: AnnotationsData = {
+      artifactId: "0192a000-0000-7000-8000-000000000021" as never,
+      kind: "site",
+      notes: [
+        {
+          mark: { shape: "point", x: 0.4, y: 0.3 },
+          note: "Make the heading bigger.",
+          target: { selector: "h1", text: "Hello", type: "element" },
+          version: 2,
+          versionId: "0192a000-0000-7000-8000-000000000022" as never,
+        },
+      ],
+      title: "Landing page",
+    };
+    render(
+      <I18nProvider i18n={i18n}>
+        <MessageRow
+          approvals={undefined}
+          feedback={undefined}
+          message={{ ...user, parts: [...annotationsParts(data)] }}
+          results={[]}
+          siblings={undefined}
+          streaming={false}
+        />
+      </I18nProvider>
+    );
+    expect(screen.getByText("1 note on Landing page")).toBeTruthy();
+    expect(screen.getByText("Make the heading bigger.")).toBeTruthy();
+    expect(screen.getByText("“Hello”")).toBeTruthy();
+    expect(screen.queryByText(ANNOTATIONS_TAG)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Edit" })).toBeNull();
   });
 });

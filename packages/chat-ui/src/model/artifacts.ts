@@ -92,9 +92,9 @@ export const previewKind = (kind: ArtifactKind): ArtifactPreviewKind => {
     case "markdown":
       return panel;
     // React needs a bundler in the frame, and Mermaid a renderer; the panel
-    // leaves both to the artifact runtime and shows the source here. A
-    // document (126) is its editor, a diagram (165) its canvas, and a
-    // spreadsheet (166) its grid, which the view picks before any preview.
+    // leaves both to the artifact runtime and says so without it. Code is
+    // its source. A document (126) is its editor, a diagram (165) its
+    // canvas, and a spreadsheet (166) its grid, which the view picks first.
     case "source":
     case "diagram":
     case "document":
@@ -106,10 +106,10 @@ export const previewKind = (kind: ArtifactKind): ArtifactPreviewKind => {
 };
 
 /**
- * What an artifact's Preview tab shows: the runtime's render, the panel's
- * own (a frame, a picture, Markdown), why it can't (a kind only the runtime
- * draws, on an instance without one), or no tab at all for a kind whose
- * source is the whole of it (code). It never quietly falls back to source.
+ * How an artifact shows as itself: the runtime's render, the panel's own (a
+ * frame, a picture, Markdown), why it can't (a kind only the runtime draws,
+ * on an instance without one), or its source for a kind whose source is the
+ * whole of it (code). It never falls back to source.
  */
 export type ArtifactPreviewPlan =
   | { readonly origin: string; readonly type: "runtime" }
@@ -117,7 +117,7 @@ export type ArtifactPreviewPlan =
   | { readonly reason: "no-runtime"; readonly type: "unavailable" }
   | { readonly type: "source" };
 
-/** The Preview tab for `kind`, given the runtime's origin (`null` for none). Pure. */
+/** How `kind` shows, given the runtime's origin (`null` for none). Pure. */
 export const previewPlan = (
   kind: ArtifactKind,
   runtimeOrigin: string | null

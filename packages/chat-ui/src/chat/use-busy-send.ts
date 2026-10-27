@@ -21,7 +21,7 @@ type CreateRun = Parameters<ApiClient["runs"]["create"]>[0];
  * batch, restarts the answer, or takes it at the next step), and the page
  * follows whichever run answers it.
  */
-export const useSendBusy = <Outgoing>({
+export const useSendBusy = <Payload>({
   answering,
   branch,
   client,
@@ -36,9 +36,9 @@ export const useSendBusy = <Outgoing>({
   readonly branch: readonly Pick<Message, "id">[];
   readonly client: ApiClient;
   readonly conversationId: ConversationId | null;
+  /** What's sent, as the run's `input`, after `parentId`. */
   readonly input: (
-    text: string,
-    outgoing: Outgoing,
+    payload: Payload,
     parentId: MessageId | null
   ) => CreateRun["input"];
   readonly refresh: () => void;
@@ -54,14 +54,14 @@ export const useSendBusy = <Outgoing>({
   const at = useRef<MessageId | null>(null);
   at.current = sent.current ?? answering ?? branch.at(-1)?.id ?? null;
   return useCallback(
-    async (text: string, outgoing: Outgoing) => {
+    async (payload: Payload) => {
       if (!conversationId) {
         return;
       }
       const created = await client.runs.create({
         ...runFields(),
         conversationId,
-        input: input(text, outgoing, at.current),
+        input: input(payload, at.current),
       });
       sent.current = created.userMessageId;
       at.current = created.userMessageId;

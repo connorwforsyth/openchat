@@ -1,10 +1,10 @@
 // What the artifact view's one header row shows inline at a given width
 // (075), the way the Preview's toolbar fits (`workspace/model/toolbar.ts`).
-// The row used to be four: the panel's, the title and versions, the tabs and
-// the CodeHeader (174px). Now the title keeps at least 96px and the
-// Preview/Code/Changes tabs always show, as icons; the version pager, then
-// the tabs' words, come back as room allows. The pager that doesn't fit is in
-// the "…" menu (the words just stay in the tabs' labels).
+// The title keeps at least 96px and the row's switches (a diagram's "Edit as
+// text"; artifacts have no Preview/Code tabs since night 2) always show, as
+// icons; the version pager, then the switches' words, come back as room
+// allows. The pager that doesn't fit is in the "…" menu (the words just stay
+// in the switches' labels).
 
 /** CSS pixels, as the row's classes draw them. */
 export const ARTIFACT_HEADER = {
@@ -18,14 +18,14 @@ export const ARTIFACT_HEADER = {
   tab: 28,
   /** `gap-0.5` between the tabs. */
   tabGap: 2,
-  /** What a tab's word adds to it, on average ("Preview", "Code", "Changes"). */
-  tabLabel: 46,
+  /** What a switch's word adds to it ("Edit as text"). */
+  tabLabel: 72,
   /** The title's minimum. */
   title: 96,
 } as const;
 
 export interface ArtifactHeaderRoom {
-  /** The tabs in the row (2 without a preview, else 3). */
+  /** The switches in the row: 1 for "Edit as text", else 0. */
   readonly tabs: number;
   /** More than one version: there's somewhere to page to. */
   readonly versions: boolean;

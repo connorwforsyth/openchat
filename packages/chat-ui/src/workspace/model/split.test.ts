@@ -1,14 +1,22 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  COLUMNS_BELOW,
+  clampListWidth,
   clampSplit,
+  INSPECTOR_MIN_WIDTH,
+  LIST_WIDTH_DEFAULT,
+  LIST_WIDTH_MIN,
   MIN_PANE_HEIGHT,
   maximisedAfter,
   maximisedForHalf,
+  type PanelSlots,
   paneLayout,
+  parseListWidth,
   parseSplit,
   SPLIT_BELOW,
   SPLIT_DEFAULT,
+  slotsAfter,
   splitBounds,
   viewForHalf,
   viewOf,
@@ -120,7 +128,8 @@ describe("viewOf", () => {
       )
     ).toBe("files");
     expect(viewOf({ kind: "file", path: "README.md" }, {})).toBe("files");
-    expect(viewOf({ kind: "artifact" }, {})).toBe("files");
+    // An artifact is the top half's (night 2).
+    expect(viewOf({ kind: "artifact" }, {})).toBe("browser");
     expect(viewOf(null, {})).toBe("files");
   });
 });
@@ -134,7 +143,7 @@ describe("maximisedAfter", () => {
     expect(
       maximisedAfter("browser", { kind: "file", path: "a.ts" })
     ).toBeNull();
-    expect(maximisedAfter("browser", { kind: "artifact" })).toBeNull();
+    expect(maximisedAfter("files", { kind: "artifact" })).toBeNull();
   });
 
   it("leaves it when the pick shows in the half that's maximised", () => {
@@ -144,6 +153,7 @@ describe("maximisedAfter", () => {
     );
     expect(maximisedAfter("files", null)).toBe("files");
     expect(maximisedAfter(null, { kind: "preview" })).toBeNull();
+    expect(maximisedAfter("browser", { kind: "artifact" })).toBe("browser");
   });
 });
 
@@ -176,5 +186,50 @@ describe("a header press", () => {
   it("takes the half's turn on a narrow panel", () => {
     expect(viewForHalf("browser")).toBe("browser");
     expect(viewForHalf("files")).toBe("files");
+  });
+});
+
+// Night 2: an artifact above and a file below are open together.
+describe("each half's slot", () => {
+  const empty: PanelSlots = { file: null, preview: null };
+  const file = { kind: "file", path: "notes.txt" } as const;
+  const artifact = { kind: "artifact" } as const;
+
+  it("fills the half a pick belongs to and leaves the other", () => {
+    const withFile = slotsAfter(empty, file);
+    expect(withFile).toEqual({ file, preview: null });
+    const both = slotsAfter(withFile, artifact);
+    expect(both).toEqual({ file, preview: artifact });
+    expect(slotsAfter(both, { kind: "preview" })).toEqual({
+      file,
+      preview: { kind: "preview" },
+    });
+  });
+
+  it("closes the file, not the preview, when nothing is selected", () => {
+    expect(slotsAfter({ file, preview: artifact }, null)).toEqual({
+      file: null,
+      preview: artifact,
+    });
+    expect(slotsAfter(empty, null)).toBe(empty);
+  });
+});
+
+describe("the file list's width", () => {
+  it("keeps the open file at least INSPECTOR_MIN_WIDTH beside it", () => {
+    expect(clampListWidth(500, 600)).toBe(600 - INSPECTOR_MIN_WIDTH);
+    expect(clampListWidth(20, 600)).toBe(LIST_WIDTH_MIN);
+    // Before a measure, only the list's own limits apply.
+    expect(clampListWidth(300)).toBe(300);
+  });
+
+  it("reads a stored width, and the default for anything else", () => {
+    expect(parseListWidth("240")).toBe(240);
+    expect(parseListWidth(null)).toBe(LIST_WIDTH_DEFAULT);
+    expect(parseListWidth("wide")).toBe(LIST_WIDTH_DEFAULT);
+  });
+
+  it("takes turns with the open file below room for both", () => {
+    expect(COLUMNS_BELOW).toBeGreaterThan(LIST_WIDTH_MIN + INSPECTOR_MIN_WIDTH);
   });
 });

@@ -8,6 +8,7 @@ import {
   readHostMessage,
 } from "@workspace/chat-ui/artifacts/runtime-protocol";
 
+import { answerProbes } from "./annotate-probe";
 import type { Teardown } from "./documents";
 import { runtimeError } from "./errors";
 import { type RenderControl, rendererFor } from "./renderers";
@@ -123,6 +124,7 @@ const start = (container: HTMLElement, parentOrigin: string) => {
     }
   }).observe(container);
 
+  answerProbes(parentOrigin);
   post({ channel: RUNTIME_CHANNEL, type: "ready" });
 };
 

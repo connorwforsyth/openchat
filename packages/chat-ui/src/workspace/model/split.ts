@@ -1,11 +1,12 @@
 import type { PanelHalf, WorkspaceSelection } from "../../model/workspace";
 import { type FileMode, isHtmlPath } from "./browser";
 
-// The Workspace panel as two halves (097): the browser on top, the files
-// (the open file or artifact, over the docked file list) below, with a
-// divider between them. Pure,
-// so the rules are tested without rendering: how high the browser is, which
-// halves show at a width, and which half a narrow panel shows after a pick.
+// The Workspace panel as two halves (097): the preview on top (the open
+// artifact, or the browser), the files viewer below (the file list beside
+// the open file, night 2), with a divider between them. Pure, so the rules
+// are tested without rendering: how high the preview is, which halves show
+// at a width, which half a narrow panel shows after a pick, and how wide
+// the file list is. The "browser" half's name predates artifacts in it.
 
 /** Below this panel width the halves take turns instead of stacking. */
 export const SPLIT_BELOW = 420;
@@ -109,9 +110,9 @@ export const paneLayout = ({
 };
 
 /**
- * The view a pick asks for on a narrow panel: the browser for the Preview
- * and for an HTML file (it opens in the browser, unless it was switched to
- * its code), the files for anything else.
+ * The view a pick asks for on a narrow panel: the top half for an artifact,
+ * the Preview and an HTML file (it opens in the browser, unless it was
+ * switched to its code), the files for anything else.
  */
 export const viewOf = (
   selection: WorkspaceSelection | null,
@@ -127,16 +128,16 @@ export const viewOf = (
         ? "browser"
         : "files";
     case "artifact":
-      return "files";
+      return "browser";
     default:
       return selection satisfies never;
   }
 };
 
 /**
- * What a new pick does to a maximised half: the browser's picks (the
- * Preview, an HTML file) bring the browser back, and any other file or
- * artifact brings the files back, so what was picked is on screen.
+ * What a new pick does to a maximised half: the top half's picks (an
+ * artifact, the Preview, an HTML file) bring it back, and any other file
+ * brings the files back, so what was picked is on screen.
  */
 export const maximisedAfter = (
   maximised: Maximised,
@@ -178,3 +179,78 @@ export const maximisedForHalf = (
 
 /** Whose turn a header press makes it on a narrow panel. */
 export const viewForHalf = (half: PanelHalf): TurnView => half;
+
+/** What the top half shows: an artifact, or the browser (the Preview). */
+export type PreviewSlot = Extract<
+  WorkspaceSelection,
+  { readonly kind: "artifact" | "preview" }
+>;
+
+/**
+ * What each half holds (night 2): the top its artifact or the browser, the
+ * files viewer its open file. A pick fills its own half and leaves the
+ * other alone, so an artifact and a file are open together.
+ */
+export interface PanelSlots {
+  readonly file: Extract<WorkspaceSelection, { readonly kind: "file" }> | null;
+  readonly preview: PreviewSlot | null;
+}
+
+/**
+ * The halves after the chat's selection changes. Nothing selected closes
+ * the file (it was deleted, or the chat moved off it), not the preview.
+ */
+export const slotsAfter = (
+  slots: PanelSlots,
+  selection: WorkspaceSelection | null
+): PanelSlots => {
+  switch (selection?.kind) {
+    case undefined:
+      return slots.file === null ? slots : { ...slots, file: null };
+    case "file":
+      return { ...slots, file: selection };
+    case "artifact":
+    case "preview":
+      return { ...slots, preview: selection };
+    default:
+      return selection satisfies never;
+  }
+};
+
+/** The file list's width until someone moves its edge, in px. */
+export const LIST_WIDTH_DEFAULT = 208;
+
+/** The narrowest the list gets, and the least the open file keeps beside it. */
+export const LIST_WIDTH_MIN = 160;
+export const INSPECTOR_MIN_WIDTH = 240;
+
+/** The widest the list gets, whatever room there is. */
+const LIST_WIDTH_MAX = 400;
+
+/** Below this files-viewer width the list and the open file take turns. */
+export const COLUMNS_BELOW = LIST_WIDTH_MIN + INSPECTOR_MIN_WIDTH + 80;
+
+/** Where the list's width is kept (`localStorage`), per browser profile. */
+export const LIST_WIDTH_STORAGE_KEY = "chat-ui:files-list-width";
+
+/** The list's widest, given the files viewer's `width` (0 before a measure). */
+export const listWidthMax = (width: number): number =>
+  width <= 0
+    ? LIST_WIDTH_MAX
+    : clampTo(width - INSPECTOR_MIN_WIDTH, LIST_WIDTH_MIN, LIST_WIDTH_MAX);
+
+/** Keeps a width inside what the files viewer's `width` allows. */
+export const clampListWidth = (value: number, width = 0): number =>
+  Math.round(
+    clampTo(
+      Number.isFinite(value) ? value : LIST_WIDTH_DEFAULT,
+      LIST_WIDTH_MIN,
+      listWidthMax(width)
+    )
+  );
+
+/** Reads a stored width; anything unreadable is the default. */
+export const parseListWidth = (raw: string | null): number => {
+  const value = raw === null || raw.trim() === "" ? Number.NaN : Number(raw);
+  return Number.isFinite(value) ? clampListWidth(value) : LIST_WIDTH_DEFAULT;
+};
