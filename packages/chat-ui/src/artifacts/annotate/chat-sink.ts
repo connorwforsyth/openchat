@@ -1,5 +1,4 @@
 import {
-  ANNOTATIONS_DATA,
   type AnnotationsData,
   annotationsParts,
   annotationsText,
@@ -20,13 +19,13 @@ import type { AnnotateSink } from "./sink";
 // composer sends. Plan mode and the turn's other switches come with the
 // run's fields, as for any message.
 
-/** The notes as a message `useChat` sends. Pure. */
-export const annotationsMessage = (data: AnnotationsData) => ({
-  parts: [
-    { text: annotationsText(data), type: "text" as const },
-    { data, type: `data-${ANNOTATIONS_DATA}` as const },
-  ],
-});
+/** The notes as a message `useChat` sends: its data part named the AI SDK way. Pure. */
+export const annotationsMessage = (data: AnnotationsData) => {
+  const [text, notes] = annotationsParts(data);
+  return {
+    parts: [text, { data: notes.data, type: `data-${notes.name}` as const }],
+  };
+};
 
 /** The notes as a run's `input`, sent while an answer is written. Pure. */
 export const annotationsInput = (

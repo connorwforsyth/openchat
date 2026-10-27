@@ -2,7 +2,12 @@
 
 import { plural } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
-import type { AnnotationMark } from "@workspace/ai/messages/annotations";
+import {
+  type AnnotationMark,
+  MAX_ANNOTATIONS,
+  MAX_NOTE_LENGTH,
+  MAX_TITLE_LENGTH,
+} from "@workspace/ai/messages/annotations";
 import type { ArtifactVersionId } from "@workspace/contract/schemas/common";
 import type {
   Artifact,
@@ -164,8 +169,12 @@ function AnnotateLayer({
     [dispatch, drafts, open, refocus]
   );
 
+  const full = drafts.length >= MAX_ANNOTATIONS;
   const add = useCallback(
     (mark: AnnotationMark, area: HTMLElement) => {
+      if (full) {
+        return;
+      }
       const id = crypto.randomUUID();
       dispatch({
         id,
@@ -184,7 +193,7 @@ function AnnotateLayer({
         .catch(() => null)
         .then((target) => dispatch({ id, target, type: "locate" }));
     },
-    [dispatch, version.id, version.number]
+    [dispatch, full, version.id, version.number]
   );
 
   const remove = useCallback(
@@ -216,7 +225,7 @@ function AnnotateLayer({
         artifactId: artifact.id,
         kind: artifact.kind,
         notes: [...notes],
-        title: artifact.title.slice(0, 200),
+        title: artifact.title.slice(0, MAX_TITLE_LENGTH),
       });
       // Handed to the chat, they wait there to be sent.
       if (sink.mode !== "chat") {
@@ -607,7 +616,7 @@ function NoteEditor({
         aria-label={t`Note`}
         autoFocus
         className="min-h-16 resize-none text-sm"
-        maxLength={2000}
+        maxLength={MAX_NOTE_LENGTH}
         onChange={change}
         onKeyDown={onKeyDown}
         placeholder={t`What should change here?`}
@@ -689,6 +698,11 @@ function ActionBar({
           ? t`Click or drag to add a note`
           : t`${plural(count, { one: "# note", other: "# notes" })}`}
       </span>
+      {count >= MAX_ANNOTATIONS ? (
+        <span className="px-1 text-muted-foreground">
+          <Trans>That's the most one message takes.</Trans>
+        </span>
+      ) : null}
       {status === "failed" ? (
         <span className="px-1 text-destructive" role="alert">
           <Trans>Couldn't send. Try again.</Trans>

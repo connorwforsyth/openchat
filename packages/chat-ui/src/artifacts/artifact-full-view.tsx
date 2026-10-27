@@ -1,7 +1,7 @@
 "use client";
 
 import { Trans, useLingui } from "@lingui/react/macro";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { skipToken, useMutation, useQuery } from "@tanstack/react-query";
 import type { QueryUtils } from "@workspace/client/api";
 import type {
   ArtifactId,
@@ -79,10 +79,21 @@ export function ArtifactFullView({
     }
   }, [conversationId, links, navigate]);
   // No chat on this page: Annotate's notes wait here, and Send opens the
-  // chat, where the same drafts are sent from the artifact's panel.
+  // chat, where the same drafts are sent from the artifact's panel. Only
+  // for someone who can write there: a viewer of the chat can't send them.
+  const chat = useQuery(
+    api.conversations.get.queryOptions({
+      input:
+        artifact?.canGoToChat && conversationId
+          ? { id: conversationId }
+          : skipToken,
+    })
+  );
+  const canWrite =
+    chat.data !== undefined && chat.data.myPermission !== "viewer";
   const annotateSink = useMemo(
     (): AnnotateSink | null =>
-      artifact?.canGoToChat
+      canWrite
         ? {
             mode: "chat",
             send: () => {
@@ -91,7 +102,7 @@ export function ArtifactFullView({
             },
           }
         : null,
-    [artifact?.canGoToChat, goToChat]
+    [canWrite, goToChat]
   );
   const header = useCallback(
     (content: ReactNode) => (

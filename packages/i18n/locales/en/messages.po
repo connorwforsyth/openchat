@@ -6528,6 +6528,10 @@ msgstr "That time has passed. Pick a later one."
 msgid "That's a folder name. Add a file name after the slash."
 msgstr "That's a folder name. Add a file name after the slash."
 
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "That's the most one message takes."
+msgstr "That's the most one message takes."
+
 #: ../library-ui/src/components/fields.tsx
 msgid "That's too long."
 msgstr "That's too long."
