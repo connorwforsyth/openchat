@@ -74,7 +74,7 @@ export const artifactEditSchema = z
       .max(400_000)
       .optional()
       .describe(
-        "Markdown for replace_section and insert: the new section body (start it with a heading to replace the heading too) or the blocks to insert. For a presentation's replace: the whole deck's JSON. For a diagram's replace: the whole graph as JSON."
+        "Markdown for replace_section and insert: the section's new text up to its first subsection (start it with a heading to replace the heading too; its subsections stay, so don't repeat them) or the blocks to insert. For a presentation's replace: the whole deck's JSON. For a diagram's replace: the whole graph as JSON."
       ),
     edges: z
       .array(diagramEdgeSchema)
@@ -149,7 +149,7 @@ export const artifactEditSchema = z
     operation: z
       .enum(EDIT_NAMES)
       .describe(
-        "A document's: replace_section (the section under a heading, up to the next heading of the same or a higher level), insert (blocks at a section's start or end, or the document's end), delete_section (a heading and its section). A presentation's: update_slide, add_slide, move_slide, delete_slide, replace (the whole deck). A diagram's: add_nodes, connect, update_node, remove, replace (the whole graph, keeping the layout). A spreadsheet's: set_range, set_formula, delete_range, add_sheet, rename_sheet."
+        "A document's: replace_section (a heading and the text under it, up to its first subsection; subsections stay), insert (blocks at a section's start or end, or the document's end), delete_section (a heading and everything under it, subsections included). A presentation's: update_slide, add_slide, move_slide, delete_slide, replace (the whole deck). A diagram's: add_nodes, connect, update_node, remove, replace (the whole graph, keeping the layout). A spreadsheet's: set_range, set_formula, delete_range, add_sheet, rename_sheet."
       ),
     position: z
       .enum(["section_end", "section_start"])
@@ -237,7 +237,11 @@ const nextContent = async (
   input: UpdateArtifactInput,
   kinds: ArtifactKindRegistry
 ): Promise<
-  | { readonly content: string; readonly ok: true }
+  | {
+      readonly changes?: readonly string[];
+      readonly content: string;
+      readonly ok: true;
+    }
   | { readonly ok: false; readonly output: ArtifactToolOutput }
 > => {
   if (input.edit === undefined) {
@@ -275,14 +279,19 @@ const nextContent = async (
       },
     };
   }
-  const edited = kinds.edit(
-    current.kind,
-    latest,
-    input.edit.operation,
-    editInput(input.edit)
-  );
+  const fields = editInput(input.edit);
+  const edited = kinds.edit(current.kind, latest, input.edit.operation, fields);
   return edited.ok
-    ? { content: edited.value, ok: true }
+    ? {
+        changes: kinds.report(
+          current.kind,
+          latest,
+          input.edit.operation,
+          fields
+        ),
+        content: edited.value,
+        ok: true,
+      }
     : {
         ok: false,
         output: {
@@ -317,7 +326,7 @@ export const updateArtifact = async (
   if (!next.ok) {
     return next.output;
   }
-  return saveArtifact(
+  const saved = await saveArtifact(
     store,
     {
       artifactId: current.artifactId,
@@ -328,6 +337,9 @@ export const updateArtifact = async (
     },
     kinds
   );
+  return saved.status === "saved" && next.changes && next.changes.length > 0
+    ? { ...saved, changes: [...next.changes] }
+    : saved;
 };
 
 export const updateArtifactTool = defineTool({

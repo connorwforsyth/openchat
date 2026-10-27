@@ -56,6 +56,11 @@ export type ArtifactRef = z.infer<typeof artifactRefSchema>;
 export const artifactToolOutputSchema = z.discriminatedUnion("status", [
   z.object({
     artifact: artifactRefSchema,
+    /**
+     * What a structured edit changed (126), from the kind's operation: the
+     * headings it kept or removed, so the model can't claim otherwise.
+     */
+    changes: z.array(z.string()).optional(),
     status: z.literal("saved"),
     /** The version's number: 1 for a new artifact. */
     version: z.int().min(1),
@@ -208,8 +213,13 @@ export const saveArtifact = async (
 /** What the model reads of a result: what happened and what to do next. */
 export const artifactModelText = (output: ArtifactToolOutput): string => {
   switch (output.status) {
-    case "saved":
-      return `Saved "${output.artifact.title}" as version ${output.version} (artifactId: ${output.artifact.artifactId}). The user sees it beside the chat; don't repeat its content in your reply.`;
+    case "saved": {
+      const changes =
+        output.changes && output.changes.length > 0
+          ? ` ${output.changes.join(" ")}`
+          : "";
+      return `Saved "${output.artifact.title}" as version ${output.version} (artifactId: ${output.artifact.artifactId}).${changes} The user sees it beside the chat; don't repeat its content in your reply.`;
+    }
     case "invalid":
       return `Not saved: ${output.problems.join("; ")}. Fix the content and call the tool again.`;
     case "not_found":

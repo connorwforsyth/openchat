@@ -136,6 +136,12 @@
                 ],
                 "additionalProperties": false
               },
+              "changes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
               "status": {
                 "type": "string",
                 "const": "saved"
@@ -270,7 +276,7 @@
             "type": "object",
             "properties": {
               "content": {
-                "description": "Markdown for replace_section and insert: the new section body (start it with a heading to replace the heading too) or the blocks to insert. For a presentation's replace: the whole deck's JSON. For a diagram's replace: the whole graph as JSON.",
+                "description": "Markdown for replace_section and insert: the section's new text up to its first subsection (start it with a heading to replace the heading too; its subsections stay, so don't repeat them) or the blocks to insert. For a presentation's replace: the whole deck's JSON. For a diagram's replace: the whole graph as JSON.",
                 "type": "string",
                 "maxLength": 400000
               },
@@ -434,7 +440,7 @@
                   "set_formula",
                   "set_range"
                 ],
-                "description": "A document's: replace_section (the section under a heading, up to the next heading of the same or a higher level), insert (blocks at a section's start or end, or the document's end), delete_section (a heading and its section). A presentation's: update_slide, add_slide, move_slide, delete_slide, replace (the whole deck). A diagram's: add_nodes, connect, update_node, remove, replace (the whole graph, keeping the layout). A spreadsheet's: set_range, set_formula, delete_range, add_sheet, rename_sheet."
+                "description": "A document's: replace_section (a heading and the text under it, up to its first subsection; subsections stay), insert (blocks at a section's start or end, or the document's end), delete_section (a heading and everything under it, subsections included). A presentation's: update_slide, add_slide, move_slide, delete_slide, replace (the whole deck). A diagram's: add_nodes, connect, update_node, remove, replace (the whole graph, keeping the layout). A spreadsheet's: set_range, set_formula, delete_range, add_sheet, rename_sheet."
               },
               "position": {
                 "description": "For insert: where in the section. section_end by default.",
@@ -576,6 +582,12 @@
                   "versionId"
                 ],
                 "additionalProperties": false
+              },
+              "changes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
               },
               "status": {
                 "type": "string",
