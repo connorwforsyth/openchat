@@ -5,6 +5,7 @@ import {
   applyArtifactOperation,
   checkArtifact,
   modelViewOf,
+  reportArtifactOperation,
   storedFromModel,
 } from "./define";
 
@@ -32,6 +33,13 @@ export interface ArtifactKindRegistry {
   }[];
   readonly kinds: readonly string[];
   readonly list: () => readonly ArtifactKindDefinition[];
+  /** What an `edit` with these arguments changes (`reportArtifactOperation`). */
+  readonly report: (
+    kind: string,
+    stored: string | null,
+    operation: string,
+    input: unknown
+  ) => readonly string[];
   /** What the model reads of a stored version (`modelViewOf`). */
   readonly toModel: (kind: string, stored: string) => string;
 }
@@ -78,6 +86,12 @@ export const createArtifactKindRegistry = (
         })),
     kinds: all.map((definition) => definition.kind),
     list: () => all,
+    report: (kind, stored, operation, input) => {
+      const definition = byKind.get(kind);
+      return definition
+        ? reportArtifactOperation(definition, stored, operation, input)
+        : [];
+    },
     toModel: (kind, stored) => {
       const definition = byKind.get(kind);
       return definition ? modelViewOf(definition, stored) : stored;
