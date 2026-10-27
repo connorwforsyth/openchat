@@ -184,6 +184,54 @@ describe("structured edits", () => {
     expect(result.ok ? "" : result.error.join(" ")).toContain('"Notes"');
   });
 
+  it("replace_section renames a heading to a subsection's name without calling it a repeat", () => {
+    const notes = builtinArtifactKinds.fromModel(
+      "document",
+      "# Notes\nintro\n\n## Notes\ndetail\n"
+    );
+    expect(
+      markdownOf(
+        edit(
+          "replace_section",
+          { content: "# Notes\nnew intro", heading: "Notes" },
+          notes
+        )
+      )
+    ).toBe("# Notes\n\nnew intro\n\n## Notes\n\ndetail\n");
+  });
+
+  it("replace_section refuses a heading at the section's level, which would re-parent its subsections", () => {
+    const result = edit("replace_section", {
+      content: "1. Build.\n\n## Later\nMore.",
+      heading: "Steps",
+    });
+    expect(result.ok).toBe(false);
+    expect(result.ok ? "" : result.error.join(" ")).toContain("insert");
+  });
+
+  it("says when a heading names more than one section, and that the first changed", () => {
+    const twice = builtinArtifactKinds.fromModel(
+      "document",
+      "# A\n\n## Notes\none\n\n# B\n\n## Notes\ntwo\n"
+    );
+    const input = { content: "uno", heading: "Notes" };
+    expect(
+      builtinArtifactKinds.report("document", twice, "replace_section", input)
+    ).toContain('2 headings are named "Notes"; changed the first.');
+    expect(markdownOf(edit("replace_section", input, twice))).toContain(
+      "uno\n\n# B\n\n## Notes\n\ntwo"
+    );
+  });
+
+  it("doesn't call keeping a heading's name a rename", () => {
+    expect(
+      builtinArtifactKinds.report("document", stored, "replace_section", {
+        content: "## Steps\nGo.",
+        heading: "Steps",
+      })
+    ).toContain('Replaced the text under "Steps".');
+  });
+
   it("insert at a section's end puts text before its subsections, and a new section after them", () => {
     expect(
       markdownOf(edit("insert", { content: "Also.", heading: "Steps" }))

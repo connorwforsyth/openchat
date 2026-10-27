@@ -88,6 +88,16 @@ const headingsOf = (blocks: readonly DocumentBlock[]): readonly string[] =>
 const quoted = (headings: readonly string[]): string =>
   headings.map((each) => `"${each}"`).join(", ");
 
+/** Says so when `heading` names more than one heading: edits take the first. */
+const sameNamed = (document: Document, heading: string): string[] => {
+  const count = documentHeadings(document).filter(
+    (each) => normalise(each) === normalise(heading)
+  ).length;
+  return count > 1
+    ? [`${count} headings are named "${heading}"; changed the first.`]
+    : [];
+};
+
 /** The headings of a section's subsections, in order. */
 const subsectionsOf = (
   document: Document,
@@ -198,8 +208,21 @@ export const replaceSection = defineOperation({
     if (!(current && section)) {
       return [noSection(current ?? EMPTY, input.heading)];
     }
+    const blocks = blocksOf(input.content);
+    // A leading heading is the rename, not a repeat or a new section.
+    const body = blocks[0]?.type === "heading" ? blocks.slice(1) : blocks;
+    const outranking = body.flatMap((block) =>
+      block.type === "heading" && block.attrs.level <= section.level
+        ? [inlineText(block.content).trim()]
+        : []
+    );
+    if (outranking.length > 0) {
+      return [
+        `replace_section replaces only the text under "${input.heading}", but the Markdown starts new sections at its level or above (${quoted(outranking)}), which would move its subsections under them. Leave them out, and add them with insert after the section instead`,
+      ];
+    }
     const kept = subsectionsOf(current, section);
-    const repeated = headingsOf(blocksOf(input.content)).filter((heading) =>
+    const repeated = headingsOf(body).filter((heading) =>
       kept.some((each) => normalise(each) === normalise(heading))
     );
     return repeated.length > 0
@@ -220,10 +243,13 @@ export const replaceSection = defineOperation({
     );
     const kept = subsectionsOf(document, section);
     const [first, ...rest] = headingsOf(blocks);
-    const renames = blocks[0]?.type === "heading";
-    const added = renames ? rest : headingsOf(blocks);
+    const leadsWithHeading = blocks[0]?.type === "heading";
+    const added = leadsWithHeading ? rest : headingsOf(blocks);
+    const renamed =
+      leadsWithHeading && normalise(first ?? "") !== normalise(old ?? "");
     return [
-      renames
+      ...sameNamed(document, input.heading),
+      renamed
         ? `Replaced the heading "${old}" with "${first}", and the text under it.`
         : `Replaced the text under "${old}".`,
       ...(added.length > 0 ? [`Added the headings ${quoted(added)}.`] : []),
@@ -314,7 +340,11 @@ export const insertBlocks = defineOperation({
         ? `at the end of the text under ${named}, before its subsections ${quoted(subsections)}`
         : `at the end of the text under ${named}`;
     };
-    return [`Added it ${where()}.`, ...addedSentence];
+    return [
+      ...sameNamed(document, input.heading ?? ""),
+      `Added it ${where()}.`,
+      ...addedSentence,
+    ];
   },
 });
 
@@ -342,6 +372,7 @@ export const deleteSection = defineOperation({
     }
     const subsections = subsectionsOf(document, section);
     return [
+      ...sameNamed(document, input.heading),
       subsections.length > 0
         ? `Deleted "${input.heading}" and the subsections under it: ${quoted(subsections)}.`
         : `Deleted "${input.heading}".`,
