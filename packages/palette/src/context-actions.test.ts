@@ -10,7 +10,7 @@ describe("the chat's artifacts in the palette", () => {
     const onOpen = vi.fn();
     const actions = buildContextActions(i18n, { artifacts: { onOpen } });
     const show = actions.find((action) => action.id === "artifacts:open");
-    expect(show?.title).toBe("Show this chat's artifacts");
+    expect(show?.title).toBe("Show or hide artifacts and tasks");
     expect(show?.shortcutId).toBe("panel.artifacts");
     show?.perform();
     expect(onOpen).toHaveBeenCalledOnce();

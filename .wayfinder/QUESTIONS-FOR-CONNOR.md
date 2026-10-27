@@ -265,6 +265,17 @@ Lane `pstack/usage` (Settings → Usage, span tags). Defaults applied overnight;
 4. **Quick AI doesn't queue or steer.** Each Quick AI ask is a new chat, and ⌘↵ there already means "Open in the app". *Defaulted: unchanged.* The alternative is follow-ups in the Quick AI window, which would need a different key for opening in the app.
 5. **A steer sent while a card waits for approval moves on.** As with any message sent then (072), the waiting answer stops and the steer runs as the next turn. *Defaulted: unchanged.* The alternative is to hold the steer until someone decides.
 
+## outputs-card lane (n2/outputs-card)
+
+1. **The card is open by default.** A new person sees it on any chat that has artifacts or tasks, as ChatGPT shows its Outputs card. Once collapsed, it stays collapsed for that person on that browser. *Defaulted: open.* The alternative is collapsed by default, so the card appears only after someone opens it once.
+2. **An empty chat shows no card.** The card stays out of the way on a chat with no artifacts and no tasks, unless someone opens it there (button, A or ⌘K). *Defaulted: hidden until there is something to list.*
+3. **The header keeps four controls.** D14 now lists Share, the outputs card's button, Files and Browser. *Defaulted: unchanged from the artifacts-surface lane.*
+4. **On a narrow chat column the card only peeks.** Below 480 px of column (for example, 1024 px wide with the preview open), the button opens the card over the chat, and a pick or a click away closes it. Wider than that, the card stays open over the column's top end, as in your second screenshot. *Defaulted: 480 px.*
+5. **The card can sit over user messages.** On a wide screen with no preview, it overlaps the end of the message column by about 100 px. With the preview open, it covers the top end of the column, as in your second screenshot, so a user message (and its hover actions) or a Dot's schedule bar near the top can be under it until you scroll or collapse it. It never reaches the composer. *Defaulted: overlap, as ChatGPT does.* The alternative is to shift the message column toward the start while the card is open, which changes `conversation/*` (another lane's code).
+6. **No Sources section.** The client has each tool call's name but no map from tool names to integrations (MCP servers, built-in groups), so a Sources list would show raw tool names. *Defaulted: left out.* It needs a small client map from tool names to integrations first.
+7. **Escape collapses the card only from inside it.** Esc in the composer or the transcript keeps its own meaning there. *Defaulted: focus in the card, then Esc.* The A key and the button work from anywhere.
+8. **Open state is per person per browser.** It lives in `localStorage` under the person's id, like the panel layout. *Defaulted: no server preference.* Syncing it across devices needs a user-preference field in the contract.
+
 ## slides-layout lane (n2/slides-layout)
 
 1. **The inspector docks beside the slide when the editor's pane is at least 640px wide.** Below that, it lies over the end of the canvas while something is picked and closes with its X. In the chat's side panel (about 560px at a 1440 window) and at a 768 window, it overlays. On the artifact page at 1024 the pane is about 656px, so it docks 240px wide beside a slide about 280px wide. *Defaulted: dock at 640px or wider.* The alternative is to dock only at 768px and overlay below that. I tried it at 1024, and the overlay covered the element being edited.
