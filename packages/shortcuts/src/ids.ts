@@ -20,6 +20,7 @@ export const shortcutIdSchema = z.enum([
   "reply.copy",
   "panel.sandbox",
   "panel.artifacts",
+  "artifact.annotate",
   "dot.open",
   "chat.archive",
   "chat.pin",

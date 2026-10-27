@@ -13,6 +13,11 @@ msgid "- I prefer pnpm over npm\n"
 msgstr "- I prefer pnpm over npm\n"
 "- Answer in British English"
 
+#. placeholder {0}: target.text
+#: ../chat-ui/src/artifacts/annotate/target-words.tsx
+msgid "“{0}”"
+msgstr "“{0}”"
+
 #: ../chat-ui/src/conversation/schedule-card.tsx
 msgid "(couldn't read this time)"
 msgstr "(couldn't read this time)"
@@ -138,6 +143,14 @@ msgstr "{code} exited with code {exitCode}"
 msgid "{code} timed out"
 msgstr "{code} timed out"
 
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "{count, plural, =0 {Annotate} one {Annotate, # note} other {Annotate, # notes}}"
+msgstr "{count, plural, =0 {Annotate} one {Annotate, # note} other {Annotate, # notes}}"
+
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "{count, plural, =0 {Stop annotating} one {Stop annotating, # note} other {Stop annotating, # notes}}"
+msgstr "{count, plural, =0 {Stop annotating} one {Stop annotating, # note} other {Stop annotating, # notes}}"
+
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "{count, plural, one {# found} other {# found}}"
 msgstr "{count, plural, one {# found} other {# found}}"
@@ -149,6 +162,16 @@ msgstr "{count, plural, one {# item} other {# items}}"
 #: ../library-ui/src/components/duplicate-notice.tsx
 msgid "{count, plural, one {# knowledge file wasn't copied} other {# knowledge files weren't copied}}"
 msgstr "{count, plural, one {# knowledge file wasn't copied} other {# knowledge files weren't copied}}"
+
+#. placeholder {0}: data.title
+#. placeholder {1}: data.title
+#: ../chat-ui/src/artifacts/annotate/annotations-note.tsx
+msgid "{count, plural, one {# note on {0}} other {# notes on {1}}}"
+msgstr "{count, plural, one {# note on {0}} other {# notes on {1}}}"
+
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "{count, plural, one {# note} other {# notes}}"
+msgstr "{count, plural, one {# note} other {# notes}}"
 
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "{count, plural, one {# selected} other {# selected}}"
@@ -390,6 +413,11 @@ msgstr "A new chat each run"
 #: ../../apps/web/app/(app)/(pages)/dots/onboarding.tsx
 msgid "A new Dot"
 msgstr "A new Dot"
+
+#. placeholder {0}: draft.version
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "A point on version {0}"
+msgstr "A point on version {0}"
 
 #: ../chat-ui/src/artifacts/artifact-preview.tsx
 msgid "A React artifact needs a default export: a component or an element."
@@ -690,6 +718,11 @@ msgstr "An agent brings its own tools and MCP servers; a model gets the workspac
 msgid "An alias follows whatever the instance maps it to."
 msgstr "An alias follows whatever the instance maps it to."
 
+#. placeholder {0}: draft.version
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "An area on version {0}"
+msgstr "An area on version {0}"
+
 #: ../library-ui/src/components/badges.tsx
 msgid "An org"
 msgstr "An org"
@@ -698,9 +731,25 @@ msgstr "An org"
 msgid "An owner turned down your request. You can ask again below."
 msgstr "An owner turned down your request. You can ask again below."
 
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "Annotate (M)"
+msgstr "Annotate (M)"
+
+#: ../shortcuts/src/registry.ts
+msgid "Annotate the open artifact"
+msgstr "Annotate the open artifact"
+
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "Annotation area. Click or drag to mark part of the artifact, or use the arrow keys and Enter."
+msgstr "Annotation area. Click or drag to mark part of the artifact, or use the arrow keys and Enter."
+
 #: ../chat-ui/src/conversation/message-row.tsx
 msgid "Annotation attached"
 msgstr "Annotation attached"
+
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "Annotations"
+msgstr "Annotations"
 
 #: ../../apps/desktop/src/main/quick-shortcut.ts
 msgid "Another app is using {keys}, so it can't open Quick AI."
@@ -1093,6 +1142,17 @@ msgstr "Caption"
 msgid "Caught up {0} missed"
 msgstr "Caught up {0} missed"
 
+#. placeholder {0}: target.range
+#: ../chat-ui/src/artifacts/annotate/target-words.tsx
+msgid "Cells {0}"
+msgstr "Cells {0}"
+
+#. placeholder {0}: target.range
+#. placeholder {1}: target.sheet
+#: ../chat-ui/src/artifacts/annotate/target-words.tsx
+msgid "Cells {0} on {1}"
+msgstr "Cells {0} on {1}"
+
 #: ../chat-ui/src/artifacts/spreadsheet/spreadsheet-grid.tsx
 msgid "Cells of {sheetName}"
 msgstr "Cells of {sheetName}"
@@ -1327,6 +1387,10 @@ msgstr "Choose a person"
 msgid "Classic"
 msgstr "Classic"
 
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "Clear"
+msgstr "Clear"
+
 #: ../chat-ui/src/artifacts/editor/inspector.tsx
 msgid "Clear {label}"
 msgstr "Clear {label}"
@@ -1334,6 +1398,10 @@ msgstr "Clear {label}"
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "Clear selection"
 msgstr "Clear selection"
+
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "Click or drag to add a note"
+msgstr "Click or drag to add a note"
 
 #: ../chat-ui/src/header/chat-title.tsx
 msgid "Click to rename"
@@ -1663,6 +1731,10 @@ msgstr "Couldn't search the web"
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Couldn't search your files"
 msgstr "Couldn't search your files"
+
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "Couldn't send. Try again."
+msgstr "Couldn't send. Try again."
 
 #: ../../apps/web/app/(quick)/quick/quick-screen.tsx
 msgid "Couldn't start a chat. Check your connection and try again."
@@ -2055,6 +2127,7 @@ msgstr "Documents, pages and diagrams from your chats, and ones shared with you.
 
 #: ../../apps/web/app/(app)/(pages)/dots/dot-profile.tsx
 #: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
 #: ../chat-ui/src/workspace/save-site-dialog.tsx
 msgid "Done"
 msgstr "Done"
@@ -2529,6 +2602,10 @@ msgstr "Find a skill"
 #: ../library-ui/src/components/share-dialog.tsx
 msgid "Find people, teams or orgs"
 msgstr "Find people, teams or orgs"
+
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "Finding what's here…"
+msgstr "Finding what's here…"
 
 #: ../chat-ui/src/conversation/schedule-card.tsx
 msgid "First run"
@@ -3103,9 +3180,20 @@ msgstr "Light bulb"
 msgid "Limit ({0})"
 msgstr "Limit ({0})"
 
+#. placeholder {0}: target.start
+#: ../chat-ui/src/artifacts/annotate/target-words.tsx
+msgid "Line {0}"
+msgstr "Line {0}"
+
 #: ../chat-ui/src/artifacts/editor/inspector.tsx
 msgid "Line height"
 msgstr "Line height"
+
+#. placeholder {0}: target.start
+#. placeholder {1}: target.end
+#: ../chat-ui/src/artifacts/annotate/target-words.tsx
+msgid "Lines {0} to {1}"
+msgstr "Lines {0} to {1}"
 
 #: ../chat-ui/src/artifacts/document/document-toolbar.tsx
 msgid "Link"
@@ -3914,6 +4002,11 @@ msgstr "No versions yet. Saving creates the first one."
 msgid "Nobody is waiting."
 msgstr "Nobody is waiting."
 
+#. placeholder {0}: target.label ?? target.id
+#: ../chat-ui/src/artifacts/annotate/target-words.tsx
+msgid "Node {0}"
+msgstr "Node {0}"
+
 #: ../chat-ui/src/artifacts/diagram/diagram-canvas.tsx
 msgid "Node label"
 msgstr "Node label"
@@ -3951,6 +4044,22 @@ msgstr "Not shared with anyone yet."
 #: ../composer/src/components/thinking-control.tsx
 msgid "Not with Fast mode"
 msgstr "Not with Fast mode"
+
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "Note"
+msgstr "Note"
+
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "Note {number}"
+msgstr "Note {number}"
+
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "Note {number}, not written yet"
+msgstr "Note {number}, not written yet"
+
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "Note {number}: {note}"
+msgstr "Note {number}: {note}"
 
 #: ../chat-ui/src/artifacts/editor/editor-shell.tsx
 #: ../chat-ui/src/artifacts/presentation-preview.tsx
@@ -4348,6 +4457,10 @@ msgstr "panel"
 #: ../shortcuts/src/react/help-dialog.tsx
 msgid "Panels"
 msgstr "Panels"
+
+#: ../chat-ui/src/artifacts/annotate/target-words.tsx
+msgid "Part of the image"
+msgstr "Part of the image"
 
 #: ../../apps/web/app/(auth)/_components/sign-in-form.tsx
 #: ../../apps/web/app/(auth)/_components/sign-up-form.tsx
@@ -4966,6 +5079,7 @@ msgstr "Release notes"
 msgid "Reload"
 msgstr "Reload"
 
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
 #: ../chat-ui/src/artifacts/document/document-toolbar.tsx
 msgid "Remove"
 msgstr "Remove"
@@ -5521,6 +5635,14 @@ msgstr "Send"
 msgid "Send feedback"
 msgstr "Send feedback"
 
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "Send in chat"
+msgstr "Send in chat"
+
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "Send notes"
+msgstr "Send notes"
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 msgid "Send this link to them. It's shown only once: for a new one, cancel the invitation and invite them again."
 msgstr "Send this link to them. It's shown only once: for a new one, cancel the invitation and invite them again."
@@ -5856,6 +5978,8 @@ msgid "Slash command"
 msgstr "Slash command"
 
 #. placeholder {0}: index + 1
+#. placeholder {0}: target.slide
+#: ../chat-ui/src/artifacts/annotate/target-words.tsx
 #: ../chat-ui/src/artifacts/presentation/slide-rail.tsx
 msgid "Slide {0}"
 msgstr "Slide {0}"
@@ -5868,6 +5992,12 @@ msgstr "Slide {0}"
 #: ../chat-ui/src/artifacts/presenter.tsx
 msgid "Slide {0} of {1}"
 msgstr "Slide {0} of {1}"
+
+#. placeholder {0}: target.slide
+#. placeholder {1}: target.text
+#: ../chat-ui/src/artifacts/annotate/target-words.tsx
+msgid "Slide {0}: “{1}”"
+msgstr "Slide {0}: “{1}”"
 
 #: ../chat-ui/src/artifacts/presentation-preview.tsx
 msgid "Slide {slide} of {slides}"
@@ -6379,6 +6509,10 @@ msgstr "That time has passed. Pick a later one."
 #: ../chat-ui/src/workspace/new-file-dialog.tsx
 msgid "That's a folder name. Add a file name after the slash."
 msgstr "That's a folder name. Add a file name after the slash."
+
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "That's the most one message takes."
+msgstr "That's the most one message takes."
 
 #: ../library-ui/src/components/fields.tsx
 msgid "That's too long."
@@ -7483,6 +7617,10 @@ msgstr "What it's for"
 #: ../../apps/web/app/(app)/(pages)/dots/onboarding.tsx
 msgid "What should {name} help with?"
 msgstr "What should {name} help with?"
+
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "What should change here?"
+msgstr "What should change here?"
 
 #: ../../apps/web/app/(app)/(pages)/schedules/schedule-editor.tsx
 msgid "What should it do each time?"

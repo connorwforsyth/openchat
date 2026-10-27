@@ -1,8 +1,10 @@
+import { NESTED_PROBE_CHANNEL } from "@workspace/chat-ui/artifacts/annotate/probe";
 import { describe, expect, it } from "vitest";
 
 import { HTML_REPORTER_CHANNEL, withReporter } from "./documents";
 
-const REPORTER = /<script>\(\(\) => \{[\s\S]*?<\/script>/;
+// The reporter, then Annotate's probe.
+const REPORTER = /(?:<script>\(\(\) => \{[\s\S]*?<\/script>){2}/;
 
 const strip = (html: string) => html.replace(REPORTER, "<!--reporter-->");
 
@@ -33,6 +35,10 @@ describe("withReporter", () => {
     expect(strip(withReporter("<header>top</header>"))).toBe(
       "<!--reporter--><header>top</header>"
     );
+  });
+
+  it("lets Annotate ask the page what's at a point", () => {
+    expect(withReporter("<p>hi</p>")).toContain(NESTED_PROBE_CHANNEL);
   });
 
   it("posts on the reporter channel", () => {

@@ -89,7 +89,14 @@ import {
   useRef,
   useState,
 } from "react";
-
+import {
+  annotationsInput,
+  useChatAnnotateSink,
+} from "../artifacts/annotate/chat-sink";
+import {
+  type AnnotateSink,
+  AnnotateSinkProvider,
+} from "../artifacts/annotate/sink";
 import { useOfferedKinds } from "../artifacts/use-offered-kinds";
 import type { ConversationActions } from "../conversation/actions";
 import {
@@ -575,20 +582,27 @@ const webSearchSwitch = (
     ? { onWebSearchChange: onChange, webSearch: on }
     : {};
 
-/** What message rows read from the screen: run activity, and whether modes show. */
+/**
+ * What message rows read from the screen: run activity, and whether modes
+ * show; and where Annotate's notes on an artifact go.
+ */
 function RowContexts({
   activity,
+  annotateSink,
   children,
   showModes,
 }: {
   readonly activity: RunActivity;
+  readonly annotateSink: AnnotateSink | null;
   readonly children: ReactNode;
   readonly showModes: boolean;
 }) {
   return (
     <RunActivityProvider value={activity}>
       <ShowModesContext.Provider value={showModes}>
-        {children}
+        <AnnotateSinkProvider value={annotateSink}>
+          {children}
+        </AnnotateSinkProvider>
       </ShowModesContext.Provider>
     </RunActivityProvider>
   );
@@ -2347,6 +2361,23 @@ export function ConnectedChat({
   useWorkspaceInSync(api, messages);
   useLibraryInSync(api, messages);
   const current = data.conversation.data;
+  const sendAnnotationsBusy = useSendBusy({
+    answering: streamingMessageId,
+    branch: messages,
+    client,
+    conversationId,
+    input: annotationsInput,
+    refresh,
+    runFields,
+  });
+  const annotateSink = useChatAnnotateSink({
+    busy: delivery !== undefined,
+    conversation: current,
+    sendBusy: sendAnnotationsBusy,
+    sendMessage,
+    stopReading,
+    waiting,
+  });
   const sidebarData = useSidebarData(api);
   useMarkReadWhileOpen(current, sidebarData.onSetLastRead);
   // The open chat's own run feeds "Needs attention" too (176): the list
@@ -2388,7 +2419,11 @@ export function ConnectedChat({
   );
 
   return (
-    <RowContexts activity={activity} showModes={showModes}>
+    <RowContexts
+      activity={activity}
+      annotateSink={annotateSink}
+      showModes={showModes}
+    >
       <PlanStatusProvider value={planStatus}>
         <VoiceBridgeContext.Provider
           value={bridgeOf(conversationId, voiceBridge)}
