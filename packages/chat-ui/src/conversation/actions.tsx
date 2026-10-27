@@ -31,6 +31,11 @@ export type FeedbackInput = z.input<typeof setFeedbackInputSchema>;
  */
 export interface ConversationActions {
   /**
+   * An artifact's own page, for its card's "Open in a new tab". Without it,
+   * the card only opens it in the panel.
+   */
+  readonly artifactHref?: (id: ArtifactId) => string;
+  /**
    * Where a generated image's bytes are served (138), by its artifact
    * version. Without it, the reply lists the pictures without showing them.
    */
