@@ -2,10 +2,7 @@
 
 import { plural } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
-import type {
-  AnnotationMark,
-  AnnotationTarget,
-} from "@workspace/ai/messages/annotations";
+import type { AnnotationMark } from "@workspace/ai/messages/annotations";
 import type { ArtifactVersionId } from "@workspace/contract/schemas/common";
 import type {
   Artifact,
@@ -49,6 +46,7 @@ import {
   type AnnotateSink,
   useAnnotateSink,
 } from "./sink";
+import { TargetWords } from "./target-words";
 
 // Annotate (night 2, decision 5): one pointer for every artifact kind. With
 // it on, a click drops a pin and a drag marks a box over the artifact's
@@ -623,34 +621,6 @@ function Where({ draft }: { readonly draft: DraftNote }) {
   ) : (
     <Trans>An area on version {draft.version}</Trans>
   );
-}
-
-function TargetWords({ target }: { readonly target: AnnotationTarget }) {
-  const { t } = useLingui();
-  switch (target.type) {
-    case "element":
-      return target.text ? t`“${target.text}”` : target.selector;
-    case "slide":
-      return target.text
-        ? t`Slide ${target.slide}: “${target.text}”`
-        : t`Slide ${target.slide}`;
-    case "cells":
-      return target.sheet
-        ? t`Cells ${target.range} on ${target.sheet}`
-        : t`Cells ${target.range}`;
-    case "node":
-      return t`Node ${target.label ?? target.id}`;
-    case "text":
-      return t`“${target.text}”`;
-    case "lines":
-      return target.start === target.end
-        ? t`Line ${target.start}`
-        : t`Lines ${target.start} to ${target.end}`;
-    case "box":
-      return t`Part of the image`;
-    default:
-      return target satisfies never;
-  }
 }
 
 function SendLabel({ mode }: { readonly mode: AnnotateSink["mode"] }) {

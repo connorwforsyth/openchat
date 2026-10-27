@@ -10,8 +10,15 @@ import type {
 import type { Me } from "@workspace/contract/schemas/meta";
 import { ArrowLeftIcon, MessageSquareIcon } from "@workspace/icons";
 import { Button } from "@workspace/ui/components/button";
-import { type ReactNode, useCallback, useEffect, useState } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
+import { type AnnotateSink, AnnotateSinkProvider } from "./annotate/sink";
 import { ArtifactMenu, ArtifactShareButton } from "./artifact-actions";
 import { ArtifactView } from "./artifact-view";
 import type {
@@ -71,6 +78,21 @@ export function ArtifactFullView({
       navigate(links.chat(conversationId));
     }
   }, [conversationId, links, navigate]);
+  // No chat on this page: Annotate's notes wait here, and Send opens the
+  // chat, where the same drafts are sent from the artifact's panel.
+  const annotateSink = useMemo(
+    (): AnnotateSink | null =>
+      artifact?.canGoToChat
+        ? {
+            mode: "chat",
+            send: () => {
+              goToChat();
+              return Promise.resolve();
+            },
+          }
+        : null,
+    [artifact?.canGoToChat, goToChat]
+  );
   const header = useCallback(
     (content: ReactNode) => (
       <div className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
@@ -165,17 +187,19 @@ export function ArtifactFullView({
         className="flex min-h-80 flex-1 flex-col overflow-hidden rounded-xl border border-border"
       >
         {artifact ? (
-          <ArtifactView
-            actions={documentActions}
-            api={api}
-            artifact={artifact}
-            header={header}
-            info={artifact}
-            onSelect={select}
-            runtimeOrigin={runtimeOrigin}
-            versionId={versionId}
-            versions={detail.data?.versions}
-          />
+          <AnnotateSinkProvider value={annotateSink}>
+            <ArtifactView
+              actions={documentActions}
+              api={api}
+              artifact={artifact}
+              header={header}
+              info={artifact}
+              onSelect={select}
+              runtimeOrigin={runtimeOrigin}
+              versionId={versionId}
+              versions={detail.data?.versions}
+            />
+          </AnnotateSinkProvider>
         ) : (
           <p className="p-4 text-muted-foreground text-sm" role="status">
             <Trans>Loading…</Trans>
