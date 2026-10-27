@@ -72,7 +72,7 @@ export const useChatAnnotateSink = ({
     () =>
       canSend
         ? {
-            mode: busy ? "steer" : "send",
+            mode: "send",
             send: async (data: AnnotationsData) => {
               // The server stops an answer waiting on approval when a
               // message comes, so this page stops following it first.

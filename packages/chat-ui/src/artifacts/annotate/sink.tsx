@@ -17,11 +17,11 @@ import type { Locator } from "./locate";
 
 export interface AnnotateSink {
   /**
-   * `steer`: an answer is being written, and the notes steer it. `send`:
-   * they start the next turn. `chat`: this page has no chat to send from,
-   * so sending opens the chat, where the drafts are waiting.
+   * `send`: the notes go to the chat as the next message, joining the
+   * answer being written if there is one. `chat`: this page has no chat to
+   * send from, so sending opens the chat, where the drafts are waiting.
    */
-  readonly mode: "chat" | "send" | "steer";
+  readonly mode: "chat" | "send";
   readonly send: (data: AnnotationsData) => Promise<void>;
 }
 

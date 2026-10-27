@@ -143,6 +143,14 @@ msgstr "{code} exited with code {exitCode}"
 msgid "{code} timed out"
 msgstr "{code} timed out"
 
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "{count, plural, =0 {Annotate} one {Annotate, # note} other {Annotate, # notes}}"
+msgstr "{count, plural, =0 {Annotate} one {Annotate, # note} other {Annotate, # notes}}"
+
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "{count, plural, =0 {Stop annotating} one {Stop annotating, # note} other {Stop annotating, # notes}}"
+msgstr "{count, plural, =0 {Stop annotating} one {Stop annotating, # note} other {Stop annotating, # notes}}"
+
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "{count, plural, one {# found} other {# found}}"
 msgstr "{count, plural, one {# found} other {# found}}"
@@ -233,10 +241,6 @@ msgstr "{label} give chats extra tools. Turn on the ones you want; your administ
 #: ../chat-ui/src/sidebar/sidebar-rail.tsx
 msgid "{label}, {badge}"
 msgstr "{label}, {badge}"
-
-#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
-msgid "{label}, {count, plural, one {# note} other {# notes}}"
-msgstr "{label}, {count, plural, one {# note} other {# notes}}"
 
 #: ../chat-ui/src/artifacts/editor/inspector.tsx
 msgid "{label}: theme colours"
@@ -726,10 +730,6 @@ msgstr "An org"
 #: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
 msgid "An owner turned down your request. You can ask again below."
 msgstr "An owner turned down your request. You can ask again below."
-
-#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
-msgid "Annotate"
-msgstr "Annotate"
 
 #: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
 msgid "Annotate (M)"
@@ -6206,10 +6206,6 @@ msgstr "Steer"
 msgid "Steer now"
 msgstr "Steer now"
 
-#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
-msgid "Steer with notes"
-msgstr "Steer with notes"
-
 #: ../chat-ui/src/header/outputs-card.tsx
 msgid "Steering"
 msgstr "Steering"
@@ -6230,10 +6226,6 @@ msgstr "Step {position} of {total}"
 #: ../composer/src/components/composer-footer.tsx
 msgid "Stop"
 msgstr "Stop"
-
-#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
-msgid "Stop annotating"
-msgstr "Stop annotating"
 
 #: ../shortcuts/src/registry.ts
 msgid "Stop generating"

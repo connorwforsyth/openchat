@@ -1,7 +1,11 @@
 "use client";
 
+import type { I18n } from "@lingui/core";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { annotationsOf } from "@workspace/ai/messages/annotations";
+import {
+  type AnnotationsData,
+  annotationsOf,
+} from "@workspace/ai/messages/annotations";
 import { chipsOf } from "@workspace/ai/messages/chips";
 import type {
   Message,
@@ -40,6 +44,7 @@ import {
   useState,
 } from "react";
 import { AnnotationsNote } from "../artifacts/annotate/annotations-note";
+import { notesText } from "../artifacts/annotate/target-words";
 import { BranchSwitcher } from "../header/branch-switcher";
 import {
   messageText,
@@ -334,11 +339,18 @@ function EditForm({
   );
 }
 
+/** What Copy takes from a user message: its notes as people read them, or its text. */
+const copyTextOf = (
+  text: string,
+  annotations: AnnotationsData | undefined,
+  i18n: I18n
+): string => (annotations ? notesText(annotations, i18n) : text);
+
 function UserMessage({
   message,
   siblings,
 }: Pick<MessageRowProps, "message" | "siblings">) {
-  const { t } = useLingui();
+  const { i18n, t } = useLingui();
   const { onEdit, onSelectBranch } = useConversationActions();
   const [editing, setEditing] = useState(false);
   const text = messageText(message);
@@ -422,7 +434,9 @@ function UserMessage({
                 info={siblings}
                 onSelect={onSelectBranch ?? noop}
               />
-              {text ? <CopyAction text={text} /> : null}
+              {text ? (
+                <CopyAction text={copyTextOf(text, annotations, i18n)} />
+              ) : null}
               {onEdit && !annotations ? (
                 <MessageAction label={t`Edit`} onClick={startEdit}>
                   <PencilIcon aria-hidden />
