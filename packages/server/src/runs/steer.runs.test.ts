@@ -198,14 +198,14 @@ describe("steering a running answer", () => {
     const restarted = scriptedModel();
     h.nextTurn({ model: restarted.model });
     const answering = (await runOf(h, asked.runId)).assistantMessageId;
-    const two = await send(h, chat, "And bye.", answering);
+    const two = await send(h, chat, "And bye.", answering, "steer");
     // Sent while the restarted answer is still writing: it restarts again.
     restarted.push(...textParts.start(), textParts.delta("Hi"));
     const last = new MockLanguageModelV4({
       doStream: textStream("Hi, and bye, and thanks."),
     });
     h.nextTurn({ model: last });
-    const three = await send(h, chat, "And thanks.", answering);
+    const three = await send(h, chat, "And thanks.", answering, "steer");
     await h.services.executor.idle();
 
     expect(await runOf(h, asked.runId)).toMatchObject({ status: "cancelled" });
@@ -229,8 +229,8 @@ describe("steering a running answer", () => {
       "Using b and c."
     );
     const firstAnswer = answering.assistantMessageId as MessageId;
-    const steer = await send(h, chat, "Focus on b.", firstAnswer);
-    const joined = await send(h, chat, "And c.", firstAnswer);
+    const steer = await send(h, chat, "Focus on b.", firstAnswer, "steer");
+    const joined = await send(h, chat, "And c.", firstAnswer, "steer");
     // The second joins the first's batch: one run answers both.
     expect(joined.runId).toBe(steer.runId);
     gate.release();
@@ -274,8 +274,8 @@ describe("steering a running answer", () => {
     // The last step is under way: nothing more can take these.
     await vi.waitFor(() => expect(calls).toBe(2));
     const answer = (await runOf(h, first.runId)).assistantMessageId;
-    const next = await send(h, chat, "Now b.", answer);
-    const joined = await send(h, chat, "And c.", answer);
+    const next = await send(h, chat, "Now b.", answer, "steer");
+    const joined = await send(h, chat, "And c.", answer, "steer");
     expect(joined.runId).toBe(next.runId);
     const after = new MockLanguageModelV4({ doStream: textStream("B and c.") });
     h.nextTurn({ model: after });

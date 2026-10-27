@@ -678,8 +678,15 @@ const useLiveTurn = ({
     const options = turnOptions(fields.webSearch, fields.variant, plan.current);
     return {
       context: fields.context,
-      // Web search off means "let the Decider choose" (`auto`).
-      ...(options ? { options } : {}),
+      // Web search off means "let the Decider choose" (`auto`). A message
+      // sent while an answer is on its way joins it (the server decides
+      // how), even when this page hasn't seen that answer start yet.
+      options: {
+        sandbox: "auto" as const,
+        webSearch: "auto" as const,
+        ...options,
+        delivery: "steer" as const,
+      },
       ...(fields.target ? { target: fields.target } : {}),
     };
   }, [plan]);

@@ -185,9 +185,10 @@ export const partsMaySteer = (parts: readonly MessagePart[]): boolean =>
   !planApprovalOf(parts);
 
 /**
- * How a message joins a branch that's busy with its sender's turn (Connor's
- * model, after ChatGPT: it goes into the thread at once, and quick messages
- * get one answer):
+ * How a message sent with `delivery: "steer"` joins a branch that's busy
+ * with its sender's turn (Connor's model, after ChatGPT: it goes into the
+ * thread at once, and quick messages get one answer). Without it (other API
+ * clients, voice, unattended runs) a turn queues, as before:
  *
  * - `join`: that turn hasn't started; the message joins its batch, with no
  *   run of its own.
@@ -197,7 +198,7 @@ export const partsMaySteer = (parts: readonly MessagePart[]): boolean =>
  *   next step boundary, so no finished work is lost.
  * - `queue`: anything else is its own turn after: someone else's turn, a
  *   message that picks skills or an agent or approves a plan, an answer
- *   waiting on approval, or a client that asked to queue.
+ *   waiting on approval, or a client that didn't ask to steer.
  */
 export type BusyJoin = "join" | "queue" | "restart" | "steer";
 
@@ -218,7 +219,7 @@ export const busyJoin = ({
   /** Whether the running answer has begun tool work. */
   readonly toolWork: boolean;
 }): BusyJoin => {
-  if (tail.createdBy !== actorId || !batches || asked === "queue") {
+  if (tail.createdBy !== actorId || !batches || asked !== "steer") {
     return "queue";
   }
   switch (tail.status) {
