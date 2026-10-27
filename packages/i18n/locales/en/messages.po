@@ -13,6 +13,11 @@ msgid "- I prefer pnpm over npm\n"
 msgstr "- I prefer pnpm over npm\n"
 "- Answer in British English"
 
+#. placeholder {0}: target.text
+#: ../chat-ui/src/artifacts/annotate/target-words.tsx
+msgid "“{0}”"
+msgstr "“{0}”"
+
 #: ../chat-ui/src/conversation/schedule-card.tsx
 msgid "(couldn't read this time)"
 msgstr "(couldn't read this time)"
@@ -150,6 +155,16 @@ msgstr "{count, plural, one {# item} other {# items}}"
 msgid "{count, plural, one {# knowledge file wasn't copied} other {# knowledge files weren't copied}}"
 msgstr "{count, plural, one {# knowledge file wasn't copied} other {# knowledge files weren't copied}}"
 
+#. placeholder {0}: data.title
+#. placeholder {1}: data.title
+#: ../chat-ui/src/artifacts/annotate/annotations-note.tsx
+msgid "{count, plural, one {# note on {0}} other {# notes on {1}}}"
+msgstr "{count, plural, one {# note on {0}} other {# notes on {1}}}"
+
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "{count, plural, one {# note} other {# notes}}"
+msgstr "{count, plural, one {# note} other {# notes}}"
+
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "{count, plural, one {# selected} other {# selected}}"
 msgstr "{count, plural, one {# selected} other {# selected}}"
@@ -218,6 +233,10 @@ msgstr "{label} give chats extra tools. Turn on the ones you want; your administ
 #: ../chat-ui/src/sidebar/sidebar-rail.tsx
 msgid "{label}, {badge}"
 msgstr "{label}, {badge}"
+
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "{label}, {count, plural, one {# note} other {# notes}}"
+msgstr "{label}, {count, plural, one {# note} other {# notes}}"
 
 #: ../chat-ui/src/artifacts/editor/inspector.tsx
 msgid "{label}: theme colours"
@@ -367,10 +386,6 @@ msgstr "A file with that name already exists."
 msgid "A folder of plain HTML, CSS and JavaScript, with an index.html, becomes a site you can preview and publish. Build an app first and save the folder it builds to."
 msgstr "A folder of plain HTML, CSS and JavaScript, with an index.html, becomes a site you can preview and publish. Build an app first and save the folder it builds to."
 
-#: ../chat-ui/src/artifacts/artifact-view.tsx
-msgid "A generated image has no source to show."
-msgstr "A generated image has no source to show."
-
 #: ../../apps/web/app/(app)/_shared/settings/usage-settings.tsx
 msgid "A key you don't manage"
 msgstr "A key you don't manage"
@@ -378,6 +393,10 @@ msgstr "A key you don't manage"
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "A member"
 msgstr "A member"
+
+#: ../chat-ui/src/header/outputs-card.tsx
+msgid "A message"
+msgstr "A message"
 
 #: ../chat-ui/src/chat/queue-tray.tsx
 msgid "A message was queued after it, so it stays in the chat."
@@ -394,6 +413,11 @@ msgstr "A new chat each run"
 #: ../../apps/web/app/(app)/(pages)/dots/onboarding.tsx
 msgid "A new Dot"
 msgstr "A new Dot"
+
+#. placeholder {0}: draft.version
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "A point on version {0}"
+msgstr "A point on version {0}"
 
 #: ../chat-ui/src/artifacts/artifact-preview.tsx
 msgid "A React artifact needs a default export: a component or an element."
@@ -694,6 +718,11 @@ msgstr "An agent brings its own tools and MCP servers; a model gets the workspac
 msgid "An alias follows whatever the instance maps it to."
 msgstr "An alias follows whatever the instance maps it to."
 
+#. placeholder {0}: draft.version
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "An area on version {0}"
+msgstr "An area on version {0}"
+
 #: ../library-ui/src/components/badges.tsx
 msgid "An org"
 msgstr "An org"
@@ -702,9 +731,29 @@ msgstr "An org"
 msgid "An owner turned down your request. You can ask again below."
 msgstr "An owner turned down your request. You can ask again below."
 
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "Annotate"
+msgstr "Annotate"
+
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "Annotate (M)"
+msgstr "Annotate (M)"
+
+#: ../shortcuts/src/registry.ts
+msgid "Annotate the open artifact"
+msgstr "Annotate the open artifact"
+
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "Annotation area. Click or drag to mark part of the artifact, or use the arrow keys and Enter."
+msgstr "Annotation area. Click or drag to mark part of the artifact, or use the arrow keys and Enter."
+
 #: ../chat-ui/src/conversation/message-row.tsx
 msgid "Annotation attached"
 msgstr "Annotation attached"
+
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "Annotations"
+msgstr "Annotations"
 
 #: ../../apps/desktop/src/main/quick-shortcut.ts
 msgid "Another app is using {keys}, so it can't open Quick AI."
@@ -785,10 +834,6 @@ msgstr "Archived chats"
 msgid "Artifact"
 msgstr "Artifact"
 
-#: ../chat-ui/src/artifacts/artifact-view.tsx
-msgid "Artifact views"
-msgstr "Artifact views"
-
 #: ../palette/src/context-actions.ts
 msgid "artifacts"
 msgstr "artifacts"
@@ -796,20 +841,20 @@ msgstr "artifacts"
 #: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
 #: ../chat-ui/src/artifacts/artifact-full-view.tsx
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
-#: ../chat-ui/src/header/artifacts-menu.tsx
+#: ../chat-ui/src/header/outputs-card.tsx
 #: ../chat-ui/src/shortcuts/use-shortcut-labels.ts
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 #: ../chat-ui/src/sidebar/sidebar-rail.tsx
 msgid "Artifacts"
 msgstr "Artifacts"
 
+#: ../chat-ui/src/header/outputs-card.tsx
+msgid "Artifacts and tasks"
+msgstr "Artifacts and tasks"
+
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgid "Artifacts couldn't be loaded."
 msgstr "Artifacts couldn't be loaded."
-
-#: ../chat-ui/src/header/artifacts-menu.tsx
-msgid "Artifacts in this chat"
-msgstr "Artifacts in this chat"
 
 #: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
 msgid "Ask"
@@ -1101,6 +1146,17 @@ msgstr "Caption"
 msgid "Caught up {0} missed"
 msgstr "Caught up {0} missed"
 
+#. placeholder {0}: target.range
+#: ../chat-ui/src/artifacts/annotate/target-words.tsx
+msgid "Cells {0}"
+msgstr "Cells {0}"
+
+#. placeholder {0}: target.range
+#. placeholder {1}: target.sheet
+#: ../chat-ui/src/artifacts/annotate/target-words.tsx
+msgid "Cells {0} on {1}"
+msgstr "Cells {0} on {1}"
+
 #: ../chat-ui/src/artifacts/spreadsheet/spreadsheet-grid.tsx
 msgid "Cells of {sheetName}"
 msgstr "Cells of {sheetName}"
@@ -1169,10 +1225,6 @@ msgstr "Changed elsewhere"
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Changed the skill {name}"
 msgstr "Changed the skill {name}"
-
-#: ../chat-ui/src/artifacts/artifact-view.tsx
-msgid "Changes"
-msgstr "Changes"
 
 #: ../chat-ui/src/conversation/skill-card.tsx
 msgid "Changes to SKILL.md"
@@ -1339,6 +1391,10 @@ msgstr "Choose a person"
 msgid "Classic"
 msgstr "Classic"
 
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "Clear"
+msgstr "Clear"
+
 #: ../chat-ui/src/artifacts/editor/inspector.tsx
 msgid "Clear {label}"
 msgstr "Clear {label}"
@@ -1346,6 +1402,10 @@ msgstr "Clear {label}"
 #: ../chat-ui/src/sidebar/chat-sidebar.tsx
 msgid "Clear selection"
 msgstr "Clear selection"
+
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "Click or drag to add a note"
+msgstr "Click or drag to add a note"
 
 #: ../chat-ui/src/header/chat-title.tsx
 msgid "Click to rename"
@@ -1365,7 +1425,6 @@ msgstr "Close panel"
 msgid "Close toast"
 msgstr "Close toast"
 
-#: ../chat-ui/src/artifacts/artifact-view.tsx
 #: ../chat-ui/src/model/artifact-kinds.ts
 #: ../chat-ui/src/workspace/mode-toggle.tsx
 #: ../composer/src/components/chat-mode-switch.tsx
@@ -1384,6 +1443,14 @@ msgstr "Code views"
 #: ../composer/src/components/chat-mode-switch.tsx
 msgid "Code: runs commands, installs and dev servers in the sandbox"
 msgstr "Code: runs commands, installs and dev servers in the sandbox"
+
+#: ../chat-ui/src/header/outputs-card.tsx
+msgid "Collapse"
+msgstr "Collapse"
+
+#: ../chat-ui/src/header/outputs-card.tsx
+msgid "Collapse artifacts and tasks"
+msgstr "Collapse artifacts and tasks"
 
 #: ../../apps/web/app/(app)/(pages)/dots/avatar-picker.tsx
 #: ../chat-ui/src/artifacts/presentation/slide-inspector.tsx
@@ -1672,6 +1739,10 @@ msgstr "Couldn't search the web"
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Couldn't search your files"
 msgstr "Couldn't search your files"
+
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "Couldn't send. Try again."
+msgstr "Couldn't send. Try again."
 
 #: ../../apps/web/app/(quick)/quick/quick-screen.tsx
 msgid "Couldn't start a chat. Check your connection and try again."
@@ -2064,6 +2135,7 @@ msgstr "Documents, pages and diagrams from your chats, and ones shared with you.
 
 #: ../../apps/web/app/(app)/(pages)/dots/dot-profile.tsx
 #: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
 #: ../chat-ui/src/workspace/save-site-dialog.tsx
 msgid "Done"
 msgstr "Done"
@@ -2530,14 +2602,6 @@ msgstr "Fill"
 msgid "Fill in every variable to see the message."
 msgstr "Fill in every variable to see the message."
 
-#: ../chat-ui/src/header/artifacts-menu.tsx
-msgid "Filter"
-msgstr "Filter"
-
-#: ../chat-ui/src/header/artifacts-menu.tsx
-msgid "Filter artifacts"
-msgstr "Filter artifacts"
-
 #: ../library-ui/src/components/skills-section.tsx
 msgid "Find a skill"
 msgstr "Find a skill"
@@ -2546,6 +2610,10 @@ msgstr "Find a skill"
 #: ../library-ui/src/components/share-dialog.tsx
 msgid "Find people, teams or orgs"
 msgstr "Find people, teams or orgs"
+
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "Finding what's here…"
+msgstr "Finding what's here…"
 
 #: ../chat-ui/src/conversation/schedule-card.tsx
 msgid "First run"
@@ -2721,6 +2789,10 @@ msgstr "hide"
 msgid "Hide"
 msgstr "Hide"
 
+#: ../chat-ui/src/artifacts/editor/notes-drawer.tsx
+msgid "Hide notes"
+msgstr "Hide notes"
+
 #: ../palette/src/context-actions.ts
 msgid "Hide the workspace"
 msgstr "Hide the workspace"
@@ -2843,6 +2915,11 @@ msgstr "Insert table"
 #: ../../apps/web/app/(app)/(pages)/admin/_components/teams-admin.tsx
 msgid "Inside"
 msgstr "Inside"
+
+#: ../chat-ui/src/artifacts/editor/editor-shell.tsx
+#: ../chat-ui/src/artifacts/presentation/slide-inspector.tsx
+msgid "Inspector"
+msgstr "Inspector"
 
 #: ../library-ui/src/components/agent-form.tsx
 msgid "Instructions"
@@ -3111,9 +3188,20 @@ msgstr "Light bulb"
 msgid "Limit ({0})"
 msgstr "Limit ({0})"
 
+#. placeholder {0}: target.start
+#: ../chat-ui/src/artifacts/annotate/target-words.tsx
+msgid "Line {0}"
+msgstr "Line {0}"
+
 #: ../chat-ui/src/artifacts/editor/inspector.tsx
 msgid "Line height"
 msgstr "Line height"
+
+#. placeholder {0}: target.start
+#. placeholder {1}: target.end
+#: ../chat-ui/src/artifacts/annotate/target-words.tsx
+msgid "Lines {0} to {1}"
+msgstr "Lines {0} to {1}"
 
 #: ../chat-ui/src/artifacts/document/document-toolbar.tsx
 msgid "Link"
@@ -3247,7 +3335,7 @@ msgstr "Make your Dot"
 msgid "Makes images"
 msgstr "Makes images"
 
-#: ../chat-ui/src/header/artifacts-menu.tsx
+#: ../chat-ui/src/header/outputs-card.tsx
 msgid "Making…"
 msgstr "Making…"
 
@@ -3308,6 +3396,10 @@ msgstr "Maximise the browser"
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Maximise the files"
 msgstr "Maximise the files"
+
+#: ../chat-ui/src/workspace/workspace-panel.tsx
+msgid "Maximise the preview"
+msgstr "Maximise the preview"
 
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
 msgid "MCP"
@@ -3494,6 +3586,10 @@ msgstr "More artifact actions"
 #: ../chat-ui/src/workspace/preview.tsx
 msgid "More browser actions"
 msgstr "More browser actions"
+
+#: ../chat-ui/src/conversation/artifact-card.tsx
+msgid "More ways to open {title}"
+msgstr "More ways to open {title}"
 
 #: ../../apps/web/app/(app)/(pages)/schedules/schedule-editor.tsx
 msgid "Morning brief"
@@ -3763,10 +3859,6 @@ msgstr "No allowance set"
 msgid "No archived chats."
 msgstr "No archived chats."
 
-#: ../chat-ui/src/header/artifacts-menu.tsx
-msgid "No artifact has that name."
-msgstr "No artifact has that name."
-
 #: ../chat-ui/src/artifacts/artifacts-page.tsx
 msgid "No artifacts yet. Ask for a document, a page or a diagram in a chat and it shows up here."
 msgstr "No artifacts yet. Ask for a document, a page or a diagram in a chat and it shows up here."
@@ -3778,10 +3870,6 @@ msgstr "No artifacts yet. Code, pages and documents the agent makes in this chat
 #: ../../apps/web/app/(app)/(pages)/admin/_components/usage-admin.tsx
 msgid "No budgets"
 msgstr "No budgets"
-
-#: ../chat-ui/src/artifacts/artifact-view.tsx
-msgid "No changes from the previous version."
-msgstr "No changes from the previous version."
 
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "No changes to {path}"
@@ -3922,6 +4010,11 @@ msgstr "No versions yet. Saving creates the first one."
 msgid "Nobody is waiting."
 msgstr "Nobody is waiting."
 
+#. placeholder {0}: target.label ?? target.id
+#: ../chat-ui/src/artifacts/annotate/target-words.tsx
+msgid "Node {0}"
+msgstr "Node {0}"
+
 #: ../chat-ui/src/artifacts/diagram/diagram-canvas.tsx
 msgid "Node label"
 msgstr "Node label"
@@ -3960,6 +4053,23 @@ msgstr "Not shared with anyone yet."
 msgid "Not with Fast mode"
 msgstr "Not with Fast mode"
 
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "Note"
+msgstr "Note"
+
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "Note {number}"
+msgstr "Note {number}"
+
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "Note {number}, not written yet"
+msgstr "Note {number}, not written yet"
+
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "Note {number}: {note}"
+msgstr "Note {number}: {note}"
+
+#: ../chat-ui/src/artifacts/editor/editor-shell.tsx
 #: ../chat-ui/src/artifacts/presentation-preview.tsx
 msgid "Notes"
 msgstr "Notes"
@@ -4053,7 +4163,7 @@ msgstr "Nothing shared with you"
 msgid "Nothing yet."
 msgstr "Nothing yet."
 
-#: ../chat-ui/src/header/artifacts-menu.tsx
+#: ../chat-ui/src/header/outputs-card.tsx
 msgid "Nothing yet. Ask for a document, a deck, a site or a diagram and it appears here."
 msgstr "Nothing yet. Ask for a document, a deck, a site or a diagram and it appears here."
 
@@ -4150,6 +4260,7 @@ msgstr "Only you. Pick a space in the sidebar to see what's shared there."
 msgid "Opacity"
 msgstr "Opacity"
 
+#: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../chat-ui/src/conversation/file-change-card.tsx
 #: ../chat-ui/src/conversation/link-preview.tsx
 #: ../chat-ui/src/conversation/tool-status.tsx
@@ -4172,10 +4283,9 @@ msgstr "Open {path}"
 msgid "Open {title}"
 msgstr "Open {title}"
 
-#. placeholder {0}: part.title
 #: ../chat-ui/src/conversation/artifact-card.tsx
-msgid "Open artifact: {0}"
-msgstr "Open artifact: {0}"
+msgid "Open artifact: {title}"
+msgstr "Open artifact: {title}"
 
 #: ../chat-ui/src/artifacts/artifact-full-view.tsx
 msgid "Open chat"
@@ -4189,6 +4299,7 @@ msgstr "Open external link?"
 msgid "Open file"
 msgstr "Open file"
 
+#: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../chat-ui/src/workspace/preview.tsx
 msgid "Open in a new tab"
 msgstr "Open in a new tab"
@@ -4322,6 +4433,10 @@ msgstr "Orgs you own or administer."
 msgid "Output"
 msgstr "Output"
 
+#: ../palette/src/context-actions.ts
+msgid "outputs"
+msgstr "outputs"
+
 #: ../../apps/web/app/(app)/_shared/settings/usage-settings.tsx
 msgid "Outside chats"
 msgstr "Outside chats"
@@ -4354,6 +4469,10 @@ msgstr "panel"
 #: ../shortcuts/src/react/help-dialog.tsx
 msgid "Panels"
 msgstr "Panels"
+
+#: ../chat-ui/src/artifacts/annotate/target-words.tsx
+msgid "Part of the image"
+msgstr "Part of the image"
 
 #: ../../apps/web/app/(auth)/_components/sign-in-form.tsx
 #: ../../apps/web/app/(auth)/_components/sign-up-form.tsx
@@ -4444,6 +4563,14 @@ msgstr "Pick a shape and a colour. You can change them later."
 #: ../../apps/web/app/(app)/_shared/settings/space-settings.tsx
 msgid "Pick a space in the sidebar's space switcher. Your personal space has no members or allowance."
 msgstr "Pick a space in the sidebar's space switcher. Your personal space has no members or allowance."
+
+#: ../chat-ui/src/artifacts/presentation/slide-inspector.tsx
+msgid "Pick something on the slide to change its words and style."
+msgstr "Pick something on the slide to change its words and style."
+
+#: ../chat-ui/src/artifacts/presentation/slide-inspector.tsx
+msgid "Pick something on the slide to see its words and style."
+msgstr "Pick something on the slide to see its words and style."
 
 #: ../composer/src/components/target-picker.tsx
 msgid "Picks a fast or strong model for each message"
@@ -4584,7 +4711,6 @@ msgstr "Press keys…"
 msgid "preview"
 msgstr "preview"
 
-#: ../chat-ui/src/artifacts/artifact-view.tsx
 #: ../chat-ui/src/conversation/file-change-card.tsx
 #: ../chat-ui/src/workspace/mode-toggle.tsx
 #: ../chat-ui/src/workspace/workspace-panel.tsx
@@ -4814,6 +4940,7 @@ msgid "Queue"
 msgstr "Queue"
 
 #: ../chat-ui/src/chat/queue-tray.tsx
+#: ../chat-ui/src/header/outputs-card.tsx
 msgid "Queued"
 msgstr "Queued"
 
@@ -4964,6 +5091,7 @@ msgstr "Release notes"
 msgid "Reload"
 msgstr "Reload"
 
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
 #: ../chat-ui/src/artifacts/document/document-toolbar.tsx
 msgid "Remove"
 msgstr "Remove"
@@ -5118,6 +5246,14 @@ msgstr "Resize sidebar"
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Resize the browser"
 msgstr "Resize the browser"
+
+#: ../chat-ui/src/workspace/workspace-panel.tsx
+msgid "Resize the file list"
+msgstr "Resize the file list"
+
+#: ../chat-ui/src/workspace/workspace-panel.tsx
+msgid "Resize the preview"
+msgstr "Resize the preview"
 
 #: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
 msgid "Restart computer"
@@ -5511,6 +5647,14 @@ msgstr "Send"
 msgid "Send feedback"
 msgstr "Send feedback"
 
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "Send in chat"
+msgstr "Send in chat"
+
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "Send notes"
+msgstr "Send notes"
+
 #: ../../apps/web/app/(app)/(pages)/admin/_components/members-admin.tsx
 msgid "Send this link to them. It's shown only once: for a new one, cancel the invitation and invite them again."
 msgstr "Send this link to them. It's shown only once: for a new one, cancel the invitation and invite them again."
@@ -5712,13 +5856,26 @@ msgstr "Show only Priority"
 msgid "Show only Priority chats"
 msgstr "Show only Priority chats"
 
+#: ../palette/src/context-actions.ts
+#: ../shortcuts/src/registry.ts
+msgid "Show or hide artifacts and tasks"
+msgstr "Show or hide artifacts and tasks"
+
+#: ../shortcuts/src/registry.ts
+msgid "Show or hide the editor's inspector"
+msgstr "Show or hide the editor's inspector"
+
+#: ../shortcuts/src/registry.ts
+msgid "Show or hide the editor's notes"
+msgstr "Show or hide the editor's notes"
+
+#: ../shortcuts/src/registry.ts
+msgid "Show or hide the editor's thumbnails"
+msgstr "Show or hide the editor's thumbnails"
+
 #: ../shortcuts/src/registry.ts
 msgid "Show or hide the files"
 msgstr "Show or hide the files"
-
-#: ../chat-ui/src/artifacts/artifact-preview.tsx
-msgid "Show the code"
-msgstr "Show the code"
 
 #: ../chat-ui/src/workspace/preview.tsx
 msgid "Show the page at a phone's width"
@@ -5727,11 +5884,6 @@ msgstr "Show the page at a phone's width"
 #: ../palette/src/context-actions.ts
 msgid "Show the workspace"
 msgstr "Show the workspace"
-
-#: ../palette/src/context-actions.ts
-#: ../shortcuts/src/registry.ts
-msgid "Show this chat's artifacts"
-msgstr "Show this chat's artifacts"
 
 #: ../chat-ui/src/voice/voice-call.tsx
 msgid "Show transcript"
@@ -5838,6 +5990,8 @@ msgid "Slash command"
 msgstr "Slash command"
 
 #. placeholder {0}: index + 1
+#. placeholder {0}: target.slide
+#: ../chat-ui/src/artifacts/annotate/target-words.tsx
 #: ../chat-ui/src/artifacts/presentation/slide-rail.tsx
 msgid "Slide {0}"
 msgstr "Slide {0}"
@@ -5850,6 +6004,12 @@ msgstr "Slide {0}"
 #: ../chat-ui/src/artifacts/presenter.tsx
 msgid "Slide {0} of {1}"
 msgstr "Slide {0} of {1}"
+
+#. placeholder {0}: target.slide
+#. placeholder {1}: target.text
+#: ../chat-ui/src/artifacts/annotate/target-words.tsx
+msgid "Slide {0}: “{1}”"
+msgstr "Slide {0}: “{1}”"
 
 #: ../chat-ui/src/artifacts/presentation-preview.tsx
 msgid "Slide {slide} of {slides}"
@@ -5869,8 +6029,8 @@ msgid "Slides"
 msgstr "Slides"
 
 #: ../chat-ui/src/artifacts/presentation-preview.tsx
-msgid "Slides are drawn by the artifacts service. Set ARTIFACTS_ORIGIN and start it with bun dev. The deck's JSON is in the Code tab."
-msgstr "Slides are drawn by the artifacts service. Set ARTIFACTS_ORIGIN and start it with bun dev. The deck's JSON is in the Code tab."
+msgid "Slides are drawn by the artifacts service. Set ARTIFACTS_ORIGIN and start it with bun dev."
+msgstr "Slides are drawn by the artifacts service. Set ARTIFACTS_ORIGIN and start it with bun dev."
 
 #: ../chat-ui/src/artifacts/presentation-preview.tsx
 msgid "Slides of {title}"
@@ -6058,6 +6218,14 @@ msgstr "Steer"
 msgid "Steer now"
 msgstr "Steer now"
 
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "Steer with notes"
+msgstr "Steer with notes"
+
+#: ../chat-ui/src/header/outputs-card.tsx
+msgid "Steering"
+msgstr "Steering"
+
 #: ../chat-ui/src/chat/queue-tray.tsx
 msgid "Steering at the next step…"
 msgstr "Steering at the next step…"
@@ -6074,6 +6242,10 @@ msgstr "Step {position} of {total}"
 #: ../composer/src/components/composer-footer.tsx
 msgid "Stop"
 msgstr "Stop"
+
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "Stop annotating"
+msgstr "Stop annotating"
 
 #: ../shortcuts/src/registry.ts
 msgid "Stop generating"
@@ -6204,10 +6376,12 @@ msgid "Task"
 msgstr "Task"
 
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
+#: ../palette/src/context-actions.ts
 msgid "tasks"
 msgstr "tasks"
 
 #: ../../apps/web/app/(app)/(pages)/rail-panels.tsx
+#: ../chat-ui/src/header/outputs-card.tsx
 msgid "Tasks"
 msgstr "Tasks"
 
@@ -6359,6 +6533,10 @@ msgstr "That time has passed. Pick a later one."
 #: ../chat-ui/src/workspace/new-file-dialog.tsx
 msgid "That's a folder name. Add a file name after the slash."
 msgstr "That's a folder name. Add a file name after the slash."
+
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "That's the most one message takes."
+msgstr "That's the most one message takes."
 
 #: ../library-ui/src/components/fields.tsx
 msgid "That's too long."
@@ -6877,6 +7055,10 @@ msgstr "Thought for 4 seconds"
 msgid "Thought for a few seconds"
 msgstr "Thought for a few seconds"
 
+#: ../chat-ui/src/artifacts/editor/editor-shell.tsx
+msgid "Thumbnails"
+msgstr "Thumbnails"
+
 #: ../chat-ui/src/artifacts/presentation/slide-rail.tsx
 msgid "Thumbnails of {title}"
 msgstr "Thumbnails of {title}"
@@ -7305,6 +7487,10 @@ msgstr "Voice isn't answering right now. Try again in a moment."
 msgid "Waiting for an owner"
 msgstr "Waiting for an owner"
 
+#: ../chat-ui/src/header/outputs-card.tsx
+msgid "Waiting for approval"
+msgstr "Waiting for approval"
+
 #: ../chat-ui/src/conversation/message-row.tsx
 msgid "Waiting for the answer before it…"
 msgstr "Waiting for the answer before it…"
@@ -7456,6 +7642,10 @@ msgstr "What it's for"
 msgid "What should {name} help with?"
 msgstr "What should {name} help with?"
 
+#: ../chat-ui/src/artifacts/annotate/annotate-layer.tsx
+msgid "What should change here?"
+msgstr "What should change here?"
+
 #: ../../apps/web/app/(app)/(pages)/schedules/schedule-editor.tsx
 msgid "What should it do each time?"
 msgstr "What should it do each time?"
@@ -7580,6 +7770,10 @@ msgstr "Working on it. The chat shows the progress."
 #: ../../apps/web/app/(app)/(pages)/dots/dot-home.tsx
 msgid "Working on it…"
 msgstr "Working on it…"
+
+#: ../chat-ui/src/header/outputs-card.tsx
+msgid "Working…"
+msgstr "Working…"
 
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "Works"

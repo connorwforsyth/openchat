@@ -46,8 +46,6 @@ export interface ArtifactPreviewProps {
   /** Stamped into React elements as `data-src="<fileName>:<line>"` (D16). */
   readonly fileName: string;
   readonly kind: RuntimeKind;
-  /** Switches the view to the source, offered when there's no preview. */
-  readonly onShowSource?: () => void;
   /** Overrides `RUNTIME_READY_TIMEOUT_MS`, for tests. */
   readonly readyTimeoutMs?: number;
   /** The runtime's origin, or `null` when none is configured. */
@@ -72,22 +70,19 @@ export function ArtifactPreview(props: ArtifactPreviewProps) {
       />
     );
   }
-  return (
-    <PreviewUnavailable onShowSource={props.onShowSource} reason="no-runtime" />
-  );
+  return <PreviewUnavailable reason="no-runtime" />;
 }
 
 /**
- * Why there's no preview, where the preview would be, with the ways on:
- * the source, and trying the service again when it stopped answering.
+ * Why there's no preview, where the preview would be. Never the source
+ * instead (Connor, night 2): a service that stopped answering gets Try
+ * again; one this instance doesn't have has nothing to retry.
  */
 export function PreviewUnavailable({
   onRetry,
-  onShowSource,
   reason,
 }: {
   readonly onRetry?: (() => void) | undefined;
-  readonly onShowSource?: (() => void) | undefined;
   readonly reason: "no-runtime" | "slow";
 }) {
   return (
@@ -109,18 +104,11 @@ export function PreviewUnavailable({
           </Trans>
         )}
       </p>
-      <div className="flex gap-2">
-        {onRetry ? (
-          <Button onClick={onRetry} size="sm" variant="outline">
-            <Trans>Try again</Trans>
-          </Button>
-        ) : null}
-        {onShowSource ? (
-          <Button onClick={onShowSource} size="sm" variant="ghost">
-            <Trans>Show the code</Trans>
-          </Button>
-        ) : null}
-      </div>
+      {onRetry ? (
+        <Button onClick={onRetry} size="sm" variant="outline">
+          <Trans>Try again</Trans>
+        </Button>
+      ) : null}
     </div>
   );
 }
@@ -184,7 +172,6 @@ function RuntimePreview({
   content,
   fileName,
   kind,
-  onShowSource,
   readyTimeoutMs = RUNTIME_READY_TIMEOUT_MS,
   runtimeOrigin,
   title,
@@ -315,11 +302,7 @@ function RuntimePreview({
       />
       {wait === "slow" && !standIn ? (
         <div className="absolute inset-0 flex bg-background">
-          <PreviewUnavailable
-            onRetry={retry}
-            onShowSource={onShowSource}
-            reason="slow"
-          />
+          <PreviewUnavailable onRetry={retry} reason="slow" />
         </div>
       ) : null}
       {wait !== "slow" && state.status === "loading" ? (

@@ -119,7 +119,16 @@ export const shortcutRegistry: readonly ShortcutDefinition[] = [
     ["A"],
     "chat",
     "panels",
-    msg`Show this chat's artifacts`
+    msg`Show or hide artifacts and tasks`
+  ),
+  // Night 2, decision 5: wherever an artifact is open and its chat can
+  // take notes; a page without one leaves the key alone.
+  define(
+    "artifact.annotate",
+    ["M"],
+    "global",
+    "panels",
+    msg`Annotate the open artifact`
   ),
   // The sidebar's keys (176, 177), after ChatGPT's command registry.
   // ⌘⇧D (from 182) stays as a second key; nothing else binds it.
@@ -185,6 +194,29 @@ export const shortcutRegistry: readonly ShortcutDefinition[] = [
     "global",
     "navigation",
     msg`Mark every chat as read`
+  ),
+  // An artifact editor's panels (n2): live while one is open, outside its
+  // text fields, like the panel keys above.
+  define(
+    "editor.rail",
+    ["T"],
+    "chat",
+    "panels",
+    msg`Show or hide the editor's thumbnails`
+  ),
+  define(
+    "editor.inspector",
+    ["I"],
+    "chat",
+    "panels",
+    msg`Show or hide the editor's inspector`
+  ),
+  define(
+    "editor.notes",
+    ["Shift+N"],
+    "chat",
+    "panels",
+    msg`Show or hide the editor's notes`
   ),
 ];
 

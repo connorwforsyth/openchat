@@ -5,7 +5,8 @@
 // 2026 Yiwei Ho; see NOTICE.open-slide.
 
 import { useLingui } from "@lingui/react/macro";
-import { ChevronDownIcon, ChevronUpIcon, FileTextIcon } from "@workspace/icons";
+import { FileTextIcon, XIcon } from "@workspace/icons";
+import { Button } from "@workspace/ui/components/button";
 import { Textarea } from "@workspace/ui/components/textarea";
 import {
   type ChangeEvent,
@@ -17,21 +18,12 @@ import {
   useState,
 } from "react";
 
+import { useShellPanels } from "./editor-shell";
+
 // Notes on the piece being edited (a slide's speaker notes), under the
-// canvas, shared by every kind's editor. Folded away, it's one row; open,
-// it's a text field kept as typed and saved when the person leaves it or
-// presses ⌘Enter; Escape leaves the field. It opens and closes at once
-// (D28: toggled, not animated), and remembers which.
-
-const OPEN_KEY = "artifact-editor:notes-open";
-
-const readOpen = (): boolean => {
-  try {
-    return window.localStorage.getItem(OPEN_KEY) !== "0";
-  } catch {
-    return true;
-  }
-};
+// canvas, shared by every kind's editor: a text field kept as typed and
+// saved when the person leaves it or presses ⌘Enter; Escape leaves the
+// field. The editor shell shows and hides it as one of its panels.
 
 export function NotesDrawer({
   label,
@@ -52,20 +44,11 @@ export function NotesDrawer({
 }) {
   const { t } = useLingui();
   const id = useId();
-  const [open, setOpen] = useState(readOpen);
+  const shell = useShellPanels();
+  const hide = useCallback(() => shell?.toggle("notes"), [shell]);
   const [draft, setDraft] = useState(value);
   useEffect(() => setDraft(value), [value]);
 
-  const toggle = useCallback(() => {
-    setOpen((was) => {
-      try {
-        window.localStorage.setItem(OPEN_KEY, was ? "0" : "1");
-      } catch {
-        // Storage can be off; the drawer still opens.
-      }
-      return !was;
-    });
-  }, []);
   const commit = useCallback(() => {
     if (!readOnly && draft !== value) {
       onCommit(draft);
@@ -93,39 +76,39 @@ export function NotesDrawer({
 
   return (
     <section aria-label={label} className="shrink-0 border-t bg-background">
-      <button
-        aria-controls={id}
-        aria-expanded={open}
-        className="flex h-9 w-full items-center gap-2 px-3 text-start text-xs outline-none hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset"
-        onClick={toggle}
-        type="button"
-      >
+      <div className="flex h-9 items-center gap-2 ps-3 pe-1 text-xs">
         <FileTextIcon aria-hidden className="size-3.5 text-muted-foreground" />
-        <span className="font-medium">{label}</span>
+        <label className="font-medium" htmlFor={id}>
+          {label}
+        </label>
         {meta ? (
           <span className="text-muted-foreground tabular-nums">{meta}</span>
         ) : null}
         <span className="flex-1" />
-        {open ? (
-          <ChevronDownIcon aria-hidden className="size-3.5" />
-        ) : (
-          <ChevronUpIcon aria-hidden className="size-3.5" />
-        )}
-      </button>
-      {open ? (
-        <div className="px-3 pb-3" id={id}>
-          <Textarea
-            aria-label={label}
-            className="max-h-40 min-h-20 resize-none text-sm"
-            onBlur={commit}
-            onChange={onChange}
-            onKeyDown={onKeyDown}
-            placeholder={readOnly ? t`None` : placeholder}
-            readOnly={readOnly}
-            value={draft}
-          />
-        </div>
-      ) : null}
+        {shell ? (
+          <Button
+            aria-label={t`Hide notes`}
+            onClick={hide}
+            size="icon-xs"
+            title={t`Hide notes`}
+            variant="ghost"
+          >
+            <XIcon aria-hidden />
+          </Button>
+        ) : null}
+      </div>
+      <div className="px-3 pb-3">
+        <Textarea
+          className="max-h-40 min-h-20 resize-none text-sm"
+          id={id}
+          onBlur={commit}
+          onChange={onChange}
+          onKeyDown={onKeyDown}
+          placeholder={readOnly ? t`None` : placeholder}
+          readOnly={readOnly}
+          value={draft}
+        />
+      </div>
     </section>
   );
 }

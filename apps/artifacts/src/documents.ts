@@ -1,3 +1,4 @@
+import { probeScript } from "@workspace/chat-ui/artifacts/annotate/probe";
 import {
   MAX_FRAME_HEIGHT,
   type RuntimeError,
@@ -43,18 +44,22 @@ const HTML = /<html(?:\s[^>]*)?>/i;
 const DOCTYPE = /^\s*<!doctype[^>]*>/i;
 
 /**
- * The artifact with the reporter as its first script: after `<head>` or
- * `<html>` if it has one, else after the doctype, so a standards-mode page
- * stays in standards mode.
+ * The page with `scripts` as its first: after `<head>` or `<html>` if it
+ * has one, else after the doctype, so a standards-mode page stays in
+ * standards mode.
  */
-export const withReporter = (html: string): string => {
+export const withFirstScripts = (html: string, scripts: string): string => {
   const anchor = HEAD.exec(html) ?? HTML.exec(html) ?? DOCTYPE.exec(html);
   if (!anchor) {
-    return REPORTER + html;
+    return scripts + html;
   }
   const at = anchor.index + anchor[0].length;
-  return html.slice(0, at) + REPORTER + html.slice(at);
+  return html.slice(0, at) + scripts + html.slice(at);
 };
+
+/** The artifact with the reporter, and Annotate's probe, as its first scripts. */
+export const withReporter = (html: string): string =>
+  withFirstScripts(html, REPORTER + probeScript());
 
 /**
  * An HTML artifact is a whole document, so it gets its own nested `srcdoc`

@@ -90,7 +90,14 @@ import {
   useRef,
   useState,
 } from "react";
-
+import {
+  annotationsInput,
+  useChatAnnotateSink,
+} from "../artifacts/annotate/chat-sink";
+import {
+  type AnnotateSink,
+  AnnotateSinkProvider,
+} from "../artifacts/annotate/sink";
 import { useOfferedKinds } from "../artifacts/use-offered-kinds";
 import type { ConversationActions } from "../conversation/actions";
 import {
@@ -100,6 +107,7 @@ import {
 } from "../conversation/approval-state";
 import { ShowModesContext } from "../conversation/mode-note";
 import { PlanStatusProvider } from "../conversation/plan-card";
+import { chatTasks } from "../header/chat-tasks";
 import { staleEdits } from "../model/approval";
 import {
   artifactKindLabels,
@@ -574,20 +582,27 @@ const webSearchSwitch = (
     ? { onWebSearchChange: onChange, webSearch: on }
     : {};
 
-/** What message rows read from the screen: run activity, and whether modes show. */
+/**
+ * What message rows read from the screen: run activity, and whether modes
+ * show; and where Annotate's notes on an artifact go.
+ */
 function RowContexts({
   activity,
+  annotateSink,
   children,
   showModes,
 }: {
   readonly activity: RunActivity;
+  readonly annotateSink: AnnotateSink | null;
   readonly children: ReactNode;
   readonly showModes: boolean;
 }) {
   return (
     <RunActivityProvider value={activity}>
       <ShowModesContext.Provider value={showModes}>
-        {children}
+        <AnnotateSinkProvider value={annotateSink}>
+          {children}
+        </AnnotateSinkProvider>
       </ShowModesContext.Provider>
     </RunActivityProvider>
   );
@@ -1910,9 +1925,9 @@ export function ConnectedChat({
   const titleWatch = useTitleWatch(conversationId);
   const shownAt = useShownAt(conversationId);
 
+  const artifactPick = useArtifactPick(selection, conversationId);
   const data = useChatQueries(api, {
-    artifactId:
-      selection?.kind === "artifact" ? (selection.artifactId ?? null) : null,
+    artifactId: artifactPick?.artifactId ?? null,
     conversationId,
     leafId,
     sandboxes: config.features.sandboxes,
@@ -2181,6 +2196,9 @@ export function ConnectedChat({
   const actions = useMemo(
     (): ConversationActions => ({
       artifactImageUrl,
+      ...(artifactsHref
+        ? { artifactHref: (id) => `${artifactsHref}/${id}` }
+        : {}),
       fileUrl,
       ...(libraryHref
         ? { libraryItemHref: (id) => `${libraryHref}/${id}` }
@@ -2229,6 +2247,7 @@ export function ConnectedChat({
     }),
     [
       approvePlan,
+      artifactsHref,
       conversationId,
       decide,
       feedback.clear,
@@ -2303,6 +2322,13 @@ export function ConnectedChat({
     () => withoutQueued(messages, queue.turns),
     [messages, queue.turns]
   );
+  const outputs = useMemo(
+    () => ({
+      owner: me.user.id,
+      tasks: chatTasks(data.activeRuns, queue.turns, messages),
+    }),
+    [data.activeRuns, me.user.id, messages, queue.turns]
+  );
 
   useAskOnce(initialPrompt, conversationId, onSubmit);
   const composerDrafts = useComposerDrafts(
@@ -2336,6 +2362,23 @@ export function ConnectedChat({
   useWorkspaceInSync(api, messages);
   useLibraryInSync(api, messages);
   const current = data.conversation.data;
+  const sendAnnotationsBusy = useSendBusy({
+    answering: streamingMessageId,
+    branch: messages,
+    client,
+    conversationId,
+    input: annotationsInput,
+    refresh,
+    runFields,
+  });
+  const annotateSink = useChatAnnotateSink({
+    busy: delivery !== undefined,
+    conversation: current,
+    sendBusy: sendAnnotationsBusy,
+    sendMessage,
+    stopReading,
+    waiting,
+  });
   const sidebarData = useSidebarData(api);
   useMarkReadWhileOpen(current, sidebarData.onSetLastRead);
   // The open chat's own run feeds "Needs attention" too (176): the list
@@ -2377,7 +2420,11 @@ export function ConnectedChat({
   );
 
   return (
-    <RowContexts activity={activity} showModes={showModes}>
+    <RowContexts
+      activity={activity}
+      annotateSink={annotateSink}
+      showModes={showModes}
+    >
       <PlanStatusProvider value={planStatus}>
         <VoiceBridgeContext.Provider
           value={bridgeOf(conversationId, voiceBridge)}
@@ -2448,6 +2495,7 @@ export function ConnectedChat({
             onComposerInput={live.onTyping}
             onNewChat={newChat}
             onOpenPalette={onOpenPalette}
+            outputs={outputs}
             pendingApprovals={approvals}
             platform={platform}
             runError={
@@ -2511,3 +2559,24 @@ export function ConnectedChat({
 }
 
 const NO_MESSAGES: readonly Message[] = [];
+
+/**
+ * The last artifact picked in this chat. The panel keeps an artifact open
+ * above a file opened after it (night 2), so the versions it loads follow
+ * this, not the selection. Another chat starts with none.
+ */
+function useArtifactPick(
+  selection: WorkspaceSelection | null,
+  conversationId: ConversationId | null
+) {
+  const [held, setHeld] = useState(() => ({
+    chat: conversationId,
+    pick: selection?.kind === "artifact" ? selection : null,
+  }));
+  if (held.chat !== conversationId) {
+    setHeld({ chat: conversationId, pick: null });
+  } else if (selection?.kind === "artifact" && selection !== held.pick) {
+    setHeld({ chat: conversationId, pick: selection });
+  }
+  return held.chat === conversationId ? held.pick : null;
+}

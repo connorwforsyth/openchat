@@ -262,6 +262,37 @@ describe("turnFor", () => {
       { data: { chips }, name: "chips", type: "data" },
     ]);
   });
+
+  it("keeps notes pinned on an artifact, so history draws them as a card", () => {
+    const notes = {
+      artifactId: "0199a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b",
+      kind: "site",
+      notes: [
+        {
+          mark: { shape: "point", x: 0.5, y: 0.5 },
+          note: "Bigger",
+          target: null,
+          version: 1,
+          versionId: "0199a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5c",
+        },
+      ],
+      title: "Home",
+    };
+    expect(
+      userParts({
+        id: "m",
+        parts: [
+          { text: "<artifact-annotations>…", type: "text" },
+          { data: notes, type: "data-annotations" },
+          { data: { ...notes, notes: [] }, type: "data-annotations" },
+        ],
+        role: "user",
+      })
+    ).toEqual([
+      { text: "<artifact-annotations>…", type: "text" },
+      { data: notes, name: "annotations", type: "data" },
+    ]);
+  });
 });
 
 describe("createRunTransport", () => {
