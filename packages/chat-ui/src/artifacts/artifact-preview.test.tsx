@@ -1,5 +1,5 @@
 import { act, cleanup, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { renderWithI18n } from "../testing/render";
 import { ArtifactPreview, type ArtifactPreviewProps } from "./artifact-preview";
@@ -55,15 +55,13 @@ describe("ArtifactPreview without a runtime", () => {
     expect(frame().getAttribute("srcdoc")).toContain("<body");
   });
 
-  it("says React and Mermaid need the runtime instead of rendering, with a way to the code", async () => {
-    const onShowSource = vi.fn();
-    renderWithI18n(
-      <ArtifactPreview {...props} kind="react" onShowSource={onShowSource} />
-    );
+  it("says React and Mermaid need the runtime instead of rendering, and never offers the code", () => {
+    renderWithI18n(<ArtifactPreview {...props} kind="react" />);
     expect(screen.getByText(NEEDS_RUNTIME)).toBeTruthy();
     expect(screen.queryByTitle(PREVIEW)).toBeNull();
-    await act(() => screen.getByRole("button", { name: SHOW_CODE }).click());
-    expect(onShowSource).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("button", { name: SHOW_CODE })).toBeNull();
+    // Nothing to retry: this instance has no service.
+    expect(screen.queryByRole("button", { name: TRY_AGAIN })).toBeNull();
   });
 });
 
@@ -146,20 +144,18 @@ describe("ArtifactPreview with a runtime", () => {
   });
 
   it("keeps a slow runtime's frame, says it's waiting, and shows the render when it answers", async () => {
-    const onShowSource = vi.fn();
     renderWithI18n(
       <ArtifactPreview
         {...props}
         kind="react"
-        onShowSource={onShowSource}
         readyTimeoutMs={20}
         runtimeOrigin={RUNTIME}
       />
     );
     expect(await screen.findByText(NOT_ANSWERED)).toBeTruthy();
     expect(frame().src).toContain(RUNTIME);
-    await act(() => screen.getByRole("button", { name: SHOW_CODE }).click());
-    expect(onShowSource).toHaveBeenCalledOnce();
+    expect(screen.getByRole("button", { name: TRY_AGAIN })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: SHOW_CODE })).toBeNull();
     fromFrame({ type: "ready" });
     await waitFor(() => expect(screen.queryByText(NOT_ANSWERED)).toBeNull());
   });
