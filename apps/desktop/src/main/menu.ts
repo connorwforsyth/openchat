@@ -263,6 +263,7 @@ export const menuTemplate = ({
       separator,
       shortcut("panel.sandbox"),
       shortcut("panel.artifacts"),
+      shortcut("artifact.annotate"),
       shortcut("editor.rail"),
       shortcut("editor.inspector"),
       shortcut("editor.notes"),

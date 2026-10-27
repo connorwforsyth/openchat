@@ -1,7 +1,7 @@
 "use client";
 
 import { Trans, useLingui } from "@lingui/react/macro";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { skipToken, useMutation, useQuery } from "@tanstack/react-query";
 import type { QueryUtils } from "@workspace/client/api";
 import type {
   ArtifactId,
@@ -10,8 +10,15 @@ import type {
 import type { Me } from "@workspace/contract/schemas/meta";
 import { ArrowLeftIcon, MessageSquareIcon } from "@workspace/icons";
 import { Button } from "@workspace/ui/components/button";
-import { type ReactNode, useCallback, useEffect, useState } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
+import { type AnnotateSink, AnnotateSinkProvider } from "./annotate/sink";
 import { ArtifactMenu, ArtifactShareButton } from "./artifact-actions";
 import { ArtifactView } from "./artifact-view";
 import type {
@@ -71,6 +78,32 @@ export function ArtifactFullView({
       navigate(links.chat(conversationId));
     }
   }, [conversationId, links, navigate]);
+  // No chat on this page: Annotate's notes wait here, and Send opens the
+  // chat, where the same drafts are sent from the artifact's panel. Only
+  // for someone who can write there: a viewer of the chat can't send them.
+  const chat = useQuery(
+    api.conversations.get.queryOptions({
+      input:
+        artifact?.canGoToChat && conversationId
+          ? { id: conversationId }
+          : skipToken,
+    })
+  );
+  const canWrite =
+    chat.data !== undefined && chat.data.myPermission !== "viewer";
+  const annotateSink = useMemo(
+    (): AnnotateSink | null =>
+      canWrite
+        ? {
+            mode: "chat",
+            send: () => {
+              goToChat();
+              return Promise.resolve();
+            },
+          }
+        : null,
+    [canWrite, goToChat]
+  );
   const header = useCallback(
     (content: ReactNode) => (
       <div className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
@@ -165,17 +198,19 @@ export function ArtifactFullView({
         className="flex min-h-80 flex-1 flex-col overflow-hidden rounded-xl border border-border"
       >
         {artifact ? (
-          <ArtifactView
-            actions={documentActions}
-            api={api}
-            artifact={artifact}
-            header={header}
-            info={artifact}
-            onSelect={select}
-            runtimeOrigin={runtimeOrigin}
-            versionId={versionId}
-            versions={detail.data?.versions}
-          />
+          <AnnotateSinkProvider value={annotateSink}>
+            <ArtifactView
+              actions={documentActions}
+              api={api}
+              artifact={artifact}
+              header={header}
+              info={artifact}
+              onSelect={select}
+              runtimeOrigin={runtimeOrigin}
+              versionId={versionId}
+              versions={detail.data?.versions}
+            />
+          </AnnotateSinkProvider>
         ) : (
           <p className="p-4 text-muted-foreground text-sm" role="status">
             <Trans>Loading…</Trans>

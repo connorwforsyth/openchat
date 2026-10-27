@@ -1,4 +1,5 @@
 import type { BuiltSite } from "@workspace/artifacts-kit/kinds/site/build";
+import { probeScript } from "@workspace/chat-ui/artifacts/annotate/probe";
 import {
   type FrameMessage,
   parentOriginFrom,
@@ -7,6 +8,8 @@ import {
   type RuntimeError,
   readHostMessage,
 } from "@workspace/chat-ui/artifacts/runtime-protocol";
+import { answerProbes } from "./annotate-probe";
+import { withFirstScripts } from "./documents";
 import { runtimeError } from "./errors";
 import { pageKindThemes, themeOf } from "./kind-themes";
 import { SITE_ASSETS } from "./site-assets";
@@ -57,7 +60,7 @@ const start = (container: HTMLElement, parentOrigin: string) => {
     next.setAttribute("sandbox", "allow-scripts");
     next.setAttribute("referrerpolicy", "no-referrer");
     next.title = request.title;
-    next.srcdoc = built.files[page] ?? "";
+    next.srcdoc = withFirstScripts(built.files[page] ?? "", probeScript());
     next.addEventListener(
       "load",
       () => {
@@ -127,6 +130,7 @@ const start = (container: HTMLElement, parentOrigin: string) => {
     }
   });
 
+  answerProbes(parentOrigin);
   post({ channel: RUNTIME_CHANNEL, type: "ready" });
 };
 

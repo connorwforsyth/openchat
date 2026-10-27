@@ -38,6 +38,7 @@ import {
   previewPlan,
 } from "../model/artifacts";
 import { useElementWidth } from "../workspace/use-element-width";
+import { Annotatable } from "./annotate/annotate-layer";
 import {
   ArtifactPreview,
   PreviewUnavailable,
@@ -119,7 +120,15 @@ const plainHeader = (content: ReactNode) => (
   <div className="flex h-12 shrink-0 items-center border-b px-3">{content}</div>
 );
 
-export function ArtifactView({
+export function ArtifactView(props: ArtifactViewProps) {
+  return (
+    <Annotatable {...props} header={props.header ?? plainHeader}>
+      {(header) => <ArtifactViewBody {...props} header={header} />}
+    </Annotatable>
+  );
+}
+
+function ArtifactViewBody({
   actions,
   api,
   artifact,

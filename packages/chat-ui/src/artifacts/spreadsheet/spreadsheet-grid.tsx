@@ -5,6 +5,7 @@ import "@glideapps/glide-data-grid/dist/index.css";
 import {
   CompactSelection,
   DataEditor,
+  type DataEditorRef,
   type EditableGridCell,
   type GridCell,
   GridCellKind,
@@ -30,6 +31,8 @@ import {
   useState,
 } from "react";
 
+import { gridCellAt, gridTarget } from "../annotate/grid";
+import { useAnnotateLocator } from "../annotate/sink";
 import { type CellEdit, cellView, columnWidth, gridSize } from "./model";
 import { gridTheme, readGridTokens, toHex } from "./theme";
 
@@ -131,9 +134,24 @@ export function SpreadsheetGrid({
   const { i18n, t } = useLingui();
   usePortal();
   const frame = useRef<HTMLElement>(null);
+  const editor = useRef<DataEditorRef>(null);
   const theme = useGridTheme(frame);
   const size = gridSize(sheet);
   const sheetName = sheet.name;
+  // Annotate's notes name the cells they point at.
+  useAnnotateLocator(frame, (box) =>
+    gridTarget(
+      box,
+      (point) =>
+        gridCellAt(
+          (col, row) => editor.current?.getBounds(col, row),
+          size,
+          point
+        ),
+      (cell) => toAddress(cell.col, cell.row),
+      sheetName
+    )
+  );
   const columns = useMemo<GridColumn[]>(
     () =>
       Array.from({ length: size.cols }, (_, col) => ({
@@ -214,6 +232,7 @@ export function SpreadsheetGrid({
           onCellsEdited={onCellsEdited}
           onGridSelectionChange={onGridSelectionChange}
           onPaste
+          ref={editor}
           rowMarkers="number"
           rows={size.rows}
           smoothScrollX
