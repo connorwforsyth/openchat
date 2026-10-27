@@ -186,6 +186,29 @@ export const shortcutRegistry: readonly ShortcutDefinition[] = [
     "navigation",
     msg`Mark every chat as read`
   ),
+  // An artifact editor's panels (n2): live while one is open, outside its
+  // text fields, like the panel keys above.
+  define(
+    "editor.rail",
+    ["T"],
+    "chat",
+    "panels",
+    msg`Show or hide the editor's thumbnails`
+  ),
+  define(
+    "editor.inspector",
+    ["I"],
+    "chat",
+    "panels",
+    msg`Show or hide the editor's inspector`
+  ),
+  define(
+    "editor.notes",
+    ["Shift+N"],
+    "chat",
+    "panels",
+    msg`Show or hide the editor's notes`
+  ),
 ];
 
 const byId: ReadonlyMap<ShortcutId, ShortcutDefinition> = new Map(
