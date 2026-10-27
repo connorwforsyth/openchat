@@ -3491,6 +3491,10 @@ msgstr "More artifact actions"
 msgid "More browser actions"
 msgstr "More browser actions"
 
+#: ../chat-ui/src/conversation/artifact-card.tsx
+msgid "More ways to open {title}"
+msgstr "More ways to open {title}"
+
 #: ../../apps/web/app/(app)/(pages)/schedules/schedule-editor.tsx
 msgid "Morning brief"
 msgstr "Morning brief"
@@ -4135,6 +4139,7 @@ msgstr "Only you. Pick a space in the sidebar to see what's shared there."
 msgid "Opacity"
 msgstr "Opacity"
 
+#: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../chat-ui/src/conversation/file-change-card.tsx
 #: ../chat-ui/src/conversation/link-preview.tsx
 #: ../chat-ui/src/conversation/tool-status.tsx
@@ -4157,10 +4162,9 @@ msgstr "Open {path}"
 msgid "Open {title}"
 msgstr "Open {title}"
 
-#. placeholder {0}: part.title
 #: ../chat-ui/src/conversation/artifact-card.tsx
-msgid "Open artifact: {0}"
-msgstr "Open artifact: {0}"
+msgid "Open artifact: {title}"
+msgstr "Open artifact: {title}"
 
 #: ../chat-ui/src/artifacts/artifact-full-view.tsx
 msgid "Open chat"
@@ -4174,6 +4178,7 @@ msgstr "Open external link?"
 msgid "Open file"
 msgstr "Open file"
 
+#: ../chat-ui/src/conversation/artifact-card.tsx
 #: ../chat-ui/src/workspace/preview.tsx
 msgid "Open in a new tab"
 msgstr "Open in a new tab"

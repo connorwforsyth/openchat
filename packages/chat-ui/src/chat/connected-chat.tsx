@@ -2182,6 +2182,9 @@ export function ConnectedChat({
   const actions = useMemo(
     (): ConversationActions => ({
       artifactImageUrl,
+      ...(artifactsHref
+        ? { artifactHref: (id) => `${artifactsHref}/${id}` }
+        : {}),
       fileUrl,
       ...(libraryHref
         ? { libraryItemHref: (id) => `${libraryHref}/${id}` }
@@ -2230,6 +2233,7 @@ export function ConnectedChat({
     }),
     [
       approvePlan,
+      artifactsHref,
       conversationId,
       decide,
       feedback.clear,
