@@ -1,33 +1,56 @@
 "use client";
 
+import type { I18n } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
-import type { AnnotationTarget } from "@workspace/ai/messages/annotations";
+import type {
+  AnnotationsData,
+  AnnotationTarget,
+} from "@workspace/ai/messages/annotations";
 
-/** What a note points at, in a few words: the pin's note and the sent card. */
-export function TargetWords({ target }: { readonly target: AnnotationTarget }) {
-  const { t } = useLingui();
+/** What a note points at, in a few words. */
+export const targetText = (target: AnnotationTarget, i18n: I18n): string => {
   switch (target.type) {
     case "element":
-      return target.text ? t`“${target.text}”` : target.selector;
+      return target.text ? i18n._(msg`“${target.text}”`) : target.selector;
     case "slide":
       return target.text
-        ? t`Slide ${target.slide}: “${target.text}”`
-        : t`Slide ${target.slide}`;
+        ? i18n._(msg`Slide ${target.slide}: “${target.text}”`)
+        : i18n._(msg`Slide ${target.slide}`);
     case "cells":
       return target.sheet
-        ? t`Cells ${target.range} on ${target.sheet}`
-        : t`Cells ${target.range}`;
+        ? i18n._(msg`Cells ${target.range} on ${target.sheet}`)
+        : i18n._(msg`Cells ${target.range}`);
     case "node":
-      return t`Node ${target.label ?? target.id}`;
+      return i18n._(msg`Node ${target.label ?? target.id}`);
     case "text":
-      return t`“${target.text}”`;
+      return i18n._(msg`“${target.text}”`);
     case "lines":
       return target.start === target.end
-        ? t`Line ${target.start}`
-        : t`Lines ${target.start} to ${target.end}`;
+        ? i18n._(msg`Line ${target.start}`)
+        : i18n._(msg`Lines ${target.start} to ${target.end}`);
     case "box":
-      return t`Part of the image`;
+      return i18n._(msg`Part of the image`);
     default:
       return target satisfies never;
   }
+};
+
+/**
+ * Sent notes as people read them, one line each ("• where: note"), for
+ * copying a notes message instead of the block the model read.
+ */
+export const notesText = (data: AnnotationsData, i18n: I18n): string =>
+  data.notes
+    .map((note) =>
+      note.target
+        ? `• ${targetText(note.target, i18n)}: ${note.note}`
+        : `• ${note.note}`
+    )
+    .join("\n");
+
+/** The pin's note and the sent card say what a note points at. */
+export function TargetWords({ target }: { readonly target: AnnotationTarget }) {
+  const { i18n } = useLingui();
+  return targetText(target, i18n);
 }

@@ -43,7 +43,7 @@ export const useChatAnnotateSink = ({
   stopReading,
   waiting,
 }: {
-  /** An answer is being written: the notes steer it. */
+  /** An answer is being written: the notes join it (the server decides how). */
   readonly busy: boolean;
   /** The chat, once it exists; a viewer can't write in it. */
   readonly conversation: Pick<Conversation, "myPermission"> | undefined;
@@ -63,7 +63,7 @@ export const useChatAnnotateSink = ({
     () =>
       canSend
         ? {
-            mode: busy ? "steer" : "send",
+            mode: "send",
             send: async (data: AnnotationsData) => {
               // The server stops an answer waiting on approval when a
               // message comes, so this page stops following it first.

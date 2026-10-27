@@ -147,6 +147,17 @@ function AnnotateLayer({
   useShortcut("artifact.annotate", toggle);
 
   const surface = useRef<HTMLDivElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  // Switched on, the surface takes the keyboard; switched off, the toggle.
+  const wasActive = useRef(active);
+  useEffect(() => {
+    if (wasActive.current === active) {
+      return;
+    }
+    wasActive.current = active;
+    const target = active ? surface.current : toggleRef.current;
+    target?.focus({ preventScroll: true });
+  }, [active]);
   // Back to the surface, so the keyboard can place the next pin.
   const refocus = useCallback((visible: boolean) => {
     const options: FocusOptions & { readonly focusVisible?: boolean } = {
@@ -271,6 +282,7 @@ function AnnotateLayer({
               active={active}
               count={drafts.length}
               onToggle={toggle}
+              ref={toggleRef}
             />
           </>
         )}
@@ -371,23 +383,33 @@ function AnnotateToggle({
   active,
   count,
   onToggle,
+  ref,
 }: {
   readonly active: boolean;
   readonly count: number;
   readonly onToggle: () => void;
+  readonly ref: RefObject<HTMLButtonElement | null>;
 }) {
   const { t } = useLingui();
-  const label = active ? t`Stop annotating` : t`Annotate`;
   return (
     <Button
       aria-label={
-        count > 0
-          ? t`${label}, ${plural(count, { one: "# note", other: "# notes" })}`
-          : label
+        active
+          ? t`${plural(count, {
+              0: "Stop annotating",
+              one: "Stop annotating, # note",
+              other: "Stop annotating, # notes",
+            })}`
+          : t`${plural(count, {
+              0: "Annotate",
+              one: "Annotate, # note",
+              other: "Annotate, # notes",
+            })}`
       }
       aria-pressed={active}
       className="shrink-0"
       onClick={onToggle}
+      ref={ref}
       size={count > 0 ? "sm" : "icon-sm"}
       title={t`Annotate (M)`}
       variant={active ? "secondary" : "ghost"}
@@ -652,16 +674,11 @@ function Where({ draft }: { readonly draft: DraftNote }) {
 }
 
 function SendLabel({ mode }: { readonly mode: AnnotateSink["mode"] }) {
-  switch (mode) {
-    case "steer":
-      return <Trans>Steer with notes</Trans>;
-    case "send":
-      return <Trans>Send notes</Trans>;
-    case "chat":
-      return <Trans>Send in chat</Trans>;
-    default:
-      return mode satisfies never;
-  }
+  return mode === "chat" ? (
+    <Trans>Send in chat</Trans>
+  ) : (
+    <Trans>Send notes</Trans>
+  );
 }
 
 /** Floats at the bottom of the view while there are notes, or Annotate is on. */

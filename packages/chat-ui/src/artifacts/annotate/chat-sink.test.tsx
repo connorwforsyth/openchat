@@ -64,7 +64,7 @@ describe("useChatAnnotateSink", () => {
     expect(idle.sendMessage).toHaveBeenCalledWith(annotationsMessage(data));
 
     rerender({ busy: true });
-    expect(result.current?.mode).toBe("steer");
+    expect(result.current?.mode).toBe("send");
     await result.current?.send(data);
     expect(idle.sendBusy).toHaveBeenCalledWith(
       expect.stringContaining("<artifact-annotations>"),
