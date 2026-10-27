@@ -56,7 +56,9 @@ test("three quick messages during tool work: taken together at the next step", a
   const tag = `t${Date.now().toString(36)}`;
   await page.goto("/");
   await send(page, `[script:steady] ${tag}`);
-  await expect(page.getByText("sleep 6")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText("sleep 6").first()).toBeVisible({
+    timeout: 15_000,
+  });
   await proof(page, "batch", "04-take-tool-running");
 
   const texts = [`alpha ${tag}`, `beta ${tag}`, `gamma ${tag}`];
