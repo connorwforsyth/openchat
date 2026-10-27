@@ -3288,6 +3288,10 @@ msgstr "Maximise the browser"
 msgid "Maximise the files"
 msgstr "Maximise the files"
 
+#: ../chat-ui/src/workspace/workspace-panel.tsx
+msgid "Maximise the preview"
+msgstr "Maximise the preview"
+
 #: ../../apps/web/app/(app)/_shared/global-surfaces.tsx
 msgid "MCP"
 msgstr "MCP"
@@ -5088,6 +5092,14 @@ msgstr "Resize sidebar"
 #: ../chat-ui/src/workspace/workspace-panel.tsx
 msgid "Resize the browser"
 msgstr "Resize the browser"
+
+#: ../chat-ui/src/workspace/workspace-panel.tsx
+msgid "Resize the file list"
+msgstr "Resize the file list"
+
+#: ../chat-ui/src/workspace/workspace-panel.tsx
+msgid "Resize the preview"
+msgstr "Resize the preview"
 
 #: ../../apps/web/app/(app)/(pages)/dots/dot-computer.tsx
 msgid "Restart computer"

@@ -45,6 +45,7 @@ import {
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
 import { Kbd } from "@workspace/ui/components/kbd";
+import { ResizeHandle } from "@workspace/ui/components/resizable";
 import { cn } from "@workspace/ui/lib/utils";
 import {
   type ChangeEvent,
@@ -65,6 +66,7 @@ import {
   type ArtifactSelection,
   ArtifactView,
 } from "../artifacts/artifact-view";
+import { kindIcon } from "../artifacts/kind-icon";
 import type { PlanEditing } from "../artifacts/plan-editor";
 import type { WorkspaceSection } from "../model/layout";
 import type { WorkspaceSelection } from "../model/workspace";
@@ -94,13 +96,21 @@ import {
   type TextRun,
 } from "./model/file-search";
 import {
+  COLUMNS_BELOW,
+  clampListWidth,
   type HalfRequest,
+  LIST_WIDTH_DEFAULT,
+  LIST_WIDTH_MIN,
+  listWidthMax,
   type Maximised,
   maximisedAfter,
   maximisedForHalf,
   type PaneLayout,
+  type PanelSlots,
+  type PreviewSlot,
   paneLayout,
   SPLIT_DEFAULT,
+  slotsAfter,
   type TurnView,
   viewForHalf,
   viewOf,
@@ -114,7 +124,7 @@ import { SplitHandle } from "./split-handle";
 import { useElementHeight, useElementWidth } from "./use-element-width";
 import { useFilesDock } from "./use-files-dock";
 import { usePreviewHistory } from "./use-preview-history";
-import { useSplit } from "./use-split";
+import { useListWidth, useSplit } from "./use-split";
 import {
   type FilesView,
   staticFiles,
@@ -149,6 +159,13 @@ import {
 // On a panel too narrow to stack them, the halves take turns, as the list
 // and the file do: the list's Preview leads to the browser, and the browser
 // leads back to the list.
+//
+// Night 2 made the halves the preview and the files viewer (Connor, 27 Oct):
+// the top shows the open artifact, or the browser; below, the file list sits
+// beside the open file, like a code editor, with an edge that remembers its
+// width. An artifact and a file stay open together (`slotsAfter`). Either
+// alone takes the panel: the files fold to their row under a preview, and
+// with nothing to preview they're all there is.
 
 /** Results shown at once; more would only be scrolled past. */
 const MAX_MATCHES = 200;
@@ -194,43 +211,52 @@ export interface WorkspacePanelProps {
 
 export function WorkspacePanel(props: WorkspacePanelProps) {
   const { files } = props;
-  const filesSelection = useFilesSelection(props.selection);
+  const slots = usePanelSlots(props.selection, props.halfRequest ?? null);
   return files.kind === "chat" ? (
-    <ChatWorkspacePanel
-      {...props}
-      files={files}
-      filesSelection={filesSelection}
-    />
+    <ChatWorkspacePanel {...props} files={files} slots={slots} />
   ) : (
-    <WorkspaceLayout
-      {...props}
-      filesSelection={filesSelection}
-      view={staticFiles(files.kind)}
-    />
+    <WorkspaceLayout {...props} slots={slots} view={staticFiles(files.kind)} />
   );
 }
 
+const NO_SLOTS: PanelSlots = { file: null, preview: null };
+const BROWSER: PreviewSlot = { kind: "preview" };
+
+/** A press of the header's Browser puts the browser on top. */
+const withBrowserPress = (slots: PanelSlots, press: number | null) =>
+  press === null ? slots : { ...slots, preview: BROWSER };
+
 /**
- * What the files half shows. The Preview is in the other half now, so
- * picking it (or the chat opening it) leaves the open file where it was.
+ * What each half holds (`slotsAfter`): a pick fills its own half and keeps
+ * the other, so an artifact on top and a file below stay open together.
+ * The header's Browser puts the browser back on top.
  */
-function useFilesSelection(
-  selection: WorkspaceSelection | null
-): WorkspaceSelection | null {
-  const own = selection?.kind === "preview" ? null : selection;
-  const [held, setHeld] = useState(own);
-  if (
-    selection?.kind !== "preview" &&
-    selectionKey(held) !== selectionKey(own)
-  ) {
-    setHeld(own);
+function usePanelSlots(
+  selection: WorkspaceSelection | null,
+  halfRequest: HalfRequest | null
+): PanelSlots {
+  const key = selectionKey(selection);
+  const press = halfRequest?.half === "browser" ? halfRequest.id : null;
+  const [held, setHeld] = useState(() => ({
+    key,
+    press,
+    slots: withBrowserPress(slotsAfter(NO_SLOTS, selection), press),
+  }));
+  if (held.key !== key || held.press !== press) {
+    const picked =
+      held.key === key ? held.slots : slotsAfter(held.slots, selection);
+    setHeld({
+      key,
+      press,
+      slots: held.press === press ? picked : withBrowserPress(picked, press),
+    });
   }
-  return selection?.kind === "preview" ? held : own;
+  return held.slots;
 }
 
 interface LayoutProps extends WorkspacePanelProps {
-  /** The files half's selection: `selection`, or what it was before the Preview. */
-  readonly filesSelection: WorkspaceSelection | null;
+  /** What each half holds: the open artifact or browser, and the open file. */
+  readonly slots: PanelSlots;
 }
 
 function ChatWorkspacePanel(
@@ -238,7 +264,7 @@ function ChatWorkspacePanel(
     readonly files: Extract<WorkspaceFilesSource, { kind: "chat" }>;
   }
 ) {
-  const { files, filesSelection, onSelect, revision } = props;
+  const { files, onSelect, revision, slots } = props;
   const onSelectFile = useCallback(
     (path: string | null) => onSelect(path ? { kind: "file", path } : null),
     [onSelect]
@@ -247,7 +273,7 @@ function ChatWorkspacePanel(
     files,
     onSelectFile,
     revision,
-    selectedPath: selectionPath(filesSelection),
+    selectedPath: slots.file?.path ?? null,
   });
   return <WorkspaceLayout {...props} view={view} />;
 }
@@ -370,24 +396,29 @@ function usePanes({
 }
 
 /**
- * The halves on screen and whose turn it is. On the browser's section the
- * browser shows even with nothing in it yet, to say so (137).
+ * The halves on screen and whose turn it is. The top half shows the open
+ * artifact, or the browser; on the browser's section the browser shows even
+ * with nothing in it yet, to say so (137).
  */
 function useHalves({
+  artifacts,
   halfRequest,
   hasPreview,
   modes,
   request,
   section,
   selection,
+  slots,
   width,
 }: {
+  readonly artifacts: readonly Artifact[];
   readonly halfRequest: HalfRequest | null;
   readonly hasPreview: boolean;
   readonly modes: Readonly<Record<string, FileMode>>;
   readonly request: number | null;
   readonly section: WorkspaceSection | null;
   readonly selection: WorkspaceSelection | null;
+  readonly slots: PanelSlots;
   readonly width: number;
 }) {
   const panes = usePanes({
@@ -397,13 +428,24 @@ function useHalves({
     selection,
   });
   const browserShown = hasPreview || section === "browser";
+  // An artifact this chat doesn't have (another chat's, deleted) isn't shown.
+  const artifact = artifactOf(slots);
+  const artifactShown =
+    artifact !== null &&
+    (artifact.artifactId === undefined ||
+      artifacts.some((each) => each.id === artifact.artifactId));
   const layout = paneLayout({
-    hasPreview: browserShown,
+    hasPreview: browserShown || artifactShown,
     maximised: panes.maximised,
     view: panes.view,
     width,
   });
-  return { browserShown, layout, panes };
+  return {
+    artifactSlot: artifactShown ? artifact : null,
+    browserShown,
+    layout,
+    panes,
+  };
 }
 
 const nextView = (
@@ -694,7 +736,8 @@ function usePageMode({
 function useRowEnds(
   layout: PaneLayout,
   maximise: (half: "browser" | "files") => void,
-  maximised: Maximised
+  maximised: Maximised,
+  artifactShown: boolean
 ): { readonly browser: RowEnd; readonly files: RowEnd } {
   const { t } = useLingui();
   const { browser: browserShown, maximisable } = layout;
@@ -704,7 +747,9 @@ function useRowEnds(
         close: true,
         maximise: maximisable
           ? {
-              label: t`Maximise the browser`,
+              label: artifactShown
+                ? t`Maximise the preview`
+                : t`Maximise the browser`,
               onToggle: () => maximise("browser"),
               pressed: maximised === "browser",
             }
@@ -721,24 +766,34 @@ function useRowEnds(
           : null,
       },
     }),
-    [browserShown, maximisable, maximise, maximised, t]
+    [artifactShown, browserShown, maximisable, maximise, maximised, t]
   );
 }
 
-/** The browser half: its share of the height, or all of it, or hidden. */
+/**
+ * The top half, the open artifact or the browser: its share of the height,
+ * or all of it, or hidden.
+ */
 function BrowserPane({
+  artifact,
+  artifacts,
   backToList,
   children,
   flex,
   hidden,
   id,
+  onSelect,
   rowEnd,
 }: {
+  /** The open artifact, over the browser while it's open. */
+  readonly artifact: ArtifactSlot | null;
+  readonly artifacts: WorkspaceArtifacts;
   readonly backToList: (() => void) | null;
   readonly children: ReactNode;
   readonly flex: string;
   readonly hidden: boolean;
   readonly id: string;
+  readonly onSelect: (selection: WorkspaceSelection) => void;
   readonly rowEnd: RowEnd;
 }) {
   const { t } = useLingui();
@@ -747,14 +802,27 @@ function BrowserPane({
       <BackToListProvider value={backToList}>
         {/* Hidden, not unmounted, while the files have the height: the page stays loaded. */}
         <section
-          aria-label={t`Browser`}
+          aria-label={artifact ? t`Preview` : t`Browser`}
           className="@container/view flex min-h-30 min-w-0 flex-col"
           data-slot="workspace-browser"
           hidden={hidden}
           id={id}
           style={{ flex }}
         >
-          {children}
+          {artifact ? (
+            <PanelArtifact
+              artifacts={artifacts}
+              onSelect={onSelect}
+              slot={artifact}
+            />
+          ) : null}
+          {/* Under an artifact, the browser keeps its page loaded. */}
+          <div
+            className="flex min-h-0 flex-1 flex-col"
+            hidden={Boolean(artifact)}
+          >
+            {children}
+          </div>
         </section>
       </BackToListProvider>
     </RowEndProvider>
@@ -830,7 +898,6 @@ function usePreviewSources(view: FilesView): PreviewSources {
 function WorkspaceLayout({
   artifacts,
   className,
-  filesSelection,
   halfRequest = null,
   onSelect,
   previewRequest,
@@ -838,6 +905,7 @@ function WorkspaceLayout({
   revision,
   section = null,
   selection,
+  slots,
   view,
 }: LayoutProps & { readonly view: FilesView }) {
   const { t } = useLingui();
@@ -856,22 +924,31 @@ function WorkspaceLayout({
   const [measure, width] = useElementWidth<HTMLElement>();
   const [measureHeight, height] = useElementHeight<HTMLDivElement>();
   const hasPreview = preview.history !== null;
-  const { browserShown, layout, panes } = useHalves({
+  const { artifactSlot, browserShown, layout, panes } = useHalves({
+    artifacts: artifacts.artifacts,
     halfRequest,
     hasPreview,
     modes,
     request: previewRequest?.id ?? null,
     section,
     selection,
+    slots,
     width,
   });
+  const artifactShown = artifactSlot !== null;
+  const topShown = browserShown || artifactShown;
   const split = useSplit();
   const dock = useFilesDock();
+  // With nothing on top, the files are all there is: they can't fold.
+  const filesOpen = dock.open || !topShown;
   const browserId = useId();
+
+  const { set: setDock } = dock;
+  useUnfoldOnFiles(halfRequest, setDock);
 
   const { navigate } = preview;
   const { htmlPath, htmlVersion, showFile } = useHtmlPage(
-    filesSelection,
+    slots.file,
     navigate,
     open
   );
@@ -890,12 +967,17 @@ function WorkspaceLayout({
     [onSelect, setFocusRequest]
   );
   const { show } = panes;
+  const columns = useFileColumns(slots.file);
+  const { showFile: showFileColumn } = columns;
   const activate = useCallback(
     (next: WorkspaceSelection) => {
       select(next);
       show(viewOf(next, modes));
+      if (next.kind === "file") {
+        showFileColumn();
+      }
     },
-    [modes, select, show]
+    [modes, select, show, showFileColumn]
   );
   // The file search: ↓/↑ show a result without leaving the search; Enter
   // (or a click) opens it and moves focus into it;
@@ -911,9 +993,10 @@ function WorkspaceLayout({
         // Into its code: an HTML file's page is already in the browser.
         select({ kind: "file", path: match.path });
         show("files");
+        showFileColumn();
         setFocusRequest({ kind: "view", path: match.path });
       },
-      [select, show, setFocusRequest]
+      [select, show, showFileColumn, setFocusRequest]
     ),
     onPreview: useCallback(
       (match: FileMatch) => {
@@ -928,7 +1011,7 @@ function WorkspaceLayout({
 
   // "/" anywhere in the panel (not while typing) goes to the search.
   const { showFiles } = panes;
-  const { set: setDock } = dock;
+  const { showList } = columns;
   const onKeyDown = useCallback(
     (event: KeyboardEvent<HTMLElement>) => {
       if (
@@ -944,25 +1027,27 @@ function WorkspaceLayout({
       event.preventDefault();
       showFiles();
       setDock(true);
+      showList();
       setFocusRequest({ kind: "search" });
     },
-    [setDock, showFiles, setFocusRequest]
+    [setDock, showFiles, showList, setFocusRequest]
   );
 
   const openNewFile = useCallback(() => setNewFileOpen(true), []);
   const drop = useFileDrop(writable, actions?.importFiles);
 
-  const focusView =
-    focusRequest?.kind === "view" &&
-    focusRequest.path === selectionPath(filesSelection)
-      ? focusRequest.path
-      : null;
+  const focusView = viewToFocus(focusRequest, slots.file);
   const viewFocused = useCallback(
     () => setFocusRequest(null),
     [setFocusRequest]
   );
 
-  const rowEnds = useRowEnds(layout, panes.maximise, panes.maximised);
+  const rowEnds = useRowEnds(
+    layout,
+    panes.maximise,
+    panes.maximised,
+    artifactShown
+  );
 
   const pageMode = usePageMode({
     htmlPath: layout.turns ? htmlPath : null,
@@ -972,6 +1057,20 @@ function WorkspaceLayout({
     showFile,
   });
 
+  const topLink = useTopLink({
+    activate,
+    artifact: artifactSlot ? shownArtifact(artifacts, artifactSlot) : null,
+    browserOnScreen: layout.browser && !artifactShown,
+    hasPreview,
+    previewCurrent: selection?.kind === "preview",
+    show,
+    topOnScreen: layout.browser,
+  });
+
+  const divider = layout.divider && filesOpen;
+  const resizeLabel = artifactShown
+    ? t`Resize the preview`
+    : t`Resize the browser`;
   return (
     // biome-ignore lint/a11y/noNoninteractiveElementInteractions: a drop target for files ("Upload files…" in the menu does the same from the keyboard), and "/" to search from anywhere in it.
     <section
@@ -988,33 +1087,34 @@ function WorkspaceLayout({
       ref={measure}
     >
       <div className="flex min-h-0 flex-1 flex-col" ref={measureHeight}>
-        {browserShown ? (
+        {topShown ? (
           <BrowserPane
+            artifact={artifactSlot}
+            artifacts={artifacts}
             backToList={layout.turns ? showFiles : null}
-            flex={layout.files ? `0 1 ${split.fraction * 100}%` : "1 1 0%"}
+            flex={divider ? `0 1 ${split.fraction * 100}%` : "1 1 0%"}
             hidden={!layout.browser}
             id={browserId}
+            onSelect={select}
             rowEnd={rowEnds.browser}
           >
-            <BrowserView
-              history={preview.history}
-              modeToggle={
-                pageMode
-                  ? { mode: "rendered", onModeChange: pageMode }
-                  : undefined
-              }
-              onNavigate={navigate}
-              probe={probePreview}
-              readFile={view.readFile}
-              refreshKey={`${revision}:${htmlVersion}`}
-              sources={sources}
-            />
+            {browserShown ? (
+              <BrowserView
+                history={preview.history}
+                modeToggle={pageToggle(pageMode)}
+                onNavigate={navigate}
+                probe={probePreview}
+                readFile={view.readFile}
+                refreshKey={`${revision}:${htmlVersion}`}
+                sources={sources}
+              />
+            ) : null}
           </BrowserPane>
         ) : null}
-        {layout.divider ? (
+        {divider ? (
           <SplitHandle
             aria-controls={browserId}
-            aria-label={t`Resize the browser`}
+            aria-label={resizeLabel}
             defaultValue={SPLIT_DEFAULT}
             height={height}
             onResize={split.setLive}
@@ -1023,53 +1123,55 @@ function WorkspaceLayout({
           />
         ) : null}
         <RowEndProvider value={rowEnds.files}>
-          <div
-            className="flex min-h-30 flex-1 flex-col"
-            data-slot="workspace-files"
+          <FilesViewer
+            columns={columns}
             hidden={!layout.files}
+            inspector={
+              /* The open file, beside the list. */
+              <div
+                className="@container/view flex min-h-0 min-w-0 flex-1 flex-col outline-none"
+                ref={main}
+                tabIndex={-1}
+              >
+                <MainArea
+                  focusView={focusView}
+                  main={main}
+                  modes={modes}
+                  onModeChange={setMode}
+                  onNewFile={openNewFile}
+                  onPageMode={pageMode}
+                  onViewFocused={viewFocused}
+                  selection={slots.file}
+                  view={view}
+                  writable={writable}
+                />
+              </div>
+            }
+            open={filesOpen}
+            topShown={topShown}
           >
-            {/* The preview pane: what's open, over the file list. */}
-            <div
-              className="@container/view flex min-h-0 min-w-0 flex-1 flex-col outline-none"
-              ref={main}
-              tabIndex={-1}
-            >
-              <MainArea
-                artifacts={artifacts}
-                focusView={focusView}
-                main={main}
-                modes={modes}
-                onModeChange={setMode}
-                onNewFile={openNewFile}
-                onPageMode={pageMode}
-                onSelect={select}
-                onViewFocused={viewFocused}
-                selection={filesSelection}
-                view={view}
-                writable={writable}
-              />
-            </div>
             <FilesDock
               active={search.active}
+              foldable={topShown}
               matches={search.matches}
               onActivate={activate}
               onNewFile={openNewFile}
               onOpenMatch={search.open}
               onQueryChange={search.onChange}
               onSearchKeyDown={search.onKeyDown}
+              onShowOpen={showFileColumn}
               onToggle={dock.toggle}
-              open={dock.open}
-              previewCurrent={selection?.kind === "preview"}
-              previewItem={hasPreview && !layout.browser}
+              open={filesOpen}
               query={search.query}
               searchInput={searchInput}
               searching={search.searching}
-              selection={filesSelection}
+              selection={slots.file}
+              topLink={topLink}
               tree={tree}
               view={view}
               writable={writable}
             />
-          </div>
+          </FilesViewer>
         </RowEndProvider>
       </div>
       <PanelStatus view={view} />
@@ -1089,8 +1191,251 @@ function WorkspaceLayout({
   );
 }
 
-const selectionPath = (selection: WorkspaceSelection | null): string | null =>
-  selection?.kind === "file" ? selection.path : null;
+/** The header's Files unfolds the files viewer as well as showing its half. */
+function useUnfoldOnFiles(
+  halfRequest: HalfRequest | null,
+  unfold: (open: boolean) => void
+) {
+  const press = halfRequest?.half === "files" ? halfRequest.id : null;
+  useEffect(() => {
+    if (press !== null) {
+      unfold(true);
+    }
+  }, [press, unfold]);
+}
+
+/** The file Enter opened, until focus is in it. */
+const viewToFocus = (
+  request: FocusRequest | null,
+  file: PanelSlots["file"]
+): string | null =>
+  request?.kind === "view" && request.path === file?.path ? request.path : null;
+
+const artifactOf = (slots: PanelSlots): ArtifactSlot | null =>
+  slots.preview?.kind === "artifact" ? slots.preview : null;
+
+/** An HTML file's switch to its code, in the browser's toolbar while taking turns. */
+const pageToggle = (onModeChange: ((mode: FileMode) => void) | null) =>
+  onModeChange ? { mode: "rendered" as const, onModeChange } : undefined;
+
+/** The open artifact, on top. */
+function PanelArtifact({
+  artifacts,
+  onSelect,
+  slot,
+}: {
+  readonly artifacts: WorkspaceArtifacts;
+  readonly onSelect: (selection: WorkspaceSelection) => void;
+  readonly slot: ArtifactSlot;
+}) {
+  const select = useCallback(
+    (next: ArtifactSelection) => onSelect({ kind: "artifact", ...next }),
+    [onSelect]
+  );
+  const artifact = shownArtifact(artifacts, slot);
+  // The host loads one artifact's versions at a time: another's are as
+  // good as still loading.
+  const versions = artifacts.versions?.every(
+    (version) => version.artifactId === artifact?.id
+  )
+    ? artifacts.versions
+    : undefined;
+  return (
+    <ArtifactView
+      api={artifacts.api}
+      artifact={artifact}
+      editing={artifacts.editing}
+      error={artifacts.error}
+      header={artifactHeader}
+      onSelect={select}
+      runtimeOrigin={artifacts.runtimeOrigin}
+      versionId={slot.versionId}
+      versions={versions}
+    />
+  );
+}
+
+type ArtifactSlot = Extract<PreviewSlot, { readonly kind: "artifact" }>;
+
+/** The artifact a slot names: its own, or the chat's newest. */
+const shownArtifact = (
+  artifacts: WorkspaceArtifacts,
+  slot: ArtifactSlot
+): Artifact | undefined =>
+  artifacts.artifacts.find((each) => each.id === slot.artifactId) ??
+  artifacts.artifacts[0];
+
+/** A row at the top of the list that leads to the top half. */
+interface TopLink {
+  readonly current: boolean;
+  readonly icon: ReactNode;
+  readonly label: string;
+  readonly onClick: () => void;
+}
+
+/**
+ * The way to the top half from the list while it's out of view (its turn,
+ * or the files maximised): the open artifact by name, or the Preview. Under
+ * an open artifact, the Preview row puts the browser back on top.
+ */
+function useTopLink({
+  activate,
+  artifact,
+  browserOnScreen,
+  hasPreview,
+  previewCurrent,
+  show,
+  topOnScreen,
+}: {
+  readonly activate: (selection: WorkspaceSelection) => void;
+  /** The artifact on top; `undefined` when its slot names none the chat has. */
+  readonly artifact: Artifact | null | undefined;
+  readonly browserOnScreen: boolean;
+  readonly hasPreview: boolean;
+  readonly previewCurrent: boolean;
+  readonly show: (view: TurnView) => void;
+  readonly topOnScreen: boolean;
+}): TopLink | null {
+  const { t } = useLingui();
+  const showTop = useCallback(() => show("browser"), [show]);
+  // Shows the browser on top, in its turn too.
+  const showBrowser = useCallback(
+    () => activate({ kind: "preview" }),
+    [activate]
+  );
+  if (artifact && !topOnScreen) {
+    const Glyph = kindIcon(artifact.kind);
+    return {
+      current: true,
+      icon: <Glyph aria-hidden />,
+      label: artifact.title,
+      onClick: showTop,
+    };
+  }
+  if (!hasPreview || browserOnScreen) {
+    return null;
+  }
+  return {
+    current: previewCurrent,
+    icon: <GlobeIcon aria-hidden />,
+    label: t`Preview`,
+    onClick: showBrowser,
+  };
+}
+
+/**
+ * The files viewer's two columns (night 2): which one a narrow viewer
+ * shows. Picking a file shows it; Back to the list shows the list.
+ */
+function useFileColumns(file: PanelSlots["file"]) {
+  const [turn, setTurn] = useState<{
+    readonly path: string | null;
+    readonly view: "file" | "list";
+  }>(() => ({ path: file?.path ?? null, view: file ? "file" : "list" }));
+  const path = file?.path ?? null;
+  if (turn.path !== path) {
+    setTurn({ path, view: path ? "file" : "list" });
+  }
+  const showList = useCallback(
+    () => setTurn((current) => ({ ...current, view: "list" })),
+    []
+  );
+  const showFile = useCallback(
+    () => setTurn((current) => ({ ...current, view: "file" })),
+    []
+  );
+  const { save, setLive, value } = useListWidth();
+  return useMemo(
+    () => ({
+      listWidth: value,
+      saveListWidth: save,
+      setLiveListWidth: setLive,
+      showFile,
+      showList,
+      view: path ? turn.view : "list",
+    }),
+    [path, save, setLive, showFile, showList, turn.view, value]
+  );
+}
+
+/**
+ * The files below the preview (night 2), laid out like a code editor: the
+ * file list on the left, the open file on the right, with an edge between
+ * them that remembers where it was left. A narrow viewer shows one at a
+ * time. Folded, it's the list's row at the foot of the panel.
+ */
+function FilesViewer({
+  children,
+  columns,
+  hidden,
+  inspector,
+  open,
+  topShown,
+}: {
+  /** The list. */
+  readonly children: ReactNode;
+  readonly columns: ReturnType<typeof useFileColumns>;
+  readonly hidden: boolean;
+  readonly inspector: ReactNode;
+  readonly open: boolean;
+  readonly topShown: boolean;
+}) {
+  const { t } = useLingui();
+  const listId = useId();
+  const [measure, width] = useElementWidth<HTMLDivElement>();
+  const turns = width > 0 && width < COLUMNS_BELOW;
+  const listShown = !(open && turns && columns.view === "file");
+  const fileShown = open && !(turns && columns.view === "list");
+  const max = listWidthMax(width);
+  const listWidth = clampListWidth(columns.listWidth, width);
+  return (
+    <BackToListProvider value={turns ? columns.showList : null}>
+      <div
+        className={cn(
+          "flex min-h-0 min-w-0",
+          open ? "min-h-30 flex-1" : "shrink-0",
+          // Folded, its row is the line under the preview.
+          !open && topShown && "border-t"
+        )}
+        data-slot="workspace-files"
+        hidden={hidden}
+        ref={measure}
+      >
+        <div
+          className={cn(
+            "flex min-h-0 min-w-0 flex-col",
+            open && fileShown ? "shrink-0" : "flex-1"
+          )}
+          hidden={!listShown}
+          id={listId}
+          style={open && fileShown ? { width: listWidth } : undefined}
+        >
+          {children}
+        </div>
+        {open && listShown && fileShown ? (
+          <ResizeHandle
+            aria-controls={listId}
+            aria-label={t`Resize the file list`}
+            className="z-10"
+            defaultValue={Math.min(LIST_WIDTH_DEFAULT, max)}
+            max={max}
+            min={LIST_WIDTH_MIN}
+            onResize={columns.setLiveListWidth}
+            onResizeEnd={columns.saveListWidth}
+            resizes="before"
+            value={listWidth}
+          />
+        ) : null}
+        <div
+          className="flex min-h-0 min-w-0 flex-1 flex-col"
+          hidden={!fileShown}
+        >
+          {inspector}
+        </div>
+      </div>
+    </BackToListProvider>
+  );
+}
 
 function ListItem({
   current,
@@ -1121,50 +1466,52 @@ function ListItem({
   );
 }
 
-/** A section's quiet label in the list. */
 /**
- * The chat's files, docked at the foot of the panel under whatever is open
- * (night 2): a row with the search, New file and the menu, over the tree.
- * It folds to its row, and the panel remembers that. Artifacts aren't here;
- * they're in the header's Artifacts menu.
+ * The files viewer's list column (night 2): a row with the search, New file
+ * and the menu, over the tree. Under a preview it folds to its row, and the
+ * panel remembers that. Artifacts aren't listed here; they're in the
+ * header's Artifacts menu, and the open one has a row leading to it.
  */
 function FilesDock({
   active,
+  foldable,
   matches,
   onActivate,
   onNewFile,
   onOpenMatch,
   onQueryChange,
   onSearchKeyDown,
+  onShowOpen,
   onToggle,
   open,
-  previewCurrent,
-  previewItem,
   query,
   searchInput,
   searching,
   selection,
+  topLink,
   tree,
   view,
   writable,
 }: {
   readonly active: number;
+  /** There's a preview to fold under; otherwise the files are all there is. */
+  readonly foldable: boolean;
   readonly matches: readonly FileMatch[];
   readonly onActivate: (selection: WorkspaceSelection) => void;
   readonly onNewFile: () => void;
   readonly onOpenMatch: (match: FileMatch) => void;
   readonly onQueryChange: (event: ChangeEvent<HTMLInputElement>) => void;
   readonly onSearchKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void;
+  /** Shows the open file again, picked in the list. */
+  readonly onShowOpen: () => void;
   readonly onToggle: () => void;
   readonly open: boolean;
-  /** The Preview is what the chat last picked. */
-  readonly previewCurrent: boolean;
-  /** The way to the browser, when it isn't on screen (its turn, or maximised files). */
-  readonly previewItem: boolean;
   readonly query: string;
   readonly searchInput: RefObject<HTMLInputElement | null>;
   readonly searching: boolean;
   readonly selection: WorkspaceSelection | null;
+  /** The way to the top half when it's out of view. */
+  readonly topLink: TopLink | null;
   readonly tree: RefObject<FileTreeHandle | null>;
   readonly view: FilesView;
   readonly writable: boolean;
@@ -1179,17 +1526,29 @@ function FilesDock({
   const selectFile = useCallback(
     (selected: readonly string[]) => {
       const path = selected.at(-1);
-      if (path && !path.endsWith("/") && path !== openPath) {
+      if (!path || path.endsWith("/")) {
+        return;
+      }
+      if (path !== openPath) {
         onActivate({ kind: "file", path });
       }
     },
     [onActivate, openPath]
   );
-  const selectPreview = useCallback(
-    () => onActivate({ kind: "preview" }),
-    [onActivate]
+  // The open file's row is already selected, so picking it again isn't a
+  // selection change: a narrow viewer showing the list goes back to it.
+  const reopen = useCallback(
+    (event: MouseEvent | KeyboardEvent) => {
+      if (
+        openPath !== null &&
+        ("button" in event || event.key === "Enter") &&
+        rowPathOf(event) === openPath
+      ) {
+        onShowOpen();
+      }
+    },
+    [onShowOpen, openPath]
   );
-
   const activeId = active >= 0 ? `${results}-${active}` : undefined;
   useEffect(() => {
     if (activeId) {
@@ -1200,62 +1559,37 @@ function FilesDock({
   return (
     <nav
       aria-label={t`Files`}
-      className={cn(
-        "flex shrink-0 flex-col border-t",
-        // A tree needs a height to fill; a note is as tall as its line.
-        open && (view.paths?.length ?? 0) > 0 && "h-2/5 max-h-96 min-h-40"
-      )}
+      className="flex min-h-0 flex-1 flex-col"
       data-slot="workspace-files-dock"
     >
-      <div className="flex h-10 shrink-0 items-center gap-1 px-2">
-        <Button
-          aria-controls={body}
-          aria-expanded={open}
-          className="shrink-0 gap-1 px-1.5 font-medium text-muted-foreground text-xs"
-          onClick={onToggle}
-          size="sm"
-          variant="ghost"
-        >
-          {open ? (
-            <ChevronDownIcon aria-hidden />
-          ) : (
-            <ChevronUpIcon aria-hidden />
-          )}
-          <Trans>Files</Trans>
-        </Button>
-        {/* A search field that sits in the row: no frame, a ring on focus. */}
-        <div
-          className="flex h-7 min-w-0 flex-1 items-center gap-1.5 rounded-md ps-1.5 pe-1 focus-within:ring-2 focus-within:ring-ring/50"
-          hidden={!open}
-        >
-          <SearchIcon
-            aria-hidden
-            className="size-4 shrink-0 text-muted-foreground"
-          />
-          <input
-            aria-activedescendant={activeId}
-            aria-autocomplete="list"
-            aria-controls={searching ? results : undefined}
-            aria-expanded={searching}
-            aria-label={t`Search files`}
-            autoComplete="off"
-            className="h-7 w-full min-w-0 bg-transparent text-sm outline-none placeholder:text-muted-foreground [&::-webkit-search-cancel-button]:hidden"
-            disabled={view.paths === null}
-            onChange={onQueryChange}
-            onKeyDown={onSearchKeyDown}
-            placeholder={t`Search files`}
-            ref={searchInput}
-            role="combobox"
-            spellCheck={false}
-            type="search"
-            value={query}
-          />
-          {query ? null : (
-            <Kbd className="pointer-coarse:hidden" title={t`Press / to search`}>
-              /
-            </Kbd>
-          )}
-        </div>
+      {/* Open, the row lines up with the open file's header (one hairline). */}
+      <div
+        className={cn(
+          "flex shrink-0 items-center gap-1 px-2",
+          open ? "h-12 border-b" : "h-10"
+        )}
+      >
+        {foldable ? (
+          <Button
+            aria-controls={body}
+            aria-expanded={open}
+            className="shrink-0 gap-1 px-1.5 font-medium text-muted-foreground text-xs"
+            onClick={onToggle}
+            size="sm"
+            variant="ghost"
+          >
+            {open ? (
+              <ChevronDownIcon aria-hidden />
+            ) : (
+              <ChevronUpIcon aria-hidden />
+            )}
+            <Trans>Files</Trans>
+          </Button>
+        ) : (
+          <span className="px-1.5 font-medium text-muted-foreground text-xs">
+            <Trans>Files</Trans>
+          </span>
+        )}
         <Button
           aria-label={t`New file`}
           className="ms-auto shrink-0"
@@ -1269,6 +1603,39 @@ function FilesDock({
         </Button>
         <WorkspaceMenu view={view} writable={writable} />
       </div>
+      {/* A search field on its own line: no frame, a ring on focus. */}
+      <div
+        className="mx-2 mt-2 flex h-7 min-w-0 shrink-0 items-center gap-1.5 rounded-md ps-1.5 pe-1 focus-within:ring-2 focus-within:ring-ring/50"
+        hidden={!open}
+      >
+        <SearchIcon
+          aria-hidden
+          className="size-4 shrink-0 text-muted-foreground"
+        />
+        <input
+          aria-activedescendant={activeId}
+          aria-autocomplete="list"
+          aria-controls={searching ? results : undefined}
+          aria-expanded={searching}
+          aria-label={t`Search files`}
+          autoComplete="off"
+          className="h-7 w-full min-w-0 bg-transparent text-sm outline-none placeholder:text-muted-foreground [&::-webkit-search-cancel-button]:hidden"
+          disabled={view.paths === null}
+          onChange={onQueryChange}
+          onKeyDown={onSearchKeyDown}
+          placeholder={t`Search files`}
+          ref={searchInput}
+          role="combobox"
+          spellCheck={false}
+          type="search"
+          value={query}
+        />
+        {query ? null : (
+          <Kbd className="pointer-coarse:hidden" title={t`Press / to search`}>
+            /
+          </Kbd>
+        )}
+      </div>
       <div className="flex min-h-0 flex-1 flex-col" hidden={!open} id={body}>
         {searching ? (
           <SearchResults
@@ -1281,30 +1648,48 @@ function FilesDock({
         ) : null}
         {/* Hidden, not unmounted, while searching: the tree keeps its folds. */}
         <div
-          className="flex min-h-0 flex-1 flex-col px-2 pb-2"
+          className="flex min-h-0 flex-1 flex-col px-2 pt-1 pb-2"
           hidden={searching}
         >
-          {previewItem ? (
+          {topLink ? (
             <ul>
               <ListItem
-                current={previewCurrent}
-                icon={<GlobeIcon aria-hidden />}
-                label={t`Preview`}
-                onClick={selectPreview}
+                current={topLink.current}
+                icon={topLink.icon}
+                label={topLink.label}
+                onClick={topLink.onClick}
               />
             </ul>
           ) : null}
-          <FilesList
-            onSelectFiles={selectFile}
-            selectedPath={openPath}
-            tree={tree}
-            view={view}
-          />
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: listens to the tree's own rows (focusable treeitems) as they bubble out of its shadow root. */}
+          {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: the same. */}
+          <div
+            className="flex min-h-0 flex-1 flex-col"
+            onClick={reopen}
+            onKeyDown={reopen}
+          >
+            <FilesList
+              onSelectFiles={selectFile}
+              selectedPath={openPath}
+              tree={tree}
+              view={view}
+            />
+          </div>
         </div>
       </div>
     </nav>
   );
 }
+
+/** The tree row an event came from, through the tree's shadow root. */
+const rowPathOf = (event: MouseEvent | KeyboardEvent): string | null => {
+  for (const target of event.nativeEvent.composedPath()) {
+    if (target instanceof HTMLElement && target.dataset.itemPath) {
+      return target.dataset.itemPath;
+    }
+  }
+  return null;
+};
 
 /** The search's results, in place of the tree: one row per file. */
 function SearchResults({
@@ -1673,21 +2058,19 @@ const artifactHeader = (content: ReactNode) => (
   <ViewHeader>{content}</ViewHeader>
 );
 
+/** The open file, beside the list: its editor or rendered view, or a prompt to pick one. */
 function MainArea({
-  artifacts,
   focusView,
   main,
   modes,
   onModeChange,
   onNewFile,
   onPageMode,
-  onSelect,
   onViewFocused,
   selection,
   view,
   writable,
 }: {
-  readonly artifacts: WorkspaceArtifacts;
   /** The file Enter opened, until focus is in it. */
   readonly focusView: string | null;
   readonly main: RefObject<HTMLDivElement | null>;
@@ -1696,18 +2079,13 @@ function MainArea({
   readonly onNewFile: () => void;
   /** Taking turns: an HTML file's switch to its page in the browser. */
   readonly onPageMode: ((mode: FileMode) => void) | null;
-  readonly onSelect: (selection: WorkspaceSelection | null) => void;
   readonly onViewFocused: () => void;
-  /** The files half's selection (the Preview is in the other half). */
-  readonly selection: WorkspaceSelection | null;
+  /** The open file. */
+  readonly selection: PanelSlots["file"];
   readonly view: FilesView;
   readonly writable: boolean;
 }) {
-  const selectArtifact = useCallback(
-    (next: ArtifactSelection) => onSelect({ kind: "artifact", ...next }),
-    [onSelect]
-  );
-  const selectedPath = selection?.kind === "file" ? selection.path : null;
+  const selectedPath = selection?.path ?? null;
   const changeMode = useCallback(
     (next: FileMode) => {
       if (selectedPath) {
@@ -1739,27 +2117,7 @@ function MainArea({
     }
   }, [focusView, kind, main, mode, onViewFocused, opened]);
 
-  if (selection?.kind === "artifact") {
-    const artifact =
-      artifacts.artifacts.find((each) => each.id === selection.artifactId) ??
-      artifacts.artifacts[0];
-    return (
-      <div className="flex min-h-0 flex-1 flex-col">
-        <ArtifactView
-          api={artifacts.api}
-          artifact={artifact}
-          editing={artifacts.editing}
-          error={artifacts.error}
-          header={artifactHeader}
-          onSelect={selectArtifact}
-          runtimeOrigin={artifacts.runtimeOrigin}
-          versionId={selection.versionId}
-          versions={artifacts.versions}
-        />
-      </div>
-    );
-  }
-  if (selection?.kind === "file" && actions) {
+  if (selection && actions) {
     const file = view.open ?? {
       kind: "loading" as const,
       path: selection.path,

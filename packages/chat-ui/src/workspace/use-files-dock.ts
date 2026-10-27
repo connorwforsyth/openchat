@@ -4,7 +4,7 @@ import { useCallback, useState } from "react";
 
 import { readStored, writeStored } from "./stored";
 
-// Whether the file list docked under the open file or artifact is open.
+// Whether the files viewer under the preview is open or folded to its row.
 // Remembered per browser profile, like the divider (097); read when the
 // panel mounts and written on each toggle.
 

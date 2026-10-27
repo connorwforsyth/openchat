@@ -1910,9 +1910,9 @@ export function ConnectedChat({
   const titleWatch = useTitleWatch(conversationId);
   const shownAt = useShownAt(conversationId);
 
+  const artifactPick = useArtifactPick(selection, conversationId);
   const data = useChatQueries(api, {
-    artifactId:
-      selection?.kind === "artifact" ? (selection.artifactId ?? null) : null,
+    artifactId: artifactPick?.artifactId ?? null,
     conversationId,
     leafId,
     sandboxes: config.features.sandboxes,
@@ -2510,3 +2510,24 @@ export function ConnectedChat({
 }
 
 const NO_MESSAGES: readonly Message[] = [];
+
+/**
+ * The last artifact picked in this chat. The panel keeps an artifact open
+ * above a file opened after it (night 2), so the versions it loads follow
+ * this, not the selection. Another chat starts with none.
+ */
+function useArtifactPick(
+  selection: WorkspaceSelection | null,
+  conversationId: ConversationId | null
+) {
+  const [held, setHeld] = useState(() => ({
+    chat: conversationId,
+    pick: selection?.kind === "artifact" ? selection : null,
+  }));
+  if (held.chat !== conversationId) {
+    setHeld({ chat: conversationId, pick: null });
+  } else if (selection?.kind === "artifact" && selection !== held.pick) {
+    setHeld({ chat: conversationId, pick: selection });
+  }
+  return held.chat === conversationId ? held.pick : null;
+}

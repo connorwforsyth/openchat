@@ -15,7 +15,7 @@ import { type ReactElement, useState } from "react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 
-import { chatArtifacts } from "../fixtures";
+import { artifactVersions, chatArtifacts } from "../fixtures";
 import type { WorkspaceSelection } from "../model/workspace";
 import { RightPanel } from "../shell/right-panel";
 import type {
@@ -261,18 +261,32 @@ describe("the list and the main area", () => {
       kind: "file",
       path: "notes.txt",
     });
-    // Nothing selected: the main area, above the dock, asks for a pick.
+    // Nothing selected: beside the list, like a code editor (night 2),
+    // the open file's place asks for a pick.
     const pick = workspace.getByText("Select a file to open it.");
-    expect(dock.previousElementSibling?.contains(pick)).toBe(true);
+    expect(dock.contains(pick)).toBe(false);
+    const viewer = document.querySelector('[data-slot="workspace-files"]');
+    expect(viewer?.contains(dock) && viewer.contains(pick)).toBe(true);
+    // The list first, then the file (Tailwind isn't loaded here; the row is
+    // checked with the real styles in e2e).
+    expect(dock.compareDocumentPosition(pick)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    );
+    expect(
+      workspace.getByRole("separator", { name: "Resize the file list" })
+    ).toBeTruthy();
   });
 
-  it("folds the dock to its row, and remembers that", async () => {
+  it("folds the files under a preview to their row, and remembers that", async () => {
     const { client } = fakeClient({
       "/work/notes.txt": { content: "notes\n", etag: V1 },
     });
-    const view = renderWithI18n(
-      <WorkspacePanel {...props({ files: chatFiles(client) })} />
-    );
+    const base = props({
+      artifacts: { artifacts: chatArtifacts, versions: undefined },
+      files: chatFiles(client),
+      selection: { kind: "artifact" },
+    });
+    const view = renderWithI18n(<WorkspacePanel {...base} />);
     await treeItem("notes.txt");
     const fold = panel().getByRole("button", { expanded: true, name: "Files" });
     await userEvent.click(fold);
@@ -280,13 +294,31 @@ describe("the list and the main area", () => {
     expect(
       panel().queryByRole("combobox", { name: "Search files" })
     ).toBeNull();
+    // Folded, the preview has the panel: no divider between them.
+    expect(
+      panel().queryByRole("separator", { name: "Resize the preview" })
+    ).toBeNull();
     view.unmount();
-    renderWithI18n(<WorkspacePanel {...props({ files: chatFiles(client) })} />);
+    renderWithI18n(<WorkspacePanel {...base} />);
     expect(
       panel()
         .getByRole("button", { name: "Files" })
         .getAttribute("aria-expanded")
     ).toBe("false");
+    window.localStorage.removeItem(FILES_DOCK_STORAGE_KEY);
+  });
+
+  it("can't fold the files when there's nothing above them", async () => {
+    window.localStorage.setItem(FILES_DOCK_STORAGE_KEY, "closed");
+    const { client } = fakeClient({
+      "/work/notes.txt": { content: "notes\n", etag: V1 },
+    });
+    renderWithI18n(<WorkspacePanel {...props({ files: chatFiles(client) })} />);
+    await treeItem("notes.txt");
+    expect(panel().queryByRole("button", { name: "Files" })).toBeNull();
+    expect(
+      panel().getByRole("combobox", { name: "Search files" })
+    ).toBeTruthy();
     window.localStorage.removeItem(FILES_DOCK_STORAGE_KEY);
   });
 
@@ -303,42 +335,45 @@ describe("the list and the main area", () => {
     await waitFor(() => expect(client.listFiles).toHaveBeenCalled());
   });
 
-  it("follows the open file in the tree, so a file can be opened again after an artifact", async () => {
+  it("keeps the open file below when an artifact opens above (night 2)", async () => {
     const { client } = fakeClient({
       "/work/notes.txt": { content: "# Notes\n", etag: V1 },
     });
-    const onSelect = vi.fn();
     const base = props({
       artifacts: { artifacts: chatArtifacts, versions: undefined },
       files: chatFiles(client),
-      onSelect,
     });
     const view = renderWithI18n(
-      <WorkspacePanel
-        {...base}
-        selection={{ kind: "file", path: "notes.txt" }}
-      />
+      <div style={{ height: 800, width: 900 }}>
+        <WorkspacePanel
+          {...base}
+          selection={{ kind: "file", path: "notes.txt" }}
+        />
+      </div>
     );
     const row = await treeItem("notes.txt");
     await waitFor(() =>
       expect(row().getAttribute("aria-selected")).toBe("true")
     );
+    expect(await editable()).toBeTruthy();
 
-    // An artifact takes the main area: the tree lets go of the file…
     view.rerender(
-      <WorkspacePanel {...base} selection={{ kind: "artifact" }} />
+      <div style={{ height: 800, width: 900 }}>
+        <WorkspacePanel {...base} selection={{ kind: "artifact" }} />
+      </div>
     );
-    await waitFor(() =>
-      expect(row().getAttribute("aria-selected")).not.toBe("true")
+    const top = panel().getByRole("region", { name: "Preview" });
+    expect(within(top).getByText("Loading artifact")).toBeTruthy();
+    // The file stays open, under it, and the tree still shows it.
+    expect(await editable()).toBeTruthy();
+    expect(row().getAttribute("aria-selected")).toBe("true");
+    const files = document.querySelector('[data-slot="workspace-files"]');
+    expect(top.getBoundingClientRect().bottom).toBeLessThanOrEqual(
+      files?.getBoundingClientRect().top ?? 0
     );
-    // …so clicking it selects it anew.
-    onSelect.mockClear();
-    // The DOM way: Playwright's hit test doesn't reach the row here.
-    await press(row());
-    expect(onSelect).toHaveBeenLastCalledWith({
-      kind: "file",
-      path: "notes.txt",
-    });
+    expect(
+      panel().getByRole("separator", { name: "Resize the preview" })
+    ).toBeTruthy();
   });
 
   it("shows the selected artifact", () => {
@@ -355,6 +390,27 @@ describe("the list and the main area", () => {
       />
     );
     expect(panel().getByText("Loading artifact")).toBeTruthy();
+  });
+
+  it("waits for the artifact's own versions, not another's", () => {
+    const [plan, page] = chatArtifacts;
+    if (!(plan && page)) {
+      throw new Error("fixture artifacts");
+    }
+    renderWithI18n(
+      <WorkspacePanel
+        {...props({
+          // The host still has the plan's versions as the page opens.
+          artifacts: {
+            artifacts: chatArtifacts,
+            versions: artifactVersions[plan.id],
+          },
+          selection: { artifactId: page.id, kind: "artifact" },
+        })}
+      />
+    );
+    expect(panel().getByText("Loading artifact")).toBeTruthy();
+    expect(panel().getByRole("heading", { name: page.title })).toBeTruthy();
   });
 });
 
@@ -1140,7 +1196,7 @@ describe("the file search (070)", () => {
 });
 
 describe("a narrow panel (070)", () => {
-  it("keeps the files docked under the open file", async () => {
+  it("shows the list or the open file, one at a time, with a way back", async () => {
     const { client } = fakeClient({
       "/work/notes.txt": { content: "notes\n", etag: V1 },
     });
@@ -1152,11 +1208,19 @@ describe("a narrow panel (070)", () => {
         />
       </div>
     );
+    const visible = (element: HTMLElement | null) =>
+      element !== null && element.closest("[hidden]") === null;
+    const nav = () =>
+      panel().getByRole("navigation", { hidden: true, name: "Files" });
     expect(await editable()).toBeTruthy();
-    expect(panel().getByRole("navigation", { name: "Files" })).toBeTruthy();
-    expect(
-      panel().queryByRole("button", { name: "Back to the list" })
-    ).toBeNull();
+    expect(visible(nav())).toBe(false);
+    await userEvent.click(
+      panel().getByRole("button", { name: "Back to the list" })
+    );
+    expect(visible(nav())).toBe(true);
+    await press((await treeItem("notes.txt"))());
+    // Already open: picking it again shows it.
+    await waitFor(() => expect(visible(nav())).toBe(false));
   });
 
   it("keeps the Preview toolbar to one row at 340px: the rest is in its menu", async () => {
@@ -1220,7 +1284,9 @@ describe("the browser over the files (097)", () => {
     );
     await treeItem("notes.txt");
     expect(browser()).toBeNull();
-    expect(panel().queryByRole("separator")).toBeNull();
+    expect(
+      panel().queryByRole("separator", { name: "Resize the browser" })
+    ).toBeNull();
     expect(
       panel().queryByRole("button", { name: "Maximise the files" })
     ).toBeNull();
