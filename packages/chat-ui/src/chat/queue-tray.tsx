@@ -9,6 +9,7 @@ import {
   XIcon,
 } from "@workspace/icons";
 import { Button } from "@workspace/ui/components/button";
+import { useToastManager } from "@workspace/ui/components/toast";
 import {
   Tooltip,
   TooltipContent,
@@ -16,18 +17,24 @@ import {
 } from "@workspace/ui/components/tooltip";
 import { type ComponentProps, type ReactNode, useCallback } from "react";
 
-import type { QueuedTurn } from "../model/queue";
+import { type QueuedTurn, queueFailureOf } from "../model/queue";
 
 // The turns waiting on the answer being written, over the composer (as
 // Claude Code, Codex and T3 Code show theirs): each can steer the answer
 // now, go back into the composer to edit, or go.
 
+/** How taking a turn back went: `kept` when a turn queued under it holds its message in the chat. */
+export interface Withdrawn {
+  readonly kept: boolean;
+}
+
+/** Each rejects as the server refused, for the tray to say why. */
 export interface QueueActions {
   /** Back into the composer, out of the queue. */
-  readonly onEdit: (turn: QueuedTurn) => void;
-  readonly onRemove: (turn: QueuedTurn) => void;
+  readonly onEdit: (turn: QueuedTurn) => Promise<Withdrawn>;
+  readonly onRemove: (turn: QueuedTurn) => Promise<Withdrawn>;
   /** Into the answer being written, at its next step. */
-  readonly onSteer: (turn: QueuedTurn) => void;
+  readonly onSteer: (turn: QueuedTurn) => Promise<void>;
 }
 
 function Action({
@@ -71,9 +78,40 @@ function QueuedRow({
   readonly turn: QueuedTurn;
 }) {
   const { t } = useLingui();
-  const steer = useCallback(() => actions.onSteer(turn), [actions, turn]);
-  const edit = useCallback(() => actions.onEdit(turn), [actions, turn]);
-  const remove = useCallback(() => actions.onRemove(turn), [actions, turn]);
+  const { add } = useToastManager();
+  const failed = useCallback(
+    (error: unknown) => {
+      const why = queueFailureOf(error);
+      add({
+        priority: "high",
+        title: {
+          failed: t`Couldn't change the queued message. Try again.`,
+          finished: t`That message isn't queued any more.`,
+          forbidden: t`Only the person who sent a queued message can change it.`,
+        }[why],
+      });
+    },
+    [add, t]
+  );
+  const keptNote = useCallback(
+    ({ kept }: Withdrawn) => {
+      if (kept) {
+        add({
+          title: t`A message was queued after it, so it stays in the chat.`,
+        });
+      }
+    },
+    [add, t]
+  );
+  const steer = useCallback(() => {
+    actions.onSteer(turn).catch(failed);
+  }, [actions, failed, turn]);
+  const edit = useCallback(() => {
+    actions.onEdit(turn).then(keptNote, failed);
+  }, [actions, failed, keptNote, turn]);
+  const remove = useCallback(() => {
+    actions.onRemove(turn).then(keptNote, failed);
+  }, [actions, failed, keptNote, turn]);
   const steering = turn.delivery === "steer";
   // Only the turn next in line can join the answer being written; a steer
   // behind another turn joins the answer to that one.
@@ -108,27 +146,29 @@ function QueuedRow({
         ) : null}
         {steering ? null : <Trans>Queued</Trans>}
       </span>
-      <span className="flex shrink-0 items-center">
-        {steering ? null : (
-          <Action disabled={busy} label={t`Steer now`} onClick={steer}>
-            <CornerDownLeftIcon aria-hidden />
+      {turn.mine ? (
+        <span className="flex shrink-0 items-center">
+          {steering ? null : (
+            <Action disabled={busy} label={t`Steer now`} onClick={steer}>
+              <CornerDownLeftIcon aria-hidden />
+            </Action>
+          )}
+          <Action
+            disabled={busy || turn.text === null}
+            label={t`Edit`}
+            onClick={edit}
+          >
+            <PencilIcon aria-hidden />
           </Action>
-        )}
-        <Action
-          disabled={busy || turn.text === null}
-          label={t`Edit`}
-          onClick={edit}
-        >
-          <PencilIcon aria-hidden />
-        </Action>
-        <Action
-          disabled={busy}
-          label={t`Remove from the queue`}
-          onClick={remove}
-        >
-          <XIcon aria-hidden />
-        </Action>
-      </span>
+          <Action
+            disabled={busy}
+            label={t`Remove from the queue`}
+            onClick={remove}
+          >
+            <XIcon aria-hidden />
+          </Action>
+        </span>
+      ) : null}
     </li>
   );
 }

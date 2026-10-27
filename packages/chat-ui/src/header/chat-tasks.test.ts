@@ -48,7 +48,11 @@ describe("chatTasks", () => {
       said("m-r1", "Then a site."),
       said("m-r2", "Use blue."),
     ];
-    const tasks = chatTasks(runs, queuedTurns(runs, messages), messages);
+    const tasks = chatTasks(
+      runs,
+      queuedTurns(runs, messages, "u-me" as never),
+      messages
+    );
     expect(
       tasks.map(({ messageId, status, text }) => ({ messageId, status, text }))
     ).toEqual([

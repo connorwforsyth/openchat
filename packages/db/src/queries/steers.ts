@@ -39,6 +39,66 @@ const lockInOrder = async (tx: Db, runId: RunId): Promise<RunRow | null> => {
   return locked.ok ? locked.value : null;
 };
 
+/** The steer next in line behind a running run, and the answer it follows. */
+export interface SteerCandidate {
+  /** The answer the run is writing, which the steer comes after. */
+  readonly answerId: MessageId;
+  /** The steer's own run. */
+  readonly runId: RunId;
+  /** The steer's user message. */
+  readonly userMessage: MessageRow;
+}
+
+/**
+ * The steer `answering` could take: queued directly behind it, by the same
+ * person (the run goes on as its creator: memory, budget, files), under the
+ * answer it is writing. `lock` locks the steer's row too.
+ */
+const steerBehind = async (
+  db: Db,
+  answering: RunRow,
+  lock: boolean
+): Promise<SteerCandidate | null> => {
+  const answerId = answering.assistantMessageId;
+  if (answering.status !== "running" || !answerId) {
+    return null;
+  }
+  const query = db
+    .select()
+    .from(run)
+    .where(
+      and(
+        eq(run.afterRunId, answering.id),
+        eq(run.status, "queued"),
+        eq(run.createdBy, answering.createdBy),
+        sql`${run.options}->>'delivery' = 'steer'`
+      )
+    )
+    .orderBy(asc(run.createdAt), asc(run.id))
+    .limit(1);
+  const [steer] = lock ? await query.for("update") : await query;
+  if (!steer) {
+    return null;
+  }
+  const asked = await getMessage(db, steer.userMessageId);
+  return asked.ok && asked.value.parentId === answerId
+    ? { answerId, runId: steer.id, userMessage: asked.value }
+    : null;
+};
+
+/**
+ * The steer a running run would take next, read without locks: the caller
+ * prepares what the model reads from it (which may read files) outside any
+ * transaction, then takes it with `takeSteer`.
+ */
+export const nextSteer = async (
+  db: Db,
+  runId: RunId
+): Promise<SteerCandidate | null> => {
+  const answering = await getRun(db, runId);
+  return answering.ok ? await steerBehind(db, answering.value, false) : null;
+};
+
 export interface TakenSteer {
   /** The answer the run writes from here on, under the steer's message. */
   readonly answer: MessageRow;
@@ -54,49 +114,36 @@ export interface TakenSteer {
  * Takes the steer waiting next in line behind `runId`, if there is one it
  * can take: queued directly behind the run, under the answer the run is
  * writing. Turns queued behind the steer move after the new answer. All in
- * one transaction,
- * with the run and the steer locked, so a Stop or a claim on either sees
- * the steer either still queued or already taken. `null`: none to take.
+ * one transaction, with the run and the steer locked, so a Stop or a claim
+ * on either sees the steer either still queued or already taken.
+ *
+ * It takes only the steer the caller prepared (`expected`, from
+ * `nextSteer`), still next and still after the same answer; anything else
+ * is `null`, and the next step boundary looks again. Only database work
+ * happens under the locks. `null`: none to take.
  */
 export const takeSteer = async (
   db: Db,
   runId: RunId,
+  expected: Pick<SteerCandidate, "answerId" | "runId">,
   now: Date = new Date()
 ): Promise<TakenSteer | null> =>
   await db.transaction(async (tx) => {
     const answering = await lockInOrder(tx, runId);
-    const previousAnswerId = answering?.assistantMessageId;
-    if (answering?.status !== "running" || !previousAnswerId) {
+    const found = answering ? await steerBehind(tx, answering, true) : null;
+    if (
+      !(answering && found) ||
+      found.runId !== expected.runId ||
+      found.answerId !== expected.answerId
+    ) {
       return null;
     }
-    const [steer] = await tx
-      .select()
-      .from(run)
-      .where(
-        and(
-          eq(run.afterRunId, runId),
-          eq(run.status, "queued"),
-          // The run goes on as its own creator (memory, budget, files), so
-          // only their steer joins it; anyone else's runs as their own turn.
-          eq(run.createdBy, answering.createdBy),
-          sql`${run.options}->>'delivery' = 'steer'`
-        )
-      )
-      .orderBy(asc(run.createdAt), asc(run.id))
-      .limit(1)
-      .for("update");
-    if (!steer) {
-      return null;
-    }
-    const asked = await getMessage(tx, steer.userMessageId);
-    if (!asked.ok || asked.value.parentId !== previousAnswerId) {
-      return null;
-    }
+    const asked = found.userMessage;
     const answer = await insertMessage(tx, {
       authorId: null,
       conversationId: answering.conversationId,
       mode: answering.options?.chatMode ?? null,
-      parentId: steer.userMessageId,
+      parentId: asked.id,
       parts: [],
       role: "assistant",
       runId,
@@ -112,7 +159,7 @@ export const takeSteer = async (
     const [dated] = await tx
       .update(message)
       .set({
-        createdAt: sql`(select m.created_at from message m where m.id = ${steer.userMessageId}) + interval '1 microsecond'`,
+        createdAt: sql`(select m.created_at from message m where m.id = ${asked.id}) + interval '1 microsecond'`,
       })
       .where(eq(message.id, answer.value.id))
       .returning({ createdAt: message.createdAt });
@@ -120,19 +167,16 @@ export const takeSteer = async (
       .update(message)
       .set({ parentId: answer.value.id })
       .where(
-        and(
-          eq(message.parentId, steer.userMessageId),
-          ne(message.id, answer.value.id)
-        )
+        and(eq(message.parentId, asked.id), ne(message.id, answer.value.id))
       );
-    await requeueAfter(tx, steer.id, runId);
+    await requeueAfter(tx, found.runId, runId);
     await tx
       .update(run)
       .set({ assistantMessageId: answer.value.id })
       .where(eq(run.id, runId));
     const ended = await transitionRun(
       tx,
-      steer.id,
+      found.runId,
       { cancelledBy: null, type: "cancel" },
       now
     );
@@ -143,9 +187,9 @@ export const takeSteer = async (
       answer: dated
         ? { ...answer.value, createdAt: dated.createdAt }
         : answer.value,
-      previousAnswerId,
+      previousAnswerId: found.answerId,
       run: ended.value,
-      userMessage: asked.value,
+      userMessage: asked,
     };
   });
 

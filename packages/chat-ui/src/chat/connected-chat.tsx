@@ -22,6 +22,7 @@ import {
   type QueryUtils,
 } from "@workspace/client/api";
 import {
+  ACTIVE_RUNS_LIMIT,
   pickedSkills,
   type RunCreated,
   userParts,
@@ -137,7 +138,6 @@ import {
 } from "../model/plan";
 import { withoutQueued } from "../model/queue";
 import {
-  ACTIVE_RUNS_LIMIT,
   answerPhases,
   runToFollow,
   stoppableRun,
@@ -2316,6 +2316,7 @@ export function ConnectedChat({
     client,
     messages,
     refresh,
+    viewer: me.user.id,
   });
   const shownMessages = useMemo(
     () => withoutQueued(messages, queue.turns),

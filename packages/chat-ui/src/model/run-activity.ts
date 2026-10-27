@@ -6,12 +6,6 @@ import type { Run } from "@workspace/contract/schemas/runs";
 // written or wait on a decision, which run Stop stops, and whether the only
 // thing going on is a change waiting for the person. Pure.
 
-/**
- * How many unfinished runs the chat lists: the one answering and the turns
- * queued behind it, which the composer's queue shows.
- */
-export const ACTIVE_RUNS_LIMIT = 20;
-
 /** How an unfinished answer's run is doing. */
 export type AnswerPhase = "queued" | "running" | "waiting";
 

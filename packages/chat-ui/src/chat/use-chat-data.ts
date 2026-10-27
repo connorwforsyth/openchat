@@ -7,6 +7,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import type { QueryUtils } from "@workspace/client/api";
+import { ACTIVE_RUNS_LIMIT } from "@workspace/client/run-transport";
 import type {
   ArtifactId,
   ConversationId,
@@ -18,7 +19,7 @@ import type {
 } from "@workspace/contract/schemas/conversations";
 import type { z } from "zod";
 
-import { ACTIVE_RUNS_LIMIT, runInFront } from "../model/run-activity";
+import { runInFront } from "../model/run-activity";
 
 // The queries and mutations behind `ConnectedChat`, split out so each piece
 // reads on its own. Keys come from the contract through
