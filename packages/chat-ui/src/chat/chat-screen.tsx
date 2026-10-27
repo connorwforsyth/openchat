@@ -141,21 +141,6 @@ export interface WorkspaceHandle {
   readonly openPreview: (path?: string) => void;
 }
 
-/**
- * What the composer is filled with: this screen's own fills ("Edit this
- * image") and the host's (a queued message taken back to edit), as one
- * sequence, so each applies once whichever came last.
- */
-const useComposerFill = (hostFill: ComposerFill | undefined) => {
-  const [fill, setFill] = useState<ComposerFill>();
-  const [hostFillId, setHostFillId] = useState(hostFill?.id);
-  if (hostFill && hostFill.id !== hostFillId) {
-    setHostFillId(hostFill.id);
-    setFill((last) => ({ id: (last?.id ?? 0) + 1, text: hostFill.text }));
-  }
-  return [fill, setFill] as const;
-};
-
 export interface ChatScreenProps {
   readonly actions: ConversationActions;
   /**
@@ -624,14 +609,14 @@ function ChatScreenBody({
   const chatWorkspace = files.kind === "chat";
   // "Edit this image" (138): a follow-up naming the picture's workspace
   // path goes in the composer, for the person to finish and send.
-  const [composerFill, setComposerFill] = useComposerFill(composer.fill);
+  const [composerFill, setComposerFill] = useState<ComposerFill>();
   const editImage = useCallback(
     ({ path }: { readonly path: string }) =>
       setComposerFill((last) => ({
         id: (last?.id ?? 0) + 1,
         text: t`Edit the image ${path}: `,
       })),
-    [setComposerFill, t]
+    [t]
   );
   const conversationActions = useMemo(
     () => ({

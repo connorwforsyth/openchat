@@ -35,20 +35,21 @@ const multiStep = (paths: readonly string[], answer = "Done.") => {
   });
 };
 
-const steerFor = (text: string): TakenSteer => {
-  const message = {
+/** A steer of one or more quick messages, taken together. */
+const steerFor = (...texts: readonly string[]): TakenSteer => {
+  const asked = texts.map((text) => ({
     authorId: newId("user"),
     createdAt: "2026-10-27T10:00:00.000Z",
     id: newId("message"),
     parts: [{ text, type: "text" as const }],
-  };
+  }));
   return {
     data: {
       answerId: newId("message"),
-      message,
+      messages: asked,
       previousAnswerId: newId("message"),
     },
-    message: user(message.id, text),
+    messages: asked.map((each, index) => user(each.id, texts[index] ?? "")),
   };
 };
 
@@ -126,6 +127,34 @@ describe("runAgent steering", () => {
     await readAll(twoSteps.value.stream);
     await twoSteps.value.outcome;
     expect(takeSteer).toHaveBeenCalledTimes(1);
+  });
+
+  it("gives the model every message of a batch in one take", async () => {
+    const model = multiStep(["a.txt"]);
+    const takeSteer = vi
+      .fn<() => Promise<TakenSteer | null>>()
+      .mockResolvedValueOnce(steerFor("Use b.", "And c.", "Then d."))
+      .mockResolvedValue(null);
+    const run = await runAgent({
+      messages: [user("u1", "read a.txt")],
+      model,
+      takeSteer,
+      tools,
+    });
+    if (!run.ok) {
+      throw new Error(run.error.message);
+    }
+    const chunks = await readAll(run.value.stream);
+    await run.value.outcome;
+    expect(userTexts(model, 1)).toEqual([
+      "read a.txt",
+      "Use b.",
+      "And c.",
+      "Then d.",
+    ]);
+    expect(
+      chunks.filter((chunk) => chunk.type === `data-${STEER_DATA}`)
+    ).toHaveLength(1);
   });
 
   it("keeps a steer in the model's view for every later step", async () => {

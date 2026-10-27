@@ -30,6 +30,12 @@ import {
   type RunRow,
   stoppedRunAt,
 } from "@workspace/db/queries/runs";
+import {
+  followThread,
+  lockConversation,
+  questionChain,
+  toolWorkStarted,
+} from "@workspace/db/queries/steers";
 import type { RunUnattended } from "@workspace/db/schema/chat";
 import { err, ok, type Result } from "@workspace/shared/result";
 import { TransactionRollbackError } from "drizzle-orm";
@@ -122,7 +128,12 @@ export const busyTail = (
             run.userMessageId === anchor ||
             run.assistantMessageId === anchor ||
             run.id === anchorRunId
-        )
+        ) ??
+          // The run that wrote the anchor has ended (restarted with a
+          // message sent while it wrote): the turn after it answers now.
+          (anchorRunId === null
+            ? undefined
+            : active.find((run) => run.afterRunId === anchorRunId))
       );
 
 /**
@@ -173,10 +184,60 @@ export const partsMaySteer = (parts: readonly MessagePart[]): boolean =>
   !answeringAgent(chipsOf(parts)) &&
   !planApprovalOf(parts);
 
-/** The options stored for the turn: a steer that may not steer queues. Pure. */
-const withDelivery = (options: RunOptions, steerable: boolean): RunOptions => {
-  const { delivery, ...rest } = options;
-  return delivery === "steer" && steerable ? { ...rest, delivery } : rest;
+/**
+ * How a message joins a branch that's busy with its sender's turn (Connor's
+ * model, after ChatGPT: it goes into the thread at once, and quick messages
+ * get one answer):
+ *
+ * - `join`: that turn hasn't started; the message joins its batch, with no
+ *   run of its own.
+ * - `restart`: the answer has only thought or written so far; it stops and
+ *   starts again with every message (the partial answer stays, unshown).
+ * - `steer`: the answer has started tool work; it takes the message at its
+ *   next step boundary, so no finished work is lost.
+ * - `queue`: anything else is its own turn after: someone else's turn, a
+ *   message that picks skills or an agent or approves a plan, an answer
+ *   waiting on approval, or a client that asked to queue.
+ */
+export type BusyJoin = "join" | "queue" | "restart" | "steer";
+
+/** Pure. */
+export const busyJoin = ({
+  actorId,
+  asked,
+  batches,
+  tail,
+  toolWork,
+}: {
+  readonly actorId: Actor["userId"];
+  /** The client's `delivery`, if it chose. */
+  readonly asked: RunOptions["delivery"];
+  /** Whether the message may share an answer (`maySteer`). */
+  readonly batches: boolean;
+  readonly tail: Pick<RunRow, "createdBy" | "status">;
+  /** Whether the running answer has begun tool work. */
+  readonly toolWork: boolean;
+}): BusyJoin => {
+  if (tail.createdBy !== actorId || !batches || asked === "queue") {
+    return "queue";
+  }
+  switch (tail.status) {
+    case "queued":
+      return "join";
+    case "running":
+      return toolWork ? "steer" : "restart";
+    default:
+      return "queue";
+  }
+};
+
+/** The options stored for the turn: `delivery` only on a steer. Pure. */
+const withDelivery = (
+  options: RunOptions,
+  how: BusyJoin | null
+): RunOptions => {
+  const { delivery: _asked, ...rest } = options;
+  return how === "steer" ? { ...rest, delivery: "steer" } : rest;
 };
 
 /**
@@ -268,7 +329,11 @@ const settleContext = async (
 
 interface Placed {
   readonly created: boolean;
+  /** The answer to stop and start again with this message (`restart`). */
+  readonly restarts?: RunRow;
+  /** The run answering it: its own, or the one whose batch it joined. */
   readonly run: RunRow;
+  readonly userMessageId: MessageId;
 }
 
 /** A regenerate must answer a user message in this conversation. */
@@ -394,32 +459,25 @@ const placeRun = async (
   }
 ): Promise<Placed | undefined> => {
   const { conversationId, input: turn } = input;
-  const anchor = turn.type === "message" ? turn.parentId : turn.userMessageId;
   let placed: Placed | undefined;
   try {
     placed = await db.transaction(async (tx) => {
-      // A question stopped while it was queued never got an answer, so a
-      // reply under it waits on its place in the queue, under that question.
-      let tail = busyTail(
-        await listActiveRuns(tx, conversationId),
-        anchor,
-        await anchorRunOf(tx, anchor)
-      );
-      if (!tail && anchor !== null) {
-        tail = await stoppedRunAt(tx, conversationId, anchor);
-      }
+      // Placements one at a time: quick messages each see the last one's
+      // message and run, so they land in order and in one batch.
+      await lockConversation(tx, conversationId);
+      const anchor = await anchorFor(tx, input);
+      const tail = await tailFor(tx, conversationId, anchor);
+      const how =
+        tail && turn.type === "message"
+          ? await joinFor(tx, actor, input, resolved.skills, tail)
+          : null;
       let userMessageId: MessageId = anchor as MessageId;
       if (turn.type === "message") {
-        // A turn sent while the branch is busy follows the answer being
-        // written. With a chain of queued turns the last one has no answer
-        // yet, so the new message follows its question instead.
         const inserted = await insertMessage(tx, {
           authorId: actor.userId,
           conversationId,
           mode: resolved.chatMode,
-          parentId: tail
-            ? (tail.assistantMessageId ?? tail.userMessageId)
-            : turn.parentId,
+          parentId: await parentFor(tx, anchor, tail, how),
           parts: partsWithSkills(turn.parts, resolved.skills),
           role: "user",
         });
@@ -427,6 +485,9 @@ const placeRun = async (
           return tx.rollback();
         }
         userMessageId = inserted.value.id;
+      }
+      if (how === "join" && tail) {
+        return { created: false, run: tail, userMessageId };
       }
       const created = await insertRun(tx, {
         afterRunId: tail?.id ?? null,
@@ -437,7 +498,7 @@ const placeRun = async (
         idempotencyKey: input.idempotencyKey ?? null,
         options: withDelivery(
           withChatMode(input.options, resolved.chatMode),
-          maySteer(input, resolved.skills)
+          how
         ),
         status: "queued",
         target: resolved.target,
@@ -445,10 +506,14 @@ const placeRun = async (
         userMessageId,
       });
       if (!created.created) {
-        placed = created;
+        placed = { ...created, userMessageId: created.run.userMessageId };
         tx.rollback();
       }
-      return created;
+      return {
+        ...created,
+        ...(how === "restart" && tail ? { restarts: tail } : {}),
+        userMessageId,
+      };
     });
   } catch (cause) {
     if (!(cause instanceof TransactionRollbackError)) {
@@ -456,6 +521,76 @@ const placeRun = async (
     }
   }
   return placed;
+};
+
+/** The message a turn follows, where the thread is now (`followThread`). */
+const anchorFor = async (
+  tx: Db,
+  { input: turn }: CreateRunInput
+): Promise<MessageId | null> => {
+  if (turn.type !== "message") {
+    return turn.userMessageId;
+  }
+  return turn.parentId && (await followThread(tx, turn.parentId));
+};
+
+/**
+ * The run a turn sent from `anchor` waits on, if the branch is busy. A
+ * question stopped while it was queued never got an answer, so a reply
+ * under it waits on its place in the queue, under that question.
+ */
+const tailFor = async (
+  tx: Db,
+  conversationId: ConversationView["id"],
+  anchor: MessageId | null
+): Promise<RunRow | undefined> => {
+  const tail = busyTail(
+    await listActiveRuns(tx, conversationId),
+    anchor,
+    await anchorRunOf(tx, anchor)
+  );
+  return tail || anchor === null
+    ? tail
+    : await stoppedRunAt(tx, conversationId, anchor);
+};
+
+/** How a message joins the busy branch (`busyJoin`), from the run's state. */
+const joinFor = async (
+  tx: Db,
+  actor: Actor,
+  input: CreateRunInput,
+  skills: readonly SkillUse[],
+  tail: RunRow
+): Promise<BusyJoin> =>
+  busyJoin({
+    actorId: actor.userId,
+    asked: input.options?.delivery,
+    batches: maySteer(input, skills),
+    tail,
+    toolWork: tail.status === "running" && (await toolWorkStarted(tx, tail.id)),
+  });
+
+/**
+ * Where the message goes: into the batch (after its last message) to join
+ * or restart; after the answer being written (or a queued turn's question)
+ * otherwise; after `anchor` when nothing is busy.
+ */
+const parentFor = async (
+  tx: Db,
+  anchor: MessageId | null,
+  tail: RunRow | undefined,
+  how: BusyJoin | null
+): Promise<MessageId | null> => {
+  if (!tail) {
+    return anchor;
+  }
+  if (how === "join" || how === "restart") {
+    return (
+      (await questionChain(tx, tail.userMessageId)).at(-1)?.id ??
+      tail.userMessageId
+    );
+  }
+  return tail.assistantMessageId ?? tail.userMessageId;
 };
 
 /**
@@ -659,6 +794,10 @@ const startRun = async (
   }
 
   let { run } = placed;
+  if (placed.restarts) {
+    // The new run is queued behind it, so it starts as this one ends.
+    await deps.executor.cancel(placed.restarts.id, actor.userId);
+  }
   if (placed.created && input.input.type === "message") {
     // Before the run starts, so its turn reads the version approved.
     await pinPlanApproval(db, {
@@ -681,7 +820,7 @@ const startRun = async (
     runId: run.id,
     status: run.status,
     streamUrl: streamUrlFor(run.id),
-    userMessageId: run.userMessageId,
+    userMessageId: placed.userMessageId,
   });
 };
 

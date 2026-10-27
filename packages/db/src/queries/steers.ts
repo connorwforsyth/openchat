@@ -1,8 +1,8 @@
 import type { MessageId, RunId } from "@workspace/contract/schemas/common";
-import { and, asc, eq, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, ne, sql } from "drizzle-orm";
 
 import type { Db } from "../client";
-import { conversation, message, run } from "../schema/chat";
+import { conversation, message, run, runChunk } from "../schema/chat";
 import { getMessage, insertMessage, type MessageRow } from "./messages";
 import {
   getRun,
@@ -19,6 +19,198 @@ import {
 // message. So the tree reads as it happened (answer, steer, the rest of
 // the answer) and every rule about queued turns still holds for a steer
 // that is never taken: it runs next, as queued.
+
+/**
+ * A question and the messages its author sent under it before it was
+ * answered, oldest first: the batch one answer covers. A message sent while
+ * a turn waits joins its chain, so quick messages get one answer.
+ */
+export const questionChain = async (
+  db: Db,
+  firstId: MessageId
+): Promise<MessageRow[]> => {
+  const first = await getMessage(db, firstId);
+  if (!first.ok) {
+    return [];
+  }
+  const chain = [first.value];
+  for (;;) {
+    const last = chain.at(-1) as MessageRow;
+    // biome-ignore lint/performance/noAwaitInLoops: one hop per message in the batch; a few at most.
+    const next = await db
+      .select({ id: message.id })
+      .from(message)
+      .where(
+        and(
+          eq(message.parentId, last.id),
+          eq(message.role, "user"),
+          first.value.authorId === null
+            ? sql`false`
+            : eq(message.authorId, first.value.authorId)
+        )
+      )
+      .orderBy(asc(message.createdAt), asc(message.id))
+      .limit(2);
+    const [only] = next;
+    if (next.length !== 1 || !only) {
+      return chain;
+    }
+    const row = await getMessage(db, only.id);
+    if (!row.ok) {
+      return chain;
+    }
+    chain.push(row.value);
+  }
+};
+
+/**
+ * Locks a conversation for the rest of the transaction. Placing a turn and
+ * starting one take it first, so they see each other's messages and runs.
+ */
+export const lockConversation = async (
+  tx: Db,
+  conversationId: RunRow["conversationId"]
+): Promise<void> => {
+  await tx
+    .select({ id: conversation.id })
+    .from(conversation)
+    .where(eq(conversation.id, conversationId))
+    .for("update");
+};
+
+/**
+ * Where a message sent from `anchor` goes, when the thread has gone on
+ * past it before the sender's page saw that (quick messages, sent faster
+ * than the page refetches):
+ *
+ * - a question that has been answered since: after its answer;
+ * - an answer that was stopped and restarted (a turn queued behind its
+ *   run): after the turn that replaced it, or its question until it has an
+ *   answer.
+ *
+ * Otherwise `anchor` itself.
+ */
+export const followThread = async (
+  db: Db,
+  anchor: MessageId
+): Promise<MessageId> => {
+  let current = anchor;
+  const seen = new Set<string>();
+  for (;;) {
+    // biome-ignore lint/performance/noAwaitInLoops: one hop per turn the page missed; a few at most.
+    const next = await laterThan(db, current);
+    if (!next || seen.has(next)) {
+      return current;
+    }
+    seen.add(next);
+    current = next;
+  }
+};
+
+/**
+ * The message in `id`'s batch that has the run: `id` itself, or the first
+ * of the quick messages sent under it before it was answered.
+ */
+const batchHead = async (db: Db, id: MessageId): Promise<MessageId> => {
+  let current = id;
+  for (;;) {
+    // biome-ignore lint/performance/noAwaitInLoops: one hop per message in the batch; a few at most.
+    const [own] = await db
+      .select({ id: run.id })
+      .from(run)
+      .where(eq(run.userMessageId, current))
+      .limit(1);
+    const found = own ? null : await getMessage(db, current);
+    const parentId = found?.ok ? found.value.parentId : null;
+    const parent = parentId ? await getMessage(db, parentId) : null;
+    if (
+      !(parent?.ok && found?.ok) ||
+      parent.value.role !== "user" ||
+      parent.value.authorId !== found.value.authorId
+    ) {
+      return current;
+    }
+    current = parent.value.id;
+  }
+};
+
+/** One hop of `followThread`; `null` when `id` is where the thread is. */
+const laterThan = async (db: Db, id: MessageId): Promise<MessageId | null> => {
+  const found = await getMessage(db, id);
+  if (!found.ok) {
+    return null;
+  }
+  if (found.value.role === "user") {
+    // A question (or a batch of them) answered since: after the answer.
+    const head = await batchHead(db, id);
+    const end = (await questionChain(db, head)).at(-1)?.id ?? head;
+    const [answer] = await db
+      .select({ id: message.id })
+      .from(message)
+      .where(and(eq(message.parentId, end), eq(message.role, "assistant")))
+      .orderBy(desc(message.createdAt), desc(message.id))
+      .limit(1);
+    if (answer) {
+      return answer.id;
+    }
+    // Still waiting: its batch's run is the one to find.
+    return head === id ? null : head;
+  }
+  const { runId } = found.value;
+  if (!runId) {
+    return null;
+  }
+  const ended = await getRun(db, runId);
+  if (!ended.ok || ended.value.status !== "cancelled") {
+    return null;
+  }
+  const [after] = await db
+    .select()
+    .from(run)
+    .where(eq(run.afterRunId, runId))
+    .orderBy(asc(run.createdAt), asc(run.id))
+    .limit(1);
+  return after ? (after.assistantMessageId ?? after.userMessageId) : null;
+};
+
+/**
+ * Where a run's answer goes: under the last message of its question's
+ * batch. Locks the conversation first, as placing a message does, so a
+ * message can't join the batch after this read and end up beside the answer.
+ */
+export const batchEnd = async (
+  tx: Db,
+  conversationId: RunRow["conversationId"],
+  firstId: MessageId
+): Promise<MessageId> => {
+  await lockConversation(tx, conversationId);
+  return (await questionChain(tx, firstId)).at(-1)?.id ?? firstId;
+};
+
+// What a run streams once it starts work it would lose by restarting.
+const TOOL_CHUNKS = [
+  "tool-input-start",
+  "tool-input-available",
+  "tool-output-available",
+];
+
+/** Whether a run's answer has begun calling tools (from its stream so far). */
+export const toolWorkStarted = async (
+  db: Db,
+  runId: RunId
+): Promise<boolean> => {
+  const [row] = await db
+    .select({ seq: runChunk.seq })
+    .from(runChunk)
+    .where(
+      and(
+        eq(runChunk.runId, runId),
+        inArray(sql<string>`${runChunk.payload}->>'type'`, TOOL_CHUNKS)
+      )
+    )
+    .limit(1);
+  return row !== undefined;
+};
 
 /**
  * Locks the run's conversation, then the run. Placing a turn locks the
@@ -45,8 +237,8 @@ export interface SteerCandidate {
   readonly answerId: MessageId;
   /** The steer's own run. */
   readonly runId: RunId;
-  /** The steer's user message. */
-  readonly userMessage: MessageRow;
+  /** The steer's message and any sent under it since, oldest first. */
+  readonly userMessages: readonly MessageRow[];
 }
 
 /**
@@ -80,9 +272,9 @@ const steerBehind = async (
   if (!steer) {
     return null;
   }
-  const asked = await getMessage(db, steer.userMessageId);
-  return asked.ok && asked.value.parentId === answerId
-    ? { answerId, runId: steer.id, userMessage: asked.value }
+  const asked = await questionChain(db, steer.userMessageId);
+  return asked[0]?.parentId === answerId
+    ? { answerId, runId: steer.id, userMessages: asked }
     : null;
 };
 
@@ -106,8 +298,8 @@ export interface TakenSteer {
   readonly previousAnswerId: MessageId;
   /** The steer's run, now ended unrun. */
   readonly run: RunRow;
-  /** The steer's user message. */
-  readonly userMessage: MessageRow;
+  /** The steer's messages, oldest first. */
+  readonly userMessages: readonly MessageRow[];
 }
 
 /**
@@ -125,7 +317,7 @@ export interface TakenSteer {
 export const takeSteer = async (
   db: Db,
   runId: RunId,
-  expected: Pick<SteerCandidate, "answerId" | "runId">,
+  expected: SteerCandidate,
   now: Date = new Date()
 ): Promise<TakenSteer | null> =>
   await db.transaction(async (tx) => {
@@ -134,11 +326,13 @@ export const takeSteer = async (
     if (
       !(answering && found) ||
       found.runId !== expected.runId ||
-      found.answerId !== expected.answerId
+      found.answerId !== expected.answerId ||
+      // A message that joined the batch since wasn't prepared: next time.
+      found.userMessages.at(-1)?.id !== expected.userMessages.at(-1)?.id
     ) {
       return null;
     }
-    const asked = found.userMessage;
+    const asked = found.userMessages.at(-1) as MessageRow;
     const answer = await insertMessage(tx, {
       authorId: null,
       conversationId: answering.conversationId,
@@ -189,7 +383,7 @@ export const takeSteer = async (
         : answer.value,
       previousAnswerId: found.answerId,
       run: ended.value,
-      userMessage: asked,
+      userMessages: found.userMessages,
     };
   });
 

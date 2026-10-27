@@ -8,18 +8,20 @@ const text = (value: string): MessagePart => ({ text: value, type: "text" });
 
 const marker = (previousAnswerId: string): SteerData => ({
   answerId: newId("message"),
-  message: {
-    authorId: newId("user"),
-    createdAt: "2026-10-27T10:00:00.000Z",
-    id: newId("message"),
-    parts: [text("Steer.")],
-  },
+  messages: [
+    {
+      authorId: newId("user"),
+      createdAt: "2026-10-27T10:00:00.000Z",
+      id: newId("message"),
+      parts: [text("Steer.")],
+    },
+  ],
   previousAnswerId: previousAnswerId as SteerData["previousAnswerId"],
 });
 
 const markerPart = (data: SteerData): MessagePart => ({
   data,
-  id: data.message.id,
+  id: data.answerId,
   name: STEER_DATA,
   type: "data",
 });

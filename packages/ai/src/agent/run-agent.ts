@@ -104,10 +104,10 @@ export interface RunAgentInput {
   readonly unavailableTools?: Readonly<Record<string, string>>;
 }
 
-/** A steer the answer took: its marker, and its message as the model reads it. */
+/** A steer the answer took: its marker, and its messages as the model reads them. */
 export interface TakenSteer {
   readonly data: SteerData;
-  readonly message: UIMessage;
+  readonly messages: readonly UIMessage[];
 }
 
 export interface AwaitedCall {
@@ -307,7 +307,7 @@ const artifactRefsInStream = (
 
 const steerPart = (data: SteerData) => ({
   data,
-  id: data.message.id,
+  id: data.answerId,
   type: `data-${STEER_DATA}` as const,
 });
 
@@ -433,7 +433,7 @@ export const runAgent = async (
       return {
         messages: [
           ...kept,
-          ...(await convertToModelMessages([taken.message], {
+          ...(await convertToModelMessages([...taken.messages], {
             tools: input.tools,
           })),
         ],

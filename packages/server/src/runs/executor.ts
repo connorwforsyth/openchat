@@ -57,7 +57,7 @@ import {
   setRunResolvedModel,
   transitionRun,
 } from "@workspace/db/queries/runs";
-import { nextSteer, takeSteer } from "@workspace/db/queries/steers";
+import { batchEnd, nextSteer, takeSteer } from "@workspace/db/queries/steers";
 import { newId } from "@workspace/shared/ids";
 import { err, ok, type Result } from "@workspace/shared/result";
 import {
@@ -825,25 +825,30 @@ export const createInProcessExecutor = (
       // A steer's message is made into what the model reads (its files
       // read too) outside any transaction, then that steer alone is taken:
       // no I/O under the take's locks, and a failure leaves it queued.
-      const prepareSteer = async (row: MessageRow) => {
-        const asked = toMessage(row);
-        if (!asked.ok) {
+      const prepareSteer = async (rows: readonly MessageRow[]) => {
+        const asked = rows.flatMap((row) => {
+          const mapped = toMessage(row);
+          return mapped.ok ? [mapped.value] : [];
+        });
+        if (asked.length !== rows.length) {
           return null;
         }
-        const [message] = toUIMessages(
+        const steerInput = toUIMessages(
           await attachmentsForModel(
-            [asked.value],
+            asked,
             run.createdBy,
             deps.attachments?.(turn.value.resolvedModel) ?? NO_ATTACHMENTS
           ),
           { fileUrl }
         );
-        return message ? { asked: asked.value, message } : null;
+        return steerInput.length === asked.length
+          ? { asked, steerInput }
+          : null;
       };
       const takeNextSteer = async () => {
         const candidate = await nextSteer(db, run.runId);
         const prepared = candidate
-          ? await prepareSteer(candidate.userMessage)
+          ? await prepareSteer(candidate.userMessages)
           : null;
         const taken =
           candidate && prepared
@@ -866,19 +871,19 @@ export const createInProcessExecutor = (
         if (!closed.ok) {
           report("couldn't close a taken steer's stream", closed.error);
         }
-        const { asked, message } = prepared;
+        const { asked: steered, steerInput } = prepared;
         return {
           data: {
             answerId: taken.answer.id,
-            message: {
-              authorId: asked.authorId,
-              createdAt: asked.createdAt,
-              id: asked.id,
-              parts: asked.parts,
-            },
+            messages: steered.map(({ authorId, createdAt, id, parts }) => ({
+              authorId,
+              createdAt,
+              id,
+              parts,
+            })),
             previousAnswerId: taken.previousAnswerId,
           },
-          message,
+          messages: steerInput,
         };
       };
       const agentRun = await runAgent({
@@ -936,16 +941,25 @@ export const createInProcessExecutor = (
   const claim = async (
     run: RunStart,
     controller: AbortController
-  ): Promise<Result<MessageId, RunExecutorError>> => {
+  ): Promise<
+    Result<
+      { readonly answerId: MessageId; readonly leafId: MessageId },
+      RunExecutorError
+    >
+  > => {
     const assistantMessageId = newId("message");
+    let leafId = run.userMessageId;
     try {
       await db.transaction(async (tx) => {
+        // One answer for the question and every message sent under it while
+        // it waited.
+        leafId = await batchEnd(tx, run.conversationId, run.userMessageId);
         const inserted = await insertMessage(tx, {
           authorId: null,
           conversationId: run.conversationId,
           id: assistantMessageId,
           mode: run.options.chatMode ?? null,
-          parentId: run.userMessageId,
+          parentId: leafId,
           parts: [],
           role: "assistant",
           runId: run.runId,
@@ -966,7 +980,7 @@ export const createInProcessExecutor = (
         }
         active.set(run.runId, controller);
       });
-      return ok(assistantMessageId);
+      return ok({ answerId: assistantMessageId, leafId });
     } catch (cause) {
       release(run.runId, controller);
       if (cause instanceof TransactionRollbackError) {
@@ -1012,7 +1026,7 @@ export const createInProcessExecutor = (
     }
     track(
       run.runId,
-      execute(run, claimed.value, run.userMessageId, controller)
+      execute(run, claimed.value.answerId, claimed.value.leafId, controller)
     );
     return ok(undefined);
   };
