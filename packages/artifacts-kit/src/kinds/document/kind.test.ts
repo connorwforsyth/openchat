@@ -27,6 +27,11 @@ Careful.
 None.
 `;
 
+const RENAME_REPORT =
+  /"Plan".*"Roadmap"[\s\S]*"Goal"[\s\S]*"Notes"[\s\S]*"Risks"/;
+const DELETE_REPORT = /"Steps"[\s\S]*"Notes"/;
+const REPLACE_REPORT =
+  /"Plan"[\s\S]*"Goal"[\s\S]*"Steps"[\s\S]*"Notes"[\s\S]*"Risks"/;
 const APPENDED = /None\.\n\n## Owner\n\nAda\.\n$/;
 
 const stored = builtinArtifactKinds.fromModel("document", PLAN);
@@ -123,13 +128,15 @@ describe("sections", () => {
       "Risks",
     ]);
     const steps = findSection(document, "steps");
-    expect(steps).toEqual({ end: 7, level: 2, start: 3 });
+    expect(steps).toEqual({ bodyEnd: 5, end: 7, level: 2, start: 3 });
     expect(findSection(document, "## Notes")).toEqual({
+      bodyEnd: 7,
       end: 7,
       level: 3,
       start: 5,
     });
     expect(findSection(document, "Plan")).toEqual({
+      bodyEnd: 1,
       end: 9,
       level: 1,
       start: 0,
@@ -149,8 +156,57 @@ describe("structured edits", () => {
     });
     expect(result.ok).toBe(true);
     expect(markdownOf(result)).toBe(
-      "# Plan\n\n## Goal\n\nShip it.\n\n## Steps\n\n1. Build.\n2. Test.\n3. Ship.\n\n## Risks\n\nNone.\n"
+      "# Plan\n\n## Goal\n\nShip it.\n\n## Steps\n\n1. Build.\n2. Test.\n3. Ship.\n\n### Notes\n\nCareful.\n\n## Risks\n\nNone.\n"
     );
+  });
+
+  it("replace_section renaming a heading keeps the subsections under it", () => {
+    const trip = builtinArtifactKinds.fromModel(
+      "document",
+      "# Plan\nGo north.\n\n## Packing\nTent.\n"
+    );
+    const result = edit(
+      "replace_section",
+      { content: "# Trip plan\nGo north in May.", heading: "Plan" },
+      trip
+    );
+    expect(markdownOf(result)).toBe(
+      "# Trip plan\n\nGo north in May.\n\n## Packing\n\nTent.\n"
+    );
+  });
+
+  it("replace_section refuses Markdown that repeats a subsection it keeps", () => {
+    const result = edit("replace_section", {
+      content: "1. Build.\n\n### Notes\nNew notes.",
+      heading: "Steps",
+    });
+    expect(result.ok).toBe(false);
+    expect(result.ok ? "" : result.error.join(" ")).toContain('"Notes"');
+  });
+
+  it("insert at a section's end puts text before its subsections, and a new section after them", () => {
+    expect(
+      markdownOf(edit("insert", { content: "Also.", heading: "Steps" }))
+    ).toContain("2. Test.\n\nAlso.\n\n### Notes");
+    expect(
+      markdownOf(
+        edit("insert", { content: "### Owner\nAda.", heading: "Steps" })
+      )
+    ).toContain("Careful.\n\n### Owner\n\nAda.\n\n## Risks");
+  });
+
+  it("reports what an edit changed, naming every heading it kept or removed", () => {
+    const report = (operation: string, input: unknown) =>
+      builtinArtifactKinds
+        .report("document", stored, operation, input)
+        .join(" ");
+    expect(
+      report("replace_section", { content: "# Roadmap", heading: "Plan" })
+    ).toMatch(RENAME_REPORT);
+    expect(report("delete_section", { heading: "Steps" })).toMatch(
+      DELETE_REPORT
+    );
+    expect(report("replace", { content: "# New" })).toMatch(REPLACE_REPORT);
   });
 
   it("replace_section replaces the heading too when the Markdown starts with one", () => {

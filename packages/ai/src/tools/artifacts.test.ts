@@ -11,6 +11,7 @@ import { runAgent, withArtifactRefs } from "../agent/run-agent";
 import { fromUIMessage } from "../messages/from-ui";
 import { toUIMessages } from "../messages/to-ui";
 import { readAll, textStream, toolCallStream } from "../testing/mock-models";
+import { artifactModelText } from "./artifact-content";
 import {
   type ArtifactStore,
   artifactProblems,
@@ -318,6 +319,9 @@ describe("artifact cards in a run", () => {
   });
 });
 
+const RENAME_REPORT = /"Plan"[\s\S]*"Roadmap"[\s\S]*"Steps"[\s\S]*"Risks"/;
+const DELETE_REPORT = /"Plan"[\s\S]*"Steps"[\s\S]*"Risks"/;
+
 describe("documents (126)", () => {
   const PLAN = "# Plan\n\n## Steps\n1. Build.\n\n## Risks\nNone.";
 
@@ -372,6 +376,31 @@ describe("documents (126)", () => {
     ]);
     expect(saved[1]?.content).toContain("Ship.");
     expect(saved[1]?.content).toContain("None.");
+  });
+
+  it("tells the model which sections a rename kept, so it can't claim one was lost or kept wrongly", async () => {
+    const { artifactId, saved, store } = await created();
+    const output = await updateArtifact(store, {
+      artifactId,
+      edit: {
+        content: "# Roadmap",
+        heading: "Plan",
+        operation: "replace_section",
+      },
+    });
+    expect(saved[1]?.content).toContain("Roadmap");
+    expect(saved[1]?.content).toContain("Steps");
+    expect(saved[1]?.content).toContain("Risks");
+    expect(artifactModelText(output)).toMatch(RENAME_REPORT);
+  });
+
+  it("tells the model which headings a delete removed", async () => {
+    const { artifactId, store } = await created();
+    const output = await updateArtifact(store, {
+      artifactId,
+      edit: { heading: "Plan", operation: "delete_section" },
+    });
+    expect(artifactModelText(output)).toMatch(DELETE_REPORT);
   });
 
   it("replaces the whole document from Markdown too", async () => {
