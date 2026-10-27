@@ -69,7 +69,7 @@
     var(--ease-motion-in-out) infinite;
   --animate-dot-drift: dot-drift calc(var(--motion-ambient) * 3) linear infinite;
   /*
-   * A status still going ("Sending…"): opacity only, on the ambient clock.
+   * A status still going ("Thinking…"): opacity only, on the ambient clock.
    * Use with `motion-safe:`.
    */
   --animate-status-pulse: status-pulse calc(var(--motion-ambient) / 2)

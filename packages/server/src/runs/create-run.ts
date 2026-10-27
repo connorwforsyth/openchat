@@ -34,12 +34,12 @@ import {
   followThread,
   lockConversation,
   questionChain,
+  steerInstead,
   toolWorkStarted,
 } from "@workspace/db/queries/steers";
 import type { RunUnattended } from "@workspace/db/schema/chat";
 import { err, ok, type Result } from "@workspace/shared/result";
 import { TransactionRollbackError } from "drizzle-orm";
-
 import type { Actor } from "../context";
 import { canUseLibraryItem } from "../library/router";
 import {
@@ -48,6 +48,7 @@ import {
   storeContext,
 } from "./chat-context";
 import { canEditAgent, draftFor } from "./drafts";
+import type { InProcessExecutor } from "./executor";
 import { pinPlanApproval } from "./plan-artifact";
 import { isPlanKind, PLAN_APPROVAL_DATA, planApprovalOf } from "./plan-mode";
 import { partsWithSkills, resolvePickedSkills } from "./skills";
@@ -81,6 +82,11 @@ export interface CreateRunDeps {
   /** `models.default` from app.config.yaml: the target when neither the run nor the chat names one. */
   readonly defaultModel: ModelSelector | null;
   readonly executor: RunExecutor;
+  /**
+   * Stops an answer to start it again unless it has begun a tool call
+   * (`InProcessExecutor.restartIfNoTools`). Without it, a restart is a Stop.
+   */
+  readonly restartIfNoTools?: InProcessExecutor["restartIfNoTools"];
 }
 
 export const streamUrlFor = (runId: RunId): string =>
@@ -215,11 +221,18 @@ export const busyJoin = ({
   readonly asked: RunOptions["delivery"];
   /** Whether the message may share an answer (`maySteer`). */
   readonly batches: boolean;
-  readonly tail: Pick<RunRow, "createdBy" | "status">;
+  readonly tail: Pick<RunRow, "createdBy" | "status" | "unattended">;
   /** Whether the running answer has begun tool work. */
   readonly toolWork: boolean;
 }): BusyJoin => {
-  if (tail.createdBy !== actorId || !batches || asked !== "steer") {
+  // A scheduled or check-in run is a Dot's own; a person's message is a
+  // turn of its own after it.
+  if (
+    tail.createdBy !== actorId ||
+    tail.unattended !== null ||
+    !batches ||
+    asked !== "steer"
+  ) {
     return "queue";
   }
   switch (tail.status) {
@@ -524,15 +537,22 @@ const placeRun = async (
   return placed;
 };
 
-/** The message a turn follows, where the thread is now (`followThread`). */
+/**
+ * The message a turn follows. A message sent to join the answer being
+ * written (`delivery: "steer"`) follows the thread to where it is now
+ * (`followThread`): the sender's page may be behind. Anything else, an
+ * edit included, goes exactly where it was sent.
+ */
 const anchorFor = async (
   tx: Db,
-  { input: turn }: CreateRunInput
+  { input: turn, options }: CreateRunInput
 ): Promise<MessageId | null> => {
   if (turn.type !== "message") {
     return turn.userMessageId;
   }
-  return turn.parentId && (await followThread(tx, turn.parentId));
+  return options?.delivery === "steer" && turn.parentId
+    ? await followThread(tx, turn.parentId)
+    : turn.parentId;
 };
 
 /**
@@ -592,6 +612,31 @@ const parentFor = async (
     );
   }
   return tail.assistantMessageId ?? tail.userMessageId;
+};
+
+/**
+ * Stops `answering` so `next` (queued behind it) answers again with every
+ * message. If it began a tool call in the meantime, `next` becomes a steer
+ * instead, so no tool's work is thrown away. If no pass runs it here (it
+ * ended, or waits on approval), it gets a plain Stop: an answer that ended
+ * stays, and `next` starts after it.
+ */
+const restart = async (
+  deps: CreateRunDeps,
+  actor: Actor,
+  next: RunRow,
+  answering: RunRow
+): Promise<void> => {
+  const outcome = deps.restartIfNoTools
+    ? await deps.restartIfNoTools(answering.id, actor.userId)
+    : "idle";
+  if (outcome === "tools") {
+    await steerInstead(deps.db, next, answering.id);
+    return;
+  }
+  if (outcome === "idle") {
+    await deps.executor.cancel(answering.id, actor.userId);
+  }
 };
 
 /**
@@ -796,8 +841,7 @@ const startRun = async (
 
   let { run } = placed;
   if (placed.restarts) {
-    // The new run is queued behind it, so it starts as this one ends.
-    await deps.executor.cancel(placed.restarts.id, actor.userId);
+    await restart(deps, actor, placed.run, placed.restarts);
   }
   if (placed.created && input.input.type === "message") {
     // Before the run starts, so its turn reads the version approved.

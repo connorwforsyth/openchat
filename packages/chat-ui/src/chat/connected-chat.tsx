@@ -641,6 +641,7 @@ const useLiveTurn = ({
   client,
   context,
   conversationId,
+  editing,
   me,
   onFinish,
   onRunCreated,
@@ -654,6 +655,11 @@ const useLiveTurn = ({
   readonly client: ApiClient;
   readonly context: ChatContext;
   readonly conversationId: ConversationId | null;
+  /**
+   * The next message is an edit: a new branch from where it was, never
+   * joined to an answer being written. Read, and cleared, as it goes.
+   */
+  readonly editing: { current: boolean };
   readonly me: Me;
   readonly onFinish: () => void;
   readonly onRunCreated: (run: RunCreated) => void;
@@ -690,20 +696,23 @@ const useLiveTurn = ({
   const runFields = useCallback(() => {
     const fields = fieldsRef.current;
     const options = turnOptions(fields.webSearch, fields.variant, plan.current);
+    const edit = editing.current;
+    editing.current = false;
     return {
       context: fields.context,
       // Web search off means "let the Decider choose" (`auto`). A message
       // sent while an answer is on its way joins it (the server decides
-      // how), even when this page hasn't seen that answer start yet.
+      // how), even when this page hasn't seen that answer start yet; an
+      // edit is its own branch.
       options: {
         sandbox: "auto" as const,
         webSearch: "auto" as const,
         ...options,
-        delivery: "steer" as const,
+        ...(edit ? {} : { delivery: "steer" as const }),
       },
       ...(fields.target ? { target: fields.target } : {}),
     };
-  }, [plan]);
+  }, [editing, plan]);
   const chat = useRunChat({
     client,
     conversationId: conversationId ?? "new",
@@ -2041,6 +2050,8 @@ export function ConnectedChat({
   }, [refresh, watchTitle]);
   // The run this page started last, for Stop before the runs list has it.
   const createdRunId = useRef<RunId | null>(null);
+  // An edit's message goes as its own branch (`useLiveTurn`'s `editing`).
+  const editNext = useRef(false);
   // A voice turn waits here for the run its send started.
   const runWaiters = useRef<((runId: RunId | null) => void)[]>([]);
   const onRunCreated = useCallback(
@@ -2057,6 +2068,7 @@ export function ConnectedChat({
       client,
       context,
       conversationId,
+      editing: editNext,
       me,
       onFinish,
       onRunCreated,
@@ -2224,6 +2236,7 @@ export function ConnectedChat({
         // An edit answers the same parent: send it from that point.
         const at = stored.findIndex((item) => item.id === message.id);
         setMessages(toUIMessages(stored.slice(0, at), { fileUrl }));
+        editNext.current = true;
         send(text, editedOutgoing(text, message.parts));
       },
       onEditPlan: (editing) => {

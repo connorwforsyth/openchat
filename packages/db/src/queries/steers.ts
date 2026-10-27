@@ -180,15 +180,15 @@ const laterThan = async (db: Db, id: MessageId): Promise<MessageId | null> => {
  * A queued turn whose question waits under the question ahead (it had no
  * answer when this was sent), moved under that question's answer as it
  * starts: the thread reads question, answer, question, answer, instead of
- * forking at the first question. Dated now, so it's still newer than its
- * new parent. Only a fresh question (no answer or turn under it yet) after an answer
+ * forking at the first question. Re-dated after that answer, so it's
+ * still newer than its new parent. Only a fresh question (no answer or turn under it yet) after an answer
  * that stands (its run succeeded) moves: a restart's message stays beside
  * the answer it stopped, and a regenerated question keeps its place.
  */
 export const followAnswerAhead = async (
   tx: Db,
   userMessageId: MessageId
-): Promise<void> => {
+): Promise<boolean> => {
   const asked = await getMessage(tx, userMessageId);
   const parentId = asked.ok ? asked.value.parentId : null;
   // Messages that joined its batch move with it; an answer or a turn of
@@ -204,7 +204,7 @@ export const followAnswerAhead = async (
     )
     .limit(1);
   if (!parentId || child) {
-    return;
+    return false;
   }
   const [ahead] = await tx
     .select({ answerId: run.assistantMessageId })
@@ -212,25 +212,65 @@ export const followAnswerAhead = async (
     .where(and(eq(run.userMessageId, parentId), eq(run.status, "succeeded")))
     .orderBy(desc(run.createdAt), desc(run.id))
     .limit(1);
-  if (!ahead?.answerId) {
-    return;
+  const answer = ahead?.answerId ? await getMessage(tx, ahead.answerId) : null;
+  if (!answer?.ok) {
+    return false;
   }
+  // Dated in order just after the answer it now follows, read under the
+  // lock (this transaction's `now()` can be older than that answer).
+  const batch = await questionChain(tx, userMessageId);
   await tx
     .update(message)
-    .set({ parentId: ahead.answerId })
+    .set({ parentId: answer.value.id })
     .where(eq(message.id, userMessageId));
-  // Re-dated in order, just before this transaction's `now()` (when the run's
-  // answer is stamped): after the answer ahead, before the new answer.
-  const batch = await questionChain(tx, userMessageId);
   for (const [index, each] of batch.entries()) {
     // biome-ignore lint/performance/noAwaitInLoops: one per message in the batch; a few at most.
     await tx
       .update(message)
       .set({
-        createdAt: sql`now() - ${`${batch.length - index} microseconds`}::interval`,
+        createdAt: sql`${answer.value.createdAt.toISOString()}::timestamptz + ${`${index + 1} microseconds`}::interval`,
       })
       .where(eq(message.id, each.id));
   }
+  return true;
+};
+
+/**
+ * A turn placed to restart an answer that turned out to have begun a tool
+ * call: it becomes a steer of that answer instead, after the answer so far,
+ * for the answer to take at its next step.
+ */
+export const steerInstead = async (
+  db: Db,
+  turn: RunRow,
+  answeringId: RunId
+): Promise<void> => {
+  await db.transaction(async (tx) => {
+    await lockConversation(tx, turn.conversationId);
+    const answering = await getRun(tx, answeringId);
+    const answerId = answering.ok ? answering.value.assistantMessageId : null;
+    if (!answerId) {
+      return;
+    }
+    await tx
+      .update(run)
+      .set({
+        options: sql`jsonb_set(coalesce(${run.options}, '{}'::jsonb), '{delivery}', '"steer"'::jsonb)`,
+      })
+      .where(eq(run.id, turn.id));
+    await tx
+      .update(message)
+      .set({ parentId: answerId })
+      .where(eq(message.id, turn.userMessageId));
+  });
+};
+
+/** Dates a message by the clock (not the transaction's start). */
+export const stampNow = async (tx: Db, id: MessageId): Promise<void> => {
+  await tx
+    .update(message)
+    .set({ createdAt: sql`clock_timestamp()` })
+    .where(eq(message.id, id));
 };
 
 /**

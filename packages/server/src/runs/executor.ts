@@ -61,6 +61,7 @@ import {
   batchEnd,
   followAnswerAhead,
   nextSteer,
+  stampNow,
   takeSteer,
 } from "@workspace/db/queries/steers";
 import { newId } from "@workspace/shared/ids";
@@ -158,6 +159,16 @@ export interface InProcessExecutor extends RunExecutor {
    * Returns how many runs it failed.
    */
   readonly recover: () => Promise<number>;
+  /**
+   * Stops a running answer to start it again, unless it has begun a tool
+   * call: the check and the abort are one synchronous step, and a stopped
+   * pass refuses any call after it, so no side effect runs and is lost.
+   * `tools`: it had, and runs on. `idle`: no pass executes it here.
+   */
+  readonly restartIfNoTools: (
+    runId: RunId,
+    by: UserId
+  ) => Promise<"idle" | "restarted" | "tools">;
   /** Aborts every run executing here; they settle as `cancelled`. */
   readonly shutdown: () => Promise<void>;
 }
@@ -314,7 +325,12 @@ type Executions = Map<string, Promise<unknown>>;
  */
 const watchExecutions = (
   tools: ToolSet | undefined,
-  executions: Executions
+  executions: Executions,
+  /**
+   * Asked as each call starts, before it runs: `false` refuses it (the
+   * answer was stopped to start again, so its side effects never happen).
+   */
+  mayStart: () => boolean
 ): ToolSet | undefined =>
   tools &&
   Object.fromEntries(
@@ -328,6 +344,9 @@ const watchExecutions = (
         {
           ...each,
           execute: (input: unknown, options: { toolCallId: string }) => {
+            if (!mayStart()) {
+              throw new Error("The answer was stopped before this ran.");
+            }
             const result = (execute as (...args: unknown[]) => unknown)(
               input,
               options
@@ -383,12 +402,15 @@ export const createInProcessExecutor = (
   const running = new Map<RunId, Promise<void>>();
   /** Who cancelled a run this process is executing, for its final state. */
   const cancelledBy = new Map<RunId, UserId | null>();
+  /** Runs executing here whose answer has started a tool call. */
+  const toolsStarted = new Set<RunId>();
 
   /** Forgets a pass's controller, unless a later pass of the run holds the slot. */
   const release = (runId: RunId, controller: AbortController) => {
     if (active.get(runId) === controller) {
       active.delete(runId);
       cancelledBy.delete(runId);
+      toolsStarted.delete(runId);
     }
   };
 
@@ -904,7 +926,13 @@ export const createInProcessExecutor = (
         takeSteer: steer,
         timeoutMs: deps.timeoutMs,
         toolApproval: turn.value.toolApproval,
-        tools: watchExecutions(turn.value.tools, executions),
+        tools: watchExecutions(turn.value.tools, executions, () => {
+          if (controller.signal.aborted) {
+            return false;
+          }
+          toolsStarted.add(run.runId);
+          return true;
+        }),
         trace: chatTrace({ ...run, userId: run.createdBy }),
         unavailableTools: turn.value.unavailableTools,
       });
@@ -945,7 +973,9 @@ export const createInProcessExecutor = (
    */
   const claim = async (
     run: RunStart,
-    controller: AbortController
+    controller: AbortController,
+    /** It waited behind another run (so its question may be behind too). */
+    queued: boolean
   ): Promise<
     Result<
       { readonly answerId: MessageId; readonly leafId: MessageId },
@@ -959,7 +989,8 @@ export const createInProcessExecutor = (
         // One answer for the question and every message sent under it while
         // it waited.
         leafId = await batchEnd(tx, run.conversationId, run.userMessageId);
-        await followAnswerAhead(tx, run.userMessageId);
+        const moved =
+          queued && (await followAnswerAhead(tx, run.userMessageId));
         const inserted = await insertMessage(tx, {
           authorId: null,
           conversationId: run.conversationId,
@@ -973,6 +1004,10 @@ export const createInProcessExecutor = (
         });
         if (!inserted.ok) {
           tx.rollback();
+        }
+        if (moved) {
+          // After the batch it answers, which was just dated by the clock.
+          await stampNow(tx, assistantMessageId);
         }
         const started = await transitionRun(
           tx,
@@ -1026,7 +1061,7 @@ export const createInProcessExecutor = (
       }
     }
     const controller = new AbortController();
-    const claimed = await claim(run, controller);
+    const claimed = await claim(run, controller, row.afterRunId !== null);
     if (!claimed.ok) {
       return claimed;
     }
@@ -1282,6 +1317,20 @@ export const createInProcessExecutor = (
         }
       }
       return orphaned.length;
+    },
+
+    restartIfNoTools: async (runId, by) => {
+      const controller = active.get(runId);
+      if (!controller) {
+        return "idle";
+      }
+      if (toolsStarted.has(runId)) {
+        return "tools";
+      }
+      cancelledBy.set(runId, by);
+      controller.abort();
+      await running.get(runId);
+      return "restarted";
     },
 
     shutdown: async () => {

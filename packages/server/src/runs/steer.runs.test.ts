@@ -13,7 +13,11 @@ import type {
   TurnDelivery,
 } from "@workspace/contract/schemas/runs";
 import { upsertGrant } from "@workspace/db/queries/grants";
-import { getBranchPath, newestLeafId } from "@workspace/db/queries/messages";
+import {
+  getBranchPath,
+  getMessage,
+  newestLeafId,
+} from "@workspace/db/queries/messages";
 import { getRun, readRunChunks } from "@workspace/db/queries/runs";
 import { expectOk, seedOrg, seedUser } from "@workspace/db/testing";
 import { tool } from "ai";
@@ -320,6 +324,67 @@ describe("steering a running answer", () => {
     ]);
   });
 
+  it("an edit of a batch's second message is a branch beside it", async () => {
+    h = await createHarness();
+    const { answering, chat, gate } = await busyTurn(h, "Both.");
+    const firstAnswer = answering.assistantMessageId as MessageId;
+    const one = await send(h, chat, "Focus on b.", firstAnswer, "steer");
+    const two = await send(h, chat, "And c.", firstAnswer, "steer");
+    gate.release();
+    await h.services.executor.idle();
+
+    // Edit "And c.": sent from its parent, without asking to steer.
+    h.nextTurn({
+      model: new MockLanguageModelV4({ doStream: textStream("Edited.") }),
+    });
+    const edited = await send(h, chat, "And d.", one.userMessageId);
+    await h.services.executor.idle();
+    const editedMessage = expectOk(
+      await getMessage(h.db, edited.userMessageId)
+    );
+    expect(editedMessage.parentId).toBe(one.userMessageId);
+    expect(edited.userMessageId).not.toBe(two.userMessageId);
+    const path = await pathOf(h, chat);
+    expect(path.map((message) => textOf(message.parts)).slice(-3)).toEqual([
+      "Focus on b.",
+      "And d.",
+      "Edited.",
+    ]);
+  });
+
+  it("an edit of a restart's message is a branch beside it", async () => {
+    h = await createHarness();
+    const first = scriptedModel();
+    h.nextTurn({ model: first.model });
+    const chat = await newChat(h);
+    const asked = await send(h, chat, "Say hi.", null);
+    first.push(...textParts.start(), textParts.delta("Hal"));
+    h.nextTurn({
+      model: new MockLanguageModelV4({ doStream: textStream("Hi and bye.") }),
+    });
+    const answering = (await runOf(h, asked.runId)).assistantMessageId;
+    const restart = await send(h, chat, "And bye.", answering, "steer");
+    await h.services.executor.idle();
+
+    h.nextTurn({
+      model: new MockLanguageModelV4({ doStream: textStream("Hi and later.") }),
+    });
+    const edited = await send(h, chat, "And later.", asked.userMessageId);
+    await h.services.executor.idle();
+    expect(
+      expectOk(await getMessage(h.db, edited.userMessageId)).parentId
+    ).toBe(asked.userMessageId);
+    expect(
+      expectOk(await getMessage(h.db, restart.userMessageId)).parentId
+    ).toBe(asked.userMessageId);
+    const path = await pathOf(h, chat);
+    expect(path.map((message) => textOf(message.parts))).toEqual([
+      "Say hi.",
+      "And later.",
+      "Hi and later.",
+    ]);
+  });
+
   it("queues a plain turn, as before", async () => {
     h = await createHarness();
     const { answering, chat, gate } = await busyTurn(h);
@@ -549,5 +614,53 @@ describe("the queue's actions", () => {
       createdBy: editor,
       status: "succeeded",
     });
+  });
+});
+
+describe("restarting an answer", () => {
+  it("restarts one that hasn't begun a tool call, and leaves one that has", async () => {
+    h = await createHarness();
+    const gate = gatedTool();
+    const runs: string[] = [];
+    h.nextTurn({
+      model: callThenAnswer("Done."),
+      tools: {
+        wait: {
+          ...gate.tools.wait,
+          execute: async (
+            ...args: Parameters<typeof gate.tools.wait.execute>
+          ) => {
+            runs.push("wait");
+            return await gate.tools.wait.execute?.(...args);
+          },
+        },
+      },
+    });
+    const chat = await newChat(h);
+    const busy = await send(h, chat, "Look into it.", null);
+    await gate.called;
+    expect(
+      await h.services.executor.restartIfNoTools(busy.runId, h.ownerId)
+    ).toBe("tools");
+    gate.release();
+    await h.services.executor.idle();
+    expect(runs).toEqual(["wait"]);
+    expect(await runOf(h, busy.runId)).toMatchObject({ status: "succeeded" });
+
+    const writing = scriptedModel();
+    h.nextTurn({ model: writing.model });
+    const second = await send(h, chat, "Again.", null);
+    writing.push(...textParts.start(), textParts.delta("Hal"));
+    const harness = h;
+    await vi.waitFor(async () =>
+      expect((await runOf(harness, second.runId)).status).toBe("running")
+    );
+    expect(
+      await h.services.executor.restartIfNoTools(second.runId, h.ownerId)
+    ).toBe("restarted");
+    expect(await runOf(h, second.runId)).toMatchObject({ status: "cancelled" });
+    expect(
+      await h.services.executor.restartIfNoTools(second.runId, h.ownerId)
+    ).toBe("idle");
   });
 });
