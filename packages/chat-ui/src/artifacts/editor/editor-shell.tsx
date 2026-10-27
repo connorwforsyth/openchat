@@ -92,7 +92,7 @@ const useEditorWidth = (onKeyDown?: (event: KeyboardEvent) => void) => {
     observer.observe(element);
     return () => observer.disconnect();
   }, [element]);
-  return { docksInspector, ref, width };
+  return { docksInspector, element, ref, width };
 };
 
 interface PanelsContextValue {
@@ -113,6 +113,13 @@ const PANEL_SHORTCUTS: Readonly<Record<EditorPanel, ShortcutId>> = {
   rail: "editor.rail",
 };
 
+/**
+ * An artifact editor's frame. A panel is offered (toolbar button, key)
+ * only when its slot is filled: the inspector when `inspector` or
+ * `inspectorPlaceholder` is passed, the notes when `notes` is. A kind's
+ * notes go in the `notes` slot, not in `drawer`, so they hide with the
+ * others.
+ */
 export function EditorShell({
   canvas,
   className,
@@ -142,8 +149,24 @@ export function EditorShell({
   readonly rail?: ReactNode;
   readonly toolbar: ReactNode;
 }) {
-  const { docksInspector, ref, width } = useEditorWidth(onKeyDown);
-  const { panels, toggle } = useEditorPanels();
+  const { docksInspector, element, ref, width } = useEditorWidth(onKeyDown);
+  const { panels, toggle: togglePanel } = useEditorPanels();
+  // Hiding the panel that holds focus hands focus to the toolbar button
+  // that brings it back, rather than dropping it to the page.
+  const toggle = useCallback(
+    (panel: EditorPanel) => {
+      const held = element
+        ?.querySelector(`[data-editor-panel="${panel}"]`)
+        ?.contains(document.activeElement);
+      togglePanel(panel);
+      if (held) {
+        element
+          ?.querySelector<HTMLElement>(`[data-panel-toggle="${panel}"]`)
+          ?.focus();
+      }
+    },
+    [element, togglePanel]
+  );
   const hasRail = Boolean(rail);
   const hasInspector = Boolean(inspector ?? inspectorPlaceholder);
   const hasNotes = Boolean(notes);
@@ -195,7 +218,11 @@ export function EditorShell({
                 {canvas}
               </div>
               {drawer}
-              {panels.notes ? notes : null}
+              {panels.notes && notes ? (
+                <div className="contents" data-editor-panel="notes">
+                  {notes}
+                </div>
+              ) : null}
             </div>
             {inspectorBody && panels.inspector ? (
               <aside

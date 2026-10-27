@@ -33,7 +33,13 @@ const shell = ({
   renderWithI18n(
     <div style={{ height: 600, width }}>
       <EditorShell
-        canvas={<div>The slide</div>}
+        canvas={
+          <div>
+            The slide
+            <input aria-label="Field" />
+            <div contentEditable data-testid="editable" />
+          </div>
+        }
         covered={covered}
         inspector={inspector ? <div>{inspector}</div> : null}
         inspectorPlaceholder={<div>Pick something</div>}
@@ -46,7 +52,7 @@ const shell = ({
             value=""
           />
         }
-        rail={<div>Thumbnails rail</div>}
+        rail={<button type="button">Thumbnails rail</button>}
         toolbar={
           <EditorToolbar
             canRedo={false}
@@ -124,6 +130,25 @@ describe("EditorShell's panels", () => {
     expect(screen.queryByRole("textbox", { name: "Speaker notes" })).toBeNull();
     await userEvent.keyboard("t");
     expect(screen.getByText("Thumbnails rail")).toBeTruthy();
+  });
+
+  it("leaves the keys to a field or an editable being typed in", async () => {
+    shell();
+    await userEvent.click(screen.getByRole("textbox", { name: "Field" }));
+    await userEvent.keyboard("ti");
+    await userEvent.click(screen.getByTestId("editable"));
+    await userEvent.keyboard("ti{Shift>}N{/Shift}");
+    expect(screen.getByText("Thumbnails rail")).toBeTruthy();
+    expect(screen.getByText("Pick something")).toBeTruthy();
+    expect(screen.getByRole("textbox", { name: "Speaker notes" })).toBeTruthy();
+  });
+
+  it("hands focus to the toolbar when a key hides the focused panel", async () => {
+    shell();
+    screen.getByRole("button", { name: "Thumbnails rail" }).focus();
+    await userEvent.keyboard("t");
+    expect(screen.queryByText("Thumbnails rail")).toBeNull();
+    expect(document.activeElement).toBe(toggle("Thumbnails"));
   });
 
   it("hides the notes from their own header", async () => {
