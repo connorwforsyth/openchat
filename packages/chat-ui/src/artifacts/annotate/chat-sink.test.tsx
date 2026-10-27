@@ -47,7 +47,7 @@ describe("useChatAnnotateSink", () => {
     expect(none.result.current).toBeNull();
   });
 
-  it("starts the next turn, or steers the answer being written", async () => {
+  it("starts the next turn, or joins the answer being written", async () => {
     const idle = ports();
     const { result, rerender } = renderHook(
       ({ busy }) =>
@@ -66,11 +66,7 @@ describe("useChatAnnotateSink", () => {
     rerender({ busy: true });
     expect(result.current?.mode).toBe("send");
     await result.current?.send(data);
-    expect(idle.sendBusy).toHaveBeenCalledWith(
-      expect.stringContaining("<artifact-annotations>"),
-      data,
-      "steer"
-    );
+    expect(idle.sendBusy).toHaveBeenCalledWith(data);
   });
 
   it("stops following an answer that waits on approval first", async () => {
