@@ -122,8 +122,6 @@ describe("annotationsParts", () => {
     expect(parts[0]).toEqual({ text: annotationsText(data), type: "text" });
     expect(parts[1].name).toBe(ANNOTATIONS_DATA);
     expect(annotationsOf([...parts])).toEqual(data);
-    expect(annotationsOf([{ text: "hi", type: "text" } as const])).toBe(
-      undefined
-    );
+    expect(annotationsOf([{ type: "text" } as const])).toBe(undefined);
   });
 });
