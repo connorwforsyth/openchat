@@ -14,8 +14,10 @@ import {
   useRef,
   useState,
 } from "react";
+import { z } from "zod";
 
 import type { WorkspaceSelection } from "../model/workspace";
+import { readStored, writeStored } from "../workspace/stored";
 import type { ChatTask } from "./chat-tasks";
 import { OutputsButton, OutputsCard, type ToggleVia } from "./outputs-card";
 import {
@@ -30,22 +32,16 @@ export const OUTPUTS_STORAGE_KEY = "chat-ui:outputs-card";
 /** Open until someone collapses it, as ChatGPT's is. */
 const PINNED_BY_DEFAULT = true;
 
+// Anything else stored (an old or hand-edited value) reads as unset.
+const storedSchema = z.enum(["open", "closed"]).catch("open");
+
 const readPinned = (key: string): boolean | null => {
-  try {
-    const stored = window.localStorage.getItem(key);
-    return stored === null ? null : stored === "open";
-  } catch {
-    return null;
-  }
+  const stored = readStored(key);
+  return stored === null ? null : storedSchema.parse(stored) === "open";
 };
 
-const writePinned = (key: string, pinned: boolean): void => {
-  try {
-    window.localStorage.setItem(key, pinned ? "open" : "closed");
-  } catch {
-    // Not remembered this time; nothing else depends on it.
-  }
-};
+const writePinned = (key: string, pinned: boolean): void =>
+  writeStored(key, pinned ? "open" : "closed");
 
 const FOCUSABLE = "button:not([disabled])";
 
@@ -175,9 +171,13 @@ export const useOutputsCard = ({
     setState((was) => toggleOutputs(was, room));
   }
 
-  // A pick ends a peek; a pinned card stays.
+  // A pick ends a peek; a pinned card stays. Focus left in the hidden card
+  // goes back to the button (a task's turn then takes it, if it's shown).
   const endPeek = useCallback(() => {
     if (!roomy) {
+      if (card.current?.contains(document.activeElement)) {
+        button.current?.focus();
+      }
       setInstant(false);
       setState((was) => collapseOutputs(was, { roomy }));
     }

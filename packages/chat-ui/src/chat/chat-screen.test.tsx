@@ -389,6 +389,12 @@ describe("header (D14)", () => {
     window.localStorage.removeItem(`${OUTPUTS_STORAGE_KEY}:u2`);
   });
 
+  it("reads a stored value it doesn't know as open", async () => {
+    window.localStorage.setItem(OUTPUTS_STORAGE_KEY, "sideways");
+    renderWithI18n(<ChatScreen {...props()} />);
+    expect(await findOutputs()).toBeTruthy();
+  });
+
   it("lists the agent's tasks and takes a click to that turn", async () => {
     const [asked] = path.messages;
     if (!asked) {

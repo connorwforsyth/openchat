@@ -74,6 +74,8 @@ export const buildContextActions = (
               i18n._(msg`slides`),
               i18n._(msg`documents`),
               i18n._(msg`preview`),
+              i18n._(msg`outputs`),
+              i18n._(msg`tasks`),
             ],
             section: "actions",
             shortcutId: "panel.artifacts",
