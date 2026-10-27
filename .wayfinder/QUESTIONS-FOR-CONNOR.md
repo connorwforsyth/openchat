@@ -283,6 +283,18 @@ Lane `pstack/usage` (Settings → Usage, span tags). Defaults applied overnight;
 3. **The keys are T for thumbnails, I for inspector and ⇧N for notes.** Each one also has a toolbar button with a tooltip. Like S and A, they're single keys that don't fire while you type in a field. They also don't fire while focus is inside the slide's frame, because the frame doesn't pass keys up. You can rebind them in Settings › Shortcuts. *Defaulted: T, I, ⇧N.* The alternative is ⌘⌥ combos that also work while typing, but Chrome keeps ⌘⌥I for DevTools.
 4. **One remembered layout for every editor.** Hidden or shown is stored once (`artifact-editor:panels` in localStorage) and shared by all kinds and tabs, not per deck or per kind. *Defaulted: shared.* The alternative is per kind.
 5. **Hiding the notes removes the whole drawer.** The old fold left a one-row header behind. Now the notes hide completely, and you bring them back from the toolbar or with ⇧N. "Change this slide" isn't a panel and always shows. *Defaulted: as described.*
+
+## panel-layout lane (n2/panel-layout, n2/panel-layout-card)
+
+1. **The files can't fold when nothing is above them.** Under a preview the files fold to their row; with no artifact or page on top, the files are all the panel has, so the fold button isn't there. *Defaulted: no fold without a preview.* The alternative is to fold anyway and leave an empty panel above the row.
+2. **There's no Close on the preview itself.** To see the files alone you maximise them (the button in their header), or fold the preview away by opening a different artifact. *Defaulted: maximise, as before.* The alternative is an × on the preview that empties the top half until the next pick.
+3. **The list and the open file take turns below 480px.** A narrow files viewer shows the list or the file, with Back to the list, as the halves already do below 420px. *Defaulted: 480px (a 160px list beside a 240px file, plus room).* The list's width defaults to 208px and is remembered like the divider.
+4. **Changes went with Code.** The artifact header had Preview, Code and Changes. Changes is a source diff, so it's a code view too. *Defaulted: all three tabs removed; the version pager stays.* The alternative is to keep Changes as its own button.
+5. **A Mermaid diagram keeps Edit as text.** It's an editor you asked for on 23 Oct ("One Diagram"), not a code viewer. *Defaulted: kept, as a toggle in the header.*
+6. **No Try again when the instance has no artifacts service.** A service that stopped answering offers Try again. An instance without `ARTIFACTS_ORIGIN` has nothing to retry, so it only says why. *Defaulted: no button there.*
+7. **The chat card has Open and a menu, but no Share.** Open shows the artifact in the panel, and the menu opens its own page in a new tab, where Share already is. Share on the card needs the artifact's access and the API in the message list. *Defaulted: no Share on the card.* The follow-up is to pass a share action to the card the way `artifactHref` is passed.
+8. **The card's Open is its keyboard path.** The whole card opens the artifact for a pointer, but it isn't a separate tab stop, so keyboard users get one stop (Open) per card instead of two. *Defaulted: one stop.*
+
 ## annotate lane (n2/annotate)
 
 1. **The full artifact page hands notes to the chat.** That page has no composer, so its Send button reads "Send in chat": it opens the chat, and the drafts wait on the artifact there until you send them from its panel. *Defaulted: hand off.* The alternative is to send straight from the page as a new turn on the chat's current branch.

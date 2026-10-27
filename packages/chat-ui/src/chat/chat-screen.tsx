@@ -836,6 +836,7 @@ function ChatScreenBody({
   const workspacePanel = (
     <LazyWorkspacePanel
       artifacts={workspace.artifacts}
+      chatId={conversation.id}
       files={files}
       halfRequest={halfRequest}
       onSelect={select}

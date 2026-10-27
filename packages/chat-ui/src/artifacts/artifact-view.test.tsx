@@ -46,19 +46,16 @@ const renderAt = (width: number, props: Partial<ArtifactViewProps> = {}) => {
 const row = () => within(screen.getByTestId("header"));
 
 describe("ArtifactView's one header row (075)", () => {
-  it("puts the title, the versions and the tabs in the host's row", () => {
+  it("puts the title and the versions in the host's row, with no code views", () => {
     renderAt(900);
     expect(
       row().getByRole("heading", { name: artifactPlan.title })
     ).toBeTruthy();
     expect(row().getByRole("group", { name: "Versions" })).toBeTruthy();
     expect(row().getByText("v2 of 2")).toBeTruthy();
-    const tabs = row().getByRole("tablist", { name: "Artifact views" });
-    expect(
-      within(tabs)
-        .getAllByRole("tab")
-        .map((tab) => tab.getAttribute("aria-label"))
-    ).toEqual(["Preview", "Code", "Changes"]);
+    // An artifact is its rendered self (night 2): no Preview/Code/Changes.
+    expect(screen.queryByRole("tablist")).toBeNull();
+    expect(screen.queryByRole("tab", { name: "Code" })).toBeNull();
     // The host's Close ends the same row.
     expect(row().getByRole("button", { name: "Close" })).toBeTruthy();
     // Nothing to fold away: no menu.
@@ -67,22 +64,8 @@ describe("ArtifactView's one header row (075)", () => {
     ).toBeNull();
   });
 
-  it("shows the tabs' words on a wide row and only icons on a narrower one", () => {
-    renderAt(900);
-    const words = () =>
-      row()
-        .getAllByRole("tab")
-        .map((tab) => tab.querySelector("span")?.className);
-    expect(words()).toEqual(["inline", "inline", "inline"]);
-    cleanup();
-    renderAt(360);
-    expect(words()).toEqual(["hidden", "hidden", "hidden"]);
-    // …with the pager still in the row.
-    expect(row().getByRole("group", { name: "Versions" })).toBeTruthy();
-  });
-
   it("moves the versions into a '…' menu when the row is narrow", async () => {
-    const { onSelect } = renderAt(260);
+    const { onSelect } = renderAt(200);
     expect(row().queryByRole("group", { name: "Versions" })).toBeNull();
     await userEvent.click(
       row().getByRole("button", { name: "More artifact actions" })
@@ -105,21 +88,15 @@ describe("ArtifactView's one header row (075)", () => {
     expect(
       row().queryByRole("button", { name: "More artifact actions" })
     ).toBeNull();
-    expect(
-      row().getByRole("tab", { name: "Changes" }).getAttribute("aria-disabled")
-    ).toBe("true");
   });
 
-  it("shows the source without a second header naming the file again", async () => {
-    renderAt(900);
-    await userEvent.click(row().getByRole("tab", { name: "Code" }));
+  it("shows a code artifact as its code, flush, without a second header", () => {
+    const code = { ...artifactPlan, kind: "code" as const, title: "bake.ts" };
+    renderAt(900, { artifact: code });
     // The title, once: CodeView's own header is off.
-    expect(screen.getAllByText(artifactPlan.title)).toHaveLength(1);
-    const panel = screen.getByRole("tabpanel");
+    expect(screen.getAllByText(code.title)).toHaveLength(1);
     // And no card around it.
-    const card = panel.firstElementChild;
-    expect(card?.className).toContain("border-0");
-    expect(card?.className).toContain("rounded-none");
+    expect(document.querySelector(".rounded-none.border-0")).toBeTruthy();
   });
 
   it("keeps the host's row while loading and when there's nothing yet", () => {
@@ -175,7 +152,9 @@ describe("ArtifactView editing a plan (106)", () => {
   it("is the usual view for any other artifact", () => {
     renderAt(900, { editing: editing({ artifactId: artifactPage.id }) });
     expect(screen.queryByRole("textbox")).toBeNull();
-    expect(screen.getByRole("tablist")).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: "Approve the plan" })
+    ).toBeNull();
   });
 });
 
@@ -186,19 +165,14 @@ describe("ArtifactView's preview without the artifacts service", () => {
     content: '{"files":{"index.html":"<p>Hi</p>"}}',
   }));
 
-  it("opens on Preview and says why it can't show, instead of the code", async () => {
+  it("says why it can't show, and never falls back to the code", () => {
     renderAt(900, {
       artifact: site,
       runtimeOrigin: null,
       versions: siteVersions,
     });
-    expect(row().getByRole("tab", { name: "Preview" })).toBeTruthy();
     expect(screen.getByText(NO_SERVICE)).toBeTruthy();
-    await userEvent.click(
-      screen.getByRole("button", { name: "Show the code" })
-    );
-    expect(
-      row().getByRole("tab", { name: "Code" }).getAttribute("aria-selected")
-    ).toBe("true");
+    expect(screen.queryByRole("button", { name: "Show the code" })).toBeNull();
+    expect(screen.queryByText("index.html")).toBeNull();
   });
 });
