@@ -132,7 +132,7 @@ export const presentationKindWith = ({
     content: presentationContentSchema,
     diff: "text",
     editor: "none",
-    // JSON first: the deck as stored is its file in the Code tab.
+    // JSON first: the deck as stored is its file.
     export: [
       { extension: "json", format: "file" },
       { extension: "pptx", format: "file" },

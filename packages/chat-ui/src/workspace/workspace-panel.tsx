@@ -189,6 +189,8 @@ export interface WorkspaceArtifacts {
 
 export interface WorkspacePanelProps {
   readonly artifacts: WorkspaceArtifacts;
+  /** The chat's id; another chat's panel starts empty. `null` before a new chat has one. */
+  readonly chatId?: string | null;
   readonly className?: string;
   readonly files: WorkspaceFilesSource;
   /** The header's last press of Browser or Files (137). */
@@ -211,7 +213,11 @@ export interface WorkspacePanelProps {
 
 export function WorkspacePanel(props: WorkspacePanelProps) {
   const { files } = props;
-  const slots = usePanelSlots(props.selection, props.halfRequest ?? null);
+  const slots = usePanelSlots(
+    props.selection,
+    props.halfRequest ?? null,
+    props.chatId ?? null
+  );
   return files.kind === "chat" ? (
     <ChatWorkspacePanel {...props} files={files} slots={slots} />
   ) : (
@@ -229,23 +235,39 @@ const withBrowserPress = (slots: PanelSlots, press: number | null) =>
 /**
  * What each half holds (`slotsAfter`): a pick fills its own half and keeps
  * the other, so an artifact on top and a file below stay open together.
- * The header's Browser puts the browser back on top.
+ * The header's Browser puts the browser back on top. Another chat starts
+ * empty; a new chat getting its id keeps what it has.
  */
 function usePanelSlots(
   selection: WorkspaceSelection | null,
-  halfRequest: HalfRequest | null
+  halfRequest: HalfRequest | null,
+  chatId: string | null
 ): PanelSlots {
   const key = selectionKey(selection);
   const press = halfRequest?.half === "browser" ? halfRequest.id : null;
   const [held, setHeld] = useState(() => ({
+    chatId,
     key,
     press,
     slots: withBrowserPress(slotsAfter(NO_SLOTS, selection), press),
   }));
-  if (held.key !== key || held.press !== press) {
+  const otherChat = held.chatId !== null && held.chatId !== chatId;
+  if (otherChat) {
+    setHeld({
+      chatId,
+      key,
+      press,
+      slots: withBrowserPress(slotsAfter(NO_SLOTS, selection), press),
+    });
+  } else if (
+    held.key !== key ||
+    held.press !== press ||
+    held.chatId !== chatId
+  ) {
     const picked =
       held.key === key ? held.slots : slotsAfter(held.slots, selection);
     setHeld({
+      chatId,
       key,
       press,
       slots: held.press === press ? picked : withBrowserPress(picked, press),
@@ -289,7 +311,8 @@ const selectionKey = (selection: WorkspaceSelection | null): string | null => {
     case "file":
       return `file:${selection.path}`;
     case "artifact":
-      return `artifact:${selection.artifactId ?? ""}`;
+      // A version is a pick of its own: the pager, an older card.
+      return `artifact:${selection.artifactId ?? ""}:${selection.versionId ?? ""}`;
     case "preview":
       return "preview";
     default:
@@ -1235,11 +1258,13 @@ function PanelArtifact({
   const artifact = shownArtifact(artifacts, slot);
   // The host loads one artifact's versions at a time: another's are as
   // good as still loading.
-  const versions = artifacts.versions?.every(
-    (version) => version.artifactId === artifact?.id
-  )
-    ? artifacts.versions
-    : undefined;
+  const { versions: loaded } = artifacts;
+  const versions =
+    loaded &&
+    loaded.length > 0 &&
+    loaded.every((version) => version.artifactId === artifact?.id)
+      ? loaded
+      : undefined;
   return (
     <ArtifactView
       api={artifacts.api}

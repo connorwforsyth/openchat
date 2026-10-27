@@ -392,6 +392,50 @@ describe("the list and the main area", () => {
     expect(panel().getByText("Loading artifact")).toBeTruthy();
   });
 
+  it("shows the version picked, even of the artifact already open", async () => {
+    const [plan] = chatArtifacts;
+    const versions = plan ? artifactVersions[plan.id] : undefined;
+    const [v1, v2] = versions ?? [];
+    if (!(plan && v1 && v2)) {
+      throw new Error("fixture versions");
+    }
+    const base = props({ artifacts: { artifacts: chatArtifacts, versions } });
+    const at = (versionId: typeof v1.id) => ({
+      artifactId: plan.id,
+      kind: "artifact" as const,
+      versionId,
+    });
+    const view = renderWithI18n(
+      <WorkspacePanel {...base} selection={at(v2.id)} />
+    );
+    expect(await panel().findByText("Reindex job for backfills")).toBeTruthy();
+    view.rerender(<WorkspacePanel {...base} selection={at(v1.id)} />);
+    await waitFor(() =>
+      expect(panel().queryByText("Reindex job for backfills")).toBeNull()
+    );
+    expect(panel().getByText("v1 of 2")).toBeTruthy();
+  });
+
+  it("starts another chat's panel empty, and keeps a new chat's on getting its id", () => {
+    const base = props({
+      artifacts: { artifacts: chatArtifacts, versions: undefined },
+    });
+    const view = renderWithI18n(
+      <WorkspacePanel
+        {...base}
+        chatId={null}
+        selection={{ kind: "artifact" }}
+      />
+    );
+    expect(panel().getByRole("region", { name: "Preview" })).toBeTruthy();
+    // The new chat gets its id: the same chat, so the artifact stays.
+    view.rerender(<WorkspacePanel {...base} chatId="a" selection={null} />);
+    expect(panel().getByRole("region", { name: "Preview" })).toBeTruthy();
+    // Another chat: nothing carried over.
+    view.rerender(<WorkspacePanel {...base} chatId="b" selection={null} />);
+    expect(panel().queryByRole("region", { name: "Preview" })).toBeNull();
+  });
+
   it("waits for the artifact's own versions, not another's", () => {
     const [plan, page] = chatArtifacts;
     if (!(plan && page)) {
@@ -411,6 +455,19 @@ describe("the list and the main area", () => {
     );
     expect(panel().getByText("Loading artifact")).toBeTruthy();
     expect(panel().getByRole("heading", { name: page.title })).toBeTruthy();
+  });
+
+  it("waits while the versions are an empty list", () => {
+    const [plan] = chatArtifacts;
+    renderWithI18n(
+      <WorkspacePanel
+        {...props({
+          artifacts: { artifacts: chatArtifacts, versions: [] },
+          selection: { artifactId: plan?.id, kind: "artifact" },
+        })}
+      />
+    );
+    expect(panel().getByText("Loading artifact")).toBeTruthy();
   });
 });
 
