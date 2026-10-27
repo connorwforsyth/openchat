@@ -46,9 +46,10 @@ export const DOCUMENT_INSTRUCTIONS = `Documents (create_artifact type "document"
 Write a document's content as Markdown: headings (#, ##, ###), paragraphs, bullet and numbered lists, task lists (- [ ] and - [x]), tables, block quotes, code blocks, links, and images by https URL. It is stored as rich text, so raw HTML is dropped.
 
 To change part of a document, call update_artifact with \`edit\` instead of \`content\`:
-- replace_section: the section under a heading (up to the next heading of the same or a higher level). Start the Markdown with a heading to rename it; otherwise the heading stays.
-- insert: blocks at a heading's section_start or section_end, or at the end of the document without a heading.
-- delete_section: a heading and everything under it.
+- replace_section: a heading and the text under it, up to its first subsection. Its subsections stay, so don't repeat them; replace each on its own. Start the Markdown with a heading to rename it; otherwise the heading stays.
+- insert: blocks at a heading's section_start or section_end (text goes before its subsections, a new heading after them), or at the end of the document without a heading.
+- delete_section: a heading and everything under it, subsections included.
+The result says what an edit changed and which headings it kept or removed; describe the document from that, not from what you meant to do.
 Name sections by their heading text. Send the whole \`content\` only to rewrite most of the document. The user may have edited it since you wrote it: edit the latest version you were shown.`;
 
 export const documentKind = defineArtifactKind<Document>({

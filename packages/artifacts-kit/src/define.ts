@@ -40,6 +40,13 @@ export interface ArtifactOperation<TContent, TInput> {
    */
   // biome-ignore lint/style/useConsistentMethodSignatures: a method, as `apply` is.
   problems?(current: TContent | null, input: TInput): readonly string[];
+  /**
+   * What applying it to `current` changes, each a sentence the model reads
+   * back, so it can't claim a part survived that the edit removed. Left
+   * out, the result says only that the version was saved.
+   */
+  // biome-ignore lint/style/useConsistentMethodSignatures: a method, as `apply` is.
+  report?(current: TContent | null, input: TInput): readonly string[];
 }
 
 /**
@@ -260,19 +267,24 @@ const issuesOf = (error: z.ZodError, at: string): string[] =>
       .trim()
   );
 
+interface PreparedOperation<TContent> {
+  readonly current: TContent | null;
+  readonly input: unknown;
+  readonly operation: ArtifactOperation<TContent, unknown>;
+}
+
 /**
- * Applies operation `name` to the stored version `stored` (`null` for none
- * yet) and returns the next version's text, or why it can't: an operation
- * the kind doesn't have, input that doesn't fit, content that doesn't parse,
- * or the operation's own problems. The result still has to pass the kind's
- * checks before it's saved. Pure.
+ * Operation `name` of `definition`, its parsed input and the parsed stored
+ * version it applies to (`null` for none yet), or why it can't apply: an
+ * operation the kind doesn't have, input that doesn't fit, content that
+ * doesn't parse, or the operation's own problems. Pure.
  */
-export const applyArtifactOperation = <TContent>(
+const prepareOperation = <TContent>(
   definition: ArtifactKindDefinition<TContent>,
   stored: string | null,
   name: string,
   input: unknown
-): Result<string, readonly string[]> => {
+): Result<PreparedOperation<TContent>, readonly string[]> => {
   const operation = Object.hasOwn(definition.operations, name)
     ? definition.operations[name]
     : undefined;
@@ -295,13 +307,51 @@ export const applyArtifactOperation = <TContent>(
     current = parsed.data;
   }
   const problems = operation.problems?.(current, parsedInput.data) ?? [];
-  if (problems.length > 0) {
-    return err(problems);
+  return problems.length > 0
+    ? err(problems)
+    : ok({ current, input: parsedInput.data, operation });
+};
+
+/**
+ * Applies operation `name` to the stored version `stored` (`null` for none
+ * yet) and returns the next version's text, or why it can't
+ * (`prepareOperation`). The result still has to pass the kind's checks
+ * before it's saved. Pure.
+ */
+export const applyArtifactOperation = <TContent>(
+  definition: ArtifactKindDefinition<TContent>,
+  stored: string | null,
+  name: string,
+  input: unknown
+): Result<string, readonly string[]> => {
+  const prepared = prepareOperation(definition, stored, name, input);
+  if (!prepared.ok) {
+    return prepared;
   }
-  const next = operation.apply(current, parsedInput.data);
+  const { current, operation } = prepared.value;
+  const next = operation.apply(current, prepared.value.input);
   const serialize =
     definition.modelText?.serialize ??
     ((content: TContent) =>
       typeof content === "string" ? content : JSON.stringify(content));
   return ok(serialize(next));
+};
+
+/**
+ * What applying operation `name` to `stored` changes (its `report`); empty
+ * when it has none or can't apply. Pure.
+ */
+export const reportArtifactOperation = <TContent>(
+  definition: ArtifactKindDefinition<TContent>,
+  stored: string | null,
+  name: string,
+  input: unknown
+): readonly string[] => {
+  const prepared = prepareOperation(definition, stored, name, input);
+  return prepared.ok
+    ? (prepared.value.operation.report?.(
+        prepared.value.current,
+        prepared.value.input
+      ) ?? [])
+    : [];
 };
