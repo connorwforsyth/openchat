@@ -91,6 +91,7 @@ import {
   Shield,
   Sparkles,
   Square,
+  SquareDashedMousePointer,
   SquarePen,
   Star,
   Sun,
@@ -225,6 +226,8 @@ export const ReasoningIcon: NativeIcon = Brain;
 export const StopIcon: NativeIcon = Square;
 export const ToolIcon: NativeIcon = Wrench;
 export const PinIcon: NativeIcon = Pin;
+export const SquareDashedMousePointerIcon: NativeIcon =
+  SquareDashedMousePointer;
 export const PinOffIcon: NativeIcon = PinOff;
 export const ArchiveIcon: NativeIcon = Archive;
 export const LinkIcon: NativeIcon = Link;

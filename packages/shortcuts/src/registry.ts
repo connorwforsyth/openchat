@@ -121,6 +121,15 @@ export const shortcutRegistry: readonly ShortcutDefinition[] = [
     "panels",
     msg`Show this chat's artifacts`
   ),
+  // Night 2, decision 5: wherever an artifact is open and its chat can
+  // take notes; a page without one leaves the key alone.
+  define(
+    "artifact.annotate",
+    ["M"],
+    "global",
+    "panels",
+    msg`Annotate the open artifact`
+  ),
   // The sidebar's keys (176, 177), after ChatGPT's command registry.
   // ⌘⇧D (from 182) stays as a second key; nothing else binds it.
   define(
