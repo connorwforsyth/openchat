@@ -18,9 +18,13 @@ export type { AnnotationTarget } from "@workspace/ai/messages/annotations";
 // the artifact renders in the runtime's frame, it may ask the frame what is
 // there. Only the host asks, and only for a mark the person just made: the
 // frame never starts this, and an answer is accepted once, for the request
-// it names, from the frame it was sent to, parsed and capped. What comes
-// back is the artifact's own claim about itself, so it's quoted to the
-// model as untrusted page content (`@workspace/ai/messages/annotations`).
+// it names, from the frame it was sent to, parsed and capped. That is all
+// it binds. React, deck, SVG and Mermaid artifacts run their own code in
+// the runtime's window, so that code sees the probe and can answer first
+// with any target it likes; HTML and site pages can do the same with the
+// question passed on to them. So an answer is the artifact's claim about
+// itself, quoted to the model as untrusted page content
+// (`@workspace/ai/messages/annotations`), never taken as accurate.
 //
 // HTML pages and sites render one frame further in, as `srcdoc` documents
 // the runtime page can't reach into. The runtime passes the question on to

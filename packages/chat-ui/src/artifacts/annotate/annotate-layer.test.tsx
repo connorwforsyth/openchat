@@ -164,21 +164,19 @@ describe("Annotate", () => {
   });
 
   it("works from the keyboard, and Escape stays inside it", async () => {
-    const { sink } = sinkOf("steer");
+    const { sink } = sinkOf();
     const outside = vi.fn();
     document.addEventListener("keydown", outside);
     renderLayer(sink);
     await userEvent.click(screen.getByRole("button", { name: "Annotate" }));
-    surface().focus();
+    await waitFor(() => expect(document.activeElement).toBe(surface()));
     await userEvent.keyboard("{ArrowDown}{Enter}");
     const note = screen.getByRole("textbox", { name: "Note" });
     expect(document.activeElement).toBe(note);
     await userEvent.keyboard("Here.");
     await userEvent.keyboard("{Escape}");
     expect(screen.queryByRole("textbox", { name: "Note" })).toBeNull();
-    expect(
-      screen.getByRole("button", { name: "Steer with notes" })
-    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Send notes" })).toBeTruthy();
     // Focus is back on the surface: Enter places the next pin.
     await waitFor(() => expect(document.activeElement).toBe(surface()));
     await userEvent.keyboard("{ArrowRight}{Enter}");
@@ -187,6 +185,12 @@ describe("Annotate", () => {
     await waitFor(() => expect(document.activeElement).toBe(surface()));
     await userEvent.keyboard("{Escape}");
     expect(screen.queryByRole("application")).toBeNull();
+    // Back on the toggle it was turned on from.
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByRole("button", { name: "Annotate, 1 note" })
+      )
+    );
     expect(outside).not.toHaveBeenCalledWith(
       expect.objectContaining({ key: "Escape" })
     );

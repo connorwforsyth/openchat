@@ -11,7 +11,7 @@ import { test } from "./fixtures";
 
 // Feature: Annotate (features/annotate.md). One pointer on every artifact
 // kind: turn it on from the artifact's header, click or drag over the
-// artifact, write a note; the notes go back as the next message, or steer
+// artifact, write a note; the notes go back as the next message, joining
 // the answer being written. Each kind is made by the mock model, then
 // marked where something is, and the note's "where" line shows what the
 // layer read there.
@@ -323,7 +323,7 @@ test("an SVG: a box names the part of the drawing", async ({ page }) => {
   expect(where).toContain("Part of the image");
 });
 
-test("while an answer streams, the notes steer it", async ({
+test("while an answer streams, the notes join it", async ({
   baseURL,
   page,
 }) => {
@@ -343,11 +343,9 @@ test("while an answer streams, the notes steer it", async ({
     workspace(page).getByText("Short text."),
     "Make it longer."
   );
-  await expect(
-    page.getByRole("button", { name: "Steer with notes" })
-  ).toBeVisible();
-  await proof(page, "annotate", "steer-02-steer-button");
-  await page.getByRole("button", { name: "Steer with notes" }).click();
+  await expect(page.getByRole("button", { name: "Send notes" })).toBeVisible();
+  await proof(page, "annotate", "steer-02-send-while-busy");
+  await page.getByRole("button", { name: "Send notes" }).click();
   await expect(
     page.getByRole("button", { name: "Note 1: Make it longer." })
   ).toHaveCount(0);
