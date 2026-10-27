@@ -197,7 +197,7 @@ function QuickTurn({
       >
         {reply === "" && busy ? (
           <PulseLabel>
-            <Trans>Sending…</Trans>
+            <Trans>Thinking…</Trans>
           </PulseLabel>
         ) : null}
         {reply === "" ? null : (

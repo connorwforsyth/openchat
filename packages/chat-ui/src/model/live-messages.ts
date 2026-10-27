@@ -248,34 +248,33 @@ export const splitSteered = (message: Message): readonly Message[] => {
   }
   return splitAtSteers(first.previousAnswerId, message.parts).flatMap(
     (segment): Message[] => {
+      const asked = segment.steer?.messages ?? [];
       const answer: Message = {
         ...message,
         id: segment.answerId,
-        parentId: segment.steer?.message.id ?? message.parentId,
+        parentId: asked.at(-1)?.id ?? message.parentId,
         parts: [...segment.parts],
       };
-      if (!segment.steer) {
-        return [answer];
-      }
-      const { message: asked, previousAnswerId } = segment.steer;
-      return [
-        {
+      // Each message of the batch follows the one before it.
+      const users = asked.map(
+        (each, index): Message => ({
           agent: null,
-          authorId: asked.authorId,
+          authorId: each.authorId,
           conversationId: message.conversationId,
-          createdAt: asked.createdAt,
-          id: asked.id,
+          createdAt: each.createdAt,
+          id: each.id,
           model: null,
-          parentId: previousAnswerId,
-          parts: asked.parts,
+          parentId:
+            asked[index - 1]?.id ?? segment.steer?.previousAnswerId ?? null,
+          parts: each.parts,
           partsVersion: 1,
           role: "user",
           runId: null,
           status: "complete",
           usage: null,
-        },
-        answer,
-      ];
+        })
+      );
+      return [...users, answer];
     }
   );
 };
@@ -392,7 +391,13 @@ export const mergeLive = (
       })
     : path;
   const tail = liveTail(new Set(path.map((message) => message.id)), live);
-  if (tail.length === 0) {
+  // The stored branch has gone on past the last live message it has (an
+  // answer restarted with a message sent while it was written): what this
+  // page was still streaming is no longer on it.
+  const known = live.length - tail.length;
+  const lastKnown = known > 0 ? live[known - 1]?.id : undefined;
+  const movedOn = lastKnown !== undefined && path.at(-1)?.id !== lastKnown;
+  if (tail.length === 0 || movedOn) {
     return streaming ? withSteersSplit(stored) : path;
   }
   const merged: Message[] = [...stored];

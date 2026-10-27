@@ -33,7 +33,7 @@ function TraceLine({
   return (
     <span
       className={cn(
-        "flex w-fit min-w-0 max-w-full in-[a,button]:cursor-pointer items-center gap-2 px-1.5 py-0.5 in-[a:hover,button:hover]:text-foreground text-muted-foreground text-sm transition-colors data-[status=error]:in-[a:hover,button:hover]:text-destructive data-[status=error]:text-destructive data-[status=pending]:opacity-60 data-[status=running]:*:data-[slot=trace-title]:motion-safe:animate-pulse",
+        "flex w-fit min-w-0 max-w-full in-[a,button]:cursor-pointer items-center gap-2 px-1.5 py-0.5 in-[a:hover,button:hover]:text-foreground text-muted-foreground text-sm transition-colors data-[status=error]:in-[a:hover,button:hover]:text-destructive data-[status=error]:text-destructive data-[status=pending]:opacity-60 data-[status=running]:*:data-[slot=trace-title]:motion-safe:animate-status-pulse",
         className
       )}
       data-slot="trace-line"

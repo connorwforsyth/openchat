@@ -379,10 +379,6 @@ msgstr "A key you don't manage"
 msgid "A member"
 msgstr "A member"
 
-#: ../chat-ui/src/chat/queue-tray.tsx
-msgid "A message was queued after it, so it stays in the chat."
-msgstr "A message was queued after it, so it stays in the chat."
-
 #: ../../apps/web/app/(app)/_shared/settings/settings-view.tsx
 msgid "A monthly token pool for {name}. Members draw on it once an owner approves their request."
 msgstr "A monthly token pool for {name}. Members draw on it once an owner approves their request."
@@ -566,10 +562,6 @@ msgstr "Add someone from {rootName}"
 #: ../composer/src/components/plus-menu.tsx
 msgid "Add to message"
 msgstr "Add to message"
-
-#: ../composer/src/components/composer-footer.tsx
-msgid "Add to the answer being written, at its next step"
-msgstr "Add to the answer being written, at its next step"
 
 #: ../../apps/web/app/(app)/_shared/settings/mcp/mcp-settings.tsx
 msgid "Add your own"
@@ -1576,10 +1568,6 @@ msgstr "Couldn't change {code}"
 msgid "Couldn't change a skill"
 msgstr "Couldn't change a skill"
 
-#: ../chat-ui/src/chat/queue-tray.tsx
-msgid "Couldn't change the queued message. Try again."
-msgstr "Couldn't change the queued message. Try again."
-
 #: ../chat-ui/src/model/tool-summary.ts
 msgid "Couldn't change the skill {name}"
 msgstr "Couldn't change the skill {name}"
@@ -2187,7 +2175,6 @@ msgstr "e.g. 1000000"
 #: ../../apps/web/app/(app)/(pages)/dots/dot-profile.tsx
 #: ../../apps/web/app/(app)/(pages)/schedules/schedule-list.tsx
 #: ../chat-ui/src/artifacts/artifact-actions.tsx
-#: ../chat-ui/src/chat/queue-tray.tsx
 #: ../chat-ui/src/conversation/message-row.tsx
 #: ../chat-ui/src/conversation/plan-card.tsx
 #: ../library-ui/src/components/share-dialog.tsx
@@ -4126,10 +4113,6 @@ msgstr "Only the org's owners can change this."
 msgid "Only the owner, so far."
 msgstr "Only the owner, so far."
 
-#: ../chat-ui/src/chat/queue-tray.tsx
-msgid "Only the person who sent a queued message can change it."
-msgstr "Only the person who sent a queued message can change it."
-
 #: ../../apps/web/app/(app)/(pages)/schedules/schedule-editor.tsx
 msgid "Only when it needs me"
 msgstr "Only when it needs me"
@@ -4809,18 +4792,6 @@ msgstr "Publishing the skill {name}"
 msgid "Put a copy in a team or org library. The library owns it and you maintain it."
 msgstr "Put a copy in a team or org library. The library owns it and you maintain it."
 
-#: ../composer/src/components/composer-footer.tsx
-msgid "Queue"
-msgstr "Queue"
-
-#: ../chat-ui/src/chat/queue-tray.tsx
-msgid "Queued"
-msgstr "Queued"
-
-#: ../chat-ui/src/chat/queue-tray.tsx
-msgid "Queued messages"
-msgstr "Queued messages"
-
 #: ../../apps/desktop/src/main/menu.ts
 #: ../../apps/web/app/(quick)/quick/quick-screen.tsx
 msgid "Quick AI"
@@ -4991,10 +4962,6 @@ msgstr "Remove {name} from this space?"
 #: ../library-ui/src/components/skill-form.tsx
 msgid "Remove {path}"
 msgstr "Remove {path}"
-
-#: ../chat-ui/src/chat/queue-tray.tsx
-msgid "Remove from the queue"
-msgstr "Remove from the queue"
 
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "Remove key"
@@ -5519,10 +5486,6 @@ msgstr "Send this link to them. It's shown only once: for a new one, cancel the 
 msgid "Send to the chat"
 msgstr "Send to the chat"
 
-#: ../composer/src/components/composer-footer.tsx
-msgid "Send when this answer ends"
-msgstr "Send when this answer ends"
-
 #: ../library-ui/src/components/run-test-chat.tsx
 msgid "Sending a message saves your changes to the draft first."
 msgstr "Sending a message saves your changes to the draft first."
@@ -5530,11 +5493,6 @@ msgstr "Sending a message saves your changes to the draft first."
 #: ../chat-ui/src/conversation/message-row.tsx
 msgid "Sending the edit starts a new branch; the original stays."
 msgstr "Sending the edit starts a new branch; the original stays."
-
-#: ../../apps/web/app/(quick)/quick/quick-screen.tsx
-#: ../chat-ui/src/conversation/message-row.tsx
-msgid "Sending…"
-msgstr "Sending…"
 
 #: ../chat-ui/src/conversation/scheduled-note.tsx
 msgid "Sent by scheduled task · {title}"
@@ -6050,22 +6008,6 @@ msgstr "Status"
 msgid "Status unavailable"
 msgstr "Status unavailable"
 
-#: ../composer/src/components/composer-footer.tsx
-msgid "Steer"
-msgstr "Steer"
-
-#: ../chat-ui/src/chat/queue-tray.tsx
-msgid "Steer now"
-msgstr "Steer now"
-
-#: ../chat-ui/src/chat/queue-tray.tsx
-msgid "Steering at the next step…"
-msgstr "Steering at the next step…"
-
-#: ../chat-ui/src/chat/queue-tray.tsx
-msgid "Steers the answer before it"
-msgstr "Steers the answer before it"
-
 #: ../../apps/web/app/(app)/(pages)/dots/onboarding.tsx
 msgid "Step {position} of {total}"
 msgstr "Step {position} of {total}"
@@ -6331,10 +6273,6 @@ msgstr "That isn't valid."
 #: ../../apps/web/app/(app)/_shared/keys-manager.tsx
 msgid "That key couldn't be removed. Try again."
 msgstr "That key couldn't be removed. Try again."
-
-#: ../chat-ui/src/chat/queue-tray.tsx
-msgid "That message isn't queued any more."
-msgstr "That message isn't queued any more."
 
 #: ../../apps/web/app/(auth)/_components/auth-problem.tsx
 msgid "That password is too long. Choose a shorter one."
@@ -6704,6 +6642,8 @@ msgstr "Thinking"
 msgid "Thinking: {label}"
 msgstr "Thinking: {label}"
 
+#: ../../apps/web/app/(quick)/quick/quick-screen.tsx
+#: ../chat-ui/src/conversation/lazy.tsx
 #: ../chat-ui/src/conversation/reasoning-part.tsx
 msgid "Thinking…"
 msgstr "Thinking…"

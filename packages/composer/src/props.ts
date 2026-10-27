@@ -118,14 +118,6 @@ export interface ComposerProps {
    * read-only planning run.
    */
   readonly onPlanChange?: (on: boolean) => void;
-  /**
-   * Steers the answer being written with the message (Mod+Enter, or the
-   * Steer button): the answer takes it at its next step. Pass it to let the
-   * person write while `status` is busy; Enter then queues the message as
-   * the next turn through `onSubmit`. Left out, the composer waits, as
-   * before.
-   */
-  readonly onSteer?: (value: ComposerValue) => void;
   /** Stops the current run. The stop button shows while `status` is busy. */
   readonly onStop?: () => void;
   readonly onSubmit: (value: ComposerValue) => void;
@@ -155,6 +147,12 @@ export interface ComposerProps {
    * signed-in user's id. Left out, they're per browser.
    */
   readonly recentsKey?: string;
+  /**
+   * Whether a message can be sent while `status` is busy: it goes into the
+   * thread at once, and the host's server decides how the answer takes it.
+   * Left out, the composer waits for the answer, as before.
+   */
+  readonly sendsWhileBusy?: boolean;
   /**
    * Skills the person can use (127): offered from the + menu and from `/`.
    * A picked one shows as a chip and goes out with the message

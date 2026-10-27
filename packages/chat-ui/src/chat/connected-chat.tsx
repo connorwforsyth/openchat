@@ -74,7 +74,6 @@ import type {
   Run,
   RunOptions,
   RunTarget,
-  TurnDelivery,
 } from "@workspace/contract/schemas/runs";
 import type { SandboxRecord } from "@workspace/contract/schemas/sandbox";
 import type { ChatContext } from "@workspace/contract/schemas/tenancy";
@@ -128,7 +127,6 @@ import {
   planApprovalMessage,
   planApprovalParts,
 } from "../model/plan";
-import { withoutQueued } from "../model/queue";
 import {
   answerPhases,
   runToFollow,
@@ -163,13 +161,12 @@ import { toTreePaths } from "../workspace/model/tree";
 import { chatModeSwitch, showsModes } from "./chat-modes";
 import { ChatScreen } from "./chat-screen";
 import { PresentPeople, TypingNote } from "./live-presence";
-import { QueueTray } from "./queue-tray";
 import { useBranchFeedback } from "./use-branch-feedback";
+import { useBusyComposer, useSendBusy } from "./use-busy-send";
 import { useChatQueries, useConversationUpdate } from "./use-chat-data";
 import { useChatMcp } from "./use-chat-mcp";
 import { useChatMode } from "./use-chat-mode";
 import { useLiveConversation } from "./use-live-conversation";
-import { useBusyComposer, useQueue, useSendBusy } from "./use-queue";
 
 // The chat screen over the API (D11): TanStack Query for everything stored,
 // `useRunChat` for the turn that's streaming. Ticket 025 mounts this in the
@@ -1122,12 +1119,8 @@ export const useFirstSend = ({
   /** The workspace changed (attachments were imported). */
   readonly onWorkspaceChanged: () => void;
   readonly send: (text: string, outgoing: Outgoing) => void;
-  /** Sends while an answer is being written: queued, or steered into it. */
-  readonly sendBusy: (
-    text: string,
-    outgoing: Outgoing,
-    delivery: TurnDelivery
-  ) => Promise<void>;
+  /** Sends while an answer is being written; the server decides how it joins. */
+  readonly sendBusy: (text: string, outgoing: Outgoing) => Promise<void>;
   /** Sends, and settles once the turn's answer has ended. */
   readonly sendInTurn: (text: string, outgoing: Outgoing) => Promise<void>;
   /** Stored as the new chat's default, so reopening it continues with the same agent or model. */
@@ -1198,7 +1191,7 @@ export const useFirstSend = ({
   );
 
   const submit = useCallback(
-    async (value: ComposerValue, delivery?: TurnDelivery) => {
+    async (value: ComposerValue, whileBusy = false) => {
       const modeSaved = await beforeSend();
       if (!modeSaved) {
         if (activeConversation.current === conversationId) {
@@ -1206,12 +1199,13 @@ export const useFirstSend = ({
         }
         return;
       }
-      if (conversationId && delivery) {
-        await sendBusy(
-          value.text,
-          await prepare(conversationId, value),
-          delivery
+      if (conversationId && whileBusy) {
+        // One after another, so quick messages reach the server in order.
+        const sent = order.current.then(async () =>
+          sendBusy(value.text, await prepare(conversationId, value))
         );
+        order.current = sent.catch(ignore);
+        await sent;
         return;
       }
       if (conversationId) {
@@ -2272,12 +2266,10 @@ export function ConnectedChat({
   }, []);
   const waitingRef = useRef(waiting);
   waitingRef.current = waiting;
-  const { delivery, onSteer } = useBusyComposer({
+  const sendsWhileBusy = useBusyComposer({
     activeRuns: data.activeRuns,
     conversationId,
     status: shownStatus,
-    submit,
-    uploadFailed: setUploadFailed,
   });
   const onSubmit = useCallback(
     (value: ComposerValue) => {
@@ -2287,21 +2279,9 @@ export function ConnectedChat({
       if (waitingRef.current) {
         stopReading().catch(ignore);
       }
-      submit(value, delivery).catch(() => setUploadFailed(true));
+      submit(value, sendsWhileBusy).catch(() => setUploadFailed(true));
     },
-    [delivery, stopReading, submit]
-  );
-  const queue = useQueue({
-    activeRuns: data.activeRuns,
-    api,
-    client,
-    messages,
-    refresh,
-    viewer: me.user.id,
-  });
-  const shownMessages = useMemo(
-    () => withoutQueued(messages, queue.turns),
-    [messages, queue.turns]
+    [sendsWhileBusy, stopReading, submit]
   );
 
   useAskOnce(initialPrompt, conversationId, onSubmit);
@@ -2396,8 +2376,6 @@ export function ConnectedChat({
               ...composerDrafts,
               models,
               onPlanChange: plan.set,
-              ...queue.composer,
-              onSteer,
               onStop,
               onSubmit,
               onTargetChange,
@@ -2408,20 +2386,14 @@ export function ConnectedChat({
               ...webSearchSwitch(config, webSearch, setWebSearch),
               plan: plan.on,
               prompts,
+              sendsWhileBusy,
               skills,
               status: shownStatus,
               target: target ?? undefined,
               variant,
             }}
             composerNote={
-              <>
-                <QueueTray
-                  actions={queue.actions}
-                  pending={queue.pending}
-                  turns={queue.turns}
-                />
-                <TypingNote people={live.typing} shared={live.others} />
-              </>
+              <TypingNote people={live.typing} shared={live.others} />
             }
             computer={computer}
             conversation={{
@@ -2444,7 +2416,7 @@ export function ConnectedChat({
               voiceSlot(voice, conversationId, voiceBridge)
             )}
             layout={layout}
-            messages={shownMessages}
+            messages={messages}
             onComposerInput={live.onTyping}
             onNewChat={newChat}
             onOpenPalette={onOpenPalette}
