@@ -41,7 +41,6 @@ import {
   type RunRow,
 } from "@workspace/db/queries/runs";
 import { markSteer, removeUnrunTurn } from "@workspace/db/queries/steers";
-
 import {
   type AccessLevel,
   type Actor,
@@ -61,6 +60,7 @@ import {
   partsMaySteer,
 } from "../runs/create-run";
 import { pinnedDraft } from "../runs/drafts";
+import type { InProcessExecutor } from "../runs/executor";
 import type { MemorySettings } from "../runs/memory";
 import { queuePosition, toRun } from "../runs/state";
 import {
@@ -92,7 +92,8 @@ export interface ApiServices {
   readonly defaultModel: ModelSelector | null;
   /** Each conversation's live channel (D25). */
   readonly events: ConversationEvents;
-  readonly executor: RunExecutor;
+  readonly executor: RunExecutor &
+    Partial<Pick<InProcessExecutor, "restartIfNoTools">>;
   /** The memory feature's switch and size cap (022). */
   readonly memory: MemorySettings;
   readonly streams: StreamChannel;
@@ -614,6 +615,7 @@ export const createChatRouter = (services: ApiServices) => {
           db,
           defaultModel: services.defaultModel,
           executor,
+          restartIfNoTools: executor.restartIfNoTools,
         },
         context.actor,
         input

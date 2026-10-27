@@ -8,12 +8,12 @@ import type { Run } from "@workspace/contract/schemas/runs";
 import { z } from "zod";
 
 import { messageText, type ToolCallPart } from "../model/parts";
-import type { QueuedTurn } from "../model/queue";
 
 // What the agent is working on in this chat, for the Tasks list on the
 // outputs card (night 2, decision 4): the answer being written, then the
 // turns waiting behind it, next first. Built from the active runs and the
-// composer's queue, so a reload and a second tab list the same. Pure.
+// thread (a message sent while the agent works is in it at once), so a
+// reload and a second tab list the same. Pure.
 
 const CREATE_ARTIFACT = "create_artifact";
 
@@ -56,7 +56,6 @@ const answeringStatus = (run: Run): TaskStatus | null => {
       return "running";
     case "awaiting_approval":
       return "waiting";
-    // Queued turns come from the composer's queue, with their text.
     case "queued":
     case "succeeded":
     case "failed":
@@ -67,9 +66,23 @@ const answeringStatus = (run: Run): TaskStatus | null => {
   }
 };
 
+/** A turn waiting its turn: a steer waits for the next step boundary. */
+const queuedTask = (run: Run, byId: ReadonlyMap<string, Message>): ChatTask => {
+  const asked = byId.get(run.userMessageId);
+  return {
+    messageId: run.userMessageId,
+    runId: run.id,
+    status: run.options?.delivery === "steer" ? "steering" : "queued",
+    step: null,
+    text: asked ? messageText(asked) : null,
+  };
+};
+
+const positionOf = (run: Run): number =>
+  run.state.status === "queued" ? run.state.position : 0;
+
 export const chatTasks = (
   runs: readonly Run[] | undefined,
-  queued: readonly QueuedTurn[],
   messages: readonly Message[]
 ): readonly ChatTask[] => {
   const byId = new Map(messages.map((message) => [message.id, message]));
@@ -92,18 +105,11 @@ export const chatTasks = (
       },
     ];
   });
-  return [
-    ...answering,
-    ...queued.map(
-      (turn): ChatTask => ({
-        messageId: turn.messageId,
-        runId: turn.runId,
-        status: turn.delivery === "steer" ? "steering" : "queued",
-        step: null,
-        text: turn.text,
-      })
-    ),
-  ];
+  const queued = (runs ?? [])
+    .filter((run) => run.state.status === "queued")
+    .sort((a, b) => positionOf(a) - positionOf(b))
+    .map((run) => queuedTask(run, byId));
+  return [...answering, ...queued];
 };
 
 const makingInputSchema = z.object({

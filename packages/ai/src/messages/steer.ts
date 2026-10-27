@@ -21,16 +21,18 @@ import { z } from "zod";
 /** The data part name: `data-steer` in AI SDK terms. */
 export const STEER_DATA = "steer";
 
+const steerMessageSchema = z.object({
+  authorId: userIdSchema.nullable(),
+  createdAt: timestampSchema,
+  id: messageIdSchema,
+  parts: z.array(messagePartSchema),
+});
+
 export const steerDataSchema = z.object({
-  /** The answer the run writes from here on, under the steer. */
+  /** The answer the run writes from here on, under the steer's last message. */
   answerId: messageIdSchema,
-  /** The steer's user message, as stored. */
-  message: z.object({
-    authorId: userIdSchema.nullable(),
-    createdAt: timestampSchema,
-    id: messageIdSchema,
-    parts: z.array(messagePartSchema),
-  }),
+  /** The steer's messages, as stored, oldest first: quick ones go together. */
+  messages: z.array(steerMessageSchema).min(1),
   /** The answer the steer came after. */
   previousAnswerId: messageIdSchema,
 });

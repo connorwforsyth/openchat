@@ -41,7 +41,9 @@ import { z } from "zod";
 //   - `[slow]` → forty numbered words, one every SLOW_TOKEN_MS;
 //   - `POST …/images/generations` and `…/images/edits` (138) → `n` copies
 //     of a 1×1 PNG, in OpenAI's shape, for `generate_image` on `mock:pixel`;
-//   - anything else → `Echo: <message>`, followed by `[<path>: <content>]`
+//   - `[script:steady]` → one slow bash step, for messages sent meanwhile;
+//   - anything else → `Echo: <message>` (the user's messages since anything
+//     else spoke, joined by ` / `), followed by `[<path>: <content>]`
 //     for each workspace file the message mentions (`@file` and attachments,
 //     which the server reads into the instructions; ticket 056).
 
@@ -275,6 +277,8 @@ export const SCRIPTS: Record<string, readonly (readonly Call[])[]> = {
   ],
   // a write, then a slow bash (cancel during a running tool)
   slow: [[w("slow.txt", "slow\n")], [sh("sleep 20; echo done")]],
+  // one slow step, so messages sent meanwhile join at its end (steer)
+  steady: [[sh("sleep 6; echo looked")]],
   // a tool nobody offered (the model made it up), then the answer (131)
   "unknown-tool": [
     [{ args: { path: "notes.txt" }, name: "frobnicate", unoffered: true }],
@@ -454,6 +458,20 @@ const planModeReply = (request: ChatRequest, system: string): Reply | null => {
     : text("Built the plan.");
 };
 
+/**
+ * The user's messages since anything else spoke, joined: quick messages
+ * sent together (one batch) are echoed together.
+ */
+const trailingUserText = (request: ChatRequest): string => {
+  const lastOther = request.messages.findLastIndex(
+    (message) => message.role !== "user"
+  );
+  return request.messages
+    .slice(lastOther + 1)
+    .map((message) => textOf(message).trim())
+    .join(" / ");
+};
+
 export const replyFor = (request: ChatRequest): Reply => {
   const system = request.messages
     .filter((message) => message.role === "system")
@@ -496,7 +514,7 @@ export const replyFor = (request: ChatRequest): Reply => {
   const files = [...system.matchAll(WORKSPACE_FILE)].map(
     ([, path, content]) => ` [${path}: ${content?.trim()}]`
   );
-  return text(`Echo: ${userText.trim()}${files.join("")}`);
+  return text(`Echo: ${trailingUserText(request)}${files.join("")}`);
 };
 
 /** A stable unit vector per text: texts sharing words land near each other. */

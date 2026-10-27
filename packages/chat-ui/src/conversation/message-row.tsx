@@ -192,14 +192,16 @@ function Block({
 }
 
 /** The one line under an answer that says where it stands, if any. */
-type AnswerNote = "error" | "queued" | "sending" | "stopped" | "waiting";
+type AnswerNote = "error" | "queued" | "stopped" | "thinking" | "waiting";
 
 /**
  * Where an answer stands, from its stored status and its run (072: a page
  * opened mid-answer shows the same). A `partial` answer is one still being
  * written, one waiting on a decision, or one that ended early; only the
- * last says it stopped. A run with nothing to show yet is "Sending…"; once
- * it writes, the answer's own blocks show it working.
+ * last says it stopped. A run with nothing to show yet is "Thinking…", as
+ * the thinking row it becomes when the model's thinking arrives, so the
+ * label never changes under the reader; once it writes, the answer's own
+ * blocks show it working.
  */
 const answerNote = ({
   empty,
@@ -219,7 +221,7 @@ const answerNote = ({
     return status === "partial" ? phase : null;
   }
   if (streaming || phase === "running") {
-    return empty ? "sending" : null;
+    return empty ? "thinking" : null;
   }
   return status === "partial" ? "stopped" : null;
 };
@@ -228,13 +230,11 @@ function StatusNote({ note }: { readonly note: AnswerNote | null }) {
   switch (note) {
     case null:
       return null;
-    case "sending":
+    case "thinking":
       return (
-        <p className="text-muted-foreground text-sm" role="status">
-          <PulseLabel>
-            <Trans>Sending…</Trans>
-          </PulseLabel>
-        </p>
+        <div role="status">
+          <LazyReasoning streaming text="" />
+        </div>
       );
     case "queued":
       return (

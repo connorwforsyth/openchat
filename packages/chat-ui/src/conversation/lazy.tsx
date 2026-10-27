@@ -6,6 +6,8 @@ import { ReasoningIcon } from "@workspace/icons";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { type ComponentProps, lazy, Suspense } from "react";
 
+import { PulseLabel } from "./pulse-label";
+
 // Code-split pieces of a message (D27): reasoning views and diffs load the
 // first time a message needs them, not with the conversation.
 
@@ -27,7 +29,14 @@ export function LazyReasoning(props: ComponentProps<typeof ReasoningPart>) {
       fallback={
         <p className="flex items-center gap-2 text-muted-foreground text-sm">
           <ReasoningIcon aria-hidden className="size-4" />
-          <Trans>Reasoning</Trans>
+          {/* The same title the loaded row shows, so it doesn't change. */}
+          {props.streaming ? (
+            <PulseLabel>
+              <Trans>Thinking…</Trans>
+            </PulseLabel>
+          ) : (
+            <Trans>Reasoning</Trans>
+          )}
         </p>
       }
     >

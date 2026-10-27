@@ -57,7 +57,13 @@ import {
   setRunResolvedModel,
   transitionRun,
 } from "@workspace/db/queries/runs";
-import { nextSteer, takeSteer } from "@workspace/db/queries/steers";
+import {
+  batchEnd,
+  followAnswerAhead,
+  nextSteer,
+  stampNow,
+  takeSteer,
+} from "@workspace/db/queries/steers";
 import { newId } from "@workspace/shared/ids";
 import { err, ok, type Result } from "@workspace/shared/result";
 import {
@@ -153,6 +159,16 @@ export interface InProcessExecutor extends RunExecutor {
    * Returns how many runs it failed.
    */
   readonly recover: () => Promise<number>;
+  /**
+   * Stops a running answer to start it again, unless it has begun a tool
+   * call: the check and the abort are one synchronous step, and a stopped
+   * pass refuses any call after it, so no side effect runs and is lost.
+   * `tools`: it had, and runs on. `idle`: no pass executes it here.
+   */
+  readonly restartIfNoTools: (
+    runId: RunId,
+    by: UserId
+  ) => Promise<"idle" | "restarted" | "tools">;
   /** Aborts every run executing here; they settle as `cancelled`. */
   readonly shutdown: () => Promise<void>;
 }
@@ -309,7 +325,12 @@ type Executions = Map<string, Promise<unknown>>;
  */
 const watchExecutions = (
   tools: ToolSet | undefined,
-  executions: Executions
+  executions: Executions,
+  /**
+   * Asked as each call starts, before it runs: `false` refuses it (the
+   * answer was stopped to start again, so its side effects never happen).
+   */
+  mayStart: () => boolean
 ): ToolSet | undefined =>
   tools &&
   Object.fromEntries(
@@ -323,6 +344,9 @@ const watchExecutions = (
         {
           ...each,
           execute: (input: unknown, options: { toolCallId: string }) => {
+            if (!mayStart()) {
+              throw new Error("The answer was stopped before this ran.");
+            }
             const result = (execute as (...args: unknown[]) => unknown)(
               input,
               options
@@ -378,12 +402,15 @@ export const createInProcessExecutor = (
   const running = new Map<RunId, Promise<void>>();
   /** Who cancelled a run this process is executing, for its final state. */
   const cancelledBy = new Map<RunId, UserId | null>();
+  /** Runs executing here whose answer has started a tool call. */
+  const toolsStarted = new Set<RunId>();
 
   /** Forgets a pass's controller, unless a later pass of the run holds the slot. */
   const release = (runId: RunId, controller: AbortController) => {
     if (active.get(runId) === controller) {
       active.delete(runId);
       cancelledBy.delete(runId);
+      toolsStarted.delete(runId);
     }
   };
 
@@ -825,25 +852,30 @@ export const createInProcessExecutor = (
       // A steer's message is made into what the model reads (its files
       // read too) outside any transaction, then that steer alone is taken:
       // no I/O under the take's locks, and a failure leaves it queued.
-      const prepareSteer = async (row: MessageRow) => {
-        const asked = toMessage(row);
-        if (!asked.ok) {
+      const prepareSteer = async (rows: readonly MessageRow[]) => {
+        const asked = rows.flatMap((row) => {
+          const mapped = toMessage(row);
+          return mapped.ok ? [mapped.value] : [];
+        });
+        if (asked.length !== rows.length) {
           return null;
         }
-        const [message] = toUIMessages(
+        const steerInput = toUIMessages(
           await attachmentsForModel(
-            [asked.value],
+            asked,
             run.createdBy,
             deps.attachments?.(turn.value.resolvedModel) ?? NO_ATTACHMENTS
           ),
           { fileUrl }
         );
-        return message ? { asked: asked.value, message } : null;
+        return steerInput.length === asked.length
+          ? { asked, steerInput }
+          : null;
       };
       const takeNextSteer = async () => {
         const candidate = await nextSteer(db, run.runId);
         const prepared = candidate
-          ? await prepareSteer(candidate.userMessage)
+          ? await prepareSteer(candidate.userMessages)
           : null;
         const taken =
           candidate && prepared
@@ -866,19 +898,19 @@ export const createInProcessExecutor = (
         if (!closed.ok) {
           report("couldn't close a taken steer's stream", closed.error);
         }
-        const { asked, message } = prepared;
+        const { asked: steered, steerInput } = prepared;
         return {
           data: {
             answerId: taken.answer.id,
-            message: {
-              authorId: asked.authorId,
-              createdAt: asked.createdAt,
-              id: asked.id,
-              parts: asked.parts,
-            },
+            messages: steered.map(({ authorId, createdAt, id, parts }) => ({
+              authorId,
+              createdAt,
+              id,
+              parts,
+            })),
             previousAnswerId: taken.previousAnswerId,
           },
-          message,
+          messages: steerInput,
         };
       };
       const agentRun = await runAgent({
@@ -894,7 +926,13 @@ export const createInProcessExecutor = (
         takeSteer: steer,
         timeoutMs: deps.timeoutMs,
         toolApproval: turn.value.toolApproval,
-        tools: watchExecutions(turn.value.tools, executions),
+        tools: watchExecutions(turn.value.tools, executions, () => {
+          if (controller.signal.aborted) {
+            return false;
+          }
+          toolsStarted.add(run.runId);
+          return true;
+        }),
         trace: chatTrace({ ...run, userId: run.createdBy }),
         unavailableTools: turn.value.unavailableTools,
       });
@@ -935,17 +973,31 @@ export const createInProcessExecutor = (
    */
   const claim = async (
     run: RunStart,
-    controller: AbortController
-  ): Promise<Result<MessageId, RunExecutorError>> => {
+    controller: AbortController,
+    /** It waited behind another run (so its question may be behind too). */
+    queued: boolean
+  ): Promise<
+    Result<
+      { readonly answerId: MessageId; readonly leafId: MessageId },
+      RunExecutorError
+    >
+  > => {
     const assistantMessageId = newId("message");
+    let leafId = run.userMessageId;
     try {
       await db.transaction(async (tx) => {
+        // One answer for the question and every message sent under it while
+        // it waited.
+        leafId = await batchEnd(tx, run.conversationId, run.userMessageId);
+        if (queued) {
+          await followAnswerAhead(tx, run.userMessageId);
+        }
         const inserted = await insertMessage(tx, {
           authorId: null,
           conversationId: run.conversationId,
           id: assistantMessageId,
           mode: run.options.chatMode ?? null,
-          parentId: run.userMessageId,
+          parentId: leafId,
           parts: [],
           role: "assistant",
           runId: run.runId,
@@ -954,6 +1006,9 @@ export const createInProcessExecutor = (
         if (!inserted.ok) {
           tx.rollback();
         }
+        // By the clock, after the lock: newer than the batch it answers,
+        // however long this transaction waited (or a moved batch was dated).
+        await stampNow(tx, assistantMessageId);
         const started = await transitionRun(
           tx,
           run.runId,
@@ -966,7 +1021,7 @@ export const createInProcessExecutor = (
         }
         active.set(run.runId, controller);
       });
-      return ok(assistantMessageId);
+      return ok({ answerId: assistantMessageId, leafId });
     } catch (cause) {
       release(run.runId, controller);
       if (cause instanceof TransactionRollbackError) {
@@ -1006,13 +1061,18 @@ export const createInProcessExecutor = (
       }
     }
     const controller = new AbortController();
-    const claimed = await claim(run, controller);
+    // A turn queued where it was sent (an edit) keeps that place.
+    const claimed = await claim(
+      run,
+      controller,
+      row.afterRunId !== null && run.options.delivery !== "queue"
+    );
     if (!claimed.ok) {
       return claimed;
     }
     track(
       run.runId,
-      execute(run, claimed.value, run.userMessageId, controller)
+      execute(run, claimed.value.answerId, claimed.value.leafId, controller)
     );
     return ok(undefined);
   };
@@ -1262,6 +1322,20 @@ export const createInProcessExecutor = (
         }
       }
       return orphaned.length;
+    },
+
+    restartIfNoTools: async (runId, by) => {
+      const controller = active.get(runId);
+      if (!controller) {
+        return "idle";
+      }
+      if (toolsStarted.has(runId)) {
+        return "tools";
+      }
+      cancelledBy.set(runId, by);
+      controller.abort();
+      await running.get(runId);
+      return "restarted";
     },
 
     shutdown: async () => {

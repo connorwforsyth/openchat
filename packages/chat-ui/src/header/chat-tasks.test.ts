@@ -2,7 +2,6 @@ import type { Message } from "@workspace/contract/schemas/messages";
 import type { Run } from "@workspace/contract/schemas/runs";
 import { describe, expect, it } from "vitest";
 
-import { queuedTurns } from "../model/queue";
 import { artifactsInMaking, chatTasks } from "./chat-tasks";
 
 const at = "2026-10-27T00:00:00.000Z";
@@ -48,11 +47,7 @@ describe("chatTasks", () => {
       said("m-r1", "Then a site."),
       said("m-r2", "Use blue."),
     ];
-    const tasks = chatTasks(
-      runs,
-      queuedTurns(runs, messages, "u-me" as never),
-      messages
-    );
+    const tasks = chatTasks(runs, messages);
     expect(
       tasks.map(({ messageId, status, text }) => ({ messageId, status, text }))
     ).toEqual([
@@ -71,9 +66,9 @@ describe("chatTasks", () => {
         call("c2", "create_artifact"),
       ]),
     ];
-    const [task] = chatTasks(runs, [], messages);
+    const [task] = chatTasks(runs, messages);
     expect(task?.step?.toolCallId).toBe("c2");
-    expect(chatTasks(runs, [], [answer("a0", [])])[0]?.step).toBeNull();
+    expect(chatTasks(runs, [answer("a0", [])])[0]?.step).toBeNull();
   });
 
   it("says an answer waits on a decision, and skips runs that ended", () => {
@@ -85,7 +80,7 @@ describe("chatTasks", () => {
       ),
       run("r9", { endedAt: at, status: "succeeded" } as never, "a9"),
     ];
-    expect(chatTasks(runs, [], [])).toEqual([
+    expect(chatTasks(runs, [])).toEqual([
       {
         messageId: "m-r0",
         runId: "r0",
@@ -94,7 +89,7 @@ describe("chatTasks", () => {
         text: null,
       },
     ]);
-    expect(chatTasks(undefined, [], [])).toEqual([]);
+    expect(chatTasks(undefined, [])).toEqual([]);
   });
 });
 
@@ -106,7 +101,7 @@ describe("artifactsInMaking", () => {
       input: { content: "<h1>Hi</h1>", title: "Harbour site", type: "site" },
     };
     const making = artifactsInMaking(
-      chatTasks(runs, [], [answer("a0", [creating])])
+      chatTasks(runs, [answer("a0", [creating])])
     );
     expect(making).toEqual([
       { kind: "site", runId: "r0", title: "Harbour site" },
@@ -115,6 +110,6 @@ describe("artifactsInMaking", () => {
       creating,
       { output: {}, toolCallId: "c1", type: "tool-result" },
     ]);
-    expect(artifactsInMaking(chatTasks(runs, [], [saved]))).toEqual([]);
+    expect(artifactsInMaking(chatTasks(runs, [saved]))).toEqual([]);
   });
 });

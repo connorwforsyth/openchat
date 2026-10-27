@@ -77,17 +77,17 @@ test("the card lists artifacts and tasks, stays open, and is remembered", async 
   await expect(card(page)).toBeVisible();
   await proof(page, FEATURE, "03-open-beside-preview");
 
-  // A slow answer, a turn queued behind it and a steer, as tasks.
+  // A slow answer as a task; a message sent while it works joins it (the
+  // answer starts again with both), so it's still one task, for the latest.
   await send(page, `[slow] ${tag}`);
   await expect(card(page).getByText("Working…")).toBeVisible();
   const input = composer(page);
   await input.click();
-  await page.keyboard.type(`Steer [slow] ${tag}`);
-  await page.keyboard.press("ControlOrMeta+Enter");
-  await page.keyboard.type(`Queued [slow] ${tag}`);
+  await page.keyboard.type(`More [slow] ${tag}`);
   await page.keyboard.press("Enter");
-  await expect(card(page).getByText(`Queued [slow] ${tag}`)).toBeVisible();
-  await proof(page, FEATURE, "04-running-and-queued");
+  await expect(card(page).getByText(`More [slow] ${tag}`)).toBeVisible();
+  await expect(card(page).getByText("Working…")).toHaveCount(1);
+  await proof(page, FEATURE, "04-running-with-a-follow-up");
 
   // A task takes you to its turn.
   await card(page)
@@ -97,9 +97,7 @@ test("the card lists artifacts and tasks, stays open, and is remembered", async 
   await expect
     .poll(() =>
       page.evaluate(
-        () =>
-          document.activeElement?.matches("[data-message-id], [data-run-id]") ??
-          false
+        () => document.activeElement?.matches("[data-message-id]") ?? false
       )
     )
     .toBe(true);

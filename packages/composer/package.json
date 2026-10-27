@@ -34,7 +34,6 @@
     "@workspace/i18n": "workspace:*",
     "@workspace/icons": "workspace:*",
     "@workspace/shared": "workspace:*",
-    "@workspace/shortcuts": "workspace:*",
     "@workspace/ui": "workspace:*",
     "react": "catalog:",
     "react-dom": "catalog:",

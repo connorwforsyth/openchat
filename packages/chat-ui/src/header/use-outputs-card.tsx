@@ -46,17 +46,13 @@ const writePinned = (key: string, pinned: boolean): void =>
 const FOCUSABLE = "button:not([disabled])";
 
 /**
- * A turn on screen gets the focus, so the keyboard carries on from it; a
- * queued one is in the composer's queue, not the transcript.
+ * A turn on screen gets the focus, so the keyboard carries on from it. A
+ * queued turn's message is in the thread too.
  */
 const showTurn = (task: ChatTask) => {
-  const target =
-    document.querySelector<HTMLElement>(
-      `[data-message-id="${CSS.escape(task.messageId)}"]`
-    ) ??
-    document.querySelector<HTMLElement>(
-      `[data-run-id="${CSS.escape(task.runId)}"]`
-    );
+  const target = document.querySelector<HTMLElement>(
+    `[data-message-id="${CSS.escape(task.messageId)}"]`
+  );
   if (!target) {
     return;
   }

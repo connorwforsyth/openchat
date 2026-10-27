@@ -15,8 +15,15 @@ import {
   insertMessage,
   newestLeafId,
 } from "./messages";
-import { createRun, getRun, transitionRun } from "./runs";
-import { nextSteer, removeUnrunTurn, takeSteer } from "./steers";
+import { appendRunChunks, createRun, getRun, transitionRun } from "./runs";
+import {
+  followThread,
+  nextSteer,
+  removeUnrunTurn,
+  steerInstead,
+  takeSteer,
+  toolWorkStarted,
+} from "./steers";
 
 let testDb: TestDb;
 
@@ -37,10 +44,14 @@ const answering = async () => {
   const org = await seedOrg(db, owner.id, { isPersonal: true });
   const context = { id: org.id, type: "personal" } as const;
   const chat = await createConversation(db, { context, ownerId: owner.id });
-  const say = async (text: string, parentId: string | null) =>
+  const say = async (
+    text: string,
+    parentId: string | null,
+    by: string = owner.id
+  ) =>
     expectOk(
       await insertMessage(db, {
-        authorId: owner.id,
+        authorId: by as never,
         conversationId: chat.id,
         parentId: parentId as never,
         parts: [{ text, type: "text" }],
@@ -82,7 +93,7 @@ const answering = async () => {
     delivery: "queue" | "steer",
     by: string = owner.id
   ) => {
-    const asked = await say(text, parentId);
+    const asked = await say(text, parentId, by);
     const queued = (
       await createRun(db, {
         afterRunId: after as never,
@@ -96,7 +107,7 @@ const answering = async () => {
     ).run;
     return { asked, queued };
   };
-  return { answer, chat, db, queue, running };
+  return { answer, chat, context, db, question, queue, running, say };
 };
 
 describe("takeSteer", () => {
@@ -109,7 +120,7 @@ describe("takeSteer", () => {
     expect(taken).toMatchObject({
       previousAnswerId: answer.id,
       run: { id: steer.queued.id, status: "cancelled" },
-      userMessage: { id: steer.asked.id },
+      userMessages: [{ id: steer.asked.id }],
     });
     expect(taken?.answer).toMatchObject({
       parentId: steer.asked.id,
@@ -179,14 +190,32 @@ describe("takeSteer", () => {
     expect(expectOk(await getRun(db, next.queued.id)).status).toBe("queued");
   });
 
-  test("moves a turn queued behind the steer after the answer that goes on", async () => {
+  test("takes the steer with every message sent under it, as one batch", async () => {
+    const { answer, chat, db, queue, running, say } = await answering();
+    const steer = await queue("use b", answer.id, running.id, "steer");
+    // A quick second message joins the steer's batch: no run of its own.
+    const also = await say("and c", steer.asked.id);
+
+    const taken = await take(db, running.id);
+
+    expect(taken?.userMessages.map((each) => each.id)).toEqual([
+      steer.asked.id,
+      also.id,
+    ]);
+    expect(taken?.answer.parentId).toBe(also.id);
+    expect(await newestLeafId(db, chat.id)).toBe(taken?.answer.id);
+  });
+
+  test("moves someone else's turn queued behind the steer after the answer that goes on", async () => {
     const { answer, chat, db, queue, running } = await answering();
     const steer = await queue("use b", answer.id, running.id, "steer");
+    const other = await seedUser(db);
     const later = await queue(
       "and then c",
       steer.asked.id,
       steer.queued.id,
-      "queue"
+      "queue",
+      other.id
     );
 
     const taken = await take(db, running.id);
@@ -240,5 +269,72 @@ describe("removeUnrunTurn", () => {
     );
     expect(await removeUnrunTurn(db, first.queued.id)).toBe(false);
     expect((await getMessage(db, first.asked.id)).ok).toBe(true);
+  });
+});
+
+describe("followThread", () => {
+  test("takes a quick message to its batch's question, then to the batch's answer", async () => {
+    const { answer, db, queue, running, say } = await answering();
+    const steer = await queue("use b", answer.id, running.id, "steer");
+    const also = await say("and c", steer.asked.id);
+    // Waiting: the batch's run is under its first message.
+    expect(await followThread(db, also.id)).toBe(steer.asked.id);
+    const taken = await take(db, running.id);
+    // Taken: the answer under the batch is where the thread is.
+    expect(await followThread(db, also.id)).toBe(taken?.answer.id);
+  });
+
+  test("takes a stopped answer to the turn that replaced it", async () => {
+    const { answer, db, queue, running } = await answering();
+    const next = await queue("instead", answer.id, running.id, "queue");
+    expectOk(
+      await transitionRun(db, running.id, { cancelledBy: null, type: "abort" })
+    );
+    expect(await followThread(db, answer.id)).toBe(next.asked.id);
+  });
+
+  test("leaves an answer that stands where it is", async () => {
+    const { answer, db } = await answering();
+    expect(await followThread(db, answer.id)).toBe(answer.id);
+  });
+});
+
+describe("toolWorkStarted", () => {
+  test("is false until the run's stream has a tool call", async () => {
+    const { db, running } = await answering();
+    expect(await toolWorkStarted(db, running.id)).toBe(false);
+    expectOk(await appendRunChunks(db, running.id, [{ type: "text-delta" }]));
+    expect(await toolWorkStarted(db, running.id)).toBe(false);
+    expectOk(
+      await appendRunChunks(db, running.id, [
+        { toolCallId: "c1", toolName: "read", type: "tool-input-start" },
+      ])
+    );
+    expect(await toolWorkStarted(db, running.id)).toBe(true);
+  });
+});
+
+describe("steerInstead", () => {
+  test("turns a restart's turn into a steer after the answer so far", async () => {
+    const { answer, context, db, question, running, say } = await answering();
+    // Placed to restart: beside the answer, under the question.
+    const asked = await say("and c", question.id);
+    const turn = (
+      await createRun(db, {
+        afterRunId: running.id,
+        context,
+        conversationId: answer.conversationId,
+        createdBy: asked.authorId as never,
+        target: { model: "fast", type: "model" },
+        userMessageId: asked.id,
+      })
+    ).run;
+    await steerInstead(db, turn, running.id);
+    expect(expectOk(await getMessage(db, asked.id)).parentId).toBe(answer.id);
+    expect(expectOk(await getRun(db, turn.id)).options).toMatchObject({
+      delivery: "steer",
+    });
+    // The answer takes it at its next step.
+    expect((await take(db, running.id))?.answer.parentId).toBe(asked.id);
   });
 });

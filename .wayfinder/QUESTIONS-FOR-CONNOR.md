@@ -257,13 +257,17 @@ Lane `pstack/usage` (Settings → Usage, span tags). Defaults applied overnight;
 4. **A reload reopens the panel on the newest artifact, not the one you had open.** The layout stores the panel's section, not its selection (unchanged from before). *Defaulted: left as is.* Storing the selection per chat is a small follow-up.
 5. **A deck without the artifacts service.** It opens on Preview and says the service isn't running, with Show the code. *Defaulted: same as React and sites.*
 
-## steer lane (n2/steer)
+## steer lane (n2/steer, n2/steer-batch)
 
-1. **Enter queues, ⌘↵ steers.** While an answer is being written, Enter queues the message as the next turn and ⌘↵ (Ctrl+Enter elsewhere), or the Steer button, steers the answer at its next step. *Defaulted: as Claude Code and Codex do.* The alternative is Enter steers and ⌘↵ queues.
-2. **A steer that changes how the answer is made runs as its own turn.** A message that picks skills, names an agent, or approves a plan can't join an answer already being written, so the server queues it instead. *Defaulted: queue it.* The alternative is to refuse the steer with a message.
-3. **Remove deletes a queued message.** Remove and Edit take a queued turn back with its message, so it leaves no trace in the chat. If another turn was queued under it meanwhile, it stays as a stopped question. *Defaulted: delete.* The alternative is to keep it in the chat as stopped, as Stop on a queued turn does.
-4. **Quick AI doesn't queue or steer.** Each Quick AI ask is a new chat, and ⌘↵ there already means "Open in the app". *Defaulted: unchanged.* The alternative is follow-ups in the Quick AI window, which would need a different key for opening in the app.
-5. **A steer sent while a card waits for approval moves on.** As with any message sent then (072), the waiting answer stops and the steer runs as the next turn. *Defaulted: unchanged.* The alternative is to hold the steer until someone decides.
+Sending while the agent works follows your pick (ChatGPT's model): a message goes into the thread at once and quick messages get one answer. These are the calls made inside it.
+
+1. **What counts as "no tool work yet".** The server restarts an answer whose stream has no tool call yet (only thinking or text), and takes messages at the next step boundary once a tool call has started. *Defaulted: the first tool chunk on the run's stream decides.* The alternative is a time or token threshold, so a long text answer isn't restarted.
+2. **The stopped partial answer stays, unshown.** A restart keeps the partial answer as a branch beside the new message: the thread doesn't show it, the branch arrows on that message reach it. *Defaulted: keep it.* The alternative is to delete it.
+3. **A message sent while an answer waits on approval stops that answer.** There's no step boundary while it waits, so the message runs as the next turn and the pending change isn't applied (072, as before). *Defaulted: unchanged.* The alternative is to hold the message until someone decides.
+4. **Someone else's message is its own turn.** In a shared chat, a collaborator's message never joins the owner's answer (it would run under the owner's memory and budget): it waits and runs as their turn. *Defaulted: as #245.*
+5. **A message that picks skills, names an agent or approves a plan is its own turn.** It changes how the answer is made, so it never joins a batch. *Defaulted: queue it.*
+6. **No queue tray, Steer button or ⌘↵.** Removed for this model. `runs.steer` and `runs.withdraw` (#238) stay in the contract, unused by the app. *Defaulted: keep them.* The alternative is a contract PR that removes them.
+7. **Quick AI is unchanged.** Each ask is a new chat; ⌘↵ there opens the app.
 
 ## outputs-card lane (n2/outputs-card)
 

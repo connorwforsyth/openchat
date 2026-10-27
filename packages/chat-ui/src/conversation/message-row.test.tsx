@@ -82,9 +82,19 @@ describe("thinking", () => {
 });
 
 describe("the answer's status line", () => {
-  it("says Sending… until the run writes, then gives way to the answer", () => {
+  it("says Thinking… from the send, as the thinking row it becomes, then gives way to the answer", async () => {
     const view = render(row({ parts: [], streaming: true }));
-    expect(screen.getByRole("status").textContent).toBe("Sending…");
+    expect(screen.getByRole("status").textContent).toBe("Thinking…");
+
+    // The model's thinking arrives: the same title, in the same place.
+    view.rerender(
+      row({
+        parts: [{ text: "Considering.", type: "reasoning" }],
+        streaming: true,
+      })
+    );
+    expect(await screen.findByText("Thinking…")).toBeTruthy();
+    expect(screen.queryByRole("status")).toBeNull();
 
     view.rerender(row({ parts: [answer], streaming: true }));
     expect(screen.queryByRole("status")).toBeNull();
@@ -98,7 +108,7 @@ describe("the answer's status line", () => {
     expect(screen.queryByText(WORKING)).toBeNull();
 
     view.rerender(row({ parts: [], phase: "running", streaming: false }));
-    expect(screen.getByRole("status").textContent).toBe("Sending…");
+    expect(screen.getByRole("status").textContent).toBe("Thinking…");
 
     view.rerender(row({ parts: [], phase: "queued", streaming: false }));
     expect(screen.getByRole("status").textContent).toBe(

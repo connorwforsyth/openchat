@@ -63,7 +63,7 @@ const ABSOLUTE = /^https?:\/\//;
 const TRAILING_SLASH = /\/$/;
 /**
  * How many unfinished runs a page lists: the one answering and the turns
- * queued behind it (the composer's queue shows them).
+ * queued behind it (the outputs card lists them as tasks).
  */
 export const ACTIVE_RUNS_LIMIT = 20;
 

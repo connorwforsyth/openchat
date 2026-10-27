@@ -69,7 +69,7 @@ interface LiveHandlers {
   readonly items: (query: string) => readonly MenuItem[];
   readonly recallPrompt: (direction: PromptHistoryDirection) => boolean;
   readonly removeLastAttachment: () => boolean;
-  readonly submit: (how: "send" | "steer") => void;
+  readonly submit: () => void;
 }
 
 /** The chip a menu pick puts in the text; `undefined` for picks that aren't one. */
@@ -171,7 +171,6 @@ export function Composer({
   onCommand,
   onPlanChange,
   onStop,
-  onSteer,
   onSubmit,
   onTargetChange,
   onVariantChange,
@@ -182,6 +181,7 @@ export function Composer({
   prompts = NONE,
   recentsKey,
   skills: offeredSkills = NONE,
+  sendsWhileBusy = false,
   status = "ready",
   target,
   variant,
@@ -248,10 +248,8 @@ export function Composer({
   );
 
   const busy = status === "submitted" || status === "streaming";
-  // While an answer is being written, a host that can steer takes messages:
-  // queued with Enter, steered with Mod+Enter.
   const canSubmit =
-    !(disabled || (busy && onSteer === undefined)) &&
+    !(disabled || (busy && !sendsWhileBusy)) &&
     hasContent({ attachments: files.attachments, text });
 
   const shownPlaceholder = useLivePlaceholder(placeholder);
@@ -307,11 +305,11 @@ export function Composer({
           onBackspaceEmpty: () => live.current.removeLastAttachment(),
           onHistoryKey: (direction) =>
             !menus.isOpen() && live.current.recallPrompt(direction),
-          onSubmitKey: (how) => {
+          onSubmitKey: () => {
             if (menus.isOpen()) {
               return false;
             }
-            live.current.submit(how);
+            live.current.submit();
             return true;
           },
           variablesActive: () => !menus.isOpen(),
@@ -387,40 +385,31 @@ export function Composer({
     draftChanged();
   }, [draftChanged, templateId]);
 
-  const submit = useCallback(
-    (how: "send" | "steer" = "send") => {
-      if (!canSubmit) {
-        return;
-      }
-      const value = buildComposerValue({
+  const submit = useCallback(() => {
+    if (!canSubmit) {
+      return;
+    }
+    onSubmit(
+      buildComposerValue({
         attachments: files.attachments,
         doc: editor.getJSON(),
         templateId,
-      });
-      if (busy && how === "steer" && onSteer) {
-        onSteer(value);
-      } else {
-        onSubmit(value);
-      }
-      editor.commands.clearContent(true);
-      setTemplateId(null);
-      files.clear();
-      promptRecall.reset();
-      draftControls.sent();
-    },
-    [
-      busy,
-      canSubmit,
-      draftControls,
-      editor,
-      files,
-      onSteer,
-      onSubmit,
-      promptRecall,
-      templateId,
-    ]
-  );
-  const steer = useCallback(() => submit("steer"), [submit]);
+      })
+    );
+    editor.commands.clearContent(true);
+    setTemplateId(null);
+    files.clear();
+    promptRecall.reset();
+    draftControls.sent();
+  }, [
+    canSubmit,
+    draftControls,
+    editor,
+    files,
+    onSubmit,
+    promptRecall,
+    templateId,
+  ]);
 
   const openFilePicker = useCallback(() => fileInputRef.current?.click(), []);
 
@@ -723,7 +712,6 @@ export function Composer({
           onAttach={openFilePicker}
           onMakeImage={canMakeImages ? startImage : undefined}
           onPlanChange={onPlanChange}
-          onSteer={onSteer ? steer : undefined}
           onStop={onStop ? stop : undefined}
           onTargetChange={onTargetChange}
           onUsePrompt={usePrompt}
@@ -732,6 +720,7 @@ export function Composer({
           plan={plan}
           prompts={prompts}
           recentsKey={recentsKey}
+          sendsWhileBusy={sendsWhileBusy}
           skills={offeredSkills}
           target={target}
           variant={variant}

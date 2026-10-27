@@ -1,14 +1,10 @@
 import {
   type AnnotationsData,
   annotationsParts,
-  annotationsText,
 } from "@workspace/ai/messages/annotations";
 import type { MessageId } from "@workspace/contract/schemas/common";
 import type { Conversation } from "@workspace/contract/schemas/conversations";
-import type {
-  CreateRunInput,
-  TurnDelivery,
-} from "@workspace/contract/schemas/runs";
+import type { CreateRunInput } from "@workspace/contract/schemas/runs";
 import { useMemo, useRef } from "react";
 
 import type { AnnotateSink } from "./sink";
@@ -29,7 +25,6 @@ export const annotationsMessage = (data: AnnotationsData) => {
 
 /** The notes as a run's `input`, sent while an answer is written. Pure. */
 export const annotationsInput = (
-  _text: string,
   data: AnnotationsData,
   parentId: MessageId | null
 ): CreateRunInput["input"] => ({
@@ -48,15 +43,11 @@ export const useChatAnnotateSink = ({
   stopReading,
   waiting,
 }: {
-  /** An answer is being written: the notes steer it. */
+  /** An answer is being written: the notes join it (the server decides how). */
   readonly busy: boolean;
   /** The chat, once it exists; a viewer can't write in it. */
   readonly conversation: Pick<Conversation, "myPermission"> | undefined;
-  readonly sendBusy: (
-    text: string,
-    data: AnnotationsData,
-    delivery: TurnDelivery
-  ) => Promise<void>;
+  readonly sendBusy: (data: AnnotationsData) => Promise<void>;
   readonly sendMessage: (
     message: ReturnType<typeof annotationsMessage>
   ) => Promise<void>;
@@ -80,7 +71,7 @@ export const useChatAnnotateSink = ({
                 await stopReading().catch(ignore);
               }
               if (busy) {
-                await sendBusy(annotationsText(data), data, "steer");
+                await sendBusy(data);
                 return;
               }
               await sendMessage(annotationsMessage(data));

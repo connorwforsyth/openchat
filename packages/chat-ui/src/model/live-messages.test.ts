@@ -339,27 +339,33 @@ describe("an answer that took a steer", () => {
     now: "2026-10-27T10:00:00.000Z",
   };
   const firstAnswer = stored?.id as SteerData["previousAnswerId"];
+  // Two quick messages, taken together.
+  const said = (text: string) => ({
+    authorId: userAda.id,
+    createdAt: "2026-10-27T10:00:01.000Z",
+    id: newId("message"),
+    parts: [{ text, type: "text" as const }],
+  });
   const steer: SteerData = {
     answerId: newId("message"),
-    message: {
-      authorId: userAda.id,
-      createdAt: "2026-10-27T10:00:01.000Z",
-      id: newId("message"),
-      parts: [{ text: "Focus on b.", type: "text" }],
-    },
+    messages: [said("Focus on b."), said("And c.")],
     previousAnswerId: firstAnswer,
   };
+  const [firstAsked, lastAsked] = steer.messages as [
+    SteerData["messages"][number],
+    SteerData["messages"][number],
+  ];
   const live: UIMessage = {
     id: firstAnswer,
     parts: [
       { text: "Looking at a.", type: "text" },
-      { data: steer, id: steer.message.id, type: `data-${STEER_DATA}` },
+      { data: steer, id: steer.answerId, type: `data-${STEER_DATA}` },
       { text: "Now b.", type: "text" },
     ],
     role: "assistant",
   };
 
-  it("shows the steer where the answer took it, and the rest under it", () => {
+  it("shows the batch where the answer took it, and the rest under it", () => {
     const merged = mergeLive(
       path,
       [ui(question?.id ?? "q", "user", "Hi"), live],
@@ -370,18 +376,20 @@ describe("an answer that took a steer", () => {
     expect(merged.map((message) => message.id)).toEqual([
       question?.id,
       firstAnswer,
-      steer.message.id,
+      firstAsked.id,
+      lastAsked.id,
       steer.answerId,
     ]);
-    const [, before, asked, after] = merged;
+    const [, before, asked, also, after] = merged;
     expect(before?.parts).toEqual([{ text: "Looking at a.", type: "text" }]);
     expect(asked).toMatchObject({
       parentId: firstAnswer,
       parts: [{ text: "Focus on b.", type: "text" }],
       role: "user",
     });
+    expect(also).toMatchObject({ parentId: firstAsked.id, role: "user" });
     expect(after).toMatchObject({
-      parentId: steer.message.id,
+      parentId: lastAsked.id,
       parts: [{ text: "Now b.", type: "text" }],
       role: "assistant",
     });
@@ -390,19 +398,25 @@ describe("an answer that took a steer", () => {
   it("shows it once when the stored branch already has it", () => {
     const storedSteer = {
       ...(stored as NonNullable<typeof stored>),
-      id: steer.message.id,
+      id: firstAsked.id,
       parentId: firstAnswer,
       parts: [{ text: "Focus on b.", type: "text" as const }],
       role: "user" as const,
     };
+    const storedAlso = {
+      ...storedSteer,
+      id: lastAsked.id,
+      parentId: firstAsked.id,
+      parts: [{ text: "And c.", type: "text" as const }],
+    };
     const storedAnswer = {
       ...(stored as NonNullable<typeof stored>),
       id: steer.answerId,
-      parentId: steer.message.id,
+      parentId: lastAsked.id,
       parts: [],
     };
     const merged = mergeLive(
-      [...path, storedSteer, storedAnswer],
+      [...path, storedSteer, storedAlso, storedAnswer],
       [ui(question?.id ?? "q", "user", "Hi"), live],
       context,
       undefined,
@@ -411,10 +425,30 @@ describe("an answer that took a steer", () => {
     expect(merged.map((message) => message.id)).toEqual([
       question?.id,
       firstAnswer,
-      steer.message.id,
+      firstAsked.id,
+      lastAsked.id,
       steer.answerId,
     ]);
     expect(merged.at(-1)?.parts).toEqual([{ text: "Now b.", type: "text" }]);
+  });
+
+  it("drops what it was still streaming once the branch has gone on without it", () => {
+    // A message sent while the answer was only thinking restarted it: the
+    // stored branch is the question, then the new message.
+    const sent = {
+      ...(question as NonNullable<typeof question>),
+      id: newId("message"),
+      parentId: question?.id ?? null,
+    };
+    const merged = mergeLive(
+      [question as NonNullable<typeof question>, sent],
+      [ui(question?.id ?? "q", "user", "Hi"), ui("stale", "assistant", "Hal")],
+      context
+    );
+    expect(merged.map((message) => message.id)).toEqual([
+      question?.id,
+      sent.id,
+    ]);
   });
 
   it("writes into the answer the last steer started", () => {
