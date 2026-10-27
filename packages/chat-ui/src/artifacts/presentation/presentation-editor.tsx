@@ -47,13 +47,13 @@ import {
 } from "../presentation-preview";
 import type { PickedElement } from "../runtime-protocol";
 import { judgePick, nextPick, type Picked } from "./pick";
-import { SlideInspector } from "./slide-inspector";
+import { SlideInspector, SlideInspectorPlaceholder } from "./slide-inspector";
 import { SlideRail } from "./slide-rail";
 
 // A presentation (164) as the slides editor (n2), built on the shared
-// artifact editor (`../editor`): the sorter beside the slide, the slide
-// with its elements to pick, the inspector for what's picked, and the
-// slide's speaker notes and "Change this slide" under it. Every change is
+// artifact editor (`../editor`): the sorter at the start, the slide with
+// its elements to pick, the inspector for what's picked at the end, and
+// "Change this slide" and the slide's speaker notes under it. Every change is
 // the deck's next value, kept in the undo history and saved as a version
 // after a pause; the agent's own edits arrive as versions and join the
 // history too, so Undo takes one back. Read only for viewers and on an
@@ -578,34 +578,18 @@ Edit only that slide, with update_artifact's update_slide.`
           <DeckStage deck={deckView} />
         </>
       }
+      covered={deckView.presenting}
       drawer={
-        current ? (
-          <>
-            {canEdit && ask.available ? (
-              <div className="shrink-0 border-t px-3 py-2">
-                <InstructionForm
-                  disabled={false}
-                  label={t`Change this slide`}
-                  onSubmit={changeSlide}
-                  placeholder={t`Change this slide… (the agent edits it)`}
-                  state={ask.state}
-                />
-              </div>
-            ) : null}
-            <NotesDrawer
-              key={current.id}
-              label={t`Speaker notes`}
-              meta={
-                <Trans>
-                  Slide {index + 1} of {deck.slides.length}
-                </Trans>
-              }
-              onCommit={onNotes}
-              placeholder={t`What to say on this slide`}
-              readOnly={!canEdit}
-              value={current.notes ?? ""}
+        current && canEdit && ask.available ? (
+          <div className="shrink-0 border-t px-3 py-2">
+            <InstructionForm
+              disabled={false}
+              label={t`Change this slide`}
+              onSubmit={changeSlide}
+              placeholder={t`Change this slide… (the agent edits it)`}
+              state={ask.state}
             />
-          </>
+          </div>
         ) : null
       }
       inspector={
@@ -616,6 +600,24 @@ Edit only that slide, with update_artifact's update_slide.`
             onClose={unpick}
             onStyle={onStyle}
             onText={onWords}
+          />
+        ) : null
+      }
+      inspectorPlaceholder={<SlideInspectorPlaceholder canEdit={canEdit} />}
+      notes={
+        current ? (
+          <NotesDrawer
+            key={current.id}
+            label={t`Speaker notes`}
+            meta={
+              <Trans>
+                Slide {index + 1} of {deck.slides.length}
+              </Trans>
+            }
+            onCommit={onNotes}
+            placeholder={t`What to say on this slide`}
+            readOnly={!canEdit}
+            value={current.notes ?? ""}
           />
         ) : null
       }

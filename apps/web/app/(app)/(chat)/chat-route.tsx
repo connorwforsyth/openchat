@@ -525,8 +525,8 @@ export function ChatRoute({
     }
   }, [agentParam, agentOwner, changeTarget]);
 
-  // The palette's "Show this chat's artifacts" asks the chat to open its
-  // header's list; each ask is a new number.
+  // The palette's "Show or hide artifacts and tasks" asks the chat to toggle
+  // its outputs card; each ask is a new number.
   const [artifactsRequest, setArtifactsRequest] = useState(0);
   const askArtifacts = useCallback(
     () => setArtifactsRequest((count) => count + 1),
