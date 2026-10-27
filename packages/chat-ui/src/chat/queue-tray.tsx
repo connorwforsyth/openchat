@@ -83,6 +83,7 @@ function QueuedRow({
     <li
       className="flex min-h-8 items-center gap-2 ps-3 pe-1 text-sm"
       data-delivery={turn.delivery}
+      data-run-id={turn.runId}
     >
       {steering ? (
         <CornerDownLeftIcon

@@ -99,6 +99,7 @@ import {
 } from "../conversation/approval-state";
 import { ShowModesContext } from "../conversation/mode-note";
 import { PlanStatusProvider } from "../conversation/plan-card";
+import { chatTasks } from "../header/chat-tasks";
 import { staleEdits } from "../model/approval";
 import {
   artifactKindLabels,
@@ -2306,6 +2307,13 @@ export function ConnectedChat({
     () => withoutQueued(messages, queue.turns),
     [messages, queue.turns]
   );
+  const outputs = useMemo(
+    () => ({
+      owner: me.user.id,
+      tasks: chatTasks(data.activeRuns, queue.turns, messages),
+    }),
+    [data.activeRuns, me.user.id, messages, queue.turns]
+  );
 
   useAskOnce(initialPrompt, conversationId, onSubmit);
   const composerDrafts = useComposerDrafts(
@@ -2451,6 +2459,7 @@ export function ConnectedChat({
             onComposerInput={live.onTyping}
             onNewChat={newChat}
             onOpenPalette={onOpenPalette}
+            outputs={outputs}
             pendingApprovals={approvals}
             platform={platform}
             runError={
