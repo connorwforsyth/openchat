@@ -42,7 +42,7 @@ import type { ChatTask, TaskStatus } from "./chat-tasks";
 // column's top end. The header's button collapses it and opens it again.
 
 /** How wide the chat column must be for the card to stay open beside it. */
-export const ROOMY_COLUMN_PX = 640;
+export const ROOMY_COLUMN_PX = 480;
 
 /** How a toggle was made: keyboard toggles don't animate (D28). */
 export type ToggleVia = "keyboard" | "pointer";
@@ -227,7 +227,7 @@ export function OutputsCard({
         aria-hidden={!shown}
         aria-label={t`Artifacts and tasks`}
         className={cn(
-          "pointer-events-auto flex max-h-[min(32rem,calc(100cqh-12rem))] w-72 flex-col gap-1 overflow-y-auto rounded-xl bg-popover p-1.5 text-popover-foreground text-sm shadow-md ring-1 ring-foreground/10",
+          "pointer-events-auto flex max-h-[min(32rem,calc(100cqh-12rem))] w-[min(18rem,45cqw)] flex-col gap-1 overflow-y-auto rounded-xl bg-popover p-1.5 text-popover-foreground text-sm shadow-md ring-1 ring-foreground/10",
           // Appears at once; leaves with the one exit fade (D28).
           "data-[state=closed]:invisible data-[state=closed]:opacity-0",
           instant
