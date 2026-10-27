@@ -64,18 +64,25 @@ describe("the outputs card", () => {
   });
 
   it("marks the one shown and one still being made, and opens a pick", async () => {
-    const [a, b] = chatArtifacts;
-    if (!(a && b)) {
+    const [a] = chatArtifacts;
+    if (!a) {
       throw new Error("fixture artifacts");
     }
     const onPick = vi.fn();
+    const creating: ChatTask = {
+      ...running,
+      step: {
+        approval: { state: "none" },
+        input: { content: "# Hi", title: "Packing list", type: "document" },
+        toolCallId: "c1",
+        toolName: "create_artifact",
+        type: "tool-call",
+      } as unknown as ChatTask["step"],
+    };
     renderWithI18n(
-      card({
-        artifacts: [a, { ...b, latestVersionId: null }],
-        current: a.id,
-        onPick,
-      })
+      card({ artifacts: [a], current: a.id, onPick, tasks: [creating] })
     );
+    expect(screen.getByText("Packing list")).toBeTruthy();
     const shown = screen.getByRole("button", { name: a.title });
     expect(shown.getAttribute("aria-current")).toBe("true");
     expect(screen.getByText("Making…")).toBeTruthy();

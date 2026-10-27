@@ -8,7 +8,10 @@ import type {
   ComposerValue,
   ContextOption,
 } from "@workspace/composer/schemas";
-import type { ConversationId } from "@workspace/contract/schemas/common";
+import type {
+  ConversationId,
+  UserId,
+} from "@workspace/contract/schemas/common";
 import type { Participant } from "@workspace/contract/schemas/conversations";
 import type {
   Message,
@@ -192,7 +195,7 @@ export interface ChatScreenProps {
   readonly onOpenPalette?: () => void;
   /** The outputs card's tasks, and whose card it is (night 2, decision 4). */
   readonly outputs?: {
-    readonly owner?: string;
+    readonly owner?: UserId;
     readonly tasks: readonly ChatTask[];
   };
   readonly pendingApprovals?: readonly PendingApproval[];

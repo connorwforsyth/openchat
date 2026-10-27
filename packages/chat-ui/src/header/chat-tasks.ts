@@ -1,6 +1,11 @@
 import type { MessageId, RunId } from "@workspace/contract/schemas/common";
+import {
+  type ArtifactKind,
+  artifactKindSchema,
+} from "@workspace/contract/schemas/message-parts";
 import type { Message } from "@workspace/contract/schemas/messages";
 import type { Run } from "@workspace/contract/schemas/runs";
+import { z } from "zod";
 
 import { messageText, type ToolCallPart } from "../model/parts";
 import type { QueuedTurn } from "../model/queue";
@@ -9,6 +14,8 @@ import type { QueuedTurn } from "../model/queue";
 // outputs card (night 2, decision 4): the answer being written, then the
 // turns waiting behind it, next first. Built from the active runs and the
 // composer's queue, so a reload and a second tab list the same. Pure.
+
+const CREATE_ARTIFACT = "create_artifact";
 
 export type TaskStatus = "queued" | "running" | "steering" | "waiting";
 
@@ -49,8 +56,14 @@ const answeringStatus = (run: Run): TaskStatus | null => {
       return "running";
     case "awaiting_approval":
       return "waiting";
-    default:
+    // Queued turns come from the composer's queue, with their text.
+    case "queued":
+    case "succeeded":
+    case "failed":
+    case "cancelled":
       return null;
+    default:
+      return run.state satisfies never;
   }
 };
 
@@ -92,3 +105,32 @@ export const chatTasks = (
     ),
   ];
 };
+
+const makingInputSchema = z.object({
+  title: z.string().min(1),
+  type: artifactKindSchema,
+});
+
+export interface ArtifactInMaking {
+  readonly kind: ArtifactKind;
+  readonly runId: RunId;
+  readonly title: string;
+}
+
+/**
+ * Artifacts a running answer is creating: its `create_artifact` call, until
+ * it has a result. The artifact itself only exists once it's saved, with
+ * its first version, so this is the one place "Making…" can come from.
+ */
+export const artifactsInMaking = (
+  tasks: readonly ChatTask[]
+): readonly ArtifactInMaking[] =>
+  tasks.flatMap((task) => {
+    if (task.step?.toolName !== CREATE_ARTIFACT) {
+      return [];
+    }
+    const input = makingInputSchema.safeParse(task.step.input);
+    return input.success
+      ? [{ kind: input.data.type, runId: task.runId, title: input.data.title }]
+      : [];
+  });

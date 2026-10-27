@@ -15,6 +15,7 @@ import {
   ShapesIcon,
 } from "@workspace/icons";
 import { Button } from "@workspace/ui/components/button";
+import { Separator } from "@workspace/ui/components/separator";
 import {
   Tooltip,
   TooltipContent,
@@ -35,7 +36,12 @@ import {
 import { kindIcon } from "../artifacts/kind-icon";
 import { toolIcons } from "../conversation/tool-status";
 import { toolSummary } from "../model/tool-summary";
-import type { ChatTask, TaskStatus } from "./chat-tasks";
+import {
+  type ArtifactInMaking,
+  artifactsInMaking,
+  type ChatTask,
+  type TaskStatus,
+} from "./chat-tasks";
 
 // The outputs card (night 2, decision 4, after ChatGPT's Outputs card): the
 // chat's artifacts and what the agent is working on, floating over the chat
@@ -68,7 +74,6 @@ export function OutputsButton({
 }: {
   /** An answer is being written or waits; shown while the card isn't. */
   readonly busy: boolean;
-  /** The card's id. */
   readonly controls: string;
   readonly count: number;
   readonly hint?: ReactNode;
@@ -170,6 +175,7 @@ export function OutputsCard({
 }: OutputsCardProps) {
   const { t } = useLingui();
   const rows = useMemo(() => artifactsByChange(artifacts), [artifacts]);
+  const making = useMemo(() => artifactsInMaking(tasks), [tasks]);
   // This layer spans the chat column, so its width is the column's.
   const measure = useCallback(
     (column: HTMLDivElement) => {
@@ -254,7 +260,7 @@ export function OutputsCard({
             <MinusIcon aria-hidden />
           </Button>
         </div>
-        {rows.length === 0 ? (
+        {rows.length === 0 && making.length === 0 ? (
           <p className="px-2 pb-1.5 text-muted-foreground text-xs">
             <Trans>
               Nothing yet. Ask for a document, a deck, a site or a diagram and
@@ -263,6 +269,11 @@ export function OutputsCard({
           </p>
         ) : (
           <ul className="flex flex-col">
+            {making.map((artifact) => (
+              <li key={`making-${artifact.runId}-${artifact.title}`}>
+                <MakingRow artifact={artifact} />
+              </li>
+            ))}
             {rows.map((artifact) => (
               <li key={artifact.id}>
                 <ArtifactRow
@@ -276,7 +287,7 @@ export function OutputsCard({
         )}
         {tasks.length === 0 ? null : (
           <>
-            <div className="mx-2 my-0.5 border-border border-t" />
+            <Separator className="mx-2 my-0.5 w-auto" />
             <h2 className="flex h-7 items-center ps-2 font-medium text-muted-foreground text-xs">
               <Trans>Tasks</Trans>
             </h2>
@@ -308,7 +319,6 @@ function ArtifactRow({
 }) {
   const pick = useCallback(() => onPick(artifact), [artifact, onPick]);
   const Glyph = kindIcon(artifact.kind);
-  const making = artifact.latestVersionId === null;
   return (
     <button
       aria-current={current || undefined}
@@ -319,15 +329,22 @@ function ArtifactRow({
     >
       <Glyph aria-hidden className="size-4 shrink-0 text-muted-foreground" />
       <span className="min-w-0 flex-1 truncate">{artifact.title}</span>
-      {making ? (
-        <span className="shrink-0 text-muted-foreground text-xs motion-safe:animate-status-pulse">
-          <Trans>Making…</Trans>
-        </span>
-      ) : null}
-      {current && !making ? (
-        <CheckIcon aria-hidden className="size-3.5 shrink-0" />
-      ) : null}
+      {current ? <CheckIcon aria-hidden className="size-3.5 shrink-0" /> : null}
     </button>
+  );
+}
+
+/** One the agent is creating: nothing to open until it's saved. */
+function MakingRow({ artifact }: { readonly artifact: ArtifactInMaking }) {
+  const Glyph = kindIcon(artifact.kind);
+  return (
+    <div className="flex items-center gap-2 px-2 py-1.5 text-muted-foreground">
+      <Glyph aria-hidden className="size-4 shrink-0" />
+      <span className="min-w-0 flex-1 truncate">{artifact.title}</span>
+      <span className="shrink-0 text-xs motion-safe:animate-status-pulse">
+        <Trans>Making…</Trans>
+      </span>
+    </div>
   );
 }
 

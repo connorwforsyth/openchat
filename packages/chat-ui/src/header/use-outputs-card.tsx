@@ -1,6 +1,9 @@
 "use client";
 
-import type { ConversationId } from "@workspace/contract/schemas/common";
+import type {
+  ConversationId,
+  UserId,
+} from "@workspace/contract/schemas/common";
 import type { Artifact } from "@workspace/contract/schemas/files";
 import {
   type ReactNode,
@@ -88,7 +91,7 @@ export const useOutputsCard = ({
   /** The shortcut, for the button's tooltip. */
   readonly hint?: ReactNode;
   /** Whose choice it is: the card's open state is remembered per person. */
-  readonly owner?: string;
+  readonly owner?: UserId;
   readonly request: number;
   readonly select: (selection: WorkspaceSelection) => void;
   /** What the panel shows when it's on the artifacts, else `null`. */
@@ -162,9 +165,9 @@ export const useOutputsCard = ({
     }
   }, [focusIn]);
 
-  const [asked, setAsked] = useState(request);
-  if (asked !== request) {
-    setAsked(request);
+  const [paletteAsk, setPaletteAsk] = useState(request);
+  if (paletteAsk !== request) {
+    setPaletteAsk(request);
     setInstant(true);
     if (!shown) {
       setFocusIn((count) => count + 1);
@@ -172,23 +175,26 @@ export const useOutputsCard = ({
     setState((was) => toggleOutputs(was, room));
   }
 
+  // A pick ends a peek; a pinned card stays.
+  const endPeek = useCallback(() => {
+    if (!roomy) {
+      setInstant(false);
+      setState((was) => collapseOutputs(was, { roomy }));
+    }
+  }, [roomy]);
   const pick = useCallback(
     (artifact: Artifact) => {
       select({ artifactId: artifact.id, kind: "artifact" });
-      if (!roomy) {
-        setState((was) => collapseOutputs(was, { roomy }));
-      }
+      endPeek();
     },
-    [roomy, select]
+    [endPeek, select]
   );
   const showTask = useCallback(
     (task: ChatTask) => {
-      if (!roomy) {
-        setState((was) => collapseOutputs(was, { roomy }));
-      }
+      endPeek();
       showTurn(task);
     },
-    [roomy]
+    [endPeek]
   );
 
   const showing =

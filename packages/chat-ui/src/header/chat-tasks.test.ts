@@ -3,7 +3,7 @@ import type { Run } from "@workspace/contract/schemas/runs";
 import { describe, expect, it } from "vitest";
 
 import { queuedTurns } from "../model/queue";
-import { chatTasks } from "./chat-tasks";
+import { artifactsInMaking, chatTasks } from "./chat-tasks";
 
 const at = "2026-10-27T00:00:00.000Z";
 
@@ -91,5 +91,26 @@ describe("chatTasks", () => {
       },
     ]);
     expect(chatTasks(undefined, [], [])).toEqual([]);
+  });
+});
+
+describe("artifactsInMaking", () => {
+  it("is the artifact a running answer is creating, until it's saved", () => {
+    const runs = [run("r0", { startedAt: at, status: "running" }, "a0")];
+    const creating = {
+      ...call("c1", "create_artifact"),
+      input: { content: "<h1>Hi</h1>", title: "Harbour site", type: "site" },
+    };
+    const making = artifactsInMaking(
+      chatTasks(runs, [], [answer("a0", [creating])])
+    );
+    expect(making).toEqual([
+      { kind: "site", runId: "r0", title: "Harbour site" },
+    ]);
+    const saved = answer("a0", [
+      creating,
+      { output: {}, toolCallId: "c1", type: "tool-result" },
+    ]);
+    expect(artifactsInMaking(chatTasks(runs, [], [saved]))).toEqual([]);
   });
 });

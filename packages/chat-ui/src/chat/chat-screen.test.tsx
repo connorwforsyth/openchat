@@ -7,6 +7,7 @@ import {
   sandbox as sandboxFixture,
   teamPlatform,
 } from "@workspace/contract/fixtures";
+import type { UserId } from "@workspace/contract/schemas/common";
 import type { Message } from "@workspace/contract/schemas/messages";
 import type { ChatContext } from "@workspace/contract/schemas/tenancy";
 import { err, ok } from "@workspace/shared/result";
@@ -360,7 +361,7 @@ describe("header (D14)", () => {
   });
 
   it("remembers the card collapsed, per person, across a reload", async () => {
-    const owned = props({ outputs: { owner: "u1", tasks: [] } });
+    const owned = props({ outputs: { owner: "u1" as UserId, tasks: [] } });
     const first = renderWithI18n(<ChatScreen {...owned} />);
     await findOutputs();
     await userEvent.click(
@@ -379,7 +380,9 @@ describe("header (D14)", () => {
     // Someone else on this browser has their own.
     cleanup();
     renderWithI18n(
-      <ChatScreen {...props({ outputs: { owner: "u2", tasks: [] } })} />
+      <ChatScreen
+        {...props({ outputs: { owner: "u2" as UserId, tasks: [] } })}
+      />
     );
     expect(await findOutputs()).toBeTruthy();
     window.localStorage.removeItem(`${OUTPUTS_STORAGE_KEY}:u1`);
