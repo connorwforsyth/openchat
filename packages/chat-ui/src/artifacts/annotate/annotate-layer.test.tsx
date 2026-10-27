@@ -179,7 +179,12 @@ describe("Annotate", () => {
     expect(
       screen.getByRole("button", { name: "Steer with notes" })
     ).toBeTruthy();
-    surface().focus();
+    // Focus is back on the surface: Enter places the next pin.
+    await waitFor(() => expect(document.activeElement).toBe(surface()));
+    await userEvent.keyboard("{ArrowRight}{Enter}");
+    expect(screen.getByRole("region", { name: "Note 2" })).toBeTruthy();
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => expect(document.activeElement).toBe(surface()));
     await userEvent.keyboard("{Escape}");
     expect(screen.queryByRole("application")).toBeNull();
     expect(outside).not.toHaveBeenCalledWith(

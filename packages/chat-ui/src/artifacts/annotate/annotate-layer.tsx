@@ -141,14 +141,28 @@ function AnnotateLayer({
   }, []);
   useShortcut("artifact.annotate", toggle);
 
-  const close = useCallback(() => {
-    // A note left empty was a misclick.
-    const opened = drafts.find((draft) => draft.id === open);
-    if (opened && opened.note.trim() === "") {
-      dispatch({ id: opened.id, type: "remove" });
-    }
-    setOpen(null);
-  }, [dispatch, drafts, open]);
+  const surface = useRef<HTMLDivElement>(null);
+  // Back to the surface, so the keyboard can place the next pin.
+  const refocus = useCallback((visible: boolean) => {
+    const options: FocusOptions & { readonly focusVisible?: boolean } = {
+      // Chrome and Firefox: show the keyboard cursor only after keys.
+      focusVisible: visible,
+      preventScroll: true,
+    };
+    requestAnimationFrame(() => surface.current?.focus(options));
+  }, []);
+  const close = useCallback(
+    (viaKeyboard: boolean) => {
+      // A note left empty was a misclick.
+      const opened = drafts.find((draft) => draft.id === open);
+      if (opened && opened.note.trim() === "") {
+        dispatch({ id: opened.id, type: "remove" });
+      }
+      setOpen(null);
+      refocus(viaKeyboard);
+    },
+    [dispatch, drafts, open, refocus]
+  );
 
   const add = useCallback(
     (mark: AnnotationMark, area: HTMLElement) => {
@@ -177,8 +191,9 @@ function AnnotateLayer({
     (id: string) => {
       dispatch({ id, type: "remove" });
       setOpen(null);
+      refocus(false);
     },
-    [dispatch]
+    [dispatch, refocus]
   );
   const write = useCallback(
     (id: string, note: string) => dispatch({ id, note, type: "write" }),
@@ -223,7 +238,7 @@ function AnnotateLayer({
     }
     event.stopPropagation();
     if (open) {
-      close();
+      close(true);
     } else {
       setActive(false);
     }
@@ -270,7 +285,7 @@ function AnnotateLayer({
             ref={overlay}
             style={{ top }}
           >
-            {active ? <CaptureSurface onMark={add} /> : null}
+            {active ? <CaptureSurface onMark={add} ref={surface} /> : null}
             {drafts.map((draft, index) => (
               <Pin
                 current={draft.versionId === version.id}
@@ -381,9 +396,11 @@ function AnnotateToggle({
  */
 function CaptureSurface({
   onMark,
+  ref,
 }: {
   /** The mark, and the surface it's a fraction of. */
   readonly onMark: (mark: AnnotationMark, area: HTMLElement) => void;
+  readonly ref: RefObject<HTMLDivElement | null>;
 }) {
   const { t } = useLingui();
   const [drag, setDrag] = useState<{
@@ -446,6 +463,7 @@ function CaptureSurface({
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
+      ref={ref}
       role="application"
       // biome-ignore lint/a11y/noNoninteractiveTabindex: the keyboard way to place a pin.
       tabIndex={0}
@@ -546,7 +564,7 @@ function NoteEditor({
 }: {
   readonly draft: DraftNote;
   readonly number: number;
-  readonly onClose: () => void;
+  readonly onClose: (viaKeyboard: boolean) => void;
   readonly onRemove: (id: string) => void;
   readonly onWrite: (id: string, note: string) => void;
 }) {
@@ -562,11 +580,12 @@ function NoteEditor({
     (event: KeyboardEvent<HTMLTextAreaElement>) => {
       if (event.key === "Enter" && !event.shiftKey) {
         event.preventDefault();
-        onClose();
+        onClose(true);
       }
     },
     [onClose]
   );
+  const done = useCallback(() => onClose(false), [onClose]);
   const anchor = anchorOf(draft.mark);
   const below = anchor.y < 0.6;
   return (
@@ -599,7 +618,7 @@ function NoteEditor({
           <Trash2Icon aria-hidden data-icon="inline-start" />
           <Trans>Remove</Trans>
         </Button>
-        <Button onClick={onClose} size="xs">
+        <Button onClick={done} size="xs">
           <Trans>Done</Trans>
         </Button>
       </div>

@@ -98,14 +98,23 @@ const passage = (element: Element): AnnotationTarget | null => {
 
 const LINE = /^\d+$/;
 
-/** Lines of code, where the view numbers them (`data-line`). */
+/** Lines of code, where the view numbers them (`data-line`, its gutter). */
 const codeLine = (element: Element): AnnotationTarget | null => {
-  const line = element.closest("[data-line]")?.getAttribute("data-line");
+  const row = element.closest("[data-line], [data-column-number]");
+  const line =
+    row?.getAttribute("data-line") ?? row?.getAttribute("data-column-number");
   if (!(line && LINE.test(line))) {
     return null;
   }
   const number = Number(line);
-  return number > 0 ? { end: number, start: number, type: "lines" } : null;
+  if (number < 1) {
+    return null;
+  }
+  // The gutter has only the number; the line's own row has its code.
+  const text = row?.hasAttribute("data-line") ? clip(row.textContent) : "";
+  return text
+    ? { end: number, start: number, text, type: "lines" }
+    : { end: number, start: number, type: "lines" };
 };
 
 /** A node of the editable diagram (React Flow). */
@@ -121,12 +130,19 @@ const diagramNode = (element: Element): AnnotationTarget | null => {
     : { id: id.slice(0, 200), type: "node" };
 };
 
-/** An element and, through any shadow roots, the one drawn inside it. */
+/**
+ * An element and, through any shadow roots, the one drawn inside it. The
+ * layer's overlay is on top, so a root's `elementFromPoint` would answer
+ * with the overlay: the first of its `elementsFromPoint` in the root is it.
+ */
 const deepest = (element: Element, box: ClientBox): Element => {
   let hit = element;
-  while (hit.shadowRoot) {
-    const inner = hit.shadowRoot.elementFromPoint(box.x, box.y);
-    if (!inner || inner === hit) {
+  for (let root = hit.shadowRoot; root; root = hit.shadowRoot) {
+    const shadow: ShadowRoot = root;
+    const inner = shadow
+      .elementsFromPoint(box.x, box.y)
+      .find((each) => each !== hit && shadow.contains(each));
+    if (!inner) {
       break;
     }
     hit = inner;
