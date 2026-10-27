@@ -989,8 +989,9 @@ export const createInProcessExecutor = (
         // One answer for the question and every message sent under it while
         // it waited.
         leafId = await batchEnd(tx, run.conversationId, run.userMessageId);
-        const moved =
-          queued && (await followAnswerAhead(tx, run.userMessageId));
+        if (queued) {
+          await followAnswerAhead(tx, run.userMessageId);
+        }
         const inserted = await insertMessage(tx, {
           authorId: null,
           conversationId: run.conversationId,
@@ -1005,10 +1006,9 @@ export const createInProcessExecutor = (
         if (!inserted.ok) {
           tx.rollback();
         }
-        if (moved) {
-          // After the batch it answers, which was just dated by the clock.
-          await stampNow(tx, assistantMessageId);
-        }
+        // By the clock, after the lock: newer than the batch it answers,
+        // however long this transaction waited (or a moved batch was dated).
+        await stampNow(tx, assistantMessageId);
         const started = await transitionRun(
           tx,
           run.runId,
@@ -1061,7 +1061,12 @@ export const createInProcessExecutor = (
       }
     }
     const controller = new AbortController();
-    const claimed = await claim(run, controller, row.afterRunId !== null);
+    // A turn queued where it was sent (an edit) keeps that place.
+    const claimed = await claim(
+      run,
+      controller,
+      row.afterRunId !== null && run.options.delivery !== "queue"
+    );
     if (!claimed.ok) {
       return claimed;
     }

@@ -300,8 +300,8 @@ describe("steering a running answer", () => {
     h = await createHarness();
     const { answering, chat, gate } = await busyTurn(h, "First.");
     const answer = answering.assistantMessageId as MessageId;
-    const second = await send(h, chat, "Second?", answer, "queue");
-    const third = await send(h, chat, "Third?", answer, "queue");
+    const second = await send(h, chat, "Second?", answer);
+    const third = await send(h, chat, "Third?", answer);
     h.nextTurn({
       model: new MockLanguageModelV4({ doStream: textStream("Second.") }),
     });
@@ -385,6 +385,81 @@ describe("steering a running answer", () => {
     ]);
   });
 
+  it("an edit sent while the batch's answer runs is a branch beside the message it replaces", async () => {
+    h = await createHarness();
+    const { answering, chat, gate } = await busyTurn(h, "First.");
+    const firstAnswer = answering.assistantMessageId as MessageId;
+    // Q1 waits its turn; Q1b joins its batch.
+    const q1 = await send(h, chat, "Q1.", firstAnswer, "queue");
+    const q1b = await send(h, chat, "Q1b.", firstAnswer, "steer");
+    expect(q1b.runId).toBe(q1.runId);
+    const second = gatedTool();
+    h.nextTurn({ model: callThenAnswer("Both."), tools: second.tools });
+    gate.release();
+    await second.called;
+    expect(await runOf(h, q1.runId)).toMatchObject({ status: "running" });
+
+    // Edit Q1b while its batch's answer runs: sent from Q1, asking to queue.
+    h.nextTurn({
+      model: new MockLanguageModelV4({ doStream: textStream("Edited.") }),
+    });
+    const edited = await send(h, chat, "Q1c.", q1.userMessageId, "queue");
+    expect(
+      expectOk(await getMessage(h.db, edited.userMessageId)).parentId
+    ).toBe(q1.userMessageId);
+    second.release();
+    await h.services.executor.idle();
+    // Still beside Q1b once everything has run.
+    expect(
+      expectOk(await getMessage(h.db, edited.userMessageId)).parentId
+    ).toBe(q1.userMessageId);
+    const path = await pathOf(h, chat);
+    expect(path.map((message) => textOf(message.parts)).slice(-3)).toEqual([
+      "Q1.",
+      "Q1c.",
+      "Edited.",
+    ]);
+  });
+
+  it("an edit sent while a restarted answer runs is a branch beside the message it replaces", async () => {
+    h = await createHarness();
+    const first = scriptedModel();
+    h.nextTurn({ model: first.model });
+    const chat = await newChat(h);
+    const asked = await send(h, chat, "Say hi.", null);
+    first.push(...textParts.start(), textParts.delta("Hal"));
+    const restarted = scriptedModel();
+    h.nextTurn({ model: restarted.model });
+    const answering = (await runOf(h, asked.runId)).assistantMessageId;
+    const restart = await send(h, chat, "And bye.", answering, "steer");
+    restarted.push(...textParts.start(), textParts.delta("Hi"));
+    const harness = h;
+    await vi.waitFor(async () =>
+      expect((await runOf(harness, restart.runId)).status).toBe("running")
+    );
+
+    h.nextTurn({
+      model: new MockLanguageModelV4({ doStream: textStream("Later.") }),
+    });
+    const edited = await send(
+      h,
+      chat,
+      "And later.",
+      asked.userMessageId,
+      "queue"
+    );
+    expect(
+      expectOk(await getMessage(h.db, edited.userMessageId)).parentId
+    ).toBe(asked.userMessageId);
+    restarted.push(textParts.textEnd(), textParts.finish());
+    restarted.end();
+    await h.services.executor.idle();
+    expect(
+      expectOk(await getMessage(h.db, edited.userMessageId)).parentId
+    ).toBe(asked.userMessageId);
+    expect(await runOf(h, edited.runId)).toMatchObject({ status: "succeeded" });
+  });
+
   it("queues a plain turn, as before", async () => {
     h = await createHarness();
     const { answering, chat, gate } = await busyTurn(h);
@@ -437,7 +512,7 @@ describe("steering a running answer", () => {
     // The second step's call means the steer was taken before it.
     await two.called;
     // A page that hadn't seen the steer still sends from the first answer.
-    const late = await send(h, chat, "One more.", firstAnswer, "queue");
+    const late = await send(h, chat, "One more.", firstAnswer);
     expect(late.status).toBe("queued");
     h.nextTurn({
       model: new MockLanguageModelV4({ doStream: textStream("Sure.") }),
@@ -618,6 +693,45 @@ describe("the queue's actions", () => {
 });
 
 describe("restarting an answer", () => {
+  it("never runs a tool call that comes after the answer was stopped", async () => {
+    h = await createHarness();
+    const runs: string[] = [];
+    const writing = scriptedModel();
+    h.nextTurn({
+      model: writing.model,
+      tools: {
+        wait: tool({
+          execute: () => {
+            runs.push("wait");
+            return "ran";
+          },
+          inputSchema: z.object({}),
+        }),
+      },
+    });
+    const chat = await newChat(h);
+    const busy = await send(h, chat, "Look.", null);
+    writing.push(...textParts.start(), textParts.delta("Thinking it over"));
+    const harness = h;
+    await vi.waitFor(async () =>
+      expect((await runOf(harness, busy.runId)).status).toBe("running")
+    );
+    expect(
+      await h.services.executor.restartIfNoTools(busy.runId, h.ownerId)
+    ).toBe("restarted");
+    // The model asks for a tool after the stop: it doesn't run.
+    writing.push(textParts.textEnd(), {
+      input: "{}",
+      toolCallId: "late",
+      toolName: "wait",
+      type: "tool-call",
+    });
+    writing.end();
+    await h.services.executor.idle();
+    expect(runs).toEqual([]);
+    expect(await runOf(h, busy.runId)).toMatchObject({ status: "cancelled" });
+  });
+
   it("restarts one that hasn't begun a tool call, and leaves one that has", async () => {
     h = await createHarness();
     const gate = gatedTool();

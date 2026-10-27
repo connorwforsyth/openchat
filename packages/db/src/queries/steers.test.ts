@@ -20,6 +20,7 @@ import {
   followThread,
   nextSteer,
   removeUnrunTurn,
+  steerInstead,
   takeSteer,
   toolWorkStarted,
 } from "./steers";
@@ -106,7 +107,7 @@ const answering = async () => {
     ).run;
     return { asked, queued };
   };
-  return { answer, chat, db, queue, running, say };
+  return { answer, chat, context, db, question, queue, running, say };
 };
 
 describe("takeSteer", () => {
@@ -310,5 +311,30 @@ describe("toolWorkStarted", () => {
       ])
     );
     expect(await toolWorkStarted(db, running.id)).toBe(true);
+  });
+});
+
+describe("steerInstead", () => {
+  test("turns a restart's turn into a steer after the answer so far", async () => {
+    const { answer, context, db, question, running, say } = await answering();
+    // Placed to restart: beside the answer, under the question.
+    const asked = await say("and c", question.id);
+    const turn = (
+      await createRun(db, {
+        afterRunId: running.id,
+        context,
+        conversationId: answer.conversationId,
+        createdBy: asked.authorId as never,
+        target: { model: "fast", type: "model" },
+        userMessageId: asked.id,
+      })
+    ).run;
+    await steerInstead(db, turn, running.id);
+    expect(expectOk(await getMessage(db, asked.id)).parentId).toBe(answer.id);
+    expect(expectOk(await getRun(db, turn.id)).options).toMatchObject({
+      delivery: "steer",
+    });
+    // The answer takes it at its next step.
+    expect((await take(db, running.id))?.answer.parentId).toBe(asked.id);
   });
 });

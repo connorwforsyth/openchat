@@ -245,13 +245,19 @@ export const busyJoin = ({
   }
 };
 
-/** The options stored for the turn: `delivery` only on a steer. Pure. */
+/**
+ * The options stored for the turn: `delivery` on a steer, and on a turn
+ * the client asked to queue where it sent it (it keeps that place). Pure.
+ */
 const withDelivery = (
   options: RunOptions,
   how: BusyJoin | null
 ): RunOptions => {
-  const { delivery: _asked, ...rest } = options;
-  return how === "steer" ? { ...rest, delivery: "steer" } : rest;
+  const { delivery: asked, ...rest } = options;
+  if (how === "steer") {
+    return { ...rest, delivery: "steer" };
+  }
+  return asked === "queue" ? { ...rest, delivery: "queue" } : rest;
 };
 
 /**
@@ -491,7 +497,13 @@ const placeRun = async (
           authorId: actor.userId,
           conversationId,
           mode: resolved.chatMode,
-          parentId: await parentFor(tx, anchor, tail, how),
+          parentId: await parentFor(
+            tx,
+            anchor,
+            tail,
+            how,
+            input.options?.delivery
+          ),
           parts: partsWithSkills(turn.parts, resolved.skills),
           role: "user",
         });
@@ -594,15 +606,18 @@ const joinFor = async (
 /**
  * Where the message goes: into the batch (after its last message) to join
  * or restart; after the answer being written (or a queued turn's question)
- * otherwise; after `anchor` when nothing is busy.
+ * when the client didn't say (D25); after `anchor` when nothing is busy or
+ * the client asked to queue it there (an edit: a branch beside the message
+ * it replaces, never a follow-up to the answer being written).
  */
 const parentFor = async (
   tx: Db,
   anchor: MessageId | null,
   tail: RunRow | undefined,
-  how: BusyJoin | null
+  how: BusyJoin | null,
+  asked: RunOptions["delivery"]
 ): Promise<MessageId | null> => {
-  if (!tail) {
+  if (!tail || asked === "queue") {
     return anchor;
   }
   if (how === "join" || how === "restart") {

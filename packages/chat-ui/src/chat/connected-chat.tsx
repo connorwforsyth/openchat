@@ -703,12 +703,12 @@ const useLiveTurn = ({
       // Web search off means "let the Decider choose" (`auto`). A message
       // sent while an answer is on its way joins it (the server decides
       // how), even when this page hasn't seen that answer start yet; an
-      // edit is its own branch.
+      // edit queues where it was sent, a branch of its own.
       options: {
         sandbox: "auto" as const,
         webSearch: "auto" as const,
         ...options,
-        ...(edit ? {} : { delivery: "steer" as const }),
+        delivery: edit ? ("queue" as const) : ("steer" as const),
       },
       ...(fields.target ? { target: fields.target } : {}),
     };

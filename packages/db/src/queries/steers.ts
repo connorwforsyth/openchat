@@ -206,10 +206,12 @@ export const followAnswerAhead = async (
   if (!parentId || child) {
     return false;
   }
+  // The question ahead may be a batch: its run is under the batch's head.
+  const head = await batchHead(tx, parentId);
   const [ahead] = await tx
     .select({ answerId: run.assistantMessageId })
     .from(run)
-    .where(and(eq(run.userMessageId, parentId), eq(run.status, "succeeded")))
+    .where(and(eq(run.userMessageId, head), eq(run.status, "succeeded")))
     .orderBy(desc(run.createdAt), desc(run.id))
     .limit(1);
   const answer = ahead?.answerId ? await getMessage(tx, ahead.answerId) : null;
