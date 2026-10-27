@@ -46,7 +46,10 @@ export const questionChain = async (
           eq(message.role, "user"),
           first.value.authorId === null
             ? sql`false`
-            : eq(message.authorId, first.value.authorId)
+            : eq(message.authorId, first.value.authorId),
+          // A turn queued under the question has its own run and answer;
+          // only messages that joined the batch have none.
+          sql`not exists (select 1 from ${run} where ${run.userMessageId} = ${message.id})`
         )
       )
       .orderBy(asc(message.createdAt), asc(message.id))
@@ -174,6 +177,63 @@ const laterThan = async (db: Db, id: MessageId): Promise<MessageId | null> => {
 };
 
 /**
+ * A queued turn whose question waits under the question ahead (it had no
+ * answer when this was sent), moved under that question's answer as it
+ * starts: the thread reads question, answer, question, answer, instead of
+ * forking at the first question. Dated now, so it's still newer than its
+ * new parent. Only a fresh question (no answer or turn under it yet) after an answer
+ * that stands (its run succeeded) moves: a restart's message stays beside
+ * the answer it stopped, and a regenerated question keeps its place.
+ */
+export const followAnswerAhead = async (
+  tx: Db,
+  userMessageId: MessageId
+): Promise<void> => {
+  const asked = await getMessage(tx, userMessageId);
+  const parentId = asked.ok ? asked.value.parentId : null;
+  // Messages that joined its batch move with it; an answer or a turn of
+  // its own under it means it's been placed for good.
+  const [child] = await tx
+    .select({ id: message.id })
+    .from(message)
+    .where(
+      and(
+        eq(message.parentId, userMessageId),
+        sql`(${message.role} <> 'user' or exists (select 1 from ${run} where ${run.userMessageId} = ${message.id}))`
+      )
+    )
+    .limit(1);
+  if (!parentId || child) {
+    return;
+  }
+  const [ahead] = await tx
+    .select({ answerId: run.assistantMessageId })
+    .from(run)
+    .where(and(eq(run.userMessageId, parentId), eq(run.status, "succeeded")))
+    .orderBy(desc(run.createdAt), desc(run.id))
+    .limit(1);
+  if (!ahead?.answerId) {
+    return;
+  }
+  await tx
+    .update(message)
+    .set({ parentId: ahead.answerId })
+    .where(eq(message.id, userMessageId));
+  // Re-dated in order, just before this transaction's `now()` (when the run's
+  // answer is stamped): after the answer ahead, before the new answer.
+  const batch = await questionChain(tx, userMessageId);
+  for (const [index, each] of batch.entries()) {
+    // biome-ignore lint/performance/noAwaitInLoops: one per message in the batch; a few at most.
+    await tx
+      .update(message)
+      .set({
+        createdAt: sql`now() - ${`${batch.length - index} microseconds`}::interval`,
+      })
+      .where(eq(message.id, each.id));
+  }
+};
+
+/**
  * Where a run's answer goes: under the last message of its question's
  * batch. Locks the conversation first, as placing a message does, so a
  * message can't join the batch after this read and end up beside the answer.
@@ -222,11 +282,7 @@ const lockInOrder = async (tx: Db, runId: RunId): Promise<RunRow | null> => {
   if (!found.ok) {
     return null;
   }
-  await tx
-    .select({ id: conversation.id })
-    .from(conversation)
-    .where(eq(conversation.id, found.value.conversationId))
-    .for("update");
+  await lockConversation(tx, found.value.conversationId);
   const locked = await lockRun(tx, runId);
   return locked.ok ? locked.value : null;
 };

@@ -292,6 +292,34 @@ describe("steering a running answer", () => {
     ]);
   });
 
+  it("answers turns queued one behind another once each, in one straight thread", async () => {
+    h = await createHarness();
+    const { answering, chat, gate } = await busyTurn(h, "First.");
+    const answer = answering.assistantMessageId as MessageId;
+    const second = await send(h, chat, "Second?", answer, "queue");
+    const third = await send(h, chat, "Third?", answer, "queue");
+    h.nextTurn({
+      model: new MockLanguageModelV4({ doStream: textStream("Second.") }),
+    });
+    h.nextTurn({
+      model: new MockLanguageModelV4({ doStream: textStream("Third.") }),
+    });
+    gate.release();
+    await h.services.executor.idle();
+
+    expect(await runOf(h, second.runId)).toMatchObject({ status: "succeeded" });
+    expect(await runOf(h, third.runId)).toMatchObject({ status: "succeeded" });
+    const path = await pathOf(h, chat);
+    expect(path.map((message) => textOf(message.parts))).toEqual([
+      "Look into it.",
+      "First.",
+      "Second?",
+      "Second.",
+      "Third?",
+      "Third.",
+    ]);
+  });
+
   it("queues a plain turn, as before", async () => {
     h = await createHarness();
     const { answering, chat, gate } = await busyTurn(h);

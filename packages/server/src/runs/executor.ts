@@ -57,7 +57,12 @@ import {
   setRunResolvedModel,
   transitionRun,
 } from "@workspace/db/queries/runs";
-import { batchEnd, nextSteer, takeSteer } from "@workspace/db/queries/steers";
+import {
+  batchEnd,
+  followAnswerAhead,
+  nextSteer,
+  takeSteer,
+} from "@workspace/db/queries/steers";
 import { newId } from "@workspace/shared/ids";
 import { err, ok, type Result } from "@workspace/shared/result";
 import {
@@ -954,6 +959,7 @@ export const createInProcessExecutor = (
         // One answer for the question and every message sent under it while
         // it waited.
         leafId = await batchEnd(tx, run.conversationId, run.userMessageId);
+        await followAnswerAhead(tx, run.userMessageId);
         const inserted = await insertMessage(tx, {
           authorId: null,
           conversationId: run.conversationId,
